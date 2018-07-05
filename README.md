@@ -6,7 +6,7 @@ The new nJAMS Client SDK
 
 * [JavaDoc nJAMS SDK](https://integrationmatters.github.io/njams-sdk/index-njams-sdk.html) - The newest SDK JavaDocs
 * [JavaDoc nJAMS SDK cloud communication](https://integrationmatters.github.io/njams-sdk/index-njams-sdk-communication-cloud.html) - The newest cloud communication JavaDocs
-* [JavaDoc nJAMS SDK sample client](https://integrationmatters.github.io/njams-sdk/index-njams-sdk-client-sample.html) - The newest sample JavaDocs
+* [JavaDoc nJAMS SDK sample client](https://integrationmatters.github.io/njams-sdk/index-njams-sdk-sample-client.html) - The newest sample JavaDocs
 
 ## Getting started
 
