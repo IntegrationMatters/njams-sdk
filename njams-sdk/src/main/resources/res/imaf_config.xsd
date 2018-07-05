@@ -1,0 +1,156 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+	xmlns="http://www.faizsiegeln.com/schema/njams/extracts/2012-10-22/"
+	targetNamespace="http://www.faizsiegeln.com/schema/njams/extracts/2012-10-22/"
+	elementFormDefault="qualified" attributeFormDefault="unqualified">
+
+	<xsd:simpleType name="attributeType">
+		<xsd:restriction base="xsd:string">
+			<xsd:enumeration value="event" />
+			<xsd:enumeration value="attribute" />
+			<xsd:enumeration value="unknown" />
+		</xsd:restriction>
+	</xsd:simpleType>
+
+	<xsd:simpleType name="ruleType">
+		<xsd:restriction base="xsd:string">
+			<xsd:enumeration value="event" />
+			<xsd:enumeration value="regexp" />
+			<xsd:enumeration value="value" />
+			<xsd:enumeration value="xpath" />
+			<xsd:enumeration value="disabled" />
+		</xsd:restriction>
+	</xsd:simpleType>
+
+	<xsd:simpleType name="excludeType">
+		<xsd:restriction base="xsd:string">
+			<xsd:enumeration value="regexp" />
+			<xsd:enumeration value="string" />
+		</xsd:restriction>
+	</xsd:simpleType>
+
+	<xsd:complexType name="extractruleType">
+		<xsd:attribute name="attribute" type="xsd:string" />
+		<xsd:attribute name="attributeType" type="attributeType"
+			default="unknown" />
+		<xsd:attribute name="ruleType" type="ruleType" />
+		<xsd:attribute name="rule" type="xsd:string" />
+		<xsd:attribute name="inout" type="xsd:string" default="out" />
+	</xsd:complexType>
+
+	<xsd:element name="extract">
+		<xsd:complexType>
+			<xsd:sequence>
+				<xsd:element name="extractionrules">
+					<xsd:complexType>
+						<xsd:sequence>
+							<xsd:element name="extractrule" type="extractruleType"
+								minOccurs="1" maxOccurs="unbounded" />
+						</xsd:sequence>
+					</xsd:complexType>
+				</xsd:element>
+			</xsd:sequence>
+			<xsd:attribute name="process" type="xsd:string" />
+			<xsd:attribute name="activity" type="xsd:string" />
+			<xsd:attribute name="name" type="xsd:string" />
+		</xsd:complexType>
+	</xsd:element>
+
+	<xsd:element name="extracts">
+		<xsd:complexType>
+			<xsd:sequence>
+				<xsd:element ref="extract" minOccurs="1" maxOccurs="unbounded" />
+			</xsd:sequence>
+		</xsd:complexType>
+	</xsd:element>
+
+	<xsd:element name="tracepoint">
+		<xsd:complexType>
+			<xsd:attribute name="process" type="xsd:string" />
+			<xsd:attribute name="activity" type="xsd:string" />
+			<xsd:attribute name="starttime" type="xsd:long" />
+			<xsd:attribute name="endtime" type="xsd:long" />
+			<xsd:attribute name="iterations" type="xsd:int" />
+			<xsd:attribute name="deeptrace" type="xsd:boolean"
+				default="false" />
+		</xsd:complexType>
+	</xsd:element>
+
+	<xsd:element name="tracing">
+		<xsd:complexType>
+			<xsd:sequence>
+				<xsd:element ref="tracepoint" minOccurs="1" maxOccurs="unbounded" />
+			</xsd:sequence>
+		</xsd:complexType>
+	</xsd:element>
+
+	<xsd:element name="loglevel">
+		<xsd:complexType>
+			<xsd:attribute name="process" type="xsd:string" />
+			<xsd:attribute name="loglevel" type="xsd:string" />
+		</xsd:complexType>
+	</xsd:element>
+
+	<xsd:element name="exclude">
+		<xsd:complexType>
+			<xsd:attribute name="type" type="excludeType" default="string" />
+			<xsd:attribute name="process" type="xsd:string" />
+		</xsd:complexType>
+	</xsd:element>
+
+	<xsd:element name="include">
+		<xsd:complexType>
+			<xsd:attribute name="type" type="excludeType" default="string" />
+			<xsd:attribute name="process" type="xsd:string" />
+		</xsd:complexType>
+	</xsd:element>
+
+	<xsd:element name="logging">
+		<xsd:complexType>
+			<xsd:sequence>
+				<xsd:element ref="loglevel" minOccurs="0" maxOccurs="unbounded" />
+				<xsd:element ref="exclude" minOccurs="0" maxOccurs="unbounded" />
+				<xsd:element ref="include" minOccurs="0" maxOccurs="unbounded" />
+			</xsd:sequence>
+		</xsd:complexType>
+	</xsd:element>
+	
+	<xsd:element name="plugins">
+		<xsd:complexType>
+			<xsd:sequence>
+				<xsd:element ref="pluginconfiguration" minOccurs="0"
+					maxOccurs="unbounded" />
+			</xsd:sequence>
+		</xsd:complexType>
+	</xsd:element>
+
+	<xsd:element name="pluginconfiguration">
+		<xsd:complexType>
+			<xsd:sequence>
+				<xsd:element name="setting" minOccurs="0" maxOccurs="unbounded">
+					<xsd:complexType>
+						<xsd:attribute name="name" type="xsd:string" />
+						<xsd:attribute name="value" type="xsd:string" />
+					</xsd:complexType>
+				</xsd:element>
+			</xsd:sequence>
+			<xsd:attribute name="pluginid" type="xsd:string" />
+		</xsd:complexType>
+	</xsd:element>
+
+
+	<xsd:element name="config">
+		<xsd:complexType>
+			<xsd:sequence>
+				<xsd:element ref="logging" minOccurs="0" maxOccurs="1" />
+				<xsd:element ref="tracing" minOccurs="0" maxOccurs="1" />
+				<xsd:element ref="extracts" minOccurs="0" maxOccurs="1" />
+				<xsd:element ref="plugins" minOccurs="0" maxOccurs="1" />
+			</xsd:sequence>
+			<xsd:attribute name="lastdeploymenttime" type="xsd:long"
+				default="0" />
+		</xsd:complexType>
+	</xsd:element>
+
+</xsd:schema>

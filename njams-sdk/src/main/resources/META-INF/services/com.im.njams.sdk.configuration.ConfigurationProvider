@@ -1,0 +1,2 @@
+com.im.njams.sdk.configuration.provider.FileConfigurationProvider
+com.im.njams.sdk.configuration.provider.MemoryConfigurationProvider

@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="windows-1252"?>
+
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+	 xmlns:event="http://www.faizsiegeln.com/schema/njams/event/2011-04-21/"
+	 xmlns:att="http://www.faizsiegeln.com/schema/njams/attribute/2010-04-21/"
+	 xmlns:trace="http://www.faizsiegeln.com/schema/njams/trace/2011-04-21/"
+	 xmlns:track="http://www.faizsiegeln.com/schema/njams/track/2011-04-21/"
+	 elementFormDefault="qualified"
+	 attributeFormDefault="unqualified">
+	<xsd:import namespace="http://www.faizsiegeln.com/schema/njams/attribute/2010-04-21/" schemaLocation="imaf_attributes.xsd"/>
+	<xsd:import namespace="http://www.faizsiegeln.com/schema/njams/event/2011-04-21/" schemaLocation="imaf_event.xsd"/>
+	<xsd:import namespace="http://www.faizsiegeln.com/schema/njams/trace/2011-04-21/" schemaLocation="imaf_trace.xsd"/>
+	<xsd:import namespace="http://www.faizsiegeln.com/schema/njams/track/2011-04-21/" schemaLocation="imaf_track.xsd"/>
+	<xsd:element name="LogMessage">
+		<xsd:complexType>
+			<xsd:sequence>
+				<xsd:element name="LogID" type="xsd:string"/>
+				<xsd:element name="CorrelationLogID" type="xsd:string" minOccurs="0"/>
+				<xsd:element name="ParentLogID" type="xsd:string" minOccurs="0"/>
+				<xsd:element name="ExternalLogID" type="xsd:string" minOccurs="0"/>
+				<xsd:element name="JobID" type="xsd:long"/>
+				<xsd:element name="DomainName" type="xsd:string"/>
+				<xsd:element name="MachineName" type="xsd:string"/>
+				<xsd:element name="EngineName" type="xsd:string"/>
+				<xsd:element name="Deployment" type="xsd:string"/>
+				<xsd:element name="ProcessName" type="xsd:string"/>
+				<xsd:element name="BusinessService" type="xsd:string"/>
+				<xsd:element name="BusinessObject" type="xsd:string"/>
+				<xsd:element name="BusinessStart" minOccurs="0">
+					<xsd:complexType>
+						<xsd:simpleContent>
+							<xsd:extension base="xsd:string">
+							<xsd:attribute name="timestamp" type="xsd:long" />
+							</xsd:extension>
+							</xsd:simpleContent>
+					</xsd:complexType>
+				</xsd:element>
+				<xsd:element name="BusinessEnd" minOccurs="0">
+					<xsd:complexType>
+						<xsd:simpleContent>
+							<xsd:extension base="xsd:string">
+							<xsd:attribute name="timestamp" type="xsd:long" />
+							</xsd:extension>
+							</xsd:simpleContent>
+					</xsd:complexType>
+				</xsd:element>
+				<xsd:element name="JobStart">
+					<xsd:complexType>
+						<xsd:simpleContent>
+							<xsd:extension base="xsd:string">
+							<xsd:attribute name="timestamp" type="xsd:long" />
+							</xsd:extension>
+							</xsd:simpleContent>
+					</xsd:complexType>
+				</xsd:element>
+				<xsd:element name="JobEnd" minOccurs="0">
+					<xsd:complexType>
+						<xsd:simpleContent>
+							<xsd:extension base="xsd:string">
+							<xsd:attribute name="timestamp" type="xsd:long" />
+							</xsd:extension>
+							</xsd:simpleContent>
+					</xsd:complexType>
+				</xsd:element>
+				<xsd:element name="Status" type="xsd:int"/>
+				<xsd:element name="LastEventStatus" type="xsd:int"/>
+				<xsd:choice minOccurs="0" maxOccurs="unbounded">
+					<xsd:element ref="event:Events"/>
+					<xsd:element ref="trace:Traces"/>
+					<xsd:element ref="track:Track"/>
+				</xsd:choice>
+			</xsd:sequence>
+			<xsd:attribute name="logsource" type="xsd:string"/>
+			<xsd:attribute name="version" type="xsd:string"/>
+			<xsd:attribute name="timestamp" type="xsd:long"/>
+		</xsd:complexType>
+	</xsd:element>
+</xsd:schema>

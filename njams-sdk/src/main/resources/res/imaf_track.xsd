@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="windows-1252"?>
+
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+	xmlns="http://www.faizsiegeln.com/schema/njams/track/2011-04-21/"
+	targetNamespace="http://www.faizsiegeln.com/schema/njams/track/2011-04-21/"
+	elementFormDefault="qualified" attributeFormDefault="unqualified">
+	<xsd:element name="Track">
+		<xsd:complexType>
+			<xsd:sequence>
+				<xsd:element name="Transition" minOccurs="0" maxOccurs="unbounded">
+					<xsd:complexType>
+						<xsd:simpleContent>
+							<xsd:extension base="xsd:string">
+								<xsd:attribute name="Sequence" type="xsd:long" />
+								<xsd:attribute name="Stack" type="xsd:string" />
+								<xsd:attribute name="CalledProcess" type="xsd:string" />
+								<xsd:attribute name="Iteration" type="xsd:long" />
+								<xsd:attribute name="DomainObjectId" type="xsd:long" />
+								<xsd:attribute name="ElapsedTime" type="xsd:long" />
+								<xsd:attribute name="ExecutionTime" type="xsd:long" />
+							</xsd:extension>
+						</xsd:simpleContent>
+					</xsd:complexType>
+				</xsd:element>
+			</xsd:sequence>
+			<xsd:attribute name="process" type="xsd:string" />
+		</xsd:complexType>
+	</xsd:element>
+</xsd:schema>

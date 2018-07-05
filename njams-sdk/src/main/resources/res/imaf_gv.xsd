@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+	 xmlns="http://www.faizsiegeln.com/schema/njams/gv/2013-05-04/"
+	 targetNamespace="http://www.faizsiegeln.com/schema/njams/gv/2013-05-04/"
+	 elementFormDefault="qualified"
+	 attributeFormDefault="unqualified">
+	<xsd:complexType name ="GlobalVariable">
+		<xsd:simpleContent>
+			<xsd:extension base="xsd:string">		
+				<xsd:attribute name="name" type="xsd:string"/>
+				<xsd:attribute name="setting" type="xsd:string"/>
+			</xsd:extension>
+		</xsd:simpleContent>		
+	</xsd:complexType>
+	<xsd:element name="globalVariables">
+		<xsd:complexType>
+			<xsd:sequence>
+				<xsd:element name="globalVariable" type="GlobalVariable" minOccurs="0" maxOccurs="unbounded"/>
+			</xsd:sequence>
+		</xsd:complexType>
+	</xsd:element>
+</xsd:schema>
