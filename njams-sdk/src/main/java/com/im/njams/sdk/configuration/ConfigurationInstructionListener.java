@@ -315,8 +315,8 @@ public class ConfigurationInstructionListener implements InstructionListener {
                 activity.setTracepoint(tp);
                 configuration.save();
             } catch (Exception e) {
-                errorMsg = "Unable to delete Tracepoint: " + e.getMessage();
-                LOG.error("Unable to delete Tracepoint", e);
+                errorMsg = "Unable to save Tracepoint: " + e.getMessage();
+                LOG.error("Unable to save Tracepoint", e);
             }
         }
 
