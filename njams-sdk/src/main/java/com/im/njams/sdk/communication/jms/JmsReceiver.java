@@ -50,6 +50,8 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
 
     private static final org.slf4j.Logger LOG = LoggerFactory.getLogger(JmsReceiver.class);
 
+    private static final String NJAMS_CONTENT_HEADER = "NJAMS_CONTENT";
+
     private Connection connection;
     private Session session;
     private Properties properties;
@@ -170,6 +172,11 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
     @Override
     public void onMessage(Message msg) {
         try {
+            String njamsContent = msg.getStringProperty(NJAMS_CONTENT_HEADER);
+            if (!njamsContent.equalsIgnoreCase("json")) {
+                LOG.debug("Received non json instruction -> ignore");
+                return;
+            }
             Instruction instruction = getInstruction(msg);
             if (instruction != null) {
                 onInstruction(instruction);
