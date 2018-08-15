@@ -16,13 +16,8 @@
  */
 package com.im.njams.sdk.communication.cloud;
 
-import com.faizsiegeln.njams.messageformat.v4.common.MessageVersion;
-import com.faizsiegeln.njams.messageformat.v4.logmessage.LogMessage;
-import com.faizsiegeln.njams.messageformat.v4.projectmessage.ProjectMessage;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.im.njams.sdk.common.JsonSerializerFactory;
-import com.im.njams.sdk.common.NjamsSdkRuntimeException;
-import com.im.njams.sdk.communication.Sender;
+import static java.nio.charset.Charset.defaultCharset;
+
 import java.io.BufferedReader;
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -30,18 +25,27 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.MalformedURLException;
 import java.net.URL;
-import static java.nio.charset.Charset.defaultCharset;
 import java.security.KeyStore;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
+
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.KeyManager;
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
+
 import org.slf4j.LoggerFactory;
+
+import com.faizsiegeln.njams.messageformat.v4.common.MessageVersion;
+import com.faizsiegeln.njams.messageformat.v4.logmessage.LogMessage;
+import com.faizsiegeln.njams.messageformat.v4.projectmessage.ProjectMessage;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.im.njams.sdk.common.JsonSerializerFactory;
+import com.im.njams.sdk.common.NjamsSdkRuntimeException;
+import com.im.njams.sdk.communication.Sender;
 
 /**
  *
@@ -61,24 +65,24 @@ public class CloudSender implements Sender {
     private final ObjectMapper mapper;
 
     public CloudSender() {
-        this.mapper = JsonSerializerFactory.getDefaultMapper();
+        mapper = JsonSerializerFactory.getDefaultMapper();
     }
 
     @Override
     public void init(Properties properties) {
         //TODO: do it for production
-//        try {
-//            loadKeystore();
-//        } catch (final Exception ex) {
-//            LOG.error("Error initializing keystore", ex);
-//            throw new NjamsSdkRuntimeException("Error initializing keystore", ex);
-//        }
+        //        try {
+        //            loadKeystore();
+        //        } catch (final Exception ex) {
+        //            LOG.error("Error initializing keystore", ex);
+        //            throw new NjamsSdkRuntimeException("Error initializing keystore", ex);
+        //        }
         try {
-            this.url = new URL(properties.getProperty(CloudConstants.URL));
+            url = new URL(properties.getProperty(CloudConstants.URL));
         } catch (final MalformedURLException ex) {
             throw new NjamsSdkRuntimeException("unable to init http sender", ex);
         }
-        this.apikey = properties.getProperty(CloudConstants.APIKEY);
+        apikey = properties.getProperty(CloudConstants.APIKEY);
     }
 
     @Override
@@ -97,7 +101,7 @@ public class CloudSender implements Sender {
             final String response = send(msg, properties);
             LOG.info("Response: " + response);
         } catch (Exception ex) {
-            LOG.error("Error sending LogMessage", ex);
+            LOG.error("Error sending log message", ex);
         }
     }
 
@@ -112,7 +116,7 @@ public class CloudSender implements Sender {
             final String response = send(msg, properties);
             LOG.info(response);
         } catch (Exception ex) {
-            LOG.error("Error sending LogMessage", ex);
+            LOG.error("Error sending project message", ex);
         }
     }
 
@@ -139,8 +143,7 @@ public class CloudSender implements Sender {
             connection.setRequestProperty("x-api-key", apikey);
 
             final String body = mapper.writeValueAsString(msg);
-            connection.setRequestProperty("Content-Length",
-                    Integer.toString(body.getBytes("UTF-8").length));
+            connection.setRequestProperty("Content-Length", Integer.toString(body.getBytes("UTF-8").length));
             connection.setRequestProperty("Content-Language", "en-US");
 
             connection.setUseCaches(false);
@@ -149,7 +152,8 @@ public class CloudSender implements Sender {
             connection.setRequestProperty(NJAMS_MESSAGEVERSION, MessageVersion.V4.toString());
             addAddtionalProperties(properties, connection);
 
-            connection.getRequestProperties().entrySet().forEach(e -> LOG.debug("Header {} : {}", e.getKey(), e.getValue()));
+            connection.getRequestProperties().entrySet()
+                    .forEach(e -> LOG.debug("Header {} : {}", e.getKey(), e.getValue()));
 
             //Send request
             try (final DataOutputStream wr = new DataOutputStream(connection.getOutputStream())) {
@@ -169,13 +173,8 @@ public class CloudSender implements Sender {
                 }
             }
             final int responseCode = connection.getResponseCode();
-            return new StringBuilder("rc = ")
-                    .append(responseCode)
-                    .append(", logId=")
-                    .append('"')
-                    .append(response)
-                    .append('"')
-                    .toString();
+            return new StringBuilder("rc = ").append(responseCode).append(", logId=").append('"').append(response)
+                    .append('"').toString();
         } catch (Exception e) {
             throw new NjamsSdkRuntimeException("Error sending message", e);
         } finally {
@@ -187,10 +186,10 @@ public class CloudSender implements Sender {
 
     private void loadKeystore() throws IOException {
         if (System.getProperty("javax.net.ssl.trustStore") == null) {
-            try (InputStream keystoreInput
-                    = Thread.currentThread().getContextClassLoader().getResourceAsStream("client.ks");
-                    InputStream truststoreInput
-                    = Thread.currentThread().getContextClassLoader().getResourceAsStream("client.ts")) {
+            try (InputStream keystoreInput =
+                    Thread.currentThread().getContextClassLoader().getResourceAsStream("client.ks");
+                    InputStream truststoreInput =
+                            Thread.currentThread().getContextClassLoader().getResourceAsStream("client.ts")) {
                 setSSLFactories(keystoreInput, "password", truststoreInput);
             }
         } else {
@@ -227,7 +226,8 @@ public class CloudSender implements Sender {
             trustStore.load(trustStream, null);
 
             // initialize a trust manager factory with the trusted store
-            final TrustManagerFactory trustFactory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+            final TrustManagerFactory trustFactory =
+                    TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
             trustFactory.init(trustStore);
 
             // get the trust managers from the factory
@@ -241,7 +241,7 @@ public class CloudSender implements Sender {
             throw new NjamsSdkRuntimeException("Unable to set up SSL environment", ex);
         }
     }
-    
+
     @Override
     public String getPropertyPrefix() {
         return CloudConstants.PROPERTY_PREFIX;
