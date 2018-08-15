@@ -765,8 +765,26 @@ public class JobImpl implements Job {
             LOG.debug("Set Exclude for {} to {}", processModel.getPath(), exclude);
             recording = recording || process.isRecording();
             LOG.debug("Set recording for {} to {} based on process settings {} and client setting {}", processModel.getPath(), recording, configuration.isRecording());
-            activityConfigurations = process.getActivities();
+            activityConfigurations = getActivitiesForProcessAndSubProcesses(process, configuration, processModel);
         }
+    }
+
+    private static Map<String, ActivityConfiguration> getActivitiesForProcessAndSubProcesses(final ProcessConfiguration process,
+      final Configuration configuration, final ProcessModel processModel1) {
+
+        final Map<String, ActivityConfiguration> activities = process.getActivities();
+        for (final SubProcessActivityModel spam : processModel1.getSubProcessModels()) {
+            final ProcessModel subProcess = spam.getSubProcess();
+            if (subProcess != null) {
+                final ProcessConfiguration spc = configuration.getProcess(subProcess.getPath().toString());
+                if (spc != null) {
+                    final Map<String, ActivityConfiguration> activitiesForSubProcesses
+                      = getActivitiesForProcessAndSubProcesses(spc, configuration, subProcess);
+                    activities.putAll(activitiesForSubProcesses);
+                }
+            }
+        }
+        return activities;
     }
 
     TracepointExt getTracepoint(String modelId) {
