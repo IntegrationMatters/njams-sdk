@@ -16,16 +16,19 @@
  */
 package com.im.njams.sdk.communication;
 
-import com.im.njams.sdk.Njams;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Iterator;
+import java.util.Properties;
+import java.util.ServiceConfigurationError;
 import java.util.ServiceLoader;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.im.njams.sdk.settings.Settings;
+import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.settings.PropertyUtil;
-import java.util.Properties;
+import com.im.njams.sdk.settings.Settings;
 
 /**
  * Factory for creating Sender and Receiver
@@ -65,19 +68,26 @@ public class CommunicationFactory {
         final ServiceLoader<Receiver> receiverList = ServiceLoader.load(Receiver.class);
         final Iterator<Receiver> iterator = receiverList.iterator();
         final String requiredReceiverName = settings.getProperties().getProperty(COMMUNICATION);
+        final Collection<Throwable> errors = new ArrayList<>();
         while (iterator.hasNext()) {
-            final Receiver receiver = iterator.next();
-            if (receiver.getName().equals(requiredReceiverName)) {
-                LOG.info("Create Receiver {}", receiver.getName());
-                receiver.setNjams(njams);
-                final Properties receiverProperties
-                        = PropertyUtil.filter(settings.getProperties(), receiver.getPropertyPrefix());
-                LOG.info("Connection properties for receiver:" + System.lineSeparator() + receiverProperties);
+            try {
+                final Receiver receiver = iterator.next();
+                if (receiver.getName().equals(requiredReceiverName)) {
+                    LOG.info("Create Receiver {}", receiver.getName());
+                    receiver.setNjams(njams);
+                    final Properties receiverProperties =
+                            PropertyUtil.filter(settings.getProperties(), receiver.getPropertyPrefix());
+                    LOG.info("Connection properties for receiver:" + System.lineSeparator() + receiverProperties);
 
-                receiver.init(receiverProperties);
-                return receiver;
+                    receiver.init(receiverProperties);
+                    return receiver;
+                }
+            } catch (ServiceConfigurationError | Exception e) {
+                // log errors only if we could not find the requested implementation
+                errors.add(e);
             }
         }
+        errors.forEach(e -> LOG.error("Failed to initialize receiver implementation.", e));
         throw new UnsupportedOperationException("Unable to find receiver implementation for " + requiredReceiverName);
     }
 
@@ -91,17 +101,24 @@ public class CommunicationFactory {
         final ServiceLoader<Sender> senderList = ServiceLoader.load(Sender.class);
         final Iterator<Sender> iterator = senderList.iterator();
         final String requiredSenderName = settings.getProperties().getProperty(COMMUNICATION);
+        final Collection<Throwable> errors = new ArrayList<>();
         while (iterator.hasNext()) {
-            final Sender sender = iterator.next();
-            if (sender.getName().equals(requiredSenderName)) {
-                LOG.info("Create Sender {}", sender.getName());
-                final Properties senderProperties
-                        = PropertyUtil.filter(settings.getProperties(), sender.getPropertyPrefix());
-                LOG.info("Connection properties for sender:" + System.lineSeparator() + senderProperties);
-                sender.init(senderProperties);
-                return sender;
+            try {
+                final Sender sender = iterator.next();
+                if (sender.getName().equals(requiredSenderName)) {
+                    LOG.info("Create Sender {}", sender.getName());
+                    final Properties senderProperties =
+                            PropertyUtil.filter(settings.getProperties(), sender.getPropertyPrefix());
+                    LOG.info("Connection properties for sender:" + System.lineSeparator() + senderProperties);
+                    sender.init(senderProperties);
+                    return sender;
+                }
+            } catch (ServiceConfigurationError | Exception e) {
+                // log errors only if we could not find the requested implementation
+                errors.add(e);
             }
         }
+        errors.forEach(e -> LOG.error("Failed to initialize sender implementation.", e));
         throw new UnsupportedOperationException("Unable to find sender implementation for " + requiredSenderName);
     }
 }
