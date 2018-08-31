@@ -17,6 +17,7 @@
 package com.im.njams.sdk.communication;
 
 import com.im.njams.sdk.Njams;
+import com.im.njams.sdk.configuration.ConfigurationProvider;
 import java.util.Iterator;
 import java.util.ServiceLoader;
 
@@ -26,6 +27,10 @@ import org.slf4j.LoggerFactory;
 import com.im.njams.sdk.settings.Settings;
 import com.im.njams.sdk.settings.PropertyUtil;
 import java.util.Properties;
+import java.util.Spliterator;
+import java.util.Spliterators;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 /**
  * Factory for creating Sender and Receiver
@@ -62,23 +67,30 @@ public class CommunicationFactory {
      * @return new initialized Receiver
      */
     public Receiver getReceiver() {
-        final ServiceLoader<Receiver> receiverList = ServiceLoader.load(Receiver.class);
-        final Iterator<Receiver> iterator = receiverList.iterator();
-        final String requiredReceiverName = settings.getProperties().getProperty(COMMUNICATION);
-        while (iterator.hasNext()) {
-            final Receiver receiver = iterator.next();
-            if (receiver.getName().equals(requiredReceiverName)) {
-                LOG.info("Create Receiver {}", receiver.getName());
-                receiver.setNjams(njams);
-                final Properties receiverProperties
-                        = PropertyUtil.filter(settings.getProperties(), receiver.getPropertyPrefix());
-                LOG.info("Connection properties for receiver:" + System.lineSeparator() + receiverProperties);
+        if (settings.getProperties().containsKey(COMMUNICATION)) {
+            final ServiceLoader<Receiver> receiverList = ServiceLoader.load(Receiver.class);
+            final Iterator<Receiver> iterator = receiverList.iterator();
+            final String requiredReceiverName = settings.getProperties().getProperty(COMMUNICATION);
+            while (iterator.hasNext()) {
+                final Receiver receiver = iterator.next();
+                if (receiver.getName().equals(requiredReceiverName)) {
+                    LOG.info("Create Receiver {}", receiver.getName());
+                    receiver.setNjams(njams);
+                    final Properties receiverProperties
+                            = PropertyUtil.filter(settings.getProperties(), receiver.getPropertyPrefix());
+                    LOG.info("Connection properties for receiver:" + System.lineSeparator() + receiverProperties);
 
-                receiver.init(receiverProperties);
-                return receiver;
+                    receiver.init(receiverProperties);
+                    return receiver;
+                }
             }
+            String available = StreamSupport.stream(Spliterators.spliteratorUnknownSize(ServiceLoader.load(ConfigurationProvider.class).iterator(),
+                    Spliterator.ORDERED), false)
+                    .map(cp -> cp.getName()).collect(Collectors.joining(", "));
+            throw new UnsupportedOperationException("Unable to find receiver implementation for  " + requiredReceiverName + ", available are: " + available);
+        } else {
+            throw new UnsupportedOperationException("Unable to find " + COMMUNICATION + " in settings properties");
         }
-        throw new UnsupportedOperationException("Unable to find receiver implementation for " + requiredReceiverName);
     }
 
     /**
@@ -88,6 +100,7 @@ public class CommunicationFactory {
      * @return new initialized Sender
      */
     public Sender getSender() {
+        if (settings.getProperties().containsKey(COMMUNICATION)) {
         final ServiceLoader<Sender> senderList = ServiceLoader.load(Sender.class);
         final Iterator<Sender> iterator = senderList.iterator();
         final String requiredSenderName = settings.getProperties().getProperty(COMMUNICATION);
@@ -102,6 +115,12 @@ public class CommunicationFactory {
                 return sender;
             }
         }
-        throw new UnsupportedOperationException("Unable to find sender implementation for " + requiredSenderName);
+        String available = StreamSupport.stream(Spliterators.spliteratorUnknownSize(ServiceLoader.load(ConfigurationProvider.class).iterator(),
+                    Spliterator.ORDERED), false)
+                    .map(cp -> cp.getName()).collect(Collectors.joining(", "));
+            throw new UnsupportedOperationException("Unable to find sender implementation for  " + requiredSenderName + ", available are: " + available);
+        } else {
+            throw new UnsupportedOperationException("Unable to find " + COMMUNICATION + " in settings properties");
+        }
     }
 }
