@@ -16,17 +16,8 @@
  */
 package com.im.njams.sdk.communication.jms;
 
-import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.im.njams.sdk.common.JsonSerializerFactory;
-import com.im.njams.sdk.common.NjamsSdkRuntimeException;
-import com.im.njams.sdk.common.Path;
 import java.util.Properties;
 
-import org.slf4j.LoggerFactory;
-
-import com.im.njams.sdk.communication.AbstractReceiver;
-import com.im.njams.sdk.settings.PropertyUtil;
 import javax.jms.Connection;
 import javax.jms.ConnectionFactory;
 import javax.jms.Destination;
@@ -40,6 +31,17 @@ import javax.jms.MessageProducer;
 import javax.jms.Session;
 import javax.jms.TextMessage;
 import javax.naming.InitialContext;
+import javax.naming.NameNotFoundException;
+
+import org.slf4j.LoggerFactory;
+
+import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.im.njams.sdk.common.JsonSerializerFactory;
+import com.im.njams.sdk.common.NjamsSdkRuntimeException;
+import com.im.njams.sdk.common.Path;
+import com.im.njams.sdk.communication.AbstractReceiver;
+import com.im.njams.sdk.settings.PropertyUtil;
 
 /**
  * JMS implementation for a Receiver.
@@ -104,8 +106,8 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
     public void start() {
         try {
             InitialContext context = new InitialContext(PropertyUtil.filterAndCut(properties, getPropertyPrefix()));
-            ConnectionFactory factory
-                    = (ConnectionFactory) context.lookup(properties.getProperty(JmsConstants.CONNECTION_FACTORY));
+            ConnectionFactory factory =
+                    (ConnectionFactory) context.lookup(properties.getProperty(JmsConstants.CONNECTION_FACTORY));
             if (properties.containsKey(JmsConstants.USERNAME) && properties.containsKey(JmsConstants.PASSWORD)) {
                 connection = factory.createConnection(properties.getProperty(JmsConstants.USERNAME),
                         properties.getProperty(JmsConstants.PASSWORD));
@@ -113,7 +115,12 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
                 connection = factory.createConnection();
             }
             session = connection.createSession(false, JMSContext.CLIENT_ACKNOWLEDGE);
-            Destination destination = (Destination) context.lookup(this.destinationName);
+            Destination destination = null;
+            try {
+                destination = (Destination) context.lookup(this.destinationName);
+            } catch (NameNotFoundException e) {
+                destination = session.createQueue(this.destinationName);
+            }
             consumer = session.createConsumer(destination, messageSelector);
             consumer.setMessageListener(this);
             producer = session.createProducer(destination);

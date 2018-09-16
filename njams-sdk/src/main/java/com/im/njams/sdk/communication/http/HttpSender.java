@@ -16,13 +16,8 @@
  */
 package com.im.njams.sdk.communication.http;
 
-import com.faizsiegeln.njams.messageformat.v4.common.MessageVersion;
-import com.faizsiegeln.njams.messageformat.v4.logmessage.LogMessage;
-import com.faizsiegeln.njams.messageformat.v4.projectmessage.ProjectMessage;
-import com.im.njams.sdk.common.JsonSerializerFactory;
-import com.im.njams.sdk.communication.Sender;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.im.njams.sdk.common.NjamsSdkRuntimeException;
+import static java.nio.charset.Charset.defaultCharset;
+
 import java.io.BufferedReader;
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -31,12 +26,21 @@ import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
-import static java.nio.charset.Charset.defaultCharset;
+import java.util.Base64;
 import java.util.Map;
 import java.util.Properties;
-import java.util.Base64;
 import java.util.Set;
+
 import org.slf4j.LoggerFactory;
+
+import com.faizsiegeln.njams.messageformat.v4.common.CommonMessage;
+import com.faizsiegeln.njams.messageformat.v4.common.MessageVersion;
+import com.faizsiegeln.njams.messageformat.v4.logmessage.LogMessage;
+import com.faizsiegeln.njams.messageformat.v4.projectmessage.ProjectMessage;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.im.njams.sdk.common.JsonSerializerFactory;
+import com.im.njams.sdk.common.NjamsSdkRuntimeException;
+import com.im.njams.sdk.communication.Sender;
 
 /**
  * HttpSender
@@ -95,6 +99,14 @@ public class HttpSender implements Sender {
     }
 
     @Override
+    public void send(CommonMessage msg) {
+        if (msg instanceof LogMessage) {
+            send((LogMessage) msg);
+        } else if (msg instanceof ProjectMessage) {
+            send((ProjectMessage) msg);
+        }
+    }
+
     public void send(final LogMessage msg) {
         final Properties properties = new Properties();
         properties.put(Sender.NJAMS_MESSAGETYPE, Sender.NJAMS_MESSAGETYPE_EVENT);
@@ -109,7 +121,6 @@ public class HttpSender implements Sender {
         }
     }
 
-    @Override
     public void send(final ProjectMessage msg) {
         final Properties properties = new Properties();
         properties.put(Sender.NJAMS_MESSAGETYPE, Sender.NJAMS_MESSAGETYPE_PROJECT);
@@ -131,7 +142,8 @@ public class HttpSender implements Sender {
 
     private void addAddtionalProperties(final Properties properties, final HttpURLConnection connection) {
         final Set<Map.Entry<Object, Object>> entrySet = properties.entrySet();
-        entrySet.forEach(entry -> connection.setRequestProperty(entry.getKey().toString(), entry.getValue().toString()));
+        entrySet.forEach(
+                entry -> connection.setRequestProperty(entry.getKey().toString(), entry.getValue().toString()));
     }
 
     private String send(final Object msg, final Properties properties) throws IOException {
@@ -148,7 +160,8 @@ public class HttpSender implements Sender {
                 final Base64.Encoder encoder = Base64.getEncoder();
                 final String userpassword = user + ":" + password;
                 final byte[] encodedAuthorization = encoder.encode(userpassword.getBytes(defaultCharset()));
-                connection.setRequestProperty("Authorization", "Basic " + new String(encodedAuthorization, defaultCharset()));
+                connection.setRequestProperty("Authorization",
+                        "Basic " + new String(encodedAuthorization, defaultCharset()));
             }
 
             final String body = mapper.writeValueAsString(msg);

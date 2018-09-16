@@ -16,9 +16,9 @@
  */
 package com.im.njams.sdk.communication;
 
-import com.faizsiegeln.njams.messageformat.v4.logmessage.LogMessage;
-import com.faizsiegeln.njams.messageformat.v4.projectmessage.ProjectMessage;
 import java.util.Properties;
+
+import com.faizsiegeln.njams.messageformat.v4.common.CommonMessage;
 
 /**
  * This interface must be implemented to create a nJAMS Sender Inplementations
@@ -74,18 +74,11 @@ public interface Sender extends AutoCloseable {
     public String getName();
 
     /**
-     * Send the given LogMessage to the new communication layer
+     * Send the given message to the new communication layer
      *
-     * @param msg the Logmessage to send
+     * @param msg the message to send
      */
-    public void send(LogMessage msg);
-
-    /**
-     * Send the given ProjectMessage to the new communication layer
-     *
-     * @param msg the Projectmessage to send
-     */
-    public void send(ProjectMessage msg);
+    void send(CommonMessage msg);
 
     /**
      * Close this Sender.
@@ -99,4 +92,5 @@ public interface Sender extends AutoCloseable {
      * @return property prefix
      */
     public String getPropertyPrefix();
+
 }

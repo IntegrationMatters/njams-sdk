@@ -32,31 +32,31 @@ public class Settings {
     /**
      * Property njams.client.sdk.clientname
      */
-    public static final String PROPERTIY_CLIENT_NAME = "njams.client.sdk.clientname";
+    public static final String PROPERTY_CLIENT_NAME = "njams.client.sdk.clientname";
     /**
      * Property njams.client.sdk.clientversion
      */
-    public static final String PROPERTIY_CLIENT_VERSION = "njams.client.sdk.clientversion";
+    public static final String PROPERTY_CLIENT_VERSION = "njams.client.sdk.clientversion";
     /**
      * Property njams.client.sdk.flushsize
      */
-    public static final String PROPERTIY_FLUSH_SIZE = "njams.client.sdk.flushsize";
+    public static final String PROPERTY_FLUSH_SIZE = "njams.client.sdk.flushsize";
     /**
      * Property njams.client.sdk.flush_interval
      */
-    public static final String PROPERTIY_FLUSH_INTERVAL = "njams.client.sdk.flush_interval";
+    public static final String PROPERTY_FLUSH_INTERVAL = "njams.client.sdk.flush_interval";
     /**
      * Property njams.client.sdk.maxqueuelength
      */
-    public static final String PROPERTIY_MAX_QUEUE_LENGTH = "njams.client.sdk.maxqueuelength";
+    public static final String PROPERTY_MAX_QUEUE_LENGTH = "njams.client.sdk.maxqueuelength";
     /**
      * Property njams.client.sdk.discardpolicy
      */
-    public static final String PROPERTIY_DISCARD_POLICY = "njams.client.sdk.discardpolicy";
+    public static final String PROPERTY_DISCARD_POLICY = "njams.client.sdk.discardpolicy";
     /**
      * Property njams.client.sdk.instantpush
      */
-    public static final String PROPERTIY_INSTANT_PUSH = "njams.client.sdk.instantpush";
+    public static final String PROPERTY_INSTANT_PUSH = "njams.client.sdk.instantpush";
 
     /**
      * @return client properties

@@ -48,8 +48,10 @@ public class LMFTEntry {
      */
     public LMFTEntry(Njams njams) {
         this.njams = njams;
-        this.flushSize = Long.parseLong(njams.getSettings().getProperties().getProperty(Settings.PROPERTIY_FLUSH_SIZE, DEFAULT_FLUSH_SIZE));
-        this.flushInterval = Long.parseLong(njams.getSettings().getProperties().getProperty(Settings.PROPERTIY_FLUSH_INTERVAL, DEFAULT_FLUSH_INTERVAL));
+        this.flushSize = Long.parseLong(
+                njams.getSettings().getProperties().getProperty(Settings.PROPERTY_FLUSH_SIZE, DEFAULT_FLUSH_SIZE));
+        this.flushInterval = Long.parseLong(njams.getSettings().getProperties()
+                .getProperty(Settings.PROPERTY_FLUSH_INTERVAL, DEFAULT_FLUSH_INTERVAL));
     }
 
     /**
