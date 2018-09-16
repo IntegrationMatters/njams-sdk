@@ -16,15 +16,8 @@
  */
 package com.im.njams.sdk.communication.jms;
 
-import com.faizsiegeln.njams.messageformat.v4.common.MessageVersion;
-import com.faizsiegeln.njams.messageformat.v4.logmessage.LogMessage;
-import com.faizsiegeln.njams.messageformat.v4.projectmessage.ProjectMessage;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.im.njams.sdk.common.JsonSerializerFactory;
-import com.im.njams.sdk.common.NjamsSdkRuntimeException;
-import com.im.njams.sdk.communication.Sender;
-import com.im.njams.sdk.settings.PropertyUtil;
 import java.util.Properties;
+
 import javax.jms.Connection;
 import javax.jms.ConnectionFactory;
 import javax.jms.Destination;
@@ -34,7 +27,19 @@ import javax.jms.MessageProducer;
 import javax.jms.Session;
 import javax.jms.TextMessage;
 import javax.naming.InitialContext;
+import javax.naming.NameNotFoundException;
+
 import org.slf4j.LoggerFactory;
+
+import com.faizsiegeln.njams.messageformat.v4.common.CommonMessage;
+import com.faizsiegeln.njams.messageformat.v4.common.MessageVersion;
+import com.faizsiegeln.njams.messageformat.v4.logmessage.LogMessage;
+import com.faizsiegeln.njams.messageformat.v4.projectmessage.ProjectMessage;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.im.njams.sdk.common.JsonSerializerFactory;
+import com.im.njams.sdk.common.NjamsSdkRuntimeException;
+import com.im.njams.sdk.communication.Sender;
+import com.im.njams.sdk.settings.PropertyUtil;
 
 /**
  * JMS implementation for a Sender.
@@ -86,8 +91,8 @@ public class JmsSender implements Sender {
     public void init(Properties properties) {
         try {
             InitialContext context = new InitialContext(PropertyUtil.filterAndCut(properties, getPropertyPrefix()));
-            ConnectionFactory factory
-                    = (ConnectionFactory) context.lookup(properties.getProperty(JmsConstants.CONNECTION_FACTORY));
+            ConnectionFactory factory =
+                    (ConnectionFactory) context.lookup(properties.getProperty(JmsConstants.CONNECTION_FACTORY));
             if (properties.containsKey(JmsConstants.USERNAME) && properties.containsKey(JmsConstants.PASSWORD)) {
                 connection = factory.createConnection(properties.getProperty(JmsConstants.USERNAME),
                         properties.getProperty(JmsConstants.PASSWORD));
@@ -95,12 +100,26 @@ public class JmsSender implements Sender {
                 connection = factory.createConnection();
             }
             session = connection.createSession(false, JMSContext.CLIENT_ACKNOWLEDGE);
-            Destination destination
-                    = (Destination) context.lookup(properties.getProperty(JmsConstants.DESTINATION) + ".event");
+            Destination destination = null;
+            String destinationName = properties.getProperty(JmsConstants.DESTINATION) + ".event";
+            try {
+                destination = (Destination) context.lookup(destinationName);
+            } catch (NameNotFoundException e) {
+                destination = session.createQueue(destinationName);
+            }
             producer = session.createProducer(destination);
             LOG.info("Initialized Sender {}", JmsConstants.COMMUNICATION_NAME);
         } catch (Exception e) {
             throw new NjamsSdkRuntimeException("Unable to initialize", e);
+        }
+    }
+
+    @Override
+    public void send(CommonMessage msg) {
+        if (msg instanceof LogMessage) {
+            send((LogMessage) msg);
+        } else if (msg instanceof ProjectMessage) {
+            send((ProjectMessage) msg);
         }
     }
 
@@ -109,7 +128,6 @@ public class JmsSender implements Sender {
      *
      * @param msg the Logmessage to send
      */
-    @Override
     public void send(LogMessage msg) {
         try {
             String data = mapper.writeValueAsString(msg);
@@ -130,7 +148,6 @@ public class JmsSender implements Sender {
      *
      * @param msg the Projectmessage to send
      */
-    @Override
     public void send(ProjectMessage msg) {
         try {
             String data = mapper.writeValueAsString(msg);

@@ -16,13 +16,8 @@
  */
 package com.im.njams.sdk.communication.http;
 
-import com.faizsiegeln.njams.messageformat.v4.common.MessageVersion;
-import com.faizsiegeln.njams.messageformat.v4.logmessage.LogMessage;
-import com.faizsiegeln.njams.messageformat.v4.projectmessage.ProjectMessage;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.im.njams.sdk.common.JsonSerializerFactory;
-import com.im.njams.sdk.common.NjamsSdkRuntimeException;
-import com.im.njams.sdk.communication.Sender;
+import static java.nio.charset.Charset.defaultCharset;
+
 import java.io.BufferedReader;
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -30,19 +25,29 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.MalformedURLException;
 import java.net.URL;
-import static java.nio.charset.Charset.defaultCharset;
 import java.security.KeyStore;
 import java.util.Base64;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
+
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.KeyManager;
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
+
 import org.slf4j.LoggerFactory;
+
+import com.faizsiegeln.njams.messageformat.v4.common.CommonMessage;
+import com.faizsiegeln.njams.messageformat.v4.common.MessageVersion;
+import com.faizsiegeln.njams.messageformat.v4.logmessage.LogMessage;
+import com.faizsiegeln.njams.messageformat.v4.projectmessage.ProjectMessage;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.im.njams.sdk.common.JsonSerializerFactory;
+import com.im.njams.sdk.common.NjamsSdkRuntimeException;
+import com.im.njams.sdk.communication.Sender;
 
 /**
  * Https Sender
@@ -107,6 +112,14 @@ public class HttpsSender implements Sender {
     }
 
     @Override
+    public void send(CommonMessage msg) {
+        if (msg instanceof LogMessage) {
+            send((LogMessage) msg);
+        } else if (msg instanceof ProjectMessage) {
+            send((ProjectMessage) msg);
+        }
+    }
+
     public void send(final LogMessage msg) {
         final Properties properties = new Properties();
         properties.put(Sender.NJAMS_MESSAGETYPE, Sender.NJAMS_MESSAGETYPE_EVENT);
@@ -121,7 +134,6 @@ public class HttpsSender implements Sender {
         }
     }
 
-    @Override
     public void send(final ProjectMessage msg) {
         final Properties properties = new Properties();
         properties.put(Sender.NJAMS_MESSAGETYPE, Sender.NJAMS_MESSAGETYPE_PROJECT);
@@ -143,7 +155,8 @@ public class HttpsSender implements Sender {
 
     private void addAddtionalProperties(final Properties properties, final HttpsURLConnection connection) {
         final Set<Map.Entry<Object, Object>> entrySet = properties.entrySet();
-        entrySet.forEach(entry -> connection.setRequestProperty(entry.getKey().toString(), entry.getValue().toString()));
+        entrySet.forEach(
+                entry -> connection.setRequestProperty(entry.getKey().toString(), entry.getValue().toString()));
     }
 
     private String send(final Object msg, final Properties properties) throws IOException {
@@ -162,7 +175,8 @@ public class HttpsSender implements Sender {
                 final Base64.Encoder encoder = Base64.getEncoder();
                 final String userpassword = user + ":" + password;
                 final byte[] encodedAuthorization = encoder.encode(userpassword.getBytes(defaultCharset()));
-                connection.setRequestProperty("Authorization", "Basic " + new String(encodedAuthorization, defaultCharset()));
+                connection.setRequestProperty("Authorization",
+                        "Basic " + new String(encodedAuthorization, defaultCharset()));
             }
 
             final String body = mapper.writeValueAsString(msg);
@@ -211,7 +225,8 @@ public class HttpsSender implements Sender {
     private void loadKeystore() throws Exception {
         if (System.getProperty("javax.net.ssl.trustStore") == null) {
             InputStream truststoreInput;
-            try (InputStream keystoreInput = Thread.currentThread().getContextClassLoader().getResourceAsStream("client.ks")) {
+            try (InputStream keystoreInput =
+                    Thread.currentThread().getContextClassLoader().getResourceAsStream("client.ks")) {
                 truststoreInput = Thread.currentThread().getContextClassLoader().getResourceAsStream("client.ts");
                 setSSLFactories(keystoreInput, "password", truststoreInput);
             }
@@ -221,7 +236,8 @@ public class HttpsSender implements Sender {
         }
     }
 
-    private static void setSSLFactories(final InputStream keyStream, final String keyStorePassword, final InputStream trustStream)
+    private static void setSSLFactories(final InputStream keyStream, final String keyStorePassword,
+            final InputStream trustStream)
             throws Exception {
         // Get keyStore
         final KeyStore keyStore = KeyStore.getInstance(KeyStore.getDefaultType());
@@ -248,7 +264,8 @@ public class HttpsSender implements Sender {
         trustStore.load(trustStream, null);
 
         // initialize a trust manager factory with the trusted store
-        final TrustManagerFactory trustFactory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+        final TrustManagerFactory trustFactory =
+                TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
         trustFactory.init(trustStore);
 
         // get the trust managers from the factory

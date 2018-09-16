@@ -18,8 +18,7 @@ package com.im.njams.sdk.communication;
 
 import java.util.Properties;
 
-import com.faizsiegeln.njams.messageformat.v4.logmessage.LogMessage;
-import com.faizsiegeln.njams.messageformat.v4.projectmessage.ProjectMessage;
+import com.faizsiegeln.njams.messageformat.v4.common.CommonMessage;
 import com.im.njams.sdk.configuration.ConfigurationProviderFactory;
 import com.im.njams.sdk.settings.Settings;
 
@@ -76,15 +75,7 @@ public class TestSender implements Sender {
     }
 
     @Override
-    public void send(LogMessage msg) {
-        if (sender != null) {
-            sender.send(msg);
-        }
-
-    }
-
-    @Override
-    public void send(ProjectMessage msg) {
+    public void send(CommonMessage msg) {
         if (sender != null) {
             sender.send(msg);
         }

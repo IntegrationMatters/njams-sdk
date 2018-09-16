@@ -16,6 +16,7 @@
  */
 package com.im.njams.sdk.communication.cloud;
 
+import com.faizsiegeln.njams.messageformat.v4.common.CommonMessage;
 import com.faizsiegeln.njams.messageformat.v4.common.MessageVersion;
 import com.faizsiegeln.njams.messageformat.v4.logmessage.LogMessage;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.ProjectMessage;
@@ -87,7 +88,17 @@ public class CloudSender implements Sender {
     }
 
     @Override
-    public void send(final LogMessage msg) {
+    public void send(CommonMessage msg) {
+        if (msg instanceof LogMessage) {
+            send((LogMessage) msg);
+        } else if (msg instanceof ProjectMessage) {
+            send((ProjectMessage) msg);
+        } else {
+            // unknown type ... what now?
+        }
+    }
+    
+    private void send(final LogMessage msg) {
         final Properties properties = new Properties();
         properties.put(NJAMS_MESSAGETYPE, Sender.NJAMS_MESSAGETYPE_EVENT);
         properties.put(NJAMS_PATH, msg.getPath());
@@ -101,8 +112,7 @@ public class CloudSender implements Sender {
         }
     }
 
-    @Override
-    public void send(final ProjectMessage msg) {
+    private void send(final ProjectMessage msg) {
         final Properties properties = new Properties();
         properties.put(NJAMS_MESSAGETYPE, Sender.NJAMS_MESSAGETYPE_PROJECT);
         properties.put(NJAMS_PATH, msg.getPath());
