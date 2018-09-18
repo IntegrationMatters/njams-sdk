@@ -276,9 +276,4 @@ public class HttpsSender implements Sender {
         sslContext.init(keyManagers, trustManagers, null);
         SSLContext.setDefault(sslContext);
     }
-
-    @Override
-    public String getPropertyPrefix() {
-        return PROPERTY_PREFIX;
-    }
 }

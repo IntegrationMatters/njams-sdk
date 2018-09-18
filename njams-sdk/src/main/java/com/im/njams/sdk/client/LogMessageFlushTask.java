@@ -16,11 +16,6 @@
  */
 package com.im.njams.sdk.client;
 
-import com.im.njams.sdk.Njams;
-import com.im.njams.sdk.common.DateTimeUtility;
-import com.im.njams.sdk.common.NjamsSdkRuntimeException;
-import com.im.njams.sdk.logmessage.Job;
-import com.im.njams.sdk.logmessage.JobImpl;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.HashMap;
@@ -28,8 +23,15 @@ import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.atomic.AtomicBoolean;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.im.njams.sdk.Njams;
+import com.im.njams.sdk.common.DateTimeUtility;
+import com.im.njams.sdk.common.NjamsSdkRuntimeException;
+import com.im.njams.sdk.logmessage.Job;
+import com.im.njams.sdk.logmessage.JobImpl;
 
 /**
  * LogMessageFlushTask flushes new content of jobs periodically into LogMessages
@@ -97,7 +99,8 @@ public class LogMessageFlushTask extends TimerTask {
             synchronized (this.running) {
                 if (this.running.get()) {
                     // task is already still running, skip next execution
-                    LOG.debug("Task is already still running, skip next execution.", LogMessageFlushTask.class.getSimpleName());
+                    LOG.debug("Task is already still running, skip next execution.",
+                            LogMessageFlushTask.class.getSimpleName());
                     return;
                 }
                 this.running.set(true);
@@ -118,8 +121,9 @@ public class LogMessageFlushTask extends TimerTask {
         JobImpl job = (JobImpl) jobParam;
         // only send updates automatically, if a change has been
         // made to the job between individual send events.
-        LOG.trace("Job {}: lastPush: {}, age: {}, size: {}", job.getProcessModel().getName(), job.getLastPush(), Duration.between(job.getLastPush(), DateTimeUtility.now()), job.getEstimatedSize());
-        if ((job.getLastPush().isBefore(boundary) || job.getEstimatedSize() > entry.getFlushSize())
+        LOG.trace("Job {}: lastPush: {}, age: {}, size: {}", job.getProcessModel().getName(), job.getLastFlush(),
+                Duration.between(job.getLastFlush(), DateTimeUtility.now()), job.getEstimatedSize());
+        if ((job.getLastFlush().isBefore(boundary) || job.getEstimatedSize() > entry.getFlushSize())
                 && (!job.getActivities().isEmpty() || !job.getAttributes().isEmpty() || job.getEndTime() != null)) {
             job.flush();
             LOG.debug("Flush job {} with id {}", job.getProcessModel().getName(), job.getLogId());

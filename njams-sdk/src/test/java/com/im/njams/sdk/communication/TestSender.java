@@ -88,14 +88,4 @@ public class TestSender implements Sender {
         }
 
     }
-
-    @Override
-    public String getPropertyPrefix() {
-        if (sender != null) {
-            return sender.getPropertyPrefix() != null ? sender.getPropertyPrefix() : "test";
-        }
-
-        return "test";
-    }
-
 }

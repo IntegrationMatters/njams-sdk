@@ -86,11 +86,4 @@ public interface Sender extends AutoCloseable {
     @Override
     public void close();
 
-    /**
-     * Return property prefix for the implemented Sender instance.
-     *
-     * @return property prefix
-     */
-    public String getPropertyPrefix();
-
 }

@@ -16,14 +16,16 @@
  */
 package com.im.njams.sdk.logmessage;
 
+import java.time.LocalDateTime;
+import java.util.Collection;
+import java.util.Map;
+
+import com.faizsiegeln.njams.messageformat.v4.logmessage.interfaces.IPluginDataItem;
 import com.im.njams.sdk.common.Path;
 import com.im.njams.sdk.model.ActivityModel;
 import com.im.njams.sdk.model.GroupModel;
 import com.im.njams.sdk.model.ProcessModel;
 import com.im.njams.sdk.model.SubProcessActivityModel;
-import java.time.LocalDateTime;
-import java.util.Collection;
-import java.util.Map;
 
 /**
  * This represents an instance of a process/flow etc in engine to monitor.
@@ -401,5 +403,9 @@ public interface Job {
      * @return true if data is needed, or false if not data is needed
      */
     public boolean needsData(String activityModelId);
+
+    public void addAtribute(String key, String value);
+
+    public void addPluginDataItem(IPluginDataItem pluginDataItem);
 
 }

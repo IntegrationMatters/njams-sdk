@@ -206,9 +206,4 @@ public class HttpSender implements Sender {
             }
         }
     }
-
-    @Override
-    public String getPropertyPrefix() {
-        return PROPERTY_PREFIX;
-    }
 }

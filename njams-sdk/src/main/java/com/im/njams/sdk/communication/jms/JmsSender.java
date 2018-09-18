@@ -17,50 +17,30 @@
 package com.im.njams.sdk.communication.jms;
 
 import java.util.Properties;
-
-import javax.jms.Connection;
-import javax.jms.ConnectionFactory;
-import javax.jms.Destination;
-import javax.jms.JMSContext;
-import javax.jms.JMSException;
-import javax.jms.MessageProducer;
-import javax.jms.Session;
-import javax.jms.TextMessage;
-import javax.naming.InitialContext;
-import javax.naming.NameNotFoundException;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 import org.slf4j.LoggerFactory;
 
 import com.faizsiegeln.njams.messageformat.v4.common.CommonMessage;
-import com.faizsiegeln.njams.messageformat.v4.common.MessageVersion;
-import com.faizsiegeln.njams.messageformat.v4.logmessage.LogMessage;
-import com.faizsiegeln.njams.messageformat.v4.projectmessage.ProjectMessage;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.im.njams.sdk.common.JsonSerializerFactory;
-import com.im.njams.sdk.common.NjamsSdkRuntimeException;
+import com.im.njams.sdk.communication.MaxQueueLengthHandler;
 import com.im.njams.sdk.communication.Sender;
-import com.im.njams.sdk.settings.PropertyUtil;
+import com.im.njams.sdk.factories.ThreadFactoryBuilder;
+import com.im.njams.sdk.settings.Settings;
 
 /**
  * JMS implementation for a Sender.
  *
- * @author pnientiedt
+ * @author hsiegeln
  */
 public class JmsSender implements Sender {
 
     private static final org.slf4j.Logger LOG = LoggerFactory.getLogger(JmsSender.class);
 
-    private Connection connection;
-    private Session session;
-    private MessageProducer producer;
-    private final ObjectMapper mapper;
-
-    /**
-     * Create a new JmsSender
-     */
-    public JmsSender() {
-        this.mapper = JsonSerializerFactory.getDefaultMapper();
-    }
+    private JmsSenderPool senderPool = null;
+    private ThreadPoolExecutor executor = null;
 
     /**
      * Returns the value
@@ -75,7 +55,7 @@ public class JmsSender implements Sender {
     }
 
     /**
-     * Initializues this Sender via the given Properties.
+     * Initializes this Sender via the given Properties. 
      * <p>
      * Valid properties are:
      * <ul>
@@ -89,118 +69,42 @@ public class JmsSender implements Sender {
      */
     @Override
     public void init(Properties properties) {
+        int maxQueueLength = Integer.parseInt(properties.getProperty(Settings.PROPERTY_MAX_QUEUE_LENGTH, "8"));
+        ThreadFactory threadFactory = new ThreadFactoryBuilder()
+                .setNamePrefix("JmsSender-Thread").setDaemon(true).build();
+        this.executor = new ThreadPoolExecutor(maxQueueLength, maxQueueLength, 0L, TimeUnit.MILLISECONDS,
+                new ArrayBlockingQueue<Runnable>(maxQueueLength), threadFactory,
+                new MaxQueueLengthHandler(properties));
+
+        senderPool = new JmsSenderPool(properties);
+        // try one connection
         try {
-            InitialContext context = new InitialContext(PropertyUtil.filterAndCut(properties, getPropertyPrefix()));
-            ConnectionFactory factory =
-                    (ConnectionFactory) context.lookup(properties.getProperty(JmsConstants.CONNECTION_FACTORY));
-            if (properties.containsKey(JmsConstants.USERNAME) && properties.containsKey(JmsConstants.PASSWORD)) {
-                connection = factory.createConnection(properties.getProperty(JmsConstants.USERNAME),
-                        properties.getProperty(JmsConstants.PASSWORD));
-            } else {
-                connection = factory.createConnection();
-            }
-            session = connection.createSession(false, JMSContext.CLIENT_ACKNOWLEDGE);
-            Destination destination = null;
-            String destinationName = properties.getProperty(JmsConstants.DESTINATION) + ".event";
-            try {
-                destination = (Destination) context.lookup(destinationName);
-            } catch (NameNotFoundException e) {
-                destination = session.createQueue(destinationName);
-            }
-            producer = session.createProducer(destination);
-            LOG.info("Initialized Sender {}", JmsConstants.COMMUNICATION_NAME);
+            JmsSenderImpl sender = senderPool.get();
+            senderPool.close(sender);
         } catch (Exception e) {
-            throw new NjamsSdkRuntimeException("Unable to initialize", e);
+            LOG.error("Could not initialize sender pool: ", e);
         }
     }
 
     @Override
     public void send(CommonMessage msg) {
-        if (msg instanceof LogMessage) {
-            send((LogMessage) msg);
-        } else if (msg instanceof ProjectMessage) {
-            send((ProjectMessage) msg);
-        }
+        executor.execute(new Runnable() {
+
+            @Override
+            public void run() {
+                JmsSenderImpl sender = senderPool.get();
+                if (sender != null) {
+                    sender.send(msg);
+                }
+                senderPool.close(sender);
+            }
+        });
     }
 
-    /**
-     * Send the given LogMessage to the specified JMS.
-     *
-     * @param msg the Logmessage to send
-     */
-    public void send(LogMessage msg) {
-        try {
-            String data = mapper.writeValueAsString(msg);
-            TextMessage textMessage = session.createTextMessage(data);
-            textMessage.setStringProperty(Sender.NJAMS_MESSAGEVERSION, MessageVersion.V4.toString());
-            textMessage.setStringProperty(Sender.NJAMS_MESSAGETYPE, Sender.NJAMS_MESSAGETYPE_EVENT);
-            textMessage.setStringProperty(Sender.NJAMS_PATH, msg.getPath());
-            textMessage.setStringProperty(Sender.NJAMS_LOGID, msg.getLogId());
-            producer.send(textMessage);
-            LOG.debug("Send LogMessage {} to {}:\n{}", msg.getPath(), producer.getDestination(), data);
-        } catch (Exception e) {
-            throw new NjamsSdkRuntimeException("Unable to send LogMessage", e);
-        }
-    }
-
-    /**
-     * Send the given ProjectMessage to the specified JMS.
-     *
-     * @param msg the Projectmessage to send
-     */
-    public void send(ProjectMessage msg) {
-        try {
-            String data = mapper.writeValueAsString(msg);
-            TextMessage textMessage = session.createTextMessage(data);
-            textMessage.setStringProperty(Sender.NJAMS_MESSAGEVERSION, MessageVersion.V4.toString());
-            textMessage.setStringProperty(Sender.NJAMS_MESSAGETYPE, Sender.NJAMS_MESSAGETYPE_PROJECT);
-            textMessage.setStringProperty(Sender.NJAMS_PATH, msg.getPath());
-            producer.send(textMessage);
-            LOG.debug("Send ProjectMessage {} to {}:\n{}", msg.getPath(), producer.getDestination(), data);
-        } catch (Exception e) {
-            throw new NjamsSdkRuntimeException("Unable to send ProjectMessage", e);
-        }
-    }
-
-    /**
-     * Close this Sender.
-     */
     @Override
     public void close() {
-        if (producer != null) {
-            try {
-                producer.close();
-                producer = null;
-            } catch (JMSException ex) {
-                throw new NjamsSdkRuntimeException("Unable to close producer", ex);
-            }
-        }
-        if (session != null) {
-            try {
-                session.close();
-                session = null;
-            } catch (JMSException ex) {
-                throw new NjamsSdkRuntimeException("Unable to close session", ex);
-            }
-        }
-        if (connection != null) {
-            try {
-                connection.close();
-                connection = null;
-            } catch (JMSException ex) {
-                throw new NjamsSdkRuntimeException("Unable to close connection", ex);
-            }
-        }
-    }
+        // TODO Auto-generated method stub
 
-    /**
-     * Return property prefix for the JmsReceiver.
-     *
-     * @return property prefix
-     */
-    @Override
-    public String getPropertyPrefix() {
-        return JmsConstants.PROPERTY_PREFIX;
     }
 
 }

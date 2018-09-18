@@ -22,27 +22,30 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 import org.slf4j.LoggerFactory;
 
 import com.faizsiegeln.njams.messageformat.v4.logmessage.ActivityStatus;
 import com.faizsiegeln.njams.messageformat.v4.logmessage.LogMessage;
+import com.faizsiegeln.njams.messageformat.v4.logmessage.PluginDataItem;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.Extract;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.LogLevel;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.LogMode;
+import com.im.njams.sdk.common.DateTimeUtility;
+import com.im.njams.sdk.common.NjamsSdkRuntimeException;
+import com.im.njams.sdk.common.Path;
 import com.im.njams.sdk.configuration.ActivityConfiguration;
 import com.im.njams.sdk.configuration.Configuration;
 import com.im.njams.sdk.configuration.ProcessConfiguration;
 import com.im.njams.sdk.configuration.TracepointExt;
-import com.im.njams.sdk.common.DateTimeUtility;
-import com.im.njams.sdk.common.NjamsSdkRuntimeException;
-import com.im.njams.sdk.common.Path;
 import com.im.njams.sdk.model.ActivityModel;
 import com.im.njams.sdk.model.GroupModel;
 import com.im.njams.sdk.model.ProcessModel;
@@ -59,12 +62,41 @@ public class JobImpl implements Job {
 
     private final ProcessModel processModel;
 
-    private final LogMessage logMessage;
+    private String jobId;
+
+    private String logId;
+    /*
+     * the status of the job
+     */
+    private JobStatus status;
+
+    /*
+     * maximum severity recorded
+     */
+    private JobStatus maxSeverity;
 
     // instanceId -> activity
     private final Map<String, Activity> activities = Collections.synchronizedMap(new LinkedHashMap<>());
 
-    private long sequenceCounter;
+    /*
+     * activity sequence counter
+     */
+    private AtomicInteger sequenceCounter;
+
+    /*
+     * job level attributes
+     */
+    private final Map<String, String> attributes;
+
+    /*
+     * Plugin data items
+     */
+    private final List<PluginDataItem> pluginDataItems;
+
+    /*
+     * counts how many flushes have been made. Used in LogMessage as messageNo
+     */
+    private AtomicInteger flushCounter;
 
     private Activity startActivity;
 
@@ -89,6 +121,26 @@ public class JobImpl implements Job {
 
     private boolean recording = true;
 
+    private String correlationLogId;
+
+    private String parentLogId;
+
+    private String externalLogId;
+
+    private String businessService;
+
+    private String businessObject;
+
+    private LocalDateTime startTime;
+
+    private LocalDateTime endTime;
+
+    private LocalDateTime lastFlush;
+
+    private LocalDateTime businessEnd;
+
+    private LocalDateTime businessStart;
+
     /**
      * Create a job with a givenModelId, a jobId and a logId
      *
@@ -97,20 +149,43 @@ public class JobImpl implements Job {
      * @param logId of Job to create
      */
     public JobImpl(ProcessModel processModel, String jobId, String logId) {
+        this.jobId = jobId;
+        this.logId = logId;
+        this.correlationLogId = logId;
+        this.maxSeverity = JobStatus.CREATED;
         this.processModel = processModel;
-        logMessage = new LogMessage();
+        this.status = JobStatus.CREATED;
+        this.sequenceCounter = new AtomicInteger();
+        this.flushCounter = new AtomicInteger();
+        this.lastFlush = DateTimeUtility.now();
+        this.attributes = new HashMap<String, String>();
+        this.pluginDataItems = new ArrayList<PluginDataItem>();
+        initFromConfiguration();
+    }
+
+    private LogMessage createLogMessage(JobImpl job) {
+        LogMessage logMessage = new LogMessage();
+        logMessage.setBusinessEnd(businessEnd);
+        logMessage.setBusinessStart(businessStart);
+        logMessage.setCategory(processModel.getNjams().getCategory());
+        logMessage.setCorrelationLogId(correlationLogId);
+        logMessage.setExternalLogId(externalLogId);
+        logMessage.setJobEnd(endTime);
         logMessage.setJobId(jobId);
+        logMessage.setJobStart(startTime);
         logMessage.setLogId(logId);
-        logMessage.setCorrelationLogId(logId);
+        logMessage.setMachineName(processModel.getNjams().getMachine());
+        logMessage.setMaxSeverity(maxSeverity.getValue());
+        logMessage.setMessageNo(job.flushCounter.get());
+        logMessage.setObjectName(businessObject);
+        logMessage.setParentLogId(parentLogId);
         logMessage.setPath(processModel.getPath().toString());
         logMessage.setProcessName(processModel.getName());
-        logMessage.setStatus(JobStatus.CREATED.getValue());
-        logMessage.setMaxSeverity(JobStatus.CREATED.getValue());
-        sequenceCounter = 0;
-        logMessage.setJobStart(DateTimeUtility.now());
-        logMessage.setCategory(processModel.getNjams().getCategory());
-        logMessage.setMachineName(processModel.getNjams().getMachine());
-        initFromConfiguration();
+        logMessage.setStatus(status.getValue());
+        logMessage.setServiceName(businessService);
+        attributes.entrySet().forEach(e -> logMessage.addAtribute(e.getKey(), e.getValue()));
+        pluginDataItems.forEach(i -> logMessage.addPluginDataItem(i));
+        return logMessage;
     }
 
     /**
@@ -292,24 +367,28 @@ public class JobImpl implements Job {
      * @return the next one
      */
     long getNextSequence() {
-        return ++sequenceCounter;
+        return sequenceCounter.incrementAndGet();
     }
 
     /**
      * Flush this
      */
-    public void flush() {
+    public synchronized void flush() {
         if (mustBeSuppressed()) {
             return;
         }
-        if (logMessage.getStatus() < JobStatus.RUNNING.getValue()) {
+        flushCounter.incrementAndGet();
+        lastFlush = DateTimeUtility.now();
+        LogMessage logMessage = createLogMessage(this);
+        if (status.getValue() < JobStatus.RUNNING.getValue()) {
             return;
         }
-        addToLogMessageAndCleanup();
-        logMessage.setSentAt(DateTimeUtility.now());
+        addToLogMessageAndCleanup(logMessage);
+        logMessage.setSentAt(lastFlush);
         processModel.getNjams().getSender().send(logMessage);
-        logMessage.getActivities().clear();
-        logMessage.setMessageNo(logMessage.getMessageNo() + 1);
+        // clean up jobImpl
+        attributes.clear();
+        pluginDataItems.clear();
         calculateEstimatedSize();
     }
 
@@ -319,6 +398,7 @@ public class JobImpl implements Job {
      */
     @Override
     public void start() {
+        setStartTime(DateTimeUtility.now());
         setStatus(JobStatus.RUNNING);
     }
 
@@ -337,15 +417,16 @@ public class JobImpl implements Job {
                     .stream()
                     .filter(a -> a.getActivityStatus() == null || a.getActivityStatus() == ActivityStatus.RUNNING)
                     .forEach(a -> a.end());
-            if (logMessage.getStatus() <= JobStatus.RUNNING.getValue()) {
+
+            if (getStatus().getValue() <= JobStatus.RUNNING.getValue()) {
                 setStatus(JobStatus.SUCCESS);
             }
-            if (logMessage.getJobEnd() == null) {
-                logMessage.setJobEnd(DateTimeUtility.now());
+            if (getEndTime() == null) {
+                setEndTime(DateTimeUtility.now());
             }
             flush();
             finished = true;
-            processModel.getNjams().removeJob(logMessage.getJobId());
+            processModel.getNjams().removeJob(getJobId());
         }
     }
 
@@ -357,9 +438,9 @@ public class JobImpl implements Job {
      */
     @Override
     public void setStatus(JobStatus status) {
-        logMessage.setStatus(status == null ? JobStatus.CREATED.getValue() : status.getValue());
-        if (logMessage.getMaxSeverity() == null || logMessage.getMaxSeverity() < logMessage.getStatus()) {
-            logMessage.setMaxSeverity(logMessage.getStatus());
+        this.status = status == null ? JobStatus.CREATED : status;
+        if (maxSeverity == null || maxSeverity.getValue() < status.getValue()) {
+            maxSeverity = status;
         }
     }
 
@@ -370,7 +451,7 @@ public class JobImpl implements Job {
      */
     @Override
     public JobStatus getStatus() {
-        return JobStatus.byValue(logMessage.getStatus());
+        return status;
     }
 
     /**
@@ -390,7 +471,7 @@ public class JobImpl implements Job {
      */
     @Override
     public void setCorrelationLogId(final String correlationLogId) {
-        logMessage.setCorrelationLogId(correlationLogId);
+        this.correlationLogId = correlationLogId;
     }
 
     /**
@@ -400,7 +481,7 @@ public class JobImpl implements Job {
      */
     @Override
     public String getCorrelationLogId() {
-        return logMessage.getCorrelationLogId();
+        return correlationLogId;
     }
 
     /**
@@ -410,7 +491,7 @@ public class JobImpl implements Job {
      */
     @Override
     public void setParentLogId(String parentLogId) {
-        logMessage.setParentLogId(parentLogId);
+        this.parentLogId = parentLogId;
     }
 
     /**
@@ -420,7 +501,7 @@ public class JobImpl implements Job {
      */
     @Override
     public String getParentLogId() {
-        return logMessage.getParentLogId();
+        return parentLogId;
     }
 
     /**
@@ -430,7 +511,7 @@ public class JobImpl implements Job {
      */
     @Override
     public void setExternalLogId(String externalLogId) {
-        logMessage.setExternalLogId(externalLogId);
+        this.externalLogId = externalLogId;
     }
 
     /**
@@ -440,7 +521,7 @@ public class JobImpl implements Job {
      */
     @Override
     public String getExternalLogId() {
-        return logMessage.getExternalLogId();
+        return externalLogId;
     }
 
     /**
@@ -461,7 +542,7 @@ public class JobImpl implements Job {
     @Override
     public void setBusinessService(Path businessService) {
         if (businessService != null) {
-            logMessage.setServiceName(businessService.toString());
+            this.businessService = businessService.toString();
         }
     }
 
@@ -472,7 +553,7 @@ public class JobImpl implements Job {
      */
     @Override
     public String getBusinessService() {
-        return logMessage.getServiceName();
+        return businessService;
     }
 
     /**
@@ -493,7 +574,7 @@ public class JobImpl implements Job {
     @Override
     public void setBusinessObject(Path businessObject) {
         if (businessObject != null) {
-            logMessage.setObjectName(businessObject.toString());
+            this.businessObject = businessObject.toString();
         }
     }
 
@@ -504,7 +585,7 @@ public class JobImpl implements Job {
      */
     @Override
     public String getBusinessObject() {
-        return logMessage.getObjectName();
+        return businessObject;
     }
 
     /**
@@ -514,7 +595,7 @@ public class JobImpl implements Job {
      */
     @Override
     public LocalDateTime getStartTime() {
-        return logMessage.getJobStart();
+        return startTime;
     }
 
     /**
@@ -529,8 +610,8 @@ public class JobImpl implements Job {
      */
     @Override
     public void setStartTime(final LocalDateTime jobStart) {
-        if (getStatus() == JobStatus.CREATED) {
-            logMessage.setJobStart(jobStart);
+        if (status == JobStatus.CREATED) {
+            this.startTime = jobStart;
         } else {
             throw new NjamsSdkRuntimeException("job start time must not be set after job is started!");
         }
@@ -543,7 +624,7 @@ public class JobImpl implements Job {
      */
     @Override
     public void setEndTime(final LocalDateTime jobEnd) {
-        logMessage.setJobEnd(jobEnd);
+        endTime = jobEnd;
     }
 
     /**
@@ -553,7 +634,7 @@ public class JobImpl implements Job {
      */
     @Override
     public LocalDateTime getEndTime() {
-        return logMessage.getJobEnd();
+        return endTime;
     }
 
     /**
@@ -563,8 +644,7 @@ public class JobImpl implements Job {
      */
     @Override
     public JobStatus getMaxSeverity() {
-        final Integer maxSeverity = logMessage.getMaxSeverity();
-        return maxSeverity != null ? JobStatus.byValue(maxSeverity) : null;
+        return maxSeverity;
     }
 
     /**
@@ -586,7 +666,7 @@ public class JobImpl implements Job {
      */
     @Override
     public void setAttribute(final String name, final String value) {
-        logMessage.getAttributes().put(name, value);
+        attributes.put(name, value);
     }
 
     /**
@@ -597,7 +677,7 @@ public class JobImpl implements Job {
      */
     @Override
     public String getAttribute(final String name) {
-        return logMessage.getAttributes().get(name);
+        return attributes.get(name);
     }
 
     /**
@@ -607,7 +687,7 @@ public class JobImpl implements Job {
      */
     @Override
     public Map<String, String> getAttributes() {
-        return Collections.unmodifiableMap(logMessage.getAttributes());
+        return Collections.unmodifiableMap(attributes);
     }
 
     /**
@@ -618,7 +698,7 @@ public class JobImpl implements Job {
      */
     @Override
     public boolean hasAttribute(final String name) {
-        return logMessage.getAttributes().containsKey(name);
+        return attributes.containsKey(name);
     }
 
     /**
@@ -645,32 +725,12 @@ public class JobImpl implements Job {
     }
 
     /**
-     * Return the jobId
-     *
-     * @return the jobId
-     */
-    @Override
-    public String getJobId() {
-        return logMessage.getJobId();
-    }
-
-    /**
-     * Return the logId
-     *
-     * @return the logId
-     */
-    @Override
-    public String getLogId() {
-        return logMessage.getLogId();
-    }
-
-    /**
      * Return the last push LocalDateTime
      *
      * @return the last push LocalDateTime
      */
-    public LocalDateTime getLastPush() {
-        return logMessage.getSentAt();
+    public LocalDateTime getLastFlush() {
+        return lastFlush;
     }
 
     private boolean mustBeSuppressed() {
@@ -680,8 +740,8 @@ public class JobImpl implements Job {
                     || isLogLevelHigherAsJobStateAndHasNoTraces()) {
                 LOG.debug(
                         "Job not flushed: Engine Mode: {} // Job's log level: {}, "
-                        + "configured level: {} // is excluded: {} // has traces: {}",
-                        logMode, logMessage.getStatus(), logLevel, exclude, traces);
+                                + "configured level: {} // is excluded: {} // has traces: {}",
+                        logMode, getStatus(), logLevel, exclude, traces);
                 //delete not running activities
                 List<Activity> finishedActivities = activities.values().stream()
                         .filter(a -> a.getActivityStatus() != ActivityStatus.RUNNING)
@@ -725,8 +785,8 @@ public class JobImpl implements Job {
     }
 
     private boolean isLogLevelHigherAsJobStateAndHasNoTraces() {
-        LOG.debug("{} : {}, {}", logMessage.getStatus(), logLevel.value(), traces);
-        if (logMessage.getStatus() < logLevel.value() && !traces) {
+        LOG.debug("{} : {}, {}", getStatus(), logLevel.value(), traces);
+        if (status.getValue() < logLevel.value() && !traces) {
             LOG.debug("isLogLevelHigherAsJobStateAndHasNoTraces: true");
             return true;
         } else {
@@ -748,7 +808,8 @@ public class JobImpl implements Job {
     private void initFromConfiguration() {
         Configuration configuration = processModel.getNjams().getConfiguration();
         if (configuration == null) {
-            LOG.error("Unable to set LogMode, LogLevel and Exclude for {}, configuration is null", processModel.getPath());
+            LOG.error("Unable to set LogMode, LogLevel and Exclude for {}, configuration is null",
+                    processModel.getPath());
             return;
         }
         logMode = configuration.getLogMode();
@@ -764,7 +825,8 @@ public class JobImpl implements Job {
             exclude = process.isExclude();
             LOG.debug("Set Exclude for {} to {}", processModel.getPath(), exclude);
             recording = recording || process.isRecording();
-            LOG.debug("Set recording for {} to {} based on process settings {} and client setting {}", processModel.getPath(), recording, configuration.isRecording());
+            LOG.debug("Set recording for {} to {} based on process settings {} and client setting {}",
+                    processModel.getPath(), recording, configuration.isRecording());
             activityConfigurations = process.getActivities();
         }
     }
@@ -851,7 +913,7 @@ public class JobImpl implements Job {
         return properties.remove(key);
     }
 
-    private void addToLogMessageAndCleanup() {
+    private void addToLogMessageAndCleanup(LogMessage logMessage) {
         synchronized (activities) {
             //add all to logMessage
             activities.values().forEach(logMessage::addActivity);
@@ -917,5 +979,26 @@ public class JobImpl implements Job {
      */
     public boolean isRecording() {
         return recording;
+    }
+
+    @Override
+    public String getJobId() {
+        return jobId;
+    }
+
+    @Override
+    public String getLogId() {
+        return logId;
+    }
+
+    @Override
+    public void addPluginDataItem(
+            com.faizsiegeln.njams.messageformat.v4.logmessage.interfaces.IPluginDataItem pluginDataItem) {
+        pluginDataItems.add((PluginDataItem) pluginDataItem);
+    }
+
+    @Override
+    public void addAtribute(String key, String value) {
+        attributes.put(key, value);
     }
 }

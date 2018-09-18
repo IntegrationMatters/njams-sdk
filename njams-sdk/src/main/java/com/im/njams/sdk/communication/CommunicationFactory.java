@@ -16,21 +16,21 @@
  */
 package com.im.njams.sdk.communication;
 
-import com.im.njams.sdk.Njams;
-import com.im.njams.sdk.configuration.ConfigurationProvider;
 import java.util.Iterator;
-import java.util.ServiceLoader;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.im.njams.sdk.settings.Settings;
-import com.im.njams.sdk.settings.PropertyUtil;
 import java.util.Properties;
+import java.util.ServiceLoader;
 import java.util.Spliterator;
 import java.util.Spliterators;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.im.njams.sdk.Njams;
+import com.im.njams.sdk.configuration.ConfigurationProvider;
+import com.im.njams.sdk.settings.PropertyUtil;
+import com.im.njams.sdk.settings.Settings;
 
 /**
  * Factory for creating Sender and Receiver
@@ -76,18 +76,21 @@ public class CommunicationFactory {
                 if (receiver.getName().equals(requiredReceiverName)) {
                     LOG.info("Create Receiver {}", receiver.getName());
                     receiver.setNjams(njams);
-                    final Properties receiverProperties
-                            = PropertyUtil.filter(settings.getProperties(), receiver.getPropertyPrefix());
+                    final Properties receiverProperties =
+                            PropertyUtil.filter(settings.getProperties(), receiver.getPropertyPrefix());
                     LOG.info("Connection properties for receiver:" + System.lineSeparator() + receiverProperties);
 
                     receiver.init(receiverProperties);
                     return receiver;
                 }
             }
-            String available = StreamSupport.stream(Spliterators.spliteratorUnknownSize(ServiceLoader.load(ConfigurationProvider.class).iterator(),
-                    Spliterator.ORDERED), false)
+            String available = StreamSupport
+                    .stream(Spliterators.spliteratorUnknownSize(
+                            ServiceLoader.load(ConfigurationProvider.class).iterator(),
+                            Spliterator.ORDERED), false)
                     .map(cp -> cp.getName()).collect(Collectors.joining(", "));
-            throw new UnsupportedOperationException("Unable to find sender implementation for " + requiredReceiverName + ", available are: " + available);
+            throw new UnsupportedOperationException("Unable to find sender implementation for " + requiredReceiverName
+                    + ", available are: " + available);
         } else {
             throw new UnsupportedOperationException("Unable to find " + COMMUNICATION + " in settings properties");
         }
@@ -108,17 +111,17 @@ public class CommunicationFactory {
                 final Sender sender = iterator.next();
                 if (sender.getName().equals(requiredSenderName)) {
                     LOG.info("Create Sender {}", sender.getName());
-                    final Properties senderProperties
-                            = PropertyUtil.filter(settings.getProperties(), sender.getPropertyPrefix());
-                    LOG.info("Connection properties for sender:" + System.lineSeparator() + senderProperties);
-                    sender.init(senderProperties);
+                    sender.init(settings.getProperties());
                     return sender;
                 }
             }
-            String available = StreamSupport.stream(Spliterators.spliteratorUnknownSize(ServiceLoader.load(ConfigurationProvider.class).iterator(),
-                    Spliterator.ORDERED), false)
+            String available = StreamSupport
+                    .stream(Spliterators.spliteratorUnknownSize(
+                            ServiceLoader.load(ConfigurationProvider.class).iterator(),
+                            Spliterator.ORDERED), false)
                     .map(cp -> cp.getName()).collect(Collectors.joining(", "));
-            throw new UnsupportedOperationException("Unable to find sender implementation for " + requiredSenderName + ", available are: " + available);
+            throw new UnsupportedOperationException(
+                    "Unable to find sender implementation for " + requiredSenderName + ", available are: " + available);
         } else {
             throw new UnsupportedOperationException("Unable to find " + COMMUNICATION + " in settings properties");
         }
