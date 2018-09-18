@@ -293,7 +293,7 @@ public class JmsSenderImpl implements ExceptionListener {
             }
         };
         reconnector.setDaemon(true);
-        reconnector.setName("Reconnect JMS");
+        reconnector.setName("Reconnect JMS sender");
         reconnector.start();
     }
 

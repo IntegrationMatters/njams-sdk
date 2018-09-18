@@ -41,6 +41,7 @@ import com.im.njams.sdk.common.JsonSerializerFactory;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.common.Path;
 import com.im.njams.sdk.communication.AbstractReceiver;
+import com.im.njams.sdk.communication.ConnectionStatus;
 import com.im.njams.sdk.settings.PropertyUtil;
 
 /**
@@ -55,6 +56,7 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
     private static final String NJAMS_CONTENT_HEADER = "NJAMS_CONTENT";
 
     private Connection connection;
+    private ConnectionStatus connectionStatus;
     private Session session;
     private Properties properties;
     private MessageConsumer consumer;
@@ -89,6 +91,7 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
      */
     @Override
     public void init(Properties properties) {
+        this.connectionStatus = ConnectionStatus.DISCONNECTED;
         mapper = JsonSerializerFactory.getDefaultMapper();
         this.properties = properties;
         if (properties.containsKey(JmsConstants.COMMANDS_DESTINATION)) {
@@ -105,6 +108,22 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
     @Override
     public void start() {
         try {
+            connect();
+            LOG.info("Initialized receiver {}", JmsConstants.COMMUNICATION_NAME);
+        } catch (NjamsSdkRuntimeException e) {
+            LOG.error("Could not initialize receiver {}\n. Pushing reconnect task to background.",
+                    JmsConstants.COMMUNICATION_NAME, e);
+            // trigger reconnect
+            onException(null);
+        }
+    }
+
+    private void connect() {
+        if (isConnected()) {
+            return;
+        }
+        try {
+            connectionStatus = ConnectionStatus.CONNECTING;
             InitialContext context = new InitialContext(PropertyUtil.filterAndCut(properties, getPropertyPrefix()));
             ConnectionFactory factory =
                     (ConnectionFactory) context.lookup(properties.getProperty(JmsConstants.CONNECTION_FACTORY));
@@ -124,11 +143,33 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
             consumer = session.createConsumer(destination, messageSelector);
             consumer.setMessageListener(this);
             producer = session.createProducer(destination);
+            connection.setExceptionListener(this);
             connection.start();
-            LOG.info("Initialized Receiver {} listening on {} with selector {}",
-                    JmsConstants.COMMUNICATION_NAME, destinationName, messageSelector);
+            connectionStatus = ConnectionStatus.CONNECTED;
         } catch (Exception e) {
+            connectionStatus = ConnectionStatus.DISCONNECTED;
             throw new NjamsSdkRuntimeException("Unable to initialize", e);
+        }
+    }
+
+    /**
+     * same as connect(), but no verbose logging.
+     */
+    private synchronized void reconnect() {
+        if (isConnecting() || isConnected()) {
+            return;
+        }
+        while (!isConnected()) {
+            try {
+                connect();
+                LOG.info("Reconnected receiver {}", JmsConstants.COMMUNICATION_NAME);
+            } catch (NjamsSdkRuntimeException e) {
+                try {
+                    Thread.sleep(1000);
+                } catch (InterruptedException e1) {
+                    return;
+                }
+            }
         }
     }
 
@@ -137,6 +178,10 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
      */
     @Override
     public void stop() {
+        if (!isConnected()) {
+            return;
+        }
+        connectionStatus = ConnectionStatus.DISCONNECTED;
         if (consumer != null) {
             try {
                 consumer.close();
@@ -242,14 +287,41 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
         messageSelector = selector.toString();
     }
 
+    public boolean isConnected() {
+        return connectionStatus == ConnectionStatus.CONNECTED;
+    }
+
+    public boolean isDisconnected() {
+        return connectionStatus == ConnectionStatus.DISCONNECTED;
+    }
+
+    public boolean isConnecting() {
+        return connectionStatus == ConnectionStatus.CONNECTING;
+    }
+
     /**
-     * Log alls JMS Exceptions
+     * Log all JMS Exceptions
      *
      * @param jmse
      */
     @Override
     public void onException(JMSException jmse) {
-        LOG.error("Error in JmsReceiver", jmse);
+        if (jmse != null) {
+            LOG.debug("Error in JmsReceiver. Trying to reconnect.", jmse);
+        }
+
+        stop();
+        // reconnect
+        Thread reconnector = new Thread() {
+
+            @Override
+            public void run() {
+                reconnect();
+            }
+        };
+        reconnector.setDaemon(true);
+        reconnector.setName("Reconnect JMS receiver");
+        reconnector.start();
     }
 
     /**
