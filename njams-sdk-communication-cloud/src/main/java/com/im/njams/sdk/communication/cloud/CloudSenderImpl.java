@@ -42,8 +42,6 @@ import org.slf4j.LoggerFactory;
 import com.faizsiegeln.njams.messageformat.v4.common.MessageVersion;
 import com.faizsiegeln.njams.messageformat.v4.logmessage.LogMessage;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.ProjectMessage;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.im.njams.sdk.common.JsonSerializerFactory;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.communication.AbstractSenderImpl;
 import com.im.njams.sdk.communication.Sender;
@@ -63,11 +61,6 @@ public class CloudSenderImpl extends AbstractSenderImpl {
 
     private URL url;
     private String apikey;
-    private final ObjectMapper mapper;
-
-    public CloudSenderImpl() {
-        this.mapper = JsonSerializerFactory.getDefaultMapper();
-    }
 
     @Override
     public void init(Properties properties) {

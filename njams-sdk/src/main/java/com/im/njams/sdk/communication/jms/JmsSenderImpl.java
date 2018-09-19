@@ -53,6 +53,8 @@ public class JmsSenderImpl extends AbstractSenderImpl {
     private Session session;
     private MessageProducer producer;
 
+    private Thread reconnector;
+
     /**
      * Initializes this Sender via the given Properties.
      * <p>
@@ -190,9 +192,12 @@ public class JmsSenderImpl extends AbstractSenderImpl {
 
     @Override
     public synchronized void onException(JMSException exception) {
+        if (reconnector != null && reconnector.isAlive()) {
+            return;
+        }
         close();
         // reconnect
-        Thread reconnector = new Thread() {
+        reconnector = new Thread() {
 
             @Override
             public void run() {
