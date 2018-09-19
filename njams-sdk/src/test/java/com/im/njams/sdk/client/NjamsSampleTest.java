@@ -29,20 +29,20 @@ import org.junit.Test;
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.common.Path;
 import com.im.njams.sdk.communication.CommunicationFactory;
-import com.im.njams.sdk.communication.http.HttpSender;
+import com.im.njams.sdk.communication.http.HttpSenderImpl;
 import com.im.njams.sdk.communication.jms.JmsConstants;
-import com.im.njams.sdk.settings.Settings;
 import com.im.njams.sdk.logmessage.Activity;
 import com.im.njams.sdk.logmessage.ActivityImpl;
 import com.im.njams.sdk.logmessage.Group;
 import com.im.njams.sdk.logmessage.GroupImpl;
 import com.im.njams.sdk.logmessage.Job;
 import com.im.njams.sdk.logmessage.JobImpl;
+import com.im.njams.sdk.logmessage.SubProcessActivity;
 import com.im.njams.sdk.model.ActivityModel;
 import com.im.njams.sdk.model.GroupModel;
 import com.im.njams.sdk.model.ProcessModel;
 import com.im.njams.sdk.model.SubProcessActivityModel;
-import com.im.njams.sdk.logmessage.SubProcessActivity;
+import com.im.njams.sdk.settings.Settings;
 
 /**
  *
@@ -56,9 +56,9 @@ public class NjamsSampleTest {
 
         Properties properties = new Properties();
         properties.put(CommunicationFactory.COMMUNICATION, "HTTP");
-        properties.put(HttpSender.SENDER_URL, "http://localhost:8083/event");
-        properties.put(HttpSender.SENDER_USERNAME, "admin");
-        properties.put(HttpSender.SENDER_PASSWORD, "admin");
+        properties.put(HttpSenderImpl.SENDER_URL, "http://localhost:8083/event");
+        properties.put(HttpSenderImpl.SENDER_USERNAME, "admin");
+        properties.put(HttpSenderImpl.SENDER_PASSWORD, "admin");
 
         // Create client config
         Settings config = new Settings();
@@ -770,7 +770,8 @@ public class NjamsSampleTest {
         startModel.setStarter(true);
 
         //step
-        SubProcessActivityModel subProcessModel = startModel.transitionToSubProcess("subProcess", "SubProcess", "stepType");
+        SubProcessActivityModel subProcessModel =
+                startModel.transitionToSubProcess("subProcess", "SubProcess", "stepType");
 
         //step
         ActivityModel endModel = subProcessModel.transitionTo("end", "End", "endType");
@@ -1047,7 +1048,8 @@ public class NjamsSampleTest {
         //start model
         ActivityModel startModel = process.createActivity("start", "Start", "startType");
         startModel.setStarter(true);
-        SubProcessActivityModel subProcessModel = startModel.transitionToSubProcess("subProcess", "SubProcess", "stepType");
+        SubProcessActivityModel subProcessModel =
+                startModel.transitionToSubProcess("subProcess", "SubProcess", "stepType");
         ActivityModel endModel = subProcessModel.transitionTo("end", "End", "endType");
 
         //subprocess

@@ -16,13 +16,15 @@
  */
 package com.im.njams.sdk.communication.http;
 
-import com.im.njams.sdk.common.NjamsSdkRuntimeException;
-import com.im.njams.sdk.communication.AbstractReceiver;
-import com.sun.net.httpserver.HttpHandler;
-import com.sun.net.httpserver.HttpServer;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.Properties;
+
+import com.im.njams.sdk.common.NjamsSdkRuntimeException;
+import com.im.njams.sdk.communication.AbstractReceiver;
+import com.im.njams.sdk.communication.ConnectionStatus;
+import com.sun.net.httpserver.HttpHandler;
+import com.sun.net.httpserver.HttpServer;
 
 /**
  * Http Receiver
@@ -49,6 +51,7 @@ public class HttpReceiver extends AbstractReceiver {
     public void init(final Properties properties) {
         final int port = Integer.parseInt(properties.getProperty(RECEIVER_PORT));
         final InetSocketAddress isa = new InetSocketAddress(port);
+        this.connectionStatus = ConnectionStatus.DISCONNECTED;
 
         try {
             httpServer = HttpServer.create(isa, 5);
@@ -61,7 +64,7 @@ public class HttpReceiver extends AbstractReceiver {
 
     @Override
     public void start() {
-        httpServer.start();
+        connect();
     }
 
     @Override
@@ -70,8 +73,15 @@ public class HttpReceiver extends AbstractReceiver {
     }
 
     @Override
-    public String getPropertyPrefix() {
-        return PROPERTY_PREFIX;
+    public void connect() {
+        this.connectionStatus = ConnectionStatus.CONNECTING;
+        try {
+            httpServer.start();
+            this.connectionStatus = ConnectionStatus.CONNECTED;
+        } catch (Exception e) {
+            this.connectionStatus = ConnectionStatus.DISCONNECTED;
+            throw new NjamsSdkRuntimeException("Unable to initialize", e);
+        }
     }
 
 }

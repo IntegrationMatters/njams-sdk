@@ -30,6 +30,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Properties;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.stream.Stream;
 
 import org.slf4j.LoggerFactory;
@@ -41,11 +43,6 @@ import com.faizsiegeln.njams.messageformat.v4.common.TreeElement;
 import com.faizsiegeln.njams.messageformat.v4.common.TreeElementType;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.LogMode;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.ProjectMessage;
-import com.im.njams.sdk.configuration.Configuration;
-import com.im.njams.sdk.configuration.ConfigurationInstructionListener;
-import com.im.njams.sdk.configuration.ConfigurationProviderFactory;
-import com.im.njams.sdk.configuration.ProcessConfiguration;
-import com.im.njams.sdk.configuration.provider.FileConfigurationProvider;
 import com.im.njams.sdk.client.CleanTracepointsTask;
 import com.im.njams.sdk.client.LogMessageFlushTask;
 import com.im.njams.sdk.common.DateTimeUtility;
@@ -58,7 +55,12 @@ import com.im.njams.sdk.communication.ReplayHandler;
 import com.im.njams.sdk.communication.ReplayRequest;
 import com.im.njams.sdk.communication.ReplayResponse;
 import com.im.njams.sdk.communication.Sender;
-import com.im.njams.sdk.settings.Settings;
+import com.im.njams.sdk.configuration.Configuration;
+import com.im.njams.sdk.configuration.ConfigurationInstructionListener;
+import com.im.njams.sdk.configuration.ConfigurationProvider;
+import com.im.njams.sdk.configuration.ConfigurationProviderFactory;
+import com.im.njams.sdk.configuration.ProcessConfiguration;
+import com.im.njams.sdk.configuration.provider.FileConfigurationProvider;
 import com.im.njams.sdk.logmessage.DataMasking;
 import com.im.njams.sdk.logmessage.Job;
 import com.im.njams.sdk.model.ProcessModel;
@@ -70,9 +72,7 @@ import com.im.njams.sdk.model.svg.NjamsProcessDiagramFactory;
 import com.im.njams.sdk.model.svg.ProcessDiagramFactory;
 import com.im.njams.sdk.serializer.Serializer;
 import com.im.njams.sdk.serializer.StringSerializer;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import com.im.njams.sdk.configuration.ConfigurationProvider;
+import com.im.njams.sdk.settings.Settings;
 
 /**
  * This is an instance of nJAMS. It cares about lifecycle and initializations
@@ -206,7 +206,8 @@ public class Njams implements InstructionListener {
         if (!properties.containsKey(ConfigurationProviderFactory.CONFIGURATION_PROVIDER)) {
             settings.getProperties().put(ConfigurationProviderFactory.CONFIGURATION_PROVIDER, DEFAULT_CACHE_PROVIDER);
         }
-        ConfigurationProvider configurationProvider = new ConfigurationProviderFactory(properties, this).getConfigurationProvider();
+        ConfigurationProvider configurationProvider =
+                new ConfigurationProviderFactory(properties, this).getConfigurationProvider();
         configuration = configurationProvider.loadConfiguration();
         if (configuration == null) {
             //if the configuration provider can not load a configuration, create a new one and save it.
@@ -376,8 +377,8 @@ public class Njams implements InstructionListener {
      * @return the ProcessModel or {@link NjamsSdkRuntimeException}
      */
     public ProcessModel getProcessModel(final Path path) {
-        final List<String> parts
-                = Stream.of(getClientPath(), path).map(Path::getParts).flatMap(List::stream).collect(toList());
+        final List<String> parts =
+                Stream.of(getClientPath(), path).map(Path::getParts).flatMap(List::stream).collect(toList());
         final ProcessModel processModel = processModels.get(new Path(parts).toString());
         if (processModel == null) {
             throw new NjamsSdkRuntimeException("ProcessModel not found for path " + path);

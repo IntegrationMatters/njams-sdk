@@ -17,7 +17,6 @@
 package com.im.njams.sdk.communication;
 
 import java.util.Iterator;
-import java.util.Properties;
 import java.util.ServiceLoader;
 import java.util.Spliterator;
 import java.util.Spliterators;
@@ -29,7 +28,6 @@ import org.slf4j.LoggerFactory;
 
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.configuration.ConfigurationProvider;
-import com.im.njams.sdk.settings.PropertyUtil;
 import com.im.njams.sdk.settings.Settings;
 
 /**
@@ -76,11 +74,7 @@ public class CommunicationFactory {
                 if (receiver.getName().equals(requiredReceiverName)) {
                     LOG.info("Create Receiver {}", receiver.getName());
                     receiver.setNjams(njams);
-                    final Properties receiverProperties =
-                            PropertyUtil.filter(settings.getProperties(), receiver.getPropertyPrefix());
-                    LOG.info("Connection properties for receiver:" + System.lineSeparator() + receiverProperties);
-
-                    receiver.init(receiverProperties);
+                    receiver.init(settings.getProperties());
                     return receiver;
                 }
             }

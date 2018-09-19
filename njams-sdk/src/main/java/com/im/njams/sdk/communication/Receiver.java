@@ -16,9 +16,10 @@
  */
 package com.im.njams.sdk.communication;
 
+import java.util.Properties;
+
 import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
 import com.im.njams.sdk.Njams;
-import java.util.Properties;
 
 /**
  * This interface must be implenmented by a new Receiver for a given
@@ -69,12 +70,5 @@ public interface Receiver {
      * Stop the new Receiver
      */
     void stop();
-
-    /**
-     * Return property prefix for the implemented Receiver instance.
-     *
-     * @return property prefix
-     */
-    public String getPropertyPrefix();
 
 }

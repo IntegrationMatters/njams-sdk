@@ -14,39 +14,44 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
  */
-package com.im.njams.sdk.communication.jms;
+package com.im.njams.sdk.communication;
 
 import java.util.Properties;
 
 import com.im.njams.sdk.pools.ObjectPool;
 import com.im.njams.sdk.settings.Settings;
 
-public class JmsSenderPool extends ObjectPool<JmsSenderImpl> {
+public class SenderPool extends ObjectPool<Sender> {
 
     private Properties properties;
+    private SenderFactory senderFactory;
 
-    public JmsSenderPool(Properties properties) {
+    public SenderPool(SenderFactory senderFactory, Properties properties) {
         super(Integer.parseInt(properties.getProperty(Settings.PROPERTY_MAX_QUEUE_LENGTH, "8")));
         this.properties = properties;
+        this.senderFactory = senderFactory;
     }
 
     @Override
-    protected JmsSenderImpl create() {
-        JmsSenderImpl sender = new JmsSenderImpl();
+    protected Sender create() {
+        Sender sender = senderFactory.getSenderImpl();
         sender.init(properties);
         return sender;
     }
 
     @Override
-    public boolean validate(JmsSenderImpl sender) {
+    public boolean validate(Sender sender) {
         // TODO: there must be a better solution!
         return true;
-        //        return sender.isConnected();
     }
 
     @Override
-    public void expire(JmsSenderImpl sender) {
+    public void expire(Sender sender) {
         sender.close();
+    }
+
+    public void setSenderFactory(SenderFactory senderFactory) {
+        this.senderFactory = senderFactory;
     }
 
 }

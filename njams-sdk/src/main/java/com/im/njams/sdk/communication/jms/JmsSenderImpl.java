@@ -21,7 +21,6 @@ import java.util.Properties;
 import javax.jms.Connection;
 import javax.jms.ConnectionFactory;
 import javax.jms.Destination;
-import javax.jms.ExceptionListener;
 import javax.jms.JMSContext;
 import javax.jms.JMSException;
 import javax.jms.MessageProducer;
@@ -32,47 +31,30 @@ import javax.naming.NameNotFoundException;
 
 import org.slf4j.LoggerFactory;
 
-import com.faizsiegeln.njams.messageformat.v4.common.CommonMessage;
 import com.faizsiegeln.njams.messageformat.v4.common.MessageVersion;
 import com.faizsiegeln.njams.messageformat.v4.logmessage.LogMessage;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.ProjectMessage;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.im.njams.sdk.common.JsonSerializerFactory;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
+import com.im.njams.sdk.communication.AbstractSenderImpl;
 import com.im.njams.sdk.communication.ConnectionStatus;
 import com.im.njams.sdk.communication.Sender;
 import com.im.njams.sdk.settings.PropertyUtil;
-import com.im.njams.sdk.settings.Settings;
 
 /**
  * JMS implementation for a Sender.
  *
  * @author hsiegeln
  */
-public class JmsSenderImpl implements ExceptionListener {
+public class JmsSenderImpl extends AbstractSenderImpl {
 
     private static final org.slf4j.Logger LOG = LoggerFactory.getLogger(JmsSenderImpl.class);
 
-    private ConnectionStatus connectionStatus;
     private Connection connection;
     private Session session;
     private MessageProducer producer;
-    private final ObjectMapper mapper;
-
-    private String discardPolicy;
-
-    private Properties properties;
 
     /**
-     * Create a new JmsSender
-     */
-    public JmsSenderImpl() {
-        this.mapper = JsonSerializerFactory.getDefaultMapper();
-        this.connectionStatus = ConnectionStatus.DISCONNECTED;
-    }
-
-    /**
-     * Initializues this Sender via the given Properties.
+     * Initializes this Sender via the given Properties.
      * <p>
      * Valid properties are:
      * <ul>
@@ -84,9 +66,9 @@ public class JmsSenderImpl implements ExceptionListener {
      *
      * @param properties the properties needed to initialize
      */
+    @Override
     public void init(Properties properties) {
-        this.properties = properties;
-        this.discardPolicy = properties.getProperty(Settings.PROPERTY_DISCARD_POLICY, "none").toLowerCase();
+        super.init(properties);
         try {
             connect();
             LOG.info("Initialized sender {}", JmsConstants.COMMUNICATION_NAME);
@@ -95,7 +77,8 @@ public class JmsSenderImpl implements ExceptionListener {
         }
     }
 
-    private synchronized void connect() throws NjamsSdkRuntimeException {
+    @Override
+    public synchronized void connect() throws NjamsSdkRuntimeException {
         if (isConnected()) {
             return;
         }
@@ -130,78 +113,12 @@ public class JmsSenderImpl implements ExceptionListener {
     }
 
     /**
-     * same as connect(), but no verbose logging.
-     */
-    private synchronized void reconnect() {
-        if (isConnecting() || isConnected()) {
-            return;
-        }
-        while (!isConnected()) {
-            try {
-                connect();
-                LOG.info("Reconnected sender {}", JmsConstants.COMMUNICATION_NAME);
-            } catch (NjamsSdkRuntimeException e) {
-                try {
-                    Thread.sleep(1000);
-                } catch (InterruptedException e1) {
-                    return;
-                }
-            }
-        }
-    }
-
-    /**
-     * Send the given message to the specified JMS.
-     *
-     * @param msg the message to send
-     */
-    public void send(CommonMessage msg) {
-        // do this until message is sent or discard policy onConnectionLoss is satisfied
-        boolean isSent = false;
-        do {
-            if (isConnected()) {
-                try {
-                    if (msg instanceof LogMessage) {
-                        send((LogMessage) msg);
-                    } else if (msg instanceof ProjectMessage) {
-                        send((ProjectMessage) msg);
-                    }
-                    isSent = true;
-                    break;
-                } catch (NjamsSdkRuntimeException e) {
-                    // this sender's connection has an issue. close it on all errors.
-                    close();
-                }
-            }
-            if (isDisconnected()) {
-                // discard message, if onConnectionLoss is used
-                isSent = "onconnectionloss".equalsIgnoreCase(discardPolicy);
-                if (isSent) {
-                    LOG.debug("Applying discard policy [{}]. Message discarded.", discardPolicy);
-                    break;
-                }
-            }
-            // wait for reconnect
-            if (isConnecting()) {
-                try {
-                    Thread.sleep(1000);
-                } catch (InterruptedException e) {
-                    break;
-                }
-            } else {
-                // trigger reconnect
-                onException(null);
-            }
-        } while (!isSent);
-
-    }
-
-    /**
      * Send the given LogMessage to the specified JMS.
      *
      * @param msg the Logmessage to send
      */
-    private void send(LogMessage msg) throws NjamsSdkRuntimeException {
+    @Override
+    protected void send(LogMessage msg) throws NjamsSdkRuntimeException {
         try {
             String data = mapper.writeValueAsString(msg);
             TextMessage textMessage = session.createTextMessage(data);
@@ -221,7 +138,8 @@ public class JmsSenderImpl implements ExceptionListener {
      *
      * @param msg the Projectmessage to send
      */
-    private void send(ProjectMessage msg) throws NjamsSdkRuntimeException {
+    @Override
+    protected void send(ProjectMessage msg) throws NjamsSdkRuntimeException {
         try {
             String data = mapper.writeValueAsString(msg);
             TextMessage textMessage = session.createTextMessage(data);
@@ -238,6 +156,7 @@ public class JmsSenderImpl implements ExceptionListener {
     /**
      * Close this Sender.
      */
+    @Override
     public synchronized void close() {
         if (!isConnected()) {
             return;
@@ -269,18 +188,6 @@ public class JmsSenderImpl implements ExceptionListener {
         }
     }
 
-    public boolean isConnected() {
-        return connectionStatus == ConnectionStatus.CONNECTED;
-    }
-
-    public boolean isDisconnected() {
-        return connectionStatus == ConnectionStatus.DISCONNECTED;
-    }
-
-    public boolean isConnecting() {
-        return connectionStatus == ConnectionStatus.CONNECTING;
-    }
-
     @Override
     public synchronized void onException(JMSException exception) {
         close();
@@ -297,4 +204,8 @@ public class JmsSenderImpl implements ExceptionListener {
         reconnector.start();
     }
 
+    @Override
+    public String getName() {
+        return JmsConstants.COMMUNICATION_NAME;
+    }
 }

@@ -56,7 +56,6 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
     private static final String NJAMS_CONTENT_HEADER = "NJAMS_CONTENT";
 
     private Connection connection;
-    private ConnectionStatus connectionStatus;
     private Session session;
     private Properties properties;
     private MessageConsumer consumer;
@@ -102,29 +101,15 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
         createMessageSelector(properties);
     }
 
-    /**
-     * Start the new Receiver.
-     */
     @Override
-    public void start() {
-        try {
-            connect();
-            LOG.info("Initialized receiver {}", JmsConstants.COMMUNICATION_NAME);
-        } catch (NjamsSdkRuntimeException e) {
-            LOG.error("Could not initialize receiver {}\n. Pushing reconnect task to background.",
-                    JmsConstants.COMMUNICATION_NAME, e);
-            // trigger reconnect
-            onException(null);
-        }
-    }
-
-    private void connect() {
+    public synchronized void connect() {
         if (isConnected()) {
             return;
         }
         try {
             connectionStatus = ConnectionStatus.CONNECTING;
-            InitialContext context = new InitialContext(PropertyUtil.filterAndCut(properties, getPropertyPrefix()));
+            InitialContext context =
+                    new InitialContext(PropertyUtil.filterAndCut(properties, JmsConstants.PROPERTY_PREFIX));
             ConnectionFactory factory =
                     (ConnectionFactory) context.lookup(properties.getProperty(JmsConstants.CONNECTION_FACTORY));
             if (properties.containsKey(JmsConstants.USERNAME) && properties.containsKey(JmsConstants.PASSWORD)) {
@@ -149,27 +134,6 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
         } catch (Exception e) {
             connectionStatus = ConnectionStatus.DISCONNECTED;
             throw new NjamsSdkRuntimeException("Unable to initialize", e);
-        }
-    }
-
-    /**
-     * same as connect(), but no verbose logging.
-     */
-    private synchronized void reconnect() {
-        if (isConnecting() || isConnected()) {
-            return;
-        }
-        while (!isConnected()) {
-            try {
-                connect();
-                LOG.info("Reconnected receiver {}", JmsConstants.COMMUNICATION_NAME);
-            } catch (NjamsSdkRuntimeException e) {
-                try {
-                    Thread.sleep(1000);
-                } catch (InterruptedException e1) {
-                    return;
-                }
-            }
         }
     }
 
@@ -287,18 +251,6 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
         messageSelector = selector.toString();
     }
 
-    public boolean isConnected() {
-        return connectionStatus == ConnectionStatus.CONNECTED;
-    }
-
-    public boolean isDisconnected() {
-        return connectionStatus == ConnectionStatus.DISCONNECTED;
-    }
-
-    public boolean isConnecting() {
-        return connectionStatus == ConnectionStatus.CONNECTING;
-    }
-
     /**
      * Log all JMS Exceptions
      *
@@ -306,32 +258,7 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
      */
     @Override
     public void onException(JMSException jmse) {
-        if (jmse != null) {
-            LOG.debug("Error in JmsReceiver. Trying to reconnect.", jmse);
-        }
-
-        stop();
-        // reconnect
-        Thread reconnector = new Thread() {
-
-            @Override
-            public void run() {
-                reconnect();
-            }
-        };
-        reconnector.setDaemon(true);
-        reconnector.setName("Reconnect JMS receiver");
-        reconnector.start();
-    }
-
-    /**
-     * Return property prefix for the JmsReceiver.
-     *
-     * @return property prefix
-     */
-    @Override
-    public String getPropertyPrefix() {
-        return JmsConstants.PROPERTY_PREFIX;
+        super.onException(new NjamsSdkRuntimeException("Transport error", jmse));
     }
 
 }
