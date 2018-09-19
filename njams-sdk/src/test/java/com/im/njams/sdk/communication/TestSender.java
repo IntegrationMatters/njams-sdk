@@ -19,6 +19,9 @@ package com.im.njams.sdk.communication;
 import java.util.Properties;
 
 import com.faizsiegeln.njams.messageformat.v4.common.CommonMessage;
+import com.faizsiegeln.njams.messageformat.v4.logmessage.LogMessage;
+import com.faizsiegeln.njams.messageformat.v4.projectmessage.ProjectMessage;
+import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.configuration.ConfigurationProviderFactory;
 import com.im.njams.sdk.settings.Settings;
 
@@ -30,7 +33,7 @@ import com.im.njams.sdk.settings.Settings;
  * @author cwinkler
  *
  */
-public class TestSender implements Sender {
+public class TestSender extends AbstractSender {
 
     public static final String NAME = "TEST_COMMUNICATION";
     private static Sender sender = null;
@@ -86,6 +89,18 @@ public class TestSender implements Sender {
         if (sender != null) {
             sender.close();
         }
+
+    }
+
+    @Override
+    protected void send(LogMessage msg) throws NjamsSdkRuntimeException {
+        // TODO Auto-generated method stub
+
+    }
+
+    @Override
+    protected void send(ProjectMessage msg) throws NjamsSdkRuntimeException {
+        // TODO Auto-generated method stub
 
     }
 }

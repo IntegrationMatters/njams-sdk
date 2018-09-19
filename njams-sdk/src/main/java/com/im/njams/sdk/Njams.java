@@ -50,6 +50,7 @@ import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.common.Path;
 import com.im.njams.sdk.communication.CommunicationFactory;
 import com.im.njams.sdk.communication.InstructionListener;
+import com.im.njams.sdk.communication.NjamsSender;
 import com.im.njams.sdk.communication.Receiver;
 import com.im.njams.sdk.communication.ReplayHandler;
 import com.im.njams.sdk.communication.ReplayRequest;
@@ -311,7 +312,8 @@ public class Njams implements InstructionListener {
      */
     public Sender getSender() {
         if (sender == null) {
-            sender = new CommunicationFactory(this, settings).getSender();
+            //            sender = new CommunicationFactory(this, settings).getSender();
+            sender = new NjamsSender(this, settings);
         }
         return sender;
     }

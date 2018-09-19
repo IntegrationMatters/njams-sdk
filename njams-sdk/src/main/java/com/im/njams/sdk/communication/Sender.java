@@ -76,14 +76,6 @@ public interface Sender extends AutoCloseable {
     @Override
     public void close();
 
-    /**
-     * The new implementation should return its name here, by which it can be
-     * identified. This name will be used as value in the
-     * CommunicationConiguration via the Key
-     * {@value com.im.njams.sdk.communication.CommunicationFactory#COMMUNICATION}
-     *
-     * @return the name of the Sender
-     */
-    public abstract String getName();
+    public String getName();
 
 }

@@ -29,7 +29,7 @@ import org.junit.Test;
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.common.Path;
 import com.im.njams.sdk.communication.CommunicationFactory;
-import com.im.njams.sdk.communication.http.HttpSenderImpl;
+import com.im.njams.sdk.communication.http.HttpSender;
 import com.im.njams.sdk.communication.jms.JmsConstants;
 import com.im.njams.sdk.logmessage.Activity;
 import com.im.njams.sdk.logmessage.ActivityImpl;
@@ -56,9 +56,9 @@ public class NjamsSampleTest {
 
         Properties properties = new Properties();
         properties.put(CommunicationFactory.COMMUNICATION, "HTTP");
-        properties.put(HttpSenderImpl.SENDER_URL, "http://localhost:8083/event");
-        properties.put(HttpSenderImpl.SENDER_USERNAME, "admin");
-        properties.put(HttpSenderImpl.SENDER_PASSWORD, "admin");
+        properties.put(HttpSender.SENDER_URL, "http://localhost:8083/event");
+        properties.put(HttpSender.SENDER_USERNAME, "admin");
+        properties.put(HttpSender.SENDER_PASSWORD, "admin");
 
         // Create client config
         Settings config = new Settings();
