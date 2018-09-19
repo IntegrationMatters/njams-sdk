@@ -16,11 +16,13 @@
  */
 package com.im.njams.sdk.communication;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
 import com.faizsiegeln.njams.messageformat.v4.command.Response;
 import com.im.njams.sdk.Njams;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 
 /**
  * This class should be extended when implementing an new Receiver for a new
@@ -31,6 +33,8 @@ import org.slf4j.LoggerFactory;
 public abstract class AbstractReceiver implements Receiver {
 
     private static final Logger LOG = LoggerFactory.getLogger(AbstractReceiver.class);
+
+    protected ConnectionStatus connectionStatus;
 
     /**
      * Njams to hold
@@ -86,6 +90,74 @@ public abstract class AbstractReceiver implements Receiver {
             response.setResultMessage("No InstructionListener for " + instruction.getRequest().getCommand() + " found");
             instruction.setResponse(response);
         }
+    }
+
+    public abstract void connect();
+
+    /**
+     * same as connect(), but no verbose logging.
+     */
+    public synchronized void reconnect() {
+        if (isConnecting() || isConnected()) {
+            return;
+        }
+        while (!isConnected()) {
+            try {
+                connect();
+                LOG.info("Reconnected receiver {}", getName());
+            } catch (NjamsSdkRuntimeException e) {
+                try {
+                    Thread.sleep(1000);
+                } catch (InterruptedException e1) {
+                    return;
+                }
+            }
+        }
+    }
+
+    /**
+     * Start the new Receiver.
+     */
+    @Override
+    public void start() {
+        try {
+            connect();
+            LOG.info("Initialized receiver {}", getName());
+        } catch (NjamsSdkRuntimeException e) {
+            LOG.error("Could not initialize receiver {}\n. Pushing reconnect task to background.",
+                    getName(), e);
+            // trigger reconnect
+            onException(null);
+        }
+    }
+
+    public abstract void stop();
+
+    public void onException(Exception exception) {
+        stop();
+        // reconnect
+        Thread reconnector = new Thread() {
+
+            @Override
+            public void run() {
+                reconnect();
+            }
+        };
+        reconnector.setDaemon(true);
+        reconnector.setName(String.format("Reconnect %s receiver", getName()));
+        reconnector.start();
+    }
+
+    public boolean isConnected() {
+        return connectionStatus == ConnectionStatus.CONNECTED;
+    }
+
+    public boolean isDisconnected() {
+        return connectionStatus == ConnectionStatus.DISCONNECTED;
+    }
+
+    public boolean isConnecting() {
+        return connectionStatus == ConnectionStatus.CONNECTING;
     }
 
 }

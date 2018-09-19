@@ -16,12 +16,16 @@
  */
 package com.im.njams.sdk.communication.cloud;
 
+import java.util.Properties;
+
+import org.slf4j.LoggerFactory;
+
 import com.amazonaws.services.iot.client.AWSIotMqttClient;
 import com.amazonaws.services.iot.client.AWSIotQos;
+import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.communication.AbstractReceiver;
+import com.im.njams.sdk.communication.ConnectionStatus;
 import com.im.njams.sdk.communication.cloud.CertificateUtil.KeyStorePasswordPair;
-import java.util.Properties;
-import org.slf4j.LoggerFactory;
 
 /**
  *
@@ -40,6 +44,8 @@ public class CloudReceiver extends AbstractReceiver {
     private AWSIotQos qos;
     private AWSIotMqttClient mqttclient;
     private String topicName;
+
+    private KeyStorePasswordPair keyStorePasswordPair;
 
     @Override
     public String getName() {
@@ -64,33 +70,21 @@ public class CloudReceiver extends AbstractReceiver {
         if (privateKeyFile == null) {
             LOG.error("Please provide property {} for CloudReceiver", CloudConstants.CLIENT_PRIVATEKEY);
         }
+        LOG.info("Creating KeyStorePasswordPair from {} and {}", getCertificateFile(), getPrivateKeyFile());
+        keyStorePasswordPair =
+                CertificateUtil.getKeyStorePasswordPair(getCertificateFile(), getPrivateKeyFile());
+        if (keyStorePasswordPair == null) {
+            throw new IllegalStateException("Certificate or PrivateKey invalid");
+        }
         this.clientId = instanceId + njams.getClientPath().toString().replace(">", "-");
     }
 
     @Override
-    public void start() {
-        try {
-            LOG.info("Create KeyStorePasswordPair from {} and {}", getCertificateFile(), getPrivateKeyFile());
-            KeyStorePasswordPair pair = CertificateUtil.getKeyStorePasswordPair(getCertificateFile(), getPrivateKeyFile());
-            if (pair == null) {
-                throw new IllegalStateException("Certificate or PrivateKey invalid");
-            }
-            LOG.info("Connect to endpoint {} with id {}", endpoint, clientId);
-            mqttclient = new AWSIotMqttClient(endpoint, clientId, pair.keyStore, pair.keyPassword);
-            // optional parameters can be set before connect()
-            getMqttclient().connect();
-            setQos(AWSIotQos.QOS1);
-            topicName = "/" + instanceId + "/commands" + njams.getClientPath().toString().replace(">", "/");
-            CloudTopic topic = new CloudTopic(this);
-            LOG.info("Topic Subscription: {}", topic.getTopic());
-            getMqttclient().subscribe(topic);
-        } catch (Exception e) {
-            LOG.error("Unable to start CloudReceiver", e);
-        }
-    }
-
-    @Override
     public void stop() {
+        if (!isConnected()) {
+            return;
+        }
+        connectionStatus = ConnectionStatus.DISCONNECTED;
         try {
             getMqttclient().disconnect();
         } catch (Exception e) {
@@ -159,8 +153,27 @@ public class CloudReceiver extends AbstractReceiver {
     }
 
     @Override
-    public String getPropertyPrefix() {
-        return CloudConstants.PROPERTY_PREFIX;
+    public void connect() {
+        if (isConnected()) {
+            return;
+        }
+        try {
+            connectionStatus = ConnectionStatus.CONNECTING;
+            LOG.info("Connect to endpoint {} with id {}", endpoint, clientId);
+            mqttclient = new AWSIotMqttClient(endpoint, clientId, keyStorePasswordPair.keyStore,
+                    keyStorePasswordPair.keyPassword);
+            // optional parameters can be set before connect()
+            getMqttclient().connect();
+            setQos(AWSIotQos.QOS1);
+            topicName = "/" + instanceId + "/commands" + njams.getClientPath().toString().replace(">", "/");
+            CloudTopic topic = new CloudTopic(this);
+            LOG.info("Topic Subscription: {}", topic.getTopic());
+            getMqttclient().subscribe(topic);
+            connectionStatus = ConnectionStatus.CONNECTED;
+        } catch (Exception e) {
+            connectionStatus = ConnectionStatus.DISCONNECTED;
+            throw new NjamsSdkRuntimeException("Unable to initialize", e);
+        }
     }
 
 }

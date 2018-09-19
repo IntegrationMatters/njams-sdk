@@ -100,13 +100,4 @@ public class TestReceiver implements Receiver {
 
     }
 
-    @Override
-    public String getPropertyPrefix() {
-        if (receiver != null) {
-            return receiver.getPropertyPrefix() != null ? receiver.getPropertyPrefix() : "test";
-
-        }
-        return "test";
-    }
-
 }
