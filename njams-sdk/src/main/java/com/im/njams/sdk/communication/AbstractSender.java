@@ -61,7 +61,7 @@ public abstract class AbstractSender implements Sender {
     /**
      * override this method to implement your own connection initialization
      * 
-     * @throws NjamsSdkRuntimeException
+     * @throws NjamsSdkRuntimeException NjamsSdkRuntimeException
      */
     public synchronized void connect() throws NjamsSdkRuntimeException {
         if (isConnected()) {
@@ -179,21 +179,21 @@ public abstract class AbstractSender implements Sender {
     }
 
     /**
-     * returns true if connectionStatus == ConnectionStatus.CONNECTED
+     * @return true if connectionStatus == ConnectionStatus.CONNECTED
      */
     public boolean isConnected() {
         return connectionStatus == ConnectionStatus.CONNECTED;
     }
 
     /**
-     * returns true if connectionStatus == ConnectionStatus.DISCONNECTED
+     * @return true if connectionStatus == ConnectionStatus.DISCONNECTED
      */
     public boolean isDisconnected() {
         return connectionStatus == ConnectionStatus.DISCONNECTED;
     }
 
     /**
-     * returns true if connectionStatus == ConnectionStatus.CONNECTING
+     * @return true if connectionStatus == ConnectionStatus.CONNECTING
      */
     public boolean isConnecting() {
         return connectionStatus == ConnectionStatus.CONNECTING;

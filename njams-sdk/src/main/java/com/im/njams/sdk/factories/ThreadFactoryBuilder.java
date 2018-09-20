@@ -41,7 +41,7 @@ public class ThreadFactoryBuilder {
     /**
      * sets the new threads' name prefix
      * 
-     * @param namePrefix
+     * @param namePrefix the prefix to use when building the thread name
      * @return ThreadFactoryBuilder
      */
     public ThreadFactoryBuilder setNamePrefix(String namePrefix) {
@@ -55,7 +55,7 @@ public class ThreadFactoryBuilder {
     /**
      * set this to true to create a daemon thread
      * 
-     * @param daemon
+     * @param daemon set to true to create a daemon thread; defaults to false
      * @return ThreadFactoryBuilder
      */
     public ThreadFactoryBuilder setDaemon(boolean daemon) {
@@ -74,7 +74,7 @@ public class ThreadFactoryBuilder {
     /**
      * internal method that creates, configures and returns a new ThreadFactory.
      *  
-     * @param builder
+     * @param builder the ThreadFactoryBuilder to use
      * @return ThreadFactory
      */
     private static ThreadFactory build(ThreadFactoryBuilder builder) {
