@@ -24,6 +24,13 @@ import org.slf4j.LoggerFactory;
 
 import com.im.njams.sdk.settings.Settings;
 
+/**
+ * implements the maxQueueLength handling 
+ * its behavior is controlled using the njams.client.sdk.discardpolicy property
+ * 
+ * @author hsiegeln
+ *
+ */
 public class MaxQueueLengthHandler implements RejectedExecutionHandler {
 
     private static final org.slf4j.Logger LOG = LoggerFactory.getLogger(MaxQueueLengthHandler.class);

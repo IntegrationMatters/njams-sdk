@@ -21,6 +21,7 @@ import java.util.Properties;
 import javax.jms.Connection;
 import javax.jms.ConnectionFactory;
 import javax.jms.Destination;
+import javax.jms.ExceptionListener;
 import javax.jms.JMSContext;
 import javax.jms.JMSException;
 import javax.jms.MessageProducer;
@@ -45,7 +46,7 @@ import com.im.njams.sdk.settings.PropertyUtil;
  *
  * @author hsiegeln
  */
-public class JmsSender extends AbstractSender {
+public class JmsSender extends AbstractSender implements ExceptionListener {
 
     private static final org.slf4j.Logger LOG = LoggerFactory.getLogger(JmsSender.class);
 
@@ -192,6 +193,16 @@ public class JmsSender extends AbstractSender {
 
     @Override
     public synchronized void onException(JMSException exception) {
+        onException(new NjamsSdkRuntimeException("JMS Exception", exception));
+    }
+
+    @Override
+    public String getName() {
+        return JmsConstants.COMMUNICATION_NAME;
+    }
+
+    @Override
+    protected void onException(NjamsSdkRuntimeException exception) {
         if (reconnector != null && reconnector.isAlive()) {
             return;
         }
@@ -209,8 +220,4 @@ public class JmsSender extends AbstractSender {
         reconnector.start();
     }
 
-    @Override
-    public String getName() {
-        return JmsConstants.COMMUNICATION_NAME;
-    }
 }

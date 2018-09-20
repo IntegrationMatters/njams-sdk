@@ -19,11 +19,31 @@ package com.im.njams.sdk.factories;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicLong;
 
+/**
+ * a custom thread builder, which allows controlling name and daemon nature of newly created threads
+ * 
+ * @author hsiegeln
+ *
+ */
 public class ThreadFactoryBuilder {
 
+    /**
+     * the prefix to use when naming a thread
+     */
     private String namePrefix = null;
+
+    /**
+     * controls, whether the new thread is a daemon thread, or not
+     * defaults to false
+     */
     private boolean daemon = false;
 
+    /**
+     * sets the new threads' name prefix
+     * 
+     * @param namePrefix
+     * @return ThreadFactoryBuilder
+     */
     public ThreadFactoryBuilder setNamePrefix(String namePrefix) {
         if (namePrefix == null) {
             throw new NullPointerException();
@@ -32,15 +52,31 @@ public class ThreadFactoryBuilder {
         return this;
     }
 
+    /**
+     * set this to true to create a daemon thread
+     * 
+     * @param daemon
+     * @return ThreadFactoryBuilder
+     */
     public ThreadFactoryBuilder setDaemon(boolean daemon) {
         this.daemon = daemon;
         return this;
     }
 
+    /**
+     * builds and returns the ThreadFactory. Call this as the last method when building ThreadFactory.
+     * @return ThreadFactory
+     */
     public ThreadFactory build() {
         return build(this);
     }
 
+    /**
+     * internal method that creates, configures and returns a new ThreadFactory.
+     *  
+     * @param builder
+     * @return ThreadFactory
+     */
     private static ThreadFactory build(ThreadFactoryBuilder builder) {
         final String namePrefix = builder.namePrefix;
         final Boolean daemon = builder.daemon;

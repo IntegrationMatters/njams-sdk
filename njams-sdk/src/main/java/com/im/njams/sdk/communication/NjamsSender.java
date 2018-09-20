@@ -11,6 +11,14 @@ import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.factories.ThreadFactoryBuilder;
 import com.im.njams.sdk.settings.Settings;
 
+/**
+ * This class enforces the maxQueueLength setting. 
+ * It uses the maxQueueLengthHandler to enforce the discardPolicy, if the maxQueueLength is exceeded
+ * All message sending is funneled through this class, which creates and uses a pool of senders to multi-thread message sending
+ * 
+ * @author hsiegeln
+ *
+ */
 public class NjamsSender implements Sender, SenderFactory {
 
     private SenderPool senderPool = null;

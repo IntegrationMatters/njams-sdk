@@ -18,9 +18,6 @@ package com.im.njams.sdk.communication;
 
 import java.util.Properties;
 
-import javax.jms.ExceptionListener;
-import javax.jms.JMSException;
-
 import org.slf4j.LoggerFactory;
 
 import com.faizsiegeln.njams.messageformat.v4.common.CommonMessage;
@@ -31,7 +28,14 @@ import com.im.njams.sdk.common.JsonSerializerFactory;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.settings.Settings;
 
-public abstract class AbstractSender implements Sender, ExceptionListener {
+/**
+ * Superclass for all Senders. When writing your own Sender, extend this class and overwrite methods, when needed.
+ * All Sender will be automatically pooled by the SDK; you must not implement your own connection pooling!
+ * 
+ * @author hsiegeln
+ *
+ */
+public abstract class AbstractSender implements Sender {
 
     private static final org.slf4j.Logger LOG = LoggerFactory.getLogger(AbstractSender.class);
 
@@ -41,15 +45,11 @@ public abstract class AbstractSender implements Sender, ExceptionListener {
     protected Properties properties;
 
     /**
-     * Create a new JmsSender
+     * returns a new AbstractSender
      */
     public AbstractSender() {
         this.mapper = JsonSerializerFactory.getDefaultMapper();
         this.connectionStatus = ConnectionStatus.DISCONNECTED;
-    }
-
-    @Override
-    public void onException(JMSException arg0) {
     }
 
     @Override
@@ -58,6 +58,11 @@ public abstract class AbstractSender implements Sender, ExceptionListener {
         this.discardPolicy = properties.getProperty(Settings.PROPERTY_DISCARD_POLICY, "none").toLowerCase();
     }
 
+    /**
+     * override this method to implement your own connection initialization
+     * 
+     * @throws NjamsSdkRuntimeException
+     */
     public synchronized void connect() throws NjamsSdkRuntimeException {
         if (isConnected()) {
             return;
@@ -73,7 +78,8 @@ public abstract class AbstractSender implements Sender, ExceptionListener {
     }
 
     /**
-     * same as connect(), but no verbose logging.
+     * initiates a reconnect, if isConnected() is false and no other reconnect is currently executed.
+     * Override this for your own reconnect handling
      */
     public synchronized void reconnect() {
         if (isConnecting() || isConnected()) {
@@ -94,7 +100,7 @@ public abstract class AbstractSender implements Sender, ExceptionListener {
     }
 
     /**
-     * Send the given message.
+     * Send the given message. This method automatically applies the discardPolicy onConnectionLoss, if set
      *
      * @param msg the message to send
      */
@@ -112,8 +118,7 @@ public abstract class AbstractSender implements Sender, ExceptionListener {
                     isSent = true;
                     break;
                 } catch (NjamsSdkRuntimeException e) {
-                    // this sender's connection has an issue. close it on all errors.
-                    close();
+                    onException(e);
                 }
             }
             if (isDisconnected()) {
@@ -138,8 +143,33 @@ public abstract class AbstractSender implements Sender, ExceptionListener {
         } while (!isSent);
     }
 
+    /**
+     * used to implement your exception handling for this sender. Is called, if sending of a message fails.
+     * It will automatically close any try to reconnect the connection; 
+     * override this method for your own handling
+     * 
+     * @param exception
+     */
+    protected void onException(NjamsSdkRuntimeException exception) {
+        // close the existing connection
+        close();
+        reconnect();
+    };
+
+    /**
+     * Implement this method to send LogMessages
+     * 
+     * @param msg
+     * @throws NjamsSdkRuntimeException
+     */
     protected abstract void send(LogMessage msg) throws NjamsSdkRuntimeException;
 
+    /**
+     * Implement this method to send ProjectMessages
+     * 
+     * @param msg
+     * @throws NjamsSdkRuntimeException
+     */
     protected abstract void send(ProjectMessage msg) throws NjamsSdkRuntimeException;
 
     @Override
@@ -148,14 +178,23 @@ public abstract class AbstractSender implements Sender, ExceptionListener {
 
     }
 
+    /**
+     * returns true if connectionStatus == ConnectionStatus.CONNECTED
+     */
     public boolean isConnected() {
         return connectionStatus == ConnectionStatus.CONNECTED;
     }
 
+    /**
+     * returns true if connectionStatus == ConnectionStatus.DISCONNECTED
+     */
     public boolean isDisconnected() {
         return connectionStatus == ConnectionStatus.DISCONNECTED;
     }
 
+    /**
+     * returns true if connectionStatus == ConnectionStatus.CONNECTING
+     */
     public boolean isConnecting() {
         return connectionStatus == ConnectionStatus.CONNECTING;
     }

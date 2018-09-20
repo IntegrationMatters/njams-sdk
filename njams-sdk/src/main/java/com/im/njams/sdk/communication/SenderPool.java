@@ -21,6 +21,12 @@ import java.util.Properties;
 import com.im.njams.sdk.pools.ObjectPool;
 import com.im.njams.sdk.settings.Settings;
 
+/**
+ * pool for Sender sub-classes
+ * 
+ * @author hsiegeln
+ *
+ */
 public class SenderPool extends ObjectPool<Sender> {
 
     private Properties properties;

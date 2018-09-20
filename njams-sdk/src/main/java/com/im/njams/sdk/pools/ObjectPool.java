@@ -53,7 +53,7 @@ public abstract class ObjectPool<T> {
      * a timeout == 0 results in a singly try; if no object is available, null is returned
      * 
      * @param timeout (ms)
-     * @return
+     * @return T
      */
     public synchronized T get(long timeout) {
         T t = null;
