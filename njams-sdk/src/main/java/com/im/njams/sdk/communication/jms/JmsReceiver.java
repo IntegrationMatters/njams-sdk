@@ -183,7 +183,7 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
     /**
      * Message Listener implementation. Receives JMS Messages automatically.
      *
-     * @param msg
+     * @param msg the newly arrived JMS message
      */
     @Override
     public void onMessage(Message msg) {
@@ -254,11 +254,11 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
     /**
      * Log all JMS Exceptions
      *
-     * @param jmse
+     * @param jmse JMSException
      */
     @Override
-    public void onException(JMSException jmse) {
-        super.onException(new NjamsSdkRuntimeException("Transport error", jmse));
+    public void onException(JMSException exception) {
+        super.onException(new NjamsSdkRuntimeException("Transport error", exception));
     }
 
 }

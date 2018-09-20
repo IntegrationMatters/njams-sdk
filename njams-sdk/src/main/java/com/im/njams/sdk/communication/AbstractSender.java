@@ -148,7 +148,7 @@ public abstract class AbstractSender implements Sender {
      * It will automatically close any try to reconnect the connection; 
      * override this method for your own handling
      * 
-     * @param exception
+     * @param exception NjamsSdkRuntimeException
      */
     protected void onException(NjamsSdkRuntimeException exception) {
         // close the existing connection
@@ -159,16 +159,16 @@ public abstract class AbstractSender implements Sender {
     /**
      * Implement this method to send LogMessages
      * 
-     * @param msg
-     * @throws NjamsSdkRuntimeException
+     * @param msg the message to send
+     * @throws NjamsSdkRuntimeException NjamsSdkRuntimeException
      */
     protected abstract void send(LogMessage msg) throws NjamsSdkRuntimeException;
 
     /**
      * Implement this method to send ProjectMessages
      * 
-     * @param msg
-     * @throws NjamsSdkRuntimeException
+     * @param msg the message to send 
+     * @throws NjamsSdkRuntimeException NjamsSdkRuntimeException
      */
     protected abstract void send(ProjectMessage msg) throws NjamsSdkRuntimeException;
 
