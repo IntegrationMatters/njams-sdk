@@ -22,6 +22,8 @@ import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
+import org.slf4j.LoggerFactory;
+
 import com.faizsiegeln.njams.messageformat.v4.common.CommonMessage;
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.factories.ThreadFactoryBuilder;
@@ -36,12 +38,14 @@ import com.im.njams.sdk.settings.Settings;
  *
  */
 public class NjamsSender implements Sender, SenderFactory {
-
+    private static final org.slf4j.Logger LOG = LoggerFactory.getLogger(NjamsSender.class);
     private SenderPool senderPool = null;
     private ThreadPoolExecutor executor = null;
     private Njams njams;
     private Settings settings;
     private String name;
+
+    private CommunicationFactory communicationFactory;
 
     public NjamsSender(Njams njams, Settings settings) {
         this.njams = njams;
@@ -52,6 +56,7 @@ public class NjamsSender implements Sender, SenderFactory {
 
     @Override
     public void init(Properties properties) {
+        this.communicationFactory = new CommunicationFactory(njams, settings);
         int maxQueueLength = Integer.parseInt(properties.getProperty(Settings.PROPERTY_MAX_QUEUE_LENGTH, "8"));
         ThreadFactory threadFactory = new ThreadFactoryBuilder()
                 .setNamePrefix(getName() + "-Sender-Thread").setDaemon(true).build();
@@ -92,7 +97,7 @@ public class NjamsSender implements Sender, SenderFactory {
      */
     @Override
     public Sender getSenderImpl() {
-        return new CommunicationFactory(njams, settings).getSender();
+        return communicationFactory.getSender();
     }
 
 }

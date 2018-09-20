@@ -46,6 +46,8 @@ public class CommunicationFactory {
 
     private final Settings settings;
     private final Njams njams;
+    private ServiceLoader<Receiver> receiverList;
+    private ServiceLoader<Sender> senderList;
 
     /**
      * Create a new CommunicationFactory
@@ -56,6 +58,8 @@ public class CommunicationFactory {
     public CommunicationFactory(Njams njams, Settings settings) {
         this.njams = njams;
         this.settings = settings;
+        this.receiverList = ServiceLoader.load(Receiver.class);
+        this.senderList = ServiceLoader.load(Sender.class);
     }
 
     /**
@@ -66,7 +70,6 @@ public class CommunicationFactory {
      */
     public Receiver getReceiver() {
         if (settings.getProperties().containsKey(COMMUNICATION)) {
-            final ServiceLoader<Receiver> receiverList = ServiceLoader.load(Receiver.class);
             final Iterator<Receiver> iterator = receiverList.iterator();
             final String requiredReceiverName = settings.getProperties().getProperty(COMMUNICATION);
             while (iterator.hasNext()) {
@@ -98,7 +101,6 @@ public class CommunicationFactory {
      */
     public Sender getSender() {
         if (settings.getProperties().containsKey(COMMUNICATION)) {
-            final ServiceLoader<Sender> senderList = ServiceLoader.load(Sender.class);
             final Iterator<Sender> iterator = senderList.iterator();
             final String requiredSenderName = settings.getProperties().getProperty(COMMUNICATION);
             while (iterator.hasNext()) {
