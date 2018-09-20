@@ -16,15 +16,16 @@
  */
 package com.im.njams.sdk.configuration.provider;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.ObjectWriter;
-import com.im.njams.sdk.Njams;
-import com.im.njams.sdk.configuration.Configuration;
-import com.im.njams.sdk.common.JsonSerializerFactory;
-import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import java.io.File;
 import java.io.FileInputStream;
 import java.util.Properties;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectWriter;
+import com.im.njams.sdk.Njams;
+import com.im.njams.sdk.common.JsonSerializerFactory;
+import com.im.njams.sdk.common.NjamsSdkRuntimeException;
+import com.im.njams.sdk.configuration.Configuration;
 import com.im.njams.sdk.configuration.ConfigurationProvider;
 
 /**
@@ -68,7 +69,7 @@ public class FileConfigurationProvider implements ConfigurationProvider {
      * <li>{@value #FILE_CONFIGURATION}
      * </ul><p>
      *
-     * @param properties
+     * @param properties Properties
      */
     @Override
     public void configure(Properties properties, Njams njams) {
@@ -92,7 +93,7 @@ public class FileConfigurationProvider implements ConfigurationProvider {
      * Loads the Configuration from the configured file, or returns a new empty
      * Configuration if the file does not exist.
      *
-     * @return
+     * @return configuration loaded by this provider
      */
     @Override
     public Configuration loadConfiguration() {
@@ -114,7 +115,7 @@ public class FileConfigurationProvider implements ConfigurationProvider {
     /**
      * Save the given Configuration to the configured File
      *
-     * @param configuration
+     * @param configuration Configuration
      */
     @Override
     public void saveConfiguration(Configuration configuration) {

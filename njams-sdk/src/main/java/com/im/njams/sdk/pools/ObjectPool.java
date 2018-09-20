@@ -25,7 +25,7 @@ import org.slf4j.LoggerFactory;
  * a generic class for pooling objects of any kind
  * @author hsiegeln
  *
- * @param <T>
+ * @param <T> class to store in this pool
  */
 public abstract class ObjectPool<T> {
     private static final org.slf4j.Logger LOG = LoggerFactory.getLogger(ObjectPool.class);
@@ -49,11 +49,11 @@ public abstract class ObjectPool<T> {
 
     /**
      * get an object from the pool. Timeout controls for how long to wait for an object becoming available.
-     * a timeout < 0 results in an endless wait
-     * a timeout == 0 results in a singly try; if no object is available, null is returned
+     * a timeout is less than 0 results in an endless wait
+     * a timeout equals 0 results in a singly try; if no object is available, null is returned
      * 
-     * @param timeout (ms)
-     * @return T
+     * @param timeout timeout in milliseconds 
+     * @return T T
      */
     public synchronized T get(long timeout) {
         T t = null;
