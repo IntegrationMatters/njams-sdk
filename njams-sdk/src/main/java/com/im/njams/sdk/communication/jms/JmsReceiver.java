@@ -254,7 +254,7 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
     /**
      * Log all JMS Exceptions
      *
-     * @param jmse JMSException
+     * @param exception JMSException
      */
     @Override
     public void onException(JMSException exception) {
