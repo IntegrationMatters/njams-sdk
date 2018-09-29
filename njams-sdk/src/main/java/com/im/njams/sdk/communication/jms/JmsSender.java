@@ -29,6 +29,7 @@ import javax.jms.Session;
 import javax.jms.TextMessage;
 import javax.naming.InitialContext;
 import javax.naming.NameNotFoundException;
+import javax.naming.NamingException;
 
 import org.slf4j.LoggerFactory;
 
@@ -85,9 +86,10 @@ public class JmsSender extends AbstractSender implements ExceptionListener {
         if (isConnected()) {
             return;
         }
+        InitialContext context = null;
         try {
             connectionStatus = ConnectionStatus.CONNECTING;
-            InitialContext context =
+            context =
                     new InitialContext(PropertyUtil.filterAndCut(properties, JmsConstants.PROPERTY_PREFIX));
             ConnectionFactory factory =
                     (ConnectionFactory) context.lookup(properties.getProperty(JmsConstants.CONNECTION_FACTORY));
@@ -111,6 +113,14 @@ public class JmsSender extends AbstractSender implements ExceptionListener {
         } catch (Exception e) {
             connectionStatus = ConnectionStatus.DISCONNECTED;
             throw new NjamsSdkRuntimeException("Unable to connect", e);
+        } finally {
+            if (context != null) {
+                try {
+                    context.close();
+                    context = null;
+                } catch (NamingException e) {
+                }
+            }
         }
 
     }
