@@ -10,6 +10,7 @@ properties([
 ])
 
 node ('master') {
+    def scmInfo
     def mvnHome
     env.JAVA_HOME = tool 'jdk-8u92'
 
@@ -22,13 +23,14 @@ node ('master') {
       // **       in the global configuration.
       mvnHome = tool 'Maven 3.2.1'
       echo 'Getting source code...'
-      checkout scm
+      scmInfo = checkout scm
+      echo "scm: ${scmInfo}"
    }
    stage('Build SDK') {
         echo "Build"
         dir ('njams-sdk') {
             try {
-                sh "'${mvnHome}/bin/mvn' clean deploy  -Psonar,jenkins-cli -DrevisionNumberPlugin.revision=${env.BUILD_NUMBER}"
+                sh "'${mvnHome}/bin/mvn' clean deploy  -Psonar,jenkins-cli -DrevisionNumberPlugin.revision=${env.BUILD_NUMBER} -DscmBranch=${scmInfo.GIT_BRANCH} -DscmCommit=${scmInfo.GIT_COMMIT}"
             } finally {
                 junit 'target/surefire-reports/*.xml'
             }
@@ -42,7 +44,7 @@ node ('master') {
         echo "Build"
         dir ('njams-sdk-communication-cloud') {
             try {
-                sh "'${mvnHome}/bin/mvn' clean deploy  -Psonar,jenkins-cli"
+                sh "'${mvnHome}/bin/mvn' clean deploy  -Psonar,jenkins-cli -DrevisionNumberPlugin.revision=${env.BUILD_NUMBER} -DscmBranch=${scmInfo.GIT_BRANCH} -DscmCommit=${scmInfo.GIT_COMMIT}"
             } finally {
                 //junit 'target/surefire-reports/*.xml'
             }
