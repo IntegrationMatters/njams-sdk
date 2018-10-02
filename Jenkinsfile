@@ -26,6 +26,10 @@ node ('master') {
       scmInfo = checkout scm
       echo "scm: ${scmInfo}"
    }
+   stage('Build Root Pom') {
+       echo "Build the root pom"
+       sh "'${mvnHome}/bin/mvn' clean deploy -N -Pjenkins-cli"
+   }
    stage('Build SDK') {
         echo "Build"
         dir ('njams-sdk') {
