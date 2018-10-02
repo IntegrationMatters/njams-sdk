@@ -28,7 +28,7 @@ node ('master') {
         echo "Build"
         dir ('njams-sdk') {
             try {
-                sh "'${mvnHome}/bin/mvn' clean deploy  -Psonar,jenkins-cli"
+                sh "'${mvnHome}/bin/mvn' clean deploy  -Psonar,jenkins-cli -DrevisionNumberPlugin.revision=${env.BUILD_NUMBER}"
             } finally {
                 junit 'target/surefire-reports/*.xml'
             }
@@ -72,7 +72,7 @@ node ('master') {
              archiveArtifacts '**/checkstyle-result.xml'
              step([$class: 'hudson.plugins.checkstyle.CheckStylePublisher', pattern: '**/checkstyle-result.xml', unstableTotalAll:'0'])
           }
-	   
+
           sh "'${mvnHome}/bin/mvn' javadoc:javadoc"
 
           publishHTML([allowMissing: false,
@@ -81,7 +81,7 @@ node ('master') {
               reportDir: 'target/site/apidocs/',
               reportFiles: 'index.html',
               reportName: 'Javadoc',
-              reportTitles: ''])          
+              reportTitles: ''])
        }
    }
 }
