@@ -619,7 +619,7 @@ public class ConfigurationInstructionListener implements InstructionListener {
                 boolean engineWideRecording = Boolean.valueOf(instruction.getRequest().getParameters().get("EngineWideRecording"));
                 configuration.setRecording(engineWideRecording);
                 //reset to default after logic change
-                configuration.getProcesses().values().forEach(p -> p.setRecording(true));
+                configuration.getProcesses().values().forEach(p -> p.setRecording(engineWideRecording));
             } catch (Exception e) {
                 errorMsg = "Unable to set client recording: " + e.getMessage();
                 LOG.error("Unable to set client recording", e);
@@ -637,11 +637,10 @@ public class ConfigurationInstructionListener implements InstructionListener {
                         configuration.getProcesses().put(processPath, process);
                     }
                 }
-                if (configuration.isRecording()) {
-                    process.setRecording(false);
-                } else {
-                    process.setRecording(true);
-                }
+                final Object doRecordParameter = instruction.getRequest().getParameters().get("Record");
+                final boolean doRecord;
+                doRecord = doRecordParameter != null && "all".equalsIgnoreCase(doRecordParameter.toString());
+                process.setRecording(doRecord);
             } catch (Exception e) {
                 errorMsg = "Unable to set process recording: " + e.getMessage();
                 LOG.error("Unable to set process recording", e);

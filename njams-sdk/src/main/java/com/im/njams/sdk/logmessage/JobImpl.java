@@ -62,9 +62,9 @@ public class JobImpl implements Job {
 
     private final ProcessModel processModel;
 
-    private String jobId;
+    private final String jobId;
 
-    private String logId;
+    private final String logId;
     /*
      * the status of the job
      */
@@ -81,7 +81,7 @@ public class JobImpl implements Job {
     /*
      * activity sequence counter
      */
-    private AtomicInteger sequenceCounter;
+    private final AtomicInteger sequenceCounter;
 
     /*
      * job level attributes
@@ -96,7 +96,7 @@ public class JobImpl implements Job {
     /*
      * counts how many flushes have been made. Used in LogMessage as messageNo
      */
-    private AtomicInteger flushCounter;
+    private final AtomicInteger flushCounter;
 
     private Activity startActivity;
 
@@ -158,8 +158,8 @@ public class JobImpl implements Job {
         this.sequenceCounter = new AtomicInteger();
         this.flushCounter = new AtomicInteger();
         this.lastFlush = DateTimeUtility.now();
-        this.attributes = new HashMap<String, String>();
-        this.pluginDataItems = new ArrayList<PluginDataItem>();
+        this.attributes = new HashMap<>();
+        this.pluginDataItems = new ArrayList<>();
         initFromConfiguration();
     }
 
@@ -439,7 +439,7 @@ public class JobImpl implements Job {
     @Override
     public void setStatus(JobStatus status) {
         this.status = status == null ? JobStatus.CREATED : status;
-        if (maxSeverity == null || maxSeverity.getValue() < status.getValue()) {
+        if (maxSeverity == null || maxSeverity.getValue() < this.status.getValue()) {
             maxSeverity = status;
         }
     }
@@ -824,7 +824,7 @@ public class JobImpl implements Job {
             LOG.debug("Set LogLevel for {} to {}", processModel.getPath(), logLevel);
             exclude = process.isExclude();
             LOG.debug("Set Exclude for {} to {}", processModel.getPath(), exclude);
-            recording = recording || process.isRecording();
+            recording = process.isRecording();
             LOG.debug("Set recording for {} to {} based on process settings {} and client setting {}",
                     processModel.getPath(), recording, configuration.isRecording());
             activityConfigurations = process.getActivities();

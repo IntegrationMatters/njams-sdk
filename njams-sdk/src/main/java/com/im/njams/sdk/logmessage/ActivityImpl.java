@@ -452,6 +452,7 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
     public void processStartData(Object startData) {
         if (job.isRecording()) {
             setStartData(job.getProcessModel().getNjams().serialize(startData));
+            job.addAtribute("$njams_recorded", "true");
         }
     }
 }
