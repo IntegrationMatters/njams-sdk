@@ -1,5 +1,11 @@
 package com.im.njams.sdk.utils;
 
+/**
+ * Provides some String related utilities.
+ *
+ * @author cwinkler
+ *
+ */
 public class StringUtils {
     private StringUtils() {
         // static only
