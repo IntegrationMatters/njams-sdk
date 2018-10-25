@@ -72,11 +72,19 @@ public class NjamsSender implements Sender, SenderFactory {
 
             @Override
             public void run() {
-                Sender sender = senderPool.get();
-                if (sender != null) {
-                    sender.send(msg);
+                Sender sender = null;
+                try {
+                    sender = senderPool.get();
+                    if (sender != null) {
+                        sender.send(msg);
+                    }
+                } catch (Exception e) {
+                    LOG.error("could not send message {}", msg, e);
+                } finally {
+                    if (sender != null) {
+                        senderPool.close(sender);
+                    }
                 }
-                senderPool.close(sender);
             }
         });
     }
