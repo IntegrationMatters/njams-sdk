@@ -16,8 +16,6 @@
  */
 package com.faizsiegeln.test;
 
-import java.util.Properties;
-
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.common.Path;
 import com.im.njams.sdk.communication.CommunicationFactory;
@@ -28,6 +26,7 @@ import com.im.njams.sdk.logmessage.Job;
 import com.im.njams.sdk.model.ActivityModel;
 import com.im.njams.sdk.model.ProcessModel;
 import com.im.njams.sdk.settings.Settings;
+import java.util.Properties;
 
 /**
  * This is a simple sample client, which creates a simple process with three
@@ -93,6 +92,10 @@ public class SimpleEndlessClient {
         while (i++ < 1000) {
             //Create a job from a previously created ProcessModel
             Job job = process.createJob();
+            
+            // Starts the job, i.e., sets the according status, job start date if not set before, and flags the job to begin flushing.
+            job.start();
+            
             //Create the start activity from the previously creates startModel
             Activity start = job.createActivity(startModel).build();
             //add input and output data to the activity

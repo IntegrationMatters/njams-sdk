@@ -21,13 +21,13 @@ import com.im.njams.sdk.common.Path;
 import com.im.njams.sdk.communication.CommunicationFactory;
 import com.im.njams.sdk.communication.cloud.CloudConstants;
 import com.im.njams.sdk.communication.jms.JmsConstants;
-import com.im.njams.sdk.settings.Settings;
 import com.im.njams.sdk.logmessage.Activity;
 import com.im.njams.sdk.logmessage.Group;
 import com.im.njams.sdk.logmessage.Job;
 import com.im.njams.sdk.model.ActivityModel;
 import com.im.njams.sdk.model.GroupModel;
 import com.im.njams.sdk.model.ProcessModel;
+import com.im.njams.sdk.settings.Settings;
 import java.util.Properties;
 
 /**
@@ -112,6 +112,9 @@ public class GroupClient {
          */
         //Create a job from a previously created ProcessModel
         Job job = process.createJob();
+        
+        // Starts the job, i.e., sets the according status, job start date if not set before, and flags the job to begin flushing.
+        job.start();
         
         //Create the start activity from the previously creates startModel
         Activity start = job.createActivity(startModel).build();

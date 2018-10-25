@@ -21,13 +21,13 @@ import com.im.njams.sdk.common.Path;
 import com.im.njams.sdk.communication.CommunicationFactory;
 import com.im.njams.sdk.communication.cloud.CloudConstants;
 import com.im.njams.sdk.communication.jms.JmsConstants;
-import com.im.njams.sdk.settings.Settings;
 import com.im.njams.sdk.logmessage.Activity;
 import com.im.njams.sdk.logmessage.Job;
 import com.im.njams.sdk.logmessage.SubProcessActivity;
 import com.im.njams.sdk.model.ActivityModel;
 import com.im.njams.sdk.model.ProcessModel;
 import com.im.njams.sdk.model.SubProcessActivityModel;
+import com.im.njams.sdk.settings.Settings;
 import java.util.Properties;
 
 /**
@@ -101,6 +101,9 @@ public class SubProcessClient {
          */
         //Create a job for the main process
         Job job = process.createJob();
+         
+        // Starts the job, i.e., sets the according status, job start date if not set before, and flags the job to begin flushing.
+        job.start();
 
         Activity start = job.createActivity(startModel).build();
         start.processInput("testdata");
