@@ -1,14 +1,14 @@
-/* 
+/*
  * Copyright (c) 2018 Faiz & Siegeln Software GmbH
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"),
  * to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
  * and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
- * 
+ *
  * The Software shall be used for Good, not Evil.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
@@ -16,14 +16,18 @@
  */
 package com.im.njams.sdk.settings.provider;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.util.Properties;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectWriter;
 import com.im.njams.sdk.common.JsonSerializerFactory;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.settings.Settings;
-import java.io.File;
-import java.io.FileInputStream;
-import java.util.Properties;
 import com.im.njams.sdk.settings.SettingsProvider;
 
 /**
@@ -53,8 +57,8 @@ public class FileSettingsProvider implements SettingsProvider {
      */
     public FileSettingsProvider() {
         file = new File("config.json");
-        this.objectMapper = JsonSerializerFactory.getDefaultMapper();
-        this.objectWriter = this.objectMapper.writer();
+        objectMapper = JsonSerializerFactory.getDefaultMapper();
+        objectWriter = objectMapper.writer();
     }
 
     /**
@@ -97,9 +101,8 @@ public class FileSettingsProvider implements SettingsProvider {
         if (!file.exists()) {
             settings = new Settings();
         } else {
-            try {
-                settings = objectMapper.readValue(new FileInputStream(file), Settings.class);
-
+            try (InputStream is = new FileInputStream(file)) {
+                settings = objectMapper.readValue(is, Settings.class);
             } catch (Exception e) {
                 throw new NjamsSdkRuntimeException("Unable to load file", e);
             }
@@ -114,8 +117,8 @@ public class FileSettingsProvider implements SettingsProvider {
      */
     @Override
     public void saveSettings(Settings settings) {
-        try {
-            objectWriter.writeValue(file, settings);
+        try (OutputStream os = new FileOutputStream(file)) {
+            objectWriter.writeValue(os, settings);
         } catch (Exception e) {
             throw new NjamsSdkRuntimeException("Unable to save file", e);
         }

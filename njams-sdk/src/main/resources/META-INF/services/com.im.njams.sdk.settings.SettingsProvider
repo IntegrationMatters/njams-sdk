@@ -1,3 +1,4 @@
 com.im.njams.sdk.settings.provider.FileSettingsProvider
 com.im.njams.sdk.settings.provider.MemorySettingsProvider
 com.im.njams.sdk.settings.provider.PropertiesFileSettingsProvider
+com.im.njams.sdk.settings.provider.SystemPropertiesSettingsProvider
