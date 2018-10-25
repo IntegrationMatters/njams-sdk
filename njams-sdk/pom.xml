@@ -9,7 +9,7 @@
     <parent>
         <groupId>com.faizsiegeln</groupId>
         <artifactId>njams4-sdk-root</artifactId>
-        <version>4.0.0-RC2-SNAPSHOT</version>
+        <version>4.0.0-RC3-SNAPSHOT</version>
     </parent>
 
     <profiles>
@@ -55,6 +55,44 @@
                 <artifactId>maven-javadoc-plugin</artifactId>
                 <version>3.0.1</version>
             </plugin>
+         
+<!-- Shading of saxon. Please decomment if decision is to shade it. -->               
+<!--            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
+                <version>3.1.1</version>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>shade</goal>
+                        </goals>
+                        <configuration>
+                            <artifactSet>
+                                <includes>
+                                    <include>net.sourceforge.saxon:saxon</include>
+                                </includes>
+                            </artifactSet>
+                            <relocations>
+                                <relocation>
+                                    <pattern>net.sf.saxon</pattern>
+                                    <shadedPattern>com.im.saxon</shadedPattern>
+                                </relocation>
+                            </relocations>
+                            <filters>
+                                <filter>
+                                    <artifact>*:*</artifact>
+                                    <excludes>
+                                        <exclude>META-INF/*.SF</exclude>
+                                        <exclude>META-INF/*.DSA</exclude>
+                                        <exclude>META-INF/*.RSA</exclude>
+                                    </excludes>
+                                </filter>
+                            </filters>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>-->
         </plugins>
     </build>
   	

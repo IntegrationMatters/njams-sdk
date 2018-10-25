@@ -1,1 +1,3 @@
 sdkVersion=${project.version} (${revisionNumberPlugin.revision})
+scmBranch=${scmBranch}
+scmCommit=${scmCommit}

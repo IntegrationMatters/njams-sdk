@@ -1,20 +1,24 @@
-/* 
+/*
  * Copyright (c) 2018 Faiz & Siegeln Software GmbH
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"),
  * to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
  * and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
- * 
+ *
  * The Software shall be used for Good, not Evil.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
  */
 package com.im.njams.sdk.configuration;
+
+import java.time.LocalDateTime;
+
+import org.slf4j.LoggerFactory;
 
 import com.faizsiegeln.njams.messageformat.v4.command.Command;
 import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
@@ -25,8 +29,6 @@ import com.faizsiegeln.njams.messageformat.v4.projectmessage.LogMode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.im.njams.sdk.common.JsonSerializerFactory;
 import com.im.njams.sdk.communication.InstructionListener;
-import java.time.LocalDateTime;
-import org.slf4j.LoggerFactory;
 
 /**
  * InstructionListener implementation for all instructions which will modify
@@ -90,21 +92,24 @@ public class ConfigurationInstructionListener implements InstructionListener {
         }
 
         //execute action
-        ProcessConfiguration process = null;
-        if (errorMsg == null) {
-            process = configuration.getProcess(processPath);
-            if (process == null) {
-                errorMsg = "Process " + processPath + " not found";
-            }
-        }
-
-        //send response
         Response response = new Response();
         if (errorMsg == null) {
-            response.getParameters().put("logLevel", process.getLogLevel().toString());
-            response.getParameters().put("exclude", String.valueOf(process.isExclude()));
+            // init with defaults
+            LogLevel logLevel = LogLevel.INFO;
+            boolean exclude = false;
+
+            // differing config stored?
+            ProcessConfiguration process = configuration.getProcess(processPath);
+            if (process != null) {
+                logLevel = process.getLogLevel();
+                exclude = process.isExclude();
+            }
+
+            response.getParameters().put("logLevel", logLevel.name());
+            response.getParameters().put("exclude", String.valueOf(exclude));
             //for compatibility reasons logmode will be returned
             response.getParameters().put("logMode", configuration.getLogMode().toString());
+
             response.setResultCode(0);
             response.setResultMessage("Success");
             LOG.debug("Return LogLevel for {}", processPath);
@@ -616,10 +621,11 @@ public class ConfigurationInstructionListener implements InstructionListener {
         //fetch parameters
         if (instruction.getRequest().getParameters().containsKey("EngineWideRecording")) {
             try {
-                boolean engineWideRecording = Boolean.valueOf(instruction.getRequest().getParameters().get("EngineWideRecording"));
+                boolean engineWideRecording =
+                        Boolean.valueOf(instruction.getRequest().getParameters().get("EngineWideRecording"));
                 configuration.setRecording(engineWideRecording);
                 //reset to default after logic change
-                configuration.getProcesses().values().forEach(p -> p.setRecording(true));
+                configuration.getProcesses().values().forEach(p -> p.setRecording(engineWideRecording));
             } catch (Exception e) {
                 errorMsg = "Unable to set client recording: " + e.getMessage();
                 LOG.error("Unable to set client recording", e);
@@ -637,11 +643,10 @@ public class ConfigurationInstructionListener implements InstructionListener {
                         configuration.getProcesses().put(processPath, process);
                     }
                 }
-                if (configuration.isRecording()) {
-                    process.setRecording(false);
-                } else {
-                    process.setRecording(true);
-                }
+                final Object doRecordParameter = instruction.getRequest().getParameters().get("Record");
+                final boolean doRecord;
+                doRecord = doRecordParameter != null && "all".equalsIgnoreCase(doRecordParameter.toString());
+                process.setRecording(doRecord);
             } catch (Exception e) {
                 errorMsg = "Unable to set process recording: " + e.getMessage();
                 LOG.error("Unable to set process recording", e);

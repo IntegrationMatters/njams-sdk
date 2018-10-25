@@ -1,3 +1,5 @@
 /target/
 /njams-sdk-communication-cloud/dependency-reduced-pom.xml
 /.project
+.DS_Store
+njams-sdk/dependency-reduced-pom.xml
