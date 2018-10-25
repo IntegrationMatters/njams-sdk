@@ -34,6 +34,10 @@
                                     <pattern>com.amazonaws</pattern>
                                     <shadedPattern>com.im.amazonaws</shadedPattern>
                                 </relocation>
+				                <relocation>
+									<pattern>com.fasterxml</pattern>
+									<shadedPattern>com.im.fasterxml</shadedPattern>
+								</relocation>
                             </relocations>
                             <artifactSet>
                                 <excludes>
