@@ -148,16 +148,19 @@
 			<groupId>com.fasterxml.jackson.module</groupId>
 			<artifactId>jackson-module-jaxb-annotations</artifactId>
 			<scope>compile</scope>
+			<version>2.7.4</version>
 		</dependency>
 		<dependency>
 			<groupId>com.fasterxml.jackson.core</groupId>
 			<artifactId>jackson-annotations</artifactId>
 			<scope>compile</scope>
+			<version>2.7.4</version>
 		</dependency>
 		<dependency>
 			<groupId>com.fasterxml.jackson.dataformat</groupId>
 			<artifactId>jackson-dataformat-xml</artifactId>
 			<scope>compile</scope>
+			<version>2.7.4</version>
 		</dependency>
 
 		<!-- provided - not shaded -->

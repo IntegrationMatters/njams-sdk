@@ -73,23 +73,7 @@
             <version>4.0.0-RC3-SNAPSHOT</version>
             <scope>provided</scope>
         </dependency>
-        
-        <dependency>
-            <groupId>com.fasterxml.jackson.module</groupId>
-            <artifactId>jackson-module-jaxb-annotations</artifactId>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>com.fasterxml.jackson.core</groupId>
-            <artifactId>jackson-annotations</artifactId>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>com.fasterxml.jackson.dataformat</groupId>
-            <artifactId>jackson-dataformat-xml</artifactId>
-            <scope>provided</scope>
-        </dependency>
-        
+
         <dependency>
             <groupId>com.amazonaws</groupId>
             <artifactId>aws-iot-device-sdk-java</artifactId>
