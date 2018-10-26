@@ -16,8 +16,12 @@
  */
 package com.im.njams.sdk.communication.cloud;
 
-import static java.nio.charset.Charset.defaultCharset;
-
+import com.faizsiegeln.njams.messageformat.v4.common.MessageVersion;
+import com.faizsiegeln.njams.messageformat.v4.logmessage.LogMessage;
+import com.faizsiegeln.njams.messageformat.v4.projectmessage.ProjectMessage;
+import com.im.njams.sdk.common.NjamsSdkRuntimeException;
+import com.im.njams.sdk.communication.AbstractSender;
+import com.im.njams.sdk.communication.Sender;
 import java.io.BufferedReader;
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -25,26 +29,18 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.MalformedURLException;
 import java.net.URL;
+import static java.nio.charset.Charset.defaultCharset;
 import java.security.KeyStore;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
-
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.KeyManager;
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
-
 import org.slf4j.LoggerFactory;
-
-import com.faizsiegeln.njams.messageformat.v4.common.MessageVersion;
-import com.faizsiegeln.njams.messageformat.v4.logmessage.LogMessage;
-import com.faizsiegeln.njams.messageformat.v4.projectmessage.ProjectMessage;
-import com.im.njams.sdk.common.NjamsSdkRuntimeException;
-import com.im.njams.sdk.communication.AbstractSender;
-import com.im.njams.sdk.communication.Sender;
 
 /**
  *
@@ -62,7 +58,7 @@ public class CloudSender extends AbstractSender {
     private URL url;
     private String apikey;
 
-    @Override
+        @Override
     public void init(Properties properties) {
         //TODO: do it for production
         //        try {
@@ -76,7 +72,19 @@ public class CloudSender extends AbstractSender {
         } catch (final MalformedURLException ex) {
             throw new NjamsSdkRuntimeException("unable to init http sender", ex);
         }
-        this.apikey = properties.getProperty(CloudConstants.APIKEY);
+        String apikeypath = properties.getProperty(CloudConstants.APIKEY);
+              
+        if (apikeypath == null) {
+            LOG.error("Please provide property {} for CloudSender", CloudConstants.APIKEY);
+        }
+        
+        try{
+            this.apikey = ApiKeyReader.getApiKey(apikeypath);
+        } catch (Exception e) {
+             LOG.error("Failed to load api key from file " + apikeypath, e);
+             throw new IllegalStateException("Failed to load api key from file");
+        }
+    
     }
 
     @Override
