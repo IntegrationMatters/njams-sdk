@@ -16,6 +16,7 @@ public class JsonUtils {
 
     /**
      * Parses the given JSON string and initializes a new object of the given type from that JSON.
+     * @param <T> The type of the object to be created from the given JSON.
      * @param json The JSON string to parse.
      * @param type The type of the object to be created from the given JSON.
      * @return New instance of the given type.
