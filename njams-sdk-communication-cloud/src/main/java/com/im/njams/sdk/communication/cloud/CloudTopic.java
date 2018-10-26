@@ -93,7 +93,7 @@ public class CloudTopic extends AWSIotTopic {
             AWSIotMessage replyMessage = new AWSIotMessage(replyTopic, AWSIotQos.QOS1);
             replyMessage.setStringPayload(response);
             receiver.getMqttclient().publish(replyMessage);
-            LOG.info("Sent reply on {}:\n{}", replyTopic, response);
+            LOG.debug("Sent reply on {}:\n{}", replyTopic, response);
         } catch (Exception e) {
             LOG.error("Error while sending reply for {}", uuid, e);
         }

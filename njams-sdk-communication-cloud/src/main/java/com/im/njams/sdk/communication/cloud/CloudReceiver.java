@@ -1,14 +1,14 @@
-/* 
+/*
  * Copyright (c) 2018 Faiz & Siegeln Software GmbH
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"),
  * to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
  * and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
- * 
+ *
  * The Software shall be used for Good, not Evil.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
@@ -54,19 +54,19 @@ public class CloudReceiver extends AbstractReceiver {
 
     @Override
     public void init(Properties properties) {
-        this.endpoint = properties.getProperty(CloudConstants.CLIENT_ENDPOINT);
+        endpoint = properties.getProperty(CloudConstants.CLIENT_ENDPOINT);
         if (endpoint == null) {
             LOG.error("Please provide property {} for CloudReceiver", CloudConstants.CLIENT_ENDPOINT);
         }
-        this.instanceId = properties.getProperty(CloudConstants.CLIENT_INSTANCEID);
+        instanceId = properties.getProperty(CloudConstants.CLIENT_INSTANCEID);
         if (instanceId == null) {
             LOG.error("Please provide property {} for CloudReceiver", CloudConstants.CLIENT_INSTANCEID);
         }
-        this.certificateFile = properties.getProperty(CloudConstants.CLIENT_CERTIFICATE);
+        certificateFile = properties.getProperty(CloudConstants.CLIENT_CERTIFICATE);
         if (certificateFile == null) {
             LOG.error("Please provide property {} for CloudReceiver", CloudConstants.CLIENT_CERTIFICATE);
         }
-        this.privateKeyFile = properties.getProperty(CloudConstants.CLIENT_PRIVATEKEY);
+        privateKeyFile = properties.getProperty(CloudConstants.CLIENT_PRIVATEKEY);
         if (privateKeyFile == null) {
             LOG.error("Please provide property {} for CloudReceiver", CloudConstants.CLIENT_PRIVATEKEY);
         }
@@ -76,7 +76,7 @@ public class CloudReceiver extends AbstractReceiver {
         if (keyStorePasswordPair == null) {
             throw new IllegalStateException("Certificate or PrivateKey invalid");
         }
-        this.clientId = instanceId + njams.getClientPath().toString().replace(">", "-");
+        clientId = instanceId + njams.getClientPath().toString().replace(">", "-");
     }
 
     @Override
@@ -159,7 +159,7 @@ public class CloudReceiver extends AbstractReceiver {
         }
         try {
             connectionStatus = ConnectionStatus.CONNECTING;
-            LOG.info("Connect to endpoint {} with id {}", endpoint, clientId);
+            LOG.debug("Connect to endpoint {} with id {}", endpoint, clientId);
             mqttclient = new AWSIotMqttClient(endpoint, clientId, keyStorePasswordPair.keyStore,
                     keyStorePasswordPair.keyPassword);
             // optional parameters can be set before connect()
@@ -167,7 +167,7 @@ public class CloudReceiver extends AbstractReceiver {
             setQos(AWSIotQos.QOS1);
             topicName = "/" + instanceId + "/commands" + njams.getClientPath().toString().replace(">", "/");
             CloudTopic topic = new CloudTopic(this);
-            LOG.info("Topic Subscription: {}", topic.getTopic());
+            LOG.debug("Topic Subscription: {}", topic.getTopic());
             getMqttclient().subscribe(topic);
             connectionStatus = ConnectionStatus.CONNECTED;
         } catch (Exception e) {

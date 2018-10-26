@@ -104,9 +104,9 @@ public class CloudSender extends AbstractSender {
         properties.put(NJAMS_PATH, msg.getPath());
         properties.put(NJAMS_LOGID, msg.getLogId());
         try {
-            LOG.info("Sending log message");
+            LOG.trace("Sending log message");
             final String response = send(msg, properties);
-            LOG.info("Response: " + response);
+            LOG.trace("Response: " + response);
         } catch (Exception ex) {
             LOG.error("Error sending LogMessage", ex);
         }
@@ -119,9 +119,9 @@ public class CloudSender extends AbstractSender {
         properties.put(NJAMS_PATH, msg.getPath());
 
         try {
-            LOG.info("Sending project message");
+            LOG.trace("Sending project message");
             final String response = send(msg, properties);
-            LOG.info(response);
+            LOG.trace(response);
         } catch (Exception ex) {
             LOG.error("Error sending LogMessage", ex);
         }
