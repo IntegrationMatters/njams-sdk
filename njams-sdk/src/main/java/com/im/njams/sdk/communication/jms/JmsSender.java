@@ -77,7 +77,7 @@ public class JmsSender extends AbstractSender implements ExceptionListener {
         super.init(properties);
         try {
             connect();
-            LOG.info("Initialized sender {}", JmsConstants.COMMUNICATION_NAME);
+            LOG.debug("Initialized sender {}", JmsConstants.COMMUNICATION_NAME);
         } catch (NjamsSdkRuntimeException e) {
             LOG.error("Could not initialize sender {}\n", JmsConstants.COMMUNICATION_NAME, e);
         }

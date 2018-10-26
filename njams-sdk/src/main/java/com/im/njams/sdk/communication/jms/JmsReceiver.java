@@ -1,14 +1,14 @@
-/* 
+/*
  * Copyright (c) 2018 Faiz & Siegeln Software GmbH
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"),
  * to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
  * and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
- * 
+ *
  * The Software shall be used for Good, not Evil.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
@@ -63,7 +63,6 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
     private MessageProducer producer;
     private String destinationName;
     private ObjectMapper mapper;
-    private String clientPath;
     private String messageSelector;
 
     /**
@@ -91,7 +90,7 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
      */
     @Override
     public void init(Properties properties) {
-        this.connectionStatus = ConnectionStatus.DISCONNECTED;
+        connectionStatus = ConnectionStatus.DISCONNECTED;
         mapper = JsonSerializerFactory.getDefaultMapper();
         this.properties = properties;
         if (properties.containsKey(JmsConstants.COMMANDS_DESTINATION)) {
@@ -123,9 +122,9 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
             session = connection.createSession(false, JMSContext.CLIENT_ACKNOWLEDGE);
             Destination destination = null;
             try {
-                destination = (Destination) context.lookup(this.destinationName);
+                destination = (Destination) context.lookup(destinationName);
             } catch (NameNotFoundException e) {
-                destination = session.createQueue(this.destinationName);
+                destination = session.createQueue(destinationName);
             }
             consumer = session.createConsumer(destination, messageSelector);
             consumer.setMessageListener(this);
