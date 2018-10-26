@@ -109,7 +109,6 @@ public class PropertiesFileSettingsProvider implements SettingsProvider {
      * Settings if the file does not exist.
      *
      * @return the {@link Settings}
-     * @throws NjamsSdkRuntimeException if the file could not be loaded.
      */
     @Override
     public Settings loadSettings() {
@@ -181,7 +180,6 @@ public class PropertiesFileSettingsProvider implements SettingsProvider {
      * Save the given Settings to the configured File.
      *
      * @param settings to be saved
-     * @throws NjamsSdkRuntimeException if the file could not be saved.
      */
     @Override
     public void saveSettings(final Settings settings) {
