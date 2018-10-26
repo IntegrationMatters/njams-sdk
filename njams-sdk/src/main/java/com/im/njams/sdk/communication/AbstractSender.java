@@ -1,14 +1,14 @@
-/* 
+/*
  * Copyright (c) 2018 Faiz & Siegeln Software GmbH
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"),
  * to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
  * and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
- * 
+ *
  * The Software shall be used for Good, not Evil.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
@@ -23,15 +23,13 @@ import org.slf4j.LoggerFactory;
 import com.faizsiegeln.njams.messageformat.v4.common.CommonMessage;
 import com.faizsiegeln.njams.messageformat.v4.logmessage.LogMessage;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.ProjectMessage;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.im.njams.sdk.common.JsonSerializerFactory;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.settings.Settings;
 
 /**
  * Superclass for all Senders. When writing your own Sender, extend this class and overwrite methods, when needed.
  * All Sender will be automatically pooled by the SDK; you must not implement your own connection pooling!
- * 
+ *
  * @author hsiegeln
  *
  */
@@ -40,7 +38,6 @@ public abstract class AbstractSender implements Sender {
     private static final org.slf4j.Logger LOG = LoggerFactory.getLogger(AbstractSender.class);
 
     protected ConnectionStatus connectionStatus;
-    protected ObjectMapper mapper;
     protected String discardPolicy;
     protected Properties properties;
 
@@ -48,19 +45,18 @@ public abstract class AbstractSender implements Sender {
      * returns a new AbstractSender
      */
     public AbstractSender() {
-        this.mapper = JsonSerializerFactory.getDefaultMapper();
-        this.connectionStatus = ConnectionStatus.DISCONNECTED;
+        connectionStatus = ConnectionStatus.DISCONNECTED;
     }
 
     @Override
     public void init(Properties properties) {
         this.properties = properties;
-        this.discardPolicy = properties.getProperty(Settings.PROPERTY_DISCARD_POLICY, "none").toLowerCase();
+        discardPolicy = properties.getProperty(Settings.PROPERTY_DISCARD_POLICY, "none").toLowerCase();
     }
 
     /**
      * override this method to implement your own connection initialization
-     * 
+     *
      * @throws NjamsSdkRuntimeException NjamsSdkRuntimeException
      */
     public synchronized void connect() throws NjamsSdkRuntimeException {
@@ -104,6 +100,7 @@ public abstract class AbstractSender implements Sender {
      *
      * @param msg the message to send
      */
+    @Override
     public void send(CommonMessage msg) {
         // do this until message is sent or discard policy onConnectionLoss is satisfied
         boolean isSent = false;
@@ -145,20 +142,20 @@ public abstract class AbstractSender implements Sender {
 
     /**
      * used to implement your exception handling for this sender. Is called, if sending of a message fails.
-     * It will automatically close any try to reconnect the connection; 
+     * It will automatically close any try to reconnect the connection;
      * override this method for your own handling
-     * 
+     *
      * @param exception NjamsSdkRuntimeException
      */
     protected void onException(NjamsSdkRuntimeException exception) {
         // close the existing connection
         close();
         reconnect();
-    };
+    }
 
     /**
      * Implement this method to send LogMessages
-     * 
+     *
      * @param msg the message to send
      * @throws NjamsSdkRuntimeException NjamsSdkRuntimeException
      */
@@ -166,8 +163,8 @@ public abstract class AbstractSender implements Sender {
 
     /**
      * Implement this method to send ProjectMessages
-     * 
-     * @param msg the message to send 
+     *
+     * @param msg the message to send
      * @throws NjamsSdkRuntimeException NjamsSdkRuntimeException
      */
     protected abstract void send(ProjectMessage msg) throws NjamsSdkRuntimeException;

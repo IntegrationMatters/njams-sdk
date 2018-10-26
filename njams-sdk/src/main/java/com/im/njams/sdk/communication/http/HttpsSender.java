@@ -1,14 +1,14 @@
-/* 
+/*
  * Copyright (c) 2018 Faiz & Siegeln Software GmbH
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"),
  * to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
  * and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
- * 
+ *
  * The Software shall be used for Good, not Evil.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
@@ -43,6 +43,8 @@ import org.slf4j.LoggerFactory;
 import com.faizsiegeln.njams.messageformat.v4.common.MessageVersion;
 import com.faizsiegeln.njams.messageformat.v4.logmessage.LogMessage;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.ProjectMessage;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.im.njams.sdk.common.JsonSerializerFactory;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.communication.AbstractSender;
 import com.im.njams.sdk.communication.Sender;
@@ -78,6 +80,7 @@ public class HttpsSender extends AbstractSender {
     private String user;
     private String password;
     private URL url;
+    private final ObjectMapper mapper = JsonSerializerFactory.getDefaultMapper();
 
     /**
      * Create new HttpsSender
@@ -95,12 +98,12 @@ public class HttpsSender extends AbstractSender {
     @Override
     public void init(final Properties properties) {
         try {
-            this.url = new URL(properties.getProperty(SENDER_URL));
+            url = new URL(properties.getProperty(SENDER_URL));
         } catch (final MalformedURLException ex) {
             throw new NjamsSdkRuntimeException("unable to init http sender", ex);
         }
-        this.user = properties.getProperty(SENDER_USERNAME);
-        this.password = properties.getProperty(SENDER_PASSWORD);
+        user = properties.getProperty(SENDER_USERNAME);
+        password = properties.getProperty(SENDER_PASSWORD);
     }
 
     @Override
@@ -156,7 +159,7 @@ public class HttpsSender extends AbstractSender {
             connection.setRequestProperty("Connection", "keep-alive");
             connection.setRequestProperty("x-njams-type", "keep-alive");
 
-            if (this.user != null) {
+            if (user != null) {
                 final Base64.Encoder encoder = Base64.getEncoder();
                 final String userpassword = user + ":" + password;
                 final byte[] encodedAuthorization = encoder.encode(userpassword.getBytes(defaultCharset()));
