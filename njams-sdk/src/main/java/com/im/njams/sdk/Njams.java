@@ -1,14 +1,14 @@
-/* 
+/*
  * Copyright (c) 2018 Faiz & Siegeln Software GmbH
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"),
  * to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
  * and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
- * 
+ *
  * The Software shall be used for Good, not Evil.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
@@ -180,12 +180,12 @@ public class Njams implements InstructionListener {
      */
     public Njams(Path path, String version, String category, Settings settings) {
         treeElements = new ArrayList<>();
-        this.clientPath = path;
+        clientPath = path;
         this.category = category == null ? null : category.toUpperCase();
-        this.startTime = DateTimeUtility.now();
+        startTime = DateTimeUtility.now();
         this.settings = settings;
-        this.processDiagramFactory = new NjamsProcessDiagramFactory();
-        this.processModelLayouter = new SimpleProcessModelLayouter();
+        processDiagramFactory = new NjamsProcessDiagramFactory();
+        processModelLayouter = new SimpleProcessModelLayouter();
         loadConfiguration();
         initializeDataMasking();
         createTreeElements(path, TreeElementType.CLIENT);
@@ -414,7 +414,7 @@ public class Njams implements InstructionListener {
      * @return Unmodifiable collection of jobs.
      */
     public Collection<Job> getJobs() {
-        return Collections.unmodifiableCollection(this.jobs.values());
+        return Collections.unmodifiableCollection(jobs.values());
     }
 
     /**
@@ -483,8 +483,6 @@ public class Njams implements InstructionListener {
     /**
      * Create DomainObjectStructure which is the tree representation for the
      * client
-     *
-     * @return
      */
     private void createTreeElements(Path path, TreeElementType targetDomainObjectType) {
         String currentPath = ">";
@@ -561,7 +559,7 @@ public class Njams implements InstructionListener {
     @Override
     public int hashCode() {
         int hash = 5;
-        hash = 83 * hash + Objects.hashCode(this.clientPath);
+        hash = 83 * hash + Objects.hashCode(clientPath);
         return hash;
     }
 
@@ -577,7 +575,7 @@ public class Njams implements InstructionListener {
             return false;
         }
         final Njams other = (Njams) obj;
-        return Objects.equals(this.clientPath, other.clientPath);
+        return Objects.equals(clientPath, other.clientPath);
     }
 
     /**
@@ -684,9 +682,9 @@ public class Njams implements InstructionListener {
             instruction.setResponse(response);
             LOG.debug("Sent ProjectMessage requested via Instruction via Njams");
         } else if (instruction.getRequest().getCommand().equalsIgnoreCase(Command.REPLAY.commandString())) {
-            if (this.replayHandler != null) {
+            if (replayHandler != null) {
                 try {
-                    ReplayResponse response = this.replayHandler.replay(new ReplayRequest(instruction));
+                    ReplayResponse response = replayHandler.replay(new ReplayRequest(instruction));
                     response.addParametersToInstruction(instruction);
                 } catch (final Exception ex) {
                     final Response response = new Response();
@@ -840,10 +838,10 @@ public class Njams implements InstructionListener {
      */
     private void setMachine() {
         try {
-            this.machine = java.net.InetAddress.getLocalHost().getHostName();
+            machine = java.net.InetAddress.getLocalHost().getHostName();
         } catch (Exception e) {
             LOG.debug("Error getting machine name", e);
-            this.machine = "unknown";
+            machine = "unknown";
         }
     }
 

@@ -24,7 +24,7 @@
 						<version>3.0.0</version>
 						<executions>
 							<execution>
-								<phase>install</phase>
+								<phase>validate</phase>
 								<goals>
 									<goal>checkstyle</goal>
 								</goals>
