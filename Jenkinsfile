@@ -73,7 +73,7 @@ node ('master') {
        echo "Build Javadoc"
        dir ('njams-sdk') {
 	      try {
-             sh "'${mvnHome}/bin/mvn' -Pcheckstyle clean install"
+             sh "'${mvnHome}/bin/mvn' validate -Pcheckstyle "
           } finally {
              archiveArtifacts '**/checkstyle-result.xml'
              step([$class: 'hudson.plugins.checkstyle.CheckStylePublisher', pattern: '**/checkstyle-result.xml', unstableTotalAll:'0'])
