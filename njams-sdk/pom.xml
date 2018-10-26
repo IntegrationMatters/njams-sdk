@@ -94,12 +94,6 @@
 									<pattern>com.fasterxml</pattern>
 									<shadedPattern>com.im.fasterxml</shadedPattern>
 								</relocation>
-								<!-- 
-								<relocation>
-									<pattern>org.slf4j</pattern>
-									<shadedPattern>com.im.slf4j</shadedPattern>
-								</relocation>
-								 -->
 								<relocation>
 									<pattern>org.codehaus</pattern>
 									<shadedPattern>com.im.codehaus</shadedPattern>
@@ -127,10 +121,6 @@
 			<groupId>com.faizsiegeln</groupId>
 			<artifactId>njams-messageformat</artifactId>
 			<version>4.0.0</version>
-		</dependency>
-		<dependency>
-			<groupId>org.slf4j</groupId>
-			<artifactId>slf4j-api</artifactId>
 		</dependency>
 
 		<dependency>
@@ -173,6 +163,11 @@
 			<groupId>javax</groupId>
 			<artifactId>jms</artifactId>
 			<version>2.0</version>
+			<scope>provided</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.slf4j</groupId>
+			<artifactId>slf4j-api</artifactId>
 			<scope>provided</scope>
 		</dependency>
 
