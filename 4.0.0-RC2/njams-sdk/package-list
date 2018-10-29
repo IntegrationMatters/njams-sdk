@@ -17,3 +17,4 @@ com.im.njams.sdk.pools
 com.im.njams.sdk.serializer
 com.im.njams.sdk.settings
 com.im.njams.sdk.settings.provider
+com.im.njams.sdk.utils
