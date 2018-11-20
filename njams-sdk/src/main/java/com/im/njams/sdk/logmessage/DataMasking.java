@@ -99,4 +99,18 @@ public class DataMasking {
             LOG.error("could not add pattern " + pattern, e);
         }
     }
+    
+    public static void removePattern(String pattern){
+        try{
+            Pattern p = Pattern.compile(pattern);
+            PATTERNS.remove((Pattern) p);
+            LOG.info("removed masking pattern {}", pattern);
+        }catch(Exception e){
+            LOG.error("Could not remove pattern {}", pattern, e);
+        }
+    }
+    
+    public static void removePatterns(){
+        PATTERNS.removeAll(PATTERNS);
+    }
 }
