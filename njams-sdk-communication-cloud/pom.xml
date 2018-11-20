@@ -11,7 +11,7 @@
         <artifactId>njams4-sdk-root</artifactId>
         <version>4.0.1-SNAPSHOT</version>
     </parent>
-    
+
     <build>
         <plugins>
             <plugin>
@@ -34,10 +34,10 @@
                                     <pattern>com.amazonaws</pattern>
                                     <shadedPattern>com.im.amazonaws</shadedPattern>
                                 </relocation>
-				                <relocation>
-									<pattern>com.fasterxml</pattern>
-									<shadedPattern>com.im.fasterxml</shadedPattern>
-								</relocation>
+                                <relocation>
+                                    <pattern>com.fasterxml</pattern>
+                                    <shadedPattern>com.im.fasterxml</shadedPattern>
+                                </relocation>
                             </relocations>
                             <artifactSet>
                                 <excludes>
@@ -65,7 +65,7 @@
             </plugin>
         </plugins>
     </build>
-    
+
     <dependencies>
         <dependency>
             <groupId>com.faizsiegeln.njams</groupId>
@@ -74,10 +74,10 @@
             <scope>provided</scope>
         </dependency>
         <dependency>
-			<groupId>org.slf4j</groupId>
-			<artifactId>slf4j-api</artifactId>
-			<scope>provided</scope>
-		</dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+            <scope>provided</scope>
+        </dependency>
 
         <dependency>
             <groupId>com.amazonaws</groupId>
@@ -89,8 +89,8 @@
             <artifactId>junit</artifactId>
             <scope>test</scope>
         </dependency>
-        
-               
-        
+
+
+
     </dependencies>
 </project>

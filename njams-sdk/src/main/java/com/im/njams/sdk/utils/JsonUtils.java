@@ -16,7 +16,7 @@ public class JsonUtils {
 
     /**
      * Parses the given JSON string and initializes a new object of the given type from that JSON.
-     * 
+     *
      * @param <T>
      *            The type of the object to return
      * @param json
@@ -33,7 +33,7 @@ public class JsonUtils {
 
     /**
      * Serializes the given object to a JSON string-
-     * 
+     *
      * @param object
      *            The object to serialize.
      * @return JSON string representing the given object.

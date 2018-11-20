@@ -3,3 +3,4 @@
 /.project
 .DS_Store
 njams-sdk/dependency-reduced-pom.xml
+/njams-sdk/nbproject/
