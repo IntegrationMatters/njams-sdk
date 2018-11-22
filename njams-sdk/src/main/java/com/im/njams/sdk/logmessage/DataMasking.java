@@ -100,16 +100,22 @@ public class DataMasking {
         }
     }
     
+    /**
+     * Remove a pattern if it exists
+     * @param pattern the pattern to remove
+     */
     public static void removePattern(String pattern){
         try{
             Pattern p = Pattern.compile(pattern);
-            PATTERNS.remove((Pattern) p);
+            PATTERNS.remove(p);
             LOG.info("removed masking pattern {}", pattern);
         }catch(Exception e){
             LOG.error("Could not remove pattern {}", pattern, e);
         }
     }
-    
+    /**
+     * Removes all patterns
+     */
     public static void removePatterns(){
         PATTERNS.removeAll(PATTERNS);
     }
