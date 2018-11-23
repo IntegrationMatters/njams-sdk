@@ -76,8 +76,8 @@ import com.im.njams.sdk.serializer.StringSerializer;
 import com.im.njams.sdk.settings.Settings;
 
 /**
- * This is an instance of nJAMS. It cares about lifecycle and initializations
- * and holds references to the process models and global variables.
+ * This is an instance of nJAMS. It cares about lifecycle and initializations and holds references to the process models
+ * and global variables.
  *
  * @author bwand
  */
@@ -156,7 +156,7 @@ public class Njams implements InstructionListener {
     // serializers
     private final HashMap<Class<?>, Serializer<?>> cachedSerializers = new HashMap<>();
 
-    //features
+    // features
     private final List<String> features = new ArrayList<>();
 
     // TODO: implement pooling
@@ -172,11 +172,14 @@ public class Njams implements InstructionListener {
     /**
      * Create a nJAMS client.
      *
-     * @param path the path in the tree
-     * @param version the version of the nNJAMS client
-     * @param category the category of the nJAMS client, should describe the
-     * technology
-     * @param settings needed settings for client eg. for communication
+     * @param path
+     *            the path in the tree
+     * @param version
+     *            the version of the nNJAMS client
+     * @param category
+     *            the category of the nJAMS client, should describe the technology
+     * @param settings
+     *            needed settings for client eg. for communication
      */
     public Njams(Path path, String version, String category, Settings settings) {
         treeElements = new ArrayList<>();
@@ -190,15 +193,14 @@ public class Njams implements InstructionListener {
         initializeDataMasking();
         createTreeElements(path, TreeElementType.CLIENT);
         readVersions(version);
-        printVersions();
+        printStartupBanner();
         instructionListeners.add(this);
         instructionListeners.add(new ConfigurationInstructionListener(getConfiguration()));
         setMachine();
     }
 
     /**
-     * Load the ConfigurationProvider via the provided Properties, and saves the
-     * retrieved Configuration locally
+     * Load the ConfigurationProvider via the provided Properties, and saves the retrieved Configuration locally
      *
      * @param properties
      */
@@ -211,7 +213,7 @@ public class Njams implements InstructionListener {
                 new ConfigurationProviderFactory(properties, this).getConfigurationProvider();
         configuration = configurationProvider.loadConfiguration();
         if (configuration == null) {
-            //if the configuration provider can not load a configuration, create a new one and save it.
+            // if the configuration provider can not load a configuration, create a new one and save it.
             configuration = new Configuration();
             configuration.setConfigurationProvider(configurationProvider);
             configuration.save();
@@ -219,8 +221,7 @@ public class Njams implements InstructionListener {
     }
 
     /**
-     * @return the category of the nJAMS client, which should describe the
-     * technology
+     * @return the category of the nJAMS client, which should describe the technology
      */
     public String getCategory() {
         return category;
@@ -267,7 +268,8 @@ public class Njams implements InstructionListener {
     /**
      * Sets a replay handler.
      *
-     * @param replayHandler Replay handler to be set.
+     * @param replayHandler
+     *            Replay handler to be set.
      */
     public void setReplayHandler(final ReplayHandler replayHandler) {
         this.replayHandler = replayHandler;
@@ -281,8 +283,10 @@ public class Njams implements InstructionListener {
     /**
      * Adds a image for a given resource path.
      *
-     * @param key the key of the image
-     * @param resourcePath the path where to find the image
+     * @param key
+     *            the key of the image
+     * @param resourcePath
+     *            the path where to find the image
      */
     public void addImage(final String key, final String resourcePath) {
         images.add(new ResourceImageSupplier(key, resourcePath));
@@ -291,28 +295,29 @@ public class Njams implements InstructionListener {
     /**
      * Add an image with an arbitrary supplier implementation.
      *
-     * @param imageSupplier the supplier used by SDK to find the image
+     * @param imageSupplier
+     *            the supplier used by SDK to find the image
      */
     public void addImage(final ImageSupplier imageSupplier) {
         images.add(imageSupplier);
     }
 
     /**
-     * @param processDiagramFactory the processDiagramFactory to set
+     * @param processDiagramFactory
+     *            the processDiagramFactory to set
      */
     public void setProcessDiagramFactory(ProcessDiagramFactory processDiagramFactory) {
         this.processDiagramFactory = processDiagramFactory;
     }
 
     /**
-     * Returns the a Sender implementation, which is configured as specified in
-     * the settings.
+     * Returns the a Sender implementation, which is configured as specified in the settings.
      *
      * @return the Sender
      */
     public Sender getSender() {
         if (sender == null) {
-            //            sender = new CommunicationFactory(this, settings).getSender();
+            // sender = new CommunicationFactory(this, settings).getSender();
             sender = new NjamsSender(this, settings);
         }
         return sender;
@@ -375,7 +380,8 @@ public class Njams implements InstructionListener {
     /**
      * Return the ProcessModel to the path;
      *
-     * @param path the path where to get the ProcessModel from
+     * @param path
+     *            the path where to get the ProcessModel from
      * @return the ProcessModel or {@link NjamsSdkRuntimeException}
      */
     public ProcessModel getProcessModel(final Path path) {
@@ -400,7 +406,8 @@ public class Njams implements InstructionListener {
     /**
      * Returns the job instance for given jobId.
      *
-     * @param jobId the jobId to search for
+     * @param jobId
+     *            the jobId to search for
      * @return the Job or null if not found
      */
     public Job getJobById(final String jobId) {
@@ -408,8 +415,7 @@ public class Njams implements InstructionListener {
     }
 
     /**
-     * Returns a collection of all current jobs. This collection must not be
-     * changed.
+     * Returns a collection of all current jobs. This collection must not be changed.
      *
      * @return Unmodifiable collection of jobs.
      */
@@ -420,8 +426,8 @@ public class Njams implements InstructionListener {
     /**
      * Create a process
      *
-     * @param path Relative path to the client of the process which should be
-     * created
+     * @param path
+     *            Relative path to the client of the process which should be created
      * @return the new ProcessModel or a {@link NjamsSdkRuntimeException}
      */
     public ProcessModel createProcess(final Path path) {
@@ -456,8 +462,7 @@ public class Njams implements InstructionListener {
     }
 
     /**
-     * Adds imgages for the default keys, if they are used and no image has benn
-     * added for them
+     * Adds imgages for the default keys, if they are used and no image has benn added for them
      */
     private void addDefaultImagesIfNeededAndAbsent() {
         addDefaultImagesIfNeededAndAbsent(DEFAULT_TAXONOMY_FOLDER_TYPE, DEFAULT_TAXONOMY_FOLDER_ICON);
@@ -467,11 +472,13 @@ public class Njams implements InstructionListener {
     }
 
     /**
-     * Checks all tree elements if the given treeDefaultType has been used, and
-     * adds the treeDefaultIcon if not images has been added yet
+     * Checks all tree elements if the given treeDefaultType has been used, and adds the treeDefaultIcon if not images
+     * has been added yet
      *
-     * @param treeDefaultType type of the tree element
-     * @param treeDefaultIcon icon which should be added if needed
+     * @param treeDefaultType
+     *            type of the tree element
+     * @param treeDefaultIcon
+     *            icon which should be added if needed
      */
     private void addDefaultImagesIfNeededAndAbsent(String treeDefaultType, String treeDefaultIcon) {
         boolean found = treeElements.stream().anyMatch(te -> te.getType().equals(treeDefaultType));
@@ -481,8 +488,7 @@ public class Njams implements InstructionListener {
     }
 
     /**
-     * Create DomainObjectStructure which is the tree representation for the
-     * client
+     * Create DomainObjectStructure which is the tree representation for the client
      */
     private void createTreeElements(Path path, TreeElementType targetDomainObjectType) {
         String currentPath = ">";
@@ -500,11 +506,12 @@ public class Njams implements InstructionListener {
     }
 
     /**
-     * Returns the default icon type for a TreeElement, based on the criterias
-     * first and TreeElementType
+     * Returns the default icon type for a TreeElement, based on the criterias first and TreeElementType
      *
-     * @param first Is this the root element
-     * @param treeElmentType The treeElementType
+     * @param first
+     *            Is this the root element
+     * @param treeElmentType
+     *            The treeElementType
      * @return the icon type
      */
     private String getTreeElementDefaultType(boolean first, TreeElementType treeElmentType) {
@@ -522,8 +529,10 @@ public class Njams implements InstructionListener {
     /**
      * Set the type for a TreeElment given by a path.
      *
-     * @param path the path of the tree icon
-     * @param type icon type of the tree element
+     * @param path
+     *            the path of the tree icon
+     * @param type
+     *            icon type of the tree element
      */
     public void setTreeElementType(Path path, String type) {
         TreeElement dos = treeElements.stream().filter(d -> d.getPath().equals(path.toString())).findAny().orElse(null);
@@ -534,8 +543,7 @@ public class Njams implements InstructionListener {
     }
 
     /**
-     * Sets the TreeElements starter to true if the corresponding processModel
-     * is a starter
+     * Sets the TreeElements starter to true if the corresponding processModel is a starter
      */
     private void setStarters() {
         treeElements.stream().filter(te -> te.getTreeElementType() == TreeElementType.PROCESS)
@@ -550,7 +558,8 @@ public class Njams implements InstructionListener {
     }
 
     /**
-     * @param processModelLayouter the processModelLayouter to set
+     * @param processModelLayouter
+     *            the processModelLayouter to set
      */
     public void setProcessModelLayouter(ProcessModelLayouter processModelLayouter) {
         this.processModelLayouter = processModelLayouter;
@@ -581,7 +590,8 @@ public class Njams implements InstructionListener {
     /**
      * Adds a job to the joblist
      *
-     * @param job to add
+     * @param job
+     *            to add
      */
     public void addJob(Job job) {
         jobs.put(job.getJobId(), job);
@@ -590,15 +600,15 @@ public class Njams implements InstructionListener {
     /**
      * remove a job from the joblist
      *
-     * @param jobId of the Job to be removed
+     * @param jobId
+     *            of the Job to be removed
      */
     public void removeJob(String jobId) {
         jobs.remove(jobId);
     }
 
     /**
-     * Read the versions from njams.version files. Set the SDK-Version and the
-     * Client-Version if found.
+     * Read the versions from njams.version files. Set the SDK-Version and the Client-Version if found.
      *
      * @param version
      */
@@ -623,13 +633,15 @@ public class Njams implements InstructionListener {
         }
     }
 
-    /**
-     * Print all versions found via njams.version files
-     */
-    private void printVersions() {
+    private void printStartupBanner() {
         LOG.info("************************************************************");
+        LOG.info("***      nJAMS SDK: Copyright (c) 2018 Faiz & Siegeln Software GmbH");
+        LOG.info("*** ");
+        LOG.info("***      Version Info:");
         versions.entrySet().forEach(e -> LOG.info("***      " + e.getKey() + ": " + e.getValue()));
+        LOG.info("*** ");
         LOG.info("************************************************************");
+
     }
 
     /**
@@ -640,10 +652,10 @@ public class Njams implements InstructionListener {
     }
 
     /**
-     * Adds a new InstructionListener which will be called if a new Instruction
-     * will be received.
+     * Adds a new InstructionListener which will be called if a new Instruction will be received.
      *
-     * @param listener the new listener to be called
+     * @param listener
+     *            the new listener to be called
      */
     public void addInstructionListener(InstructionListener listener) {
         instructionListeners.add(listener);
@@ -652,7 +664,8 @@ public class Njams implements InstructionListener {
     /**
      * Removes a InstructionListener from the Receiver.
      *
-     * @param listener the listener to remove
+     * @param listener
+     *            the listener to remove
      */
     public void removeInstructionListener(InstructionListener listener) {
         instructionListeners.remove(listener);
@@ -667,10 +680,10 @@ public class Njams implements InstructionListener {
     }
 
     /**
-     * Implementation of the InstructionListener interface. Listens on
-     * sendProjectMessage and Replay.
+     * Implementation of the InstructionListener interface. Listens on sendProjectMessage and Replay.
      *
-     * @param instruction The instruction which should be handled
+     * @param instruction
+     *            The instruction which should be handled
      */
     @Override
     public void onInstruction(Instruction instruction) {
@@ -703,16 +716,16 @@ public class Njams implements InstructionListener {
 
     /**
      * Adds a {@link Serializer} for a given class. <br>
-     * User {@link #serialize(java.lang.Object) } to serialize instance of this
-     * class with the registered serializer. If a serializer is already
-     * registered, it will be replaced with the new serializer.
+     * User {@link #serialize(java.lang.Object) } to serialize instance of this class with the registered serializer. If
+     * a serializer is already registered, it will be replaced with the new serializer.
      *
-     * @param <T> Type of the serializer
-     * @param key Class for which the serializer should be registered
-     * @param serializer A serializer that can serialize instances of class key
-     * to strings.
-     * @return The given serializer, or if one was already registered before,
-     * the former registered serializer.
+     * @param <T>
+     *            Type of the serializer
+     * @param key
+     *            Class for which the serializer should be registered
+     * @param serializer
+     *            A serializer that can serialize instances of class key to strings.
+     * @return The given serializer, or if one was already registered before, the former registered serializer.
      */
     public <T> Serializer<T> addSerializer(final Class<T> key, final Serializer<? super T> serializer) {
         synchronized (cachedSerializers) {
@@ -725,11 +738,13 @@ public class Njams implements InstructionListener {
     }
 
     /**
-     * Removes the serialier with the given class key. If not serializer is
-     * registered yet, <b>null</b> will be returned.
+     * Removes the serialier with the given class key. If not serializer is registered yet, <b>null</b> will be
+     * returned.
      *
-     * @param <T> type of the class
-     * @param key a class
+     * @param <T>
+     *            type of the class
+     * @param key
+     *            a class
      * @return Registered serializer or <b>null</b>
      */
     public <T> Serializer<T> removeSerializer(final Class<T> key) {
@@ -743,11 +758,12 @@ public class Njams implements InstructionListener {
     }
 
     /**
-     * Gets the serialier with the given class key. If not serializer is
-     * registered yet, <b>null</b> will be returned.
+     * Gets the serialier with the given class key. If not serializer is registered yet, <b>null</b> will be returned.
      *
-     * @param <T> type of the class
-     * @param key a class
+     * @param <T>
+     *            type of the class
+     * @param key
+     *            a class
      * @return Registered serializer or <b>null</b>
      */
     public <T> Serializer<T> getSerializer(final Class<T> key) {
@@ -760,8 +776,10 @@ public class Njams implements InstructionListener {
     /**
      * Serializes a given object using {@link #findSerializer(java.lang.Class) }
      *
-     * @param <T> type of the class
-     * @param t Object to be serialied.
+     * @param <T>
+     *            type of the class
+     * @param t
+     *            Object to be serialied.
      * @return a string representation of the object.
      */
     public <T> String serialize(final T t) {
@@ -792,14 +810,14 @@ public class Njams implements InstructionListener {
     }
 
     /**
-     * Gets the serialier with the given class key. If not serializer is
-     * registered yet, the superclass hierarchy will be checked recursivly. If
-     * neither the class nor any superclass if registered, the interface
-     * hierarchy will be checked recursivly. if no (super) interface is
-     * registed, <b>null</b> will be returned.
+     * Gets the serialier with the given class key. If not serializer is registered yet, the superclass hierarchy will
+     * be checked recursivly. If neither the class nor any superclass if registered, the interface hierarchy will be
+     * checked recursivly. if no (super) interface is registed, <b>null</b> will be returned.
      *
-     * @param <T> Type of the class
-     * @param clazz Class for which a serializer will be searched.
+     * @param <T>
+     *            Type of the class
+     * @param clazz
+     *            Class for which a serializer will be searched.
      * @return Serizalier of <b>null</b>.
      */
     public <T> Serializer<? super T> findSerializer(final Class<T> clazz) {
@@ -878,7 +896,8 @@ public class Njams implements InstructionListener {
     /**
      * Adds a new feature to the feature list
      *
-     * @param feature to set
+     * @param feature
+     *            to set
      */
     public void addFeature(String feature) {
         if (!features.contains(feature)) {
@@ -889,7 +908,8 @@ public class Njams implements InstructionListener {
     /**
      * Remove a feature from the feature list
      *
-     * @param feature to remove
+     * @param feature
+     *            to remove
      */
     public void removeFeature(final String feature) {
         features.remove(feature);
@@ -903,10 +923,11 @@ public class Njams implements InstructionListener {
     }
 
     /**
-     * Returns if the given process is excluded. This could be explicitly set on
-     * the process, or if the Engine LogMode is set to none.
+     * Returns if the given process is excluded. This could be explicitly set on the process, or if the Engine LogMode
+     * is set to none.
      *
-     * @param processPath for the process which should be checked
+     * @param processPath
+     *            for the process which should be checked
      * @return true if the process is excluded, or false if not
      */
     public boolean isExcluded(Path processPath) {
