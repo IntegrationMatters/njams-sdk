@@ -641,7 +641,7 @@ public class Njams implements InstructionListener {
         versions.entrySet().forEach(e -> LOG.info("***      " + e.getKey() + ": " + e.getValue()));
         LOG.info("*** ");
         LOG.info("***      Settings:");
-        settings.getProperties().forEach((key, value) -> LOG.info("***      " + key + ": " + value));
+        settings.getProperties().forEach((key, value) -> LOG.info("***      " + key + " = " + value));
         LOG.info("************************************************************");
 
     }
