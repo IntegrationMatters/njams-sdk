@@ -148,6 +148,8 @@ public class PropertiesFileSettingsProviderTest {
 
     }
 
+    /**
+     * This test checks if it is possible to create a circle between properties.
      * It shouldn't be possible, so if it throws an StackOverflowError, a circle
      * can be created!
      *
