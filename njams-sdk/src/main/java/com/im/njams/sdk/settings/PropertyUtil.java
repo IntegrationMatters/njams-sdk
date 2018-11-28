@@ -57,7 +57,7 @@ public class PropertyUtil {
                 .stream()
                 .filter(e -> String.class.isAssignableFrom(e.getKey().getClass()))
                 .filter(e -> ((String) e.getKey()).startsWith(prefix))
-                .forEach(e -> response.setProperty(((String) e.getKey()).substring(((String) e.getKey()).indexOf(prefix) + prefix.length() + 1), (String) e.getValue()));
+                .forEach(e -> response.setProperty(((String) e.getKey()).substring(((String) e.getKey()).indexOf(prefix) + prefix.length()), (String) e.getValue()));
         return response;
     }
 }

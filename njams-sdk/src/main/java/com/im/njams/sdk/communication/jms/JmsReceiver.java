@@ -110,7 +110,7 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
         try {
             connectionStatus = ConnectionStatus.CONNECTING;
             context =
-                    new InitialContext(PropertyUtil.filterAndCut(properties, JmsConstants.PROPERTY_PREFIX));
+                    new InitialContext(PropertyUtil.filterAndCut(properties, JmsConstants.PROPERTY_PREFIX + "."));
             ConnectionFactory factory =
                     (ConnectionFactory) context.lookup(properties.getProperty(JmsConstants.CONNECTION_FACTORY));
             if (properties.containsKey(JmsConstants.USERNAME) && properties.containsKey(JmsConstants.PASSWORD)) {
