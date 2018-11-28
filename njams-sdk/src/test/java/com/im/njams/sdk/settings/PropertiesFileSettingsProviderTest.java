@@ -148,4 +148,39 @@ public class PropertiesFileSettingsProviderTest {
 
     }
 
+     * It shouldn't be possible, so if it throws an StackOverflowError, a circle
+     * can be created!
+     *
+     * @throws IOException
+     */
+    /**
+    @Test
+    public void testCircleShouldNotBePossible() throws IOException {
+        String circle1 = "circle1";
+        String circle2 = "circle2";
+        File circle2File = getTmpFile(circle2);
+        File circle1File = getTmpFile(circle1);
+        try {          
+            Properties props = new Properties();
+            props.setProperty(PropertiesFileSettingsProvider.PARENT_CONFIGURATION, circle1);
+            saveProps(circle2File, props);
+
+            props = new Properties();
+            props.setProperty(PropertiesFileSettingsProvider.PARENT_CONFIGURATION, circle2);
+            saveProps(circle1File, props);
+
+            Properties providerProps = new Properties();
+            providerProps.setProperty(PropertiesFileSettingsProvider.FILE_CONFIGURATION, circle1File.getAbsolutePath());
+            provider = new PropertiesFileSettingsProvider();
+            provider.configure(providerProps);
+            provider.loadSettings();
+        } catch (StackOverflowError e) {
+            Assert.fail("Circular dependencies possible!");
+        } finally {
+            circle1File.delete();
+            circle2File.delete();
+        }
+    }
+    */
+
 }
