@@ -13,6 +13,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import com.im.njams.sdk.settings.provider.PropertiesFileSettingsProvider;
+import org.junit.Assert;
 
 public class PropertiesFileSettingsProviderTest {
 
@@ -92,7 +93,9 @@ public class PropertiesFileSettingsProviderTest {
         assertEquals("2", properties.getProperty("b"));
         assertEquals("parentValue", properties.getProperty("parentKey"));
         properties.remove("a");
-        assertEquals("a", properties.getProperty("a"));
+        //This can't be done anymore, instead the property with key 'a' is deleted.
+        //assertEquals("a", properties.getProperty("a"));
+        Assert.assertNull(properties.getProperty("a"));
         assertEquals("2", properties.getProperty("b"));
         assertEquals("parentValue", properties.getProperty("parentKey"));
     }
@@ -138,6 +141,10 @@ public class PropertiesFileSettingsProviderTest {
         providerProps.setProperty(PropertiesFileSettingsProvider.PARENT_CONFIGURATION_KEY, parentKey);
         provider = new PropertiesFileSettingsProvider();
         provider.configure(providerProps);
+        
+        assertEquals("1", properties.getProperty("a"));
+        assertEquals("2", properties.getProperty("b"));
+        assertEquals("parentValue", properties.getProperty("parentKey"));
 
     }
 

@@ -66,15 +66,4 @@ public class SystemPropertiesSettingsProvider implements SettingsProvider {
         return settings;
     }
 
-    /**
-     * Not supported by this implementation.
-     *
-     * @param settings to be saved
-     * @throws UnsupportedOperationException always.
-     */
-    @Override
-    public void saveSettings(Settings settings) {
-        throw new UnsupportedOperationException("Saving to system properties is not supported.");
-    }
-
 }

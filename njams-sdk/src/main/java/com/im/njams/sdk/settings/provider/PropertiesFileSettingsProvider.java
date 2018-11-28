@@ -33,44 +33,50 @@ import com.im.njams.sdk.settings.SettingsProviderFactory;
 import com.im.njams.sdk.utils.StringUtils;
 
 /**
- * Implements a {@link SettingsProvider} that loads and saves settings to a specified file in common {@link Properties}
- * format.<br>
- * Allows recursively loading parent (default) properties via key {@value #PARENT_CONFIGURATION}.
+ * Implements a {@link SettingsProvider} that loads and saves settings to a
+ * specified file in common {@link Properties} format.<br>
+ * Allows recursively loading parent properties via key
+ * {@value #PARENT_CONFIGURATION}.
  *
  * @author cwinkler
  */
 public class PropertiesFileSettingsProvider implements SettingsProvider {
 
-    private static class ExtProperties extends Properties {
-        private static final long serialVersionUID = -2671747945697855932L;
-
-        /**
-         * Make protected defaults in {@link Properties} accessible here.
-         * @param defaults
-         */
-        private void setDefaults(final Properties defaults) {
-            this.defaults = defaults;
-        }
-    }
-
     private static final Logger LOG = LoggerFactory.getLogger(PropertiesFileSettingsProvider.class);
 
-    /** Name of this implementation that has to be used to configure {@link SettingsProviderFactory}. */
+    /**
+     * Name of this implementation that has to be used to configure
+     * {@link SettingsProviderFactory}.
+     */
     public static final String NAME = "propertiesFile";
-    /** Default configuration file name. */
+    /**
+     * Default configuration file name.
+     */
     public static final String DEFAULT_FILE = "config.properties";
 
-    /** Property key for specifying the path to the properties file to be used as settings. */
+    /**
+     * Property key for specifying the path to the properties file to be used as
+     * settings.
+     */
     public static final String FILE_CONFIGURATION = "njams.sdk.settings.properties.file";
-    /** Default property key for loading parent (default) configuration file.
-     *  See {@link #PARENT_CONFIGURATION_KEY} for using an alternative key. */
+    /**
+     * Default property key for loading parent (default) configuration file. See
+     * {@link #PARENT_CONFIGURATION_KEY} for using an alternative key.
+     */
     public static final String PARENT_CONFIGURATION = "njams.sdk.settings.properties.parent";
-    /** Allows to override the default parent file key ({@value #PARENT_CONFIGURATION}). */
+    /**
+     * Allows to override the default parent file key
+     * ({@value #PARENT_CONFIGURATION}).
+     */
     public static final String PARENT_CONFIGURATION_KEY = "njams.sdk.settings.properties.parentKey";
 
-    /** The currently set properties file. */
+    /**
+     * The currently set properties file.
+     */
     private File file = new File(DEFAULT_FILE);
-    /** The actual parent key to be used when loading the initial properties. */
+    /**
+     * The actual parent key to be used when loading the initial properties.
+     */
     private String parentKey = PARENT_CONFIGURATION;
 
     /**
@@ -112,88 +118,81 @@ public class PropertiesFileSettingsProvider implements SettingsProvider {
      */
     @Override
     public Settings loadSettings() {
+        //The file hasn't been set yet
         if (file == null) {
             throw new IllegalStateException("No properties file configured.");
         }
-
+        //The file can't be found
         if (!file.exists()) {
+            LOG.debug("The Propertyfile {} doesn't exists.", file);
+            LOG.debug("Create empty Settings...");
             return new Settings();
         }
+        Properties properties = loadProperties(file);
 
-        final ExtProperties properties = new ExtProperties();
-        try (InputStream is = new FileInputStream(file)) {
-            properties.load(is);
-            LOG.info("Loaded settings from {}", file);
-
-            loadParent(getParentKey(properties, parentKey), properties);
-
-        } catch (final Exception e) {
-            throw new NjamsSdkRuntimeException("Unable to load properties file", e);
-        }
-
+        LOG.info("Loaded settings from {}", file);
         final Settings settings = new Settings();
         settings.setProperties(properties);
         return settings;
     }
 
-    /**
-     * Loads defaults for the given properties if a parent file is configured in that properties.
-     * @param parentKey
-     * @param currentProps
-     */
-    private void loadParent(final String parentKey, final ExtProperties currentProps) {
-        String parentFileKey = getParentKey(currentProps, parentKey);
-        if (!currentProps.containsKey(parentFileKey)) {
-            return;
+    private Properties loadProperties(File currentFile) {
+        //This shouldn't happen
+        if (currentFile == null) {
+            return new Properties();
+        }
+        //The file can't be found, recursion cancellation
+        if (!currentFile.exists()) {
+            LOG.debug("The Propertyfile {} doesn't exists.", currentFile);
+            return new Properties();
         }
 
-        File parentFile = new File(currentProps.getProperty(parentFileKey));
-        if (!parentFile.isAbsolute()) {
-            // if relative, use same folder as base
-            parentFile = new File(file.getParent(), parentFile.getName());
-        }
-        final ExtProperties parentProps = new ExtProperties();
-        try (InputStream is = new FileInputStream(parentFile)) {
-            parentProps.load(is);
+        //Get the java properties out of the file
+        Properties currentProperties = new Properties();
+        try (InputStream is = new FileInputStream(currentFile)) {
+            currentProperties.load(is);
+            LOG.debug("The Propertyfile {} has been loaded.", currentFile);
         } catch (final Exception e) {
-            LOG.error("Unable to load parent properties file {}", parentFile, e);
-            return;
+            throw new NjamsSdkRuntimeException("Unable to load properties file " + currentFile.getPath(), e);
         }
-        LOG.info("Loaded parent settings from {}", parentFile);
-        currentProps.setDefaults(parentProps);
-        // recursive call for loading parent's parents
-        loadParent(parentKey, parentProps);
+        //Get the current Parent key and path to the file
+        String currentParentKey = getParentKey(currentProperties, parentKey);
+        LOG.trace("This is the current parent key that is used: ", currentParentKey);
+        String parentPath = currentProperties.getProperty(currentParentKey);
+        LOG.trace("Propertyfile: {}, ParentKey: {}, ParentPath:{}.", currentFile, currentParentKey, parentPath);
+
+        Properties parentProps = new Properties();
+        //parentPath == null if the property wasn't found in the currentProperties
+        //parentPath is empty if the property was set without a value
+        if (parentPath != null && !parentPath.isEmpty()) {
+            File parentFile = new File(parentPath);
+            if (!parentFile.isAbsolute()) {
+                // if relative, use same folder as base
+                parentFile = new File(file.getParent(), parentFile.getName());
+            }
+            //Get the Properties of its the currentfiles parents
+            parentProps = loadProperties(parentFile);
+        }
+
+        //Set the current Properties to the parentproperties, override them if needed to
+        for (Object key : currentProperties.keySet()) {
+            parentProps.setProperty((String) key, currentProperties.getProperty((String) key));
+        }
+
+        return parentProps;
     }
 
     /**
      * Returns the parent file key that is to be used with the given properties.
+     *
      * @param properties
-     * @param def The default to be returned, if no key is specified in the given properties.
+     * @param def The default to be returned, if no key is specified in the
+     * given properties.
      * @return
      */
     private String getParentKey(Properties properties, String def) {
         String key = properties.getProperty(PARENT_CONFIGURATION_KEY, def);
         return StringUtils.isBlank(key) ? def : key;
-    }
-
-    /**
-     * Save the given Settings to the configured File.
-     *
-     * @param settings to be saved
-     */
-    @Override
-    public void saveSettings(final Settings settings) {
-        if (settings == null || settings.getProperties() == null) {
-            return;
-        }
-        if (file == null) {
-            throw new IllegalStateException("No properties file configured.");
-        }
-        try (OutputStream os = new FileOutputStream(file)) {
-            settings.getProperties().store(os, null);
-        } catch (final Exception e) {
-            throw new NjamsSdkRuntimeException("Unable to save properties file", e);
-        }
     }
 
     /**
@@ -208,10 +207,11 @@ public class PropertiesFileSettingsProvider implements SettingsProvider {
     /**
      * Set the {@link File} from where {@link Settings} should be loaded.
      *
-     * @param file the file to load from. If the given {@link File} is a folder, the {@value #DEFAULT_FILE} file is
-     * loaded from that folder. Must not be <code>null</code>.
-     * @throws IllegalArgumentException If the given file does not exist, or the default configuration file does not
-     * exist in the given folder.
+     * @param file the file to load from. If the given {@link File} is a folder,
+     * the {@value #DEFAULT_FILE} file is loaded from that folder. Must not be
+     * <code>null</code>.
+     * @throws IllegalArgumentException If the given file does not exist, or the
+     * default configuration file does not exist in the given folder.
      * @throws NullPointerException if the given file is <code>null</code>
      */
     public void setFile(final File file) {

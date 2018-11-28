@@ -47,12 +47,4 @@ public interface SettingsProvider {
      * @return the Settings
      */
     public Settings loadSettings();
-
-    /**
-     * This function should save the Settings to the underlying storage.
-     *
-     * @param settings
-     *            to save
-     */
-    public void saveSettings(Settings settings);
 }

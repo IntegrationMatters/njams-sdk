@@ -74,15 +74,4 @@ public class MemorySettingsProvider implements SettingsProvider {
         }
         return settings;
     }
-
-    /**
-     * Stores the given Settings in memory.
-     *
-     * @param settings to be saved
-     */
-    @Override
-    public void saveSettings(Settings settings) {
-        this.settings = settings;
-    }
-
 }

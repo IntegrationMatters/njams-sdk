@@ -110,19 +110,6 @@ public class FileSettingsProvider implements SettingsProvider {
         return settings;
     }
 
-    /**
-     * Save the given Settings to the configured File.
-     *
-     * @param settings to be saved
-     */
-    @Override
-    public void saveSettings(Settings settings) {
-        try (OutputStream os = new FileOutputStream(file)) {
-            objectWriter.writeValue(os, settings);
-        } catch (Exception e) {
-            throw new NjamsSdkRuntimeException("Unable to save file", e);
-        }
-    }
 
     /**
      * Get the File where Settings is stored.

@@ -18,6 +18,7 @@ package com.im.njams.sdk.settings;
 
 import com.im.njams.sdk.settings.provider.FileSettingsProvider;
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
@@ -51,7 +52,7 @@ public class FileSettingsProviderTest {
         assertThat(file.exists(), is(false));
 
         conf.getProperties().put("key1", "value1");
-        provider.saveSettings(conf);
+        saveProps(file ,conf.getProperties());
         assertThat(file.exists(), is(true));
 
         List<String> lines = Arrays.asList("{", "\"properties\" : {", "\"test-key\" : \"test-value\"", "}", "}");
@@ -64,6 +65,12 @@ public class FileSettingsProviderTest {
 
         file.delete();
         assertThat(file.exists(), is(false));
+    }
+    
+    private void saveProps(File outFile, Properties props) throws IOException {
+        try (FileOutputStream fos = new FileOutputStream(outFile)) {
+            props.store(fos, null);
+        }
     }
 
 }
