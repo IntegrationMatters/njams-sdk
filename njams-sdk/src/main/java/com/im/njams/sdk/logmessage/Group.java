@@ -83,5 +83,11 @@ public interface Group extends Activity {
      * @return all child activities
      */
     public List<Activity> getChildActivities();
+    
+    /**
+     * This method removes all the childActivities that aren't running, therefore
+     * the map will be kept small.
+     */
+    public void removeNotRunningChildActivities();
 
 }

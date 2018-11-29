@@ -924,6 +924,9 @@ public class JobImpl implements Job {
                 if (a.getActivityStatus() != ActivityStatus.RUNNING) {
                     iterator.remove();
                 }
+                else if(a instanceof Group){
+                    ((Group) a).removeNotRunningChildActivities();
+                }
             }
         }
     }

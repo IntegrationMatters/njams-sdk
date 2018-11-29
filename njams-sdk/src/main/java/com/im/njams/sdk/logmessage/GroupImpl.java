@@ -16,6 +16,7 @@
  */
 package com.im.njams.sdk.logmessage;
 
+import com.faizsiegeln.njams.messageformat.v4.logmessage.ActivityStatus;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -26,6 +27,7 @@ import java.util.Objects;
 import com.im.njams.sdk.model.ActivityModel;
 import com.im.njams.sdk.model.GroupModel;
 import com.im.njams.sdk.model.SubProcessActivityModel;
+import java.util.Iterator;
 import javax.xml.bind.annotation.XmlTransient;
 
 /**
@@ -181,5 +183,20 @@ public class GroupImpl extends ActivityImpl implements Group {
             builder.setSubProcess(childSubProcessModel.getSubProcess());
         }
         return builder;
+    }
+
+    /**
+     * This method removes all the childActivities that aren't running, therefore
+     * the map will be kept small.
+     */
+    @Override
+    public void removeNotRunningChildActivities() {
+        Iterator<String> iterator = childActivities.keySet().iterator();
+        while (iterator.hasNext()) {
+            Activity a = childActivities.get(iterator.next());
+            if (a.getActivityStatus() != ActivityStatus.RUNNING) {
+                iterator.remove();
+            }
+        }
     }
 }
