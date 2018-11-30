@@ -186,17 +186,16 @@ public class GroupImpl extends ActivityImpl implements Group {
     }
 
     /**
-     * This method removes all the childActivities that aren't running, therefore
-     * the map will be kept small.
+     * This method removes the childActivity for the given InstanceId, if its 
+     * ActivityStatus != ActivityStatus.RUNNING.
+     *
+     * @param instanceId the Id of the Activity to remove
      */
     @Override
-    public void removeNotRunningChildActivities() {
-        Iterator<String> iterator = childActivities.keySet().iterator();
-        while (iterator.hasNext()) {
-            Activity a = childActivities.get(iterator.next());
-            if (a.getActivityStatus() != ActivityStatus.RUNNING) {
-                iterator.remove();
+    public void removeNotRunningChildActivity(String instanceId) {
+        Activity a = childActivities.get(instanceId);
+            if (a != null && a.getActivityStatus() != ActivityStatus.RUNNING) {
+                childActivities.remove(instanceId);
             }
-        }
     }
 }

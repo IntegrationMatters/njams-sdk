@@ -20,10 +20,13 @@ import com.faizsiegeln.njams.messageformat.v4.logmessage.ActivityStatus;
 
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.common.Path;
+import com.im.njams.sdk.communication.CommunicationFactory;
+import com.im.njams.sdk.communication.jms.JmsConstants;
 import com.im.njams.sdk.model.ProcessModel;
 import com.im.njams.sdk.settings.Settings;
 
 import java.util.Collection;
+import java.util.Properties;
 
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -34,7 +37,7 @@ import static org.junit.Assert.*;
  *
  * @author krautenberg@integrationmatters.com
  */
-public class JobImplIT {
+public class JobImplTest {
     
     private static JobImpl job;
     
@@ -48,7 +51,7 @@ public class JobImplIT {
         Path processPath = new Path("Test2");
         ProcessModel process = njams.createProcess(processPath);
         
-        job = (JobImpl)process.createJob("myJob");
+        job = (JobImpl) process.createJob("myJob");
         //This is set so the job can flush.
         job.setStatus(JobStatus.ERROR);
     }

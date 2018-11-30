@@ -740,13 +740,10 @@ public class JobImpl implements Job {
                     || isLogLevelHigherAsJobStateAndHasNoTraces()) {
                 LOG.debug(
                         "Job not flushed: Engine Mode: {} // Job's log level: {}, "
-                                + "configured level: {} // is excluded: {} // has traces: {}",
+                        + "configured level: {} // is excluded: {} // has traces: {}",
                         logMode, getStatus(), logLevel, exclude, traces);
                 //delete not running activities
-                List<Activity> finishedActivities = activities.values().stream()
-                        .filter(a -> a.getActivityStatus() != ActivityStatus.RUNNING)
-                        .collect(Collectors.toList());
-                finishedActivities.forEach(a -> activities.remove(a.getInstanceId()));
+                removeNotRunningActivities();
                 calculateEstimatedSize();
                 LOG.debug("mustBeSuppressed: true");
                 return true;
@@ -918,15 +915,35 @@ public class JobImpl implements Job {
             //add all to logMessage
             activities.values().forEach(logMessage::addActivity);
             //remove finished
+            removeNotRunningActivities();
+        }
+    }
+
+    /**
+     * This method removes all not running activities from the activities map if
+     * the activity has a parent, remove the activity from the childActivity map
+     * of the parent.
+     */
+    private void removeNotRunningActivities() {
+        int loggingSum = 0;
+        synchronized (activities) {
             Iterator<Activity> iterator = activities.values().iterator();
             while (iterator.hasNext()) {
                 Activity a = iterator.next();
                 if (a.getActivityStatus() != ActivityStatus.RUNNING) {
+                    if (LOG.isTraceEnabled()) {
+                        loggingSum++;
+                    }
                     iterator.remove();
+                    Group parent = a.getParent();
+                    if (parent != null) {
+                        parent.removeNotRunningChildActivity(a.getInstanceId());
+                    }
                 }
-                else if(a instanceof Group){
-                    ((Group) a).removeNotRunningChildActivities();
-                }
+
+            }
+            if (LOG.isTraceEnabled()) {
+                LOG.trace("{} activities have been removed from {}. Still running: {}", loggingSum, this.getLogId(), activities.size());
             }
         }
     }

@@ -85,9 +85,10 @@ public interface Group extends Activity {
     public List<Activity> getChildActivities();
     
     /**
-     * This method removes all the childActivities that aren't running, therefore
-     * the map will be kept small.
+     * This method remove the childActivity for the given InstanceId, if 
+     * it isn't running.
+     * @param instanceId the Id of the Activity to remove
      */
-    public void removeNotRunningChildActivities();
+    public void removeNotRunningChildActivity(String instanceId);
 
 }
