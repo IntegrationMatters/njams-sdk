@@ -1,14 +1,14 @@
-/* 
+/*
  * Copyright (c) 2018 Faiz & Siegeln Software GmbH
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"),
  * to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
  * and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
- * 
+ *
  * The Software shall be used for Good, not Evil.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
@@ -29,7 +29,6 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Collectors;
 
 import org.slf4j.LoggerFactory;
 
@@ -151,15 +150,15 @@ public class JobImpl implements Job {
     public JobImpl(ProcessModel processModel, String jobId, String logId) {
         this.jobId = jobId;
         this.logId = logId;
-        this.correlationLogId = logId;
-        this.maxSeverity = JobStatus.CREATED;
+        correlationLogId = logId;
+        maxSeverity = JobStatus.CREATED;
         this.processModel = processModel;
-        this.status = JobStatus.CREATED;
-        this.sequenceCounter = new AtomicInteger();
-        this.flushCounter = new AtomicInteger();
-        this.lastFlush = DateTimeUtility.now();
-        this.attributes = new HashMap<>();
-        this.pluginDataItems = new ArrayList<>();
+        status = JobStatus.CREATED;
+        sequenceCounter = new AtomicInteger();
+        flushCounter = new AtomicInteger();
+        lastFlush = DateTimeUtility.now();
+        attributes = new HashMap<>();
+        pluginDataItems = new ArrayList<>();
         initFromConfiguration();
     }
 
@@ -413,8 +412,7 @@ public class JobImpl implements Job {
         }
         synchronized (activities) {
             //end all not ended activities
-            activities.values()
-                    .stream()
+            activities.values().stream()
                     .filter(a -> a.getActivityStatus() == null || a.getActivityStatus() == ActivityStatus.RUNNING)
                     .forEach(a -> a.end());
 
@@ -611,7 +609,7 @@ public class JobImpl implements Job {
     @Override
     public void setStartTime(final LocalDateTime jobStart) {
         if (status == JobStatus.CREATED) {
-            this.startTime = jobStart;
+            startTime = jobStart;
         } else {
             throw new NjamsSdkRuntimeException("job start time must not be set after job is started!");
         }
@@ -738,10 +736,9 @@ public class JobImpl implements Job {
             // Do not send if one of the conditions is true.
             if (isLogModeNone() || isLogModeExclusiveAndNotInstrumented() || isExcludedProcess()
                     || isLogLevelHigherAsJobStateAndHasNoTraces()) {
-                LOG.debug(
-                        "Job not flushed: Engine Mode: {} // Job's log level: {}, "
-                        + "configured level: {} // is excluded: {} // has traces: {}",
-                        logMode, getStatus(), logLevel, exclude, traces);
+                LOG.debug("Job not flushed: Engine Mode: {} // Job's log level: {}, "
+                        + "configured level: {} // is excluded: {} // has traces: {}", logMode, getStatus(), logLevel,
+                        exclude, traces);
                 //delete not running activities
                 removeNotRunningActivities();
                 calculateEstimatedSize();
@@ -931,20 +928,17 @@ public class JobImpl implements Job {
             while (iterator.hasNext()) {
                 Activity a = iterator.next();
                 if (a.getActivityStatus() != ActivityStatus.RUNNING) {
-                    if (LOG.isTraceEnabled()) {
-                        loggingSum++;
-                    }
+                    loggingSum++;
                     iterator.remove();
-                    GroupImpl parent = (GroupImpl)a.getParent();
+                    GroupImpl parent = (GroupImpl) a.getParent();
                     if (parent != null) {
                         parent.removeNotRunningChildActivity(a.getInstanceId());
                     }
                 }
 
             }
-            if (LOG.isTraceEnabled()) {
-                LOG.trace("{} activities have been removed from {}. Still running: {}", loggingSum, this.getLogId(), activities.size());
-            }
+            LOG.trace("{} activities have been removed from {}. Still running: {}", loggingSum, getLogId(),
+                    activities.size());
         }
     }
 
@@ -966,10 +960,8 @@ public class JobImpl implements Job {
 
     private void calculateEstimatedSize() {
         synchronized (activities) {
-            estimatedSize = 1000
-                    + activities.values().stream()
-                            .mapToLong(a -> ((ActivityImpl) a).getEstimatedSize())
-                            .sum();
+            estimatedSize =
+                    1000 + activities.values().stream().mapToLong(a -> ((ActivityImpl) a).getEstimatedSize()).sum();
         }
     }
 

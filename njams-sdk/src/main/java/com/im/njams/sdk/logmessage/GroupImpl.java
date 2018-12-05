@@ -1,14 +1,14 @@
-/* 
+/*
  * Copyright (c) 2018 Faiz & Siegeln Software GmbH
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"),
  * to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
  * and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
- * 
+ *
  * The Software shall be used for Good, not Evil.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
@@ -16,19 +16,17 @@
  */
 package com.im.njams.sdk.logmessage;
 
-import com.faizsiegeln.njams.messageformat.v4.logmessage.ActivityStatus;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
+import javax.xml.bind.annotation.XmlTransient;
+
 import com.im.njams.sdk.model.ActivityModel;
 import com.im.njams.sdk.model.GroupModel;
 import com.im.njams.sdk.model.SubProcessActivityModel;
-import java.util.Iterator;
-import javax.xml.bind.annotation.XmlTransient;
 
 /**
  * Activity which represents a group in a process. A group can have child
@@ -100,18 +98,25 @@ public class GroupImpl extends ActivityImpl implements Group {
      * @param child ActivityImpl of the child
      */
     public void addChild(ActivityImpl child) {
-        childActivities.put(child.getInstanceId(), child);
+        synchronized (childActivities) {
+            childActivities.put(child.getInstanceId(), child);
+        }
     }
 
     /**
-     * return all child activities in an unmodifiable list
+     * return all child activities
      *
      * @return all child activities
      */
     @XmlTransient
     @Override
     public List<Activity> getChildActivities() {
-        return Collections.unmodifiableList(new ArrayList<>(childActivities.values()));
+        // TODO: Copying the values could be avoided by returning an unmodifiable view as Collection instead.
+        // However, that could result in concurrency issues.
+        // Hence, safely creating a copy seems to be good solution, but the copy does not need to be unmodifiable.
+        synchronized (childActivities) {
+            return new ArrayList<>(childActivities.values());
+        }
     }
 
     /**
@@ -169,7 +174,8 @@ public class GroupImpl extends ActivityImpl implements Group {
     @Override
     public SubProcessActivityBuilder createChildSubProcess(SubProcessActivityModel childSubProcessModel) {
         // check if a activity with the same modelId and the same iteration already exists.
-        final SubProcessActivityImpl toSubProcess = (SubProcessActivityImpl) getJob().getActivityByModelId(childSubProcessModel.getId());
+        final SubProcessActivityImpl toSubProcess =
+                (SubProcessActivityImpl) getJob().getActivityByModelId(childSubProcessModel.getId());
         final SubProcessActivityBuilder builder;
         if (toSubProcess == null || !Objects.equals(toSubProcess.getIteration(), getIteration())
                 || toSubProcess.getParent() != getParent()) {
@@ -186,15 +192,14 @@ public class GroupImpl extends ActivityImpl implements Group {
     }
 
     /**
-     * This method removes the childActivity for the given InstanceId, if its 
+     * This method removes the childActivity for the given InstanceId, if its
      * ActivityStatus != ActivityStatus.RUNNING.
      *
      * @param instanceId the Id of the Activity to remove
      */
     public void removeNotRunningChildActivity(String instanceId) {
-        Activity a = childActivities.get(instanceId);
-            if (a != null && a.getActivityStatus() != ActivityStatus.RUNNING) {
-                childActivities.remove(instanceId);
-            }
+        synchronized (childActivities) {
+            childActivities.remove(instanceId);
+        }
     }
 }
