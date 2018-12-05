@@ -191,7 +191,6 @@ public class GroupImpl extends ActivityImpl implements Group {
      *
      * @param instanceId the Id of the Activity to remove
      */
-    @Override
     public void removeNotRunningChildActivity(String instanceId) {
         Activity a = childActivities.get(instanceId);
             if (a != null && a.getActivityStatus() != ActivityStatus.RUNNING) {

@@ -935,7 +935,7 @@ public class JobImpl implements Job {
                         loggingSum++;
                     }
                     iterator.remove();
-                    Group parent = a.getParent();
+                    GroupImpl parent = (GroupImpl)a.getParent();
                     if (parent != null) {
                         parent.removeNotRunningChildActivity(a.getInstanceId());
                     }

@@ -83,12 +83,4 @@ public interface Group extends Activity {
      * @return all child activities
      */
     public List<Activity> getChildActivities();
-    
-    /**
-     * This method remove the childActivity for the given InstanceId, if 
-     * it isn't running.
-     * @param instanceId the Id of the Activity to remove
-     */
-    public void removeNotRunningChildActivity(String instanceId);
-
 }
