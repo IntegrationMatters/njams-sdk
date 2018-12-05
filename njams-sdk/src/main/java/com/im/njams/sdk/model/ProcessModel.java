@@ -1,14 +1,14 @@
-/* 
+/*
  * Copyright (c) 2018 Faiz & Siegeln Software GmbH
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"),
  * to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
  * and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
- * 
+ *
  * The Software shall be used for Good, not Evil.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
@@ -28,10 +28,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.im.njams.sdk.Njams;
-import com.im.njams.sdk.configuration.ProcessConfiguration;
 import com.im.njams.sdk.common.IdUtil;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.common.Path;
+import com.im.njams.sdk.configuration.ProcessConfiguration;
 import com.im.njams.sdk.logmessage.Job;
 import com.im.njams.sdk.logmessage.JobImpl;
 import com.im.njams.sdk.model.svg.ProcessDiagramFactory;
@@ -82,8 +82,8 @@ public class ProcessModel {
      * @return messageformat representation of this ProcessModel
      */
     public com.faizsiegeln.njams.messageformat.v4.projectmessage.ProcessModel getSerializableProcessModel() {
-        com.faizsiegeln.njams.messageformat.v4.projectmessage.ProcessModel internalProcessModel
-                = new com.faizsiegeln.njams.messageformat.v4.projectmessage.ProcessModel();
+        com.faizsiegeln.njams.messageformat.v4.projectmessage.ProcessModel internalProcessModel =
+                new com.faizsiegeln.njams.messageformat.v4.projectmessage.ProcessModel();
 
         // set meta data
         internalProcessModel.setPath(path.toString());
@@ -96,22 +96,22 @@ public class ProcessModel {
             internalProcessModel.setExclude(processConfiguration.isExclude());
         }
 
-        // create process layout
-        njams.getProcessModelLayouter().layout(this);
-
         // copy activities
-        this.activities.values().stream()
+        activities.values().stream()
                 .map(a -> a.getSerializableActivity(processConfiguration))
                 .forEach(activity -> internalProcessModel.getActivities().add(activity));
 
         // copy transitions
-        this.transitions.values().stream()
+        transitions.values().stream()
                 .map(TransitionModel::getSerializableTransition)
                 .forEach(transition -> internalProcessModel.getTransitions().add(transition));
 
-        // create svg
         try {
+            // process SVG
             if (svg == null) {
+                // create process layout
+                njams.getProcessModelLayouter().layout(this);
+                // build SVG
                 svg = njams.getProcessDiagramFactory().getProcessDiagram(this);
             }
             internalProcessModel.setSvg(svg);
@@ -165,7 +165,7 @@ public class ProcessModel {
      * @return the list of {@link GroupModel}
      */
     public List<GroupModel> getGroupModels() {
-        return this.activities.values().stream()
+        return activities.values().stream()
                 .filter(activity -> GroupModel.class.isAssignableFrom(activity.getClass())).map(GroupModel.class::cast)
                 .collect(toList());
     }
@@ -176,8 +176,9 @@ public class ProcessModel {
      * @return the list of {@link SubProcessActivityModel}
      */
     public List<SubProcessActivityModel> getSubProcessModels() {
-        return this.activities.values().stream()
-                .filter(activity -> SubProcessActivityModel.class.isAssignableFrom(activity.getClass())).map(SubProcessActivityModel.class::cast)
+        return activities.values().stream()
+                .filter(activity -> SubProcessActivityModel.class.isAssignableFrom(activity.getClass()))
+                .map(SubProcessActivityModel.class::cast)
                 .collect(toList());
     }
 
@@ -312,7 +313,8 @@ public class ProcessModel {
      * @param subProcessType of Actvity to create
      * @return the created {@link ActivityModel}
      */
-    public SubProcessActivityModel createSubProcess(String subProcessModelId, String subProcessName, String subProcessType) {
+    public SubProcessActivityModel createSubProcess(String subProcessModelId, String subProcessName,
+            String subProcessType) {
         SubProcessActivityModel subProcessModel = new SubProcessActivityModel(this);
         subProcessModel.setId(subProcessModelId);
         subProcessModel.setName(subProcessName);
