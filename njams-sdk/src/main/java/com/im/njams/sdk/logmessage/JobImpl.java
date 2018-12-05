@@ -932,7 +932,7 @@ public class JobImpl implements Job {
                     iterator.remove();
                     GroupImpl parent = (GroupImpl) a.getParent();
                     if (parent != null) {
-                        parent.removeNotRunningChildActivity(a.getInstanceId());
+                        parent.removeChildActivity(a.getInstanceId());
                     }
                 }
 

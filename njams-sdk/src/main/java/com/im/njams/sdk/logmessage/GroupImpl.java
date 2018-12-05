@@ -192,12 +192,11 @@ public class GroupImpl extends ActivityImpl implements Group {
     }
 
     /**
-     * This method removes the childActivity for the given InstanceId, if its
-     * ActivityStatus != ActivityStatus.RUNNING.
+     * This method removes the childActivity for the given InstanceId.
      *
      * @param instanceId the Id of the Activity to remove
      */
-    public void removeNotRunningChildActivity(String instanceId) {
+    public void removeChildActivity(String instanceId) {
         synchronized (childActivities) {
             childActivities.remove(instanceId);
         }

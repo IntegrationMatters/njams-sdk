@@ -55,10 +55,10 @@ public class GroupImplTest {
         Activity child3 = group.createChildActivity("child3").build();
         Activity child4 = group.createChildActivity("child4").build();
         //This shouldn't remove any child, because they are all RUNNING
-        group.removeNotRunningChildActivity(child1.getInstanceId());
-        group.removeNotRunningChildActivity(child2.getInstanceId());
-        group.removeNotRunningChildActivity(child3.getInstanceId());
-        group.removeNotRunningChildActivity(child4.getInstanceId());
+        group.removeChildActivity(child1.getInstanceId());
+        group.removeChildActivity(child2.getInstanceId());
+        group.removeChildActivity(child3.getInstanceId());
+        group.removeChildActivity(child4.getInstanceId());
         List<Activity> childActivities = group.getChildActivities();
         assertFalse(childActivities.contains(child1));
         assertFalse(childActivities.contains(child2));
