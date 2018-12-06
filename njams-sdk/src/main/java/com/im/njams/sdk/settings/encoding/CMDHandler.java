@@ -17,11 +17,19 @@
 package com.im.njams.sdk.settings.encoding;
 
 /**
- *
+ * This class is used to encode Strings that are given via CommandLine.
+ * 
  * @author krautenberg@integrationmatters.com
+ * @version 4.0.1
  */
 public class CMDHandler {
 
+    /**
+     * Main method, it tries to encode the given args and prints the results 
+     * on standard output.
+     * 
+     * @param args the to encode arguments
+     */
     public static void main(String[] args) {
         for (String arg : args) {
             String encodedArg = Transformer.encode(arg);
@@ -34,6 +42,13 @@ public class CMDHandler {
         }
     }
 
+    /**
+     * This method checks if the String can be encoded and decoded with the same
+     * result as not encoded at all.
+     * @param notEncoded the not encoded word
+     * @param encoded the already encoded word
+     * @return true, if x = decode(encode(x)), else false
+     */
     private static boolean check(String notEncoded, String encoded) {
         return notEncoded.equals(Transformer.decode(encoded));
     }

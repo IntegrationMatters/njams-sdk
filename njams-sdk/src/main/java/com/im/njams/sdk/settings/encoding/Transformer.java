@@ -320,6 +320,11 @@ public class Transformer {
         }
     }
 
+    /**
+     * This method decodes every property value, if it is encoded.
+     * @param properties the properties to decode
+     * @return the decoded properties
+     */
     public static Properties decode(Properties properties) {
         Properties newProps = new Properties();
         properties.keySet().forEach(key -> newProps.put(key, decode((String) properties.get(key))));
