@@ -44,6 +44,8 @@ import com.im.njams.sdk.common.Path;
 import com.im.njams.sdk.communication.AbstractReceiver;
 import com.im.njams.sdk.communication.ConnectionStatus;
 import com.im.njams.sdk.settings.PropertyUtil;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * JMS implementation for a Receiver.
@@ -134,6 +136,24 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
             connectionStatus = ConnectionStatus.CONNECTED;
         } catch (Exception e) {
             connectionStatus = ConnectionStatus.DISCONNECTED;
+            if(session != null){
+                try {
+                    session.close();
+                } catch (JMSException ex) {
+                    LOG.debug(ex.getMessage());
+                }finally{
+                    session = null;
+                }
+            }
+            if(connection != null){
+                try {
+                    connection.close();
+                } catch (JMSException ex) {
+                    LOG.debug(ex.getMessage());
+                }finally{
+                    connection = null;
+                }
+            }
             throw new NjamsSdkRuntimeException("Unable to initialize", e);
         } finally {
             if (context != null) {
