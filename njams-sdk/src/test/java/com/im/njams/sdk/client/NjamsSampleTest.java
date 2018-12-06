@@ -77,6 +77,7 @@ public class NjamsSampleTest {
 
         // Create a Log Message???
         Job job = process.createJob("myJobId");
+        job.start();
 
         //Create activitys
         Activity a = job.createActivity("a").setExecution(LocalDateTime.now()).build();
@@ -173,6 +174,7 @@ public class NjamsSampleTest {
 
         // Create a Log Message
         Job job = process.createJob();
+        job.start();
         Activity start = job.createActivity(startModel).build();
         start.processInput("testdata");
         start.processOutput("testdata");
@@ -294,6 +296,7 @@ public class NjamsSampleTest {
 
         // Create a Log Message
         Job job = process.createJob();
+        job.start();
         Activity start = job.createActivity(startModel).build();
         start.processInput("testdata");
         start.processOutput("testdata");
@@ -370,6 +373,7 @@ public class NjamsSampleTest {
 
         // Create a Log Message???
         Job job = process.createJob("myJobId");
+        job.start();
 
         //Create activitys
         Activity a = job.createActivity("start").setExecution(LocalDateTime.now()).build();
@@ -496,6 +500,7 @@ public class NjamsSampleTest {
 
         // Create a Log Message???
         Job job = process.createJob("myJobId");
+        job.start();
 
         //Create activitys
         Activity a = job.createActivity(startModel).setExecution(LocalDateTime.now()).build();
@@ -635,6 +640,7 @@ public class NjamsSampleTest {
 
         // Create a Log Message???
         Job job = process.createJob("myJobId");
+        job.start();
 
         //Create activitys
         Activity a = job.createActivity(startModel).setExecution(LocalDateTime.now()).build();
@@ -771,8 +777,8 @@ public class NjamsSampleTest {
         startModel.setStarter(true);
 
         //step
-        SubProcessActivityModel subProcessModel =
-                startModel.transitionToSubProcess("subProcess", "SubProcess", "stepType");
+        SubProcessActivityModel subProcessModel
+                = startModel.transitionToSubProcess("subProcess", "SubProcess", "stepType");
 
         //step
         ActivityModel endModel = subProcessModel.transitionTo("end", "End", "endType");
@@ -805,6 +811,7 @@ public class NjamsSampleTest {
 
         // Create a Log Message
         Job job = process.createJob();
+        job.start();
         Activity start = job.createActivity(startModel).build();
         start.processInput("testdata");
         start.processOutput("testdata");
@@ -1049,8 +1056,8 @@ public class NjamsSampleTest {
         //start model
         ActivityModel startModel = process.createActivity("start", "Start", "startType");
         startModel.setStarter(true);
-        SubProcessActivityModel subProcessModel =
-                startModel.transitionToSubProcess("subProcess", "SubProcess", "stepType");
+        SubProcessActivityModel subProcessModel
+                = startModel.transitionToSubProcess("subProcess", "SubProcess", "stepType");
         ActivityModel endModel = subProcessModel.transitionTo("end", "End", "endType");
 
         //subprocess
@@ -1081,6 +1088,7 @@ public class NjamsSampleTest {
 
         // Create a Log Message
         Job job = process.createJob();
+        job.start();
         Activity start = job.createActivity(startModel).build();
         start.processInput("testdata");
         start.processOutput("testdata");
@@ -1090,6 +1098,7 @@ public class NjamsSampleTest {
 
         //spawned
         Job sjob = subProcess.createJob();
+        sjob.start();
         Activity subProcessStart = sjob.createActivity(subProcessStartModel).build();
         subProcessStart.processInput("testdata");
         subProcessStart.processOutput("testdata");
@@ -1115,8 +1124,7 @@ public class NjamsSampleTest {
         njams.stop();
 
     }
-    
-    
+
     @Test
     public void testGroupInGroupWithFlushesAndEncoded() throws Exception {
         Path clientPath = new Path("SDK4", "TEST");
