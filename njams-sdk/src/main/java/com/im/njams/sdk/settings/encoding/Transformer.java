@@ -22,8 +22,10 @@ import java.util.List;
 import java.util.Properties;
 
 /**
- *
+ * This class encodes and decodes Strings
+ * 
  * @author krautenberg@integrationmatters.com
+ * @version 4.0.1
  */
 public class Transformer {
 
