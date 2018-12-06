@@ -12,6 +12,9 @@ The new nJAMS Client SDK
 
 * [Sample](https://github.com/IntegrationMatters/njams-sdk/tree/master/njams-sdk-sample-client/src/main/java/com/faizsiegeln/test) - See our sample client implementations
 
+## FAQ
+* [FAQ](https://github.com/IntegrationMatters/njams-sdk/wiki/FAQ)
+
 ## License
 
 Copyright (c) 2018 Faiz & Siegeln Software GmbH
