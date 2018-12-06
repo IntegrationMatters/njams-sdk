@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright (c) 2018 Faiz & Siegeln Software GmbH
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"),
@@ -16,21 +16,20 @@
  */
 package com.im.njams.sdk.communication.cloud;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 /**
  *
- * @author pnientiedt
+ * @author lmusebrink
  */
-public class CloudConstants {
+public class Endpoints {
     
-    private CloudConstants() {
-        //utility
-    }
+    public String ingest;
+    public String client;
 
-    public static final String PROPERTY_PREFIX = "njams.sdk.communication.cloud";
-    public static final String NAME = "CLOUD";
-    public static final String ENDPOINT = PROPERTY_PREFIX + ".endpoint";
-    public static final String APIKEY = PROPERTY_PREFIX + ".apikey";
-    public static final String CLIENT_INSTANCEID = PROPERTY_PREFIX + ".client.instanceId";
-    public static final String CLIENT_CERTIFICATE = PROPERTY_PREFIX + ".client.certificate";
-    public static final String CLIENT_PRIVATEKEY = PROPERTY_PREFIX + ".client.privatekey";
+    public Endpoints(@JsonProperty("ingest")String ingest, @JsonProperty("client")String client) {
+        this.ingest = ingest;
+        this.client = client;
+    }
+    
 }

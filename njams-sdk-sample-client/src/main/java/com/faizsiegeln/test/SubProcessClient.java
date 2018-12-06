@@ -140,9 +140,8 @@ public class SubProcessClient {
     private static Properties getCloudProperties() {
         Properties communicationProperties = new Properties();
         communicationProperties.put(CommunicationFactory.COMMUNICATION, CloudConstants.NAME);
-        communicationProperties.put(CloudConstants.URL, "<cloud url>");
+        communicationProperties.put(CloudConstants.ENDPOINT, "<cloud url>");
         communicationProperties.put(CloudConstants.APIKEY, "<cloud apikey>");
-        communicationProperties.put(CloudConstants.CLIENT_ENDPOINT, "<cloud client endpoint>");
         communicationProperties.put(CloudConstants.CLIENT_INSTANCEID, "<cloud client instance>");
         communicationProperties.put(CloudConstants.CLIENT_CERTIFICATE, "<cloud client certificate>");
         communicationProperties.put(CloudConstants.CLIENT_PRIVATEKEY, "<cloud client privatekey>");

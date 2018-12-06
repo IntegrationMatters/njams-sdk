@@ -81,7 +81,7 @@ public class SimpleClient {
 
         // Start client and flush resources, which will create a projectmessage to send all resources to the server
         njams.start();
-
+        
         /**
          * Running a process by creating a job
          */
@@ -113,15 +113,14 @@ public class SimpleClient {
         Thread.sleep(1000);
         
         //If you are finished with processing or the application goes down, stop the client...
-        njams.stop();
+        njams.stop();        
     }
 
     private static Properties getCloudProperties() {
         Properties communicationProperties = new Properties();
         communicationProperties.put(CommunicationFactory.COMMUNICATION, CloudConstants.NAME);
-        communicationProperties.put(CloudConstants.URL, "<cloud url>");
+        communicationProperties.put(CloudConstants.ENDPOINT, "<cloud url>");
         communicationProperties.put(CloudConstants.APIKEY, "<cloud apikey>");
-        communicationProperties.put(CloudConstants.CLIENT_ENDPOINT, "<cloud client endpoint>");
         communicationProperties.put(CloudConstants.CLIENT_INSTANCEID, "<cloud client instance>");
         communicationProperties.put(CloudConstants.CLIENT_CERTIFICATE, "<cloud client certificate>");
         communicationProperties.put(CloudConstants.CLIENT_PRIVATEKEY, "<cloud client privatekey>");
