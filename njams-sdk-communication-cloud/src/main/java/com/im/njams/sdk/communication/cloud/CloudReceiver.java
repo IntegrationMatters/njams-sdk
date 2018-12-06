@@ -16,16 +16,19 @@
  */
 package com.im.njams.sdk.communication.cloud;
 
-import java.util.Properties;
-
-import org.slf4j.LoggerFactory;
-
 import com.amazonaws.services.iot.client.AWSIotMqttClient;
 import com.amazonaws.services.iot.client.AWSIotQos;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.communication.AbstractReceiver;
 import com.im.njams.sdk.communication.ConnectionStatus;
 import com.im.njams.sdk.communication.cloud.CertificateUtil.KeyStorePasswordPair;
+import com.im.njams.sdk.utils.JsonUtils;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.net.URL;
+import java.util.Properties;
+import javax.net.ssl.HttpsURLConnection;
+import org.slf4j.LoggerFactory;
 
 /**
  *
@@ -46,6 +49,7 @@ public class CloudReceiver extends AbstractReceiver {
     private String topicName;
 
     private KeyStorePasswordPair keyStorePasswordPair;
+    private String apikey;
 
     @Override
     public String getName() {
@@ -54,9 +58,28 @@ public class CloudReceiver extends AbstractReceiver {
 
     @Override
     public void init(Properties properties) {
-        endpoint = properties.getProperty(CloudConstants.CLIENT_ENDPOINT);
+        
+        String apikeypath = properties.getProperty(CloudConstants.APIKEY);
+
+        if (apikeypath == null) {
+            LOG.error("Please provide property {} for CloudSender", CloudConstants.APIKEY);
+        }
+        
+        try {
+            apikey = ApiKeyReader.getApiKey(apikeypath);
+        } catch (Exception e) {
+            LOG.error("Failed to load api key from file " + apikeypath, e);
+            throw new IllegalStateException("Failed to load api key from file");
+        }
+        
+          try {
+            endpoint = getClientEndpoint(properties.getProperty(CloudConstants.ENDPOINT));
+        } catch (final Exception ex) {
+            throw new NjamsSdkRuntimeException("unable to init http sender", ex);
+        }        
+        
         if (endpoint == null) {
-            LOG.error("Please provide property {} for CloudReceiver", CloudConstants.CLIENT_ENDPOINT);
+            LOG.error("Please provide property {} for CloudReceiver", CloudConstants.ENDPOINT);
         }
         instanceId = properties.getProperty(CloudConstants.CLIENT_INSTANCEID);
         if (instanceId == null) {
@@ -90,6 +113,35 @@ public class CloudReceiver extends AbstractReceiver {
         } catch (Exception e) {
             LOG.error("Error disconnecting MQTTClient", e);
         }
+    }
+    
+    protected String getClientEndpoint(String endpoint) throws Exception {
+        String endpointUrl = "https://" + endpoint.trim() + "/v1/endpoints";
+        
+        URL url = new URL(endpointUrl);
+        HttpsURLConnection connection =(HttpsURLConnection) url.openConnection();
+        connection.setRequestMethod("GET");
+        connection.setRequestProperty("x-api-key", apikey);
+
+        int responseCode = connection.getResponseCode();
+        LOG.debug("\nSending 'GET' request to URL : " + url);
+        LOG.debug("Response Code : " + responseCode);
+
+        BufferedReader in = new BufferedReader(new InputStreamReader(connection.getInputStream()));
+                
+        String inputLine;
+        StringBuffer response = new StringBuffer();
+
+        while ((inputLine = in.readLine()) != null) {
+                response.append(inputLine);
+        }
+        in.close();
+        
+        
+        Endpoints endpoints = JsonUtils.parse(response.toString(), Endpoints.class);
+        
+        return endpoints.client ;    
+        
     }
 
     /**
@@ -151,6 +203,7 @@ public class CloudReceiver extends AbstractReceiver {
     public String getPrivateKeyFile() {
         return privateKeyFile;
     }
+    
 
     @Override
     public void connect() {

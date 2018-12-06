@@ -16,29 +16,6 @@
  */
 package com.im.njams.sdk.communication.cloud;
 
-import static java.nio.charset.Charset.defaultCharset;
-
-import java.io.BufferedReader;
-import java.io.DataOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.security.KeyStore;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Set;
-
-import javax.net.ssl.HttpsURLConnection;
-import javax.net.ssl.KeyManager;
-import javax.net.ssl.KeyManagerFactory;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.TrustManager;
-import javax.net.ssl.TrustManagerFactory;
-
-import org.slf4j.LoggerFactory;
-
 import com.faizsiegeln.njams.messageformat.v4.common.MessageVersion;
 import com.faizsiegeln.njams.messageformat.v4.logmessage.LogMessage;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.ProjectMessage;
@@ -46,6 +23,24 @@ import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.communication.AbstractSender;
 import com.im.njams.sdk.communication.Sender;
 import com.im.njams.sdk.utils.JsonUtils;
+import java.io.BufferedReader;
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.net.URL;
+import static java.nio.charset.Charset.defaultCharset;
+import java.security.KeyStore;
+import java.util.Map;
+import java.util.Properties;
+import java.util.Set;
+import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.KeyManager;
+import javax.net.ssl.KeyManagerFactory;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.TrustManagerFactory;
+import org.slf4j.LoggerFactory;
 
 /**
  *
@@ -72,23 +67,25 @@ public class CloudSender extends AbstractSender {
         //            LOG.error("Error initializing keystore", ex);
         //            throw new NjamsSdkRuntimeException("Error initializing keystore", ex);
         //        }
-        try {
-            url = new URL(properties.getProperty(CloudConstants.URL));
-        } catch (final MalformedURLException ex) {
-            throw new NjamsSdkRuntimeException("unable to init http sender", ex);
-        }
         String apikeypath = properties.getProperty(CloudConstants.APIKEY);
 
         if (apikeypath == null) {
             LOG.error("Please provide property {} for CloudSender", CloudConstants.APIKEY);
         }
-
+        
         try {
             apikey = ApiKeyReader.getApiKey(apikeypath);
         } catch (Exception e) {
             LOG.error("Failed to load api key from file " + apikeypath, e);
             throw new IllegalStateException("Failed to load api key from file");
         }
+        
+        try {
+            url = new URL(getIngestEndpoint(properties.getProperty(CloudConstants.ENDPOINT)));
+        } catch (final Exception ex) {
+            throw new NjamsSdkRuntimeException("unable to init http sender", ex);
+        }
+        
 
     }
 
@@ -125,6 +122,35 @@ public class CloudSender extends AbstractSender {
         } catch (Exception ex) {
             LOG.error("Error sending LogMessage", ex);
         }
+    }
+    
+    protected String getIngestEndpoint(String endpoint) throws Exception {
+        String endpointUrl = "https://" + endpoint.trim() + "/v1/endpoints";
+        
+        URL url = new URL(endpointUrl);
+        HttpsURLConnection connection =(HttpsURLConnection) url.openConnection();
+        connection.setRequestMethod("GET");
+        connection.setRequestProperty("x-api-key", apikey);
+
+        int responseCode = connection.getResponseCode();
+        LOG.debug("\nSending 'GET' request to URL : " + url);
+        LOG.debug("Response Code : " + responseCode);
+
+        BufferedReader in = new BufferedReader(new InputStreamReader(connection.getInputStream()));
+                
+        String inputLine;
+        StringBuffer response = new StringBuffer();
+
+        while ((inputLine = in.readLine()) != null) {
+                response.append(inputLine);
+        }
+        in.close();
+        
+        
+        Endpoints endpoints =  JsonUtils.parse(response.toString(), Endpoints.class);
+        
+        return endpoints.ingest.startsWith("https://")? endpoints.ingest : "https://" + endpoints.ingest ;    
+        
     }
 
     private void addAddtionalProperties(final Properties properties, final HttpsURLConnection connection) {
