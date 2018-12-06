@@ -18,6 +18,7 @@ package com.im.njams.sdk.client;
 
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.settings.Settings;
+import com.im.njams.sdk.settings.encoding.Transformer;
 
 /**
  * Configuration Entry for the LogMessageFlushTask for every Njams instance.
@@ -49,9 +50,9 @@ public class LMFTEntry {
     public LMFTEntry(Njams njams) {
         this.njams = njams;
         this.flushSize = Long.parseLong(
-                njams.getSettings().getProperties().getProperty(Settings.PROPERTY_FLUSH_SIZE, DEFAULT_FLUSH_SIZE));
-        this.flushInterval = Long.parseLong(njams.getSettings().getProperties()
-                .getProperty(Settings.PROPERTY_FLUSH_INTERVAL, DEFAULT_FLUSH_INTERVAL));
+                Transformer.decode(njams.getSettings().getProperties().getProperty(Settings.PROPERTY_FLUSH_SIZE, DEFAULT_FLUSH_SIZE)));
+        this.flushInterval = Long.parseLong(Transformer.decode(njams.getSettings().getProperties()
+                .getProperty(Settings.PROPERTY_FLUSH_INTERVAL, DEFAULT_FLUSH_INTERVAL)));
     }
 
     /**

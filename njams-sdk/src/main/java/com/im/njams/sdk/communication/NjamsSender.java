@@ -28,6 +28,7 @@ import com.faizsiegeln.njams.messageformat.v4.common.CommonMessage;
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.factories.ThreadFactoryBuilder;
 import com.im.njams.sdk.settings.Settings;
+import com.im.njams.sdk.settings.encoding.Transformer;
 
 /**
  * This class enforces the maxQueueLength setting. 
@@ -50,8 +51,8 @@ public class NjamsSender implements Sender, SenderFactory {
     public NjamsSender(Njams njams, Settings settings) {
         this.njams = njams;
         this.settings = settings;
-        this.name = settings.getProperties().getProperty(CommunicationFactory.COMMUNICATION);
-        init(settings.getProperties());
+        this.name = Transformer.decode(settings.getProperties().getProperty(CommunicationFactory.COMMUNICATION));
+        init(Transformer.decode(settings.getProperties()));
     }
 
     @Override

@@ -29,6 +29,7 @@ import org.slf4j.LoggerFactory;
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.configuration.ConfigurationProvider;
 import com.im.njams.sdk.settings.Settings;
+import com.im.njams.sdk.settings.encoding.Transformer;
 
 /**
  * Factory for creating Sender and Receiver
@@ -71,7 +72,7 @@ public class CommunicationFactory {
     public Receiver getReceiver() {
         if (settings.getProperties().containsKey(COMMUNICATION)) {
             final Iterator<Receiver> iterator = receiverList.iterator();
-            final String requiredReceiverName = settings.getProperties().getProperty(COMMUNICATION);
+            final String requiredReceiverName = Transformer.decode(settings.getProperties().getProperty(COMMUNICATION));
             while (iterator.hasNext()) {
                 final Receiver receiver = iterator.next();
                 if (receiver.getName().equals(requiredReceiverName)) {
@@ -80,7 +81,7 @@ public class CommunicationFactory {
                         LOG.info("Create Receiver {}", receiver.getName());
                         Receiver newInstance = receiver.getClass().newInstance();
                         newInstance.setNjams(njams);
-                        newInstance.init(settings.getProperties());
+                        newInstance.init(Transformer.decode(settings.getProperties()));
                         return newInstance;
                     } catch (Exception e) {
                         throw new UnsupportedOperationException(
@@ -109,7 +110,7 @@ public class CommunicationFactory {
     public Sender getSender() {
         if (settings.getProperties().containsKey(COMMUNICATION)) {
             final Iterator<Sender> iterator = senderList.iterator();
-            final String requiredSenderName = settings.getProperties().getProperty(COMMUNICATION);
+            final String requiredSenderName = Transformer.decode(settings.getProperties().getProperty(COMMUNICATION));
             while (iterator.hasNext()) {
                 final Sender sender = iterator.next();
                 if (sender.getName().equals(requiredSenderName)) {
@@ -117,7 +118,7 @@ public class CommunicationFactory {
                         // create a new instance
                         LOG.info("Create sender {}", sender.getName());
                         Sender newInstance = sender.getClass().newInstance();
-                        newInstance.init(settings.getProperties());
+                        newInstance.init(Transformer.decode(settings.getProperties()));
                         return newInstance;
                     } catch (Exception e) {
                         throw new UnsupportedOperationException(

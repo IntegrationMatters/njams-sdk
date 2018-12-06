@@ -43,6 +43,7 @@ import com.im.njams.sdk.model.GroupModel;
 import com.im.njams.sdk.model.ProcessModel;
 import com.im.njams.sdk.model.SubProcessActivityModel;
 import com.im.njams.sdk.settings.Settings;
+import com.im.njams.sdk.settings.encoding.Transformer;
 
 /**
  *
@@ -1114,5 +1115,186 @@ public class NjamsSampleTest {
         njams.stop();
 
     }
+    
+    
+    @Test
+    public void testGroupInGroupWithFlushesAndEncoded() throws Exception {
+        Path clientPath = new Path("SDK4", "TEST");
 
+        Properties communicationProperties = new Properties();
+        communicationProperties.put(CommunicationFactory.COMMUNICATION, Transformer.encode("JMS"));
+        communicationProperties.put(JmsConstants.INITIAL_CONTEXT_FACTORY,
+                Transformer.encode("com.tibco.tibjms.naming.TibjmsInitialContextFactory"));
+        communicationProperties.put(JmsConstants.SECURITY_PRINCIPAL, Transformer.encode("njams"));
+        communicationProperties.put(JmsConstants.SECURITY_CREDENTIALS, Transformer.encode("njams"));
+        communicationProperties.put(JmsConstants.PROVIDER_URL, Transformer.encode("tibjmsnaming://vslems01:7222"));
+        communicationProperties.put(JmsConstants.CONNECTION_FACTORY, Transformer.encode("ConnectionFactory"));
+        communicationProperties.put(JmsConstants.USERNAME, Transformer.encode("njams"));
+        communicationProperties.put(JmsConstants.PASSWORD, Transformer.encode("njams"));
+        communicationProperties.put(JmsConstants.DESTINATION, Transformer.encode("njams.endurance"));
+
+        // Create client config
+        Settings config = new Settings();
+        config.setProperties(communicationProperties);
+
+        Njams njams = new Njams(clientPath, "1.0.0", "sdk4", config);
+
+        Path processPath = new Path("PROCESSES", "testGroupInGroupWithFlushesAndEncoded");
+
+        //Creates an empty process model
+        ProcessModel process = njams.createProcess(processPath);
+
+        ActivityModel startModel = process.createActivity("start", "Start", "startType");
+        startModel.setStarter(true);
+        assertThat(startModel.getParent(), nullValue());
+
+        GroupModel groupModel = startModel.transitionToGroup("group", "Group", "groupType");
+        assertThat(groupModel.getParent(), nullValue());
+        assertThat(groupModel.getChildActivities().size(), is(0));
+
+        ActivityModel child1Model = groupModel.createChildActivity("child1", "Child1", "stepType");
+        child1Model.setStarter(true);
+        assertThat(child1Model.getParent(), is(groupModel));
+        assertThat(groupModel.getChildActivities().size(), is(1));
+
+        GroupModel subgroupModel = child1Model.transitionToGroup("subgroup", "SubGroup", "subgroupType");
+        assertThat(subgroupModel.getParent(), is(groupModel));
+        assertThat(groupModel.getChildActivities().size(), is(2));
+
+        ActivityModel subchild1Model = subgroupModel.createChildActivity("subchild1", "SubChild1", "stepType");
+        subchild1Model.setStarter(true);
+        assertThat(subchild1Model.getParent(), is(subgroupModel));
+        assertThat(subgroupModel.getChildActivities().size(), is(1));
+
+        ActivityModel subchild2Model = subchild1Model.transitionTo("subchild2", "SubChild2", "stepType");
+        assertThat(subchild2Model.getParent(), is(subgroupModel));
+        assertThat(subgroupModel.getChildActivities().size(), is(2));
+
+        ActivityModel child2Model = subchild2Model.getParent().transitionTo("child2", "Child2", "stepType");
+        assertThat(child2Model.getParent(), is(groupModel));
+        assertThat(groupModel.getChildActivities().size(), is(3));
+
+        GroupModel parentModel = child2Model.getParent();
+        assertThat(parentModel.getParent(), nullValue());
+        assertThat(parentModel, is(groupModel));
+
+        ActivityModel endModel = child2Model.getParent().transitionTo("end", "End", "endType");
+        assertThat(endModel.getParent(), nullValue());
+
+        // Start client and flush resources
+        njams.start();
+
+        // Create a Log Message???
+        Job job = process.createJob("myJobId");
+        job.start();
+
+        //Create activitys
+        Activity a = job.createActivity(startModel).setExecution(LocalDateTime.now()).build();
+        a.processInput("testdata");
+        a.processOutput("testdata");
+
+        ((JobImpl) job).flush();
+        assertThat(job.getActivities().size(), is(1));
+
+        //step to group
+        Group group = a.stepToGroup(groupModel).setExecution(LocalDateTime.now()).build();
+        group.processInput("testdata");
+        group.processOutput("testdata");
+
+        ((JobImpl) job).flush();
+        assertThat(job.getActivities().size(), is(1));
+
+        //iteration 1
+        Activity child1 = group.createChildActivity(child1Model).build();
+        child1.processInput("testdata");
+        child1.processOutput("testdata");
+
+        ((JobImpl) job).flush();
+        assertThat(job.getActivities().size(), is(2));
+
+        Group subGroup = child1.stepToGroup(subgroupModel).build();
+        subGroup.processInput("testdata");
+        subGroup.processOutput("testdata");
+
+        ((JobImpl) job).flush();
+        assertThat(job.getActivities().size(), is(2));
+
+        //subchild
+        Activity subChild1 = subGroup.createChildActivity(subchild1Model).build();
+        subChild1.processInput("testdata");
+        subChild1.processOutput("testdata");
+
+        ((JobImpl) job).flush();
+        assertThat(job.getActivities().size(), is(3));
+
+        subChild1.stepTo(subchild2Model).build();
+        subChild1.processInput("testdata");
+        subChild1.processOutput("testdata");
+
+        ((JobImpl) job).flush();
+        assertThat(job.getActivities().size(), is(3));
+
+        subChild1.getParent().stepTo(child2Model).build();
+        subChild1.processInput("testdata");
+        subChild1.processOutput("testdata");
+
+        ((JobImpl) job).flush();
+        assertThat(job.getActivities().size(), is(2));
+
+        group.iterate();
+
+        //iteration 2
+        Activity child1_2 = group.createChildActivity(child1Model).build();
+        child1_2.processInput("testdata");
+        child1_2.processOutput("testdata");
+
+        ((JobImpl) job).flush();
+        assertThat(job.getActivities().size(), is(3));
+
+        Group subGroup_2 = child1_2.stepToGroup(subgroupModel).build();
+        subGroup_2.processInput("testdata");
+        subGroup_2.processOutput("testdata");
+
+        ((JobImpl) job).flush();
+        assertThat(job.getActivities().size(), is(3));
+
+        //subchild
+        Activity subChild1_2 = subGroup_2.createChildActivity(subchild1Model).build();
+        subChild1_2.processInput("testdata");
+        subChild1_2.processOutput("testdata");
+
+        ((JobImpl) job).flush();
+        assertThat(job.getActivities().size(), is(4));
+
+        Activity subChild2_2 = subChild1_2.stepTo(subchild2Model).build();
+        subChild2_2.processInput("testdata");
+        subChild2_2.processOutput("testdata");
+
+        ((JobImpl) job).flush();
+        assertThat(job.getActivities().size(), is(4));
+
+        Activity child2_2 = subChild2_2.getParent().stepTo(child2Model).build();
+        child2_2.processInput("testdata");
+        child2_2.processOutput("testdata");
+
+        ((JobImpl) job).flush();
+        assertThat(job.getActivities().size(), is(3));
+
+        Group parent = child2_2.getParent();
+
+        Activity end = parent.stepTo(endModel).build();
+        end.processInput("testdata");
+        end.processOutput("testdata");
+
+        ((JobImpl) job).flush();
+        assertThat(job.getActivities().size(), is(1));
+
+        job.end();
+
+        Thread.sleep(1000);
+
+        // If you are finished with processing or the application goes down, stop client...
+        njams.stop();
+
+    }
 }
