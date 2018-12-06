@@ -13,7 +13,7 @@ The new nJAMS Client SDK
 * [Sample](https://github.com/IntegrationMatters/njams-sdk/tree/master/njams-sdk-sample-client/src/main/java/com/faizsiegeln/test) - See our sample client implementations
 
 ## FAQ
-* [FAQ](https://github.com/IntegrationMatters/njams-sdk/wiki/FAQ)
+* [FAQ](https://github.com/IntegrationMatters/njams-sdk/wiki/FAQ) - Questions on how to use SDK Features
 
 ## License
 
