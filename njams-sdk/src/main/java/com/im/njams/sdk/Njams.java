@@ -74,6 +74,7 @@ import com.im.njams.sdk.model.svg.ProcessDiagramFactory;
 import com.im.njams.sdk.serializer.Serializer;
 import com.im.njams.sdk.serializer.StringSerializer;
 import com.im.njams.sdk.settings.Settings;
+import java.util.Iterator;
 
 /**
  * This is an instance of nJAMS. It cares about lifecycle and initializations and holds references to the process models
@@ -641,7 +642,7 @@ public class Njams implements InstructionListener {
         versions.entrySet().forEach(e -> LOG.info("***      " + e.getKey() + ": " + e.getValue()));
         LOG.info("*** ");
         LOG.info("***      Settings:");
-        settings.getProperties().forEach((key, value) -> LOG.info("***      " + key + " = " + value));
+        settings.printPropertiesWithoutPasswords();
         LOG.info("************************************************************");
 
     }
