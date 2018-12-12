@@ -21,11 +21,13 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+
 import javax.xml.XMLConstants;
 import javax.xml.namespace.NamespaceContext;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.w3c.dom.Attr;
@@ -52,6 +54,7 @@ public class NamespaceResolver implements NamespaceContext {
     /**
      * This constructor parses the document and stores all namespaces it can
      * find. If toplevelOnly is true, only namespaces in the root are used.
+     * it also adds namespaces to grant access to Base64Decoder, java.lang.String and java.util.UUID
      *
      * @param strXML xml as string
      * @param toplevelOnly restriction of the search to enhance performance
@@ -59,7 +62,12 @@ public class NamespaceResolver implements NamespaceContext {
     public NamespaceResolver(String strXML, boolean toplevelOnly) {
         this.strXML = strXML;
         this.toplevelOnly = toplevelOnly;
+        putInCache("base64", "java:java.util.Base64");
+        putInCache("base64Decoder", "java:java.util.Base64$Decoder");
         putInCache("saxon", "http://saxon.sf.net/");
+        putInCache("string", "java:java.lang.String");
+        putInCache("uuid", "java:java.util.UUID");
+        putInCache("xs", "http://www.w3.org/2001/XMLSchema");
     }
 
     private void loadNamespaces() {
