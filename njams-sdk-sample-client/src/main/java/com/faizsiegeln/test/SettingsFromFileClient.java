@@ -18,9 +18,6 @@ package com.faizsiegeln.test;
 
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.common.Path;
-import com.im.njams.sdk.communication.CommunicationFactory;
-import com.im.njams.sdk.communication.cloud.CloudConstants;
-import com.im.njams.sdk.communication.jms.JmsConstants;
 import com.im.njams.sdk.logmessage.Activity;
 import com.im.njams.sdk.logmessage.Job;
 import com.im.njams.sdk.model.ActivityModel;
@@ -28,13 +25,13 @@ import com.im.njams.sdk.model.ProcessModel;
 import com.im.njams.sdk.settings.Settings;
 import com.im.njams.sdk.settings.SettingsProvider;
 import com.im.njams.sdk.settings.SettingsProviderFactory;
-import com.im.njams.sdk.settings.provider.FileSettingsProvider;
 import com.im.njams.sdk.settings.provider.PropertiesFileSettingsProvider;
 import java.util.Properties;
 
 /**
- * This sample client demonstrates how to load nJAMS config from a properties file.
- * 
+ * This sample client demonstrates how to load nJAMS config from a properties
+ * file.
+ *
  * @author bwand
  */
 public class SettingsFromFileClient {
@@ -51,7 +48,11 @@ public class SettingsFromFileClient {
 
         // Specifiy location of properties file to load
         Properties fileConfig = new Properties();
-        fileConfig.setProperty(PropertiesFileSettingsProvider.FILE_CONFIGURATION, "target/classes/settings.properties");
+        if (args.length < 1) {
+            fileConfig.setProperty(PropertiesFileSettingsProvider.FILE_CONFIGURATION, "target/classes/settings.properties");
+        } else {
+            fileConfig.setProperty(PropertiesFileSettingsProvider.FILE_CONFIGURATION, args[0]);
+        }
         provider.configure(fileConfig);
         Settings settings = provider.loadSettings();
 
