@@ -403,12 +403,17 @@ public class JobImpl implements Job {
 
     /**
      * Set the logMessage status to success if the status is running. Then flush
-     * it
+     * it. 
+     * If the job has been finished before or if the job hasn't been started before
+     * it is finished, an NjamsSdkRuntimeException is thrown.
      */
     @Override
     public void end() {
         if (finished) {
             throw new NjamsSdkRuntimeException("Job already finished");
+        }
+        else if(this.startTime == null){
+            throw new NjamsSdkRuntimeException("Job can't be finished before it started (Call job.start() before!).");
         }
         synchronized (activities) {
             //end all not ended activities

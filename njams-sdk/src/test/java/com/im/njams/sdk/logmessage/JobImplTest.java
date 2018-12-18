@@ -19,14 +19,12 @@ package com.im.njams.sdk.logmessage;
 import com.faizsiegeln.njams.messageformat.v4.logmessage.ActivityStatus;
 
 import com.im.njams.sdk.Njams;
+import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.common.Path;
-import com.im.njams.sdk.communication.CommunicationFactory;
-import com.im.njams.sdk.communication.jms.JmsConstants;
 import com.im.njams.sdk.model.ProcessModel;
 import com.im.njams.sdk.settings.Settings;
 
 import java.util.Collection;
-import java.util.Properties;
 
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -39,21 +37,17 @@ import static org.junit.Assert.*;
  */
 public class JobImplTest {
     
-    private static JobImpl job;
+    private static ProcessModel process;
     
     @BeforeClass
     public static void configure(){
-        Path clientPath = new Path("Test");
+        Path clientPath = new Path("SDK4", "TEST");
         
         Settings config = new Settings();
         
         Njams njams = new Njams(clientPath, "1.0.0", "sdk4", config);
-        Path processPath = new Path("Test2");
-        ProcessModel process = njams.createProcess(processPath);
-        
-        job = (JobImpl) process.createJob("myJob");
-        //This is set so the job can flush.
-        job.setStatus(JobStatus.ERROR);
+        Path processPath = new Path("PROCESSES");
+        process = njams.createProcess(processPath);               
     }
     
     /**
@@ -63,6 +57,10 @@ public class JobImplTest {
      */
     @Test
     public void testFlushGroupWithChildren(){
+        JobImpl job = (JobImpl) process.createJob();
+        job.start();
+        //This is set so the job can flush.
+        job.setStatus(JobStatus.ERROR); 
         //Create a group with four children
         GroupImpl group = (GroupImpl) job.createGroup("start").build();
         Activity child1 = group.createChildActivity("child1").build();
@@ -104,4 +102,13 @@ public class JobImplTest {
         assertTrue(childActivities.contains(child4));
     }
     
+    /**
+     * This method tests if a job can be ended before it started. It should
+     * throw an NjamsSdkRuntimeException in this case.
+     */
+    @Test(expected = NjamsSdkRuntimeException.class)
+    public void testEndBeforeStart(){
+        Job job = process.createJob();
+        job.end();
+    }
 }
