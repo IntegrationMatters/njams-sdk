@@ -162,31 +162,6 @@ public class JobImpl implements Job {
         initFromConfiguration();
     }
 
-    private LogMessage createLogMessage(JobImpl job) {
-        LogMessage logMessage = new LogMessage();
-        logMessage.setBusinessEnd(businessEnd);
-        logMessage.setBusinessStart(businessStart);
-        logMessage.setCategory(processModel.getNjams().getCategory());
-        logMessage.setCorrelationLogId(correlationLogId);
-        logMessage.setExternalLogId(externalLogId);
-        logMessage.setJobEnd(endTime);
-        logMessage.setJobId(jobId);
-        logMessage.setJobStart(startTime);
-        logMessage.setLogId(logId);
-        logMessage.setMachineName(processModel.getNjams().getMachine());
-        logMessage.setMaxSeverity(maxSeverity.getValue());
-        logMessage.setMessageNo(job.flushCounter.get());
-        logMessage.setObjectName(businessObject);
-        logMessage.setParentLogId(parentLogId);
-        logMessage.setPath(processModel.getPath().toString());
-        logMessage.setProcessName(processModel.getName());
-        logMessage.setStatus(status.getValue());
-        logMessage.setServiceName(businessService);
-        attributes.entrySet().forEach(e -> logMessage.addAtribute(e.getKey(), e.getValue()));
-        pluginDataItems.forEach(i -> logMessage.addPluginDataItem(i));
-        return logMessage;
-    }
-
     /**
      * Creates ActivityBuilder with a given activityModeId.
      *
@@ -379,6 +354,7 @@ public class JobImpl implements Job {
         flushCounter.incrementAndGet();
         lastFlush = DateTimeUtility.now();
         LogMessage logMessage = createLogMessage(this);
+        //Not needed, because of mustBeSuppressed()?
         if (status.getValue() < JobStatus.RUNNING.getValue()) {
             return;
         }
@@ -389,6 +365,121 @@ public class JobImpl implements Job {
         attributes.clear();
         pluginDataItems.clear();
         calculateEstimatedSize();
+    }
+
+    private boolean mustBeSuppressed() {
+        synchronized (activities) {
+            // Do not send if one of the conditions is true.
+            if (isLogModeNone() || isLogModeExclusiveAndNotInstrumented() || isExcludedProcess()
+                    || isLogLevelHigherAsJobStateAndHasNoTraces()) {
+                LOG.debug("Job not flushed: Engine Mode: {} // Job's log level: {}, "
+                        + "configured level: {} // is excluded: {} // has traces: {}", logMode, getStatus(), logLevel,
+                        exclude, traces);
+                //delete not running activities
+                removeNotRunningActivities();
+                calculateEstimatedSize();
+                LOG.debug("mustBeSuppressed: true");
+                return true;
+            } else {
+                LOG.debug("mustBeSuppressed: false");
+                return false;
+            }
+        }
+    }
+
+    private boolean isLogModeNone() {
+        if (logMode == LogMode.NONE) {
+            LOG.debug("isLogModeNone: true");
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    private boolean isLogModeExclusiveAndNotInstrumented() {
+        if (logMode == LogMode.EXCLUSIVE && !isInstrumented()) {
+            LOG.debug("isLogModeExclusiveAndNotInstrumented: true");
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    private boolean isInstrumented() {
+        return instrumented;
+    }
+
+    private boolean isExcludedProcess() {
+        if (exclude) {
+            LOG.debug("isExcludedProcess: true");
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    private boolean isLogLevelHigherAsJobStateAndHasNoTraces() {
+        LOG.debug("{} : {}, {}", getStatus(), logLevel.value(), traces);
+        if (status.getValue() < logLevel.value() && !traces) {
+            LOG.debug("isLogLevelHigherAsJobStateAndHasNoTraces: true");
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    /**
+     * This method creates the LogMessage that will be send to the server and
+     * fills it with the attributes of the job.
+     *
+     * @param job the job whose fields will be send
+     * @return the created and with the job's information filled logMessage
+     */
+    private LogMessage createLogMessage(JobImpl job) {
+        LogMessage logMessage = new LogMessage();
+        logMessage.setBusinessEnd(businessEnd);
+        logMessage.setBusinessStart(businessStart);
+        logMessage.setCategory(processModel.getNjams().getCategory());
+        //here masking
+        logMessage.setCorrelationLogId(DataMasking.maskString(correlationLogId));
+        //here masking
+        logMessage.setExternalLogId(DataMasking.maskString(externalLogId));
+        logMessage.setJobEnd(endTime);
+        logMessage.setJobId(jobId);
+        logMessage.setJobStart(startTime);
+        logMessage.setLogId(logId);
+        logMessage.setMachineName(processModel.getNjams().getMachine());
+        logMessage.setMaxSeverity(maxSeverity.getValue());
+        logMessage.setMessageNo(job.flushCounter.get());
+        //here masking
+        logMessage.setObjectName(DataMasking.maskString(businessObject));
+        //here masking
+        logMessage.setParentLogId(DataMasking.maskString(parentLogId));
+        logMessage.setPath(processModel.getPath().toString());
+        logMessage.setProcessName(processModel.getName());
+        logMessage.setStatus(status.getValue());
+        //here masking
+        logMessage.setServiceName(DataMasking.maskString(businessService));
+        //here masking
+        attributes.entrySet().forEach(e -> logMessage.addAtribute(e.getKey(), DataMasking.maskString(e.getValue())));
+        pluginDataItems.forEach(i -> logMessage.addPluginDataItem(i));
+        return logMessage;
+    }
+
+    private void addToLogMessageAndCleanup(LogMessage logMessage) {
+        synchronized (activities) {
+            //add all to logMessage
+            activities.values().forEach(logMessage::addActivity);
+            //remove finished
+            removeNotRunningActivities();
+        }
+    }
+
+    private void calculateEstimatedSize() {
+        synchronized (activities) {
+            estimatedSize
+                    = 1000 + activities.values().stream().mapToLong(a -> ((ActivityImpl) a).getEstimatedSize()).sum();
+        }
     }
 
     /**
@@ -403,16 +494,14 @@ public class JobImpl implements Job {
 
     /**
      * Set the logMessage status to success if the status is running. Then flush
-     * it. 
-     * If the job has been finished before or if the job hasn't been started before
-     * it is finished, an NjamsSdkRuntimeException is thrown.
+     * it. If the job has been finished before or if the job hasn't been started
+     * before it is finished, an NjamsSdkRuntimeException is thrown.
      */
     @Override
     public void end() {
         if (finished) {
             throw new NjamsSdkRuntimeException("Job already finished");
-        }
-        else if(this.startTime == null){
+        } else if (this.startTime == null) {
             throw new NjamsSdkRuntimeException("Job can't be finished before it started (Call job.start() before!).");
         }
         synchronized (activities) {
@@ -736,67 +825,6 @@ public class JobImpl implements Job {
         return lastFlush;
     }
 
-    private boolean mustBeSuppressed() {
-        synchronized (activities) {
-            // Do not send if one of the conditions is true.
-            if (isLogModeNone() || isLogModeExclusiveAndNotInstrumented() || isExcludedProcess()
-                    || isLogLevelHigherAsJobStateAndHasNoTraces()) {
-                LOG.debug("Job not flushed: Engine Mode: {} // Job's log level: {}, "
-                        + "configured level: {} // is excluded: {} // has traces: {}", logMode, getStatus(), logLevel,
-                        exclude, traces);
-                //delete not running activities
-                removeNotRunningActivities();
-                calculateEstimatedSize();
-                LOG.debug("mustBeSuppressed: true");
-                return true;
-            } else {
-                LOG.debug("mustBeSuppressed: false");
-                return false;
-            }
-        }
-    }
-
-    private boolean isLogModeNone() {
-        if (logMode == LogMode.NONE) {
-            LOG.debug("isLogModeNone: true");
-            return true;
-        } else {
-            return false;
-        }
-    }
-
-    private boolean isLogModeExclusiveAndNotInstrumented() {
-        if (logMode == LogMode.EXCLUSIVE && !isInstrumented()) {
-            LOG.debug("isLogModeExclusiveAndNotInstrumented: true");
-            return true;
-        } else {
-            return false;
-        }
-    }
-
-    private boolean isExcludedProcess() {
-        if (exclude) {
-            LOG.debug("isExcludedProcess: true");
-            return true;
-        } else {
-            return false;
-        }
-    }
-
-    private boolean isLogLevelHigherAsJobStateAndHasNoTraces() {
-        LOG.debug("{} : {}, {}", getStatus(), logLevel.value(), traces);
-        if (status.getValue() < logLevel.value() && !traces) {
-            LOG.debug("isLogLevelHigherAsJobStateAndHasNoTraces: true");
-            return true;
-        } else {
-            return false;
-        }
-    }
-
-    private boolean isInstrumented() {
-        return instrumented;
-    }
-
     /**
      * @param instrumented the instrumented to set
      */
@@ -912,15 +940,6 @@ public class JobImpl implements Job {
         return properties.remove(key);
     }
 
-    private void addToLogMessageAndCleanup(LogMessage logMessage) {
-        synchronized (activities) {
-            //add all to logMessage
-            activities.values().forEach(logMessage::addActivity);
-            //remove finished
-            removeNotRunningActivities();
-        }
-    }
-
     /**
      * This method removes all not running activities from the activities map if
      * the activity has a parent, remove the activity from the childActivity map
@@ -961,13 +980,6 @@ public class JobImpl implements Job {
      */
     public void addToEstimatedSize(long estimatedSize) {
         this.estimatedSize += estimatedSize;
-    }
-
-    private void calculateEstimatedSize() {
-        synchronized (activities) {
-            estimatedSize =
-                    1000 + activities.values().stream().mapToLong(a -> ((ActivityImpl) a).getEstimatedSize()).sum();
-        }
     }
 
     /**
@@ -1017,5 +1029,25 @@ public class JobImpl implements Job {
     @Override
     public void addAtribute(String key, String value) {
         attributes.put(key, value);
+    }
+
+    /**
+     * This method sets the businessStart in the ActivityImpl
+     * 
+     * @param businessStart the businessStart to set
+     */
+    @Override
+    public void setBusinessStart(LocalDateTime businessStart) {
+        this.businessStart = businessStart;
+    }
+
+    /**
+     * This method sets the businessEnd in the ActivityImpl
+     * 
+     * @param businessEnd the businessEnd to set
+     */
+    @Override
+    public void setBusinessEnd(LocalDateTime businessEnd) {
+        this.businessEnd = businessEnd;
     }
 }

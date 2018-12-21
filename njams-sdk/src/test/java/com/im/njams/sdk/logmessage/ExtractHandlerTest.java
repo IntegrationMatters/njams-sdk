@@ -31,14 +31,17 @@ import com.im.njams.sdk.configuration.ProcessConfiguration;
 import com.im.njams.sdk.model.ActivityModel;
 import com.im.njams.sdk.model.ProcessModel;
 import com.im.njams.sdk.settings.Settings;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
+
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.spy;
@@ -58,6 +61,9 @@ public class ExtractHandlerTest {
 
     private static Njams njams;
 
+    /**
+     * This configures an Njams object to work on.
+     */
     @BeforeClass
     public static void configureNjams() {
         Path clientPath = new Path("SDK4", "TEST");
@@ -91,6 +97,9 @@ public class ExtractHandlerTest {
         doReturn(conf).when(njams).getConfiguration();
     }
 
+    /**
+     * This removes the Datamasking after each method.
+     */
     @After
     public void resetDatamasking() {
         DataMasking.removePatterns();

@@ -260,7 +260,7 @@ public class ExtractHandler {
                 activity.setStackTrace(value);
                 break;
             default:
-                activity.getAttributes().put(setting, value);
+                activity.addAttribute(setting, value);
         }
     }
 

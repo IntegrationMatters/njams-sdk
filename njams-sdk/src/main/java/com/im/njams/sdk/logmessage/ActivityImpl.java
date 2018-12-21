@@ -27,6 +27,8 @@ import com.im.njams.sdk.model.SubProcessActivityModel;
 import com.im.njams.sdk.model.TransitionModel;
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Objects;
 
 import javax.xml.bind.annotation.XmlTransient;
@@ -311,11 +313,9 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
             if (trace) {
                 //add trace data
                 if (input) {
-                    ((com.faizsiegeln.njams.messageformat.v4.logmessage.Activity) this)
-                            .setInput(DataMasking.maskString(job.getProcessModel().getNjams().serialize(data)));
+                    this.setInput(job.getProcessModel().getNjams().serialize(data));
                 } else {
-                    ((com.faizsiegeln.njams.messageformat.v4.logmessage.Activity) this)
-                            .setOutput(DataMasking.maskString(job.getProcessModel().getNjams().serialize(data)));
+                    this.setOutput(job.getProcessModel().getNjams().serialize(data));
                 }
                 job.setTraces(trace);
             }
@@ -379,7 +379,7 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
      */
     @Override
     public void setEventStatus(Integer eventStatus) {
-        super.setEventStatus(eventStatus); //To change body of generated methods, choose Tools | Templates.
+        super.setEventStatus(eventStatus);
         job.setStatus(JobStatus.byValue(eventStatus));
     }
 
@@ -401,50 +401,8 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
     }
 
     /**
-     * Set the eventPayload
-     *
-     * @param eventPayload eventPayload to set
-     */
-    @Override
-    public void setEventPayload(String eventPayload) {
-        super.setEventPayload(eventPayload);
-        if (eventPayload != null) {
-            addToEstimatedSize(eventPayload.length());
-            job.addToEstimatedSize(eventPayload.length());
-        }
-    }
-
-    /**
-     * Set the stackTrace
-     *
-     * @param stackTrace stackTrace to set
-     */
-    @Override
-    public void setStackTrace(String stackTrace) {
-        super.setStackTrace(stackTrace);
-        if (stackTrace != null) {
-            addToEstimatedSize(stackTrace.length());
-            job.addToEstimatedSize(stackTrace.length());
-        }
-    }
-
-    /**
-     * Set the startData
-     *
-     * @param startData startData to set
-     */
-    @Override
-    public void setStartData(String startData) {
-        super.setStartData(startData);
-        if (startData != null) {
-            addToEstimatedSize(startData.length());
-            job.addToEstimatedSize(startData.length());
-        }
-    }
-
-    /**
-     * Process the startData. Checks if recording is activites for this job, and
-     * decide if startdata will be needed
+     * Process the startData. Checks if recording is activated for this job, and
+     * decide if startdata will be needed.
      *
      * @param startData startData to process
      */
@@ -455,4 +413,122 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
             job.addAtribute("$njams_recorded", "true");
         }
     }
+
+    /**
+     * This method masks the input and calls its super method.
+     *
+     * @param input the input to mask and set to the Activity.
+     */
+    @Override
+    public void setInput(String input) {
+        super.setInput(DataMasking.maskString(input));
+    }
+
+    /**
+     * This method masks the output and calls its super method.
+     *
+     * @param output the output to mask and set to the Activity.
+     */
+    @Override
+    public void setOutput(String output) {
+        super.setOutput(DataMasking.maskString(output));
+    }
+
+    /**
+     * This method masks the eventMessage and calls its super method.
+     *
+     * @param message the eventMessage to mask and set to the Activity.
+     */
+    @Override
+    public void setEventMessage(String message) {
+        super.setEventMessage(DataMasking.maskString(message));
+    }
+
+    /**
+     * This method masks the eventCode and calls its super method.
+     *
+     * @param code the eventCode to mask and set to the Activity.
+     */
+    @Override
+    public void setEventCode(String code) {
+        super.setEventCode(DataMasking.maskString(code));
+    }
+
+    /**
+     * This method masks the eventPayload and calls its super method. After
+     * that, it adds the size of the masked payload to the estimatedSize of this
+     * and of the job.
+     *
+     * @param eventPayload the eventPayload to mask and set to the Activity.
+     */
+    @Override
+    public void setEventPayload(String eventPayload) {
+        String maskedPayload = DataMasking.maskString(eventPayload);
+        super.setEventPayload(maskedPayload);
+        if (maskedPayload != null) {
+            int payloadSize = maskedPayload.length();
+            addToEstimatedSize(payloadSize);
+            job.addToEstimatedSize(payloadSize);
+        }
+    }
+
+    /**
+     * This method masks the stackTrace and calls its super method. After that,
+     * it adds the size of the masked stackTrace to the estimatedSize of this
+     * and of the job.
+     *
+     * @param stackTrace the stackTrace to mask and set to the Activity.
+     */
+    @Override
+    public void setStackTrace(String stackTrace) {
+        String maskedStackTrace = DataMasking.maskString(stackTrace);
+        super.setStackTrace(maskedStackTrace);
+        if (maskedStackTrace != null) {
+            int stackTraceSize = maskedStackTrace.length();
+            addToEstimatedSize(stackTraceSize);
+            job.addToEstimatedSize(stackTraceSize);
+        }
+    }
+
+    /**
+     * This method masks the startData and calls its super method. After that,
+     * it adds the size of the masked startData to the estimatedSize of this and
+     * of the job.
+     *
+     * @param startData the startData to mask and set to the Activity.
+     */
+    @Override
+    public void setStartData(String startData) {
+        String maskedStartData = DataMasking.maskString(startData);
+        super.setStartData(maskedStartData);
+        if (maskedStartData != null) {
+            int startDataSize = maskedStartData.length();
+            addToEstimatedSize(startDataSize);
+            job.addToEstimatedSize(startDataSize);
+        }
+    }
+
+    /**
+     * This method masks the attributes map and calls its super method.
+     * 
+     * @param attributes the attributes to mask and set to the Activity.
+     */
+    @Override
+    public void setAttributes(Map<String, String> attributes) {
+        Map<String, String> maskedMap = new HashMap<>();
+        attributes.keySet().forEach(key -> maskedMap.put(key, DataMasking.maskString(attributes.get(key))));
+        super.setAttributes(maskedMap);
+    }
+
+    /**
+     * This method masks the attributes value and calls its super method.
+     * 
+     * @param key the key for the activities attribute map
+     * @param value the value to mask and set to the Activity.
+     */
+    @Override
+    public void addAttribute(String key, String value){
+        super.addAttribute(key, DataMasking.maskString(value));
+    }
+
 }

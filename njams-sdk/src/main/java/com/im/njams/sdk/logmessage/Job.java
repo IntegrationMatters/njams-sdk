@@ -317,6 +317,20 @@ public interface Job {
      * @param businessObject businessObject to set
      */
     public void setBusinessObject(Path businessObject);
+    
+    /**
+     * Set the businessObject's start
+     * 
+     * @param businessStart startTime to set
+     */
+    public void setBusinessStart(LocalDateTime businessStart);
+    
+    /**
+     * Set the businessObject's end
+     * 
+     * @param businessEnd endTime to set
+     */
+    public void setBusinessEnd(LocalDateTime businessEnd);
 
     /**
      * Set the businessService as String
