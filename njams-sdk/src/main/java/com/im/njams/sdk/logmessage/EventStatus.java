@@ -54,10 +54,12 @@ public enum EventStatus {
     }
 
     /**
-     * Create new EventStatus by integer value
-     *
-     * @param value integer value
-     * @return new EventStatus
+     * Gets the corresponding EventStatus to the given value. If the value is
+     * null, it returns null. For any other illegal value an
+     * NjamsSdkRuntimeException will be thrown.
+     * 
+     * @param value integer value to the corresponding EventStatus
+     * @return the corresponding EventStatus or null
      */
     public static EventStatus byValue(final Integer value) {
         if (value == null) {

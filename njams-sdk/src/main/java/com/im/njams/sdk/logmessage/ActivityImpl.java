@@ -373,14 +373,32 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
     }
 
     /**
-     * Set the eventStatus
+     * Sets the EventStatus for this job. An EventStatus can be 0 for INFO 1 for
+     * SUCCESS 2 for WARNING 3 for ERROR or null for no eventStatus. Anything
+     * else will result in an NjamsSdkRuntimeException. The status of the
+     * corresponding job to this activity will be set to SUCCESS, WARNING or
+     * ERROR likewise. For INFO only the eventStatus will be set, but the job
+     * status will stay the same.
      *
-     * @param eventStatus eventStatus to set
+     * @param eventStatus eventStatus to set.
      */
     @Override
     public void setEventStatus(Integer eventStatus) {
-        super.setEventStatus(eventStatus);
-        job.setStatus(JobStatus.byValue(eventStatus));
+        try {
+            //This will cause a NjamsSdkRuntimeException, if the eventStatus
+            //is not valid.
+            EventStatus.byValue(eventStatus);
+            super.setEventStatus(eventStatus);
+            if (eventStatus != null && 1 <= eventStatus && eventStatus <= 3) {
+                JobStatus possibleStatus = JobStatus.byValue(eventStatus);
+                if (LOG.isTraceEnabled()) {
+                    LOG.trace("This status was set to job {} : {}", job.getLogId(), possibleStatus);
+                }
+                job.setStatus(possibleStatus);
+            }
+        } catch (NjamsSdkRuntimeException e) {
+            throw e;
+        }
     }
 
     /**
@@ -510,7 +528,7 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
 
     /**
      * This method masks the attributes map and calls its super method.
-     * 
+     *
      * @param attributes the attributes to mask and set to the Activity.
      */
     @Override
@@ -522,12 +540,12 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
 
     /**
      * This method masks the attributes value and calls its super method.
-     * 
+     *
      * @param key the key for the activities attribute map
      * @param value the value to mask and set to the Activity.
      */
     @Override
-    public void addAttribute(String key, String value){
+    public void addAttribute(String key, String value) {
         super.addAttribute(key, DataMasking.maskString(value));
     }
 
