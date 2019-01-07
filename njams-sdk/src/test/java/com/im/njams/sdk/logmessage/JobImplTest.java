@@ -24,6 +24,7 @@ import com.faizsiegeln.njams.messageformat.v4.logmessage.Predecessor;
 import com.im.njams.sdk.AbstractTest;
 
 import com.im.njams.sdk.Njams;
+import com.im.njams.sdk.common.DateTimeUtility;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.common.Path;
 import com.im.njams.sdk.communication.NjamsSender;
@@ -335,5 +336,74 @@ public class JobImplTest extends AbstractTest {
             toRet = true;
         }
         return toRet;
+    }
+    /**
+     * This method tests if the startTime can be set explicitly.
+     * @throws java.lang.InterruptedException
+     */
+    @Test
+    public void testSetStartTimeBeforeStart() throws InterruptedException{
+        ProcessModel processModel = njams.getProcessModel(new Path(PROCESSPATHNAME));
+        Job job = processModel.createJob();
+        assertNotNull(job.getStartTime());
+        
+        Thread.sleep(100L);
+        LocalDateTime tempTime = DateTimeUtility.now();
+        job.setStartTime(tempTime);
+        assertEquals(tempTime, job.getStartTime());
+        
+        job.start();
+        //StartTime is still tempTime, because it was set explicitly.
+        assertEquals(tempTime, job.getStartTime()); 
+    }
+    
+    /**
+     * This method tests if the startTime will be set automatically to the 
+     * starting point.
+     * @throws java.lang.InterruptedException
+     */
+    @Test
+    public void testDoesntSetStartTimeBeforeStart() throws InterruptedException{
+        ProcessModel processModel = njams.getProcessModel(new Path(PROCESSPATHNAME));
+        Job job = processModel.createJob();
+        assertNotNull(job.getStartTime());
+        
+        Thread.sleep(100L);
+        LocalDateTime tempTime = job.getStartTime();
+        job.start();
+        //StartTime is different to tempTime, because it hasn't been set explicitly.
+        assertNotEquals(tempTime, job.getStartTime()); 
+    }
+    
+    /**
+     * This method tests if the startTime will be set automatically to the 
+     * starting point.
+     */
+    @Test(expected = NjamsSdkRuntimeException.class)
+    public void testSetStartTimeAfterStart(){
+        ProcessModel processModel = njams.getProcessModel(new Path(PROCESSPATHNAME));
+        Job job = processModel.createJob();
+        
+        assertNotNull(job.getStartTime());
+        
+        job.start();
+        //Set startTime after start! This must not happen!
+        job.setStartTime(LocalDateTime.now());
+    }
+    
+    /**
+     * This method tests if the Status can be set back to created outside of jobImpl.
+     */
+    @Test
+    public void testSetStartTimeAfterStartWithSettingBackToCreated(){
+        ProcessModel processModel = njams.getProcessModel(new Path(PROCESSPATHNAME));
+        Job job = processModel.createJob();
+        
+        assertEquals(JobStatus.CREATED, job.getStatus());
+        
+        job.start();
+        job.setStatus(JobStatus.CREATED);
+        //The Status shouldn't have changed!
+        assertNotEquals(JobStatus.CREATED, job.getStatus());
     }
 }
