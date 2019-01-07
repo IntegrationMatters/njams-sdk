@@ -131,6 +131,8 @@ public class JobImpl implements Job {
     private String businessObject;
 
     private LocalDateTime startTime;
+    
+    private boolean startTimeExplicitlySet;
 
     private LocalDateTime endTime;
 
@@ -160,6 +162,41 @@ public class JobImpl implements Job {
         attributes = new HashMap<>();
         pluginDataItems = new ArrayList<>();
         initFromConfiguration();
+        //It is used as the default startTime, if no other startTime will be set.
+        //If a startTime is set afterwards with setStartTime, startTimeExplicitlySet
+        //will be set to true.
+        startTime = DateTimeUtility.now();
+        startTimeExplicitlySet = false;
+    }
+
+    /**
+     * This method initializes the processConfiguration and the
+     * activityConfigurations.
+     */
+    private void initFromConfiguration() {
+        Configuration configuration = processModel.getNjams().getConfiguration();
+        if (configuration == null) {
+            LOG.error("Unable to set LogMode, LogLevel and Exclude for {}, configuration is null",
+                    processModel.getPath());
+            return;
+        }
+        logMode = configuration.getLogMode();
+        LOG.debug("Set LogMode for {} to {}", processModel.getPath(), logMode);
+
+        recording = configuration.isRecording();
+        LOG.debug("Set recording for {} to {} based on client settings", processModel.getPath(), recording);
+
+        ProcessConfiguration process = configuration.getProcess(processModel.getPath().toString());
+        if (process != null) {
+            logLevel = process.getLogLevel();
+            LOG.debug("Set LogLevel for {} to {}", processModel.getPath(), logLevel);
+            exclude = process.isExclude();
+            LOG.debug("Set Exclude for {} to {}", processModel.getPath(), exclude);
+            recording = process.isRecording();
+            LOG.debug("Set recording for {} to {} based on process settings {} and client setting {}",
+                    processModel.getPath(), recording, configuration.isRecording());
+            activityConfigurations = process.getActivities();
+        }
     }
 
     /**
@@ -345,7 +382,9 @@ public class JobImpl implements Job {
     }
 
     /**
-     * Flush this
+     * This method is called by the LogMessageFlushTask in irregular intervals.
+     * It flushes a logMessage to the server if all the preconditions are
+     * fulfilled.
      */
     public synchronized void flush() {
         if (mustBeSuppressed()) {
@@ -483,12 +522,16 @@ public class JobImpl implements Job {
     }
 
     /**
-     * Starts the job, i.e., sets the according status, job start date if not
+     * Starts the job, i.e., sets status to RUNNING, job start date to now if not
      * set before, and flags the job to begin flushing.
      */
     @Override
     public void start() {
-        setStartTime(DateTimeUtility.now());
+        //If this is true, the startTime hasn't been changed by setStartTime
+        //before. This means that the startTime can be set to now().
+        if (!startTimeExplicitlySet) {
+            setStartTime(DateTimeUtility.now());
+        }
         setStatus(JobStatus.RUNNING);
     }
 
@@ -501,7 +544,7 @@ public class JobImpl implements Job {
     public void end() {
         if (finished) {
             throw new NjamsSdkRuntimeException("Job already finished");
-        } else if (this.startTime == null) {
+        } else if (this.status == JobStatus.CREATED) {
             throw new NjamsSdkRuntimeException("Job can't be finished before it started (Call job.start() before!).");
         }
         synchronized (activities) {
@@ -523,16 +566,30 @@ public class JobImpl implements Job {
     }
 
     /**
-     * Sets a status for this {@link Job}. Also set the maxSeverityStatus if it
-     * is not set or lower than the status
+     * Sets a status for this {@link Job}. It can't be set to JobStatus.CREATED.
+     * Also set the maxSeverityStatus if it is not set or lower than the status.
      *
-     * @param status the status to set
+     * @param status the new job status if it is not null and not
+     * JobStatus.CREATED.
      */
     @Override
     public void setStatus(JobStatus status) {
-        this.status = status == null ? JobStatus.CREATED : status;
-        if (maxSeverity == null || maxSeverity.getValue() < this.status.getValue()) {
-            maxSeverity = status;
+        boolean changed = false;
+        if (status != null && status != JobStatus.CREATED) {
+            this.status = status;
+            changed = true;
+            if (maxSeverity == null || maxSeverity.getValue() < this.status.getValue()) {
+                maxSeverity = status;
+            }
+        }
+        if (LOG.isTraceEnabled()) {
+            String loggingLogId = getLogId();
+            JobStatus loggingStatus = getStatus();
+            if (changed) {
+                LOG.trace("Setting the status of job with logId {} to {}", loggingLogId, loggingStatus);
+            } else {
+                LOG.trace("The status of the job with logId {} hasn't been changed. The status is {}.", loggingLogId, loggingStatus);
+            }
         }
     }
 
@@ -696,14 +753,18 @@ public class JobImpl implements Job {
      * This method must not be called after the job has been started. If you
      * need to set the job start explicitly, set it before you call {@link #start()
      * }. if you don't set the job start explicitly, it is set to the timestamp
-     * ob the job creation.
+     * of the job creation. If the jobStart is null or the job has been started
+     * already, a NjamsSdkRuntimeException is thrown.
      *
-     * @param jobStart job start
+     * @param jobStart start time of the job.
      */
     @Override
     public void setStartTime(final LocalDateTime jobStart) {
-        if (status == JobStatus.CREATED) {
+        if (jobStart == null) {
+            throw new NjamsSdkRuntimeException("job start time must not be null!");
+        } else if (status == JobStatus.CREATED) {
             startTime = jobStart;
+            startTimeExplicitlySet = true;
         } else {
             throw new NjamsSdkRuntimeException("job start time must not be set after job is started!");
         }
@@ -830,32 +891,6 @@ public class JobImpl implements Job {
      */
     void setInstrumented(boolean instrumented) {
         this.instrumented = instrumented;
-    }
-
-    private void initFromConfiguration() {
-        Configuration configuration = processModel.getNjams().getConfiguration();
-        if (configuration == null) {
-            LOG.error("Unable to set LogMode, LogLevel and Exclude for {}, configuration is null",
-                    processModel.getPath());
-            return;
-        }
-        logMode = configuration.getLogMode();
-        LOG.debug("Set LogMode for {} to {}", processModel.getPath(), logMode);
-
-        recording = configuration.isRecording();
-        LOG.debug("Set recording for {} to {} based on client settings", processModel.getPath(), recording);
-
-        ProcessConfiguration process = configuration.getProcess(processModel.getPath().toString());
-        if (process != null) {
-            logLevel = process.getLogLevel();
-            LOG.debug("Set LogLevel for {} to {}", processModel.getPath(), logLevel);
-            exclude = process.isExclude();
-            LOG.debug("Set Exclude for {} to {}", processModel.getPath(), exclude);
-            recording = process.isRecording();
-            LOG.debug("Set recording for {} to {} based on process settings {} and client setting {}",
-                    processModel.getPath(), recording, configuration.isRecording());
-            activityConfigurations = process.getActivities();
-        }
     }
 
     TracepointExt getTracepoint(String modelId) {
@@ -1033,7 +1068,7 @@ public class JobImpl implements Job {
 
     /**
      * This method sets the businessStart in the ActivityImpl
-     * 
+     *
      * @param businessStart the businessStart to set
      */
     @Override
@@ -1043,7 +1078,7 @@ public class JobImpl implements Job {
 
     /**
      * This method sets the businessEnd in the ActivityImpl
-     * 
+     *
      * @param businessEnd the businessEnd to set
      */
     @Override

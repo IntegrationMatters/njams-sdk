@@ -16,10 +16,13 @@
  */
 package com.im.njams.sdk.logmessage;
 
+import com.im.njams.sdk.common.NjamsSdkRuntimeException;
+
 /**
- * JobStatus enum
+ * This Enum represents all possible conditions a job can be in.
  *
  * @author pnientiedt
+ * @version 4.0.0
  */
 public enum JobStatus {
     /**
@@ -58,20 +61,22 @@ public enum JobStatus {
     }
 
     /**
-     * Create new JobStatus by value
+     * Gets the corresponding JobStatus to the given value. If the value is
+     * null, it returns null. For any other illegal value an
+     * NjamsSdkRuntimeException will be thrown.
      *
-     * @param value integer value
-     * @return new JobStatus
+     * @param value integer value to the corresponding JobStatus
+     * @return the corresponding JobStatus or null
      */
     public static JobStatus byValue(Integer value) {
         if (value == null) {
-            return JobStatus.CREATED;
+            return null;
         }
         for (JobStatus js : values()) {
             if (js.getValue() == value) {
                 return js;
             }
         }
-        return JobStatus.CREATED;
+        throw new NjamsSdkRuntimeException("Illegal job status value: " + value);
     }
 }
