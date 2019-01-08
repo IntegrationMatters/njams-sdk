@@ -16,6 +16,9 @@
  */
 package com.im.njams.sdk.settings;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.Properties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -84,8 +87,11 @@ public class Settings {
      * This method prints all Properties, but the values of all keys that contains
      * "password" or "credentials" are changed to "****".
      */
-    public void printPropertiesWithoutPasswords(){      
-        properties.keySet().forEach((key) -> {
+    public void printPropertiesWithoutPasswords(){   
+        List<String> list = new ArrayList<>();
+        properties.keySet().forEach(key -> list.add((String)key));
+        Collections.sort(list); 
+        list.forEach((key) -> {
             String toCheck = ((String)key).toLowerCase();
             if (toCheck.contains("password") || toCheck.contains("credentials")) {
                 LOG.info("***      {} = {}", key, "****");

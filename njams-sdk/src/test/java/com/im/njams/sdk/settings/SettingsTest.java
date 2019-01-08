@@ -21,6 +21,7 @@ import com.im.njams.sdk.communication.http.HttpsSender;
 import com.im.njams.sdk.communication.jms.JmsConstants;
 import java.util.Properties;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.BeforeClass;
 
@@ -34,12 +35,13 @@ public class SettingsTest {
     
     @BeforeClass
     public static void configure(){
-        settings = new Settings();
-        Properties communicationProperties = new Properties();
-        communicationProperties.put(JmsConstants.SECURITY_CREDENTIALS, "njams");
-        communicationProperties.put(JmsConstants.PASSWORD, "njams");
-        communicationProperties.put(HttpsSender.SENDER_PASSWORD, "njams");
-        settings.setProperties(communicationProperties);     
+        settings = new Settings();           
+    }
+    
+    @Before
+    public void reset(){
+        Properties communicationProperties = new Properties();       
+        settings.setProperties(communicationProperties); 
     }
     
     /**
@@ -47,15 +49,33 @@ public class SettingsTest {
      * passwords as "****" without changing them to "****".
      */
     @Test
-    public void testPrintPropertiesWithoutChangingThem() {
-        settings.printPropertiesWithoutPasswords();
+    public void testPrintPropertiesWithoutChangingThem() {  
         Properties properties = settings.getProperties();
+        properties.put(JmsConstants.SECURITY_CREDENTIALS, "njams");
+        properties.put(JmsConstants.PASSWORD, "njams");
+        properties.put(HttpsSender.SENDER_PASSWORD, "njams");
+        settings.printPropertiesWithoutPasswords();
         String credentials = properties.getProperty(JmsConstants.SECURITY_CREDENTIALS);
         Assert.assertEquals("njams", credentials);
         String jmsPassword = properties.getProperty(JmsConstants.PASSWORD);
         Assert.assertEquals("njams", jmsPassword);
         String httpsPassword = properties.getProperty(HttpsSender.SENDER_PASSWORD);
         Assert.assertEquals("njams", httpsPassword);
+    }
+    
+    /**
+     * This test tests if the PrintPropertiesWithoutPasswords prints the
+     * properties in correct order.
+     */
+    @Test
+    public void testPrintPropertiesInCorrectOrder() {
+        Properties properties = settings.getProperties();
+        properties.put("a", "a");
+        properties.put("c", "c");
+        properties.put("d", "d");
+        properties.put("b", "b");
+        properties.put("ce", "ce");
+        settings.printPropertiesWithoutPasswords();
     }
     
 }
