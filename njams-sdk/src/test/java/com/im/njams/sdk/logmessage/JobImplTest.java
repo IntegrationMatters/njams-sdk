@@ -134,18 +134,6 @@ public class JobImplTest extends AbstractTest {
         assertFalse(childActivities.contains(child3));
         assertTrue(childActivities.contains(child4));
     }
-
-    /**
-     * This method tests if a job can be ended before it started. It should
-     * throw an NjamsSdkRuntimeException in this case.
-     */
-    @Test(expected = NjamsSdkRuntimeException.class)
-    public void testEndBeforeStart() {
-        ProcessModel process = njams.getProcessModel(new Path(PROCESSPATHNAME));
-        Job job = process.createJob();
-        job.end();
-    }
-
     /**
      * This method tests if the datamasking works for the here
      * <a href="https://github.com/IntegrationMatters/njams-sdk/wiki/FAQ"> SDK
@@ -377,9 +365,9 @@ public class JobImplTest extends AbstractTest {
     
     /**
      * This method tests if the startTime will be set automatically to the 
-     * starting point.
+     * starting point and can be changed after start() has been called.
      */
-    @Test(expected = NjamsSdkRuntimeException.class)
+    @Test
     public void testSetStartTimeAfterStart(){
         ProcessModel processModel = njams.getProcessModel(new Path(PROCESSPATHNAME));
         Job job = processModel.createJob();
@@ -387,7 +375,6 @@ public class JobImplTest extends AbstractTest {
         assertNotNull(job.getStartTime());
         
         job.start();
-        //Set startTime after start! This must not happen!
         job.setStartTime(LocalDateTime.now());
     }
     
@@ -405,5 +392,70 @@ public class JobImplTest extends AbstractTest {
         job.setStatus(JobStatus.CREATED);
         //The Status shouldn't have changed!
         assertNotEquals(JobStatus.CREATED, job.getStatus());
+    }
+    
+    /**
+     * This method tests if a job that isn't started (whose status is CREATED) and is flushed
+     * flushes normally.
+     */
+    @Test
+    public void testJobFlushWithoutStart(){
+        ProcessModel processModel = njams.getProcessModel(new Path(PROCESSPATHNAME));
+        JobImpl job = (JobImpl) processModel.createJob();
+        
+        job.flush();
+    }
+    
+    /**
+     * This method tests if a job that isn't started (whose status is CREATED) and is ended
+     * should be in the WARNING state.
+     */
+    @Test
+    public void testJobEndWithoutStart(){
+        ProcessModel processModel = njams.getProcessModel(new Path(PROCESSPATHNAME));
+        JobImpl job = (JobImpl) processModel.createJob();
+        
+        job.end();
+        assertTrue(job.getStatus() == JobStatus.WARNING);
+    }
+    
+    /**
+     * This method tests if a job throws an exception if someone tries to 
+     * add an activity without starting the job first.
+     */
+    @Test(expected = NjamsSdkRuntimeException.class)
+    public void testAddActivityWithoutStart(){
+        ProcessModel processModel = njams.getProcessModel(new Path(PROCESSPATHNAME));
+        JobImpl job = (JobImpl) processModel.createJob();
+        
+        Activity act = mock(Activity.class);
+        //This should throw an Exception
+        job.addActivity(act);
+    }
+    
+    /**
+     * This method tests if a job throws an exception if someone tries to 
+     * add an attribute without starting the job first.
+     */
+    @Test(expected = NjamsSdkRuntimeException.class)
+    public void testAddAtributeWithoutStart(){
+        ProcessModel processModel = njams.getProcessModel(new Path(PROCESSPATHNAME));
+        JobImpl job = (JobImpl) processModel.createJob();
+        
+        //This should throw an Exception
+        job.addAtribute("a", "b");
+    }
+    
+    /**
+     * This method tests if a job throws an exception if someone tries to 
+     * add an attribute without starting the job first.
+     */
+    @Test(expected = NjamsSdkRuntimeException.class)
+    public void testSetAttributeWithoutStart(){
+        ProcessModel processModel = njams.getProcessModel(new Path(PROCESSPATHNAME));
+        JobImpl job = (JobImpl) processModel.createJob();
+        
+        //This should throw an Exception
+        job.setAttribute("a", "b");
     }
 }

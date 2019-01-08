@@ -161,6 +161,7 @@ public class ExtractHandlerTest {
         njams.getConfiguration().getProcess(process.getPath().toString()).setActivities(activityMap);
         //-------- Test
         JobImpl job = (JobImpl) process.createJob();
+        job.start();
 
         return (ActivityImpl) job.createActivity(model).build();
 

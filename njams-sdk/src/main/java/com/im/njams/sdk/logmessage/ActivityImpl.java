@@ -375,7 +375,7 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
     /**
      * Sets the EventStatus for this job. An EventStatus can be 0 for INFO 1 for
      * SUCCESS 2 for WARNING 3 for ERROR or null for no eventStatus. Anything
-     * else will result in an NjamsSdkRuntimeException. The status of the
+     * else will change nothing. The status of the
      * corresponding job to this activity will be set to SUCCESS, WARNING or
      * ERROR likewise. For INFO only the eventStatus will be set, but the job
      * status will stay the same.
@@ -397,7 +397,7 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
                 job.setStatus(possibleStatus);
             }
         } catch (NjamsSdkRuntimeException e) {
-            throw e;
+            LOG.error("{} for job with logId: {}. Using old status: {}", e.getMessage(), job.getLogId(), super.getEventStatus());
         }
     }
 
