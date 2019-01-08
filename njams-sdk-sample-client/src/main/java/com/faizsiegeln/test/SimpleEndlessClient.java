@@ -138,7 +138,7 @@ public class SimpleEndlessClient {
                 "com.tibco.tibjms.naming.TibjmsInitialContextFactory");
         communicationProperties.put(JmsConstants.SECURITY_PRINCIPAL, "njams");
         communicationProperties.put(JmsConstants.SECURITY_CREDENTIALS, "njams");
-        communicationProperties.put(JmsConstants.PROVIDER_URL, "tcp://localhost:7222");
+        communicationProperties.put(JmsConstants.PROVIDER_URL, "tibjmsnaming://vslems01:7222");
         communicationProperties.put(JmsConstants.CONNECTION_FACTORY, "ConnectionFactory");
         communicationProperties.put(JmsConstants.USERNAME, "njams");
         communicationProperties.put(JmsConstants.PASSWORD, "njams");
