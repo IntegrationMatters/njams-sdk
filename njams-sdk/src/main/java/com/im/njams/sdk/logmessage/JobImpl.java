@@ -811,12 +811,12 @@ public class JobImpl implements Job {
     /**
      * Indicates whether the job is already finished or not.
      *
-     * @return <b>true</b> if and only if the job is already finished, else
+     * @return <b>true</b> if and only if the job is already finished (if end() was called), else
      * <b>false</b>
      */
     @Override
     public boolean isFinished() {
-        return !(getStatus() == JobStatus.CREATED || getStatus() == JobStatus.RUNNING);
+        return this.finished;
     }
 
     /**

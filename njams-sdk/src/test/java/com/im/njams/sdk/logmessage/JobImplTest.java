@@ -325,6 +325,42 @@ public class JobImplTest extends AbstractTest {
         }
         return toRet;
     }
+    
+
+    //This method tests the isFinished() method of the JobImpl.
+    @Test
+    public void testIsFinished(){
+       ProcessModel process = njams.getProcessModel(new Path(PROCESSPATHNAME));
+        Job job = process.createJob();
+        //Created
+        assertEquals(JobStatus.CREATED, job.getStatus());
+        assertFalse(job.isFinished());
+        //Running
+        job.start();
+        assertEquals(JobStatus.RUNNING, job.getStatus());
+        assertFalse(job.isFinished());
+        //Success
+        job.setStatus(JobStatus.SUCCESS);
+        assertEquals(JobStatus.SUCCESS, job.getStatus());
+        assertFalse(job.isFinished());
+        //Warning
+        job.setStatus(JobStatus.WARNING);
+        assertEquals(JobStatus.WARNING, job.getStatus());
+        assertFalse(job.isFinished());
+        //Error
+        job.setStatus(JobStatus.ERROR);
+        assertEquals(JobStatus.ERROR, job.getStatus());
+        assertFalse(job.isFinished());
+        //End
+        job.end();
+        assertEquals(JobStatus.ERROR, job.getStatus());
+        assertTrue(job.isFinished());
+        //Even with Running
+        job.setStatus(JobStatus.RUNNING);
+        assertEquals(JobStatus.RUNNING, job.getStatus());
+        assertTrue(job.isFinished());
+    }
+    
     /**
      * This method tests if the startTime can be set explicitly.
      * @throws java.lang.InterruptedException
