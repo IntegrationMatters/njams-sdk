@@ -219,7 +219,7 @@ public class JobImplTest extends AbstractTest {
         job.setBusinessObject("SomeBusinessObject");
         job.setBusinessStart(LocalDateTime.now());
         job.setBusinessEnd(LocalDateTime.now());
-        job.addAtribute("SomeAttributeKey", "SomeAttributeValue");
+        job.addAttribute("SomeAttributeKey", "SomeAttributeValue");
     }
 
     /**
@@ -461,15 +461,15 @@ public class JobImplTest extends AbstractTest {
     }
     
     /**
-     * This method tests if a job throws an exception if someone tries to 
-     * add an attribute without starting the job first.
+     * This method tests if a job adds an attribute 
+     * correctly after the job has been started.
      */
-    @Test(expected = NjamsSdkRuntimeException.class)
-    public void testAddAtributeWithoutStart(){
+    @Test
+    public void testAddAttributeWithStart(){
         JobImpl job = createDefaultJob();
-        
-        //This should throw an Exception
-        job.addAtribute("a", "b");
+        job.start();
+        job.addAttribute("a", "b");
+        assertEquals(job.getAttribute("a"), "b");
     }
     
     /**
@@ -477,10 +477,10 @@ public class JobImplTest extends AbstractTest {
      * add an attribute without starting the job first.
      */
     @Test(expected = NjamsSdkRuntimeException.class)
-    public void testSetAttributeWithoutStart(){
+    public void testAddAttributeWithoutStart(){
         JobImpl job = createDefaultJob();
         
         //This should throw an Exception
-        job.setAttribute("a", "b");
+        job.addAttribute("a", "b");
     }
 }

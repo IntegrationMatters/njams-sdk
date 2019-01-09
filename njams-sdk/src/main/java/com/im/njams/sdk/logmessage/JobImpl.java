@@ -820,17 +820,6 @@ public class JobImpl implements Job {
     }
 
     /**
-     * Set an Attribute to the job
-     *
-     * @param name attribute name
-     * @param value attribute value
-     */
-    @Override
-    public void setAttribute(final String name, final String value) {
-        addAttribute(name, value);
-    }
-
-    /**
      * Return the Attribute name to a given value
      *
      * @param name attribute name
@@ -1069,11 +1058,6 @@ public class JobImpl implements Job {
         pluginDataItems.add((PluginDataItem) pluginDataItem);
     }
 
-    @Override
-    public void addAtribute(String key, String value) {
-        addAttribute(key, value);
-    }
-
     /**
      * This method sets the businessStart in the ActivityImpl
      *
@@ -1111,7 +1095,8 @@ public class JobImpl implements Job {
      * @param key the key to set
      * @param value the value to set
      */
-    private void addAttribute(String key, String value) {
+    @Override
+    public void addAttribute(final String key, String value) {
         if (hasStarted()) {
             attributes.put(key, value);
         } else {
