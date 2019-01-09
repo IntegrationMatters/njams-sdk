@@ -65,11 +65,10 @@ public class JobImplTest extends AbstractTest {
     private LogMessage msg;
 
     /**
-     * This method configures njams with default values.
+     * This constructor calls super().
      */
-    @BeforeClass
-    public static void configure() {
-        configureNjams(new Settings());
+    public JobImplTest(){
+        super();
     }
     
     /**
@@ -89,8 +88,7 @@ public class JobImplTest extends AbstractTest {
      */
     @Test
     public void testFlushGroupWithChildren() {
-        ProcessModel process = njams.getProcessModel(new Path(PROCESSPATHNAME));
-        JobImpl job = (JobImpl) process.createJob();
+        JobImpl job = createDefaultJob();
         job.start();
         //This is set so the job can flush.
         job.setStatus(JobStatus.ERROR);
@@ -330,8 +328,8 @@ public class JobImplTest extends AbstractTest {
     //This method tests the isFinished() method of the JobImpl.
     @Test
     public void testIsFinished(){
-       ProcessModel process = njams.getProcessModel(new Path(PROCESSPATHNAME));
-        Job job = process.createJob();
+        
+        JobImpl job = createDefaultJob();
         //Created
         assertEquals(JobStatus.CREATED, job.getStatus());
         assertFalse(job.isFinished());
@@ -367,8 +365,7 @@ public class JobImplTest extends AbstractTest {
      */
     @Test
     public void testSetStartTimeBeforeStart() throws InterruptedException{
-        ProcessModel processModel = njams.getProcessModel(new Path(PROCESSPATHNAME));
-        Job job = processModel.createJob();
+        JobImpl job = createDefaultJob();
         assertNotNull(job.getStartTime());
         
         Thread.sleep(100L);
@@ -388,8 +385,7 @@ public class JobImplTest extends AbstractTest {
      */
     @Test
     public void testDoesntSetStartTimeBeforeStart() throws InterruptedException{
-        ProcessModel processModel = njams.getProcessModel(new Path(PROCESSPATHNAME));
-        Job job = processModel.createJob();
+        JobImpl job = createDefaultJob();
         assertNotNull(job.getStartTime());
         
         Thread.sleep(100L);
@@ -405,8 +401,7 @@ public class JobImplTest extends AbstractTest {
      */
     @Test
     public void testSetStartTimeAfterStart(){
-        ProcessModel processModel = njams.getProcessModel(new Path(PROCESSPATHNAME));
-        Job job = processModel.createJob();
+        Job job = createDefaultJob();
         
         assertNotNull(job.getStartTime());
         
@@ -419,8 +414,7 @@ public class JobImplTest extends AbstractTest {
      */
     @Test
     public void testSetStartTimeAfterStartWithSettingBackToCreated(){
-        ProcessModel processModel = njams.getProcessModel(new Path(PROCESSPATHNAME));
-        Job job = processModel.createJob();
+        Job job = createDefaultJob();
         
         assertEquals(JobStatus.CREATED, job.getStatus());
         
@@ -436,8 +430,7 @@ public class JobImplTest extends AbstractTest {
      */
     @Test
     public void testJobFlushWithoutStart(){
-        ProcessModel processModel = njams.getProcessModel(new Path(PROCESSPATHNAME));
-        JobImpl job = (JobImpl) processModel.createJob();
+        JobImpl job = createDefaultJob();
         
         job.flush();
     }
@@ -448,8 +441,7 @@ public class JobImplTest extends AbstractTest {
      */
     @Test
     public void testJobEndWithoutStart(){
-        ProcessModel processModel = njams.getProcessModel(new Path(PROCESSPATHNAME));
-        JobImpl job = (JobImpl) processModel.createJob();
+        JobImpl job = createDefaultJob();
         
         job.end();
         assertTrue(job.getStatus() == JobStatus.WARNING);
@@ -461,8 +453,7 @@ public class JobImplTest extends AbstractTest {
      */
     @Test(expected = NjamsSdkRuntimeException.class)
     public void testAddActivityWithoutStart(){
-        ProcessModel processModel = njams.getProcessModel(new Path(PROCESSPATHNAME));
-        JobImpl job = (JobImpl) processModel.createJob();
+        JobImpl job = createDefaultJob();
         
         Activity act = mock(Activity.class);
         //This should throw an Exception
@@ -475,8 +466,7 @@ public class JobImplTest extends AbstractTest {
      */
     @Test(expected = NjamsSdkRuntimeException.class)
     public void testAddAtributeWithoutStart(){
-        ProcessModel processModel = njams.getProcessModel(new Path(PROCESSPATHNAME));
-        JobImpl job = (JobImpl) processModel.createJob();
+        JobImpl job = createDefaultJob();
         
         //This should throw an Exception
         job.addAtribute("a", "b");
@@ -488,8 +478,7 @@ public class JobImplTest extends AbstractTest {
      */
     @Test(expected = NjamsSdkRuntimeException.class)
     public void testSetAttributeWithoutStart(){
-        ProcessModel processModel = njams.getProcessModel(new Path(PROCESSPATHNAME));
-        JobImpl job = (JobImpl) processModel.createJob();
+        JobImpl job = createDefaultJob();
         
         //This should throw an Exception
         job.setAttribute("a", "b");

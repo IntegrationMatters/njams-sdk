@@ -17,23 +17,80 @@
 package com.im.njams.sdk;
 
 import com.im.njams.sdk.common.Path;
+import com.im.njams.sdk.logmessage.Activity;
+import com.im.njams.sdk.logmessage.Job;
+import com.im.njams.sdk.logmessage.JobImpl;
+import com.im.njams.sdk.model.ActivityModel;
+import com.im.njams.sdk.model.ProcessModel;
 import com.im.njams.sdk.settings.Settings;
 
 /**
- *
+ * This class is a helper class for all test classes that need some jobs or activities.
+ * 
  * @author krautenberg@integrationmatters.com
+ * @version 4.0.4
  */
 public abstract class AbstractTest {
-    
+
+    //The name of the ProcessPath
     public static final String PROCESSPATHNAME = "PROCESSES";
-    
+    //The default activityModel id
+    public static final String ACTIVITYMODELID = "act";
+
+    //The njams instance
     protected static Njams njams;
+
+    //The default processModel
+    private static ProcessModel process;
     
-    protected static void configureNjams(Settings settings){
+    /**
+     * This constructor creates the njams instance with path SDK4-TEST-PROCESSES.
+     * Empty Settings were set.
+     */
+    public AbstractTest(){
+        this(new Settings());
+    }
+    /**
+     * This constructor creates the njams instance with path SDK4-TEST-PROCESSES.
+     * Settings can be set, if a JMS connection, etc. is necessary.
+     * @param settings the Settings for JMS, JNDI, etc.
+     */
+    public AbstractTest(Settings settings){
         Path clientPath = new Path("SDK4", "TEST");
-        
-        njams = new Njams(clientPath, "1.0.0", "sdk4", settings);
+
+        njams = new Njams(clientPath, "TEST", "sdk4", settings);
         Path processPath = new Path("PROCESSES");
-        njams.createProcess(processPath);               
+        process = njams.createProcess(processPath);
+    }
+
+    /**
+     * This method creates(!) a job for a default ProcessModel.
+     * @return A JobImpl that has been created, but not started.
+     */
+    protected JobImpl createDefaultJob() {
+        return (JobImpl) process.createJob();
+    }
+  
+    /**
+     * This method creates a default Activity to the given job. This Activity consists
+     * of a default ActivityModel with id = ACTIVITYMODELID. 
+     * @param job the job where the activity will be safed.
+     * @return the Activity that is created.
+     */
+    protected Activity createDefaultActivity(Job job){
+        return job.createActivity(getDefaultActivityModel()).build();
+    }
+    
+    /**
+     * This method creates a default ActivityModel to the default ProcessModel.
+     * @return It returns the ActivityModel with id = ACTIVITYMODELID, name = "Act" and 
+     * type = null
+     */
+    private ActivityModel getDefaultActivityModel() {
+        ActivityModel model = process.getActivity(ACTIVITYMODELID);
+        if (model == null) {
+            model = process.createActivity(ACTIVITYMODELID, "Act", null);
+        }
+        return model;
     }
 }

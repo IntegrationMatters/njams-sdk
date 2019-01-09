@@ -17,12 +17,9 @@
 package com.im.njams.sdk.logmessage;
 
 import com.im.njams.sdk.AbstractTest;
-import com.im.njams.sdk.common.Path;
-import com.im.njams.sdk.model.ActivityModel;
-import com.im.njams.sdk.model.ProcessModel;
-import com.im.njams.sdk.settings.Settings;
 
-import org.junit.BeforeClass;
+import java.util.Map;
+
 import org.junit.Test;
 
 import static org.junit.Assert.*;
@@ -34,13 +31,12 @@ import static org.junit.Assert.*;
  * @version 4.0.4
  */
 public class ActivityImplTest extends AbstractTest {
-
+    
     /**
-     * This method configures njams with default values.
+     * This constructor calls super().
      */
-    @BeforeClass
-    public static void configure() {
-        configureNjams(new Settings());
+    public ActivityImplTest(){
+        super();
     }
 
     /**
@@ -48,13 +44,11 @@ public class ActivityImplTest extends AbstractTest {
      */
     @Test
     public void testSetEventStatus() {
-        ProcessModel model = njams.getProcessModel(new Path(PROCESSPATHNAME));
-        Job job = model.createJob();
+        JobImpl job = super.createDefaultJob();
         //Initial there is no EventStatus and the JobStatus is CREATED.
         assertEquals(JobStatus.CREATED, job.getStatus());
         job.start();
-        ActivityModel activityModel = model.createActivity("act", "Act", null);
-        ActivityImpl act = (ActivityImpl) job.createActivity(activityModel).build();
+        ActivityImpl act = (ActivityImpl)createDefaultActivity(job);
 
         //Initial there is no EventStatus and the JobStatus is CREATED.
         assertEquals(null, act.getEventStatus());
@@ -109,5 +103,35 @@ public class ActivityImplTest extends AbstractTest {
         act.setEventStatus(2);
         assertTrue(2 == act.getEventStatus());
         assertEquals(JobStatus.WARNING, job.getStatus());
+    }
+    
+    /**
+     * This method tests if the Attributes can first be get and after that be set
+     * in the map. This would bypass the datamasking! [SDK-94]
+     */
+    @Test(expected = UnsupportedOperationException.class)
+    public void testInjectUnmaskedAttributesWithGetAttributes(){
+        JobImpl job = super.createDefaultJob();
+        job.start();
+        ActivityImpl act = (ActivityImpl)createDefaultActivity(job);
+        act.addAttribute("a", "b");
+        assertTrue(!act.getAttributes().isEmpty());
+        Map<String, String> attributes = act.getAttributes();
+        attributes.put("b", "c"); //This should throw an UnsupportedOperationException
+    }
+    
+    /**
+     * This method tests if the unmodifiable map is consistent to the actual map.
+     */
+    @Test
+    public void testIsUnmodifiableMapConsistent(){
+        JobImpl job = super.createDefaultJob();
+        job.start();
+        ActivityImpl act = (ActivityImpl)createDefaultActivity(job);
+        act.addAttribute("a", "b");
+        assertTrue(!act.getAttributes().isEmpty());
+        Map<String, String> attributes = act.getAttributes();
+        act.addAttribute("b", "c");
+        assertTrue(attributes.containsKey("b"));
     }
 }

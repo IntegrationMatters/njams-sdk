@@ -27,6 +27,7 @@ import com.im.njams.sdk.model.SubProcessActivityModel;
 import com.im.njams.sdk.model.TransitionModel;
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -547,6 +548,17 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
     @Override
     public void addAttribute(String key, String value) {
         super.addAttribute(key, DataMasking.maskString(value));
+    }
+    
+    /**
+     * This method returns the attributes of this activity as an unmodifiable map.
+     * Use setAttributes or addAttribute to modify the Map.
+     * 
+     * @return Unmodifiable map of attributes of this activity.
+     */
+    @Override
+    public Map<String, String> getAttributes() {
+        return Collections.unmodifiableMap(super.getAttributes());
     }
 
 }
