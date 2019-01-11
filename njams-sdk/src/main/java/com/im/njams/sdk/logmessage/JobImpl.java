@@ -397,7 +397,7 @@ public class JobImpl implements Job {
         boolean started = this.hasStarted();
         if (!suppressed) {
             if (!started) {
-                LOG.warn("The job with logId: " + logId + " will be flushed, but hasn't started yet.");
+                LOG.warn("The job with logId: {} will be flushed, but hasn't started yet.", logId);
             }
             flushCounter.incrementAndGet();
             lastFlush = DateTimeUtility.now();
@@ -479,6 +479,7 @@ public class JobImpl implements Job {
      * @return the created and with the job's information filled logMessage
      */
     private LogMessage createLogMessage(JobImpl job) {
+        LOG.trace("Creating LogMessage for job with logId: {}", logId);
         LogMessage logMessage = new LogMessage();
         logMessage.setBusinessEnd(businessEnd);
         logMessage.setBusinessStart(businessStart);
