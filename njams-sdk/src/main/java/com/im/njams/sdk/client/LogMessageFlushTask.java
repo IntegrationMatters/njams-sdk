@@ -71,10 +71,11 @@ public class LogMessageFlushTask extends TimerTask {
     }
 
     /**
-     * Removes a given Njams instance from the LogMessageFlushTask, and stops it
-     * if not Njams instance is left to work on
+     * Removes a given Njams instance from the LogMessageFlushTask, flushes all
+     * jobs of the instance, and stops it the timer if no Njams instance is left
+     * to work on
      *
-     * @param njams Njams to remove
+     * @param njams Njams instance to remove
      */
     public static synchronized void stop(Njams njams) {
         if (njams == null) {
@@ -83,8 +84,15 @@ public class LogMessageFlushTask extends TimerTask {
         if (njams.getClientPath() == null) {
             throw new NjamsSdkRuntimeException("Stop: Njams clientPath is null");
         }
-        NJAMS_INSTANCES.remove(njams.getClientPath().toString());
-        if (NJAMS_INSTANCES.size() <= 0) {
+        LMFTEntry entry = NJAMS_INSTANCES.remove(njams.getClientPath().toString());
+        if (entry != null) {
+            Njams stoppingNjams = entry.getNjams();
+            stoppingNjams.getJobs().forEach(job -> ((JobImpl) job).flush());
+
+        } else {
+            LOG.warn("The LogMessageFlushTask hasn't been started before stopping for this instance: {}. Did not flush...", njams);
+        }
+        if (NJAMS_INSTANCES.size() <= 0 && timer != null) {
             timer.cancel();
             timer = null;
         }
