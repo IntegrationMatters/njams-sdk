@@ -65,7 +65,7 @@ public abstract class AbstractTest {
 
     /**
      * This method creates(!) a job for a default ProcessModel.
-     * @return A JobImpl that has been created, but not started.
+     * @return A JobImpl that has been created, but not started!
      */
     protected JobImpl createDefaultJob() {
         return (JobImpl) process.createJob();
