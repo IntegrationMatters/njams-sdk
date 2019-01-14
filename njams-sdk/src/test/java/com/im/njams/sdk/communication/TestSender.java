@@ -37,8 +37,6 @@ public class TestSender extends AbstractSender {
 
     public static final String NAME = "TEST_COMMUNICATION";
     private static Sender sender = null;
-    private int counterForLogMessages;
-    private int counterForProjectMessages;
 
     /**
      * Delegates all request to the given sender.<br>
@@ -62,17 +60,11 @@ public class TestSender extends AbstractSender {
         config.setProperties(properties);
         return config;
     }
-
-    public TestSender() {
-        this.counterForProjectMessages = 0;
-        this.counterForLogMessages = 0;
-        init(getSettings().getProperties());
-    }
-
+    
     @Override
     public void init(Properties properties) {
         if (sender != null) {
-            super.init(properties);
+            sender.init(properties);
         }
 
     }
@@ -102,21 +94,13 @@ public class TestSender extends AbstractSender {
 
     @Override
     protected void send(LogMessage msg) throws NjamsSdkRuntimeException {
-        counterForLogMessages++;
+        // TODO Auto-generated method stub
 
     }
 
     @Override
     protected void send(ProjectMessage msg) throws NjamsSdkRuntimeException {
-        counterForProjectMessages++;
+        // TODO Auto-generated method stub
 
-    }
-    
-    public int getLogMessageCounter(){
-        return counterForLogMessages;
-    }
-    
-    public int getProjectMessageCounter(){
-        return counterForProjectMessages;
     }
 }
