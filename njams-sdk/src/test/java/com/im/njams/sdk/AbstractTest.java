@@ -61,6 +61,8 @@ public abstract class AbstractTest {
         njams = new Njams(clientPath, "TEST", "sdk4", settings);
         Path processPath = new Path("PROCESSES");
         process = njams.createProcess(processPath);
+        
+        njams.start();
     }
 
     /**

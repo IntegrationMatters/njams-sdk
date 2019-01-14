@@ -16,7 +16,10 @@
  */
 package com.im.njams.sdk;
 
+import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.common.Path;
+import com.im.njams.sdk.logmessage.Job;
+import com.im.njams.sdk.model.ProcessModel;
 import com.im.njams.sdk.settings.Settings;
 import com.im.njams.sdk.serializer.Serializer;
 import java.util.ArrayList;
@@ -25,17 +28,24 @@ import java.util.LinkedList;
 import java.util.List;
 import org.junit.Test;
 import static org.junit.Assert.*;
+import org.junit.Before;
 
 /**
  *
  * @author stkniep
  */
 public class NjamsTest {
+    
+    private Njams instance;
+    
+    @Before
+    public void createNewInstance(){
+        instance = new Njams(new Path(), "", "", new Settings());
+    }
 
     @Test
     public void testSerializer() {
         System.out.println("addSerializer");
-        final Njams instance = new Njams(new Path(), "", "", new Settings());
         final Serializer<List> expResult = l -> "list";
 
         instance.addSerializer(ArrayList.class, a -> a.getClass().getSimpleName());
@@ -57,5 +67,25 @@ public class NjamsTest {
         serialized = instance.serialize(new LinkedList<>());
         assertNotNull(serialized);
         assertEquals("list", serialized);
+    }
+    
+    @Test(expected = NjamsSdkRuntimeException.class)
+    public void testAddJobWithoutStart(){
+        ProcessModel model = new ProcessModel(new Path("PROCESSES"), instance);
+        //This should throw an NjamsSdkRuntimeException
+        Job job = model.createJob();
+    }
+    
+    @Test(expected = NjamsSdkRuntimeException.class)
+    public void testStopBeforeStart(){
+        //This should throw an NjamsSdkRuntimeException
+        instance.stop();
+    }
+    
+    @Test
+    public void testStartStopStart(){
+        instance.start();
+        instance.stop();
+        instance.start();
     }
 }

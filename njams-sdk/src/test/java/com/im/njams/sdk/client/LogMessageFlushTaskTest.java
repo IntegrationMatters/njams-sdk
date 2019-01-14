@@ -64,6 +64,10 @@ public class LogMessageFlushTaskTest extends AbstractTest{
         assertFalse(njams.getJobs().isEmpty());
     }   
     
+    
+    /**
+     * This test isn't useful anymore, because njams needs to be started before
+     * it can add jobs.
     @Test
     public void testStopWithoutStart(){
         JobImpl job = createDefaultJob();
@@ -86,4 +90,5 @@ public class LogMessageFlushTaskTest extends AbstractTest{
         assertEquals(job.getActivityByModelId(ACTIVITYMODELID), activity);
         assertFalse(njams.getJobs().isEmpty());
     }
+    * */
 }

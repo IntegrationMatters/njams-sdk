@@ -74,6 +74,7 @@ public class ExtractHandlerTest {
 
         Path processPath = new Path(PROCESSPATHNAME);
         njams.createProcess(processPath);
+        njams.start();
 
         //-------- The ProcessConfiguration with the ActivityConfiguration
         ProcessConfiguration processConf = new ProcessConfiguration();

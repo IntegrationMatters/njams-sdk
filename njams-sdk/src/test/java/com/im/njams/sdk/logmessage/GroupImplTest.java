@@ -16,6 +16,7 @@
  */
 package com.im.njams.sdk.logmessage;
 
+import com.im.njams.sdk.AbstractTest;
 import static org.junit.Assert.assertFalse;
 
 import java.util.List;
@@ -32,22 +33,17 @@ import static org.junit.Assert.assertTrue;
  *
  * @author krautenberg@integrationmatters.com
  */
-public class GroupImplTest {
+public class GroupImplTest extends AbstractTest{
 
+    public GroupImplTest(){
+        super();
+    }
     /**
      * This method tests if childactivities can be removed.
      */
     @Test
     public void testRemoveChildActivities() {
-        Path clientPath = new Path();
-
-        Settings config = new Settings();
-
-        Njams njams = new Njams(clientPath, "1.0.0", "sdk4", config);
-        Path processPath = new Path();
-        ProcessModel process = njams.createProcess(processPath);
-
-        Job job = process.createJob("myJob");
+        Job job = createDefaultJob();
         job.start();
         //Create a group with four children
         GroupImpl group = (GroupImpl) job.createGroup("start").build();

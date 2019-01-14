@@ -54,6 +54,8 @@ public class JobTest {
 
         //Creates an empty process model
         ProcessModel process = njams.createProcess(processPath);
+        
+        njams.start();
 
         ExtractRule rule = new ExtractRule();
         rule.setAttribute("eventType");
