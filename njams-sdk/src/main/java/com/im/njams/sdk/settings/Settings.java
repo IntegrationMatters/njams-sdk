@@ -54,9 +54,17 @@ public class Settings {
      */
     public static final String PROPERTY_FLUSH_INTERVAL = "njams.client.sdk.flush_interval";
     /**
+     * Property njams.client.sdk.minqueuelength
+     */
+    public static final String PROPERTY_MIN_QUEUE_LENGTH = "njams.client.sdk.minqueuelength";
+    /**
      * Property njams.client.sdk.maxqueuelength
      */
     public static final String PROPERTY_MAX_QUEUE_LENGTH = "njams.client.sdk.maxqueuelength";
+    /**
+     * Property njams.client.sdk.senderidletime
+     */
+    public static final String PROPERTY_SENDER_THREAD_IDLE_TIME = "njams.client.sdk.senderthreadidletime";
     /**
      * Property njams.client.sdk.discardpolicy
      */

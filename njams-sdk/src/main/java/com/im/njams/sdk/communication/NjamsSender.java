@@ -48,7 +48,7 @@ public class NjamsSender implements Sender, SenderFactory {
     //The senderPool where the senders will be safed.
     private SenderPool senderPool = null;
     
-    //The executer Threadpool that send the messages to the right senders.
+    //The executor Threadpool that send the messages to the right senders.
     private ThreadPoolExecutor executor = null;    
     
     //The njamsInstance to work for
@@ -57,7 +57,7 @@ public class NjamsSender implements Sender, SenderFactory {
     //The settings will be used for the name and max-queue-length
     private final Settings settings;
     
-    //The name for the executer threads.
+    //The name for the executor threads.
     private final String name;
 
     //The communicationFactory where to get new senders from.
@@ -65,7 +65,7 @@ public class NjamsSender implements Sender, SenderFactory {
 
     /**
      * This constructor initializes a NjamsSender. It safes the njams instance,
-     * the settings and gets the name for the executer threads from the settings
+     * the settings and gets the name for the executor threads from the settings
      * with the key: njams.sdk.communication.
      *
      * @param njams the njamsInstance for which the messages will be send from.
@@ -79,19 +79,21 @@ public class NjamsSender implements Sender, SenderFactory {
     }
 
     /**
-     * This method initializes a CommunicationFactory, a ThreadPoolExecuter and
+     * This method initializes a CommunicationFactory, a ThreadPoolExecutor and
      * a SenderPool.
      *
-     * @param properties the properties for MAX_QUEUE_LENGTH
+     * @param properties the properties for MIN_QUEUE_LENGTH, MAX_QUEUE_LENGTH
+     * and IDLE_TIME for the sender threads.
      */
     @Override
     public void init(Properties properties) {
         this.communicationFactory = new CommunicationFactory(njams, settings);
+        int minQueueLength = Integer.parseInt(properties.getProperty(Settings.PROPERTY_MIN_QUEUE_LENGTH, "1"));
         int maxQueueLength = Integer.parseInt(properties.getProperty(Settings.PROPERTY_MAX_QUEUE_LENGTH, "8"));
-        //Maybe an expected Queue length here?
+        long idleTime = Long.parseLong(properties.getProperty(Settings.PROPERTY_SENDER_THREAD_IDLE_TIME, "10000"));
         ThreadFactory threadFactory = new ThreadFactoryBuilder()
                 .setNamePrefix(getName() + "-Sender-Thread").setDaemon(true).build();
-        this.executor = new ThreadPoolExecutor(maxQueueLength, maxQueueLength, 0L, TimeUnit.MILLISECONDS,
+        this.executor = new ThreadPoolExecutor(minQueueLength, maxQueueLength, idleTime, TimeUnit.MILLISECONDS,
                 new ArrayBlockingQueue<>(maxQueueLength), threadFactory,
                 new MaxQueueLengthHandler(properties));
         this.senderPool = new SenderPool(this, properties);
@@ -127,15 +129,20 @@ public class NjamsSender implements Sender, SenderFactory {
     }
 
     /**
-     * This method closes the ThreadPoolExecuter safely. It awaits the
+     * This method closes the ThreadPoolExecutor safely. It awaits the
      * termination for 10 seconds, after that, an InterruptedException will be
      * thrown and the senders will be closed.
      */
     @Override
     public void close() {
         try {
+            int waitTime = 10;
+            TimeUnit unit = TimeUnit.SECONDS;
             executor.shutdown();
-            executor.awaitTermination(10, TimeUnit.SECONDS);
+            boolean awaitTermination = executor.awaitTermination(waitTime, unit);
+            if(!awaitTermination){
+               LOG.error("The termination time of the executor has been exceeded ({} {}).", waitTime, unit); 
+            }
         } catch (InterruptedException ex) {
             LOG.error("The shutdown of the sender's threadpool has been interrupted. {}", ex);
         }
@@ -162,6 +169,14 @@ public class NjamsSender implements Sender, SenderFactory {
     @Override
     public Sender getSenderImpl() {
         return communicationFactory.getSender();
+    }
+    
+    /**
+     * This method return the ThreadPoolExecutor
+     * @return the ThreadPoolExecutor
+     */
+    ThreadPoolExecutor getExecutor(){
+        return executor;
     }
 
 }
