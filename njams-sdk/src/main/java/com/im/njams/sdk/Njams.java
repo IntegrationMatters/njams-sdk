@@ -640,7 +640,7 @@ public class Njams implements InstructionListener {
 
     private void printStartupBanner() {
         LOG.info("************************************************************");
-        LOG.info("***      nJAMS SDK: Copyright (c) 2018 Faiz & Siegeln Software GmbH");
+        LOG.info("***      nJAMS SDK: Copyright (c) 2019 Faiz & Siegeln Software GmbH");
         LOG.info("*** ");
         LOG.info("***      Version Info:");
         versions.entrySet().forEach(e -> LOG.info("***      " + e.getKey() + ": " + e.getValue()));
