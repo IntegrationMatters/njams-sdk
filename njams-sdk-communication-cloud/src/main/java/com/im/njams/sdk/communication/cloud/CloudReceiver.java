@@ -130,7 +130,7 @@ public class CloudReceiver extends AbstractReceiver {
         connection.setRequestProperty("x-api-key", apikey);
 
         int responseCode = connection.getResponseCode();
-        LOG.debug("\nSending 'GET' request to URL : " + url);
+        LOG.debug("Sending 'GET' request to URL : " + url);
         LOG.debug("Response Code : " + responseCode);
 
         BufferedReader in = new BufferedReader(new InputStreamReader(connection.getInputStream()));
@@ -146,7 +146,6 @@ public class CloudReceiver extends AbstractReceiver {
         Endpoints endpoints = JsonUtils.parse(response.toString(), Endpoints.class);
 
         return endpoints.client;
-
     }
 
     /**
@@ -208,7 +207,6 @@ public class CloudReceiver extends AbstractReceiver {
     public String getPrivateKeyFile() {
         return privateKeyFile;
     }
-
     @Override
     public void connect() {
         if (isConnected()) {
@@ -216,19 +214,25 @@ public class CloudReceiver extends AbstractReceiver {
         }
         try {
             connectionStatus = ConnectionStatus.CONNECTING;
-            LOG.debug("Connect to endpoint {} with id {}", endpoint, clientId);
+            LOG.debug("Connect to endpoint: {} with clientId: {}", endpoint, clientId);
             mqttclient = new AWSIotMqttClient(endpoint, clientId, keyStorePasswordPair.keyStore, keyStorePasswordPair.keyPassword);
+            
             // optional parameters can be set before connect()
             getMqttclient().connect();
             setQos(AWSIotQos.QOS1);
-            // send onConnect
-            topicName = "/onConnect/";
+            
+            // send onConnect            
+            topicName = "/onConnect/";            
             AWSIotMessage msg = new AWSIotMessage(topicName, AWSIotQos.QOS1, "{\"uuid\":\""+uuid.toString()+"\", \"instanceId\":\""+instanceId+"\", \"path\":\""+ njams.getClientPath().toString()+"\" }");
+            LOG.debug("Send message: {} to topic: {}", msg.getStringPayload(), topicName);
             getMqttclient().publish(msg);
-            // subscribe commands
+            
+            // subscribe commands topic      
             topicName = "/" + instanceId + "/commands/" + uuid.toString()+ "/";
             CloudTopic topic = new CloudTopic(this);
+            
             LOG.debug("Topic Subscription: {}", topic.getTopic());
+            
             getMqttclient().subscribe(topic);
             connectionStatus = ConnectionStatus.CONNECTED;
         } catch (Exception e) {
@@ -236,5 +240,4 @@ public class CloudReceiver extends AbstractReceiver {
             throw new NjamsSdkRuntimeException("Unable to initialize", e);
         }
     }
-
 }
