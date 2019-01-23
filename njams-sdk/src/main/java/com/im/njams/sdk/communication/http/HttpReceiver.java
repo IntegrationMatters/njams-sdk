@@ -23,6 +23,7 @@ import java.util.Properties;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.communication.AbstractReceiver;
 import com.im.njams.sdk.communication.ConnectionStatus;
+import com.im.njams.sdk.settings.encoding.Transformer;
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
 
@@ -49,7 +50,7 @@ public class HttpReceiver extends AbstractReceiver {
 
     @Override
     public void init(final Properties properties) {
-        final int port = Integer.parseInt(properties.getProperty(RECEIVER_PORT));
+        final int port = Integer.parseInt(Transformer.decode(properties.getProperty(RECEIVER_PORT)));
         final InetSocketAddress isa = new InetSocketAddress(port);
         this.connectionStatus = ConnectionStatus.DISCONNECTED;
 

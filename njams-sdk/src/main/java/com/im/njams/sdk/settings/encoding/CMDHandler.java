@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright (c) 2018 Faiz & Siegeln Software GmbH
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"),
@@ -14,63 +14,42 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
  */
-package com.im.njams.sdk.logmessage;
-
-import com.im.njams.sdk.common.NjamsSdkRuntimeException;
+package com.im.njams.sdk.settings.encoding;
 
 /**
- * Event status
+ * This class is used to encode Strings that are given via CommandLine.
+ * 
+ * @author krautenberg@integrationmatters.com
+ * @version 4.0.1
  */
-public enum EventStatus {
-    /**
-     * INFO
-     */
-    INFO(0),
-    /**
-     * SUCCESS
-     */
-    SUCCESS(1),
-    /**
-     * WARNING
-     */
-    WARNING(2),
-    /**
-     * ERROR
-     */
-    ERROR(3);
-    private final int value;
-
-    private EventStatus(int numeric) {
-        value = numeric;
-    }
+public class CMDHandler {
 
     /**
-     * The integer value
-     *
-     * @return integer value
-     */
-    public int getValue() {
-        return value;
-    }
-
-    /**
-     * Gets the corresponding EventStatus to the given value. If the value is
-     * null, it returns null. For any other illegal value an
-     * NjamsSdkRuntimeException will be thrown.
+     * Main method, it tries to encode the given args and prints the results 
+     * on standard output.
      * 
-     * @param value integer value to the corresponding EventStatus
-     * @return the corresponding EventStatus or null
+     * @param args the to encode arguments
      */
-    public static EventStatus byValue(final Integer value) {
-        if (value == null) {
-            return null;
-        }
-        for (EventStatus js : values()) {
-            if (js.getValue() == value) {
-                return js;
+    public static void main(String[] args) {
+        for (String arg : args) {
+            String encodedArg = Transformer.encode(arg);
+            if (check(arg, encodedArg)) {
+                System.out.println("This is the encoded argument: '" + encodedArg + "' (without '') for '" + arg + "'.");
+            }
+            else{
+                System.out.println("The argument: '" + arg + "' could not be encoded correctly.");
             }
         }
-        throw new NjamsSdkRuntimeException("Illegal event status value: " + value);
     }
 
+    /**
+     * This method checks if the String can be encoded and decoded with the same
+     * result as not encoded at all.
+     * @param notEncoded the not encoded word
+     * @param encoded the already encoded word
+     * @return true, if x = decode(encode(x)), else false
+     */
+    private static boolean check(String notEncoded, String encoded) {
+        return notEncoded.equals(Transformer.decode(encoded));
+    }
 }

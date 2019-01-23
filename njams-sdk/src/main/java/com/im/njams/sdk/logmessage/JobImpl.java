@@ -132,6 +132,8 @@ public class JobImpl implements Job {
 
     private LocalDateTime startTime;
 
+    private boolean startTimeExplicitlySet;
+
     private LocalDateTime endTime;
 
     private LocalDateTime lastFlush;
@@ -151,40 +153,49 @@ public class JobImpl implements Job {
         this.jobId = jobId;
         this.logId = logId;
         correlationLogId = logId;
-        maxSeverity = JobStatus.CREATED;
+        setStatusAndSeverity(JobStatus.CREATED);
         this.processModel = processModel;
-        status = JobStatus.CREATED;
         sequenceCounter = new AtomicInteger();
         flushCounter = new AtomicInteger();
         lastFlush = DateTimeUtility.now();
         attributes = new HashMap<>();
         pluginDataItems = new ArrayList<>();
         initFromConfiguration();
+        //It is used as the default startTime, if no other startTime will be set.
+        //If a startTime is set afterwards with setStartTime, startTimeExplicitlySet
+        //will be set to true.
+        startTime = DateTimeUtility.now();
+        startTimeExplicitlySet = false;
     }
 
-    private LogMessage createLogMessage(JobImpl job) {
-        LogMessage logMessage = new LogMessage();
-        logMessage.setBusinessEnd(businessEnd);
-        logMessage.setBusinessStart(businessStart);
-        logMessage.setCategory(processModel.getNjams().getCategory());
-        logMessage.setCorrelationLogId(correlationLogId);
-        logMessage.setExternalLogId(externalLogId);
-        logMessage.setJobEnd(endTime);
-        logMessage.setJobId(jobId);
-        logMessage.setJobStart(startTime);
-        logMessage.setLogId(logId);
-        logMessage.setMachineName(processModel.getNjams().getMachine());
-        logMessage.setMaxSeverity(maxSeverity.getValue());
-        logMessage.setMessageNo(job.flushCounter.get());
-        logMessage.setObjectName(businessObject);
-        logMessage.setParentLogId(parentLogId);
-        logMessage.setPath(processModel.getPath().toString());
-        logMessage.setProcessName(processModel.getName());
-        logMessage.setStatus(status.getValue());
-        logMessage.setServiceName(businessService);
-        attributes.entrySet().forEach(e -> logMessage.addAtribute(e.getKey(), e.getValue()));
-        pluginDataItems.forEach(i -> logMessage.addPluginDataItem(i));
-        return logMessage;
+    /**
+     * This method initializes the processConfiguration and the
+     * activityConfigurations.
+     */
+    private void initFromConfiguration() {
+        Configuration configuration = processModel.getNjams().getConfiguration();
+        if (configuration == null) {
+            LOG.error("Unable to set LogMode, LogLevel and Exclude for {}, configuration is null",
+                    processModel.getPath());
+            return;
+        }
+        logMode = configuration.getLogMode();
+        LOG.debug("Set LogMode for {} to {}", processModel.getPath(), logMode);
+
+        recording = configuration.isRecording();
+        LOG.debug("Set recording for {} to {} based on client settings", processModel.getPath(), recording);
+
+        ProcessConfiguration process = configuration.getProcess(processModel.getPath().toString());
+        if (process != null) {
+            logLevel = process.getLogLevel();
+            LOG.debug("Set LogLevel for {} to {}", processModel.getPath(), logLevel);
+            exclude = process.isExclude();
+            LOG.debug("Set Exclude for {} to {}", processModel.getPath(), exclude);
+            recording = process.isRecording();
+            LOG.debug("Set recording for {} to {} based on process settings {} and client setting {}",
+                    processModel.getPath(), recording, configuration.isRecording());
+            activityConfigurations = process.getActivities();
+        }
     }
 
     /**
@@ -249,19 +260,26 @@ public class JobImpl implements Job {
     }
 
     /**
-     * Adds a new Activity to the Job.
+     * Adds a new Activity to the Job. If the job is not started or is a start
+     * activity, but not the only one in this job, a NjamsSdkRuntimeException
+     * will be thrown.
      *
-     * @param activity to add
+     * @param activity to add to this job.
      */
     @Override
     public void addActivity(final Activity activity) {
-        activities.put(activity.getInstanceId(), activity);
-        if (activity.isStarter()) {
-            if (startActivity != null) {
-                throw new NjamsSdkRuntimeException("A job must not have more than one start activity");
+        if (this.hasStarted()) {
+            activities.put(activity.getInstanceId(), activity);
+            if (activity.isStarter()) {
+                if (startActivity != null) {
+                    throw new NjamsSdkRuntimeException("A job must not have more than one start activity");
+                }
+                startActivity = activity;
             }
-            startActivity = activity;
+        } else {
+            throw new NjamsSdkRuntimeException("The method start() must be called before activities can be added to the job!");
         }
+
     }
 
     /**
@@ -370,40 +388,162 @@ public class JobImpl implements Job {
     }
 
     /**
-     * Flush this
+     * This method is called by the LogMessageFlushTask in irregular intervals
+     * and when the method end() is called. It flushes a logMessage to the
+     * server if all the preconditions are fulfilled.
      */
     public synchronized void flush() {
-        if (mustBeSuppressed()) {
-            return;
+        boolean suppressed = mustBeSuppressed();
+        boolean started = this.hasStarted();
+        if (!suppressed) {
+            if (!started) {
+                LOG.warn("The job with logId: {} will be flushed, but hasn't started yet.", logId);
+            }
+            flushCounter.incrementAndGet();
+            lastFlush = DateTimeUtility.now();
+            LogMessage logMessage = createLogMessage(this);
+            addToLogMessageAndCleanup(logMessage);
+            logMessage.setSentAt(lastFlush);
+            processModel.getNjams().getSender().send(logMessage);
+            // clean up jobImpl
+            attributes.clear();
+            pluginDataItems.clear();
+            calculateEstimatedSize();
         }
-        flushCounter.incrementAndGet();
-        lastFlush = DateTimeUtility.now();
-        LogMessage logMessage = createLogMessage(this);
-        if (status.getValue() < JobStatus.RUNNING.getValue()) {
-            return;
+    }
+
+    private boolean mustBeSuppressed() {
+        synchronized (activities) {
+            // Do not send if one of the conditions is true.
+            if (isLogModeNone() || isLogModeExclusiveAndNotInstrumented() || isExcludedProcess()
+                    || isLogLevelHigherAsJobStateAndHasNoTraces()) {
+                LOG.debug("Job not flushed: Engine Mode: {} // Job's log level: {}, "
+                        + "configured level: {} // is excluded: {} // has traces: {}", logMode, getStatus(), logLevel,
+                        exclude, traces);
+                //delete not running activities
+                removeNotRunningActivities();
+                calculateEstimatedSize();
+                LOG.debug("mustBeSuppressed: true");
+                return true;
+            } else {
+                LOG.debug("mustBeSuppressed: false");
+                return false;
+            }
         }
-        addToLogMessageAndCleanup(logMessage);
-        logMessage.setSentAt(lastFlush);
-        processModel.getNjams().getSender().send(logMessage);
-        // clean up jobImpl
-        attributes.clear();
-        pluginDataItems.clear();
-        calculateEstimatedSize();
+    }
+
+    private boolean isLogModeNone() {
+        if (logMode == LogMode.NONE) {
+            LOG.debug("isLogModeNone: true");
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    private boolean isLogModeExclusiveAndNotInstrumented() {
+        if (logMode == LogMode.EXCLUSIVE && !instrumented) {
+            LOG.debug("isLogModeExclusiveAndNotInstrumented: true");
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    private boolean isExcludedProcess() {
+        if (exclude) {
+            LOG.debug("isExcludedProcess: true");
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    private boolean isLogLevelHigherAsJobStateAndHasNoTraces() {
+        if (LOG.isDebugEnabled()) {
+            LOG.debug("{} : {}, {}", getStatus(), logLevel.value(), traces);
+        }
+        if (this.hasStarted() && status.getValue() < logLevel.value() && !traces) {
+            LOG.debug("isLogLevelHigherAsJobStateAndHasNoTraces: true");
+            return true;
+        } else {
+            return false;
+        }
     }
 
     /**
-     * Starts the job, i.e., sets the according status, job start date if not
-     * set before, and flags the job to begin flushing.
+     * This method creates the LogMessage that will be send to the server and
+     * fills it with the attributes of the job.
+     *
+     * @param job the job whose fields will be send
+     * @return the created and with the job's information filled logMessage
+     */
+    private LogMessage createLogMessage(JobImpl job) {
+        LOG.trace("Creating LogMessage for job with logId: {}", logId);
+        LogMessage logMessage = new LogMessage();
+        logMessage.setBusinessEnd(businessEnd);
+        logMessage.setBusinessStart(businessStart);
+        logMessage.setCategory(processModel.getNjams().getCategory());
+        //here masking
+        logMessage.setCorrelationLogId(DataMasking.maskString(correlationLogId));
+        //here masking
+        logMessage.setExternalLogId(DataMasking.maskString(externalLogId));
+        logMessage.setJobEnd(endTime);
+        logMessage.setJobId(jobId);
+        logMessage.setJobStart(startTime);
+        logMessage.setLogId(logId);
+        logMessage.setMachineName(processModel.getNjams().getMachine());
+        logMessage.setMaxSeverity(maxSeverity.getValue());
+        logMessage.setMessageNo(job.flushCounter.get());
+        //here masking
+        logMessage.setObjectName(DataMasking.maskString(businessObject));
+        //here masking
+        logMessage.setParentLogId(DataMasking.maskString(parentLogId));
+        logMessage.setPath(processModel.getPath().toString());
+        logMessage.setProcessName(processModel.getName());
+        logMessage.setStatus(status.getValue());
+        //here masking
+        logMessage.setServiceName(DataMasking.maskString(businessService));
+        //here masking
+        attributes.entrySet().forEach(e -> logMessage.addAtribute(e.getKey(), DataMasking.maskString(e.getValue())));
+        pluginDataItems.forEach(i -> logMessage.addPluginDataItem(i));
+        return logMessage;
+    }
+
+    private void addToLogMessageAndCleanup(LogMessage logMessage) {
+        synchronized (activities) {
+            //add all to logMessage
+            activities.values().forEach(logMessage::addActivity);
+            //remove finished
+            removeNotRunningActivities();
+        }
+    }
+
+    private void calculateEstimatedSize() {
+        synchronized (activities) {
+            estimatedSize
+                    = 1000 + activities.values().stream().mapToLong(a -> ((ActivityImpl) a).getEstimatedSize()).sum();
+        }
+    }
+
+    /**
+     * Starts the job, i.e., sets status to RUNNING, job start date to now if
+     * not set before, and flags the job to begin flushing.
      */
     @Override
     public void start() {
-        setStartTime(DateTimeUtility.now());
-        setStatus(JobStatus.RUNNING);
+        //If this is true, the startTime hasn't been changed by setStartTime
+        //before. This means that the startTime can be set to now().
+        if (!startTimeExplicitlySet) {
+            setStartTime(DateTimeUtility.now());
+        }
+        setStatusAndSeverity(JobStatus.RUNNING);
     }
 
     /**
      * Set the logMessage status to success if the status is running. Then flush
-     * it
+     * it. If the job has been finished before or if the job hasn't been started
+     * before it is finished, an NjamsSdkRuntimeException is thrown.
      */
     @Override
     public void end() {
@@ -416,8 +556,11 @@ public class JobImpl implements Job {
                     .filter(a -> a.getActivityStatus() == null || a.getActivityStatus() == ActivityStatus.RUNNING)
                     .forEach(a -> a.end());
 
-            if (getStatus().getValue() <= JobStatus.RUNNING.getValue()) {
-                setStatus(JobStatus.SUCCESS);
+            if (!this.hasStarted()) {
+                setStatusAndSeverity(JobStatus.WARNING);
+                LOG.warn("Job has been finished before it started.");
+            } else if (this.status == JobStatus.RUNNING) {
+                setStatusAndSeverity(JobStatus.SUCCESS);
             }
             if (getEndTime() == null) {
                 setEndTime(DateTimeUtility.now());
@@ -429,14 +572,37 @@ public class JobImpl implements Job {
     }
 
     /**
-     * Sets a status for this {@link Job}. Also set the maxSeverityStatus if it
-     * is not set or lower than the status
+     * Sets a status for this {@link Job}. It can't be set back to
+     * JobStatus.CREATED. Also set the maxSeverityStatus if it is not set or
+     * lower than the status. It can only be set after the job has been started.
      *
-     * @param status the status to set
+     * @param status the new job status if it is not null and not
+     * JobStatus.CREATED.
      */
     @Override
     public void setStatus(JobStatus status) {
-        this.status = status == null ? JobStatus.CREATED : status;
+        boolean changed = false;
+        if (status != null && status != JobStatus.CREATED && hasStarted()) {
+            setStatusAndSeverity(status);
+            changed = true;
+        } else if (!hasStarted()) {
+            LOG.warn("The job must be started before the status can be changed");
+        } else if (status == null || status == JobStatus.CREATED) {
+            LOG.warn("The Status cannot be set to {}.", status);
+        }
+        if (LOG.isTraceEnabled()) {
+            String loggingLogId = getLogId();
+            JobStatus loggingStatus = getStatus();
+            if (changed) {
+                LOG.trace("Setting the status of job with logId {} to {}", loggingLogId, loggingStatus);
+            } else {
+                LOG.trace("The status of the job with logId {} hasn't been changed. The status is {}.", loggingLogId, loggingStatus);
+            }
+        }
+    }
+
+    private void setStatusAndSeverity(JobStatus status) {
+        this.status = status;
         if (maxSeverity == null || maxSeverity.getValue() < this.status.getValue()) {
             maxSeverity = status;
         }
@@ -597,21 +763,19 @@ public class JobImpl implements Job {
     }
 
     /**
-     * Sets the start timestamp of a job. <br>
-     * <b>CAUTION:</b> <br>
-     * This method must not be called after the job has been started. If you
-     * need to set the job start explicitly, set it before you call {@link #start()
-     * }. if you don't set the job start explicitly, it is set to the timestamp
-     * ob the job creation.
+     * Sets the start timestamp of a job. if you don't set the job start
+     * explicitly, it is set to the timestamp of the job creation. The startTime
+     * cannot be set to null!
      *
-     * @param jobStart job start
+     * @param jobStart start time of the job.
      */
     @Override
     public void setStartTime(final LocalDateTime jobStart) {
-        if (status == JobStatus.CREATED) {
-            startTime = jobStart;
+        if (jobStart == null) {
+            LOG.warn("StartTime of the job cannot be null.");
         } else {
-            throw new NjamsSdkRuntimeException("job start time must not be set after job is started!");
+            startTime = jobStart;
+            startTimeExplicitlySet = true;
         }
     }
 
@@ -648,23 +812,12 @@ public class JobImpl implements Job {
     /**
      * Indicates whether the job is already finished or not.
      *
-     * @return <b>true</b> if and only if the job is already finished, else
+     * @return <b>true</b> if and only if the job is already finished (if end() was called), else
      * <b>false</b>
      */
     @Override
     public boolean isFinished() {
-        return getStatus() == JobStatus.CREATED || getStatus() == JobStatus.RUNNING;
-    }
-
-    /**
-     * Set an Attribute to the job
-     *
-     * @param name attribute name
-     * @param value attribute value
-     */
-    @Override
-    public void setAttribute(final String name, final String value) {
-        attributes.put(name, value);
+        return this.finished;
     }
 
     /**
@@ -731,98 +884,11 @@ public class JobImpl implements Job {
         return lastFlush;
     }
 
-    private boolean mustBeSuppressed() {
-        synchronized (activities) {
-            // Do not send if one of the conditions is true.
-            if (isLogModeNone() || isLogModeExclusiveAndNotInstrumented() || isExcludedProcess()
-                    || isLogLevelHigherAsJobStateAndHasNoTraces()) {
-                LOG.debug("Job not flushed: Engine Mode: {} // Job's log level: {}, "
-                        + "configured level: {} // is excluded: {} // has traces: {}", logMode, getStatus(), logLevel,
-                        exclude, traces);
-                //delete not running activities
-                removeNotRunningActivities();
-                calculateEstimatedSize();
-                LOG.debug("mustBeSuppressed: true");
-                return true;
-            } else {
-                LOG.debug("mustBeSuppressed: false");
-                return false;
-            }
-        }
-    }
-
-    private boolean isLogModeNone() {
-        if (logMode == LogMode.NONE) {
-            LOG.debug("isLogModeNone: true");
-            return true;
-        } else {
-            return false;
-        }
-    }
-
-    private boolean isLogModeExclusiveAndNotInstrumented() {
-        if (logMode == LogMode.EXCLUSIVE && !isInstrumented()) {
-            LOG.debug("isLogModeExclusiveAndNotInstrumented: true");
-            return true;
-        } else {
-            return false;
-        }
-    }
-
-    private boolean isExcludedProcess() {
-        if (exclude) {
-            LOG.debug("isExcludedProcess: true");
-            return true;
-        } else {
-            return false;
-        }
-    }
-
-    private boolean isLogLevelHigherAsJobStateAndHasNoTraces() {
-        LOG.debug("{} : {}, {}", getStatus(), logLevel.value(), traces);
-        if (status.getValue() < logLevel.value() && !traces) {
-            LOG.debug("isLogLevelHigherAsJobStateAndHasNoTraces: true");
-            return true;
-        } else {
-            return false;
-        }
-    }
-
-    private boolean isInstrumented() {
-        return instrumented;
-    }
-
     /**
      * @param instrumented the instrumented to set
      */
     void setInstrumented(boolean instrumented) {
         this.instrumented = instrumented;
-    }
-
-    private void initFromConfiguration() {
-        Configuration configuration = processModel.getNjams().getConfiguration();
-        if (configuration == null) {
-            LOG.error("Unable to set LogMode, LogLevel and Exclude for {}, configuration is null",
-                    processModel.getPath());
-            return;
-        }
-        logMode = configuration.getLogMode();
-        LOG.debug("Set LogMode for {} to {}", processModel.getPath(), logMode);
-
-        recording = configuration.isRecording();
-        LOG.debug("Set recording for {} to {} based on client settings", processModel.getPath(), recording);
-
-        ProcessConfiguration process = configuration.getProcess(processModel.getPath().toString());
-        if (process != null) {
-            logLevel = process.getLogLevel();
-            LOG.debug("Set LogLevel for {} to {}", processModel.getPath(), logLevel);
-            exclude = process.isExclude();
-            LOG.debug("Set Exclude for {} to {}", processModel.getPath(), exclude);
-            recording = process.isRecording();
-            LOG.debug("Set recording for {} to {} based on process settings {} and client setting {}",
-                    processModel.getPath(), recording, configuration.isRecording());
-            activityConfigurations = process.getActivities();
-        }
     }
 
     TracepointExt getTracepoint(String modelId) {
@@ -907,15 +973,6 @@ public class JobImpl implements Job {
         return properties.remove(key);
     }
 
-    private void addToLogMessageAndCleanup(LogMessage logMessage) {
-        synchronized (activities) {
-            //add all to logMessage
-            activities.values().forEach(logMessage::addActivity);
-            //remove finished
-            removeNotRunningActivities();
-        }
-    }
-
     /**
      * This method removes all not running activities from the activities map if
      * the activity has a parent, remove the activity from the childActivity map
@@ -956,13 +1013,6 @@ public class JobImpl implements Job {
      */
     public void addToEstimatedSize(long estimatedSize) {
         this.estimatedSize += estimatedSize;
-    }
-
-    private void calculateEstimatedSize() {
-        synchronized (activities) {
-            estimatedSize =
-                    1000 + activities.values().stream().mapToLong(a -> ((ActivityImpl) a).getEstimatedSize()).sum();
-        }
     }
 
     /**
@@ -1009,8 +1059,49 @@ public class JobImpl implements Job {
         pluginDataItems.add((PluginDataItem) pluginDataItem);
     }
 
+    /**
+     * This method sets the businessStart in the ActivityImpl
+     *
+     * @param businessStart the businessStart to set
+     */
     @Override
-    public void addAtribute(String key, String value) {
-        attributes.put(key, value);
+    public void setBusinessStart(LocalDateTime businessStart) {
+        this.businessStart = businessStart;
+    }
+
+    /**
+     * This method sets the businessEnd in the ActivityImpl
+     *
+     * @param businessEnd the businessEnd to set
+     */
+    @Override
+    public void setBusinessEnd(LocalDateTime businessEnd) {
+        this.businessEnd = businessEnd;
+    }
+
+    /**
+     * This method returns if the jobImpl has already been started.
+     *
+     * @return true, if the job has started already (RUNNING, SUCCESS, WARNING,
+     * ERROR). return false, if the job hasn't been started (CREATED)
+     */
+    public boolean hasStarted() {
+        return status != JobStatus.CREATED;
+    }
+
+    /**
+     * This method is used to reduce the methods that put attributes in the
+     * attributes map.
+     *
+     * @param key the key to set
+     * @param value the value to set
+     */
+    @Override
+    public void addAttribute(final String key, String value) {
+        if (hasStarted()) {
+            attributes.put(key, value);
+        } else {
+            throw new NjamsSdkRuntimeException("The method start() must be called before attributes can be added to the job!");
+        }
     }
 }

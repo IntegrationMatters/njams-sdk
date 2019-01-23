@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright (c) 2018 Faiz & Siegeln Software GmbH
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"),
@@ -14,63 +14,30 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
  */
-package com.im.njams.sdk.logmessage;
+package com.im.njams.sdk.settings.encoding;
 
-import com.im.njams.sdk.common.NjamsSdkRuntimeException;
+import org.junit.Test;
+import static org.junit.Assert.*;
 
 /**
- * Event status
+ *
+ * @author krautenberg@integrationmatters.com
  */
-public enum EventStatus {
-    /**
-     * INFO
-     */
-    INFO(0),
-    /**
-     * SUCCESS
-     */
-    SUCCESS(1),
-    /**
-     * WARNING
-     */
-    WARNING(2),
-    /**
-     * ERROR
-     */
-    ERROR(3);
-    private final int value;
-
-    private EventStatus(int numeric) {
-        value = numeric;
-    }
+public class CMDHandlerTest {
 
     /**
-     * The integer value
-     *
-     * @return integer value
+     * Tests if the encoded words from cmd were encoded correctly.
      */
-    public int getValue() {
-        return value;
-    }
-
-    /**
-     * Gets the corresponding EventStatus to the given value. If the value is
-     * null, it returns null. For any other illegal value an
-     * NjamsSdkRuntimeException will be thrown.
-     * 
-     * @param value integer value to the corresponding EventStatus
-     * @return the corresponding EventStatus or null
-     */
-    public static EventStatus byValue(final Integer value) {
-        if (value == null) {
-            return null;
+    @Test
+    public void testWordInputs() {
+        String[] words = {"foo", "bar", "admin"};
+        String[] encodedWords = new String[words.length];
+        for(int i = 0; i < words.length; i++){
+            encodedWords[i] = Transformer.encode(words[i]);
         }
-        for (EventStatus js : values()) {
-            if (js.getValue() == value) {
-                return js;
-            }
-        }
-        throw new NjamsSdkRuntimeException("Illegal event status value: " + value);
+        String[] wordsFromCMDEncoded = {"??0190029006d0048004c0055000c0017002d00090005006a004d007100b500bd",
+            "??04800730044004a0070004f0004004c0034006c000c0021005a006400590076",
+            "??0270070006f004a002a003d00630040000c001f004900810046008d00700082"};
+        assertArrayEquals(encodedWords, wordsFromCMDEncoded);
     }
-
 }

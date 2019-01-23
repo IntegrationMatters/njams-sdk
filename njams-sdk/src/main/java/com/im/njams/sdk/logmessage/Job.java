@@ -297,12 +297,12 @@ public interface Job {
     public Object removeProperty(final String key);
 
     /**
-     * Set an Attribute to the job
+     * Adds an Attribute to the job
      *
-     * @param name attribute name
-     * @param value attribute value
+     * @param name the name of the attribute
+     * @param value the value of the attribute
      */
-    public void setAttribute(final String name, final String value);
+    public void addAttribute(final String name, final String value);
 
     /**
      * Set the businessObject as String
@@ -317,6 +317,20 @@ public interface Job {
      * @param businessObject businessObject to set
      */
     public void setBusinessObject(Path businessObject);
+    
+    /**
+     * Set the businessObject's start
+     * 
+     * @param businessStart startTime to set
+     */
+    public void setBusinessStart(LocalDateTime businessStart);
+    
+    /**
+     * Set the businessObject's end
+     * 
+     * @param businessEnd endTime to set
+     */
+    public void setBusinessEnd(LocalDateTime businessEnd);
 
     /**
      * Set the businessService as String
@@ -403,8 +417,6 @@ public interface Job {
      * @return true if data is needed, or false if not data is needed
      */
     public boolean needsData(String activityModelId);
-
-    public void addAtribute(String key, String value);
 
     public void addPluginDataItem(IPluginDataItem pluginDataItem);
 

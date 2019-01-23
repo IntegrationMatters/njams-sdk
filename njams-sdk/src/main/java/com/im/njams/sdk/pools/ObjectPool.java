@@ -68,9 +68,11 @@ public abstract class ObjectPool<T> {
                     if (validate(t)) {
                         unlocked.remove(t);
                         locked.put(t, now);
+                        LOG.trace("Got Sender: " + t);
                         return t;
                     } else {
                         // object failed validation
+                        LOG.debug("Object failed validation!");
                         unlocked.remove(t);
                         expire(t);
                         t = null;
@@ -81,6 +83,7 @@ public abstract class ObjectPool<T> {
             // no objects available, create a new one
             t = create();
         } while (t == null && (timeout < 0 || System.currentTimeMillis() - now < timeout));
+        LOG.trace("Created Sender: " + t);
         return t;
     }
 

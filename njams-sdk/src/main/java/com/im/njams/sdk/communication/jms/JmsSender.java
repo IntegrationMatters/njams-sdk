@@ -91,10 +91,10 @@ public class JmsSender extends AbstractSender implements ExceptionListener {
         InitialContext context = null;
         try {
             connectionStatus = ConnectionStatus.CONNECTING;
-            context =
-                    new InitialContext(PropertyUtil.filterAndCut(properties, JmsConstants.PROPERTY_PREFIX + "."));
-            ConnectionFactory factory =
-                    (ConnectionFactory) context.lookup(properties.getProperty(JmsConstants.CONNECTION_FACTORY));
+            context
+                    = new InitialContext(PropertyUtil.filterAndCut(properties, JmsConstants.PROPERTY_PREFIX + "."));
+            ConnectionFactory factory
+                    = (ConnectionFactory) context.lookup(properties.getProperty(JmsConstants.CONNECTION_FACTORY));
             if (properties.containsKey(JmsConstants.USERNAME) && properties.containsKey(JmsConstants.PASSWORD)) {
                 connection = factory.createConnection(properties.getProperty(JmsConstants.USERNAME),
                         properties.getProperty(JmsConstants.PASSWORD));
@@ -114,6 +114,24 @@ public class JmsSender extends AbstractSender implements ExceptionListener {
             connectionStatus = ConnectionStatus.CONNECTED;
         } catch (Exception e) {
             connectionStatus = ConnectionStatus.DISCONNECTED;
+            if (session != null) {
+                try {
+                    session.close();
+                } catch (JMSException ex) {
+                    LOG.debug(ex.getMessage());
+                } finally {
+                    session = null;
+                }
+            }
+            if (connection != null) {
+                try {
+                    connection.close();
+                } catch (JMSException ex) {
+                    LOG.debug(ex.getMessage());
+                } finally {
+                    connection = null;
+                }
+            }
             throw new NjamsSdkRuntimeException("Unable to connect", e);
         } finally {
             if (context != null) {

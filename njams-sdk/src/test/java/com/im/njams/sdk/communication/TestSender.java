@@ -60,7 +60,7 @@ public class TestSender extends AbstractSender {
         config.setProperties(properties);
         return config;
     }
-
+    
     @Override
     public void init(Properties properties) {
         if (sender != null) {

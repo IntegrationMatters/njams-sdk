@@ -16,6 +16,7 @@
  */
 package com.im.njams.sdk.logmessage;
 
+import com.im.njams.sdk.AbstractTest;
 import static org.junit.Assert.assertFalse;
 
 import java.util.List;
@@ -26,43 +27,36 @@ import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.common.Path;
 import com.im.njams.sdk.model.ProcessModel;
 import com.im.njams.sdk.settings.Settings;
+import static org.junit.Assert.assertTrue;
 
 /**
  *
  * @author krautenberg@integrationmatters.com
  */
-public class GroupImplTest {
+public class GroupImplTest extends AbstractTest{
 
+    public GroupImplTest(){
+        super();
+    }
     /**
-     * Test of removeNotRunningChildActivities method, of class GroupImpl.
+     * This method tests if childactivities can be removed.
      */
     @Test
-    public void testRemoveNotRunningChildActivities() {
-        Path clientPath = new Path();
-
-        Settings config = new Settings();
-
-        Njams njams = new Njams(clientPath, "1.0.0", "sdk4", config);
-        Path processPath = new Path();
-        ProcessModel process = njams.createProcess(processPath);
-
-        Job job = process.createJob("myJob");
-
+    public void testRemoveChildActivities() {
+        Job job = createDefaultJob();
+        job.start();
         //Create a group with four children
         GroupImpl group = (GroupImpl) job.createGroup("start").build();
         Activity child1 = group.createChildActivity("child1").build();
         Activity child2 = group.createChildActivity("child2").build();
         Activity child3 = group.createChildActivity("child3").build();
         Activity child4 = group.createChildActivity("child4").build();
-        //This shouldn't remove any child, because they are all RUNNING
-        group.removeChildActivity(child1.getInstanceId());
         group.removeChildActivity(child2.getInstanceId());
-        group.removeChildActivity(child3.getInstanceId());
         group.removeChildActivity(child4.getInstanceId());
         List<Activity> childActivities = group.getChildActivities();
-        assertFalse(childActivities.contains(child1));
+        assertTrue(childActivities.contains(child1));
         assertFalse(childActivities.contains(child2));
-        assertFalse(childActivities.contains(child3));
+        assertTrue(childActivities.contains(child3));
         assertFalse(childActivities.contains(child4));
     }
 
