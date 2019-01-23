@@ -120,7 +120,7 @@ public class CloudSender extends AbstractSender {
             final String response = send(msg, properties);
             LOG.trace(response);
         } catch (Exception ex) {
-            LOG.error("Error sending LogMessage", ex);
+            LOG.error("Error sending ProjectMessage", ex);
         }
     }
     
