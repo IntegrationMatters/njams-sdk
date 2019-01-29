@@ -16,26 +16,6 @@
  */
 package com.im.njams.sdk;
 
-import static java.util.stream.Collectors.toList;
-
-import java.net.URL;
-import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Enumeration;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Properties;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.stream.Stream;
-
-import org.slf4j.LoggerFactory;
-
 import com.faizsiegeln.njams.messageformat.v4.command.Command;
 import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
 import com.faizsiegeln.njams.messageformat.v4.command.Response;
@@ -74,6 +54,23 @@ import com.im.njams.sdk.model.svg.ProcessDiagramFactory;
 import com.im.njams.sdk.serializer.Serializer;
 import com.im.njams.sdk.serializer.StringSerializer;
 import com.im.njams.sdk.settings.Settings;
+import java.net.URL;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Enumeration;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Properties;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import static java.util.stream.Collectors.toList;
+import java.util.stream.Stream;
+import org.slf4j.LoggerFactory;
 
 /**
  * This is an instance of nJAMS. It cares about lifecycle and initializations
@@ -249,6 +246,13 @@ public class Njams implements InstructionListener {
         return versions.get(CLIENT_VERSION_KEY);
     }
 
+    /**
+     * @return the sdkVersion
+     */
+    public String getSdkVersion() {
+        return versions.get(SDK_VERSION_KEY);
+    }
+    
     /**
      * @return the globalVariables
      */
