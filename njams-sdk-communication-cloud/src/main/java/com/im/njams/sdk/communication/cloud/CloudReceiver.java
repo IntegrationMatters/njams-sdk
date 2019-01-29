@@ -120,7 +120,10 @@ public class CloudReceiver extends AbstractReceiver {
             LOG.error("Error disconnecting MQTTClient", e);
         }
     }
-
+    
+     /**
+     * @return the client endpoint
+     */
     protected String getClientEndpoint(String endpoint) throws Exception {
         String endpointUrl = "https://" + endpoint.trim() + "/v1/endpoints";
 

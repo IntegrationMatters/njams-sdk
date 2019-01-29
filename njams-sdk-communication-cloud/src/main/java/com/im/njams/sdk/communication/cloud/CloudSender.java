@@ -152,6 +152,9 @@ public class CloudSender extends AbstractSender {
         }
     }
 
+     /**
+     * @return the ingest endpoint
+     */
     protected String getIngestEndpoint(String endpoint) throws Exception {
         String endpointUrl = "https://" + endpoint.trim() + "/v1/endpoints";
 
@@ -178,7 +181,10 @@ public class CloudSender extends AbstractSender {
 
         return endpoints.ingest.startsWith("https://") ? endpoints.ingest : "https://" + endpoints.ingest;
     }
-
+    
+     /**
+     * @return a presignedUrl
+     */
     protected URL getPresignedUrl(final Properties properties) throws Exception {
         HttpsURLConnection connection = (HttpsURLConnection) url.openConnection();
         connection.setRequestMethod("GET");
