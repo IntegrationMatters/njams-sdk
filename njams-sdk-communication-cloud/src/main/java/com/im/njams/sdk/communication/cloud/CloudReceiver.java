@@ -223,7 +223,7 @@ public class CloudReceiver extends AbstractReceiver {
             
             // send onConnect            
             topicName = "/onConnect/";            
-            AWSIotMessage msg = new AWSIotMessage(topicName, AWSIotQos.QOS1, "{\"uuid\":\""+uuid.toString()+"\", \"instanceId\":\""+instanceId+"\", \"path\":\""+ njams.getClientPath().toString()+"\" }");
+            AWSIotMessage msg = new AWSIotMessage(topicName, AWSIotQos.QOS1, "{\"connectionId\":\""+uuid.toString()+"\", \"instanceId\":\""+instanceId+"\", \"path\":\""+ njams.getClientPath().toString()+"\", \"clientVersion\":\""+ njams.getClientVersion()+"\", \"sdkVersion\":\""+ njams.getSdkVersion()+"\", \"machine\":\""+ njams.getMachine()+"\" }");
             LOG.debug("Send message: {} to topic: {}", msg.getStringPayload(), topicName);
             getMqttclient().publish(msg);
             
