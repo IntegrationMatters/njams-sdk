@@ -145,8 +145,20 @@ public class CloudSender extends AbstractSender {
         try {
             LOG.trace("Sending project message");
             final String body = JsonUtils.serialize(msg);
-            final String response = send(body, properties);
-            LOG.trace(response);
+            
+            byte[] byteBody = body.getBytes("UTF-8");
+            int utf8Bytes = byteBody.length;
+            LOG.debug("Message size in Bytes: {}", utf8Bytes);
+            if (utf8Bytes > maxPayloadBytes) {
+                LOG.debug("Message exceeds Byte limit: {}/{}", utf8Bytes, maxPayloadBytes);
+                URL presignedUrl = getPresignedUrl(properties);
+                send(body, presignedUrl);
+
+            } else {
+                final String response = send(body, properties);
+                LOG.trace("Response: " + response);
+            }
+            
         } catch (Exception ex) {
             LOG.error("Error sending ProjectMessage", ex);
         }
