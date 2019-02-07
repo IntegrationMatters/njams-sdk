@@ -82,7 +82,7 @@ public class CloudSender extends AbstractSender {
             LOG.debug("maxPayloadBytes: {} Bytes", maxPayloadBytes);
         } catch (Exception e) {
             LOG.warn("Invalid value for maxPayloadBytes, fallback to {} Bytes", FALLBACK_MAX_PAYLOAD_BYTES);
-            maxPayloadBytes = 10485760;
+            maxPayloadBytes = FALLBACK_MAX_PAYLOAD_BYTES;
         }
 
         if (maxPayloadBytes > FALLBACK_MAX_PAYLOAD_BYTES) {
