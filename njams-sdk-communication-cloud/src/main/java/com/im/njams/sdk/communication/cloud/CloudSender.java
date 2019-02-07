@@ -24,23 +24,15 @@ import com.im.njams.sdk.communication.AbstractSender;
 import com.im.njams.sdk.communication.Sender;
 import com.im.njams.sdk.utils.JsonUtils;
 import java.io.BufferedReader;
-import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.net.URL;
-import static java.nio.charset.Charset.defaultCharset;
-import java.security.KeyStore;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import javax.net.ssl.HttpsURLConnection;
-import javax.net.ssl.KeyManager;
-import javax.net.ssl.KeyManagerFactory;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.TrustManager;
-import javax.net.ssl.TrustManagerFactory;
 import org.slf4j.LoggerFactory;
 
 /**
@@ -87,6 +79,7 @@ public class CloudSender extends AbstractSender {
 
         if (maxPayloadBytes > FALLBACK_MAX_PAYLOAD_BYTES) {
             LOG.warn("The value for maxPayloadBytes: {} is too great, fallback to {} Bytes", maxPayloadBytes, FALLBACK_MAX_PAYLOAD_BYTES);
+             maxPayloadBytes = FALLBACK_MAX_PAYLOAD_BYTES;
         }
         
         try {
