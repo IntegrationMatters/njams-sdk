@@ -28,13 +28,16 @@ import com.im.njams.sdk.common.NjamsSdkRuntimeException;
  * This class should be extended when implementing an new Receiver for a new
  * communication type.
  *
- * @author pnientiedt
+ * @author pnientiedt/krautenberg
+ * @version 4.0.5
  */
 public abstract class AbstractReceiver implements Receiver {
 
+    //The Logger
     private static final Logger LOG = LoggerFactory.getLogger(AbstractReceiver.class);
 
-    protected ConnectionStatus connectionStatus;
+    //The connection status of the receiver
+    protected ConnectionStatus connectionStatus = ConnectionStatus.DISCONNECTED;
 
     /**
      * Njams to hold
@@ -42,9 +45,10 @@ public abstract class AbstractReceiver implements Receiver {
     protected Njams njams;
 
     /**
-     * Set njams instance
+     * This constructor sets the njams instance for getting the instruction
+     * listeners.
      *
-     * @param njams instance
+     * @param njams the instance that holds the instructionListeners.
      */
     @Override
     public void setNjams(Njams njams) {
@@ -55,7 +59,8 @@ public abstract class AbstractReceiver implements Receiver {
      * This function should be called by a implementation of the Receiver class
      * with the previously read instruction.
      *
-     * @param instruction which will be handled to all listeners
+     * @param instruction the instruction that will be handed to all
+     * instructionListeners
      */
     @Override
     public void onInstruction(Instruction instruction) {
@@ -92,19 +97,27 @@ public abstract class AbstractReceiver implements Receiver {
         }
     }
 
+    /**
+     * This method should be used to create a connection, and if the startup
+     * fails, close all resources. It will be called by the
+     * {@link #reconnect() reconnect} method. It should throw an NjamsSdkRuntimeException
+     * if anything unexpected or unwanted happens.
+     */
     public abstract void connect();
 
     /**
-     * same as connect(), but no verbose logging.
+     * This method tries to establish the connection over and over as long as it
+     * not connected. If {@link #connect() connect} throws an exception, the
+     * reconnection threads sleeps for 1 second before trying again to reconnect.
      */
     public synchronized void reconnect() {
-        if (isConnecting() || isConnected()) {
+        if (this.isConnecting() || this.isConnected()) {
             return;
         }
-        while (!isConnected()) {
+        while (!this.isConnected()) {
             try {
-                connect();
-                LOG.info("Reconnected receiver {}", getName());
+                this.connect();
+                LOG.info("Reconnected receiver {}", this.getName());
             } catch (NjamsSdkRuntimeException e) {
                 try {
                     Thread.sleep(1000);
@@ -116,26 +129,37 @@ public abstract class AbstractReceiver implements Receiver {
     }
 
     /**
-     * Start the new Receiver.
+     * This method starts the Receiver. It tries to establish the connection,
+     * and if it fails, calls the method {@link #onException() onException}.
      */
     @Override
     public void start() {
         try {
-            connect();
-            LOG.debug("Started receiver {}", getName());
+            this.connect();
+            if (LOG.isDebugEnabled()) {
+                LOG.debug("Started receiver {}", this.getName());
+            }
         } catch (NjamsSdkRuntimeException e) {
             LOG.error("Could not initialize receiver {}\n. Pushing reconnect task to background.",
-                    getName(), e);
+                    this.getName(), e);
             // trigger reconnect
-            onException(null);
+            this.onException(null);
         }
     }
 
+    /**
+     * This method should be used to stop the receiver and close
+     * all resources that it uses.
+     */
     @Override
     public abstract void stop();
 
+    /**
+     * This method is used to start a reconnector thread.
+     * @param exception the exception that caused this method invokation.
+     */
     public void onException(Exception exception) {
-        stop();
+        this.stop();
         // reconnect
         Thread reconnector = new Thread() {
 
@@ -145,20 +169,35 @@ public abstract class AbstractReceiver implements Receiver {
             }
         };
         reconnector.setDaemon(true);
-        reconnector.setName(String.format("Reconnect %s receiver", getName()));
+        reconnector.setName(String.format("Reconnect %s receiver", this.getName()));
         reconnector.start();
     }
 
+    /**
+     * This method returns wether the Receiver is connected or not.
+     *
+     * @return true, if Receiver is connected, otherwise false
+     */
     public boolean isConnected() {
-        return connectionStatus == ConnectionStatus.CONNECTED;
+        return this.connectionStatus == ConnectionStatus.CONNECTED;
     }
 
+    /**
+     * This method returns wether the Receiver is disconnected or not.
+     *
+     * @return true, if Receiver is disconnected, otherwise false
+     */
     public boolean isDisconnected() {
-        return connectionStatus == ConnectionStatus.DISCONNECTED;
+        return this.connectionStatus == ConnectionStatus.DISCONNECTED;
     }
 
+    /**
+     * This method returns wether the Receiver is connecting or not.
+     *
+     * @return true, if Receiver is connecting, otherwise false
+     */
     public boolean isConnecting() {
-        return connectionStatus == ConnectionStatus.CONNECTING;
+        return this.connectionStatus == ConnectionStatus.CONNECTING;
     }
 
 }
