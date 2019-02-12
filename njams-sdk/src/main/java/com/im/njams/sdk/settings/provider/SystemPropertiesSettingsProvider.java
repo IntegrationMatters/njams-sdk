@@ -45,7 +45,7 @@ public class SystemPropertiesSettingsProvider implements SettingsProvider {
     /**
      * Does nothing for this implementation.
      *
-     * @param properties
+     * @param properties these aren't used here.
      */
     @Override
     public void configure(Properties properties) {

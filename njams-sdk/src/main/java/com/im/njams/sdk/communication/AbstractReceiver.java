@@ -130,7 +130,7 @@ public abstract class AbstractReceiver implements Receiver {
 
     /**
      * This method starts the Receiver. It tries to establish the connection,
-     * and if it fails, calls the method {@link #onException() onException}.
+     * and if it fails, calls the method {@link #onException(Exception) onException}.
      */
     @Override
     public void start() {

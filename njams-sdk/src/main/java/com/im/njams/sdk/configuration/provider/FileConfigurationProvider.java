@@ -64,10 +64,9 @@ public class FileConfigurationProvider implements ConfigurationProvider {
      * Configures this FileSettingsProvider via the given Properties.
      * <p>
      * Valid properties are:
-     * <p>
      * <ul>
      * <li>{@value #FILE_CONFIGURATION}
-     * </ul><p>
+     * </ul>
      *
      * @param properties Properties
      */

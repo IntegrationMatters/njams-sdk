@@ -48,7 +48,7 @@ public class MemorySettingsProvider implements SettingsProvider {
     /**
      * Stores the given properties as to be provided by this implementation when {@link #loadSettings()} is called.
      *
-     * @param properties
+     * @param properties the properties to be used.
      */
     @Override
     public void configure(Properties properties) {
