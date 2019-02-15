@@ -17,25 +17,23 @@
 package com.im.njams.sdk.communication.jms;
 
 import com.faizsiegeln.njams.messageformat.v4.logmessage.LogMessage;
+
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+
 import com.im.njams.sdk.common.JsonSerializerFactory;
+
 import java.time.LocalDateTime;
-import java.time.OffsetDateTime;
-import java.time.ZoneId;
-import java.time.ZoneOffset;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
+
 import org.junit.Test;
+
 import static org.junit.Assert.*;
 
 /**
- *
+ * This class tests if the JmsSender works correctly.
+ * 
  * @author krautenberg@integrationmatters.com
+ * @version 4.0.5
  */
 public class JmsSenderTest {
 
@@ -43,28 +41,9 @@ public class JmsSenderTest {
     private static final LocalDateTime BUSINESSSTART = LocalDateTime.of(2018, 11, 20, 14, 57, 55, 240000000);
     private static final LocalDateTime BUSINESSEND = LocalDateTime.of(2018, 11, 20, 14, 58, 12, 142000000);
     private static final LocalDateTime JOBEND = LocalDateTime.of(2018, 11, 20, 14, 59, 58, 856000000);
-    private static LocalDateTime SENTAT = LocalDateTime.of(2018, 11, 20, 15, 00, 01, 213000000);
+    private static final LocalDateTime SENTAT = LocalDateTime.of(2018, 11, 20, 15, 00, 01, 213000000);
 
     private static final ObjectMapper mapper = JsonSerializerFactory.getDefaultMapper();
-
-    public JmsSenderTest() {
-    }
-
-    @BeforeClass
-    public static void setUpClass() {
-    }
-
-    @AfterClass
-    public static void tearDownClass() {
-    }
-
-    @Before
-    public void setUp() {
-    }
-
-    @After
-    public void tearDown() {
-    }
 
     /**
      * The serializer should use ISO 8601 for serializing LocalDateTime.
