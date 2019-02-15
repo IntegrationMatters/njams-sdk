@@ -318,8 +318,8 @@ public class AbstractReceiverTest {
     }
 
     /**
-     * This method tests if the thread sleep for longer than 1 second after 
-     * an exception was thrown.
+     * This method tests if the thread sleep for longer than 1 second after an
+     * exception was thrown.
      */
     @Test
     public void testReconnectWhenExceptionIsThrown() {
@@ -335,51 +335,53 @@ public class AbstractReceiverTest {
         assertTrue(diff >= 1000L);
         System.out.println("The Thread slept ~ " + diff + "ms.");
     }
-    
+
     //start tests
     /**
      * This method tests if the start method established a connection normally.
      */
     @Test
-    public void testStartWhileDisconnected(){
+    public void testStartWhileDisconnected() {
         AbstractReceiverImpl impl = new AbstractReceiverImpl();
         assertTrue(impl.isDisconnected());
         impl.start();
         assertTrue(impl.isConnected());
     }
-    
+
     /**
-     * This method tests if the start method established a connection normally if the status is 
-     * already connecting.
+     * This method tests if the start method established a connection normally
+     * if the status is already connecting.
      */
     @Test
-    public void testStartWhileConnecting(){
+    public void testStartWhileConnecting() {
         AbstractReceiverImpl impl = new AbstractReceiverImpl();
         impl.setConnectionStatus(ConnectionStatus.CONNECTING);
         assertTrue(impl.isConnecting());
         impl.start();
         assertTrue(impl.isConnected());
     }
-    
+
     /**
-     * This method tests if the start method established a connection normally if the status is 
-     * already connected.
+     * This method tests if the start method established a connection normally
+     * if the status is already connected.
      */
     @Test
-    public void testStartWhileConnected(){
+    public void testStartWhileConnected() {
         AbstractReceiverImpl impl = new AbstractReceiverImpl();
         impl.setConnectionStatus(ConnectionStatus.CONNECTED);
         assertTrue(impl.isConnected());
         impl.start();
         assertTrue(impl.isConnected());
     }
-    
+
     /**
-     * This method tests if the start method restarts if an NjamsSdkRuntimeException is thrown.
+     * This method tests if the start method restarts if an
+     * NjamsSdkRuntimeException is thrown.
+     *
      * @throws java.lang.InterruptedException for thread
      */
     @Test
-    public void testStartWithException() throws InterruptedException{
+    public void testStartWithException() throws InterruptedException {
         AbstractReceiverImpl impl = new AbstractReceiverImpl();
         impl.throwException = true;
         assertTrue(impl.isDisconnected());
@@ -387,16 +389,16 @@ public class AbstractReceiverTest {
         Thread.sleep(100);
         assertTrue(impl.isConnected());
     }
-    
-    //onException test
-    
+
+    //onException tests
     /**
-     * This method tests if the onException method reconnects properly if disconnected.
-     * 
+     * This method tests if the onException method reconnects properly if
+     * disconnected.
+     *
      * @throws InterruptedException for thread
      */
     @Test
-    public void testOnExceptionWhileDisconnected() throws InterruptedException{
+    public void testOnExceptionWhileDisconnected() throws InterruptedException {
         AbstractReceiverImpl impl = new AbstractReceiverImpl();
         assertNotNull(impl.connectionStatus);
         assertTrue(impl.isDisconnected());
@@ -404,15 +406,16 @@ public class AbstractReceiverTest {
         Thread.sleep(100);
         assertTrue(impl.isConnected());
     }
-    
+
     /**
-     * This method tests if the onException method reconnects properly if connecting.
-     * It shouldn't change anything, because stop() in AbstractReceiverImpl does nothing.
-     * 
+     * This method tests if the onException method reconnects properly if
+     * connecting. It shouldn't change anything, because stop() in
+     * AbstractReceiverImpl does nothing.
+     *
      * @throws InterruptedException for thread
      */
     @Test
-    public void testOnExceptionWhileConnecting() throws InterruptedException{
+    public void testOnExceptionWhileConnecting() throws InterruptedException {
         AbstractReceiverImpl impl = new AbstractReceiverImpl();
         impl.setConnectionStatus(ConnectionStatus.CONNECTING);
         assertNotNull(impl.connectionStatus);
@@ -421,15 +424,15 @@ public class AbstractReceiverTest {
         Thread.sleep(100);
         assertTrue(impl.isConnecting());
     }
-    
+
     /**
-     * This method tests if the onException method reconnects properly if connected.
-     * It should stay connected.
-     * 
+     * This method tests if the onException method reconnects properly if
+     * connected. It should stay connected.
+     *
      * @throws InterruptedException for thread
      */
     @Test
-    public void testOnExceptionWhileConnected() throws InterruptedException{
+    public void testOnExceptionWhileConnected() throws InterruptedException {
         AbstractReceiverImpl impl = new AbstractReceiverImpl();
         impl.setConnectionStatus(ConnectionStatus.CONNECTED);
         assertNotNull(impl.connectionStatus);
@@ -438,12 +441,22 @@ public class AbstractReceiverTest {
         Thread.sleep(100);
         assertTrue(impl.isConnected());
     }
-    
-    //isConnected test
 
+    @Test
+    public void testOnExceptionOverflow() throws InterruptedException {
+        AbstractReceiverImpl impl = new AbstractReceiverImpl();
+        impl.throwManyExceptions = true;
+        for (int i = 0; i < 10; i++) {
+            impl.onException(null);
+        }
+        Thread.sleep(500);
+        assertTrue(impl.verifyingCounter.get() <= 1);
+    }
+
+    //isConnected test
     /**
-     * This method tests if the connectionStatus is DISCONNECTED 
-     * after the initialisation of the AbstractReceiverImpl.
+     * This method tests if the connectionStatus is DISCONNECTED after the
+     * initialisation of the AbstractReceiverImpl.
      */
     @Test
     public void testIsDisconnectedAtInitialisation() {
@@ -453,8 +466,8 @@ public class AbstractReceiverTest {
     }
 
     /**
-     * This method tests if method isConnected returns true iff the connectionStatus
-     * is CONNECTED.
+     * This method tests if method isConnected returns true iff the
+     * connectionStatus is CONNECTED.
      */
     @Test
     public void testIsConnected() {
@@ -467,8 +480,8 @@ public class AbstractReceiverTest {
     }
 
     /**
-     * This method tests if method isConnecting returns true iff the connectionStatus
-     * is CONNECTING.
+     * This method tests if method isConnecting returns true iff the
+     * connectionStatus is CONNECTING.
      */
     @Test
     public void testIsConnecting() {
@@ -481,8 +494,8 @@ public class AbstractReceiverTest {
     }
 
     /**
-     * This method tests if method isDisconnected returns true iff the connectionStatus
-     * is DISCONNECTED.
+     * This method tests if method isDisconnected returns true iff the
+     * connectionStatus is DISCONNECTED.
      */
     @Test
     public void testIsDisconnected() {
@@ -498,6 +511,10 @@ public class AbstractReceiverTest {
     private class AbstractReceiverImpl extends AbstractReceiver {
 
         private boolean throwException = false;
+
+        private boolean throwManyExceptions = false;
+
+        private int throwingCounter = 0;
 
         //This method should be tested by the real subclass of the AbstractReceiver
         @Override
@@ -516,7 +533,13 @@ public class AbstractReceiverTest {
             if (throwException) {
                 throwException = false;
                 throw new NjamsSdkRuntimeException("AbstractReceiverTestException");
-                
+
+            } else if (throwManyExceptions) {
+                while (throwingCounter < 10) {
+                    throwingCounter++;
+                    throw new NjamsSdkRuntimeException("AbstractReceiverTestException");
+                }
+                throwManyExceptions = false;
             } else {
                 connectionStatus = ConnectionStatus.CONNECTED;
             }
@@ -526,11 +549,6 @@ public class AbstractReceiverTest {
         @Override
         public void stop() {
             //Does nothing in this class.
-        }
-        
-        @Override
-        public void onException(Exception e){
-            super.onException(e);
         }
 
         /**

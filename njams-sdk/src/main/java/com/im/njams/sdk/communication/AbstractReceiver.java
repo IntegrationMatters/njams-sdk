@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Faiz & Siegeln Software GmbH
+ * Copyright (c) 2019 Faiz & Siegeln Software GmbH
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"),
  * to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
@@ -23,6 +23,7 @@ import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
 import com.faizsiegeln.njams.messageformat.v4.command.Response;
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * This class should be extended when implementing an new Receiver for a new
@@ -35,6 +36,11 @@ public abstract class AbstractReceiver implements Receiver {
 
     //The Logger
     private static final Logger LOG = LoggerFactory.getLogger(AbstractReceiver.class);
+    //The time it needs before a new reconnection is tried after an exception throw.
+    protected static final long RECONNECT_INTERVAL = 1000;
+    
+    //This AtomicInteger is for debugging.
+    final AtomicInteger verifyingCounter = new AtomicInteger();
 
     //The connection status of the receiver
     protected ConnectionStatus connectionStatus = ConnectionStatus.DISCONNECTED;
@@ -100,37 +106,49 @@ public abstract class AbstractReceiver implements Receiver {
     /**
      * This method should be used to create a connection, and if the startup
      * fails, close all resources. It will be called by the
-     * {@link #reconnect() reconnect} method. It should throw an NjamsSdkRuntimeException
-     * if anything unexpected or unwanted happens.
+     * {@link #reconnect() reconnect} method. It should throw an
+     * NjamsSdkRuntimeException if anything unexpected or unwanted happens.
      */
     public abstract void connect();
 
     /**
      * This method tries to establish the connection over and over as long as it
      * not connected. If {@link #connect() connect} throws an exception, the
-     * reconnection threads sleeps for 1 second before trying again to reconnect.
+     * reconnection threads sleeps for {@link #RECONNECT_INTERVAL RECONNECT_INTERVAL} second before trying again to
+     * reconnect.
      */
     public synchronized void reconnect() {
+        int got = verifyingCounter.incrementAndGet();
+        boolean doReconnect = true;
         if (this.isConnecting() || this.isConnected()) {
-            return;
+            doReconnect = false;
         }
-        while (!this.isConnected()) {
+        if(got > 1){
+            //This is just for debugging.
+            LOG.debug("There are to many reconnections at the same time! There are {} method invocations.", got);
+        }
+        while (!this.isConnected() && doReconnect) {
             try {
+                LOG.debug("Trying to reconnect receiver {}", this.getName());
                 this.connect();
                 LOG.info("Reconnected receiver {}", this.getName());
             } catch (NjamsSdkRuntimeException e) {
                 try {
+                    //Using Thread.sleep because this.wait would release the lock for this object, Thread.sleep doesn't.
                     Thread.sleep(1000);
                 } catch (InterruptedException e1) {
-                    return;
+                    LOG.error("The reconnecting thread was interrupted!", e1);
+                    doReconnect = false;
                 }
             }
         }
+        verifyingCounter.decrementAndGet();
     }
 
     /**
      * This method starts the Receiver. It tries to establish the connection,
-     * and if it fails, calls the method {@link #onException(Exception) onException}.
+     * and if it fails, calls the method
+     * {@link #onException(Exception) onException}.
      */
     @Override
     public void start() {
@@ -148,26 +166,23 @@ public abstract class AbstractReceiver implements Receiver {
     }
 
     /**
-     * This method should be used to stop the receiver and close
-     * all resources that it uses.
+     * This method should be used to stop the receiver and close all resources
+     * that it uses.
      */
     @Override
     public abstract void stop();
 
     /**
      * This method is used to start a reconnector thread.
+     *
      * @param exception the exception that caused this method invokation.
      */
     public void onException(Exception exception) {
         this.stop();
         // reconnect
-        Thread reconnector = new Thread() {
-
-            @Override
-            public void run() {
-                reconnect();
-            }
-        };
+        Thread reconnector = new Thread(() -> {
+            reconnect();
+        });
         reconnector.setDaemon(true);
         reconnector.setName(String.format("Reconnect %s receiver", this.getName()));
         reconnector.start();
