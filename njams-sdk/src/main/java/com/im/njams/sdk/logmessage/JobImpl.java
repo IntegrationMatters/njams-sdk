@@ -49,6 +49,7 @@ import com.im.njams.sdk.model.ActivityModel;
 import com.im.njams.sdk.model.GroupModel;
 import com.im.njams.sdk.model.ProcessModel;
 import com.im.njams.sdk.model.SubProcessActivityModel;
+import java.util.stream.Collectors;
 
 /**
  * This represents an instance of a process/flow etc in engine to monitor.
@@ -812,7 +813,8 @@ public class JobImpl implements Job {
     /**
      * Indicates whether the job is already finished or not.
      *
-     * @return <b>true</b> if and only if the job is already finished (if end() was called), else
+     * @return <b>true</b> if and only if the job is already finished (if end()
+     * was called), else
      * <b>false</b>
      */
     @Override

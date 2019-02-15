@@ -134,4 +134,28 @@ public class ActivityImplTest extends AbstractTest {
         act.addAttribute("b", "c");
         assertTrue(attributes.containsKey("b"));
     }
+    
+    /**
+     * This method tests if the ActivityImpl copies the Attribute that was set there
+     * to the Attributes list of the job.
+     */
+    @Test
+    public void testOverrideJobAttributesWithActivityAttributes() {
+        JobImpl job = createDefaultJob();
+        job.start();
+        ActivityImpl act1 = (ActivityImpl) createDefaultActivity(job);
+        ActivityImpl act2 = (ActivityImpl) createDefaultActivity(job);
+        String testAttrKey = "TestAttrKey";
+        assertNull(job.getAttribute(testAttrKey));
+        act1.addAttribute(testAttrKey, "a");
+        assertEquals("a", job.getAttribute(testAttrKey));
+        act2.addAttribute(testAttrKey, "b");
+        assertEquals("b", job.getAttribute(testAttrKey));
+        assertNotEquals("a", job.getAttribute(testAttrKey));
+        //It has nothing to do with the sequence number, the attribute will be overriden
+        //by the last call of addAttribute
+        act1.addAttribute(testAttrKey, "c");
+        assertEquals("c", job.getAttribute(testAttrKey));
+        assertNotEquals("b", job.getAttribute(testAttrKey));
+    }
 }

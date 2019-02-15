@@ -54,7 +54,7 @@ import org.mockito.stubbing.Answer;
 
 /**
  * This class tests some methods of the JobImpl.
- * 
+ *
  * @author krautenberg@integrationmatters.com
  * @version 4.0.4
  */
@@ -66,16 +66,16 @@ public class JobImplTest extends AbstractTest {
     /**
      * This constructor calls super().
      */
-    public JobImplTest(){
+    public JobImplTest() {
         super();
     }
-    
+
     /**
-     * This method cleans up the message and resets the Datamasking after each 
+     * This method cleans up the message and resets the Datamasking after each
      * method.
      */
     @After
-    public void cleanUp(){
+    public void cleanUp() {
         msg = null;
         DataMasking.removePatterns();
     }
@@ -131,10 +131,9 @@ public class JobImplTest extends AbstractTest {
         assertFalse(childActivities.contains(child3));
         assertTrue(childActivities.contains(child4));
     }
+
     /**
-     * This method tests if the datamasking works for the here
-     * <a href="https://github.com/IntegrationMatters/njams-sdk/wiki/FAQ"> SDK
-     * FAQ</a>
+     * This method tests if the datamasking works for the in the SDK FAQ here
      * and only here described fields when the job is flushed.
      */
     @Test
@@ -174,6 +173,7 @@ public class JobImplTest extends AbstractTest {
     /**
      * This method creates an Activity and sets static data to all the fields
      * that are needed for the MessageFormat's Activity.
+     *
      * @param job the job on which the activity is created.
      */
     private void createFullyFilledActivity(JobImpl job) {
@@ -209,6 +209,7 @@ public class JobImplTest extends AbstractTest {
 
     /**
      * This method fills some of the jobs fields.
+     *
      * @param job the job whose fields are filled with static data.
      */
     private void fillJob(JobImpl job) {
@@ -223,10 +224,8 @@ public class JobImplTest extends AbstractTest {
     }
 
     /**
-     * This method checks all fields of the logMessage if they are masked 
-     * correctly by concept. (See
-     * <a href="https://github.com/IntegrationMatters/njams-sdk/wiki/FAQ"> SDK
-     * FAQ</a>)
+     * This method checks all fields of the logMessage if they are masked
+     * correctly by concept. (See SDK FAQ)
      */
     private void checkAllFields() {
         //Check all fields of the job
@@ -237,9 +236,7 @@ public class JobImplTest extends AbstractTest {
 
     /**
      * This method checks all fields of the logMessage that doesn't involve the
-     * activities if they are masked correctly by concept. (See
-     * <a href="https://github.com/IntegrationMatters/njams-sdk/wiki/FAQ"> SDK
-     * FAQ</a>)
+     * activities if they are masked correctly by concept. (See SDK FAQ)
      */
     private void checkJobFields() {
         //Those shouldn't be masked
@@ -271,9 +268,7 @@ public class JobImplTest extends AbstractTest {
 
     /**
      * This method checks all fields of all activities in the logMessage, if
-     * they are masked correctly by concept. (See
-     * <a href="https://github.com/IntegrationMatters/njams-sdk/wiki/FAQ"> SDK
-     * FAQ</a>)
+     * they are masked correctly by concept. (See SDK FAQ)
      */
     private void checkActivityFields() {
         List<com.faizsiegeln.njams.messageformat.v4.logmessage.Activity> activities = msg.getActivities();
@@ -323,12 +318,11 @@ public class JobImplTest extends AbstractTest {
         }
         return toRet;
     }
-    
 
     //This method tests the isFinished() method of the JobImpl.
     @Test
-    public void testIsFinished(){
-        
+    public void testIsFinished() {
+
         JobImpl job = createDefaultJob();
         //Created
         assertEquals(JobStatus.CREATED, job.getStatus());
@@ -358,128 +352,131 @@ public class JobImplTest extends AbstractTest {
         assertEquals(JobStatus.RUNNING, job.getStatus());
         assertTrue(job.isFinished());
     }
-    
+
     /**
      * This method tests if the startTime can be set explicitly.
+     *
      * @throws java.lang.InterruptedException
      */
     @Test
-    public void testSetStartTimeBeforeStart() throws InterruptedException{
+    public void testSetStartTimeBeforeStart() throws InterruptedException {
         JobImpl job = createDefaultJob();
         assertNotNull(job.getStartTime());
-        
+
         Thread.sleep(100L);
         LocalDateTime tempTime = DateTimeUtility.now();
         job.setStartTime(tempTime);
         assertEquals(tempTime, job.getStartTime());
-        
+
         job.start();
         //StartTime is still tempTime, because it was set explicitly.
-        assertEquals(tempTime, job.getStartTime()); 
+        assertEquals(tempTime, job.getStartTime());
     }
-    
+
     /**
-     * This method tests if the startTime will be set automatically to the 
+     * This method tests if the startTime will be set automatically to the
      * starting point.
+     *
      * @throws java.lang.InterruptedException
      */
     @Test
-    public void testDoesntSetStartTimeBeforeStart() throws InterruptedException{
+    public void testDoesntSetStartTimeBeforeStart() throws InterruptedException {
         JobImpl job = createDefaultJob();
         assertNotNull(job.getStartTime());
-        
+
         Thread.sleep(100L);
         LocalDateTime tempTime = job.getStartTime();
         job.start();
         //StartTime is different to tempTime, because it hasn't been set explicitly.
-        assertNotEquals(tempTime, job.getStartTime()); 
+        assertNotEquals(tempTime, job.getStartTime());
     }
-    
+
     /**
-     * This method tests if the startTime will be set automatically to the 
+     * This method tests if the startTime will be set automatically to the
      * starting point and can be changed after start() has been called.
      */
     @Test
-    public void testSetStartTimeAfterStart(){
+    public void testSetStartTimeAfterStart() {
         Job job = createDefaultJob();
-        
+
         assertNotNull(job.getStartTime());
-        
+
         job.start();
         job.setStartTime(LocalDateTime.now());
     }
-    
+
     /**
-     * This method tests if the Status can be set back to created outside of jobImpl.
+     * This method tests if the Status can be set back to created outside of
+     * jobImpl.
      */
     @Test
-    public void testSetStartTimeAfterStartWithSettingBackToCreated(){
+    public void testSetStartTimeAfterStartWithSettingBackToCreated() {
         Job job = createDefaultJob();
-        
+
         assertEquals(JobStatus.CREATED, job.getStatus());
-        
+
         job.start();
         job.setStatus(JobStatus.CREATED);
         //The Status shouldn't have changed!
         assertNotEquals(JobStatus.CREATED, job.getStatus());
     }
-    
+
     /**
-     * This method tests if a job that isn't started (whose status is CREATED) and is flushed
-     * flushes normally.
+     * This method tests if a job that isn't started (whose status is CREATED)
+     * and is flushed flushes normally.
      */
     @Test
-    public void testJobFlushWithoutStart(){
+    public void testJobFlushWithoutStart() {
         JobImpl job = createDefaultJob();
-        
+
         job.flush();
     }
-    
+
     /**
-     * This method tests if a job that isn't started (whose status is CREATED) and is ended
-     * should be in the WARNING state.
+     * This method tests if a job that isn't started (whose status is CREATED)
+     * and is ended should be in the WARNING state.
      */
     @Test
-    public void testJobEndWithoutStart(){
+    public void testJobEndWithoutStart() {
         JobImpl job = createDefaultJob();
-        
+
         job.end();
         assertTrue(job.getStatus() == JobStatus.WARNING);
     }
-    
+
     /**
-     * This method tests if a job throws an exception if someone tries to 
-     * add an activity without starting the job first.
+     * This method tests if a job throws an exception if someone tries to add an
+     * activity without starting the job first.
      */
     @Test(expected = NjamsSdkRuntimeException.class)
-    public void testAddActivityWithoutStart(){
+    public void testAddActivityWithoutStart() {
         JobImpl job = createDefaultJob();
-        
+
         Activity act = mock(Activity.class);
         //This should throw an Exception
         job.addActivity(act);
     }
-    
+
     /**
-     * This method tests if a job adds an attribute 
-     * correctly after the job has been started.
+     * This method tests if a job adds an attribute correctly after the job has
+     * been started.
      */
     @Test
-    public void testAddAttributeWithStart(){
+    public void testAddAttributeWithStart() {
         JobImpl job = createDefaultJob();
         job.start();
         job.addAttribute("a", "b");
         assertEquals(job.getAttribute("a"), "b");
     }
-    
+
     /**
-     * This method tests if a job throws an exception if someone tries to 
-     * add an attribute without starting the job first.
+     * This method tests if a job throws an exception if someone tries to add an
+     * attribute without starting the job first.
      */
     @Test(expected = NjamsSdkRuntimeException.class)
-    public void testAddAttributeWithoutStart(){
+    public void testAddAttributeWithoutStart() {
         JobImpl job = createDefaultJob();
-        
+
         //This should throw an Exception
         job.addAttribute("a", "b");
     }

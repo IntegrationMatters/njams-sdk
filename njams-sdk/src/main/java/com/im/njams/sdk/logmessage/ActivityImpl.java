@@ -548,6 +548,7 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
     @Override
     public void addAttribute(String key, String value) {
         super.addAttribute(key, DataMasking.maskString(value));
+        job.addAttribute(key, DataMasking.maskString(value));
     }
     
     /**
