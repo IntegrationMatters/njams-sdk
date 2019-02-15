@@ -117,6 +117,7 @@ public abstract class AbstractReceiver implements Receiver {
      * reconnection threads sleeps for {@link #RECONNECT_INTERVAL RECONNECT_INTERVAL} second before trying again to
      * reconnect.
      */
+    @SuppressWarnings({"squid:S2276", "squid:S2142"})
     public synchronized void reconnect() {
         int got = verifyingCounter.incrementAndGet();
         boolean doReconnect = true;
@@ -166,13 +167,6 @@ public abstract class AbstractReceiver implements Receiver {
     }
 
     /**
-     * This method should be used to stop the receiver and close all resources
-     * that it uses.
-     */
-    @Override
-    public abstract void stop();
-
-    /**
      * This method is used to start a reconnector thread.
      *
      * @param exception the exception that caused this method invokation.
@@ -180,9 +174,7 @@ public abstract class AbstractReceiver implements Receiver {
     public void onException(Exception exception) {
         this.stop();
         // reconnect
-        Thread reconnector = new Thread(() -> {
-            reconnect();
-        });
+        Thread reconnector = new Thread(this::reconnect);
         reconnector.setDaemon(true);
         reconnector.setName(String.format("Reconnect %s receiver", this.getName()));
         reconnector.start();
