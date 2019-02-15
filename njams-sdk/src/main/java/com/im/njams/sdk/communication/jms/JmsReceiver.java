@@ -133,60 +133,54 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
 
     /**
      * This method is called when the receiver has to connect. It can't be
-     * started if init(..) hasn't been called beforehand. If the connection
-     * fails, all resources are closed.
+     * started if init(..) hasn't been called beforehand.
      */
     @Override
     public synchronized void connect() {
         if (!isConnected()) {
-            InitialContext context = null;
-            try {
-                this.connectionStatus = ConnectionStatus.CONNECTING;
+            this.connectionStatus = ConnectionStatus.CONNECTING;
 
-                context = this.tryToConnect(this.properties);
+            this.tryToConnect(this.properties);
 
-                this.connectionStatus = ConnectionStatus.CONNECTED;
-            } catch (Exception e) {
-                printExceptions(this.closeAll(context));
-                throw new NjamsSdkRuntimeException("Unable to initialize", e);
-            }
+            this.connectionStatus = ConnectionStatus.CONNECTED;
         }
     }
 
     /**
      * This method tries to create a receiver with a InitialContext, connection,
-     * session etc.
+     * session etc. It throws an NjamsSdkRuntimeException if any of the
+     * resources throws any exception.
      *
      * @param props the Properties that are used for connecting.
-     * @return the JNDI Initial Context that has to be closed if an exception
-     * occurres.
-     * @throws NamingException is thrown if something with any property is
-     * wrong.
-     * @throws JMSException is thrown if for example a security issue happens.
      */
-    private InitialContext tryToConnect(Properties props) throws NamingException, JMSException {
-        InitialContext context = this.getInitialContext(props);
-        LOG.debug("The InitialContext was created successfully.");
+    private void tryToConnect(Properties props) {
+        InitialContext context = null;
+        try {
+            context = this.getInitialContext(props);
+            LOG.debug("The InitialContext was created successfully.");
 
-        ConnectionFactory factory = this.getConnectionFactory(props, context);
-        LOG.debug("The ConnectionFactory was created successfully.");
+            ConnectionFactory factory = this.getConnectionFactory(props, context);
+            LOG.debug("The ConnectionFactory was created successfully.");
 
-        this.connection = this.createConnection(props, factory);
-        LOG.debug("The Connection was created successfully.");
+            this.connection = this.createConnection(props, factory);
+            LOG.debug("The Connection was created successfully.");
 
-        this.session = this.createSession(this.connection);
-        LOG.debug("The Session was created successfully.");
+            this.session = this.createSession(this.connection);
+            LOG.debug("The Session was created successfully.");
 
-        Topic topic = this.getOrCreateTopic(context, session);
-        LOG.debug("The Topic was created successfully.");
+            Topic topic = this.getOrCreateTopic(context, session);
+            LOG.debug("The Topic was created successfully.");
 
-        this.consumer = this.createConsumer(this.session, topic);
-        LOG.debug("The MessageConsumer was created successfully.");
+            this.consumer = this.createConsumer(this.session, topic);
+            LOG.debug("The MessageConsumer was created successfully.");
 
-        this.startConnection(this.connection);
-        LOG.debug("The Connection was started successfully.");
+            this.startConnection(this.connection);
+            LOG.debug("The Connection was started successfully.");
 
-        return context;
+        } catch (Exception e) {
+            printExceptions(this.closeAll(context));
+            throw new NjamsSdkRuntimeException("Unable to initialize", e);
+        }
     }
 
     /**
@@ -291,6 +285,7 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
      * this.onMessage(Message msg) is invoked.
      * @throws JMSException is thrown if the MessageConsumer can' be created.
      */
+    @SuppressWarnings("squid:S2095")
     private MessageConsumer createConsumer(Session sess, Topic topic) throws JMSException {
         MessageConsumer cons = sess.createConsumer(topic, this.messageSelector);
         cons.setMessageListener(this);
@@ -437,7 +432,8 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
     private Instruction getInstruction(Message message) {
         try {
             String instructionString = ((TextMessage) message).getText();
-            Instruction instruction = mapper.readValue(instructionString, Instruction.class);
+            Instruction instruction = mapper.readValue(instructionString, Instruction.class
+            );
             if (instruction.getRequest() != null) {
                 return instruction;
             }
@@ -484,7 +480,8 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
     }
 
     /**
-     * This method logs all JMS Exceptions and tries to reconnect the connection.
+     * This method logs all JMS Exceptions and tries to reconnect the
+     * connection.
      *
      * @param exception The jmsException to be logged.
      */
