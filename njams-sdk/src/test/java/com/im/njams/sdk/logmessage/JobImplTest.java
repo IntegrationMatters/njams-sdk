@@ -470,14 +470,13 @@ public class JobImplTest extends AbstractTest {
     }
 
     /**
-     * This method tests if a job throws an exception if someone tries to add an
-     * attribute without starting the job first.
+     * This method tests if a job can add an attribute without starting the job first.
      */
-    @Test(expected = NjamsSdkRuntimeException.class)
     public void testAddAttributeWithoutStart() {
         JobImpl job = createDefaultJob();
 
-        //This should throw an Exception
+        //This should work
         job.addAttribute("a", "b");
+        assertEquals("b", job.getAttribute("a"));
     }
 }

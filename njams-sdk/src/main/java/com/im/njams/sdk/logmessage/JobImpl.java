@@ -1092,7 +1092,7 @@ public class JobImpl implements Job {
     }
 
     /**
-     * This method is used to reduce the methods that put attributes in the
+     * This method is used to put attributes in the
      * attributes map.
      *
      * @param key the key to set
@@ -1100,10 +1100,6 @@ public class JobImpl implements Job {
      */
     @Override
     public void addAttribute(final String key, String value) {
-        if (hasStarted()) {
-            attributes.put(key, value);
-        } else {
-            throw new NjamsSdkRuntimeException("The method start() must be called before attributes can be added to the job!");
-        }
+        attributes.put(key, value);
     }
 }
