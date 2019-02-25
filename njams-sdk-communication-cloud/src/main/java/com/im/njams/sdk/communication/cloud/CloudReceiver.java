@@ -290,14 +290,16 @@ public class CloudReceiver extends AbstractReceiver {
             return;
         }
         
-        try{
-           instruction.setRequestParameter("Payload", getPayload(instruction.getRequestParameterByName("PayloadUrl")));    
-        }catch(Exception e){
-            LOG.warn("Error while retrieving payload from nJAMS Cloud {}", instruction.getRequest().getCommand());
-            Response response = new Response();
-            response.setResultCode(1);
-            response.setResultMessage("Error while retrieving payload from nJAMS Cloud.");
-            instruction.setResponse(response);
+        if(instruction.getRequestParameterByName("PayloadUrl") != null){   
+            try{
+               instruction.setRequestParameter("Payload", getPayload(instruction.getRequestParameterByName("PayloadUrl")));    
+            }catch(Exception e){
+                LOG.warn("Error while retrieving payload from nJAMS Cloud {}", instruction.getRequest().getCommand());
+                Response response = new Response();
+                response.setResultCode(1);
+                response.setResultMessage("Error while retrieving payload from nJAMS Cloud.");
+                instruction.setResponse(response);
+            }
         }
          
  
