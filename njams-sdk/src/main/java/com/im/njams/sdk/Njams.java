@@ -54,6 +54,7 @@ import com.im.njams.sdk.model.svg.ProcessDiagramFactory;
 import com.im.njams.sdk.serializer.Serializer;
 import com.im.njams.sdk.serializer.StringSerializer;
 import com.im.njams.sdk.settings.Settings;
+import com.im.njams.sdk.utils.StringUtils;
 import java.net.URL;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -252,7 +253,7 @@ public class Njams implements InstructionListener {
     public String getSdkVersion() {
         return versions.get(SDK_VERSION_KEY);
     }
-    
+
     /**
      * @return the globalVariables
      */
@@ -377,8 +378,7 @@ public class Njams implements InstructionListener {
                 receiver.stop();
             }
             started = false;
-        }
-        else{
+        } else {
             throw new NjamsSdkRuntimeException(NOT_STARTED_EXCEPTION_MESSAGE);
         }
         return !isStarted();
@@ -705,18 +705,18 @@ public class Njams implements InstructionListener {
             instruction.setResponse(response);
             LOG.debug("Sent ProjectMessage requested via Instruction via Njams");
         } else if (instruction.getRequest().getCommand().equalsIgnoreCase(Command.REPLAY.commandString())) {
+            final Response response = new Response();
             if (replayHandler != null) {
                 try {
-                    ReplayResponse response = replayHandler.replay(new ReplayRequest(instruction));
-                    response.addParametersToInstruction(instruction);
+                    ReplayResponse replayResponse = replayHandler.replay(new ReplayRequest(instruction));
+                    replayResponse.addParametersToInstruction(instruction);
                 } catch (final Exception ex) {
-                    final Response response = new Response();
                     response.setResultCode(2);
                     response.setResultMessage("Error while executing replay: " + ex.getMessage());
+                    instruction.setResponse(response);
                     instruction.setResponseParameter("Exception", String.valueOf(ex));
                 }
             } else {
-                final Response response = new Response();
                 response.setResultCode(1);
                 response.setResultMessage("Client cannot replay processes. No replay handler is present.");
                 instruction.setResponse(response);
