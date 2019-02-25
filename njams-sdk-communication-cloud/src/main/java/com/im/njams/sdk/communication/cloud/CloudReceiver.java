@@ -19,9 +19,12 @@ package com.im.njams.sdk.communication.cloud;
 import com.amazonaws.services.iot.client.AWSIotMessage;
 import com.amazonaws.services.iot.client.AWSIotMqttClient;
 import com.amazonaws.services.iot.client.AWSIotQos;
+import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
+import com.faizsiegeln.njams.messageformat.v4.command.Response;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.communication.AbstractReceiver;
 import com.im.njams.sdk.communication.ConnectionStatus;
+import com.im.njams.sdk.communication.InstructionListener;
 import com.im.njams.sdk.communication.cloud.CertificateUtil.KeyStorePasswordPair;
 import com.im.njams.sdk.utils.JsonUtils;
 import java.io.BufferedReader;
@@ -210,6 +213,30 @@ public class CloudReceiver extends AbstractReceiver {
     public String getPrivateKeyFile() {
         return privateKeyFile;
     }
+    
+    protected String getPayload(String presignedUrl) throws Exception{
+        URL url = new URL(presignedUrl);
+        HttpsURLConnection connection = (HttpsURLConnection) url.openConnection();
+        connection.setRequestMethod("GET");
+      
+        if(connection.getResponseCode() != 200){
+            throw new NjamsSdkRuntimeException("Error while retrieving payload");
+        }
+
+        BufferedReader in = new BufferedReader(new InputStreamReader(connection.getInputStream()));
+
+        String inputLine;
+        StringBuffer response = new StringBuffer();
+
+        while ((inputLine = in.readLine()) != null) {
+            response.append(inputLine);
+        }
+        in.close();
+        
+        return response.toString();
+    }
+    
+    
     @Override
     public void connect() {
         if (isConnected()) {
@@ -243,4 +270,53 @@ public class CloudReceiver extends AbstractReceiver {
             throw new NjamsSdkRuntimeException("Unable to initialize", e);
         }
     }
+    
+    @Override
+    public void onInstruction(Instruction instruction) {
+       if (njams == null) {
+            LOG.error("Njams should not be null");
+            return;
+        }
+        if (instruction == null) {
+            LOG.error("Instruction should not be null");
+            return;
+        }
+        if (instruction.getRequest() == null || instruction.getRequest().getCommand() == null) {
+            LOG.error("Instruction should have a valid request with a command");
+            Response response = new Response();
+            response.setResultCode(1);
+            response.setResultMessage("Instruction should have a valid request with a command");
+            instruction.setResponse(response);
+            return;
+        }
+        
+        try{
+           instruction.setRequestParameter("Payload", getPayload(instruction.getRequestParameterByName("PayloadUrl")));    
+        }catch(Exception e){
+            LOG.warn("Error while retrieving payload from nJAMS Cloud {}", instruction.getRequest().getCommand());
+            Response response = new Response();
+            response.setResultCode(1);
+            response.setResultMessage("Error while retrieving payload from nJAMS Cloud.");
+            instruction.setResponse(response);
+        }
+         
+ 
+        for (InstructionListener listener : njams.getInstructionListeners()) {
+            try {
+                listener.onInstruction(instruction);
+            } catch (Exception e) {
+                LOG.error("Error in InstructionListener {}", listener.getClass().getSimpleName(), e);
+            }
+        }
+        //If response is empty, no InstructionListener found. Set default Response indicating this.
+        if (instruction.getResponse() == null) {
+            LOG.warn("No InstructionListener for {} found", instruction.getRequest().getCommand());
+            Response response = new Response();
+            response.setResultCode(1);
+            response.setResultMessage("No InstructionListener for " + instruction.getRequest().getCommand() + " found");
+            instruction.setResponse(response);
+        }  
+    }
+    
+    
 }

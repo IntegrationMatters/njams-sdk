@@ -16,13 +16,12 @@
  */
 package com.im.njams.sdk.communication.cloud;
 
-import org.slf4j.LoggerFactory;
-
 import com.amazonaws.services.iot.client.AWSIotMessage;
 import com.amazonaws.services.iot.client.AWSIotQos;
 import com.amazonaws.services.iot.client.AWSIotTopic;
 import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
 import com.im.njams.sdk.utils.JsonUtils;
+import org.slf4j.LoggerFactory;
 
 /**
  *
@@ -88,6 +87,10 @@ public class CloudTopic extends AWSIotTopic {
 
     public void reply(Instruction instruction, String uuid) {
         try {
+            // clear Payload to avoid messages exceeding limit
+            instruction.setRequestParameter("Payload", "");
+            instruction.setRequestParameter("PayloadUrl", "");
+            
             String response = JsonUtils.serialize(instruction);
             String replyTopic = "/" + receiver.getInstanceId() + "/replies/";
             AWSIotMessage replyMessage = new AWSIotMessage(replyTopic, AWSIotQos.QOS1);
