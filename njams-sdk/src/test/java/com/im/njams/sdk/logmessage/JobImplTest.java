@@ -171,43 +171,6 @@ public class JobImplTest extends AbstractTest {
     }
 
     /**
-     * This method creates an Activity and sets static data to all the fields
-     * that are needed for the MessageFormat's Activity.
-     *
-     * @param job the job on which the activity is created.
-     */
-    private void createFullyFilledActivity(JobImpl job) {
-        ActivityImpl act = (ActivityImpl) job.createActivity("id").build();
-        act.setInput("SomeInput");
-        act.setOutput("SomeOutput");
-        act.setMaxIterations(5L);
-        act.setParentInstanceId("SomeParent");
-        act.setEventStatus(2);
-        act.setEventMessage("SomeEventMessage");
-        act.setEventCode("SomeEventCode");
-        act.setEventPayload("SomeEventPayload");
-        act.setStackTrace("SomeStackTrace");
-        act.setStartData("SomeStartData");
-        act.addPredecessor("SomeKey", "SomeValue");
-        //Set a SubProcess
-        SubProcess subProcess = new SubProcess();
-        subProcess.setLogId("SomeSubProcessLogId");
-        subProcess.setName("SomeSubProcessName");
-        subProcess.setPath("SomeSubProcessPath");
-        act.setSubProcess(subProcess);
-        //Set one Predecessor
-        Predecessor pre = new Predecessor();
-        pre.setFromInstanceId("SomePredecessorInstanceId");
-        pre.setModelId("SomeModelId");
-        act.addPredecessor("SomeModelId", "SomeTransitionModelId");
-        //Set a set of attributes (with one attribute) and add one more with addAttribute().
-        HashMap<String, String> hashMap = new HashMap<>();
-        hashMap.put("SomeActAttribute1", "SomeValueForAttribute1");
-        act.setAttributes(hashMap);
-        act.addAttribute("SomeActAttribute2", "SomeValueForAttribute2");
-    }
-
-    /**
      * This method fills some of the jobs fields.
      *
      * @param job the job whose fields are filled with static data.
@@ -470,8 +433,10 @@ public class JobImplTest extends AbstractTest {
     }
 
     /**
-     * This method tests if a job can add an attribute without starting the job first.
+     * This method tests if a job can add an attribute without starting the job
+     * first.
      */
+    @Test
     public void testAddAttributeWithoutStart() {
         JobImpl job = createDefaultJob();
 

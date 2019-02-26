@@ -16,13 +16,20 @@
  */
 package com.im.njams.sdk;
 
+import com.faizsiegeln.njams.messageformat.v4.common.SubProcess;
+import com.faizsiegeln.njams.messageformat.v4.logmessage.Predecessor;
 import com.im.njams.sdk.common.Path;
+import com.im.njams.sdk.communication.CommunicationFactory;
+import com.im.njams.sdk.communication.TestSender;
 import com.im.njams.sdk.logmessage.Activity;
+import com.im.njams.sdk.logmessage.ActivityImpl;
 import com.im.njams.sdk.logmessage.Job;
 import com.im.njams.sdk.logmessage.JobImpl;
 import com.im.njams.sdk.model.ActivityModel;
 import com.im.njams.sdk.model.ProcessModel;
 import com.im.njams.sdk.settings.Settings;
+import java.util.HashMap;
+import java.util.Properties;
 
 /**
  * This class is a helper class for all test classes that need some jobs or activities.
@@ -48,14 +55,20 @@ public abstract class AbstractTest {
      * Empty Settings were set.
      */
     public AbstractTest(){
-        this(new Settings());
+        Settings settings = new Settings();
+        Properties props = new Properties();
+        props.put(CommunicationFactory.COMMUNICATION, TestSender.NAME);
+        settings.setProperties(props);
+        
+        createNjams(settings);
     }
+    
     /**
-     * This constructor creates the njams instance with path SDK4-TEST-PROCESSES.
-     * Settings can be set, if a JMS connection, etc. is necessary.
-     * @param settings the Settings for JMS, JNDI, etc.
+     * This method is designed to create and start a new njams instance with
+     * the given settings.
+     * @param settings the settings to set to the njams instance.
      */
-    public AbstractTest(Settings settings){
+    private void createNjams(Settings settings){
         Path clientPath = new Path("SDK4", "TEST");
 
         njams = new Njams(clientPath, "TEST", "sdk4", settings);
@@ -64,6 +77,17 @@ public abstract class AbstractTest {
         
         njams.start();
     }
+    
+    /**
+     * This constructor creates the njams instance with path SDK4-TEST-PROCESSES.
+     * Settings can be set, if a JMS connection, etc. is necessary.
+     * @param settings the Settings for JMS, JNDI, etc.
+     */
+    public AbstractTest(Settings settings){
+        createNjams(settings);
+    }
+    
+    
 
     /**
      * This method creates(!) a job for a default ProcessModel.
@@ -94,5 +118,43 @@ public abstract class AbstractTest {
             model = process.createActivity(ACTIVITYMODELID, "Act", null);
         }
         return model;
+    }
+    
+    /**
+     * This method creates an Activity and sets static data to all the fields
+     * that are needed for the MessageFormat's Activity.
+     *
+     * @param job the job on which the activity is created.
+     */
+    protected ActivityImpl createFullyFilledActivity(JobImpl job) {
+        ActivityImpl act = (ActivityImpl) job.createActivity("id").build();
+        act.setInput("SomeInput");
+        act.setOutput("SomeOutput");
+        act.setMaxIterations(5L);
+        act.setParentInstanceId("SomeParent");
+        act.setEventStatus(2);
+        act.setEventMessage("SomeEventMessage");
+        act.setEventCode("SomeEventCode");
+        act.setEventPayload("SomeEventPayload");
+        act.setStackTrace("SomeStackTrace");
+        act.setStartData("SomeStartData");
+        act.addPredecessor("SomeKey", "SomeValue");
+        //Set a SubProcess
+        SubProcess subProcess = new SubProcess();
+        subProcess.setLogId("SomeSubProcessLogId");
+        subProcess.setName("SomeSubProcessName");
+        subProcess.setPath("SomeSubProcessPath");
+        act.setSubProcess(subProcess);
+        //Set one Predecessor
+        Predecessor pre = new Predecessor();
+        pre.setFromInstanceId("SomePredecessorInstanceId");
+        pre.setModelId("SomeModelId");
+        act.addPredecessor("SomeModelId", "SomeTransitionModelId");
+        //Set a set of attributes (with one attribute) and add one more with addAttribute().
+        HashMap<String, String> hashMap = new HashMap<>();
+        hashMap.put("SomeActAttribute1", "SomeValueForAttribute1");
+        act.setAttributes(hashMap);
+        act.addAttribute("SomeActAttribute2", "SomeValueForAttribute2");
+        return act;
     }
 }

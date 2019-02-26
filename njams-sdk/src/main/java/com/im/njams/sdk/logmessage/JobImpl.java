@@ -58,7 +58,7 @@ import java.util.stream.Collectors;
  */
 public class JobImpl implements Job {
 
-    private static final org.slf4j.Logger LOG = LoggerFactory.getLogger(Job.class);
+    private static final org.slf4j.Logger LOG = LoggerFactory.getLogger(JobImpl.class);
 
     private final ProcessModel processModel;
 
