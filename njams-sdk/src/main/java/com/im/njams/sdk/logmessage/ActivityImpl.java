@@ -529,26 +529,30 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
 
     /**
      * This method masks the attributes map and calls its super method.
-     *
+     * Furthermore it adds the masked attributes to the jobs attributes aswell.
+     * 
      * @param attributes the attributes to mask and set to the Activity.
      */
     @Override
     public void setAttributes(Map<String, String> attributes) {
         Map<String, String> maskedMap = new HashMap<>();
         attributes.keySet().forEach(key -> maskedMap.put(key, DataMasking.maskString(attributes.get(key))));
+        maskedMap.forEach((key, value) -> job.addAttribute(key, value));
         super.setAttributes(maskedMap);
     }
 
     /**
      * This method masks the attributes value and calls its super method.
+     * Furthermore it adds the masked attribute to the jobs attributes aswell.
      *
      * @param key the key for the activities attribute map
      * @param value the value to mask and set to the Activity.
      */
     @Override
     public void addAttribute(String key, String value) {
-        super.addAttribute(key, DataMasking.maskString(value));
-        job.addAttribute(key, DataMasking.maskString(value));
+        String maskedString = DataMasking.maskString(value);
+        super.addAttribute(key, maskedString);
+        job.addAttribute(key, maskedString);
     }
     
     /**
