@@ -154,6 +154,7 @@ public class AbstractReceiverTest {
 
         assertEquals(1, inst.getResponse().getResultCode());
         assertEquals("No InstructionListener for " + inst.getRequest().getCommand() + " found", inst.getResponse().getResultMessage());
+        assertEquals("true", inst.getRequestParameterByName("Extended"));
     }
 
     private Instruction mockUp(List<InstructionListener> list) {
@@ -231,6 +232,7 @@ public class AbstractReceiverTest {
 
         assertEquals(0, inst.getResponse().getResultCode());
         assertEquals("Good", inst.getResponse().getResultMessage());
+        assertEquals("true", inst.getRequestParameterByName("Extended"));
     }
 
     @Test
@@ -246,11 +248,11 @@ public class AbstractReceiverTest {
      * handles the command correctly.
      */
     private void testBadResultWithInstructions(List<InstructionListener> list) {
-
         Instruction inst = mockUp(list);
 
         assertEquals(1, inst.getResponse().getResultCode());
         assertEquals("Bad", inst.getResponse().getResultMessage());
+        assertEquals("true", inst.getRequestParameterByName("Extended"));
     }
 
     /**
@@ -265,6 +267,25 @@ public class AbstractReceiverTest {
         list.add(new RightInstructionListener());
         list.add(new WrongInstructionListener());
         testBadResultWithInstructions(list);
+    }
+    
+    @Test
+    public void testOnInstructionExtendedRequestException() {
+        AbstractReceiverImpl impl = new AbstractReceiverImpl();
+        Njams njams = mock(Njams.class);
+        impl.setNjams(njams);
+        when(njams.getInstructionListeners()).thenReturn(new ArrayList<>());
+        Instruction inst = new Instruction();
+        Request req = new Request();
+        req.setCommand(TESTCOMMAND);
+        req.getParameters().put("isException", "true");
+        inst.setRequest(req);
+        
+        impl.onInstruction(inst);
+
+        assertEquals(2, inst.getResponse().getResultCode());
+        assertEquals("Something didn't work!", inst.getResponse().getResultMessage());
+        assertEquals("true", inst.getRequestParameterByName("isException"));
     }
 
     //reconnect tests
@@ -525,6 +546,19 @@ public class AbstractReceiverTest {
         //This method should be tested by the real subclass of the AbstractReceiver
         @Override
         public void init(Properties properties) {
+        }
+
+        @Override
+        protected Response extendRequest(Request req) {
+            if (req.getParameters().containsKey("isException")) {
+                Response resp = new Response();
+                resp.setResultCode(2);
+                resp.setResultMessage("Something didn't work!");
+                return resp;
+            }
+            req.getParameters().put("Extended", "true");
+
+            return null;
         }
 
         //This method should be tested by the real subclass of the AbstractReceiver

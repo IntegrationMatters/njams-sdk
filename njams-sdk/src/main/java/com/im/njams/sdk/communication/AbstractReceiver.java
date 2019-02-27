@@ -20,6 +20,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
+import com.faizsiegeln.njams.messageformat.v4.command.Request;
 import com.faizsiegeln.njams.messageformat.v4.command.Response;
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
@@ -38,7 +39,7 @@ public abstract class AbstractReceiver implements Receiver {
     private static final Logger LOG = LoggerFactory.getLogger(AbstractReceiver.class);
     //The time it needs before a new reconnection is tried after an exception throw.
     protected static final long RECONNECT_INTERVAL = 1000;
-    
+
     //This AtomicInteger is for debugging.
     final AtomicInteger verifyingCounter = new AtomicInteger();
 
@@ -86,21 +87,44 @@ public abstract class AbstractReceiver implements Receiver {
             instruction.setResponse(response);
             return;
         }
-        for (InstructionListener listener : njams.getInstructionListeners()) {
-            try {
-                listener.onInstruction(instruction);
-            } catch (Exception e) {
-                LOG.error("Error in InstructionListener {}", listener.getClass().getSimpleName(), e);
+        //Extend your request here. If something doesn't work as expected,
+        //you can return a response that will be sent back to the server without further processing.
+        Response exceptionResponse = this.extendRequest(instruction.getRequest());
+        if (exceptionResponse != null) {
+            //Set the exception response
+            instruction.setResponse(exceptionResponse);
+        } else {
+            for (InstructionListener listener : njams.getInstructionListeners()) {
+                try {
+                    listener.onInstruction(instruction);
+                } catch (Exception e) {
+                    LOG.error("Error in InstructionListener {}", listener.getClass().getSimpleName(), e);
+                }
+            }
+            //If response is empty, no InstructionListener found. Set default Response indicating this.
+            if (instruction.getResponse() == null) {
+                LOG.warn("No InstructionListener for {} found", instruction.getRequest().getCommand());
+                Response response = new Response();
+                response.setResultCode(1);
+                response.setResultMessage("No InstructionListener for " + instruction.getRequest().getCommand() + " found");
+                instruction.setResponse(response);
             }
         }
-        //If response is empty, no InstructionListener found. Set default Response indicating this.
-        if (instruction.getResponse() == null) {
-            LOG.warn("No InstructionListener for {} found", instruction.getRequest().getCommand());
-            Response response = new Response();
-            response.setResultCode(1);
-            response.setResultMessage("No InstructionListener for " + instruction.getRequest().getCommand() + " found");
-            instruction.setResponse(response);
-        }
+    }
+
+    /**
+     * This method is for extending the incoming request if it is needed for the
+     * concrete receiver.
+     *
+     * @param request request to extend
+     * @return A response that will be sent back without further processing
+     * of the request. If null is returned (as default), the request
+     * has been extended successfully and can be processed normally.
+     */
+    protected Response extendRequest(Request request) {
+        //Doesn't extend the request as default.
+        //This can be used by the subclasses to alter the request.
+        return null;
     }
 
     /**
@@ -114,8 +138,9 @@ public abstract class AbstractReceiver implements Receiver {
     /**
      * This method tries to establish the connection over and over as long as it
      * not connected. If {@link #connect() connect} throws an exception, the
-     * reconnection threads sleeps for {@link #RECONNECT_INTERVAL RECONNECT_INTERVAL} second before trying again to
-     * reconnect.
+     * reconnection threads sleeps for
+     * {@link #RECONNECT_INTERVAL RECONNECT_INTERVAL} second before trying again
+     * to reconnect.
      */
     @SuppressWarnings({"squid:S2276", "squid:S2142"})
     public synchronized void reconnect() {
@@ -124,7 +149,7 @@ public abstract class AbstractReceiver implements Receiver {
         if (this.isConnecting() || this.isConnected()) {
             doReconnect = false;
         }
-        if(got > 1){
+        if (got > 1) {
             //This is just for debugging.
             LOG.debug("There are to many reconnections at the same time! There are {} method invocations.", got);
         }
