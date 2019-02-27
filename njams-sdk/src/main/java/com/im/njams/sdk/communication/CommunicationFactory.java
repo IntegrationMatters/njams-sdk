@@ -27,7 +27,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.im.njams.sdk.Njams;
-import com.im.njams.sdk.configuration.ConfigurationProvider;
 import com.im.njams.sdk.settings.Settings;
 import com.im.njams.sdk.settings.encoding.Transformer;
 
@@ -36,7 +35,7 @@ import com.im.njams.sdk.settings.encoding.Transformer;
  *
  * @author pnientiedt
  */
-public class CommunicationFactory {
+public class CommunicationFactory{
 
     /**
      * Property key for communication properties which specifies which
@@ -91,10 +90,10 @@ public class CommunicationFactory {
             }
             String available = StreamSupport
                     .stream(Spliterators.spliteratorUnknownSize(
-                            ServiceLoader.load(ConfigurationProvider.class).iterator(),
+                            ServiceLoader.load(Receiver.class).iterator(),
                             Spliterator.ORDERED), false)
                     .map(cp -> cp.getName()).collect(Collectors.joining(", "));
-            throw new UnsupportedOperationException("Unable to find sender implementation for " + requiredReceiverName
+            throw new UnsupportedOperationException("Unable to find receiver implementation for " + requiredReceiverName
                     + ", available are: " + available);
         } else {
             throw new UnsupportedOperationException("Unable to find " + COMMUNICATION + " in settings properties");
@@ -128,7 +127,7 @@ public class CommunicationFactory {
             }
             String available = StreamSupport
                     .stream(Spliterators.spliteratorUnknownSize(
-                            ServiceLoader.load(ConfigurationProvider.class).iterator(),
+                            ServiceLoader.load(Sender.class).iterator(),
                             Spliterator.ORDERED), false)
                     .map(cp -> cp.getName()).collect(Collectors.joining(", "));
             throw new UnsupportedOperationException(

@@ -34,13 +34,13 @@ import com.im.njams.sdk.settings.encoding.Transformer;
 /**
  * This class enforces the maxQueueLength setting. It uses the
  * maxQueueLengthHandler to enforce the discardPolicy, if the maxQueueLength is
- * exceeded All message sending is funneled through this class, which creates
+ * exceeded all message sending is funneled through this class, which creates
  * and uses a pool of senders to multi-thread message sending
  *
  * @author hsiegeln
  * @version 4.0.4
  */
-public class NjamsSender implements Sender, SenderFactory {
+public class NjamsSender implements Sender {
 
     //The logger to log messages.
     private static final org.slf4j.Logger LOG = LoggerFactory.getLogger(NjamsSender.class);
@@ -60,9 +60,6 @@ public class NjamsSender implements Sender, SenderFactory {
     //The name for the executor threads.
     private final String name;
 
-    //The communicationFactory where to get new senders from.
-    private CommunicationFactory communicationFactory;
-
     /**
      * This constructor initializes a NjamsSender. It safes the njams instance,
      * the settings and gets the name for the executor threads from the settings
@@ -75,7 +72,7 @@ public class NjamsSender implements Sender, SenderFactory {
         this.njams = njams;
         this.settings = settings;
         this.name = Transformer.decode(settings.getProperties().getProperty(CommunicationFactory.COMMUNICATION));
-        init(Transformer.decode(settings.getProperties()));
+        this.init(Transformer.decode(settings.getProperties()));
     }
 
     /**
@@ -87,7 +84,7 @@ public class NjamsSender implements Sender, SenderFactory {
      */
     @Override
     public void init(Properties properties) {
-        this.communicationFactory = new CommunicationFactory(njams, settings);
+        CommunicationFactory communicationFactory = new CommunicationFactory(njams, settings);
         int minQueueLength = Integer.parseInt(properties.getProperty(Settings.PROPERTY_MIN_QUEUE_LENGTH, "1"));
         int maxQueueLength = Integer.parseInt(properties.getProperty(Settings.PROPERTY_MAX_QUEUE_LENGTH, "8"));
         long idleTime = Long.parseLong(properties.getProperty(Settings.PROPERTY_SENDER_THREAD_IDLE_TIME, "10000"));
@@ -96,7 +93,7 @@ public class NjamsSender implements Sender, SenderFactory {
         this.executor = new ThreadPoolExecutor(minQueueLength, maxQueueLength, idleTime, TimeUnit.MILLISECONDS,
                 new ArrayBlockingQueue<>(maxQueueLength), threadFactory,
                 new MaxQueueLengthHandler(properties));
-        this.senderPool = new SenderPool(this, properties);
+        this.senderPool = new SenderPool(communicationFactory, properties);
     }
 
     /**
@@ -160,19 +157,10 @@ public class NjamsSender implements Sender, SenderFactory {
     public String getName() {
         return name;
     }
-
-    /**
-     * This method is called by the SenderPool, if a new sender is required.
-     *
-     * @return The newly created sender
-     */
-    @Override
-    public Sender getSenderImpl() {
-        return communicationFactory.getSender();
-    }
     
     /**
      * This method return the ThreadPoolExecutor
+     * 
      * @return the ThreadPoolExecutor
      */
     ThreadPoolExecutor getExecutor(){

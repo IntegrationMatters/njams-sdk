@@ -30,17 +30,17 @@ import com.im.njams.sdk.settings.Settings;
 public class SenderPool extends ObjectPool<Sender> {
 
     private Properties properties;
-    private SenderFactory senderFactory;
+    private CommunicationFactory factory;
 
-    public SenderPool(SenderFactory senderFactory, Properties properties) {
+    public SenderPool(CommunicationFactory factory, Properties properties) {
         super(Integer.parseInt(properties.getProperty(Settings.PROPERTY_MAX_QUEUE_LENGTH, "8")));
         this.properties = properties;
-        this.senderFactory = senderFactory;
+        this.factory = factory;
     }
 
     @Override
     protected Sender create() {
-        Sender sender = senderFactory.getSenderImpl();
+        Sender sender = factory.getSender();
         //        sender.init(properties);
         return sender;
     }
@@ -56,8 +56,8 @@ public class SenderPool extends ObjectPool<Sender> {
         sender.close();
     }
 
-    public void setSenderFactory(SenderFactory senderFactory) {
-        this.senderFactory = senderFactory;
+    public void setSenderFactory(CommunicationFactory senderFactory) {
+        this.factory = senderFactory;
     }
 
 }

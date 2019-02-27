@@ -45,11 +45,11 @@ public class StringUtils {
      * <p>Checks if a String contains any character different from a whitespace.</p>
      *
      * <pre>
-     * StringUtils.isBlank(null)      = false
-     * StringUtils.isBlank("")        = false
-     * StringUtils.isBlank(" ")       = false
-     * StringUtils.isBlank("bob")     = true
-     * StringUtils.isBlank("  bob  ") = true
+     * StringUtils.isNotBlank(null)      = false
+     * StringUtils.isNotBlank("")        = false
+     * StringUtils.isNotBlank(" ")       = false
+     * StringUtils.isNotBlank("bob")     = true
+     * StringUtils.isNotBlank("  bob  ") = true
      * </pre>
      *
      * @param str  the String to check, may be null
