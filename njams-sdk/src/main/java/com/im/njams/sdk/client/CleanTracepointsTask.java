@@ -81,7 +81,7 @@ public class CleanTracepointsTask extends TimerTask {
             throw new NjamsSdkRuntimeException("Stop: Njams clientPath is null");
         }
         njamsInstances.remove(njams.getClientPath().toString());
-        if (njamsInstances.size() <= 0) {
+        if (njamsInstances.size() <= 0 && timer != null) {
             timer.cancel();
             timer = null;
         }
