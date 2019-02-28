@@ -49,7 +49,6 @@ import com.im.njams.sdk.model.ActivityModel;
 import com.im.njams.sdk.model.GroupModel;
 import com.im.njams.sdk.model.ProcessModel;
 import com.im.njams.sdk.model.SubProcessActivityModel;
-import java.util.stream.Collectors;
 
 /**
  * This represents an instance of a process/flow etc in engine to monitor.
@@ -407,7 +406,6 @@ public class JobImpl implements Job {
             logMessage.setSentAt(lastFlush);
             processModel.getNjams().getSender().send(logMessage);
             // clean up jobImpl
-            attributes.clear();
             pluginDataItems.clear();
             calculateEstimatedSize();
         }

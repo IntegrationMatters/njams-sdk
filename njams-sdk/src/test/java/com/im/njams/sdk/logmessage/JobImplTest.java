@@ -19,8 +19,6 @@ package com.im.njams.sdk.logmessage;
 import com.faizsiegeln.njams.messageformat.v4.common.CommonMessage;
 import com.faizsiegeln.njams.messageformat.v4.logmessage.ActivityStatus;
 import com.faizsiegeln.njams.messageformat.v4.logmessage.LogMessage;
-import com.faizsiegeln.njams.messageformat.v4.common.SubProcess;
-import com.faizsiegeln.njams.messageformat.v4.logmessage.Predecessor;
 import com.im.njams.sdk.AbstractTest;
 
 import com.im.njams.sdk.Njams;
@@ -35,7 +33,6 @@ import com.im.njams.sdk.utils.StringUtils;
 import java.time.LocalDateTime;
 
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
@@ -442,6 +439,16 @@ public class JobImplTest extends AbstractTest {
 
         //This should work
         job.addAttribute("a", "b");
+        assertEquals("b", job.getAttribute("a"));
+    }
+    
+    @Test
+    public void testAddAttributeFlushAndGetAttribute(){
+        JobImpl job = createDefaultJob();
+        
+        job.addAttribute("a", "b");
+        job.flush();
+        assertFalse(job.getAttributes().isEmpty());
         assertEquals("b", job.getAttribute("a"));
     }
 }
