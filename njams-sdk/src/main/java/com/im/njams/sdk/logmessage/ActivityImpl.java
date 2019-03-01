@@ -28,7 +28,6 @@ import com.im.njams.sdk.model.TransitionModel;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 
@@ -58,6 +57,8 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
     private boolean inputProcessecd = false;
     private boolean outputProcessed = false;
 
+    private final FlushMonitor flushMonitor;
+
     /**
      * Create new ActivityImpl for a given Job
      *
@@ -66,6 +67,7 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
     public ActivityImpl(JobImpl job) {
         this.job = job;
         job.addToEstimatedSize(estimatedSize);
+        flushMonitor = job.getFlushMonitor();
     }
 
     /**
@@ -122,7 +124,7 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
         TransitionModel transitionModel = toActivityModel.getIncomingTransitionFrom(this.getModelId());
         if (transitionModel == null) {
             throw new NjamsSdkRuntimeException("No transition from "
-                    + getModelId() + " to " + toActivityModel.getId() + " fround!");
+                    + getModelId() + " to " + toActivityModel.getId() + " found!");
         }
         end();
         //check if a activity with the same modelId and the same iteration and parent already exists.
@@ -376,10 +378,9 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
     /**
      * Sets the EventStatus for this job. An EventStatus can be 0 for INFO 1 for
      * SUCCESS 2 for WARNING 3 for ERROR or null for no eventStatus. Anything
-     * else will change nothing. The status of the
-     * corresponding job to this activity will be set to SUCCESS, WARNING or
-     * ERROR likewise. For INFO only the eventStatus will be set, but the job
-     * status will stay the same.
+     * else will change nothing. The status of the corresponding job to this
+     * activity will be set to SUCCESS, WARNING or ERROR likewise. For INFO only
+     * the eventStatus will be set, but the job status will stay the same.
      *
      * @param eventStatus eventStatus to set.
      */
@@ -427,10 +428,8 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
      */
     @Override
     public void processStartData(Object startData) {
-        if (job.isRecording()) {
-            setStartData(job.getProcessModel().getNjams().serialize(startData));
-            job.addAttribute("$njams_recorded", "true");
-        }
+        setStartData(job.getProcessModel().getNjams().serialize(startData));
+        flushMonitor.addAttributeToActivity("$njams_recorded", "true", this);
     }
 
     /**
@@ -530,15 +529,16 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
     /**
      * This method masks the attributes map and calls its super method.
      * Furthermore it adds the masked attributes to the jobs attributes aswell.
-     * 
+     *
      * @param attributes the attributes to mask and set to the Activity.
      */
     @Override
     public void setAttributes(Map<String, String> attributes) {
-        Map<String, String> maskedMap = new HashMap<>();
-        attributes.keySet().forEach(key -> maskedMap.put(key, DataMasking.maskString(attributes.get(key))));
-        maskedMap.forEach((key, value) -> job.addAttribute(key, value));
-        super.setAttributes(maskedMap);
+        flushMonitor.addAttributesToActivity(attributes, this);
+    }
+
+    void synchronizedSetAttributes(Map<String, String> attributes) {
+        super.setAttributes(attributes);
     }
 
     /**
@@ -550,15 +550,17 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
      */
     @Override
     public void addAttribute(String key, String value) {
-        String maskedString = DataMasking.maskString(value);
-        super.addAttribute(key, maskedString);
-        job.addAttribute(key, maskedString);
+        flushMonitor.addAttributeToActivity(key, value, this);
     }
-    
+
+    void synchronizedAddAttribute(final String key, String value) {
+        super.addAttribute(key, value);
+    }
+
     /**
-     * This method returns the attributes of this activity as an unmodifiable map.
-     * Use setAttributes or addAttribute to modify the Map.
-     * 
+     * This method returns the attributes of this activity as an unmodifiable
+     * map. Use setAttributes or addAttribute to modify the Map.
+     *
      * @return Unmodifiable map of attributes of this activity.
      */
     @Override

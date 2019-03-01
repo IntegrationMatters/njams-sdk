@@ -49,6 +49,9 @@ import com.im.njams.sdk.model.ActivityModel;
 import com.im.njams.sdk.model.GroupModel;
 import com.im.njams.sdk.model.ProcessModel;
 import com.im.njams.sdk.model.SubProcessActivityModel;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
  * This represents an instance of a process/flow etc in engine to monitor.
@@ -85,7 +88,7 @@ public class JobImpl implements Job {
     /*
      * job level attributes
      */
-    private final Map<String, String> attributes;
+    private final Map<String, String> attributes = new HashMap<>();
 
     /*
      * Plugin data items
@@ -142,6 +145,8 @@ public class JobImpl implements Job {
 
     private LocalDateTime businessStart;
 
+    private final FlushMonitor flushMonitor;
+
     /**
      * Create a job with a givenModelId, a jobId and a logId
      *
@@ -150,6 +155,7 @@ public class JobImpl implements Job {
      * @param logId of Job to create
      */
     public JobImpl(ProcessModel processModel, String jobId, String logId) {
+        flushMonitor = new FlushMonitor(this);
         this.jobId = jobId;
         this.logId = logId;
         correlationLogId = logId;
@@ -158,7 +164,6 @@ public class JobImpl implements Job {
         sequenceCounter = new AtomicInteger();
         flushCounter = new AtomicInteger();
         lastFlush = DateTimeUtility.now();
-        attributes = new HashMap<>();
         pluginDataItems = new ArrayList<>();
         initFromConfiguration();
         //It is used as the default startTime, if no other startTime will be set.
@@ -392,22 +397,28 @@ public class JobImpl implements Job {
      * and when the method end() is called. It flushes a logMessage to the
      * server if all the preconditions are fulfilled.
      */
-    public synchronized void flush() {
-        boolean suppressed = mustBeSuppressed();
-        boolean started = this.hasStarted();
-        if (!suppressed) {
-            if (!started) {
-                LOG.warn("The job with logId: {} will be flushed, but hasn't started yet.", logId);
+    public void flush() {
+        Lock writeLock = flushMonitor.getWriteLock();
+        writeLock.lock();
+        try {
+            boolean suppressed = mustBeSuppressed();
+            boolean started = this.hasStarted();
+            if (!suppressed) {
+                if (!started) {
+                    LOG.warn("The job with logId: {} will be flushed, but hasn't started yet.", logId);
+                }
+                flushCounter.incrementAndGet();
+                lastFlush = DateTimeUtility.now();
+                LogMessage logMessage = createLogMessage(this);
+                addToLogMessageAndCleanup(logMessage);
+                logMessage.setSentAt(lastFlush);
+                processModel.getNjams().getSender().send(logMessage);
+                // clean up jobImpl
+                pluginDataItems.clear();
+                calculateEstimatedSize();
             }
-            flushCounter.incrementAndGet();
-            lastFlush = DateTimeUtility.now();
-            LogMessage logMessage = createLogMessage(this);
-            addToLogMessageAndCleanup(logMessage);
-            logMessage.setSentAt(lastFlush);
-            processModel.getNjams().getSender().send(logMessage);
-            // clean up jobImpl
-            pluginDataItems.clear();
-            calculateEstimatedSize();
+        } finally {
+            writeLock.unlock();
         }
     }
 
@@ -504,7 +515,7 @@ public class JobImpl implements Job {
         //here masking
         logMessage.setServiceName(DataMasking.maskString(businessService));
         //here masking
-        attributes.entrySet().forEach(e -> logMessage.addAtribute(e.getKey(), DataMasking.maskString(e.getValue())));
+        attributes.entrySet().forEach(e -> logMessage.addAtribute(e.getKey(), e.getValue()));
         pluginDataItems.forEach(i -> logMessage.addPluginDataItem(i));
         return logMessage;
     }
@@ -1090,14 +1101,21 @@ public class JobImpl implements Job {
     }
 
     /**
-     * This method is used to put attributes in the
-     * attributes map.
+     * This method is used to put attributes in the attributes map.
      *
      * @param key the key to set
      * @param value the value to set
      */
     @Override
     public void addAttribute(final String key, String value) {
+        flushMonitor.addAttributeToJob(key, value);
+    }
+
+    void synchronizedAddAttribute(final String key, String value) {
         attributes.put(key, value);
+    }
+
+    FlushMonitor getFlushMonitor() {
+        return flushMonitor;
     }
 }

@@ -52,30 +52,10 @@ public abstract class AbstractTest {
     
     /**
      * This constructor creates the njams instance with path SDK4-TEST-PROCESSES.
-     * Empty Settings were set.
+     * The TestSender and TestReceiver are used as communication devices.
      */
     public AbstractTest(){
-        Settings settings = new Settings();
-        Properties props = new Properties();
-        props.put(CommunicationFactory.COMMUNICATION, TestSender.NAME);
-        settings.setProperties(props);
-        
-        createNjams(settings);
-    }
-    
-    /**
-     * This method is designed to create and start a new njams instance with
-     * the given settings.
-     * @param settings the settings to set to the njams instance.
-     */
-    private void createNjams(Settings settings){
-        Path clientPath = new Path("SDK4", "TEST");
-
-        njams = new Njams(clientPath, "TEST", "sdk4", settings);
-        Path processPath = new Path("PROCESSES");
-        process = njams.createProcess(processPath);
-        
-        njams.start();
+        this(TestSender.getSettings());
     }
     
     /**
@@ -84,7 +64,13 @@ public abstract class AbstractTest {
      * @param settings the Settings for JMS, JNDI, etc.
      */
     public AbstractTest(Settings settings){
-        createNjams(settings);
+        Path clientPath = new Path("SDK4", "TEST");
+
+        njams = new Njams(clientPath, "TEST", "sdk4", settings);
+        Path processPath = new Path("PROCESSES");
+        process = njams.createProcess(processPath);
+        
+        njams.start();
     }
     
     
