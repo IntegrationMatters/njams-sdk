@@ -250,4 +250,25 @@ public class JmsSender extends AbstractSender implements ExceptionListener {
         reconnector.start();
     }
 
+    /**
+     * This method gets all libraries that need to be checked.
+     *
+     * @return an array of Strings of fully qualified class names.
+     */
+    @Override
+    public String[] librariesToCheck() {
+        return new String[]{
+            "javax.jms.Connection",
+            "javax.jms.ConnectionFactory",
+            "javax.jms.Destination",
+            "javax.jms.ExceptionListener",
+            "javax.jms.JMSContext",
+            "javax.jms.JMSException",
+            "javax.jms.MessageProducer",
+            "javax.jms.Session",
+            "javax.jms.TextMessage",
+            "javax.naming.InitialContext",
+            "javax.naming.NameNotFoundException",
+            "javax.naming.NamingException"};
+    }
 }

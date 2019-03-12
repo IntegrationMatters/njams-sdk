@@ -16,6 +16,7 @@
  */
 package com.im.njams.sdk.communication;
 
+import com.im.njams.sdk.utils.ClasspathValidator;
 import java.util.Properties;
 
 import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
@@ -27,7 +28,7 @@ import com.im.njams.sdk.Njams;
  *
  * @author pnientiedt
  */
-public interface Receiver {
+public interface Receiver extends ClasspathValidator{
 
     /**
      * Set njams instance
