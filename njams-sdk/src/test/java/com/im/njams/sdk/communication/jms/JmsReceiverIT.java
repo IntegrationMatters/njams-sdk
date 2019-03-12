@@ -30,10 +30,7 @@ import javax.jms.Session;
 import javax.jms.TemporaryQueue;
 import javax.jms.TextMessage;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.*;
 
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -45,6 +42,7 @@ import org.slf4j.LoggerFactory;
  * @author krautenberg@integrationmatters.com
  * @version 4.0.5
  */
+@Ignore
 public class JmsReceiverIT {
     
     private static final org.slf4j.Logger LOG = LoggerFactory.getLogger(JmsReceiverIT.class);
