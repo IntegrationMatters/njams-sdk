@@ -35,7 +35,7 @@ import com.im.njams.sdk.settings.encoding.Transformer;
  *
  * @author pnientiedt
  */
-public class CommunicationFactory{
+public class CommunicationFactory {
 
     /**
      * Property key for communication properties which specifies which
@@ -79,6 +79,7 @@ public class CommunicationFactory{
                         // create a new instance
                         LOG.info("Create Receiver {}", receiver.getName());
                         Receiver newInstance = receiver.getClass().newInstance();
+                        newInstance.validate();
                         newInstance.setNjams(njams);
                         newInstance.init(Transformer.decode(settings.getProperties()));
                         return newInstance;
@@ -117,6 +118,7 @@ public class CommunicationFactory{
                         // create a new instance
                         LOG.info("Create sender {}", sender.getName());
                         Sender newInstance = sender.getClass().newInstance();
+                        newInstance.validate();
                         newInstance.init(Transformer.decode(settings.getProperties()));
                         return newInstance;
                     } catch (Exception e) {

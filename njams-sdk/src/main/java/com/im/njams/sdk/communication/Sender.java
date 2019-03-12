@@ -16,6 +16,7 @@
  */
 package com.im.njams.sdk.communication;
 
+import com.im.njams.sdk.utils.ClasspathValidator;
 import java.util.Properties;
 
 import com.faizsiegeln.njams.messageformat.v4.common.CommonMessage;
@@ -26,7 +27,7 @@ import com.faizsiegeln.njams.messageformat.v4.common.CommonMessage;
  *
  * @author bwand
  */
-public interface Sender extends AutoCloseable {
+public interface Sender extends AutoCloseable, ClasspathValidator {
 
     /**
      * Property key for header properties which will specify the messageVersion

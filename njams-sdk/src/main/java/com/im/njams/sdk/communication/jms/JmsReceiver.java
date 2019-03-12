@@ -489,4 +489,29 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
     public void onException(JMSException exception) {
         super.onException(new NjamsSdkRuntimeException("Transport error", exception));
     }
+
+    /**
+     * This method gets all libraries that need to be checked.
+     *
+     * @return an array of Strings of fully qualified class names.
+     */
+    @Override
+    public String[] librariesToCheck() {
+        return new String[]{
+            "javax.jms.Connection",
+            "javax.jms.ConnectionFactory",
+            "javax.jms.ExceptionListener",
+            "javax.jms.JMSContext",
+            "javax.jms.JMSException",
+            "javax.jms.Message",
+            "javax.jms.MessageConsumer",
+            "javax.jms.MessageListener",
+            "javax.jms.Session",
+            "javax.jms.TextMessage",
+            "javax.jms.MessageProducer",
+            "javax.jms.Topic",
+            "javax.naming.InitialContext",
+            "javax.naming.NameNotFoundException",
+            "javax.naming.NamingException"};
+    }
 }
