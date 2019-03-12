@@ -33,7 +33,11 @@ public class ClasspathValidatorTest {
      */
     @Test
     public void testValidateWithNull() throws ClassNotFoundException {
-        ClasspathValidator instance = () -> null;
+        ClasspathValidator instance = new ClasspathValidator(){
+            public String[] librariesToCheck(){
+                return null;
+            }
+        };
         instance.validate();
         //If nothing is thrown, everything is fine.
     }
@@ -45,7 +49,12 @@ public class ClasspathValidatorTest {
      */
     @Test
     public void testValidateWithEmptyArray() throws ClassNotFoundException {
-        ClasspathValidator instance = () -> new String[0];
+        ClasspathValidator instance = new ClasspathValidator(){
+            @Override
+            public String[] librariesToCheck(){
+                return new String[0];
+            }
+        };
         instance.validate();
         //If nothing is thrown, everything is fine.
     }
@@ -57,7 +66,12 @@ public class ClasspathValidatorTest {
      */
     @Test
     public void testValidateSuccess() throws ClassNotFoundException {
-        ClasspathValidator instance = () -> new String[]{"com.im.njams.sdk.utils.ClasspathValidatorTest"};
+        ClasspathValidator instance = new ClasspathValidator(){
+            @Override
+            public String[] librariesToCheck(){
+                return new String[]{"com.im.njams.sdk.utils.ClasspathValidatorTest"};
+            }
+        };
         instance.validate();
         //If nothing is thrown, everything is fine.
     }
@@ -69,9 +83,13 @@ public class ClasspathValidatorTest {
      */
     @Test(expected = ClassNotFoundException.class)
     public void testValidateFailure() throws ClassNotFoundException {
-        ClasspathValidator instance = () -> new String[]{"this.is.not.a.good.classpath"};
+        ClasspathValidator instance = new ClasspathValidator(){
+            @Override
+            public String[] librariesToCheck(){
+                return new String[]{"this.is.not.a.good.classpath"};
+            }
+        };
         //This should throw a ClassNotFoundException
         instance.validate();
     }
-
 }
