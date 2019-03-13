@@ -19,7 +19,6 @@ package com.im.njams.sdk;
 import com.faizsiegeln.njams.messageformat.v4.common.SubProcess;
 import com.faizsiegeln.njams.messageformat.v4.logmessage.Predecessor;
 import com.im.njams.sdk.common.Path;
-import com.im.njams.sdk.communication.CommunicationFactory;
 import com.im.njams.sdk.communication.TestSender;
 import com.im.njams.sdk.logmessage.Activity;
 import com.im.njams.sdk.logmessage.ActivityImpl;
@@ -29,7 +28,6 @@ import com.im.njams.sdk.model.ActivityModel;
 import com.im.njams.sdk.model.ProcessModel;
 import com.im.njams.sdk.settings.Settings;
 import java.util.HashMap;
-import java.util.Properties;
 
 /**
  * This class is a helper class for all test classes that need some jobs or activities.
@@ -111,6 +109,7 @@ public abstract class AbstractTest {
      * that are needed for the MessageFormat's Activity.
      *
      * @param job the job on which the activity is created.
+     * @return a fully filled activity.
      */
     protected ActivityImpl createFullyFilledActivity(JobImpl job) {
         ActivityImpl act = (ActivityImpl) job.createActivity("id").build();

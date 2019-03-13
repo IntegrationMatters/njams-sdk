@@ -44,6 +44,8 @@ import com.fasterxml.jackson.databind.introspect.JacksonAnnotationIntrospector;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.databind.ser.std.StdSerializer;
 import com.fasterxml.jackson.module.jaxb.JaxbAnnotationIntrospector;
+import com.im.njams.sdk.Njams;
+import org.slf4j.LoggerFactory;
 
 /**
  * Provides factory methods for JSON serializers.
@@ -52,6 +54,8 @@ import com.fasterxml.jackson.module.jaxb.JaxbAnnotationIntrospector;
  *
  */
 public class JsonSerializerFactory {
+
+    private static final org.slf4j.Logger LOG = LoggerFactory.getLogger(JsonSerializerFactory.class);
 
     /**
      * ID for the filter used by the mix-in interface.
@@ -71,6 +75,12 @@ public class JsonSerializerFactory {
      * @return the ObjectMapper.
      */
     public static ObjectMapper getDefaultMapper() {
+        if (LOG.isTraceEnabled()) {
+            LOG.trace("Jackson databind: {}", com.fasterxml.jackson.databind.ObjectMapper.class.getProtectionDomain().getCodeSource().getLocation());
+            LOG.trace("Jackson core: {}", com.fasterxml.jackson.core.JsonFactory.class.getProtectionDomain().getCodeSource().getLocation());
+            LOG.trace("Jackson module.jaxb: {}", com.fasterxml.jackson.module.jaxb.JaxbAnnotationIntrospector.class.getProtectionDomain().getCodeSource().getLocation());
+            LOG.trace("Jackson annotation: {}", com.fasterxml.jackson.annotation.JsonInclude.Include.class.getProtectionDomain().getCodeSource().getLocation());
+        }
         return getMapper(true, true);
     }
 

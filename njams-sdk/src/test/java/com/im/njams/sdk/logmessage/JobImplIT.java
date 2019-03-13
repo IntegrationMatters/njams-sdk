@@ -18,19 +18,24 @@ package com.im.njams.sdk.logmessage;
 
 import com.faizsiegeln.njams.messageformat.v4.common.CommonMessage;
 import com.faizsiegeln.njams.messageformat.v4.logmessage.LogMessage;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import com.im.njams.sdk.AbstractTest;
+import com.im.njams.sdk.common.JsonSerializerFactory;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.communication.Sender;
 import com.im.njams.sdk.communication.TestSender;
+import java.io.IOException;
 
 import java.util.Properties;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.Assert.fail;
+import org.junit.Ignore;
 
 import org.junit.Test;
 import org.slf4j.LoggerFactory;
@@ -42,6 +47,7 @@ import org.slf4j.LoggerFactory;
  * @author krautenberg@integrationmatters.com
  * @version 4.0.5
  */
+@Ignore
 public class JobImplIT extends AbstractTest {
 
     //The logger
@@ -112,7 +118,7 @@ public class JobImplIT extends AbstractTest {
      * @param stop this is synchronization object where the an exception will be
      * safed is any is thrown and, if something was thrown, that the threads
      * stop running.
-     * @throws InterruptedException is thrown when the thread sleeps will be
+     * @throws InterruptedException is thrown when the threads sleep will be
      * interrupted.
      */
     private void testFlushingAndAddingAttributes(int activityQuantity, int flusherQuantity, NjamsSdkRuntimeExceptionWrapper stop) throws InterruptedException {
@@ -132,6 +138,7 @@ public class JobImplIT extends AbstractTest {
                             //This is a critical part, because it fills a map.
                             this.fillJobWithMoreAttributes(job, 10);
                             this.fillActivityWithMoreAttributes(actImpl, 10);
+                            actImpl.end();
                             activityCounter.incrementAndGet();
                         }
 
@@ -182,6 +189,8 @@ public class JobImplIT extends AbstractTest {
         Thread.sleep(1000);
         //Stop the threads
         run.set(false);
+        Thread.sleep(500);
+        job.end();
         LOG.info("{} Flusherthreads flushed {} times.", flusherQuantity, flushCounter.get());
         LOG.info("{} ActivityCreatorThreads created {} activities.", activityQuantity, activityCounter.get());
     }
@@ -194,7 +203,8 @@ public class JobImplIT extends AbstractTest {
      */
     private void fillActivityWithMoreAttributes(ActivityImpl impl, int number) {
         for (int i = 0; i <= number; i++) {
-            impl.addAttribute("a" + i, "a" + i);
+            int j = ThreadLocalRandom.current().nextInt();
+            impl.addAttribute("a" + j, "a" + j);
         }
     }
 
@@ -230,7 +240,7 @@ public class JobImplIT extends AbstractTest {
                                             //Are the attributes keys of the activity in the attributes of the logmessage aswell?
                                             //The values can be different because they can be overridden.
                                             if (message.getAttributes() != null && !message.getAttributes().containsKey((String) attributeKey)) {
-                                                fail();
+                                                fail(attributeKey + " doesn't exists in : " + message.getAttributes().toString());
                                             }
                                         });
                             }
@@ -253,8 +263,9 @@ public class JobImplIT extends AbstractTest {
         private volatile AtomicBoolean wasThrown = new AtomicBoolean(false);
 
         /**
-         * This method sets the exception if this method was called the first time,
-         * furthermore the field wasThrown is set to true.
+         * This method sets the exception if this method was called the first
+         * time, furthermore the field wasThrown is set to true.
+         *
          * @param ex the exception to set.
          */
         public synchronized void setException(NjamsSdkRuntimeException ex) {
@@ -272,6 +283,7 @@ public class JobImplIT extends AbstractTest {
 
         /**
          * This method does nothing
+         *
          * @param properties nothing to do with these
          */
         @Override
@@ -281,12 +293,25 @@ public class JobImplIT extends AbstractTest {
 
         /**
          * This method safes all sent messages in the messages queue.
-         * @param msg 
+         *
+         * @param msg
          */
         @Override
         public void send(CommonMessage msg) {
             if (msg instanceof LogMessage) {
                 messages.add((LogMessage) msg);
+                //Deep copy the msg
+
+                final ObjectMapper mapper = JsonSerializerFactory.getDefaultMapper();
+                LogMessage copiedMessage = null;
+                try {
+                    String value = mapper.writeValueAsString(msg);
+                    copiedMessage = mapper.readValue(value, LogMessage.class);
+                    messages.add(copiedMessage);
+
+                } catch (IOException ex) {
+                    LOG.error("Some serializing error occured: ", ex);
+                }
             }
         }
 
@@ -300,6 +325,7 @@ public class JobImplIT extends AbstractTest {
 
         /**
          * This method returns the name of the TestSender.
+         *
          * @return name of the TestSender.
          */
         @Override

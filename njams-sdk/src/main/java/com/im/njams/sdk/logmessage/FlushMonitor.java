@@ -124,7 +124,7 @@ class FlushMonitor {
         try {
             Map<String, String> maskedAttributes = new HashMap<>();
             attributes.keySet().forEach(key -> maskedAttributes.put(key, this.maskData(attributes.get(key))));
-            maskedAttributes.forEach((key, value) -> addAttributeToActivity(key, value, act));
+            maskedAttributes.forEach((key, value) -> addAttributeToActivitySynchronized(key, value, act));
         } finally {
             readLock.unlock();
         }
