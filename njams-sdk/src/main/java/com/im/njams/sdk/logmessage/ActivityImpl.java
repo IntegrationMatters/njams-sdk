@@ -537,10 +537,6 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
         flushMonitor.addAttributesToActivity(attributes, this);
     }
 
-    void synchronizedSetAttributes(Map<String, String> attributes) {
-        super.setAttributes(attributes);
-    }
-
     /**
      * This method masks the attributes value and calls its super method.
      * Furthermore it adds the masked attribute to the jobs attributes aswell.
