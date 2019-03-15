@@ -8,7 +8,7 @@
     <parent>
         <groupId>com.faizsiegeln</groupId>
         <artifactId>njams4-sdk-root</artifactId>
-        <version>4.0.5-SNAPSHOT</version>
+        <version>4.0.5</version>
     </parent>
 
     <properties>
@@ -31,12 +31,12 @@
         <dependency>
             <groupId>com.faizsiegeln.njams</groupId>
             <artifactId>njams4-sdk</artifactId>
-            <version>4.0.5-SNAPSHOT</version>
+            <version>4.0.5</version>
         </dependency>
         <dependency>
             <groupId>com.faizsiegeln.njams</groupId>
             <artifactId>njams4-sdk-communication-cloud</artifactId>
-            <version>4.0.5-SNAPSHOT</version>
+            <version>4.0.5</version>
         </dependency>
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
