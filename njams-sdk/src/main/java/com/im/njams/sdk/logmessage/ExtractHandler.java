@@ -227,7 +227,7 @@ public class ExtractHandler {
 
     private static void setAttributes(Job job, ActivityImpl activity, String uncheckedsetting, String uncheckedvalue) {
         String setting = checkLength("Extract Property/Attribute Name", uncheckedsetting, 500);
-        String value = checkLength("Extract Property/Attribute '" + setting + "': ", uncheckedvalue, 2000);
+        String value = DataMasking.maskString(checkLength("Extract Property/Attribute '" + setting + "': ", uncheckedvalue, 2000));
         LOG.debug("nJAMS: setAttributes: {}/{}", uncheckedsetting, uncheckedvalue);
 
         String settingLowerCase = setting.toLowerCase();

@@ -22,7 +22,6 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -38,6 +37,7 @@ import com.faizsiegeln.njams.messageformat.v4.logmessage.PluginDataItem;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.Extract;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.LogLevel;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.LogMode;
+
 import com.im.njams.sdk.common.DateTimeUtility;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.common.Path;
@@ -49,7 +49,8 @@ import com.im.njams.sdk.model.ActivityModel;
 import com.im.njams.sdk.model.GroupModel;
 import com.im.njams.sdk.model.ProcessModel;
 import com.im.njams.sdk.model.SubProcessActivityModel;
-import java.util.concurrent.locks.Lock;
+
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * This represents an instance of a process/flow etc in engine to monitor.
@@ -86,7 +87,7 @@ public class JobImpl implements Job {
     /*
      * job level attributes
      */
-    private final Map<String, String> attributes = new HashMap<>();
+    private final Map<String, String> attributes = new ConcurrentHashMap<>();
 
     /*
      * Plugin data items
@@ -143,8 +144,6 @@ public class JobImpl implements Job {
 
     private LocalDateTime businessStart;
 
-    private final FlushMonitor flushMonitor;
-
     /**
      * Create a job with a givenModelId, a jobId and a logId
      *
@@ -153,7 +152,6 @@ public class JobImpl implements Job {
      * @param logId of Job to create
      */
     public JobImpl(ProcessModel processModel, String jobId, String logId) {
-        flushMonitor = new FlushMonitor(this);
         this.jobId = jobId;
         this.logId = logId;
         correlationLogId = logId;
@@ -271,18 +269,19 @@ public class JobImpl implements Job {
      */
     @Override
     public void addActivity(final Activity activity) {
-        if (this.hasStarted()) {
-            activities.put(activity.getInstanceId(), activity);
-            if (activity.isStarter()) {
-                if (startActivity != null) {
-                    throw new NjamsSdkRuntimeException("A job must not have more than one start activity");
+        synchronized (activities) {
+            if (this.hasStarted()) {
+                activities.put(activity.getInstanceId(), activity);
+                if (activity.isStarter()) {
+                    if (startActivity != null) {
+                        throw new NjamsSdkRuntimeException("A job must not have more than one start activity");
+                    }
+                    startActivity = activity;
                 }
-                startActivity = activity;
+            } else {
+                throw new NjamsSdkRuntimeException("The method start() must be called before activities can be added to the job!");
             }
-        } else {
-            throw new NjamsSdkRuntimeException("The method start() must be called before activities can be added to the job!");
         }
-
     }
 
     /**
@@ -396,9 +395,7 @@ public class JobImpl implements Job {
      * server if all the preconditions are fulfilled.
      */
     public void flush() {
-        Lock writeLock = flushMonitor.getWriteLock();
-        writeLock.lock();
-        try {
+        synchronized (activities) {
             boolean suppressed = mustBeSuppressed();
             boolean started = this.hasStarted();
             if (!suppressed) {
@@ -415,8 +412,6 @@ public class JobImpl implements Job {
                 pluginDataItems.clear();
                 calculateEstimatedSize();
             }
-        } finally {
-            writeLock.unlock();
         }
     }
 
@@ -492,10 +487,8 @@ public class JobImpl implements Job {
         logMessage.setBusinessEnd(businessEnd);
         logMessage.setBusinessStart(businessStart);
         logMessage.setCategory(processModel.getNjams().getCategory());
-        //here masking
-        logMessage.setCorrelationLogId(DataMasking.maskString(correlationLogId));
-        //here masking
-        logMessage.setExternalLogId(DataMasking.maskString(externalLogId));
+        logMessage.setCorrelationLogId(correlationLogId);
+        logMessage.setExternalLogId(externalLogId);
         logMessage.setJobEnd(endTime);
         logMessage.setJobId(jobId);
         logMessage.setJobStart(startTime);
@@ -503,17 +496,16 @@ public class JobImpl implements Job {
         logMessage.setMachineName(processModel.getNjams().getMachine());
         logMessage.setMaxSeverity(maxSeverity.getValue());
         logMessage.setMessageNo(job.flushCounter.get());
-        //here masking
-        logMessage.setObjectName(DataMasking.maskString(businessObject));
-        //here masking
-        logMessage.setParentLogId(DataMasking.maskString(parentLogId));
+        logMessage.setObjectName(businessObject);
+        logMessage.setParentLogId(parentLogId);
         logMessage.setPath(processModel.getPath().toString());
         logMessage.setProcessName(processModel.getName());
         logMessage.setStatus(status.getValue());
-        //here masking
-        logMessage.setServiceName(DataMasking.maskString(businessService));
-        //here masking
-        attributes.entrySet().forEach(e -> logMessage.addAtribute(e.getKey(), e.getValue()));
+        logMessage.setServiceName(businessService);
+        //attribute
+        synchronized (attributes) {
+            attributes.entrySet().forEach(e -> logMessage.addAtribute(e.getKey(), e.getValue()));
+        }
         pluginDataItems.forEach(i -> logMessage.addPluginDataItem(i));
         return logMessage;
     }
@@ -1106,14 +1098,8 @@ public class JobImpl implements Job {
      */
     @Override
     public void addAttribute(final String key, String value) {
-        flushMonitor.addAttributeToJob(key, value);
-    }
-
-    void synchronizedAddAttribute(final String key, String value) {
-        attributes.put(key, value);
-    }
-
-    FlushMonitor getFlushMonitor() {
-        return flushMonitor;
+        synchronized (attributes) {
+            attributes.put(key, value);
+        }
     }
 }

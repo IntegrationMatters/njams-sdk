@@ -18,6 +18,7 @@ package com.im.njams.sdk.logmessage;
 
 import com.faizsiegeln.njams.messageformat.v4.logmessage.ActivityStatus;
 import com.faizsiegeln.njams.messageformat.v4.logmessage.Predecessor;
+
 import com.im.njams.sdk.configuration.TracepointExt;
 import com.im.njams.sdk.common.DateTimeUtility;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
@@ -25,6 +26,7 @@ import com.im.njams.sdk.model.ActivityModel;
 import com.im.njams.sdk.model.GroupModel;
 import com.im.njams.sdk.model.SubProcessActivityModel;
 import com.im.njams.sdk.model.TransitionModel;
+
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.Collections;
@@ -32,6 +34,7 @@ import java.util.Map;
 import java.util.Objects;
 
 import javax.xml.bind.annotation.XmlTransient;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -45,6 +48,9 @@ import org.slf4j.LoggerFactory;
 public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmessage.Activity implements Activity {
 
     private static final Logger LOG = LoggerFactory.getLogger(ActivityImpl.class);
+    
+    //This lock is used for synchronizing the access to the activities attributes
+    private final Object attributesLock = new Object();
 
     // Job will be hold because it will be needed when creating the next activity via stepTo logic
     private final JobImpl job;
@@ -57,8 +63,6 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
     private boolean inputProcessecd = false;
     private boolean outputProcessed = false;
 
-    private final FlushMonitor flushMonitor;
-
     /**
      * Create new ActivityImpl for a given Job
      *
@@ -67,7 +71,6 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
     public ActivityImpl(JobImpl job) {
         this.job = job;
         job.addToEstimatedSize(estimatedSize);
-        flushMonitor = job.getFlushMonitor();
     }
 
     /**
@@ -428,8 +431,10 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
      */
     @Override
     public void processStartData(Object startData) {
-        setStartData(job.getProcessModel().getNjams().serialize(startData));
-        flushMonitor.addAttributeToActivity("$njams_recorded", "true", this);
+        if (job.isRecording()) {
+            setStartData(job.getProcessModel().getNjams().serialize(startData));
+            job.addAttribute("$njams_recorded", "true");
+        }
     }
 
     /**
@@ -459,7 +464,7 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
      */
     @Override
     public void setEventMessage(String message) {
-        super.setEventMessage(DataMasking.maskString(message));
+        super.setEventMessage(message);
     }
 
     /**
@@ -469,7 +474,7 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
      */
     @Override
     public void setEventCode(String code) {
-        super.setEventCode(DataMasking.maskString(code));
+        super.setEventCode(code);
     }
 
     /**
@@ -481,10 +486,9 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
      */
     @Override
     public void setEventPayload(String eventPayload) {
-        String maskedPayload = DataMasking.maskString(eventPayload);
-        super.setEventPayload(maskedPayload);
-        if (maskedPayload != null) {
-            int payloadSize = maskedPayload.length();
+        super.setEventPayload(eventPayload);
+        if (eventPayload != null) {
+            int payloadSize = eventPayload.length();
             addToEstimatedSize(payloadSize);
             job.addToEstimatedSize(payloadSize);
         }
@@ -499,10 +503,9 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
      */
     @Override
     public void setStackTrace(String stackTrace) {
-        String maskedStackTrace = DataMasking.maskString(stackTrace);
-        super.setStackTrace(maskedStackTrace);
-        if (maskedStackTrace != null) {
-            int stackTraceSize = maskedStackTrace.length();
+        super.setStackTrace(stackTrace);
+        if (stackTrace != null) {
+            int stackTraceSize = stackTrace.length();
             addToEstimatedSize(stackTraceSize);
             job.addToEstimatedSize(stackTraceSize);
         }
@@ -534,7 +537,10 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
      */
     @Override
     public void setAttributes(Map<String, String> attributes) {
-        flushMonitor.addAttributesToActivity(attributes, this);
+        synchronized (attributesLock) {
+            attributes.forEach((key, value) -> job.addAttribute(key, value));
+            super.setAttributes(attributes);
+        }
     }
 
     /**
@@ -546,11 +552,10 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
      */
     @Override
     public void addAttribute(String key, String value) {
-        flushMonitor.addAttributeToActivity(key, value, this);
-    }
-
-    void synchronizedAddAttribute(final String key, String value) {
-        super.addAttribute(key, value);
+        synchronized (attributesLock) {
+            job.addAttribute(key, value);
+            super.addAttribute(key, value);
+        }
     }
 
     /**
@@ -561,7 +566,9 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
      */
     @Override
     public Map<String, String> getAttributes() {
-        return Collections.unmodifiableMap(super.getAttributes());
+        synchronized (attributesLock) {
+            return Collections.unmodifiableMap(super.getAttributes());
+        }
     }
 
 }

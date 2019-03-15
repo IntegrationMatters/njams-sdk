@@ -216,14 +216,15 @@ public class JobImplTest extends AbstractTest {
         assertFalse(onlyAsterisksOrNull(msg.getTrace().toString()));
         //getPlugins.toString()?
         assertFalse(onlyAsterisksOrNull(msg.getPlugins().toString()));
-        //Those should be masked
-        assertTrue(onlyAsterisksOrNull(msg.getCorrelationLogId()));
-        assertTrue(onlyAsterisksOrNull(msg.getParentLogId()));
-        assertTrue(onlyAsterisksOrNull(msg.getExternalLogId()));
-        assertTrue(onlyAsterisksOrNull(msg.getObjectName()));
-        assertTrue(onlyAsterisksOrNull(msg.getServiceName()));
+        //Those won't be masked aswell because they were set directly by us, not by
+        //the ExtractHandler [SDK-125]
+        assertFalse(onlyAsterisksOrNull(msg.getCorrelationLogId()));
+        assertFalse(onlyAsterisksOrNull(msg.getParentLogId()));
+        assertFalse(onlyAsterisksOrNull(msg.getExternalLogId()));
+        assertFalse(onlyAsterisksOrNull(msg.getObjectName()));
+        assertFalse(onlyAsterisksOrNull(msg.getServiceName()));
         Map<String, String> attr = msg.getAttributes();
-        attr.keySet().forEach(key -> assertTrue(onlyAsterisksOrNull(attr.get(key))));
+        attr.keySet().forEach(key -> assertFalse(onlyAsterisksOrNull(attr.get(key))));
     }
 
     /**
@@ -232,6 +233,7 @@ public class JobImplTest extends AbstractTest {
      */
     private void checkActivityFields() {
         List<com.faizsiegeln.njams.messageformat.v4.logmessage.Activity> activities = msg.getActivities();
+        //Those shouldn't be masked
         activities.forEach(activity -> assertFalse(onlyAsterisksOrNull(activity.getModelId())));
         activities.forEach(activity -> assertFalse(onlyAsterisksOrNull(activity.getInstanceId())));
         activities.forEach(activity -> assertFalse(onlyAsterisksOrNull(activity.getIteration().toString())));
@@ -248,17 +250,21 @@ public class JobImplTest extends AbstractTest {
         activities.forEach(activity -> assertFalse(onlyAsterisksOrNull(activity.getSubProcess().getName())));
         activities.forEach(activity -> assertFalse(onlyAsterisksOrNull(activity.getSubProcess().getPath())));
         activities.forEach(activity -> assertFalse(onlyAsterisksOrNull(activity.getSubProcess().getLogId())));
+        
+        //Those shouldn't be masked because they were set directly by us, not by the ExtractHandler [SDK-125]
+        activities.forEach(activity -> assertFalse(onlyAsterisksOrNull(activity.getEventMessage())));
+        activities.forEach(activity -> assertFalse(onlyAsterisksOrNull(activity.getEventCode())));
+        activities.forEach(activity -> assertFalse(onlyAsterisksOrNull(activity.getEventPayload())));
+        activities.forEach(activity -> assertFalse(onlyAsterisksOrNull(activity.getStackTrace())));
+        activities.stream().map((activity) -> activity.getAttributes()).forEachOrdered((actAttr) -> {
+            actAttr.keySet().forEach(key -> assertFalse(onlyAsterisksOrNull(actAttr.get(key))));
+        });
 
+        //These should be masked, because they should always me masked and they can't be set by the ExtractHandler
         activities.forEach(activity -> assertTrue(onlyAsterisksOrNull(activity.getInput())));
         activities.forEach(activity -> assertTrue(onlyAsterisksOrNull(activity.getOutput())));
-        activities.forEach(activity -> assertTrue(onlyAsterisksOrNull(activity.getEventMessage())));
-        activities.forEach(activity -> assertTrue(onlyAsterisksOrNull(activity.getEventCode())));
-        activities.forEach(activity -> assertTrue(onlyAsterisksOrNull(activity.getEventPayload())));
-        activities.forEach(activity -> assertTrue(onlyAsterisksOrNull(activity.getStackTrace())));
         activities.forEach(activity -> assertTrue(onlyAsterisksOrNull(activity.getStartData())));
-        activities.stream().map((activity) -> activity.getAttributes()).forEachOrdered((actAttr) -> {
-            actAttr.keySet().forEach(key -> assertTrue(onlyAsterisksOrNull(actAttr.get(key))));
-        });
+        
     }
 
     /**

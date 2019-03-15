@@ -28,6 +28,7 @@ import com.im.njams.sdk.model.ActivityModel;
 import com.im.njams.sdk.model.ProcessModel;
 import com.im.njams.sdk.settings.Settings;
 import java.util.HashMap;
+import java.util.Map;
 
 /**
  * This class is a helper class for all test classes that need some jobs or activities.
@@ -136,7 +137,7 @@ public abstract class AbstractTest {
         pre.setModelId("SomeModelId");
         act.addPredecessor("SomeModelId", "SomeTransitionModelId");
         //Set a set of attributes (with one attribute) and add one more with addAttribute().
-        HashMap<String, String> hashMap = new HashMap<>();
+        Map<String, String> hashMap = new HashMap<>();
         hashMap.put("SomeActAttribute1", "SomeValueForAttribute1");
         act.setAttributes(hashMap);
         act.addAttribute("SomeActAttribute2", "SomeValueForAttribute2");
