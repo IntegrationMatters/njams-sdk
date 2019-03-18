@@ -16,17 +16,6 @@
  */
 package com.im.njams.sdk.logmessage;
 
-import com.faizsiegeln.njams.messageformat.v4.logmessage.ActivityStatus;
-import com.faizsiegeln.njams.messageformat.v4.logmessage.Predecessor;
-
-import com.im.njams.sdk.configuration.TracepointExt;
-import com.im.njams.sdk.common.DateTimeUtility;
-import com.im.njams.sdk.common.NjamsSdkRuntimeException;
-import com.im.njams.sdk.model.ActivityModel;
-import com.im.njams.sdk.model.GroupModel;
-import com.im.njams.sdk.model.SubProcessActivityModel;
-import com.im.njams.sdk.model.TransitionModel;
-
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.Collections;
@@ -38,6 +27,16 @@ import javax.xml.bind.annotation.XmlTransient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.faizsiegeln.njams.messageformat.v4.logmessage.ActivityStatus;
+import com.faizsiegeln.njams.messageformat.v4.logmessage.Predecessor;
+import com.im.njams.sdk.common.DateTimeUtility;
+import com.im.njams.sdk.common.NjamsSdkRuntimeException;
+import com.im.njams.sdk.configuration.TracepointExt;
+import com.im.njams.sdk.model.ActivityModel;
+import com.im.njams.sdk.model.GroupModel;
+import com.im.njams.sdk.model.SubProcessActivityModel;
+import com.im.njams.sdk.model.TransitionModel;
+
 /**
  * This is internal implementation of the Activity. It is a extension of the
  * MesasgeFormat activity, and provided functionality for easy chaining
@@ -48,7 +47,7 @@ import org.slf4j.LoggerFactory;
 public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmessage.Activity implements Activity {
 
     private static final Logger LOG = LoggerFactory.getLogger(ActivityImpl.class);
-    
+
     //This lock is used for synchronizing the access to the activities attributes
     private final Object attributesLock = new Object();
 
@@ -124,17 +123,16 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
         if (toActivityModel instanceof SubProcessActivityModel) {
             return stepToSubProcess((SubProcessActivityModel) toActivityModel);
         }
-        TransitionModel transitionModel = toActivityModel.getIncomingTransitionFrom(this.getModelId());
+        TransitionModel transitionModel = toActivityModel.getIncomingTransitionFrom(getModelId());
         if (transitionModel == null) {
-            throw new NjamsSdkRuntimeException("No transition from "
-                    + getModelId() + " to " + toActivityModel.getId() + " found!");
+            throw new NjamsSdkRuntimeException("No transition from " + getModelId() + " to " + toActivityModel.getId()
+                    + " found!");
         }
         end();
         //check if a activity with the same modelId and the same iteration and parent already exists.
         final ActivityImpl toActivity = (ActivityImpl) job.getActivityByModelId(toActivityModel.getId());
         final ActivityBuilder builder;
-        if (toActivity == null
-                || !Objects.equals(toActivity.getIteration(), getIteration())
+        if (toActivity == null || !Objects.equals(toActivity.getIteration(), getIteration())
                 || toActivity.getParent() != getParent()) {
             builder = new ActivityBuilder(job, toActivityModel);
         } else {
@@ -198,11 +196,12 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
     @Override
     public GroupBuilder stepToGroup(GroupModel toGroupModel) {
         end();
-        TransitionModel transitionModel = toGroupModel.getIncomingTransitionFrom(this.getModelId());
+        TransitionModel transitionModel = toGroupModel.getIncomingTransitionFrom(getModelId());
         //check if a activity with the same modelId and the same iteration already exists.
         final GroupImpl toGroup = (GroupImpl) job.getActivityByModelId(toGroupModel.getId());
         final GroupBuilder builder;
-        if (toGroup == null || !Objects.equals(toGroup.getIteration(), getIteration()) || toGroup.getParent() != getParent()) {
+        if (toGroup == null || !Objects.equals(toGroup.getIteration(), getIteration())
+                || toGroup.getParent() != getParent()) {
             builder = new GroupBuilder(job, toGroupModel);
         } else {
             builder = new GroupBuilder(toGroup);
@@ -266,8 +265,7 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
         }
         if (this instanceof GroupImpl) {
             ((GroupImpl) this).getChildActivities().stream()
-                    .filter(a -> a.getActivityStatus() == ActivityStatus.RUNNING)
-                    .forEach(a -> a.end());
+                    .filter(a -> a.getActivityStatus() == ActivityStatus.RUNNING).forEach(a -> a.end());
         }
         //process input and output if not done yet, for extract rules which do not need data
         if (!inputProcessecd) {
@@ -319,9 +317,9 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
             if (trace) {
                 //add trace data
                 if (input) {
-                    this.setInput(job.getProcessModel().getNjams().serialize(data));
+                    setInput(job.getProcessModel().getNjams().serialize(data));
                 } else {
-                    this.setOutput(job.getProcessModel().getNjams().serialize(data));
+                    setOutput(job.getProcessModel().getNjams().serialize(data));
                 }
                 job.setTraces(trace);
             }
@@ -334,8 +332,7 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
         if (tracepoint != null) {
             //if tracepoint exists, check timings
             LocalDateTime now = DateTimeUtility.now();
-            if (now.isAfter(tracepoint.getStarttime())
-                    && now.isBefore(tracepoint.getEndtime())
+            if (now.isAfter(tracepoint.getStarttime()) && now.isBefore(tracepoint.getEndtime())
                     && !tracepoint.iterationsExceeded()) {
                 //timing is right, and iterations are less than configured
                 trace = true;
@@ -357,11 +354,13 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
     @Override
     public SubProcessActivityBuilder stepToSubProcess(SubProcessActivityModel toSubProcessModel) {
         end();
-        TransitionModel transitionModel = toSubProcessModel.getIncomingTransitionFrom(this.getModelId());
+        TransitionModel transitionModel = toSubProcessModel.getIncomingTransitionFrom(getModelId());
         //check if a activity with the same modelId and the same iteration already exists.
-        final SubProcessActivityImpl toSubProcess = (SubProcessActivityImpl) job.getActivityByModelId(toSubProcessModel.getId());
+        final SubProcessActivityImpl toSubProcess =
+                (SubProcessActivityImpl) job.getActivityByModelId(toSubProcessModel.getId());
         final SubProcessActivityBuilder builder;
-        if (toSubProcess == null || !Objects.equals(toSubProcess.getIteration(), getIteration()) || toSubProcess.getParent() != getParent()) {
+        if (toSubProcess == null || !Objects.equals(toSubProcess.getIteration(), getIteration())
+                || toSubProcess.getParent() != getParent()) {
             builder = new SubProcessActivityBuilder(job, toSubProcessModel);
         } else {
             builder = new SubProcessActivityBuilder(toSubProcess);
@@ -375,7 +374,7 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
 
     @Override
     public String toString() {
-        return getClass().getSimpleName() + "{model = " + this.getModelId() + ", instance = " + this.getInstanceId() + '}';
+        return getClass().getSimpleName() + "{model = " + getModelId() + ", instance = " + getInstanceId() + '}';
     }
 
     /**
@@ -402,7 +401,8 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
                 job.setStatus(possibleStatus);
             }
         } catch (NjamsSdkRuntimeException e) {
-            LOG.error("{} for job with logId: {}. Using old status: {}", e.getMessage(), job.getLogId(), super.getEventStatus());
+            LOG.error("{} for job with logId: {}. Using old status: {}", e.getMessage(), job.getLogId(),
+                    super.getEventStatus());
         }
     }
 
@@ -433,7 +433,6 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
     public void processStartData(Object startData) {
         if (job.isRecording()) {
             setStartData(job.getProcessModel().getNjams().serialize(startData));
-            job.addAttribute("$njams_recorded", "true");
         }
     }
 

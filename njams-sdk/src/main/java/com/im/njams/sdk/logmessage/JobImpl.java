@@ -27,6 +27,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.slf4j.LoggerFactory;
@@ -37,7 +38,6 @@ import com.faizsiegeln.njams.messageformat.v4.logmessage.PluginDataItem;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.Extract;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.LogLevel;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.LogMode;
-
 import com.im.njams.sdk.common.DateTimeUtility;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.common.Path;
@@ -49,8 +49,6 @@ import com.im.njams.sdk.model.ActivityModel;
 import com.im.njams.sdk.model.GroupModel;
 import com.im.njams.sdk.model.ProcessModel;
 import com.im.njams.sdk.model.SubProcessActivityModel;
-
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * This represents an instance of a process/flow etc in engine to monitor.
@@ -197,6 +195,9 @@ public class JobImpl implements Job {
                     processModel.getPath(), recording, configuration.isRecording());
             activityConfigurations = process.getActivities();
         }
+        if (recording) {
+            addAttribute("$njams_recorded", "true");
+        }
     }
 
     /**
@@ -270,7 +271,7 @@ public class JobImpl implements Job {
     @Override
     public void addActivity(final Activity activity) {
         synchronized (activities) {
-            if (this.hasStarted()) {
+            if (hasStarted()) {
                 activities.put(activity.getInstanceId(), activity);
                 if (activity.isStarter()) {
                     if (startActivity != null) {
@@ -279,7 +280,8 @@ public class JobImpl implements Job {
                     startActivity = activity;
                 }
             } else {
-                throw new NjamsSdkRuntimeException("The method start() must be called before activities can be added to the job!");
+                throw new NjamsSdkRuntimeException(
+                        "The method start() must be called before activities can be added to the job!");
             }
         }
     }
@@ -397,7 +399,7 @@ public class JobImpl implements Job {
     public void flush() {
         synchronized (activities) {
             boolean suppressed = mustBeSuppressed();
-            boolean started = this.hasStarted();
+            boolean started = hasStarted();
             if (!suppressed) {
                 if (!started) {
                     LOG.warn("The job with logId: {} will be flushed, but hasn't started yet.", logId);
@@ -466,7 +468,7 @@ public class JobImpl implements Job {
         if (LOG.isDebugEnabled()) {
             LOG.debug("{} : {}, {}", getStatus(), logLevel.value(), traces);
         }
-        if (this.hasStarted() && status.getValue() < logLevel.value() && !traces) {
+        if (hasStarted() && status.getValue() < logLevel.value() && !traces) {
             LOG.debug("isLogLevelHigherAsJobStateAndHasNoTraces: true");
             return true;
         } else {
@@ -521,8 +523,8 @@ public class JobImpl implements Job {
 
     private void calculateEstimatedSize() {
         synchronized (activities) {
-            estimatedSize
-                    = 1000 + activities.values().stream().mapToLong(a -> ((ActivityImpl) a).getEstimatedSize()).sum();
+            estimatedSize =
+                    1000 + activities.values().stream().mapToLong(a -> ((ActivityImpl) a).getEstimatedSize()).sum();
         }
     }
 
@@ -556,10 +558,10 @@ public class JobImpl implements Job {
                     .filter(a -> a.getActivityStatus() == null || a.getActivityStatus() == ActivityStatus.RUNNING)
                     .forEach(a -> a.end());
 
-            if (!this.hasStarted()) {
+            if (!hasStarted()) {
                 setStatusAndSeverity(JobStatus.WARNING);
                 LOG.warn("Job has been finished before it started.");
-            } else if (this.status == JobStatus.RUNNING) {
+            } else if (status == JobStatus.RUNNING) {
                 setStatusAndSeverity(JobStatus.SUCCESS);
             }
             if (getEndTime() == null) {
@@ -596,7 +598,8 @@ public class JobImpl implements Job {
             if (changed) {
                 LOG.trace("Setting the status of job with logId {} to {}", loggingLogId, loggingStatus);
             } else {
-                LOG.trace("The status of the job with logId {} hasn't been changed. The status is {}.", loggingLogId, loggingStatus);
+                LOG.trace("The status of the job with logId {} hasn't been changed. The status is {}.", loggingLogId,
+                        loggingStatus);
             }
         }
     }
@@ -818,7 +821,7 @@ public class JobImpl implements Job {
      */
     @Override
     public boolean isFinished() {
-        return this.finished;
+        return finished;
     }
 
     /**
