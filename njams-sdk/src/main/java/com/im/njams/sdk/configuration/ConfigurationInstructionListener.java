@@ -17,7 +17,11 @@
 package com.im.njams.sdk.configuration;
 
 import java.time.LocalDateTime;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.stream.Collectors;
 
+import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.faizsiegeln.njams.messageformat.v4.command.Command;
@@ -27,8 +31,10 @@ import com.faizsiegeln.njams.messageformat.v4.projectmessage.Extract;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.LogLevel;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.LogMode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.im.njams.sdk.common.DateTimeUtility;
 import com.im.njams.sdk.common.JsonSerializerFactory;
 import com.im.njams.sdk.communication.InstructionListener;
+import com.im.njams.sdk.utils.StringUtils;
 
 /**
  * InstructionListener implementation for all instructions which will modify
@@ -38,16 +44,141 @@ import com.im.njams.sdk.communication.InstructionListener;
  */
 public class ConfigurationInstructionListener implements InstructionListener {
 
-    private static final org.slf4j.Logger LOG = LoggerFactory.getLogger(ConfigurationInstructionListener.class);
+    private static class InstructionSupport {
+        private final Response response;
+        private final Instruction instruction;
+
+        private InstructionSupport(final Instruction instruction) {
+            this.instruction = instruction;
+
+            // initialize success response; overwritten by error(...) methods-
+            response = new Response();
+            response.setResultCode(0);
+            response.setResultMessage("Success");
+            instruction.setResponse(response);
+        }
+
+        /**
+         * Returns <code>true</code>, only if all given parameters exist and have none-blank values.
+         * Sets according {@link #error(String)} response.
+         * @param names
+         * @return
+         */
+        private boolean validate(String... names) {
+            Collection<String> missing =
+                    Arrays.stream(names).filter(n -> StringUtils.isBlank(getParameter(n))).collect(Collectors.toList());
+            if (!missing.isEmpty()) {
+                error("missing parameter(s) " + missing);
+                return false;
+            }
+
+            return true;
+        }
+
+        /**
+         * Returns <code>true</code> only if the given parameter's value can be parsed to an instance of the given
+         * enumeration type. 
+         * Sets according {@link #error(String)} response.
+         * @param name
+         * @param enumeration
+         * @return
+         */
+        private <T extends Enum<T>> boolean validate(final String name, final Class<T> enumeration) {
+            if (getEnumParameter(name, enumeration) == null) {
+                error("could not parse value of parameter [" + name + "] value=" + getParameter(name));
+                return false;
+            }
+            return true;
+        }
+
+        /**
+         * Creates an error response with the given message.
+         * @param message
+         */
+        private void error(final String message) {
+            error(message, null);
+        }
+
+        /**
+         * Creates an error response with the given message and exception.
+         * @param message
+         * @param e
+         */
+        private void error(final String message, final Exception e) {
+            LOG.error("Failed to execute command: [{}] on process: {}{}. Reason: {}", instruction.getCommand(),
+                    getProcessPath(), getActivityId() != null ? "#" + getActivityId() : "", message, e);
+            response.setResultCode(1);
+            response.setResultMessage(message + (e != null ? ": " + e.getMessage() : ""));
+            return;
+        }
+
+        private boolean isError() {
+            return response.getResultCode() == 1;
+        }
+
+        private InstructionSupport setParameter(final String name, final Object value) {
+            if (value instanceof LocalDateTime) {
+                response.getParameters().put(name, DateTimeUtility.toString((LocalDateTime) value));
+            } else {
+                response.getParameters().put(name, String.valueOf(value));
+            }
+            return this;
+        }
+
+        private String getProcessPath() {
+            return getParameter(PROCESS_PATH);
+        }
+
+        private String getActivityId() {
+            return getParameter(ACTIVITY_ID);
+        }
+
+        private boolean hasParameter(final String name) {
+            return instruction.getRequest().getParameters().containsKey(name);
+        }
+
+        private String getParameter(final String name) {
+            return instruction.getRequest().getParameters().get(name);
+        }
+
+        private int getIntParameter(final String name) {
+            final String s = getParameter(name);
+            try {
+                return s == null ? 0 : Integer.parseInt(s);
+            } catch (final NumberFormatException e) {
+                LOG.error("Failed to parse parameter {} from request.", name, e);
+                return 0;
+            }
+        }
+
+        private boolean getBoolParameter(final String name) {
+            return Boolean.parseBoolean(getParameter(name));
+        }
+
+        private <T extends Enum<T>> T getEnumParameter(final String name, final Class<T> enumeration) {
+            final String constantName = getParameter(name);
+            if (constantName == null || enumeration == null || enumeration.getEnumConstants() == null) {
+                return null;
+            }
+            return Arrays.stream(enumeration.getEnumConstants()).filter(c -> c.name().equalsIgnoreCase(constantName))
+                    .findAny().orElse(null);
+        }
+    }
+
+    private static final Logger LOG = LoggerFactory.getLogger(ConfigurationInstructionListener.class);
+    private static final String PROCESS_PATH = "processPath";
+    private static final String ACTIVITY_ID = "activityId";
+    private static final String LOG_LEVEL = "logLevel";
+    private static final String LOG_MODE = "logMode";
 
     private final Configuration configuration;
 
     /**
-     * Inititalize ConfigurationInstructionListener
+     * Initialize ConfigurationInstructionListener
      *
      * @param configuration which should be managed
      */
-    public ConfigurationInstructionListener(Configuration configuration) {
+    public ConfigurationInstructionListener(final Configuration configuration) {
         this.configuration = configuration;
     }
 
@@ -57,624 +188,386 @@ public class ConfigurationInstructionListener implements InstructionListener {
      * @param instruction to validate
      */
     @Override
-    public void onInstruction(Instruction instruction) {
-        String command = instruction.getRequest().getCommand();
-        if (command.equalsIgnoreCase(Command.GET_LOG_LEVEL.commandString())) {
-            getLogLevel(instruction);
-        } else if (command.equalsIgnoreCase(Command.SET_LOG_LEVEL.commandString())) {
-            setLogLevel(instruction);
-        } else if (command.equalsIgnoreCase(Command.GET_LOG_MODE.commandString())) {
-            getLogMode(instruction);
-        } else if (command.equalsIgnoreCase(Command.SET_LOG_MODE.commandString())) {
-            setLogMode(instruction);
-        } else if (command.equalsIgnoreCase(Command.SET_TRACING.commandString())) {
-            setTracing(instruction);
-        } else if (command.equalsIgnoreCase(Command.GET_TRACING.commandString())) {
-            getTracing(instruction);
-        } else if (command.equalsIgnoreCase(Command.CONFIGURE_EXTRACT.commandString())) {
-            configureExtract(instruction);
-        } else if (command.equalsIgnoreCase(Command.DELETE_EXTRACT.commandString())) {
-            deleteExtract(instruction);
-        } else if (command.equalsIgnoreCase(Command.GET_EXTRACT.commandString())) {
-            getExtract(instruction);
-        } else if (command.equalsIgnoreCase(Command.RECORD.commandString())) {
-            record(instruction);
+    public void onInstruction(final Instruction instruction) {
+        final Command command = Command.getFromInstruction(instruction);
+        final InstructionSupport instructionSupport = new InstructionSupport(instruction);
+        if (command == null) {
+            instructionSupport.error("Missing or unsupported command [" + instruction.getCommand()
+                    + "] in instruction.");
+            return;
         }
+        LOG.debug("Received command: {}", command);
+        switch (command) {
+        case CONFIGURE_EXTRACT:
+            configureExtract(instructionSupport);
+            break;
+        case DELETE_EXTRACT:
+            deleteExtract(instructionSupport);
+            break;
+        case GET_EXTRACT:
+            getExtract(instructionSupport);
+            break;
+        case GET_LOG_LEVEL:
+            getLogLevel(instructionSupport);
+            break;
+        case GET_LOG_MODE:
+            getLogMode(instructionSupport);
+            break;
+        case GET_TRACING:
+            getTracing(instructionSupport);
+            break;
+        case RECORD:
+            record(instructionSupport);
+            break;
+        case SET_LOG_LEVEL:
+            setLogLevel(instructionSupport);
+            break;
+        case SET_LOG_MODE:
+            setLogMode(instructionSupport);
+            break;
+        case SET_TRACING:
+            setTracing(instructionSupport);
+            break;
+
+        case SEND_PROJECTMESSAGE:
+        case REPLAY:
+        case TEST_EXPRESSION:
+            // not handled here.
+            LOG.debug("Ignoring command: {}", command);
+            return;
+
+        default:
+            LOG.warn("Unknown command: {}", command);
+            return;
+        }
+        LOG.debug("Handled command: {} (result={}) on process: {}{}", command, instructionSupport.isError() ? "error"
+                : "ok", instructionSupport.getProcessPath(), instructionSupport.getActivityId() == null ? "" : "#"
+                + instructionSupport.getActivityId());
     }
 
-    private void getLogLevel(Instruction instruction) {
-        String errorMsg = null;
-
+    private void getLogLevel(final InstructionSupport instructionSupport) {
         //fetch parameters
-        String processPath = instruction.getRequest().getParameters().get("processPath");
-        if (processPath == null) {
-            errorMsg = "processPath not provided";
+        if (!instructionSupport.validate(PROCESS_PATH)) {
+            return;
         }
+        final String processPath = instructionSupport.getProcessPath();
 
         //execute action
-        Response response = new Response();
-        if (errorMsg == null) {
-            // init with defaults
-            LogLevel logLevel = LogLevel.INFO;
-            boolean exclude = false;
-
-            // differing config stored?
-            ProcessConfiguration process = configuration.getProcess(processPath);
-            if (process != null) {
-                logLevel = process.getLogLevel();
-                exclude = process.isExclude();
-            }
-
-            response.getParameters().put("logLevel", logLevel.name());
-            response.getParameters().put("exclude", String.valueOf(exclude));
-            //for compatibility reasons logmode will be returned
-            response.getParameters().put("logMode", configuration.getLogMode().toString());
-
-            response.setResultCode(0);
-            response.setResultMessage("Success");
-            LOG.debug("Return LogLevel for {}", processPath);
-        } else {
-            response.setResultCode(1);
-            response.setResultMessage(errorMsg);
-            LOG.error("Unable to return LogLevel for {}: {}", processPath, errorMsg);
-        }
-        instruction.setResponse(response);
-
-    }
-
-    private void setLogLevel(Instruction instruction) {
-        String errorMsg = null;
-
-        //fetch parameters
-        String processPath = instruction.getRequest().getParameters().get("processPath");
-        if (processPath == null) {
-            errorMsg = "processPath not provided";
-        }
-        LogLevel loglevel = null;
-        try {
-            loglevel = LogLevel.valueOf(instruction.getRequest().getParameters().get("logLevel"));
-        } catch (Exception e) {
-            errorMsg = "Unable to parse LogLevel: " + e.getMessage();
-            LOG.error("Unable to parse LogLevel", e);
-        }
-        LogMode logMode = null;
-        try {
-            logMode = LogMode.valueOf(instruction.getRequest().getParameters().get("logMode"));
-        } catch (Exception e) {
-            //do nothing, this is only for compatibility, if it is not set, do nothing
-        }
+        // init with defaults
+        LogLevel logLevel = LogLevel.INFO;
         boolean exclude = false;
-        try {
-            exclude = Boolean.valueOf(instruction.getRequest().getParameters().get("exclude"));
-        } catch (Exception e) {
-            errorMsg = "Unable to parse exclude: " + e.getMessage();
-            LOG.error("Unable to parse exclude", e);
+
+        // differing config stored?
+        final ProcessConfiguration process = configuration.getProcess(processPath);
+        if (process != null) {
+            logLevel = process.getLogLevel();
+            exclude = process.isExclude();
         }
 
-        //execute action
-        ProcessConfiguration process = null;
-        if (errorMsg == null) {
-            process = configuration.getProcess(processPath);
-            if (process == null) {
-                process = new ProcessConfiguration();
-                configuration.getProcesses().put(processPath, process);
-            }
-        }
-        if (errorMsg == null) {
-            try {
-                if (logMode != null) {
-                    configuration.setLogMode(logMode);
-                }
-                process.setLogLevel(loglevel);
-                process.setExclude(exclude);
-                configuration.save();
-            } catch (Exception e) {
-                errorMsg = "Unable to save LogLevel: " + e.getMessage();
-                LOG.error("Unable to save LogLevel", e);
-            }
-        }
+        instructionSupport.setParameter(LOG_LEVEL, logLevel.name()).setParameter("exclude", exclude)
+                .setParameter(LOG_MODE, configuration.getLogMode());
 
-        //send response
-        Response response = new Response();
-        if (errorMsg == null) {
-            response.setResultCode(0);
-            response.setResultMessage("Success");
-            LOG.debug("Set LogLevel for {}", processPath);
-        } else {
-            response.setResultCode(1);
-            response.setResultMessage(errorMsg);
-            LOG.error("Unable to set LogLevel for {}: {}", processPath, errorMsg);
-        }
-        instruction.setResponse(response);
+        LOG.debug("Return LogLevel for {}", processPath);
     }
 
-    private void getLogMode(Instruction instruction) {
-        //send response
-        Response response = new Response();
-        response.getParameters().put("logMode", configuration.getLogMode().toString());
-        response.setResultCode(0);
-        response.setResultMessage("Success");
-        LOG.debug("Return LogMode");
-        instruction.setResponse(response);
-    }
-
-    private void setLogMode(Instruction instruction) {
-        String errorMsg = null;
-
+    private void setLogLevel(final InstructionSupport instructionSupport) {
+        if (!instructionSupport.validate(PROCESS_PATH, LOG_LEVEL)
+                || !instructionSupport.validate(LOG_LEVEL, LogLevel.class)) {
+            return;
+        }
         //fetch parameters
-        LogMode logMode = null;
-        try {
-            logMode = LogMode.valueOf(instruction.getRequest().getParameters().get("logMode"));
-        } catch (Exception e) {
-            errorMsg = "Unable to parse LogMode: " + e.getMessage();
-            LOG.error("Unable to parse LogMode", e);
-        }
+        final String processPath = instructionSupport.getProcessPath();
+        final LogLevel loglevel = instructionSupport.getEnumParameter(LOG_LEVEL, LogLevel.class);
 
         //execute action
-        if (errorMsg == null) {
-            try {
-                configuration.setLogMode(logMode);
-                configuration.save();
-            } catch (Exception e) {
-                errorMsg = "Unable to save LogMode: " + e.getMessage();
-                LOG.error("Unable to save LogMode", e);
-            }
+        ProcessConfiguration process = configuration.getProcess(processPath);
+        if (process == null) {
+            process = new ProcessConfiguration();
+            configuration.getProcesses().put(processPath, process);
         }
-
-        //send response
-        Response response = new Response();
-        if (errorMsg == null) {
-            response.setResultCode(0);
-            response.setResultMessage("Success");
-            LOG.debug("Set LogMode to {}", logMode);
-        } else {
-            response.setResultCode(1);
-            response.setResultMessage(errorMsg);
-            LOG.error("Unable to set LogMode: {}", errorMsg);
+        final LogMode logMode = instructionSupport.getEnumParameter(LOG_MODE, LogMode.class);
+        if (logMode != null) {
+            configuration.setLogMode(logMode);
         }
-        instruction.setResponse(response);
+        process.setLogLevel(loglevel);
+        process.setExclude(instructionSupport.getBoolParameter("exclude"));
+        saveConfiguration(instructionSupport);
     }
 
-    private void setTracing(Instruction instruction) {
-        String errorMsg = null;
+    private void getLogMode(final InstructionSupport instructionSupport) {
+        instructionSupport.setParameter(LOG_MODE, configuration.getLogMode());
+        LOG.debug("Return LogMode: {}", configuration.getLogMode());
+    }
 
+    private void setLogMode(final InstructionSupport instructionSupport) {
+        if (!instructionSupport.validate(LOG_MODE) || !instructionSupport.validate(LOG_MODE, LogMode.class)) {
+            return;
+        }
         //fetch parameters
-        String processPath = instruction.getRequest().getParameters().get("processPath");
-        if (processPath == null) {
-            errorMsg = "processPath not provided";
-        }
-        String activityId = instruction.getRequest().getParameters().get("activityId");
-        if (activityId == null) {
-            errorMsg = "activityId not provided";
-        }
-        boolean enableTracing = true;
-        try {
-            enableTracing = Boolean.valueOf(instruction.getRequest().getParameters().get("enableTracing"));
-        } catch (Exception e) {
-            errorMsg = "Unable to parse enableTracing: " + e.getMessage();
-            LOG.error("Unable to parse enableTracing", e);
-        }
+        final LogMode logMode = instructionSupport.getEnumParameter(LOG_MODE, LogMode.class);
+        configuration.setLogMode(logMode);
+        saveConfiguration(instructionSupport);
+        LOG.debug("Set LogMode to {}", logMode);
+    }
 
-        if (enableTracing) {
-            enableTracing(instruction, processPath, activityId, errorMsg);
+    private void setTracing(final InstructionSupport instructionSupport) {
+        if (!instructionSupport.validate(PROCESS_PATH, ACTIVITY_ID)) {
+            return;
+        }
+        //fetch parameters
+
+        LocalDateTime endTime;
+        try {
+            endTime = parseDateTime(instructionSupport.getParameter("endtime"));
+        } catch (final Exception e) {
+            instructionSupport.error("Unable to parse end-time from tracepoint.", e);
+            return;
+        }
+        if (endTime == null) {
+            endTime = DateTimeUtility.now().plusMinutes(15);
+        }
+        if (instructionSupport.getBoolParameter("enableTracing") && endTime.isAfter(DateTimeUtility.now())) {
+            LOG.debug("Update tracepoint.");
+            updateTracePoint(instructionSupport, endTime);
         } else {
-            disableTracing(instruction, processPath, activityId, errorMsg);
+            LOG.debug("Delete tracepoint.");
+            deleteTracePoint(instructionSupport);
         }
     }
 
-    private void enableTracing(Instruction instruction, String processPath, String activityId, String errorMsgParam) {
-        String errorMsg = errorMsgParam;
-        LocalDateTime starttime = null;
-        try {
-            starttime = LocalDateTime.parse(instruction.getRequest().getParameters().get("starttime"));
-        } catch (Exception e) {
-            errorMsg = "Unable to parse starttime: " + e.getMessage();
-            LOG.error("Unable to parse starttime", e);
+    private LocalDateTime parseDateTime(final String dateTime) {
+        if (StringUtils.isBlank(dateTime)) {
+            return null;
         }
-        LocalDateTime endtime = null;
+        return DateTimeUtility.fromString(dateTime);
+    }
+
+    private void updateTracePoint(final InstructionSupport instructionSupport, final LocalDateTime endTime) {
+        LocalDateTime startTime;
         try {
-            endtime = LocalDateTime.parse(instruction.getRequest().getParameters().get("endtime"));
-        } catch (Exception e) {
-            errorMsg = "Unable to parse endtime: " + e.getMessage();
-            LOG.error("Unable to parse endtime", e);
+            startTime = parseDateTime(instructionSupport.getParameter("starttime"));
+        } catch (final Exception e) {
+            instructionSupport.error("Unable to parse start-time from tracepoint.", e);
+            return;
         }
-        Integer iterations = 0;
-        try {
-            iterations = Integer.valueOf(instruction.getRequest().getParameters().get("iterations"));
-        } catch (Exception e) {
-            errorMsg = "Unable to parse iterations: " + e.getMessage();
-            LOG.debug("Unable to parse iterations", e);
-        }
-        boolean deepTrace = false;
-        try {
-            deepTrace = Boolean.valueOf(instruction.getRequest().getParameters().get("deepTrace"));
-        } catch (Exception e) {
-            errorMsg = "Unable to parse deepTrace: " + e.getMessage();
-            LOG.error("Unable to parse deepTrace", e);
+        if (startTime == null) {
+            startTime = DateTimeUtility.now();
         }
 
+        final String processPath = instructionSupport.getProcessPath();
+        final String activityId = instructionSupport.getActivityId();
+
         //execute action
-        ProcessConfiguration process = null;
-        if (errorMsg == null) {
-            process = configuration.getProcess(processPath);
-            if (process == null) {
-                process = new ProcessConfiguration();
-                configuration.getProcesses().put(processPath, process);
-            }
+        ProcessConfiguration process = configuration.getProcess(processPath);
+        if (process == null) {
+            process = new ProcessConfiguration();
+            configuration.getProcesses().put(processPath, process);
+        }
+        ActivityConfiguration activity = process.getActivity(activityId);
+        if (activity == null) {
+            activity = new ActivityConfiguration();
+            process.getActivities().put(activityId, activity);
+        }
+        final TracepointExt tp = new TracepointExt();
+        tp.setStarttime(startTime);
+        tp.setEndtime(endTime);
+        tp.setIterations(instructionSupport.getIntParameter("iterations"));
+        tp.setDeeptrace(instructionSupport.getBoolParameter("deepTrace"));
+        activity.setTracepoint(tp);
+        saveConfiguration(instructionSupport);
+        LOG.debug("Tracepoint on {}#{} updated", processPath, activityId);
+    }
+
+    private void deleteTracePoint(final InstructionSupport instructionSupport) {
+        //execute action
+        final String processPath = instructionSupport.getProcessPath();
+        final String activityId = instructionSupport.getActivityId();
+
+        final ProcessConfiguration process = configuration.getProcess(processPath);
+        if (process == null) {
+            LOG.debug("Delete tracepoint: no process configuration for: {}", processPath);
+            return;
+        }
+        final ActivityConfiguration activity = process.getActivity(activityId);
+        if (activity == null) {
+            LOG.debug("Delete tracepoint: no activity configuration for: {}#{}", processPath, activityId);
+            return;
+        }
+        activity.setTracepoint(null);
+        saveConfiguration(instructionSupport);
+        LOG.debug("Tracepoint on {}#{} deleted", processPath, activityId);
+    }
+
+    private void configureExtract(final InstructionSupport instructionSupport) {
+        if (!instructionSupport.validate(PROCESS_PATH, ACTIVITY_ID, "extract")) {
+            return;
+        }
+        //fetch parameters
+        final String processPath = instructionSupport.getProcessPath();
+        final String activityId = instructionSupport.getActivityId();
+        final String extractString = instructionSupport.getParameter("extract");
+
+        //execute action
+        ProcessConfiguration process = configuration.getProcess(processPath);
+        if (process == null) {
+            process = new ProcessConfiguration();
+            configuration.getProcesses().put(processPath, process);
         }
         ActivityConfiguration activity = null;
-        if (errorMsg == null) {
-            activity = process.getActivity(activityId);
-            if (activity == null) {
-                activity = new ActivityConfiguration();
-                process.getActivities().put(activityId, activity);
-            }
-        }
-        if (errorMsg == null) {
-            try {
-                TracepointExt tp = new TracepointExt();
-                tp.setStarttime(starttime);
-                tp.setEndtime(endtime);
-                tp.setIterations(iterations);
-                tp.setDeeptrace(deepTrace);
-                activity.setTracepoint(tp);
-                configuration.save();
-            } catch (Exception e) {
-                errorMsg = "Unable to save Tracepoint: " + e.getMessage();
-                LOG.error("Unable to save Tracepoint", e);
-            }
-        }
-
-        //send response
-        Response response = new Response();
-        if (errorMsg == null) {
-            response.setResultCode(0);
-            response.setResultMessage("Success");
-            LOG.debug("Set LogLevel for {}", processPath);
-        } else {
-            response.setResultCode(1);
-            response.setResultMessage(errorMsg);
-            LOG.error("Unable to set LogLevel for {}: {}", processPath, errorMsg);
-        }
-        instruction.setResponse(response);
-    }
-
-    private void disableTracing(Instruction instruction, String processPath, String activityId, String errorMsgParam) {
-        String errorMsg = errorMsgParam;
-        //execute action
-        ProcessConfiguration process = null;
-        if (errorMsg == null) {
-            process = configuration.getProcess(processPath);
-            if (process == null) {
-                errorMsg = "Process " + processPath + " not found";
-            }
-        }
-        ActivityConfiguration activity = null;
-        if (errorMsg == null) {
-            activity = process.getActivity(activityId);
-            if (activity == null) {
-                errorMsg = "Activity " + activityId + " not found";
-            }
-        }
-        if (errorMsg == null) {
-            try {
-                activity.setTracepoint(null);
-                configuration.save();
-            } catch (Exception e) {
-                errorMsg = "Unable to delete Tracepoint: " + e.getMessage();
-                LOG.error("Unable to delete Tracepoint", e);
-            }
-        }
-
-        //send response
-        Response response = new Response();
-        if (errorMsg == null) {
-            response.setResultCode(0);
-            response.setResultMessage("Success");
-            LOG.debug("Delete Tracepoint for {} -> {}", processPath, activityId);
-        } else {
-            response.setResultCode(1);
-            response.setResultMessage(errorMsg);
-            LOG.error("Unable to delete Tracepoint for {}: {}", processPath, activityId, errorMsg);
-        }
-        instruction.setResponse(response);
-    }
-
-    private void configureExtract(Instruction instruction) {
-        String errorMsg = null;
-
-        //fetch parameters
-        String processPath = instruction.getRequest().getParameters().get("processPath");
-        if (processPath == null) {
-            errorMsg = "processPath not provided";
-        }
-        String activityId = instruction.getRequest().getParameters().get("activityId");
-        if (activityId == null) {
-            errorMsg = "activityId not provided";
-        }
-        String extractString = instruction.getRequest().getParameters().get("extract");
-        if (extractString == null) {
-            errorMsg = "extract not provided";
-        }
-
-        //execute action
-        ProcessConfiguration process = null;
-        if (errorMsg == null) {
-            process = configuration.getProcess(processPath);
-            if (process == null) {
-                process = new ProcessConfiguration();
-                configuration.getProcesses().put(processPath, process);
-            }
-        }
-        ActivityConfiguration activity = null;
-        if (errorMsg == null) {
-            activity = process.getActivity(activityId);
-            if (activity == null) {
-                activity = new ActivityConfiguration();
-                process.getActivities().put(activityId, activity);
-            }
+        activity = process.getActivity(activityId);
+        if (activity == null) {
+            activity = new ActivityConfiguration();
+            process.getActivities().put(activityId, activity);
         }
         Extract extract = null;
-        if (errorMsg == null) {
-            try {
-                ObjectMapper mapper = JsonSerializerFactory.getDefaultMapper();
-                extract = mapper.readValue(extractString, Extract.class);
-            } catch (Exception e) {
-                errorMsg = "Unable to deserialize Extract: " + e.getMessage();
-                LOG.error("Unable to deserialize Extract", e);
-            }
+        try {
+            final ObjectMapper mapper = JsonSerializerFactory.getDefaultMapper();
+            extract = mapper.readValue(extractString, Extract.class);
+        } catch (final Exception e) {
+            instructionSupport.error("Unable to deserialize extract", e);
+            return;
         }
-        if (errorMsg == null) {
-            try {
-                activity.setExtract(extract);
-                configuration.save();
-            } catch (Exception e) {
-                errorMsg = "Unable to set Extract: " + e.getMessage();
-                LOG.error("Unable to set Extract", e);
-            }
-        }
-
-        //send response
-        Response response = new Response();
-        if (errorMsg == null) {
-            response.setResultCode(0);
-            response.setResultMessage("Success");
-            LOG.debug("Set LogLevel for {}", processPath);
-        } else {
-            response.setResultCode(1);
-            response.setResultMessage(errorMsg);
-            LOG.error("Unable to set LogLevel for {}: {}", processPath, errorMsg);
-        }
-        instruction.setResponse(response);
+        activity.setExtract(extract);
+        saveConfiguration(instructionSupport);
+        LOG.debug("Configure extract for {}", processPath);
     }
 
-    private void deleteExtract(Instruction instruction) {
-        String errorMsg = null;
-
+    private void deleteExtract(final InstructionSupport instructionSupport) {
+        if (!instructionSupport.validate(PROCESS_PATH, ACTIVITY_ID)) {
+            return;
+        }
         //fetch parameters
-        String processPath = instruction.getRequest().getParameters().get("processPath");
-        if (processPath == null) {
-            errorMsg = "processPath not provided";
-        }
-        String activityId = instruction.getRequest().getParameters().get("activityId");
-        if (activityId == null) {
-            errorMsg = "activityId not provided";
-        }
+        final String processPath = instructionSupport.getProcessPath();
+        final String activityId = instructionSupport.getActivityId();
 
         //execute action
         ProcessConfiguration process = null;
-        if (errorMsg == null) {
-            process = configuration.getProcess(processPath);
-            if (process == null) {
-                errorMsg = "Process " + processPath + " not found";
-            }
+        process = configuration.getProcess(processPath);
+        if (process == null) {
+            instructionSupport.error("Process configuration " + processPath + " not found");
+            return;
         }
         ActivityConfiguration activity = null;
-        if (errorMsg == null) {
-            activity = process.getActivity(activityId);
-            if (activity == null) {
-                errorMsg = "Activity " + activityId + " not found";
-            }
+        activity = process.getActivity(activityId);
+        if (activity == null) {
+            instructionSupport.error("Activity " + activityId + " not found");
+            return;
         }
-        if (errorMsg == null) {
-            try {
-                activity.setExtract(null);
-                configuration.save();
-            } catch (Exception e) {
-                errorMsg = "Unable to delete Extract: " + e.getMessage();
-                LOG.error("Unable to delete Extract", e);
-            }
-        }
-
-        //send response
-        Response response = new Response();
-        if (errorMsg == null) {
-            response.setResultCode(0);
-            response.setResultMessage("Success");
-            LOG.debug("Delete Extract for {} -> {}", processPath, activityId);
-        } else {
-            response.setResultCode(1);
-            response.setResultMessage(errorMsg);
-            LOG.error("Unable to delete Extract for {}: {}", processPath, activityId, errorMsg);
-        }
-        instruction.setResponse(response);
+        activity.setExtract(null);
+        saveConfiguration(instructionSupport);
     }
 
-    private void getTracing(Instruction instruction) {
-        String errorMsg = null;
-
+    private void getTracing(final InstructionSupport instructionSupport) {
+        if (!instructionSupport.validate(PROCESS_PATH, ACTIVITY_ID)) {
+            return;
+        }
         //fetch parameters
-        String processPath = instruction.getRequest().getParameters().get("processPath");
-        if (processPath == null) {
-            errorMsg = "processPath not provided";
-        }
-        String activityId = instruction.getRequest().getParameters().get("activityId");
-        if (activityId == null) {
-            errorMsg = "activityId not provided";
-        }
+        final String processPath = instructionSupport.getProcessPath();
+        final String activityId = instructionSupport.getActivityId();
 
         //execute action
-        ProcessConfiguration process = null;
-        if (errorMsg == null) {
-            process = configuration.getProcess(processPath);
-            if (process == null) {
-                errorMsg = "Process " + processPath + " not found";
-            }
+        final ProcessConfiguration process = configuration.getProcess(processPath);
+        if (process == null) {
+            instructionSupport.error("Process " + processPath + " not found");
+            return;
         }
         ActivityConfiguration activity = null;
-        if (errorMsg == null) {
-            activity = process.getActivity(activityId);
-            if (activity == null) {
-                errorMsg = "Activity " + activityId + " not found";
-            }
+        activity = process.getActivity(activityId);
+        if (activity == null) {
+            instructionSupport.error("Activity " + activityId + " not found");
+            return;
         }
         TracepointExt tracepoint = null;
-        if (errorMsg == null) {
-            tracepoint = activity.getTracepoint();
-            if (tracepoint == null) {
-                errorMsg = "Tracepoint for actvitiy " + activityId + " not found";
-            }
+        tracepoint = activity.getTracepoint();
+        if (tracepoint == null) {
+            instructionSupport.error("Tracepoint for actvitiy " + activityId + " not found");
+            return;
         }
 
-        //send response
-        Response response = new Response();
-        if (errorMsg == null) {
-            response.setResultCode(0);
-            response.setResultMessage("Success");
-            response.getParameters().put("starttime", tracepoint.getStarttime().toString());
-            response.getParameters().put("endtime", tracepoint.getEndtime().toString());
-            response.getParameters().put("iterations", String.valueOf(tracepoint.getIterations()));
-            response.getParameters().put("deepTrace", String.valueOf(tracepoint.isDeeptrace()));
-            LOG.debug("Get Tracepoint for {} -> {}", processPath, activityId);
-        } else {
-            response.setResultCode(1);
-            response.setResultMessage(errorMsg);
-            LOG.error("Unable to get Tracepoint for {}: {}", processPath, activityId, errorMsg);
-        }
-        instruction.setResponse(response);
+        instructionSupport.setParameter("starttime", tracepoint.getStarttime())
+                .setParameter("endtime", tracepoint.getEndtime())
+                .setParameter("iterations", tracepoint.getIterations())
+                .setParameter("deepTrace", tracepoint.isDeeptrace());
+
     }
 
-    private void getExtract(Instruction instruction) {
-        String errorMsg = null;
-
+    private void getExtract(final InstructionSupport instructionSupport) {
+        if (!instructionSupport.validate(PROCESS_PATH, ACTIVITY_ID)) {
+            return;
+        }
         //fetch parameters
-        String processPath = instruction.getRequest().getParameters().get("processPath");
-        if (processPath == null) {
-            errorMsg = "processPath not provided";
-        }
-        String activityId = instruction.getRequest().getParameters().get("activityId");
-        if (activityId == null) {
-            errorMsg = "activityId not provided";
-        }
+        final String processPath = instructionSupport.getProcessPath();
+        final String activityId = instructionSupport.getActivityId();
 
         //execute action
-        ProcessConfiguration process = null;
-        if (errorMsg == null) {
-            process = configuration.getProcess(processPath);
-            if (process == null) {
-                errorMsg = "Process " + processPath + " not found";
-            }
+        final ProcessConfiguration process = configuration.getProcess(processPath);
+        if (process == null) {
+            instructionSupport.error("Process " + processPath + " not found");
+            return;
         }
-        ActivityConfiguration activity = null;
-        if (errorMsg == null) {
-            activity = process.getActivity(activityId);
-            if (activity == null) {
-                errorMsg = "Activity " + activityId + " not found";
-            }
+        final ActivityConfiguration activity = process.getActivity(activityId);
+        if (activity == null) {
+            instructionSupport.error("Activity " + activityId + " not found");
+            return;
         }
-        Extract extract = null;
-        if (errorMsg == null) {
-            extract = activity.getExtract();
-            if (extract == null) {
-                errorMsg = "Extract for actvitiy " + activityId + " not found";
-            }
+        final Extract extract = activity.getExtract();
+        if (extract == null) {
+            instructionSupport.error("Extract for actvitiy " + activityId + " not found");
+            return;
         }
-        String extractString = null;
-        if (errorMsg == null) {
-            try {
-                ObjectMapper mapper = JsonSerializerFactory.getDefaultMapper();
-                extractString = mapper.writeValueAsString(extract);
-            } catch (Exception e) {
-                errorMsg = "Unable to serialize Extract: " + e.getMessage();
-                LOG.error("Unable to serialize Extract", e);
-            }
+        try {
+            final ObjectMapper mapper = JsonSerializerFactory.getDefaultMapper();
+            instructionSupport.setParameter("extract", mapper.writeValueAsString(extract));
+        } catch (final Exception e) {
+            instructionSupport.error("Unable to serialize Extract", e);
+            return;
         }
 
-        //send response
-        Response response = new Response();
-        if (errorMsg == null) {
-            response.setResultCode(0);
-            response.setResultMessage("Success");
-            response.getParameters().put("extract", extractString);
-            LOG.debug("Get Extract for {} -> {}", processPath, activityId);
-        } else {
-            response.setResultCode(1);
-            response.setResultMessage(errorMsg);
-            LOG.error("Unable to get Extract for {}: {}", processPath, activityId, errorMsg);
-        }
-        instruction.setResponse(response);
+        LOG.debug("Get Extract for {} -> {}", processPath, activityId);
     }
 
-    private void record(Instruction instruction) {
-        String errorMsg = null;
+    private void record(final InstructionSupport instructionSupport) {
 
         //fetch parameters
-        if (instruction.getRequest().getParameters().containsKey("EngineWideRecording")) {
+        if (instructionSupport.hasParameter("EngineWideRecording")) {
             try {
-                boolean engineWideRecording =
-                        Boolean.valueOf(instruction.getRequest().getParameters().get("EngineWideRecording"));
+                final boolean engineWideRecording = instructionSupport.getBoolParameter("EngineWideRecording");
                 configuration.setRecording(engineWideRecording);
                 //reset to default after logic change
                 configuration.getProcesses().values().forEach(p -> p.setRecording(engineWideRecording));
-            } catch (Exception e) {
-                errorMsg = "Unable to set client recording: " + e.getMessage();
-                LOG.error("Unable to set client recording", e);
+            } catch (final Exception e) {
+                instructionSupport.error("Unable to set client recording", e);
+                return;
             }
         }
 
-        String processPath = instruction.getRequest().getParameters().get("processPath");
+        final String processPath = instructionSupport.getProcessPath();
         if (processPath != null) {
             try {
                 ProcessConfiguration process = null;
-                if (errorMsg == null) {
-                    process = configuration.getProcess(processPath);
-                    if (process == null) {
-                        process = new ProcessConfiguration();
-                        configuration.getProcesses().put(processPath, process);
-                    }
+                process = configuration.getProcess(processPath);
+                if (process == null) {
+                    process = new ProcessConfiguration();
+                    configuration.getProcesses().put(processPath, process);
                 }
-                final Object doRecordParameter = instruction.getRequest().getParameters().get("Record");
-                final boolean doRecord;
-                doRecord = doRecordParameter != null && "all".equalsIgnoreCase(doRecordParameter.toString());
+                final String doRecordParameter = instructionSupport.getParameter("Record");
+                final boolean doRecord = "all".equalsIgnoreCase(doRecordParameter);
                 process.setRecording(doRecord);
-            } catch (Exception e) {
-                errorMsg = "Unable to set process recording: " + e.getMessage();
-                LOG.error("Unable to set process recording", e);
+            } catch (final Exception e) {
+                instructionSupport.error("Unable to set process recording", e);
+                return;
             }
         }
 
-        if (errorMsg == null) {
-            try {
-                configuration.save();
-            } catch (Exception e) {
-                errorMsg = "Unable to save recording: " + e.getMessage();
-                LOG.error("Unable to save recording", e);
-            }
-        }
-
-        //send response
-        Response response = new Response();
-        if (errorMsg == null) {
-            response.setResultCode(0);
-            response.setResultMessage("Success");
-            LOG.debug("Recording for {}", processPath);
-        } else {
-            response.setResultCode(1);
-            response.setResultMessage(errorMsg);
-            LOG.error("Unable to set recording for {}: {}", processPath, errorMsg);
-        }
-        instruction.setResponse(response);
-
+        saveConfiguration(instructionSupport);
+        LOG.debug("Recording for {}", processPath);
     }
 
+    private void saveConfiguration(InstructionSupport instructionSupport) {
+        try {
+            configuration.save();
+        } catch (final Exception e) {
+            instructionSupport.error("Unable to save configuration", e);
+        }
+    }
 }
