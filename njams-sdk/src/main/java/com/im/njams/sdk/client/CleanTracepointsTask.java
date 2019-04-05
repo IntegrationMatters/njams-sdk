@@ -1,5 +1,5 @@
 /* 
- * Copyright (c) 2018 Faiz & Siegeln Software GmbH
+ * Copyright (c) 2019 Faiz & Siegeln Software GmbH
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"),
  * to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
@@ -16,6 +16,7 @@
  */
 package com.im.njams.sdk.client;
 
+import com.faizsiegeln.njams.messageformat.v4.tracemessage.TraceMessage;
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.configuration.ActivityConfiguration;
 import com.im.njams.sdk.configuration.Configuration;
@@ -24,12 +25,10 @@ import com.im.njams.sdk.configuration.TracepointExt;
 import com.im.njams.sdk.common.DateTimeUtility;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import java.time.LocalDateTime;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.Timer;
-import java.util.TimerTask;
+import java.util.stream.Collectors;
+
 import org.slf4j.LoggerFactory;
 
 /**
@@ -46,6 +45,10 @@ public class CleanTracepointsTask extends TimerTask {
 
     private static Timer timer = null;
 
+    static final int DELAY = 1000;
+
+    static final int PERIOD = 1000;
+
     /**
      * Start the CleanTracepointsTask if it is not started yet, and add the
      * given Njams instance to the task.
@@ -61,10 +64,28 @@ public class CleanTracepointsTask extends TimerTask {
         }
         if (timer == null) {
             timer = new Timer();
-            timer.scheduleAtFixedRate(new CleanTracepointsTask(), 1000, 1000);
+            timer.scheduleAtFixedRate(new CleanTracepointsTask(), DELAY, PERIOD);
         }
 
         njamsInstances.put(njams.getClientPath().toString(), njams);
+    }
+
+    /**
+     * Returns all active Njams instances, for testing purpose.
+     *
+     * @return list of njams instances
+     */
+    static List<Njams> getNjamsInstances(){
+        return njamsInstances.values().stream().collect(Collectors.toList());
+    }
+
+    /**
+     * Returns the Timer for testing purpose.
+     *
+     * @return timer
+     */
+    static Timer getTimer(){
+        return timer;
     }
 
     /**
@@ -103,15 +124,15 @@ public class CleanTracepointsTask extends TimerTask {
 
     private void checkNjams(Njams njams, LocalDateTime now) {
         Configuration configuration = njams.getConfiguration();
-        configuration.getProcesses().values().forEach(process -> checkProcess(configuration, process, now));
+        configuration.getProcesses().entrySet().forEach(processEntry -> checkProcess(njams, configuration, processEntry, now));
     }
 
-    private void checkProcess(Configuration configuration, ProcessConfiguration process, LocalDateTime now) {
+    private void checkProcess(Njams njams, Configuration configuration, Entry<String, ProcessConfiguration> processEntry, LocalDateTime now) {
         //use itertor here, because we want to possibly modify the map itself
-        Iterator<Entry<String, ActivityConfiguration>> it = process.getActivities().entrySet().iterator();
+        Iterator<Entry<String, ActivityConfiguration>> it = processEntry.getValue().getActivities().entrySet().iterator();
         while (it.hasNext()) {
             Entry<String, ActivityConfiguration> ae = it.next();
-            if (checkActivity(configuration, process, ae, now)) {
+            if (checkActivity(njams, configuration, processEntry, ae, now)) {
                 it.remove();
                 configuration.save();
             }
@@ -119,14 +140,14 @@ public class CleanTracepointsTask extends TimerTask {
         }
     }
 
-    private boolean checkActivity(Configuration configuration, ProcessConfiguration process, Entry<String, ActivityConfiguration> ae, LocalDateTime now) {
+    private boolean checkActivity(Njams njams, Configuration configuration, Entry<String, ProcessConfiguration> processEntry, Entry<String, ActivityConfiguration> ae, LocalDateTime now) {
         ActivityConfiguration activity = ae.getValue();
         TracepointExt tracepoint = activity.getTracepoint();
         if (tracepoint != null && (tracepoint.getEndtime().isBefore(now) || tracepoint.iterationsExceeded())) {
             try {
+                njams.getSender().send(createTraceMessage(njams, processEntry, ae));
                 activity.setTracepoint(null);
                 configuration.save();
-                //TODO: send notification to server that the tracepoint has been deleted
                 if (activity.isEmpty()) {
                     return true;
                 }
@@ -135,6 +156,22 @@ public class CleanTracepointsTask extends TimerTask {
             }
         }
         return false;
+    }
+
+    private TraceMessage createTraceMessage(Njams njams, Entry<String, ProcessConfiguration> processEntry, Entry<String, ActivityConfiguration> ae){
+        final TraceMessage msg = new TraceMessage();
+        //Set CommonMessage fields
+        msg.setClientVersion(njams.getClientVersion());
+        msg.setSdkVersion(njams.getSdkVersion());
+        msg.setCategory(njams.getCategory());
+        //ProcessPath
+        msg.setPath(processEntry.getKey());
+
+        //Set TraceMessage fields
+        msg.setActivityId(ae.getKey());
+        msg.setTracepoint(ae.getValue().getTracepoint());
+
+        return msg;
     }
 
 }
