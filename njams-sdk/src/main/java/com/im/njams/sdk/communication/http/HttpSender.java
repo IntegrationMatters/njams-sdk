@@ -31,6 +31,7 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 
+import com.faizsiegeln.njams.messageformat.v4.tracemessage.TraceMessage;
 import org.slf4j.LoggerFactory;
 
 import com.faizsiegeln.njams.messageformat.v4.common.MessageVersion;
@@ -102,6 +103,7 @@ public class HttpSender extends AbstractSender {
     @Override
     protected void send(final LogMessage msg) {
         final Properties properties = new Properties();
+        properties.put(Sender.NJAMS_MESSAGEVERSION, MessageVersion.V4.toString());
         properties.put(Sender.NJAMS_MESSAGETYPE, Sender.NJAMS_MESSAGETYPE_EVENT);
         properties.put(Sender.NJAMS_PATH, msg.getPath());
         properties.put(Sender.NJAMS_LOGID, msg.getLogId());
@@ -117,6 +119,7 @@ public class HttpSender extends AbstractSender {
     @Override
     protected void send(final ProjectMessage msg) {
         final Properties properties = new Properties();
+        properties.put(Sender.NJAMS_MESSAGEVERSION, MessageVersion.V4.toString());
         properties.put(Sender.NJAMS_MESSAGETYPE, Sender.NJAMS_MESSAGETYPE_PROJECT);
         properties.put(Sender.NJAMS_PATH, msg.getPath());
 
@@ -126,6 +129,22 @@ public class HttpSender extends AbstractSender {
             LOG.debug(response);
         } catch (final IOException ex) {
             LOG.error("Error sending LogMessage", ex);
+        }
+    }
+
+    @Override
+    protected void send(TraceMessage msg) throws NjamsSdkRuntimeException{
+        final Properties properties = new Properties();
+        properties.put(Sender.NJAMS_MESSAGEVERSION, MessageVersion.V4.toString());
+        properties.put(Sender.NJAMS_MESSAGETYPE, Sender.NJAMS_MESSAGETYPE_TRACE);
+        properties.put(Sender.NJAMS_PATH, msg.getPath());
+
+        try {
+            LOG.debug("Sending TraceMessage");
+            final String response = send(msg, properties);
+            LOG.debug(response);
+        } catch (final IOException ex) {
+            LOG.error("Error sending TraceMessage", ex);
         }
     }
 

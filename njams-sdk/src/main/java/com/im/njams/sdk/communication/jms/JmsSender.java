@@ -31,6 +31,7 @@ import javax.naming.InitialContext;
 import javax.naming.NameNotFoundException;
 import javax.naming.NamingException;
 
+import com.faizsiegeln.njams.messageformat.v4.tracemessage.TraceMessage;
 import org.slf4j.LoggerFactory;
 
 import com.faizsiegeln.njams.messageformat.v4.common.MessageVersion;
@@ -185,6 +186,27 @@ public class JmsSender extends AbstractSender implements ExceptionListener {
             throw new NjamsSdkRuntimeException("Unable to send ProjectMessage", e);
         }
     }
+
+    /**
+     * Send the given TraceMessage to the specifies JMS
+     *
+     * @param msg the Tracemessage to send
+     */
+    @Override
+    protected void send(TraceMessage msg) throws NjamsSdkRuntimeException{
+        try {
+            String data = mapper.writeValueAsString(msg);
+            TextMessage textMessage = session.createTextMessage(data);
+            textMessage.setStringProperty(Sender.NJAMS_MESSAGEVERSION, MessageVersion.V4.toString());
+            textMessage.setStringProperty(Sender.NJAMS_MESSAGETYPE, Sender.NJAMS_MESSAGETYPE_TRACE);
+            textMessage.setStringProperty(Sender.NJAMS_PATH,  msg.getPath());
+            producer.send(textMessage);
+            LOG.debug("Send TraceMessage {} to {}:\n{}", msg.getPath(), producer.getDestination(), data);
+        } catch (Exception e) {
+            throw new NjamsSdkRuntimeException("Unable to send TraceMessage", e);
+        }
+    }
+
 
     /**
      * Close this Sender.

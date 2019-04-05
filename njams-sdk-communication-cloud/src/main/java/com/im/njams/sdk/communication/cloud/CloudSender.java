@@ -19,6 +19,7 @@ package com.im.njams.sdk.communication.cloud;
 import com.faizsiegeln.njams.messageformat.v4.common.MessageVersion;
 import com.faizsiegeln.njams.messageformat.v4.logmessage.LogMessage;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.ProjectMessage;
+import com.faizsiegeln.njams.messageformat.v4.tracemessage.TraceMessage;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.communication.AbstractSender;
 import com.im.njams.sdk.communication.Sender;
@@ -163,6 +164,36 @@ public class CloudSender extends AbstractSender {
         } catch (Exception ex) {
             LOG.error("Error sending ProjectMessage", ex);
         }
+    }
+
+    @Override
+    protected void send(final TraceMessage msg) {
+        /**
+        final Properties properties = new Properties();
+        properties.put(NJAMS_MESSAGETYPE, Sender.NJAMS_MESSAGETYPE_TRACE);
+        properties.put(NJAMS_PATH, msg.getPath());
+
+        try {
+            LOG.trace("Sending project message");
+            final String body = JsonUtils.serialize(msg);
+
+            byte[] byteBody = body.getBytes("UTF-8");
+            int utf8Bytes = byteBody.length;
+            LOG.debug("Message size in Bytes: {}", utf8Bytes);
+            if (utf8Bytes > maxPayloadBytes) {
+                LOG.debug("Message exceeds Byte limit: {}/{}", utf8Bytes, maxPayloadBytes);
+                URL presignedUrl = getPresignedUrl(properties);
+                send(body, presignedUrl);
+
+            } else {
+                final String response = send(body, properties);
+                LOG.trace("Response: " + response);
+            }
+
+        } catch (Exception ex) {
+            LOG.error("Error sending TraceMessage", ex);
+        }
+         */
     }
 
      /**

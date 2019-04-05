@@ -18,6 +18,7 @@ package com.im.njams.sdk.communication;
 
 import java.util.Properties;
 
+import com.faizsiegeln.njams.messageformat.v4.tracemessage.TraceMessage;
 import org.slf4j.LoggerFactory;
 
 import com.faizsiegeln.njams.messageformat.v4.common.CommonMessage;
@@ -168,6 +169,14 @@ public abstract class AbstractSender implements Sender {
      * @throws NjamsSdkRuntimeException NjamsSdkRuntimeException
      */
     protected abstract void send(ProjectMessage msg) throws NjamsSdkRuntimeException;
+
+    /**
+     * Implement this method to send TraceMessages
+     *
+     * @param msg the message to send
+     * @throws NjamsSdkRuntimeException NjamsSdkRuntimeException
+     */
+    protected abstract void send(TraceMessage msg) throws NjamsSdkRuntimeException;
 
     @Override
     public void close() {
