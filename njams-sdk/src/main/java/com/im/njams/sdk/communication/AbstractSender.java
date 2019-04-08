@@ -112,6 +112,8 @@ public abstract class AbstractSender implements Sender {
                         send((LogMessage) msg);
                     } else if (msg instanceof ProjectMessage) {
                         send((ProjectMessage) msg);
+                    } else if(msg instanceof TraceMessage){
+                        send((TraceMessage) msg);
                     }
                     isSent = true;
                     break;
