@@ -47,7 +47,7 @@ public class CleanTracepointsTask extends TimerTask {
 
     static final int DELAY = 1000;
 
-    static final int PERIOD = 1000;
+    static final int INTERVAL = 1000;
 
     /**
      * Start the CleanTracepointsTask if it is not started yet, and add the
@@ -64,7 +64,7 @@ public class CleanTracepointsTask extends TimerTask {
         }
         if (timer == null) {
             timer = new Timer();
-            timer.scheduleAtFixedRate(new CleanTracepointsTask(), DELAY, PERIOD);
+            timer.scheduleAtFixedRate(new CleanTracepointsTask(), DELAY, INTERVAL);
         }
 
         njamsInstances.put(njams.getClientPath().toString(), njams);

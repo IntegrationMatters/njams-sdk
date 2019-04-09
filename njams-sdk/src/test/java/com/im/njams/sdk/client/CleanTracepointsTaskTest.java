@@ -197,7 +197,7 @@ public class CleanTracepointsTaskTest extends AbstractTest {
         assertNotNull(njams.getConfiguration().getProcess(FULLPROCESSPATHNAME).getActivity(ACTIVITYMODELID).getTracepoint());
         assertNull(message);
         testStartNormal();
-        Thread.sleep(CleanTracepointsTask.DELAY + CleanTracepointsTask.PERIOD);
+        Thread.sleep(CleanTracepointsTask.DELAY + CleanTracepointsTask.INTERVAL);
         assertNotNull(message);
         assertNull(njams.getConfiguration().getProcess(FULLPROCESSPATHNAME).getActivity(ACTIVITYMODELID).getTracepoint());
 

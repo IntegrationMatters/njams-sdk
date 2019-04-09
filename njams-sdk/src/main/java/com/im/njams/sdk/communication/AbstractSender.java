@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Faiz & Siegeln Software GmbH
+ * Copyright (c) 2019 Faiz & Siegeln Software GmbH
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"),
  * to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
@@ -32,7 +32,7 @@ import com.im.njams.sdk.settings.Settings;
  * All Sender will be automatically pooled by the SDK; you must not implement your own connection pooling!
  *
  * @author hsiegeln
- *
+ * @version 4.0.6
  */
 public abstract class AbstractSender implements Sender {
 
@@ -78,9 +78,22 @@ public abstract class AbstractSender implements Sender {
      * initiates a reconnect, if isConnected() is false and no other reconnect is currently executed.
      * Override this for your own reconnect handling
      */
-    public synchronized void reconnect() {
+    public synchronized void reconnect(NjamsSdkRuntimeException ex) {
         if (isConnecting() || isConnected()) {
             return;
+        }
+        if (LOG.isDebugEnabled() && ex != null) {
+            if (ex.getCause() == null) {
+                LOG.debug("Initialized reconnect, because of : {}", ex.toString());
+                if (LOG.isTraceEnabled()) {
+                    LOG.trace("Stacktrace: {}", ex.getStackTrace());
+                }
+            } else {
+                LOG.debug("Initialized reconnect, because of : {}, {}", ex.toString(), ex.getCause().toString());
+                if (LOG.isTraceEnabled()) {
+                    LOG.trace("Stacktrace: {}", ex.getStackTrace(), ex.getCause().getStackTrace());
+                }
+            }
         }
         while (!isConnected()) {
             try {
@@ -112,7 +125,7 @@ public abstract class AbstractSender implements Sender {
                         send((LogMessage) msg);
                     } else if (msg instanceof ProjectMessage) {
                         send((ProjectMessage) msg);
-                    } else if(msg instanceof TraceMessage){
+                    } else if (msg instanceof TraceMessage) {
                         send((TraceMessage) msg);
                     }
                     isSent = true;
@@ -153,7 +166,7 @@ public abstract class AbstractSender implements Sender {
     protected void onException(NjamsSdkRuntimeException exception) {
         // close the existing connection
         close();
-        reconnect();
+        reconnect(exception);
     }
 
     /**

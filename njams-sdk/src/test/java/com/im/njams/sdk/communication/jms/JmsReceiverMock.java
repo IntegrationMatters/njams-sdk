@@ -18,6 +18,7 @@ package com.im.njams.sdk.communication.jms;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.im.njams.sdk.Njams;
+import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.common.Path;
 import com.im.njams.sdk.communication.ConnectionStatus;
 import java.lang.reflect.Field;
@@ -161,7 +162,7 @@ class JmsReceiverMock extends JmsReceiver {
      * doesn't exist.
      */
     @Override
-    public void reconnect(){
+    public void reconnect(NjamsSdkRuntimeException ex){
         LOG.info("reconnected");
         connectionStatus = ConnectionStatus.CONNECTED;
     }

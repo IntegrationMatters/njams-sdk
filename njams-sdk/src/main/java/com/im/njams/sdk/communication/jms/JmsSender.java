@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Faiz & Siegeln Software GmbH
+ * Copyright (c) 2019 Faiz & Siegeln Software GmbH
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"),
  * to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
@@ -17,6 +17,7 @@
 package com.im.njams.sdk.communication.jms;
 
 import java.util.Properties;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.jms.Connection;
 import javax.jms.ConnectionFactory;
@@ -31,6 +32,7 @@ import javax.naming.InitialContext;
 import javax.naming.NameNotFoundException;
 import javax.naming.NamingException;
 
+import com.faizsiegeln.njams.messageformat.v4.common.CommonMessage;
 import com.faizsiegeln.njams.messageformat.v4.tracemessage.TraceMessage;
 import org.slf4j.LoggerFactory;
 
@@ -49,6 +51,7 @@ import com.im.njams.sdk.settings.PropertyUtil;
  * JMS implementation for a Sender.
  *
  * @author hsiegeln
+ * @version 4.0.6
  */
 public class JmsSender extends AbstractSender implements ExceptionListener {
 
@@ -58,7 +61,7 @@ public class JmsSender extends AbstractSender implements ExceptionListener {
     private Session session;
     private MessageProducer producer;
     private final ObjectMapper mapper = JsonSerializerFactory.getDefaultMapper();
-    private Thread reconnector;
+    private volatile Thread reconnector;
 
     /**
      * Initializes this Sender via the given Properties.
@@ -155,12 +158,7 @@ public class JmsSender extends AbstractSender implements ExceptionListener {
     protected void send(LogMessage msg) throws NjamsSdkRuntimeException {
         try {
             String data = mapper.writeValueAsString(msg);
-            TextMessage textMessage = session.createTextMessage(data);
-            textMessage.setStringProperty(Sender.NJAMS_MESSAGEVERSION, MessageVersion.V4.toString());
-            textMessage.setStringProperty(Sender.NJAMS_MESSAGETYPE, Sender.NJAMS_MESSAGETYPE_EVENT);
-            textMessage.setStringProperty(Sender.NJAMS_PATH, msg.getPath());
-            textMessage.setStringProperty(Sender.NJAMS_LOGID, msg.getLogId());
-            producer.send(textMessage);
+            sendMessage(msg, Sender.NJAMS_MESSAGETYPE_EVENT, data);
             LOG.debug("Send LogMessage {} to {}:\n{}", msg.getPath(), producer.getDestination(), data);
         } catch (Exception e) {
             throw new NjamsSdkRuntimeException("Unable to send LogMessage", e);
@@ -176,11 +174,7 @@ public class JmsSender extends AbstractSender implements ExceptionListener {
     protected void send(ProjectMessage msg) throws NjamsSdkRuntimeException {
         try {
             String data = mapper.writeValueAsString(msg);
-            TextMessage textMessage = session.createTextMessage(data);
-            textMessage.setStringProperty(Sender.NJAMS_MESSAGEVERSION, MessageVersion.V4.toString());
-            textMessage.setStringProperty(Sender.NJAMS_MESSAGETYPE, Sender.NJAMS_MESSAGETYPE_PROJECT);
-            textMessage.setStringProperty(Sender.NJAMS_PATH, msg.getPath());
-            producer.send(textMessage);
+            sendMessage(msg, Sender.NJAMS_MESSAGETYPE_PROJECT, data);
             LOG.debug("Send ProjectMessage {} to {}:\n{}", msg.getPath(), producer.getDestination(), data);
         } catch (Exception e) {
             throw new NjamsSdkRuntimeException("Unable to send ProjectMessage", e);
@@ -193,20 +187,19 @@ public class JmsSender extends AbstractSender implements ExceptionListener {
      * @param msg the Tracemessage to send
      */
     @Override
-    protected void send(TraceMessage msg) throws NjamsSdkRuntimeException{
+    protected void send(TraceMessage msg) throws NjamsSdkRuntimeException {
         try {
             String data = mapper.writeValueAsString(msg);
-            TextMessage textMessage = session.createTextMessage(data);
-            textMessage.setStringProperty(Sender.NJAMS_MESSAGEVERSION, MessageVersion.V4.toString());
-            textMessage.setStringProperty(Sender.NJAMS_MESSAGETYPE, Sender.NJAMS_MESSAGETYPE_TRACE);
-            textMessage.setStringProperty(Sender.NJAMS_PATH,  msg.getPath());
-            producer.send(textMessage);
+            sendMessage(msg, Sender.NJAMS_MESSAGETYPE_TRACE, data);
             LOG.debug("Send TraceMessage {} to {}:\n{}", msg.getPath(), producer.getDestination(), data);
         } catch (Exception e) {
             throw new NjamsSdkRuntimeException("Unable to send TraceMessage", e);
         }
     }
 
+    private void sendMessage(CommonMessage msg, String messageType, String data) throws JMSException {
+        TextMessage textMessage = session.createTextMessage(data);
+        if(msg instanceof LogMessage){
 
     /**
      * Close this Sender.
@@ -265,11 +258,17 @@ public class JmsSender extends AbstractSender implements ExceptionListener {
             @Override
             public void run() {
                 reconnect();
+        synchronized (reconnector) {
+            if (reconnector != null && reconnector.isAlive()) {
+                return;
             }
-        };
-        reconnector.setDaemon(true);
-        reconnector.setName("Reconnect JMS sender");
-        reconnector.start();
+            close();
+            // reconnect
+            reconnector = new Thread(() -> reconnect(exception));
+            reconnector.setDaemon(true);
+            reconnector.setName(String.format("%s-Sender-Reconnector", this.getName()));
+            reconnector.start();
+        }
     }
 
     /**
@@ -280,17 +279,17 @@ public class JmsSender extends AbstractSender implements ExceptionListener {
     @Override
     public String[] librariesToCheck() {
         return new String[]{
-            "javax.jms.Connection",
-            "javax.jms.ConnectionFactory",
-            "javax.jms.Destination",
-            "javax.jms.ExceptionListener",
-            "javax.jms.JMSContext",
-            "javax.jms.JMSException",
-            "javax.jms.MessageProducer",
-            "javax.jms.Session",
-            "javax.jms.TextMessage",
-            "javax.naming.InitialContext",
-            "javax.naming.NameNotFoundException",
-            "javax.naming.NamingException"};
+                "javax.jms.Connection",
+                "javax.jms.ConnectionFactory",
+                "javax.jms.Destination",
+                "javax.jms.ExceptionListener",
+                "javax.jms.JMSContext",
+                "javax.jms.JMSException",
+                "javax.jms.MessageProducer",
+                "javax.jms.Session",
+                "javax.jms.TextMessage",
+                "javax.naming.InitialContext",
+                "javax.naming.NameNotFoundException",
+                "javax.naming.NamingException"};
     }
 }

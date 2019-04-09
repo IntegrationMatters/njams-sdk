@@ -298,7 +298,7 @@ public class AbstractReceiverTest {
         assertTrue(impl.isDisconnected());
         assertFalse(impl.isConnecting());
         assertFalse(impl.isConnected());
-        impl.reconnect();
+        impl.reconnect(new NjamsSdkRuntimeException("Test", new Exception("Test2")));
         assertTrue(impl.isConnected());
         assertFalse(impl.isDisconnected());
         assertFalse(impl.isConnecting());
@@ -315,7 +315,7 @@ public class AbstractReceiverTest {
         assertFalse(impl.isDisconnected());
         assertTrue(impl.isConnecting());
         assertFalse(impl.isConnected());
-        impl.reconnect();
+        impl.reconnect(new NjamsSdkRuntimeException("Test", new Exception("Test2")));
         assertFalse(impl.isDisconnected());
         assertTrue(impl.isConnecting());
         assertFalse(impl.isConnected());
@@ -332,7 +332,7 @@ public class AbstractReceiverTest {
         assertFalse(impl.isDisconnected());
         assertFalse(impl.isConnecting());
         assertTrue(impl.isConnected());
-        impl.reconnect();
+        impl.reconnect(new NjamsSdkRuntimeException("Test", new Exception("Test2")));
         assertFalse(impl.isDisconnected());
         assertFalse(impl.isConnecting());
         assertTrue(impl.isConnected());
@@ -350,7 +350,7 @@ public class AbstractReceiverTest {
         assertFalse(impl.isConnecting());
         assertFalse(impl.isConnected());
         long currentTimeMillis = System.currentTimeMillis();
-        impl.reconnect();
+        impl.reconnect(new NjamsSdkRuntimeException("Test", new Exception("Test2")));
         long afterReconnectMillis = System.currentTimeMillis();
         long diff = afterReconnectMillis - currentTimeMillis;
         assertTrue(diff >= 1000L);
@@ -635,7 +635,7 @@ public class AbstractReceiverTest {
 
         @Override
         public void onInstruction(Instruction instruction) {
-            throw new NjamsSdkRuntimeException("Bad Exception");
+            throw new NjamsSdkRuntimeException("Bad Exception", new Exception("Test2"));
         }
 
     }
