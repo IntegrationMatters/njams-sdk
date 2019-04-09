@@ -200,6 +200,14 @@ public class JmsSender extends AbstractSender implements ExceptionListener {
     private void sendMessage(CommonMessage msg, String messageType, String data) throws JMSException {
         TextMessage textMessage = session.createTextMessage(data);
         if(msg instanceof LogMessage){
+            textMessage.setStringProperty(Sender.NJAMS_LOGID, ((LogMessage)msg).getLogId());
+        }
+        textMessage.setStringProperty(Sender.NJAMS_MESSAGEVERSION, MessageVersion.V4.toString());
+        textMessage.setStringProperty(Sender.NJAMS_MESSAGETYPE, messageType);
+        textMessage.setStringProperty(Sender.NJAMS_PATH, msg.getPath());
+        producer.send(textMessage);
+    }
+
 
     /**
      * Close this Sender.
@@ -248,16 +256,6 @@ public class JmsSender extends AbstractSender implements ExceptionListener {
 
     @Override
     protected void onException(NjamsSdkRuntimeException exception) {
-        if (reconnector != null && reconnector.isAlive()) {
-            return;
-        }
-        close();
-        // reconnect
-        reconnector = new Thread() {
-
-            @Override
-            public void run() {
-                reconnect();
         synchronized (reconnector) {
             if (reconnector != null && reconnector.isAlive()) {
                 return;
