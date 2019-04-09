@@ -61,7 +61,7 @@ public class JmsSender extends AbstractSender implements ExceptionListener {
     private Session session;
     private MessageProducer producer;
     private final ObjectMapper mapper = JsonSerializerFactory.getDefaultMapper();
-    private volatile Thread reconnector;
+    private Thread reconnector;
 
     /**
      * Initializes this Sender via the given Properties.
@@ -199,8 +199,8 @@ public class JmsSender extends AbstractSender implements ExceptionListener {
 
     private void sendMessage(CommonMessage msg, String messageType, String data) throws JMSException {
         TextMessage textMessage = session.createTextMessage(data);
-        if(msg instanceof LogMessage){
-            textMessage.setStringProperty(Sender.NJAMS_LOGID, ((LogMessage)msg).getLogId());
+        if (msg instanceof LogMessage) {
+            textMessage.setStringProperty(Sender.NJAMS_LOGID, ((LogMessage) msg).getLogId());
         }
         textMessage.setStringProperty(Sender.NJAMS_MESSAGEVERSION, MessageVersion.V4.toString());
         textMessage.setStringProperty(Sender.NJAMS_MESSAGETYPE, messageType);
@@ -256,17 +256,15 @@ public class JmsSender extends AbstractSender implements ExceptionListener {
 
     @Override
     protected void onException(NjamsSdkRuntimeException exception) {
-        synchronized (reconnector) {
-            if (reconnector != null && reconnector.isAlive()) {
-                return;
-            }
-            close();
-            // reconnect
-            reconnector = new Thread(() -> reconnect(exception));
-            reconnector.setDaemon(true);
-            reconnector.setName(String.format("%s-Sender-Reconnector", this.getName()));
-            reconnector.start();
+        if (reconnector != null && reconnector.isAlive()) {
+            return;
         }
+        close();
+        // reconnect
+        reconnector = new Thread(() -> reconnect(exception));
+        reconnector.setDaemon(true);
+        reconnector.setName(String.format("%s-Sender-Reconnector", this.getName()));
+        reconnector.start();
     }
 
     /**
