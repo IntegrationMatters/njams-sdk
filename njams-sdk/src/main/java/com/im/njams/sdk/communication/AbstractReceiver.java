@@ -142,6 +142,7 @@ public abstract class AbstractReceiver implements Receiver {
      * reconnection threads sleeps for
      * {@link #RECONNECT_INTERVAL RECONNECT_INTERVAL} second before trying again
      * to reconnect.
+     * @param ex the exception that initiated the reconnect
      */
     @SuppressWarnings({"squid:S2276", "squid:S2142"})
     public synchronized void reconnect(NjamsSdkRuntimeException ex) {

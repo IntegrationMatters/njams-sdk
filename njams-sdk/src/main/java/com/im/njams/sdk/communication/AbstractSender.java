@@ -77,6 +77,8 @@ public abstract class AbstractSender implements Sender {
     /**
      * initiates a reconnect, if isConnected() is false and no other reconnect is currently executed.
      * Override this for your own reconnect handling
+     *
+     * @param ex the exception that initiated the reconnect
      */
     public synchronized void reconnect(NjamsSdkRuntimeException ex) {
         if (isConnecting() || isConnected()) {
