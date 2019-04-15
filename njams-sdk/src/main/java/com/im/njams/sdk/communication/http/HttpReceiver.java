@@ -17,72 +17,123 @@
 package com.im.njams.sdk.communication.http;
 
 import java.io.IOException;
-import java.net.InetSocketAddress;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Properties;
 
-import com.im.njams.sdk.common.NjamsSdkRuntimeException;
+import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
 import com.im.njams.sdk.communication.AbstractReceiver;
-import com.im.njams.sdk.communication.ConnectionStatus;
-import com.im.njams.sdk.settings.encoding.Transformer;
+import com.im.njams.sdk.communication.connection.AbstractConnector;
+import com.im.njams.sdk.communication.connection.Connector;
+import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
-import com.sun.net.httpserver.HttpServer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import static java.net.HttpURLConnection.*;
+import static java.nio.charset.Charset.defaultCharset;
 
 /**
  * Http Receiver
  *
  * @author stkniep
  */
-public class HttpReceiver extends AbstractReceiver {
+public class HttpReceiver extends AbstractReceiver implements HttpHandler {
 
-    private static final String PROPERTY_PREFIX = "njams.sdk.communication.http";
-
-    private static final String NAME = "HTTP";
     /**
-     * Http receiver port
+     * Content type json
      */
-    public static final String RECEIVER_PORT = PROPERTY_PREFIX + ".receiver.port";
-    private HttpServer httpServer;
+    private static final String CONTENT_TYPE_JSON = "application/json";
+    /**
+     * Content type
+     */
+    private static final String HEADER_PARAMETER_CONTENT_TYPE = "Content-Type";
+    /**
+     * Content type text plain
+     */
+    private static final String CONTENT_TYPE_TEXT = "text/plain";
+
+    //The Logger
+    private static final Logger LOG = LoggerFactory.getLogger(HttpReceiver.class);
 
     @Override
     public String getName() {
-        return NAME;
+        return HttpConstants.COMMUNICATION_NAME_HTTP;
     }
 
     @Override
-    public void init(final Properties properties) {
-        final int port = Integer.parseInt(Transformer.decode(properties.getProperty(RECEIVER_PORT)));
-        final InetSocketAddress isa = new InetSocketAddress(port);
-        this.connectionStatus = ConnectionStatus.DISCONNECTED;
+    protected Connector initialize(Properties properties) {
+        return new HttpReceiverConnector(properties, getName() + "-Receiver-Connector", this);
+    }
 
+    @Override
+    protected void extStop() {
+        //Do nothing
+    }
+
+    /**
+     * Handle commands
+     *
+     * @param he HttpExchange
+     * @throws IOException some exception
+     */
+    @Override
+    public void handle(HttpExchange he) throws IOException {
         try {
-            httpServer = HttpServer.create(isa, 5);
-        } catch (final IOException ex) {
-            throw new NjamsSdkRuntimeException("unable to create http server", ex);
+            if ("POST".equals(he.getRequestMethod())) {
+                final String contentType = getContentType(he);
+                final Instruction instruction;
+                if (CONTENT_TYPE_JSON.equals(contentType)) {
+                    instruction = readJsonInstruction(he);
+                } else {
+                    throw new UnsupportedOperationException("Unexpected Content-Type " + contentType);
+                }
+                this.onInstruction(instruction);
+                instruction.getResponse().setResultCode(1);
+                final Iterator<String> acceptIterator = he.getRequestHeaders().get("Accept").iterator();
+                while (acceptIterator.hasNext()) {
+                    final String accept = acceptIterator.next();
+                    if (CONTENT_TYPE_JSON.equals(accept)) {
+                        writeJsonInstruction(he, instruction);
+                        break;
+                    }
+                }
+                he.close();
+            } else {
+                writeError(he, HTTP_BAD_METHOD, "Unsupported method " + he.getRequestMethod());
+            }
+        } catch (final Exception ex) {
+            LOG.error("Error handling command", ex);
+            ex.printStackTrace(System.err);
+            writeError(he, HTTP_BAD_REQUEST, ex.getMessage());
+        } finally {
+            he.close();
         }
-        HttpHandler commandHandler = new CommandHandler(this);
-        httpServer.createContext("/command", commandHandler);
     }
 
-    @Override
-    public void start() {
-        connect();
+    private String getContentType(final HttpExchange he) {
+        List<String> contentTypes = he.getRequestHeaders().get(HEADER_PARAMETER_CONTENT_TYPE);
+        return contentTypes.isEmpty() ? null : contentTypes.get(0);
     }
 
-    @Override
-    public void stop() {
-        httpServer.stop(0);
+    private void writeError(final HttpExchange he, final int returnCode, final String message) throws IOException {
+        he.getResponseHeaders().add(HEADER_PARAMETER_CONTENT_TYPE, CONTENT_TYPE_TEXT);
+        he.sendResponseHeaders(returnCode, 0L);
+        he.getResponseBody().write(message.getBytes(defaultCharset()));
     }
 
-    @Override
-    public void connect() {
-        this.connectionStatus = ConnectionStatus.CONNECTING;
-        try {
-            httpServer.start();
-            this.connectionStatus = ConnectionStatus.CONNECTED;
-        } catch (Exception e) {
-            this.connectionStatus = ConnectionStatus.DISCONNECTED;
-            throw new NjamsSdkRuntimeException("Unable to initialize", e);
+    private void writeJsonInstruction(final HttpExchange he, final Instruction instruction) throws IOException {
+        he.getResponseHeaders().add(HEADER_PARAMETER_CONTENT_TYPE, CONTENT_TYPE_JSON);
+        he.sendResponseHeaders(HTTP_OK, 0L);
+        final OutputStream responseBody = he.getResponseBody();
+        ((AbstractConnector)connector).getMapper().writeValue(responseBody, instruction);
+    }
+
+    private Instruction readJsonInstruction(final HttpExchange he) throws IOException {
+        try (final InputStream requestBody = he.getRequestBody()) {
+            return ((AbstractConnector)connector).getMapper().readValue(requestBody, Instruction.class);
         }
     }
-
 }

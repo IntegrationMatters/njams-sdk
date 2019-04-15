@@ -18,18 +18,14 @@ public class NjamsConnection {
     //The connection status of the connection instance
     private ConnectionStatus connectionStatus = ConnectionStatus.DISCONNECTED;
 
-    //The properties for the connection
-    private Properties properties;
-
     private final Reconnector reconnector;
 
-    private Connectable connectable;
+    private Connector connector;
 
     private String name;
 
-    public NjamsConnection(Properties properties, Connectable connectable, String name) {
-        this.properties = properties;
-        this.connectable = connectable;
+    public NjamsConnection( Connector connector, String name) {
+        this.connector = connector;
         this.reconnector = new Reconnector(this);
         this.name = name;
     }
@@ -52,7 +48,7 @@ public class NjamsConnection {
                     // reconnect
                     Thread reconnect = new Thread(() -> this.reconnector.reconnect(exception));
                     reconnect.setDaemon(true);
-                    reconnect.setName(String.format("%s-Reconnector-Thread", connectable.getClass().getCanonicalName()));
+                    reconnect.setName(String.format("%s-Reconnector-Thread", connector.getClass().getCanonicalName()));
                     reconnect.start();
                     try {
                         Thread.sleep(50);
@@ -70,10 +66,10 @@ public class NjamsConnection {
     public boolean tryToClose() {
         try {
             connectionStatus = ConnectionStatus.DISCONNECTED;
-            connectable.close();
+            connector.close();
             return true;
         } catch (Exception e) {
-            LOG.error("Unable to close connection for {}, {}", connectable.getClass().getCanonicalName(), e);
+            LOG.error("Unable to close connection for {}, {}", connector.getClass().getCanonicalName(), e);
             return false;
         }
     }
@@ -114,11 +110,11 @@ public class NjamsConnection {
             try {
                 connectionStatus = ConnectionStatus.CONNECTING;
 
-                connectable.connect();
+                connector.connect();
 
                 connectionStatus = ConnectionStatus.CONNECTED;
 
-                Thread.sleep(100);
+                Thread.sleep(getReconnectInterval());
 
             } catch (Exception e) {
                 tryToClose();

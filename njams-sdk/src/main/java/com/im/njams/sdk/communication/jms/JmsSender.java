@@ -16,9 +16,7 @@
  */
 package com.im.njams.sdk.communication.jms;
 
-import java.util.HashSet;
 import java.util.Properties;
-import java.util.Set;
 
 import javax.jms.JMSException;
 import javax.jms.TextMessage;
@@ -26,15 +24,13 @@ import javax.jms.TextMessage;
 import com.faizsiegeln.njams.messageformat.v4.common.CommonMessage;
 import com.faizsiegeln.njams.messageformat.v4.tracemessage.TraceMessage;
 
+import com.im.njams.sdk.communication.connection.Connector;
 import org.slf4j.LoggerFactory;
 
 import com.faizsiegeln.njams.messageformat.v4.common.MessageVersion;
 import com.faizsiegeln.njams.messageformat.v4.logmessage.LogMessage;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.ProjectMessage;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-
-import com.im.njams.sdk.common.JsonSerializerFactory;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 
 import com.im.njams.sdk.communication.AbstractSender;
@@ -50,11 +46,6 @@ public class JmsSender extends AbstractSender {
 
     private static final org.slf4j.Logger LOG = LoggerFactory.getLogger(JmsSender.class);
 
-    private JmsConnector jmsConnector;
-
-    private final ObjectMapper mapper = JsonSerializerFactory.getDefaultMapper();
-    private String destinationName;
-
     /**
      * Initializes this Sender via the given Properties.
      * <p>
@@ -69,22 +60,8 @@ public class JmsSender extends AbstractSender {
      * @param properties the properties needed to initialize
      */
     @Override
-    public void initialize(Properties properties) {
-        destinationName = properties.getProperty(JmsConstants.DESTINATION) + ".event";
-        this.jmsConnector = new JmsConnector(njamsConnection, properties);
-    }
-
-    @Override
-    public void connect() {
-        jmsConnector.connectSender(destinationName);
-    }
-
-    /**
-     * Close this Sender.
-     */
-    @Override
-    public void close() {
-        jmsConnector.close();
+    public Connector initialize(Properties properties) {
+        return connector = new JmsSenderConnector(properties, this.getName() + "-Sender-Connector");
     }
 
     /**
@@ -95,9 +72,9 @@ public class JmsSender extends AbstractSender {
     @Override
     protected void send(LogMessage msg) throws NjamsSdkRuntimeException {
         try {
-            String data = mapper.writeValueAsString(msg);
+            String data = ((JmsConnector)connector).getMapper().writeValueAsString(msg);
             sendMessage(msg, Sender.NJAMS_MESSAGETYPE_EVENT, data);
-            LOG.debug("Send LogMessage {} to {}:\n{}", msg.getPath(), jmsConnector.getProducer().getDestination(), data);
+            LOG.debug("Send LogMessage {} to {}:\n{}", msg.getPath(), ((JmsSenderConnector)connector).getProducer().getDestination(), data);
         } catch (Exception e) {
             throw new NjamsSdkRuntimeException("Unable to send LogMessage", e);
         }
@@ -111,9 +88,9 @@ public class JmsSender extends AbstractSender {
     @Override
     protected void send(ProjectMessage msg) throws NjamsSdkRuntimeException {
         try {
-            String data = mapper.writeValueAsString(msg);
+            String data = ((JmsConnector)connector).getMapper().writeValueAsString(msg);
             sendMessage(msg, Sender.NJAMS_MESSAGETYPE_PROJECT, data);
-            LOG.debug("Send ProjectMessage {} to {}:\n{}", msg.getPath(), jmsConnector.getProducer().getDestination(), data);
+            LOG.debug("Send ProjectMessage {} to {}:\n{}", msg.getPath(), ((JmsSenderConnector)connector).getProducer().getDestination(), data);
         } catch (Exception e) {
             throw new NjamsSdkRuntimeException("Unable to send ProjectMessage", e);
         }
@@ -127,43 +104,32 @@ public class JmsSender extends AbstractSender {
     @Override
     protected void send(TraceMessage msg) throws NjamsSdkRuntimeException {
         try {
-            String data = mapper.writeValueAsString(msg);
+            String data = ((JmsConnector)connector).getMapper().writeValueAsString(msg);
             sendMessage(msg, Sender.NJAMS_MESSAGETYPE_TRACE, data);
-            LOG.debug("Send TraceMessage {} to {}:\n{}", msg.getPath(), jmsConnector.getProducer().getDestination(), data);
+            LOG.debug("Send TraceMessage {} to {}:\n{}", msg.getPath(), ((JmsSenderConnector)connector).getProducer().getDestination(), data);
         } catch (Exception e) {
             throw new NjamsSdkRuntimeException("Unable to send TraceMessage", e);
         }
     }
 
+    @Override
+    protected void extStop() {
+        //Nothing to do
+    }
+
     private void sendMessage(CommonMessage msg, String messageType, String data) throws JMSException {
-        TextMessage textMessage = jmsConnector.getSession().createTextMessage(data);
+        TextMessage textMessage = ((JmsConnector)connector).getSession().createTextMessage(data);
         if (msg instanceof LogMessage) {
             textMessage.setStringProperty(Sender.NJAMS_LOGID, ((LogMessage) msg).getLogId());
         }
         textMessage.setStringProperty(Sender.NJAMS_MESSAGEVERSION, MessageVersion.V4.toString());
         textMessage.setStringProperty(Sender.NJAMS_MESSAGETYPE, messageType);
         textMessage.setStringProperty(Sender.NJAMS_PATH, msg.getPath());
-        jmsConnector.getProducer().send(textMessage);
+        ((JmsSenderConnector)connector).getProducer().send(textMessage);
     }
 
     @Override
     public String getName() {
         return JmsConstants.COMMUNICATION_NAME;
-    }
-
-    /**
-     * This method gets all libraries that need to be checked.
-     *
-     * @return an array of Strings of fully qualified class names.
-     */
-    @Override
-    public String[] librariesToCheck() {
-        Set<String> libs = new HashSet<>();
-        libs.add("javax.jms.JMSException");
-        libs.add("javax.jms.TextMessage");
-        libs.addAll(jmsConnector.librariesToCheck());
-        String[] toRet = new String[libs.size()];
-        libs.toArray(toRet);
-        return toRet;
     }
 }

@@ -53,7 +53,7 @@ public class SenderPool extends ObjectPool<Sender> {
 
     @Override
     public void expire(Sender sender) {
-        sender.close();
+        sender.stop();
     }
 
     public void setSenderFactory(CommunicationFactory senderFactory) {

@@ -1,14 +1,14 @@
-/* 
+/*
  * Copyright (c) 2019 Faiz & Siegeln Software GmbH
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"),
  * to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
  * and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
- * 
+ *
  * The Software shall be used for Good, not Evil.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
@@ -44,19 +44,19 @@ public class NjamsSender implements Sender {
 
     //The logger to log messages.
     private static final org.slf4j.Logger LOG = LoggerFactory.getLogger(NjamsSender.class);
-    
+
     //The senderPool where the senders will be safed.
     private SenderPool senderPool = null;
-    
+
     //The executor Threadpool that send the messages to the right senders.
-    private ThreadPoolExecutor executor = null;    
-    
+    private ThreadPoolExecutor executor = null;
+
     //The njamsInstance to work for
     private final Njams njams;
-    
+
     //The settings will be used for the name and max-queue-length
     private final Settings settings;
-    
+
     //The name for the executor threads.
     private final String name;
 
@@ -65,7 +65,7 @@ public class NjamsSender implements Sender {
      * the settings and gets the name for the executor threads from the settings
      * with the key: njams.sdk.communication.
      *
-     * @param njams the njamsInstance for which the messages will be send from.
+     * @param njams    the njamsInstance for which the messages will be send from.
      * @param settings the setting where some settings will be taken from.
      */
     public NjamsSender(Njams njams, Settings settings) {
@@ -80,7 +80,7 @@ public class NjamsSender implements Sender {
      * a SenderPool.
      *
      * @param properties the properties for MIN_QUEUE_LENGTH, MAX_QUEUE_LENGTH
-     * and IDLE_TIME for the sender threads.
+     *                   and IDLE_TIME for the sender threads.
      */
     @Override
     public void init(Properties properties) {
@@ -94,6 +94,26 @@ public class NjamsSender implements Sender {
                 new ArrayBlockingQueue<>(maxQueueLength), threadFactory,
                 new MaxQueueLengthHandler(properties));
         this.senderPool = new SenderPool(communicationFactory, properties);
+    }
+
+    /**
+     * This method closes the ThreadPoolExecutor safely. It awaits the
+     * termination for 10 seconds, after that, an InterruptedException will be
+     * thrown and the senders will be closed.
+     */
+    @Override
+    public void stop() {
+        try {
+            int waitTime = 10;
+            TimeUnit unit = TimeUnit.SECONDS;
+            executor.shutdown();
+            boolean awaitTermination = executor.awaitTermination(waitTime, unit);
+            if (!awaitTermination) {
+                LOG.error("The termination time of the executor has been exceeded ({} {}).", waitTime, unit);
+            }
+        } catch (InterruptedException ex) {
+            LOG.error("The shutdown of the sender's threadpool has been interrupted. {}", ex);
+        }
     }
 
     /**
@@ -122,27 +142,6 @@ public class NjamsSender implements Sender {
     }
 
     /**
-     * This method closes the ThreadPoolExecutor safely. It awaits the
-     * termination for 10 seconds, after that, an InterruptedException will be
-     * thrown and the senders will be closed.
-     */
-    @Override
-    public void close() {
-        try {
-            int waitTime = 10;
-            TimeUnit unit = TimeUnit.SECONDS;
-            executor.shutdown();
-            boolean awaitTermination = executor.awaitTermination(waitTime, unit);
-            if(!awaitTermination){
-               LOG.error("The termination time of the executor has been exceeded ({} {}).", waitTime, unit); 
-            }
-        } catch (InterruptedException ex) {
-            LOG.error("The shutdown of the sender's threadpool has been interrupted. {}", ex);
-        }
-
-    }
-
-    /**
      * This method returns the name that was set in the settings with the key
      * njams.sdk.communication.
      *
@@ -153,13 +152,13 @@ public class NjamsSender implements Sender {
     public String getName() {
         return name;
     }
-    
+
     /**
      * This method return the ThreadPoolExecutor
-     * 
+     *
      * @return the ThreadPoolExecutor
      */
-    ThreadPoolExecutor getExecutor(){
+    ThreadPoolExecutor getExecutor() {
         return executor;
     }
 

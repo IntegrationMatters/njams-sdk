@@ -17,25 +17,22 @@
 
 package com.im.njams.sdk.communication.jms;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.im.njams.sdk.common.JsonSerializerFactory;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
-import com.im.njams.sdk.communication.connection.NjamsConnection;
+import com.im.njams.sdk.communication.connection.AbstractConnector;
 import com.im.njams.sdk.settings.PropertyUtil;
+import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.jms.Connection;
 import javax.jms.ExceptionListener;
-import javax.jms.MessageConsumer;
 import javax.jms.Session;
-import javax.jms.MessageProducer;
-import javax.jms.MessageListener;
 import javax.jms.JMSException;
-import javax.jms.Topic;
-import javax.jms.Destination;
 import javax.jms.ConnectionFactory;
 import javax.jms.JMSContext;
 
 import javax.naming.InitialContext;
-import javax.naming.NameNotFoundException;
 import javax.naming.NamingException;
 import java.util.*;
 
@@ -45,80 +42,47 @@ import java.util.*;
  * @author krautenberg@integrationmatters.ocm
  * @version 4.0.6
  */
-public class JmsConnector implements ExceptionListener, AutoCloseable {
+public abstract class JmsConnector extends AbstractConnector implements ExceptionListener {
 
-    private static final org.slf4j.Logger LOG = LoggerFactory.getLogger(JmsConnector.class);
+    private static final Logger LOG = LoggerFactory.getLogger(JmsConnector.class);
 
-    private Properties properties;
-    private NjamsConnection njamsConnection;
+    protected InitialContext context;
+    protected Connection connection;
+    protected Session session;
 
-    private InitialContext context;
-    private Connection connection;
-    private Session session;
-    private MessageConsumer consumer;
-    private MessageProducer producer;
-
-    /**
-     * This constructor creates a JmsConnector for the given njamsConnection and properties.
-     *
-     * @param njamsConnection the njamsConnection that will be used to connect
-     * @param properties the properties for the connection
-     */
-    public JmsConnector(NjamsConnection njamsConnection, Properties properties) {
-        this.njamsConnection = njamsConnection;
-        this.properties = properties;
+    public JmsConnector(Properties properties, String name) {
+        super(properties, name);
     }
 
-    public void connectReceiver(String topicName, String messageSelector, MessageListener messageListener) {
+    @Override
+    public final void connect() {
         try {
-            this.connect();
-            Topic topic = this.getOrCreateTopic(topicName);
-            LOG.debug("The Topic was created successfully.");
+            if (njamsConnection.isConnected()) {
+                LOG.warn("Can't connect while being connected.");
+                return;
+            }
+            context = this.getInitialContext();
+            LOG.debug("The InitialContext was created successfully.");
 
-            this.consumer = this.createConsumer(topic, messageSelector, messageListener);
-            LOG.debug("The MessageConsumer was created successfully.");
+            ConnectionFactory factory = this.getConnectionFactory();
+            LOG.debug("The ConnectionFactory was created successfully.");
 
+            this.connection = this.createConnection(factory);
+            LOG.debug("The connection was created successfully.");
+
+            this.session = this.createSession();
+            LOG.debug("The Session was created successfully.");
+
+            this.startConnection();
+            LOG.debug("The connection was started successfully.");
+
+            extConnect();
         } catch (Exception e) {
-            close();
             throw new NjamsSdkRuntimeException("Unable to initialize", e);
         }
     }
 
-    public void connectSender(String destinationName) {
-        try {
-            this.connect();
-            Destination destination = this.getOrCreateDestination(destinationName);
-            LOG.debug("The Queue was created successfully.");
-
-            this.producer = this.createProducer(destination);
-            LOG.debug("The MessageProducer was created successfully.");
-        } catch (Exception e) {
-            close();
-            throw new NjamsSdkRuntimeException("Unable to initialize", e);
-        }
-
-    }
-
-    private void connect() throws NamingException, JMSException {
-        if (njamsConnection.isConnected()) {
-            LOG.warn("Can't connect while being connected.");
-            return;
-        }
-        context = this.getInitialContext();
-        LOG.debug("The InitialContext was created successfully.");
-
-        ConnectionFactory factory = this.getConnectionFactory();
-        LOG.debug("The ConnectionFactory was created successfully.");
-
-        this.connection = this.createConnection(factory);
-        LOG.debug("The connection was created successfully.");
-
-        this.session = this.createSession();
-        LOG.debug("The Session was created successfully.");
-
-        this.startConnection();
-        LOG.debug("The connection was started successfully.");
-    }
+    protected abstract void extConnect() throws Exception;
 
     /**
      * This method creates a new InitialContext out of the properties that are
@@ -190,80 +154,6 @@ public class JmsConnector implements ExceptionListener, AutoCloseable {
     }
 
     /**
-     * This method creates or gets a existing queue that has been specified in
-     * the properties beforehand.
-     *
-     * @param destinationName the name of the Queue
-     *
-     * @return the destination that was created or has been found before.
-     * @throws NamingException is thrown if something with the name is wrong.
-     * @throws JMSException    is thrown if the topic can't be created.
-     */
-    private Destination getOrCreateDestination(String destinationName) throws NamingException, JMSException {
-        Destination destination = null;
-        try {
-            destination = (Destination) context.lookup(destinationName);
-            LOG.info("Queue {} has been found.", destinationName);
-        } catch (NameNotFoundException e) {
-            LOG.warn("Queue {} hasn't been found. Create Queue...", destinationName);
-            destination = session.createQueue(destinationName);
-        }
-        return destination;
-    }
-
-    /**
-     * This method creates a MessageProducer out of the provided session for the event queue.
-     *
-     * @param destination the destination to send to.
-     * @return
-     * @throws JMSException
-     */
-    private MessageProducer createProducer(Destination destination) throws JMSException {
-        return session.createProducer(destination);
-    }
-
-    /**
-     * This method creates or gets a existing topic that has been specified in
-     * the properties beforehand.
-     *
-     * @param topicName the name of the Topic
-     *
-     * @return the topic that was created or has been found before.
-     * @throws NamingException is thrown if something with the name is wrong.
-     * @throws JMSException    is thrown if the topic can't be created.
-     */
-    private Topic getOrCreateTopic(String topicName) throws NamingException, JMSException {
-        Topic topic;
-        try {
-            topic = (Topic) context.lookup(topicName);
-            LOG.info("Topic {} has been found.", topicName);
-        } catch (NameNotFoundException e) {
-            LOG.warn("Topic {} hasn't been found. Create Topic...", topicName);
-            topic = session.createTopic(topicName);
-        }
-        return topic;
-    }
-
-    /**
-     * This method creates a MessageConsumer out of the provided session for the
-     * Topic topic, and listens only to the messages that are filtered by the messageSelector.
-     *
-     * @param topic the topic to listen to
-     * @param messageSelector the messages the messageListener only listens to
-     * @param messageListener the messageListener that listens on the topic
-     * @return the MessageConsumer if it can be created. It listens on the given
-     * topic for messages that match the
-     * messageSelector. If a message is found on the topic,
-     * messageListener.onMessage(Message msg) will be invoked.
-     * @throws JMSException is thrown if the MessageConsumer can' be created.
-     */
-    private MessageConsumer createConsumer(Topic topic, String messageSelector, MessageListener messageListener) throws JMSException {
-        MessageConsumer cons = session.createConsumer(topic, messageSelector);
-        cons.setMessageListener(messageListener);
-        return cons;
-    }
-
-    /**
      * This method logs all JMS Exceptions and tries to reconnect the
      * connection.
      *
@@ -278,28 +168,9 @@ public class JmsConnector implements ExceptionListener, AutoCloseable {
      * This method closes all resources.
      */
     @Override
-    public void close() {
+    public final void close() {
         List<Exception> exceptions = new ArrayList<>();
-        if (consumer != null) {
-            try {
-                consumer.close();
-
-            } catch (JMSException ex) {
-                exceptions.add(new NjamsSdkRuntimeException("Unable to close consumer correctly", ex));
-            } finally {
-                consumer = null;
-            }
-        }
-        if (producer != null) {
-            try {
-                producer.close();
-
-            } catch (JMSException ex) {
-                exceptions.add(new NjamsSdkRuntimeException("Unable to close producer correctly", ex));
-            } finally {
-                producer = null;
-            }
-        }
+        exceptions.addAll(extClose());
         if (session != null) {
             try {
                 session.close();
@@ -335,20 +206,14 @@ public class JmsConnector implements ExceptionListener, AutoCloseable {
         }
     }
 
-    public Session getSession() {
-        return session;
-    }
-
-    public MessageProducer getProducer() {
-        return producer;
-    }
+    protected abstract List<Exception> extClose();
 
     /**
      * This method gets all libraries that need to be checked.
      *
      * @return an array of Strings of fully qualified class names.
      */
-    public Set<String> librariesToCheck() {
+    public String[] librariesToCheck() {
         Set<String> libs = new HashSet<>();
         libs.add("javax.jms.Connection");
         libs.add("javax.jms.ExceptionListener");
@@ -364,7 +229,18 @@ public class JmsConnector implements ExceptionListener, AutoCloseable {
         libs.add("javax.naming.InitialContext");
         libs.add("javax.naming.NameNotFoundException");
         libs.add("javax.naming.NamingException");
-        return libs;
+        Set<String> additionalLibs = extLibrariesToCheck();
+        if (additionalLibs != null && !additionalLibs.isEmpty()) {
+            libs.addAll(additionalLibs);
+        }
+        String[] toRet = new String[libs.size()];
+        return libs.toArray(toRet);
+    }
+
+    protected abstract Set<String> extLibrariesToCheck();
+
+    public Session getSession() {
+        return session;
     }
 }
 

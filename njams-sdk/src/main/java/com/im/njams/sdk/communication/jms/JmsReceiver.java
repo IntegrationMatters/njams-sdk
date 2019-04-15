@@ -24,6 +24,8 @@ import javax.jms.MessageListener;
 import javax.jms.TextMessage;
 import javax.jms.MessageProducer;
 
+import com.im.njams.sdk.Njams;
+import com.im.njams.sdk.communication.connection.Connector;
 import org.slf4j.LoggerFactory;
 
 import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
@@ -45,53 +47,6 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener {
 
     private static final org.slf4j.Logger LOG = LoggerFactory.getLogger(JmsReceiver.class);
 
-    private JmsConnector jmsConnector;
-
-    private String topicName;
-    private ObjectMapper mapper;
-    private String messageSelector;
-
-    /**
-     * Initializes this Receiver via the given Properties.
-     * <p>
-     * Valid properties are:
-     * <ul>
-     * <li>{@value com.im.njams.sdk.communication.jms.JmsConstants#CONNECTION_FACTORY}
-     * <li>{@value com.im.njams.sdk.communication.jms.JmsConstants#USERNAME}
-     * <li>{@value com.im.njams.sdk.communication.jms.JmsConstants#PASSWORD}
-     * <li>{@value com.im.njams.sdk.communication.jms.JmsConstants#DESTINATION}
-     * <li>...
-     * </ul>
-     * For more look in the github FAQ of this project.
-     *
-     * @param properties the properties needed to init
-     */
-    @Override
-    protected void initialize(Properties properties) {
-        mapper = JsonSerializerFactory.getDefaultMapper();
-        if (properties.containsKey(JmsConstants.COMMANDS_DESTINATION)) {
-            topicName = properties.getProperty(JmsConstants.COMMANDS_DESTINATION);
-        } else {
-            topicName = properties.getProperty(JmsConstants.DESTINATION) + ".commands";
-        }
-        this.messageSelector = this.createMessageSelector();
-        this.jmsConnector = new JmsConnector(njamsConnection, properties);
-    }
-
-    @Override
-    public void connect() {
-        jmsConnector.connectReceiver(topicName, messageSelector, this);
-    }
-
-    /**
-     * This method stops the Jms Receiver by closing all its resources, if its
-     * status is CONNECTED.
-     */
-    @Override
-    public void close() {
-        jmsConnector.close();
-    }
-
     /**
      * Returns the name for this Receiver. (JMS)
      *
@@ -100,30 +55,6 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener {
     @Override
     public String getName() {
         return JmsConstants.COMMUNICATION_NAME;
-    }
-
-
-
-    /**
-     * This method creates a String that is used as a message selector.
-     *
-     * @return the message selector String.
-     */
-    private String createMessageSelector() {
-        Path fullPath = new Path(njams.getClientPath().toString());
-        Path path = null;
-        StringBuilder selector = new StringBuilder();
-        for (String part : fullPath.getParts()) {
-            if (path == null) {
-                path = new Path(part);
-            } else {
-                path = path.add(part);
-                selector.append(" OR ");
-            }
-            selector.append("NJAMS_RECEIVER = '").append(path.toString()).append("'");
-        }
-
-        return selector.toString();
     }
 
     /**
@@ -161,7 +92,7 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener {
     private Instruction getInstruction(Message message) {
         try {
             String instructionString = ((TextMessage) message).getText();
-            Instruction instruction = mapper.readValue(instructionString, Instruction.class
+            Instruction instruction = ((JmsConnector)connector).getMapper().readValue(instructionString, Instruction.class
             );
             if (instruction.getRequest() != null) {
                 return instruction;
@@ -185,9 +116,9 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener {
     private void reply(Message message, Instruction instruction) {
         MessageProducer replyProducer = null;
         try {
-            replyProducer = jmsConnector.getSession().createProducer(message.getJMSReplyTo());
-            String response = mapper.writeValueAsString(instruction);
-            final TextMessage responseMessage = jmsConnector.getSession().createTextMessage();
+            replyProducer = ((JmsConnector)connector).getSession().createProducer(message.getJMSReplyTo());
+            String response = ((JmsConnector)connector).getMapper().writeValueAsString(instruction);
+            final TextMessage responseMessage = ((JmsConnector)connector).getSession().createTextMessage();
             responseMessage.setText(response);
             final String jmsCorrelationID = message.getJMSCorrelationID();
             if (jmsCorrelationID != null && !jmsCorrelationID.isEmpty()) {
@@ -196,7 +127,7 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener {
             replyProducer.send(responseMessage);
             LOG.debug("Response: {}", response);
         } catch (Exception e) {
-            LOG.error("Error while sending reply for {}", topicName, e);
+            LOG.error("Error while sending reply for {}", ((JmsReceiverConnector)connector).getTopicName(), e);
         } finally {
             if (replyProducer != null) {
                 try {
@@ -208,22 +139,16 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener {
         }
     }
 
-    /**
-     * This method gets all libraries that need to be checked.
-     *
-     * @return an array of Strings of fully qualified class names.
-     */
     @Override
-    public String[] librariesToCheck() {
-        Set<String> libs = new HashSet<>();
-        libs.add("javax.jms.JMSException");
-        libs.add("javax.jms.Message");
-        libs.add("javax.jms.MessageListener");
-        libs.add("javax.jms.TextMessage");
-        libs.add("javax.jms.MessageProducer");
-        libs.addAll(jmsConnector.librariesToCheck());
-        String[] toRet = new String[libs.size()];
-        libs.toArray(toRet);
-        return toRet;
+    protected Connector initialize(Properties properties) {
+        if(njams == null){
+            LOG.error("setNjams must be called before initialize!");
+        }
+        return connector = new JmsReceiverConnector(properties, this.getName() + "-Receiver-Connector", this, njams);
+    }
+
+    @Override
+    protected void extStop() {
+        //Nothing to do
     }
 }

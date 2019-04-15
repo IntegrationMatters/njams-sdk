@@ -16,7 +16,9 @@
  */
 package com.im.njams.sdk.communication;
 
+import com.im.njams.sdk.communication.connection.Connector;
 import com.im.njams.sdk.communication.connection.NjamsConnection;
+import com.im.njams.sdk.communication.jms.JmsSenderConnector;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -39,7 +41,7 @@ public abstract class AbstractReceiver implements Receiver {
     //The Logger
     private static final Logger LOG = LoggerFactory.getLogger(AbstractReceiver.class);
 
-    protected NjamsConnection njamsConnection;
+    protected Connector connector;
 
     /**
      * Njams to hold as instructionListener
@@ -53,12 +55,11 @@ public abstract class AbstractReceiver implements Receiver {
      */
     @Override
     public final void init(Properties properties){
-        njamsConnection = new NjamsConnection(properties, this, this.getName() + "-Receiver-NjamsConnection");
-        initialize(properties);
-        njamsConnection.initialConnect();
+        connector = initialize(properties);
+        connector.start();
     }
 
-    protected abstract void initialize(Properties properties);
+    protected abstract Connector initialize(Properties properties);
 
     /**
      * This constructor sets the njams instance for getting the instruction
@@ -135,4 +136,11 @@ public abstract class AbstractReceiver implements Receiver {
         //This can be used by the subclasses to alter the request.
         return null;
     }
+
+    public final void stop(){
+        connector.close();
+        extStop();
+    }
+
+    protected abstract void extStop();
 }

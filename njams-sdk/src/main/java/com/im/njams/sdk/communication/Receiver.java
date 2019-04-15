@@ -29,7 +29,7 @@ import com.im.njams.sdk.Njams;
  *
  * @author pnientiedt
  */
-public interface Receiver extends ClasspathValidator, Connectable {
+public interface Receiver extends Connectable {
 
     /**
      * Set njams instance
@@ -53,9 +53,5 @@ public interface Receiver extends ClasspathValidator, Connectable {
     @Deprecated
     default void start(){}
 
-    /**
-     * This method is deprecated. {@link #close() close()} should be used instead.
-     */
-    @Deprecated
-    default void stop(){}
+
 }

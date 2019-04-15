@@ -28,7 +28,7 @@ import com.faizsiegeln.njams.messageformat.v4.common.CommonMessage;
  *
  * @author bwand
  */
-public interface Sender extends ClasspathValidator, Connectable {
+public interface Sender extends Connectable {
 
     /**
      * Property key for header properties which will specify the messageVersion

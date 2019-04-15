@@ -375,7 +375,7 @@ public class Njams implements InstructionListener {
             LogMessageFlushTask.stop(this);
             CleanTracepointsTask.stop(this);
             if (sender != null) {
-                sender.close();
+                sender.stop();
             }
             if (receiver != null) {
                 receiver.stop();

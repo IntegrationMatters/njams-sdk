@@ -17,6 +17,7 @@
 package com.im.njams.sdk.communication;
 
 import com.faizsiegeln.njams.messageformat.v4.tracemessage.TraceMessage;
+import com.im.njams.sdk.communication.connection.Connector;
 import com.im.njams.sdk.communication.connection.NjamsConnection;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -42,8 +43,11 @@ public abstract class AbstractSender implements Sender {
     private static final Logger LOG = LoggerFactory.getLogger(AbstractSender.class);
     //The discard policy for messages that couldn't be delivered, default is "none".
     protected String discardPolicy = "none";
+    //The connector for this sender.
+    protected Connector connector;
     //The connection for this sender.
-    protected NjamsConnection njamsConnection;
+    private NjamsConnection njamsConnection;
+
 
     /**
      * Initializes this Sender via the given Properties.
@@ -53,12 +57,12 @@ public abstract class AbstractSender implements Sender {
     @Override
     public final void init(Properties properties) {
         discardPolicy = properties.getProperty(Settings.PROPERTY_DISCARD_POLICY, "none").toLowerCase();
-        njamsConnection = new NjamsConnection(properties, this, this.getName() + "-Sender-NjamsConnection");
-        initialize(properties);
-        njamsConnection.initialConnect();
+        connector = initialize(properties);
+        connector.start();
+        njamsConnection = connector.getNjamsConnection();
     }
 
-    protected abstract void initialize(Properties properties);
+    protected abstract Connector initialize(Properties properties);
 
     /**
      * This method sends the given message. It applies the discardPolicy onConnectionLoss, if set respectively in the
@@ -132,4 +136,10 @@ public abstract class AbstractSender implements Sender {
      */
     protected abstract void send(TraceMessage msg) throws NjamsSdkRuntimeException;
 
+    public final void stop(){
+        connector.close();
+        extStop();
+    }
+
+    protected abstract void extStop();
 }

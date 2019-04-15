@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Faiz & Siegeln Software GmbH
+ * Copyright (c) 2019 Faiz & Siegeln Software GmbH
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"),
  * to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
@@ -24,24 +24,20 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.util.Base64;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 
 import com.faizsiegeln.njams.messageformat.v4.tracemessage.TraceMessage;
+import com.im.njams.sdk.communication.connection.Connector;
 import org.slf4j.LoggerFactory;
 
 import com.faizsiegeln.njams.messageformat.v4.common.MessageVersion;
 import com.faizsiegeln.njams.messageformat.v4.logmessage.LogMessage;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.ProjectMessage;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.communication.AbstractSender;
 import com.im.njams.sdk.communication.Sender;
-import com.im.njams.sdk.settings.Settings;
 
 /**
  * HttpSender
@@ -52,52 +48,22 @@ public class HttpSender extends AbstractSender {
 
     private static final org.slf4j.Logger LOG = LoggerFactory.getLogger(HttpSender.class);
 
-    private static final String PROPERTY_PREFIX = "njams.sdk.communication.http";
-    protected ObjectMapper mapper;
-    /**
-     * Name of the HTTP component
-     */
-    public static final String NAME = "HTTP";
-
-    /**
-     * http sender urlport
-     */
-    public static final String SENDER_URL = PROPERTY_PREFIX + ".sender.urlport";
-    /**
-     * http sender username
-     */
-    public static final String SENDER_USERNAME = PROPERTY_PREFIX + ".sender.username";
-    /**
-     * http sender password
-     */
-    public static final String SENDER_PASSWORD = PROPERTY_PREFIX + ".sender.password";
-    private String user;
-    private String password;
-    private URL url;
 
     /**
      * Initializes this Sender via the given Properties.
      * <p>
      * Valid properties are:
      * <ul>
-     * <li>{@value com.im.njams.sdk.communication.http.HttpSender#SENDER_URL}
-     * <li>{@value com.im.njams.sdk.communication.http.HttpSender#SENDER_USERNAME}
-     * <li>{@value com.im.njams.sdk.communication.http.HttpSender#SENDER_PASSWORD}
+     * <li>{@value com.im.njams.sdk.communication.http.HttpConstants#SENDER_URL}
+     * <li>{@value com.im.njams.sdk.communication.http.HttpConstants#SENDER_USERNAME}
+     * <li>{@value com.im.njams.sdk.communication.http.HttpConstants#SENDER_PASSWORD}
      * </ul>
      *
      * @param properties the properties needed to initialize
      */
     @Override
-    public void init(Properties properties) {
-        this.properties = properties;
-        discardPolicy = properties.getProperty(Settings.PROPERTY_DISCARD_POLICY, "none").toLowerCase();
-        try {
-            url = new URL(properties.getProperty(SENDER_URL));
-        } catch (final MalformedURLException ex) {
-            throw new NjamsSdkRuntimeException("unable to init http sender", ex);
-        }
-        user = properties.getProperty(SENDER_USERNAME);
-        password = properties.getProperty(SENDER_PASSWORD);
+    protected Connector initialize(Properties properties) {
+        return new HttpSenderConnector(properties, getName() + "-Sender-Connector");
     }
 
     @Override
@@ -133,7 +99,7 @@ public class HttpSender extends AbstractSender {
     }
 
     @Override
-    protected void send(TraceMessage msg) throws NjamsSdkRuntimeException{
+    protected void send(TraceMessage msg) throws NjamsSdkRuntimeException {
         final Properties properties = new Properties();
         properties.put(Sender.NJAMS_MESSAGEVERSION, MessageVersion.V4.toString());
         properties.put(Sender.NJAMS_MESSAGETYPE, Sender.NJAMS_MESSAGETYPE_TRACE);
@@ -148,66 +114,22 @@ public class HttpSender extends AbstractSender {
         }
     }
 
-    private void addAddtionalProperties(final Properties properties, final HttpURLConnection connection) {
-        final Set<Map.Entry<Object, Object>> entrySet = properties.entrySet();
-        entrySet.forEach(
-                entry -> connection.setRequestProperty(entry.getKey().toString(), entry.getValue().toString()));
+    @Override
+    protected void extStop() {
+        //Nothing to do
     }
 
-    private String send(final Object msg, final Properties properties) throws IOException {
+    protected String send(final Object msg, Properties properties) throws IOException {
         HttpURLConnection connection = null;
-
         try {
-            //Create connection
-            connection = (HttpURLConnection) url.openConnection();
-            connection.setRequestMethod("POST");
-            connection.setRequestProperty("Content-Type", "application/json");
-            connection.setRequestProperty("Accept", "text/plain");
-
-            if (user != null) {
-                final Base64.Encoder encoder = Base64.getEncoder();
-                final String userpassword = user + ":" + password;
-                final byte[] encodedAuthorization = encoder.encode(userpassword.getBytes(defaultCharset()));
-                connection.setRequestProperty("Authorization",
-                        "Basic " + new String(encodedAuthorization, defaultCharset()));
-            }
-
-            final String body = mapper.writeValueAsString(msg);
+            //Create Connection
+            connection = ((HttpSenderConnector) connector).getConnection();
+            String body = ((HttpSenderConnector) connector).getMapper().writeValueAsString(msg);
             connection.setRequestProperty("Content-Length",
                     Integer.toString(body.getBytes().length));
-            connection.setRequestProperty("Content-Language", "en-US");
+            addAddtionalProperties(connection, properties);
 
-            connection.setUseCaches(false);
-            connection.setDoOutput(true);
-
-            connection.setRequestProperty(Sender.NJAMS_MESSAGEVERSION, MessageVersion.V4.toString());
-            addAddtionalProperties(properties, connection);
-
-            //Send request
-            try (final DataOutputStream wr = new DataOutputStream(connection.getOutputStream())) {
-                wr.writeBytes(body);
-            }
-
-            //Get Response
-            final InputStream is = connection.getInputStream();
-            final StringBuilder response;
-            try (final BufferedReader rd = new BufferedReader(new InputStreamReader(is, defaultCharset()))) {
-                response = new StringBuilder();
-                String line;
-                while ((line = rd.readLine()) != null) {
-                    response.append(line);
-                    response.append('\r');
-                }
-            }
-            final int responseCode = connection.getResponseCode();
-            final String toString = new StringBuilder("rc = ")
-                    .append(responseCode)
-                    .append(", logId=")
-                    .append('"')
-                    .append(response)
-                    .append('"')
-                    .toString();
-            return toString;
+            return sendMessage(connection, body);
         } finally {
             if (connection != null) {
                 connection.disconnect();
@@ -215,9 +137,43 @@ public class HttpSender extends AbstractSender {
         }
     }
 
+    protected String sendMessage(HttpURLConnection connection, String body) throws IOException{
+        //Send request
+        try (final DataOutputStream wr = new DataOutputStream(connection.getOutputStream())) {
+            wr.writeBytes(body);
+        }
+        //Get Response
+        final InputStream is = connection.getInputStream();
+        final StringBuilder response;
+        try (final BufferedReader rd = new BufferedReader(new InputStreamReader(is, defaultCharset()))) {
+            response = new StringBuilder();
+            String line;
+            while ((line = rd.readLine()) != null) {
+                response.append(line);
+                response.append('\r');
+            }
+        }
+        final int responseCode = connection.getResponseCode();
+        final String toString = new StringBuilder("rc = ")
+                .append(responseCode)
+                .append(", logId=")
+                .append('"')
+                .append(response)
+                .append('"')
+                .toString();
+        return toString;
+    }
+
+    protected void addAddtionalProperties(final HttpURLConnection connection, Properties properties) {
+        final Set<Map.Entry<Object, Object>> entrySet = properties.entrySet();
+        entrySet.forEach(
+                entry -> connection.setRequestProperty(entry.getKey().toString(), entry.getValue().toString()));
+    }
+
     @Override
     public String getName() {
-        return NAME;
+        return HttpConstants.COMMUNICATION_NAME_HTTP;
     }
+
 
 }
