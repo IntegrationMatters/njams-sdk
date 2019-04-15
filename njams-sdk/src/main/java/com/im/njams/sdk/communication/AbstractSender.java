@@ -17,6 +17,8 @@
 package com.im.njams.sdk.communication;
 
 import java.util.Properties;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import com.faizsiegeln.njams.messageformat.v4.tracemessage.TraceMessage;
 import org.slf4j.LoggerFactory;
@@ -41,6 +43,10 @@ public abstract class AbstractSender implements Sender {
     protected ConnectionStatus connectionStatus;
     protected String discardPolicy;
     protected Properties properties;
+
+    private static final AtomicBoolean hasConnected = new AtomicBoolean(false);
+
+    private static final AtomicInteger connecting = new AtomicInteger(0);
 
     /**
      * returns a new AbstractSender
@@ -83,24 +89,32 @@ public abstract class AbstractSender implements Sender {
     public synchronized void reconnect(NjamsSdkRuntimeException ex) {
         if (isConnecting() || isConnected()) {
             return;
-        }
-        if (LOG.isDebugEnabled() && ex != null) {
-            if (ex.getCause() == null) {
-                LOG.debug("Initialized reconnect, because of : {}", ex.toString());
-                if (LOG.isTraceEnabled()) {
-                    LOG.trace("Stacktrace: {}", ex.getStackTrace());
+        } else {
+            synchronized (hasConnected) {
+                hasConnected.set(false);
+                if (LOG.isInfoEnabled() && ex != null) {
+                    if (ex.getCause() == null) {
+                        LOG.info("Initialized reconnect, because of : {}", ex.toString());
+
+                    } else {
+                        LOG.info("Initialized reconnect, because of : {}, {}", ex.toString(), ex.getCause().toString());
+                    }
                 }
-            } else {
-                LOG.debug("Initialized reconnect, because of : {}, {}", ex.toString(), ex.getCause().toString());
-                if (LOG.isTraceEnabled()) {
-                    LOG.trace("Stacktrace: {}", ex.getStackTrace(), ex.getCause().getStackTrace());
-                }
+                LOG.info("{} senders are reconnecting now", connecting.incrementAndGet());
             }
         }
+
         while (!isConnected()) {
             try {
                 connect();
-                LOG.info("Reconnected sender {}", getName());
+                synchronized (hasConnected) {
+                    if (!hasConnected.get()) {
+                        LOG.info("Connection can be established again!");
+                        LOG.info("Reconnected sender {}", getName());
+                        hasConnected.set(true);
+                    }
+                    LOG.debug("{} senders still need to reconnect.", connecting.decrementAndGet());
+                }
             } catch (NjamsSdkRuntimeException e) {
                 try {
                     Thread.sleep(1000);

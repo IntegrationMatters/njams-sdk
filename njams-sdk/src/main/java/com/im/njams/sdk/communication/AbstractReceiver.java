@@ -25,6 +25,7 @@ import com.faizsiegeln.njams.messageformat.v4.command.Response;
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -46,6 +47,10 @@ public abstract class AbstractReceiver implements Receiver {
 
     //The connection status of the receiver
     protected ConnectionStatus connectionStatus = ConnectionStatus.DISCONNECTED;
+
+    private static final AtomicBoolean hasConnected = new AtomicBoolean(false);
+
+    private static final AtomicInteger connecting = new AtomicInteger(0);
 
     /**
      * Njams to hold
@@ -142,6 +147,7 @@ public abstract class AbstractReceiver implements Receiver {
      * reconnection threads sleeps for
      * {@link #RECONNECT_INTERVAL RECONNECT_INTERVAL} second before trying again
      * to reconnect.
+     *
      * @param ex the exception that initiated the reconnect
      */
     @SuppressWarnings({"squid:S2276", "squid:S2142"})
@@ -150,29 +156,34 @@ public abstract class AbstractReceiver implements Receiver {
         boolean doReconnect = true;
         if (this.isConnecting() || this.isConnected()) {
             doReconnect = false;
+        } else {
+            synchronized (hasConnected) {
+                hasConnected.set(false);
+                if (LOG.isInfoEnabled() && ex != null) {
+                    if (ex.getCause() == null) {
+                        LOG.info("Initialized reconnect, because of : {}", ex.toString());
+                    } else {
+                        LOG.info("Initialized reconnect, because of : {}, {}", ex.toString(), ex.getCause().toString());
+                    }
+                }
+                LOG.info("{} receivers are reconnecting now.", connecting.incrementAndGet());
+            }
         }
         if (got > 1) {
             //This is just for debugging.
             LOG.debug("There are to many reconnections at the same time! There are {} method invocations.", got);
         }
-        if (LOG.isDebugEnabled() && ex != null) {
-            if (ex.getCause() == null) {
-                LOG.debug("Initialized reconnect, because of : {}", ex.toString());
-                if (LOG.isTraceEnabled()) {
-                    LOG.trace("Stacktrace: {}", ex.getStackTrace());
-                }
-            } else {
-                LOG.debug("Initialized reconnect, because of : {}, {}", ex.toString(), ex.getCause().toString());
-                if (LOG.isTraceEnabled()) {
-                    LOG.trace("Stacktrace: {}", ex.getStackTrace(), ex.getCause().getStackTrace());
-                }
-            }
-        }
         while (!this.isConnected() && doReconnect) {
             try {
-                LOG.debug("Trying to reconnect receiver {}", getName());
                 this.connect();
-                LOG.info("Reconnected receiver {}", getName());
+                synchronized (hasConnected) {
+                    if (!hasConnected.get()) {
+                        LOG.info("Connection can be established again!");
+                        LOG.info("Reconnected receiver {}", getName());
+                        hasConnected.set(true);
+                    }
+                    LOG.debug("{} receivers still need to reconnect.", connecting.decrementAndGet());
+                }
             } catch (NjamsSdkRuntimeException e) {
                 try {
                     //Using Thread.sleep because this.wait would release the lock for this object, Thread.sleep doesn't.

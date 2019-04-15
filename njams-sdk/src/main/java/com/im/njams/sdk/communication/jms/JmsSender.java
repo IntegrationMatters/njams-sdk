@@ -263,7 +263,7 @@ public class JmsSender extends AbstractSender implements ExceptionListener {
         // reconnect
         reconnector = new Thread(() -> reconnect(exception));
         reconnector.setDaemon(true);
-        reconnector.setName(String.format("%s-Sender-Reconnector", this.getName()));
+        reconnector.setName(String.format("%s-Sender-Reconnector-Thread", this.getName()));
         reconnector.start();
     }
 
