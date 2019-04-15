@@ -391,7 +391,7 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
         List<Exception> exceptions = this.closeAll();
         if (!exceptions.isEmpty()) {
             printExceptions(exceptions);
-            throw new NjamsSdkRuntimeException("Unable to close jms receiver");
+            LOG.warn("Unable to close JmsReceiver correctly.");
         } else {
             LOG.info("JmsReceiver has been stopped.");
         }
