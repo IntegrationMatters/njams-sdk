@@ -16,6 +16,7 @@
  */
 package com.im.njams.sdk.communication;
 
+import com.im.njams.sdk.communication.connection.Connectable;
 import com.im.njams.sdk.utils.ClasspathValidator;
 import java.util.Properties;
 
@@ -27,7 +28,7 @@ import com.faizsiegeln.njams.messageformat.v4.common.CommonMessage;
  *
  * @author bwand
  */
-public interface Sender extends AutoCloseable, ClasspathValidator {
+public interface Sender extends ClasspathValidator, Connectable {
 
     /**
      * Property key for header properties which will specify the messageVersion
@@ -59,13 +60,6 @@ public interface Sender extends AutoCloseable, ClasspathValidator {
      * Property value for header properties which specifies a tracemessage
      */
     public static final String NJAMS_MESSAGETYPE_TRACE = "command";
-    /**
-     * This new implementation should initialize itself via the given
-     * Properties.
-     *
-     * @param properties to be used for initialization
-     */
-    public void init(Properties properties);
 
     /**
      * Send the given message to the new communication layer
@@ -74,12 +68,5 @@ public interface Sender extends AutoCloseable, ClasspathValidator {
      */
     void send(CommonMessage msg);
 
-    /**
-     * Close this Sender.
-     */
-    @Override
-    public void close();
-
-    public String getName();
 
 }

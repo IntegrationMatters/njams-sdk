@@ -16,9 +16,9 @@
  */
 package com.im.njams.sdk.communication;
 
-import java.util.Properties;
-
 import com.faizsiegeln.njams.messageformat.v4.tracemessage.TraceMessage;
+import com.im.njams.sdk.communication.connection.NjamsConnection;
+import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.faizsiegeln.njams.messageformat.v4.common.CommonMessage;
@@ -27,101 +27,50 @@ import com.faizsiegeln.njams.messageformat.v4.projectmessage.ProjectMessage;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.settings.Settings;
 
+import java.util.Properties;
+
 /**
  * Superclass for all Senders. When writing your own Sender, extend this class and overwrite methods, when needed.
  * All Sender will be automatically pooled by the SDK; you must not implement your own connection pooling!
  *
- * @author hsiegeln
+ * @author hsiegeln/krautenberg
  * @version 4.0.6
  */
 public abstract class AbstractSender implements Sender {
 
-    private static final org.slf4j.Logger LOG = LoggerFactory.getLogger(AbstractSender.class);
-
-    protected ConnectionStatus connectionStatus;
-    protected String discardPolicy;
-    protected Properties properties;
+    //The Logger
+    private static final Logger LOG = LoggerFactory.getLogger(AbstractSender.class);
+    //The discard policy for messages that couldn't be delivered, default is "none".
+    protected String discardPolicy = "none";
+    //The connection for this sender.
+    protected NjamsConnection njamsConnection;
 
     /**
-     * returns a new AbstractSender
+     * Initializes this Sender via the given Properties.
+     *
+     * @param properties the properties needed to initialize
      */
-    public AbstractSender() {
-        connectionStatus = ConnectionStatus.DISCONNECTED;
-    }
-
     @Override
-    public void init(Properties properties) {
-        this.properties = properties;
+    public final void init(Properties properties) {
         discardPolicy = properties.getProperty(Settings.PROPERTY_DISCARD_POLICY, "none").toLowerCase();
+        njamsConnection = new NjamsConnection(properties, this, this.getName() + "-Sender-NjamsConnection");
+        initialize(properties);
+        njamsConnection.initialConnect();
     }
 
-    /**
-     * override this method to implement your own connection initialization
-     *
-     * @throws NjamsSdkRuntimeException NjamsSdkRuntimeException
-     */
-    public synchronized void connect() throws NjamsSdkRuntimeException {
-        if (isConnected()) {
-            return;
-        }
-        try {
-            connectionStatus = ConnectionStatus.CONNECTING;
-            connectionStatus = ConnectionStatus.CONNECTED;
-        } catch (Exception e) {
-            connectionStatus = ConnectionStatus.DISCONNECTED;
-            throw new NjamsSdkRuntimeException("Unable to connect", e);
-        }
-
-    }
+    protected abstract void initialize(Properties properties);
 
     /**
-     * initiates a reconnect, if isConnected() is false and no other reconnect is currently executed.
-     * Override this for your own reconnect handling
-     *
-     * @param ex the exception that initiated the reconnect
-     */
-    public synchronized void reconnect(NjamsSdkRuntimeException ex) {
-        if (isConnecting() || isConnected()) {
-            return;
-        }
-        if (LOG.isDebugEnabled() && ex != null) {
-            if (ex.getCause() == null) {
-                LOG.debug("Initialized reconnect, because of : {}", ex.toString());
-                if (LOG.isTraceEnabled()) {
-                    LOG.trace("Stacktrace: {}", ex.getStackTrace());
-                }
-            } else {
-                LOG.debug("Initialized reconnect, because of : {}, {}", ex.toString(), ex.getCause().toString());
-                if (LOG.isTraceEnabled()) {
-                    LOG.trace("Stacktrace: {}", ex.getStackTrace(), ex.getCause().getStackTrace());
-                }
-            }
-        }
-        while (!isConnected()) {
-            try {
-                connect();
-                LOG.info("Reconnected sender {}", getName());
-            } catch (NjamsSdkRuntimeException e) {
-                try {
-                    Thread.sleep(1000);
-                } catch (InterruptedException e1) {
-                    return;
-                }
-            }
-        }
-    }
-
-    /**
-     * Send the given message. This method automatically applies the discardPolicy onConnectionLoss, if set
+     * This method sends the given message. It applies the discardPolicy onConnectionLoss, if set respectively in the
+     * properties.
      *
      * @param msg the message to send
      */
     @Override
     public void send(CommonMessage msg) {
         // do this until message is sent or discard policy onConnectionLoss is satisfied
-        boolean isSent = false;
         do {
-            if (isConnected()) {
+            if (njamsConnection.isConnected()) {
                 try {
                     if (msg instanceof LogMessage) {
                         send((LogMessage) msg);
@@ -130,45 +79,33 @@ public abstract class AbstractSender implements Sender {
                     } else if (msg instanceof TraceMessage) {
                         send((TraceMessage) msg);
                     }
-                    isSent = true;
                     break;
                 } catch (NjamsSdkRuntimeException e) {
-                    onException(e);
+                    //Try to reconnect
+                    if (!njamsConnection.isError()) {
+                        njamsConnection.onException(e);
+                    }
                 }
             }
-            if (isDisconnected()) {
+            if (njamsConnection.isDisconnected()) {
                 // discard message, if onConnectionLoss is used
-                isSent = "onconnectionloss".equalsIgnoreCase(discardPolicy);
-                if (isSent) {
+                if (discardPolicy.equalsIgnoreCase("onconnectionloss")) {
                     LOG.debug("Applying discard policy [{}]. Message discarded.", discardPolicy);
                     break;
                 }
             }
             // wait for reconnect
-            if (isConnecting()) {
+            if (njamsConnection.isConnecting()) {
                 try {
-                    Thread.sleep(1000);
+                    Thread.sleep(njamsConnection.getReconnectInterval());
                 } catch (InterruptedException e) {
                     break;
                 }
-            } else {
+            } else if (!njamsConnection.isError()) {
                 // trigger reconnect
-                onException(null);
+                njamsConnection.onException(null);
             }
-        } while (!isSent);
-    }
-
-    /**
-     * used to implement your exception handling for this sender. Is called, if sending of a message fails.
-     * It will automatically close any try to reconnect the connection;
-     * override this method for your own handling
-     *
-     * @param exception NjamsSdkRuntimeException
-     */
-    protected void onException(NjamsSdkRuntimeException exception) {
-        // close the existing connection
-        close();
-        reconnect(exception);
+        } while (true);
     }
 
     /**
@@ -194,32 +131,5 @@ public abstract class AbstractSender implements Sender {
      * @throws NjamsSdkRuntimeException NjamsSdkRuntimeException
      */
     protected abstract void send(TraceMessage msg) throws NjamsSdkRuntimeException;
-
-    @Override
-    public void close() {
-        // TODO Auto-generated method stub
-
-    }
-
-    /**
-     * @return true if connectionStatus == ConnectionStatus.CONNECTED
-     */
-    public boolean isConnected() {
-        return connectionStatus == ConnectionStatus.CONNECTED;
-    }
-
-    /**
-     * @return true if connectionStatus == ConnectionStatus.DISCONNECTED
-     */
-    public boolean isDisconnected() {
-        return connectionStatus == ConnectionStatus.DISCONNECTED;
-    }
-
-    /**
-     * @return true if connectionStatus == ConnectionStatus.CONNECTING
-     */
-    public boolean isConnecting() {
-        return connectionStatus == ConnectionStatus.CONNECTING;
-    }
 
 }

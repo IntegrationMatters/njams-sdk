@@ -16,6 +16,7 @@
  */
 package com.im.njams.sdk.communication;
 
+import com.im.njams.sdk.communication.connection.NjamsConnection;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -23,9 +24,8 @@ import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
 import com.faizsiegeln.njams.messageformat.v4.command.Request;
 import com.faizsiegeln.njams.messageformat.v4.command.Response;
 import com.im.njams.sdk.Njams;
-import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.Properties;
 
 /**
  * This class should be extended when implementing an new Receiver for a new
@@ -38,19 +38,27 @@ public abstract class AbstractReceiver implements Receiver {
 
     //The Logger
     private static final Logger LOG = LoggerFactory.getLogger(AbstractReceiver.class);
-    //The time it needs before a new reconnection is tried after an exception throw.
-    protected static final long RECONNECT_INTERVAL = 1000;
 
-    //This AtomicInteger is for debugging.
-    final AtomicInteger verifyingCounter = new AtomicInteger();
-
-    //The connection status of the receiver
-    protected ConnectionStatus connectionStatus = ConnectionStatus.DISCONNECTED;
+    protected NjamsConnection njamsConnection;
 
     /**
-     * Njams to hold
+     * Njams to hold as instructionListener
      */
     protected Njams njams;
+
+    /**
+     * Initializes this Sender via the given Properties.
+     *
+     * @param properties the properties needed to initialize
+     */
+    @Override
+    public final void init(Properties properties){
+        njamsConnection = new NjamsConnection(properties, this, this.getName() + "-Receiver-NjamsConnection");
+        initialize(properties);
+        njamsConnection.initialConnect();
+    }
+
+    protected abstract void initialize(Properties properties);
 
     /**
      * This constructor sets the njams instance for getting the instruction
@@ -127,124 +135,4 @@ public abstract class AbstractReceiver implements Receiver {
         //This can be used by the subclasses to alter the request.
         return null;
     }
-
-    /**
-     * This method should be used to create a connection, and if the startup
-     * fails, close all resources. It will be called by the
-     * {@link #reconnect(NjamsSdkRuntimeException) reconnect} method. It should throw an
-     * NjamsSdkRuntimeException if anything unexpected or unwanted happens.
-     */
-    public abstract void connect();
-
-    /**
-     * This method tries to establish the connection over and over as long as it
-     * not connected. If {@link #connect() connect} throws an exception, the
-     * reconnection threads sleeps for
-     * {@link #RECONNECT_INTERVAL RECONNECT_INTERVAL} second before trying again
-     * to reconnect.
-     * @param ex the exception that initiated the reconnect
-     */
-    @SuppressWarnings({"squid:S2276", "squid:S2142"})
-    public synchronized void reconnect(NjamsSdkRuntimeException ex) {
-        int got = verifyingCounter.incrementAndGet();
-        boolean doReconnect = true;
-        if (this.isConnecting() || this.isConnected()) {
-            doReconnect = false;
-        }
-        if (got > 1) {
-            //This is just for debugging.
-            LOG.debug("There are to many reconnections at the same time! There are {} method invocations.", got);
-        }
-        if (LOG.isDebugEnabled() && ex != null) {
-            if (ex.getCause() == null) {
-                LOG.debug("Initialized reconnect, because of : {}", ex.toString());
-                if (LOG.isTraceEnabled()) {
-                    LOG.trace("Stacktrace: {}", ex.getStackTrace());
-                }
-            } else {
-                LOG.debug("Initialized reconnect, because of : {}, {}", ex.toString(), ex.getCause().toString());
-                if (LOG.isTraceEnabled()) {
-                    LOG.trace("Stacktrace: {}", ex.getStackTrace(), ex.getCause().getStackTrace());
-                }
-            }
-        }
-        while (!this.isConnected() && doReconnect) {
-            try {
-                LOG.debug("Trying to reconnect receiver {}", getName());
-                this.connect();
-                LOG.info("Reconnected receiver {}", getName());
-            } catch (NjamsSdkRuntimeException e) {
-                try {
-                    //Using Thread.sleep because this.wait would release the lock for this object, Thread.sleep doesn't.
-                    Thread.sleep(RECONNECT_INTERVAL);
-                } catch (InterruptedException e1) {
-                    LOG.error("The reconnecting thread was interrupted!", e1);
-                    doReconnect = false;
-                }
-            }
-        }
-        verifyingCounter.decrementAndGet();
-    }
-
-    /**
-     * This method starts the Receiver. It tries to establish the connection,
-     * and if it fails, calls the method
-     * {@link #onException(NjamsSdkRuntimeException) onException}.
-     */
-    @Override
-    public void start() {
-        try {
-            this.connect();
-            if (LOG.isDebugEnabled()) {
-                LOG.debug("Started receiver {}", this.getName());
-            }
-        } catch (NjamsSdkRuntimeException e) {
-            LOG.error("Could not initialize receiver {}\n. Pushing reconnect task to background.",
-                    this.getName(), e);
-            // trigger reconnect
-            this.onException(new NjamsSdkRuntimeException("Initial Connect."));
-        }
-    }
-
-    /**
-     * This method is used to start a reconnector thread.
-     *
-     * @param exception the exception that caused this method invokation.
-     */
-    public void onException(NjamsSdkRuntimeException exception) {
-        this.stop();
-        // reconnect
-        Thread reconnector = new Thread(() -> reconnect(exception));
-        reconnector.setDaemon(true);
-        reconnector.setName(String.format("%s-Receiver-Reconnector-Thread", this.getName()));
-        reconnector.start();
-    }
-
-    /**
-     * This method returns wether the Receiver is connected or not.
-     *
-     * @return true, if Receiver is connected, otherwise false
-     */
-    public boolean isConnected() {
-        return this.connectionStatus == ConnectionStatus.CONNECTED;
-    }
-
-    /**
-     * This method returns wether the Receiver is disconnected or not.
-     *
-     * @return true, if Receiver is disconnected, otherwise false
-     */
-    public boolean isDisconnected() {
-        return this.connectionStatus == ConnectionStatus.DISCONNECTED;
-    }
-
-    /**
-     * This method returns wether the Receiver is connecting or not.
-     *
-     * @return true, if Receiver is connecting, otherwise false
-     */
-    public boolean isConnecting() {
-        return this.connectionStatus == ConnectionStatus.CONNECTING;
-    }
-
 }

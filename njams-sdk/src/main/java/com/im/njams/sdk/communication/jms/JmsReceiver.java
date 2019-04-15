@@ -16,24 +16,13 @@
  */
 package com.im.njams.sdk.communication.jms;
 
-import java.util.Properties;
+import java.util.*;
 
-import javax.jms.Connection;
-import javax.jms.ConnectionFactory;
-import javax.jms.ExceptionListener;
-import javax.jms.JMSContext;
 import javax.jms.JMSException;
 import javax.jms.Message;
-import javax.jms.MessageConsumer;
 import javax.jms.MessageListener;
-import javax.jms.Session;
 import javax.jms.TextMessage;
 import javax.jms.MessageProducer;
-import javax.jms.Topic;
-
-import javax.naming.InitialContext;
-import javax.naming.NameNotFoundException;
-import javax.naming.NamingException;
 
 import org.slf4j.LoggerFactory;
 
@@ -42,44 +31,25 @@ import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import com.im.njams.sdk.common.JsonSerializerFactory;
-import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.common.Path;
 
 import com.im.njams.sdk.communication.AbstractReceiver;
-import com.im.njams.sdk.communication.ConnectionStatus;
-
-import com.im.njams.sdk.settings.PropertyUtil;
-
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * JMS implementation for a Receiver.
  *
  * @author pnientiedt, krautenberg@integrationmatters.ocm
- * @version 4.0.5
+ * @version 4.0.6
  */
-public class JmsReceiver extends AbstractReceiver implements MessageListener, ExceptionListener {
+public class JmsReceiver extends AbstractReceiver implements MessageListener {
 
     private static final org.slf4j.Logger LOG = LoggerFactory.getLogger(JmsReceiver.class);
 
-    private Connection connection;
-    private Session session;
-    private Properties properties;
-    private MessageConsumer consumer;
+    private JmsConnector jmsConnector;
+
     private String topicName;
     private ObjectMapper mapper;
     private String messageSelector;
-
-    /**
-     * Returns the name for this Receiver. (JMS)
-     *
-     * @return the name of this Receiver. (JMS)
-     */
-    @Override
-    public String getName() {
-        return JmsConstants.COMMUNICATION_NAME;
-    }
 
     /**
      * Initializes this Receiver via the given Properties.
@@ -94,20 +64,45 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
      * </ul>
      * For more look in the github FAQ of this project.
      *
-     * @param props the properties needed to init
+     * @param properties the properties needed to init
      */
     @Override
-    public void init(Properties props) {
-        connectionStatus = ConnectionStatus.DISCONNECTED;
+    protected void initialize(Properties properties) {
         mapper = JsonSerializerFactory.getDefaultMapper();
-        this.properties = props;
-        if (props.containsKey(JmsConstants.COMMANDS_DESTINATION)) {
-            topicName = props.getProperty(JmsConstants.COMMANDS_DESTINATION);
+        if (properties.containsKey(JmsConstants.COMMANDS_DESTINATION)) {
+            topicName = properties.getProperty(JmsConstants.COMMANDS_DESTINATION);
         } else {
-            topicName = props.getProperty(JmsConstants.DESTINATION) + ".commands";
+            topicName = properties.getProperty(JmsConstants.DESTINATION) + ".commands";
         }
         this.messageSelector = this.createMessageSelector();
+        this.jmsConnector = new JmsConnector(njamsConnection, properties);
     }
+
+    @Override
+    public void connect() {
+        jmsConnector.connectReceiver(topicName, messageSelector, this);
+    }
+
+    /**
+     * This method stops the Jms Receiver by closing all its resources, if its
+     * status is CONNECTED.
+     */
+    @Override
+    public void close() {
+        jmsConnector.close();
+    }
+
+    /**
+     * Returns the name for this Receiver. (JMS)
+     *
+     * @return the name of this Receiver. (JMS)
+     */
+    @Override
+    public String getName() {
+        return JmsConstants.COMMUNICATION_NAME;
+    }
+
+
 
     /**
      * This method creates a String that is used as a message selector.
@@ -129,272 +124,6 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
         }
 
         return selector.toString();
-    }
-
-    /**
-     * This method is called when the receiver has to connect. It can't be
-     * started if init(..) hasn't been called beforehand.
-     */
-    @Override
-    public synchronized void connect() {
-        if (!isConnected()) {
-            this.connectionStatus = ConnectionStatus.CONNECTING;
-
-            this.tryToConnect(this.properties);
-
-            this.connectionStatus = ConnectionStatus.CONNECTED;
-        }
-    }
-
-    /**
-     * This method tries to create a receiver with a InitialContext, connection,
-     * session etc. It throws an NjamsSdkRuntimeException if any of the
-     * resources throws any exception.
-     *
-     * @param props the Properties that are used for connecting.
-     */
-    private void tryToConnect(Properties props) {
-        InitialContext context = null;
-        try {
-            context = this.getInitialContext(props);
-            LOG.debug("The InitialContext was created successfully.");
-
-            ConnectionFactory factory = this.getConnectionFactory(props, context);
-            LOG.debug("The ConnectionFactory was created successfully.");
-
-            this.connection = this.createConnection(props, factory);
-            LOG.debug("The Connection was created successfully.");
-
-            this.session = this.createSession(this.connection);
-            LOG.debug("The Session was created successfully.");
-
-            Topic topic = this.getOrCreateTopic(context, session);
-            LOG.debug("The Topic was created successfully.");
-
-            this.consumer = this.createConsumer(this.session, topic);
-            LOG.debug("The MessageConsumer was created successfully.");
-
-            this.startConnection(this.connection);
-            LOG.debug("The Connection was started successfully.");
-
-        } catch (Exception e) {
-            printExceptions(this.closeAll(context));
-            throw new NjamsSdkRuntimeException("Unable to initialize", e);
-        }
-    }
-
-    /**
-     * This method creates a new InitialContext out of the properties that are
-     * given as parameter.
-     *
-     * @param prop the Properties that will be used to create a new
-     * InitialContext
-     * @return the InitialContext that has been created.
-     * @throws NamingException is thrown if something with the name is wrong.
-     */
-    private InitialContext getInitialContext(Properties prop) throws NamingException {
-        return new InitialContext(PropertyUtil.filterAndCut(prop, JmsConstants.PROPERTY_PREFIX + "."));
-    }
-
-    /**
-     * This method gets a ConnectionFactory out of the properties value for
-     * JmsConstants.CONNECTION_FACTORY and the context that looks up for the
-     * factory.
-     *
-     * @param props the Properties where JmsConstants.CONNECTION_FACTORY as key
-     * should be provided.
-     * @param context the context that is used to look up the connectionFactory.
-     * @return the ConnectionFactory, if found.
-     * @throws NamingException is thrown if something with the name is wrong.
-     */
-    private ConnectionFactory getConnectionFactory(Properties props, InitialContext context) throws NamingException {
-        return (ConnectionFactory) context.lookup(props.getProperty(JmsConstants.CONNECTION_FACTORY));
-    }
-
-    /**
-     * This method creates a connection out of the properties and the factory.
-     * It established a secure connection with JmsConstants.USERNAME and
-     * JmsConstants.PASSWORD, or if they are not provided, creates a connection
-     * that uses the default username and password.
-     *
-     * @param props the properties where username and password are safed
-     * @param factory the factory where the connection will be created from.
-     * @return the Connection if it can be created.
-     * @throws JMSException is thrown if something is wrong with the username or
-     * password.
-     */
-    private Connection createConnection(Properties props, ConnectionFactory factory) throws JMSException {
-        Connection con;
-        if (props.containsKey(JmsConstants.USERNAME) && props.containsKey(JmsConstants.PASSWORD)) {
-            con = factory.createConnection(props.getProperty(JmsConstants.USERNAME),
-                    props.getProperty(JmsConstants.PASSWORD));
-        } else {
-            con = factory.createConnection();
-        }
-        return con;
-    }
-
-    /**
-     * This method creates a session to the given connection. The transacted
-     * boolean has been set to false and the acknowledgeMode is
-     * JMSContext.CLIENT_ACKNOWLEDGE for the created session.
-     *
-     * @param con the connection that creates the session
-     * @return the session if it can be created
-     * @throws JMSException is thrown if something failed.
-     */
-    private Session createSession(Connection con) throws JMSException {
-        return con.createSession(false, JMSContext.CLIENT_ACKNOWLEDGE);
-    }
-
-    /**
-     * This method creates or gets a existing topic that has been specified in
-     * the properties beforehand.
-     *
-     * @param context the context to look up for the topic, if it exists
-     * already.
-     * @param session the session to create a new topic, if no topic can be
-     * found.
-     * @return the topic that was created or has been found before.
-     * @throws NamingException is thrown if something with the name is wrong.
-     * @throws JMSException is thrown if the topic can't be created.
-     */
-    private Topic getOrCreateTopic(InitialContext context, Session session) throws NamingException, JMSException {
-        Topic topic;
-        try {
-            topic = (Topic) context.lookup(this.topicName);
-            LOG.info("Topic {} has been found.", this.topicName);
-        } catch (NameNotFoundException e) {
-            LOG.info("Topic {} hasn't been found. Create Topic...", this.topicName);
-            topic = session.createTopic(this.topicName);
-        }
-        return topic;
-    }
-
-    /**
-     * This method creates a MessageConsumer out of the provided session for the
-     * Topic topic, and listens only to the messages of
-     * {@link #messageSelector messageSelector}.
-     *
-     * @param sess the session that creates the MessageConsumer to the given
-     * topic, that listens to the messages that match the messageSelector.
-     * @param topic the topic to listen to
-     * @return the MessageConsumer if it can be created. It listens on the given
-     * topic for messages that match the
-     * {@link #messageSelector messageSelector}. If a message is found,
-     * this.onMessage(Message msg) is invoked.
-     * @throws JMSException is thrown if the MessageConsumer can' be created.
-     */
-    @SuppressWarnings("squid:S2095")
-    private MessageConsumer createConsumer(Session sess, Topic topic) throws JMSException {
-        MessageConsumer cons = sess.createConsumer(topic, this.messageSelector);
-        cons.setMessageListener(this);
-        return cons;
-    }
-
-    /**
-     * This method starts the provided connection and sets this object as
-     * exceptionListener.
-     *
-     * @param con the connection to start
-     * @throws JMSException is thrown if either setting the exceptionListener
-     * didn't work or the connection didn't start.
-     */
-    private void startConnection(Connection con) throws JMSException {
-        con.setExceptionListener(this);
-        con.start();
-    }
-
-    /**
-     * This method sets the connectionStatus to DISCONNECTED and closes all
-     * resources that have been safed as fields.
-     *
-     * @return a list of exceptions that may have been thrown by any of the
-     * resources.
-     */
-    private List<Exception> closeAll() {
-        connectionStatus = ConnectionStatus.DISCONNECTED;
-        List<Exception> exceptions = new ArrayList<>();
-        if (consumer != null) {
-            try {
-                consumer.close();
-
-            } catch (JMSException ex) {
-                exceptions.add(new NjamsSdkRuntimeException("Unable to close consumer correctly", ex));
-            } finally {
-                consumer = null;
-            }
-
-        }
-        if (session != null) {
-            try {
-                session.close();
-
-            } catch (JMSException ex) {
-                exceptions.add(new NjamsSdkRuntimeException("Unable to close session correctly", ex));
-            } finally {
-                session = null;
-            }
-        }
-        if (connection != null) {
-            try {
-                connection.close();
-            } catch (JMSException ex) {
-                exceptions.add(new NjamsSdkRuntimeException("Unable to close connection correctly", ex));
-            } finally {
-                connection = null;
-            }
-        }
-        return exceptions;
-    }
-
-    /**
-     * This method sets the connectionStatus to DISCONNECTED and closes all
-     * resources that have been safed as fields. Furthermore it closes the
-     * initial context hat has been provided as parameter.
-     *
-     * @param context the context that is tried to be closed.
-     * @return a list of exceptions that may have been thrown by any of the
-     * resources.
-     */
-    private List<Exception> closeAll(InitialContext context) {
-        List<Exception> exceptions = closeAll();
-        if (context != null) {
-            try {
-                context.close();
-            } catch (NamingException ex) {
-                exceptions.add(new NjamsSdkRuntimeException("Unable to close initial context correctly", ex));
-            }
-        }
-        return exceptions;
-    }
-
-    /**
-     * This method logs all exceptions that have been given in the provided list
-     * of exceptions.
-     *
-     * @param exceptions the exceptions that wil be logged.
-     */
-    private void printExceptions(List<Exception> exceptions) {
-        exceptions.forEach(exception -> LOG.error(exception.getMessage()));
-    }
-
-    /**
-     * This method stops the Jms Receiver by closing all its resources, if its
-     * status is CONNECTED.
-     */
-    @Override
-    public void stop() {
-        if (!this.isConnected()) {
-            return;
-        }
-        List<Exception> exceptions = this.closeAll();
-        if (!exceptions.isEmpty()) {
-            printExceptions(exceptions);
-            throw new NjamsSdkRuntimeException("Unable to close jms receiver");
-        } else {
-            LOG.info("JmsReceiver has been stopped.");
-        }
     }
 
     /**
@@ -456,9 +185,9 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
     private void reply(Message message, Instruction instruction) {
         MessageProducer replyProducer = null;
         try {
-            replyProducer = session.createProducer(message.getJMSReplyTo());
+            replyProducer = jmsConnector.getSession().createProducer(message.getJMSReplyTo());
             String response = mapper.writeValueAsString(instruction);
-            final TextMessage responseMessage = session.createTextMessage();
+            final TextMessage responseMessage = jmsConnector.getSession().createTextMessage();
             responseMessage.setText(response);
             final String jmsCorrelationID = message.getJMSCorrelationID();
             if (jmsCorrelationID != null && !jmsCorrelationID.isEmpty()) {
@@ -480,38 +209,21 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
     }
 
     /**
-     * This method logs all JMS Exceptions and tries to reconnect the
-     * connection.
-     *
-     * @param exception The jmsException to be logged.
-     */
-    @Override
-    public void onException(JMSException exception) {
-        super.onException(new NjamsSdkRuntimeException("Transport error", exception));
-    }
-
-    /**
      * This method gets all libraries that need to be checked.
      *
      * @return an array of Strings of fully qualified class names.
      */
     @Override
     public String[] librariesToCheck() {
-        return new String[]{
-            "javax.jms.Connection",
-            "javax.jms.ConnectionFactory",
-            "javax.jms.ExceptionListener",
-            "javax.jms.JMSContext",
-            "javax.jms.JMSException",
-            "javax.jms.Message",
-            "javax.jms.MessageConsumer",
-            "javax.jms.MessageListener",
-            "javax.jms.Session",
-            "javax.jms.TextMessage",
-            "javax.jms.MessageProducer",
-            "javax.jms.Topic",
-            "javax.naming.InitialContext",
-            "javax.naming.NameNotFoundException",
-            "javax.naming.NamingException"};
+        Set<String> libs = new HashSet<>();
+        libs.add("javax.jms.JMSException");
+        libs.add("javax.jms.Message");
+        libs.add("javax.jms.MessageListener");
+        libs.add("javax.jms.TextMessage");
+        libs.add("javax.jms.MessageProducer");
+        libs.addAll(jmsConnector.librariesToCheck());
+        String[] toRet = new String[libs.size()];
+        libs.toArray(toRet);
+        return toRet;
     }
 }

@@ -16,6 +16,7 @@
  */
 package com.im.njams.sdk.communication;
 
+import com.im.njams.sdk.communication.connection.Connectable;
 import com.im.njams.sdk.utils.ClasspathValidator;
 import java.util.Properties;
 
@@ -28,7 +29,7 @@ import com.im.njams.sdk.Njams;
  *
  * @author pnientiedt
  */
-public interface Receiver extends ClasspathValidator{
+public interface Receiver extends ClasspathValidator, Connectable {
 
     /**
      * Set njams instance
@@ -37,22 +38,6 @@ public interface Receiver extends ClasspathValidator{
      */
     void setNjams(Njams njams);
 
-    /**
-     * The implementation should return its name here, by which it can be
-     * identified. This name will be used as value in the
-     * CommunicationConiguration via the Key
-     * {@value com.im.njams.sdk.communication.CommunicationFactory#COMMUNICATION}
-     *
-     * @return the name of the receiver implementation
-     */
-    String getName();
-
-    /**
-     * This implementation will initialize itself via the given Properties
-     *
-     * @param properties to be used for initialization
-     */
-    void init(Properties properties);
 
     /**
      * This function should be called by a implementation of the Receiver class
@@ -63,13 +48,14 @@ public interface Receiver extends ClasspathValidator{
     void onInstruction(Instruction instruction);
 
     /**
-     * Start the new Receiver
+     * This method is deprecated. {@link #init(Properties) init(Properties)} should establish the connection.
      */
-    void start();
+    @Deprecated
+    default void start(){}
 
     /**
-     * Stop the new Receiver
+     * This method is deprecated. {@link #close() close()} should be used instead.
      */
-    void stop();
-
+    @Deprecated
+    default void stop(){}
 }
