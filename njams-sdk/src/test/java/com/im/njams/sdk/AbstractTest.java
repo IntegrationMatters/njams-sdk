@@ -51,7 +51,7 @@ public abstract class AbstractTest {
     protected static Njams njams;
 
     //The default processModel
-    private static ProcessModel process;
+    protected static ProcessModel process;
     
     /**
      * This constructor creates the njams instance with path SDK4-TEST-PROCESSES.
