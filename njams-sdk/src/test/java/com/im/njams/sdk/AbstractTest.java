@@ -1,14 +1,14 @@
 /*
- * Copyright (c) 2018 Faiz & Siegeln Software GmbH
- * 
+ * Copyright (c) 2019 Faiz & Siegeln Software GmbH
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"),
  * to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
  * and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
- * 
+ *
  * The Software shall be used for Good, not Evil.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
@@ -27,14 +27,15 @@ import com.im.njams.sdk.logmessage.JobImpl;
 import com.im.njams.sdk.model.ActivityModel;
 import com.im.njams.sdk.model.ProcessModel;
 import com.im.njams.sdk.settings.Settings;
+
 import java.util.HashMap;
 import java.util.Map;
 
 /**
  * This class is a helper class for all test classes that need some jobs or activities.
- * 
+ *
  * @author krautenberg@integrationmatters.com
- * @version 4.0.4
+ * @version 4.0.6
  */
 public abstract class AbstractTest {
 
@@ -52,34 +53,35 @@ public abstract class AbstractTest {
 
     //The default processModel
     protected static ProcessModel process;
-    
+
     /**
      * This constructor creates the njams instance with path SDK4-TEST-PROCESSES.
      * The TestSender and TestReceiver are used as communication devices.
      */
-    public AbstractTest(){
+    public AbstractTest() {
         this(TestSender.getSettings());
     }
-    
+
     /**
      * This constructor creates the njams instance with path SDK4-TEST-PROCESSES.
      * Settings can be set, if a JMS connection, etc. is necessary.
+     *
      * @param settings the Settings for JMS, JNDI, etc.
      */
-    public AbstractTest(Settings settings){
+    public AbstractTest(Settings settings) {
         Path clientPath = new Path("SDK4", "TEST");
 
         njams = new Njams(clientPath, CLIENTVERSION, CATEGORY, settings);
         Path processPath = new Path("PROCESSES");
         process = njams.createProcess(processPath);
-        
+
         njams.start();
     }
-    
-    
+
 
     /**
      * This method creates(!) a job for a default ProcessModel.
+     *
      * @return A JobImpl that has been created, but not started!
      */
     protected JobImpl createDefaultJob() {
@@ -88,6 +90,7 @@ public abstract class AbstractTest {
 
     /**
      * This method creates and starts a job for a default ProcessModel.
+     *
      * @return A JobImpl that has been created and started!
      */
     protected JobImpl createDefaultStartedJob() {
@@ -95,20 +98,33 @@ public abstract class AbstractTest {
         defaultJob.start();
         return defaultJob;
     }
-  
+
     /**
      * This method creates a default Activity to the given job. This Activity consists
-     * of a default ActivityModel with id = ACTIVITYMODELID. 
+     * of a default ActivityModel with id = ACTIVITYMODELID.
+     *
      * @param job the job where the activity will be safed.
      * @return the Activity that is created.
      */
-    protected Activity createDefaultActivity(Job job){
+    protected Activity createDefaultActivity(Job job) {
         return job.createActivity(getDefaultActivityModel()).build();
     }
-    
+
+    /**
+     * This method creates a default Activity to the default job. See {@link #createDefaultStartedJob() createDefaultStartedJob()} and
+     * {@link #createDefaultActivity(Job) createDefaultActivity(Job)}.
+     *
+     * @return an Activity to the default job.
+     */
+    protected Activity getDefaultActivity() {
+        JobImpl defaultStartedJob = this.createDefaultStartedJob();
+        return this.createDefaultActivity(defaultStartedJob);
+    }
+
     /**
      * This method creates a default ActivityModel to the default ProcessModel.
-     * @return It returns the ActivityModel with id = ACTIVITYMODELID, name = "Act" and 
+     *
+     * @return It returns the ActivityModel with id = ACTIVITYMODELID, name = "Act" and
      * type = null
      */
     private ActivityModel getDefaultActivityModel() {
@@ -118,7 +134,7 @@ public abstract class AbstractTest {
         }
         return model;
     }
-    
+
     /**
      * This method creates an Activity and sets static data to all the fields
      * that are needed for the MessageFormat's Activity.

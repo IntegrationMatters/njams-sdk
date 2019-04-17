@@ -1,5 +1,5 @@
 /* 
- * Copyright (c) 2018 Faiz & Siegeln Software GmbH
+ * Copyright (c) 2019 Faiz & Siegeln Software GmbH
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"),
  * to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
@@ -21,6 +21,7 @@ import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 
 import javax.xml.bind.annotation.XmlTransient;
 
@@ -43,6 +44,7 @@ import com.im.njams.sdk.model.TransitionModel;
  * activities.
  *
  * @author pnientiedt
+ * @version 4.0.6
  */
 public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmessage.Activity implements Activity {
 
@@ -56,6 +58,7 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
     private boolean starter;
     private GroupImpl parent = null;
     private boolean trace;
+    private LocalDateTime startTime = DateTimeUtility.now();
 
     private long estimatedSize = 700L;
     private boolean ended = false;
@@ -212,7 +215,7 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
 
     /**
      * Returns the event associated with this activity. If the activity does not
-     * jave an event, one will be created.
+     * have an event, one will be created.
      *
      * @return The event of the activity
      */
@@ -225,10 +228,19 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
      * Start this activity
      */
     public void start() {
-        setExecution(DateTimeUtility.now());
+        startTime = DateTimeUtility.now();
         if (getActivityStatus() == null) {
             setActivityStatus(ActivityStatus.RUNNING);
         }
+    }
+
+    @XmlTransient
+    public LocalDateTime getStartTime(){
+        return startTime;
+    }
+
+    public void setStartTime(LocalDateTime startTime){
+        this.startTime = startTime;
     }
 
     /**
@@ -259,7 +271,7 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
         if (ended) {
             return;
         }
-        setDuration(Duration.between(getExecution(), DateTimeUtility.now()).toMillis());
+        setDuration(Duration.between(startTime, DateTimeUtility.now()).toMillis());
         if (getActivityStatus() == ActivityStatus.RUNNING) {
             setActivityStatus(ActivityStatus.SUCCESS);
         }
@@ -392,6 +404,7 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
             //This will cause a NjamsSdkRuntimeException, if the eventStatus
             //is not valid.
             EventStatus.byValue(eventStatus);
+            setExecutionIfNotSet();
             super.setEventStatus(eventStatus);
             if (eventStatus != null && 1 <= eventStatus && eventStatus <= 3) {
                 JobStatus possibleStatus = JobStatus.byValue(eventStatus);
@@ -403,6 +416,12 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
         } catch (NjamsSdkRuntimeException e) {
             LOG.error("{} for job with logId: {}. Using old status: {}", e.getMessage(), job.getLogId(),
                     super.getEventStatus());
+        }
+    }
+
+    private void setExecutionIfNotSet(){
+        if(super.getExecution() == null){
+            this.setExecution(DateTimeUtility.now());
         }
     }
 
@@ -463,6 +482,7 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
      */
     @Override
     public void setEventMessage(String message) {
+        setExecutionIfNotSet();
         super.setEventMessage(message);
     }
 
@@ -473,6 +493,7 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
      */
     @Override
     public void setEventCode(String code) {
+        setExecutionIfNotSet();
         super.setEventCode(code);
     }
 
@@ -485,6 +506,7 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
      */
     @Override
     public void setEventPayload(String eventPayload) {
+        setExecutionIfNotSet();
         super.setEventPayload(eventPayload);
         if (eventPayload != null) {
             int payloadSize = eventPayload.length();
@@ -502,6 +524,7 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
      */
     @Override
     public void setStackTrace(String stackTrace) {
+        setExecutionIfNotSet();
         super.setStackTrace(stackTrace);
         if (stackTrace != null) {
             int stackTraceSize = stackTrace.length();

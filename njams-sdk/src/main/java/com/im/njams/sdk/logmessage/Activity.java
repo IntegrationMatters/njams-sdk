@@ -1,5 +1,5 @@
 /* 
- * Copyright (c) 2018 Faiz & Siegeln Software GmbH
+ * Copyright (c) 2019 Faiz & Siegeln Software GmbH
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"),
  * to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
@@ -25,6 +25,7 @@ import com.im.njams.sdk.model.SubProcessActivityModel;
  * The runtime Activity
  *
  * @author pnientiedt
+ * @version 4.0.6
  */
 public interface Activity extends IActivity {
 
@@ -95,7 +96,7 @@ public interface Activity extends IActivity {
 
     /**
      * Returns the event associated with this activity. If the activity does not
-     * jave an event, one will be created.
+     * have an event, one will be created.
      *
      * @return The event of the activity
      */
