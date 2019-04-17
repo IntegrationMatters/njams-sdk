@@ -45,14 +45,14 @@ public class MaxQueueLengthHandler implements RejectedExecutionHandler {
 
     @Override
     public void rejectedExecution(Runnable r, ThreadPoolExecutor executor) {
-        LOG.debug("Applying discard policy [{}]", discardPolicy);
+        LOG.trace("Applying discard policy [{}]", discardPolicy);
         // discardPolicy onConnectionLoss must be handled inside sender implementation, 
         // as the connection status cannot be checked here!
         switch (discardPolicy) {
         case "none":
             if (!executor.isShutdown()) {
                 try {
-                    LOG.debug("Waiting for free slot in dispatch queue");
+                    LOG.trace("Waiting for free slot in dispatch queue");
                     executor.getQueue().put(r);
                 } catch (InterruptedException e) {
                     // exit handler

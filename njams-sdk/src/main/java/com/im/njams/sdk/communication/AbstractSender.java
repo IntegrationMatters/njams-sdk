@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Faiz & Siegeln Software GmbH
+ * Copyright (c) 2019 Faiz & Siegeln Software GmbH
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"),
  * to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
@@ -17,7 +17,10 @@
 package com.im.njams.sdk.communication;
 
 import java.util.Properties;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
+import com.faizsiegeln.njams.messageformat.v4.tracemessage.TraceMessage;
 import org.slf4j.LoggerFactory;
 
 import com.faizsiegeln.njams.messageformat.v4.common.CommonMessage;
@@ -31,7 +34,7 @@ import com.im.njams.sdk.settings.Settings;
  * All Sender will be automatically pooled by the SDK; you must not implement your own connection pooling!
  *
  * @author hsiegeln
- *
+ * @version 4.0.6
  */
 public abstract class AbstractSender implements Sender {
 
@@ -40,6 +43,10 @@ public abstract class AbstractSender implements Sender {
     protected ConnectionStatus connectionStatus;
     protected String discardPolicy;
     protected Properties properties;
+
+    private static final AtomicBoolean hasConnected = new AtomicBoolean(false);
+
+    private static final AtomicInteger connecting = new AtomicInteger(0);
 
     /**
      * returns a new AbstractSender
@@ -76,15 +83,38 @@ public abstract class AbstractSender implements Sender {
     /**
      * initiates a reconnect, if isConnected() is false and no other reconnect is currently executed.
      * Override this for your own reconnect handling
+     *
+     * @param ex the exception that initiated the reconnect
      */
-    public synchronized void reconnect() {
+    public synchronized void reconnect(NjamsSdkRuntimeException ex) {
         if (isConnecting() || isConnected()) {
             return;
+        } else {
+            synchronized (hasConnected) {
+                hasConnected.set(false);
+                if (LOG.isInfoEnabled() && ex != null) {
+                    if (ex.getCause() == null) {
+                        LOG.info("Initialized reconnect, because of : {}", ex.toString());
+
+                    } else {
+                        LOG.info("Initialized reconnect, because of : {}, {}", ex.toString(), ex.getCause().toString());
+                    }
+                }
+                LOG.info("{} senders are reconnecting now", connecting.incrementAndGet());
+            }
         }
+
         while (!isConnected()) {
             try {
                 connect();
-                LOG.info("Reconnected sender {}", getName());
+                synchronized (hasConnected) {
+                    if (!hasConnected.get()) {
+                        LOG.info("Connection can be established again!");
+                        LOG.info("Reconnected sender {}", getName());
+                        hasConnected.set(true);
+                    }
+                    LOG.debug("{} senders still need to reconnect.", connecting.decrementAndGet());
+                }
             } catch (NjamsSdkRuntimeException e) {
                 try {
                     Thread.sleep(1000);
@@ -111,6 +141,8 @@ public abstract class AbstractSender implements Sender {
                         send((LogMessage) msg);
                     } else if (msg instanceof ProjectMessage) {
                         send((ProjectMessage) msg);
+                    } else if (msg instanceof TraceMessage) {
+                        send((TraceMessage) msg);
                     }
                     isSent = true;
                     break;
@@ -150,7 +182,7 @@ public abstract class AbstractSender implements Sender {
     protected void onException(NjamsSdkRuntimeException exception) {
         // close the existing connection
         close();
-        reconnect();
+        reconnect(exception);
     }
 
     /**
@@ -168,6 +200,14 @@ public abstract class AbstractSender implements Sender {
      * @throws NjamsSdkRuntimeException NjamsSdkRuntimeException
      */
     protected abstract void send(ProjectMessage msg) throws NjamsSdkRuntimeException;
+
+    /**
+     * Implement this method to send TraceMessages
+     *
+     * @param msg the message to send
+     * @throws NjamsSdkRuntimeException NjamsSdkRuntimeException
+     */
+    protected abstract void send(TraceMessage msg) throws NjamsSdkRuntimeException;
 
     @Override
     public void close() {

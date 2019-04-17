@@ -55,7 +55,10 @@ public interface Sender extends AutoCloseable, ClasspathValidator {
      * Property value for header properties which specifies a projectmessage
      */
     public static final String NJAMS_MESSAGETYPE_PROJECT = "project";
-
+    /**
+     * Property value for header properties which specifies a tracemessage
+     */
+    public static final String NJAMS_MESSAGETYPE_TRACE = "command";
     /**
      * This new implementation should initialize itself via the given
      * Properties.

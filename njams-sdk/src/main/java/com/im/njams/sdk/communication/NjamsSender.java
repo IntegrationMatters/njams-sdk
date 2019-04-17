@@ -1,5 +1,5 @@
 /* 
- * Copyright (c) 2018 Faiz & Siegeln Software GmbH
+ * Copyright (c) 2019 Faiz & Siegeln Software GmbH
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"),
  * to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
@@ -38,7 +38,7 @@ import com.im.njams.sdk.settings.encoding.Transformer;
  * and uses a pool of senders to multi-thread message sending
  *
  * @author hsiegeln
- * @version 4.0.4
+ * @version 4.0.6
  */
 public class NjamsSender implements Sender {
 
@@ -104,22 +104,18 @@ public class NjamsSender implements Sender {
      */
     @Override
     public void send(CommonMessage msg) {
-        executor.execute(new Runnable() {
-
-            @Override
-            public void run() {
-                Sender sender = null;
-                try {
-                    sender = senderPool.get();
-                    if (sender != null) {
-                        sender.send(msg);
-                    }
-                } catch (Exception e) {
-                    LOG.error("could not send message {}, {}", msg, e);
-                } finally {
-                    if (sender != null) {
-                        senderPool.close(sender);
-                    }
+        executor.execute(() -> {
+            Sender sender = null;
+            try {
+                sender = senderPool.get();
+                if (sender != null) {
+                    sender.send(msg);
+                }
+            } catch (Exception e) {
+                LOG.error("could not send message {}, {}", msg, e);
+            } finally {
+                if (sender != null) {
+                    senderPool.close(sender);
                 }
             }
         });

@@ -157,25 +157,25 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
         InitialContext context = null;
         try {
             context = this.getInitialContext(props);
-            LOG.debug("The InitialContext was created successfully.");
+            LOG.trace("The InitialContext was created successfully.");
 
             ConnectionFactory factory = this.getConnectionFactory(props, context);
-            LOG.debug("The ConnectionFactory was created successfully.");
+            LOG.trace("The ConnectionFactory was created successfully.");
 
             this.connection = this.createConnection(props, factory);
-            LOG.debug("The Connection was created successfully.");
+            LOG.trace("The Connection was created successfully.");
 
             this.session = this.createSession(this.connection);
-            LOG.debug("The Session was created successfully.");
+            LOG.trace("The Session was created successfully.");
 
             Topic topic = this.getOrCreateTopic(context, session);
-            LOG.debug("The Topic was created successfully.");
+            LOG.trace("The Topic was created successfully.");
 
             this.consumer = this.createConsumer(this.session, topic);
-            LOG.debug("The MessageConsumer was created successfully.");
+            LOG.trace("The MessageConsumer was created successfully.");
 
             this.startConnection(this.connection);
-            LOG.debug("The Connection was started successfully.");
+            LOG.trace("The Connection was started successfully.");
 
         } catch (Exception e) {
             printExceptions(this.closeAll(context));
@@ -391,9 +391,9 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
         List<Exception> exceptions = this.closeAll();
         if (!exceptions.isEmpty()) {
             printExceptions(exceptions);
-            throw new NjamsSdkRuntimeException("Unable to close jms receiver");
+            LOG.warn("Unable to close JmsReceiver correctly.");
         } else {
-            LOG.info("JmsReceiver has been stopped.");
+            LOG.info("JmsReceiver has been stopped successfully.");
         }
     }
 

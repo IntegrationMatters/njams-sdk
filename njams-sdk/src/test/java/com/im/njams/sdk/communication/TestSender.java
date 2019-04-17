@@ -21,6 +21,7 @@ import java.util.Properties;
 import com.faizsiegeln.njams.messageformat.v4.common.CommonMessage;
 import com.faizsiegeln.njams.messageformat.v4.logmessage.LogMessage;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.ProjectMessage;
+import com.faizsiegeln.njams.messageformat.v4.tracemessage.TraceMessage;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.configuration.ConfigurationProviderFactory;
 import com.im.njams.sdk.settings.Settings;
@@ -102,5 +103,10 @@ public class TestSender extends AbstractSender {
     protected void send(ProjectMessage msg) throws NjamsSdkRuntimeException {
         // TODO Auto-generated method stub
 
+    }
+
+    @Override
+    protected void send(TraceMessage msg) throws NjamsSdkRuntimeException {
+        // TODO Auto-generated method stub
     }
 }

@@ -43,11 +43,15 @@ public abstract class AbstractTest {
     //The default activityModel id
     public static final String ACTIVITYMODELID = "act";
 
+    public static final String CLIENTVERSION = "TEST";
+
+    public static final String CATEGORY = "SDK4";
+
     //The njams instance
     protected static Njams njams;
 
     //The default processModel
-    private static ProcessModel process;
+    protected static ProcessModel process;
     
     /**
      * This constructor creates the njams instance with path SDK4-TEST-PROCESSES.
@@ -65,7 +69,7 @@ public abstract class AbstractTest {
     public AbstractTest(Settings settings){
         Path clientPath = new Path("SDK4", "TEST");
 
-        njams = new Njams(clientPath, "TEST", "sdk4", settings);
+        njams = new Njams(clientPath, CLIENTVERSION, CATEGORY, settings);
         Path processPath = new Path("PROCESSES");
         process = njams.createProcess(processPath);
         
@@ -80,6 +84,16 @@ public abstract class AbstractTest {
      */
     protected JobImpl createDefaultJob() {
         return (JobImpl) process.createJob();
+    }
+
+    /**
+     * This method creates and starts a job for a default ProcessModel.
+     * @return A JobImpl that has been created and started!
+     */
+    protected JobImpl createDefaultStartedJob() {
+        JobImpl defaultJob = createDefaultJob();
+        defaultJob.start();
+        return defaultJob;
     }
   
     /**
