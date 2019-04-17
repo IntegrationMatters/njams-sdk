@@ -45,8 +45,8 @@ public class EventTest extends AbstractTest {
 
     @Test
     public void isExecutionSetOnInit(){
-        verify(act).getExecution();
-        verify(act).setExecution(anyObject());
+        verify(act, atLeastOnce()).getExecution();
+        verify(act, atLeastOnce()).setExecution(anyObject());
     }
 
     @Test
@@ -117,14 +117,14 @@ public class EventTest extends AbstractTest {
     @Test
     public void testGetExecutionTime() {
         evt.getExecutionTime();
-        verify(act, times(2)).getExecution();
+        verify(act, atLeastOnce()).getExecution();
     }
 
     @Test
     public void testSetExecutionTime() {
         final LocalDateTime exec = DateTimeUtility.now();
         evt.setExecutionTime(exec);
-        verify(act, times(2)).setExecution(exec);
+        verify(act, atLeastOnce()).setExecution(exec);
     }
 
     @Test
@@ -134,7 +134,7 @@ public class EventTest extends AbstractTest {
         final LocalDateTime exec = DateTimeUtility.now();
         evt.setStatus(status).setExecutionTime(exec).setCode(test).setMessage(test).setPayload(test).setStacktrace(test);
         verify(act).setEventStatus(status.getValue());
-        verify(act).setExecution(exec);
+        verify(act, atLeastOnce()).setExecution(exec);
         verify(act).setEventCode(test);
         verify(act).setEventMessage(test);
         verify(act).setEventPayload(test);
