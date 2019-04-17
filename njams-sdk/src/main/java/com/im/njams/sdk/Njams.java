@@ -16,6 +16,26 @@
  */
 package com.im.njams.sdk;
 
+import static java.util.stream.Collectors.toList;
+
+import java.net.URL;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Enumeration;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Properties;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.stream.Stream;
+
+import org.slf4j.LoggerFactory;
+
 import com.faizsiegeln.njams.messageformat.v4.command.Command;
 import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
 import com.faizsiegeln.njams.messageformat.v4.command.Response;
@@ -54,24 +74,6 @@ import com.im.njams.sdk.model.svg.ProcessDiagramFactory;
 import com.im.njams.sdk.serializer.Serializer;
 import com.im.njams.sdk.serializer.StringSerializer;
 import com.im.njams.sdk.settings.Settings;
-import com.im.njams.sdk.utils.StringUtils;
-import java.net.URL;
-import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Enumeration;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Properties;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import static java.util.stream.Collectors.toList;
-import java.util.stream.Stream;
-import org.slf4j.LoggerFactory;
 
 /**
  * This is an instance of nJAMS. It cares about lifecycle and initializations
@@ -101,7 +103,7 @@ public class Njams implements InstructionListener {
     /**
      * Static value for feature inject
      */
-    public static final String FEATURE_INJECTION = "inject";
+    public static final String FEATURE_INJECTION = "injection";
 
     /**
      * Key for clientVersion
@@ -209,8 +211,8 @@ public class Njams implements InstructionListener {
         if (!properties.containsKey(ConfigurationProviderFactory.CONFIGURATION_PROVIDER)) {
             settings.getProperties().put(ConfigurationProviderFactory.CONFIGURATION_PROVIDER, DEFAULT_CACHE_PROVIDER);
         }
-        ConfigurationProvider configurationProvider
-                = new ConfigurationProviderFactory(properties, this).getConfigurationProvider();
+        ConfigurationProvider configurationProvider =
+                new ConfigurationProviderFactory(properties, this).getConfigurationProvider();
         configuration = configurationProvider.loadConfiguration();
         if (configuration == null) {
             // if the configuration provider can not load a configuration, create a new one and save it.
@@ -394,8 +396,8 @@ public class Njams implements InstructionListener {
      * @return the ProcessModel or {@link NjamsSdkRuntimeException}
      */
     public ProcessModel getProcessModel(final Path path) {
-        final List<String> parts
-                = Stream.of(getClientPath(), path).map(Path::getParts).flatMap(List::stream).collect(toList());
+        final List<String> parts =
+                Stream.of(getClientPath(), path).map(Path::getParts).flatMap(List::stream).collect(toList());
         final ProcessModel processModel = processModels.get(new Path(parts).toString());
         if (processModel == null) {
             throw new NjamsSdkRuntimeException("ProcessModel not found for path " + path);
