@@ -174,7 +174,7 @@ public class CloudSender extends AbstractSender {
         properties.put(NJAMS_PATH, msg.getPath());
 
         try {
-            LOG.trace("Sending project message");
+            LOG.trace("Sending trace message");
             final String body = JsonUtils.serialize(msg);
 
             byte[] byteBody = body.getBytes("UTF-8");
