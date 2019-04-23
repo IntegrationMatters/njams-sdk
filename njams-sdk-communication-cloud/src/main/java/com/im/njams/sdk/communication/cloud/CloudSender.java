@@ -168,7 +168,6 @@ public class CloudSender extends AbstractSender {
 
     @Override
     protected void send(final TraceMessage msg) {
-        /**
         final Properties properties = new Properties();
         properties.put(NJAMS_MESSAGETYPE, Sender.NJAMS_MESSAGETYPE_TRACE);
         properties.put(NJAMS_PATH, msg.getPath());
@@ -189,11 +188,9 @@ public class CloudSender extends AbstractSender {
                 final String response = send(body, properties);
                 LOG.trace("Response: " + response);
             }
-
         } catch (Exception ex) {
             LOG.error("Error sending TraceMessage", ex);
         }
-         */
     }
 
      /**
