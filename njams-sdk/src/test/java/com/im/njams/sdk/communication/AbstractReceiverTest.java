@@ -478,7 +478,7 @@ public class AbstractReceiverTest {
             impl.onException(null);
         }
         assertTrue(impl.verifyingCounter.get() <= 1);
-        long offset = 100;
+        long offset = 1000;
         //Exception will be thrown #THROWINGMAXCOUNTER times, and each throw indicates a thread sleep of RECONNECT_INTERVAL time in ms.
         Thread.sleep(AbstractReceiverImpl.RECONNECT_INTERVAL*AbstractReceiverImpl.THROWINGMAXCOUNTER + offset);
         assertTrue(impl.verifyingCounter.get() == 0);
