@@ -81,6 +81,19 @@ public class GroupImpl extends ActivityImpl implements Group {
         // check if a activity with the same modelId and the same iteration already exists.
         final ActivityImpl toActivity = (ActivityImpl) getJob().getActivityByModelId(childActivityModel.getId());
         final ActivityBuilder builder;
+
+        /*
+         * TODO: This kind of lookup seems odd as it looks for an activity with the same iteration as this group
+         * which means that the activity in question is not inside the group but at the same level/scope as the
+         * group itself. Further it shall have the same parent as the group which again means that it is not inside
+         * the group.
+         * It is not clear, for what case this implementation is meant for.
+         * The same kind of lookup occurs in createChildGroup and createChildSubProcess.
+         * 
+         * Finally it is not clear that this method may return an existing activity instance, wrapped into a builder.
+         * The user cannot be aware that he's potentially manipulating an existing activity instance.
+         * 
+         */
         if (toActivity == null || !Objects.equals(toActivity.getIteration(), getIteration())
                 || toActivity.getParent() != getParent()) {
             builder = new ActivityBuilder((JobImpl) getJob(), childActivityModel.getId());
@@ -200,5 +213,39 @@ public class GroupImpl extends ActivityImpl implements Group {
         synchronized (childActivities) {
             childActivities.remove(instanceId);
         }
+    }
+
+    public ActivityBuilder newChildActivity(ActivityModel childActivityModel) {
+        if (childActivityModel instanceof GroupModel) {
+            return newChildGroup((GroupModel) childActivityModel);
+        }
+        if (childActivityModel instanceof SubProcessActivityModel) {
+            return newChildSubProcess((SubProcessActivityModel) childActivityModel);
+        }
+        final ActivityBuilder builder;
+        builder = new ActivityBuilder((JobImpl) getJob(), childActivityModel.getId());
+        builder.setParent(this);
+        builder.setIteration(getMaxIterations());
+        return builder;
+    }
+
+    private GroupBuilder newChildGroup(GroupModel childGroupModel) {
+        // check if a activity with the same modelId and the same iteration already exists.
+        final GroupBuilder builder = new GroupBuilder((JobImpl) getJob(), childGroupModel.getId());
+        builder.setParent(this);
+        builder.setIteration(getMaxIterations());
+        return builder;
+    }
+
+    private SubProcessActivityBuilder newChildSubProcess(SubProcessActivityModel childSubProcessModel) {
+        // check if a activity with the same modelId and the same iteration already exists.
+        final SubProcessActivityBuilder builder =
+                new SubProcessActivityBuilder((JobImpl) getJob(), childSubProcessModel.getId());
+        builder.setParent(this);
+        builder.setIteration(getMaxIterations());
+        if (childSubProcessModel.getSubProcess() != null) {
+            builder.setSubProcess(childSubProcessModel.getSubProcess());
+        }
+        return builder;
     }
 }

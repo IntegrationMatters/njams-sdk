@@ -275,7 +275,8 @@ public class JobImpl implements Job {
                 activities.put(activity.getInstanceId(), activity);
                 if (activity.isStarter()) {
                     if (startActivity != null) {
-                        throw new NjamsSdkRuntimeException("A job must not have more than one start activity");
+                        throw new NjamsSdkRuntimeException("A job must not have more than one start activity "
+                                + getJobId());
                     }
                     startActivity = activity;
                 }
