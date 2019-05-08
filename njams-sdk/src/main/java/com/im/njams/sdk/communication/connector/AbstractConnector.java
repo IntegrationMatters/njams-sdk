@@ -1,7 +1,7 @@
 /*
  */
 
-package com.im.njams.sdk.communication.connection;
+package com.im.njams.sdk.communication.connector;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.im.njams.sdk.common.JsonSerializerFactory;
@@ -24,7 +24,6 @@ public abstract class AbstractConnector implements Connector {
     public AbstractConnector(Properties properties, String name) {
         this.properties = properties;
         this.njamsConnection = new NjamsConnection(this, name);
-        this.mapper = JsonSerializerFactory.getDefaultMapper();
     }
 
     public final void start() {

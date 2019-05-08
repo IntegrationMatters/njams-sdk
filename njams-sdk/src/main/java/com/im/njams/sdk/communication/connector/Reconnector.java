@@ -1,7 +1,7 @@
 /*
  */
 
-package com.im.njams.sdk.communication.connection;
+package com.im.njams.sdk.communication.connector;
 
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import org.slf4j.Logger;

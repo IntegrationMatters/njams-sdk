@@ -1,11 +1,15 @@
 /*
  */
 
-package com.im.njams.sdk.communication.connection;
+package com.im.njams.sdk.communication.connector;
 
 import com.im.njams.sdk.utils.ClasspathValidator;
 
 public interface Connector extends AutoCloseable, ClasspathValidator {
+
+    public static final String SENDER_NAME_ENDING = "-Sender-Connector";
+
+    public static final String RECEIVER_NAME_ENDING = "-Receiver-Connector";
 
     /**
      * This method should be used to create a connection, and if the startup

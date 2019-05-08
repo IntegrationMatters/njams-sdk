@@ -23,6 +23,10 @@ import java.util.Spliterators;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
+import com.im.njams.sdk.communication.connectable.AbstractReceiver;
+import com.im.njams.sdk.communication.connectable.AbstractSender;
+import com.im.njams.sdk.communication.connectable.Receiver;
+import com.im.njams.sdk.communication.connectable.Sender;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -79,7 +83,7 @@ public class CommunicationFactory {
                         // create a new instance
                         LOG.info("Create Receiver {}", receiver.getName());
                         Receiver newInstance = receiver.getClass().newInstance();
-                        ((AbstractReceiver)newInstance).connector.validate();
+                        ((AbstractReceiver)newInstance).getConnector().validate();
                         newInstance.setNjams(njams);
                         newInstance.init(Transformer.decode(settings.getProperties()));
                         return newInstance;
@@ -118,7 +122,7 @@ public class CommunicationFactory {
                         // create a new instance
                         LOG.info("Create sender {}", sender.getName());
                         Sender newInstance = sender.getClass().newInstance();
-                        ((AbstractSender)newInstance).connector.validate();
+                        ((AbstractSender)newInstance).getConnector().validate();
                         newInstance.init(Transformer.decode(settings.getProperties()));
                         return newInstance;
                     } catch (Exception e) {

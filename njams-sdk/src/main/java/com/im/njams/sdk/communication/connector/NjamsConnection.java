@@ -1,14 +1,11 @@
 /*
  */
 
-package com.im.njams.sdk.communication.connection;
+package com.im.njams.sdk.communication.connector;
 
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
-import com.im.njams.sdk.communication.ConnectionStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.Properties;
 
 public class NjamsConnection {
 

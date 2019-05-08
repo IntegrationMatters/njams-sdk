@@ -18,6 +18,7 @@ package com.im.njams.sdk.communication;
 
 import java.util.Properties;
 
+import com.im.njams.sdk.communication.connectable.Sender;
 import com.im.njams.sdk.pools.ObjectPool;
 import com.im.njams.sdk.settings.Settings;
 
