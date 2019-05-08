@@ -39,6 +39,16 @@
             <version>4.0.6-SNAPSHOT</version>
         </dependency>
         <dependency>
+            <groupId>com.faizsiegeln.njams</groupId>
+            <artifactId>njams4-sdk-communication-jms</artifactId>
+            <version>4.0.6-SNAPSHOT</version>
+        </dependency>
+        <dependency>
+            <groupId>com.faizsiegeln.njams</groupId>
+            <artifactId>njams4-sdk-communication-http</artifactId>
+            <version>4.0.6-SNAPSHOT</version>
+        </dependency>
+        <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
             <version>${jackson.version}</version>
