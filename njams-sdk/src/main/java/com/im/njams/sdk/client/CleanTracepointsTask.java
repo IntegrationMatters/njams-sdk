@@ -168,8 +168,7 @@ public class CleanTracepointsTask extends TimerTask {
         msg.setPath(processEntry.getKey());
 
         //Set TraceMessage fields
-        msg.setActivityId(ae.getKey());
-        msg.setTracepoint(ae.getValue().getTracepoint());
+        //Todo: fetch master
 
         return msg;
     }
