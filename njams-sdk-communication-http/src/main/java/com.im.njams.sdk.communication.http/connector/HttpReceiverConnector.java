@@ -1,9 +1,11 @@
 /*
  */
 
-package com.im.njams.sdk.communication.http;
+package com.im.njams.sdk.communication.http.connector;
 
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
+import com.im.njams.sdk.communication.http.HttpConstants;
+import com.im.njams.sdk.communication.http.connectable.HttpReceiver;
 import com.im.njams.sdk.settings.encoding.Transformer;
 import com.sun.net.httpserver.HttpServer;
 import org.slf4j.Logger;
@@ -25,7 +27,7 @@ public class HttpReceiverConnector extends HttpConnector {
 
     private final int port;
 
-    public HttpReceiverConnector(Properties properties, String name, HttpReceiver httpReceiver) {
+    public HttpReceiverConnector(Properties properties, String name, com.im.njams.sdk.communication.http.connectable.HttpReceiver httpReceiver) {
         super(properties, name);
         this.httpReceiver = httpReceiver;
         this.port = Integer.parseInt(Transformer.decode(properties.getProperty(HttpConstants.RECEIVER_PORT)));

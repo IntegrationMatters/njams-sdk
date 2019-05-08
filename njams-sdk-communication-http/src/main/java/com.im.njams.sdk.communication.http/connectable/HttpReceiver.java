@@ -14,7 +14,7 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
  */
-package com.im.njams.sdk.communication.http;
+package com.im.njams.sdk.communication.http.connectable;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -24,9 +24,11 @@ import java.util.List;
 import java.util.Properties;
 
 import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
-import com.im.njams.sdk.communication.AbstractReceiver;
-import com.im.njams.sdk.communication.connection.AbstractConnector;
-import com.im.njams.sdk.communication.connection.Connector;
+import com.im.njams.sdk.communication.connectable.AbstractReceiver;
+import com.im.njams.sdk.communication.connector.AbstractConnector;
+import com.im.njams.sdk.communication.connector.Connector;
+import com.im.njams.sdk.communication.http.HttpConstants;
+import com.im.njams.sdk.communication.http.connector.HttpReceiverConnector;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import org.slf4j.Logger;
@@ -65,7 +67,7 @@ public class HttpReceiver extends AbstractReceiver implements HttpHandler {
 
     @Override
     protected Connector initialize(Properties properties) {
-        return new HttpReceiverConnector(properties, getName() + "-Receiver-Connector", this);
+        return new HttpReceiverConnector(properties, getName() + Connector.RECEIVER_NAME_ENDING, this);
     }
 
     @Override

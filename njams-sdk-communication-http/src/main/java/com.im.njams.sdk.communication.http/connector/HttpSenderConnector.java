@@ -14,11 +14,13 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
  */
-package com.im.njams.sdk.communication.http;
+package com.im.njams.sdk.communication.http.connector;
 
 import com.faizsiegeln.njams.messageformat.v4.common.MessageVersion;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
-import com.im.njams.sdk.communication.Sender;
+import com.im.njams.sdk.communication.connectable.Sender;
+import com.im.njams.sdk.communication.http.HttpConstants;
+import com.im.njams.sdk.communication.http.connector.HttpConnector;
 
 import java.io.*;
 import java.net.HttpURLConnection;
@@ -50,6 +52,8 @@ public class HttpSenderConnector extends HttpConnector {
     private static final String CONTENT_LANGUAGE = "Content-Language";
 
     private static final String CONTENT_LANGUAGE_EN_US = "en-US";
+
+    private static final String UTF_8 = "charset=UTF-8";
 
     protected String user;
     protected String password;
@@ -90,7 +94,7 @@ public class HttpSenderConnector extends HttpConnector {
 
     protected void setDefaultRequestProperties(HttpURLConnection connection) throws ProtocolException {
         connection.setRequestMethod(HTTP_REQUEST_TYPE);
-        connection.setRequestProperty(CONTENT_TYPE, CONTENT_TYPE_JSON);
+        connection.setRequestProperty(CONTENT_TYPE, CONTENT_TYPE_JSON + ", " + UTF_8);
         connection.setRequestProperty(ACCEPT, CONTENT_TYPE_TEXT);
         connection.setRequestProperty(CONTENT_LANGUAGE, CONTENT_LANGUAGE_EN_US);
         connection.setRequestProperty(Sender.NJAMS_MESSAGEVERSION, MessageVersion.V4.toString());

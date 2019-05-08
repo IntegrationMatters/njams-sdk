@@ -1,10 +1,10 @@
 /*
  */
 
-package com.im.njams.sdk.communication.http;
+package com.im.njams.sdk.communication.http.connector;
 
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
-import com.im.njams.sdk.communication.connection.AbstractConnector;
+import com.im.njams.sdk.communication.connector.AbstractConnector;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

@@ -15,9 +15,10 @@
  * IN THE SOFTWARE.
  */
 
-package com.im.njams.sdk.communication.http;
+package com.im.njams.sdk.communication.http.https.connector;
 
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
+import com.im.njams.sdk.communication.http.connector.HttpSenderConnector;
 import org.slf4j.LoggerFactory;
 
 import javax.net.ssl.*;
@@ -40,59 +41,60 @@ public class HttpsSenderConnector extends HttpSenderConnector {
         }
     }
 
-    private void loadKeystore() throws Exception {
+    protected void loadKeystore() throws IOException {
         if (System.getProperty("javax.net.ssl.trustStore") == null) {
-            InputStream truststoreInput;
-            try (InputStream keystoreInput =
-                         Thread.currentThread().getContextClassLoader().getResourceAsStream("client.ks")) {
-                truststoreInput = Thread.currentThread().getContextClassLoader().getResourceAsStream("client.ts");
+            try (InputStream keystoreInput
+                         = Thread.currentThread().getContextClassLoader().getResourceAsStream("client.ks");
+                 InputStream truststoreInput
+                         = Thread.currentThread().getContextClassLoader().getResourceAsStream("client.ts")) {
                 setSSLFactories(keystoreInput, "password", truststoreInput);
             }
-            truststoreInput.close();
         } else {
             LOG.debug("***      nJAMS: using provided keystore" + System.getProperty("javax.net.ssl.trustStore"));
         }
     }
 
-    private static void setSSLFactories(final InputStream keyStream, final String keyStorePassword,
-                                        final InputStream trustStream)
-            throws Exception {
-        // Get keyStore
-        final KeyStore keyStore = KeyStore.getInstance(KeyStore.getDefaultType());
+    private static void setSSLFactories(final InputStream keyStream, final String keyStorePassword, final InputStream trustStream) {
 
-        // if your store is password protected then declare it (it can be null however)
-        final char[] keyPassword = keyStorePassword.toCharArray();
+        try {
+            // Get keyStore
+            final KeyStore keyStore = KeyStore.getInstance(KeyStore.getDefaultType());
 
-        // load the stream to your store
-        keyStore.load(keyStream, keyPassword);
+            // if your store is password protected then declare it (it can be null however)
+            final char[] keyPassword = keyStorePassword.toCharArray();
 
-        // initialize a trust manager factory with the trusted store
-        final KeyManagerFactory keyFactory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
-        keyFactory.init(keyStore, keyPassword);
+            // load the stream to your store
+            keyStore.load(keyStream, keyPassword);
 
-        // get the trust managers from the factory
-        final KeyManager[] keyManagers = keyFactory.getKeyManagers();
+            // initialize a trust manager factory with the trusted store
+            final KeyManagerFactory keyFactory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
+            keyFactory.init(keyStore, keyPassword);
 
-        // Now get trustStore
-        final KeyStore trustStore = KeyStore.getInstance(KeyStore.getDefaultType());
+            // get the trust managers from the factory
+            final KeyManager[] keyManagers = keyFactory.getKeyManagers();
 
-        // if your store is password protected then declare it (it can be null however)
-        // char[] trustPassword = password.toCharArray();
-        // load the stream to your store
-        trustStore.load(trustStream, null);
+            // Now get trustStore
+            final KeyStore trustStore = KeyStore.getInstance(KeyStore.getDefaultType());
 
-        // initialize a trust manager factory with the trusted store
-        final TrustManagerFactory trustFactory =
-                TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
-        trustFactory.init(trustStore);
+            // if your store is password protected then declare it (it can be null however)
+            // char[] trustPassword = password.toCharArray();
+            // load the stream to your store
+            trustStore.load(trustStream, null);
 
-        // get the trust managers from the factory
-        final TrustManager[] trustManagers = trustFactory.getTrustManagers();
+            // initialize a trust manager factory with the trusted store
+            final TrustManagerFactory trustFactory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+            trustFactory.init(trustStore);
 
-        // initialize an ssl context to use these managers and set as default
-        final SSLContext sslContext = SSLContext.getInstance("SSL");
-        sslContext.init(keyManagers, trustManagers, null);
-        SSLContext.setDefault(sslContext);
+            // get the trust managers from the factory
+            final TrustManager[] trustManagers = trustFactory.getTrustManagers();
+
+            // initialize an ssl context to use these managers and set as default
+            final SSLContext sslContext = SSLContext.getInstance("SSL");
+            sslContext.init(keyManagers, trustManagers, null);
+            SSLContext.setDefault(sslContext);
+        } catch (final Exception ex) {
+            throw new NjamsSdkRuntimeException("Unable to set up SSL environment", ex);
+        }
     }
 
     @Override
