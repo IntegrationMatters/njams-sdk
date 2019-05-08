@@ -25,12 +25,18 @@ import javax.net.ssl.*;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
+import java.net.URL;
 import java.security.KeyStore;
 import java.util.Properties;
 
 public class HttpsSenderConnector extends HttpSenderConnector {
 
     private static final org.slf4j.Logger LOG = LoggerFactory.getLogger(HttpsSenderConnector.class);
+
+    public static final String CLIENT_KS = "client.ks";
+    public static final String CLIENT_TS = "client.ts";
+
+    public static final String TRUST_STORE = "javax.net.ssl.trustStore";
 
     public HttpsSenderConnector(Properties properties, String name) {
         super(properties, name);
@@ -42,15 +48,15 @@ public class HttpsSenderConnector extends HttpSenderConnector {
     }
 
     protected void loadKeystore() throws IOException {
-        if (System.getProperty("javax.net.ssl.trustStore") == null) {
+        if (System.getProperty(TRUST_STORE) == null) {
             try (InputStream keystoreInput
-                         = Thread.currentThread().getContextClassLoader().getResourceAsStream("client.ks");
+                         = Thread.currentThread().getContextClassLoader().getResourceAsStream(CLIENT_KS);
                  InputStream truststoreInput
-                         = Thread.currentThread().getContextClassLoader().getResourceAsStream("client.ts")) {
+                         = Thread.currentThread().getContextClassLoader().getResourceAsStream(CLIENT_TS)) {
                 setSSLFactories(keystoreInput, "password", truststoreInput);
             }
         } else {
-            LOG.debug("***      nJAMS: using provided keystore" + System.getProperty("javax.net.ssl.trustStore"));
+            LOG.debug("***      nJAMS: using provided keystore {}", System.getProperty(TRUST_STORE));
         }
     }
 
@@ -98,7 +104,7 @@ public class HttpsSenderConnector extends HttpSenderConnector {
     }
 
     @Override
-    public HttpURLConnection getConnection() throws IOException {
+    public HttpURLConnection getConnection(URL url) throws IOException {
         //Create connection
         HttpsURLConnection connection = (HttpsURLConnection) url.openConnection();
 

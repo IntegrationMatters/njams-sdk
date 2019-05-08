@@ -37,37 +37,53 @@ public class HttpSenderConnector extends HttpConnector {
     /**
      * Content type json
      */
-    private static final String CONTENT_TYPE_JSON = "application/json";
+    public static final String CONTENT_TYPE_JSON = "application/json";
 
     /**
      * Content type text plain
      */
-    private static final String CONTENT_TYPE = "Content-Type";
-    private static final String CONTENT_TYPE_TEXT = "text/plain";
+    public  static final String CONTENT_TYPE = "Content-Type";
+    public  static final String CONTENT_TYPE_TEXT = "text/plain";
 
-    private static final String HTTP_REQUEST_TYPE = "POST";
+    public  static final String HTTP_REQUEST_TYPE_POST = "POST";
+    public  static final String HTTP_REQUEST_TYPE_PUT= "PUT";
+    public  static final String HTTP_REQUEST_TYPE_GET= "GET";
 
-    private static final String ACCEPT = "Accept";
+    public  static final String ACCEPT = "Accept";
 
-    private static final String CONTENT_LANGUAGE = "Content-Language";
+    public  static final String CONTENT_LANGUAGE = "Content-Language";
 
-    private static final String CONTENT_LANGUAGE_EN_US = "en-US";
+    public  static final String CONTENT_LANGUAGE_EN_US = "en-US";
 
-    private static final String UTF_8 = "charset=UTF-8";
+    public  static final String UTF_8 = "charset=UTF-8";
 
     protected String user;
     protected String password;
-    protected URL url;
+
+    protected URL defaultUrl;
 
     public HttpSenderConnector(Properties properties, String name) {
         super(properties, name);
+
+        user = properties.getProperty(HttpConstants.SENDER_USERNAME);
+        password = properties.getProperty(HttpConstants.SENDER_PASSWORD);
+        setDefaultUrl(properties);
+    }
+
+    protected void setDefaultUrl(Properties properties) {
         try {
-            url = new URL(properties.getProperty(HttpConstants.SENDER_URL));
+            defaultUrl = new URL(properties.getProperty(HttpConstants.SENDER_URL));
         } catch (final MalformedURLException ex) {
             throw new NjamsSdkRuntimeException("unable to init http sender", ex);
         }
-        user = properties.getProperty(HttpConstants.SENDER_USERNAME);
-        password = properties.getProperty(HttpConstants.SENDER_PASSWORD);
+    }
+
+    public URL getUrl(int utf8Bytes, Properties properties) throws IOException {
+        return getDefaultUrl();
+    }
+
+    public final URL getDefaultUrl(){
+        return defaultUrl;
     }
 
     @Override
@@ -81,7 +97,15 @@ public class HttpSenderConnector extends HttpConnector {
         //Do nothing, a connection has to be established with each send.
     }
 
-    public HttpURLConnection getConnection() throws IOException{
+    public final HttpURLConnection getConnection(URL url, boolean isPresignedUrl) throws IOException{
+        if(!isPresignedUrl){
+            return getConnection(url);
+        }else{
+            return getPresignedConnection(url);
+        }
+    }
+
+    protected HttpURLConnection getConnection(URL url) throws IOException {
         //Create connection
         HttpURLConnection connection = (HttpURLConnection) url.openConnection();
 
@@ -92,12 +116,16 @@ public class HttpSenderConnector extends HttpConnector {
         return connection;
     }
 
+    protected HttpURLConnection getPresignedConnection(URL url) throws IOException {
+        //Not implemented for HttpSenderConnector
+        return null;
+    }
+
     protected void setDefaultRequestProperties(HttpURLConnection connection) throws ProtocolException {
-        connection.setRequestMethod(HTTP_REQUEST_TYPE);
+        connection.setRequestMethod(HTTP_REQUEST_TYPE_POST);
         connection.setRequestProperty(CONTENT_TYPE, CONTENT_TYPE_JSON + ", " + UTF_8);
         connection.setRequestProperty(ACCEPT, CONTENT_TYPE_TEXT);
         connection.setRequestProperty(CONTENT_LANGUAGE, CONTENT_LANGUAGE_EN_US);
-        connection.setRequestProperty(Sender.NJAMS_MESSAGEVERSION, MessageVersion.V4.toString());
 
         connection.setUseCaches(false);
         connection.setDoOutput(true);

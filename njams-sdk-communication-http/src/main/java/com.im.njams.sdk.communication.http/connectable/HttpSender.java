@@ -18,12 +18,10 @@ package com.im.njams.sdk.communication.http.connectable;
 
 import static java.nio.charset.Charset.defaultCharset;
 
-import java.io.BufferedReader;
-import java.io.DataOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
+import java.io.*;
 import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
@@ -52,7 +50,6 @@ public class HttpSender extends AbstractSender {
 
     private static final org.slf4j.Logger LOG = LoggerFactory.getLogger(HttpSender.class);
 
-
     /**
      * Initializes this Sender via the given Properties.
      * <p>
@@ -70,12 +67,13 @@ public class HttpSender extends AbstractSender {
         return new HttpSenderConnector(properties, getName() + Connector.SENDER_NAME_ENDING);
     }
 
+
+
     @Override
     protected void send(final LogMessage msg) {
         final Properties properties = new Properties();
-        setCommonProperties(properties, msg);
-        properties.put(NJAMS_MESSAGETYPE, NJAMS_MESSAGETYPE_EVENT);
-        properties.put(NJAMS_LOGID, msg.getLogId());
+        String eventType = Sender.NJAMS_MESSAGETYPE_EVENT;
+        fillProperties(properties, msg, eventType);
         try {
             LOG.debug("Sending log message");
             final String response = send(msg, properties);
@@ -85,16 +83,20 @@ public class HttpSender extends AbstractSender {
         }
     }
 
-    protected void setCommonProperties(Properties properties, CommonMessage msg){
+    protected void fillProperties(Properties properties, CommonMessage msg, String eventType) {
         properties.put(Sender.NJAMS_MESSAGEVERSION, MessageVersion.V4.toString());
         properties.put(Sender.NJAMS_PATH, msg.getPath());
+        properties.put(Sender.NJAMS_MESSAGETYPE, eventType);
+        if (eventType.equals(Sender.NJAMS_MESSAGETYPE_EVENT)) {
+            properties.put(Sender.NJAMS_LOGID, ((LogMessage) msg).getLogId());
+        }
     }
 
     @Override
     protected void send(final ProjectMessage msg) {
         final Properties properties = new Properties();
-        setCommonProperties(properties, msg);
-        properties.put(Sender.NJAMS_MESSAGETYPE, Sender.NJAMS_MESSAGETYPE_PROJECT);
+        String eventType = Sender.NJAMS_MESSAGETYPE_PROJECT;
+        fillProperties(properties, msg, eventType);
 
         try {
             LOG.debug("Sending project message");
@@ -108,8 +110,8 @@ public class HttpSender extends AbstractSender {
     @Override
     protected void send(TraceMessage msg) throws NjamsSdkRuntimeException {
         final Properties properties = new Properties();
-        setCommonProperties(properties, msg);
-        properties.put(Sender.NJAMS_MESSAGETYPE, Sender.NJAMS_MESSAGETYPE_TRACE);
+        String eventType = Sender.NJAMS_MESSAGETYPE_TRACE;
+        fillProperties(properties, msg, eventType);
 
         try {
             LOG.debug("Sending TraceMessage");
@@ -129,13 +131,19 @@ public class HttpSender extends AbstractSender {
         HttpURLConnection connection = null;
         try {
             //Create Connection
-            connection = ((HttpSenderConnector) connector).getConnection();
             String body = util.writeJson(msg);
-            connection.setRequestProperty("Content-Length",
-                    Integer.toString(body.getBytes().length));
-            addAddtionalProperties(connection, properties);
 
-            return sendMessage(connection, body);
+            byte[] byteBody = body.getBytes("UTF-8");
+            int utf8Bytes = byteBody.length;
+            LOG.debug("Message size in Bytes: {}", utf8Bytes);
+
+            URL url = ((HttpSenderConnector)connector).getUrl(utf8Bytes, properties);
+            boolean isPresignedUrl = !url.equals(((HttpSenderConnector)connector).getDefaultUrl());
+            connection = ((HttpSenderConnector) connector).getConnection(url, isPresignedUrl);
+            addAddionalProperties(connection, properties);
+
+            LOG.debug("Send msg {}", body);
+            return sendMessage(connection, body, isPresignedUrl);
         } finally {
             if (connection != null) {
                 connection.disconnect();
@@ -143,12 +151,22 @@ public class HttpSender extends AbstractSender {
         }
     }
 
-    protected String sendMessage(HttpURLConnection connection, String body) throws IOException{
+    protected String sendMessage(HttpURLConnection connection, String body, boolean isPresignedUrl) throws IOException {
         //Send request
-        try (final DataOutputStream wr = new DataOutputStream(connection.getOutputStream())) {
-            wr.writeBytes(body);
+        if(!isPresignedUrl) {
+            connection.setRequestProperty("Content-Length", Integer.toString(body.getBytes("UTF-8").length));
         }
-        //Get Response
+
+        try (final OutputStreamWriter out = new OutputStreamWriter(connection.getOutputStream())) {
+            out.write(body);
+        }
+
+        // Check the HTTP response code. To complete the upload and make the object available,
+        // you must interact with the connection object in some way.
+        final int responseCode = connection.getResponseCode();
+
+        LOG.debug("HTTP response code: {}", connection.getResponseCode());
+
         final InputStream is = connection.getInputStream();
         final StringBuilder response;
         try (final BufferedReader rd = new BufferedReader(new InputStreamReader(is, defaultCharset()))) {
@@ -159,7 +177,6 @@ public class HttpSender extends AbstractSender {
                 response.append('\r');
             }
         }
-        final int responseCode = connection.getResponseCode();
         final String toString = new StringBuilder("rc = ")
                 .append(responseCode)
                 .append(", logId=")
@@ -170,7 +187,7 @@ public class HttpSender extends AbstractSender {
         return toString;
     }
 
-    protected void addAddtionalProperties(final HttpURLConnection connection, Properties properties) {
+    protected void addAddionalProperties(final HttpURLConnection connection, Properties properties) {
         final Set<Map.Entry<Object, Object>> entrySet = properties.entrySet();
         entrySet.forEach(
                 entry -> connection.setRequestProperty(entry.getKey().toString(), entry.getValue().toString()));
