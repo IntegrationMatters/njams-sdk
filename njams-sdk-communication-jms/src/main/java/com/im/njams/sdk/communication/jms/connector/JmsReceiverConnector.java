@@ -1,14 +1,12 @@
 /*
  */
 
-package com.im.njams.sdk.communication.jms;
+package com.im.njams.sdk.communication.jms.connector;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.im.njams.sdk.Njams;
-import com.im.njams.sdk.common.JsonSerializerFactory;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.common.Path;
-import com.im.njams.sdk.communication.connection.NjamsConnection;
+import com.im.njams.sdk.communication.jms.JmsConstants;
 import org.slf4j.LoggerFactory;
 
 import javax.jms.JMSException;
@@ -22,7 +20,13 @@ import java.util.List;
 import java.util.Properties;
 import java.util.Set;
 
-public class JmsReceiverConnector extends JmsConnector{
+/**
+ *
+ *
+ * @author krautenberg@integrationmatters.ocm
+ * @version 4.1.0
+ */
+public class JmsReceiverConnector extends JmsConnector {
 
     private static final org.slf4j.Logger LOG = LoggerFactory.getLogger(JmsReceiverConnector.class);
 

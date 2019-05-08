@@ -22,7 +22,8 @@ import javax.naming.Context;
  * Contains constants by which the JmsSender and the JmsReceiver could be
  * configured
  *
- * @author pnientiedt
+ * @author krautenberg@integrationmatters.ocm
+ * @version 4.1.0
  */
 public class JmsConstants {
 

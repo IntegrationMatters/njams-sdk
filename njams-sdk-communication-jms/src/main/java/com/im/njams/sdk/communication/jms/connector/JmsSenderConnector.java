@@ -1,9 +1,10 @@
 /*
  */
 
-package com.im.njams.sdk.communication.jms;
+package com.im.njams.sdk.communication.jms.connector;
 
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
+import com.im.njams.sdk.communication.jms.JmsConstants;
 import org.slf4j.LoggerFactory;
 
 import javax.jms.Destination;
@@ -16,7 +17,13 @@ import java.util.List;
 import java.util.Properties;
 import java.util.Set;
 
-public class JmsSenderConnector extends JmsConnector{
+/**
+ *
+ *
+ * @author krautenberg@integrationmatters.ocm
+ * @version 4.1.0
+ */
+public class JmsSenderConnector extends JmsConnector {
 
     private static final org.slf4j.Logger LOG = LoggerFactory.getLogger(JmsSenderConnector.class);
 
