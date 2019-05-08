@@ -130,7 +130,7 @@ public class HttpSender extends AbstractSender {
         try {
             //Create Connection
             connection = ((HttpSenderConnector) connector).getConnection();
-            String body = ((AbstractConnector)connector).getMapper().writeValueAsString(msg);
+            String body = util.writeJson(msg);
             connection.setRequestProperty("Content-Length",
                     Integer.toString(body.getBytes().length));
             addAddtionalProperties(connection, properties);

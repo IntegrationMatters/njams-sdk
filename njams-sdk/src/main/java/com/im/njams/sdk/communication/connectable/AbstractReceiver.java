@@ -36,6 +36,8 @@ public abstract class AbstractReceiver implements Receiver {
      */
     protected Njams njams;
 
+    protected ReceiverUtil util;
+
     /**
      * Initializes this Sender via the given Properties.
      *
@@ -45,6 +47,7 @@ public abstract class AbstractReceiver implements Receiver {
     public final void init(Properties properties){
         connector = initialize(properties);
         connector.start();
+        util = new ReceiverUtil();
     }
 
     protected abstract Connector initialize(Properties properties);

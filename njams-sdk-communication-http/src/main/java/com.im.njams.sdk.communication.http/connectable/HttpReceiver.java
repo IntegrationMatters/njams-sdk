@@ -130,12 +130,12 @@ public class HttpReceiver extends AbstractReceiver implements HttpHandler {
         he.getResponseHeaders().add(HEADER_PARAMETER_CONTENT_TYPE, CONTENT_TYPE_JSON);
         he.sendResponseHeaders(HTTP_OK, 0L);
         final OutputStream responseBody = he.getResponseBody();
-        ((AbstractConnector)connector).getMapper().writeValue(responseBody, instruction);
+        util.writeJson(responseBody, instruction);
     }
 
     private Instruction readJsonInstruction(final HttpExchange he) throws IOException {
         try (final InputStream requestBody = he.getRequestBody()) {
-            return ((AbstractConnector)connector).getMapper().readValue(requestBody, Instruction.class);
+            return util.readJson(requestBody, Instruction.class);
         }
     }
 }

@@ -38,6 +38,8 @@ public abstract class AbstractSender implements Sender {
     //The connection for this sender.
     private NjamsConnection njamsConnection;
 
+    protected SenderUtil util;
+
 
     /**
      * Initializes this Sender via the given Properties.
@@ -50,6 +52,7 @@ public abstract class AbstractSender implements Sender {
         connector = initialize(properties);
         connector.start();
         njamsConnection = connector.getNjamsConnection();
+        util = new SenderUtil();
     }
 
     protected abstract Connector initialize(Properties properties);

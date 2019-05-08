@@ -56,7 +56,7 @@ public class JmsSender extends AbstractSender {
     @Override
     protected void send(LogMessage msg) throws NjamsSdkRuntimeException {
         try {
-            String data = writeToJson(msg);
+            String data = util.writeJson(msg);
             sendMessage(msg, Sender.NJAMS_MESSAGETYPE_EVENT, data);
             LOG.debug("Send LogMessage {} to {}:\n{}", msg.getPath(), ((JmsSenderConnector)connector).getProducer().getDestination(), data);
         } catch (Exception e) {
@@ -72,7 +72,7 @@ public class JmsSender extends AbstractSender {
     @Override
     protected void send(ProjectMessage msg) throws NjamsSdkRuntimeException {
         try {
-            String data = writeToJson(msg);
+            String data = util.writeJson(msg);
             sendMessage(msg, Sender.NJAMS_MESSAGETYPE_PROJECT, data);
             LOG.debug("Send ProjectMessage {} to {}:\n{}", msg.getPath(), ((JmsSenderConnector)connector).getProducer().getDestination(), data);
         } catch (Exception e) {
@@ -88,7 +88,7 @@ public class JmsSender extends AbstractSender {
     @Override
     protected void send(TraceMessage msg) throws NjamsSdkRuntimeException {
         try {
-            String data = writeToJson(msg);
+            String data = util.writeJson(msg);
             sendMessage(msg, Sender.NJAMS_MESSAGETYPE_TRACE, data);
             LOG.debug("Send TraceMessage {} to {}:\n{}", msg.getPath(), ((JmsSenderConnector)connector).getProducer().getDestination(), data);
         } catch (Exception e) {

@@ -3,8 +3,6 @@
 
 package com.im.njams.sdk.communication.connector;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.im.njams.sdk.common.JsonSerializerFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -18,8 +16,6 @@ public abstract class AbstractConnector implements Connector {
     protected Properties properties;
 
     protected NjamsConnection njamsConnection;
-
-    protected ObjectMapper mapper;
 
     public AbstractConnector(Properties properties, String name) {
         this.properties = properties;
@@ -41,9 +37,5 @@ public abstract class AbstractConnector implements Connector {
     @Override
     public final NjamsConnection getNjamsConnection(){
         return njamsConnection;
-    }
-
-    public ObjectMapper getMapper (){
-        return mapper;
     }
 }

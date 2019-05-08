@@ -68,7 +68,7 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener {
     private Instruction getInstruction(Message message) {
         try {
             String instructionString = ((TextMessage) message).getText();
-            Instruction instruction = readFromJson(instructionString, Instruction.class);
+            Instruction instruction = util.readJson(instructionString, Instruction.class);
             if (instruction.getRequest() != null) {
                 return instruction;
             }
@@ -92,7 +92,7 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener {
         MessageProducer replyProducer = null;
         try {
             replyProducer = ((JmsConnector)connector).getSession().createProducer(message.getJMSReplyTo());
-            String response = writeToJson(instruction);
+            String response = util.writeJson(instruction);
             final TextMessage responseMessage = ((JmsConnector)connector).getSession().createTextMessage();
             responseMessage.setText(response);
             final String jmsCorrelationID = message.getJMSCorrelationID();
