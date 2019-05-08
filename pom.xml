@@ -423,6 +423,8 @@
     <modules>
         <module>njams-sdk</module>
         <module>njams-sdk-sample-client</module>
+        <module>njams-sdk-communication-jms</module>
         <module>njams-sdk-communication-cloud</module>
+        <module>njams-sdk-communication-http</module>
     </modules>
 </project>
