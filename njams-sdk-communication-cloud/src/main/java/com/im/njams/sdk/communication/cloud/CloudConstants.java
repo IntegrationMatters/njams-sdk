@@ -22,12 +22,10 @@ package com.im.njams.sdk.communication.cloud;
  */
 public class CloudConstants {
     
-    private CloudConstants() {
-        //utility
-    }
+    private CloudConstants() {}
 
     public static final String PROPERTY_PREFIX = "njams.sdk.communication.cloud";
-    public static final String NAME = "CLOUD";
+    public static final String COMMUNICATION_NAME = "CLOUD";
     public static final String ENDPOINT = PROPERTY_PREFIX + ".endpoint";
     public static final String APIKEY = PROPERTY_PREFIX + ".apikey";
     public static final String CLIENT_INSTANCEID = PROPERTY_PREFIX + ".client.instanceId";
