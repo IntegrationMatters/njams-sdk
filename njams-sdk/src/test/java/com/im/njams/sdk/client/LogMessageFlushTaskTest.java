@@ -35,7 +35,7 @@ import static org.junit.Assert.*;
 public class LogMessageFlushTaskTest extends AbstractTest{
 
     public LogMessageFlushTaskTest(){
-        super();       
+        super(null);
     }
     
     /**

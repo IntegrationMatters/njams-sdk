@@ -1,33 +1,20 @@
 /*
- * Copyright (c) 2018 Faiz & Siegeln Software GmbH
- * 
- * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"),
- * to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
- * and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
- * 
- * The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
- * 
- * The Software shall be used for Good, not Evil.
- * 
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
- * IN THE SOFTWARE.
+ */
+
+/*
  */
 package com.im.njams.sdk.communication.jms;
 
 import com.faizsiegeln.njams.messageformat.v4.logmessage.LogMessage;
-
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-
 import com.im.njams.sdk.common.JsonSerializerFactory;
+import org.junit.Test;
 
 import java.time.LocalDateTime;
 
-import org.junit.Test;
-
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 /**
  * This class tests if the JmsSender works correctly.
@@ -36,7 +23,7 @@ import static org.junit.Assert.*;
  * @version 4.0.5
  */
 public class JmsSenderTest {
-
+/*
     private static final LocalDateTime JOBSTART = LocalDateTime.of(2018, 11, 20, 14, 55, 34, 555000000);
     private static final LocalDateTime BUSINESSSTART = LocalDateTime.of(2018, 11, 20, 14, 57, 55, 240000000);
     private static final LocalDateTime BUSINESSEND = LocalDateTime.of(2018, 11, 20, 14, 58, 12, 142000000);
@@ -45,12 +32,12 @@ public class JmsSenderTest {
 
     private static final ObjectMapper mapper = JsonSerializerFactory.getDefaultMapper();
 
-    /**
+    *//**
      * The serializer should use ISO 8601 for serializing LocalDateTime.
      * Supported from the Server are
      * YYYY-MM-DDThh:mm:ss.sss and
      * YYYY-MM-DDThh:mm:ss.sssZ
-     */
+     *//*
     @Test
     public void LocalDateTimeSerializerTest() {
         LogMessage message = new LogMessage();
@@ -70,5 +57,5 @@ public class JmsSenderTest {
         } catch (JsonProcessingException ex) {
             fail(ex.getMessage());
         }
-    }
+    }*/
 }

@@ -36,7 +36,7 @@ import static org.junit.Assert.assertTrue;
 public class GroupImplTest extends AbstractTest{
 
     public GroupImplTest(){
-        super();
+        super(null);
     }
     /**
      * This method tests if childactivities can be removed.

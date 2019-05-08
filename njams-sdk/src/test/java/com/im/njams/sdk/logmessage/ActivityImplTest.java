@@ -36,7 +36,7 @@ public class ActivityImplTest extends AbstractTest {
      * This constructor calls super().
      */
     public ActivityImplTest(){
-        super();
+        super(null);
     }
 
     /**

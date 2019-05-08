@@ -22,8 +22,8 @@ import com.faizsiegeln.njams.messageformat.v4.logmessage.LogMessage;
 
 import com.im.njams.sdk.AbstractTest;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
-import com.im.njams.sdk.communication.Sender;
-import com.im.njams.sdk.communication.TestSender;
+//import com.im.njams.sdk.communication.Sender;
+//import com.im.njams.sdk.communication.TestSender;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -51,7 +51,7 @@ import org.slf4j.LoggerFactory;
  */
 @Ignore
 public class JobImplIT extends AbstractTest {
-
+/*
     //The logger
     private static final org.slf4j.Logger LOG = LoggerFactory.getLogger(JobImplIT.class);
 
@@ -63,12 +63,12 @@ public class JobImplIT extends AbstractTest {
     //Time that each job is executed
     private static final int EXECUTIONTIME = 100;
 
-    /**
+    *//**
      * Initializes the AbstractTest
      */
     public JobImplIT() {
-        super();
-        TestSender.setSenderMock(new SenderMock());
+        super(null);
+//        TestSender.setSenderMock(new SenderMock());
     }
 
     /**
@@ -77,7 +77,7 @@ public class JobImplIT extends AbstractTest {
      *
      * @throws java.lang.InterruptedException is thrown when the thread sleeps
      * will be interrupted.
-     */
+     *//*
     @Test
     public void testFlushingAndCreatingActivities() throws InterruptedException {
         //Change this for more or less threads that interact.
@@ -105,7 +105,7 @@ public class JobImplIT extends AbstractTest {
         }
     }
 
-    /**
+    *//**
      * This method tests if the the job's flushing and the job creating new
      * activities does not interleave.
      *
@@ -116,7 +116,7 @@ public class JobImplIT extends AbstractTest {
      * stop running.
      * @throws InterruptedException is thrown when the threads sleep will be
      * interrupted.
-     */
+     *//*
     private void testFlushingAndAddingAttributes(int activityQuantity, int flusherQuantity, NjamsSdkRuntimeExceptionWrapper stop) throws InterruptedException {
         final Set<String> attr = Collections.synchronizedSet(new HashSet<>());
 
@@ -306,12 +306,12 @@ public class JobImplIT extends AbstractTest {
         }
     }
 
-    /**
+    *//**
      * This method fills the activity with more attributes.
      *
      * @param impl the activity where the attributes will be added
      * @param number the number of added attributes
-     */
+     *//*
     private void fillActivityWithMoreAttributes(ActivityImpl impl, int number) {
         for (int i = 0; i <= number; i++) {
             int j = ThreadLocalRandom.current().nextInt();
@@ -319,12 +319,12 @@ public class JobImplIT extends AbstractTest {
         }
     }
 
-    /**
+    *//**
      * This method fills the job with more attributes.
      *
      * @param impl the job where the attributes will be added
      * @param number the number of added attributes
-     */
+     *//*
     private void fillJobWithMoreAttributes(JobImpl impl, int number) {
         for (int i = 0; i <= number; i++) {
             impl.addAttribute("j" + i, "j" + i);
@@ -332,10 +332,10 @@ public class JobImplIT extends AbstractTest {
         }
     }
 
-    /**
+    *//**
      * This class wraps the thrown NjamsSdkRuntimeException in here and is a
      * safes if a exception has been safed in here.
-     */
+     *//*
     private static class NjamsSdkRuntimeExceptionWrapper {
 
         //This safes the actual exception that was thrown
@@ -344,12 +344,12 @@ public class JobImplIT extends AbstractTest {
         //This safes if something was thrown, then the test will terminate
         private volatile AtomicBoolean wasThrown = new AtomicBoolean(false);
 
-        /**
+        *//**
          * This method sets the exception if this method was called the first
          * time, furthermore the field wasThrown is set to true.
          *
          * @param ex the exception to set.
-         */
+         *//*
         public synchronized void setException(NjamsSdkRuntimeException ex) {
             if (this.ex == null) {
                 this.ex = ex;
@@ -358,26 +358,26 @@ public class JobImplIT extends AbstractTest {
         }
     }
 
-    /**
+    *//**
      * This class is for fetching the messages that would be sent out.
-     */
+     *//*
     private static class SenderMock implements Sender {
 
-        /**
+        *//**
          * This method does nothing
          *
          * @param properties nothing to do with these
-         */
+         *//*
         @Override
         public void init(Properties properties) {
             //Do nothing
         }
 
-        /**
+        *//**
          * This method safes all sent messages in the messages queue.
          *
          * @param msg
-         */
+         *//*
         @Override
         public void send(CommonMessage msg) {
             if (msg instanceof LogMessage) {
@@ -385,22 +385,22 @@ public class JobImplIT extends AbstractTest {
             }
         }
 
-        /**
+        *//**
          * This method does nothing
-         */
+         *//*
         @Override
         public void close() {
             //Do nothing
         }
 
-        /**
+        *//**
          * This method returns the name of the TestSender.
          *
          * @return name of the TestSender.
-         */
+         *//*
         @Override
         public String getName() {
             return TestSender.NAME;
         }
-    }
+    }*/
 }

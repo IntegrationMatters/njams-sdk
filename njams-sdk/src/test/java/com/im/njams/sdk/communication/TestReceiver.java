@@ -20,34 +20,35 @@ import java.util.Properties;
 
 import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
 import com.im.njams.sdk.Njams;
+import com.im.njams.sdk.communication.connectable.Receiver;
 import com.im.njams.sdk.settings.Settings;
 
 /**
  * Dummy implementation for testing.<br>
  * <b>Note:</b> For using this instance, the test environment needs to have a the full qualified class name of this 
- * {@link TestReceiver} in the <code>META_INF/services/com.im.njams.sdk.communication.Receiver</code> file.
+ * {@link TestReceiver} in the <code>META_INF/services/com.im.njams.sdk.communication.connectable.Receiver</code> file.
  * 
  * @author cwinkler
  *
- */
+ *//*
 public class TestReceiver implements Receiver {
 
     private static Receiver receiver = null;
     public static final String NAME = TestSender.NAME;
 
-    /**
+    *//**
      * Delegates all request to the given receiver.<br>
      * <b>Note:</b> {@link #getName()} is invoked on the given receiver but the value returned is always {@link #NAME}.
      * @param receiver
-     */
+     *//*
     public static void setReceiverMock(Receiver receiver) {
         TestReceiver.receiver = receiver;
     }
 
-    /**
+    *//**
      * Returns a settings prepared for using this receiver implementation.
      * @return
-     */
+     *//*
     public static Settings getSettings() {
         return TestSender.getSettings();
     }
@@ -101,3 +102,4 @@ public class TestReceiver implements Receiver {
     }
 
 }
+*/

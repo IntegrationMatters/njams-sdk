@@ -39,6 +39,7 @@ import static org.junit.Assert.*;
  * @author krautenberg@integrationmatters.com
  * @version 4.0.4
  */
+/*
 public class NjamsSenderTest extends AbstractTest {
 
     private static Settings SETTINGS;
@@ -55,9 +56,11 @@ public class NjamsSenderTest extends AbstractTest {
         super(SETTINGS);
     }
 
-    /**
+    */
+/**
      * Test of close method, of class NjamsSender.
-     */
+     *//*
+
     @Test
     public void testClose() {
         NjamsSender sender = new NjamsSender(njams, SETTINGS);
@@ -71,12 +74,14 @@ public class NjamsSenderTest extends AbstractTest {
                 }
             }
         });
-        sender.close();
+//        sender.close();
     }
 
-    /**
+    */
+/**
      * Test of initialize, of class NjamsSender.
-     */
+     *//*
+
     @Test(expected = IllegalArgumentException.class)
     public void testIllegalArgumentMaxQueueLength() {
         Settings settings = new Settings();
@@ -87,9 +92,11 @@ public class NjamsSenderTest extends AbstractTest {
         NjamsSender njamsSender = new NjamsSender(njams, settings);
     }
 
-    /**
+    */
+/**
      * Test of initialize, of class NjamsSender.
-     */
+     *//*
+
     @Test(expected = IllegalArgumentException.class)
     public void testIllegalArgument2SenderThreadIdleTime() {
         Settings settings = new Settings();
@@ -100,9 +107,11 @@ public class NjamsSenderTest extends AbstractTest {
         NjamsSender njamsSender = new NjamsSender(njams, settings);
     }
 
-    /**
+    */
+/**
      * Test of initialize, of class NjamsSender.
-     */
+     *//*
+
     @Test(expected = IllegalArgumentException.class)
     public void testIllegalArgumentMaxQueueLengthLessThanMinQueueLength() {
         Settings settings = new Settings();
@@ -114,9 +123,11 @@ public class NjamsSenderTest extends AbstractTest {
         NjamsSender njamsSender = new NjamsSender(njams, settings);
     }
 
-    /**
+    */
+/**
      * Test of initialize, of class NjamsSender.
-     */
+     *//*
+
     @Test(expected = IllegalArgumentException.class)
     public void testIllegalArgumentMinQueueLength() {
         Settings settings = new Settings();
@@ -146,9 +157,10 @@ public class NjamsSenderTest extends AbstractTest {
             sender.send(new LogMessage());
         }
         //This is for joining the threads
-        sender.close();
+//        sender.close();
         assertEquals(100, executor.getCompletedTaskCount());
         executor.getLargestPoolSize();
     }
 
 }
+*/

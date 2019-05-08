@@ -23,35 +23,37 @@ import com.faizsiegeln.njams.messageformat.v4.logmessage.LogMessage;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.ProjectMessage;
 import com.faizsiegeln.njams.messageformat.v4.tracemessage.TraceMessage;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
+import com.im.njams.sdk.communication.connectable.AbstractSender;
+import com.im.njams.sdk.communication.connectable.Sender;
 import com.im.njams.sdk.configuration.ConfigurationProviderFactory;
 import com.im.njams.sdk.settings.Settings;
 
 /**
  * Dummy implementation for testing.<br>
  * <b>Note:</b> For using this instance, the test environment needs to have a the full qualified class name of this
- * {@link TestSender} in the <code>META_INF/services/com.im.njams.sdk.communication.Sender</code> file.
+ * {@link TestSender} in the <code>META_INF/services/com.im.njams.sdk.communication.connectable.Sender</code> file.
  *
  * @author cwinkler
  *
  */
+/*
 public class TestSender extends AbstractSender {
-
     public static final String NAME = "TEST_COMMUNICATION";
     private static Sender sender = null;
 
-    /**
+    *//**
      * Delegates all request to the given sender.<br>
      * <b>Note:</b> {@link #getName()} is invoked on the given sender but the value returned is always {@link #NAME}.
      * @param sender
-     */
+     *//*
     public static void setSenderMock(Sender sender) {
         TestSender.sender = sender;
     }
 
-    /**
+    *//**
      * Returns a settings prepared for using this sender implementation.
      * @return
-     */
+     *//*
     public static Settings getSettings() {
         Properties properties = new Properties();
         properties.setProperty(CommunicationFactory.COMMUNICATION, NAME);
@@ -110,3 +112,4 @@ public class TestSender extends AbstractSender {
         // TODO Auto-generated method stub
     }
 }
+    */

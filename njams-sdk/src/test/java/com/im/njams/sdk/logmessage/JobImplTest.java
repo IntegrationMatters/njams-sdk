@@ -64,7 +64,7 @@ public class JobImplTest extends AbstractTest {
      * This constructor calls super().
      */
     public JobImplTest() {
-        super();
+        super(null);
     }
 
     /**
