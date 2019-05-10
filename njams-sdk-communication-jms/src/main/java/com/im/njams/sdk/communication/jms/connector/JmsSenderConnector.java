@@ -13,6 +13,7 @@ import javax.jms.MessageProducer;
 import javax.naming.NameNotFoundException;
 import javax.naming.NamingException;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Properties;
 import java.util.Set;
@@ -95,7 +96,13 @@ public class JmsSenderConnector extends JmsConnector {
 
     @Override
     protected Set<String> extLibrariesToCheck() {
-        return null;
+        Set<String> libs = new HashSet<>();
+        libs.add("javax.jms.Destination");
+        libs.add("javax.jms.JMSException");
+        libs.add("javax.jms.MessageProducer");
+        libs.add("javax.naming.NameNotFoundException");
+        libs.add("javax.naming.NamingException");
+        return libs;
     }
 
     public MessageProducer getProducer() {

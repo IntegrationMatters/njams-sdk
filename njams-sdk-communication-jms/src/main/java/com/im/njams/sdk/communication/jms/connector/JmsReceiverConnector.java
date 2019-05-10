@@ -16,6 +16,7 @@ import javax.jms.Topic;
 import javax.naming.NameNotFoundException;
 import javax.naming.NamingException;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Properties;
 import java.util.Set;
@@ -98,7 +99,14 @@ public class JmsReceiverConnector extends JmsConnector {
 
     @Override
     protected Set<String> extLibrariesToCheck() {
-        return null;
+        Set<String> libs = new HashSet<>();
+        libs.add("javax.jms.JMSException");
+        libs.add("javax.jms.MessageConsumer");
+        libs.add("javax.jms.MessageListener");
+        libs.add("javax.jms.Topic");
+        libs.add("javax.naming.NameNotFoundException");
+        libs.add("javax.naming.NamingException");
+        return libs;
     }
 
     /**

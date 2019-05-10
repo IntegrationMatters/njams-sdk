@@ -10,7 +10,12 @@ import com.im.njams.sdk.settings.PropertyUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.jms.*;
+import javax.jms.Connection;
+import javax.jms.ConnectionFactory;
+import javax.jms.ExceptionListener;
+import javax.jms.JMSContext;
+import javax.jms.JMSException;
+import javax.jms.Session;
 import javax.naming.InitialContext;
 import javax.naming.NamingException;
 import java.util.*;
@@ -194,19 +199,14 @@ public abstract class JmsConnector extends AbstractConnector implements Exceptio
      */
     public String[] librariesToCheck() {
         Set<String> libs = new HashSet<>();
+
         libs.add("javax.jms.Connection");
-        libs.add("javax.jms.ExceptionListener");
-        libs.add("javax.jms.MessageConsumer");
-        libs.add("javax.jms.Session");
-        libs.add("javax.jms.MessageProducer");
-        libs.add("javax.jms.MessageListener");
-        libs.add("javax.jms.JMSException");
-        libs.add("javax.jms.Topic");
-        libs.add("javax.jms.Destination");
         libs.add("javax.jms.ConnectionFactory");
+        libs.add("javax.jms.ExceptionListener");
         libs.add("javax.jms.JMSContext");
+        libs.add("javax.jms.JMSException");
+        libs.add("javax.jms.Session");
         libs.add("javax.naming.InitialContext");
-        libs.add("javax.naming.NameNotFoundException");
         libs.add("javax.naming.NamingException");
         Set<String> additionalLibs = extLibrariesToCheck();
         if (additionalLibs != null && !additionalLibs.isEmpty()) {
