@@ -71,8 +71,8 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
 
     /**
      * @deprecated SDK-140
-     * @param job
-     * @param modelId
+     * @param job The job
+     * @param modelId The model Id
      */
     @Deprecated
     public ActivityImpl(JobImpl job, String modelId) {

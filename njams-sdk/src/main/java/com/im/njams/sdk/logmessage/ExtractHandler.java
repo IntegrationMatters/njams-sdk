@@ -52,8 +52,17 @@ public class ExtractHandler {
     private static final Logger LOG = LoggerFactory.getLogger(ExtractHandler.class);
     private static final Map<String, Matcher> MATCHER = new ConcurrentHashMap<>();
 
+    /**
+     * Enumeration for specifying on what data an extract is to be applied.
+     *
+     */
     public enum ExtractSource {
-        INPUT("in"), OUTPUT("out");
+        /** The extract applies to the activity's input data. */
+        INPUT("in"),
+        /** The extract applies to the activity's output data. */
+        OUTPUT("out");
+
+        /** The direction indicator used by the extract configuration. */
         public final String direction;
 
         private ExtractSource(String key) {
@@ -77,11 +86,11 @@ public class ExtractHandler {
 
     /**
      * @deprecated Use {@link #handleExtract(JobImpl, ActivityImpl, ExtractSource, Object, String)} instead.
-     * @param job
-     * @param activity
-     * @param direction
-     * @param sourceData
-     * @param data
+     * @param job The job in which the extract is to be handled
+     * @param activity The activity instance on that the extract is to be applied.
+     * @param sourceDirection Whether the extract applies to the activity's input or output data.
+     * @param sourceData The data object on that the extract is being evaluated.
+     * @param data The serialized data object on that the extract is being evaluated.
      */
     @Deprecated
     public static void handleExtract(JobImpl job, ActivityImpl activity, String direction, Object sourceData,
@@ -89,6 +98,17 @@ public class ExtractHandler {
         handleExtract(job, activity, ExtractSource.valueOf(direction), sourceData, data);
     }
 
+    /**
+     * Handle extract. Input is the sourceData object and the string data, which
+     * is only filled if a tracepoint was already evaluated. If not, the
+     * sourceData has to be serialized via Njams to get extractData.
+     *
+     * @param job The job in which the extract is to be handled
+     * @param activity The activity instance on that the extract is to be applied.
+     * @param sourceDirection Whether the extract applies to the activity's input or output data.
+     * @param sourceData The data object on that the extract is being evaluated.
+     * @param data The serialized data object on that the extract is being evaluated.
+     */
     public static void handleExtract(JobImpl job, ActivityImpl activity, ExtractSource sourceDirection,
             Object sourceData, String data) {
         ActivityConfiguration config = null;
@@ -115,12 +135,12 @@ public class ExtractHandler {
      * is only filled if a tracepoint was already evaluated. If not, the
      * sourceData has to be serialized via Njams to get extractData.
      *
-     * @param job
-     * @param extract
-     * @param activity
-     * @param sourceDirection
-     * @param sourceData
-     * @param data
+     * @param job The job in which the extract is to be handled
+     * @param extract The extract that is to be applied.
+     * @param activity The activity instance on that the extract is to be applied.
+     * @param sourceDirection Whether the extract applies to the activity's input or output data.
+     * @param sourceData The data object on that the extract is being evaluated.
+     * @param data The serialized data object on that the extract is being evaluated.
      */
     public static void handleExtract(JobImpl job, Extract extract, ActivityImpl activity,
             ExtractSource sourceDirection, Object sourceData, String data) {

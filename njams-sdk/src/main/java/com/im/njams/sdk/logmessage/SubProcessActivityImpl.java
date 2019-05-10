@@ -30,6 +30,7 @@ public class SubProcessActivityImpl extends GroupImpl implements SubProcessActiv
      * Create SubProcessActivityImpl with given JobImpl
      * @deprecated SDK-140
      * @param job Job which contains this SubProcessActivityImpl
+     * @param modelId The activity model ID for this instance.
      */
     @Deprecated
     public SubProcessActivityImpl(JobImpl job, String modelId) {
@@ -45,6 +46,7 @@ public class SubProcessActivityImpl extends GroupImpl implements SubProcessActiv
      *
      * @param subProcess ProcessModel of the subprocess
      * @param job Job which contains this SubProcessActivityImpl
+     * @param model The activity model for this instance.
      */
     public SubProcessActivityImpl(ProcessModel subProcess, JobImpl job, SubProcessActivityModel model) {
         super(job, model);

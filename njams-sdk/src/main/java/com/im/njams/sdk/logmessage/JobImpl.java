@@ -1030,7 +1030,7 @@ public class JobImpl implements Job {
 
     /**
      * Returns <code>true</code> if the given tracepoint configuration is currently active.
-     * @param tracepoint
+     * @param tracepoint The tracepoint to check
      * @return
      */
     public boolean isActiveTracepoint(TracepointExt tracepoint) {
@@ -1048,7 +1048,7 @@ public class JobImpl implements Job {
 
     /**
      * Returns the runtime configuration for a specific {@link ActivityModel} if any.
-     * @param activityModel
+     * @param activityModel The model for that configuration shall be returned.
      * @return May be <code>null</code> if no configuration exists.
      */
     public ActivityConfiguration getActivityConfiguration(ActivityModel activityModel) {
