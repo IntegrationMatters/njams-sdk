@@ -88,7 +88,7 @@ public class ExtractHandler {
      * @deprecated Use {@link #handleExtract(JobImpl, ActivityImpl, ExtractSource, Object, String)} instead.
      * @param job The job in which the extract is to be handled
      * @param activity The activity instance on that the extract is to be applied.
-     * @param sourceDirection Whether the extract applies to the activity's input or output data.
+     * @param direction Whether the extract applies to the activity's input or output data.
      * @param sourceData The data object on that the extract is being evaluated.
      * @param data The serialized data object on that the extract is being evaluated.
      */

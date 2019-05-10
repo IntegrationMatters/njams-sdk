@@ -1031,7 +1031,7 @@ public class JobImpl implements Job {
     /**
      * Returns <code>true</code> if the given tracepoint configuration is currently active.
      * @param tracepoint The tracepoint to check
-     * @return
+     * @return <code>true</code> if the given tracepoint configuration is currently active.
      */
     public boolean isActiveTracepoint(TracepointExt tracepoint) {
         if (tracepoint != null) {
