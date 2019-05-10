@@ -96,19 +96,14 @@ public class JmsSender extends AbstractSender {
         }
     }
 
-    @Override
-    protected void extStop() {
-        //Nothing to do
-    }
-
     private void sendMessage(CommonMessage msg, String messageType, String data) throws JMSException {
         TextMessage textMessage = ((JmsConnector)connector).getSession().createTextMessage(data);
         if (msg instanceof LogMessage) {
-            textMessage.setStringProperty(Sender.NJAMS_LOGID, ((LogMessage) msg).getLogId());
+            textMessage.setStringProperty(Sender.NJAMS_SERVER_LOGID, ((LogMessage) msg).getLogId());
         }
-        textMessage.setStringProperty(Sender.NJAMS_MESSAGEVERSION, MessageVersion.V4.toString());
-        textMessage.setStringProperty(Sender.NJAMS_MESSAGETYPE, messageType);
-        textMessage.setStringProperty(Sender.NJAMS_PATH, msg.getPath());
+        textMessage.setStringProperty(Sender.NJAMS_SERVER_MESSAGEVERSION, MessageVersion.V4.toString());
+        textMessage.setStringProperty(Sender.NJAMS_SERVER_MESSAGETYPE, messageType);
+        textMessage.setStringProperty(Sender.NJAMS_SERVER_PATH, msg.getPath());
         ((JmsSenderConnector)connector).getProducer().send(textMessage);
     }
 
