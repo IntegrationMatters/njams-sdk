@@ -121,9 +121,4 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener {
         }
         return connector = new JmsReceiverConnector(properties, this.getName() + Connector.RECEIVER_NAME_ENDING, this, njams);
     }
-
-    @Override
-    protected void extStop() {
-        //Nothing to do
-    }
 }

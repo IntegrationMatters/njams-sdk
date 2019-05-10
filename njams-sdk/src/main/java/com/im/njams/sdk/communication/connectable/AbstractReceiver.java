@@ -130,10 +130,7 @@ public abstract class AbstractReceiver implements Receiver {
 
     public final void stop(){
         connector.close();
-        extStop();
     }
-
-    protected abstract void extStop();
 
     public Connector getConnector(){
         return connector;
