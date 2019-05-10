@@ -14,7 +14,7 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
  */
-package com.faizsiegeln.test;
+package com.im.test;
 
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.common.Path;
@@ -139,7 +139,7 @@ public class SubProcessClient {
 
     private static Properties getCloudProperties() {
         Properties communicationProperties = new Properties();
-        communicationProperties.put(CommunicationFactory.COMMUNICATION, CloudConstants.NAME);
+        communicationProperties.put(CommunicationFactory.COMMUNICATION, CloudConstants.COMMUNICATION_NAME);
         communicationProperties.put(CloudConstants.ENDPOINT, "<cloud url>");
         communicationProperties.put(CloudConstants.APIKEY, "<cloud apikey>");
         communicationProperties.put(CloudConstants.CLIENT_INSTANCEID, "<cloud client instance>");

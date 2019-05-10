@@ -14,7 +14,7 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
  */
-package com.faizsiegeln.test;
+package com.im.test;
 
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.common.Path;
@@ -34,10 +34,10 @@ import java.util.Properties;
  *
  * @author pnientiedt
  */
-public class SimpleClient {
+public class SimpleEndlessClient {
 
     public static void main(String[] args) throws InterruptedException {
-        
+
         String technology = "sdk4";
 
         //Specify a client path. This path specifies where your client instance will be visible in the object tree.
@@ -46,6 +46,8 @@ public class SimpleClient {
         //Create communicationProperties, which specify how your client will communicate with the server
         Properties properties = getJmsProperties();
         //Properties properties = getCloudProperties();
+        properties.setProperty(Settings.PROPERTY_MAX_QUEUE_LENGTH, "2");
+        properties.setProperty(Settings.PROPERTY_DISCARD_POLICY, "none");
 
         //Create client settings and add the properties
         Settings config = new Settings();
@@ -56,7 +58,7 @@ public class SimpleClient {
 
         //add custom image for your technology
         njams.addImage(technology, "images/njams_java_sdk_process_step.png");
-        
+
         //add custom images for your activites
         njams.addImage("startType", "images/njams_java_sdk_process_start.png");
         njams.addImage("stepType", "images/njams_java_sdk_process_step.png");
@@ -81,44 +83,46 @@ public class SimpleClient {
 
         // Start client and flush resources, which will create a projectmessage to send all resources to the server
         njams.start();
-        
+
         /**
          * Running a process by creating a job
          */
-        //Create a job from a previously created ProcessModel
-        Job job = process.createJob();
-        
-        // Starts the job, i.e., sets the according status, job start date if not set before, and flags the job to begin flushing.
-        job.start();
-        
-        //Create the start activity from the previously creates startModel
-        Activity start = job.createActivity(startModel).build();
-        //add input and output data to the activity
-        start.processInput("startInput");
-        start.processOutput("startOutput");
 
-        //step to the next activity from the previous one.
-        Activity log = start.stepTo(logModel).build();
-        log.processInput("logInput");
-        log.processOutput("logOutput");
+        int i = 0;
+        while (i++ < 1000) {
+            //Create a job from a previously created ProcessModel
+            Job job = process.createJob();
+            
+            // Starts the job, i.e., sets the according status, job start date if not set before, and flags the job to begin flushing.
+            job.start();
+            
+            //Create the start activity from the previously creates startModel
+            Activity start = job.createActivity(startModel).build();
+            //add input and output data to the activity
+            start.processInput("startInput");
+            start.processOutput("startOutput");
 
-        //step to the end
-        Activity end = log.stepTo(endModel).build();
-        end.processInput("endInput");
-        end.processOutput("endOutput");
+            //step to the next activity from the previous one.
+            Activity log = start.stepTo(logModel).build();
+            log.processInput("logInput");
+            log.processOutput("logOutput");
 
-        //End the job, which will flush all previous steps into a logmessage wich will be send to the server
-        job.end();
+            //step to the end
+            Activity end = log.stepTo(endModel).build();
+            end.processInput("endInput");
+            end.processOutput("endOutput");
 
-        Thread.sleep(1000);
-        
+            //End the job, which will flush all previous steps into a logmessage wich will be send to the server
+            job.end();
+            Thread.sleep(1000);
+        }
         //If you are finished with processing or the application goes down, stop the client...
-        njams.stop();        
+        njams.stop();
     }
 
     private static Properties getCloudProperties() {
         Properties communicationProperties = new Properties();
-        communicationProperties.put(CommunicationFactory.COMMUNICATION, CloudConstants.NAME);
+        communicationProperties.put(CommunicationFactory.COMMUNICATION, CloudConstants.COMMUNICATION_NAME);
         communicationProperties.put(CloudConstants.ENDPOINT, "<cloud url>");
         communicationProperties.put(CloudConstants.APIKEY, "<cloud apikey>");
         communicationProperties.put(CloudConstants.CLIENT_INSTANCEID, "<cloud client instance>");
