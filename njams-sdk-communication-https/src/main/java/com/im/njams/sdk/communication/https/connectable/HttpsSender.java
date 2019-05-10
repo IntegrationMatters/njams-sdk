@@ -14,60 +14,60 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
  */
-package com.im.njams.sdk.communication.http.connectable;
+package com.im.njams.sdk.communication.https.connectable;
 
-import static java.nio.charset.Charset.defaultCharset;
+import com.faizsiegeln.njams.messageformat.v4.common.CommonMessage;
+import com.faizsiegeln.njams.messageformat.v4.common.MessageVersion;
+import com.faizsiegeln.njams.messageformat.v4.logmessage.LogMessage;
+import com.faizsiegeln.njams.messageformat.v4.projectmessage.ProjectMessage;
+import com.faizsiegeln.njams.messageformat.v4.tracemessage.TraceMessage;
+import com.im.njams.sdk.common.NjamsSdkRuntimeException;
+import com.im.njams.sdk.communication.connectable.AbstractSender;
+import com.im.njams.sdk.communication.connectable.Sender;
+import com.im.njams.sdk.communication.connector.Connector;
+import com.im.njams.sdk.communication.https.HttpsConstants;
+import com.im.njams.sdk.communication.https.connector.HttpsSenderConnector;
+import org.slf4j.LoggerFactory;
 
 import java.io.*;
 import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 
-import com.faizsiegeln.njams.messageformat.v4.common.CommonMessage;
-import com.faizsiegeln.njams.messageformat.v4.tracemessage.TraceMessage;
-import com.im.njams.sdk.communication.connector.AbstractConnector;
-import com.im.njams.sdk.communication.connector.Connector;
-import com.im.njams.sdk.communication.http.HttpConstants;
-import com.im.njams.sdk.communication.http.connector.HttpSenderConnector;
-import org.slf4j.LoggerFactory;
-
-import com.faizsiegeln.njams.messageformat.v4.common.MessageVersion;
-import com.faizsiegeln.njams.messageformat.v4.logmessage.LogMessage;
-import com.faizsiegeln.njams.messageformat.v4.projectmessage.ProjectMessage;
-import com.im.njams.sdk.common.NjamsSdkRuntimeException;
-import com.im.njams.sdk.communication.connectable.AbstractSender;
-import com.im.njams.sdk.communication.connectable.Sender;
+import static java.nio.charset.Charset.defaultCharset;
 
 /**
- * HttpSender
+ * Https Sender
  *
  * @author stkniep
  */
-public class HttpSender extends AbstractSender {
+public class HttpsSender extends AbstractSender {
 
-    private static final org.slf4j.Logger LOG = LoggerFactory.getLogger(HttpSender.class);
+    private static final org.slf4j.Logger LOG = LoggerFactory.getLogger(HttpsSender.class);
+
+    @Override
+    public String getName() {
+        return HttpsConstants.COMMUNICATION_NAME;
+    }
 
     /**
      * Initializes this Sender via the given Properties.
      * <p>
      * Valid properties are:
      * <ul>
-     * <li>{@value com.im.njams.sdk.communication.http.HttpConstants#SENDER_URL}
-     * <li>{@value com.im.njams.sdk.communication.http.HttpConstants#SENDER_USERNAME}
-     * <li>{@value com.im.njams.sdk.communication.http.HttpConstants#SENDER_PASSWORD}
+     * <li>{@value com.im.njams.sdk.communication.https.HttpsConstants#SENDER_URL}
+     * <li>{@value com.im.njams.sdk.communication.https.HttpsConstants#SENDER_USERNAME}
+     * <li>{@value com.im.njams.sdk.communication.https.HttpsConstants#SENDER_PASSWORD}
      * </ul>
      *
      * @param properties the properties needed to initialize
      */
     @Override
     protected Connector initialize(Properties properties) {
-        return new HttpSenderConnector(properties, getName() + Connector.SENDER_NAME_ENDING);
+        return new HttpsSenderConnector(properties, getName() + Connector.SENDER_NAME_ENDING);
     }
-
-
 
     @Override
     protected void send(final LogMessage msg) {
@@ -132,13 +132,12 @@ public class HttpSender extends AbstractSender {
             int utf8Bytes = byteBody.length;
             LOG.debug("Message size in Bytes: {}", utf8Bytes);
 
-            URL url = ((HttpSenderConnector)connector).getUrl(utf8Bytes, properties);
-            boolean isPresignedUrl = !url.equals(((HttpSenderConnector)connector).getDefaultUrl());
-            connection = ((HttpSenderConnector) connector).getConnection(url, isPresignedUrl);
+            URL url = ((HttpsSenderConnector)connector).getUrl(utf8Bytes, properties);
+            connection = ((HttpsSenderConnector) connector).getConnection();
             addAddionalProperties(connection, properties);
 
             LOG.debug("Send msg {}", body);
-            return sendMessage(connection, body, isPresignedUrl);
+            return sendMessage(connection, body, false);
         } finally {
             if (connection != null) {
                 connection.disconnect();
@@ -152,7 +151,7 @@ public class HttpSender extends AbstractSender {
             connection.setRequestProperty("Content-Length", Integer.toString(body.getBytes("UTF-8").length));
         }
 
-     try (final OutputStreamWriter out = new OutputStreamWriter(connection.getOutputStream())) {
+        try (final OutputStreamWriter out = new OutputStreamWriter(connection.getOutputStream())) {
             out.write(body);
         }
 
@@ -187,11 +186,4 @@ public class HttpSender extends AbstractSender {
         entrySet.forEach(
                 entry -> connection.setRequestProperty(entry.getKey().toString(), entry.getValue().toString()));
     }
-
-    @Override
-    public String getName() {
-        return HttpConstants.COMMUNICATION_NAME;
-    }
-
-
 }

@@ -16,11 +16,9 @@
  */
 package com.im.njams.sdk.communication.http.connector;
 
-import com.faizsiegeln.njams.messageformat.v4.common.MessageVersion;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
-import com.im.njams.sdk.communication.connectable.Sender;
+
 import com.im.njams.sdk.communication.http.HttpConstants;
-import com.im.njams.sdk.communication.http.connector.HttpConnector;
 
 import java.io.*;
 import java.net.HttpURLConnection;
@@ -67,17 +65,12 @@ public class HttpSenderConnector extends HttpConnector {
 
         user = properties.getProperty(HttpConstants.SENDER_USERNAME);
         password = properties.getProperty(HttpConstants.SENDER_PASSWORD);
-        setDefaultUrl(properties);
-    }
-
-    protected void setDefaultUrl(Properties properties) {
         try {
             defaultUrl = new URL(properties.getProperty(HttpConstants.SENDER_URL));
         } catch (final MalformedURLException ex) {
             throw new NjamsSdkRuntimeException("unable to init http sender", ex);
         }
     }
-
     public URL getUrl(int utf8Bytes, Properties properties) throws IOException {
         return getDefaultUrl();
     }

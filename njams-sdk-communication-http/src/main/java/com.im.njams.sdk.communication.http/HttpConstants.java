@@ -12,12 +12,9 @@ public class HttpConstants {
     /**
      * Name of the HTTP component
      */
-    public static final String COMMUNICATION_NAME_HTTP = "HTTP";
+    public static final String COMMUNICATION_NAME = "HTTP";
 
     /**
-     * Name of the HTTPS component
-     */
-    public static final String COMMUNICATION_NAME_HTTPS = "HTTPS";
 
     /**
      * Http receiver port

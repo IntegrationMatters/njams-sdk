@@ -15,31 +15,46 @@
  * IN THE SOFTWARE.
  */
 
-package com.im.njams.sdk.communication.http.https.connector;
+package com.im.njams.sdk.communication.https.connector;
 
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
-import com.im.njams.sdk.communication.http.connector.HttpSenderConnector;
+import com.im.njams.sdk.communication.https.HttpsConstants;
 import org.slf4j.LoggerFactory;
 
 import javax.net.ssl.*;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
+import java.net.ProtocolException;
 import java.net.URL;
 import java.security.KeyStore;
+import java.util.ArrayList;
+import java.util.Base64;
+import java.util.List;
 import java.util.Properties;
 
-public class HttpsSenderConnector extends HttpSenderConnector {
+import static java.nio.charset.Charset.defaultCharset;
+
+public class HttpsSenderConnector extends HttpsConnector {
 
     private static final org.slf4j.Logger LOG = LoggerFactory.getLogger(HttpsSenderConnector.class);
 
-    public static final String CLIENT_KS = "client.ks";
-    public static final String CLIENT_TS = "client.ts";
+    protected String user;
+    protected String password;
 
-    public static final String TRUST_STORE = "javax.net.ssl.trustStore";
+    protected URL url;
 
     public HttpsSenderConnector(Properties properties, String name) {
         super(properties, name);
+
+        user = properties.getProperty(HttpsConstants.SENDER_USERNAME);
+        password = properties.getProperty(HttpsConstants.SENDER_PASSWORD);
+        try {
+            url = new URL(properties.getProperty(HttpsConstants.SENDER_URL));
+        } catch (final MalformedURLException ex) {
+            throw new NjamsSdkRuntimeException("unable to init https sender", ex);
+        }
         try {
             loadKeystore();
         } catch (final Exception ex) {
@@ -47,16 +62,26 @@ public class HttpsSenderConnector extends HttpSenderConnector {
         }
     }
 
+    public URL getUrl(int utf8Bytes, Properties properties) throws IOException {
+        return url;
+    }
+
+    @Override
+    protected List<Exception> extClose() {
+        List<Exception> exceptions = new ArrayList<>();
+        return exceptions;
+    }
+
     protected void loadKeystore() throws IOException {
-        if (System.getProperty(TRUST_STORE) == null) {
+        if (System.getProperty(HttpsConstants.TRUST_STORE) == null) {
             try (InputStream keystoreInput
-                         = Thread.currentThread().getContextClassLoader().getResourceAsStream(CLIENT_KS);
+                         = Thread.currentThread().getContextClassLoader().getResourceAsStream(HttpsConstants.CLIENT_KS);
                  InputStream truststoreInput
-                         = Thread.currentThread().getContextClassLoader().getResourceAsStream(CLIENT_TS)) {
+                         = Thread.currentThread().getContextClassLoader().getResourceAsStream(HttpsConstants.CLIENT_TS)) {
                 setSSLFactories(keystoreInput, "password", truststoreInput);
             }
         } else {
-            LOG.debug("***      nJAMS: using provided keystore {}", System.getProperty(TRUST_STORE));
+            LOG.debug("***      nJAMS: using provided keystore {}", System.getProperty(HttpsConstants.TRUST_STORE));
         }
     }
 
@@ -103,16 +128,41 @@ public class HttpsSenderConnector extends HttpSenderConnector {
         }
     }
 
-    @Override
-    public HttpURLConnection getConnection(URL url) throws IOException {
+    public HttpURLConnection getConnection() throws IOException {
         //Create connection
         HttpsURLConnection connection = (HttpsURLConnection) url.openConnection();
 
-        super.setDefaultRequestProperties(connection);
+        setRequestProperties(connection);
+
+        setUser(connection);
+        return connection;
+    }
+
+    private void setUser(HttpURLConnection connection){
+        if (user != null) {
+            final Base64.Encoder encoder = Base64.getEncoder();
+            final String userpassword = user + ":" + password;
+            final byte[] encodedAuthorization = encoder.encode(userpassword.getBytes(defaultCharset()));
+            connection.setRequestProperty("Authorization",
+                    "Basic " + new String(encodedAuthorization, defaultCharset()));
+        }
+    }
+
+    private final void setRequestProperties(HttpURLConnection connection) throws ProtocolException {
+        connection.setRequestMethod(HttpsConstants.HTTP_REQUEST_TYPE_POST);
+        connection.setRequestProperty(HttpsConstants.CONTENT_TYPE, HttpsConstants.CONTENT_TYPE_JSON + ", " + HttpsConstants.UTF_8);
+        connection.setRequestProperty(HttpsConstants.ACCEPT, HttpsConstants.CONTENT_TYPE_TEXT);
+        connection.setRequestProperty(HttpsConstants.CONTENT_LANGUAGE, HttpsConstants.CONTENT_LANGUAGE_EN_US);
+
         connection.setRequestProperty("Connection", "keep-alive");
         connection.setRequestProperty("x-njams-type", "keep-alive");
 
-        super.setUser(connection);
-        return connection;
+        connection.setUseCaches(false);
+        connection.setDoOutput(true);
+    }
+
+    @Override
+    public void connect() {
+        //Do nothing, a connection has to be established with each send.
     }
 }

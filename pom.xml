@@ -426,5 +426,6 @@
         <module>njams-sdk-communication-jms</module>
         <module>njams-sdk-communication-cloud</module>
         <module>njams-sdk-communication-http</module>
+        <module>njams-sdk-communication-https</module>
     </modules>
 </project>
