@@ -1,0 +1,1 @@
+cloudCommunicationVersion=${project.version} (${revisionNumberPlugin.revision})
