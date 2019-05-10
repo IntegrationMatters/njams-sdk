@@ -38,26 +38,29 @@ public class GroupImpl extends ActivityImpl implements Group {
 
     private final Map<String, ActivityImpl> childActivities = new LinkedHashMap<>();
 
-    /**
-     * Create a new GroupImpl
-     *
-     * @param job Job which should contain this GroupImpl
-     */
-    public GroupImpl(JobImpl job) {
-        super(job);
+    @Deprecated
+    public GroupImpl(JobImpl job, String modelId) {
+        super(job, modelId);
+        setMaxIterations(1L);
+    }
+
+    public GroupImpl(JobImpl job, ActivityModel model) {
+        super(job, model);
         setMaxIterations(1L);
     }
 
     /**
      * Creates a new Activity as child activity of the current activity. This
      * makes the current activity to a group, if it is not already one.
-     *
+     * @deprecated Does not work for sub-processes.
      * @param childActivityModelId to step to
      * @return the ActivityBuilder for the new Activity
      */
+    @Deprecated
     @Override
     public ActivityBuilder createChildActivity(String childActivityModelId) {
-        ActivityBuilder builder = new ActivityBuilder((JobImpl) getJob(), childActivityModelId);
+        JobImpl job = (JobImpl) getJob();
+        ActivityBuilder builder = new ActivityBuilder(job, childActivityModelId);
         builder.setParent(this);
         builder.setIteration(getMaxIterations());
         return builder;
@@ -88,15 +91,16 @@ public class GroupImpl extends ActivityImpl implements Group {
          * group itself. Further it shall have the same parent as the group which again means that it is not inside
          * the group.
          * It is not clear, for what case this implementation is meant for.
-         * The same kind of lookup occurs in createChildGroup and createChildSubProcess.
-         * 
+         * The same kind of lookup occurs in createChildGroup and createChildSubProcess, and in step-methods in
+         * ActivityImpl etc.
+         *
          * Finally it is not clear that this method may return an existing activity instance, wrapped into a builder.
          * The user cannot be aware that he's potentially manipulating an existing activity instance.
-         * 
+         *
          */
         if (toActivity == null || !Objects.equals(toActivity.getIteration(), getIteration())
                 || toActivity.getParent() != getParent()) {
-            builder = new ActivityBuilder((JobImpl) getJob(), childActivityModel.getId());
+            builder = new ActivityBuilder((JobImpl) getJob(), childActivityModel);
         } else {
             builder = new ActivityBuilder(toActivity);
         }
@@ -143,13 +147,15 @@ public class GroupImpl extends ActivityImpl implements Group {
 
     /**
      * Creates a new Group as child group of the current group.
-     *
+     * @deprecated Does not work for sub-processes.
      * @param childGroupModelId to step to
      * @return the GroupBuilder for the new Group
      */
     @Override
+    @Deprecated
     public GroupBuilder createChildGroup(String childGroupModelId) {
-        GroupBuilder builder = new GroupBuilder((JobImpl) getJob(), childGroupModelId);
+        JobImpl job = (JobImpl) getJob();
+        GroupBuilder builder = new GroupBuilder(job, childGroupModelId);
         builder.setParent(this);
         builder.setIteration(getMaxIterations());
         return builder;
@@ -168,7 +174,7 @@ public class GroupImpl extends ActivityImpl implements Group {
         final GroupBuilder builder;
         if (toGroup == null || !Objects.equals(toGroup.getIteration(), getIteration())
                 || toGroup.getParent() != getParent()) {
-            builder = new GroupBuilder((JobImpl) getJob(), childGroupModel.getId());
+            builder = new GroupBuilder((JobImpl) getJob(), childGroupModel);
         } else {
             builder = new GroupBuilder(toGroup);
         }
@@ -192,7 +198,7 @@ public class GroupImpl extends ActivityImpl implements Group {
         final SubProcessActivityBuilder builder;
         if (toSubProcess == null || !Objects.equals(toSubProcess.getIteration(), getIteration())
                 || toSubProcess.getParent() != getParent()) {
-            builder = new SubProcessActivityBuilder((JobImpl) getJob(), childSubProcessModel.getId());
+            builder = new SubProcessActivityBuilder((JobImpl) getJob(), childSubProcessModel);
         } else {
             builder = new SubProcessActivityBuilder(toSubProcess);
         }
@@ -223,7 +229,7 @@ public class GroupImpl extends ActivityImpl implements Group {
             return newChildSubProcess((SubProcessActivityModel) childActivityModel);
         }
         final ActivityBuilder builder;
-        builder = new ActivityBuilder((JobImpl) getJob(), childActivityModel.getId());
+        builder = new ActivityBuilder((JobImpl) getJob(), childActivityModel);
         builder.setParent(this);
         builder.setIteration(getMaxIterations());
         return builder;
@@ -231,7 +237,7 @@ public class GroupImpl extends ActivityImpl implements Group {
 
     private GroupBuilder newChildGroup(GroupModel childGroupModel) {
         // check if a activity with the same modelId and the same iteration already exists.
-        final GroupBuilder builder = new GroupBuilder((JobImpl) getJob(), childGroupModel.getId());
+        final GroupBuilder builder = new GroupBuilder((JobImpl) getJob(), childGroupModel);
         builder.setParent(this);
         builder.setIteration(getMaxIterations());
         return builder;
@@ -240,7 +246,7 @@ public class GroupImpl extends ActivityImpl implements Group {
     private SubProcessActivityBuilder newChildSubProcess(SubProcessActivityModel childSubProcessModel) {
         // check if a activity with the same modelId and the same iteration already exists.
         final SubProcessActivityBuilder builder =
-                new SubProcessActivityBuilder((JobImpl) getJob(), childSubProcessModel.getId());
+                new SubProcessActivityBuilder((JobImpl) getJob(), childSubProcessModel);
         builder.setParent(this);
         builder.setIteration(getMaxIterations());
         if (childSubProcessModel.getSubProcess() != null) {

@@ -32,10 +32,11 @@ public interface Group extends Activity {
 
     /**
      * Creates a new Activity as child activity of the current activity.
-     *
+     * @deprecated Does not work for sub-processes.
      * @param childActivityModelId to step to
      * @return the ActivityBuilder for the new Activity
      */
+    @Deprecated
     public ActivityBuilder createChildActivity(String childActivityModelId);
 
     /**
@@ -48,10 +49,11 @@ public interface Group extends Activity {
 
     /**
      * Creates a new Group as child group of the current group.
-     *
+     * @deprecated Does not work for sub-processes.
      * @param childGroupModelId to step to
      * @return the GroupBuilder for the new Group
      */
+    @Deprecated
     public GroupBuilder createChildGroup(String childGroupModelId);
 
     /**

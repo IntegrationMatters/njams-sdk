@@ -1,14 +1,14 @@
-/* 
+/*
  * Copyright (c) 2018 Faiz & Siegeln Software GmbH
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"),
  * to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
  * and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
- * 
+ *
  * The Software shall be used for Good, not Evil.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
@@ -71,7 +71,7 @@ public class NjamsSampleTest {
 
         //Creates an empty process model
         ProcessModel process = njams.createProcess(processPath);
-
+        process.createActivity("a", "a", "a").transitionTo("b", "b", "b");
         // Start client and flush resources
         njams.start();
 
@@ -365,8 +365,16 @@ public class NjamsSampleTest {
 
         Path processPath = new Path("PROCESSES", "testGroupWithoutModel");
 
-        //Creates an empty process model
+        //Create the process model
         ProcessModel process = njams.createProcess(processPath);
+        process.createActivity("start", "start", "startType")
+                .transitionToGroup("group", "group", "groupType")
+                .createChildActivity("child1", "child1", "stepType")
+                .transitionTo("child2", "child2", "stepType");
+        GroupModel groupModel = process.getGroup("group");
+        groupModel.transitionTo("end", "end", "endType");
+        process.getActivity("start").setStarter(true);
+        process.getActivity("child1").setStarter(true);
 
         // Start client and flush resources
         njams.start();
@@ -777,8 +785,8 @@ public class NjamsSampleTest {
         startModel.setStarter(true);
 
         //step
-        SubProcessActivityModel subProcessModel
-                = startModel.transitionToSubProcess("subProcess", "SubProcess", "stepType");
+        SubProcessActivityModel subProcessModel =
+                startModel.transitionToSubProcess("subProcess", "SubProcess", "stepType");
 
         //step
         ActivityModel endModel = subProcessModel.transitionTo("end", "End", "endType");
@@ -1056,8 +1064,8 @@ public class NjamsSampleTest {
         //start model
         ActivityModel startModel = process.createActivity("start", "Start", "startType");
         startModel.setStarter(true);
-        SubProcessActivityModel subProcessModel
-                = startModel.transitionToSubProcess("subProcess", "SubProcess", "stepType");
+        SubProcessActivityModel subProcessModel =
+                startModel.transitionToSubProcess("subProcess", "SubProcess", "stepType");
         ActivityModel endModel = subProcessModel.transitionTo("end", "End", "endType");
 
         //subprocess

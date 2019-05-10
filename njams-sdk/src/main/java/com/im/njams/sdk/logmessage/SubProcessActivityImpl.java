@@ -1,14 +1,14 @@
-/* 
+/*
  * Copyright (c) 2018 Faiz & Siegeln Software GmbH
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"),
  * to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
  * and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
- * 
+ *
  * The Software shall be used for Good, not Evil.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
@@ -17,6 +17,7 @@
 package com.im.njams.sdk.logmessage;
 
 import com.im.njams.sdk.model.ProcessModel;
+import com.im.njams.sdk.model.SubProcessActivityModel;
 
 /**
  * Implementation of the SubProcessActivity interface
@@ -27,11 +28,16 @@ public class SubProcessActivityImpl extends GroupImpl implements SubProcessActiv
 
     /**
      * Create SubProcessActivityImpl with given JobImpl
-     *
+     * @deprecated SDK-140
      * @param job Job which contains this SubProcessActivityImpl
      */
-    public SubProcessActivityImpl(JobImpl job) {
-        super(job);
+    @Deprecated
+    public SubProcessActivityImpl(JobImpl job, String modelId) {
+        super(job, modelId);
+    }
+
+    public SubProcessActivityImpl(JobImpl job, SubProcessActivityModel model) {
+        super(job, model);
     }
 
     /**
@@ -40,9 +46,10 @@ public class SubProcessActivityImpl extends GroupImpl implements SubProcessActiv
      * @param subProcess ProcessModel of the subprocess
      * @param job Job which contains this SubProcessActivityImpl
      */
-    public SubProcessActivityImpl(ProcessModel subProcess, JobImpl job) {
-        super(job);
-        setSubProcess(new com.faizsiegeln.njams.messageformat.v4.common.SubProcess(subProcess.getName(), subProcess.getPath().toString(), null));
+    public SubProcessActivityImpl(ProcessModel subProcess, JobImpl job, SubProcessActivityModel model) {
+        super(job, model);
+        setSubProcess(new com.faizsiegeln.njams.messageformat.v4.common.SubProcess(subProcess.getName(), subProcess
+                .getPath().toString(), null));
     }
 
     /**
@@ -52,7 +59,8 @@ public class SubProcessActivityImpl extends GroupImpl implements SubProcessActiv
      */
     @Override
     public void setSubProcess(ProcessModel subProcess) {
-        setSubProcess(new com.faizsiegeln.njams.messageformat.v4.common.SubProcess(subProcess.getName(), subProcess.getPath().toString(), null));
+        setSubProcess(new com.faizsiegeln.njams.messageformat.v4.common.SubProcess(subProcess.getName(), subProcess
+                .getPath().toString(), null));
     }
 
     /**
@@ -64,7 +72,8 @@ public class SubProcessActivityImpl extends GroupImpl implements SubProcessActiv
      */
     @Override
     public void setSubProcess(String subProcessName, String subProcessPath, String subProcessLogId) {
-        setSubProcess(new com.faizsiegeln.njams.messageformat.v4.common.SubProcess(subProcessName, subProcessPath, subProcessLogId));
+        setSubProcess(new com.faizsiegeln.njams.messageformat.v4.common.SubProcess(subProcessName, subProcessPath,
+                subProcessLogId));
     }
 
 }

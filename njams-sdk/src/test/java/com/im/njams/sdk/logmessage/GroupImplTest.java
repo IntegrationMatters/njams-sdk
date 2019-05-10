@@ -16,28 +16,29 @@
  */
 package com.im.njams.sdk.logmessage;
 
-import com.im.njams.sdk.AbstractTest;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.when;
 
 import java.util.List;
 
 import org.junit.Test;
+import org.mockito.Mockito;
 
-import com.im.njams.sdk.Njams;
-import com.im.njams.sdk.common.Path;
-import com.im.njams.sdk.model.ProcessModel;
-import com.im.njams.sdk.settings.Settings;
-import static org.junit.Assert.assertTrue;
+import com.im.njams.sdk.AbstractTest;
+import com.im.njams.sdk.model.ActivityModel;
+import com.im.njams.sdk.model.GroupModel;
 
 /**
  *
  * @author krautenberg@integrationmatters.com
  */
-public class GroupImplTest extends AbstractTest{
+public class GroupImplTest extends AbstractTest {
 
-    public GroupImplTest(){
+    public GroupImplTest() {
         super();
     }
+
     /**
      * This method tests if childactivities can be removed.
      */
@@ -46,11 +47,11 @@ public class GroupImplTest extends AbstractTest{
         Job job = createDefaultJob();
         job.start();
         //Create a group with four children
-        GroupImpl group = (GroupImpl) job.createGroup("start").build();
-        Activity child1 = group.createChildActivity("child1").build();
-        Activity child2 = group.createChildActivity("child2").build();
-        Activity child3 = group.createChildActivity("child3").build();
-        Activity child4 = group.createChildActivity("child4").build();
+        GroupImpl group = (GroupImpl) job.createGroup(mockGroupModel("start")).build();
+        Activity child1 = group.createChildActivity(mockModel("child1")).build();
+        Activity child2 = group.createChildActivity(mockModel("child2")).build();
+        Activity child3 = group.createChildActivity(mockModel("child3")).build();
+        Activity child4 = group.createChildActivity(mockModel("child4")).build();
         group.removeChildActivity(child2.getInstanceId());
         group.removeChildActivity(child4.getInstanceId());
         List<Activity> childActivities = group.getChildActivities();
@@ -60,4 +61,15 @@ public class GroupImplTest extends AbstractTest{
         assertFalse(childActivities.contains(child4));
     }
 
+    private GroupModel mockGroupModel(String modelId) {
+        GroupModel model = Mockito.mock(GroupModel.class);
+        when(model.getId()).thenReturn(modelId);
+        return model;
+    }
+
+    private ActivityModel mockModel(String modelId) {
+        ActivityModel model = Mockito.mock(ActivityModel.class);
+        when(model.getId()).thenReturn(modelId);
+        return model;
+    }
 }

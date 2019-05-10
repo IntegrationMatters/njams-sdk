@@ -35,9 +35,9 @@ import org.slf4j.LoggerFactory;
 import com.faizsiegeln.njams.messageformat.v4.logmessage.ActivityStatus;
 import com.faizsiegeln.njams.messageformat.v4.logmessage.LogMessage;
 import com.faizsiegeln.njams.messageformat.v4.logmessage.PluginDataItem;
-import com.faizsiegeln.njams.messageformat.v4.projectmessage.Extract;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.LogLevel;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.LogMode;
+import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.common.DateTimeUtility;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.common.Path;
@@ -60,6 +60,7 @@ public class JobImpl implements Job {
     private static final org.slf4j.Logger LOG = LoggerFactory.getLogger(JobImpl.class);
 
     private final ProcessModel processModel;
+    private final Njams njams;
 
     private final String jobId;
 
@@ -110,8 +111,6 @@ public class JobImpl implements Job {
     private boolean instrumented;
     private boolean traces;
 
-    private Map<String, ActivityConfiguration> activityConfigurations;
-
     // internal properties, shall no go to project message
     private final Map<String, Object> properties = new LinkedHashMap<>();
 
@@ -155,11 +154,12 @@ public class JobImpl implements Job {
         correlationLogId = logId;
         setStatusAndSeverity(JobStatus.CREATED);
         this.processModel = processModel;
+        njams = processModel.getNjams();
         sequenceCounter = new AtomicInteger();
         flushCounter = new AtomicInteger();
         lastFlush = DateTimeUtility.now();
         pluginDataItems = new ArrayList<>();
-        initFromConfiguration();
+        initFromConfiguration(processModel);
         //It is used as the default startTime, if no other startTime will be set.
         //If a startTime is set afterwards with setStartTime, startTimeExplicitlySet
         //will be set to true.
@@ -171,7 +171,7 @@ public class JobImpl implements Job {
      * This method initializes the processConfiguration and the
      * activityConfigurations.
      */
-    private void initFromConfiguration() {
+    private void initFromConfiguration(ProcessModel processModel) {
         Configuration configuration = processModel.getNjams().getConfiguration();
         if (configuration == null) {
             LOG.error("Unable to set LogMode, LogLevel and Exclude for {}, configuration is null",
@@ -193,7 +193,6 @@ public class JobImpl implements Job {
             recording = process.isRecording();
             LOG.debug("Set recording for {} to {} based on process settings {} and client setting {}",
                     processModel.getPath(), recording, configuration.isRecording());
-            activityConfigurations = process.getActivities();
         }
         if (recording) {
             addAttribute("$njams_recorded", "true");
@@ -202,13 +201,14 @@ public class JobImpl implements Job {
 
     /**
      * Creates ActivityBuilder with a given activityModeId.
-     *
+     * @deprecated Does not work for sub-processes.
      * @param activityModelId to create
      * @return a builder
      */
+    @Deprecated
     @Override
     public ActivityBuilder createActivity(String activityModelId) {
-        return new ActivityBuilder(this, activityModelId);
+        return new ActivityBuilder(this, getProcessModel().getActivity(activityModelId));
     }
 
     /**
@@ -230,13 +230,14 @@ public class JobImpl implements Job {
 
     /**
      * Creates GroupBuilder with a given groupModelId.
-     *
+     * @deprecated Does not work for sub-processes.
      * @param groupModelId to create
      * @return a builder
      */
+    @Deprecated
     @Override
     public GroupBuilder createGroup(String groupModelId) {
-        return new GroupBuilder(this, groupModelId);
+        return new GroupBuilder(this, (GroupModel) getProcessModel().getActivity(groupModelId));
     }
 
     /**
@@ -624,9 +625,10 @@ public class JobImpl implements Job {
 
     /**
      * Return the ProcessModel
-     *
+     * @deprecated SDK-140 A job may use multiple process model.
      * @return the ProcessModel
      */
+    @Deprecated
     @Override
     public ProcessModel getProcessModel() {
         return processModel;
@@ -896,26 +898,6 @@ public class JobImpl implements Job {
         this.instrumented = instrumented;
     }
 
-    TracepointExt getTracepoint(String modelId) {
-        if (activityConfigurations != null) {
-            ActivityConfiguration activityConfiguration = activityConfigurations.get(modelId);
-            if (activityConfiguration != null) {
-                return activityConfiguration.getTracepoint();
-            }
-        }
-        return null;
-    }
-
-    Extract getExtract(String modelId) {
-        if (activityConfigurations != null) {
-            ActivityConfiguration settings = activityConfigurations.get(modelId);
-            if (settings != null) {
-                return settings.getExtract();
-            }
-        }
-        return null;
-    }
-
     /**
      * @return the traces
      */
@@ -1020,23 +1002,73 @@ public class JobImpl implements Job {
         this.estimatedSize += estimatedSize;
     }
 
-    /**
-     * Returns true if a Activity for a given activityModelId needs input or
-     * output data, based on extracts and tracepoints
-     *
-     * @param activityModelId activityModelId to check
-     * @return boolean if true
-     */
     @Override
+    @Deprecated
     public boolean needsData(String activityModelId) {
         if (deepTrace) {
             return true;
         }
-        if (activityConfigurations != null && activityConfigurations.containsKey(activityModelId)) {
-            ActivityConfiguration settings = activityConfigurations.get(activityModelId);
-            return settings.getExtract() != null || settings.getTracepoint() != null;
+        ActivityModel activityModel = getProcessModel().getActivity(activityModelId);
+        if (activityModel != null) {
+            return needsData(activityModel);
+        }
+
+        return false;
+    }
+
+    @Override
+    public boolean needsData(ActivityModel activityModel) {
+        if (deepTrace) {
+            return true;
+        }
+        ActivityConfiguration activityConfig = getActivityConfiguration(activityModel);
+        if (activityConfig != null) {
+            return activityConfig.getExtract() != null || isActiveTracepoint(activityConfig.getTracepoint());
         }
         return false;
+    }
+
+    /**
+     * Returns <code>true</code> if the given tracepoint configuration is currently active.
+     * @param tracepoint
+     * @return
+     */
+    public boolean isActiveTracepoint(TracepointExt tracepoint) {
+        if (tracepoint != null) {
+            //if tracepoint exists, check timings
+            LocalDateTime now = DateTimeUtility.now();
+            if (now.isAfter(tracepoint.getStarttime()) && now.isBefore(tracepoint.getEndtime())
+                    && !tracepoint.iterationsExceeded()) {
+                //timing is right, and iterations are less than configured
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Returns the runtime configuration for a specific {@link ActivityModel} if any.
+     * @param activityModel
+     * @return May be <code>null</code> if no configuration exists.
+     */
+    public ActivityConfiguration getActivityConfiguration(ActivityModel activityModel) {
+        if (activityModel == null) {
+            return null;
+        }
+        ProcessModel processModel = activityModel.getProcessModel();
+        if (processModel == null) {
+            return null;
+        }
+        Configuration configuration = processModel.getNjams().getConfiguration();
+        if (configuration == null) {
+            return null;
+        }
+        ProcessConfiguration processConfig = configuration.getProcess(processModel.getPath().toString());
+        if (processConfig == null) {
+            return null;
+        }
+        return processConfig.getActivity(activityModel.getId());
+
     }
 
     /**
@@ -1105,5 +1137,17 @@ public class JobImpl implements Job {
         synchronized (attributes) {
             attributes.put(key, value);
         }
+    }
+
+    public Njams getNjams() {
+        return njams;
+    }
+
+    @Override
+    public String toString() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("JobImpl[process=").append(processModel.getName()).append("; logId=").append(getLogId())
+                .append("; jobId=").append(getJobId()).append(']');
+        return sb.toString();
     }
 }

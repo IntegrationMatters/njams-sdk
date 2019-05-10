@@ -1,14 +1,14 @@
-/* 
+/*
  * Copyright (c) 2018 Faiz & Siegeln Software GmbH
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"),
  * to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
  * and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
- * 
+ *
  * The Software shall be used for Good, not Evil.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
@@ -16,10 +16,6 @@
  */
 package com.im.njams.sdk.logmessage;
 
-import com.faizsiegeln.njams.messageformat.v4.projectmessage.AttributeType;
-import com.faizsiegeln.njams.messageformat.v4.projectmessage.Extract;
-import com.faizsiegeln.njams.messageformat.v4.projectmessage.ExtractRule;
-import com.faizsiegeln.njams.messageformat.v4.projectmessage.RuleType;
 import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -28,13 +24,24 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
 import javax.xml.transform.sax.SAXSource;
 import javax.xml.xpath.XPathConstants;
-import net.sf.saxon.xpath.XPathEvaluator;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.w3c.dom.NodeList;
 import org.xml.sax.InputSource;
+
+import com.faizsiegeln.njams.messageformat.v4.projectmessage.AttributeType;
+import com.faizsiegeln.njams.messageformat.v4.projectmessage.Extract;
+import com.faizsiegeln.njams.messageformat.v4.projectmessage.ExtractRule;
+import com.faizsiegeln.njams.messageformat.v4.projectmessage.RuleType;
+import com.im.njams.sdk.configuration.ActivityConfiguration;
+import com.im.njams.sdk.configuration.ProcessConfiguration;
+import com.im.njams.sdk.model.ActivityModel;
+
+import net.sf.saxon.xpath.XPathEvaluator;
 
 /**
  *
@@ -45,8 +52,62 @@ public class ExtractHandler {
     private static final Logger LOG = LoggerFactory.getLogger(ExtractHandler.class);
     private static final Map<String, Matcher> MATCHER = new ConcurrentHashMap<>();
 
+    public enum ExtractSource {
+        INPUT("in"), OUTPUT("out");
+        public final String direction;
+
+        private ExtractSource(String key) {
+            direction = key;
+        }
+
+        public static ExtractSource byDirection(String direction) {
+            if ("in".equalsIgnoreCase(direction)) {
+                return INPUT;
+            }
+            if ("out".equalsIgnoreCase(direction)) {
+                return OUTPUT;
+            }
+            throw new IllegalArgumentException("No enum constant for direction: " + direction);
+        }
+    }
+
     private ExtractHandler() {
         //utility
+    }
+
+    /**
+     * @deprecated Use {@link #handleExtract(JobImpl, ActivityImpl, ExtractSource, Object, String)} instead.
+     * @param job
+     * @param activity
+     * @param direction
+     * @param sourceData
+     * @param data
+     */
+    @Deprecated
+    public static void handleExtract(JobImpl job, ActivityImpl activity, String direction, Object sourceData,
+            String data) {
+        handleExtract(job, activity, ExtractSource.valueOf(direction), sourceData, data);
+    }
+
+    public static void handleExtract(JobImpl job, ActivityImpl activity, ExtractSource sourceDirection,
+            Object sourceData, String data) {
+        ActivityConfiguration config = null;
+        ActivityModel model = activity.getActivityModel();
+        if (model == null) {
+            // deprecated
+            ProcessConfiguration processConfig = job.getNjams().getConfiguration()
+                    .getProcess(job.getProcessModel().getPath().toString());
+            if (processConfig == null) {
+                return;
+            }
+            processConfig.getActivity(activity.getModelId());
+        } else {
+            config = job.getActivityConfiguration(model);
+        }
+        if (config == null) {
+            return;
+        }
+        handleExtract(job, config.getExtract(), activity, sourceDirection, sourceData, data);
     }
 
     /**
@@ -54,19 +115,18 @@ public class ExtractHandler {
      * is only filled if a tracepoint was already evaluated. If not, the
      * sourceData has to be serialized via Njams to get extractData.
      *
-     * @param job the job
-     * @param activity the activity
-     * @param direction the diration
-     * @param sourceData the sourceData
-     * @param data the data
+     * @param job
+     * @param extract
+     * @param activity
+     * @param sourceDirection
+     * @param sourceData
+     * @param data
      */
-    public static void handleExtract(JobImpl job, ActivityImpl activity, String direction, Object sourceData, String data) {
-
-        Extract extract = job.getExtract(activity.getModelId());
+    public static void handleExtract(JobImpl job, Extract extract, ActivityImpl activity,
+            ExtractSource sourceDirection, Object sourceData, String data) {
         if (extract == null) {
             return;
         }
-
         Iterator<ExtractRule> erl = extract.getExtractRules().iterator();
 
         XpathContext xpathContext = new XpathContext();
@@ -74,7 +134,7 @@ public class ExtractHandler {
         while (erl.hasNext()) {
             ExtractRule er = erl.next();
 
-            if (er.getRuleType() == RuleType.DISABLED || !er.getInout().equalsIgnoreCase(direction)) {
+            if (er.getRuleType() == RuleType.DISABLED || !er.getInout().equalsIgnoreCase(sourceDirection.direction)) {
                 continue;
             }
             if (LOG.isDebugEnabled()) {
@@ -82,28 +142,29 @@ public class ExtractHandler {
             }
 
             switch (er.getRuleType()) {
-                case REGEXP:
-                    doRegexp(job, activity, er, sourceData, data);
-                    break;
-                case EVENT:
-                    doEvent(job, activity, er);
-                    break;
-                case VALUE:
-                    doValue(job, activity, er);
-                    break;
-                case XPATH:
-                    doXpath(job, activity, er, sourceData, data, xpathContext);
-                    break;
-                default:
-                    break;
+            case REGEXP:
+                doRegexp(job, activity, er, sourceData, data);
+                break;
+            case EVENT:
+                doEvent(job, activity, er);
+                break;
+            case VALUE:
+                doValue(job, activity, er);
+                break;
+            case XPATH:
+                doXpath(job, activity, er, sourceData, data, xpathContext);
+                break;
+            default:
+                break;
             }
         }
     }
 
-    private static void doRegexp(JobImpl job, ActivityImpl activity, ExtractRule er, Object sourceData, String paramData) {
+    private static void
+            doRegexp(JobImpl job, ActivityImpl activity, ExtractRule er, Object sourceData, String paramData) {
         String data = paramData;
         if (paramData == null || paramData.length() == 0) {
-            data = job.getProcessModel().getNjams().serialize(sourceData);
+            data = job.getNjams().serialize(sourceData);
             if (data == null || data.length() == 0) {
                 return;
             }
@@ -149,10 +210,11 @@ public class ExtractHandler {
         job.setInstrumented(true);
     }
 
-    private static void doXpath(JobImpl job, ActivityImpl activity, ExtractRule er, Object sourceData, String paramData, XpathContext xpathContext) {
+    private static void doXpath(JobImpl job, ActivityImpl activity, ExtractRule er, Object sourceData,
+            String paramData, XpathContext xpathContext) {
         String data = paramData;
         if (paramData == null || paramData.length() == 0) {
-            data = job.getProcessModel().getNjams().serialize(sourceData);
+            data = job.getNjams().serialize(sourceData);
             if (data == null || data.length() == 0) {
                 return;
             }
@@ -227,40 +289,42 @@ public class ExtractHandler {
 
     private static void setAttributes(Job job, ActivityImpl activity, String uncheckedsetting, String uncheckedvalue) {
         String setting = checkLength("Extract Property/Attribute Name", uncheckedsetting, 500);
-        String value = DataMasking.maskString(checkLength("Extract Property/Attribute '" + setting + "': ", uncheckedvalue, 2000));
+        String value =
+                DataMasking.maskString(checkLength("Extract Property/Attribute '" + setting + "': ", uncheckedvalue,
+                        2000));
         LOG.debug("nJAMS: setAttributes: {}/{}", uncheckedsetting, uncheckedvalue);
 
         String settingLowerCase = setting.toLowerCase();
         switch (settingLowerCase) {
-            case "correlationlogid":
-                job.setCorrelationLogId(value);
-                break;
-            case "parentlogid":
-                job.setParentLogId(value);
-                break;
-            case "externallogid":
-                job.setExternalLogId(value);
-                break;
-            case "businessservice":
-                job.setBusinessService(value);
-                break;
-            case "businessobject":
-                job.setBusinessObject(value);
-                break;
-            case "eventmessage":
-                activity.setEventMessage(value);
-                break;
-            case "eventcode":
-                activity.setEventCode(value);
-                break;
-            case "payload":
-                activity.setEventPayload(value);
-                break;
-            case "stacktrace":
-                activity.setStackTrace(value);
-                break;
-            default:
-                activity.addAttribute(setting, value);
+        case "correlationlogid":
+            job.setCorrelationLogId(value);
+            break;
+        case "parentlogid":
+            job.setParentLogId(value);
+            break;
+        case "externallogid":
+            job.setExternalLogId(value);
+            break;
+        case "businessservice":
+            job.setBusinessService(value);
+            break;
+        case "businessobject":
+            job.setBusinessObject(value);
+            break;
+        case "eventmessage":
+            activity.setEventMessage(value);
+            break;
+        case "eventcode":
+            activity.setEventCode(value);
+            break;
+        case "payload":
+            activity.setEventPayload(value);
+            break;
+        case "stacktrace":
+            activity.setStackTrace(value);
+            break;
+        default:
+            activity.addAttribute(setting, value);
         }
     }
 

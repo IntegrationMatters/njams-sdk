@@ -1,14 +1,14 @@
-/* 
+/*
  * Copyright (c) 2018 Faiz & Siegeln Software GmbH
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"),
  * to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
  * and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
- * 
+ *
  * The Software shall be used for Good, not Evil.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
@@ -16,10 +16,11 @@
  */
 package com.im.njams.sdk.logmessage;
 
-import com.faizsiegeln.njams.messageformat.v4.logmessage.ActivityStatus;
-import com.im.njams.sdk.model.ActivityModel;
-import com.im.njams.sdk.model.TransitionModel;
 import java.time.LocalDateTime;
+
+import com.faizsiegeln.njams.messageformat.v4.logmessage.ActivityStatus;
+import com.im.njams.sdk.model.GroupModel;
+import com.im.njams.sdk.model.TransitionModel;
 
 /**
  * This Builder will be used to create groups. To get this Builder, use the
@@ -30,18 +31,25 @@ import java.time.LocalDateTime;
  */
 public class GroupBuilder extends ActivityBuilder {
 
+    @Deprecated
     GroupBuilder(JobImpl job, String modelId) {
-        super(new GroupImpl(job));
+        super(getModel(job, modelId) != null ? new GroupImpl(job, getModel(job, modelId))
+                : new GroupImpl(job, modelId));
         getActivity().setSequence(job.getNextSequence());
-        getActivity().setModelId(modelId);
     }
 
-    GroupBuilder(JobImpl job, ActivityModel model) {
-        this(job, model.getId());
+    GroupBuilder(JobImpl job, GroupModel model) {
+        super(new GroupImpl(job, model));
+        getActivity().setSequence(job.getNextSequence());
     }
 
     GroupBuilder(GroupImpl group) {
         super(group);
+    }
+
+    @Deprecated
+    private static GroupModel getModel(JobImpl job, String modelId) {
+        return (GroupModel) job.getProcessModel().getActivity(modelId);
     }
 
     /**

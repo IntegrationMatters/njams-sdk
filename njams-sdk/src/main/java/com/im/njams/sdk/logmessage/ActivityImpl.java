@@ -1,14 +1,14 @@
-/* 
+/*
  * Copyright (c) 2019 Faiz & Siegeln Software GmbH
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"),
  * to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
  * and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
- * 
+ *
  * The Software shall be used for Good, not Evil.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
@@ -21,7 +21,6 @@ import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 
 import javax.xml.bind.annotation.XmlTransient;
 
@@ -30,9 +29,12 @@ import org.slf4j.LoggerFactory;
 
 import com.faizsiegeln.njams.messageformat.v4.logmessage.ActivityStatus;
 import com.faizsiegeln.njams.messageformat.v4.logmessage.Predecessor;
+import com.faizsiegeln.njams.messageformat.v4.projectmessage.Extract;
 import com.im.njams.sdk.common.DateTimeUtility;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
+import com.im.njams.sdk.configuration.ActivityConfiguration;
 import com.im.njams.sdk.configuration.TracepointExt;
+import com.im.njams.sdk.logmessage.ExtractHandler.ExtractSource;
 import com.im.njams.sdk.model.ActivityModel;
 import com.im.njams.sdk.model.GroupModel;
 import com.im.njams.sdk.model.SubProcessActivityModel;
@@ -55,9 +57,11 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
 
     // Job will be hold because it will be needed when creating the next activity via stepTo logic
     private final JobImpl job;
-    private boolean starter;
+    private final ActivityModel activityModel;
+    private final Extract extract;
+    private boolean starter = false;
     private GroupImpl parent = null;
-    private boolean trace;
+    private boolean trace = false;
     private LocalDateTime startTime = DateTimeUtility.now();
 
     private long estimatedSize = 700L;
@@ -66,13 +70,28 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
     private boolean outputProcessed = false;
 
     /**
-     * Create new ActivityImpl for a given Job
-     *
-     * @param job job which the new ActivitiyImpl belongs to
+     * @deprecated SDK-140
+     * @param job
+     * @param modelId
      */
-    public ActivityImpl(JobImpl job) {
+    @Deprecated
+    public ActivityImpl(JobImpl job, String modelId) {
         this.job = job;
-        job.addToEstimatedSize(estimatedSize);
+        setModelId(modelId);
+        activityModel = null;
+        extract = null;
+    }
+
+    public ActivityImpl(JobImpl job, ActivityModel model) {
+        this.job = job;
+        activityModel = Objects.requireNonNull(model);
+        setModelId(model.getId());
+        ActivityConfiguration activityConfig = job.getActivityConfiguration(activityModel);
+        if (activityConfig != null) {
+            extract = activityConfig.getExtract();
+        } else {
+            extract = null;
+        }
     }
 
     /**
@@ -100,11 +119,12 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
 
     /**
      * Step to a new Activity with a given toActivityModelId.
-     *
+     * @deprecated SDK-140 Does not work for sub-processes.
      * @param toActivityModelId to step to
      * @return the ActivityBuilder for the new Activity
      */
     @Override
+    @Deprecated
     public ActivityBuilder stepTo(String toActivityModelId) {
         end();
         ActivityBuilder builder = new ActivityBuilder(job, toActivityModelId);
@@ -178,11 +198,12 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
 
     /**
      * Step to a new Group with a given toGroupModelId.
-     *
+     * @deprecated SDK-140 Does not work for sub-processes.
      * @param toGroupModelId to step to
      * @return the GroupBuilder for the new Group
      */
     @Override
+    @Deprecated
     public GroupBuilder stepToGroup(String toGroupModelId) {
         end();
         GroupBuilder builder = new GroupBuilder(job, toGroupModelId);
@@ -235,11 +256,11 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
     }
 
     @XmlTransient
-    public LocalDateTime getStartTime(){
+    public LocalDateTime getStartTime() {
         return startTime;
     }
 
-    public void setStartTime(LocalDateTime startTime){
+    public void setStartTime(LocalDateTime startTime) {
         this.startTime = startTime;
     }
 
@@ -259,7 +280,13 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
                 job.addToEstimatedSize(getInput().length());
             }
         }
-        ExtractHandler.handleExtract(job, this, "in", input, getInput());
+
+        if (extract != null) {
+            ExtractHandler.handleExtract(job, extract, this, ExtractSource.INPUT, input, getInput());
+        } else if (activityModel == null) {
+            // deprecated SDK-140
+            ExtractHandler.handleExtract(job, this, ExtractSource.INPUT, input, getInput());
+        }
         inputProcessecd = true;
     }
 
@@ -305,7 +332,12 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
                 job.addToEstimatedSize(getOutput().length());
             }
         }
-        ExtractHandler.handleExtract(job, this, "out", output, getOutput());
+        if (extract != null) {
+            ExtractHandler.handleExtract(job, extract, this, ExtractSource.OUTPUT, output, getOutput());
+        } else if (activityModel == null) {
+            // deprecated SDK-140
+            ExtractHandler.handleExtract(job, this, ExtractSource.OUTPUT, output, getOutput());
+        }
         outputProcessed = true;
     }
 
@@ -329,30 +361,27 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
             if (trace) {
                 //add trace data
                 if (input) {
-                    setInput(job.getProcessModel().getNjams().serialize(data));
+                    setInput(job.getNjams().serialize(data));
                 } else {
-                    setOutput(job.getProcessModel().getNjams().serialize(data));
+                    setOutput(job.getNjams().serialize(data));
                 }
-                job.setTraces(trace);
+                job.setTraces(true);
             }
         }
     }
 
     private void checkTracepoint() {
-        //check tracepoint
-        TracepointExt tracepoint = job.getTracepoint(getModelId());
-        if (tracepoint != null) {
-            //if tracepoint exists, check timings
-            LocalDateTime now = DateTimeUtility.now();
-            if (now.isAfter(tracepoint.getStarttime()) && now.isBefore(tracepoint.getEndtime())
-                    && !tracepoint.iterationsExceeded()) {
-                //timing is right, and iterations are less than configured
-                trace = true;
-                tracepoint.increaseCurrentIterations();
-                //activate deeptrace if needed
-                if (tracepoint.isDeeptrace()) {
-                    job.setDeepTrace(true);
-                }
+        ActivityConfiguration activityConfig = job.getActivityConfiguration(activityModel);
+        if (activityConfig == null) {
+            return;
+        }
+        TracepointExt tracepoint = activityConfig.getTracepoint();
+        if (job.isActiveTracepoint(tracepoint)) {
+            trace = true;
+            tracepoint.increaseCurrentIterations();
+            //activate deeptrace if needed
+            if (tracepoint.isDeeptrace()) {
+                job.setDeepTrace(true);
             }
         }
     }
@@ -419,9 +448,9 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
         }
     }
 
-    private void setExecutionIfNotSet(){
-        if(super.getExecution() == null){
-            this.setExecution(DateTimeUtility.now());
+    private void setExecutionIfNotSet() {
+        if (getExecution() == null) {
+            setExecution(DateTimeUtility.now());
         }
     }
 
@@ -451,7 +480,7 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
     @Override
     public void processStartData(Object startData) {
         if (job.isRecording()) {
-            setStartData(job.getProcessModel().getNjams().serialize(startData));
+            setStartData(job.getNjams().serialize(startData));
         }
     }
 
@@ -591,6 +620,11 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
         synchronized (attributesLock) {
             return Collections.unmodifiableMap(super.getAttributes());
         }
+    }
+
+    @XmlTransient
+    ActivityModel getActivityModel() {
+        return activityModel;
     }
 
 }
