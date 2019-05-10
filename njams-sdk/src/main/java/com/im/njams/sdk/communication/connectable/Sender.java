@@ -2,8 +2,6 @@
  */
 package com.im.njams.sdk.communication.connectable;
 
-import com.im.njams.sdk.communication.connectable.Connectable;
-
 import com.faizsiegeln.njams.messageformat.v4.common.CommonMessage;
 
 /**
@@ -17,21 +15,21 @@ public interface Sender extends Connectable {
     /**
      * Property key for header properties which will specify the messageVersion for the server
      */
-    public static final String NJAMS_MESSAGEVERSION = "NJAMS_MESSAGEVERSION";
+    public static final String NJAMS_SERVER_MESSAGEVERSION = "NJAMS_MESSAGEVERSION";
     /**
      * Property key for header properties which will specify the path for the server
      */
-    public static final String NJAMS_PATH = "NJAMS_PATH";
+    public static final String NJAMS_SERVER_PATH = "NJAMS_PATH";
     /**
      * Property key for header properties which must be send to the server in
      * logmessages specifing the logId
      */
-    public static final String NJAMS_LOGID = "NJAMS_LOGID";
+    public static final String NJAMS_SERVER_LOGID = "NJAMS_LOGID";
     /**
      * Property key for header properties which must be send to the server in
      * every message
      */
-    public static final String NJAMS_MESSAGETYPE = "NJAMS_MESSAGETYPE";
+    public static final String NJAMS_SERVER_MESSAGETYPE = "NJAMS_MESSAGETYPE";
 
     /**
      * Property key for header properties which will specify the messageVersion for the cloud
