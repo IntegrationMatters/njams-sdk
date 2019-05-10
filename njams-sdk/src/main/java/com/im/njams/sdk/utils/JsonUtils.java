@@ -1,6 +1,10 @@
 package com.im.njams.sdk.utils;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.im.njams.sdk.common.JsonSerializerFactory;
+
+import java.io.IOException;
 
 /**
  * Utilities for serializing to and parsing from JSON.
@@ -27,8 +31,8 @@ public class JsonUtils {
      * @throws Exception
      *             If parsing the given JSON into the target type failed.
      */
-    public static <T> T parse(String json, Class<T> type) throws Exception {
-        return JsonSerializerFactory.getDefaultMapper().readValue(json, type);
+    public static <T> T parse(String json, Class<T> type) throws IOException {
+        return getMapper().readValue(json, type);
     }
 
     /**
@@ -40,7 +44,11 @@ public class JsonUtils {
      * @throws Exception
      *             If serializing the object to JSON failed.
      */
-    public static String serialize(Object object) throws Exception {
-        return JsonSerializerFactory.getDefaultMapper().writeValueAsString(object);
+    public static String serialize(Object object) throws JsonProcessingException {
+        return getMapper().writeValueAsString(object);
+    }
+
+    private static ObjectMapper getMapper(){
+        return JsonSerializerFactory.getDefaultMapper();
     }
 }
