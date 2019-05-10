@@ -71,30 +71,30 @@
 
     <dependencies>
         <dependency>
+            <groupId>com.amazonaws</groupId>
+            <artifactId>aws-iot-device-sdk-java</artifactId>
+            <version>1.1.1</version>
+        </dependency>
+        <!-- provided - not shaded-->
+        <dependency>
             <groupId>com.faizsiegeln.njams</groupId>
             <artifactId>njams4-sdk</artifactId>
             <version>4.0.6-SNAPSHOT</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
-            <groupId>com.faizsiegeln.njams</groupId>
-            <artifactId>njams4-sdk-communication-http</artifactId>
-            <version>4.0.6-SNAPSHOT</version>
-        </dependency>
-        <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
             <scope>provided</scope>
         </dependency>
-
-        <dependency>
-            <groupId>com.amazonaws</groupId>
-            <artifactId>aws-iot-device-sdk-java</artifactId>
-            <version>1.1.1</version>
-        </dependency>
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-all</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>

@@ -14,20 +14,51 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
  */
-package com.im.njams.sdk.communication.cloud;
+package com.im.njams.sdk.communication.cloud.connector.receiver;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
+import java.io.BufferedReader;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 
 /**
  *
  * @author lmusebrink
  */
-public class PresignedUrl {
+public class ApiKeyReader {
     
-    public String url;
-
-    public PresignedUrl(@JsonProperty("url")String url) {
-        this.url = url;
+    /**
+     * Get a Api Key from InputStream.
+     *
+     * @param fileName file name
+     * @return Api key
+     * @throws IOException IOException resulted from invalid file IO
+     */
+    public static String getApiKey(String fileName) throws IOException {
+        try (InputStream stream = new FileInputStream(fileName)) {
+            return getApiKey(stream);
+        }
     }
+    
+    /**
+     * Get a Api Key for the file.
+     *
+     * @param stream InputStream object
+     * @return Api key
+     * @throws IOException IOException resulted from invalid file IO
+     */
+    public static String getApiKey(InputStream stream) throws IOException {
        
+        BufferedReader br = new BufferedReader(new InputStreamReader(stream, "UTF-8"));
+        StringBuilder builder = new StringBuilder();
+        
+        for (String line = br.readLine(); line != null; line = br.readLine()) {
+          builder.append(line);
+        }
+        
+        return builder.toString();
+    }
+
+    
 }

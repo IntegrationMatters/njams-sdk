@@ -14,51 +14,22 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
  */
-package com.im.njams.sdk.communication.cloud;
+package com.im.njams.sdk.communication.cloud.connector;
 
-import java.io.BufferedReader;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
  *
  * @author lmusebrink
  */
-public class ApiKeyReader {
+public class Endpoints {
     
-    /**
-     * Get a Api Key from InputStream.
-     *
-     * @param fileName file name
-     * @return Api key
-     * @throws IOException IOException resulted from invalid file IO
-     */
-    public static String getApiKey(String fileName) throws IOException {
-        try (InputStream stream = new FileInputStream(fileName)) {
-            return getApiKey(stream);
-        }
-    }
-    
-    /**
-     * Get a Api Key for the file.
-     *
-     * @param stream InputStream object
-     * @return Api key
-     * @throws IOException IOException resulted from invalid file IO
-     */
-    public static String getApiKey(InputStream stream) throws IOException {
-       
-        BufferedReader br = new BufferedReader(new InputStreamReader(stream, "UTF-8"));
-        StringBuilder builder = new StringBuilder();
-        
-        for (String line = br.readLine(); line != null; line = br.readLine()) {
-          builder.append(line);
-        }
-        
-        return builder.toString();
-    }
+    public String ingest;
+    public String client;
 
+    public Endpoints(@JsonProperty("ingest")String ingest, @JsonProperty("client")String client) {
+        this.ingest = ingest;
+        this.client = client;
+    }
     
 }
