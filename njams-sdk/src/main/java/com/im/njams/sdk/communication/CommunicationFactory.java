@@ -83,9 +83,9 @@ public class CommunicationFactory {
                         // create a new instance
                         LOG.info("Create Receiver {}", receiver.getName());
                         Receiver newInstance = receiver.getClass().newInstance();
-                        ((AbstractReceiver)newInstance).getConnector().validate();
                         newInstance.setNjams(njams);
                         newInstance.init(Transformer.decode(settings.getProperties()));
+                        ((AbstractReceiver)newInstance).getConnector().validate();
                         return newInstance;
                     } catch (Exception e) {
                         throw new UnsupportedOperationException(
@@ -122,8 +122,8 @@ public class CommunicationFactory {
                         // create a new instance
                         LOG.info("Create sender {}", sender.getName());
                         Sender newInstance = sender.getClass().newInstance();
-                        ((AbstractSender)newInstance).getConnector().validate();
                         newInstance.init(Transformer.decode(settings.getProperties()));
+                        ((AbstractSender)newInstance).getConnector().validate();
                         return newInstance;
                     } catch (Exception e) {
                         throw new UnsupportedOperationException(

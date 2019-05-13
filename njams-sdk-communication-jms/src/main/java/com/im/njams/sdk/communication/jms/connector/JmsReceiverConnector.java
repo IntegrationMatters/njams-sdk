@@ -46,9 +46,9 @@ public class JmsReceiverConnector extends JmsConnector {
         } else {
             topicName = properties.getProperty(JmsConstants.DESTINATION) + ".commands";
         }
+        this.njams = njams;
         this.messageSelector = this.createMessageSelector();
         this.messageListener = messageListener;
-        this.njams = njams;
     }
 
     /**
