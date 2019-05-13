@@ -41,17 +41,17 @@ public class CloudReceiverConnector extends CloudConnector {
     public CloudReceiverConnector(Properties properties, String name, Njams njams) {
         super(properties, name);
 
-        String payload = getInitialPayload(njams);
-
-        LOG.info("Setting quality of mqtt service to \"at least one delivery\"");
-        LOG.info("Creating initial connection message with payload: {}", payload);
-        this.connectionMessage = new AWSIotMessage(ON_CONNECT, QOS, payload);
-
         //Read properties file
         setEndpoint();
         setInstanceId();
         String certificateFile = readCertFile();
         String privateKeyFile = readPrivateKeyFile();
+
+        String payload = getInitialPayload(njams);
+
+        LOG.info("Setting quality of mqtt service to \"at least one delivery\"");
+        LOG.info("Creating initial connection message with payload: {}", payload);
+        this.connectionMessage = new AWSIotMessage(ON_CONNECT, QOS, payload);
 
         topicName = createTopicName();
 
@@ -79,19 +79,19 @@ public class CloudReceiverConnector extends CloudConnector {
     }
 
     protected String readPrivateKeyFile() {
-        String certificateFile = properties.getProperty(CloudConstants.CLIENT_CERTIFICATE);
-        if (certificateFile == null) {
-            printProvidePropertyMessage(CloudConstants.CLIENT_CERTIFICATE);
-        }
-        return certificateFile;
-    }
-
-    protected String readCertFile() {
         String privateKeyFile = properties.getProperty(CloudConstants.CLIENT_PRIVATEKEY);
         if (privateKeyFile == null) {
             printProvidePropertyMessage(CloudConstants.CLIENT_PRIVATEKEY);
         }
         return privateKeyFile;
+    }
+
+    protected String readCertFile() {
+        String certificateFile = properties.getProperty(CloudConstants.CLIENT_CERTIFICATE);
+        if (certificateFile == null) {
+            printProvidePropertyMessage(CloudConstants.CLIENT_CERTIFICATE);
+        }
+        return certificateFile;
     }
 
     protected void createKeyStorePasswordPair(String certificateFile, String privateKeyFile) {
@@ -193,7 +193,7 @@ public class CloudReceiverConnector extends CloudConnector {
             }
             LOG.debug("Trying to connect to endpoint: {} with clientId: {}", endpoint, clientId);
             createAndConnectMqttClient();
-            LOG.info("Connected to endpoint: {} with clientId: {}\", endpoint, clientId");
+            LOG.info("Connected to endpoint: {} with clientId: {}", endpoint, clientId);
 
             String payload = connectionMessage.getStringPayload();
             LOG.debug("Trying to send message: {} to topic: {}", payload, ON_CONNECT);

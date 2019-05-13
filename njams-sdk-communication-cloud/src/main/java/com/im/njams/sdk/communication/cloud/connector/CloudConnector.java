@@ -44,9 +44,9 @@ public abstract class CloudConnector extends AbstractConnector {
         exceptions.addAll(extClose());
         if (!exceptions.isEmpty()) {
             exceptions.forEach(exception -> LOG.error(exception.getMessage()));
-            throw new NjamsSdkRuntimeException("Unable to close https connector");
+            throw new NjamsSdkRuntimeException("Unable to close cloud connector");
         } else {
-            LOG.info("HttpsConnector has been closed.");
+            LOG.info("CloudConnector has been closed.");
         }
     }
 
