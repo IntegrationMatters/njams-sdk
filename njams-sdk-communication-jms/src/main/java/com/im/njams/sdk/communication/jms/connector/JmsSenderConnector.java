@@ -40,10 +40,10 @@ public class JmsSenderConnector extends JmsConnector {
     @Override
     protected void extConnect() throws Exception {
         Destination destination = this.getOrCreateDestination(destinationName);
-        LOG.debug("The Queue was created successfully.");
+        LOG.trace("The Queue was created successfully.");
 
         this.producer = this.createProducer(destination);
-        LOG.debug("The MessageProducer was created successfully.");
+        LOG.trace("The MessageProducer was created successfully.");
     }
 
     /**

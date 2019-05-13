@@ -66,7 +66,7 @@ public class NjamsConnection {
             connector.close();
             return true;
         } catch (Exception e) {
-            LOG.error("Unable to close connection for {}, {}", connector.getClass().getCanonicalName(), e);
+            LOG.debug("Unable to close connection for {}, {}", connector.getClass().getCanonicalName(), e);
             return false;
         }
     }
@@ -133,12 +133,13 @@ public class NjamsConnection {
     }
 
     public void initialConnect() {
-        LOG.info("{} connecting...", this.getName());
+        String name = this.getName();
+        LOG.info("{} connecting...", name);
         try{
             this.tryToConnect();
-            LOG.info("{} connected", this.getName());
+            LOG.info("{} connected", name);
         }catch(NjamsSdkRuntimeException ex){
-            LOG.error("{} couldn't establish connection. Pushing reconnect task to background.", ex);
+            LOG.error("Connection for {} couldn't establish connection. Pushing reconnect task to background.", name, ex);
             onException(ex);
         }
     }

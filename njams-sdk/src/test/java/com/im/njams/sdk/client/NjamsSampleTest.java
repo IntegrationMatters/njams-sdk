@@ -29,8 +29,8 @@ import org.junit.Test;
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.common.Path;
 import com.im.njams.sdk.communication.CommunicationFactory;
-import com.im.njams.sdk.communication.http.HttpSender;
-import com.im.njams.sdk.communication.jms.JmsConstants;
+//import com.im.njams.sdk.communication.http.HttpSender;
+//import com.im.njams.sdk.communication.jms.JmsConstants;
 import com.im.njams.sdk.logmessage.Activity;
 import com.im.njams.sdk.logmessage.ActivityImpl;
 import com.im.njams.sdk.logmessage.Group;
@@ -50,7 +50,7 @@ import com.im.njams.sdk.settings.encoding.Transformer;
  * @author bwand
  */
 public class NjamsSampleTest {
-
+/*
     @Test
     public void testWithoutModel() throws Exception {
         Path clientPath = new Path("SDK4", "TEST");
@@ -1312,5 +1312,5 @@ public class NjamsSampleTest {
         // If you are finished with processing or the application goes down, stop client...
         njams.stop();
 
-    }
+    }*/
 }

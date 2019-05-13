@@ -8,6 +8,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * This abstract class is used for reconnecting Connectable instances.
@@ -24,6 +25,8 @@ public class Reconnector {
     private long reconnectInterval;
 
     private final AtomicBoolean isReconnecting = new AtomicBoolean(false);
+
+    private static final AtomicInteger connecting = new AtomicInteger(0);
 
     //The njamsConnection that should be reconnected
     private NjamsConnection njamsConnection;
@@ -52,15 +55,18 @@ public class Reconnector {
             isReconnecting.set(true);
             njamsConnection.tryToClose();
             printReconnectExceptionMessage(ex);
-            while (!njamsConnection.isConnected()) {
+            LOG.info("{} connectors are reconnecting now", connecting.incrementAndGet());
+            do{
                 try {
                     LOG.debug("Trying to reconnect {}", njamsConnection.getName());
                     njamsConnection.tryToConnect();
+                    LOG.info("Connection can be established again!");
                     LOG.info("Reconnected {}", njamsConnection.getName());
+                    LOG.debug("{} connectors still need to reconnect.", connecting.decrementAndGet());
                 } catch (NjamsSdkRuntimeException e) {
                 } finally{
                     try {
-                        //Wait for reconnectInterval milliseconds, even if the njamsConnection has been established,
+                        //Wait for #reconnectInterval milliseconds, even if the njamsConnection has been established,
                         //to minimize the reconnect method calls by outdated njamsConnection errors. (They might be thrown
                         //right before the njamsConnection has been established again, so they may be obsolete by now)
                         Thread.sleep(reconnectInterval);
@@ -70,7 +76,7 @@ public class Reconnector {
                         break;
                     }
                 }
-            }
+            }while((!njamsConnection.isConnected()));
             isReconnecting.set(false);
         }
     }

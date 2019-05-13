@@ -75,10 +75,10 @@ public class JmsReceiverConnector extends JmsConnector {
     @Override
     protected void extConnect() throws JMSException, NamingException {
         Topic topic = this.getOrCreateTopic();
-        LOG.debug("The Topic was created successfully.");
+        LOG.trace("The Topic was created successfully.");
 
         this.consumer = this.createConsumer(topic);
-        LOG.debug("The MessageConsumer was created successfully.");
+        LOG.trace("The MessageConsumer was created successfully.");
     }
 
     @Override

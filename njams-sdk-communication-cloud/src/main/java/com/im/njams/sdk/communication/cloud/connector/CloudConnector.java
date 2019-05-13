@@ -28,7 +28,7 @@ public abstract class CloudConnector extends AbstractConnector {
         String apikeypath = properties.getProperty(CloudConstants.APIKEY);
 
         if (apikeypath == null) {
-            LOG.error("Please provide property {} for CloudSender", CloudConstants.APIKEY);
+            LOG.error("Please provide property {} for CloudConnector", CloudConstants.APIKEY);
         }
         try {
             apikey = ApiKeyReader.getApiKey(apikeypath);

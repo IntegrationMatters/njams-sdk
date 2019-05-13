@@ -46,19 +46,19 @@ public abstract class JmsConnector extends AbstractConnector implements Exceptio
                 return;
             }
             context = this.getInitialContext();
-            LOG.debug("The InitialContext was created successfully.");
+            LOG.trace("The InitialContext was created successfully.");
 
             ConnectionFactory factory = this.getConnectionFactory();
-            LOG.debug("The ConnectionFactory was created successfully.");
+            LOG.trace("The ConnectionFactory was created successfully.");
 
             this.connection = this.createConnection(factory);
-            LOG.debug("The connection was created successfully.");
+            LOG.trace("The connection was created successfully.");
 
             this.session = this.createSession();
-            LOG.debug("The Session was created successfully.");
+            LOG.trace("The Session was created successfully.");
 
             this.startConnection();
-            LOG.debug("The connection was started successfully.");
+            LOG.trace("The connection was started successfully.");
 
             extConnect();
         } catch (Exception e) {

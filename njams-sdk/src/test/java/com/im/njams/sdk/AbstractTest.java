@@ -58,9 +58,10 @@ public abstract class AbstractTest {
      * This constructor creates the njams instance with path SDK4-TEST-PROCESSES.
      * The TestSender and TestReceiver are used as communication devices.
      */
-//    public AbstractTest(){
+    public AbstractTest(){
 //        this(TestSender.getSettings());
-//    }
+        this(null);
+    }
 
     /**
      * This constructor creates the njams instance with path SDK4-TEST-PROCESSES.

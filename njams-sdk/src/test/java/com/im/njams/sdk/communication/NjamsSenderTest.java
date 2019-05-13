@@ -171,7 +171,7 @@ public class NjamsSenderTest extends AbstractTest {
      * It only reconnects one sender, because the NjamsSender creates multiple TestSenders
      * that redirect the send and connect method to the static ExceptionSender.
      */
-    @Test
+    /*@Test
     public void testReconnectingSenders() throws InterruptedException {
         //Set static ExceptionSender to redirect calls to the TestSender
         TestSender.setSenderMock(new ExceptionSender());
@@ -236,6 +236,5 @@ public class NjamsSenderTest extends AbstractTest {
         public String getName() {
             return null;
         }
-    }
-}
-*/
+    }*/
+//}
