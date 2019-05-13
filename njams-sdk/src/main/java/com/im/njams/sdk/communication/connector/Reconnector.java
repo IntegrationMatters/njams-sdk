@@ -10,7 +10,7 @@ import org.slf4j.LoggerFactory;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
- * This abstract class is used for reconnecting AutoCloseables.
+ * This abstract class is used for reconnecting Connectable instances.
  *
  * @author krautenberg
  * @version 4.0.6
@@ -73,10 +73,6 @@ public class Reconnector {
             }
             isReconnecting.set(false);
         }
-    }
-
-    public void connect(){
-
     }
 
     private void printReconnectExceptionMessage(NjamsSdkRuntimeException ex) {

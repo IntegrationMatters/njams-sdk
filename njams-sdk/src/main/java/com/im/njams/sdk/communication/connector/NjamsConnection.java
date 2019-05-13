@@ -111,7 +111,7 @@ public class NjamsConnection {
 
                 connectionStatus = ConnectionStatus.CONNECTED;
 
-                Thread.sleep(getReconnectInterval());
+                Thread.sleep(50);
 
             } catch (Exception e) {
                 tryToClose();

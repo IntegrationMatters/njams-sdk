@@ -2,8 +2,6 @@
  */
 package com.im.njams.sdk.communication.connectable;
 
-import com.im.njams.sdk.communication.connectable.Connectable;
-
 import com.faizsiegeln.njams.messageformat.v4.common.CommonMessage;
 
 /**

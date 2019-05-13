@@ -2,7 +2,6 @@
  */
 package com.im.njams.sdk.communication.connectable;
 
-import com.im.njams.sdk.communication.connectable.Connectable;
 
 import java.util.Properties;
 

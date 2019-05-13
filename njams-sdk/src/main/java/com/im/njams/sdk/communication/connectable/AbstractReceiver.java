@@ -4,7 +4,6 @@ package com.im.njams.sdk.communication.connectable;
 
 import com.im.njams.sdk.communication.InstructionListener;
 import com.im.njams.sdk.communication.connector.Connector;
-import com.im.njams.sdk.utils.JsonUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -13,8 +12,6 @@ import com.faizsiegeln.njams.messageformat.v4.command.Request;
 import com.faizsiegeln.njams.messageformat.v4.command.Response;
 import com.im.njams.sdk.Njams;
 
-import java.io.IOException;
-import java.io.InputStream;
 import java.util.Properties;
 
 /**
