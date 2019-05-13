@@ -14,6 +14,7 @@ node ('master') {
     def mvnHome
     env.JAVA_HOME = tool 'jdk-8u92'
 
+	
     def nodeHome = tool name: 'NodeJS 6.9.1', type: 'jenkins.plugins.nodejs.tools.NodeJSInstallation'
     env.PATH = "${nodeHome}/bin:${env.PATH}"
 

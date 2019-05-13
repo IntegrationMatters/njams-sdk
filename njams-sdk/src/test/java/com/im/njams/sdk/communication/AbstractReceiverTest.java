@@ -1,14 +1,14 @@
 /*
  * Copyright (c) 2019 Faiz & Siegeln Software GmbH
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"),
  * to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
  * and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
- * 
+ *
  * The Software shall be used for Good, not Evil.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
@@ -27,7 +27,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
 
-import com.im.njams.sdk.communication.connectable.AbstractReceiver;
+import org.junit.AfterClass;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.junit.Assert.*;
@@ -44,7 +45,8 @@ public class AbstractReceiverTest {
     private static final String TESTCOMMAND = "testCommand";
 
     //setNjams tests
-    *//**
+
+    /**
      * This method tests if the setNjams method works.
      *//*
     @Test
@@ -66,7 +68,10 @@ public class AbstractReceiverTest {
     }
 
     //onInstruction tests
-    *//**
+
+    */
+
+    /**
      * This method tests if the onInstruction method works without an Njams
      * object.
      *//*
@@ -269,7 +274,7 @@ public class AbstractReceiverTest {
         list.add(new WrongInstructionListener());
         testBadResultWithInstructions(list);
     }
-    
+
     @Test
     public void testOnInstructionExtendedRequestException() {
         AbstractReceiverImpl impl = new AbstractReceiverImpl();
@@ -281,7 +286,7 @@ public class AbstractReceiverTest {
         req.setCommand(TESTCOMMAND);
         req.getParameters().put("isException", "true");
         inst.setRequest(req);
-        
+
         impl.onInstruction(inst);
 
         assertEquals(2, inst.getResponse().getResultCode());
@@ -290,7 +295,8 @@ public class AbstractReceiverTest {
     }
 
     //reconnect tests
-    *//**
+    */
+    /**
      * This method tests if the Reconnect works, if everything works fine.
      *//*
     @Test
@@ -358,7 +364,9 @@ public class AbstractReceiverTest {
     }
 
     //start tests
-    *//**
+    */
+
+    /**
      * This method tests if the start method established a connection normally.
      *//*
     @Test
@@ -412,7 +420,9 @@ public class AbstractReceiverTest {
     }
 
     //onException tests
-    *//**
+    */
+
+    /**
      * This method tests if the onException method reconnects properly if
      * disconnected.
      *
@@ -470,12 +480,18 @@ public class AbstractReceiverTest {
         for (int i = 0; i < 10; i++) {
             impl.onException(null);
         }
-        Thread.sleep(500);
         assertTrue(impl.verifyingCounter.get() <= 1);
+        long offset = 1000;
+        //Exception will be thrown #THROWINGMAXCOUNTER times, and each throw indicates a thread sleep of RECONNECT_INTERVAL time in ms.
+        Thread.sleep(AbstractReceiverImpl.RECONNECT_INTERVAL*AbstractReceiverImpl.THROWINGMAXCOUNTER + offset);
+        assertTrue(impl.verifyingCounter.get() == 0);
+
     }
 
     //isConnected test
-    *//**
+    */
+
+    /**
      * This method tests if the connectionStatus is DISCONNECTED after the
      * initialisation of the AbstractReceiverImpl.
      *//*
@@ -537,6 +553,10 @@ public class AbstractReceiverTest {
 
         private int throwingCounter = 0;
 
+        public static final int THROWINGMAXCOUNTER = 10;
+
+        public static final long RECONNECT_INTERVAL = AbstractReceiver.RECONNECT_INTERVAL;
+
         //This method should be tested by the real subclass of the AbstractReceiver
         @Override
         public String getName() {
@@ -568,15 +588,11 @@ public class AbstractReceiverTest {
                 throwException = false;
                 throw new NjamsSdkRuntimeException("AbstractReceiverTestException");
 
-            } else if (throwManyExceptions) {
-                while (throwingCounter < 10) {
-                    throwingCounter++;
-                    throw new NjamsSdkRuntimeException("AbstractReceiverTestException");
-                }
-                throwManyExceptions = false;
-            } else {
-                connectionStatus = ConnectionStatus.CONNECTED;
+            } else if (throwManyExceptions && throwingCounter < THROWINGMAXCOUNTER) {
+                throwingCounter++;
+                throw new NjamsSdkRuntimeException("AbstractReceiverTestException");
             }
+            connectionStatus = ConnectionStatus.CONNECTED;
         }
 
         //This method should be tested by the real subclass of the AbstractReceiver

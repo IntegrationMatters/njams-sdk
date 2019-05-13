@@ -16,7 +16,7 @@
  */
 package com.im.njams.sdk.client;
 
-import com.faizsiegeln.njams.messageformat.v4.tracemessage.TraceMessage;
+import com.faizsiegeln.njams.messageformat.v4.tracemessage.*;
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.configuration.ActivityConfiguration;
 import com.im.njams.sdk.configuration.Configuration;
@@ -124,28 +124,33 @@ public class CleanTracepointsTask extends TimerTask {
 
     private void checkNjams(Njams njams, LocalDateTime now) {
         Configuration configuration = njams.getConfiguration();
-        configuration.getProcesses().entrySet().forEach(processEntry -> checkProcess(njams, configuration, processEntry, now));
-    }
-
-    private void checkProcess(Njams njams, Configuration configuration, Entry<String, ProcessConfiguration> processEntry, LocalDateTime now) {
-        //use itertor here, because we want to possibly modify the map itself
-        Iterator<Entry<String, ActivityConfiguration>> it = processEntry.getValue().getActivities().entrySet().iterator();
-        while (it.hasNext()) {
-            Entry<String, ActivityConfiguration> ae = it.next();
-            if (checkActivity(njams, configuration, processEntry, ae, now)) {
-                it.remove();
-                configuration.save();
-            }
-
+        TraceMessageBuilder tmBuilder = new TraceMessageBuilder(njams);
+        configuration.getProcesses().entrySet().forEach(processEntry -> checkProcess(configuration, processEntry, now, tmBuilder));
+        TraceMessage msg = tmBuilder.build();
+        if(msg != null){
+            njams.getSender().send(msg);
         }
     }
 
-    private boolean checkActivity(Njams njams, Configuration configuration, Entry<String, ProcessConfiguration> processEntry, Entry<String, ActivityConfiguration> ae, LocalDateTime now) {
+    private void checkProcess(Configuration configuration, Entry<String, ProcessConfiguration> processEntry, LocalDateTime now, TraceMessageBuilder tmBuilder) {
+        //use itertor here, because we want to possibly modify the map itself
+        ProcessModel model = new ProcessModel();
+        Iterator<Entry<String, ActivityConfiguration>> it = processEntry.getValue().getActivities().entrySet().iterator();
+        while (it.hasNext()) {
+            Entry<String, ActivityConfiguration> ae = it.next();
+            if (checkActivity(configuration, processEntry, ae, now, tmBuilder)) {
+                it.remove();
+                configuration.save();
+            }
+        }
+    }
+
+    private boolean checkActivity(Configuration configuration, Entry<String, ProcessConfiguration> processEntry, Entry<String, ActivityConfiguration> ae, LocalDateTime now, TraceMessageBuilder tmBuilder) {
         ActivityConfiguration activity = ae.getValue();
         TracepointExt tracepoint = activity.getTracepoint();
         if (tracepoint != null && (tracepoint.getEndtime().isBefore(now) || tracepoint.iterationsExceeded())) {
             try {
-                njams.getSender().send(createTraceMessage(njams, processEntry, ae));
+                fillTraceMessageBuilder(processEntry, ae, tmBuilder);
                 activity.setTracepoint(null);
                 configuration.save();
                 if (activity.isEmpty()) {
@@ -158,19 +163,12 @@ public class CleanTracepointsTask extends TimerTask {
         return false;
     }
 
-    private TraceMessage createTraceMessage(Njams njams, Entry<String, ProcessConfiguration> processEntry, Entry<String, ActivityConfiguration> ae){
-        final TraceMessage msg = new TraceMessage();
-        //Set CommonMessage fields
-        msg.setClientVersion(njams.getClientVersion());
-        msg.setSdkVersion(njams.getSdkVersion());
-        msg.setCategory(njams.getCategory());
-        //ProcessPath
-        msg.setPath(processEntry.getKey());
+    private void fillTraceMessageBuilder(Entry<String, ProcessConfiguration> processEntry, Entry<String, ActivityConfiguration> ae, TraceMessageBuilder tmBuilder){
+        Activity act = new Activity();
+        act.setActivityId(ae.getKey());
+        act.setTracepoint(ae.getValue().getTracepoint());
 
-        //Set TraceMessage fields
-        //Todo: fetch master
-
-        return msg;
+        tmBuilder.addActivity(processEntry.getKey(), act);
     }
 
 }

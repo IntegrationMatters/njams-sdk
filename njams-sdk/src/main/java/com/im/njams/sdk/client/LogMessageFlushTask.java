@@ -1,14 +1,14 @@
-/* 
+/*
  * Copyright (c) 2018 Faiz & Siegeln Software GmbH
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"),
  * to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
  * and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
- * 
+ *
  * The Software shall be used for Good, not Evil.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
@@ -90,7 +90,9 @@ public class LogMessageFlushTask extends TimerTask {
             stoppingNjams.getJobs().forEach(job -> ((JobImpl) job).flush());
 
         } else {
-            LOG.warn("The LogMessageFlushTask hasn't been started before stopping for this instance: {}. Did not flush...", njams);
+            LOG.warn(
+                    "The LogMessageFlushTask hasn't been started before stopping for this instance: {}. Did not flush...",
+                    njams);
         }
         if (NJAMS_INSTANCES.size() <= 0 && timer != null) {
             timer.cancel();
@@ -104,19 +106,19 @@ public class LogMessageFlushTask extends TimerTask {
     @Override
     public void run() {
         try {
-            synchronized (this.running) {
-                if (this.running.get()) {
+            synchronized (running) {
+                if (running.get()) {
                     // task is already still running, skip next execution
                     LOG.debug("Task is already still running, skip next execution.",
                             LogMessageFlushTask.class.getSimpleName());
                     return;
                 }
-                this.running.set(true);
+                running.set(true);
             }
 
             NJAMS_INSTANCES.values().forEach(entry -> processNjams(entry));
         } finally {
-            this.running.set(false);
+            running.set(false);
         }
     }
 
@@ -129,12 +131,12 @@ public class LogMessageFlushTask extends TimerTask {
         JobImpl job = (JobImpl) jobParam;
         // only send updates automatically, if a change has been
         // made to the job between individual send events.
-        LOG.trace("Job {}: lastPush: {}, age: {}, size: {}", job.getProcessModel().getName(), job.getLastFlush(),
+        LOG.trace("Job {}: lastPush: {}, age: {}, size: {}", job, job.getLastFlush(),
                 Duration.between(job.getLastFlush(), DateTimeUtility.now()), job.getEstimatedSize());
         if ((job.getLastFlush().isBefore(boundary) || job.getEstimatedSize() > entry.getFlushSize())
                 && (!job.getActivities().isEmpty() || !job.getAttributes().isEmpty() || job.getEndTime() != null)) {
             job.flush();
-            LOG.debug("Flush job {} with id {}", job.getProcessModel().getName(), job.getLogId());
+            LOG.debug("Flush job {}", job);
         }
 
     }

@@ -1,14 +1,14 @@
 /*
  * Copyright (c) 2018 Faiz & Siegeln Software GmbH
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"),
  * to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
  * and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
- * 
+ *
  * The Software shall be used for Good, not Evil.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
@@ -16,38 +16,43 @@
  */
 package com.im.njams.sdk.logmessage;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Matchers.any;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.when;
+
+import java.time.LocalDateTime;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.regex.Pattern;
+
+import org.junit.After;
+import org.junit.Test;
+import org.mockito.Mockito;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
+
 import com.faizsiegeln.njams.messageformat.v4.common.CommonMessage;
 import com.faizsiegeln.njams.messageformat.v4.logmessage.ActivityStatus;
 import com.faizsiegeln.njams.messageformat.v4.logmessage.LogMessage;
 import com.im.njams.sdk.AbstractTest;
-
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.common.DateTimeUtility;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.common.Path;
 import com.im.njams.sdk.communication.NjamsSender;
+import com.im.njams.sdk.model.ActivityModel;
+import com.im.njams.sdk.model.GroupModel;
 import com.im.njams.sdk.model.ProcessModel;
 import com.im.njams.sdk.settings.Settings;
 import com.im.njams.sdk.utils.StringUtils;
-
-import java.time.LocalDateTime;
-
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.regex.Pattern;
-import org.junit.After;
-
-import org.junit.Test;
-
-import static org.junit.Assert.*;
-import static org.mockito.Mockito.any;
-import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-import static org.mockito.Mockito.spy;
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.stubbing.Answer;
 
 /**
  * This class tests some methods of the JobImpl.
@@ -89,13 +94,13 @@ public class JobImplTest extends AbstractTest {
         //This is set so the job can flush.
         job.setStatus(JobStatus.ERROR);
         //Create a group with four children
-        GroupImpl group = (GroupImpl) job.createGroup("start").build();
-        Activity child1 = group.createChildActivity("child1").build();
-        Activity child2 = group.createChildActivity("child2").build();
-        Activity child3 = group.createChildActivity("child3").build();
-        Activity child4 = group.createChildActivity("child4").build();
+        GroupImpl group = (GroupImpl) job.createGroup(mockGroupModel("start")).build();
+        Activity child1 = group.createChildActivity(mockModel("child1")).build();
+        Activity child2 = group.createChildActivity(mockModel("child2")).build();
+        Activity child3 = group.createChildActivity(mockModel("child3")).build();
+        Activity child4 = group.createChildActivity(mockModel("child4")).build();
 
-        //This shouldn't remove any child, because they are all RUNNING       
+        //This shouldn't remove any child, because they are all RUNNING
         job.flush();
         //Neither in the JobImpl object
         Collection<Activity> jobActivities = job.getActivities();
@@ -129,6 +134,18 @@ public class JobImplTest extends AbstractTest {
         assertTrue(childActivities.contains(child4));
     }
 
+    private GroupModel mockGroupModel(String modelId) {
+        GroupModel model = Mockito.mock(GroupModel.class);
+        when(model.getId()).thenReturn(modelId);
+        return model;
+    }
+
+    private ActivityModel mockModel(String modelId) {
+        ActivityModel model = Mockito.mock(ActivityModel.class);
+        when(model.getId()).thenReturn(modelId);
+        return model;
+    }
+
     /**
      * This method tests if the datamasking works for the in the SDK FAQ here
      * and only here described fields when the job is flushed.
@@ -149,7 +166,7 @@ public class JobImplTest extends AbstractTest {
         process.createActivity("id", "name", null);
         JobImpl job = (JobImpl) process.createJob();
 
-        //Inject or own sender.send() method to get the masked logmessage       
+        //Inject or own sender.send() method to get the masked logmessage
         NjamsSender sender = mock(NjamsSender.class);
         when(mockedNjams.getSender()).thenReturn(sender);
         doAnswer((Answer<Object>) (InvocationOnMock invocation) -> {
@@ -239,8 +256,10 @@ public class JobImplTest extends AbstractTest {
         activities.forEach(activity -> assertFalse(onlyAsterisksOrNull(activity.getIteration().toString())));
         activities.forEach(activity -> assertFalse(onlyAsterisksOrNull(activity.getMaxIterations().toString())));
         activities.forEach(activity -> assertFalse(onlyAsterisksOrNull(activity.getParentInstanceId())));
-        activities.forEach(activity -> activity.getPredecessors().forEach(pred -> assertFalse(onlyAsterisksOrNull(pred.getFromInstanceId()))));
-        activities.forEach(activity -> activity.getPredecessors().forEach(pred -> assertFalse(onlyAsterisksOrNull(pred.getModelId()))));
+        activities.forEach(activity -> activity.getPredecessors()
+                .forEach(pred -> assertFalse(onlyAsterisksOrNull(pred.getFromInstanceId()))));
+        activities.forEach(activity -> activity.getPredecessors()
+                .forEach(pred -> assertFalse(onlyAsterisksOrNull(pred.getModelId()))));
         activities.forEach(activity -> assertFalse(onlyAsterisksOrNull(activity.getSequence().toString())));
         activities.forEach(activity -> assertFalse(onlyAsterisksOrNull(activity.getExecution().toString())));
         activities.forEach(activity -> assertFalse(onlyAsterisksOrNull(((Long) activity.getDuration()).toString())));
@@ -250,7 +269,7 @@ public class JobImplTest extends AbstractTest {
         activities.forEach(activity -> assertFalse(onlyAsterisksOrNull(activity.getSubProcess().getName())));
         activities.forEach(activity -> assertFalse(onlyAsterisksOrNull(activity.getSubProcess().getPath())));
         activities.forEach(activity -> assertFalse(onlyAsterisksOrNull(activity.getSubProcess().getLogId())));
-        
+
         //Those shouldn't be masked because they were set directly by us, not by the ExtractHandler [SDK-125]
         activities.forEach(activity -> assertFalse(onlyAsterisksOrNull(activity.getEventMessage())));
         activities.forEach(activity -> assertFalse(onlyAsterisksOrNull(activity.getEventCode())));
@@ -264,7 +283,7 @@ public class JobImplTest extends AbstractTest {
         activities.forEach(activity -> assertTrue(onlyAsterisksOrNull(activity.getInput())));
         activities.forEach(activity -> assertTrue(onlyAsterisksOrNull(activity.getOutput())));
         activities.forEach(activity -> assertTrue(onlyAsterisksOrNull(activity.getStartData())));
-        
+
     }
 
     /**
@@ -447,11 +466,11 @@ public class JobImplTest extends AbstractTest {
         job.addAttribute("a", "b");
         assertEquals("b", job.getAttribute("a"));
     }
-    
+
     @Test
-    public void testAddAttributeFlushAndGetAttribute(){
+    public void testAddAttributeFlushAndGetAttribute() {
         JobImpl job = createDefaultJob();
-        
+
         job.addAttribute("a", "b");
         job.flush();
         assertFalse(job.getAttributes().isEmpty());

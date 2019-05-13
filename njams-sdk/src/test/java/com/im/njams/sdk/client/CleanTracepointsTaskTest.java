@@ -20,6 +20,8 @@ import com.faizsiegeln.njams.messageformat.v4.common.CommonMessage;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.Extract;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.LogLevel;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.Tracepoint;
+import com.faizsiegeln.njams.messageformat.v4.tracemessage.Activity;
+import com.faizsiegeln.njams.messageformat.v4.tracemessage.ProcessModel;
 import com.faizsiegeln.njams.messageformat.v4.tracemessage.TraceMessage;
 
 import com.im.njams.sdk.AbstractTest;
@@ -40,6 +42,7 @@ import org.junit.Test;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
@@ -239,13 +242,27 @@ public class CleanTracepointsTaskTest extends AbstractTest {
         assertEquals(message.getClientVersion(), CLIENTVERSION);
         assertEquals(message.getSdkVersion(), njams.getSdkVersion());
         assertEquals(message.getCategory(), CATEGORY);
-        assertEquals(message.getPath(), FULLPROCESSPATHNAME);
-//        assertEquals(message.getActivityId(), ACTIVITYMODELID);
-//        Tracepoint messageTP= message.getTracepoint();
-//        assertEquals(messageTP.getStarttime(), ldt1);
-//        assertEquals(messageTP.getEndtime(), ldt2);
-//        assertEquals(messageTP.getIterations(), new Integer(30));
-//        assertEquals(messageTP.isDeeptrace(), true);
+        assertEquals(message.getPath(), njams.getClientPath().toString());
+
+        List<ProcessModel> processes = message.getProcesses();
+        assertNotNull(processes);
+        assertFalse(processes.isEmpty());
+
+        ProcessModel processModel = processes.get(0);
+        assertEquals(processModel.getProcessPath(), FULLPROCESSPATHNAME);
+
+        List<Activity> activities = processModel.getActivities();
+        assertNotNull(activities);
+        assertFalse(activities.isEmpty());
+
+        Activity act = activities.get(0);
+        assertEquals(act.getActivityId(), ACTIVITYMODELID);
+
+        Tracepoint messageTP= act.getTracepoint();
+        assertEquals(messageTP.getStarttime(), ldt1);
+        assertEquals(messageTP.getEndtime(), ldt2);
+        assertEquals(messageTP.getIterations(), new Integer(30));
+        assertEquals(messageTP.isDeeptrace(), true);
     }
 
     private void printMessageAsJson() {

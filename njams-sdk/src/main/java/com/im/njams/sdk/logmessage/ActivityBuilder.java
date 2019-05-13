@@ -1,14 +1,14 @@
-/* 
+/*
  * Copyright (c) 2018 Faiz & Siegeln Software GmbH
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"),
  * to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
  * and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
- * 
+ *
  * The Software shall be used for Good, not Evil.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
@@ -16,14 +16,14 @@
  */
 package com.im.njams.sdk.logmessage;
 
+import java.time.LocalDateTime;
+
 import com.faizsiegeln.njams.messageformat.v4.logmessage.ActivityStatus;
 import com.faizsiegeln.njams.messageformat.v4.logmessage.Predecessor;
 import com.im.njams.sdk.common.IdUtil;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.model.ActivityModel;
 import com.im.njams.sdk.model.TransitionModel;
-
-import java.time.LocalDateTime;
 
 /**
  * This Builder will be used to create activities. To get this Builder, use the
@@ -37,14 +37,25 @@ public class ActivityBuilder {
     //The activity which will be build by this builder
     private final ActivityImpl activity;
 
+    /**
+     * @deprecated SDK-140
+     * @param job
+     * @param modelId
+     */
+    @Deprecated
     ActivityBuilder(JobImpl job, String modelId) {
-        activity = new ActivityImpl(job);
+        ActivityModel model = job.getProcessModel().getActivity(modelId);
+        if (model == null) {
+            activity = new ActivityImpl(job, modelId);
+        } else {
+            activity = new ActivityImpl(job, model);
+        }
         activity.setSequence(job.getNextSequence());
-        activity.setModelId(modelId);
     }
 
     ActivityBuilder(JobImpl job, ActivityModel model) {
-        this(job, model.getId());
+        activity = new ActivityImpl(job, model);
+        activity.setSequence(job.getNextSequence());
     }
 
     ActivityBuilder(ActivityImpl activity) {
@@ -52,7 +63,7 @@ public class ActivityBuilder {
     }
 
     ActivityImpl getActivity() {
-        return this.activity;
+        return activity;
     }
 
     /**
@@ -71,7 +82,7 @@ public class ActivityBuilder {
         activity.start();
         return activity;
     }
-    
+
     /**
      * Set the instanteId for the ActivityBuilder
      *
@@ -106,7 +117,7 @@ public class ActivityBuilder {
      * @return this builder
      */
     public ActivityBuilder setIteration(Long iteration) {
-        this.activity.setIteration(iteration);
+        activity.setIteration(iteration);
         return this;
     }
 
@@ -117,7 +128,7 @@ public class ActivityBuilder {
      * @return this builder
      */
     public ActivityBuilder setMaxIterations(Long maxIteration) {
-        this.activity.setMaxIterations(maxIteration);
+        activity.setMaxIterations(maxIteration);
         return this;
     }
 
@@ -128,7 +139,7 @@ public class ActivityBuilder {
      * @return this builder
      */
     public ActivityBuilder setParentInstanceId(String parentInstanceId) {
-        this.activity.setParentInstanceId(parentInstanceId);
+        activity.setParentInstanceId(parentInstanceId);
         return this;
     }
 
@@ -139,7 +150,7 @@ public class ActivityBuilder {
      * @return this builder
      */
     public ActivityBuilder setExecution(LocalDateTime execution) {
-        this.activity.setExecution(execution);
+        activity.setExecution(execution);
         return this;
     }
 
@@ -150,7 +161,7 @@ public class ActivityBuilder {
      * @return this builder
      */
     public ActivityBuilder setDuration(long duration) {
-        this.activity.setDuration(duration);
+        activity.setDuration(duration);
         return this;
     }
 
@@ -161,7 +172,7 @@ public class ActivityBuilder {
      * @return this builder
      */
     public ActivityBuilder setCpuTime(long cpuTime) {
-        this.activity.setCpuTime(cpuTime);
+        activity.setCpuTime(cpuTime);
         return this;
     }
 
@@ -172,7 +183,7 @@ public class ActivityBuilder {
      * @return this builder
      */
     public ActivityBuilder setActivityStatus(ActivityStatus activityStatus) {
-        this.activity.setActivityStatus(activityStatus);
+        activity.setActivityStatus(activityStatus);
         return this;
     }
 
@@ -183,7 +194,7 @@ public class ActivityBuilder {
      * @return this builder
      */
     public ActivityBuilder setEventStatus(Integer eventStatus) {
-        this.activity.setEventStatus(eventStatus);
+        activity.setEventStatus(eventStatus);
         return this;
     }
 
@@ -194,7 +205,7 @@ public class ActivityBuilder {
      * @return this builder
      */
     public ActivityBuilder setEventMessage(String eventMessage) {
-        this.activity.setEventMessage(eventMessage);
+        activity.setEventMessage(eventMessage);
         return this;
     }
 
@@ -205,7 +216,7 @@ public class ActivityBuilder {
      * @return this builder
      */
     public ActivityBuilder setEventCode(String eventCode) {
-        this.activity.setEventCode(eventCode);
+        activity.setEventCode(eventCode);
         return this;
     }
 
@@ -216,7 +227,7 @@ public class ActivityBuilder {
      * @return this builder
      */
     public ActivityBuilder setEventPayload(String eventPayload) {
-        this.activity.setEventPayload(eventPayload);
+        activity.setEventPayload(eventPayload);
         return this;
     }
 
@@ -227,7 +238,7 @@ public class ActivityBuilder {
      * @return this builder
      */
     public ActivityBuilder setStackTrace(String stackTrace) {
-        this.activity.setStackTrace(stackTrace);
+        activity.setStackTrace(stackTrace);
         return this;
     }
 
@@ -238,7 +249,7 @@ public class ActivityBuilder {
      * @return this builder
      */
     public ActivityBuilder setStartData(String startData) {
-        this.activity.setStartData(startData);
+        activity.setStartData(startData);
         return this;
     }
 
@@ -250,7 +261,7 @@ public class ActivityBuilder {
      * @return this builder
      */
     public ActivityBuilder addAttribute(String key, String value) {
-        this.activity.addAttribute(key, value);
+        activity.addAttribute(key, value);
         return this;
     }
 
@@ -260,7 +271,7 @@ public class ActivityBuilder {
      * @return this builder
      */
     public ActivityBuilder setStarter() {
-        this.activity.setStarter(true);
+        activity.setStarter(true);
         return this;
     }
 
@@ -276,8 +287,8 @@ public class ActivityBuilder {
             throw new NjamsSdkRuntimeException("stepFrom parameter can not be " + fromActivity);
         }
         buildInstanceId();
-        String modelId = IdUtil.getTransitionModelId(fromActivity.getModelId(), this.activity.getModelId());
-        this.activity.getPredecessors().add(new Predecessor(modelId, fromActivity.getInstanceId()));
+        String modelId = IdUtil.getTransitionModelId(fromActivity.getModelId(), activity.getModelId());
+        activity.getPredecessors().add(new Predecessor(modelId, fromActivity.getInstanceId()));
         setGroupParameters(fromActivity);
         return this;
     }
@@ -296,7 +307,7 @@ public class ActivityBuilder {
         if (model == null) {
             throw new NjamsSdkRuntimeException("stepFrom model parameter can not be " + model);
         }
-        this.activity.getPredecessors().add(new Predecessor(model.getId(), fromActivity.getInstanceId()));
+        activity.getPredecessors().add(new Predecessor(model.getId(), fromActivity.getInstanceId()));
         setGroupParameters(fromActivity);
         return this;
     }
@@ -307,7 +318,7 @@ public class ActivityBuilder {
             setParent(from.getParent());
         }
         if (fromActivity.getIteration() != null) {
-            this.activity.setIteration(fromActivity.getIteration());
+            activity.setIteration(fromActivity.getIteration());
         }
     }
 
@@ -318,7 +329,7 @@ public class ActivityBuilder {
      * @return this builder
      */
     ActivityBuilder setParent(GroupImpl parent) {
-        this.activity.setParent(parent);
+        activity.setParent(parent);
         setParentInstanceId(parent.getInstanceId());
         return this;
     }

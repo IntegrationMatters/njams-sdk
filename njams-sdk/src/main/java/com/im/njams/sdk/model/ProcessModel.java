@@ -372,10 +372,8 @@ public class ProcessModel {
      * @return the {@link Job}
      */
     public Job createJob() {
-        String logId = IdUtil.createLogId();
-        Job job = new JobImpl(this, logId, logId);
-        njams.addJob(job);
-        return job;
+        String logId = createUniqueLogId();
+        return createJobWithExplicitLogId(logId, logId);
     }
 
     /**
@@ -385,7 +383,31 @@ public class ProcessModel {
      * @return the {@link Job}
      */
     public Job createJob(String jobId) {
-        String logId = IdUtil.createLogId();
+        return createJobWithExplicitLogId(jobId, createUniqueLogId());
+    }
+
+    /**
+     * This method returns a unique log id.
+     *
+     * @return UUID as String
+     */
+    private String createUniqueLogId(){
+        return IdUtil.createLogId();
+    }
+
+    /**
+     * <strong>Don't use this method if you don't have to!<br>
+     * Use either {@link #createJob() createJob()} or {@link #createJob(String) createJob(String jobId)}.</strong><br>
+     *
+     * Creates a job with a given external jobId from Engine and with an explicitly
+     * set logId! This should only be used if you know what you are doing, because the
+     * logId normally is a UUID. E.g. this is a necessary method for the replay plugin,
+     * because it has to use the same logId as the job that is replayed.
+     * @param jobId the external jobId in Engine
+     * @param logId the explicitly set logId
+     * @return the {@link Job}
+     */
+    public Job createJobWithExplicitLogId(String jobId, String logId){
         Job job = new JobImpl(this, jobId, logId);
         njams.addJob(job);
         return job;

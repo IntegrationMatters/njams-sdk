@@ -1,14 +1,14 @@
-/* 
+/*
  * Copyright (c) 2018 Faiz & Siegeln Software GmbH
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"),
  * to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
  * and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
- * 
+ *
  * The Software shall be used for Good, not Evil.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
@@ -43,10 +43,11 @@ public interface Job {
 
     /**
      * Creates ActivityBuilder with a given activityModeId.
-     *
+     * @deprecated Does not work for sub-processes.
      * @param activityModelId to create
      * @return a builder
      */
+    @Deprecated
     public ActivityBuilder createActivity(String activityModelId);
 
     /**
@@ -59,10 +60,11 @@ public interface Job {
 
     /**
      * Creates GroupBuilder with a given groupModelId.
-     *
+     * @deprecated Does not work for sub-processes.
      * @param groupModelId to create
      * @return a builder
      */
+    @Deprecated
     public GroupBuilder createGroup(String groupModelId);
 
     /**
@@ -198,9 +200,11 @@ public interface Job {
 
     /**
      * Return the ProcessModel
+     * @deprecated SDK-140 A job may use multiple process models.
      *
      * @return the ProcessModel
      */
+    @Deprecated
     public ProcessModel getProcessModel();
 
     /**
@@ -317,17 +321,17 @@ public interface Job {
      * @param businessObject businessObject to set
      */
     public void setBusinessObject(Path businessObject);
-    
+
     /**
      * Set the businessObject's start
-     * 
+     *
      * @param businessStart startTime to set
      */
     public void setBusinessStart(LocalDateTime businessStart);
-    
+
     /**
      * Set the businessObject's end
-     * 
+     *
      * @param businessEnd endTime to set
      */
     public void setBusinessEnd(LocalDateTime businessEnd);
@@ -412,11 +416,21 @@ public interface Job {
     /**
      * Returns true if a Activity for a given activityModelId needs input or
      * output data, based on extracts and tracepoints
-     *
-     * @param activityModelId modelId of the activity
-     * @return true if data is needed, or false if not data is needed
+     * @deprecated Does not work for sub-processes. Use {@link #needsData(ActivityModel)} instead.
+     * @param activityModelId activityModelId to check
+     * @return boolean if true
      */
+    @Deprecated
     public boolean needsData(String activityModelId);
+
+    /**
+     * Returns <code>true</code> if activities for a given activityModel require input or
+     * output data, based on extract and tracepoint configuration.
+     *
+     * @param activityModel activityModel to check
+     * @return <code>true</code> if input/output data is required.
+     */
+    public boolean needsData(ActivityModel activityModel);
 
     public void addPluginDataItem(IPluginDataItem pluginDataItem);
 

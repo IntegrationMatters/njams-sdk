@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Faiz & Siegeln Software GmbH
+ * Copyright (c) 2019 Faiz & Siegeln Software GmbH
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"),
  * to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
@@ -18,8 +18,10 @@ package com.im.njams.sdk.logmessage;
 
 import com.im.njams.sdk.AbstractTest;
 
+import java.time.LocalDateTime;
 import java.util.Map;
 
+import com.im.njams.sdk.common.DateTimeUtility;
 import org.junit.Test;
 
 import static org.junit.Assert.*;
@@ -28,7 +30,7 @@ import static org.junit.Assert.*;
  * This class tests some methods of the ActivityImpl class.
  *
  * @author krautenberg@integrationmatters.com
- * @version 4.0.4
+ * @version 4.0.6
  */
 public class ActivityImplTest extends AbstractTest {
     
@@ -157,5 +159,133 @@ public class ActivityImplTest extends AbstractTest {
         act1.addAttribute(testAttrKey, "c");
         assertEquals("c", job.getAttribute(testAttrKey));
         assertNotEquals("b", job.getAttribute(testAttrKey));
+    }
+
+    @Test
+    public void testIsExecutionOnlySetIfAnEventIsSet(){
+        Activity act = getDefaultActivity();
+        assertNull(act.getStackTrace());
+        assertNull(act.getEventMessage());
+        assertNull(act.getEventCode());
+        assertNull(act.getEventPayload());
+        assertNull(act.getEventStatus());
+        assertNull(act.getExecution());
+    }
+
+    @Test
+    public void testIsExecutionSetWithPayload(){
+        final String testPayload = "TestPayload";
+        Activity act = getDefaultActivity();
+
+        assertNull(act.getExecution());
+        act.setEventPayload(testPayload);
+        assertEquals(act.getEventPayload(), testPayload);
+        assertNotNull(act.getExecution());
+    }
+
+    @Test
+    public void testIsExecutionSetWithCode(){
+        final String testCode = "TestCode";
+        Activity act = getDefaultActivity();
+
+        assertNull(act.getExecution());
+        act.setEventCode(testCode);
+        assertEquals(act.getEventCode(), testCode);
+        assertNotNull(act.getExecution());
+    }
+
+    @Test
+    public void testIsExecutionSetWithStacktrace(){
+        final String testStacktrace = "TestStacktrace";
+        Activity act = getDefaultActivity();
+
+        assertNull(act.getExecution());
+        act.setStackTrace(testStacktrace);
+        assertEquals(act.getStackTrace(), testStacktrace);
+        assertNotNull(act.getExecution());
+    }
+
+    @Test
+    public void testIsExecutionSetWithMessage(){
+        final String testMessage = "TestMessage";
+        Activity act = getDefaultActivity();
+
+        assertNull(act.getExecution());
+        act.setEventMessage(testMessage);
+        assertEquals(act.getEventMessage(), testMessage);
+        assertNotNull(act.getExecution());
+    }
+
+    @Test
+    public void testIsExecutionSetWithStatus(){
+        final EventStatus testStatus = EventStatus.SUCCESS;
+        final Integer testStatusValue = testStatus.getValue();
+        Activity act = getDefaultActivity();
+
+        assertNull(act.getExecution());
+        act.setEventStatus(testStatusValue);
+        assertEquals(act.getEventStatus(), testStatusValue);
+        assertNotNull(act.getExecution());
+    }
+
+    @Test
+    public void testSetExecutionTime(){
+        final LocalDateTime testExecution = DateTimeUtility.now();
+        Activity act = getDefaultActivity();
+
+        assertNull(act.getExecution());
+        act.setExecution(testExecution);
+        assertEquals(act.getExecution(), testExecution);
+    }
+
+    @Test
+    public void testIsExecutionOverwrittenBySetExecution(){
+        final LocalDateTime testExecution = DateTimeUtility.now().minusSeconds(1);
+        final String testMessage = "TestMessage";
+        Activity act = getDefaultActivity();
+
+        assertNull(act.getExecution());
+        act.setEventMessage(testMessage);
+        assertEquals(act.getEventMessage(), testMessage);
+
+        assertNotNull(act.getExecution());
+        assertNotEquals(testExecution, act.getExecution());
+        act.setExecution(testExecution);
+        assertEquals(act.getExecution(), testExecution);
+    }
+
+    @Test
+    public void testIsExecutionNotOverwrittenByAnotherEventCall(){
+        final LocalDateTime testExecution = DateTimeUtility.now().minusSeconds(1);
+        final String testMessage = "TestMessage";
+        Activity act = getDefaultActivity();
+
+        assertNull(act.getExecution());
+        act.setExecution(testExecution);
+        assertNotNull(act.getExecution());
+        assertEquals(act.getExecution(), testExecution);
+
+        act.setEventMessage(testMessage);
+        assertEquals(act.getEventMessage(), testMessage);
+        assertEquals(act.getExecution(), testExecution);
+    }
+
+    @Test
+    public void isStartTimeSet(){
+        ActivityImpl act = (ActivityImpl)getDefaultActivity();
+        assertNotNull(act.getStartTime());
+        final LocalDateTime time = DateTimeUtility.now().plusSeconds(1);
+        assertNotEquals(act.getStartTime(), time);
+        act.setStartTime(time);
+        assertEquals(act.getStartTime(), time);
+    }
+
+    @Test
+    public void isExecutionTimeNotSetWithCreateEvent(){
+        Activity act = getDefaultActivity();
+        assertNull(act.getExecution());
+        Event event = act.createEvent();
+        assertNotNull(act.getExecution());
+        assertEquals(event.getExecutionTime(), act.getExecution());
     }
 }
