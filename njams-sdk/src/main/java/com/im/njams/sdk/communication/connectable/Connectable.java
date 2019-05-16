@@ -6,6 +6,8 @@
 
 package com.im.njams.sdk.communication.connectable;
 
+import com.im.njams.sdk.communication.connector.Connector;
+
 import java.util.Properties;
 
 public interface Connectable {
@@ -26,5 +28,14 @@ public interface Connectable {
      */
     void init(Properties properties);
 
+    /**
+     * This method should stop all processing and close all used resources.
+     */
     void stop();
+
+    /**
+     * This method return the connector that is used for this connectable
+     * @return the connector that is used for this connectable
+     */
+    Connector getConnector();
 }

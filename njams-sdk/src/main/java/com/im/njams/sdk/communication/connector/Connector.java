@@ -3,9 +3,10 @@
 
 package com.im.njams.sdk.communication.connector;
 
-import com.im.njams.sdk.utils.ClasspathValidator;
 
-public interface Connector extends AutoCloseable, ClasspathValidator {
+import com.im.njams.sdk.communication.validator.ClasspathValidatable;
+
+public interface Connector extends AutoCloseable, ClasspathValidatable {
 
     public static final String SENDER_NAME_ENDING = "-Sender-Connector";
 

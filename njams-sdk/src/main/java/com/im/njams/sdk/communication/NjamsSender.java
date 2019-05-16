@@ -16,21 +16,20 @@
  */
 package com.im.njams.sdk.communication;
 
+import com.faizsiegeln.njams.messageformat.v4.common.CommonMessage;
+import com.im.njams.sdk.Njams;
+import com.im.njams.sdk.communication.connectable.Sender;
+import com.im.njams.sdk.communication.connector.Connector;
+import com.im.njams.sdk.factories.ThreadFactoryBuilder;
+import com.im.njams.sdk.settings.Settings;
+import com.im.njams.sdk.settings.encoding.Transformer;
+import org.slf4j.LoggerFactory;
+
 import java.util.Properties;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-
-import com.im.njams.sdk.communication.connectable.Sender;
-import org.slf4j.LoggerFactory;
-
-import com.faizsiegeln.njams.messageformat.v4.common.CommonMessage;
-
-import com.im.njams.sdk.Njams;
-import com.im.njams.sdk.factories.ThreadFactoryBuilder;
-import com.im.njams.sdk.settings.Settings;
-import com.im.njams.sdk.settings.encoding.Transformer;
 
 /**
  * This class enforces the maxQueueLength setting. It uses the
@@ -115,6 +114,11 @@ public class NjamsSender implements Sender {
         } catch (InterruptedException ex) {
             LOG.error("The shutdown of the sender's threadpool has been interrupted. {}", ex);
         }
+    }
+
+    @Override
+    public Connector getConnector() {
+        return null;
     }
 
     /**
