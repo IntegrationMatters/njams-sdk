@@ -16,42 +16,33 @@
  */
 package com.im.njams.sdk.communication.jms;
 
-import java.util.Properties;
+import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.im.njams.sdk.common.JsonSerializerFactory;
+import com.im.njams.sdk.common.NjamsSdkRuntimeException;
+import com.im.njams.sdk.common.Path;
+import com.im.njams.sdk.communication.AbstractReceiver;
+import com.im.njams.sdk.communication.ConnectionStatus;
+import com.im.njams.sdk.settings.PropertyUtil;
+import org.slf4j.LoggerFactory;
 
 import javax.jms.Connection;
 import javax.jms.ConnectionFactory;
 import javax.jms.ExceptionListener;
-import javax.jms.JMSContext;
 import javax.jms.JMSException;
 import javax.jms.Message;
 import javax.jms.MessageConsumer;
 import javax.jms.MessageListener;
+import javax.jms.MessageProducer;
 import javax.jms.Session;
 import javax.jms.TextMessage;
-import javax.jms.MessageProducer;
 import javax.jms.Topic;
-
 import javax.naming.InitialContext;
 import javax.naming.NameNotFoundException;
 import javax.naming.NamingException;
-
-import org.slf4j.LoggerFactory;
-
-import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
-
-import com.im.njams.sdk.common.JsonSerializerFactory;
-import com.im.njams.sdk.common.NjamsSdkRuntimeException;
-import com.im.njams.sdk.common.Path;
-
-import com.im.njams.sdk.communication.AbstractReceiver;
-import com.im.njams.sdk.communication.ConnectionStatus;
-
-import com.im.njams.sdk.settings.PropertyUtil;
-
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Properties;
 
 /**
  * JMS implementation for a Receiver.
@@ -237,14 +228,14 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
     /**
      * This method creates a session to the given connection. The transacted
      * boolean has been set to false and the acknowledgeMode is
-     * JMSContext.CLIENT_ACKNOWLEDGE for the created session.
+     * CLIENT_ACKNOWLEDGE for the created session.
      *
      * @param con the connection that creates the session
      * @return the session if it can be created
      * @throws JMSException is thrown if something failed.
      */
     private Session createSession(Connection con) throws JMSException {
-        return con.createSession(false, JMSContext.CLIENT_ACKNOWLEDGE);
+        return con.createSession(false, 2);
     }
 
     /**
@@ -501,7 +492,6 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
             "javax.jms.Connection",
             "javax.jms.ConnectionFactory",
             "javax.jms.ExceptionListener",
-            "javax.jms.JMSContext",
             "javax.jms.JMSException",
             "javax.jms.Message",
             "javax.jms.MessageConsumer",
