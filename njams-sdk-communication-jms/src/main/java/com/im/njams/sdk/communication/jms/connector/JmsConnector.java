@@ -6,6 +6,7 @@ package com.im.njams.sdk.communication.jms.connector;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.communication.connector.AbstractConnector;
 import com.im.njams.sdk.communication.jms.JmsConstants;
+import com.im.njams.sdk.communication.jms.validator.ClasspathValidatable;
 import com.im.njams.sdk.settings.PropertyUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -13,12 +14,15 @@ import org.slf4j.LoggerFactory;
 import javax.jms.Connection;
 import javax.jms.ConnectionFactory;
 import javax.jms.ExceptionListener;
-import javax.jms.JMSContext;
 import javax.jms.JMSException;
 import javax.jms.Session;
 import javax.naming.InitialContext;
 import javax.naming.NamingException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Properties;
+import java.util.Set;
 
 /**
  * JMS implementation for Receiver and Sender
@@ -26,7 +30,7 @@ import java.util.*;
  * @author krautenberg@integrationmatters.ocm
  * @version 4.1.0
  */
-public abstract class JmsConnector extends AbstractConnector implements ExceptionListener {
+public abstract class JmsConnector extends AbstractConnector implements ExceptionListener, ClasspathValidatable {
 
     private static final Logger LOG = LoggerFactory.getLogger(JmsConnector.class);
 
@@ -116,13 +120,13 @@ public abstract class JmsConnector extends AbstractConnector implements Exceptio
     /**
      * This method creates a session to the given connection. The transacted
      * boolean has been set to false and the acknowledgeMode is
-     * JMSContext.CLIENT_ACKNOWLEDGE for the created session.
+     * CLIENT_ACKNOWLEDGE for the created session.
      *
      * @return the session if it can be created
      * @throws JMSException is thrown if something failed.
      */
     private Session createSession() throws JMSException {
-        return connection.createSession(false, JMSContext.CLIENT_ACKNOWLEDGE);
+        return connection.createSession(false, 2);
     }
 
     /**
@@ -203,7 +207,6 @@ public abstract class JmsConnector extends AbstractConnector implements Exceptio
         libs.add("javax.jms.Connection");
         libs.add("javax.jms.ConnectionFactory");
         libs.add("javax.jms.ExceptionListener");
-        libs.add("javax.jms.JMSContext");
         libs.add("javax.jms.JMSException");
         libs.add("javax.jms.Session");
         libs.add("javax.naming.InitialContext");
