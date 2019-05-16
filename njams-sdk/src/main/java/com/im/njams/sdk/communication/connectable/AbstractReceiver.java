@@ -125,10 +125,12 @@ public abstract class AbstractReceiver implements Receiver {
         return null;
     }
 
+    @Override
     public final void stop(){
         connector.close();
     }
 
+    @Override
     public Connector getConnector(){
         return connector;
     }

@@ -2,22 +2,17 @@
  */
 package com.im.njams.sdk.communication.connectable;
 
-import com.faizsiegeln.njams.messageformat.v4.tracemessage.TraceMessage;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.im.njams.sdk.communication.connector.Connector;
-import com.im.njams.sdk.communication.connector.NjamsConnection;
-import com.im.njams.sdk.utils.JsonUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.faizsiegeln.njams.messageformat.v4.common.CommonMessage;
 import com.faizsiegeln.njams.messageformat.v4.logmessage.LogMessage;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.ProjectMessage;
+import com.faizsiegeln.njams.messageformat.v4.tracemessage.TraceMessage;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
+import com.im.njams.sdk.communication.connector.Connector;
+import com.im.njams.sdk.communication.connector.NjamsConnection;
 import com.im.njams.sdk.settings.Settings;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
-import java.io.OutputStream;
 import java.util.Properties;
 
 /**
@@ -129,10 +124,12 @@ public abstract class AbstractSender implements Sender {
      */
     protected abstract void send(TraceMessage msg) throws NjamsSdkRuntimeException;
 
+    @Override
     public final void stop(){
         connector.close();
     }
 
+    @Override
     public Connector getConnector(){
         return connector;
     }
