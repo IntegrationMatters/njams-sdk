@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.faizsiegeln</groupId>
     <artifactId>njams4-sdk-root</artifactId>
-    <version>4.0.7-SNAPSHOT</version>
+    <version>4.0.8-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>njams4-sdk-root</name>
     <organization>
