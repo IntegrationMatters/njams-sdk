@@ -45,7 +45,7 @@ public class NjamsConnection {
                     // reconnect
                     Thread reconnect = new Thread(() -> this.reconnector.reconnect(exception));
                     reconnect.setDaemon(true);
-                    reconnect.setName(String.format("%s-Reconnector-Thread", connector.getClass().getCanonicalName()));
+                    reconnect.setName(String.format("%s-Reconnector-Thread", connector.getClass().getSimpleName()));
                     reconnect.start();
                     try {
                         Thread.sleep(50);

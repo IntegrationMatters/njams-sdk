@@ -1,6 +1,6 @@
 package com.im.njams.sdk.communication.validator;
 
-public interface Validator<Validatable>{
+public interface Validator<T extends Validatable>{
 
-    public void validate(Validatable validatable) throws Throwable;
+    public void validate(T validatable) throws Exception;
 }

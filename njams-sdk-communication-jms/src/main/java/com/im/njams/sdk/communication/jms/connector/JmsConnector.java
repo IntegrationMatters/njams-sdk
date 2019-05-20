@@ -6,7 +6,7 @@ package com.im.njams.sdk.communication.jms.connector;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.communication.connector.AbstractConnector;
 import com.im.njams.sdk.communication.jms.JmsConstants;
-import com.im.njams.sdk.communication.jms.validator.ClasspathValidatable;
+import com.im.njams.sdk.communication.validator.ClasspathValidatable;
 import com.im.njams.sdk.settings.PropertyUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

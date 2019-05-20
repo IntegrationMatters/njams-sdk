@@ -30,7 +30,10 @@ public abstract class AbstractConnector implements Connector {
         } else if (njamsConnection == null) {
             LOG.error("Couldn't start the AbstractConnector, because the njamsConnection is null");
         } else {
-            njamsConnection.initialConnect();
+            Thread initialConnect = new Thread(() -> njamsConnection.initialConnect());
+            initialConnect.setDaemon(true);
+            initialConnect.setName(String.format("%s-Initial-Connector-Thread", this.getClass().getSimpleName()));
+            initialConnect.start();
         }
     }
 

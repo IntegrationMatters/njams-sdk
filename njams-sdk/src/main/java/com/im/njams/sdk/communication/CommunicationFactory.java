@@ -20,15 +20,19 @@ import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.communication.connectable.Connectable;
 import com.im.njams.sdk.communication.connectable.Receiver;
 import com.im.njams.sdk.communication.connectable.Sender;
+import com.im.njams.sdk.communication.connector.Connector;
+import com.im.njams.sdk.communication.validator.ClasspathValidatable;
 import com.im.njams.sdk.communication.validator.ClasspathValidator;
 import com.im.njams.sdk.settings.Settings;
 import com.im.njams.sdk.settings.encoding.Transformer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Properties;
 import java.util.ServiceLoader;
+import java.util.Set;
 import java.util.Spliterator;
 import java.util.Spliterators;
 import java.util.stream.Collectors;
@@ -51,6 +55,7 @@ public class CommunicationFactory {
     private ServiceLoader<Receiver> receiverList;
     private ServiceLoader<Sender> senderList;
 
+    private static final Set<Class<?>> alreadyChecked = new HashSet<>();
     private static final ClasspathValidator validator = new ClasspathValidator();
 
     /**
@@ -73,7 +78,6 @@ public class CommunicationFactory {
      */
     public Receiver getReceiver() {
         Receiver receiver = (Receiver) getConnectable(receiverList, Receiver.class);
-        receiver.setNjams(njams);
         return receiver;
     }
 
@@ -96,15 +100,24 @@ public class CommunicationFactory {
             final Iterator<T> iterator = list.iterator();
             final String requiredConnectableName = properties.getProperty(COMMUNICATION);
             while (iterator.hasNext()) {
-                final T connectable = iterator.next();
-                if (connectable.getName().equals(requiredConnectableName)) {
+                final T t = iterator.next();
+                if (t.getName().equals(requiredConnectableName)) {
                     try {
                         // create a new instance
-                        LOG.info("Create {}", connectable.getName());
-                        Connectable newInstance = connectable.getClass().newInstance();
-                        newInstance.init(properties);
-                        validator.validate(newInstance.getConnector());
-                        return newInstance;
+                        Connectable connectable = t.getClass().newInstance();
+                        LOG.info("Created new {}", connectable.getClass().getSimpleName());
+                        if(connectable instanceof Receiver){
+                            ((Receiver) connectable).setNjams(njams);
+                        }
+                        connectable.init(properties);
+                        //Validating here doesn't make any sense, because it has been initialized before anyawys.
+                        Connector connector = connectable.getConnector();
+                        Class<?> connectorClazzToCheck = connector.getClass();
+                        if(!alreadyChecked.contains(connectorClazzToCheck) && connector instanceof ClasspathValidatable){
+                            validator.validate(connector);
+                            alreadyChecked.add(connectorClazzToCheck);
+                        }
+                        return connectable;
                     } catch (Exception e) {
                         throw new UnsupportedOperationException(
                                 "Unable to create new " + requiredConnectableName + " instance", e);

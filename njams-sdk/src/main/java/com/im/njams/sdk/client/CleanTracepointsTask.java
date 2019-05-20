@@ -16,20 +16,27 @@
  */
 package com.im.njams.sdk.client;
 
-import com.faizsiegeln.njams.messageformat.v4.tracemessage.*;
+import com.faizsiegeln.njams.messageformat.v4.tracemessage.Activity;
+import com.faizsiegeln.njams.messageformat.v4.tracemessage.ProcessModel;
+import com.faizsiegeln.njams.messageformat.v4.tracemessage.TraceMessage;
 import com.im.njams.sdk.Njams;
+import com.im.njams.sdk.common.DateTimeUtility;
+import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.configuration.ActivityConfiguration;
 import com.im.njams.sdk.configuration.Configuration;
 import com.im.njams.sdk.configuration.ProcessConfiguration;
 import com.im.njams.sdk.configuration.TracepointExt;
-import com.im.njams.sdk.common.DateTimeUtility;
-import com.im.njams.sdk.common.NjamsSdkRuntimeException;
-import java.time.LocalDateTime;
-import java.util.*;
-import java.util.Map.Entry;
-import java.util.stream.Collectors;
-
 import org.slf4j.LoggerFactory;
+
+import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Timer;
+import java.util.TimerTask;
+import java.util.stream.Collectors;
 
 /**
  * Task for iterating over every Njams instance and check for outdated
@@ -118,7 +125,7 @@ public class CleanTracepointsTask extends TimerTask {
             LocalDateTime now = DateTimeUtility.now();
             njamsInstances.values().forEach(njams -> checkNjams(njams, now));
         } catch (Exception e) {
-            LOG.error("Error in {}", this.getClass().getName(), e);
+            LOG.error("Error in {}", this.getClass().getSimpleName(), e);
         }
     }
 

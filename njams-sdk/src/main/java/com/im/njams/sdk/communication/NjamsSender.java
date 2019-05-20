@@ -57,9 +57,6 @@ public class NjamsSender implements Sender {
     //The settings will be used for the name and max-queue-length
     private final Settings settings;
 
-    //The name for the executor threads.
-    private final String name;
-
     /**
      * This constructor initializes a NjamsSender. It safes the njams instance,
      * the settings and gets the name for the executor threads from the settings
@@ -71,7 +68,6 @@ public class NjamsSender implements Sender {
     public NjamsSender(Njams njams, Settings settings) {
         this.njams = njams;
         this.settings = settings;
-        this.name = Transformer.decode(settings.getProperties().getProperty(CommunicationFactory.COMMUNICATION));
         this.init(Transformer.decode(settings.getProperties()));
     }
 
@@ -89,7 +85,7 @@ public class NjamsSender implements Sender {
         int maxQueueLength = Integer.parseInt(properties.getProperty(Settings.PROPERTY_MAX_QUEUE_LENGTH, "8"));
         long idleTime = Long.parseLong(properties.getProperty(Settings.PROPERTY_SENDER_THREAD_IDLE_TIME, "10000"));
         ThreadFactory threadFactory = new ThreadFactoryBuilder()
-                .setNamePrefix(getName() + "-Sender-Thread").setDaemon(true).build();
+                .setNamePrefix(this.getClass().getSimpleName() + "-Thread").setDaemon(true).build();
         this.executor = new ThreadPoolExecutor(minQueueLength, maxQueueLength, idleTime, TimeUnit.MILLISECONDS,
                 new ArrayBlockingQueue<>(maxQueueLength), threadFactory,
                 new MaxQueueLengthHandler(properties));
@@ -155,7 +151,7 @@ public class NjamsSender implements Sender {
      */
     @Override
     public String getName() {
-        return name;
+        return this.getClass().getSimpleName();
     }
 
     /**
