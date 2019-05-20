@@ -9,7 +9,7 @@
     <parent>
         <groupId>com.faizsiegeln</groupId>
         <artifactId>njams4-sdk-root</artifactId>
-        <version>4.0.7</version>
+        <version>4.0.8-SNAPSHOT</version>
     </parent>
 
     <profiles>
