@@ -14,15 +14,16 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
  */
-package com.im.njams.sdk.communication;
+package com.im.njams.sdk.communication.factories;
 
 import com.faizsiegeln.njams.messageformat.v4.common.CommonMessage;
 import com.im.njams.sdk.Njams;
+import com.im.njams.sdk.communication.MaxQueueLengthHandler;
+import com.im.njams.sdk.communication.factories.pools.SenderPool;
 import com.im.njams.sdk.communication.connectable.Sender;
 import com.im.njams.sdk.communication.connector.Connector;
 import com.im.njams.sdk.factories.ThreadFactoryBuilder;
 import com.im.njams.sdk.settings.Settings;
-import com.im.njams.sdk.settings.encoding.Transformer;
 import org.slf4j.LoggerFactory;
 
 import java.util.Properties;
@@ -40,7 +41,7 @@ import java.util.concurrent.TimeUnit;
  * @author hsiegeln
  * @version 4.0.6
  */
-public class NjamsSender implements Sender {
+public class NjamsSender extends NjamsCommunication{
 
     //The logger to log messages.
     private static final org.slf4j.Logger LOG = LoggerFactory.getLogger(NjamsSender.class);
@@ -51,24 +52,16 @@ public class NjamsSender implements Sender {
     //The executor Threadpool that send the messages to the right senders.
     private ThreadPoolExecutor executor = null;
 
-    //The njamsInstance to work for
-    private final Njams njams;
-
-    //The settings will be used for the name and max-queue-length
-    private final Settings settings;
-
     /**
      * This constructor initializes a NjamsSender. It safes the njams instance,
      * the settings and gets the name for the executor threads from the settings
      * with the key: njams.sdk.communication.
      *
      * @param njams    the njamsInstance for which the messages will be send from.
-     * @param settings the setting where some settings will be taken from.
      */
-    public NjamsSender(Njams njams, Settings settings) {
-        this.njams = njams;
-        this.settings = settings;
-        this.init(Transformer.decode(settings.getProperties()));
+    public NjamsSender(Njams njams, Properties properties) {
+        super(njams, properties);
+        this.init(properties);
     }
 
     /**

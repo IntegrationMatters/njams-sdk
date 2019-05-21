@@ -47,7 +47,7 @@ import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.common.DateTimeUtility;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.common.Path;
-import com.im.njams.sdk.communication.NjamsSender;
+import com.im.njams.sdk.communication.factories.NjamsSender;
 import com.im.njams.sdk.model.ActivityModel;
 import com.im.njams.sdk.model.GroupModel;
 import com.im.njams.sdk.model.ProcessModel;

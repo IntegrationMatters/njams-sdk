@@ -16,12 +16,11 @@
  */
 package com.im.njams.sdk.settings;
 
-import com.im.njams.sdk.communication.CommunicationFactory;
 //import com.im.njams.sdk.communication.http.HttpsSender;
 //import com.im.njams.sdk.communication.jms.JmsConstants;
 import java.util.Properties;
-import org.junit.Assert;
-import org.junit.Before;
+
+        import org.junit.Before;
 import org.junit.Test;
 import org.junit.BeforeClass;
 

@@ -21,29 +21,9 @@ import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.junit.Assert.assertThat;
 
-import java.time.LocalDateTime;
-import java.util.Properties;
-
-import org.junit.Test;
-
-import com.im.njams.sdk.Njams;
-import com.im.njams.sdk.common.Path;
-import com.im.njams.sdk.communication.CommunicationFactory;
 //import com.im.njams.sdk.communication.http.HttpSender;
 //import com.im.njams.sdk.communication.jms.JmsConstants;
-import com.im.njams.sdk.logmessage.Activity;
-import com.im.njams.sdk.logmessage.ActivityImpl;
-import com.im.njams.sdk.logmessage.Group;
-import com.im.njams.sdk.logmessage.GroupImpl;
-import com.im.njams.sdk.logmessage.Job;
-import com.im.njams.sdk.logmessage.JobImpl;
-import com.im.njams.sdk.logmessage.SubProcessActivity;
-import com.im.njams.sdk.model.ActivityModel;
-import com.im.njams.sdk.model.GroupModel;
-import com.im.njams.sdk.model.ProcessModel;
-import com.im.njams.sdk.model.SubProcessActivityModel;
-import com.im.njams.sdk.settings.Settings;
-import com.im.njams.sdk.settings.encoding.Transformer;
+
 
 /**
  *

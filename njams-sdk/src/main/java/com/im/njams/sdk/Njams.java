@@ -16,29 +16,10 @@
  */
 package com.im.njams.sdk;
 
-import static java.util.stream.Collectors.toList;
-
-import java.net.URL;
-import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Enumeration;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Properties;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.stream.Stream;
-
-import org.slf4j.LoggerFactory;
-
 import com.faizsiegeln.njams.messageformat.v4.command.Command;
 import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
 import com.faizsiegeln.njams.messageformat.v4.command.Response;
+import com.faizsiegeln.njams.messageformat.v4.common.CommonMessage;
 import com.faizsiegeln.njams.messageformat.v4.common.TreeElement;
 import com.faizsiegeln.njams.messageformat.v4.common.TreeElementType;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.LogMode;
@@ -48,14 +29,11 @@ import com.im.njams.sdk.client.LogMessageFlushTask;
 import com.im.njams.sdk.common.DateTimeUtility;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.common.Path;
-import com.im.njams.sdk.communication.CommunicationFactory;
+import com.im.njams.sdk.communication.factories.CommunicationFactory;
 import com.im.njams.sdk.communication.InstructionListener;
-import com.im.njams.sdk.communication.NjamsSender;
-import com.im.njams.sdk.communication.connectable.Receiver;
 import com.im.njams.sdk.communication.ReplayHandler;
 import com.im.njams.sdk.communication.ReplayRequest;
 import com.im.njams.sdk.communication.ReplayResponse;
-import com.im.njams.sdk.communication.connectable.Sender;
 import com.im.njams.sdk.configuration.Configuration;
 import com.im.njams.sdk.configuration.ConfigurationInstructionListener;
 import com.im.njams.sdk.configuration.ConfigurationProvider;
@@ -74,6 +52,25 @@ import com.im.njams.sdk.model.svg.ProcessDiagramFactory;
 import com.im.njams.sdk.serializer.Serializer;
 import com.im.njams.sdk.serializer.StringSerializer;
 import com.im.njams.sdk.settings.Settings;
+import org.slf4j.LoggerFactory;
+
+import java.net.URL;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Enumeration;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Properties;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.stream.Stream;
+
+import static java.util.stream.Collectors.toList;
 
 /**
  * This is an instance of nJAMS. It cares about lifecycle and initializations
@@ -164,9 +161,7 @@ public class Njams implements InstructionListener {
     // features
     private final List<String> features = new ArrayList<>();
 
-    // TODO: implement pooling
-    private Sender sender;
-    private Receiver receiver;
+    private CommunicationFactory communicationFactory;
 
     private Configuration configuration;
     private String machine;
@@ -200,6 +195,7 @@ public class Njams implements InstructionListener {
         instructionListeners.add(this);
         instructionListeners.add(new ConfigurationInstructionListener(getConfiguration()));
         setMachine();
+        communicationFactory = new CommunicationFactory(this, settings);
     }
 
     /**
@@ -315,36 +311,12 @@ public class Njams implements InstructionListener {
         this.processDiagramFactory = processDiagramFactory;
     }
 
-    /**
-     * Returns the a Sender implementation, which is configured as specified in
-     * the settings.
-     *
-     * @return the Sender
-     */
-    public Sender getSender() {
-        if (sender == null) {
-            // sender = new CommunicationFactory(this, settings).getSender();
-            sender = new NjamsSender(this, settings);
-        }
-        return sender;
+    public void sendMessage(CommonMessage msg){
+        communicationFactory.sendMessage(msg);
     }
 
-    /**
-     * Start the receiver, which is used to retrieve instructions
-     */
-    private void startReceiver() {
-        try {
-            receiver = new CommunicationFactory(this, settings).getReceiver();
-            receiver.start();
-        } catch (Exception e) {
-            LOG.error("Error starting Receiver", e);
-            try {
-                receiver.stop();
-            } catch (Exception ex) {
-                LOG.debug("Unable to stop receiver", ex);
-            }
-            receiver = null;
-        }
+    private void startReceiver(){
+        communicationFactory.initializeNjamsReceiver();
     }
 
     /**
@@ -371,17 +343,13 @@ public class Njams implements InstructionListener {
      * be stopped before it started. (NjamsSdkRuntimeException)
      *
      * @return true is stopping was successful.
+     * @throws NjamsSdkRuntimeException is thrown if this method is stopped before it started successfully.
      */
     public boolean stop() {
         if (isStarted()) {
             LogMessageFlushTask.stop(this);
             CleanTracepointsTask.stop(this);
-            if (sender != null) {
-                sender.stop();
-            }
-            if (receiver != null) {
-                receiver.stop();
-            }
+            communicationFactory.stopAll();
             started = false;
         } else {
             throw new NjamsSdkRuntimeException(NOT_STARTED_EXCEPTION_MESSAGE);
@@ -470,8 +438,8 @@ public class Njams implements InstructionListener {
         images.forEach(i -> msg.getImages().put(i.getName(), i.getBase64Image()));
         msg.getGlobalVariables().putAll(globalVariables);
         msg.setLogMode(configuration.getLogMode());
-        getSender().send(msg);
 
+        this.sendMessage(msg);
     }
 
     /**
