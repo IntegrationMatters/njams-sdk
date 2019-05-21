@@ -135,7 +135,7 @@ public class CleanTracepointsTask extends TimerTask {
         configuration.getProcesses().entrySet().forEach(processEntry -> checkProcess(configuration, processEntry, now, tmBuilder));
         TraceMessage msg = tmBuilder.build();
         if(msg != null){
-            njams.getSender().send(msg);
+            njams.sendMessage(msg);
         }
     }
 
