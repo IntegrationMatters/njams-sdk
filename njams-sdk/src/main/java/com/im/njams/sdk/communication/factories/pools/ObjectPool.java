@@ -20,9 +20,10 @@ import org.slf4j.LoggerFactory;
 
 import java.util.Enumeration;
 import java.util.Hashtable;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
- * a generic class for pooling objects of any kind
+ * a generic class for pooling unlimited objects of any kind
  * @author hsiegeln
  *
  * @param <T> class to store in this pool
@@ -32,14 +33,14 @@ public abstract class ObjectPool<T> {
 
     private Hashtable<T, Long> unlocked, locked;
 
-    public ObjectPool(int maxCapacity) {
-        unlocked = new Hashtable<>();
-        locked = new Hashtable<>();
+    public ObjectPool() {
+        this.unlocked = new Hashtable<>();
+        this.locked = new Hashtable<>();
     }
 
-    protected abstract T create();
+    private final AtomicBoolean tryToStop = new AtomicBoolean(false);
 
-    public abstract boolean validate(T o);
+    protected abstract T create();
 
     public abstract void expire(T o);
 
@@ -65,12 +66,12 @@ public abstract class ObjectPool<T> {
                 Enumeration<T> e = unlocked.keys();
                 while (e.hasMoreElements()) {
                     t = e.nextElement();
-                    if (validate(t)) {
+                    try{
                         unlocked.remove(t);
                         locked.put(t, now);
                         LOG.trace("Got Sender: " + t);
                         return t;
-                    } else {
+                    }catch(Exception ex){
                         // object failed validation
                         LOG.debug("Object failed validation!");
                         unlocked.remove(t);
@@ -83,13 +84,16 @@ public abstract class ObjectPool<T> {
             // no objects available, create a new one
             t = create();
         } while (t == null && (timeout < 0 || System.currentTimeMillis() - now < timeout));
-        LOG.trace("Created Sender: " + t);
         return t;
     }
 
-    public synchronized void close(T t) {
+    public synchronized void release(T t) {
         locked.remove(t);
         unlocked.put(t, System.currentTimeMillis());
         LOG.trace("Close locked={}, unlocked={}", locked.size(), unlocked.size());
+    }
+
+    public synchronized void close(){
+        tryToStop.set(true);
     }
 }

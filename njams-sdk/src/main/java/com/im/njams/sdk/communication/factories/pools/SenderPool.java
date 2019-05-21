@@ -16,12 +16,10 @@
  */
 package com.im.njams.sdk.communication.factories.pools;
 
-import java.util.Properties;
-
+import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.communication.connectable.Sender;
-import com.im.njams.sdk.communication.factories.CommunicationFactory;
-import com.im.njams.sdk.communication.factories.pools.ObjectPool;
-import com.im.njams.sdk.settings.Settings;
+
+import java.util.Properties;
 
 /**
  * pool for Sender sub-classes
@@ -29,37 +27,14 @@ import com.im.njams.sdk.settings.Settings;
  * @author hsiegeln
  *
  */
-public class SenderPool extends ObjectPool<Sender> {
+public class SenderPool extends ConnectablePool<Sender>{
 
-    private Properties properties;
-    private CommunicationFactory factory;
-
-    public SenderPool(CommunicationFactory factory, Properties properties) {
-        super(Integer.parseInt(properties.getProperty(Settings.PROPERTY_MAX_QUEUE_LENGTH, "8")));
-        this.properties = properties;
-        this.factory = factory;
+    public SenderPool(Njams njams, Properties properties) {
+        super(njams, properties);
     }
 
     @Override
     protected Sender create() {
-        Sender sender = factory.getSender();
-        //        sender.init(properties);
-        return sender;
+        return connectableFactory.getSender();
     }
-
-    @Override
-    public boolean validate(Sender sender) {
-        // TODO: there must be a better solution!
-        return true;
-    }
-
-    @Override
-    public void expire(Sender sender) {
-        sender.stop();
-    }
-
-    public void setSenderFactory(CommunicationFactory senderFactory) {
-        this.factory = senderFactory;
-    }
-
 }

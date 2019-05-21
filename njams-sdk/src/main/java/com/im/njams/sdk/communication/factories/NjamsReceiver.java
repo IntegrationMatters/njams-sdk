@@ -1,22 +1,18 @@
 package com.im.njams.sdk.communication.factories;
 
 import com.im.njams.sdk.Njams;
+import com.im.njams.sdk.communication.factories.pools.ReceiverPool;
 
 import java.util.Properties;
 
 public class NjamsReceiver extends NjamsCommunication{
 
-    //Have a pool with all receivers
-
     public NjamsReceiver(Njams njams, Properties properties) {
         super(njams, properties);
     }
 
-    public void init(){
-//        connectableFactory.getReceiver();
-    }
     @Override
-    public void stop() {
-//    stop all receivers in the pool
+    protected ReceiverPool setConnectablePool(Njams njams, Properties properties) {
+        return new ReceiverPool(njams, properties);
     }
 }

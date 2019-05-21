@@ -19,9 +19,8 @@ package com.im.njams.sdk.communication.factories;
 import com.faizsiegeln.njams.messageformat.v4.common.CommonMessage;
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.communication.MaxQueueLengthHandler;
-import com.im.njams.sdk.communication.factories.pools.SenderPool;
 import com.im.njams.sdk.communication.connectable.Sender;
-import com.im.njams.sdk.communication.connector.Connector;
+import com.im.njams.sdk.communication.factories.pools.SenderPool;
 import com.im.njams.sdk.factories.ThreadFactoryBuilder;
 import com.im.njams.sdk.settings.Settings;
 import org.slf4j.LoggerFactory;
@@ -46,9 +45,6 @@ public class NjamsSender extends NjamsCommunication{
     //The logger to log messages.
     private static final org.slf4j.Logger LOG = LoggerFactory.getLogger(NjamsSender.class);
 
-    //The senderPool where the senders will be safed.
-    private SenderPool senderPool = null;
-
     //The executor Threadpool that send the messages to the right senders.
     private ThreadPoolExecutor executor = null;
 
@@ -64,6 +60,11 @@ public class NjamsSender extends NjamsCommunication{
         this.init(properties);
     }
 
+    @Override
+    protected SenderPool setConnectablePool(Njams njams, Properties properties) {
+        return new SenderPool(njams, properties);
+    }
+
     /**
      * This method initializes a CommunicationFactory, a ThreadPoolExecutor and
      * a SenderPool.
@@ -71,9 +72,7 @@ public class NjamsSender extends NjamsCommunication{
      * @param properties the properties for MIN_QUEUE_LENGTH, MAX_QUEUE_LENGTH
      *                   and IDLE_TIME for the sender threads.
      */
-    @Override
     public void init(Properties properties) {
-        CommunicationFactory communicationFactory = new CommunicationFactory(njams, settings);
         int minQueueLength = Integer.parseInt(properties.getProperty(Settings.PROPERTY_MIN_QUEUE_LENGTH, "1"));
         int maxQueueLength = Integer.parseInt(properties.getProperty(Settings.PROPERTY_MAX_QUEUE_LENGTH, "8"));
         long idleTime = Long.parseLong(properties.getProperty(Settings.PROPERTY_SENDER_THREAD_IDLE_TIME, "10000"));
@@ -82,7 +81,6 @@ public class NjamsSender extends NjamsCommunication{
         this.executor = new ThreadPoolExecutor(minQueueLength, maxQueueLength, idleTime, TimeUnit.MILLISECONDS,
                 new ArrayBlockingQueue<>(maxQueueLength), threadFactory,
                 new MaxQueueLengthHandler(properties));
-        this.senderPool = new SenderPool(communicationFactory, properties);
     }
 
     /**
@@ -105,23 +103,17 @@ public class NjamsSender extends NjamsCommunication{
         }
     }
 
-    @Override
-    public Connector getConnector() {
-        return null;
-    }
-
     /**
      * This method starts a thread that sends the message to a sender in the
      * senderpool.
      *
      * @param msg the message that will be send to the server.
      */
-    @Override
     public void send(CommonMessage msg) {
         executor.execute(() -> {
             Sender sender = null;
             try {
-                sender = senderPool.get();
+                sender = (Sender) connectablePool.get();
                 if (sender != null) {
                     sender.send(msg);
                 }
@@ -129,7 +121,7 @@ public class NjamsSender extends NjamsCommunication{
                 LOG.error("could not send message {}, {}", msg, e);
             } finally {
                 if (sender != null) {
-                    senderPool.close(sender);
+                    connectablePool.release(sender);
                 }
             }
         });
@@ -142,7 +134,6 @@ public class NjamsSender extends NjamsCommunication{
      * @return the value to key njams.sdk.communication in the
      * settings
      */
-    @Override
     public String getName() {
         return this.getClass().getSimpleName();
     }
