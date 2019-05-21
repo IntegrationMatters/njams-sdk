@@ -16,17 +16,10 @@
  */
 package com.im.njams.sdk.communication;
 
-import java.util.Properties;
-
-import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
-import com.im.njams.sdk.Njams;
-import com.im.njams.sdk.communication.connectable.Receiver;
-import com.im.njams.sdk.settings.Settings;
-
 /**
  * Dummy implementation for testing.<br>
  * <b>Note:</b> For using this instance, the test environment needs to have a the full qualified class name of this 
- * {@link TestReceiver} in the <code>META_INF/services/com.im.njams.sdk.communication.connectable.Receiver</code> file.
+ * {@link TestReceiver} in the <code>META_INF/services/com.im.njams.sdk.communication.connectable.receiver.Receiver</code> file.
  * 
  * @author cwinkler
  *

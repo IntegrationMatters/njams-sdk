@@ -5,19 +5,11 @@
  */
 package com.im.njams.sdk.communication.jms;
 
-import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
-import com.faizsiegeln.njams.messageformat.v4.command.Request;
 import com.fasterxml.jackson.core.JsonProcessingException;
 //import com.fasterxml.jackson.databind.ObjectMapper;
-import com.im.njams.sdk.communication.CommunicationFactory;
 import org.junit.*;
-import org.slf4j.LoggerFactory;
 
 import javax.jms.JMSException;
-import javax.jms.Session;
-import javax.jms.TemporaryQueue;
-import javax.jms.TextMessage;
-import java.util.Properties;
 
 //import static org.mockito.Mockito.mock;
 //import static org.mockito.Mockito.when;

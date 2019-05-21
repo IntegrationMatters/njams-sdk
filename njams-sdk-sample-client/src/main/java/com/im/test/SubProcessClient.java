@@ -18,7 +18,7 @@ package com.im.test;
 
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.common.Path;
-import com.im.njams.sdk.communication.CommunicationFactory;
+import com.im.njams.sdk.communication.factories.CommunicationFactory;
 import com.im.njams.sdk.communication.cloud.CloudConstants;
 import com.im.njams.sdk.communication.jms.JmsConstants;
 import com.im.njams.sdk.logmessage.Activity;

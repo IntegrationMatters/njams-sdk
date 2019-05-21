@@ -16,22 +16,10 @@
  */
 package com.im.njams.sdk.communication;
 
-import java.util.Properties;
-
-import com.faizsiegeln.njams.messageformat.v4.common.CommonMessage;
-import com.faizsiegeln.njams.messageformat.v4.logmessage.LogMessage;
-import com.faizsiegeln.njams.messageformat.v4.projectmessage.ProjectMessage;
-import com.faizsiegeln.njams.messageformat.v4.tracemessage.TraceMessage;
-import com.im.njams.sdk.common.NjamsSdkRuntimeException;
-import com.im.njams.sdk.communication.connectable.AbstractSender;
-import com.im.njams.sdk.communication.connectable.Sender;
-import com.im.njams.sdk.configuration.ConfigurationProviderFactory;
-import com.im.njams.sdk.settings.Settings;
-
 /**
  * Dummy implementation for testing.<br>
  * <b>Note:</b> For using this instance, the test environment needs to have a the full qualified class name of this
- * {@link TestSender} in the <code>META_INF/services/com.im.njams.sdk.communication.connectable.Sender</code> file.
+ * {@link TestSender} in the <code>META_INF/services/com.im.njams.sdk.communication.connectable.sender.Sender</code> file.
  *
  * @author cwinkler
  *
