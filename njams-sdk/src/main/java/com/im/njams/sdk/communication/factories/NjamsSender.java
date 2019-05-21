@@ -19,7 +19,7 @@ package com.im.njams.sdk.communication.factories;
 import com.faizsiegeln.njams.messageformat.v4.common.CommonMessage;
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.communication.MaxQueueLengthHandler;
-import com.im.njams.sdk.communication.connectable.Sender;
+import com.im.njams.sdk.communication.connectable.sender.Sender;
 import com.im.njams.sdk.communication.factories.pools.SenderPool;
 import com.im.njams.sdk.factories.ThreadFactoryBuilder;
 import com.im.njams.sdk.settings.Settings;

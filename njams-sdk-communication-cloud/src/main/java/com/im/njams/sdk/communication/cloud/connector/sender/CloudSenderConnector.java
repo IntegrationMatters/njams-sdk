@@ -5,7 +5,7 @@ import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.communication.cloud.CloudConstants;
 import com.im.njams.sdk.communication.cloud.connector.Endpoints;
 import com.im.njams.sdk.communication.cloud.connector.CloudConnector;
-import com.im.njams.sdk.communication.connectable.Sender;
+import com.im.njams.sdk.communication.connectable.sender.Sender;
 import com.im.njams.sdk.utils.JsonUtils;
 import org.slf4j.LoggerFactory;
 

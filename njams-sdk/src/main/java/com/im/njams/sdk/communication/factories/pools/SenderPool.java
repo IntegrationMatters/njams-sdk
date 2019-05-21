@@ -17,7 +17,7 @@
 package com.im.njams.sdk.communication.factories.pools;
 
 import com.im.njams.sdk.Njams;
-import com.im.njams.sdk.communication.connectable.Sender;
+import com.im.njams.sdk.communication.connectable.sender.Sender;
 
 import java.util.Properties;
 

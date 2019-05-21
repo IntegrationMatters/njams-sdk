@@ -1,4 +1,6 @@
-package com.im.njams.sdk.communication.connectable;
+package com.im.njams.sdk.communication.connectable.receiver;
+
+import com.im.njams.sdk.communication.connectable.sender.SenderUtil;
 
 import java.io.IOException;
 import java.io.InputStream;

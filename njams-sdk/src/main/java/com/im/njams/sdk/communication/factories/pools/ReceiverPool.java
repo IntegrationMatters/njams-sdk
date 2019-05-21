@@ -1,7 +1,7 @@
 package com.im.njams.sdk.communication.factories.pools;
 
 import com.im.njams.sdk.Njams;
-import com.im.njams.sdk.communication.connectable.Receiver;
+import com.im.njams.sdk.communication.connectable.receiver.Receiver;
 
 import java.util.Properties;
 

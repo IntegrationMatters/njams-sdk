@@ -26,8 +26,8 @@ import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.communication.cloud.CloudConstants;
 import com.im.njams.sdk.communication.cloud.connector.sender.CloudSenderConnector;
 
-import com.im.njams.sdk.communication.connectable.AbstractSender;
-import com.im.njams.sdk.communication.connectable.Sender;
+import com.im.njams.sdk.communication.connectable.sender.AbstractSender;
+import com.im.njams.sdk.communication.connectable.sender.Sender;
 import com.im.njams.sdk.communication.connector.Connector;
 import org.slf4j.LoggerFactory;
 

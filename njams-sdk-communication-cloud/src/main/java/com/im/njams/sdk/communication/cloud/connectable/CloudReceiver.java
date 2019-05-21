@@ -26,7 +26,7 @@ import com.faizsiegeln.njams.messageformat.v4.command.Response;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.communication.cloud.*;
 import com.im.njams.sdk.communication.cloud.connector.receiver.CloudReceiverConnector;
-import com.im.njams.sdk.communication.connectable.AbstractReceiver;
+import com.im.njams.sdk.communication.connectable.receiver.AbstractReceiver;
 import com.im.njams.sdk.communication.connector.Connector;
 import com.im.njams.sdk.utils.JsonUtils;
 import com.im.njams.sdk.utils.StringUtils;

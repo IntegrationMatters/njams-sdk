@@ -1,6 +1,6 @@
 /*
  */
-package com.im.njams.sdk.communication.connectable;
+package com.im.njams.sdk.communication.connectable.receiver;
 
 import com.im.njams.sdk.communication.InstructionListener;
 import com.im.njams.sdk.communication.connector.Connector;

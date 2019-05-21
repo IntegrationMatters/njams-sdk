@@ -3,7 +3,7 @@
 package com.im.njams.sdk.communication.jms.connectable;
 
 import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
-import com.im.njams.sdk.communication.connectable.AbstractReceiver;
+import com.im.njams.sdk.communication.connectable.receiver.AbstractReceiver;
 import com.im.njams.sdk.communication.connector.Connector;
 import com.im.njams.sdk.communication.jms.JmsConstants;
 import com.im.njams.sdk.communication.jms.connector.JmsReceiverConnector;

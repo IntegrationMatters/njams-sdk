@@ -24,8 +24,7 @@ import java.util.List;
 import java.util.Properties;
 
 import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
-import com.im.njams.sdk.communication.connectable.AbstractReceiver;
-import com.im.njams.sdk.communication.connector.AbstractConnector;
+import com.im.njams.sdk.communication.connectable.receiver.AbstractReceiver;
 import com.im.njams.sdk.communication.connector.Connector;
 import com.im.njams.sdk.communication.http.HttpConstants;
 import com.im.njams.sdk.communication.http.connector.HttpReceiverConnector;

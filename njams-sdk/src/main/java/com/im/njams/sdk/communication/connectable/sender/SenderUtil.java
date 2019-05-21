@@ -1,4 +1,4 @@
-package com.im.njams.sdk.communication.connectable;
+package com.im.njams.sdk.communication.connectable.sender;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;

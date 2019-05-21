@@ -1,12 +1,13 @@
 /*
  */
-package com.im.njams.sdk.communication.connectable;
+package com.im.njams.sdk.communication.connectable.receiver;
 
-
-import java.util.Properties;
 
 import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
 import com.im.njams.sdk.Njams;
+import com.im.njams.sdk.communication.connectable.Connectable;
+
+import java.util.Properties;
 
 /**
  * This interface must be implenmented by a new Receiver for a given

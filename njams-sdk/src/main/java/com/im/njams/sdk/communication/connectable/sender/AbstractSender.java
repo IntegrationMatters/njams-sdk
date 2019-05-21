@@ -1,6 +1,6 @@
 /*
  */
-package com.im.njams.sdk.communication.connectable;
+package com.im.njams.sdk.communication.connectable.sender;
 
 import com.faizsiegeln.njams.messageformat.v4.common.CommonMessage;
 import com.faizsiegeln.njams.messageformat.v4.logmessage.LogMessage;

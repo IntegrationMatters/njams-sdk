@@ -20,7 +20,6 @@ import static java.nio.charset.Charset.defaultCharset;
 
 import java.io.*;
 import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Map;
 import java.util.Properties;
@@ -28,7 +27,6 @@ import java.util.Set;
 
 import com.faizsiegeln.njams.messageformat.v4.common.CommonMessage;
 import com.faizsiegeln.njams.messageformat.v4.tracemessage.TraceMessage;
-import com.im.njams.sdk.communication.connector.AbstractConnector;
 import com.im.njams.sdk.communication.connector.Connector;
 import com.im.njams.sdk.communication.http.HttpConstants;
 import com.im.njams.sdk.communication.http.connector.HttpSenderConnector;
@@ -38,8 +36,8 @@ import com.faizsiegeln.njams.messageformat.v4.common.MessageVersion;
 import com.faizsiegeln.njams.messageformat.v4.logmessage.LogMessage;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.ProjectMessage;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
-import com.im.njams.sdk.communication.connectable.AbstractSender;
-import com.im.njams.sdk.communication.connectable.Sender;
+import com.im.njams.sdk.communication.connectable.sender.AbstractSender;
+import com.im.njams.sdk.communication.connectable.sender.Sender;
 
 /**
  * HttpSender

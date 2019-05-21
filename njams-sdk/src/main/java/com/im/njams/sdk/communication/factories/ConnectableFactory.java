@@ -2,8 +2,8 @@ package com.im.njams.sdk.communication.factories;
 
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.communication.connectable.Connectable;
-import com.im.njams.sdk.communication.connectable.Receiver;
-import com.im.njams.sdk.communication.connectable.Sender;
+import com.im.njams.sdk.communication.connectable.receiver.Receiver;
+import com.im.njams.sdk.communication.connectable.sender.Sender;
 import com.im.njams.sdk.communication.connector.Connector;
 import com.im.njams.sdk.communication.validator.ClasspathValidatable;
 import com.im.njams.sdk.communication.validator.ClasspathValidator;
