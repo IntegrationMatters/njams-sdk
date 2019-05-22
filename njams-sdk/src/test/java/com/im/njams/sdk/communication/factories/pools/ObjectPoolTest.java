@@ -1,4 +1,4 @@
-package com.im.njams.sdk.pools;
+package com.im.njams.sdk.communication.factories.pools;
 
 import org.junit.Test;
 
@@ -11,7 +11,7 @@ public class ObjectPoolTest {
     public void expireAll() throws Exception {
         AutoCloseable mockedAC = mock(AutoCloseable.class);
         AutoCloseable mockedAC2 = mock(AutoCloseable.class);
-        ObjectPool<AutoCloseable> op = new ObjectPool<AutoCloseable>(0) {
+        ObjectPool<AutoCloseable> op = new ObjectPool<AutoCloseable>() {
             public boolean first = true;
             @Override
             protected AutoCloseable create() {
@@ -21,11 +21,6 @@ public class ObjectPoolTest {
                 }else{
                     return mockedAC2;
                 }
-            }
-
-            @Override
-            public boolean validate(AutoCloseable o) {
-                return true;
             }
 
             @Override
@@ -46,7 +41,7 @@ public class ObjectPoolTest {
 
         AutoCloseable get2 = op.get();
         assertEquals(mockedAC2, get2);
-        op.close(get2);
+        op.release(get2);
         op.expireAll();
         verify(get2, times(1)).close();
         //This hasn't been closed again, because it isn't in the maps anymore
