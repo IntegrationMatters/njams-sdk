@@ -20,7 +20,6 @@ import org.slf4j.LoggerFactory;
 
 import java.util.Enumeration;
 import java.util.Hashtable;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * a generic class for pooling unlimited objects of any kind
@@ -28,17 +27,15 @@ import java.util.concurrent.atomic.AtomicBoolean;
  *
  * @param <T> class to store in this pool
  */
-public abstract class ObjectPool<T> {
+public abstract class ObjectPool<T extends AutoCloseable> {
     private static final org.slf4j.Logger LOG = LoggerFactory.getLogger(ObjectPool.class);
 
-    private Hashtable<T, Long> unlocked, locked;
+    private final Hashtable<T, Long> unlocked, locked;
 
     public ObjectPool() {
         this.unlocked = new Hashtable<>();
         this.locked = new Hashtable<>();
     }
-
-    private final AtomicBoolean tryToStop = new AtomicBoolean(false);
 
     protected abstract T create();
 
@@ -83,6 +80,7 @@ public abstract class ObjectPool<T> {
             }
             // no objects available, create a new one
             t = create();
+            locked.put(t, now);
         } while (t == null && (timeout < 0 || System.currentTimeMillis() - now < timeout));
         return t;
     }
@@ -93,7 +91,23 @@ public abstract class ObjectPool<T> {
         LOG.trace("Close locked={}, unlocked={}", locked.size(), unlocked.size());
     }
 
-    public synchronized void close(){
-        tryToStop.set(true);
+    public synchronized void expireAll(){
+        for(T t : locked.keySet()){
+            try {
+                t.close();
+            } catch (Exception e) {
+                LOG.error("Couldn't close {}", t.getClass().getSimpleName());
+            }
+        }
+        locked.clear();
+        for(T t : unlocked.keySet()){
+            try {
+                t.close();
+            } catch (Exception e) {
+                LOG.error("Couldn't close {}", t.getClass().getSimpleName());
+            }
+        }
+        unlocked.clear();
     }
+
 }

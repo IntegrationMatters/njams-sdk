@@ -101,6 +101,7 @@ public class NjamsSender extends NjamsCommunication{
         } catch (InterruptedException ex) {
             LOG.error("The shutdown of the sender's threadpool has been interrupted. {}", ex);
         }
+        connectablePool.expireAll();
     }
 
     /**
