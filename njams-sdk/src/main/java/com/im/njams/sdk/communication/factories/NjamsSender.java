@@ -57,7 +57,6 @@ public class NjamsSender extends NjamsCommunication{
      */
     public NjamsSender(Njams njams, Properties properties) {
         super(njams, properties);
-        this.init(properties);
     }
 
     @Override
@@ -72,7 +71,8 @@ public class NjamsSender extends NjamsCommunication{
      * @param properties the properties for MIN_QUEUE_LENGTH, MAX_QUEUE_LENGTH
      *                   and IDLE_TIME for the sender threads.
      */
-    public void init(Properties properties) {
+    @Override
+    protected final void init(Properties properties) {
         int minQueueLength = Integer.parseInt(properties.getProperty(Settings.PROPERTY_MIN_QUEUE_LENGTH, "1"));
         int maxQueueLength = Integer.parseInt(properties.getProperty(Settings.PROPERTY_MAX_QUEUE_LENGTH, "8"));
         long idleTime = Long.parseLong(properties.getProperty(Settings.PROPERTY_SENDER_THREAD_IDLE_TIME, "10000"));
@@ -126,25 +126,4 @@ public class NjamsSender extends NjamsCommunication{
             }
         });
     }
-
-    /**
-     * This method returns the name that was set in the settings with the key
-     * njams.sdk.communication.
-     *
-     * @return the value to key njams.sdk.communication in the
-     * settings
-     */
-    public String getName() {
-        return this.getClass().getSimpleName();
-    }
-
-    /**
-     * This method return the ThreadPoolExecutor
-     *
-     * @return the ThreadPoolExecutor
-     */
-    ThreadPoolExecutor getExecutor() {
-        return executor;
-    }
-
 }

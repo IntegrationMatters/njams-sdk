@@ -13,9 +13,12 @@ public abstract class NjamsCommunication {
 
     public NjamsCommunication(Njams njams, Properties properties){
         this.connectablePool = setConnectablePool(njams, properties);
+        this.init(properties);
     }
 
     protected abstract <T extends Connectable> ConnectablePool<T> setConnectablePool(Njams njams, Properties properties);
+
+    protected abstract void init(Properties properties);
 
     public void stop(){
         if(connectablePool != null){

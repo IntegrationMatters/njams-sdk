@@ -53,7 +53,6 @@ public class CommunicationFactory {
         this.properties = Transformer.decode(settings.getProperties());
     }
 
-
     public void stopAll() {
         if(njamsSender != null){
             njamsSender.stop();
