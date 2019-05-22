@@ -11,7 +11,7 @@ public abstract class NjamsCommunication {
     //The connectablePool where the connectable instances will be safed.
     protected ConnectablePool<Connectable> connectablePool = null;
 
-    public NjamsCommunication(Njams njams, Properties properties){
+    public NjamsCommunication(Njams njams, Properties properties) {
         this.connectablePool = setConnectablePool(njams, properties);
         this.init(properties);
     }
@@ -20,9 +20,19 @@ public abstract class NjamsCommunication {
 
     protected abstract void init(Properties properties);
 
-    public void stop(){
-        if(connectablePool != null){
-            connectablePool.close();
+    public final void stop() {
+        stopBeforeConnectablePool();
+        if (connectablePool != null) {
+            connectablePool.expireAll();
         }
+        stopAfterConnectablePool();
+    }
+
+    protected void stopAfterConnectablePool() {
+        //Do nothing as default
+    }
+
+    protected void stopBeforeConnectablePool() {
+        //Do nothing as default
     }
 }

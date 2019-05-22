@@ -89,7 +89,7 @@ public class NjamsSender extends NjamsCommunication{
      * thrown and the senders will be closed.
      */
     @Override
-    public void stop() {
+    protected void stopBeforeConnectablePool() {
         try {
             int waitTime = 10;
             TimeUnit unit = TimeUnit.SECONDS;
@@ -101,7 +101,6 @@ public class NjamsSender extends NjamsCommunication{
         } catch (InterruptedException ex) {
             LOG.error("The shutdown of the sender's threadpool has been interrupted. {}", ex);
         }
-        connectablePool.expireAll();
     }
 
     /**

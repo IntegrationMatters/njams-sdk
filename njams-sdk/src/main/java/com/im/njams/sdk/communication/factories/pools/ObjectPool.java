@@ -27,7 +27,7 @@ import java.util.Hashtable;
  *
  * @param <T> class to store in this pool
  */
-public abstract class ObjectPool<T extends AutoCloseable> {
+public abstract class ObjectPool<T> {
     private static final org.slf4j.Logger LOG = LoggerFactory.getLogger(ObjectPool.class);
 
     private final Hashtable<T, Long> unlocked, locked;
@@ -94,7 +94,7 @@ public abstract class ObjectPool<T extends AutoCloseable> {
     public synchronized void expireAll(){
         for(T t : locked.keySet()){
             try {
-                t.close();
+                expire(t);
             } catch (Exception e) {
                 LOG.error("Couldn't close {}", t.getClass().getSimpleName());
             }
@@ -102,12 +102,11 @@ public abstract class ObjectPool<T extends AutoCloseable> {
         locked.clear();
         for(T t : unlocked.keySet()){
             try {
-                t.close();
+                expire(t);
             } catch (Exception e) {
                 LOG.error("Couldn't close {}", t.getClass().getSimpleName());
             }
         }
         unlocked.clear();
     }
-
 }
