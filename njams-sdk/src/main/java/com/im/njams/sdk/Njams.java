@@ -29,7 +29,7 @@ import com.im.njams.sdk.client.LogMessageFlushTask;
 import com.im.njams.sdk.common.DateTimeUtility;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.common.Path;
-import com.im.njams.sdk.communication.factories.CommunicationFactory;
+import com.im.njams.sdk.communication.Communication;
 import com.im.njams.sdk.communication.InstructionListener;
 import com.im.njams.sdk.communication.ReplayHandler;
 import com.im.njams.sdk.communication.ReplayRequest;
@@ -161,7 +161,7 @@ public class Njams implements InstructionListener {
     // features
     private final List<String> features = new ArrayList<>();
 
-    private CommunicationFactory communicationFactory;
+    private Communication communicationFactory;
 
     private Configuration configuration;
     private String machine;
@@ -195,7 +195,7 @@ public class Njams implements InstructionListener {
         instructionListeners.add(this);
         instructionListeners.add(new ConfigurationInstructionListener(getConfiguration()));
         setMachine();
-        communicationFactory = new CommunicationFactory(this, settings);
+        communicationFactory = new Communication(this, settings);
     }
 
     /**

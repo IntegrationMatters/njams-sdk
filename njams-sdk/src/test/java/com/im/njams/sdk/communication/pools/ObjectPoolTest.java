@@ -1,4 +1,4 @@
-package com.im.njams.sdk.communication.factories.pools;
+package com.im.njams.sdk.communication.pools;
 
 import org.junit.Test;
 

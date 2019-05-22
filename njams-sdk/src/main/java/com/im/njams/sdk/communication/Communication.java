@@ -14,10 +14,12 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
  */
-package com.im.njams.sdk.communication.factories;
+package com.im.njams.sdk.communication;
 
 import com.faizsiegeln.njams.messageformat.v4.common.CommonMessage;
 import com.im.njams.sdk.Njams;
+import com.im.njams.sdk.communication.connection.receiver.NjamsReceiver;
+import com.im.njams.sdk.communication.connection.sender.NjamsSender;
 import com.im.njams.sdk.settings.Settings;
 import com.im.njams.sdk.settings.encoding.Transformer;
 import org.slf4j.Logger;
@@ -31,10 +33,10 @@ import java.util.Properties;
  * @author krautenberg
  * @version 4.1.0
  */
-public class CommunicationFactory {
+public class Communication {
 
     public static final String COMMUNICATION = "njams.sdk.communication";
-    private static final Logger LOG = LoggerFactory.getLogger(CommunicationFactory.class);
+    private static final Logger LOG = LoggerFactory.getLogger(Communication.class);
 
     private NjamsSender njamsSender;
     private NjamsReceiver njamsReceiver;
@@ -48,7 +50,7 @@ public class CommunicationFactory {
      * @param njams Njams to add
      * @param settings Settings to add
      */
-    public CommunicationFactory(Njams njams, Settings settings) {
+    public Communication(Njams njams, Settings settings) {
         this.njams = njams;
         this.properties = Transformer.decode(settings.getProperties());
     }
@@ -57,7 +59,8 @@ public class CommunicationFactory {
         if(njamsSender != null){
             njamsSender.stop();
         }
-        else if(njamsReceiver != null){
+
+        if(njamsReceiver != null){
             njamsReceiver.stop();
         }
     }

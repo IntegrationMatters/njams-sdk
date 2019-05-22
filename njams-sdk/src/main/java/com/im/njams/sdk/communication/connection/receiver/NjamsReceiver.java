@@ -1,11 +1,12 @@
-package com.im.njams.sdk.communication.factories;
+package com.im.njams.sdk.communication.connection.receiver;
 
 import com.im.njams.sdk.Njams;
-import com.im.njams.sdk.communication.factories.pools.ReceiverPool;
+import com.im.njams.sdk.communication.connection.NjamsConnectable;
+import com.im.njams.sdk.communication.pools.ReceiverPool;
 
 import java.util.Properties;
 
-public class NjamsReceiver extends NjamsCommunication {
+public class NjamsReceiver extends NjamsConnectable {
 
     private static final String RECEIVER_COUNT = "njams.client.sdk.receiver.count";
 

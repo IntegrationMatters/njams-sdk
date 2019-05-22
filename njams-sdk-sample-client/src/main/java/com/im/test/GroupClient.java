@@ -18,7 +18,7 @@ package com.im.test;
 
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.common.Path;
-import com.im.njams.sdk.communication.factories.CommunicationFactory;
+import com.im.njams.sdk.communication.Communication;
 import com.im.njams.sdk.communication.cloud.CloudConstants;
 import com.im.njams.sdk.communication.jms.JmsConstants;
 import com.im.njams.sdk.logmessage.Activity;
@@ -149,7 +149,7 @@ public class GroupClient {
 
     private static Properties getCloudProperties() {
          Properties communicationProperties = new Properties();
-        communicationProperties.put(CommunicationFactory.COMMUNICATION, CloudConstants.COMMUNICATION_NAME);
+        communicationProperties.put(Communication.COMMUNICATION, CloudConstants.COMMUNICATION_NAME);
         communicationProperties.put(CloudConstants.ENDPOINT, "<cloud url>");
         communicationProperties.put(CloudConstants.APIKEY, "<cloud apikey>");
         communicationProperties.put(CloudConstants.CLIENT_INSTANCEID, "<cloud client instance>");
@@ -160,7 +160,7 @@ public class GroupClient {
 
     private static Properties getJmsProperties() {
         Properties communicationProperties = new Properties();
-        communicationProperties.put(CommunicationFactory.COMMUNICATION, "JMS");
+        communicationProperties.put(Communication.COMMUNICATION, "JMS");
         communicationProperties.put(JmsConstants.INITIAL_CONTEXT_FACTORY,
                 "com.tibco.tibjms.naming.TibjmsInitialContextFactory");
         communicationProperties.put(JmsConstants.SECURITY_PRINCIPAL, "njams");

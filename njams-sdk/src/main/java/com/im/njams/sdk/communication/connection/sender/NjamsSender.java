@@ -14,14 +14,13 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
  */
-package com.im.njams.sdk.communication.factories;
+package com.im.njams.sdk.communication.connection.sender;
 
 import com.faizsiegeln.njams.messageformat.v4.common.CommonMessage;
 import com.im.njams.sdk.Njams;
-import com.im.njams.sdk.communication.MaxQueueLengthHandler;
 import com.im.njams.sdk.communication.connectable.sender.Sender;
-import com.im.njams.sdk.communication.factories.pools.SenderPool;
-import com.im.njams.sdk.factories.ThreadFactoryBuilder;
+import com.im.njams.sdk.communication.connection.NjamsConnectable;
+import com.im.njams.sdk.communication.pools.SenderPool;
 import com.im.njams.sdk.settings.Settings;
 import org.slf4j.LoggerFactory;
 
@@ -40,7 +39,7 @@ import java.util.concurrent.TimeUnit;
  * @author hsiegeln
  * @version 4.0.6
  */
-public class NjamsSender extends NjamsCommunication{
+public class NjamsSender extends NjamsConnectable {
 
     //The logger to log messages.
     private static final org.slf4j.Logger LOG = LoggerFactory.getLogger(NjamsSender.class);

@@ -7,7 +7,7 @@
 package com.im.njams.sdk.communication.connectable;
 
 import com.im.njams.sdk.communication.connector.Connector;
-import com.im.njams.sdk.communication.factories.CommunicationFactory;
+import com.im.njams.sdk.communication.Communication;
 
 import java.util.Properties;
 
@@ -17,7 +17,7 @@ public interface Connectable {
      * The implementation should return its name here, by which it can be
      * identified. This name will be used as value in the
      * CommunicationConfiguration via the Key
-     * {@value CommunicationFactory#COMMUNICATION}
+     * {@value Communication#COMMUNICATION}
      *
      * @return the name of the connectable implementation
      */
