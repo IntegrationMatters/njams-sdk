@@ -41,4 +41,13 @@ public abstract class AbstractConnector implements Connector {
     public final NjamsConnection getNjamsConnection(){
         return njamsConnection;
     }
+
+    @Override
+    public final void stop(){
+        if(njamsConnection != null) {
+            njamsConnection.stop();
+        }
+        njamsConnection = null;
+        this.close();
+    }
 }

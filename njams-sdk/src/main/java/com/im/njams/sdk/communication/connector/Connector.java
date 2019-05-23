@@ -25,5 +25,7 @@ public interface Connector extends AutoCloseable, ClasspathValidatable {
 
     void close();
 
+    void stop();
+
     NjamsConnection getNjamsConnection();
 }

@@ -41,5 +41,15 @@ public enum ConnectionStatus {
     /**
      * connection had an error
      */
-    ERROR
+    ERROR,
+
+    /**
+     * connection is stopping
+     */
+    STOPPING,
+
+    /**
+     * connection has been stopped
+     */
+    STOPPED
 }

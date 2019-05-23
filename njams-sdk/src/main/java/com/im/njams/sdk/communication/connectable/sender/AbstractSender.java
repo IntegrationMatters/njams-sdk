@@ -126,7 +126,8 @@ public abstract class AbstractSender implements Sender {
 
     @Override
     public final void stop(){
-        connector.close();
+        LOG.info("Stopping {}", this.getName() + Connector.SENDER_NAME_ENDING);
+        connector.stop();
     }
 
     @Override

@@ -51,33 +51,37 @@ public class Reconnector {
      */
     @SuppressWarnings({"squid:S2276", "squid:S2142"})
     public void reconnect(NjamsSdkRuntimeException ex) {
-        synchronized (isReconnecting) {
-            isReconnecting.set(true);
-            njamsConnection.tryToClose();
-            printReconnectExceptionMessage(ex);
-            LOG.info("{} connectors are reconnecting now", connecting.incrementAndGet());
-            do{
-                try {
-                    LOG.debug("Trying to reconnect {}", njamsConnection.getName());
-                    njamsConnection.tryToConnect();
-                    LOG.info("Connection can be established again!");
-                    LOG.info("Reconnected {}", njamsConnection.getName());
-                    LOG.debug("{} connectors still need to reconnect.", connecting.decrementAndGet());
-                } catch (NjamsSdkRuntimeException e) {
-                } finally{
-                    try {
-                        //Wait for #reconnectInterval milliseconds, even if the njamsConnection has been established,
-                        //to minimize the reconnect method calls by outdated njamsConnection errors. (They might be thrown
-                        //right before the njamsConnection has been established again, so they may be obsolete by now)
-                        Thread.sleep(reconnectInterval);
-                    } catch (InterruptedException e1) {
-                        LOG.error("The reconnecting thread was interrupted!", e1);
-                        isReconnecting.set(false);
-                        break;
-                    }
+        if (!njamsConnection.isStoppingOrStopped()) {
+            synchronized (isReconnecting) {
+                if (!njamsConnection.isStoppingOrStopped()) {
+                    isReconnecting.set(true);
+                    njamsConnection.tryToClose();
+                    printReconnectExceptionMessage(ex);
+                    LOG.info("{} connectors are reconnecting now", connecting.incrementAndGet());
+                    do {
+                        try {
+                            LOG.debug("Trying to reconnect {}", njamsConnection.getName());
+                            njamsConnection.tryToConnect();
+                            LOG.info("Connection can be established again!");
+                            LOG.info("Reconnected {}", njamsConnection.getName());
+                            LOG.debug("{} connectors still need to reconnect.", connecting.decrementAndGet());
+                        } catch (NjamsSdkRuntimeException e) {
+                        } finally {
+                            try {
+                                //Wait for #reconnectInterval milliseconds, even if the njamsConnection has been established,
+                                //to minimize the reconnect method calls by outdated njamsConnection errors. (They might be thrown
+                                //right before the njamsConnection has been established again, so they may be obsolete by now)
+                                Thread.sleep(reconnectInterval);
+                            } catch (InterruptedException e1) {
+                                LOG.error("The reconnecting thread was interrupted!", e1);
+                                isReconnecting.set(false);
+                                break;
+                            }
+                        }
+                    } while (!njamsConnection.isConnected() && !njamsConnection.isStoppingOrStopped());
+                    isReconnecting.set(false);
                 }
-            }while((!njamsConnection.isConnected()));
-            isReconnecting.set(false);
+            }
         }
     }
 
@@ -103,5 +107,11 @@ public class Reconnector {
 
     public long getReconnectInterval() {
         return reconnectInterval;
+    }
+
+    public void stopReconnecting() {
+        synchronized (isReconnecting){
+            njamsConnection = null;
+        }
     }
 }

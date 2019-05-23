@@ -127,7 +127,8 @@ public abstract class AbstractReceiver implements Receiver {
 
     @Override
     public final void stop(){
-        connector.close();
+        LOG.info("Stopping {}", this.getName() + Connector.RECEIVER_NAME_ENDING);
+        connector.stop();
     }
 
     @Override

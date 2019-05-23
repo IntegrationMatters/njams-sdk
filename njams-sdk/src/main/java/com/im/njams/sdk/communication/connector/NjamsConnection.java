@@ -36,7 +36,7 @@ public class NjamsConnection {
      */
     public void onException(NjamsSdkRuntimeException exception) {
         if (!reconnector.isReconnecting().get()) {
-            connectionStatus = ConnectionStatus.ERROR;
+            changeConnectionStatus(ConnectionStatus.ERROR);
             synchronized (this) {
                 //This is to determine if this is the first and only reconnection
                 if (connectionStatus == ConnectionStatus.ERROR) {
@@ -62,7 +62,7 @@ public class NjamsConnection {
 
     public boolean tryToClose() {
         try {
-            connectionStatus = ConnectionStatus.DISCONNECTED;
+            changeConnectionStatus(ConnectionStatus.DISCONNECTED);
             connector.close();
             return true;
         } catch (Exception e) {
@@ -89,6 +89,7 @@ public class NjamsConnection {
         return this.connectionStatus == ConnectionStatus.DISCONNECTED;
     }
 
+    public boolean isStoppingOrStopped() {return this.connectionStatus == ConnectionStatus.STOPPED || this.connectionStatus == ConnectionStatus.STOPPING;}
     /**
      * This method returns whether the reconnector is connecting or not.
      *
@@ -105,11 +106,11 @@ public class NjamsConnection {
     final void tryToConnect() {
         if (!isConnected()) {
             try {
-                connectionStatus = ConnectionStatus.CONNECTING;
+                changeConnectionStatus(ConnectionStatus.CONNECTING);
 
                 connector.connect();
 
-                connectionStatus = ConnectionStatus.CONNECTED;
+                changeConnectionStatus(ConnectionStatus.CONNECTED);
 
                 Thread.sleep(50);
 
@@ -141,6 +142,23 @@ public class NjamsConnection {
         }catch(NjamsSdkRuntimeException ex){
             LOG.error("Connection for {} couldn't establish connection. Pushing reconnect task to background.", name, ex);
             onException(ex);
+        }
+    }
+
+    public void stop(){
+        changeConnectionStatus(ConnectionStatus.STOPPING);
+        if(reconnector != null) {
+            reconnector.stopReconnecting();
+        }
+        changeConnectionStatus(ConnectionStatus.STOPPED);
+        connector = null;
+    }
+
+    private synchronized void changeConnectionStatus(ConnectionStatus status){
+        if(!isStoppingOrStopped() || status == ConnectionStatus.STOPPING || status == ConnectionStatus.STOPPED){
+            this.connectionStatus = status;
+        }else{
+            LOG.trace("Connection status can't be changed to {}, because status is {}", status, connectionStatus);
         }
     }
 }
