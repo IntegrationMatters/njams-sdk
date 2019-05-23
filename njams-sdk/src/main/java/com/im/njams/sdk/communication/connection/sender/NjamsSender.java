@@ -16,17 +16,11 @@
  */
 package com.im.njams.sdk.communication.connection.sender;
 
-import com.faizsiegeln.njams.messageformat.v4.common.CommonMessage;
 import com.im.njams.sdk.Njams;
-import com.im.njams.sdk.communication.connectable.sender.Sender;
-import com.im.njams.sdk.communication.connection.NjamsConnectable;
 import com.im.njams.sdk.communication.pools.SenderPool;
-import com.im.njams.sdk.settings.Settings;
-import org.slf4j.LoggerFactory;
 
 import java.util.Properties;
 import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
@@ -39,13 +33,7 @@ import java.util.concurrent.TimeUnit;
  * @author hsiegeln
  * @version 4.0.6
  */
-public class NjamsSender extends NjamsConnectable {
-
-    //The logger to log messages.
-    private static final org.slf4j.Logger LOG = LoggerFactory.getLogger(NjamsSender.class);
-
-    //The executor Threadpool that send the messages to the right senders.
-    private ThreadPoolExecutor executor = null;
+public class NjamsSender extends NjamsAbstractSender {
 
     /**
      * This constructor initializes a NjamsSender. It safes the njams instance,
@@ -55,74 +43,11 @@ public class NjamsSender extends NjamsConnectable {
      * @param njams    the njamsInstance for which the messages will be send from.
      */
     public NjamsSender(Njams njams, Properties properties) {
-        super(njams, properties);
-    }
-
-    @Override
-    protected SenderPool setConnectablePool(Njams njams, Properties properties) {
-        return new SenderPool(njams, properties);
-    }
-
-    /**
-     * This method initializes a CommunicationFactory, a ThreadPoolExecutor and
-     * a SenderPool.
-     *
-     * @param properties the properties for MIN_QUEUE_LENGTH, MAX_QUEUE_LENGTH
-     *                   and IDLE_TIME for the sender threads.
-     */
-    @Override
-    protected final void init(Properties properties) {
-        int minQueueLength = Integer.parseInt(properties.getProperty(Settings.PROPERTY_MIN_QUEUE_LENGTH, "1"));
-        int maxQueueLength = Integer.parseInt(properties.getProperty(Settings.PROPERTY_MAX_QUEUE_LENGTH, "8"));
-        long idleTime = Long.parseLong(properties.getProperty(Settings.PROPERTY_SENDER_THREAD_IDLE_TIME, "10000"));
-        ThreadFactory threadFactory = new ThreadFactoryBuilder()
-                .setNamePrefix(this.getClass().getSimpleName() + "-Thread").setDaemon(true).build();
-        this.executor = new ThreadPoolExecutor(minQueueLength, maxQueueLength, idleTime, TimeUnit.MILLISECONDS,
-                new ArrayBlockingQueue<>(maxQueueLength), threadFactory,
+        super(properties);
+        super.setConnectablePool(new SenderPool(njams, properties));
+        ThreadPoolExecutor threadPoolExecutor = new ThreadPoolExecutor(MINQUEUELENGTH, MAXQUEUELENGTH, IDLETIME, TimeUnit.MILLISECONDS,
+                new ArrayBlockingQueue<>(MAXQUEUELENGTH), THREADFACTORY,
                 new MaxQueueLengthHandler(properties));
-    }
-
-    /**
-     * This method closes the ThreadPoolExecutor safely. It awaits the
-     * termination for 10 seconds, after that, an InterruptedException will be
-     * thrown and the senders will be closed.
-     */
-    @Override
-    protected void stopBeforeConnectablePool() {
-        try {
-            int waitTime = 10;
-            TimeUnit unit = TimeUnit.SECONDS;
-            executor.shutdown();
-            boolean awaitTermination = executor.awaitTermination(waitTime, unit);
-            if (!awaitTermination) {
-                LOG.error("The termination time of the executor has been exceeded ({} {}).", waitTime, unit);
-            }
-        } catch (InterruptedException ex) {
-            LOG.error("The shutdown of the sender's threadpool has been interrupted. {}", ex);
-        }
-    }
-
-    /**
-     * This method starts a thread that sends the message to a sender in the
-     * senderpool.
-     *
-     * @param msg the message that will be send to the server.
-     */
-    public void send(CommonMessage msg) {
-        executor.execute(() -> {
-            Sender sender = null;
-            try {
-                sender = (Sender) connectablePool.get();
-                if (sender != null) {
-                    sender.send(msg);
-                }
-            } catch (Exception e) {
-                LOG.error("could not send message {}, {}", msg, e);
-            } finally {
-                if (sender != null) {
-                    connectablePool.release(sender);
-                }
-            }
-        });
+        super.setExecutor(threadPoolExecutor);
     }
 }

@@ -8,22 +8,10 @@ import java.util.Properties;
 
 public class NjamsReceiver extends NjamsConnectable {
 
-    private static final String RECEIVER_COUNT = "njams.client.sdk.receiver.count";
-
     public NjamsReceiver(Njams njams, Properties properties) {
-        super(njams, properties);
-    }
-
-    @Override
-    protected ReceiverPool setConnectablePool(Njams njams, Properties properties) {
-        return new ReceiverPool(njams, properties);
-    }
-
-    @Override
-    protected final void init(Properties properties) {
-        int maxQueueLength = Integer.parseInt(properties.getProperty(RECEIVER_COUNT, "1"));
-        for (int i = 0; i < maxQueueLength; i++) {
-            connectablePool.get();
-        }
+        super();
+        setConnectablePool(new ReceiverPool(njams, properties));
+        //This initializes exactly one receiver for this njamsReceiver
+        connectablePool.get();
     }
 }

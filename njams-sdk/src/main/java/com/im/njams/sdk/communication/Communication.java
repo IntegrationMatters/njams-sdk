@@ -19,6 +19,7 @@ package com.im.njams.sdk.communication;
 import com.faizsiegeln.njams.messageformat.v4.common.CommonMessage;
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.communication.connection.receiver.NjamsReceiver;
+import com.im.njams.sdk.communication.connection.sender.NjamsAbstractSender;
 import com.im.njams.sdk.communication.connection.sender.NjamsSender;
 import com.im.njams.sdk.settings.Settings;
 import com.im.njams.sdk.settings.encoding.Transformer;
@@ -38,7 +39,7 @@ public class Communication {
     public static final String COMMUNICATION = "njams.sdk.communication";
     private static final Logger LOG = LoggerFactory.getLogger(Communication.class);
 
-    private NjamsSender njamsSender;
+    private NjamsAbstractSender njamsSender;
     private NjamsReceiver njamsReceiver;
 
     private final Properties properties;
