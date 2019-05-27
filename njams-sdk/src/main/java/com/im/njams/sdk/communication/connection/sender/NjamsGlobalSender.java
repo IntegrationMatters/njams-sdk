@@ -36,19 +36,35 @@ public final class NjamsGlobalSender extends NjamsAbstractSender {
      */
     public NjamsGlobalSender(Njams njams, Properties properties) {
         super(properties);
-        NJAMS_INSTANCES.put(this, njams);
+        synchronized (NJAMS_INSTANCES) {
+            NJAMS_INSTANCES.put(this, njams);
 
-        if (globalPool == null) {
-            NjamsGlobalSender.globalPool = new SenderPool(njams, properties);
-        }
-        super.setConnectablePool(globalPool);
+            if (globalPool == null) {
+                NjamsGlobalSender.globalPool = new SenderPool(njams, properties);
+            }
+            super.setConnectablePool(globalPool);
 
-        if (globalExecutor == null) {
-            NjamsGlobalSender.globalExecutor = new ThreadPoolExecutor(MINQUEUELENGTH, MAXQUEUELENGTH, IDLETIME, TimeUnit.MILLISECONDS,
-                    new ArrayBlockingQueue<>(MAXQUEUELENGTH), THREADFACTORY,
-                    new MaxQueueLengthHandler(properties));
+            if (globalExecutor == null) {
+                NjamsGlobalSender.globalExecutor = new ThreadPoolExecutor(MINQUEUELENGTH, MAXQUEUELENGTH, IDLETIME, TimeUnit.MILLISECONDS,
+                        new ArrayBlockingQueue<>(MAXQUEUELENGTH), THREADFACTORY,
+                        new MaxQueueLengthHandler(properties));
+            }
+            super.setExecutor(globalExecutor);
         }
-        super.setExecutor(globalExecutor);
+    }
+
+    @Override
+    protected final void stopBeforeConnectablePoolStops(){
+        if(executor != null){
+            executor = null;
+        }
+    }
+
+    @Override
+    protected final void stopConnectablePool(){
+        if(connectablePool != null){
+            connectablePool = null;
+        }
     }
 
     /**
@@ -57,14 +73,18 @@ public final class NjamsGlobalSender extends NjamsAbstractSender {
      * thrown and the senders will be closed.
      */
     @Override
-    public synchronized final void stop() {
-        NJAMS_INSTANCES.remove(this);
-        if (NJAMS_INSTANCES.isEmpty()) {
-            //This ensures that the executor and the connectablepool are only closed if no more instances are using them
-            super.stopBeforeConnectablePoolStops();
-
-            if (connectablePool != null) {
-                connectablePool.expireAll();
+    public final void stop() {
+        synchronized (NJAMS_INSTANCES) {
+            NJAMS_INSTANCES.remove(this);
+            if (NJAMS_INSTANCES.isEmpty()) {
+                //This ensures that the executor and the connectablepool are only closed if no more instances are using them
+                super.stopBeforeConnectablePoolStops();
+                super.stopConnectablePool();
+                super.stopAfterConnectablePoolStops();
+                globalExecutor = null;
+                globalPool = null;
+            }else{
+                super.stop();
             }
         }
     }

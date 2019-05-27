@@ -14,14 +14,19 @@ public abstract class NjamsConnectable {
 
     public void stop() {
         stopBeforeConnectablePoolStops();
-        if (connectablePool != null) {
-            connectablePool.expireAll();
-        }
+        stopConnectablePool();
         stopAfterConnectablePoolStops();
     }
 
     protected void stopBeforeConnectablePoolStops() {
         //Do nothing as default
+    }
+
+    protected void stopConnectablePool(){
+        if (connectablePool != null) {
+            connectablePool.expireAll();
+            connectablePool = null;
+        }
     }
 
     protected void stopAfterConnectablePoolStops() {
