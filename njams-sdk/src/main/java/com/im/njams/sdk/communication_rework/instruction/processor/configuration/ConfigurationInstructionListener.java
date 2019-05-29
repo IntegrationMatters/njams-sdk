@@ -19,7 +19,7 @@
 //import com.faizsiegeln.njams.messageformat.v4.command.Command;
 //import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
 //import com.im.njams.sdk.communication.InstructionListener;
-//import com.im.njams.sdk.communication_rework.instruction.InstructionSupport;
+//import com.im.njams.sdk.communication_rework.instruction.processor.configuration.InstructionSupport;
 //
 ///**
 // * InstructionListener implementation for all instructions which will modify

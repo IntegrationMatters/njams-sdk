@@ -1,7 +1,7 @@
 package com.im.njams.sdk.communication_rework;
 
 import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
-import com.im.njams.sdk.communication_rework.instruction.InstructionProcessorController;
+import com.im.njams.sdk.communication_rework.instruction.controller.InstructionProcessorController;
 import com.im.njams.sdk.communication_rework.instruction.processor.InstructionProcessor;
 
 import java.util.Properties;

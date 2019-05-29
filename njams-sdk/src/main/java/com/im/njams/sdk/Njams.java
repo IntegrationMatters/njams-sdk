@@ -30,19 +30,19 @@ import com.im.njams.sdk.common.Path;
 import com.im.njams.sdk.communication.Communication;
 import com.im.njams.sdk.communication.ReplayHandler;
 import com.im.njams.sdk.communication_rework.CommunicationFacade;
-import com.im.njams.sdk.communication_rework.instruction.processor.ConfigureExtract;
-import com.im.njams.sdk.communication_rework.instruction.processor.DeleteExtract;
-import com.im.njams.sdk.communication_rework.instruction.processor.GetExtract;
-import com.im.njams.sdk.communication_rework.instruction.processor.GetLogLevel;
-import com.im.njams.sdk.communication_rework.instruction.processor.GetLogMode;
-import com.im.njams.sdk.communication_rework.instruction.processor.GetProjectMessage;
-import com.im.njams.sdk.communication_rework.instruction.processor.GetTracing;
+import com.im.njams.sdk.communication_rework.instruction.processor.configuration.ConfigureExtractProcessor;
+import com.im.njams.sdk.communication_rework.instruction.processor.configuration.DeleteExtractProcessor;
+import com.im.njams.sdk.communication_rework.instruction.processor.configuration.GetExtractProcessor;
+import com.im.njams.sdk.communication_rework.instruction.processor.configuration.GetLogLevelProcessor;
+import com.im.njams.sdk.communication_rework.instruction.processor.configuration.GetLogModeProcessor;
+import com.im.njams.sdk.communication_rework.instruction.processor.configuration.GetProjectMessageProcessor;
+import com.im.njams.sdk.communication_rework.instruction.processor.configuration.GetTracingProcessor;
 import com.im.njams.sdk.communication_rework.instruction.processor.InstructionProcessor;
-import com.im.njams.sdk.communication_rework.instruction.processor.Record;
-import com.im.njams.sdk.communication_rework.instruction.processor.Replay;
-import com.im.njams.sdk.communication_rework.instruction.processor.SetLogLevel;
-import com.im.njams.sdk.communication_rework.instruction.processor.SetLogMode;
-import com.im.njams.sdk.communication_rework.instruction.processor.SetTracing;
+import com.im.njams.sdk.communication_rework.instruction.processor.configuration.RecordProcessor;
+import com.im.njams.sdk.communication_rework.instruction.processor.replay.ReplayProcessor;
+import com.im.njams.sdk.communication_rework.instruction.processor.configuration.SetLogLevelProcessor;
+import com.im.njams.sdk.communication_rework.instruction.processor.configuration.SetLogModeProcessor;
+import com.im.njams.sdk.communication_rework.instruction.processor.configuration.SetTracingProcessor;
 import com.im.njams.sdk.configuration.Configuration;
 import com.im.njams.sdk.configuration.ConfigurationProvider;
 import com.im.njams.sdk.configuration.ConfigurationProviderFactory;
@@ -208,17 +208,17 @@ public class Njams {
     }
 
     private void addInstructionProcessors(){
-        this.addInstructionProcessor(new GetProjectMessage(this, GetProjectMessage.SEND_PROJECTMESSAGE));
-        this.addInstructionProcessor(new ConfigureExtract(configuration, ConfigureExtract.CONFIGURE_EXTRACT));
-        this.addInstructionProcessor(new DeleteExtract(configuration, DeleteExtract.DELETE_EXTRACT));
-        this.addInstructionProcessor(new GetExtract(configuration, GetExtract.GET_EXTRACT));
-        this.addInstructionProcessor(new GetLogLevel(configuration, GetLogLevel.GET_LOG_LEVEL));
-        this.addInstructionProcessor(new GetLogMode(configuration, GetLogMode.GET_LOG_MODE));
-        this.addInstructionProcessor(new GetTracing(configuration, GetTracing.GET_TRACING));
-        this.addInstructionProcessor(new Record(configuration, Record.RECORD));
-        this.addInstructionProcessor(new SetLogLevel(configuration, SetLogLevel.SET_LOG_LEVEL));
-        this.addInstructionProcessor(new SetLogMode(configuration, SetLogMode.SET_LOG_MODE));
-        this.addInstructionProcessor(new SetTracing(configuration, SetTracing.SET_TRACING));
+        this.addInstructionProcessor(new GetProjectMessageProcessor(this, GetProjectMessageProcessor.SEND_PROJECTMESSAGE));
+        this.addInstructionProcessor(new ConfigureExtractProcessor(configuration, ConfigureExtractProcessor.CONFIGURE_EXTRACT));
+        this.addInstructionProcessor(new DeleteExtractProcessor(configuration, DeleteExtractProcessor.DELETE_EXTRACT));
+        this.addInstructionProcessor(new GetExtractProcessor(configuration, GetExtractProcessor.GET_EXTRACT));
+        this.addInstructionProcessor(new GetLogLevelProcessor(configuration, GetLogLevelProcessor.GET_LOG_LEVEL));
+        this.addInstructionProcessor(new GetLogModeProcessor(configuration, GetLogModeProcessor.GET_LOG_MODE));
+        this.addInstructionProcessor(new GetTracingProcessor(configuration, GetTracingProcessor.GET_TRACING));
+        this.addInstructionProcessor(new RecordProcessor(configuration, RecordProcessor.RECORD));
+        this.addInstructionProcessor(new SetLogLevelProcessor(configuration, SetLogLevelProcessor.SET_LOG_LEVEL));
+        this.addInstructionProcessor(new SetLogModeProcessor(configuration, SetLogModeProcessor.SET_LOG_MODE));
+        this.addInstructionProcessor(new SetTracingProcessor(configuration, SetTracingProcessor.SET_TRACING));
     }
 
     public void addInstructionProcessor(InstructionProcessor instructionProcessor){
@@ -250,10 +250,10 @@ public class Njams {
     public void setReplayHandler(final ReplayHandler replayHandler) {
         this.replayHandler = replayHandler;
         if (replayHandler == null) {
-            this.removeInstructionProcessor(Replay.REPLAY);
+            this.removeInstructionProcessor(ReplayProcessor.REPLAY);
             removeFeature(FEATURE_REPLAY);
         } else {
-            this.addInstructionProcessor(new Replay(replayHandler, Replay.REPLAY));
+            this.addInstructionProcessor(new ReplayProcessor(replayHandler, ReplayProcessor.REPLAY));
             addFeature(FEATURE_REPLAY);
         }
     }
