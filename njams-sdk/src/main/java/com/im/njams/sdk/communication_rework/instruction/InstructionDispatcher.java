@@ -32,6 +32,10 @@ public class InstructionDispatcher {
         instructionProcessors.remove(instructionProcessor);
     }
 
+    public InstructionProcessor getFallbackInstructionProcessor(){
+        return fallbackInstructionProcessor;
+    }
+
     public void dispatchInstruction(Instruction instruction){
         String command = instruction.getRequest().getCommand();
         boolean foundValidInstructionProcessor = false;

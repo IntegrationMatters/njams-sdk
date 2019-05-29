@@ -34,17 +34,20 @@ public class InstructionProcessorController {
 
     public void processInstruction(Instruction instruction){
 
-        //Todo: validate instruction
-        //NullInstructionValidator
-
+        //Todo: Create NotNullValidator instead
+        if (instruction == null) {
+            LOG.error("Instruction should not be null");
+            return;
+        }
         //log each instruction's request
-        logInstructionRequest(instruction.getRequest());
+        Request request = instruction.getRequest();
+        logInstructionRequest(request);
 
         //dispatch instruction to correct InstructionProcessor
         instructionDispatcher.dispatchInstruction(instruction);
 
         //log each instruction's response
-        logInstructionResponse(instruction.getResponse());
+        logInstructionResponse(instruction.getResponse(), request.getCommand());
     }
 
     private void logInstructionRequest(Request request) {
@@ -68,22 +71,20 @@ public class InstructionProcessorController {
     }
 
     private String stringifyParameters(Map<String, String> parameters){
-        StringBuilder parameterList = new StringBuilder();
+        StringBuilder parameterStringBuilder = new StringBuilder();
         //Start of the parameterList
-        parameterList.append("List of parameters: ").append("\n").append("{").append("\n");
+        parameterStringBuilder.append("List of parameters: ").append("\n").append("{").append("\n");
         //Fill with the parameters
-        parameters.forEach((parameter, value) -> {
-            parameterList.append("\t").append(parameter).append(" : ").append(value).append("\n");
-        });
+        parameters.forEach((parameter, value) -> parameterStringBuilder.append("\t").append(parameter).append(" : ").append(value).append("\n"));
         //End of the parameterList
-        parameterList.append("}");
+        parameterStringBuilder.append("}");
 
-        return parameterList.toString();
+        return parameterStringBuilder.toString();
     }
 
-    private void logInstructionResponse(Response response) {
+    private void logInstructionResponse(Response response, String commandName) {
         if(LOG.isDebugEnabled()){
-            LOG.debug("Created response with result code: {}", response.getResultCode());
+            LOG.debug("Created response for {} with result code: {}", commandName, response.getResultCode());
             if(LOG.isTraceEnabled()){
                 String resultMessage = response.getResultMessage();
                 String dateTime = DateTimeUtility.toString(response.getDateTime());
