@@ -2,15 +2,13 @@
  */
 package com.im.njams.sdk.communication.connectable.receiver;
 
-import com.im.njams.sdk.communication.InstructionListener;
-import com.im.njams.sdk.communication.connector.Connector;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
 import com.faizsiegeln.njams.messageformat.v4.command.Request;
 import com.faizsiegeln.njams.messageformat.v4.command.Response;
 import com.im.njams.sdk.Njams;
+import com.im.njams.sdk.communication.connector.Connector;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Properties;
 
@@ -92,13 +90,7 @@ public abstract class AbstractReceiver implements Receiver {
             //Set the exception response
             instruction.setResponse(exceptionResponse);
         } else {
-            for (InstructionListener listener : njams.getInstructionListeners()) {
-                try {
-                    listener.onInstruction(instruction);
-                } catch (Exception e) {
-                    LOG.error("Error in InstructionListener {}", listener.getClass().getSimpleName(), e);
-                }
-            }
+            njams.processReceivedInstruction(instruction);
             //If response is empty, no InstructionListener found. Set default Response indicating this.
             if (instruction.getResponse() == null) {
                 LOG.warn("No InstructionListener for {} found", instruction.getRequest().getCommand());

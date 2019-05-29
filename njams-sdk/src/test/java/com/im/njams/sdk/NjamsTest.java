@@ -16,26 +16,22 @@
  */
 package com.im.njams.sdk;
 
-import com.faizsiegeln.njams.messageformat.v4.command.Command;
-import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
-import com.faizsiegeln.njams.messageformat.v4.command.Request;
-import com.faizsiegeln.njams.messageformat.v4.command.Response;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.common.Path;
-import com.im.njams.sdk.communication.ReplayHandler;
-import com.im.njams.sdk.communication.ReplayRequest;
-import com.im.njams.sdk.communication.ReplayResponse;
 import com.im.njams.sdk.logmessage.Job;
 import com.im.njams.sdk.model.ProcessModel;
-import com.im.njams.sdk.settings.Settings;
 import com.im.njams.sdk.serializer.Serializer;
+import com.im.njams.sdk.settings.Settings;
+import org.junit.Before;
+import org.junit.Test;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
-import org.junit.Test;
-import static org.junit.Assert.*;
-import org.junit.Before;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 
 /**
  *
@@ -96,70 +92,70 @@ public class NjamsTest {
         instance.start();
     }
 
-    @Test
-    public void testOnCorrectSendProjectMessageInstruction() {
-        Instruction inst = new Instruction();
-        Request req = new Request();
-        req.setCommand(Command.SEND_PROJECTMESSAGE.commandString());
-        inst.setRequest(req);
-        assertNull(inst.getResponse());
-        instance.onInstruction(inst);
-        Response resp = inst.getResponse();
-        assertTrue(resp.getResultCode() == 0);
-        assertEquals("Successfully send ProjectMessage via NjamsClient", resp.getResultMessage());
-    }
-
-    @Test
-    public void testOnNoReplyHandlerFoundReplayMessageInstruction() {
-        Instruction inst = new Instruction();
-        Request req = new Request();
-        req.setCommand(Command.REPLAY.commandString());
-        inst.setRequest(req);
-        assertNull(inst.getResponse());
-        instance.onInstruction(inst);
-
-        Response resp = inst.getResponse();
-        assertTrue(resp.getResultCode() == 1);
-        assertEquals("Client cannot replay processes. No replay handler is present.", resp.getResultMessage());
-    }
-
-    @Test
-    public void testOnCorrectReplayMessageInstruction() {
-        ReplayHandler replayHandler = (ReplayRequest request) -> {
-            ReplayResponse resp = new ReplayResponse();
-            resp.setResultCode(0);
-            resp.setResultMessage("TestWorked");
-            return resp;
-        };
-        instance.setReplayHandler(replayHandler);
-        Instruction inst = new Instruction();
-        Request req = new Request();
-        req.setCommand(Command.REPLAY.commandString());
-        inst.setRequest(req);
-        assertNull(inst.getResponse());
-        instance.onInstruction(inst);
-
-        Response resp = inst.getResponse();
-        assertTrue(resp.getResultCode() == 0);
-        assertEquals("TestWorked", resp.getResultMessage());
-    }
-    
-    @Test
-    public void testOnThrownExceptionReplayMessageInstruction() {
-        Instruction inst = new Instruction();
-        ReplayHandler replayHandler = (ReplayRequest request) -> {
-            throw new RuntimeException("TestException");
-        };
-        instance.setReplayHandler(replayHandler);
-        Request req = new Request();
-        req.setCommand(Command.REPLAY.commandString());
-        inst.setRequest(req);
-        assertNull(inst.getResponse());
-        instance.onInstruction(inst);
-
-        Response resp = inst.getResponse();
-        assertTrue(resp.getResultCode() == 2);
-        assertEquals("Error while executing replay: TestException", resp.getResultMessage());
-        assertEquals("java.lang.RuntimeException: TestException", inst.getResponseParameterByName("Exception"));
-    }
+//    @Test
+//    public void testOnCorrectSendProjectMessageInstruction() {
+//        Instruction inst = new Instruction();
+//        Request req = new Request();
+//        req.setCommand(Command.SEND_PROJECTMESSAGE.commandString());
+//        inst.setRequest(req);
+//        assertNull(inst.getResponse());
+//        instance.onInstruction(inst);
+//        Response resp = inst.getResponse();
+//        assertTrue(resp.getResultCode() == 0);
+//        assertEquals("Successfully send ProjectMessage via NjamsClient", resp.getResultMessage());
+//    }
+//
+//    @Test
+//    public void testOnNoReplyHandlerFoundReplayMessageInstruction() {
+//        Instruction inst = new Instruction();
+//        Request req = new Request();
+//        req.setCommand(Command.REPLAY.commandString());
+//        inst.setRequest(req);
+//        assertNull(inst.getResponse());
+//        instance.onInstruction(inst);
+//
+//        Response resp = inst.getResponse();
+//        assertTrue(resp.getResultCode() == 1);
+//        assertEquals("Client cannot replay processes. No replay handler is present.", resp.getResultMessage());
+//    }
+//
+//    @Test
+//    public void testOnCorrectReplayMessageInstruction() {
+//        ReplayHandler replayHandler = (ReplayRequest request) -> {
+//            ReplayResponse resp = new ReplayResponse();
+//            resp.setResultCode(0);
+//            resp.setResultMessage("TestWorked");
+//            return resp;
+//        };
+//        instance.setReplayHandler(replayHandler);
+//        Instruction inst = new Instruction();
+//        Request req = new Request();
+//        req.setCommand(Command.REPLAY.commandString());
+//        inst.setRequest(req);
+//        assertNull(inst.getResponse());
+//        instance.onInstruction(inst);
+//
+//        Response resp = inst.getResponse();
+//        assertTrue(resp.getResultCode() == 0);
+//        assertEquals("TestWorked", resp.getResultMessage());
+//    }
+//
+//    @Test
+//    public void testOnThrownExceptionReplayMessageInstruction() {
+//        Instruction inst = new Instruction();
+//        ReplayHandler replayHandler = (ReplayRequest request) -> {
+//            throw new RuntimeException("TestException");
+//        };
+//        instance.setReplayHandler(replayHandler);
+//        Request req = new Request();
+//        req.setCommand(Command.REPLAY.commandString());
+//        inst.setRequest(req);
+//        assertNull(inst.getResponse());
+//        instance.onInstruction(inst);
+//
+//        Response resp = inst.getResponse();
+//        assertTrue(resp.getResultCode() == 2);
+//        assertEquals("Error while executing replay: TestException", resp.getResultMessage());
+//        assertEquals("java.lang.RuntimeException: TestException", inst.getResponseParameterByName("Exception"));
+//    }
 }
