@@ -20,35 +20,37 @@ public class InstructionDispatcher {
 
     private FallbackProcessor fallbackProcessor;
 
-    public InstructionDispatcher(){
+    public InstructionDispatcher() {
         this.instructionProcessors = new ArrayList<>();
         this.fallbackProcessor = new FallbackProcessor(FallbackProcessor.FALLBACK);
     }
 
-    public void addInstructionProcessor(InstructionProcessor instructionProcessor){
+    public void addInstructionProcessor(InstructionProcessor instructionProcessor) {
         instructionProcessors.add(instructionProcessor);
     }
 
-    public void removeInstructionProcessor(InstructionProcessor instructionProcessor){
+    public void removeInstructionProcessor(InstructionProcessor instructionProcessor) {
         instructionProcessors.remove(instructionProcessor);
     }
 
-    public void dispatchInstruction(Instruction instruction){
+    public void dispatchInstruction(Instruction instruction) {
         String command = instruction.getRequest().getCommand();
         boolean foundValidInstructionProcessor = false;
-        for(InstructionProcessor instructionProcessor : instructionProcessors){
-            if(instructionProcessor.getCommandToProcess().equalsIgnoreCase(command)){
+        for (InstructionProcessor instructionProcessor : instructionProcessors) {
+            if (instructionProcessor.getCommandToProcess().equalsIgnoreCase(command)) {
+                if (LOG.isDebugEnabled()) {
+                    LOG.debug("Dispatching instruction with command {} to {}", command, instructionProcessor.getClass().getSimpleName());
+                }
                 instructionProcessor.processInstruction(instruction);
                 foundValidInstructionProcessor = true;
             }
         }
-        if(foundValidInstructionProcessor){
+        if (foundValidInstructionProcessor) {
             Request request = instruction.getRequest();
             Response response = instruction.getResponse();
             LOG.debug("Handled command: {} (result={}) on process: {}{}", command, getResult(response.getResultCode()),
                     request.getParameters().get(InstructionSupport.PROCESS_PATH), getActivityExtension(request));
-        }
-        else{
+        } else {
             fallbackProcessor.processInstruction(instruction);
         }
     }
@@ -57,14 +59,14 @@ public class InstructionDispatcher {
         return errorCode == 1 ? "error" : "ok";
     }
 
-    private String getActivityExtension(Request request){
+    private String getActivityExtension(Request request) {
         String actId = request.getParameters().get(InstructionSupport.ACTIVITY_ID);
         return actId == null ? "" : "#" + actId;
     }
 
     public InstructionProcessor getInstructionProcessor(String instructionProcessorCommandName) {
-        for(InstructionProcessor instructionProcessor : instructionProcessors){
-            if(instructionProcessor.getCommandToProcess().equals(instructionProcessorCommandName)){
+        for (InstructionProcessor instructionProcessor : instructionProcessors) {
+            if (instructionProcessor.getCommandToProcess().equals(instructionProcessorCommandName)) {
                 return instructionProcessor;
             }
         }
