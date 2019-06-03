@@ -196,15 +196,13 @@ public class Njams {
         this.settings = settings;
         processDiagramFactory = new NjamsProcessDiagramFactory();
         processModelLayouter = new SimpleProcessModelLayouter();
-        loadConfiguration();
-        initializeDataMasking();
+        loadConfigurationProvider();
         createTreeElements(path, TreeElementType.CLIENT);
         readVersions(version);
         printStartupBanner();
         setMachine();
         communicationFactory = new Communication(this, settings);
         communicationFacade = new CommunicationFacade(Transformer.decode(settings.getProperties()));
-        addInstructionProcessors();
     }
 
     private void addInstructionProcessors(){
@@ -259,22 +257,26 @@ public class Njams {
     }
 
     /**
-     * Load the ConfigurationProvider via the provided Properties, and saves the
-     * retrieved Configuration locally
+     * Load the ConfigurationProvider via the provided Properties
      */
-    private void loadConfiguration() {
+    private void loadConfigurationProvider() {
         Properties properties = settings.getProperties();
         if (!properties.containsKey(ConfigurationProviderFactory.CONFIGURATION_PROVIDER)) {
             settings.getProperties().put(ConfigurationProviderFactory.CONFIGURATION_PROVIDER, DEFAULT_CACHE_PROVIDER);
         }
         ConfigurationProvider configurationProvider =
                 new ConfigurationProviderFactory(properties, this).getConfigurationProvider();
-        configuration = configurationProvider.loadConfiguration();
-        if (configuration == null) {
-            // if the configuration provider can not load a configuration, create a new one and save it.
-            configuration = new Configuration();
-            configuration.setConfigurationProvider(configurationProvider);
-            configuration.save();
+        configuration = new Configuration();
+        configuration.setConfigurationProvider(configurationProvider);
+    }
+
+    /**
+     * load and apply configuration from configuration provider
+     */
+    private void loadConfiguration() {
+        ConfigurationProvider configurationProvider = configuration.getConfigurationProvider();
+        if (configurationProvider != null) {
+            configuration = configurationProvider.loadConfiguration();
         }
     }
 
@@ -366,6 +368,9 @@ public class Njams {
             if (settings == null) {
                 throw new NjamsSdkRuntimeException("Settings not set");
             }
+            loadConfiguration();
+            initializeDataMasking();
+            addInstructionProcessors();
             startReceiver();
             LogMessageFlushTask.start(this);
             CleanTracepointsTask.start(this);
@@ -387,6 +392,7 @@ public class Njams {
             LogMessageFlushTask.stop(this);
             CleanTracepointsTask.stop(this);
             communicationFactory.stopAll();
+            communicationFacade.stop();
             started = false;
         } else {
             throw new NjamsSdkRuntimeException(NOT_STARTED_EXCEPTION_MESSAGE);

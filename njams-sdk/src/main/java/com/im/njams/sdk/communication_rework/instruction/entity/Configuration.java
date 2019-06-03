@@ -17,6 +17,7 @@
 package com.im.njams.sdk.communication_rework.instruction.entity;
 
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.LogMode;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -31,6 +32,7 @@ import java.util.Map;
  */
 public class Configuration {
 
+    @JsonIgnore
     private ConfigurationProvider configurationProvider;
 
     private LogMode logMode = LogMode.COMPLETE;
