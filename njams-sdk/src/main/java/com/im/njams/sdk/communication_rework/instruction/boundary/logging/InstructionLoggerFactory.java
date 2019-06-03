@@ -19,4 +19,9 @@ public class InstructionLoggerFactory {
         }
         return responseLogger;
     }
+
+    public void stop() {
+        requestLogger = null;
+        requestLogger = null;
+    }
 }

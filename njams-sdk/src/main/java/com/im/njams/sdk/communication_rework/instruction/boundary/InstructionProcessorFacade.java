@@ -67,4 +67,11 @@ public class InstructionProcessorFacade {
             LOG.error("Instruction must not be null");
         }
     }
+
+    public void stop() {
+        instructionDispatcher.stop();
+        instructionDispatcher = null;
+        instructionLoggerFactory.stop();
+        instructionLoggerFactory = null;
+    }
 }

@@ -36,8 +36,9 @@ public class CommunicationFacade {
 //
 //    }
 //
-//    public void stop(){
-//
-//    }
+    public void stop(){
+        instructionProcessorController.stop();
+        instructionProcessorController = null;
+    }
 //
 }

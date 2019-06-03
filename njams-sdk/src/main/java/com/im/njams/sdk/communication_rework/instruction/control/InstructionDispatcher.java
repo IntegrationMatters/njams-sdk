@@ -71,4 +71,10 @@ public class InstructionDispatcher {
         }
         return null;
     }
+
+    public void stop() {
+        instructionProcessors.clear();
+        instructionProcessors = null;
+        fallbackProcessor = null;
+    }
 }
