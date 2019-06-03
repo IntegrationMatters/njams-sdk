@@ -120,13 +120,13 @@ public abstract class JmsConnector extends AbstractConnector implements Exceptio
     /**
      * This method creates a session to the given connection. The transacted
      * boolean has been set to false and the acknowledgeMode is
-     * CLIENT_ACKNOWLEDGE for the created session.
+     * AUTO_ACKNOWLEDGE for the created session.
      *
      * @return the session if it can be created
      * @throws JMSException is thrown if something failed.
      */
     private Session createSession() throws JMSException {
-        return connection.createSession(false, 2);
+        return connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
     }
 
     /**
