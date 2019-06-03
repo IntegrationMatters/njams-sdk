@@ -1,10 +1,8 @@
 package com.im.njams.sdk.communication_rework.instruction.control;
 
 import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
-import com.faizsiegeln.njams.messageformat.v4.command.Request;
-import com.faizsiegeln.njams.messageformat.v4.command.Response;
-import com.im.njams.sdk.communication_rework.instruction.control.processor.FallbackProcessor;
 import com.im.njams.sdk.communication_rework.instruction.control.processor.InstructionProcessor;
+import com.im.njams.sdk.communication_rework.instruction.control.processor.configuration.FallbackProcessor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -33,34 +31,24 @@ public class InstructionDispatcher {
     }
 
     public void dispatchInstruction(Instruction instruction) {
-        String command = instruction.getRequest().getCommand();
-        boolean foundValidInstructionProcessor = false;
-        for (InstructionProcessor instructionProcessor : instructionProcessors) {
-            if (instructionProcessor.getCommandToProcess().equalsIgnoreCase(command)) {
-                if (LOG.isDebugEnabled()) {
-                    LOG.debug("Dispatching instruction with command {} to {}", command, instructionProcessor.getClass().getSimpleName());
+        InstructionProcessor executingProcessor = fallbackProcessor;
+        String commandToProcess = "";
+        if(isInstructionValid(instruction)){
+            commandToProcess = instruction.getRequest().getCommand();
+            for (InstructionProcessor instructionProcessor : instructionProcessors) {
+                if (instructionProcessor.getCommandToProcess().equalsIgnoreCase(commandToProcess)) {
+                    executingProcessor = instructionProcessor;
                 }
-                instructionProcessor.processInstruction(instruction);
-                foundValidInstructionProcessor = true;
             }
         }
-        if (foundValidInstructionProcessor) {
-            Request request = instruction.getRequest();
-            Response response = instruction.getResponse();
-            LOG.debug("Handled command: {} (result={}) on process: {}{}", command, getResult(response.getResultCode()),
-                    request.getParameters().get(InstructionSupport.PROCESS_PATH), getActivityExtension(request));
-        } else {
-            fallbackProcessor.processInstruction(instruction);
+        if (LOG.isDebugEnabled()) {
+            LOG.debug("Dispatching instruction with command {} to {}", commandToProcess, executingProcessor.getClass().getSimpleName());
         }
+        executingProcessor.processInstruction(instruction);
     }
 
-    private String getResult(int errorCode) {
-        return errorCode == 1 ? "error" : "ok";
-    }
-
-    private String getActivityExtension(Request request) {
-        String actId = request.getParameters().get(InstructionSupport.ACTIVITY_ID);
-        return actId == null ? "" : "#" + actId;
+    private boolean isInstructionValid(Instruction instruction){
+        return instruction.getRequest() != null;
     }
 
     public InstructionProcessor getInstructionProcessor(String instructionProcessorCommandName) {

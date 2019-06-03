@@ -32,7 +32,7 @@ public class ResponseLogger implements InstructionLogger {
         }
         if (LOG.isTraceEnabled()) {
             try {
-                LOG.trace("Response for Command {} : \n{}", commandOfRequest, responseSerializer.serialize(responseToLog));
+                LOG.trace("Response for command {} : \n{}", commandOfRequest, responseSerializer.serialize(responseToLog));
             } catch (Exception responseNotSerializableException) {
                 LOG.error("Response couldn't be serialized successfully", responseNotSerializableException);
             }

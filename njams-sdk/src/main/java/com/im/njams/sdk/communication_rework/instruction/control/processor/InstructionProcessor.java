@@ -6,11 +6,11 @@ public abstract class InstructionProcessor {
 
     private String commandToProcess;
 
-    public InstructionProcessor(String commandToProcess){
+    public InstructionProcessor(String commandToProcess) {
         this.commandToProcess = commandToProcess;
     }
 
-    public String getCommandToProcess(){
+    public String getCommandToProcess() {
         return commandToProcess;
     }
 

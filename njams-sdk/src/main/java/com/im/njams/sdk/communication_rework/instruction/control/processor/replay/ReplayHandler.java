@@ -16,9 +16,6 @@
  */
 package com.im.njams.sdk.communication_rework.instruction.control.processor.replay;
 
-import com.im.njams.sdk.communication.ReplayRequest;
-import com.im.njams.sdk.communication.ReplayResponse;
-
 /**
  * This interface must be implemented for replay handlers.
  */
