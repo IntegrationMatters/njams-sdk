@@ -55,6 +55,12 @@ public class ConfigurationInstructionListener implements InstructionListener {
             response = new Response();
             response.setResultCode(0);
             response.setResultMessage("Success");
+        }
+
+        /**
+         * SDK-148 Sets the response into the instruction, if the command was handled.
+         */
+        private void applyResponse() {
             instruction.setResponse(response);
         }
 
@@ -77,7 +83,7 @@ public class ConfigurationInstructionListener implements InstructionListener {
 
         /**
          * Returns <code>true</code> only if the given parameter's value can be parsed to an instance of the given
-         * enumeration type. 
+         * enumeration type.
          * Sets according {@link #error(String)} response.
          * @param name
          * @param enumeration
@@ -194,6 +200,7 @@ public class ConfigurationInstructionListener implements InstructionListener {
         if (command == null) {
             instructionSupport.error("Missing or unsupported command [" + instruction.getCommand()
                     + "] in instruction.");
+            instructionSupport.applyResponse();
             return;
         }
         LOG.debug("Received command: {}", command);
@@ -237,12 +244,17 @@ public class ConfigurationInstructionListener implements InstructionListener {
             return;
 
         default:
-            LOG.warn("Unknown command: {}", command);
+            LOG.debug("Unknown command: {}", command);
             return;
         }
+
+        // set response into instruction
+        instructionSupport.applyResponse();
         LOG.debug("Handled command: {} (result={}) on process: {}{}", command, instructionSupport.isError() ? "error"
-                : "ok", instructionSupport.getProcessPath(), instructionSupport.getActivityId() == null ? "" : "#"
-                + instructionSupport.getActivityId());
+                : "ok", instructionSupport.getProcessPath(),
+                instructionSupport.getActivityId() == null ? ""
+                        : "#"
+                                + instructionSupport.getActivityId());
     }
 
     private void getLogLevel(final InstructionSupport instructionSupport) {
