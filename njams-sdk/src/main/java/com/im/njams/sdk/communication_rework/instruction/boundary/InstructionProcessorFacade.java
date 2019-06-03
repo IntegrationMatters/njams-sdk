@@ -20,14 +20,36 @@ public class InstructionProcessorFacade {
         this.instructionLoggerFactory = new InstructionLoggerFactory();
     }
 
-    public void addInstructionProcessor(InstructionProcessor instructionProcessor) {
-        this.instructionDispatcher.addInstructionProcessor(instructionProcessor);
+    public void addInstructionProcessor(InstructionProcessor newInstructionProcessor) {
+        if(newInstructionProcessor != null){
+            if(LOG.isDebugEnabled()) {
+                String commandToProcessByNewProcessor = newInstructionProcessor.getCommandToProcess();
+                InstructionProcessor oldInstructionProcessor = getInstructionProcessorFromDispatcher(commandToProcessByNewProcessor);
+                if (oldInstructionProcessor != null) {
+                    LOG.debug("Replacing InstructionProcessor {} for command {} by {}.",
+                            oldInstructionProcessor.getClass().getSimpleName(), commandToProcessByNewProcessor, newInstructionProcessor.getClass().getSimpleName());
+                }
+            }
+        }
+        this.instructionDispatcher.addInstructionProcessor(newInstructionProcessor);
     }
 
-    public void removeInstructionProcessor(String instructionProcessorCommandName) {
-        InstructionProcessor instructionProcessorToRemove = instructionDispatcher.getInstructionProcessor(instructionProcessorCommandName);
+    private InstructionProcessor getInstructionProcessorFromDispatcher(String commandToLookFor){
+        return instructionDispatcher.getInstructionProcessor(commandToLookFor);
+    }
+
+    public void removeInstructionProcessor(String instructionProcessorCommand) {
+        InstructionProcessor instructionProcessorToRemove = getInstructionProcessorFromDispatcher(instructionProcessorCommand);
+        boolean isDebugEnabled = LOG.isDebugEnabled();
         if (instructionProcessorToRemove != null) {
+            if(isDebugEnabled){
+                LOG.debug("Removing InstructionProcessor {} for command {}.", instructionProcessorToRemove.getClass().getSimpleName(), instructionProcessorCommand);
+            }
             instructionDispatcher.removeInstructionProcessor(instructionProcessorToRemove);
+        } else{
+            if(isDebugEnabled){
+                LOG.debug("Can't remove InstructionListener for command {}, because it hasn't been added before.", instructionProcessorCommand);
+            }
         }
     }
 
