@@ -1,17 +1,30 @@
 //package com.im.njams.sdk.configuration;
 //
-//import static com.faizsiegeln.njams.messageformat.v4.command.Command.*;
-//import static org.junit.Assert.*;
-//import static org.mockito.Mockito.*;
+//import static com.faizsiegeln.njams.messageformat.v4.command.Command.CONFIGURE_EXTRACT;
+//import static com.faizsiegeln.njams.messageformat.v4.command.Command.DELETE_EXTRACT;
+//import static com.faizsiegeln.njams.messageformat.v4.command.Command.GET_EXTRACT;
+//import static com.faizsiegeln.njams.messageformat.v4.command.Command.GET_LOG_LEVEL;
+//import static com.faizsiegeln.njams.messageformat.v4.command.Command.GET_LOG_MODE;
+//import static com.faizsiegeln.njams.messageformat.v4.command.Command.GET_TRACING;
+//import static com.faizsiegeln.njams.messageformat.v4.command.Command.RECORD;
+//import static com.faizsiegeln.njams.messageformat.v4.command.Command.REPLAY;
+//import static com.faizsiegeln.njams.messageformat.v4.command.Command.SET_LOG_LEVEL;
+//import static com.faizsiegeln.njams.messageformat.v4.command.Command.SET_LOG_MODE;
+//import static com.faizsiegeln.njams.messageformat.v4.command.Command.SET_TRACING;
+//import static org.junit.Assert.assertEquals;
+//import static org.junit.Assert.assertFalse;
+//import static org.junit.Assert.assertNotNull;
+//import static org.junit.Assert.assertNull;
+//import static org.junit.Assert.assertTrue;
+//import static org.mockito.Mockito.never;
+//import static org.mockito.Mockito.spy;
+//import static org.mockito.Mockito.times;
+//import static org.mockito.Mockito.verify;
 //
 //import java.time.LocalDateTime;
 //import java.util.Map;
 //import java.util.TreeMap;
 //
-//import com.im.njams.sdk.communication_rework.instruction.entity.ActivityConfiguration;
-//import com.im.njams.sdk.communication_rework.instruction.entity.Configuration;
-//import com.im.njams.sdk.communication_rework.instruction.entity.ProcessConfiguration;
-//import com.im.njams.sdk.communication_rework.instruction.entity.TracepointExt;
 //import org.junit.Before;
 //import org.junit.Test;
 //
@@ -25,7 +38,7 @@
 //import com.faizsiegeln.njams.messageformat.v4.projectmessage.LogMode;
 //import com.faizsiegeln.njams.messageformat.v4.projectmessage.RuleType;
 //import com.im.njams.sdk.common.DateTimeUtility;
-//import com.im.njams.sdk.communication_rework.instruction.entity.provider.MemoryConfigurationProvider;
+//import com.im.njams.sdk.configuration.provider.MemoryConfigurationProvider;
 //import com.im.njams.sdk.utils.JsonUtils;
 //
 //public class ConfigurationInstructionListenerTest {
@@ -545,4 +558,22 @@
 //
 //    }
 //
+//    @Test
+//    public void testUnhandledCommand_SDK_148() {
+//        final LocalDateTime time = LocalDateTime.of(2010, 12, 31, 1, 0);
+//        prepareInstruction(REPLAY);
+//        Response anotherResponse = new Response();
+//        anotherResponse.setDateTime(time);
+//        anotherResponse.setResultCode(4711);
+//        anotherResponse.setResultMessage("XXX");
+//        instruction.setResponse(anotherResponse);
+//        listener.onInstruction(instruction);
+//
+//        verify(configuration, never()).save();
+//
+//        assertEquals(anotherResponse, instruction.getResponse());
+//        assertEquals(4711, instruction.getResponse().getResultCode());
+//        assertEquals("XXX", instruction.getResponse().getResultMessage());
+//        assertEquals(time, instruction.getResponse().getDateTime());
+//    }
 //}
