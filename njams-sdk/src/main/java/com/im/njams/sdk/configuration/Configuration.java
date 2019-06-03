@@ -48,7 +48,7 @@ public class Configuration {
     /**
      * @return ConfigurationProvider
      */
-    ConfigurationProvider getConfigurationProvider() {
+    public ConfigurationProvider getConfigurationProvider() {
         return configurationProvider;
     }
 
