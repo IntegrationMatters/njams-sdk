@@ -228,14 +228,14 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
     /**
      * This method creates a session to the given connection. The transacted
      * boolean has been set to false and the acknowledgeMode is
-     * CLIENT_ACKNOWLEDGE for the created session.
+     * AUTO_ACKNOWLEDGE for the created session.
      *
      * @param con the connection that creates the session
      * @return the session if it can be created
      * @throws JMSException is thrown if something failed.
      */
     private Session createSession(Connection con) throws JMSException {
-        return con.createSession(false, 2);
+        return con.createSession(false, Session.AUTO_ACKNOWLEDGE);
     }
 
     /**
