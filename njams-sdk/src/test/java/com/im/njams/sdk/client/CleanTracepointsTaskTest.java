@@ -29,9 +29,9 @@ import com.im.njams.sdk.common.DateTimeUtility;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.common.Path;
 //import com.im.njams.sdk.communication.TestSender;
-import com.im.njams.sdk.configuration.ActivityConfiguration;
-import com.im.njams.sdk.configuration.ProcessConfiguration;
-import com.im.njams.sdk.configuration.TracepointExt;
+import com.im.njams.sdk.communication_rework.instruction.entity.ActivityConfiguration;
+import com.im.njams.sdk.communication_rework.instruction.entity.ProcessConfiguration;
+import com.im.njams.sdk.communication_rework.instruction.entity.TracepointExt;
 import com.im.njams.sdk.utils.JsonUtils;
 
 import org.junit.Before;

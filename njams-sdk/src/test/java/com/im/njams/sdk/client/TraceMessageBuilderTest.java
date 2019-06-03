@@ -22,8 +22,7 @@ import com.faizsiegeln.njams.messageformat.v4.tracemessage.Activity;
 import com.faizsiegeln.njams.messageformat.v4.tracemessage.ProcessModel;
 import com.faizsiegeln.njams.messageformat.v4.tracemessage.TraceMessage;
 import com.im.njams.sdk.AbstractTest;
-import com.im.njams.sdk.configuration.TracepointExt;
-import org.junit.Before;
+import com.im.njams.sdk.communication_rework.instruction.entity.TracepointExt;
 import org.junit.Test;
 
 import java.time.LocalDateTime;

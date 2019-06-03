@@ -37,8 +37,8 @@ import com.faizsiegeln.njams.messageformat.v4.projectmessage.AttributeType;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.Extract;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.ExtractRule;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.RuleType;
-import com.im.njams.sdk.configuration.ActivityConfiguration;
-import com.im.njams.sdk.configuration.ProcessConfiguration;
+import com.im.njams.sdk.communication_rework.instruction.entity.ActivityConfiguration;
+import com.im.njams.sdk.communication_rework.instruction.entity.ProcessConfiguration;
 import com.im.njams.sdk.model.ActivityModel;
 
 import net.sf.saxon.xpath.XPathEvaluator;

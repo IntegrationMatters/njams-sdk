@@ -22,10 +22,10 @@ import com.faizsiegeln.njams.messageformat.v4.tracemessage.TraceMessage;
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.common.DateTimeUtility;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
-import com.im.njams.sdk.configuration.ActivityConfiguration;
-import com.im.njams.sdk.configuration.Configuration;
-import com.im.njams.sdk.configuration.ProcessConfiguration;
-import com.im.njams.sdk.configuration.TracepointExt;
+import com.im.njams.sdk.communication_rework.instruction.entity.ActivityConfiguration;
+import com.im.njams.sdk.communication_rework.instruction.entity.Configuration;
+import com.im.njams.sdk.communication_rework.instruction.entity.ProcessConfiguration;
+import com.im.njams.sdk.communication_rework.instruction.entity.TracepointExt;
 import org.slf4j.LoggerFactory;
 
 import java.time.LocalDateTime;
