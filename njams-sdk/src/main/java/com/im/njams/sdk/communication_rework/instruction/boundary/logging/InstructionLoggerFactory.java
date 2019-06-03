@@ -22,6 +22,6 @@ public class InstructionLoggerFactory {
 
     public void stop() {
         requestLogger = null;
-        requestLogger = null;
+        responseLogger = null;
     }
 }
