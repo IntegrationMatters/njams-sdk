@@ -197,7 +197,6 @@ public class Njams implements InstructionListener {
         readVersions(version);
         printStartupBanner();
         instructionListeners.add(this);
-        instructionListeners.add(new ConfigurationInstructionListener(getConfiguration()));
         setMachine();
     }
 
@@ -362,6 +361,8 @@ public class Njams implements InstructionListener {
             }
             loadConfiguration();
             initializeDataMasking();
+            instructionListeners.add(this);
+            instructionListeners.add(new ConfigurationInstructionListener(getConfiguration()));
             startReceiver();
             LogMessageFlushTask.start(this);
             CleanTracepointsTask.start(this);
@@ -387,6 +388,7 @@ public class Njams implements InstructionListener {
             if (receiver != null) {
                 receiver.stop();
             }
+            instructionListeners.clear();
             started = false;
         } else {
             throw new NjamsSdkRuntimeException(NOT_STARTED_EXCEPTION_MESSAGE);
