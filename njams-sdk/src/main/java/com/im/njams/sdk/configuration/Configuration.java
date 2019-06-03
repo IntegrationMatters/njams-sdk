@@ -17,7 +17,7 @@
 package com.im.njams.sdk.configuration;
 
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.LogMode;
-import com.im.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
