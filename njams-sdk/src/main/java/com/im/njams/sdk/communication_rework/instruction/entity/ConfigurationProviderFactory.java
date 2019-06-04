@@ -18,6 +18,9 @@ package com.im.njams.sdk.communication_rework.instruction.entity;
 
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.settings.PropertyUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.Iterator;
 import java.util.Properties;
 import java.util.ServiceLoader;
@@ -25,9 +28,6 @@ import java.util.Spliterator;
 import java.util.Spliterators;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Creates the ConfigurationProvider, which has been specified in the settings

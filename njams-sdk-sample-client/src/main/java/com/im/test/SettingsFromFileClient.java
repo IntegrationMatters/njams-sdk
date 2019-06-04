@@ -22,9 +22,9 @@ import com.im.njams.sdk.logmessage.Activity;
 import com.im.njams.sdk.logmessage.Job;
 import com.im.njams.sdk.model.ActivityModel;
 import com.im.njams.sdk.model.ProcessModel;
+import com.im.njams.sdk.service.factories.SettingsProviderFactory;
 import com.im.njams.sdk.settings.Settings;
 import com.im.njams.sdk.settings.SettingsProvider;
-import com.im.njams.sdk.settings.SettingsProviderFactory;
 import com.im.njams.sdk.settings.provider.PropertiesFileSettingsProvider;
 import java.util.Properties;
 
@@ -44,7 +44,8 @@ public class SettingsFromFileClient {
         Properties settingsProviderProperties = new Properties();
         settingsProviderProperties.setProperty(SettingsProviderFactory.SETTINGS_PROVIDER,
                 PropertiesFileSettingsProvider.NAME);
-        SettingsProvider provider = SettingsProviderFactory.getSettingsProvider(settingsProviderProperties);
+        SettingsProviderFactory factory = new SettingsProviderFactory(settingsProviderProperties);
+        SettingsProvider provider = factory.getInstance();
 
         // Specifiy location of properties file to load
         Properties fileConfig = new Properties();

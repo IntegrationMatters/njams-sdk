@@ -6,6 +6,7 @@ package com.im.njams.sdk.communication.connectable.receiver;
 import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.communication.connectable.Connectable;
+import com.im.njams.sdk.service.NjamsService;
 
 import java.util.Properties;
 
@@ -15,7 +16,7 @@ import java.util.Properties;
  *
  * @author pnientiedt
  */
-public interface Receiver extends Connectable {
+public interface Receiver extends Connectable, NjamsService {
 
     /**
      * Set njams instance

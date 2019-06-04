@@ -45,7 +45,6 @@ import com.im.njams.sdk.communication_rework.instruction.control.processor.repla
 import com.im.njams.sdk.communication_rework.instruction.control.processor.replay.ReplayProcessor;
 import com.im.njams.sdk.communication_rework.instruction.entity.Configuration;
 import com.im.njams.sdk.communication_rework.instruction.entity.ConfigurationProvider;
-import com.im.njams.sdk.communication_rework.instruction.entity.ConfigurationProviderFactory;
 import com.im.njams.sdk.communication_rework.instruction.entity.ProcessConfiguration;
 import com.im.njams.sdk.communication_rework.instruction.entity.provider.FileConfigurationProvider;
 import com.im.njams.sdk.logmessage.DataMasking;
@@ -59,6 +58,7 @@ import com.im.njams.sdk.model.svg.NjamsProcessDiagramFactory;
 import com.im.njams.sdk.model.svg.ProcessDiagramFactory;
 import com.im.njams.sdk.serializer.Serializer;
 import com.im.njams.sdk.serializer.StringSerializer;
+import com.im.njams.sdk.service.factories.ConfigurationProviderFactory;
 import com.im.njams.sdk.settings.Settings;
 import com.im.njams.sdk.settings.encoding.Transformer;
 import org.slf4j.LoggerFactory;
@@ -265,7 +265,7 @@ public class Njams {
             settings.getProperties().put(ConfigurationProviderFactory.CONFIGURATION_PROVIDER, DEFAULT_CACHE_PROVIDER);
         }
         ConfigurationProvider configurationProvider =
-                new ConfigurationProviderFactory(properties, this).getConfigurationProvider();
+                new ConfigurationProviderFactory(properties, this).getInstance();
         configuration = new Configuration();
         configuration.setConfigurationProvider(configurationProvider);
     }

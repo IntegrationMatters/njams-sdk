@@ -16,6 +16,8 @@
  */
 package com.im.njams.sdk.settings;
 
+import com.im.njams.sdk.service.NjamsService;
+
 import java.util.Properties;
 
 /**
@@ -23,14 +25,7 @@ import java.util.Properties;
  *
  * @author pnientiedt
  */
-public interface SettingsProvider {
-
-    /**
-     * Should return the name by which the new SettingsProvider could be identified.
-     *
-     * @return the name of the {@link SettingsProvider}
-     */
-    public String getName();
+public interface SettingsProvider extends NjamsService {
 
     /**
      * Configure the new SettingsProvider via given Properties

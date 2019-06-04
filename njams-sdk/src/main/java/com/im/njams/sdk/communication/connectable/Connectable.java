@@ -7,21 +7,11 @@
 package com.im.njams.sdk.communication.connectable;
 
 import com.im.njams.sdk.communication.connector.Connector;
-import com.im.njams.sdk.communication.Communication;
+import com.im.njams.sdk.service.NjamsService;
 
 import java.util.Properties;
 
-public interface Connectable {
-
-    /**
-     * The implementation should return its name here, by which it can be
-     * identified. This name will be used as value in the
-     * CommunicationConfiguration via the Key
-     * {@value Communication#COMMUNICATION}
-     *
-     * @return the name of the connectable implementation
-     */
-    String getName();
+public interface Connectable extends NjamsService {
 
     /**
      * This method should do all initialization with the given properties

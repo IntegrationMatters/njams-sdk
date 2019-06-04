@@ -4,6 +4,7 @@ package com.im.njams.sdk.communication.connectable.sender;
 
 import com.faizsiegeln.njams.messageformat.v4.common.CommonMessage;
 import com.im.njams.sdk.communication.connectable.Connectable;
+import com.im.njams.sdk.service.NjamsService;
 
 /**
  * This interface must be implemented to create a nJAMS Sender Inplementations
@@ -11,7 +12,7 @@ import com.im.njams.sdk.communication.connectable.Connectable;
  *
  * @author bwand
  */
-public interface Sender extends Connectable {
+public interface Sender extends Connectable, NjamsService {
 
     /**
      * Property key for header properties which will specify the messageVersion for the server

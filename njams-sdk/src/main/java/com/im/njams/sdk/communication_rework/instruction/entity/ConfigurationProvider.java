@@ -17,6 +17,8 @@
 package com.im.njams.sdk.communication_rework.instruction.entity;
 
 import com.im.njams.sdk.Njams;
+import com.im.njams.sdk.service.NjamsService;
+
 import java.util.Properties;
 
 /**
@@ -24,15 +26,7 @@ import java.util.Properties;
  *
  * @author pnientiedt
  */
-public interface ConfigurationProvider {
-
-    /**
-     * Should return the name by which the new ConfigurationProvider could be
-     * identified.
-     *
-     * @return name
-     */
-    public String getName();
+public interface ConfigurationProvider extends NjamsService {
 
     /**
      * Configure the new ConfigurationProvider via given Properties and the Njams object
