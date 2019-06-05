@@ -1,6 +1,6 @@
-package com.im.njams.sdk.configuration.service.factory;
+package com.im.njams.sdk.configuration.boundary;
 
-import com.im.njams.sdk.configuration.service.proxy.ConfigurationProxy;
+import com.im.njams.sdk.configuration.control.ConfigurationProxy;
 import com.im.njams.sdk.service.factories.ServiceFactory;
 import com.im.njams.sdk.settings.PropertyUtil;
 

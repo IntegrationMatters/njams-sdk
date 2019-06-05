@@ -44,9 +44,9 @@ import com.im.njams.sdk.communication_rework.instruction.control.processor.flush
 import com.im.njams.sdk.communication_rework.instruction.control.processor.replay.ReplayHandler;
 import com.im.njams.sdk.communication_rework.instruction.control.processor.replay.ReplayProcessor;
 import com.im.njams.sdk.configuration.entity.ProcessConfiguration;
-import com.im.njams.sdk.configuration.service.factory.ConfigurationProxyFactory;
-import com.im.njams.sdk.configuration.service.proxy.ConfigurationProxy;
-import com.im.njams.sdk.configuration.service.proxy.JsonConfigurationProxy;
+import com.im.njams.sdk.configuration.boundary.ConfigurationProxyFactory;
+import com.im.njams.sdk.configuration.control.ConfigurationProxy;
+import com.im.njams.sdk.configuration.control.JsonConfigurationProxy;
 import com.im.njams.sdk.logmessage.DataMasking;
 import com.im.njams.sdk.logmessage.Job;
 import com.im.njams.sdk.model.ProcessModel;
@@ -198,7 +198,7 @@ public class Njams {
         this.settings = settings;
         processDiagramFactory = new NjamsProcessDiagramFactory();
         processModelLayouter = new SimpleProcessModelLayouter();
-        configurationProxyFactory = createConfigurationProxyFactory();
+        configurationProxyFactory = createConfigurationProxyFactory(Transformer.decode(settings.getProperties()));
         createTreeElements(path, TreeElementType.CLIENT);
         readVersions(version);
         printStartupBanner();
@@ -207,8 +207,7 @@ public class Njams {
         communicationFacade = new CommunicationFacade(Transformer.decode(settings.getProperties()));
     }
 
-    private ConfigurationProxyFactory createConfigurationProxyFactory() {
-        Properties properties = settings.getProperties();
+    private ConfigurationProxyFactory createConfigurationProxyFactory(Properties properties) {
         setDefaultProxyFactoryIfNecessary(ConfigurationProxyFactory.CONFIGURATION_PROXY, DEFAULT_CONFIGURATION_PROXY, properties);
         return new ConfigurationProxyFactory(properties);
     }

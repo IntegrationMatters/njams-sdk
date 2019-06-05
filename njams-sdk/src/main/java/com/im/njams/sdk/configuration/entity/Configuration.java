@@ -17,7 +17,7 @@
 package com.im.njams.sdk.configuration.entity;
 
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.LogMode;
-import com.im.njams.sdk.configuration.ServerInstructionSettings;
+import com.im.njams.sdk.configuration.boundary.ServerInstructionSettings;
 
 import java.util.ArrayList;
 import java.util.HashMap;

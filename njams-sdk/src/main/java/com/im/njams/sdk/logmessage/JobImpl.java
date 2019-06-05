@@ -28,7 +28,7 @@ import com.im.njams.sdk.common.Path;
 import com.im.njams.sdk.configuration.entity.ActivityConfiguration;
 import com.im.njams.sdk.configuration.entity.ProcessConfiguration;
 import com.im.njams.sdk.configuration.entity.TracepointExt;
-import com.im.njams.sdk.configuration.service.proxy.ConfigurationProxy;
+import com.im.njams.sdk.configuration.control.ConfigurationProxy;
 import com.im.njams.sdk.model.ActivityModel;
 import com.im.njams.sdk.model.GroupModel;
 import com.im.njams.sdk.model.ProcessModel;

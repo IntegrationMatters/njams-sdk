@@ -25,7 +25,7 @@ import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.configuration.entity.ActivityConfiguration;
 import com.im.njams.sdk.configuration.entity.ProcessConfiguration;
 import com.im.njams.sdk.configuration.entity.TracepointExt;
-import com.im.njams.sdk.configuration.service.proxy.ConfigurationProxy;
+import com.im.njams.sdk.configuration.control.ConfigurationProxy;
 import org.slf4j.LoggerFactory;
 
 import java.time.LocalDateTime;

@@ -14,9 +14,9 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
  */
-package com.im.njams.sdk.configuration.service.proxy;
+package com.im.njams.sdk.configuration.control;
 
-import com.im.njams.sdk.configuration.ServerInstructionSettings;
+import com.im.njams.sdk.configuration.boundary.ServerInstructionSettings;
 import com.im.njams.sdk.service.NjamsService;
 
 import java.util.Properties;
@@ -45,13 +45,6 @@ public interface ConfigurationProxy extends NjamsService, ServerInstructionSetti
      * @return Configuration
      */
     void loadConfiguration();
-
-//    /**
-//     * This function should discard the current in memory configuration
-//     * and should load the configuration from the storage again.
-//     * @return Configuration
-//     */
-//    Configuration reloadConfiguration();
 
     /**
      * This function should save the Configuration to the underlying storage.

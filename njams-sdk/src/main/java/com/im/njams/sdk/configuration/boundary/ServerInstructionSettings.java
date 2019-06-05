@@ -1,4 +1,4 @@
-package com.im.njams.sdk.configuration;
+package com.im.njams.sdk.configuration.boundary;
 
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.LogMode;
 import com.im.njams.sdk.configuration.entity.ProcessConfiguration;
