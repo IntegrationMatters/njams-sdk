@@ -3,7 +3,6 @@ package com.im.njams.sdk.communication_rework.instruction.control.processor.conf
 import com.faizsiegeln.njams.messageformat.v4.command.Command;
 import com.im.njams.sdk.common.DateTimeUtility;
 import com.im.njams.sdk.configuration.entity.ActivityConfiguration;
-import com.im.njams.sdk.configuration.entity.Configuration;
 import com.im.njams.sdk.configuration.entity.ProcessConfiguration;
 import com.im.njams.sdk.configuration.entity.TracepointExt;
 import com.im.njams.sdk.utils.StringUtils;
@@ -28,7 +27,6 @@ public class SetTracingProcessor extends ConfigurationProcessor {
         if (!instructionSupport.validate(InstructionSupport.PROCESS_PATH, InstructionSupport.ACTIVITY_ID)) {
             return;
         }
-        Configuration configuration = getConfiguration();
         //fetch parameters
 
         LocalDateTime endTime;
@@ -43,10 +41,10 @@ public class SetTracingProcessor extends ConfigurationProcessor {
         }
         if (instructionSupport.getBoolParameter("enableTracing") && endTime.isAfter(DateTimeUtility.now())) {
             LOG.debug("Update tracepoint.");
-            updateTracePoint(configuration, instructionSupport, endTime);
+            updateTracePoint(instructionSupport, endTime);
         } else {
             LOG.debug("Delete tracepoint.");
-            deleteTracePoint(configuration, instructionSupport);
+            deleteTracePoint(instructionSupport);
         }
     }
 
@@ -57,7 +55,7 @@ public class SetTracingProcessor extends ConfigurationProcessor {
         return DateTimeUtility.fromString(dateTime);
     }
 
-    private void updateTracePoint(Configuration configuration, final InstructionSupport instructionSupport, final LocalDateTime endTime) {
+    private void updateTracePoint(final InstructionSupport instructionSupport, final LocalDateTime endTime) {
         LocalDateTime startTime;
         try {
             startTime = parseDateTime(instructionSupport.getParameter("starttime"));
@@ -73,10 +71,10 @@ public class SetTracingProcessor extends ConfigurationProcessor {
         final String activityId = instructionSupport.getActivityId();
 
         //execute action
-        ProcessConfiguration process = configuration.getProcess(processPath);
+        ProcessConfiguration process = configurationProxy.getProcess(processPath);
         if (process == null) {
             process = new ProcessConfiguration();
-            configuration.getProcesses().put(processPath, process);
+            configurationProxy.getProcesses().put(processPath, process);
         }
         ActivityConfiguration activity = process.getActivity(activityId);
         if (activity == null) {
@@ -89,16 +87,16 @@ public class SetTracingProcessor extends ConfigurationProcessor {
         tp.setIterations(instructionSupport.getIntParameter("iterations"));
         tp.setDeeptrace(instructionSupport.getBoolParameter("deepTrace"));
         activity.setTracepoint(tp);
-        saveConfiguration(configuration, instructionSupport);
+        saveConfiguration(instructionSupport);
         LOG.debug("Tracepoint on {}#{} updated", processPath, activityId);
     }
 
-    private void deleteTracePoint(Configuration configuration, final InstructionSupport instructionSupport) {
+    private void deleteTracePoint(final InstructionSupport instructionSupport) {
         //execute action
         final String processPath = instructionSupport.getProcessPath();
         final String activityId = instructionSupport.getActivityId();
 
-        final ProcessConfiguration process = configuration.getProcess(processPath);
+        final ProcessConfiguration process = configurationProxy.getProcess(processPath);
         if (process == null) {
             LOG.debug("Delete tracepoint: no process configuration for: {}", processPath);
             return;
@@ -109,7 +107,7 @@ public class SetTracingProcessor extends ConfigurationProcessor {
             return;
         }
         activity.setTracepoint(null);
-        saveConfiguration(configuration, instructionSupport);
+        saveConfiguration(instructionSupport);
         LOG.debug("Tracepoint on {}#{} deleted", processPath, activityId);
     }
 }

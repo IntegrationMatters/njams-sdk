@@ -16,14 +16,6 @@
  */
 package com.im.njams.sdk.logmessage;
 
-import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertThat;
-
-import java.time.LocalDateTime;
-import java.util.Properties;
-
-import org.junit.Test;
-
 import com.faizsiegeln.njams.messageformat.v4.logmessage.ActivityStatus;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.AttributeType;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.Extract;
@@ -35,6 +27,13 @@ import com.im.njams.sdk.configuration.entity.ActivityConfiguration;
 import com.im.njams.sdk.configuration.entity.ProcessConfiguration;
 import com.im.njams.sdk.model.ProcessModel;
 import com.im.njams.sdk.settings.Settings;
+import org.junit.Test;
+
+import java.time.LocalDateTime;
+import java.util.Properties;
+
+import static org.hamcrest.CoreMatchers.is;
+import static org.junit.Assert.assertThat;
 
 /**
  *
@@ -71,10 +70,10 @@ public class JobTest {
         extract.setName("test");
         extract.getExtractRules().add(rule);
 
-        njams.getConfiguration().getProcesses().put(process.getPath().toString(), new ProcessConfiguration());
-        njams.getConfiguration().getProcess(process.getPath().toString()).getActivities().put("b",
+        njams.getConfigurationProxy().getProcesses().put(process.getPath().toString(), new ProcessConfiguration());
+        njams.getConfigurationProxy().getProcess(process.getPath().toString()).getActivities().put("b",
                 new ActivityConfiguration());
-        njams.getConfiguration().getProcess(process.getPath().toString()).getActivity("b").setExtract(extract);
+        njams.getConfigurationProxy().getProcess(process.getPath().toString()).getActivity("b").setExtract(extract);
 
         // Start client and flush resources
         //        njams.start();

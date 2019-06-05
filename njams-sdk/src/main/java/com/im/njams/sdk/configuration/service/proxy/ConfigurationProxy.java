@@ -16,7 +16,7 @@
  */
 package com.im.njams.sdk.configuration.service.proxy;
 
-import com.im.njams.sdk.configuration.entity.Configuration;
+import com.im.njams.sdk.configuration.ServerInstructionSettings;
 import com.im.njams.sdk.service.NjamsService;
 
 import java.util.Properties;
@@ -26,7 +26,7 @@ import java.util.Properties;
  *
  * @author pnientiedt
  */
-public interface ConfigurationProxy extends NjamsService {
+public interface ConfigurationProxy extends NjamsService, ServerInstructionSettings {
 
     /**
      * Configure the new ConfigurationProvider via given Properties and the Njams object
@@ -44,21 +44,20 @@ public interface ConfigurationProxy extends NjamsService {
      *
      * @return Configuration
      */
-    Configuration loadConfiguration();
+    void loadConfiguration();
 
-    /**
-     * This function should discard the current in memory configuration
-     * and should load the configuration from the storage again.
-     * @return Configuration
-     */
-    Configuration reloadConfiguration();
+//    /**
+//     * This function should discard the current in memory configuration
+//     * and should load the configuration from the storage again.
+//     * @return Configuration
+//     */
+//    Configuration reloadConfiguration();
 
     /**
      * This function should save the Configuration to the underlying storage.
      *
-     * @param configuration Configuration to be saved
      */
-    void saveConfiguration(Configuration configuration);
+    void saveConfiguration();
 
     /**
      * Returns the prefix for this ConfigurationProvider. Only properties

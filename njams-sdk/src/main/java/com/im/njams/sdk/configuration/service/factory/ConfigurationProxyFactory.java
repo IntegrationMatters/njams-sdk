@@ -26,7 +26,6 @@ public class ConfigurationProxyFactory extends ServiceFactory {
     public ConfigurationProxyFactory(Properties properties) {
         super(properties.getProperty(CONFIGURATION_PROXY), ConfigurationProxy.class);
         this.properties = properties;
-        this.globalConfigurationProxyInstance = null;
     }
 
     /**

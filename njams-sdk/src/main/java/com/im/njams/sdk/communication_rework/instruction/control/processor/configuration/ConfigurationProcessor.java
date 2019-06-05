@@ -4,7 +4,6 @@ import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
 import com.faizsiegeln.njams.messageformat.v4.command.Response;
 import com.im.njams.sdk.common.DateTimeUtility;
 import com.im.njams.sdk.communication_rework.instruction.control.processor.InstructionProcessor;
-import com.im.njams.sdk.configuration.entity.Configuration;
 import com.im.njams.sdk.configuration.service.factory.ConfigurationProxyFactory;
 import com.im.njams.sdk.configuration.service.proxy.ConfigurationProxy;
 import com.im.njams.sdk.utils.StringUtils;
@@ -19,7 +18,7 @@ import java.util.stream.Collectors;
 
 public abstract class ConfigurationProcessor extends InstructionProcessor {
 
-    private ConfigurationProxy configurationProxy;
+    protected ConfigurationProxy configurationProxy;
 
     public ConfigurationProcessor(Properties properties, String commandToProcess) {
         super(commandToProcess);
@@ -32,13 +31,9 @@ public abstract class ConfigurationProcessor extends InstructionProcessor {
         this.processInstruction(instructionSupport);
     }
 
-    protected Configuration getConfiguration(){
-        return configurationProxy.loadConfiguration();
-    }
-
-    protected void saveConfiguration(Configuration configuration, InstructionSupport instructionSupport) {
+    protected void saveConfiguration(InstructionSupport instructionSupport) {
         try {
-            configurationProxy.saveConfiguration(configuration);
+            configurationProxy.saveConfiguration();
         } catch (final Exception e) {
             instructionSupport.error("Unable to save configuration", e);
         }

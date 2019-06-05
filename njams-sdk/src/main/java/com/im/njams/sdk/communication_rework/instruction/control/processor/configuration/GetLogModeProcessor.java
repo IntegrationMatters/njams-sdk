@@ -1,7 +1,6 @@
 package com.im.njams.sdk.communication_rework.instruction.control.processor.configuration;
 
 import com.faizsiegeln.njams.messageformat.v4.command.Command;
-import com.im.njams.sdk.configuration.entity.Configuration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -19,8 +18,7 @@ public class GetLogModeProcessor extends ConfigurationProcessor {
 
     @Override
     protected void processInstruction(InstructionSupport instructionSupport) {
-        Configuration configuration = getConfiguration();
-        instructionSupport.setParameter(InstructionSupport.LOG_MODE, configuration.getLogMode());
-        LOG.debug("Return LogMode: {}", configuration.getLogMode());
+        instructionSupport.setParameter(InstructionSupport.LOG_MODE, configurationProxy.getLogMode());
+        LOG.debug("Return LogMode: {}", configurationProxy.getLogMode());
     }
 }

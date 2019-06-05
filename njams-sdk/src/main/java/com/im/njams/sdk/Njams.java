@@ -43,9 +43,9 @@ import com.im.njams.sdk.communication_rework.instruction.control.processor.confi
 import com.im.njams.sdk.communication_rework.instruction.control.processor.flush.SendProjectMessageProcessor;
 import com.im.njams.sdk.communication_rework.instruction.control.processor.replay.ReplayHandler;
 import com.im.njams.sdk.communication_rework.instruction.control.processor.replay.ReplayProcessor;
-import com.im.njams.sdk.configuration.entity.Configuration;
-import com.im.njams.sdk.configuration.service.proxy.ConfigurationProxy;
 import com.im.njams.sdk.configuration.entity.ProcessConfiguration;
+import com.im.njams.sdk.configuration.service.factory.ConfigurationProxyFactory;
+import com.im.njams.sdk.configuration.service.proxy.ConfigurationProxy;
 import com.im.njams.sdk.configuration.service.proxy.JsonConfigurationProxy;
 import com.im.njams.sdk.logmessage.DataMasking;
 import com.im.njams.sdk.logmessage.Job;
@@ -58,7 +58,6 @@ import com.im.njams.sdk.model.svg.NjamsProcessDiagramFactory;
 import com.im.njams.sdk.model.svg.ProcessDiagramFactory;
 import com.im.njams.sdk.serializer.Serializer;
 import com.im.njams.sdk.serializer.StringSerializer;
-import com.im.njams.sdk.configuration.service.factory.ConfigurationProxyFactory;
 import com.im.njams.sdk.settings.Settings;
 import com.im.njams.sdk.settings.encoding.Transformer;
 import org.slf4j.LoggerFactory;
@@ -100,7 +99,7 @@ public class Njams {
     private static final String DEFAULT_TAXONOMY_CLIENT_ICON = "images/client.png";
     private static final String DEFAULT_TAXONOMY_PROCESS_ICON = "images/process.png";
 
-    private static final String DEFAULT_CONFIGURATION_PROXY = JsonConfigurationProxy.NAME;
+    private static final String DEFAULT_CONFIGURATION_PROXY = JsonConfigurationProxy.JSON_NAME;
 
     /**
      * Static value for feature replay
@@ -200,7 +199,6 @@ public class Njams {
         processDiagramFactory = new NjamsProcessDiagramFactory();
         processModelLayouter = new SimpleProcessModelLayouter();
         configurationProxyFactory = createConfigurationProxyFactory();
-//        loadConfigurationProxy();
         createTreeElements(path, TreeElementType.CLIENT);
         readVersions(version);
         printStartupBanner();
@@ -360,6 +358,7 @@ public class Njams {
             if (settings == null) {
                 throw new NjamsSdkRuntimeException("Settings not set");
             }
+            loadConfigurationFromStorage();
             initializeDataMasking();
             addInstructionProcessors();
             startReceiver();
@@ -369,6 +368,10 @@ public class Njams {
             flushResources();
         }
         return isStarted();
+    }
+
+    private void loadConfigurationFromStorage() {
+        getConfigurationProxy().loadConfiguration();
     }
 
     /**
@@ -471,7 +474,7 @@ public class Njams {
                 .forEach(ipm -> msg.getProcesses().add(ipm));
         images.forEach(i -> msg.getImages().put(i.getName(), i.getBase64Image()));
         msg.getGlobalVariables().putAll(globalVariables);
-        msg.setLogMode(getConfiguration().getLogMode());
+        msg.setLogMode(getConfigurationProxy().getLogMode());
 
         this.sendMessage(msg);
     }
@@ -817,14 +820,7 @@ public class Njams {
      * @return LogMode of this client
      */
     public LogMode getLogMode() {
-        return getConfiguration().getLogMode();
-    }
-
-    /**
-     * @return the configuration
-     */
-    public Configuration getConfiguration() {
-        return getConfigurationProxy().loadConfiguration();
+        return getConfigurationProxy().getLogMode();
     }
 
     public ConfigurationProxy getConfigurationProxy(){
@@ -883,10 +879,10 @@ public class Njams {
         if (processPath == null) {
             return false;
         }
-        if (getConfiguration().getLogMode() == LogMode.NONE) {
+        if (getConfigurationProxy().getLogMode() == LogMode.NONE) {
             return true;
         }
-        ProcessConfiguration processConfiguration = getConfiguration().getProcess(processPath.toString());
+        ProcessConfiguration processConfiguration = getConfigurationProxy().getProcess(processPath.toString());
         return processConfiguration != null && processConfiguration.isExclude();
     }
 
@@ -894,6 +890,6 @@ public class Njams {
      * Initialize the datamasking feature
      */
     private void initializeDataMasking() {
-        DataMasking.addPatterns(getConfiguration().getDataMasking());
+        DataMasking.addPatterns(getConfigurationProxy().getDataMasking());
     }
 }

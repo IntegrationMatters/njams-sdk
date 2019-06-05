@@ -1,7 +1,6 @@
 package com.im.njams.sdk.communication_rework.instruction.control.processor.configuration;
 
 import com.faizsiegeln.njams.messageformat.v4.command.Command;
-import com.im.njams.sdk.configuration.entity.Configuration;
 import com.im.njams.sdk.configuration.entity.ProcessConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,14 +19,13 @@ public class RecordProcessor extends ConfigurationProcessor {
 
     @Override
     protected void processInstruction(InstructionSupport instructionSupport) {
-        Configuration configuration = getConfiguration();
         //fetch parameters
         if (instructionSupport.hasParameter("EngineWideRecording")) {
             try {
                 final boolean engineWideRecording = instructionSupport.getBoolParameter("EngineWideRecording");
-                configuration.setRecording(engineWideRecording);
+                configurationProxy.setRecording(engineWideRecording);
                 //reset to default after logic change
-                configuration.getProcesses().values().forEach(p -> p.setRecording(engineWideRecording));
+                configurationProxy.getProcesses().values().forEach(p -> p.setRecording(engineWideRecording));
             } catch (final Exception e) {
                 instructionSupport.error("Unable to set client recording", e);
                 return;
@@ -38,10 +36,10 @@ public class RecordProcessor extends ConfigurationProcessor {
         if (processPath != null) {
             try {
                 ProcessConfiguration process = null;
-                process = configuration.getProcess(processPath);
+                process = configurationProxy.getProcess(processPath);
                 if (process == null) {
                     process = new ProcessConfiguration();
-                    configuration.getProcesses().put(processPath, process);
+                    configurationProxy.getProcesses().put(processPath, process);
                 }
                 final String doRecordParameter = instructionSupport.getParameter("Record");
                 final boolean doRecord = "all".equalsIgnoreCase(doRecordParameter);
@@ -52,7 +50,7 @@ public class RecordProcessor extends ConfigurationProcessor {
             }
         }
 
-        saveConfiguration(configuration, instructionSupport);
+        saveConfiguration(instructionSupport);
         LOG.debug("Recording for {}", processPath);
     }
 }

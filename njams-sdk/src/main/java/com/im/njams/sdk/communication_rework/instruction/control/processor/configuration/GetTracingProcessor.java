@@ -2,7 +2,6 @@ package com.im.njams.sdk.communication_rework.instruction.control.processor.conf
 
 import com.faizsiegeln.njams.messageformat.v4.command.Command;
 import com.im.njams.sdk.configuration.entity.ActivityConfiguration;
-import com.im.njams.sdk.configuration.entity.Configuration;
 import com.im.njams.sdk.configuration.entity.ProcessConfiguration;
 import com.im.njams.sdk.configuration.entity.TracepointExt;
 import org.slf4j.Logger;
@@ -25,13 +24,12 @@ public class GetTracingProcessor extends ConfigurationProcessor {
         if (!instructionSupport.validate(InstructionSupport.PROCESS_PATH, InstructionSupport.ACTIVITY_ID)) {
             return;
         }
-        Configuration configuration = getConfiguration();
         //fetch parameters
         final String processPath = instructionSupport.getProcessPath();
         final String activityId = instructionSupport.getActivityId();
 
         //execute action
-        final ProcessConfiguration process = configuration.getProcess(processPath);
+        final ProcessConfiguration process = configurationProxy.getProcess(processPath);
         if (process == null) {
             instructionSupport.error("Process " + processPath + " not found");
             return;

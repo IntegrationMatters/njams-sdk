@@ -43,7 +43,7 @@ public class JsonConfigurationProxy extends MemoryConfigurationProxy {
     /**
      * Name of the FileConfigurationProvider
      */
-    public static final String NAME = "json";
+    public static final String JSON_NAME = "json";
     private final ObjectMapper objectMapper;
     private final ObjectWriter objectWriter;
     private File file;
@@ -76,44 +76,41 @@ public class JsonConfigurationProxy extends MemoryConfigurationProxy {
     }
 
     /**
-     * Returns the value {@value #NAME} as name for this ConfigurationProvider
+     * Returns the value {@value #JSON_NAME} as name for this ConfigurationProxy
      *
-     * @return the name of this ConfigurationProvider
+     * @return the name of this ConfigurationProxy
      */
     @Override
     public String getName() {
-        return NAME;
+        return JSON_NAME;
     }
 
     /**
-     * Loads the Configuration from the configured file, or returns a new empty
-     * Configuration if the file does not exist.
+     * Loads the configuration from the underlying storage. If there is no Configuration or no underlying storage,
+     * it creates a new Configuration and stores it in memory.
      *
-     * @return configuration loaded by this proxy
+     * @return the Configuration
      */
     @Override
-    protected void updateConfiguration(Configuration configuration) {
+    public void loadConfiguration() {
         if (!file.exists()) {
-            super.updateConfiguration(new Configuration());
+            super.loadConfiguration();
         } else {
             try {
-                super.updateConfiguration(objectMapper.readValue(new FileInputStream(file), Configuration.class));
+                this.realConfiguration = objectMapper.readValue(new FileInputStream(file), Configuration.class);
             } catch (Exception e) {
                 throw new NjamsSdkRuntimeException("Unable to load file " + file.getAbsolutePath(), e);
             }
         }
     }
-
     /**
-     * Save the given Configuration to the configured File
-     *
-     * @param configuration Configuration
+     * Save the Configuration to the configured File
      */
     @Override
-    public void saveConfiguration(Configuration configuration) {
-        super.saveConfiguration(configuration);
+    public void saveConfiguration() {
+        super.saveConfiguration();
         try {
-            objectWriter.writeValue(file, configuration);
+            objectWriter.writeValue(file, realConfiguration);
         } catch (Exception e) {
             throw new NjamsSdkRuntimeException("Unable to save file to" + file.getAbsolutePath(), e);
         }

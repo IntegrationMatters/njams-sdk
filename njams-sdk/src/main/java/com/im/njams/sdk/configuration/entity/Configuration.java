@@ -17,6 +17,7 @@
 package com.im.njams.sdk.configuration.entity;
 
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.LogMode;
+import com.im.njams.sdk.configuration.ServerInstructionSettings;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -30,7 +31,7 @@ import java.util.Map;
  *
  * @author pnientiedt
  */
-public class Configuration {
+public class Configuration implements ServerInstructionSettings {
 
     private LogMode logMode = LogMode.COMPLETE;
     private Map<String, ProcessConfiguration> processes = new HashMap<>();

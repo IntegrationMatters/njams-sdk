@@ -5,7 +5,6 @@ import com.faizsiegeln.njams.messageformat.v4.projectmessage.Extract;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.im.njams.sdk.common.JsonSerializerFactory;
 import com.im.njams.sdk.configuration.entity.ActivityConfiguration;
-import com.im.njams.sdk.configuration.entity.Configuration;
 import com.im.njams.sdk.configuration.entity.ProcessConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,17 +26,16 @@ public class ConfigureExtractProcessor extends ConfigurationProcessor {
         if (!instructionSupport.validate(InstructionSupport.PROCESS_PATH, InstructionSupport.ACTIVITY_ID, "extract")) {
             return;
         }
-        Configuration configuration = getConfiguration();
         //fetch parameters
         final String processPath = instructionSupport.getProcessPath();
         final String activityId = instructionSupport.getActivityId();
         final String extractString = instructionSupport.getParameter("extract");
 
         //execute action
-        ProcessConfiguration process = configuration.getProcess(processPath);
+        ProcessConfiguration process = configurationProxy.getProcess(processPath);
         if (process == null) {
             process = new ProcessConfiguration();
-            configuration.getProcesses().put(processPath, process);
+            configurationProxy.getProcesses().put(processPath, process);
         }
         ActivityConfiguration activity = null;
         activity = process.getActivity(activityId);
@@ -54,7 +52,7 @@ public class ConfigureExtractProcessor extends ConfigurationProcessor {
             return;
         }
         activity.setExtract(extract);
-        saveConfiguration(configuration, instructionSupport);
+        saveConfiguration(instructionSupport);
         LOG.debug("Configure extract for {}", processPath);
     }
 }

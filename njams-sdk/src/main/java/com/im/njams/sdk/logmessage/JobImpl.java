@@ -26,9 +26,9 @@ import com.im.njams.sdk.common.DateTimeUtility;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.common.Path;
 import com.im.njams.sdk.configuration.entity.ActivityConfiguration;
-import com.im.njams.sdk.configuration.entity.Configuration;
 import com.im.njams.sdk.configuration.entity.ProcessConfiguration;
 import com.im.njams.sdk.configuration.entity.TracepointExt;
+import com.im.njams.sdk.configuration.service.proxy.ConfigurationProxy;
 import com.im.njams.sdk.model.ActivityModel;
 import com.im.njams.sdk.model.GroupModel;
 import com.im.njams.sdk.model.ProcessModel;
@@ -171,19 +171,19 @@ public class JobImpl implements Job {
      * activityConfigurations.
      */
     private void initFromConfiguration(ProcessModel processModel) {
-        Configuration configuration = processModel.getNjams().getConfiguration();
-        if (configuration == null) {
+        ConfigurationProxy configurationProxy = processModel.getNjams().getConfigurationProxy();
+        if (configurationProxy == null) {
             LOG.error("Unable to set LogMode, LogLevel and Exclude for {}, configuration is null",
                     processModel.getPath());
             return;
         }
-        logMode = configuration.getLogMode();
+        logMode = configurationProxy.getLogMode();
         LOG.debug("Set LogMode for {} to {}", processModel.getPath(), logMode);
 
-        recording = configuration.isRecording();
+        recording = configurationProxy.isRecording();
         LOG.debug("Set recording for {} to {} based on client settings", processModel.getPath(), recording);
 
-        ProcessConfiguration process = configuration.getProcess(processModel.getPath().toString());
+        ProcessConfiguration process = configurationProxy.getProcess(processModel.getPath().toString());
         if (process != null) {
             logLevel = process.getLogLevel();
             LOG.debug("Set LogLevel for {} to {}", processModel.getPath(), logLevel);
@@ -191,7 +191,7 @@ public class JobImpl implements Job {
             LOG.debug("Set Exclude for {} to {}", processModel.getPath(), exclude);
             recording = process.isRecording();
             LOG.debug("Set recording for {} to {} based on process settings {} and client setting {}",
-                    processModel.getPath(), recording, configuration.isRecording());
+                    processModel.getPath(), recording, configurationProxy.isRecording());
         }
         if (recording) {
             addAttribute("$njams_recorded", "true");
@@ -1058,11 +1058,11 @@ public class JobImpl implements Job {
         if (processModel == null) {
             return null;
         }
-        Configuration configuration = processModel.getNjams().getConfiguration();
-        if (configuration == null) {
+        ConfigurationProxy configurationProxy = processModel.getNjams().getConfigurationProxy();
+        if (configurationProxy == null) {
             return null;
         }
-        ProcessConfiguration processConfig = configuration.getProcess(processModel.getPath().toString());
+        ProcessConfiguration processConfig = configurationProxy.getProcess(processModel.getPath().toString());
         if (processConfig == null) {
             return null;
         }

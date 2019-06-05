@@ -5,7 +5,6 @@ import com.faizsiegeln.njams.messageformat.v4.projectmessage.Extract;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.im.njams.sdk.common.JsonSerializerFactory;
 import com.im.njams.sdk.configuration.entity.ActivityConfiguration;
-import com.im.njams.sdk.configuration.entity.Configuration;
 import com.im.njams.sdk.configuration.entity.ProcessConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,13 +26,12 @@ public class GetExtractProcessor extends ConfigurationProcessor {
         if (!instructionSupport.validate(InstructionSupport.PROCESS_PATH, InstructionSupport.ACTIVITY_ID)) {
             return;
         }
-        Configuration configuration = getConfiguration();
         //fetch parameters
         final String processPath = instructionSupport.getProcessPath();
         final String activityId = instructionSupport.getActivityId();
 
         //execute action
-        final ProcessConfiguration process = configuration.getProcess(processPath);
+        final ProcessConfiguration process = configurationProxy.getProcess(processPath);
         if (process == null) {
             instructionSupport.error("Process " + processPath + " not found");
             return;

@@ -2,7 +2,6 @@ package com.im.njams.sdk.communication_rework.instruction.control.processor.conf
 
 import com.faizsiegeln.njams.messageformat.v4.command.Command;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.LogLevel;
-import com.im.njams.sdk.configuration.entity.Configuration;
 import com.im.njams.sdk.configuration.entity.ProcessConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,7 +23,6 @@ public class GetLogLevelProcessor extends ConfigurationProcessor {
         if (!instructionSupport.validate(InstructionSupport.PROCESS_PATH)) {
             return;
         }
-        Configuration configuration = getConfiguration();
         //fetch parameters
         final String processPath = instructionSupport.getProcessPath();
 
@@ -34,14 +32,14 @@ public class GetLogLevelProcessor extends ConfigurationProcessor {
         boolean exclude = false;
 
         // differing config stored?
-        final ProcessConfiguration process = configuration.getProcess(processPath);
+        final ProcessConfiguration process = configurationProxy.getProcess(processPath);
         if (process != null) {
             logLevel = process.getLogLevel();
             exclude = process.isExclude();
         }
 
         instructionSupport.setParameter(InstructionSupport.LOG_LEVEL, logLevel.name()).setParameter("exclude", exclude)
-                .setParameter(InstructionSupport.LOG_MODE, configuration.getLogMode());
+                .setParameter(InstructionSupport.LOG_MODE, configurationProxy.getLogMode());
 
         LOG.debug("Return LogLevel for {}", processPath);
     }

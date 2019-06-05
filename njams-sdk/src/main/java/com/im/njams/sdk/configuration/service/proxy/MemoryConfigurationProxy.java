@@ -16,8 +16,12 @@
  */
 package com.im.njams.sdk.configuration.service.proxy;
 
+import com.faizsiegeln.njams.messageformat.v4.projectmessage.LogMode;
 import com.im.njams.sdk.configuration.entity.Configuration;
+import com.im.njams.sdk.configuration.entity.ProcessConfiguration;
 
+import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 
 /**
@@ -31,22 +35,70 @@ public class MemoryConfigurationProxy implements ConfigurationProxy {
 
     private static final String PROPERTY_PREFIX = "njams.sdk.configuration.memory";
 
-    private static final String NAME = "memory";
+    private static final String MEMORY_NAME = "memory";
 
     protected Properties properties;
 
-    protected Configuration inMemoryConfiguration;
+    protected Configuration realConfiguration;
 
+    //NjamsService
     /**
-     * Returns the value {@value #NAME} as name for this ConfigurationProvider
+     * Returns the value {@value #MEMORY_NAME} as name for this ConfigurationProxy
      *
-     * @return the name of this ConfigurationProvider
+     * @return the name of this ConfigurationProxy
      */
     @Override
     public String getName() {
-        return NAME;
+        return MEMORY_NAME;
     }
 
+    //ServerInstructionSettings
+    @Override
+    public LogMode getLogMode() {
+        return realConfiguration.getLogMode();
+    }
+
+    @Override
+    public void setLogMode(LogMode logMode) {
+        realConfiguration.setLogMode(logMode);
+    }
+
+    @Override
+    public Map<String, ProcessConfiguration> getProcesses() {
+        return realConfiguration.getProcesses();
+    }
+
+    @Override
+    public void setProcesses(Map<String, ProcessConfiguration> processes) {
+        realConfiguration.setProcesses(processes);
+    }
+
+    @Override
+    public ProcessConfiguration getProcess(String processPath) {
+        return realConfiguration.getProcess(processPath);
+    }
+
+    @Override
+    public List<String> getDataMasking() {
+        return realConfiguration.getDataMasking();
+    }
+
+    @Override
+    public void setDataMasking(List<String> dataMasking) {
+        realConfiguration.setDataMasking(dataMasking);
+    }
+
+    @Override
+    public boolean isRecording() {
+        return realConfiguration.isRecording();
+    }
+
+    @Override
+    public void setRecording(boolean recording) {
+        realConfiguration.setRecording(recording);
+    }
+
+    //ConfigurationProxy
     /**
      * This does nothing because there is nothing to configure on this simple
      * ConfigurationProvider implementation
@@ -59,45 +111,19 @@ public class MemoryConfigurationProxy implements ConfigurationProxy {
     }
 
     /**
-     * Returns the Configuration. If no Configuration exists yet, it creates a
-     * new one
-     *
-     * @return the Configuration
+     * It creates a possibly overrides the in Configuration in memory by a new Configuration.
      */
     @Override
-    public final Configuration loadConfiguration() {
-        if (inMemoryConfiguration == null) {
-
-            updateConfiguration(new Configuration());
-        }
-        return inMemoryConfiguration;
+    public void loadConfiguration() {
+        this.realConfiguration = new Configuration();
     }
-
-    protected void updateConfiguration(Configuration configuration){
-        updateInMemoryConfiguration(configuration);
-    }
-
-    private final void updateInMemoryConfiguration(Configuration configuration) {
-        this.inMemoryConfiguration = configuration;
-    }
-
-    @Override
-    public final Configuration reloadConfiguration() {
-        this.inMemoryConfiguration = null;
-        this.updateInMemoryConfiguration(loadConfiguration());
-        return inMemoryConfiguration;
-    }
-
-
 
     /**
-     * Stores the given Configuration in memory
-     *
-     * @param configuration Configuration to save
+     * This method does nothing, because the MemoryConfigurationProxy has no underlying storage.
      */
     @Override
-    public void saveConfiguration(Configuration configuration) {
-        updateInMemoryConfiguration(configuration);
+    public void saveConfiguration() {
+        //Does nothing because it is only saved in memory.
     }
 
     /**

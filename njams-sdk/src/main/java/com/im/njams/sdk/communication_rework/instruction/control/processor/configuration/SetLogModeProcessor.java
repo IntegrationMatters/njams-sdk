@@ -2,7 +2,6 @@ package com.im.njams.sdk.communication_rework.instruction.control.processor.conf
 
 import com.faizsiegeln.njams.messageformat.v4.command.Command;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.LogMode;
-import com.im.njams.sdk.configuration.entity.Configuration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -23,11 +22,10 @@ public class SetLogModeProcessor extends ConfigurationProcessor {
         if (!instructionSupport.validate(InstructionSupport.LOG_MODE) || !instructionSupport.validate(InstructionSupport.LOG_MODE, LogMode.class)) {
             return;
         }
-        Configuration configuration = getConfiguration();
         //fetch parameters
         final LogMode logMode = instructionSupport.getEnumParameter(InstructionSupport.LOG_MODE, LogMode.class);
-        configuration.setLogMode(logMode);
-        saveConfiguration(configuration, instructionSupport);
+        configurationProxy.setLogMode(logMode);
+        saveConfiguration(instructionSupport);
         LOG.debug("Set LogMode to {}", logMode);
     }
 }
