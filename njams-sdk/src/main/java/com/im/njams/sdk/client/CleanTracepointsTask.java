@@ -130,7 +130,7 @@ public class CleanTracepointsTask extends TimerTask {
     }
 
     private void checkNjams(Njams njams, LocalDateTime now) {
-        ConfigurationProxy configurationProxy = njams.getConfigurationProxy();
+        ConfigurationProxy configurationProxy = (ConfigurationProxy) njams.getConfiguration();
         TraceMessageBuilder tmBuilder = new TraceMessageBuilder(njams);
         configurationProxy.getProcesses().entrySet().forEach(processEntry -> checkProcess(configurationProxy, processEntry, now, tmBuilder));
         TraceMessage msg = tmBuilder.build();

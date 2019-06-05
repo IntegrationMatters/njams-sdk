@@ -1,11 +1,10 @@
 package com.im.njams.sdk.communication_rework.instruction.control.processor.configuration;
 
 import com.faizsiegeln.njams.messageformat.v4.command.Command;
+import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.configuration.entity.ProcessConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.Properties;
 
 public class RecordProcessor extends ConfigurationProcessor {
 
@@ -13,8 +12,8 @@ public class RecordProcessor extends ConfigurationProcessor {
 
     public static final String RECORD = Command.RECORD.commandString();
 
-    public RecordProcessor(Properties properties, String commandToProcess) {
-        super(properties, commandToProcess);
+    public RecordProcessor(Njams njams, String commandToProcess) {
+        super(njams, commandToProcess);
     }
 
     @Override

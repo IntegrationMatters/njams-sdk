@@ -15,12 +15,14 @@ public class ServiceFactory {
 
     public ServiceFactory(String serviceName, Class<? extends NjamsService> classOfServiceToCreate) {
         this.serviceName = serviceName;
-        if(serviceDummyCache == null) {
-            this.serviceDummyCache = new NjamsServiceDummyCache(classOfServiceToCreate);
+        synchronized (ServiceFactory.class) {
+            if (serviceDummyCache == null) {
+                this.serviceDummyCache = new NjamsServiceDummyCache(classOfServiceToCreate);
+            }
         }
     }
 
-    public <T extends NjamsService> T getInstance(){
+    public <T extends NjamsService> T getInstance() {
         NjamsService serviceDummy = serviceDummyCache.getServiceDummy(serviceName);
         Class<? extends NjamsService> classOfServiceDummy = serviceDummy.getClass();
         try {

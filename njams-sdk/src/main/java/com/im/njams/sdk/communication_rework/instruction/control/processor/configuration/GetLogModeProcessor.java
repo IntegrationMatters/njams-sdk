@@ -1,10 +1,9 @@
 package com.im.njams.sdk.communication_rework.instruction.control.processor.configuration;
 
 import com.faizsiegeln.njams.messageformat.v4.command.Command;
+import com.im.njams.sdk.Njams;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.Properties;
 
 public class GetLogModeProcessor extends ConfigurationProcessor {
 
@@ -12,8 +11,8 @@ public class GetLogModeProcessor extends ConfigurationProcessor {
 
     public static final String GET_LOG_MODE = Command.GET_LOG_MODE.commandString();
 
-    public GetLogModeProcessor(Properties properties, String commandToProcess) {
-        super(properties, commandToProcess);
+    public GetLogModeProcessor(Njams njams, String commandToProcess) {
+        super(njams, commandToProcess);
     }
 
     @Override

@@ -16,7 +16,7 @@ public class NjamsServiceDummyCache {
         this.serviceLoaderToGetDummies = new NjamsServiceLoader(serviceToCache);
     }
 
-    public NjamsService getServiceDummy(String serviceName) {
+    public synchronized NjamsService getServiceDummy(String serviceName) {
         NjamsService serviceInCache = searchForDummyInCache(serviceName);
         if (serviceInCache == null) {
             serviceInCache = createAndAddServiceDummyToCache(serviceName);

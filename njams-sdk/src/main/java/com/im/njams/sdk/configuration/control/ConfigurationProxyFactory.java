@@ -1,6 +1,5 @@
-package com.im.njams.sdk.configuration.boundary;
+package com.im.njams.sdk.configuration.control;
 
-import com.im.njams.sdk.configuration.control.ConfigurationProxy;
 import com.im.njams.sdk.service.factories.ServiceFactory;
 import com.im.njams.sdk.settings.PropertyUtil;
 
@@ -15,7 +14,7 @@ public class ConfigurationProxyFactory extends ServiceFactory {
 
     private Properties properties;
 
-    private static ConfigurationProxy globalConfigurationProxyInstance;
+    private ConfigurationProxy configurationProxyInstance;
 
     /**
      * Properties should contain a value for {@value #CONFIGURATION_PROXY}.
@@ -36,10 +35,10 @@ public class ConfigurationProxyFactory extends ServiceFactory {
      */
     @Override
     public ConfigurationProxy getInstance(){
-        if(globalConfigurationProxyInstance == null){
-            globalConfigurationProxyInstance = super.getInstance();
-            globalConfigurationProxyInstance.configure(PropertyUtil.filter(properties, globalConfigurationProxyInstance.getPropertyPrefix()));
+        if(configurationProxyInstance == null){
+            configurationProxyInstance = super.getInstance();
+            configurationProxyInstance.configure(PropertyUtil.filter(properties, configurationProxyInstance.getPropertyPrefix()));
         }
-        return globalConfigurationProxyInstance;
+        return configurationProxyInstance;
     }
 }

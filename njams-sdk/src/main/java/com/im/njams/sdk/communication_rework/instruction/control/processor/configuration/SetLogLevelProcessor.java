@@ -3,16 +3,15 @@ package com.im.njams.sdk.communication_rework.instruction.control.processor.conf
 import com.faizsiegeln.njams.messageformat.v4.command.Command;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.LogLevel;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.LogMode;
+import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.configuration.entity.ProcessConfiguration;
-
-import java.util.Properties;
 
 public class SetLogLevelProcessor extends ConfigurationProcessor {
 
     public static final String SET_LOG_LEVEL = Command.SET_LOG_LEVEL.commandString();
 
-    public SetLogLevelProcessor(Properties properties, String commandToProcess) {
-        super(properties, commandToProcess);
+    public SetLogLevelProcessor(Njams njams, String commandToProcess) {
+        super(njams, commandToProcess);
     }
 
     @Override

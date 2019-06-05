@@ -1,17 +1,16 @@
 package com.im.njams.sdk.communication_rework.instruction.control.processor.configuration;
 
 import com.faizsiegeln.njams.messageformat.v4.command.Command;
+import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.configuration.entity.ActivityConfiguration;
 import com.im.njams.sdk.configuration.entity.ProcessConfiguration;
-
-import java.util.Properties;
 
 public class DeleteExtractProcessor extends ConfigurationProcessor {
 
     public static final String DELETE_EXTRACT = Command.DELETE_EXTRACT.commandString();
 
-    public DeleteExtractProcessor(Properties properties, String commandToProcess) {
-        super(properties, commandToProcess);
+    public DeleteExtractProcessor(Njams njams, String commandToProcess) {
+        super(njams, commandToProcess);
     }
 
     @Override

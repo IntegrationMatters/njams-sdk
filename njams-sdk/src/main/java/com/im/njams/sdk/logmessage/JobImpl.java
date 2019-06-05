@@ -25,10 +25,10 @@ import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.common.DateTimeUtility;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.common.Path;
+import com.im.njams.sdk.configuration.boundary.ServerInstructionSettings;
 import com.im.njams.sdk.configuration.entity.ActivityConfiguration;
 import com.im.njams.sdk.configuration.entity.ProcessConfiguration;
 import com.im.njams.sdk.configuration.entity.TracepointExt;
-import com.im.njams.sdk.configuration.control.ConfigurationProxy;
 import com.im.njams.sdk.model.ActivityModel;
 import com.im.njams.sdk.model.GroupModel;
 import com.im.njams.sdk.model.ProcessModel;
@@ -171,7 +171,7 @@ public class JobImpl implements Job {
      * activityConfigurations.
      */
     private void initFromConfiguration(ProcessModel processModel) {
-        ConfigurationProxy configurationProxy = processModel.getNjams().getConfigurationProxy();
+        ServerInstructionSettings configurationProxy = processModel.getNjams().getConfiguration();
         if (configurationProxy == null) {
             LOG.error("Unable to set LogMode, LogLevel and Exclude for {}, configuration is null",
                     processModel.getPath());
@@ -1058,7 +1058,7 @@ public class JobImpl implements Job {
         if (processModel == null) {
             return null;
         }
-        ConfigurationProxy configurationProxy = processModel.getNjams().getConfigurationProxy();
+        ServerInstructionSettings configurationProxy = processModel.getNjams().getConfiguration();
         if (configurationProxy == null) {
             return null;
         }

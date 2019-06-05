@@ -1,6 +1,7 @@
 package com.im.njams.sdk.communication_rework.instruction.control.processor.configuration;
 
 import com.faizsiegeln.njams.messageformat.v4.command.Command;
+import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.common.DateTimeUtility;
 import com.im.njams.sdk.configuration.entity.ActivityConfiguration;
 import com.im.njams.sdk.configuration.entity.ProcessConfiguration;
@@ -10,7 +11,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.LocalDateTime;
-import java.util.Properties;
 
 public class SetTracingProcessor extends ConfigurationProcessor {
 
@@ -18,8 +18,8 @@ public class SetTracingProcessor extends ConfigurationProcessor {
 
     public static final String SET_TRACING = Command.SET_TRACING.commandString();
 
-    public SetTracingProcessor(Properties properties, String commandToProcess) {
-        super(properties, commandToProcess);
+    public SetTracingProcessor(Njams njams, String commandToProcess) {
+        super(njams, commandToProcess);
     }
 
     @Override

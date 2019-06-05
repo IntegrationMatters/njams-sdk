@@ -2,9 +2,9 @@ package com.im.njams.sdk.communication_rework.instruction.control.processor.conf
 
 import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
 import com.faizsiegeln.njams.messageformat.v4.command.Response;
+import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.common.DateTimeUtility;
 import com.im.njams.sdk.communication_rework.instruction.control.processor.InstructionProcessor;
-import com.im.njams.sdk.configuration.boundary.ConfigurationProxyFactory;
 import com.im.njams.sdk.configuration.control.ConfigurationProxy;
 import com.im.njams.sdk.utils.StringUtils;
 import org.slf4j.Logger;
@@ -13,16 +13,15 @@ import org.slf4j.LoggerFactory;
 import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Properties;
 import java.util.stream.Collectors;
 
 public abstract class ConfigurationProcessor extends InstructionProcessor {
 
     protected ConfigurationProxy configurationProxy;
 
-    public ConfigurationProcessor(Properties properties, String commandToProcess) {
+    public ConfigurationProcessor(Njams njams, String commandToProcess) {
         super(commandToProcess);
-        this.configurationProxy = new ConfigurationProxyFactory(properties).getInstance();
+        configurationProxy = (ConfigurationProxy) njams.getConfiguration();
     }
 
     @Override

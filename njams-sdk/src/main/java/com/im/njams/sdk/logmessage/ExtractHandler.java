@@ -112,7 +112,7 @@ public class ExtractHandler {
         ActivityModel model = activity.getActivityModel();
         if (model == null) {
             // deprecated
-            ProcessConfiguration processConfig = job.getNjams().getConfigurationProxy()
+            ProcessConfiguration processConfig = job.getNjams().getConfiguration()
                     .getProcess(job.getProcessModel().getPath().toString());
             if (processConfig == null) {
                 return;

@@ -43,10 +43,9 @@ import com.im.njams.sdk.communication_rework.instruction.control.processor.confi
 import com.im.njams.sdk.communication_rework.instruction.control.processor.flush.SendProjectMessageProcessor;
 import com.im.njams.sdk.communication_rework.instruction.control.processor.replay.ReplayHandler;
 import com.im.njams.sdk.communication_rework.instruction.control.processor.replay.ReplayProcessor;
+import com.im.njams.sdk.configuration.boundary.ConfigurationFacade;
+import com.im.njams.sdk.configuration.boundary.ServerInstructionSettings;
 import com.im.njams.sdk.configuration.entity.ProcessConfiguration;
-import com.im.njams.sdk.configuration.boundary.ConfigurationProxyFactory;
-import com.im.njams.sdk.configuration.control.ConfigurationProxy;
-import com.im.njams.sdk.configuration.control.JsonConfigurationProxy;
 import com.im.njams.sdk.logmessage.DataMasking;
 import com.im.njams.sdk.logmessage.Job;
 import com.im.njams.sdk.model.ProcessModel;
@@ -98,8 +97,6 @@ public class Njams {
     private static final String DEFAULT_TAXONOMY_FOLDER_ICON = "images/folder.png";
     private static final String DEFAULT_TAXONOMY_CLIENT_ICON = "images/client.png";
     private static final String DEFAULT_TAXONOMY_PROCESS_ICON = "images/process.png";
-
-    private static final String DEFAULT_CONFIGURATION_PROXY = JsonConfigurationProxy.JSON_NAME;
 
     /**
      * Static value for feature replay
@@ -177,7 +174,7 @@ public class Njams {
 
     private ReplayHandler replayHandler = null;
 
-    private final ConfigurationProxyFactory configurationProxyFactory;
+    private final ConfigurationFacade configurationFacade;
 
 //    private final SettingsProxyFactory settingsProxyFactory;
 
@@ -198,39 +195,27 @@ public class Njams {
         this.settings = settings;
         processDiagramFactory = new NjamsProcessDiagramFactory();
         processModelLayouter = new SimpleProcessModelLayouter();
-        configurationProxyFactory = createConfigurationProxyFactory(Transformer.decode(settings.getProperties()));
         createTreeElements(path, TreeElementType.CLIENT);
         readVersions(version);
         printStartupBanner();
         setMachine();
         communicationFactory = new Communication(this, settings);
         communicationFacade = new CommunicationFacade(Transformer.decode(settings.getProperties()));
-    }
-
-    private ConfigurationProxyFactory createConfigurationProxyFactory(Properties properties) {
-        setDefaultProxyFactoryIfNecessary(ConfigurationProxyFactory.CONFIGURATION_PROXY, DEFAULT_CONFIGURATION_PROXY, properties);
-        return new ConfigurationProxyFactory(properties);
-    }
-
-    private void setDefaultProxyFactoryIfNecessary(String defaultConfigurationProxyKey, String defaultConfigurationProxyValue, Properties properties) {
-        if (!properties.containsKey(defaultConfigurationProxyKey)) {
-            properties.put(defaultConfigurationProxyKey, defaultConfigurationProxyValue);
-        }
+        configurationFacade = new ConfigurationFacade(Transformer.decode(settings.getProperties()));
     }
 
     private void addInstructionProcessors() {
-        Properties properties = Transformer.decode(settings.getProperties());
         this.addInstructionProcessor(new SendProjectMessageProcessor(this, SendProjectMessageProcessor.SEND_PROJECTMESSAGE));
-        this.addInstructionProcessor(new ConfigureExtractProcessor(properties, ConfigureExtractProcessor.CONFIGURE_EXTRACT));
-        this.addInstructionProcessor(new DeleteExtractProcessor(properties, DeleteExtractProcessor.DELETE_EXTRACT));
-        this.addInstructionProcessor(new GetExtractProcessor(properties, GetExtractProcessor.GET_EXTRACT));
-        this.addInstructionProcessor(new GetLogLevelProcessor(properties, GetLogLevelProcessor.GET_LOG_LEVEL));
-        this.addInstructionProcessor(new GetLogModeProcessor(properties, GetLogModeProcessor.GET_LOG_MODE));
-        this.addInstructionProcessor(new GetTracingProcessor(properties, GetTracingProcessor.GET_TRACING));
-        this.addInstructionProcessor(new RecordProcessor(properties, RecordProcessor.RECORD));
-        this.addInstructionProcessor(new SetLogLevelProcessor(properties, SetLogLevelProcessor.SET_LOG_LEVEL));
-        this.addInstructionProcessor(new SetLogModeProcessor(properties, SetLogModeProcessor.SET_LOG_MODE));
-        this.addInstructionProcessor(new SetTracingProcessor(properties, SetTracingProcessor.SET_TRACING));
+        this.addInstructionProcessor(new ConfigureExtractProcessor(this, ConfigureExtractProcessor.CONFIGURE_EXTRACT));
+        this.addInstructionProcessor(new DeleteExtractProcessor(this, DeleteExtractProcessor.DELETE_EXTRACT));
+        this.addInstructionProcessor(new GetExtractProcessor(this, GetExtractProcessor.GET_EXTRACT));
+        this.addInstructionProcessor(new GetLogLevelProcessor(this, GetLogLevelProcessor.GET_LOG_LEVEL));
+        this.addInstructionProcessor(new GetLogModeProcessor(this, GetLogModeProcessor.GET_LOG_MODE));
+        this.addInstructionProcessor(new GetTracingProcessor(this, GetTracingProcessor.GET_TRACING));
+        this.addInstructionProcessor(new RecordProcessor(this, RecordProcessor.RECORD));
+        this.addInstructionProcessor(new SetLogLevelProcessor(this, SetLogLevelProcessor.SET_LOG_LEVEL));
+        this.addInstructionProcessor(new SetLogModeProcessor(this, SetLogModeProcessor.SET_LOG_MODE));
+        this.addInstructionProcessor(new SetTracingProcessor(this, SetTracingProcessor.SET_TRACING));
     }
 
     public void addInstructionProcessor(InstructionProcessor instructionProcessor) {
@@ -357,7 +342,7 @@ public class Njams {
             if (settings == null) {
                 throw new NjamsSdkRuntimeException("Settings not set");
             }
-            loadConfigurationFromStorage();
+            configurationFacade.start();
             initializeDataMasking();
             addInstructionProcessors();
             startReceiver();
@@ -367,10 +352,6 @@ public class Njams {
             flushResources();
         }
         return isStarted();
-    }
-
-    private void loadConfigurationFromStorage() {
-        getConfigurationProxy().loadConfiguration();
     }
 
     /**
@@ -473,7 +454,7 @@ public class Njams {
                 .forEach(ipm -> msg.getProcesses().add(ipm));
         images.forEach(i -> msg.getImages().put(i.getName(), i.getBase64Image()));
         msg.getGlobalVariables().putAll(globalVariables);
-        msg.setLogMode(getConfigurationProxy().getLogMode());
+        msg.setLogMode(getConfiguration().getLogMode());
 
         this.sendMessage(msg);
     }
@@ -819,11 +800,11 @@ public class Njams {
      * @return LogMode of this client
      */
     public LogMode getLogMode() {
-        return getConfigurationProxy().getLogMode();
+        return getConfiguration().getLogMode();
     }
 
-    public ConfigurationProxy getConfigurationProxy(){
-        return configurationProxyFactory.getInstance();
+    public ServerInstructionSettings getConfiguration(){
+        return configurationFacade.getConfiguration();
     }
 
     /**
@@ -878,10 +859,10 @@ public class Njams {
         if (processPath == null) {
             return false;
         }
-        if (getConfigurationProxy().getLogMode() == LogMode.NONE) {
+        if (getConfiguration().getLogMode() == LogMode.NONE) {
             return true;
         }
-        ProcessConfiguration processConfiguration = getConfigurationProxy().getProcess(processPath.toString());
+        ProcessConfiguration processConfiguration = getConfiguration().getProcess(processPath.toString());
         return processConfiguration != null && processConfiguration.isExclude();
     }
 
@@ -889,6 +870,6 @@ public class Njams {
      * Initialize the datamasking feature
      */
     private void initializeDataMasking() {
-        DataMasking.addPatterns(getConfigurationProxy().getDataMasking());
+        DataMasking.addPatterns(getConfiguration().getDataMasking());
     }
 }

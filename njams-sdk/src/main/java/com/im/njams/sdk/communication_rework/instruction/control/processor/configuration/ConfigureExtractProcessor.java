@@ -3,13 +3,12 @@ package com.im.njams.sdk.communication_rework.instruction.control.processor.conf
 import com.faizsiegeln.njams.messageformat.v4.command.Command;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.Extract;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.common.JsonSerializerFactory;
 import com.im.njams.sdk.configuration.entity.ActivityConfiguration;
 import com.im.njams.sdk.configuration.entity.ProcessConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.Properties;
 
 public class ConfigureExtractProcessor extends ConfigurationProcessor {
 
@@ -17,8 +16,8 @@ public class ConfigureExtractProcessor extends ConfigurationProcessor {
 
     public static final String CONFIGURE_EXTRACT = Command.CONFIGURE_EXTRACT.commandString();
 
-    public ConfigureExtractProcessor(Properties properties, String commandToProcess) {
-        super(properties, commandToProcess);
+    public ConfigureExtractProcessor(Njams njams, String commandToProcess) {
+        super(njams, commandToProcess);
     }
 
     @Override

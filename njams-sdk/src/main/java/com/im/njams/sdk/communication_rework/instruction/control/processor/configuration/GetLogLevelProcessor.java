@@ -2,11 +2,10 @@ package com.im.njams.sdk.communication_rework.instruction.control.processor.conf
 
 import com.faizsiegeln.njams.messageformat.v4.command.Command;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.LogLevel;
+import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.configuration.entity.ProcessConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.Properties;
 
 public class GetLogLevelProcessor extends ConfigurationProcessor {
 
@@ -14,8 +13,8 @@ public class GetLogLevelProcessor extends ConfigurationProcessor {
 
     public static final String GET_LOG_LEVEL = Command.GET_LOG_LEVEL.commandString();
 
-    public GetLogLevelProcessor(Properties properties, String commandToProcess) {
-        super(properties, commandToProcess);
+    public GetLogLevelProcessor(Njams njams, String commandToProcess) {
+        super(njams, commandToProcess);
     }
 
     @Override
