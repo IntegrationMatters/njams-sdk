@@ -1,9 +1,8 @@
-package com.im.njams.sdk.communication_rework.instruction.control.processor.configuration;
+package com.im.njams.sdk.communication_rework.instruction.control.processor;
 
 import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
 import com.faizsiegeln.njams.messageformat.v4.command.Request;
 import com.faizsiegeln.njams.messageformat.v4.command.Response;
-import com.im.njams.sdk.communication_rework.instruction.control.processor.InstructionProcessor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

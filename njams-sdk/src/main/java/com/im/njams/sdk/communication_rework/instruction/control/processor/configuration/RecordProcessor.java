@@ -1,10 +1,12 @@
 package com.im.njams.sdk.communication_rework.instruction.control.processor.configuration;
 
 import com.faizsiegeln.njams.messageformat.v4.command.Command;
-import com.im.njams.sdk.communication_rework.instruction.entity.Configuration;
-import com.im.njams.sdk.communication_rework.instruction.entity.ProcessConfiguration;
+import com.im.njams.sdk.configuration.entity.Configuration;
+import com.im.njams.sdk.configuration.entity.ProcessConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.Properties;
 
 public class RecordProcessor extends ConfigurationProcessor {
 
@@ -12,12 +14,13 @@ public class RecordProcessor extends ConfigurationProcessor {
 
     public static final String RECORD = Command.RECORD.commandString();
 
-    public RecordProcessor(Configuration configuration, String commandToProcess) {
-        super(configuration, commandToProcess);
+    public RecordProcessor(Properties properties, String commandToProcess) {
+        super(properties, commandToProcess);
     }
 
     @Override
     protected void processInstruction(InstructionSupport instructionSupport) {
+        Configuration configuration = getConfiguration();
         //fetch parameters
         if (instructionSupport.hasParameter("EngineWideRecording")) {
             try {
@@ -49,7 +52,7 @@ public class RecordProcessor extends ConfigurationProcessor {
             }
         }
 
-        saveConfiguration(instructionSupport);
+        saveConfiguration(configuration, instructionSupport);
         LOG.debug("Recording for {}", processPath);
     }
 }

@@ -2,7 +2,7 @@ package com.im.njams.sdk.communication_rework.instruction.control;
 
 import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
 import com.im.njams.sdk.communication_rework.instruction.control.processor.InstructionProcessor;
-import com.im.njams.sdk.communication_rework.instruction.control.processor.configuration.FallbackProcessor;
+import com.im.njams.sdk.communication_rework.instruction.control.processor.FallbackProcessor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

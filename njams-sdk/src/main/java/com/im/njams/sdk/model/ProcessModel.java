@@ -31,7 +31,7 @@ import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.common.IdUtil;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.common.Path;
-import com.im.njams.sdk.communication_rework.instruction.entity.ProcessConfiguration;
+import com.im.njams.sdk.configuration.entity.ProcessConfiguration;
 import com.im.njams.sdk.logmessage.Job;
 import com.im.njams.sdk.logmessage.JobImpl;
 import com.im.njams.sdk.model.svg.ProcessDiagramFactory;

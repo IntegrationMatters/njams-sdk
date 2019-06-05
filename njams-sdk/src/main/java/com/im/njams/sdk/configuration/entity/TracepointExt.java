@@ -14,7 +14,7 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
  */
-package com.im.njams.sdk.communication_rework.instruction.entity;
+package com.im.njams.sdk.configuration.entity;
 
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.Tracepoint;
 import javax.xml.bind.annotation.XmlTransient;

@@ -38,7 +38,7 @@
 //import com.faizsiegeln.njams.messageformat.v4.projectmessage.LogMode;
 //import com.faizsiegeln.njams.messageformat.v4.projectmessage.RuleType;
 //import com.im.njams.sdk.common.DateTimeUtility;
-//import com.im.njams.sdk.configuration.provider.MemoryConfigurationProvider;
+//import com.im.njams.sdk.configuration.proxy.MemoryConfigurationProvider;
 //import com.im.njams.sdk.utils.JsonUtils;
 //
 //public class ConfigurationInstructionListenerTest {

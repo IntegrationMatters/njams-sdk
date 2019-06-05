@@ -43,10 +43,10 @@ import com.im.njams.sdk.communication_rework.instruction.control.processor.confi
 import com.im.njams.sdk.communication_rework.instruction.control.processor.flush.SendProjectMessageProcessor;
 import com.im.njams.sdk.communication_rework.instruction.control.processor.replay.ReplayHandler;
 import com.im.njams.sdk.communication_rework.instruction.control.processor.replay.ReplayProcessor;
-import com.im.njams.sdk.communication_rework.instruction.entity.Configuration;
-import com.im.njams.sdk.communication_rework.instruction.entity.ConfigurationProvider;
-import com.im.njams.sdk.communication_rework.instruction.entity.ProcessConfiguration;
-import com.im.njams.sdk.communication_rework.instruction.entity.provider.FileConfigurationProvider;
+import com.im.njams.sdk.configuration.entity.Configuration;
+import com.im.njams.sdk.configuration.service.proxy.ConfigurationProxy;
+import com.im.njams.sdk.configuration.entity.ProcessConfiguration;
+import com.im.njams.sdk.configuration.service.proxy.JsonConfigurationProxy;
 import com.im.njams.sdk.logmessage.DataMasking;
 import com.im.njams.sdk.logmessage.Job;
 import com.im.njams.sdk.model.ProcessModel;
@@ -58,7 +58,7 @@ import com.im.njams.sdk.model.svg.NjamsProcessDiagramFactory;
 import com.im.njams.sdk.model.svg.ProcessDiagramFactory;
 import com.im.njams.sdk.serializer.Serializer;
 import com.im.njams.sdk.serializer.StringSerializer;
-import com.im.njams.sdk.service.factories.ConfigurationProviderFactory;
+import com.im.njams.sdk.configuration.service.factory.ConfigurationProxyFactory;
 import com.im.njams.sdk.settings.Settings;
 import com.im.njams.sdk.settings.encoding.Transformer;
 import org.slf4j.LoggerFactory;
@@ -100,7 +100,7 @@ public class Njams {
     private static final String DEFAULT_TAXONOMY_CLIENT_ICON = "images/client.png";
     private static final String DEFAULT_TAXONOMY_PROCESS_ICON = "images/process.png";
 
-    private static final String DEFAULT_CACHE_PROVIDER = FileConfigurationProvider.NAME;
+    private static final String DEFAULT_CONFIGURATION_PROXY = JsonConfigurationProxy.NAME;
 
     /**
      * Static value for feature replay
@@ -172,20 +172,23 @@ public class Njams {
 
     private CommunicationFacade communicationFacade;
 
-    private Configuration configuration;
     private String machine;
     private boolean started = false;
     private static final String NOT_STARTED_EXCEPTION_MESSAGE = "The instance needs to be started first!";
 
     private ReplayHandler replayHandler = null;
 
+    private final ConfigurationProxyFactory configurationProxyFactory;
+
+//    private final SettingsProxyFactory settingsProxyFactory;
+
     /**
      * Create a nJAMS client.
      *
-     * @param path the path in the tree
-     * @param version the version of the nNJAMS client
+     * @param path     the path in the tree
+     * @param version  the version of the nNJAMS client
      * @param category the category of the nJAMS client, should describe the
-     * technology
+     *                 technology
      * @param settings needed settings for client eg. for communication
      */
     public Njams(Path path, String version, String category, Settings settings) {
@@ -196,7 +199,8 @@ public class Njams {
         this.settings = settings;
         processDiagramFactory = new NjamsProcessDiagramFactory();
         processModelLayouter = new SimpleProcessModelLayouter();
-        loadConfigurationProvider();
+        configurationProxyFactory = createConfigurationProxyFactory();
+//        loadConfigurationProxy();
         createTreeElements(path, TreeElementType.CLIENT);
         readVersions(version);
         printStartupBanner();
@@ -205,29 +209,42 @@ public class Njams {
         communicationFacade = new CommunicationFacade(Transformer.decode(settings.getProperties()));
     }
 
-    private void addInstructionProcessors(){
-        this.addInstructionProcessor(new SendProjectMessageProcessor(this, SendProjectMessageProcessor.SEND_PROJECTMESSAGE));
-        this.addInstructionProcessor(new ConfigureExtractProcessor(configuration, ConfigureExtractProcessor.CONFIGURE_EXTRACT));
-        this.addInstructionProcessor(new DeleteExtractProcessor(configuration, DeleteExtractProcessor.DELETE_EXTRACT));
-        this.addInstructionProcessor(new GetExtractProcessor(configuration, GetExtractProcessor.GET_EXTRACT));
-        this.addInstructionProcessor(new GetLogLevelProcessor(configuration, GetLogLevelProcessor.GET_LOG_LEVEL));
-        this.addInstructionProcessor(new GetLogModeProcessor(configuration, GetLogModeProcessor.GET_LOG_MODE));
-        this.addInstructionProcessor(new GetTracingProcessor(configuration, GetTracingProcessor.GET_TRACING));
-        this.addInstructionProcessor(new RecordProcessor(configuration, RecordProcessor.RECORD));
-        this.addInstructionProcessor(new SetLogLevelProcessor(configuration, SetLogLevelProcessor.SET_LOG_LEVEL));
-        this.addInstructionProcessor(new SetLogModeProcessor(configuration, SetLogModeProcessor.SET_LOG_MODE));
-        this.addInstructionProcessor(new SetTracingProcessor(configuration, SetTracingProcessor.SET_TRACING));
+    private ConfigurationProxyFactory createConfigurationProxyFactory() {
+        Properties properties = settings.getProperties();
+        setDefaultProxyFactoryIfNecessary(ConfigurationProxyFactory.CONFIGURATION_PROXY, DEFAULT_CONFIGURATION_PROXY, properties);
+        return new ConfigurationProxyFactory(properties);
     }
 
-    public void addInstructionProcessor(InstructionProcessor instructionProcessor){
+    private void setDefaultProxyFactoryIfNecessary(String defaultConfigurationProxyKey, String defaultConfigurationProxyValue, Properties properties) {
+        if (!properties.containsKey(defaultConfigurationProxyKey)) {
+            properties.put(defaultConfigurationProxyKey, defaultConfigurationProxyValue);
+        }
+    }
+
+    private void addInstructionProcessors() {
+        Properties properties = Transformer.decode(settings.getProperties());
+        this.addInstructionProcessor(new SendProjectMessageProcessor(this, SendProjectMessageProcessor.SEND_PROJECTMESSAGE));
+        this.addInstructionProcessor(new ConfigureExtractProcessor(properties, ConfigureExtractProcessor.CONFIGURE_EXTRACT));
+        this.addInstructionProcessor(new DeleteExtractProcessor(properties, DeleteExtractProcessor.DELETE_EXTRACT));
+        this.addInstructionProcessor(new GetExtractProcessor(properties, GetExtractProcessor.GET_EXTRACT));
+        this.addInstructionProcessor(new GetLogLevelProcessor(properties, GetLogLevelProcessor.GET_LOG_LEVEL));
+        this.addInstructionProcessor(new GetLogModeProcessor(properties, GetLogModeProcessor.GET_LOG_MODE));
+        this.addInstructionProcessor(new GetTracingProcessor(properties, GetTracingProcessor.GET_TRACING));
+        this.addInstructionProcessor(new RecordProcessor(properties, RecordProcessor.RECORD));
+        this.addInstructionProcessor(new SetLogLevelProcessor(properties, SetLogLevelProcessor.SET_LOG_LEVEL));
+        this.addInstructionProcessor(new SetLogModeProcessor(properties, SetLogModeProcessor.SET_LOG_MODE));
+        this.addInstructionProcessor(new SetTracingProcessor(properties, SetTracingProcessor.SET_TRACING));
+    }
+
+    public void addInstructionProcessor(InstructionProcessor instructionProcessor) {
         communicationFacade.addInstructionProcessor(instructionProcessor);
     }
 
-    public void removeInstructionProcessor(String instructionProcessorCommandName){
+    public void removeInstructionProcessor(String instructionProcessorCommandName) {
         communicationFacade.removeInstructionProcessor(instructionProcessorCommandName);
     }
 
-    public void processReceivedInstruction(Instruction instruction){
+    public void processReceivedInstruction(Instruction instruction) {
         communicationFacade.processInstruction(instruction);
     }
 
@@ -257,30 +274,6 @@ public class Njams {
     }
 
     /**
-     * Load the ConfigurationProvider via the provided Properties
-     */
-    private void loadConfigurationProvider() {
-        Properties properties = settings.getProperties();
-        if (!properties.containsKey(ConfigurationProviderFactory.CONFIGURATION_PROVIDER)) {
-            settings.getProperties().put(ConfigurationProviderFactory.CONFIGURATION_PROVIDER, DEFAULT_CACHE_PROVIDER);
-        }
-        ConfigurationProvider configurationProvider =
-                new ConfigurationProviderFactory(properties, this).getInstance();
-        configuration = new Configuration();
-        configuration.setConfigurationProvider(configurationProvider);
-    }
-
-    /**
-     * load and apply configuration from configuration provider
-     */
-    private void loadConfiguration() {
-        ConfigurationProvider configurationProvider = configuration.getConfigurationProvider();
-        if (configurationProvider != null) {
-            configuration = configurationProvider.loadConfiguration();
-        }
-    }
-
-    /**
      * @return the category of the nJAMS client, which should describe the
      * technology
      */
@@ -289,7 +282,6 @@ public class Njams {
     }
 
     /**
-     *
      * @return the current nJAMS settings
      */
     public Settings getSettings() {
@@ -327,7 +319,7 @@ public class Njams {
     /**
      * Adds a image for a given resource path.
      *
-     * @param key the key of the image
+     * @param key          the key of the image
      * @param resourcePath the path where to find the image
      */
     public void addImage(final String key, final String resourcePath) {
@@ -350,11 +342,11 @@ public class Njams {
         this.processDiagramFactory = processDiagramFactory;
     }
 
-    public void sendMessage(CommonMessage msg){
+    public void sendMessage(CommonMessage msg) {
         communicationFactory.sendMessage(msg);
     }
 
-    private void startReceiver(){
+    private void startReceiver() {
         communicationFactory.initializeNjamsReceiver();
     }
 
@@ -368,7 +360,6 @@ public class Njams {
             if (settings == null) {
                 throw new NjamsSdkRuntimeException("Settings not set");
             }
-            loadConfiguration();
             initializeDataMasking();
             addInstructionProcessors();
             startReceiver();
@@ -449,7 +440,7 @@ public class Njams {
      * Create a process
      *
      * @param path Relative path to the client of the process which should be
-     * created
+     *             created
      * @return the new ProcessModel or a {@link NjamsSdkRuntimeException}
      */
     public ProcessModel createProcess(final Path path) {
@@ -480,7 +471,7 @@ public class Njams {
                 .forEach(ipm -> msg.getProcesses().add(ipm));
         images.forEach(i -> msg.getImages().put(i.getName(), i.getBase64Image()));
         msg.getGlobalVariables().putAll(globalVariables);
-        msg.setLogMode(configuration.getLogMode());
+        msg.setLogMode(getConfiguration().getLogMode());
 
         this.sendMessage(msg);
     }
@@ -533,7 +524,7 @@ public class Njams {
      * Returns the default icon type for a TreeElement, based on the criterias
      * first and TreeElementType
      *
-     * @param first Is this the root element
+     * @param first          Is this the root element
      * @param treeElmentType The treeElementType
      * @return the icon type
      */
@@ -672,7 +663,6 @@ public class Njams {
     }
 
     /**
-     *
      * @return the ProcessDiagramFactory
      */
     public ProcessDiagramFactory getProcessDiagramFactory() {
@@ -685,10 +675,10 @@ public class Njams {
      * class with the registered serializer. If a serializer is already
      * registered, it will be replaced with the new serializer.
      *
-     * @param <T> Type of the serializer
-     * @param key Class for which the serializer should be registered
+     * @param <T>        Type of the serializer
+     * @param key        Class for which the serializer should be registered
      * @param serializer A serializer that can serialize instances of class key
-     * to strings.
+     *                   to strings.
      * @return The given serializer, or if one was already registered before,
      * the former registered serializer.
      */
@@ -739,7 +729,7 @@ public class Njams {
      * Serializes a given object using {@link #findSerializer(java.lang.Class) }
      *
      * @param <T> type of the class
-     * @param t Object to be serialied.
+     * @param t   Object to be serialied.
      * @return a string representation of the object.
      */
     public <T> String serialize(final T t) {
@@ -776,7 +766,7 @@ public class Njams {
      * hierarchy will be checked recursivly. if no (super) interface is
      * registed, <b>null</b> will be returned.
      *
-     * @param <T> Type of the class
+     * @param <T>   Type of the class
      * @param clazz Class for which a serializer will be searched.
      * @return Serizalier of <b>null</b>.
      */
@@ -824,7 +814,6 @@ public class Njams {
     }
 
     /**
-     *
      * @return LogMode of this client
      */
     public LogMode getLogMode() {
@@ -835,7 +824,11 @@ public class Njams {
      * @return the configuration
      */
     public Configuration getConfiguration() {
-        return configuration;
+        return getConfigurationProxy().loadConfiguration();
+    }
+
+    public ConfigurationProxy getConfigurationProxy(){
+        return configurationProxyFactory.getInstance();
     }
 
     /**
@@ -846,7 +839,6 @@ public class Njams {
     }
 
     /**
-     *
      * @return the list of features this client has
      */
     public List<String> getFeatures() {
@@ -902,6 +894,6 @@ public class Njams {
      * Initialize the datamasking feature
      */
     private void initializeDataMasking() {
-        DataMasking.addPatterns(configuration.getDataMasking());
+        DataMasking.addPatterns(getConfiguration().getDataMasking());
     }
 }

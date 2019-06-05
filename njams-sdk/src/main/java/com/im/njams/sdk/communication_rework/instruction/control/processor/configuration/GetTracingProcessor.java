@@ -1,12 +1,14 @@
 package com.im.njams.sdk.communication_rework.instruction.control.processor.configuration;
 
 import com.faizsiegeln.njams.messageformat.v4.command.Command;
-import com.im.njams.sdk.communication_rework.instruction.entity.ActivityConfiguration;
-import com.im.njams.sdk.communication_rework.instruction.entity.Configuration;
-import com.im.njams.sdk.communication_rework.instruction.entity.ProcessConfiguration;
-import com.im.njams.sdk.communication_rework.instruction.entity.TracepointExt;
+import com.im.njams.sdk.configuration.entity.ActivityConfiguration;
+import com.im.njams.sdk.configuration.entity.Configuration;
+import com.im.njams.sdk.configuration.entity.ProcessConfiguration;
+import com.im.njams.sdk.configuration.entity.TracepointExt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.Properties;
 
 public class GetTracingProcessor extends ConfigurationProcessor {
 
@@ -14,8 +16,8 @@ public class GetTracingProcessor extends ConfigurationProcessor {
 
     public static final String GET_TRACING = Command.GET_TRACING.commandString();
 
-    public GetTracingProcessor(Configuration configuration, String commandToProcess) {
-        super(configuration, commandToProcess);
+    public GetTracingProcessor(Properties properties, String commandToProcess) {
+        super(properties, commandToProcess);
     }
 
     @Override
@@ -23,6 +25,7 @@ public class GetTracingProcessor extends ConfigurationProcessor {
         if (!instructionSupport.validate(InstructionSupport.PROCESS_PATH, InstructionSupport.ACTIVITY_ID)) {
             return;
         }
+        Configuration configuration = getConfiguration();
         //fetch parameters
         final String processPath = instructionSupport.getProcessPath();
         final String activityId = instructionSupport.getActivityId();

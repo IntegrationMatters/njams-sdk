@@ -22,10 +22,11 @@ import com.faizsiegeln.njams.messageformat.v4.tracemessage.TraceMessage;
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.common.DateTimeUtility;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
-import com.im.njams.sdk.communication_rework.instruction.entity.ActivityConfiguration;
-import com.im.njams.sdk.communication_rework.instruction.entity.Configuration;
-import com.im.njams.sdk.communication_rework.instruction.entity.ProcessConfiguration;
-import com.im.njams.sdk.communication_rework.instruction.entity.TracepointExt;
+import com.im.njams.sdk.configuration.entity.ActivityConfiguration;
+import com.im.njams.sdk.configuration.entity.Configuration;
+import com.im.njams.sdk.configuration.entity.ProcessConfiguration;
+import com.im.njams.sdk.configuration.entity.TracepointExt;
+import com.im.njams.sdk.configuration.service.proxy.ConfigurationProxy;
 import org.slf4j.LoggerFactory;
 
 import java.time.LocalDateTime;
@@ -130,36 +131,37 @@ public class CleanTracepointsTask extends TimerTask {
     }
 
     private void checkNjams(Njams njams, LocalDateTime now) {
-        Configuration configuration = njams.getConfiguration();
+        ConfigurationProxy configurationProxy = njams.getConfigurationProxy();
+        Configuration configuration = configurationProxy.loadConfiguration();
         TraceMessageBuilder tmBuilder = new TraceMessageBuilder(njams);
-        configuration.getProcesses().entrySet().forEach(processEntry -> checkProcess(configuration, processEntry, now, tmBuilder));
+        configuration.getProcesses().entrySet().forEach(processEntry -> checkProcess(configurationProxy, configuration, processEntry, now, tmBuilder));
         TraceMessage msg = tmBuilder.build();
         if(msg != null){
             njams.sendMessage(msg);
         }
     }
 
-    private void checkProcess(Configuration configuration, Entry<String, ProcessConfiguration> processEntry, LocalDateTime now, TraceMessageBuilder tmBuilder) {
+    private void checkProcess(ConfigurationProxy configurationProxy, Configuration configuration, Entry<String, ProcessConfiguration> processEntry, LocalDateTime now, TraceMessageBuilder tmBuilder) {
         //use itertor here, because we want to possibly modify the map itself
         ProcessModel model = new ProcessModel();
         Iterator<Entry<String, ActivityConfiguration>> it = processEntry.getValue().getActivities().entrySet().iterator();
         while (it.hasNext()) {
             Entry<String, ActivityConfiguration> ae = it.next();
-            if (checkActivity(configuration, processEntry, ae, now, tmBuilder)) {
+            if (checkActivity(configurationProxy, configuration, processEntry, ae, now, tmBuilder)) {
                 it.remove();
-                configuration.save();
+                configurationProxy.saveConfiguration(configuration);
             }
         }
     }
 
-    private boolean checkActivity(Configuration configuration, Entry<String, ProcessConfiguration> processEntry, Entry<String, ActivityConfiguration> ae, LocalDateTime now, TraceMessageBuilder tmBuilder) {
+    private boolean checkActivity(ConfigurationProxy configurationProxy, Configuration configuration, Entry<String, ProcessConfiguration> processEntry, Entry<String, ActivityConfiguration> ae, LocalDateTime now, TraceMessageBuilder tmBuilder) {
         ActivityConfiguration activity = ae.getValue();
         TracepointExt tracepoint = activity.getTracepoint();
         if (tracepoint != null && (tracepoint.getEndtime().isBefore(now) || tracepoint.iterationsExceeded())) {
             try {
                 fillTraceMessageBuilder(processEntry, ae, tmBuilder);
                 activity.setTracepoint(null);
-                configuration.save();
+                configurationProxy.saveConfiguration(configuration);
                 if (activity.isEmpty()) {
                     return true;
                 }

@@ -11,11 +11,13 @@ public class ServiceFactory {
 
     private String serviceName;
 
-    private NjamsServiceDummyCache serviceDummyCache;
+    private static NjamsServiceDummyCache serviceDummyCache;
 
     public ServiceFactory(String serviceName, Class<? extends NjamsService> classOfServiceToCreate) {
         this.serviceName = serviceName;
-        this.serviceDummyCache = new NjamsServiceDummyCache(classOfServiceToCreate);
+        if(serviceDummyCache == null) {
+            this.serviceDummyCache = new NjamsServiceDummyCache(classOfServiceToCreate);
+        }
     }
 
     public <T extends NjamsService> T getInstance(){

@@ -16,12 +16,9 @@ public class NjamsServiceLoader {
 
     private static final Logger LOG = LoggerFactory.getLogger(NjamsServiceLoader.class);
 
-    private String serviceClassName;
-
     private ServiceLoader<? extends NjamsService> availableServiceDummies;
 
     public NjamsServiceLoader(Class<? extends NjamsService> serviceToLoad) {
-        this.serviceClassName = serviceToLoad.getClass().getSimpleName();
         this.availableServiceDummies = ServiceLoader.load(serviceToLoad);
     }
 
@@ -30,7 +27,7 @@ public class NjamsServiceLoader {
             NjamsService serviceDummy = searchForMatchingService(serviceName);
             if (serviceDummy == null) {
                 String allServicesAsString = concatAllAvailableServices();
-                throw new UnsupportedOperationException("Unable to find " + serviceClassName + " implementation with name " + serviceName + ", available are: " + allServicesAsString);
+                throw new UnsupportedOperationException("Unable to find NjamsService with name " + serviceName + ", available are: " + allServicesAsString);
             }
             return serviceDummy;
         } else {
@@ -45,7 +42,7 @@ public class NjamsServiceLoader {
             NjamsService possibleService = iterator.next();
             if (possibleService.getName().equals(serviceName)) {
                 String concreteClassOfPossibleService = possibleService.getClass().getSimpleName();
-                LOG.debug("Found service {}", concreteClassOfPossibleService);
+                LOG.debug("Found NjamsService implementation {}", concreteClassOfPossibleService);
                 matchingService = possibleService;
             }
         }

@@ -14,9 +14,9 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
  */
-package com.im.njams.sdk.communication_rework.instruction.entity;
+package com.im.njams.sdk.configuration.service.proxy;
 
-import com.im.njams.sdk.Njams;
+import com.im.njams.sdk.configuration.entity.Configuration;
 import com.im.njams.sdk.service.NjamsService;
 
 import java.util.Properties;
@@ -26,31 +26,39 @@ import java.util.Properties;
  *
  * @author pnientiedt
  */
-public interface ConfigurationProvider extends NjamsService {
+public interface ConfigurationProxy extends NjamsService {
 
     /**
      * Configure the new ConfigurationProvider via given Properties and the Njams object
      *
      * @param properties Settings Properties
-     * @param njams Njams instance
      */
-    public void configure(Properties properties, Njams njams);
+    void configure(Properties properties);
 
     /**
-     * This function should load the Configuration from the underlying storage
-     * of the new ConfigurationProvider. If the storage does not contain a
-     * Configuration, it should return a new empty Configuration
+     * This function return the Configuration in memory.
+     * If no Configuration is available in memory,
+     * it should be tried to load a Configuration of the underlying storage.
+     * If the storage does not contain a Configuration, it should return a new
+     * empty Configuration and safe it in memory as well.
      *
      * @return Configuration
      */
-    public Configuration loadConfiguration();
+    Configuration loadConfiguration();
+
+    /**
+     * This function should discard the current in memory configuration
+     * and should load the configuration from the storage again.
+     * @return Configuration
+     */
+    Configuration reloadConfiguration();
 
     /**
      * This function should save the Configuration to the underlying storage.
      *
      * @param configuration Configuration to be saved
      */
-    public void saveConfiguration(Configuration configuration);
+    void saveConfiguration(Configuration configuration);
 
     /**
      * Returns the prefix for this ConfigurationProvider. Only properties
@@ -59,5 +67,5 @@ public interface ConfigurationProvider extends NjamsService {
      *
      * @return the prefix
      */
-    public String getPropertyPrefix();
+    String getPropertyPrefix();
 }

@@ -4,7 +4,9 @@ import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
 import com.faizsiegeln.njams.messageformat.v4.command.Response;
 import com.im.njams.sdk.common.DateTimeUtility;
 import com.im.njams.sdk.communication_rework.instruction.control.processor.InstructionProcessor;
-import com.im.njams.sdk.communication_rework.instruction.entity.Configuration;
+import com.im.njams.sdk.configuration.entity.Configuration;
+import com.im.njams.sdk.configuration.service.factory.ConfigurationProxyFactory;
+import com.im.njams.sdk.configuration.service.proxy.ConfigurationProxy;
 import com.im.njams.sdk.utils.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -12,15 +14,16 @@ import org.slf4j.LoggerFactory;
 import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Properties;
 import java.util.stream.Collectors;
 
 public abstract class ConfigurationProcessor extends InstructionProcessor {
 
-    protected Configuration configuration;
+    private ConfigurationProxy configurationProxy;
 
-    public ConfigurationProcessor(Configuration configuration, String commandToProcess) {
+    public ConfigurationProcessor(Properties properties, String commandToProcess) {
         super(commandToProcess);
-        this.configuration = configuration;
+        this.configurationProxy = new ConfigurationProxyFactory(properties).getInstance();
     }
 
     @Override
@@ -29,9 +32,13 @@ public abstract class ConfigurationProcessor extends InstructionProcessor {
         this.processInstruction(instructionSupport);
     }
 
-    protected void saveConfiguration(InstructionSupport instructionSupport) {
+    protected Configuration getConfiguration(){
+        return configurationProxy.loadConfiguration();
+    }
+
+    protected void saveConfiguration(Configuration configuration, InstructionSupport instructionSupport) {
         try {
-            configuration.save();
+            configurationProxy.saveConfiguration(configuration);
         } catch (final Exception e) {
             instructionSupport.error("Unable to save configuration", e);
         }

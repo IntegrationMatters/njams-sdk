@@ -1,0 +1,2 @@
+com.im.njams.sdk.configuration.service.proxy.JsonConfigurationProxy
+com.im.njams.sdk.configuration.service.proxy.MemoryConfigurationProxy

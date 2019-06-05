@@ -1,25 +1,24 @@
-/* 
+/*
  * Copyright (c) 2018 Faiz & Siegeln Software GmbH
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"),
  * to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
  * and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
- * 
+ *
  * The Software shall be used for Good, not Evil.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
  */
-package com.im.njams.sdk.communication_rework.instruction.entity.provider;
+package com.im.njams.sdk.configuration.service.proxy;
 
-import com.im.njams.sdk.Njams;
-import com.im.njams.sdk.communication_rework.instruction.entity.Configuration;
+import com.im.njams.sdk.configuration.entity.Configuration;
+
 import java.util.Properties;
-import com.im.njams.sdk.communication_rework.instruction.entity.ConfigurationProvider;
 
 /**
  * ConfigurationProvider implementation which holds the configuration in memory.
@@ -28,13 +27,15 @@ import com.im.njams.sdk.communication_rework.instruction.entity.ConfigurationPro
  *
  * @author pnientiedt
  */
-public class MemoryConfigurationProvider implements ConfigurationProvider {
+public class MemoryConfigurationProxy implements ConfigurationProxy {
 
     private static final String PROPERTY_PREFIX = "njams.sdk.configuration.memory";
 
     private static final String NAME = "memory";
-    private Configuration configuration;
-    private Njams njams;
+
+    protected Properties properties;
+
+    protected Configuration inMemoryConfiguration;
 
     /**
      * Returns the value {@value #NAME} as name for this ConfigurationProvider
@@ -53,8 +54,8 @@ public class MemoryConfigurationProvider implements ConfigurationProvider {
      * @param properties Properties for configuration
      */
     @Override
-    public void configure(Properties properties, Njams njams) {
-        this.njams = njams;
+    public void configure(Properties properties) {
+        this.properties = properties;
     }
 
     /**
@@ -64,13 +65,30 @@ public class MemoryConfigurationProvider implements ConfigurationProvider {
      * @return the Configuration
      */
     @Override
-    public Configuration loadConfiguration() {
-        if (configuration == null) {
-            configuration = new Configuration();
-            configuration.setConfigurationProvider(this);
+    public final Configuration loadConfiguration() {
+        if (inMemoryConfiguration == null) {
+
+            updateConfiguration(new Configuration());
         }
-        return configuration;
+        return inMemoryConfiguration;
     }
+
+    protected void updateConfiguration(Configuration configuration){
+        updateInMemoryConfiguration(configuration);
+    }
+
+    private final void updateInMemoryConfiguration(Configuration configuration) {
+        this.inMemoryConfiguration = configuration;
+    }
+
+    @Override
+    public final Configuration reloadConfiguration() {
+        this.inMemoryConfiguration = null;
+        this.updateInMemoryConfiguration(loadConfiguration());
+        return inMemoryConfiguration;
+    }
+
+
 
     /**
      * Stores the given Configuration in memory
@@ -79,7 +97,7 @@ public class MemoryConfigurationProvider implements ConfigurationProvider {
      */
     @Override
     public void saveConfiguration(Configuration configuration) {
-        this.configuration = configuration;
+        updateInMemoryConfiguration(configuration);
     }
 
     /**

@@ -14,10 +14,10 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
  */
-package com.im.njams.sdk.communication_rework.instruction.entity;
+package com.im.njams.sdk.configuration.entity;
 
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.LogMode;
-import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -32,34 +32,10 @@ import java.util.Map;
  */
 public class Configuration {
 
-    @JsonIgnore
-    private ConfigurationProvider configurationProvider;
-
     private LogMode logMode = LogMode.COMPLETE;
     private Map<String, ProcessConfiguration> processes = new HashMap<>();
     private List<String> dataMasking = new ArrayList<>();
     private boolean recording = true;
-
-    /**
-     * @param configurationProvider to be set
-     */
-    public void setConfigurationProvider(ConfigurationProvider configurationProvider) {
-        this.configurationProvider = configurationProvider;
-    }
-
-    /**
-     * @return ConfigurationProvider
-     */
-    public ConfigurationProvider getConfigurationProvider() {
-        return configurationProvider;
-    }
-
-    /**
-     * Save the configuration via the configured ConfigurationProvider
-     */
-    public void save() {
-        configurationProvider.saveConfiguration(this);
-    }
 
     /**
      * @return the logMode
