@@ -16,12 +16,16 @@ public class NjamsServiceDummyCache {
         this.serviceLoaderToGetDummies = new NjamsServiceLoader(serviceToCache);
     }
 
-    public synchronized NjamsService getServiceDummy(String serviceName) {
+    public NjamsService getServiceDummy(String serviceName) {
         NjamsService serviceInCache = searchForDummyInCache(serviceName);
         if (serviceInCache == null) {
             serviceInCache = createAndAddServiceDummyToCache(serviceName);
         }
         return serviceInCache;
+    }
+
+    private NjamsService searchForDummyInCache(String serviceName) {
+        return alreadyFoundServiceDummies.get(serviceName);
     }
 
     private NjamsService createAndAddServiceDummyToCache(String serviceName) {
@@ -31,7 +35,4 @@ public class NjamsServiceDummyCache {
         return newlyCreatedServiceDummy;
     }
 
-    private NjamsService searchForDummyInCache(String serviceName) {
-        return alreadyFoundServiceDummies.get(serviceName);
-    }
 }

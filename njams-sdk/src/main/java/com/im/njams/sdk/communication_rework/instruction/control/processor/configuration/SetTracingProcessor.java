@@ -71,10 +71,10 @@ public class SetTracingProcessor extends ConfigurationProcessor {
         final String activityId = instructionSupport.getActivityId();
 
         //execute action
-        ProcessConfiguration process = configurationProxy.getProcess(processPath);
+        ProcessConfiguration process = njams.getProcessFromConfiguration(processPath);
         if (process == null) {
             process = new ProcessConfiguration();
-            configurationProxy.getProcesses().put(processPath, process);
+            njams.getProcessesFromConfiguration().put(processPath, process);
         }
         ActivityConfiguration activity = process.getActivity(activityId);
         if (activity == null) {
@@ -96,7 +96,7 @@ public class SetTracingProcessor extends ConfigurationProcessor {
         final String processPath = instructionSupport.getProcessPath();
         final String activityId = instructionSupport.getActivityId();
 
-        final ProcessConfiguration process = configurationProxy.getProcess(processPath);
+        final ProcessConfiguration process = njams.getProcessFromConfiguration(processPath);
         if (process == null) {
             LOG.debug("Delete tracepoint: no process configuration for: {}", processPath);
             return;

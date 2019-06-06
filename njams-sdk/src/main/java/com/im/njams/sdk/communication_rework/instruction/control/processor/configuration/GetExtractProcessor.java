@@ -30,7 +30,7 @@ public class GetExtractProcessor extends ConfigurationProcessor {
         final String activityId = instructionSupport.getActivityId();
 
         //execute action
-        final ProcessConfiguration process = configurationProxy.getProcess(processPath);
+        final ProcessConfiguration process = njams.getProcessFromConfiguration(processPath);
         if (process == null) {
             instructionSupport.error("Process " + processPath + " not found");
             return;

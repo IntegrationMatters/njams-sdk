@@ -23,7 +23,7 @@ public class SetLogModeProcessor extends ConfigurationProcessor {
         }
         //fetch parameters
         final LogMode logMode = instructionSupport.getEnumParameter(InstructionSupport.LOG_MODE, LogMode.class);
-        configurationProxy.setLogMode(logMode);
+        njams.setLogModeToConfiguration(logMode);
         saveConfiguration(instructionSupport);
         LOG.debug("Set LogMode to {}", logMode);
     }

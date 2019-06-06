@@ -23,6 +23,7 @@ import com.faizsiegeln.njams.messageformat.v4.tracemessage.ProcessModel;
 import com.faizsiegeln.njams.messageformat.v4.tracemessage.TraceMessage;
 import com.im.njams.sdk.AbstractTest;
 import com.im.njams.sdk.configuration.entity.TracepointExt;
+import org.junit.Before;
 import org.junit.Test;
 
 import java.time.LocalDateTime;
@@ -38,7 +39,7 @@ import static org.junit.Assert.*;
  */
 public class TraceMessageBuilderTest extends AbstractTest {
 
-    private TraceMessageBuilder builder = new TraceMessageBuilder(njams);
+    private TraceMessageBuilder builder;
 
     private String FULLPROCESSPATHNAME;
 
@@ -46,10 +47,20 @@ public class TraceMessageBuilderTest extends AbstractTest {
         FULLPROCESSPATHNAME = njams.getClientPath().add(PROCESSPATHNAME).toString();
     }
 
+    @Before
+    public void resetBuilder(){
+        builder = new TraceMessageBuilder();
+    }
+
     @Test
     public void testBuildWithoutActivity() {
+        assertTrue(builder.isEmpty());
         TraceMessage msg = builder.build();
-        assertNull(msg);
+        assertTrue(msg.getProcesses().isEmpty());
+        assertNull(msg.getPath());
+        assertNull(msg.getCategory());
+        assertNull(msg.getSdkVersion());
+        assertNull(msg.getClientVersion());
     }
 
     @Test

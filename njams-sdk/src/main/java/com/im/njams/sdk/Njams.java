@@ -44,9 +44,7 @@ import com.im.njams.sdk.communication_rework.instruction.control.processor.flush
 import com.im.njams.sdk.communication_rework.instruction.control.processor.replay.ReplayHandler;
 import com.im.njams.sdk.communication_rework.instruction.control.processor.replay.ReplayProcessor;
 import com.im.njams.sdk.configuration.boundary.ConfigurationFacade;
-import com.im.njams.sdk.configuration.boundary.ServerInstructionSettings;
 import com.im.njams.sdk.configuration.entity.ProcessConfiguration;
-import com.im.njams.sdk.logmessage.DataMasking;
 import com.im.njams.sdk.logmessage.Job;
 import com.im.njams.sdk.model.ProcessModel;
 import com.im.njams.sdk.model.image.ImageSupplier;
@@ -230,6 +228,56 @@ public class Njams {
         communicationFacade.processInstruction(instruction);
     }
 
+    //For ServerInstructionSettings
+    public LogMode getLogModeFromConfiguration() {
+        return configurationFacade.getLogModeFromConfiguration();
+    }
+
+    public void setLogModeToConfiguration(LogMode logMode) {
+        configurationFacade.setLogModeToConfiguration(logMode);
+    }
+
+    public Map<String, ProcessConfiguration> getProcessesFromConfiguration() {
+        return configurationFacade.getProcessesFromConfiguration();
+    }
+
+    public void setProcessesToConfiguration(Map<String, ProcessConfiguration> processes) {
+        configurationFacade.setProcessesToConfiguration(processes);
+    }
+
+    public ProcessConfiguration getProcessFromConfiguration(String processPath) {
+        return configurationFacade.getProcessFromConfiguration(processPath);
+    }
+
+    public List<String> getDataMaskingFromConfiguration() {
+        return configurationFacade.getDataMaskingFromConfiguration();
+    }
+
+    public void setDataMaskingToConfiguration(List<String> dataMasking) {
+        configurationFacade.setDataMaskingToConfiguration(dataMasking);
+    }
+
+    public boolean isConfigurationRecording() {
+        return configurationFacade.isConfigurationRecording();
+    }
+
+    public void setRecordingToConfiguration(boolean recording) {
+        configurationFacade.setRecordingToConfiguration(recording);
+    }
+
+    public boolean isProcessExcluded(Path processPath) {
+        return configurationFacade.isProcessExcluded(processPath);
+    }
+
+    //For ConfigurationProxy
+    public void loadConfigurationFromStorageInMemory(){
+        configurationFacade.loadConfigurationFromStorageInMemory();
+    }
+
+    public void saveConfigurationFromMemoryToStorage(){
+        configurationFacade.saveConfigurationFromMemoryToStorage();
+    }
+
     /**
      * Gets the current replay handler if present.
      *
@@ -343,7 +391,6 @@ public class Njams {
                 throw new NjamsSdkRuntimeException("Settings not set");
             }
             configurationFacade.start();
-            initializeDataMasking();
             addInstructionProcessors();
             startReceiver();
             LogMessageFlushTask.start(this);
@@ -454,7 +501,7 @@ public class Njams {
                 .forEach(ipm -> msg.getProcesses().add(ipm));
         images.forEach(i -> msg.getImages().put(i.getName(), i.getBase64Image()));
         msg.getGlobalVariables().putAll(globalVariables);
-        msg.setLogMode(getConfiguration().getLogMode());
+        msg.setLogMode(getLogModeFromConfiguration());
 
         this.sendMessage(msg);
     }
@@ -797,17 +844,6 @@ public class Njams {
     }
 
     /**
-     * @return LogMode of this client
-     */
-    public LogMode getLogMode() {
-        return getConfiguration().getLogMode();
-    }
-
-    public ServerInstructionSettings getConfiguration(){
-        return configurationFacade.getConfiguration();
-    }
-
-    /**
      * @return the machine name
      */
     public String getMachine() {
@@ -846,30 +882,5 @@ public class Njams {
      */
     public boolean isStarted() {
         return started;
-    }
-
-    /**
-     * Returns if the given process is excluded. This could be explicitly set on
-     * the process, or if the Engine LogMode is set to none.
-     *
-     * @param processPath for the process which should be checked
-     * @return true if the process is excluded, or false if not
-     */
-    public boolean isExcluded(Path processPath) {
-        if (processPath == null) {
-            return false;
-        }
-        if (getConfiguration().getLogMode() == LogMode.NONE) {
-            return true;
-        }
-        ProcessConfiguration processConfiguration = getConfiguration().getProcess(processPath.toString());
-        return processConfiguration != null && processConfiguration.isExclude();
-    }
-
-    /**
-     * Initialize the datamasking feature
-     */
-    private void initializeDataMasking() {
-        DataMasking.addPatterns(getConfiguration().getDataMasking());
     }
 }

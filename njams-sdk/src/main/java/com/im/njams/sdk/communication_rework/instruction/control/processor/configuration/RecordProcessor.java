@@ -22,9 +22,9 @@ public class RecordProcessor extends ConfigurationProcessor {
         if (instructionSupport.hasParameter("EngineWideRecording")) {
             try {
                 final boolean engineWideRecording = instructionSupport.getBoolParameter("EngineWideRecording");
-                configurationProxy.setRecording(engineWideRecording);
+                njams.setRecordingToConfiguration(engineWideRecording);
                 //reset to default after logic change
-                configurationProxy.getProcesses().values().forEach(p -> p.setRecording(engineWideRecording));
+                njams.getProcessesFromConfiguration().values().forEach(p -> p.setRecording(engineWideRecording));
             } catch (final Exception e) {
                 instructionSupport.error("Unable to set client recording", e);
                 return;
@@ -35,10 +35,10 @@ public class RecordProcessor extends ConfigurationProcessor {
         if (processPath != null) {
             try {
                 ProcessConfiguration process = null;
-                process = configurationProxy.getProcess(processPath);
+                process = njams.getProcessFromConfiguration(processPath);
                 if (process == null) {
                     process = new ProcessConfiguration();
-                    configurationProxy.getProcesses().put(processPath, process);
+                    njams.getProcessesFromConfiguration().put(processPath, process);
                 }
                 final String doRecordParameter = instructionSupport.getParameter("Record");
                 final boolean doRecord = "all".equalsIgnoreCase(doRecordParameter);

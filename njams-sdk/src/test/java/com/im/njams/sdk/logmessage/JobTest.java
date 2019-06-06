@@ -70,10 +70,10 @@ public class JobTest {
         extract.setName("test");
         extract.getExtractRules().add(rule);
 
-        njams.getConfiguration().getProcesses().put(process.getPath().toString(), new ProcessConfiguration());
-        njams.getConfiguration().getProcess(process.getPath().toString()).getActivities().put("b",
+        njams.getProcessesFromConfiguration().put(process.getPath().toString(), new ProcessConfiguration());
+        njams.getProcessFromConfiguration(process.getPath().toString()).getActivities().put("b",
                 new ActivityConfiguration());
-        njams.getConfiguration().getProcess(process.getPath().toString()).getActivity("b").setExtract(extract);
+        njams.getProcessFromConfiguration(process.getPath().toString()).getActivity("b").setExtract(extract);
 
         // Start client and flush resources
         //        njams.start();

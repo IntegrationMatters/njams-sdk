@@ -16,8 +16,9 @@
  */
 package com.im.njams.sdk.client;
 
-import com.faizsiegeln.njams.messageformat.v4.tracemessage.*;
-import com.im.njams.sdk.Njams;
+import com.faizsiegeln.njams.messageformat.v4.tracemessage.Activity;
+import com.faizsiegeln.njams.messageformat.v4.tracemessage.ProcessModel;
+import com.faizsiegeln.njams.messageformat.v4.tracemessage.TraceMessage;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -26,17 +27,19 @@ import java.util.Map;
 
 /**
  * This class helps to build a TraceMessage
+ *
  * @author krautenberg
  * @version 4.0.6
  */
 public class TraceMessageBuilder {
 
-    private Map<String, List<Activity>> processes = new HashMap<>();
+    private Map<String, List<Activity>> processesToSend;
 
-    private Njams njams;
+    private TraceMessage traceMessageToBuild;
 
-    public TraceMessageBuilder(Njams njams){
-        this.njams = njams;
+    public TraceMessageBuilder() {
+        this.traceMessageToBuild = new TraceMessage();
+        this.processesToSend = new HashMap<>();
     }
 
     /**
@@ -46,23 +49,15 @@ public class TraceMessageBuilder {
      * there are any, otherwise null.
      */
     public TraceMessage build() {
-        TraceMessage msg = null;
-        if(!processes.isEmpty()){
-            msg = new TraceMessage();
-            //Set CommonMessage fields
-            msg.setClientVersion(njams.getClientVersion());
-            msg.setSdkVersion(njams.getSdkVersion());
-            msg.setCategory(njams.getCategory());
-            msg.setPath(njams.getClientPath().toString());
-            for(String processPath : processes.keySet()){
-                ProcessModel processModel = new ProcessModel();
-                processModel.setProcessPath(processPath);
-                processModel.setActivities(processes.get(processPath));
-                msg.addProcess(processModel);
-            }
-            processes.clear();
+        //Set CommonMessage fields
+        for (String processPath : processesToSend.keySet()) {
+            ProcessModel processModel = new ProcessModel();
+            processModel.setProcessPath(processPath);
+            processModel.setActivities(processesToSend.get(processPath));
+            traceMessageToBuild.addProcess(processModel);
         }
-        return msg;
+        processesToSend.clear();
+        return traceMessageToBuild;
     }
 
     /**
@@ -70,14 +65,38 @@ public class TraceMessageBuilder {
      * will be sent in the next TraceMessage.
      *
      * @param processPath the ProcessPath of the Process where the activity belongs to
-     * @param act the Activity, whose TracePoint is expired.
+     * @param act         the Activity, whose TracePoint is expired.
      */
     public void addActivity(String processPath, Activity act) {
-        List<Activity> activities = processes.get(processPath);
-        if(activities == null){
+        List<Activity> activities = processesToSend.get(processPath);
+        if (activities == null) {
             activities = new ArrayList<>();
-            processes.put(processPath, activities);
+            processesToSend.put(processPath, activities);
         }
         activities.add(act);
+    }
+
+    public boolean isEmpty() {
+        return processesToSend.isEmpty();
+    }
+
+    public TraceMessageBuilder setClientVersion(String clientVersion) {
+        traceMessageToBuild.setClientVersion(clientVersion);
+        return this;
+    }
+
+    public TraceMessageBuilder setSdkVersion(String sdkVersion) {
+        traceMessageToBuild.setSdkVersion(sdkVersion);
+        return this;
+    }
+
+    public TraceMessageBuilder setCategory(String category) {
+        traceMessageToBuild.setCategory(category);
+        return this;
+    }
+
+    public TraceMessageBuilder setPath(String path) {
+        traceMessageToBuild.setPath(path);
+        return this;
     }
 }

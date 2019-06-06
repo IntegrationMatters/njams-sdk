@@ -17,6 +17,7 @@
 package com.im.njams.sdk.configuration.control;
 
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.LogMode;
+import com.im.njams.sdk.configuration.boundary.ConfigurationProxy;
 import com.im.njams.sdk.configuration.entity.Configuration;
 import com.im.njams.sdk.configuration.entity.ProcessConfiguration;
 

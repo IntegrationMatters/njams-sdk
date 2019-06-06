@@ -31,14 +31,14 @@ public class GetLogLevelProcessor extends ConfigurationProcessor {
         boolean exclude = false;
 
         // differing config stored?
-        final ProcessConfiguration process = configurationProxy.getProcess(processPath);
+        final ProcessConfiguration process = njams.getProcessFromConfiguration(processPath);
         if (process != null) {
             logLevel = process.getLogLevel();
             exclude = process.isExclude();
         }
 
         instructionSupport.setParameter(InstructionSupport.LOG_LEVEL, logLevel.name()).setParameter("exclude", exclude)
-                .setParameter(InstructionSupport.LOG_MODE, configurationProxy.getLogMode());
+                .setParameter(InstructionSupport.LOG_MODE, njams.getLogModeFromConfiguration());
 
         LOG.debug("Return LogLevel for {}", processPath);
     }

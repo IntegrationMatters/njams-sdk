@@ -14,9 +14,8 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
  */
-package com.im.njams.sdk.configuration.control;
+package com.im.njams.sdk.configuration.boundary;
 
-import com.im.njams.sdk.configuration.boundary.ServerInstructionSettings;
 import com.im.njams.sdk.service.NjamsService;
 
 import java.util.Properties;

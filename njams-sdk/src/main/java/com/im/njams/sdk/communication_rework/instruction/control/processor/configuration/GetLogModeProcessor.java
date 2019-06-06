@@ -17,7 +17,7 @@ public class GetLogModeProcessor extends ConfigurationProcessor {
 
     @Override
     protected void processInstruction(InstructionSupport instructionSupport) {
-        instructionSupport.setParameter(InstructionSupport.LOG_MODE, configurationProxy.getLogMode());
-        LOG.debug("Return LogMode: {}", configurationProxy.getLogMode());
+        instructionSupport.setParameter(InstructionSupport.LOG_MODE, njams.getLogModeFromConfiguration());
+        LOG.debug("Return LogMode: {}", njams.getLogModeFromConfiguration());
     }
 }

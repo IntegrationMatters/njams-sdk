@@ -25,14 +25,14 @@ public class SetLogLevelProcessor extends ConfigurationProcessor {
         final LogLevel loglevel = instructionSupport.getEnumParameter(InstructionSupport.LOG_LEVEL, LogLevel.class);
 
         //execute action
-        ProcessConfiguration process = configurationProxy.getProcess(processPath);
+        ProcessConfiguration process = njams.getProcessFromConfiguration(processPath);
         if (process == null) {
             process = new ProcessConfiguration();
-            configurationProxy.getProcesses().put(processPath, process);
+            njams.getProcessesFromConfiguration().put(processPath, process);
         }
         final LogMode logMode = instructionSupport.getEnumParameter(InstructionSupport.LOG_MODE, LogMode.class);
         if (logMode != null) {
-            configurationProxy.setLogMode(logMode);
+            njams.setLogModeToConfiguration(logMode);
         }
         process.setLogLevel(loglevel);
         process.setExclude(instructionSupport.getBoolParameter("exclude"));

@@ -31,10 +31,10 @@ public class ConfigureExtractProcessor extends ConfigurationProcessor {
         final String extractString = instructionSupport.getParameter("extract");
 
         //execute action
-        ProcessConfiguration process = configurationProxy.getProcess(processPath);
+        ProcessConfiguration process = njams.getProcessFromConfiguration(processPath);
         if (process == null) {
             process = new ProcessConfiguration();
-            configurationProxy.getProcesses().put(processPath, process);
+            njams.getProcessesFromConfiguration().put(processPath, process);
         }
         ActivityConfiguration activity = null;
         activity = process.getActivity(activityId);

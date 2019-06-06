@@ -5,7 +5,6 @@ import com.faizsiegeln.njams.messageformat.v4.command.Response;
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.common.DateTimeUtility;
 import com.im.njams.sdk.communication_rework.instruction.control.processor.InstructionProcessor;
-import com.im.njams.sdk.configuration.control.ConfigurationProxy;
 import com.im.njams.sdk.utils.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -17,11 +16,11 @@ import java.util.stream.Collectors;
 
 public abstract class ConfigurationProcessor extends InstructionProcessor {
 
-    protected ConfigurationProxy configurationProxy;
+    protected Njams njams;
 
     public ConfigurationProcessor(Njams njams, String commandToProcess) {
         super(commandToProcess);
-        configurationProxy = (ConfigurationProxy) njams.getConfiguration();
+        this.njams = njams;
     }
 
     @Override
@@ -32,7 +31,7 @@ public abstract class ConfigurationProcessor extends InstructionProcessor {
 
     protected void saveConfiguration(InstructionSupport instructionSupport) {
         try {
-            configurationProxy.saveConfiguration();
+            njams.saveConfigurationFromMemoryToStorage();
         } catch (final Exception e) {
             instructionSupport.error("Unable to save configuration", e);
         }

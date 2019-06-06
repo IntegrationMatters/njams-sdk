@@ -24,7 +24,7 @@ public class DeleteExtractProcessor extends ConfigurationProcessor {
 
         //execute action
         ProcessConfiguration process = null;
-        process = configurationProxy.getProcess(processPath);
+        process = njams.getProcessFromConfiguration(processPath);
         if (process == null) {
             instructionSupport.error("Process configuration " + processPath + " not found");
             return;
