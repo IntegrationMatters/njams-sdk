@@ -16,6 +16,15 @@
  */
 package com.im.njams.sdk.communication;
 
+import com.faizsiegeln.njams.messageformat.v4.common.CommonMessage;
+import com.im.njams.sdk.communication.connectable.sender.Sender;
+import com.im.njams.sdk.communication.connector.Connector;
+import com.im.njams.sdk.communication.pools.NullConnector;
+import com.im.njams.sdk.configuration.control.ConfigurationProxyFactory;
+import com.im.njams.sdk.settings.Settings;
+
+import java.util.Properties;
+
 /**
  * Dummy implementation for testing.<br>
  * <b>Note:</b> For using this instance, the test environment needs to have a the full qualified class name of this
@@ -24,40 +33,32 @@ package com.im.njams.sdk.communication;
  * @author cwinkler
  *
  */
-/*
-public class TestSender extends AbstractSender {
+public class TestSender implements Sender {
+
     public static final String NAME = "TEST_COMMUNICATION";
     private static Sender sender = null;
 
-    *//**
+    /**
      * Delegates all request to the given sender.<br>
      * <b>Note:</b> {@link #getName()} is invoked on the given sender but the value returned is always {@link #NAME}.
      * @param sender
-     *//*
+     */
     public static void setSenderMock(Sender sender) {
         TestSender.sender = sender;
     }
 
-    *//**
+    /**
      * Returns a settings prepared for using this sender implementation.
      * @return
-     *//*
+     */
     public static Settings getSettings() {
         Properties properties = new Properties();
-        properties.setProperty(CommunicationFactory.COMMUNICATION, NAME);
-        properties.setProperty(ConfigurationProviderFactory.CONFIGURATION_PROVIDER, "memory");
+        properties.setProperty(Communication.COMMUNICATION, NAME);
+        properties.setProperty(ConfigurationProxyFactory.CONFIGURATION_PROXY_SERVICE, "memory");
 
         Settings config = new Settings();
         config.setProperties(properties);
         return config;
-    }
-    
-    @Override
-    public void init(Properties properties) {
-        if (sender != null) {
-            sender.init(properties);
-        }
-
     }
 
     @Override
@@ -76,28 +77,24 @@ public class TestSender extends AbstractSender {
     }
 
     @Override
-    public void close() {
-        if (sender != null) {
-            sender.close();
+    public void init(Properties properties) {
+        if (sender != null){
+            sender.init(properties);
         }
-
     }
 
     @Override
-    protected void send(LogMessage msg) throws NjamsSdkRuntimeException {
-        // TODO Auto-generated method stub
-
+    public void stop() {
+        if (sender != null){
+            sender.stop();
+        }
     }
 
     @Override
-    protected void send(ProjectMessage msg) throws NjamsSdkRuntimeException {
-        // TODO Auto-generated method stub
-
-    }
-
-    @Override
-    protected void send(TraceMessage msg) throws NjamsSdkRuntimeException {
-        // TODO Auto-generated method stub
+    public Connector getConnector() {
+        if(sender != null){
+            return sender.getConnector();
+        }
+        else return new NullConnector();
     }
 }
-    */

@@ -33,12 +33,19 @@ import java.util.Map;
  */
 public class TraceMessageBuilder {
 
+    private String clientVersion;
+
+    private String sdkVersion;
+
+    private String category;
+
+    private String path;
+
     private Map<String, List<Activity>> processesToSend;
 
-    private TraceMessage traceMessageToBuild;
+
 
     public TraceMessageBuilder() {
-        this.traceMessageToBuild = new TraceMessage();
         this.processesToSend = new HashMap<>();
     }
 
@@ -49,6 +56,7 @@ public class TraceMessageBuilder {
      * there are any, otherwise null.
      */
     public TraceMessage build() {
+        TraceMessage traceMessageToBuild = new TraceMessage();
         //Set CommonMessage fields
         for (String processPath : processesToSend.keySet()) {
             ProcessModel processModel = new ProcessModel();
@@ -56,8 +64,20 @@ public class TraceMessageBuilder {
             processModel.setActivities(processesToSend.get(processPath));
             traceMessageToBuild.addProcess(processModel);
         }
-        processesToSend.clear();
+        traceMessageToBuild.setClientVersion(clientVersion);
+        traceMessageToBuild.setSdkVersion(sdkVersion);
+        traceMessageToBuild.setCategory(category);
+        traceMessageToBuild.setPath(path);
+        clearAll();
         return traceMessageToBuild;
+    }
+
+    private void clearAll(){
+        clientVersion = null;
+        sdkVersion = null;
+        category = null;
+        path = null;
+        processesToSend.clear();
     }
 
     /**
@@ -67,36 +87,38 @@ public class TraceMessageBuilder {
      * @param processPath the ProcessPath of the Process where the activity belongs to
      * @param act         the Activity, whose TracePoint is expired.
      */
-    public void addActivity(String processPath, Activity act) {
+    public TraceMessageBuilder addActivity(String processPath, Activity act) {
         List<Activity> activities = processesToSend.get(processPath);
         if (activities == null) {
             activities = new ArrayList<>();
             processesToSend.put(processPath, activities);
         }
         activities.add(act);
+        return this;
     }
 
     public boolean isEmpty() {
-        return processesToSend.isEmpty();
+        boolean isNothingSet = processesToSend.isEmpty() && clientVersion == null && sdkVersion == null && path == null && category == null;
+        return isNothingSet;
     }
 
     public TraceMessageBuilder setClientVersion(String clientVersion) {
-        traceMessageToBuild.setClientVersion(clientVersion);
+        this.clientVersion = clientVersion;
         return this;
     }
 
     public TraceMessageBuilder setSdkVersion(String sdkVersion) {
-        traceMessageToBuild.setSdkVersion(sdkVersion);
+        this.sdkVersion = sdkVersion;
         return this;
     }
 
     public TraceMessageBuilder setCategory(String category) {
-        traceMessageToBuild.setCategory(category);
+        this.category = category;
         return this;
     }
 
     public TraceMessageBuilder setPath(String path) {
-        traceMessageToBuild.setPath(path);
+        this.path = path;
         return this;
     }
 }

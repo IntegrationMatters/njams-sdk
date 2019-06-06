@@ -56,7 +56,7 @@ public class TraceMessageBuilderTest extends AbstractTest {
     public void testBuildWithoutActivity() {
         assertTrue(builder.isEmpty());
         TraceMessage msg = builder.build();
-        assertTrue(msg.getProcesses().isEmpty());
+        assertNull(msg.getProcesses());
         assertNull(msg.getPath());
         assertNull(msg.getCategory());
         assertNull(msg.getSdkVersion());
@@ -64,22 +64,27 @@ public class TraceMessageBuilderTest extends AbstractTest {
     }
 
     @Test
-    public void testMultipleTimes(){
-        this.addActivity(ACTIVITYMODELID);
+    public void testBuildingMultipleTimesChangesOutcome(){
+        assertTrue(builder.isEmpty());
+        this.fillBuilder(ACTIVITYMODELID);
+        assertFalse(builder.isEmpty());
         TraceMessage build1 = builder.build();
+
         assertNotNull(build1);
+        assertTrue(builder.isEmpty());
         TraceMessage build2 = builder.build();
-        assertNull(build2);
+        assertTrue(builder.isEmpty());
+        assertNotEquals(build1, build2);
     }
 
     @Test
     public void testBuild() {
-        this.addActivity(ACTIVITYMODELID);
+        this.fillBuilder(ACTIVITYMODELID);
         TraceMessage msg = builder.build();
         checkTraceMessage(msg, LocalDateTime.MIN, LocalDateTime.MAX);
     }
 
-    private void addActivity(String id){
+    private void fillBuilder(String id){
         Activity act = new Activity();
         act.setActivityId(id);
         TracepointExt tp = new TracepointExt();
@@ -88,7 +93,11 @@ public class TraceMessageBuilderTest extends AbstractTest {
         tp.setEndtime(LocalDateTime.MAX);
         tp.setStarttime(LocalDateTime.MIN);
         act.setTracepoint(tp);
-        builder.addActivity(FULLPROCESSPATHNAME, act);
+        builder.addActivity(FULLPROCESSPATHNAME, act).
+                setSdkVersion(njams.getSdkVersion()).
+                setClientVersion(CLIENTVERSION).
+                setPath(njams.getClientPath().toString()).
+                setCategory(CATEGORY);
     }
 
     private void checkTraceMessage(TraceMessage message, LocalDateTime ldt1, LocalDateTime ldt2) {

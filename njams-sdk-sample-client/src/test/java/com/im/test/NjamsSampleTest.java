@@ -14,15 +14,33 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
  */
-package com.im.njams.sdk.client;
+package com.im.test;
 
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.CoreMatchers.notNullValue;
-import static org.hamcrest.CoreMatchers.nullValue;
-import static org.junit.Assert.assertThat;
+import com.im.njams.sdk.Njams;
+import com.im.njams.sdk.common.Path;
+import com.im.njams.sdk.communication.Communication;
+import com.im.njams.sdk.communication.http.HttpConstants;
+import com.im.njams.sdk.communication.jms.JmsConstants;
+import com.im.njams.sdk.logmessage.Activity;
+import com.im.njams.sdk.logmessage.ActivityImpl;
+import com.im.njams.sdk.logmessage.Group;
+import com.im.njams.sdk.logmessage.GroupImpl;
+import com.im.njams.sdk.logmessage.Job;
+import com.im.njams.sdk.logmessage.JobImpl;
+import com.im.njams.sdk.logmessage.SubProcessActivity;
+import com.im.njams.sdk.model.ActivityModel;
+import com.im.njams.sdk.model.GroupModel;
+import com.im.njams.sdk.model.ProcessModel;
+import com.im.njams.sdk.model.SubProcessActivityModel;
+import com.im.njams.sdk.settings.Settings;
+import com.im.njams.sdk.settings.encoding.Transformer;
+import org.hamcrest.CoreMatchers;
+import org.junit.Assert;
+import org.junit.Test;
 
-//import com.im.njams.sdk.communication.http.HttpSender;
-//import com.im.njams.sdk.communication.jms.JmsConstants;
+import java.time.LocalDateTime;
+import java.util.Properties;
+
 
 
 /**
@@ -30,16 +48,15 @@ import static org.junit.Assert.assertThat;
  * @author bwand
  */
 public class NjamsSampleTest {
-/*
     @Test
     public void testWithoutModel() throws Exception {
         Path clientPath = new Path("SDK4", "TEST");
 
         Properties properties = new Properties();
-        properties.put(CommunicationFactory.COMMUNICATION, "HTTP");
-        properties.put(HttpSender.SENDER_URL, "http://localhost:8083/event");
-        properties.put(HttpSender.SENDER_USERNAME, "admin");
-        properties.put(HttpSender.SENDER_PASSWORD, "admin");
+        properties.put(Communication.COMMUNICATION, "HTTP");
+        properties.put(HttpConstants.SENDER_URL, "http://localhost:8083/event");
+        properties.put(HttpConstants.SENDER_USERNAME, "admin");
+        properties.put(HttpConstants.SENDER_PASSWORD, "admin");
 
         // Create client config
         Settings config = new Settings();
@@ -63,22 +80,22 @@ public class NjamsSampleTest {
         Activity a = job.createActivity("a").setExecution(LocalDateTime.now()).build();
         a.processInput("testdata");
         a.processOutput("testdata");
-        assertThat(a, notNullValue());
-        assertThat(a.getInstanceId(), notNullValue());
-        assertThat(a.getModelId(), is("a"));
+        Assert.assertThat(a, CoreMatchers.notNullValue());
+        Assert.assertThat(a.getInstanceId(), CoreMatchers.notNullValue());
+        Assert.assertThat(a.getModelId(), CoreMatchers.is("a"));
 
         //step to b
         Activity b = a.stepTo("b").setExecution(LocalDateTime.now()).build();
         b.processInput("testdata");
         b.processOutput("testdata");
-        assertThat(b, notNullValue());
-        assertThat(b.getInstanceId(), notNullValue());
-        assertThat(b.getModelId(), is("b"));
+        Assert.assertThat(b, CoreMatchers.notNullValue());
+        Assert.assertThat(b.getInstanceId(), CoreMatchers.notNullValue());
+        Assert.assertThat(b.getModelId(), CoreMatchers.is("b"));
 
         ActivityImpl bExt = (ActivityImpl) b;
-        assertThat(bExt.getPredecessors().size(), is(1));
-        assertThat(bExt.getPredecessors().get(0).getFromInstanceId(), is(a.getInstanceId()));
-        assertThat(bExt.getPredecessors().get(0).getModelId(), is(a.getModelId() + "::" + b.getModelId()));
+        Assert.assertThat(bExt.getPredecessors().size(), CoreMatchers.is(1));
+        Assert.assertThat(bExt.getPredecessors().get(0).getFromInstanceId(), CoreMatchers.is(a.getInstanceId()));
+        Assert.assertThat(bExt.getPredecessors().get(0).getModelId(), CoreMatchers.is(a.getModelId() + "::" + b.getModelId()));
 
         job.end();
 
@@ -94,7 +111,7 @@ public class NjamsSampleTest {
         Path clientPath = new Path("SDK4", "TEST");
 
         Properties communicationProperties = new Properties();
-        communicationProperties.put(CommunicationFactory.COMMUNICATION, "JMS");
+        communicationProperties.put(Communication.COMMUNICATION, "JMS");
         communicationProperties.put(JmsConstants.INITIAL_CONTEXT_FACTORY,
                 "com.tibco.tibjms.naming.TibjmsInitialContextFactory");
         communicationProperties.put(JmsConstants.SECURITY_PRINCIPAL, "njams");
@@ -120,30 +137,30 @@ public class NjamsSampleTest {
         //start model
         ActivityModel startModel = process.createActivity("start", "Start", "startType");
         startModel.setStarter(true);
-        assertThat(startModel, notNullValue());
-        assertThat(startModel.getId(), is("start"));
-        assertThat(startModel.getName(), is("Start"));
+        Assert.assertThat(startModel, CoreMatchers.notNullValue());
+        Assert.assertThat(startModel.getId(), CoreMatchers.is("start"));
+        Assert.assertThat(startModel.getName(), CoreMatchers.is("Start"));
 
         //step
         ActivityModel logModel = startModel.transitionTo("log", "Log", "stepType");
-        assertThat(logModel, notNullValue());
-        assertThat(logModel.getId(), is("log"));
-        assertThat(logModel.getName(), is("Log"));
-        assertThat(logModel.getIncomingTransitionFrom("start"), notNullValue());
-        assertThat(logModel.getIncomingTransitionFrom("start").getId(), is("start::log"));
-        assertThat(logModel.getIncomingTransitionFrom("start").getFromActivity(), is(startModel));
-        assertThat(logModel.getIncomingTransitionFrom("start").getFromActivity().getId(), is("start"));
-        assertThat(logModel.getIncomingTransitionFrom("start").getToActivity(), is(logModel));
-        assertThat(logModel.getIncomingTransitionFrom("start").getToActivity().getId(), is("log"));
+        Assert.assertThat(logModel, CoreMatchers.notNullValue());
+        Assert.assertThat(logModel.getId(), CoreMatchers.is("log"));
+        Assert.assertThat(logModel.getName(), CoreMatchers.is("Log"));
+        Assert.assertThat(logModel.getIncomingTransitionFrom("start"), CoreMatchers.notNullValue());
+        Assert.assertThat(logModel.getIncomingTransitionFrom("start").getId(), CoreMatchers.is("start::log"));
+        Assert.assertThat(logModel.getIncomingTransitionFrom("start").getFromActivity(), CoreMatchers.is(startModel));
+        Assert.assertThat(logModel.getIncomingTransitionFrom("start").getFromActivity().getId(), CoreMatchers.is("start"));
+        Assert.assertThat(logModel.getIncomingTransitionFrom("start").getToActivity(), CoreMatchers.is(logModel));
+        Assert.assertThat(logModel.getIncomingTransitionFrom("start").getToActivity().getId(), CoreMatchers.is("log"));
 
         //step
         ActivityModel endModel = logModel.transitionTo("end", "End", "endType");
-        assertThat(endModel, notNullValue());
-        assertThat(endModel.getId(), is("end"));
-        assertThat(endModel.getName(), is("End"));
-        assertThat(endModel.getIncomingTransitionFrom("log"), notNullValue());
-        assertThat(endModel.getIncomingTransitionFrom("log").getId(), is("log::end"));
-        assertThat(endModel.getIncomingTransitionFrom("log").getFromActivity(), is(logModel));
+        Assert.assertThat(endModel, CoreMatchers.notNullValue());
+        Assert.assertThat(endModel.getId(), CoreMatchers.is("end"));
+        Assert.assertThat(endModel.getName(), CoreMatchers.is("End"));
+        Assert.assertThat(endModel.getIncomingTransitionFrom("log"), CoreMatchers.notNullValue());
+        Assert.assertThat(endModel.getIncomingTransitionFrom("log").getId(), CoreMatchers.is("log::end"));
+        Assert.assertThat(endModel.getIncomingTransitionFrom("log").getFromActivity(), CoreMatchers.is(logModel));
 
         njams.addImage("startType", "images/njams_java_sdk_process_start.png");
         njams.addImage("stepType", "images/njams_java_sdk_process_step.png");
@@ -158,23 +175,23 @@ public class NjamsSampleTest {
         Activity start = job.createActivity(startModel).build();
         start.processInput("testdata");
         start.processOutput("testdata");
-        assertThat(start.getModelId(), is("start"));
-        assertThat(start.getSequence(), is(1L));
-        assertThat(start.getInstanceId(), is("start$1"));
+        Assert.assertThat(start.getModelId(), CoreMatchers.is("start"));
+        Assert.assertThat(start.getSequence(), CoreMatchers.is(1L));
+        Assert.assertThat(start.getInstanceId(), CoreMatchers.is("start$1"));
 
         Activity log = start.stepTo(logModel).build();
         log.processInput("testdata");
         log.processOutput("testdata");
-        assertThat(log.getModelId(), is("log"));
-        assertThat(log.getSequence(), is(2L));
-        assertThat(log.getInstanceId(), is("log$2"));
+        Assert.assertThat(log.getModelId(), CoreMatchers.is("log"));
+        Assert.assertThat(log.getSequence(), CoreMatchers.is(2L));
+        Assert.assertThat(log.getInstanceId(), CoreMatchers.is("log$2"));
 
         Activity end = log.stepTo(endModel).build();
         end.processInput("testdata");
         end.processOutput("testdata");
-        assertThat(end.getModelId(), is("end"));
-        assertThat(end.getSequence(), is(3L));
-        assertThat(end.getInstanceId(), is("end$3"));
+        Assert.assertThat(end.getModelId(), CoreMatchers.is("end"));
+        Assert.assertThat(end.getSequence(), CoreMatchers.is(3L));
+        Assert.assertThat(end.getInstanceId(), CoreMatchers.is("end$3"));
 
         job.end();
 
@@ -190,7 +207,7 @@ public class NjamsSampleTest {
         Path clientPath = new Path("SDK4", "TEST");
 
         Properties communicationProperties = new Properties();
-        communicationProperties.put(CommunicationFactory.COMMUNICATION, "JMS");
+        communicationProperties.put(Communication.COMMUNICATION, "JMS");
         communicationProperties.put(JmsConstants.INITIAL_CONTEXT_FACTORY,
                 "com.tibco.tibjms.naming.TibjmsInitialContextFactory");
         communicationProperties.put(JmsConstants.SECURITY_PRINCIPAL, "njams");
@@ -217,51 +234,51 @@ public class NjamsSampleTest {
         //start model
         ActivityModel startModel = process.createActivity("start", "Start", "startType");
         startModel.setStarter(true);
-        assertThat(startModel, notNullValue());
-        assertThat(startModel.getId(), is("start"));
-        assertThat(startModel.getName(), is("Start"));
+        Assert.assertThat(startModel, CoreMatchers.notNullValue());
+        Assert.assertThat(startModel.getId(), CoreMatchers.is("start"));
+        Assert.assertThat(startModel.getName(), CoreMatchers.is("Start"));
 
         //step to log
         ActivityModel logModel = startModel.transitionTo("log", "Log", "stepType");
-        assertThat(logModel, notNullValue());
-        assertThat(logModel.getId(), is("log"));
-        assertThat(logModel.getName(), is("Log"));
-        assertThat(logModel.getIncomingTransitionFrom("start"), notNullValue());
-        assertThat(logModel.getIncomingTransitionFrom("start").getId(), is("start::log"));
-        assertThat(logModel.getIncomingTransitionFrom("start").getFromActivity(), is(startModel));
-        assertThat(logModel.getIncomingTransitionFrom("start").getFromActivity().getId(), is("start"));
-        assertThat(logModel.getIncomingTransitionFrom("start").getToActivity(), is(logModel));
-        assertThat(logModel.getIncomingTransitionFrom("start").getToActivity().getId(), is("log"));
+        Assert.assertThat(logModel, CoreMatchers.notNullValue());
+        Assert.assertThat(logModel.getId(), CoreMatchers.is("log"));
+        Assert.assertThat(logModel.getName(), CoreMatchers.is("Log"));
+        Assert.assertThat(logModel.getIncomingTransitionFrom("start"), CoreMatchers.notNullValue());
+        Assert.assertThat(logModel.getIncomingTransitionFrom("start").getId(), CoreMatchers.is("start::log"));
+        Assert.assertThat(logModel.getIncomingTransitionFrom("start").getFromActivity(), CoreMatchers.is(startModel));
+        Assert.assertThat(logModel.getIncomingTransitionFrom("start").getFromActivity().getId(), CoreMatchers.is("start"));
+        Assert.assertThat(logModel.getIncomingTransitionFrom("start").getToActivity(), CoreMatchers.is(logModel));
+        Assert.assertThat(logModel.getIncomingTransitionFrom("start").getToActivity().getId(), CoreMatchers.is("log"));
 
         //step to end
         ActivityModel endModel = logModel.transitionTo("end", "End", "endType");
-        assertThat(endModel, notNullValue());
-        assertThat(endModel.getId(), is("end"));
-        assertThat(endModel.getName(), is("End"));
-        assertThat(endModel.getIncomingTransitionFrom("log"), notNullValue());
-        assertThat(endModel.getIncomingTransitionFrom("log").getId(), is("log::end"));
-        assertThat(endModel.getIncomingTransitionFrom("log").getFromActivity(), is(logModel));
+        Assert.assertThat(endModel, CoreMatchers.notNullValue());
+        Assert.assertThat(endModel.getId(), CoreMatchers.is("end"));
+        Assert.assertThat(endModel.getName(), CoreMatchers.is("End"));
+        Assert.assertThat(endModel.getIncomingTransitionFrom("log"), CoreMatchers.notNullValue());
+        Assert.assertThat(endModel.getIncomingTransitionFrom("log").getId(), CoreMatchers.is("log::end"));
+        Assert.assertThat(endModel.getIncomingTransitionFrom("log").getFromActivity(), CoreMatchers.is(logModel));
 
         //step to null
         ActivityModel nullModel = startModel.transitionTo("null", "Null", "nullType");
-        assertThat(nullModel, notNullValue());
-        assertThat(nullModel.getId(), is("null"));
-        assertThat(nullModel.getName(), is("Null"));
-        assertThat(nullModel.getIncomingTransitionFrom("start"), notNullValue());
-        assertThat(nullModel.getIncomingTransitionFrom("start").getId(), is("start::null"));
-        assertThat(nullModel.getIncomingTransitionFrom("start").getFromActivity(), is(startModel));
-        assertThat(nullModel.getIncomingTransitionFrom("start").getFromActivity().getId(), is("start"));
-        assertThat(nullModel.getIncomingTransitionFrom("start").getToActivity(), is(nullModel));
-        assertThat(nullModel.getIncomingTransitionFrom("start").getToActivity().getId(), is("null"));
+        Assert.assertThat(nullModel, CoreMatchers.notNullValue());
+        Assert.assertThat(nullModel.getId(), CoreMatchers.is("null"));
+        Assert.assertThat(nullModel.getName(), CoreMatchers.is("Null"));
+        Assert.assertThat(nullModel.getIncomingTransitionFrom("start"), CoreMatchers.notNullValue());
+        Assert.assertThat(nullModel.getIncomingTransitionFrom("start").getId(), CoreMatchers.is("start::null"));
+        Assert.assertThat(nullModel.getIncomingTransitionFrom("start").getFromActivity(), CoreMatchers.is(startModel));
+        Assert.assertThat(nullModel.getIncomingTransitionFrom("start").getFromActivity().getId(), CoreMatchers.is("start"));
+        Assert.assertThat(nullModel.getIncomingTransitionFrom("start").getToActivity(), CoreMatchers.is(nullModel));
+        Assert.assertThat(nullModel.getIncomingTransitionFrom("start").getToActivity().getId(), CoreMatchers.is("null"));
 
         //step to null
         endModel = nullModel.transitionTo("end", "End", "endType");
-        assertThat(endModel, notNullValue());
-        assertThat(endModel.getId(), is("end"));
-        assertThat(endModel.getName(), is("End"));
-        assertThat(endModel.getIncomingTransitionFrom("null"), notNullValue());
-        assertThat(endModel.getIncomingTransitionFrom("null").getId(), is("null::end"));
-        assertThat(endModel.getIncomingTransitionFrom("null").getFromActivity(), is(nullModel));
+        Assert.assertThat(endModel, CoreMatchers.notNullValue());
+        Assert.assertThat(endModel.getId(), CoreMatchers.is("end"));
+        Assert.assertThat(endModel.getName(), CoreMatchers.is("End"));
+        Assert.assertThat(endModel.getIncomingTransitionFrom("null"), CoreMatchers.notNullValue());
+        Assert.assertThat(endModel.getIncomingTransitionFrom("null").getId(), CoreMatchers.is("null::end"));
+        Assert.assertThat(endModel.getIncomingTransitionFrom("null").getFromActivity(), CoreMatchers.is(nullModel));
 
         nullModel.setY(nullModel.getY() + 50);
         logModel.setY(logModel.getY() - 50);
@@ -280,37 +297,37 @@ public class NjamsSampleTest {
         Activity start = job.createActivity(startModel).build();
         start.processInput("testdata");
         start.processOutput("testdata");
-        assertThat(start.getModelId(), is("start"));
-        assertThat(start.getSequence(), is(1L));
-        assertThat(start.getInstanceId(), is("start$1"));
+        Assert.assertThat(start.getModelId(), CoreMatchers.is("start"));
+        Assert.assertThat(start.getSequence(), CoreMatchers.is(1L));
+        Assert.assertThat(start.getInstanceId(), CoreMatchers.is("start$1"));
 
         Activity log = start.stepTo(logModel).build();
         log.processInput("testdata");
         log.processOutput("testdata");
-        assertThat(log.getModelId(), is("log"));
-        assertThat(log.getSequence(), is(2L));
-        assertThat(log.getInstanceId(), is("log$2"));
+        Assert.assertThat(log.getModelId(), CoreMatchers.is("log"));
+        Assert.assertThat(log.getSequence(), CoreMatchers.is(2L));
+        Assert.assertThat(log.getInstanceId(), CoreMatchers.is("log$2"));
 
         Activity end = log.stepTo(endModel).build();
         end.processInput("testdata");
         end.processOutput("testdata");
-        assertThat(end.getModelId(), is("end"));
-        assertThat(end.getSequence(), is(3L));
-        assertThat(end.getInstanceId(), is("end$3"));
+        Assert.assertThat(end.getModelId(), CoreMatchers.is("end"));
+        Assert.assertThat(end.getSequence(), CoreMatchers.is(3L));
+        Assert.assertThat(end.getInstanceId(), CoreMatchers.is("end$3"));
 
         Activity nullA = start.stepTo(nullModel).build();
         nullA.processInput("testdata");
         nullA.processOutput("testdata");
-        assertThat(nullA.getModelId(), is("null"));
-        assertThat(nullA.getSequence(), is(4L));
-        assertThat(nullA.getInstanceId(), is("null$4"));
+        Assert.assertThat(nullA.getModelId(), CoreMatchers.is("null"));
+        Assert.assertThat(nullA.getSequence(), CoreMatchers.is(4L));
+        Assert.assertThat(nullA.getInstanceId(), CoreMatchers.is("null$4"));
 
         end = nullA.stepTo(endModel).build();
         end.processInput("testdata");
         end.processOutput("testdata");
-        assertThat(end.getModelId(), is("end"));
-        assertThat(end.getSequence(), is(3L));
-        assertThat(end.getInstanceId(), is("end$3"));
+        Assert.assertThat(end.getModelId(), CoreMatchers.is("end"));
+        Assert.assertThat(end.getSequence(), CoreMatchers.is(3L));
+        Assert.assertThat(end.getInstanceId(), CoreMatchers.is("end$3"));
 
         job.end();
 
@@ -326,7 +343,7 @@ public class NjamsSampleTest {
         Path clientPath = new Path("SDK4", "TEST");
 
         Properties communicationProperties = new Properties();
-        communicationProperties.put(CommunicationFactory.COMMUNICATION, "JMS");
+        communicationProperties.put(Communication.COMMUNICATION, "JMS");
         communicationProperties.put(JmsConstants.INITIAL_CONTEXT_FACTORY,
                 "com.tibco.tibjms.naming.TibjmsInitialContextFactory");
         communicationProperties.put(JmsConstants.SECURITY_PRINCIPAL, "njams");
@@ -377,15 +394,15 @@ public class NjamsSampleTest {
         child1.processInput("testdata");
         child1.processOutput("testdata");
         ActivityImpl child1Impl = (ActivityImpl) child1;
-        assertThat(child1Impl.getParent(), is(group));
-        assertThat(child1Impl.getIteration(), is(1L));
+        Assert.assertThat(child1Impl.getParent(), CoreMatchers.is(group));
+        Assert.assertThat(child1Impl.getIteration(), CoreMatchers.is(1L));
 
         Activity child2 = child1.stepTo("child2").build();
         child2.processInput("testdata");
         child2.processOutput("testdata");
         ActivityImpl child2Impl = (ActivityImpl) child2;
-        assertThat(child2Impl.getParent(), is(group));
-        assertThat(child1Impl.getIteration(), is(1L));
+        Assert.assertThat(child2Impl.getParent(), CoreMatchers.is(group));
+        Assert.assertThat(child1Impl.getIteration(), CoreMatchers.is(1L));
 
         group.iterate();
 
@@ -393,18 +410,18 @@ public class NjamsSampleTest {
         child1_2.processInput("testdata");
         child1_2.processOutput("testdata");
         ActivityImpl child1_2Impl = (ActivityImpl) child1_2;
-        assertThat(child1_2Impl.getParent(), is(group));
-        assertThat(child1_2Impl.getIteration(), is(2L));
+        Assert.assertThat(child1_2Impl.getParent(), CoreMatchers.is(group));
+        Assert.assertThat(child1_2Impl.getIteration(), CoreMatchers.is(2L));
 
         Activity child2_2 = child1_2.stepTo("child2").build();
         child2_2.processInput("testdata");
         child2_2.processOutput("testdata");
         ActivityImpl child2_2Impl = (ActivityImpl) child2_2;
-        assertThat(child2_2Impl.getParent(), is(group));
-        assertThat(child2_2Impl.getIteration(), is(2L));
+        Assert.assertThat(child2_2Impl.getParent(), CoreMatchers.is(group));
+        Assert.assertThat(child2_2Impl.getIteration(), CoreMatchers.is(2L));
 
         Group parent = child2_2.getParent();
-        assertThat(parent, is(group));
+        Assert.assertThat(parent, CoreMatchers.is(group));
 
         parent.stepTo("end").build();
         a.processInput("testdata");
@@ -424,7 +441,7 @@ public class NjamsSampleTest {
         Path clientPath = new Path("SDK4", "TEST");
 
         Properties communicationProperties = new Properties();
-        communicationProperties.put(CommunicationFactory.COMMUNICATION, "JMS");
+        communicationProperties.put(Communication.COMMUNICATION, "JMS");
         communicationProperties.put(JmsConstants.INITIAL_CONTEXT_FACTORY,
                 "com.tibco.tibjms.naming.TibjmsInitialContextFactory");
         communicationProperties.put(JmsConstants.SECURITY_PRINCIPAL, "njams");
@@ -448,40 +465,40 @@ public class NjamsSampleTest {
 
         ActivityModel startModel = process.createActivity("start", "Start", "startType");
         startModel.setStarter(true);
-        assertThat(startModel.getParent(), nullValue());
+        Assert.assertThat(startModel.getParent(), CoreMatchers.nullValue());
 
         GroupModel groupModel = startModel.transitionToGroup("group", "Group", "groupType");
-        assertThat(groupModel.getParent(), nullValue());
-        assertThat(groupModel.getChildActivities().size(), is(0));
+        Assert.assertThat(groupModel.getParent(), CoreMatchers.nullValue());
+        Assert.assertThat(groupModel.getChildActivities().size(), CoreMatchers.is(0));
 
         ActivityModel groupStartModel = groupModel.createChildActivity("groupStart", "GroupStart", "stepType");
         groupStartModel.setStarter(true);
-        assertThat(groupStartModel.getParent(), is(groupModel));
-        assertThat(groupModel.getChildActivities().size(), is(1));
+        Assert.assertThat(groupStartModel.getParent(), CoreMatchers.is(groupModel));
+        Assert.assertThat(groupModel.getChildActivities().size(), CoreMatchers.is(1));
 
         ActivityModel upperModel = groupStartModel.transitionTo("upper", "Upper", "stepType");
-        assertThat(upperModel.getParent(), is(groupModel));
-        assertThat(groupModel.getChildActivities().size(), is(2));
+        Assert.assertThat(upperModel.getParent(), CoreMatchers.is(groupModel));
+        Assert.assertThat(groupModel.getChildActivities().size(), CoreMatchers.is(2));
 
         ActivityModel groupEndModel = upperModel.transitionTo("groupEnd", "GroupEnd", "stepType");
-        assertThat(groupEndModel.getParent(), is(groupModel));
-        assertThat(groupModel.getChildActivities().size(), is(3));
+        Assert.assertThat(groupEndModel.getParent(), CoreMatchers.is(groupModel));
+        Assert.assertThat(groupModel.getChildActivities().size(), CoreMatchers.is(3));
 
         ActivityModel lowerModel = groupStartModel.transitionTo("lower", "Lower", "stepType");
-        assertThat(lowerModel.getParent(), is(groupModel));
-        assertThat(groupModel.getChildActivities().size(), is(4));
+        Assert.assertThat(lowerModel.getParent(), CoreMatchers.is(groupModel));
+        Assert.assertThat(groupModel.getChildActivities().size(), CoreMatchers.is(4));
 
         ActivityModel groupEndModel2 = lowerModel.transitionTo("groupEnd", "GroupEnd", "stepType");
-        assertThat(groupEndModel2, is(groupEndModel));
-        assertThat(groupEndModel2.getParent(), is(groupModel));
-        assertThat(groupModel.getChildActivities().size(), is(4));
+        Assert.assertThat(groupEndModel2, CoreMatchers.is(groupEndModel));
+        Assert.assertThat(groupEndModel2.getParent(), CoreMatchers.is(groupModel));
+        Assert.assertThat(groupModel.getChildActivities().size(), CoreMatchers.is(4));
 
         GroupModel parentModel = groupEndModel.getParent();
-        assertThat(parentModel.getParent(), nullValue());
-        assertThat(parentModel, is(groupModel));
+        Assert.assertThat(parentModel.getParent(), CoreMatchers.nullValue());
+        Assert.assertThat(parentModel, CoreMatchers.is(groupModel));
 
         ActivityModel endModel = groupEndModel.getParent().transitionTo("end", "End", "endType");
-        assertThat(endModel.getParent(), nullValue());
+        Assert.assertThat(endModel.getParent(), CoreMatchers.nullValue());
 
         // Start client and flush resources
         njams.start();
@@ -504,22 +521,22 @@ public class NjamsSampleTest {
         groupStart.processInput("testdata");
         groupStart.processOutput("testdata");
         ActivityImpl groupStartImpl = (ActivityImpl) groupStart;
-        assertThat(groupStartImpl.getParent(), is(group));
-        assertThat(groupStartImpl.getIteration(), is(1L));
+        Assert.assertThat(groupStartImpl.getParent(), CoreMatchers.is(group));
+        Assert.assertThat(groupStartImpl.getIteration(), CoreMatchers.is(1L));
 
         Activity upper = groupStart.stepTo(upperModel).build();
         upper.processInput("testdata");
         upper.processOutput("testdata");
         ActivityImpl upperImpl = (ActivityImpl) upper;
-        assertThat(upperImpl.getParent(), is(group));
-        assertThat(upperImpl.getIteration(), is(1L));
+        Assert.assertThat(upperImpl.getParent(), CoreMatchers.is(group));
+        Assert.assertThat(upperImpl.getIteration(), CoreMatchers.is(1L));
 
         Activity groupEnd = upper.stepTo(groupEndModel).build();
         groupEnd.processInput("testdata");
         groupEnd.processOutput("testdata");
         ActivityImpl groupEndImpl = (ActivityImpl) groupEnd;
-        assertThat(groupEndImpl.getParent(), is(group));
-        assertThat(groupEndImpl.getIteration(), is(1L));
+        Assert.assertThat(groupEndImpl.getParent(), CoreMatchers.is(group));
+        Assert.assertThat(groupEndImpl.getIteration(), CoreMatchers.is(1L));
 
         group.iterate();
 
@@ -527,25 +544,25 @@ public class NjamsSampleTest {
         groupStart_2.processInput("testdata");
         groupStart_2.processOutput("testdata");
         ActivityImpl groupStartImpl2 = (ActivityImpl) groupStart_2;
-        assertThat(groupStartImpl2.getParent(), is(group));
-        assertThat(groupStartImpl2.getIteration(), is(2L));
+        Assert.assertThat(groupStartImpl2.getParent(), CoreMatchers.is(group));
+        Assert.assertThat(groupStartImpl2.getIteration(), CoreMatchers.is(2L));
 
         Activity lower = groupStart_2.stepTo(lowerModel).build();
         lower.processInput("testdata");
         lower.processOutput("testdata");
         ActivityImpl lowerImpl = (ActivityImpl) lower;
-        assertThat(lowerImpl.getParent(), is(group));
-        assertThat(lowerImpl.getIteration(), is(2L));
+        Assert.assertThat(lowerImpl.getParent(), CoreMatchers.is(group));
+        Assert.assertThat(lowerImpl.getIteration(), CoreMatchers.is(2L));
 
         Activity groupEnd_2 = lower.stepTo(groupEndModel).build();
         groupEnd_2.processInput("testdata");
         groupEnd_2.processOutput("testdata");
         ActivityImpl groupEndImpl_2 = (ActivityImpl) groupEnd_2;
-        assertThat(groupEndImpl_2.getParent(), is(group));
-        assertThat(groupEndImpl_2.getIteration(), is(2L));
+        Assert.assertThat(groupEndImpl_2.getParent(), CoreMatchers.is(group));
+        Assert.assertThat(groupEndImpl_2.getIteration(), CoreMatchers.is(2L));
 
         Group parent = groupEnd_2.getParent();
-        assertThat(parent, is(group));
+        Assert.assertThat(parent, CoreMatchers.is(group));
 
         Activity end = parent.stepTo(endModel).build();
         end.processInput("testdata");
@@ -564,7 +581,7 @@ public class NjamsSampleTest {
         Path clientPath = new Path("SDK4", "TEST");
 
         Properties communicationProperties = new Properties();
-        communicationProperties.put(CommunicationFactory.COMMUNICATION, "JMS");
+        communicationProperties.put(Communication.COMMUNICATION, "JMS");
         communicationProperties.put(JmsConstants.INITIAL_CONTEXT_FACTORY,
                 "com.tibco.tibjms.naming.TibjmsInitialContextFactory");
         communicationProperties.put(JmsConstants.SECURITY_PRINCIPAL, "njams");
@@ -588,40 +605,40 @@ public class NjamsSampleTest {
 
         ActivityModel startModel = process.createActivity("start", "Start", "startType");
         startModel.setStarter(true);
-        assertThat(startModel.getParent(), nullValue());
+        Assert.assertThat(startModel.getParent(), CoreMatchers.nullValue());
 
         GroupModel groupModel = startModel.transitionToGroup("group", "Group", "groupType");
-        assertThat(groupModel.getParent(), nullValue());
-        assertThat(groupModel.getChildActivities().size(), is(0));
+        Assert.assertThat(groupModel.getParent(), CoreMatchers.nullValue());
+        Assert.assertThat(groupModel.getChildActivities().size(), CoreMatchers.is(0));
 
         ActivityModel child1Model = groupModel.createChildActivity("child1", "Child1", "stepType");
         child1Model.setStarter(true);
-        assertThat(child1Model.getParent(), is(groupModel));
-        assertThat(groupModel.getChildActivities().size(), is(1));
+        Assert.assertThat(child1Model.getParent(), CoreMatchers.is(groupModel));
+        Assert.assertThat(groupModel.getChildActivities().size(), CoreMatchers.is(1));
 
         GroupModel subgroupModel = child1Model.transitionToGroup("subgroup", "SubGroup", "subgroupType");
-        assertThat(subgroupModel.getParent(), is(groupModel));
-        assertThat(groupModel.getChildActivities().size(), is(2));
+        Assert.assertThat(subgroupModel.getParent(), CoreMatchers.is(groupModel));
+        Assert.assertThat(groupModel.getChildActivities().size(), CoreMatchers.is(2));
 
         ActivityModel subchild1Model = subgroupModel.createChildActivity("subchild1", "SubChild1", "stepType");
         subchild1Model.setStarter(true);
-        assertThat(subchild1Model.getParent(), is(subgroupModel));
-        assertThat(subgroupModel.getChildActivities().size(), is(1));
+        Assert.assertThat(subchild1Model.getParent(), CoreMatchers.is(subgroupModel));
+        Assert.assertThat(subgroupModel.getChildActivities().size(), CoreMatchers.is(1));
 
         ActivityModel subchild2Model = subchild1Model.transitionTo("subchild2", "SubChild2", "stepType");
-        assertThat(subchild2Model.getParent(), is(subgroupModel));
-        assertThat(subgroupModel.getChildActivities().size(), is(2));
+        Assert.assertThat(subchild2Model.getParent(), CoreMatchers.is(subgroupModel));
+        Assert.assertThat(subgroupModel.getChildActivities().size(), CoreMatchers.is(2));
 
         ActivityModel child2Model = subchild2Model.getParent().transitionTo("child2", "Child2", "stepType");
-        assertThat(child2Model.getParent(), is(groupModel));
-        assertThat(groupModel.getChildActivities().size(), is(3));
+        Assert.assertThat(child2Model.getParent(), CoreMatchers.is(groupModel));
+        Assert.assertThat(groupModel.getChildActivities().size(), CoreMatchers.is(3));
 
         GroupModel parentModel = child2Model.getParent();
-        assertThat(parentModel.getParent(), nullValue());
-        assertThat(parentModel, is(groupModel));
+        Assert.assertThat(parentModel.getParent(), CoreMatchers.nullValue());
+        Assert.assertThat(parentModel, CoreMatchers.is(groupModel));
 
         ActivityModel endModel = child2Model.getParent().transitionTo("end", "End", "endType");
-        assertThat(endModel.getParent(), nullValue());
+        Assert.assertThat(endModel.getParent(), CoreMatchers.nullValue());
 
         // Start client and flush resources
         njams.start();
@@ -645,37 +662,37 @@ public class NjamsSampleTest {
         child1.processInput("testdata");
         child1.processOutput("testdata");
         ActivityImpl child1Impl = (ActivityImpl) child1;
-        assertThat(child1Impl.getParent(), is(group));
-        assertThat(child1Impl.getIteration(), is(1L));
+        Assert.assertThat(child1Impl.getParent(), CoreMatchers.is(group));
+        Assert.assertThat(child1Impl.getIteration(), CoreMatchers.is(1L));
 
         Group subGroup = child1.stepToGroup(subgroupModel).build();
         subGroup.processInput("testdata");
         subGroup.processOutput("testdata");
         GroupImpl groupImpl = (GroupImpl) subGroup;
-        assertThat(groupImpl.getParent(), is(group));
-        assertThat(groupImpl.getIteration(), is(1L));
+        Assert.assertThat(groupImpl.getParent(), CoreMatchers.is(group));
+        Assert.assertThat(groupImpl.getIteration(), CoreMatchers.is(1L));
 
         //subchild
         Activity subChild1 = subGroup.createChildActivity(subchild1Model).build();
         subChild1.processInput("testdata");
         subChild1.processOutput("testdata");
         ActivityImpl subChild1Impl = (ActivityImpl) subChild1;
-        assertThat(subChild1Impl.getParent(), is(subGroup));
-        assertThat(subChild1Impl.getIteration(), is(1L));
+        Assert.assertThat(subChild1Impl.getParent(), CoreMatchers.is(subGroup));
+        Assert.assertThat(subChild1Impl.getIteration(), CoreMatchers.is(1L));
 
         Activity subChild2 = subChild1.stepTo(subchild2Model).build();
         subChild2.processInput("testdata");
         subChild2.processOutput("testdata");
         ActivityImpl subChild2Impl = (ActivityImpl) subChild2;
-        assertThat(subChild2Impl.getParent(), is(subGroup));
-        assertThat(subChild2Impl.getIteration(), is(1L));
+        Assert.assertThat(subChild2Impl.getParent(), CoreMatchers.is(subGroup));
+        Assert.assertThat(subChild2Impl.getIteration(), CoreMatchers.is(1L));
 
         Activity child2 = subChild1.getParent().stepTo(child2Model).build();
         child2.processInput("testdata");
         child2.processOutput("testdata");
         ActivityImpl child2Impl = (ActivityImpl) child2;
-        assertThat(child2Impl.getParent(), is(group));
-        assertThat(child1Impl.getIteration(), is(1L));
+        Assert.assertThat(child2Impl.getParent(), CoreMatchers.is(group));
+        Assert.assertThat(child1Impl.getIteration(), CoreMatchers.is(1L));
 
         group.iterate();
 
@@ -684,40 +701,40 @@ public class NjamsSampleTest {
         child1_2.processInput("testdata");
         child1_2.processOutput("testdata");
         ActivityImpl child1_2Impl = (ActivityImpl) child1_2;
-        assertThat(child1_2Impl.getParent(), is(group));
-        assertThat(child1_2Impl.getIteration(), is(2L));
+        Assert.assertThat(child1_2Impl.getParent(), CoreMatchers.is(group));
+        Assert.assertThat(child1_2Impl.getIteration(), CoreMatchers.is(2L));
 
         Group subGroup_2 = child1_2.stepToGroup(subgroupModel).build();
         subGroup_2.processInput("testdata");
         subGroup_2.processOutput("testdata");
         GroupImpl groupImpl_2 = (GroupImpl) subGroup_2;
-        assertThat(groupImpl_2.getParent(), is(group));
-        assertThat(groupImpl_2.getIteration(), is(2L));
+        Assert.assertThat(groupImpl_2.getParent(), CoreMatchers.is(group));
+        Assert.assertThat(groupImpl_2.getIteration(), CoreMatchers.is(2L));
 
         //subchild
         Activity subChild1_2 = subGroup_2.createChildActivity(subchild1Model).build();
         subChild1_2.processInput("testdata");
         subChild1_2.processOutput("testdata");
         ActivityImpl subChild1Impl_2 = (ActivityImpl) subChild1_2;
-        assertThat(subChild1Impl_2.getParent(), is(subGroup_2));
-        assertThat(subChild1Impl_2.getIteration(), is(1L));
+        Assert.assertThat(subChild1Impl_2.getParent(), CoreMatchers.is(subGroup_2));
+        Assert.assertThat(subChild1Impl_2.getIteration(), CoreMatchers.is(1L));
 
         Activity subChild2_2 = subChild1_2.stepTo(subchild2Model).build();
         subChild2_2.processInput("testdata");
         subChild2_2.processOutput("testdata");
         ActivityImpl subChild2Impl_2 = (ActivityImpl) subChild2_2;
-        assertThat(subChild2Impl_2.getParent(), is(subGroup_2));
-        assertThat(subChild2Impl_2.getIteration(), is(1L));
+        Assert.assertThat(subChild2Impl_2.getParent(), CoreMatchers.is(subGroup_2));
+        Assert.assertThat(subChild2Impl_2.getIteration(), CoreMatchers.is(1L));
 
         Activity child2_2 = subChild2_2.getParent().stepTo(child2Model).build();
         child2_2.processInput("testdata");
         child2_2.processOutput("testdata");
         ActivityImpl child2_2Impl = (ActivityImpl) child2_2;
-        assertThat(child2_2Impl.getParent(), is(group));
-        assertThat(child2_2Impl.getIteration(), is(2L));
+        Assert.assertThat(child2_2Impl.getParent(), CoreMatchers.is(group));
+        Assert.assertThat(child2_2Impl.getIteration(), CoreMatchers.is(2L));
 
         Group parent = child2_2.getParent();
-        assertThat(parent, is(group));
+        Assert.assertThat(parent, CoreMatchers.is(group));
 
         Activity end = parent.stepTo(endModel).build();
         end.processInput("testdata");
@@ -737,7 +754,7 @@ public class NjamsSampleTest {
         Path clientPath = new Path("SDK4", "TEST");
 
         Properties communicationProperties = new Properties();
-        communicationProperties.put(CommunicationFactory.COMMUNICATION, "JMS");
+        communicationProperties.put(Communication.COMMUNICATION, "JMS");
         communicationProperties.put(JmsConstants.INITIAL_CONTEXT_FACTORY,
                 "com.tibco.tibjms.naming.TibjmsInitialContextFactory");
         communicationProperties.put(JmsConstants.SECURITY_PRINCIPAL, "njams");
@@ -837,7 +854,7 @@ public class NjamsSampleTest {
         Path clientPath = new Path("SDK4", "TEST");
 
         Properties communicationProperties = new Properties();
-        communicationProperties.put(CommunicationFactory.COMMUNICATION, "JMS");
+        communicationProperties.put(Communication.COMMUNICATION, "JMS");
         communicationProperties.put(JmsConstants.INITIAL_CONTEXT_FACTORY,
                 "com.tibco.tibjms.naming.TibjmsInitialContextFactory");
         communicationProperties.put(JmsConstants.SECURITY_PRINCIPAL, "njams");
@@ -861,40 +878,40 @@ public class NjamsSampleTest {
 
         ActivityModel startModel = process.createActivity("start", "Start", "startType");
         startModel.setStarter(true);
-        assertThat(startModel.getParent(), nullValue());
+        Assert.assertThat(startModel.getParent(), CoreMatchers.nullValue());
 
         GroupModel groupModel = startModel.transitionToGroup("group", "Group", "groupType");
-        assertThat(groupModel.getParent(), nullValue());
-        assertThat(groupModel.getChildActivities().size(), is(0));
+        Assert.assertThat(groupModel.getParent(), CoreMatchers.nullValue());
+        Assert.assertThat(groupModel.getChildActivities().size(), CoreMatchers.is(0));
 
         ActivityModel child1Model = groupModel.createChildActivity("child1", "Child1", "stepType");
         child1Model.setStarter(true);
-        assertThat(child1Model.getParent(), is(groupModel));
-        assertThat(groupModel.getChildActivities().size(), is(1));
+        Assert.assertThat(child1Model.getParent(), CoreMatchers.is(groupModel));
+        Assert.assertThat(groupModel.getChildActivities().size(), CoreMatchers.is(1));
 
         GroupModel subgroupModel = child1Model.transitionToGroup("subgroup", "SubGroup", "subgroupType");
-        assertThat(subgroupModel.getParent(), is(groupModel));
-        assertThat(groupModel.getChildActivities().size(), is(2));
+        Assert.assertThat(subgroupModel.getParent(), CoreMatchers.is(groupModel));
+        Assert.assertThat(groupModel.getChildActivities().size(), CoreMatchers.is(2));
 
         ActivityModel subchild1Model = subgroupModel.createChildActivity("subchild1", "SubChild1", "stepType");
         subchild1Model.setStarter(true);
-        assertThat(subchild1Model.getParent(), is(subgroupModel));
-        assertThat(subgroupModel.getChildActivities().size(), is(1));
+        Assert.assertThat(subchild1Model.getParent(), CoreMatchers.is(subgroupModel));
+        Assert.assertThat(subgroupModel.getChildActivities().size(), CoreMatchers.is(1));
 
         ActivityModel subchild2Model = subchild1Model.transitionTo("subchild2", "SubChild2", "stepType");
-        assertThat(subchild2Model.getParent(), is(subgroupModel));
-        assertThat(subgroupModel.getChildActivities().size(), is(2));
+        Assert.assertThat(subchild2Model.getParent(), CoreMatchers.is(subgroupModel));
+        Assert.assertThat(subgroupModel.getChildActivities().size(), CoreMatchers.is(2));
 
         ActivityModel child2Model = subchild2Model.getParent().transitionTo("child2", "Child2", "stepType");
-        assertThat(child2Model.getParent(), is(groupModel));
-        assertThat(groupModel.getChildActivities().size(), is(3));
+        Assert.assertThat(child2Model.getParent(), CoreMatchers.is(groupModel));
+        Assert.assertThat(groupModel.getChildActivities().size(), CoreMatchers.is(3));
 
         GroupModel parentModel = child2Model.getParent();
-        assertThat(parentModel.getParent(), nullValue());
-        assertThat(parentModel, is(groupModel));
+        Assert.assertThat(parentModel.getParent(), CoreMatchers.nullValue());
+        Assert.assertThat(parentModel, CoreMatchers.is(groupModel));
 
         ActivityModel endModel = child2Model.getParent().transitionTo("end", "End", "endType");
-        assertThat(endModel.getParent(), nullValue());
+        Assert.assertThat(endModel.getParent(), CoreMatchers.nullValue());
 
         // Start client and flush resources
         njams.start();
@@ -909,7 +926,7 @@ public class NjamsSampleTest {
         a.processOutput("testdata");
 
         ((JobImpl) job).flush();
-        assertThat(job.getActivities().size(), is(1));
+        Assert.assertThat(job.getActivities().size(), CoreMatchers.is(1));
 
         //step to group
         Group group = a.stepToGroup(groupModel).setExecution(LocalDateTime.now()).build();
@@ -917,7 +934,7 @@ public class NjamsSampleTest {
         group.processOutput("testdata");
 
         ((JobImpl) job).flush();
-        assertThat(job.getActivities().size(), is(1));
+        Assert.assertThat(job.getActivities().size(), CoreMatchers.is(1));
 
         //iteration 1
         Activity child1 = group.createChildActivity(child1Model).build();
@@ -925,14 +942,14 @@ public class NjamsSampleTest {
         child1.processOutput("testdata");
 
         ((JobImpl) job).flush();
-        assertThat(job.getActivities().size(), is(2));
+        Assert.assertThat(job.getActivities().size(), CoreMatchers.is(2));
 
         Group subGroup = child1.stepToGroup(subgroupModel).build();
         subGroup.processInput("testdata");
         subGroup.processOutput("testdata");
 
         ((JobImpl) job).flush();
-        assertThat(job.getActivities().size(), is(2));
+        Assert.assertThat(job.getActivities().size(), CoreMatchers.is(2));
 
         //subchild
         Activity subChild1 = subGroup.createChildActivity(subchild1Model).build();
@@ -940,21 +957,21 @@ public class NjamsSampleTest {
         subChild1.processOutput("testdata");
 
         ((JobImpl) job).flush();
-        assertThat(job.getActivities().size(), is(3));
+        Assert.assertThat(job.getActivities().size(), CoreMatchers.is(3));
 
         subChild1.stepTo(subchild2Model).build();
         subChild1.processInput("testdata");
         subChild1.processOutput("testdata");
 
         ((JobImpl) job).flush();
-        assertThat(job.getActivities().size(), is(3));
+        Assert.assertThat(job.getActivities().size(), CoreMatchers.is(3));
 
         subChild1.getParent().stepTo(child2Model).build();
         subChild1.processInput("testdata");
         subChild1.processOutput("testdata");
 
         ((JobImpl) job).flush();
-        assertThat(job.getActivities().size(), is(2));
+        Assert.assertThat(job.getActivities().size(), CoreMatchers.is(2));
 
         group.iterate();
 
@@ -964,14 +981,14 @@ public class NjamsSampleTest {
         child1_2.processOutput("testdata");
 
         ((JobImpl) job).flush();
-        assertThat(job.getActivities().size(), is(3));
+        Assert.assertThat(job.getActivities().size(), CoreMatchers.is(3));
 
         Group subGroup_2 = child1_2.stepToGroup(subgroupModel).build();
         subGroup_2.processInput("testdata");
         subGroup_2.processOutput("testdata");
 
         ((JobImpl) job).flush();
-        assertThat(job.getActivities().size(), is(3));
+        Assert.assertThat(job.getActivities().size(), CoreMatchers.is(3));
 
         //subchild
         Activity subChild1_2 = subGroup_2.createChildActivity(subchild1Model).build();
@@ -979,21 +996,21 @@ public class NjamsSampleTest {
         subChild1_2.processOutput("testdata");
 
         ((JobImpl) job).flush();
-        assertThat(job.getActivities().size(), is(4));
+        Assert.assertThat(job.getActivities().size(), CoreMatchers.is(4));
 
         Activity subChild2_2 = subChild1_2.stepTo(subchild2Model).build();
         subChild2_2.processInput("testdata");
         subChild2_2.processOutput("testdata");
 
         ((JobImpl) job).flush();
-        assertThat(job.getActivities().size(), is(4));
+        Assert.assertThat(job.getActivities().size(), CoreMatchers.is(4));
 
         Activity child2_2 = subChild2_2.getParent().stepTo(child2Model).build();
         child2_2.processInput("testdata");
         child2_2.processOutput("testdata");
 
         ((JobImpl) job).flush();
-        assertThat(job.getActivities().size(), is(3));
+        Assert.assertThat(job.getActivities().size(), CoreMatchers.is(3));
 
         Group parent = child2_2.getParent();
 
@@ -1002,7 +1019,7 @@ public class NjamsSampleTest {
         end.processOutput("testdata");
 
         ((JobImpl) job).flush();
-        assertThat(job.getActivities().size(), is(1));
+        Assert.assertThat(job.getActivities().size(), CoreMatchers.is(1));
 
         job.end();
 
@@ -1018,7 +1035,7 @@ public class NjamsSampleTest {
         Path clientPath = new Path("SDK4", "TEST");
 
         Properties communicationProperties = new Properties();
-        communicationProperties.put(CommunicationFactory.COMMUNICATION, "JMS");
+        communicationProperties.put(Communication.COMMUNICATION, "JMS");
         communicationProperties.put(JmsConstants.INITIAL_CONTEXT_FACTORY,
                 "com.tibco.tibjms.naming.TibjmsInitialContextFactory");
         communicationProperties.put(JmsConstants.SECURITY_PRINCIPAL, "njams");
@@ -1118,7 +1135,7 @@ public class NjamsSampleTest {
         Path clientPath = new Path("SDK4", "TEST");
 
         Properties communicationProperties = new Properties();
-        communicationProperties.put(CommunicationFactory.COMMUNICATION, Transformer.encode("JMS"));
+        communicationProperties.put(Communication.COMMUNICATION, Transformer.encode("JMS"));
         communicationProperties.put(JmsConstants.INITIAL_CONTEXT_FACTORY,
                 Transformer.encode("com.tibco.tibjms.naming.TibjmsInitialContextFactory"));
         communicationProperties.put(JmsConstants.SECURITY_PRINCIPAL, Transformer.encode("njams"));
@@ -1142,40 +1159,40 @@ public class NjamsSampleTest {
 
         ActivityModel startModel = process.createActivity("start", "Start", "startType");
         startModel.setStarter(true);
-        assertThat(startModel.getParent(), nullValue());
+        Assert.assertThat(startModel.getParent(), CoreMatchers.nullValue());
 
         GroupModel groupModel = startModel.transitionToGroup("group", "Group", "groupType");
-        assertThat(groupModel.getParent(), nullValue());
-        assertThat(groupModel.getChildActivities().size(), is(0));
+        Assert.assertThat(groupModel.getParent(), CoreMatchers.nullValue());
+        Assert.assertThat(groupModel.getChildActivities().size(), CoreMatchers.is(0));
 
         ActivityModel child1Model = groupModel.createChildActivity("child1", "Child1", "stepType");
         child1Model.setStarter(true);
-        assertThat(child1Model.getParent(), is(groupModel));
-        assertThat(groupModel.getChildActivities().size(), is(1));
+        Assert.assertThat(child1Model.getParent(), CoreMatchers.is(groupModel));
+        Assert.assertThat(groupModel.getChildActivities().size(), CoreMatchers.is(1));
 
         GroupModel subgroupModel = child1Model.transitionToGroup("subgroup", "SubGroup", "subgroupType");
-        assertThat(subgroupModel.getParent(), is(groupModel));
-        assertThat(groupModel.getChildActivities().size(), is(2));
+        Assert.assertThat(subgroupModel.getParent(), CoreMatchers.is(groupModel));
+        Assert.assertThat(groupModel.getChildActivities().size(), CoreMatchers.is(2));
 
         ActivityModel subchild1Model = subgroupModel.createChildActivity("subchild1", "SubChild1", "stepType");
         subchild1Model.setStarter(true);
-        assertThat(subchild1Model.getParent(), is(subgroupModel));
-        assertThat(subgroupModel.getChildActivities().size(), is(1));
+        Assert.assertThat(subchild1Model.getParent(), CoreMatchers.is(subgroupModel));
+        Assert.assertThat(subgroupModel.getChildActivities().size(), CoreMatchers.is(1));
 
         ActivityModel subchild2Model = subchild1Model.transitionTo("subchild2", "SubChild2", "stepType");
-        assertThat(subchild2Model.getParent(), is(subgroupModel));
-        assertThat(subgroupModel.getChildActivities().size(), is(2));
+        Assert.assertThat(subchild2Model.getParent(), CoreMatchers.is(subgroupModel));
+        Assert.assertThat(subgroupModel.getChildActivities().size(), CoreMatchers.is(2));
 
         ActivityModel child2Model = subchild2Model.getParent().transitionTo("child2", "Child2", "stepType");
-        assertThat(child2Model.getParent(), is(groupModel));
-        assertThat(groupModel.getChildActivities().size(), is(3));
+        Assert.assertThat(child2Model.getParent(), CoreMatchers.is(groupModel));
+        Assert.assertThat(groupModel.getChildActivities().size(), CoreMatchers.is(3));
 
         GroupModel parentModel = child2Model.getParent();
-        assertThat(parentModel.getParent(), nullValue());
-        assertThat(parentModel, is(groupModel));
+        Assert.assertThat(parentModel.getParent(), CoreMatchers.nullValue());
+        Assert.assertThat(parentModel, CoreMatchers.is(groupModel));
 
         ActivityModel endModel = child2Model.getParent().transitionTo("end", "End", "endType");
-        assertThat(endModel.getParent(), nullValue());
+        Assert.assertThat(endModel.getParent(), CoreMatchers.nullValue());
 
         // Start client and flush resources
         njams.start();
@@ -1190,7 +1207,7 @@ public class NjamsSampleTest {
         a.processOutput("testdata");
 
         ((JobImpl) job).flush();
-        assertThat(job.getActivities().size(), is(1));
+        Assert.assertThat(job.getActivities().size(), CoreMatchers.is(1));
 
         //step to group
         Group group = a.stepToGroup(groupModel).setExecution(LocalDateTime.now()).build();
@@ -1198,7 +1215,7 @@ public class NjamsSampleTest {
         group.processOutput("testdata");
 
         ((JobImpl) job).flush();
-        assertThat(job.getActivities().size(), is(1));
+        Assert.assertThat(job.getActivities().size(), CoreMatchers.is(1));
 
         //iteration 1
         Activity child1 = group.createChildActivity(child1Model).build();
@@ -1206,14 +1223,14 @@ public class NjamsSampleTest {
         child1.processOutput("testdata");
 
         ((JobImpl) job).flush();
-        assertThat(job.getActivities().size(), is(2));
+        Assert.assertThat(job.getActivities().size(), CoreMatchers.is(2));
 
         Group subGroup = child1.stepToGroup(subgroupModel).build();
         subGroup.processInput("testdata");
         subGroup.processOutput("testdata");
 
         ((JobImpl) job).flush();
-        assertThat(job.getActivities().size(), is(2));
+        Assert.assertThat(job.getActivities().size(), CoreMatchers.is(2));
 
         //subchild
         Activity subChild1 = subGroup.createChildActivity(subchild1Model).build();
@@ -1221,21 +1238,21 @@ public class NjamsSampleTest {
         subChild1.processOutput("testdata");
 
         ((JobImpl) job).flush();
-        assertThat(job.getActivities().size(), is(3));
+        Assert.assertThat(job.getActivities().size(), CoreMatchers.is(3));
 
         subChild1.stepTo(subchild2Model).build();
         subChild1.processInput("testdata");
         subChild1.processOutput("testdata");
 
         ((JobImpl) job).flush();
-        assertThat(job.getActivities().size(), is(3));
+        Assert.assertThat(job.getActivities().size(), CoreMatchers.is(3));
 
         subChild1.getParent().stepTo(child2Model).build();
         subChild1.processInput("testdata");
         subChild1.processOutput("testdata");
 
         ((JobImpl) job).flush();
-        assertThat(job.getActivities().size(), is(2));
+        Assert.assertThat(job.getActivities().size(), CoreMatchers.is(2));
 
         group.iterate();
 
@@ -1245,14 +1262,14 @@ public class NjamsSampleTest {
         child1_2.processOutput("testdata");
 
         ((JobImpl) job).flush();
-        assertThat(job.getActivities().size(), is(3));
+        Assert.assertThat(job.getActivities().size(), CoreMatchers.is(3));
 
         Group subGroup_2 = child1_2.stepToGroup(subgroupModel).build();
         subGroup_2.processInput("testdata");
         subGroup_2.processOutput("testdata");
 
         ((JobImpl) job).flush();
-        assertThat(job.getActivities().size(), is(3));
+        Assert.assertThat(job.getActivities().size(), CoreMatchers.is(3));
 
         //subchild
         Activity subChild1_2 = subGroup_2.createChildActivity(subchild1Model).build();
@@ -1260,21 +1277,21 @@ public class NjamsSampleTest {
         subChild1_2.processOutput("testdata");
 
         ((JobImpl) job).flush();
-        assertThat(job.getActivities().size(), is(4));
+        Assert.assertThat(job.getActivities().size(), CoreMatchers.is(4));
 
         Activity subChild2_2 = subChild1_2.stepTo(subchild2Model).build();
         subChild2_2.processInput("testdata");
         subChild2_2.processOutput("testdata");
 
         ((JobImpl) job).flush();
-        assertThat(job.getActivities().size(), is(4));
+        Assert.assertThat(job.getActivities().size(), CoreMatchers.is(4));
 
         Activity child2_2 = subChild2_2.getParent().stepTo(child2Model).build();
         child2_2.processInput("testdata");
         child2_2.processOutput("testdata");
 
         ((JobImpl) job).flush();
-        assertThat(job.getActivities().size(), is(3));
+        Assert.assertThat(job.getActivities().size(), CoreMatchers.is(3));
 
         Group parent = child2_2.getParent();
 
@@ -1283,7 +1300,7 @@ public class NjamsSampleTest {
         end.processOutput("testdata");
 
         ((JobImpl) job).flush();
-        assertThat(job.getActivities().size(), is(1));
+        Assert.assertThat(job.getActivities().size(), CoreMatchers.is(1));
 
         job.end();
 
@@ -1292,5 +1309,5 @@ public class NjamsSampleTest {
         // If you are finished with processing or the application goes down, stop client...
         njams.stop();
 
-    }*/
+    }
 }

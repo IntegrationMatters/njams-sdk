@@ -16,6 +16,15 @@
  */
 package com.im.njams.sdk.communication;
 
+import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
+import com.im.njams.sdk.Njams;
+import com.im.njams.sdk.communication.connectable.receiver.Receiver;
+import com.im.njams.sdk.communication.connector.Connector;
+import com.im.njams.sdk.communication.pools.NullConnector;
+import com.im.njams.sdk.settings.Settings;
+
+import java.util.Properties;
+
 /**
  * Dummy implementation for testing.<br>
  * <b>Note:</b> For using this instance, the test environment needs to have a the full qualified class name of this 
@@ -23,25 +32,25 @@ package com.im.njams.sdk.communication;
  * 
  * @author cwinkler
  *
- *//*
+ */
 public class TestReceiver implements Receiver {
 
     private static Receiver receiver = null;
     public static final String NAME = TestSender.NAME;
 
-    *//**
+    /**
      * Delegates all request to the given receiver.<br>
      * <b>Note:</b> {@link #getName()} is invoked on the given receiver but the value returned is always {@link #NAME}.
      * @param receiver
-     *//*
+     */
     public static void setReceiverMock(Receiver receiver) {
         TestReceiver.receiver = receiver;
     }
 
-    *//**
+    /**
      * Returns a settings prepared for using this receiver implementation.
      * @return
-     *//*
+     */
     public static Settings getSettings() {
         return TestSender.getSettings();
     }
@@ -79,14 +88,6 @@ public class TestReceiver implements Receiver {
     }
 
     @Override
-    public void start() {
-        if (receiver != null) {
-            receiver.start();
-        }
-
-    }
-
-    @Override
     public void stop() {
         if (receiver != null) {
             receiver.stop();
@@ -94,5 +95,12 @@ public class TestReceiver implements Receiver {
 
     }
 
+    @Override
+    public Connector getConnector() {
+        if(receiver != null){
+            return receiver.getConnector();
+        }
+        return new NullConnector();
+    }
+
 }
-*/
