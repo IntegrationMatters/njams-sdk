@@ -16,8 +16,8 @@
  */
 package com.im.njams.sdk.settings;
 
-import com.im.njams.sdk.service.factories.SettingsProviderFactory;
-import com.im.njams.sdk.settings.provider.FileSettingsProvider;
+import com.im.njams.sdk.service.factories.SettingsProxyFactory;
+import com.im.njams.sdk.settings.proxy.FileSettingsProxy;
 import org.junit.Test;
 
 import java.io.File;
@@ -46,9 +46,7 @@ public class FileSettingsProviderTest {
         file.delete();
         assertThat(file.exists(), is(false));
 
-        Properties properties = new Properties();
-        properties.put(SettingsProviderFactory.SETTINGS_PROVIDER, FileSettingsProvider.NAME);
-        SettingsProviderFactory factory = new SettingsProviderFactory(properties);
+        SettingsProxyFactory factory = new SettingsProxyFactory(FileSettingsProxy.NAME);
         SettingsProvider provider = factory.getInstance();
 
         Settings conf = provider.loadSettings();

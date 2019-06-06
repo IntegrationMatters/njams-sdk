@@ -12,7 +12,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import com.im.njams.sdk.settings.provider.PropertiesFileSettingsProvider;
+import com.im.njams.sdk.settings.proxy.PropertiesFileSettingsProxy;
 import org.junit.Assert;
 
 public class PropertiesFileSettingsProviderTest {
@@ -21,7 +21,7 @@ public class PropertiesFileSettingsProviderTest {
     private File testFile = null;
     private File parentFile = null;
     private Properties properties = null;
-    private PropertiesFileSettingsProvider provider = null;
+    private PropertiesFileSettingsProxy provider = null;
 
     @Before
     public void setup() throws IOException {
@@ -36,14 +36,14 @@ public class PropertiesFileSettingsProviderTest {
 
         testFile = getTmpFile("njams-test-config.properties");
         props = new Properties();
-        props.setProperty(PropertiesFileSettingsProvider.PARENT_CONFIGURATION, parentName);
+        props.setProperty(PropertiesFileSettingsProxy.PARENT_CONFIGURATION, parentName);
         props.setProperty("a", "1");
         props.setProperty("b", "2");
         saveProps(testFile, props);
 
         Properties providerProps = new Properties();
-        providerProps.setProperty(PropertiesFileSettingsProvider.FILE_CONFIGURATION, testFile.getAbsolutePath());
-        provider = new PropertiesFileSettingsProvider();
+        providerProps.setProperty(PropertiesFileSettingsProxy.FILE_CONFIGURATION, testFile.getAbsolutePath());
+        provider = new PropertiesFileSettingsProxy();
         provider.configure(providerProps);
         properties = provider.loadSettings().getProperties();
     }
@@ -73,7 +73,7 @@ public class PropertiesFileSettingsProviderTest {
             parentFile = null;
         }
 
-        File defaultFile = new File(tmpdir, PropertiesFileSettingsProvider.DEFAULT_FILE);
+        File defaultFile = new File(tmpdir, PropertiesFileSettingsProxy.DEFAULT_FILE);
         if (defaultFile.exists()) {
             defaultFile.delete();
         }
@@ -102,21 +102,21 @@ public class PropertiesFileSettingsProviderTest {
 
     @Test
     public void testPath() throws IOException {
-        File defaultFile = new File(tmpdir, PropertiesFileSettingsProvider.DEFAULT_FILE);
+        File defaultFile = new File(tmpdir, PropertiesFileSettingsProxy.DEFAULT_FILE);
         defaultFile.createNewFile();
 
         Properties providerProps = new Properties();
-        providerProps.setProperty(PropertiesFileSettingsProvider.FILE_CONFIGURATION, tmpdir.getAbsolutePath());
-        provider = new PropertiesFileSettingsProvider();
+        providerProps.setProperty(PropertiesFileSettingsProxy.FILE_CONFIGURATION, tmpdir.getAbsolutePath());
+        provider = new PropertiesFileSettingsProxy();
         provider.configure(providerProps);
-        assertEquals(new File(tmpdir, PropertiesFileSettingsProvider.DEFAULT_FILE), provider.getFile());
+        assertEquals(new File(tmpdir, PropertiesFileSettingsProxy.DEFAULT_FILE), provider.getFile());
     }
 
     @Test
     public void testFile() {
         Properties providerProps = new Properties();
-        providerProps.setProperty(PropertiesFileSettingsProvider.FILE_CONFIGURATION, testFile.getAbsolutePath());
-        provider = new PropertiesFileSettingsProvider();
+        providerProps.setProperty(PropertiesFileSettingsProxy.FILE_CONFIGURATION, testFile.getAbsolutePath());
+        provider = new PropertiesFileSettingsProxy();
         provider.configure(providerProps);
         assertEquals(testFile, provider.getFile());
     }
@@ -124,22 +124,22 @@ public class PropertiesFileSettingsProviderTest {
     @Test(expected = IllegalArgumentException.class)
     public void testFileNotExists() {
         Properties providerProps = new Properties();
-        providerProps.setProperty(PropertiesFileSettingsProvider.FILE_CONFIGURATION, "/testxy.properties");
-        provider = new PropertiesFileSettingsProvider();
+        providerProps.setProperty(PropertiesFileSettingsProxy.FILE_CONFIGURATION, "/testxy.properties");
+        provider = new PropertiesFileSettingsProxy();
         provider.configure(providerProps);
     }
 
     @Test
     public void testModifiedParentKey() throws IOException {
         String parentKey = "parentFileKey";
-        String parent = (String) properties.remove(PropertiesFileSettingsProvider.PARENT_CONFIGURATION);
+        String parent = (String) properties.remove(PropertiesFileSettingsProxy.PARENT_CONFIGURATION);
         properties.setProperty(parentKey, parent);
         saveProps(testFile, properties);
 
         Properties providerProps = new Properties();
-        providerProps.setProperty(PropertiesFileSettingsProvider.FILE_CONFIGURATION, testFile.getAbsolutePath());
-        providerProps.setProperty(PropertiesFileSettingsProvider.PARENT_CONFIGURATION_KEY, parentKey);
-        provider = new PropertiesFileSettingsProvider();
+        providerProps.setProperty(PropertiesFileSettingsProxy.FILE_CONFIGURATION, testFile.getAbsolutePath());
+        providerProps.setProperty(PropertiesFileSettingsProxy.PARENT_CONFIGURATION_KEY, parentKey);
+        provider = new PropertiesFileSettingsProxy();
         provider.configure(providerProps);
         
         assertEquals("1", properties.getProperty("a"));
@@ -173,9 +173,9 @@ public class PropertiesFileSettingsProviderTest {
 
             Properties providerProps = new Properties();
             providerProps.setProperty(PropertiesFileSettingsProvider.FILE_CONFIGURATION, circle1File.getAbsolutePath());
-            provider = new PropertiesFileSettingsProvider();
-            provider.configure(providerProps);
-            provider.loadSettings();
+            proxy = new PropertiesFileSettingsProvider();
+            proxy.configure(providerProps);
+            proxy.loadSettings();
         } catch (StackOverflowError e) {
             Assert.fail("Circular dependencies possible!");
         } finally {
