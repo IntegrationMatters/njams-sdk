@@ -19,7 +19,7 @@ package com.im.njams.sdk;
 import com.faizsiegeln.njams.messageformat.v4.common.SubProcess;
 import com.faizsiegeln.njams.messageformat.v4.logmessage.Predecessor;
 import com.im.njams.sdk.common.Path;
-import com.im.njams.sdk.communication.TestSender;
+import com.im.njams.sdk.communication.connectable.sender.TestSender;
 import com.im.njams.sdk.logmessage.Activity;
 import com.im.njams.sdk.logmessage.ActivityImpl;
 import com.im.njams.sdk.logmessage.Job;
@@ -31,7 +31,7 @@ import com.im.njams.sdk.settings.Settings;
 import java.util.HashMap;
 import java.util.Map;
 
-//import com.im.njams.sdk.communication.TestSender;
+//import com.im.njams.sdk.communication.connectable.sender.TestSender;
 
 /**
  * This class is a helper class for all test classes that need some jobs or activities.

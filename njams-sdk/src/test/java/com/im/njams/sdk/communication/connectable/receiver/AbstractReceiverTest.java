@@ -14,25 +14,27 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
  */
-package com.im.njams.sdk.communication;
+package com.im.njams.sdk.communication.connectable.receiver;
 
 import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
 import com.faizsiegeln.njams.messageformat.v4.command.Request;
 import com.faizsiegeln.njams.messageformat.v4.command.Response;
-
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
+import com.im.njams.sdk.communication.InstructionListener;
+import com.im.njams.sdk.communication.connector.ConnectionStatus;
+import com.im.njams.sdk.communication.connector.Connector;
+import com.im.njams.sdk.communication.connector.NullConnector;
+import org.junit.Ignore;
+import org.junit.Test;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
-
-import org.junit.AfterClass;
-import org.junit.Ignore;
-import org.junit.Test;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.Assert.*;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.mock;
 
 /**
  * This class tests the AbstractReceiver methods.
@@ -40,54 +42,56 @@ import static org.mockito.Mockito.*;
  * @author krautenberg@integrationmatters.com
  * @version 4.0.5
  */
+@Ignore
+@Deprecated
 public class AbstractReceiverTest {
-/*
+
     private static final String TESTCOMMAND = "testCommand";
 
     //setNjams tests
 
     /**
      * This method tests if the setNjams method works.
-     *//*
+     */
     @Test
     public void testSetNjams() {
         AbstractReceiverImpl impl = new AbstractReceiverImpl();
         Njams njams = mock(Njams.class);
         impl.setNjams(njams);
-        //assertEquals(njams, impl.njams);
+        assertEquals(njams, impl.njams);
     }
 
-    *//**
+    /**
      * This method tests if the setNjams method works with a null as parameter
-     *//*
+     */
     @Test
     public void testSetNullNjams() {
         AbstractReceiverImpl impl = new AbstractReceiverImpl();
         impl.setNjams(null);
-        //assertEquals(null, impl.njams);
+        assertEquals(null, impl.njams);
     }
 
     //onInstruction tests
 
-    */
+
 
     /**
      * This method tests if the onInstruction method works without an Njams
      * object.
-     *//*
+     */
     @Test
     public void testOnInstructionWithNullNjams() {
         AbstractReceiverImpl impl = new AbstractReceiverImpl();
         Instruction inst = new Instruction();
         impl.onInstruction(inst);
         assertEquals(null, inst.getResponse());
-        //assertEquals(null, impl.njams);
+        assertEquals(null, impl.njams);
     }
 
-    *//**
+    /**
      * This method tests if the onInstruction method works with an Njams object,
      * but without an Instruction.
-     *//*
+     */
     @Test
     public void testOnInstructionWithNullInstruction() {
         AbstractReceiverImpl impl = new AbstractReceiverImpl();
@@ -98,10 +102,10 @@ public class AbstractReceiverTest {
         assertEquals(null, inst);
     }
 
-    *//**
+    /**
      * This method tests if the onInstruction method works with an Njams object
      * and an Instruction, but without a request.
-     *//*
+     */
     @Test
     public void testOnInstructionWithNullRequest() {
         AbstractReceiverImpl impl = new AbstractReceiverImpl();
@@ -114,10 +118,10 @@ public class AbstractReceiverTest {
         assertEquals("Instruction should have a valid request with a command", inst.getResponse().getResultMessage());
     }
 
-    *//**
+    /**
      * This method tests if the onInstruction method works with an Njams object,
      * an Instruction and a request, but without a command.
-     *//*
+     */
     @Test
     public void testOnInstructionWithNullCommand() {
         AbstractReceiverImpl impl = new AbstractReceiverImpl();
@@ -132,21 +136,21 @@ public class AbstractReceiverTest {
         assertEquals("Instruction should have a valid request with a command", inst.getResponse().getResultMessage());
     }
 
-    *//**
+    /**
      * This method tests if the onInstruction method works with an Njams object,
      * an Instruction, a request and a command, but without any
      * InstructionListeners.
-     *//*
+     */
     @Test
     public void testOnInstructionWithEmptyInstructionListener() {
         testNoAppropriateInstructionListenerFound(new ArrayList<>());
     }
 
-    *//**
+    /**
      * This method tests if the onInstruction method works with an Njams object,
      * an Instruction, a request, a command and an InstructionListener, but the
      * InstructionListener throws an exception.
-     *//*
+     */
     @Test
     public void testOnInstructionWithAnExceptionThrowingInstructionListener() {
         List<InstructionListener> list = new ArrayList<>();
@@ -167,7 +171,8 @@ public class AbstractReceiverTest {
         AbstractReceiverImpl impl = new AbstractReceiverImpl();
         Njams njams = mock(Njams.class);
         impl.setNjams(njams);
-        when(njams.getInstructionListeners()).thenReturn(list);
+        //TODO: Use instuctionProcessors
+        //when(njams.getInstructionListeners()).thenReturn(list);
         Instruction inst = new Instruction();
         Request req = new Request();
         req.setCommand(TESTCOMMAND);
@@ -176,11 +181,11 @@ public class AbstractReceiverTest {
         return inst;
     }
 
-    *//**
+    /**
      * This method tests if the onInstruction method works with an Njams object,
      * an Instruction, a request, a command and an InstructionListener that
      * handles the command correctly.
-     *//*
+     */
     @Test
     public void testOnInstructionWithTheRightInstructionListener() {
         List<InstructionListener> list = new ArrayList<>();
@@ -188,12 +193,12 @@ public class AbstractReceiverTest {
         testGoodResultWithInstructions(list);
     }
 
-    *//**
+    /**
      * This method tests if the onInstruction method works with an Njams object,
      * an Instruction, a request, a command and two InstructionListeners that
      * could handle an the same command, both handle the instruction successive.
      * The second one (Here the RightInstructionListener) sets the Response.
-     *//*
+     */
     @Test
     public void testOnInstructionWithFirstTheWrongThenTheRightInstructionListener() {
         List<InstructionListener> list = new ArrayList<>();
@@ -202,13 +207,13 @@ public class AbstractReceiverTest {
         testGoodResultWithInstructions(list);
     }
 
-    *//**
+    /**
      * This method tests if the onInstruction method works with an Njams object,
      * an Instruction, a request, a command and two InstructionListeners that
      * could handle an the same command, both handle the instruction successive.
      * The first one throws an exception, but the second one handles the command
      * correctly and sets the Response.
-     *//*
+     */
     @Test
     public void testOnInstructionWithAnExceptionAndAResponse() {
         List<InstructionListener> list = new ArrayList<>();
@@ -217,13 +222,13 @@ public class AbstractReceiverTest {
         testGoodResultWithInstructions(list);
     }
 
-    *//**
+    /**
      * This method tests if the onInstruction method works with an Njams object,
      * an Instruction, a request, a command and two InstructionListeners that
      * could handle an the same command, both handle the instruction successive.
      * The first one creates a response, but the second one throws an exception.
      * The response of the first one doesn't change at all.
-     *//*
+     */
     @Test
     public void testOnInstructionWithAResponseAndAnException() {
         List<InstructionListener> list = new ArrayList<>();
@@ -248,11 +253,11 @@ public class AbstractReceiverTest {
         testBadResultWithInstructions(list);
     }
 
-    *//**
+    /**
      * This method tests if the onInstruction method works with an Njams object,
      * an Instruction, a request, a command and an InstructionListener that
      * handles the command correctly.
-     *//*
+     */
     private void testBadResultWithInstructions(List<InstructionListener> list) {
         Instruction inst = mockUp(list);
 
@@ -261,12 +266,12 @@ public class AbstractReceiverTest {
         assertEquals("true", inst.getRequestParameterByName("Extended"));
     }
 
-    *//**
+    /**
      * This method tests if the onInstruction method works with an Njams object,
      * an Instruction, a request, a command and two InstructionListeners that
      * could handle an the same command, both handle the instruction successive.
      * The second one (Here the WrongInstructionListener) sets the Response.
-     *//*
+     */
     @Test
     public void testOnInstructionWithFirstTheRightThenTheWrongInstructionListener() {
         List<InstructionListener> list = new ArrayList<>();
@@ -280,7 +285,8 @@ public class AbstractReceiverTest {
         AbstractReceiverImpl impl = new AbstractReceiverImpl();
         Njams njams = mock(Njams.class);
         impl.setNjams(njams);
-        when(njams.getInstructionListeners()).thenReturn(new ArrayList<>());
+        //TODO: Use InstructionProcessors
+        //when(njams.getInstructionListeners()).thenReturn(new ArrayList<>());
         Instruction inst = new Instruction();
         Request req = new Request();
         req.setCommand(TESTCOMMAND);
@@ -295,10 +301,10 @@ public class AbstractReceiverTest {
     }
 
     //reconnect tests
-    */
+
     /**
      * This method tests if the Reconnect works, if everything works fine.
-     *//*
+     */
     @Test
     public void testReconnect() {
 
@@ -311,10 +317,10 @@ public class AbstractReceiverTest {
         assertFalse(impl.isDisconnected());
         assertFalse(impl.isConnecting());
     }
-    *//**
+    /**
      * This method tests if the Reconnect does nothing, if the status is
      * CONNECTING
-     *//*
+     */
     @Test
     public void testReconnectWhileConnecting() {
         AbstractReceiverImpl impl = new AbstractReceiverImpl();
@@ -327,10 +333,10 @@ public class AbstractReceiverTest {
         assertTrue(impl.isConnecting());
         assertFalse(impl.isConnected());
     }
-    *//**
+    /**
      * This method tests if the Reconnect does nothing, if the status is
      * CONNECTED
-     *//*
+     */
     @Test
     public void testReconnectWhileConnected() {
         AbstractReceiverImpl impl = new AbstractReceiverImpl();
@@ -344,10 +350,10 @@ public class AbstractReceiverTest {
         assertTrue(impl.isConnected());
     }
 
-    *//**
+    /**
      * This method tests if the thread sleep for longer than 1 second after an
      * exception was thrown.
-     *//*
+     */
     @Test
     public void testReconnectWhenExceptionIsThrown() {
         AbstractReceiverImpl impl = new AbstractReceiverImpl();
@@ -364,11 +370,10 @@ public class AbstractReceiverTest {
     }
 
     //start tests
-    */
 
     /**
      * This method tests if the start method established a connection normally.
-     *//*
+     */
     @Test
     public void testStartWhileDisconnected() {
         AbstractReceiverImpl impl = new AbstractReceiverImpl();
@@ -377,10 +382,10 @@ public class AbstractReceiverTest {
         assertTrue(impl.isConnected());
     }
 
-    *//**
+    /**
      * This method tests if the start method established a connection normally
      * if the status is already connecting.
-     *//*
+     */
     @Test
     public void testStartWhileConnecting() {
         AbstractReceiverImpl impl = new AbstractReceiverImpl();
@@ -390,10 +395,10 @@ public class AbstractReceiverTest {
         assertTrue(impl.isConnected());
     }
 
-    *//**
+    /**
      * This method tests if the start method established a connection normally
      * if the status is already connected.
-     *//*
+     */
     @Test
     public void testStartWhileConnected() {
         AbstractReceiverImpl impl = new AbstractReceiverImpl();
@@ -403,12 +408,12 @@ public class AbstractReceiverTest {
         assertTrue(impl.isConnected());
     }
 
-    *//**
+    /**
      * This method tests if the start method restarts if an
      * NjamsSdkRuntimeException is thrown.
      *
      * @throws java.lang.InterruptedException for thread
-     *//*
+     */
     @Test
     public void testStartWithException() throws InterruptedException {
         AbstractReceiverImpl impl = new AbstractReceiverImpl();
@@ -420,14 +425,13 @@ public class AbstractReceiverTest {
     }
 
     //onException tests
-    */
 
     /**
      * This method tests if the onException method reconnects properly if
      * disconnected.
      *
      * @throws InterruptedException for thread
-     *//*
+     */
     @Test
     public void testOnExceptionWhileDisconnected() throws InterruptedException {
         AbstractReceiverImpl impl = new AbstractReceiverImpl();
@@ -438,13 +442,13 @@ public class AbstractReceiverTest {
         assertTrue(impl.isConnected());
     }
 
-    *//**
+    /**
      * This method tests if the onException method reconnects properly if
      * connecting. It shouldn't change anything, because stop() in
      * AbstractReceiverImpl does nothing.
      *
      * @throws InterruptedException for thread
-     *//*
+     */
     @Test
     public void testOnExceptionWhileConnecting() throws InterruptedException {
         AbstractReceiverImpl impl = new AbstractReceiverImpl();
@@ -456,12 +460,12 @@ public class AbstractReceiverTest {
         assertTrue(impl.isConnecting());
     }
 
-    *//**
+    /**
      * This method tests if the onException method reconnects properly if
      * connected. It should stay connected.
      *
      * @throws InterruptedException for thread
-     *//*
+     */
     @Test
     public void testOnExceptionWhileConnected() throws InterruptedException {
         AbstractReceiverImpl impl = new AbstractReceiverImpl();
@@ -489,12 +493,11 @@ public class AbstractReceiverTest {
     }
 
     //isConnected test
-    */
 
     /**
      * This method tests if the connectionStatus is DISCONNECTED after the
      * initialisation of the AbstractReceiverImpl.
-     *//*
+     */
     @Test
     public void testIsDisconnectedAtInitialisation() {
         AbstractReceiverImpl impl = new AbstractReceiverImpl();
@@ -502,10 +505,10 @@ public class AbstractReceiverTest {
         assertEquals(ConnectionStatus.DISCONNECTED, impl.connectionStatus);
     }
 
-    *//**
+    /**
      * This method tests if method isConnected returns true iff the
      * connectionStatus is CONNECTED.
-     *//*
+     */
     @Test
     public void testIsConnected() {
         AbstractReceiverImpl impl = new AbstractReceiverImpl();
@@ -516,10 +519,10 @@ public class AbstractReceiverTest {
         assertFalse(impl.isDisconnected());
     }
 
-    *//**
+    /**
      * This method tests if method isConnecting returns true iff the
      * connectionStatus is CONNECTING.
-     *//*
+     */
     @Test
     public void testIsConnecting() {
         AbstractReceiverImpl impl = new AbstractReceiverImpl();
@@ -530,10 +533,10 @@ public class AbstractReceiverTest {
         assertFalse(impl.isDisconnected());
     }
 
-    *//**
+    /**
      * This method tests if method isDisconnected returns true iff the
      * connectionStatus is DISCONNECTED.
-     *//*
+     */
     @Test
     public void testIsDisconnected() {
         AbstractReceiverImpl impl = new AbstractReceiverImpl();
@@ -546,74 +549,111 @@ public class AbstractReceiverTest {
 
     //Helper classes
     private class AbstractReceiverImpl extends AbstractReceiver {
+        public static final long RECONNECT_INTERVAL = 2;
+        public static final long THROWINGMAXCOUNTER = 10;
+        public boolean throwException = false;
+        public ConnectionStatus connectionStatus = ConnectionStatus.ERROR;
+        public boolean throwManyExceptions = false;
+        public AtomicInteger verifyingCounter = new AtomicInteger(1);
 
-        private boolean throwException = false;
+        @Override
+        protected Connector initialize(Properties properties) {
+            return new NullConnector();
+        }
 
-        private boolean throwManyExceptions = false;
-
-        private int throwingCounter = 0;
-
-        public static final int THROWINGMAXCOUNTER = 10;
-
-        public static final long RECONNECT_INTERVAL = AbstractReceiver.RECONNECT_INTERVAL;
-
-        //This method should be tested by the real subclass of the AbstractReceiver
         @Override
         public String getName() {
             return "AbstractReceiverTest";
         }
 
-        //This method should be tested by the real subclass of the AbstractReceiver
-        @Override
-        public void init(Properties properties) {
+        public boolean isDisconnected() {
+            return false;
         }
 
-        @Override
-        protected Response extendRequest(Request req) {
-            if (req.getParameters().containsKey("isException")) {
-                Response resp = new Response();
-                resp.setResultCode(2);
-                resp.setResultMessage("Something didn't work!");
-                return resp;
-            }
-            req.getParameters().put("Extended", "true");
-
-            return null;
+        public boolean isConnecting() {
+            return false;
         }
 
-        //This method should be tested by the real subclass of the AbstractReceiver
-        @Override
-        public void connect() {
-            if (throwException) {
-                throwException = false;
-                throw new NjamsSdkRuntimeException("AbstractReceiverTestException");
-
-            } else if (throwManyExceptions && throwingCounter < THROWINGMAXCOUNTER) {
-                throwingCounter++;
-                throw new NjamsSdkRuntimeException("AbstractReceiverTestException");
-            }
-            connectionStatus = ConnectionStatus.CONNECTED;
+        public boolean isConnected() {
+            return false;
         }
 
-        //This method should be tested by the real subclass of the AbstractReceiver
-        @Override
-        public void stop() {
-            //Does nothing in this class.
+        public void reconnect(NjamsSdkRuntimeException e) {
         }
 
-        *//**
-         * This method is for testing.
-         *
-         * @param con the connectionstatus
-         *//*
-        private void setConnectionStatus(ConnectionStatus con) {
-            connectionStatus = con;
+        public void setConnectionStatus(ConnectionStatus connecting) {
         }
+
+        public void onException(Object o) {
+        }
+
+//        private boolean throwException = false;
+//
+//        private boolean throwManyExceptions = false;
+//
+//        private int throwingCounter = 0;
+//
+//        public static final int THROWINGMAXCOUNTER = 10;
+//
+//        public static final long RECONNECT_INTERVAL = AbstractReceiver.RECONNECT_INTERVAL;
+//
+//        //This method should be tested by the real subclass of the AbstractReceiver
+//        @Override
+//        public String getName() {
+//            return "AbstractReceiverTest";
+//        }
+//
+//        //This method should be tested by the real subclass of the AbstractReceiver
+//        @Override
+//        public void init(Properties properties) {
+//        }
+//
+//        @Override
+//        protected Response extendRequest(Request req) {
+//            if (req.getParameters().containsKey("isException")) {
+//                Response resp = new Response();
+//                resp.setResultCode(2);
+//                resp.setResultMessage("Something didn't work!");
+//                return resp;
+//            }
+//            req.getParameters().put("Extended", "true");
+//
+//            return null;
+//        }
+//
+//        //This method should be tested by the real subclass of the AbstractReceiver
+//        @Override
+//        public void connect() {
+//            if (throwException) {
+//                throwException = false;
+//                throw new NjamsSdkRuntimeException("AbstractReceiverTestException");
+//
+//            } else if (throwManyExceptions && throwingCounter < THROWINGMAXCOUNTER) {
+//                throwingCounter++;
+//                throw new NjamsSdkRuntimeException("AbstractReceiverTestException");
+//            }
+//            connectionStatus = ConnectionStatus.CONNECTED;
+//        }
+//
+//        //This method should be tested by the real subclass of the AbstractReceiver
+//        @Override
+//        public void stop() {
+//            //Does nothing in this class.
+//        }
+//
+//        /**
+//         * This method is for testing.
+//         *
+//         * @param con the connectionstatus
+//         */
+//        private void setConnectionStatus(ConnectionStatus con) {
+//            connectionStatus = con;
+//        }
     }
 
-    *//**
+    /**
      * This class is used for the onInstructionTests
-     *//*
+     */
     private class RightInstructionListener implements InstructionListener {
 
         @Override
@@ -628,9 +668,9 @@ public class AbstractReceiverTest {
 
     }
 
-    *//**
+    /**
      * This class is used for the onInstructionTests
-     *//*
+     */
     private class WrongInstructionListener implements InstructionListener {
 
         @Override
@@ -644,9 +684,9 @@ public class AbstractReceiverTest {
         }
     }
 
-    *//**
+    /**
      * This class is used for the onInstructionTests
-     *//*
+     */
     private class ExceptionInstructionListener implements InstructionListener {
 
         @Override
@@ -654,5 +694,5 @@ public class AbstractReceiverTest {
             throw new NjamsSdkRuntimeException("Bad Exception", new Exception("Test2"));
         }
 
-    }*/
+    }
 }

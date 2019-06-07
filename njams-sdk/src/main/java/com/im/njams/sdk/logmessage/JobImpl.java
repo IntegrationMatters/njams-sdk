@@ -170,8 +170,8 @@ public class JobImpl implements Job {
      * activityConfigurations.
      */
     private void initFromConfiguration(ProcessModel processModel) {
-        if (njams == null) {
-            LOG.error("Unable to set LogMode, LogLevel and Exclude for {}, njams is null",
+        if (!njams.isStarted()) {
+            LOG.error("Unable to set LogMode, LogLevel and Exclude for {}, njams hasn't started yet.",
                     processModel.getPath());
             return;
         }

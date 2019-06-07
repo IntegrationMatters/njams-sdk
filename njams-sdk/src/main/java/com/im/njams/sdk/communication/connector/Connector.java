@@ -8,9 +8,9 @@ import com.im.njams.sdk.communication.validator.ClasspathValidatable;
 
 public interface Connector extends AutoCloseable, ClasspathValidatable {
 
-    public static final String SENDER_NAME_ENDING = "-Sender-Connector";
+    String SENDER_NAME_ENDING = "-Sender-Connector";
 
-    public static final String RECEIVER_NAME_ENDING = "-Receiver-Connector";
+    String RECEIVER_NAME_ENDING = "-Receiver-Connector";
 
     /**
      * This method should be used to create a connection, and if the startup

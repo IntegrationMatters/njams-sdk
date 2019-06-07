@@ -28,10 +28,10 @@ import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.common.DateTimeUtility;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.common.Path;
-import com.im.njams.sdk.communication.TestSender;
+import com.im.njams.sdk.communication.connectable.sender.TestSender;
 import com.im.njams.sdk.communication.connectable.sender.Sender;
 import com.im.njams.sdk.communication.connector.Connector;
-import com.im.njams.sdk.communication.pools.NullConnector;
+import com.im.njams.sdk.communication.connector.NullConnector;
 import com.im.njams.sdk.configuration.entity.ActivityConfiguration;
 import com.im.njams.sdk.configuration.entity.ProcessConfiguration;
 import com.im.njams.sdk.configuration.entity.TracepointExt;
@@ -50,7 +50,7 @@ import static org.junit.Assert.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-//import com.im.njams.sdk.communication.TestSender;
+//import com.im.njams.sdk.communication.connectable.sender.TestSender;
 
 public class CleanTracepointsTaskTest extends AbstractTest {
 

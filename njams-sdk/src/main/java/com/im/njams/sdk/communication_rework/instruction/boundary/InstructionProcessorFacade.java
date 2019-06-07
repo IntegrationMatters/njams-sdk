@@ -74,8 +74,6 @@ public class InstructionProcessorFacade {
 
     public void stop() {
         instructionDispatcher.stop();
-        instructionDispatcher = null;
         instructionLoggerFactory.stop();
-        instructionLoggerFactory = null;
     }
 }

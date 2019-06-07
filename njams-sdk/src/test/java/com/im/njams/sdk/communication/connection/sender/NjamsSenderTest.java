@@ -14,25 +14,31 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
  */
-package com.im.njams.sdk.communication;
+package com.im.njams.sdk.communication.connection.sender;
 
 import com.faizsiegeln.njams.messageformat.v4.common.CommonMessage;
 import com.faizsiegeln.njams.messageformat.v4.logmessage.LogMessage;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.ProjectMessage;
 import com.faizsiegeln.njams.messageformat.v4.tracemessage.TraceMessage;
-import com.im.njams.sdk.AbstractTest;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
+import com.im.njams.sdk.communication.Communication;
+import com.im.njams.sdk.communication.connectable.sender.AbstractSender;
+import com.im.njams.sdk.communication.connectable.sender.TestSender;
+import com.im.njams.sdk.communication.connector.AbstractConnector;
+import com.im.njams.sdk.communication.connector.Connector;
 import com.im.njams.sdk.settings.Settings;
+import com.im.njams.sdk.settings.encoding.Transformer;
+import org.junit.BeforeClass;
+import org.junit.Test;
+import org.slf4j.LoggerFactory;
 
-import java.util.*;
+import java.util.Properties;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.junit.BeforeClass;
-import org.junit.Test;
-
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 /**
  * Tests the NjamsSender
@@ -40,8 +46,10 @@ import static org.junit.Assert.*;
  * @author krautenberg@integrationmatters.com
  * @version 4.0.6
  */
-/*
-public class NjamsSenderTest extends AbstractTest {
+//public class NjamsSenderTest extends AbstractTest {
+public class NjamsSenderTest {
+
+    private static final org.slf4j.Logger LOG = LoggerFactory.getLogger(NjamsSenderTest.class);
 
     private static Settings SETTINGS;
 
@@ -51,22 +59,21 @@ public class NjamsSenderTest extends AbstractTest {
     public static void createSettings() {
         SETTINGS = new Settings();
         Properties props = new Properties();
-        props.put(CommunicationFactory.COMMUNICATION, TestSender.NAME);
+        props.put(Communication.COMMUNICATION, TestSender.NAME);
         SETTINGS.setProperties(props);
     }
 
-    public NjamsSenderTest() {
-        super(SETTINGS);
-    }
+    //    public NjamsSenderTest() {
+//        super(SETTINGS);
+//    }
 
-    */
-/**
+    /**
      * Test of close method, of class NjamsSender.
-     *//*
+     */
 
     @Test
-    public void testClose() {
-        NjamsSender sender = new NjamsSender(njams, SETTINGS);
+    public void testStop() {
+        NjamsSender sender = new NjamsSender(null, Transformer.decode(SETTINGS.getProperties()));
         ThreadPoolExecutor executor = sender.getExecutor();
         executor.execute(new Runnable() {
             @Override
@@ -77,92 +84,92 @@ public class NjamsSenderTest extends AbstractTest {
                 }
             }
         });
-//        sender.close();
+        sender.stop();
     }
 
-    */
-/**
+
+    /**
      * Test of initialize, of class NjamsSender.
-     *//*
+     */
 
     @Test(expected = IllegalArgumentException.class)
     public void testIllegalArgumentMaxQueueLength() {
         Settings settings = new Settings();
         Properties props = new Properties();
-        props.put(CommunicationFactory.COMMUNICATION, TestSender.NAME);
+        props.put(Communication.COMMUNICATION, TestSender.NAME);
         props.put(Settings.PROPERTY_MAX_QUEUE_LENGTH, "-1");
         settings.setProperties(props);
-        NjamsSender njamsSender = new NjamsSender(njams, settings);
+        NjamsSender njamsSender = new NjamsSender(null, Transformer.decode(settings.getProperties()));
     }
 
-    */
-/**
+
+    /**
      * Test of initialize, of class NjamsSender.
-     *//*
+     */
 
     @Test(expected = IllegalArgumentException.class)
-    public void testIllegalArgument2SenderThreadIdleTime() {
+    public void testIllegalArgumentSet2SenderThreadIdleTime() {
         Settings settings = new Settings();
         Properties props = new Properties();
-        props.put(CommunicationFactory.COMMUNICATION, TestSender.NAME);
+        props.put(Communication.COMMUNICATION, TestSender.NAME);
         props.put(Settings.PROPERTY_SENDER_THREAD_IDLE_TIME, "-1");
         settings.setProperties(props);
-        NjamsSender njamsSender = new NjamsSender(njams, settings);
+        NjamsSender njamsSender = new NjamsSender(null, settings.getProperties());
     }
 
-    */
-/**
+    /**
      * Test of initialize, of class NjamsSender.
-     *//*
+     */
 
     @Test(expected = IllegalArgumentException.class)
     public void testIllegalArgumentMaxQueueLengthLessThanMinQueueLength() {
         Settings settings = new Settings();
         Properties props = new Properties();
-        props.put(CommunicationFactory.COMMUNICATION, TestSender.NAME);
+        props.put(Communication.COMMUNICATION, TestSender.NAME);
         props.put(Settings.PROPERTY_MIN_QUEUE_LENGTH, "5");
         props.put(Settings.PROPERTY_MAX_QUEUE_LENGTH, "4");
         settings.setProperties(props);
-        NjamsSender njamsSender = new NjamsSender(njams, settings);
+        NjamsSender njamsSender = new NjamsSender(null, Transformer.decode(settings.getProperties()));
     }
 
-    */
-/**
+    /**
      * Test of initialize, of class NjamsSender.
-     *//*
+     */
 
     @Test(expected = IllegalArgumentException.class)
     public void testIllegalArgumentMinQueueLength() {
         Settings settings = new Settings();
         Properties props = new Properties();
-        props.put(CommunicationFactory.COMMUNICATION, TestSender.NAME);
+        props.put(Communication.COMMUNICATION, TestSender.NAME);
         props.put(Settings.PROPERTY_MIN_QUEUE_LENGTH, "-1");
         settings.setProperties(props);
-        NjamsSender njamsSender = new NjamsSender(njams, settings);
+        NjamsSender njamsSender = new NjamsSender(null, Transformer.decode(settings.getProperties()));
     }
 
+    /**
+     * Note that the amount of NjamsSenderThreads >= the amount of TestSender objects
+     */
     @Test
     public void testConfiguredNjamsSender() {
-        Settings settings = new Settings();
+        final int MAX_LOGMESSAGES_SENT = 100;
         Properties props = new Properties();
-        props.put(CommunicationFactory.COMMUNICATION, TestSender.NAME);
+        props.put(Communication.COMMUNICATION, TestSender.NAME);
         props.put(Settings.PROPERTY_MIN_QUEUE_LENGTH, "3");
         props.put(Settings.PROPERTY_MAX_QUEUE_LENGTH, "10");
         props.put(Settings.PROPERTY_SENDER_THREAD_IDLE_TIME, "5000");
-        settings.setProperties(props);
-        NjamsSender sender = new NjamsSender(njams, settings);
+        NjamsSender sender = new NjamsSender(null, props);
         ThreadPoolExecutor executor = sender.getExecutor();
         assertEquals(0, executor.getActiveCount());
         assertEquals(3, executor.getCorePoolSize());
         assertEquals(10, executor.getMaximumPoolSize());
         assertEquals(5000L, executor.getKeepAliveTime(TimeUnit.MILLISECONDS));
-        for (int i = 0; i < 100; i++) {
+        for (int i = 0; i < MAX_LOGMESSAGES_SENT; i++) {
             sender.send(new LogMessage());
         }
         //This is for joining the threads
-//        sender.close();
-        assertEquals(100, executor.getCompletedTaskCount());
-        executor.getLargestPoolSize();
+        sender.stop();
+        assertEquals(MAX_LOGMESSAGES_SENT, executor.getCompletedTaskCount());
+        LOG.info("{} NjamsSender-Threads have been used.", executor.getLargestPoolSize());
     }
 
 
@@ -171,45 +178,35 @@ public class NjamsSenderTest extends AbstractTest {
      * It only reconnects one sender, because the NjamsSender creates multiple TestSenders
      * that redirect the send and connect method to the static ExceptionSender.
      */
-    /*@Test
+    @Test
     public void testReconnectingSenders() throws InterruptedException {
         //Set static ExceptionSender to redirect calls to the TestSender
         TestSender.setSenderMock(new ExceptionSender());
-        NjamsSender sender = new NjamsSender(njams, SETTINGS);
+        NjamsSender sender = new NjamsSender(null, Transformer.decode(SETTINGS.getProperties()));
+
         int messagesToSend = 1000;
         for (int i = 0; i < messagesToSend; i++) {
             Thread t = new Thread(() -> sender.send(null));
             t.start();
         }
-        while (counter.get() < ExceptionSender.TRIES) {
+        while (counter.get() < ExceptionSenderConnector.TRIES) {
             Thread.sleep(100);
         }
-        Thread.sleep(1000);
-        //+1 for the succeeded connection
-        assertEquals(counter.get(), ExceptionSender.TRIES + 1);
+        assertEquals(ExceptionSenderConnector.TRIES, counter.get());
+        sender.stop();
         TestSender.setSenderMock(null);
-        assertEquals(counter.get(), ExceptionSender.TRIES + 1);
+        assertEquals(ExceptionSenderConnector.TRIES, counter.get());
+        final int MAX_NJAMS_SENDER_THREADS_ACCEPTABLE = Integer.parseInt(SETTINGS.getProperties().getProperty(Settings.PROPERTY_MAX_QUEUE_LENGTH, "8"));
+        final int NJAMS_SENDER_THREADS_USED = sender.getExecutor().getLargestPoolSize();
+        LOG.info("{} NjamsSender-Threads have been used.", MAX_NJAMS_SENDER_THREADS_ACCEPTABLE);
+        assertTrue(NJAMS_SENDER_THREADS_USED <= MAX_NJAMS_SENDER_THREADS_ACCEPTABLE);
     }
 
     private class ExceptionSender extends AbstractSender {
 
-        public static final int TRIES = 5;
-
         @Override
-        public void connect() throws NjamsSdkRuntimeException {
-            synchronized (counter) {
-                if (counter.getAndIncrement() < TRIES) {
-                    System.out.println(counter.get() + " times tried to reconnect.");
-                    throw new NjamsSdkRuntimeException("" + counter.get());
-                } else {
-                    connectionStatus = ConnectionStatus.CONNECTED;
-                }
-            }
-        }
-
-        @Override
-        public void send(CommonMessage msg) {
-            onException(null);
+        protected Connector initialize(Properties properties) {
+            return new ExceptionSenderConnector(properties, getName());
         }
 
         @Override
@@ -228,13 +225,45 @@ public class NjamsSenderTest extends AbstractTest {
         }
 
         @Override
-        public void close() {
-
+        public void send(CommonMessage msg) {
+            connector.getNjamsConnection().onException(null);
         }
 
         @Override
         public String getName() {
-            return null;
+            return "ExceptionTest";
         }
-    }*/
-//}
+    }
+
+    private class ExceptionSenderConnector extends AbstractConnector {
+
+        public static final int TRIES = 10;
+
+        private boolean isInitialConnect = true;
+
+        public ExceptionSenderConnector(Properties properties, String name) {
+            super(properties, name);
+        }
+
+        @Override
+        public void connect() {
+            synchronized (counter) {
+                if (!isInitialConnect) {
+                    if (counter.get() < TRIES) {
+                        LOG.info("{} times tried to reconnect.", counter.incrementAndGet());
+                        throw new NjamsSdkRuntimeException("" + counter.get());
+                    }
+                } else {
+                    isInitialConnect = false;
+                    LOG.info("Initial connect");
+                    throw new NjamsSdkRuntimeException("Initial connect");
+                }
+            }
+        }
+
+        @Override
+        public void close() {
+
+        }
+    }
+}

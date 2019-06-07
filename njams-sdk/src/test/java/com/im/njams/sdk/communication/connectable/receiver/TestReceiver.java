@@ -14,13 +14,13 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
  */
-package com.im.njams.sdk.communication;
+package com.im.njams.sdk.communication.connectable.receiver;
 
 import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
 import com.im.njams.sdk.Njams;
-import com.im.njams.sdk.communication.connectable.receiver.Receiver;
+import com.im.njams.sdk.communication.connectable.sender.TestSender;
 import com.im.njams.sdk.communication.connector.Connector;
-import com.im.njams.sdk.communication.pools.NullConnector;
+import com.im.njams.sdk.communication.connector.NullConnector;
 import com.im.njams.sdk.settings.Settings;
 
 import java.util.Properties;

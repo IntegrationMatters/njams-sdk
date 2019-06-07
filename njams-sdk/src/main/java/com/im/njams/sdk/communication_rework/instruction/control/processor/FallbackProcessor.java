@@ -28,6 +28,8 @@ public class FallbackProcessor extends InstructionProcessor {
                 errorMessage = "Request should have a command";
             } else if (command.equals("")) {
                 errorMessage = "Request should have a not empty command";
+            }else if(command.equalsIgnoreCase("replay")){
+                errorMessage = "Client cannot replay processes. No replay handler is present.";
             } else {
                 errorMessage = "Command is unknown: " + command;
             }

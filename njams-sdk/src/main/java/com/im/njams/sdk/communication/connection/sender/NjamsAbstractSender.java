@@ -35,6 +35,10 @@ public abstract class NjamsAbstractSender extends NjamsConnectable {
         this.executor = executor;
     }
 
+    protected ThreadPoolExecutor getExecutor(){
+        return this.executor;
+    }
+
     /**
      * This method closes the ThreadPoolExecutor safely. It awaits the
      * termination for 10 seconds, after that, an InterruptedException will be
@@ -54,7 +58,6 @@ public abstract class NjamsAbstractSender extends NjamsConnectable {
             } catch (InterruptedException ex) {
                 LOG.error("The shutdown of the sender's threadpool has been interrupted. {}", ex);
             }
-            executor = null;
         }
     }
 
@@ -65,7 +68,7 @@ public abstract class NjamsAbstractSender extends NjamsConnectable {
      * @param msg the message that will be send to the server.
      */
     public void send(CommonMessage msg) {
-        if(executor != null) {
+        if(executor != null && !executor.isShutdown()) {
             executor.execute(() -> {
                 Sender sender = null;
                 try {

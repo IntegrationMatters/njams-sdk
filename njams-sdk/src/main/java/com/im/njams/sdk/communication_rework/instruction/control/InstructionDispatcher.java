@@ -35,6 +35,7 @@ public class InstructionDispatcher {
         String commandToProcess = "";
         if(isInstructionValid(instruction)){
             commandToProcess = instruction.getRequest().getCommand();
+            //Todo: Implement a contains method
             for (InstructionProcessor instructionProcessor : instructionProcessors) {
                 if (instructionProcessor.getCommandToProcess().equalsIgnoreCase(commandToProcess)) {
                     executingProcessor = instructionProcessor;
@@ -62,7 +63,5 @@ public class InstructionDispatcher {
 
     public void stop() {
         instructionProcessors.clear();
-        instructionProcessors = null;
-        fallbackProcessor = null;
     }
 }

@@ -24,6 +24,8 @@ public class Reconnector {
     //The time it needs before a new reconnection is tried after an exception throw.
     private long reconnectInterval;
 
+    private final AtomicBoolean isStoppingOrStopped = new AtomicBoolean(false);
+
     private final AtomicBoolean isReconnecting = new AtomicBoolean(false);
 
     private static final AtomicInteger connecting = new AtomicInteger(0);
@@ -51,9 +53,9 @@ public class Reconnector {
      */
     @SuppressWarnings({"squid:S2276", "squid:S2142"})
     public void reconnect(NjamsSdkRuntimeException ex) {
-        if (!njamsConnection.isStoppingOrStopped()) {
+        if (!isStoppingOrStopped.get()) {
             synchronized (isReconnecting) {
-                if (!njamsConnection.isStoppingOrStopped()) {
+                if (!isStoppingOrStopped.get()) {
                     isReconnecting.set(true);
                     njamsConnection.tryToClose();
                     printReconnectExceptionMessage(ex);
@@ -78,7 +80,7 @@ public class Reconnector {
                                 break;
                             }
                         }
-                    } while (!njamsConnection.isConnected() && !njamsConnection.isStoppingOrStopped());
+                    } while (!njamsConnection.isConnected() && !isStoppingOrStopped.get());
                     isReconnecting.set(false);
                 }
             }
@@ -110,8 +112,6 @@ public class Reconnector {
     }
 
     public void stopReconnecting() {
-        synchronized (isReconnecting){
-            njamsConnection = null;
-        }
+        isStoppingOrStopped.set(true);
     }
 }

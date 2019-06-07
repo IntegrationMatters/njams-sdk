@@ -1,7 +1,4 @@
-package com.im.njams.sdk.communication.pools;
-
-import com.im.njams.sdk.communication.connector.Connector;
-import com.im.njams.sdk.communication.connector.NjamsConnection;
+package com.im.njams.sdk.communication.connector;
 
 public class NullConnector implements Connector {
 

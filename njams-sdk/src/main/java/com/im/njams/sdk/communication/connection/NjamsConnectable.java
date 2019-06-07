@@ -25,7 +25,6 @@ public abstract class NjamsConnectable {
     protected void stopConnectablePool(){
         if (connectablePool != null) {
             connectablePool.expireAll();
-            connectablePool = null;
         }
     }
 

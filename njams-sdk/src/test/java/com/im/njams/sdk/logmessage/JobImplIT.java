@@ -23,7 +23,7 @@ import com.faizsiegeln.njams.messageformat.v4.logmessage.LogMessage;
 import com.im.njams.sdk.AbstractTest;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 //import com.im.njams.sdk.communication.Sender;
-//import com.im.njams.sdk.communication.TestSender;
+//import com.im.njams.sdk.communication.connectable.sender.TestSender;
 
 import java.util.ArrayList;
 import java.util.Collections;
