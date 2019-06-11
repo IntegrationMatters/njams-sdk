@@ -196,7 +196,6 @@ public class Njams implements InstructionListener {
         createTreeElements(path, TreeElementType.CLIENT);
         readVersions(version);
         printStartupBanner();
-        instructionListeners.add(this);
         setMachine();
     }
 

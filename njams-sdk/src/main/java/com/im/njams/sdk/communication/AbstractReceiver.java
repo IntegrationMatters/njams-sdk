@@ -16,6 +16,9 @@
  */
 package com.im.njams.sdk.communication;
 
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -24,9 +27,6 @@ import com.faizsiegeln.njams.messageformat.v4.command.Request;
 import com.faizsiegeln.njams.messageformat.v4.command.Response;
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
-
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * This class should be extended when implementing an new Receiver for a new
@@ -77,6 +77,7 @@ public abstract class AbstractReceiver implements Receiver {
      */
     @Override
     public void onInstruction(Instruction instruction) {
+        LOG.debug("Received instruction: {}", instruction == null ? "null" : instruction.getCommand());
         if (njams == null) {
             LOG.error("Njams should not be null");
             return;
@@ -95,7 +96,7 @@ public abstract class AbstractReceiver implements Receiver {
         }
         //Extend your request here. If something doesn't work as expected,
         //you can return a response that will be sent back to the server without further processing.
-        Response exceptionResponse = this.extendRequest(instruction.getRequest());
+        Response exceptionResponse = extendRequest(instruction.getRequest());
         if (exceptionResponse != null) {
             //Set the exception response
             instruction.setResponse(exceptionResponse);
@@ -112,7 +113,8 @@ public abstract class AbstractReceiver implements Receiver {
                 LOG.warn("No InstructionListener for {} found", instruction.getRequest().getCommand());
                 Response response = new Response();
                 response.setResultCode(1);
-                response.setResultMessage("No InstructionListener for " + instruction.getRequest().getCommand() + " found");
+                response.setResultMessage(
+                        "No InstructionListener for " + instruction.getRequest().getCommand() + " found");
                 instruction.setResponse(response);
             }
         }
@@ -150,11 +152,11 @@ public abstract class AbstractReceiver implements Receiver {
      *
      * @param ex the exception that initiated the reconnect
      */
-    @SuppressWarnings({"squid:S2276", "squid:S2142"})
+    @SuppressWarnings({ "squid:S2276", "squid:S2142" })
     public synchronized void reconnect(NjamsSdkRuntimeException ex) {
         int got = verifyingCounter.incrementAndGet();
         boolean doReconnect = true;
-        if (this.isConnecting() || this.isConnected()) {
+        if (isConnecting() || isConnected()) {
             doReconnect = false;
         } else {
             synchronized (hasConnected) {
@@ -173,9 +175,9 @@ public abstract class AbstractReceiver implements Receiver {
             //This is just for debugging.
             LOG.debug("There are to many reconnections at the same time! There are {} method invocations.", got);
         }
-        while (!this.isConnected() && doReconnect) {
+        while (!isConnected() && doReconnect) {
             try {
-                this.connect();
+                connect();
                 synchronized (hasConnected) {
                     if (!hasConnected.get()) {
                         LOG.info("Connection can be established again!");
@@ -205,15 +207,15 @@ public abstract class AbstractReceiver implements Receiver {
     @Override
     public void start() {
         try {
-            this.connect();
+            connect();
             if (LOG.isDebugEnabled()) {
-                LOG.debug("Started receiver {}", this.getName());
+                LOG.debug("Started receiver {}", getName());
             }
         } catch (NjamsSdkRuntimeException e) {
             LOG.error("Could not initialize receiver {}\n. Pushing reconnect task to background.",
-                    this.getName(), e);
+                    getName(), e);
             // trigger reconnect
-            this.onException(new NjamsSdkRuntimeException("Initial Connect."));
+            onException(new NjamsSdkRuntimeException("Initial Connect."));
         }
     }
 
@@ -223,11 +225,11 @@ public abstract class AbstractReceiver implements Receiver {
      * @param exception the exception that caused this method invokation.
      */
     public void onException(NjamsSdkRuntimeException exception) {
-        this.stop();
+        stop();
         // reconnect
         Thread reconnector = new Thread(() -> reconnect(exception));
         reconnector.setDaemon(true);
-        reconnector.setName(String.format("%s-Receiver-Reconnector-Thread", this.getName()));
+        reconnector.setName(String.format("%s-Receiver-Reconnector-Thread", getName()));
         reconnector.start();
     }
 
@@ -237,7 +239,7 @@ public abstract class AbstractReceiver implements Receiver {
      * @return true, if Receiver is connected, otherwise false
      */
     public boolean isConnected() {
-        return this.connectionStatus == ConnectionStatus.CONNECTED;
+        return connectionStatus == ConnectionStatus.CONNECTED;
     }
 
     /**
@@ -246,7 +248,7 @@ public abstract class AbstractReceiver implements Receiver {
      * @return true, if Receiver is disconnected, otherwise false
      */
     public boolean isDisconnected() {
-        return this.connectionStatus == ConnectionStatus.DISCONNECTED;
+        return connectionStatus == ConnectionStatus.DISCONNECTED;
     }
 
     /**
@@ -255,7 +257,7 @@ public abstract class AbstractReceiver implements Receiver {
      * @return true, if Receiver is connecting, otherwise false
      */
     public boolean isConnecting() {
-        return this.connectionStatus == ConnectionStatus.CONNECTING;
+        return connectionStatus == ConnectionStatus.CONNECTING;
     }
 
 }
