@@ -1,33 +1,45 @@
 package com.im.njams.sdk.communication_rework.instruction.control;
 
 import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
-import com.im.njams.sdk.communication_rework.instruction.control.processor.InstructionProcessor;
 import com.im.njams.sdk.communication_rework.instruction.control.processor.FallbackProcessor;
+import com.im.njams.sdk.communication_rework.instruction.control.processor.InstructionProcessor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 
 public class InstructionDispatcher {
 
     private static final Logger LOG = LoggerFactory.getLogger(InstructionDispatcher.class);
 
-    private List<InstructionProcessor> instructionProcessors;
+    private Map<String, InstructionProcessor> instructionProcessors;
 
-    private FallbackProcessor fallbackProcessor;
+    private InstructionProcessor fallbackProcessor;
 
     public InstructionDispatcher() {
-        this.instructionProcessors = new ArrayList<>();
-        this.fallbackProcessor = new FallbackProcessor(FallbackProcessor.FALLBACK);
+        this.instructionProcessors = new HashMap<>();
+        this.fallbackProcessor = new FallbackProcessor();
     }
 
-    public void addInstructionProcessor(InstructionProcessor instructionProcessor) {
-        instructionProcessors.add(instructionProcessor);
+    public void addInstructionProcessorForDistinctCommand(InstructionProcessor instructionProcessor) {
+        instructionProcessors.put(instructionProcessor.getCommandToProcess().toLowerCase(), instructionProcessor);
     }
 
-    public void removeInstructionProcessor(InstructionProcessor instructionProcessor) {
-        instructionProcessors.remove(instructionProcessor);
+    public InstructionProcessor getInstructionProcessorForDistinctCommand(String instructionProcessorCommandName) {
+        return instructionProcessors.get(instructionProcessorCommandName.toLowerCase());
+    }
+
+    public boolean containsInstructionProcessorForDistinctCommand(String instructionProcessorCommandName){
+        return instructionProcessors.containsKey(instructionProcessorCommandName.toLowerCase());
+    }
+
+    public void removeInstructionProcessorForDistinctCommand(InstructionProcessor instructionProcessor) {
+        instructionProcessors.remove(instructionProcessor.getCommandToProcess().toLowerCase(), instructionProcessor);
+    }
+
+    public void removeAllInstructionProcessors() {
+        instructionProcessors.clear();
     }
 
     public void dispatchInstruction(Instruction instruction) {
@@ -35,11 +47,8 @@ public class InstructionDispatcher {
         String commandToProcess = "";
         if(isInstructionValid(instruction)){
             commandToProcess = instruction.getRequest().getCommand();
-            //Todo: Implement a contains method
-            for (InstructionProcessor instructionProcessor : instructionProcessors) {
-                if (instructionProcessor.getCommandToProcess().equalsIgnoreCase(commandToProcess)) {
-                    executingProcessor = instructionProcessor;
-                }
+            if(containsInstructionProcessorForDistinctCommand(commandToProcess)){
+                executingProcessor = getInstructionProcessorForDistinctCommand(commandToProcess);
             }
         }
         if (LOG.isDebugEnabled()) {
@@ -49,19 +58,18 @@ public class InstructionDispatcher {
     }
 
     private boolean isInstructionValid(Instruction instruction){
-        return instruction.getRequest() != null;
+        return instruction != null && instruction.getRequest() != null;
     }
 
-    public InstructionProcessor getInstructionProcessor(String instructionProcessorCommandName) {
-        for (InstructionProcessor instructionProcessor : instructionProcessors) {
-            if (instructionProcessor.getCommandToProcess().equals(instructionProcessorCommandName)) {
-                return instructionProcessor;
-            }
-        }
-        return null;
+    protected void setFallbackProcessor(InstructionProcessor fallbackProcessor){
+        this.fallbackProcessor = fallbackProcessor;
     }
 
-    public void stop() {
-        instructionProcessors.clear();
+    protected InstructionProcessor getFallbackProcessor(){
+        return fallbackProcessor;
+    }
+
+    protected Map<String, InstructionProcessor> getAllInstructionProcessorsExceptFallbackProcessor(){
+        return instructionProcessors;
     }
 }

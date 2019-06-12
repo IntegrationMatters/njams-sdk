@@ -7,6 +7,7 @@ import com.im.njams.sdk.communication_rework.instruction.control.processor.Instr
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+
 public class InstructionProcessorFacade {
 
     private static final Logger LOG = LoggerFactory.getLogger(InstructionProcessorFacade.class);
@@ -35,11 +36,11 @@ public class InstructionProcessorFacade {
                 }
             }
         }
-        this.instructionDispatcher.addInstructionProcessor(newInstructionProcessor);
+        this.instructionDispatcher.addInstructionProcessorForDistinctCommand(newInstructionProcessor);
     }
 
     private InstructionProcessor getInstructionProcessorFromDispatcher(String commandToLookFor) {
-        return instructionDispatcher.getInstructionProcessor(commandToLookFor);
+        return instructionDispatcher.getInstructionProcessorForDistinctCommand(commandToLookFor);
     }
 
     public void removeInstructionProcessor(String instructionProcessorCommand) {
@@ -49,7 +50,7 @@ public class InstructionProcessorFacade {
             if (isDebugEnabled) {
                 LOG.debug("Removing InstructionProcessor {} for command {}.", instructionProcessorToRemove.getClass().getSimpleName(), instructionProcessorCommand);
             }
-            instructionDispatcher.removeInstructionProcessor(instructionProcessorToRemove);
+            instructionDispatcher.removeInstructionProcessorForDistinctCommand(instructionProcessorToRemove);
         } else {
             if (isDebugEnabled) {
                 LOG.debug("Can't remove InstructionListener for command {}, because it hasn't been added before.", instructionProcessorCommand);
@@ -73,7 +74,7 @@ public class InstructionProcessorFacade {
     }
 
     public void stop() {
-        instructionDispatcher.stop();
+        instructionDispatcher.removeAllInstructionProcessors();
         instructionLoggerFactory.stop();
     }
 }

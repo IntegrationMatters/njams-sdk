@@ -12,32 +12,36 @@ public class FallbackProcessor extends InstructionProcessor {
 
     public static final String FALLBACK = "Fallback";
 
-    public FallbackProcessor(String commandToProcess) {
-        super(commandToProcess);
+    public FallbackProcessor() {
+        super(FALLBACK);
     }
 
     @Override
     public void processInstruction(Instruction instruction) {
         String errorMessage;
-        Request request = instruction.getRequest();
-        if (request == null) {
-            errorMessage = "Instruction should have a request";
+        if (instruction == null) {
+            errorMessage = "Instruction should not be null";
         } else {
-            String command = request.getCommand();
-            if (command == null) {
-                errorMessage = "Request should have a command";
-            } else if (command.equals("")) {
-                errorMessage = "Request should have a not empty command";
-            }else if(command.equalsIgnoreCase("replay")){
-                errorMessage = "Client cannot replay processes. No replay handler is present.";
+            Request request = instruction.getRequest();
+            if (request == null) {
+                errorMessage = "Instruction should have a request";
             } else {
-                errorMessage = "Command is unknown: " + command;
+                String command = request.getCommand();
+                if (command == null) {
+                    errorMessage = "Request should have a command";
+                } else if (command.equals("")) {
+                    errorMessage = "Request should have a not empty command";
+                } else if (command.equalsIgnoreCase("replay")) {
+                    errorMessage = "Client cannot replay processes. No replay handler is present.";
+                } else {
+                    errorMessage = "Command is unknown: " + command;
+                }
             }
+            Response response = new Response();
+            response.setResultCode(1);
+            response.setResultMessage(errorMessage);
+            instruction.setResponse(response);
         }
         LOG.error(errorMessage);
-        Response response = new Response();
-        response.setResultCode(1);
-        response.setResultMessage(errorMessage);
-        instruction.setResponse(response);
     }
 }
