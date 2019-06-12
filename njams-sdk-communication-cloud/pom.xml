@@ -9,7 +9,7 @@
     <parent>
         <groupId>com.faizsiegeln</groupId>
         <artifactId>njams4-sdk-root</artifactId>
-        <version>4.0.8-SNAPSHOT</version>
+        <version>4.0.8</version>
     </parent>
 
     <build>
@@ -71,7 +71,7 @@
         <dependency>
             <groupId>com.faizsiegeln.njams</groupId>
             <artifactId>njams4-sdk</artifactId>
-            <version>4.0.8-SNAPSHOT</version>
+            <version>4.0.8</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
