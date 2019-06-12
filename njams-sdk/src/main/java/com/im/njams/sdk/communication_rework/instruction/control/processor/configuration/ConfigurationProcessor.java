@@ -16,6 +16,8 @@ import java.util.stream.Collectors;
 
 public abstract class ConfigurationProcessor extends InstructionProcessor {
 
+    protected static final String UNABLE_TO_SAVE_CONFIGURATION = "Unable to save configuration";
+
     protected Njams njams;
 
     public ConfigurationProcessor(Njams njams, String commandToProcess) {
@@ -33,7 +35,7 @@ public abstract class ConfigurationProcessor extends InstructionProcessor {
         try {
             njams.saveConfigurationFromMemoryToStorage();
         } catch (final Exception e) {
-            instructionSupport.error("Unable to save configuration", e);
+            instructionSupport.error(UNABLE_TO_SAVE_CONFIGURATION, e);
         }
     }
 
