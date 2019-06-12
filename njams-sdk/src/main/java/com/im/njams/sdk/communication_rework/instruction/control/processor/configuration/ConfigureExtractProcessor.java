@@ -16,8 +16,8 @@ public class ConfigureExtractProcessor extends ConfigurationProcessor {
 
     public static final String CONFIGURE_EXTRACT = Command.CONFIGURE_EXTRACT.commandString();
 
-    public ConfigureExtractProcessor(Njams njams, String commandToProcess) {
-        super(njams, commandToProcess);
+    public ConfigureExtractProcessor(Njams njams) {
+        super(njams, CONFIGURE_EXTRACT);
     }
 
     @Override

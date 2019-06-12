@@ -10,8 +10,8 @@ public class GetTracingProcessor extends ConfigurationProcessor {
 
     public static final String GET_TRACING = Command.GET_TRACING.commandString();
 
-    public GetTracingProcessor(Njams njams, String commandToProcess) {
-        super(njams, commandToProcess);
+    public GetTracingProcessor(Njams njams) {
+        super(njams, GET_TRACING);
     }
 
     @Override

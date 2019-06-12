@@ -9,8 +9,8 @@ public class DeleteExtractProcessor extends ConfigurationProcessor {
 
     public static final String DELETE_EXTRACT = Command.DELETE_EXTRACT.commandString();
 
-    public DeleteExtractProcessor(Njams njams, String commandToProcess) {
-        super(njams, commandToProcess);
+    public DeleteExtractProcessor(Njams njams) {
+        super(njams, DELETE_EXTRACT);
     }
 
     @Override

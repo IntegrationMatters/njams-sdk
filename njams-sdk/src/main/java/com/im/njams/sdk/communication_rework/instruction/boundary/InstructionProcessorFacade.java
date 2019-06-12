@@ -4,6 +4,8 @@ import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
 import com.im.njams.sdk.communication_rework.instruction.boundary.logging.InstructionLoggerFactory;
 import com.im.njams.sdk.communication_rework.instruction.control.InstructionDispatcher;
 import com.im.njams.sdk.communication_rework.instruction.control.processor.InstructionProcessor;
+import com.im.njams.sdk.communication_rework.instruction.control.processor.replay.ReplayHandler;
+import com.im.njams.sdk.communication_rework.instruction.control.processor.replay.ReplayProcessor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -71,6 +73,25 @@ public class InstructionProcessorFacade {
         } else if (LOG.isErrorEnabled()) {
             LOG.error("Instruction must not be null");
         }
+    }
+
+    public void setReplayHandlerToReplayProcessor(ReplayHandler replayHandler) {
+        if (instructionDispatcher.containsInstructionProcessorForDistinctCommand(ReplayProcessor.REPLAY)) {
+            ReplayProcessor replayProcessor = (ReplayProcessor) instructionDispatcher.getInstructionProcessorForDistinctCommand(ReplayProcessor.REPLAY);
+            replayProcessor.setReplayHandler(replayHandler);
+            if (replayHandler == null) {
+                LOG.info("ReplayHandler has been removed successfully.");
+            } else {
+                LOG.info("ReplayHandler has been set successfully.");
+            }
+        } else {
+            LOG.error("There is no Replay Processor available in the InstructionDispatcher");
+        }
+    }
+
+    public ReplayHandler getReplayHandlerFromReplayProcessor() {
+        ReplayProcessor replayProcessor = (ReplayProcessor) instructionDispatcher.getInstructionProcessorForDistinctCommand(ReplayProcessor.REPLAY);
+        return replayProcessor.getReplayHandler();
     }
 
     public void stop() {

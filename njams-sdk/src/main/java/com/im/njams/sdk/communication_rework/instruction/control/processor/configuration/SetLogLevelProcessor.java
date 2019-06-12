@@ -10,8 +10,8 @@ public class SetLogLevelProcessor extends ConfigurationProcessor {
 
     public static final String SET_LOG_LEVEL = Command.SET_LOG_LEVEL.commandString();
 
-    public SetLogLevelProcessor(Njams njams, String commandToProcess) {
-        super(njams, commandToProcess);
+    public SetLogLevelProcessor(Njams njams) {
+        super(njams, SET_LOG_LEVEL);
     }
 
     @Override

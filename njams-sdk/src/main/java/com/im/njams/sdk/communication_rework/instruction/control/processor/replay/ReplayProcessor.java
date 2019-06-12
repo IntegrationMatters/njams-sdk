@@ -11,9 +11,8 @@ public class ReplayProcessor extends InstructionProcessor {
 
     public static final String REPLAY = Command.REPLAY.commandString();
 
-    public ReplayProcessor(ReplayHandler replayHandler, String commandToProcess) {
-        super(commandToProcess);
-        this.replayHandler = replayHandler;
+    public ReplayProcessor() {
+        super(REPLAY);
     }
 
     @Override
@@ -34,5 +33,13 @@ public class ReplayProcessor extends InstructionProcessor {
             response.setResultMessage("Client cannot replay processes. No replay handler is present.");
             instruction.setResponse(response);
         }
+    }
+
+    public void setReplayHandler(ReplayHandler replayHandler){
+        this.replayHandler = replayHandler;
+    }
+
+    public ReplayHandler getReplayHandler(){
+        return replayHandler;
     }
 }

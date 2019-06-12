@@ -16,8 +16,8 @@ public class GetExtractProcessor extends ConfigurationProcessor {
 
     public static final String GET_EXTRACT = Command.GET_EXTRACT.commandString();
 
-    public GetExtractProcessor(Njams njams, String commandToProcess) {
-        super(njams, commandToProcess);
+    public GetExtractProcessor(Njams njams) {
+        super(njams, GET_EXTRACT);
     }
 
     @Override

@@ -12,8 +12,8 @@ public class RecordProcessor extends ConfigurationProcessor {
 
     public static final String RECORD = Command.RECORD.commandString();
 
-    public RecordProcessor(Njams njams, String commandToProcess) {
-        super(njams, commandToProcess);
+    public RecordProcessor(Njams njams) {
+        super(njams, RECORD);
     }
 
     @Override

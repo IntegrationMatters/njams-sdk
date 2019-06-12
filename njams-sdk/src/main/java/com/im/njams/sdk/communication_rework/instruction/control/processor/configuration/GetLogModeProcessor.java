@@ -11,8 +11,8 @@ public class GetLogModeProcessor extends ConfigurationProcessor {
 
     public static final String GET_LOG_MODE = Command.GET_LOG_MODE.commandString();
 
-    public GetLogModeProcessor(Njams njams, String commandToProcess) {
-        super(njams, commandToProcess);
+    public GetLogModeProcessor(Njams njams) {
+        super(njams, GET_LOG_MODE);
     }
 
     @Override

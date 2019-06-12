@@ -18,8 +18,8 @@ public class SetTracingProcessor extends ConfigurationProcessor {
 
     public static final String SET_TRACING = Command.SET_TRACING.commandString();
 
-    public SetTracingProcessor(Njams njams, String commandToProcess) {
-        super(njams, commandToProcess);
+    public SetTracingProcessor(Njams njams) {
+        super(njams, SET_TRACING);
     }
 
     @Override

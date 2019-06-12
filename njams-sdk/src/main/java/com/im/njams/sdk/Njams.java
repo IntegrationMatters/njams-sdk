@@ -170,8 +170,6 @@ public class Njams {
     private boolean started = false;
     private static final String NOT_STARTED_EXCEPTION_MESSAGE = "The instance needs to be started first!";
 
-    private ReplayHandler replayHandler = null;
-
     private final ConfigurationFacade configurationFacade;
 
 //    private final SettingsProxyFactory settingsProxyFactory;
@@ -198,22 +196,23 @@ public class Njams {
         printStartupBanner();
         setMachine();
         communicationFactory = new Communication(this, settings);
-        communicationFacade = new CommunicationFacade(Transformer.decode(settings.getProperties()));
+        communicationFacade = new CommunicationFacade();
         configurationFacade = new ConfigurationFacade(Transformer.decode(settings.getProperties()));
     }
 
     private void addInstructionProcessors() {
-        this.addInstructionProcessor(new SendProjectMessageProcessor(this, SendProjectMessageProcessor.SEND_PROJECTMESSAGE));
-        this.addInstructionProcessor(new ConfigureExtractProcessor(this, ConfigureExtractProcessor.CONFIGURE_EXTRACT));
-        this.addInstructionProcessor(new DeleteExtractProcessor(this, DeleteExtractProcessor.DELETE_EXTRACT));
-        this.addInstructionProcessor(new GetExtractProcessor(this, GetExtractProcessor.GET_EXTRACT));
-        this.addInstructionProcessor(new GetLogLevelProcessor(this, GetLogLevelProcessor.GET_LOG_LEVEL));
-        this.addInstructionProcessor(new GetLogModeProcessor(this, GetLogModeProcessor.GET_LOG_MODE));
-        this.addInstructionProcessor(new GetTracingProcessor(this, GetTracingProcessor.GET_TRACING));
-        this.addInstructionProcessor(new RecordProcessor(this, RecordProcessor.RECORD));
-        this.addInstructionProcessor(new SetLogLevelProcessor(this, SetLogLevelProcessor.SET_LOG_LEVEL));
-        this.addInstructionProcessor(new SetLogModeProcessor(this, SetLogModeProcessor.SET_LOG_MODE));
-        this.addInstructionProcessor(new SetTracingProcessor(this, SetTracingProcessor.SET_TRACING));
+        this.addInstructionProcessor(new SendProjectMessageProcessor(this));
+        this.addInstructionProcessor(new ConfigureExtractProcessor(this));
+        this.addInstructionProcessor(new DeleteExtractProcessor(this));
+        this.addInstructionProcessor(new GetExtractProcessor(this));
+        this.addInstructionProcessor(new GetLogLevelProcessor(this));
+        this.addInstructionProcessor(new GetLogModeProcessor(this));
+        this.addInstructionProcessor(new GetTracingProcessor(this));
+        this.addInstructionProcessor(new RecordProcessor(this));
+        this.addInstructionProcessor(new SetLogLevelProcessor(this));
+        this.addInstructionProcessor(new SetLogModeProcessor(this));
+        this.addInstructionProcessor(new SetTracingProcessor(this));
+        this.addInstructionProcessor(new ReplayProcessor());
     }
 
     public void addInstructionProcessor(InstructionProcessor instructionProcessor) {
@@ -226,6 +225,29 @@ public class Njams {
 
     public void processReceivedInstruction(Instruction instruction) {
         communicationFacade.processInstruction(instruction);
+    }
+
+    /**
+     * Gets the current replay handler if present.
+     *
+     * @return Current replay handler if present or null otherwise.
+     */
+    public ReplayHandler getReplayHandler() {
+        return communicationFacade.getReplayHandlerFromReplayProcessor();
+    }
+
+    /**
+     * Sets a replay handler.
+     *
+     * @param replayHandler Replay handler to be set.
+     */
+    public void setReplayHandler(final ReplayHandler replayHandler) {
+        communicationFacade.setReplayHandlerToReplayProcessor(replayHandler);
+        if (replayHandler == null) {
+            removeFeature(FEATURE_REPLAY);
+        } else {
+            addFeature(FEATURE_REPLAY);
+        }
     }
 
     //For ServerInstructionSettings
@@ -276,31 +298,6 @@ public class Njams {
 
     public void saveConfigurationFromMemoryToStorage(){
         configurationFacade.saveConfigurationFromMemoryToStorage();
-    }
-
-    /**
-     * Gets the current replay handler if present.
-     *
-     * @return Current replay handler if present or null otherwise.
-     */
-    public ReplayHandler getReplayHandler() {
-        return replayHandler;
-    }
-
-    /**
-     * Sets a replay handler.
-     *
-     * @param replayHandler Replay handler to be set.
-     */
-    public void setReplayHandler(final ReplayHandler replayHandler) {
-        this.replayHandler = replayHandler;
-        if (replayHandler == null) {
-            this.removeInstructionProcessor(ReplayProcessor.REPLAY);
-            removeFeature(FEATURE_REPLAY);
-        } else {
-            this.addInstructionProcessor(new ReplayProcessor(replayHandler, ReplayProcessor.REPLAY));
-            addFeature(FEATURE_REPLAY);
-        }
     }
 
     /**

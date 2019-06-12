@@ -12,8 +12,8 @@ public class SetLogModeProcessor extends ConfigurationProcessor {
 
     public static final String SET_LOG_MODE = Command.SET_LOG_MODE.commandString();
 
-    public SetLogModeProcessor(Njams njams, String commandToProcess) {
-        super(njams, commandToProcess);
+    public SetLogModeProcessor(Njams njams) {
+        super(njams, SET_LOG_MODE);
     }
 
     @Override

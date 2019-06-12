@@ -12,6 +12,18 @@ public class FallbackProcessor extends InstructionProcessor {
 
     public static final String FALLBACK = "Fallback";
 
+    protected static final String INSTRUCTION_IS_NULL = "Instruction should not be null";
+
+    protected static final String REQUEST_IS_NULL = "Instruction should have a request";
+
+    protected static final String COMMAND_IS_NULL = "Request should have a command";
+
+    protected static final String COMMAND_IS_EMPTY = "Request should have a not empty command";
+
+    protected static final String COMMAND_UNKNOWN = "Command is unknown: ";
+
+    protected static final int ERROR_RESULT_CODE = 1;
+
     public FallbackProcessor() {
         super(FALLBACK);
     }
@@ -20,25 +32,23 @@ public class FallbackProcessor extends InstructionProcessor {
     public void processInstruction(Instruction instruction) {
         String errorMessage;
         if (instruction == null) {
-            errorMessage = "Instruction should not be null";
+            errorMessage = INSTRUCTION_IS_NULL;
         } else {
             Request request = instruction.getRequest();
             if (request == null) {
-                errorMessage = "Instruction should have a request";
+                errorMessage = REQUEST_IS_NULL;
             } else {
                 String command = request.getCommand();
                 if (command == null) {
-                    errorMessage = "Request should have a command";
+                    errorMessage = COMMAND_IS_NULL;
                 } else if (command.equals("")) {
-                    errorMessage = "Request should have a not empty command";
-                } else if (command.equalsIgnoreCase("replay")) {
-                    errorMessage = "Client cannot replay processes. No replay handler is present.";
+                    errorMessage = COMMAND_IS_EMPTY;
                 } else {
-                    errorMessage = "Command is unknown: " + command;
+                    errorMessage = COMMAND_UNKNOWN + command;
                 }
             }
             Response response = new Response();
-            response.setResultCode(1);
+            response.setResultCode(ERROR_RESULT_CODE);
             response.setResultMessage(errorMessage);
             instruction.setResponse(response);
         }

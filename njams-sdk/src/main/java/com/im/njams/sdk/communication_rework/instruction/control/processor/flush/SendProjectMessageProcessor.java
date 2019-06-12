@@ -16,8 +16,8 @@ public class SendProjectMessageProcessor extends InstructionProcessor {
 
     private Njams njams;
 
-    public SendProjectMessageProcessor(Njams njams, String commandToProcess) {
-        super(commandToProcess);
+    public SendProjectMessageProcessor(Njams njams) {
+        super(SEND_PROJECTMESSAGE);
         this.njams = njams;
     }
 

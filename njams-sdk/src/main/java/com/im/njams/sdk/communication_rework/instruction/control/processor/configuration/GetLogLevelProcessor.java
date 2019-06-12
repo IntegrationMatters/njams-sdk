@@ -13,8 +13,8 @@ public class GetLogLevelProcessor extends ConfigurationProcessor {
 
     public static final String GET_LOG_LEVEL = Command.GET_LOG_LEVEL.commandString();
 
-    public GetLogLevelProcessor(Njams njams, String commandToProcess) {
-        super(njams, commandToProcess);
+    public GetLogLevelProcessor(Njams njams) {
+        super(njams, GET_LOG_LEVEL);
     }
 
     @Override
