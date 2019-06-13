@@ -4,11 +4,10 @@ import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
 import com.faizsiegeln.njams.messageformat.v4.command.Response;
 import org.junit.Test;
 
-import static com.im.njams.sdk.communication_rework.instruction.control.processor.InstructionProcessorTestUtility.prepareGetLogLevelInstruction;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-public class FallbackProcessorTest {
+public class FallbackProcessorTest extends AbstractInstructionProcessor{
 
     private FallbackProcessor fallbackProcessor;
 
@@ -23,7 +22,7 @@ public class FallbackProcessorTest {
 
     @Test
     public void testNullRequest(){
-        Instruction instruction = prepareGetLogLevelInstruction();
+        Instruction instruction = instructionBuilder.prepareGetLogLevelInstruction().build();
         instruction.setRequest(null);
         fallbackProcessor.processInstruction(instruction);
         checkForCorrectProcessing(instruction, FallbackProcessor.REQUEST_IS_NULL);
@@ -39,7 +38,7 @@ public class FallbackProcessorTest {
 
     @Test
     public void testNullCommand(){
-        Instruction instruction = prepareGetLogLevelInstruction();
+        Instruction instruction = instructionBuilder.prepareGetLogLevelInstruction().build();
         instruction.getRequest().setCommand(null);
         fallbackProcessor.processInstruction(instruction);
         checkForCorrectProcessing(instruction, FallbackProcessor.COMMAND_IS_NULL);
@@ -47,7 +46,7 @@ public class FallbackProcessorTest {
 
     @Test
     public void testEmptyCommand(){
-        Instruction instruction = prepareGetLogLevelInstruction();
+        Instruction instruction = instructionBuilder.prepareGetLogLevelInstruction().build();
         instruction.getRequest().setCommand("");
         fallbackProcessor.processInstruction(instruction);
         checkForCorrectProcessing(instruction, FallbackProcessor.COMMAND_IS_EMPTY);
@@ -55,7 +54,7 @@ public class FallbackProcessorTest {
 
     @Test
     public void testNormalCommand(){
-        Instruction instruction = prepareGetLogLevelInstruction();
+        Instruction instruction = instructionBuilder.prepareGetLogLevelInstruction().build();
         fallbackProcessor.processInstruction(instruction);
         checkForCorrectProcessing(instruction, FallbackProcessor.COMMAND_UNKNOWN + instruction.getRequest().getCommand());
     }
