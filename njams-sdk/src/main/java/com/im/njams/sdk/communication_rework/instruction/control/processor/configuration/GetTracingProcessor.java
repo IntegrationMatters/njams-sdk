@@ -38,7 +38,7 @@ public class GetTracingProcessor extends ConfigurationProcessor {
         TracepointExt tracepoint = null;
         tracepoint = activity.getTracepoint();
         if (tracepoint == null) {
-            instructionSupport.error("Tracepoint for actvitiy " + activityId + " not found");
+            instructionSupport.error("Tracepoint for activity " + activityId + " not found");
             return;
         }
 

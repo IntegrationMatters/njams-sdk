@@ -4,13 +4,16 @@ import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
 import com.faizsiegeln.njams.messageformat.v4.command.Response;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.Extract;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.ExtractRule;
+import com.faizsiegeln.njams.messageformat.v4.projectmessage.Tracepoint;
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.communication_rework.instruction.control.processor.AbstractInstructionProcessor;
 import com.im.njams.sdk.configuration.entity.ActivityConfiguration;
 import com.im.njams.sdk.configuration.entity.Configuration;
 import com.im.njams.sdk.configuration.entity.ProcessConfiguration;
+import com.im.njams.sdk.configuration.entity.TracepointExt;
 import org.junit.Before;
 
+import java.time.LocalDateTime;
 import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
@@ -39,6 +42,16 @@ public class AbstractConfigurationProcessor extends AbstractInstructionProcessor
         ActivityConfiguration activityConfiguration = new ActivityConfiguration();
         process.getActivities().put(path, activityConfiguration);
         return activityConfiguration;
+    }
+
+    protected Tracepoint addTracePointToActivityConfig(ActivityConfiguration activityConfiguration, int iterations, LocalDateTime startTime, LocalDateTime endTime, boolean isDeeptrace){
+        TracepointExt tracepoint = new TracepointExt();
+        tracepoint.setIterations(iterations);
+        tracepoint.setStarttime(startTime);
+        tracepoint.setEndtime(endTime);
+        tracepoint.setDeeptrace(isDeeptrace);
+        activityConfiguration.setTracepoint(tracepoint);
+        return tracepoint;
     }
 
     protected Extract setExtractToActivityConfig(ActivityConfiguration activityConfiguration, String name, ExtractRule... rules){
