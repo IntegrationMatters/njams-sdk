@@ -14,7 +14,7 @@ import java.util.Map;
 
 import static com.faizsiegeln.njams.messageformat.v4.command.Command.GET_LOG_LEVEL;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertNull;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
 
@@ -23,21 +23,22 @@ public class GetLogLevelProcessorTest extends AbstractConfigurationProcessor {
     private GetLogLevelProcessor getLogLevelProcessor;
 
     @Before
-    public void setNewProcessor(){
+    public void setNewProcessor() {
         getLogLevelProcessor = spy(new GetLogLevelProcessor(njamsMock));
     }
 
     @Test
-    public void getLogLevelWithoutExistingConfiguration(){
-        instructionBuilder.prepareInstruction(Command.GET_LOG_LEVEL).addPath(TestInstructionBuilder.TESTPATH);
+    public void getLogLevelWithoutExistingProcessConfiguration() {
+        instructionBuilder.prepareInstruction(Command.GET_LOG_LEVEL).addDefaultPath();
         Instruction instruction = instructionBuilder.build();
-        when(njamsMock.getProcessFromConfiguration(TestInstructionBuilder.TESTPATH)).thenReturn(READ_ONLY_CONFIGURATION.getProcess(TestInstructionBuilder.TESTPATH));
-        when(njamsMock.getLogModeFromConfiguration()).thenReturn(READ_ONLY_CONFIGURATION.getLogMode());
+        when(njamsMock.getProcessFromConfiguration(TestInstructionBuilder.PROCESSPATH_VALUE)).thenReturn(configuration.getProcess(TestInstructionBuilder.PROCESSPATH_VALUE));
+        when(njamsMock.getLogModeFromConfiguration()).thenReturn(configuration.getLogMode());
         getLogLevelProcessor.processInstruction(instruction);
         final Response response = instruction.getResponse();
 
         assertEquals(0, response.getResultCode());
         assertEquals("Success", response.getResultMessage());
+        assertNull(response.getDateTime());
 
         Map<String, String> parameters = response.getParameters();
         assertEquals("INFO", parameters.get("logLevel"));
@@ -46,20 +47,21 @@ public class GetLogLevelProcessorTest extends AbstractConfigurationProcessor {
     }
 
     @Test
-    public void getLogLevelWithExistingConfiguration(){
-        ProcessConfiguration process = addProcessConfig(TestInstructionBuilder.TESTPATH);
+    public void getLogLevelWithExistingProcessConfiguration() {
+        ProcessConfiguration process = addProcessConfig(TestInstructionBuilder.PROCESSPATH_VALUE);
         process.setExclude(true);
         process.setLogLevel(LogLevel.WARNING);
-        writeableConfiguration.setLogMode(LogMode.EXCLUSIVE);
+        configuration.setLogMode(LogMode.EXCLUSIVE);
 
-        instructionBuilder.prepareInstruction(Command.GET_LOG_LEVEL).addPath(TestInstructionBuilder.TESTPATH);
+        instructionBuilder.prepareInstruction(Command.GET_LOG_LEVEL).addDefaultPath();
         Instruction instruction = instructionBuilder.build();
-        when(njamsMock.getProcessFromConfiguration(TestInstructionBuilder.TESTPATH)).thenReturn(writeableConfiguration.getProcess(TestInstructionBuilder.TESTPATH));
-        when(njamsMock.getLogModeFromConfiguration()).thenReturn(writeableConfiguration.getLogMode());
+        when(njamsMock.getProcessFromConfiguration(TestInstructionBuilder.PROCESSPATH_VALUE)).thenReturn(configuration.getProcess(TestInstructionBuilder.PROCESSPATH_VALUE));
+        when(njamsMock.getLogModeFromConfiguration()).thenReturn(configuration.getLogMode());
         getLogLevelProcessor.processInstruction(instruction);
         final Response response = instruction.getResponse();
         assertEquals(0, response.getResultCode());
         assertEquals("Success", response.getResultMessage());
+        assertNull(response.getDateTime());
 
         final Map<String, String> parameters = response.getParameters();
         assertEquals("WARNING", parameters.get("logLevel"));
@@ -68,16 +70,8 @@ public class GetLogLevelProcessorTest extends AbstractConfigurationProcessor {
     }
 
     @Test
-    public void getLogLevelWithoutPath(){
-            instructionBuilder.prepareInstruction(GET_LOG_LEVEL);
-        Instruction instruction = instructionBuilder.build();
-        getLogLevelProcessor.processInstruction(instruction);
-            Response response = instruction.getResponse();
-            assertEquals(1, response.getResultCode());
-            assertTrue(response.getResultMessage().contains("processPath"));
-
-            Map<String, String> parameters = response.getParameters();
-            assertTrue(parameters.isEmpty());
-
+    public void getLogLevelWithoutAnyNeededParameters() {
+        instructionBuilder.prepareInstruction(GET_LOG_LEVEL);
+        checkResultMessageForMissingsParameters(getLogLevelProcessor, TestInstructionBuilder.PROCESSPATH_KEY);
     }
 }
