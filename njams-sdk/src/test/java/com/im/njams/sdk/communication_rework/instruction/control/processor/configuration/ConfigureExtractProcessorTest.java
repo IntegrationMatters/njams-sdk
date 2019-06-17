@@ -15,8 +15,7 @@ import java.util.Map;
 
 import static com.faizsiegeln.njams.messageformat.v4.command.Command.CONFIGURE_EXTRACT;
 import static org.junit.Assert.*;
-import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 public class ConfigureExtractProcessorTest extends AbstractConfigurationProcessor {
 
@@ -79,6 +78,9 @@ public class ConfigureExtractProcessorTest extends AbstractConfigurationProcesso
         when(njamsMock.getProcessesFromConfiguration()).thenReturn(processes);
 
         configureExtractProcessor.processInstruction(instruction);
+
+        verify(configureExtractProcessor).saveConfiguration(any());
+
         ProcessConfiguration newlyCreatedProcess = processes.get(TestInstructionBuilder.PROCESSPATH_VALUE);
         ActivityConfiguration newlyCreatedActivity = newlyCreatedProcess.getActivity(TestInstructionBuilder.ACTIVITYID_VALUE);
         JsonSerializer<Extract> serializer = new JsonSerializer();
@@ -109,6 +111,8 @@ public class ConfigureExtractProcessorTest extends AbstractConfigurationProcesso
         when(njamsMock.getProcessFromConfiguration(TestInstructionBuilder.PROCESSPATH_VALUE)).thenReturn(configuration.getProcess(TestInstructionBuilder.PROCESSPATH_VALUE));
 
         configureExtractProcessor.processInstruction(instruction);
+
+        verify(configureExtractProcessor).saveConfiguration(any());
 
         Map<String, ProcessConfiguration> processes = configuration.getProcesses();
         ProcessConfiguration returnedProcess = processes.get(TestInstructionBuilder.PROCESSPATH_VALUE);

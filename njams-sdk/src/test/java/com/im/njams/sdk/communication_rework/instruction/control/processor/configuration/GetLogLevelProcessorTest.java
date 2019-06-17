@@ -28,6 +28,12 @@ public class GetLogLevelProcessorTest extends AbstractConfigurationProcessor {
     }
 
     @Test
+    public void getLogLevelWithoutAnyNeededParameters() {
+        instructionBuilder.prepareInstruction(GET_LOG_LEVEL);
+        checkResultMessageForMissingsParameters(getLogLevelProcessor, TestInstructionBuilder.PROCESSPATH_KEY);
+    }
+
+    @Test
     public void getLogLevelWithoutExistingProcessConfiguration() {
         instructionBuilder.prepareInstruction(Command.GET_LOG_LEVEL).addDefaultPath();
         Instruction instruction = instructionBuilder.build();
@@ -67,11 +73,5 @@ public class GetLogLevelProcessorTest extends AbstractConfigurationProcessor {
         assertEquals("WARNING", parameters.get("logLevel"));
         assertEquals("EXCLUSIVE", parameters.get("logMode"));
         assertEquals("true", parameters.get("exclude"));
-    }
-
-    @Test
-    public void getLogLevelWithoutAnyNeededParameters() {
-        instructionBuilder.prepareInstruction(GET_LOG_LEVEL);
-        checkResultMessageForMissingsParameters(getLogLevelProcessor, TestInstructionBuilder.PROCESSPATH_KEY);
     }
 }

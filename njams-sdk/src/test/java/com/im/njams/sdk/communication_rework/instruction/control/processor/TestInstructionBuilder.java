@@ -5,6 +5,8 @@ import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
 import com.faizsiegeln.njams.messageformat.v4.command.Request;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.Extract;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.ExtractRule;
+import com.faizsiegeln.njams.messageformat.v4.projectmessage.LogLevel;
+import com.faizsiegeln.njams.messageformat.v4.projectmessage.LogMode;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.RuleType;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.im.njams.sdk.common.DateTimeUtility;
@@ -22,8 +24,21 @@ public class TestInstructionBuilder {
 
     public static final String EXTRACT_KEY = "extract";
 
+    public static final String LOG_LEVEL_KEY = "logLevel";
+
+    public static final LogLevel LOG_LEVEL_VALUE = LogLevel.INFO;
+
+    public static final String LOG_MODE_KEY = "logMode";
+
+    public static final LogMode LOG_MODE_VALUE = LogMode.COMPLETE;
+
     public static final String PROCESSPATH_VALUE = ">test>";
+
     public static final String ACTIVITYID_VALUE= "act_1";
+
+    public static final String EXCLUDED_KEY = "exclude";
+
+    public static final boolean EXCLUDED_VALUE = true;
 
     private Instruction instruction;
 
@@ -70,6 +85,30 @@ public class TestInstructionBuilder {
         extractRule.setInout(inout);
         ex.getExtractRules().add(extractRule);
         return addParameter(EXTRACT_KEY, JsonUtils.serialize(ex));
+    }
+
+    public TestInstructionBuilder addDefaultLogLevel(){
+        return addLogLevel(LOG_LEVEL_VALUE.name());
+    }
+
+    public TestInstructionBuilder addLogLevel(String logLevelValue){
+        return addParameter(LOG_LEVEL_KEY, logLevelValue);
+    }
+
+    public TestInstructionBuilder addDefaultLogMode(){
+        return addLogMode(LOG_MODE_VALUE);
+    }
+
+    public TestInstructionBuilder addLogMode(LogMode logModeValue){
+        return addParameter(LOG_MODE_KEY, logModeValue);
+    }
+
+    public TestInstructionBuilder addDefaultExcluded(){
+        return addExcluded(EXCLUDED_VALUE);
+    }
+
+    public TestInstructionBuilder addExcluded(boolean isExcluded){
+        return addParameter(EXCLUDED_KEY, isExcluded);
     }
 
     public TestInstructionBuilder addParameter(String name, Object value) {
