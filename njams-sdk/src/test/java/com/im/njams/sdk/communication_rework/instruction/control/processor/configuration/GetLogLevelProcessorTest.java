@@ -70,8 +70,8 @@ public class GetLogLevelProcessorTest extends AbstractConfigurationProcessor {
         assertNull(response.getDateTime());
 
         final Map<String, String> parameters = response.getParameters();
-        assertEquals("WARNING", parameters.get("logLevel"));
-        assertEquals("EXCLUSIVE", parameters.get("logMode"));
-        assertEquals("true", parameters.get("exclude"));
+        assertEquals("WARNING", parameters.get(TestInstructionBuilder.LOG_LEVEL_KEY));
+        assertEquals("EXCLUSIVE", parameters.get(TestInstructionBuilder.LOG_MODE_KEY));
+        assertEquals(TestInstructionBuilder.EXCLUDED_VALUE, parameters.get(TestInstructionBuilder.EXCLUDED_KEY));
     }
 }
