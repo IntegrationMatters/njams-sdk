@@ -96,10 +96,10 @@ public class TestInstructionBuilder {
     }
 
     public TestInstructionBuilder addDefaultLogMode(){
-        return addLogMode(LOG_MODE_VALUE);
+        return addLogMode(LOG_MODE_VALUE.name());
     }
 
-    public TestInstructionBuilder addLogMode(LogMode logModeValue){
+    public TestInstructionBuilder addLogMode(String logModeValue){
         return addParameter(LOG_MODE_KEY, logModeValue);
     }
 

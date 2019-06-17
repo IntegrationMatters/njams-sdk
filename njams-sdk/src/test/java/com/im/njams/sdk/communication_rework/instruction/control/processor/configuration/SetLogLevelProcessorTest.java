@@ -72,7 +72,7 @@ public class SetLogLevelProcessorTest extends AbstractConfigurationProcessor {
         final LogMode logModeToSet = LogMode.EXCLUSIVE;
         final LogLevel logLevelToSet = LogLevel.ERROR;
 
-        instructionBuilder.prepareInstruction(SET_LOG_LEVEL).addDefaultPath().addLogLevel(logLevelToSet.name()).addLogMode(logModeToSet).addDefaultExcluded();
+        instructionBuilder.prepareInstruction(SET_LOG_LEVEL).addDefaultPath().addLogLevel(logLevelToSet.name()).addLogMode(logModeToSet.name()).addDefaultExcluded();
         Instruction instruction = instructionBuilder.build();
         when(njamsMock.getProcessFromConfiguration(TestInstructionBuilder.PROCESSPATH_VALUE)).thenReturn(configuration.getProcess(TestInstructionBuilder.PROCESSPATH_VALUE));
 
