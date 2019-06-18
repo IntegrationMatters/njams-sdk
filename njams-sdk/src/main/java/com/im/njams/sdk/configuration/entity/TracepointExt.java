@@ -17,6 +17,7 @@
 package com.im.njams.sdk.configuration.entity;
 
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.Tracepoint;
+
 import javax.xml.bind.annotation.XmlTransient;
 
 /**
@@ -59,4 +60,6 @@ public class TracepointExt extends Tracepoint {
     public boolean iterationsExceeded() {
         return getIterations() > 0 && currentIterations >= getIterations();
     }
+
+    //Todo IsActiveTracepoint of the jobImpl place it here
 }

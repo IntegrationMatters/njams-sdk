@@ -40,6 +40,22 @@ public class TestInstructionBuilder {
 
     public static final boolean EXCLUDED_VALUE = true;
 
+    public static final String ENABLE_TRACING_KEY = "enableTracing";
+
+    public static final boolean ENABLE_TRACING_VALUE = true;
+
+    public static final String START_TIME_KEY = "starttime";
+    public static final LocalDateTime START_TIME_VALUE = DateTimeUtility.now();
+
+    public static final String END_TIME_KEY = "endtime";
+    public static final LocalDateTime END_TIME_VALUE = START_TIME_VALUE.plusMinutes(15);
+
+    public static final String ITERATIONS_KEY = "iterations";
+    public static final int ITERATIONS_VALUE = 5;
+
+    public static final String DEEP_TRACE_KEY = "deepTrace";
+    public static final boolean DEEP_TRACE_VALUE = true;
+
     private Instruction instruction;
 
     public TestInstructionBuilder prepareInstruction(Command command) {
@@ -68,6 +84,7 @@ public class TestInstructionBuilder {
     public TestInstructionBuilder addDefaultActivityId(){
         return addActivityId(ACTIVITYID_VALUE);
     }
+
     public TestInstructionBuilder addActivityId(String id) {
         return addParameter(ACTIVITYID_KEY, id);
     }
@@ -109,6 +126,41 @@ public class TestInstructionBuilder {
 
     public TestInstructionBuilder addExcluded(boolean isExcluded){
         return addParameter(EXCLUDED_KEY, isExcluded);
+    }
+
+    public TestInstructionBuilder addDefaultStartTime(){
+        return addStartTime(DateTimeUtility.toString(START_TIME_VALUE));
+    }
+
+    public TestInstructionBuilder addStartTime(String startTime){
+        return addParameter(START_TIME_KEY, startTime);
+    }
+    public TestInstructionBuilder addDefaultEndTime(){
+        return addEndTime(DateTimeUtility.toString(END_TIME_VALUE));
+    }
+    public TestInstructionBuilder addEndTime(String endtime){
+        return addParameter(END_TIME_KEY, endtime);
+    }
+
+    public TestInstructionBuilder addDefaultIterations(){
+        return addIterations(String.valueOf(ITERATIONS_VALUE));
+    }
+
+    public TestInstructionBuilder addIterations(String iterations){
+        return addParameter(ITERATIONS_KEY, iterations);
+    }
+    public TestInstructionBuilder addDefaultDeepTrace(){
+        return addDeepTrace(String.valueOf(DEEP_TRACE_VALUE));
+    }
+    public TestInstructionBuilder addDeepTrace(String deepTrace){
+        return addParameter(DEEP_TRACE_KEY, deepTrace);
+    }
+    public TestInstructionBuilder addDefaultEnableTracing(){
+        return addEnableTracing(String.valueOf(ENABLE_TRACING_VALUE));
+    }
+
+    public TestInstructionBuilder addEnableTracing(String enableTracing){
+        return addParameter(ENABLE_TRACING_KEY, enableTracing);
     }
 
     public TestInstructionBuilder addParameter(String name, Object value) {

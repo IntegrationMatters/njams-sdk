@@ -18,6 +18,8 @@ public class SetTracingProcessor extends ConfigurationProcessor {
 
     public static final String SET_TRACING = Command.SET_TRACING.commandString();
 
+    private static final int TRACING_IS_ENABLED_IN_MINUTES = 15;
+
     public SetTracingProcessor(Njams njams) {
         super(njams, SET_TRACING);
     }
@@ -33,12 +35,13 @@ public class SetTracingProcessor extends ConfigurationProcessor {
         try {
             endTime = parseDateTime(instructionSupport.getParameter("endtime"));
         } catch (final Exception e) {
-            instructionSupport.error("Unable to parse end-time from tracepoint.", e);
+            instructionSupport.error("Unable to parse endtime for tracepoint from instruction.", e);
             return;
         }
         if (endTime == null) {
-            endTime = DateTimeUtility.now().plusMinutes(15);
+            endTime = DateTimeUtility.now().plusMinutes(TRACING_IS_ENABLED_IN_MINUTES);
         }
+        //TODO: is enable Tracing maybe a validatable? Because without enableTracing set, the Tracepoint will be deleted.
         if (instructionSupport.getBoolParameter("enableTracing") && endTime.isAfter(DateTimeUtility.now())) {
             LOG.debug("Update tracepoint.");
             updateTracePoint(instructionSupport, endTime);
@@ -55,12 +58,13 @@ public class SetTracingProcessor extends ConfigurationProcessor {
         return DateTimeUtility.fromString(dateTime);
     }
 
-    private void updateTracePoint(final InstructionSupport instructionSupport, final LocalDateTime endTime) {
+    void updateTracePoint(final InstructionSupport instructionSupport, final LocalDateTime endTime) {
         LocalDateTime startTime;
+        //Todo: It is possible to set the TracePoint end before the TracePoint start, which makes no sense
         try {
             startTime = parseDateTime(instructionSupport.getParameter("starttime"));
         } catch (final Exception e) {
-            instructionSupport.error("Unable to parse start-time from tracepoint.", e);
+            instructionSupport.error("Unable to parse starttime for tracepoint from instruction.", e);
             return;
         }
         if (startTime == null) {
@@ -91,19 +95,19 @@ public class SetTracingProcessor extends ConfigurationProcessor {
         LOG.debug("Tracepoint on {}#{} updated", processPath, activityId);
     }
 
-    private void deleteTracePoint(final InstructionSupport instructionSupport) {
+    void deleteTracePoint(final InstructionSupport instructionSupport) {
         //execute action
         final String processPath = instructionSupport.getProcessPath();
         final String activityId = instructionSupport.getActivityId();
 
         final ProcessConfiguration process = njams.getProcessFromConfiguration(processPath);
         if (process == null) {
-            LOG.debug("Delete tracepoint: no process configuration for: {}", processPath);
+            LOG.debug("Can't delete tracepoint: no process configuration for: {}", processPath);
             return;
         }
         final ActivityConfiguration activity = process.getActivity(activityId);
         if (activity == null) {
-            LOG.debug("Delete tracepoint: no activity configuration for: {}#{}", processPath, activityId);
+            LOG.debug("Can't delete tracepoint: no activity configuration for: {}#{}", processPath, activityId);
             return;
         }
         activity.setTracepoint(null);

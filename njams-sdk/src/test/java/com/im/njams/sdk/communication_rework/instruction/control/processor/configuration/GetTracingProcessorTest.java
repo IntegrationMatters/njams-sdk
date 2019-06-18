@@ -93,10 +93,10 @@ public class GetTracingProcessorTest extends AbstractConfigurationProcessor{
         assertEquals("Success", response.getResultMessage());
         assertNull(response.getDateTime());
         Map<String, String> parameters = response.getParameters();
-        assertEquals(String.valueOf(start), parameters.get("starttime"));
-        assertEquals(String.valueOf(end), parameters.get("endtime"));
-        assertEquals(String.valueOf(iterations), parameters.get("iterations"));
-        assertEquals(String.valueOf(isDeeptrace), parameters.get("deepTrace"));
+        assertEquals(String.valueOf(start), parameters.get(TestInstructionBuilder.START_TIME_KEY));
+        assertEquals(String.valueOf(end), parameters.get(TestInstructionBuilder.END_TIME_KEY));
+        assertEquals(String.valueOf(iterations), parameters.get(TestInstructionBuilder.ITERATIONS_KEY));
+        assertEquals(String.valueOf(isDeeptrace), parameters.get(TestInstructionBuilder.DEEP_TRACE_KEY));
     }
 
 }
