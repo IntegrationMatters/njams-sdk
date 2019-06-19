@@ -137,7 +137,7 @@ public class SetTracingProcessorTest extends AbstractConfigurationProcessor {
     }
 
     @Test
-    public void updateTracePoint() {
+    public void updateTracePointWithPredefinedStartAndEndTime() {
         instructionBuilder.
                 prepareInstruction(SET_TRACING).
                 addDefaultPath().
@@ -158,6 +158,64 @@ public class SetTracingProcessorTest extends AbstractConfigurationProcessor {
         assertNotNull(tracepoint);
         assertEquals(TestInstructionBuilder.START_TIME_VALUE, tracepoint.getStarttime());
         assertEquals(TestInstructionBuilder.END_TIME_VALUE, tracepoint.getEndtime());
+        assertTrue(TestInstructionBuilder.ITERATIONS_VALUE == tracepoint.getIterations().intValue());
+        assertTrue(TestInstructionBuilder.DEEP_TRACE_VALUE == tracepoint.isDeeptrace().booleanValue());
+        verify(setTracingProcessor).saveConfiguration(any());
+    }
+
+    @Test
+    public void updateTracePointWithoutStartTime() {
+        instructionBuilder.
+                prepareInstruction(SET_TRACING).
+                addDefaultPath().
+                addDefaultActivityId().
+                addDefaultEnableTracing().
+                addDefaultEndTime().
+                addDefaultIterations().
+                addDefaultDeepTrace();
+
+        ProcessConfiguration processConfiguration = addProcessConfig(TestInstructionBuilder.PROCESSPATH_VALUE);
+        ActivityConfiguration activityConfiguration = addActivityToProcessConfig(processConfiguration,
+                TestInstructionBuilder.ACTIVITYID_VALUE);
+        when(njamsMock.getProcessFromConfiguration(TestInstructionBuilder.PROCESSPATH_VALUE))
+                .thenReturn(processConfiguration);
+        setTracingProcessor.processInstruction(instructionBuilder.build());
+        Tracepoint tracepoint = activityConfiguration.getTracepoint();
+        assertNotNull(tracepoint);
+        assertNotNull(tracepoint.getStarttime());
+        assertEquals(TestInstructionBuilder.END_TIME_VALUE, tracepoint.getEndtime());
+        assertTrue(TestInstructionBuilder.ITERATIONS_VALUE == tracepoint.getIterations().intValue());
+        assertTrue(TestInstructionBuilder.DEEP_TRACE_VALUE == tracepoint.isDeeptrace().booleanValue());
+        verify(setTracingProcessor).saveConfiguration(any());
+    }
+
+    @Test
+    public void updateTracePointWithEndTimeBeforeStartTime() {
+        final LocalDateTime startInTenMinutes = DateTimeUtility.now().plusMinutes(10);
+        final LocalDateTime endInFiveMinutes = startInTenMinutes.minusMinutes(5);
+
+        instructionBuilder.
+                prepareInstruction(SET_TRACING).
+                addDefaultPath().
+                addDefaultActivityId().
+                addDefaultEnableTracing().
+                addStartTime(DateTimeUtility.toString(startInTenMinutes)).
+                addEndTime(DateTimeUtility.toString(endInFiveMinutes)).
+                addDefaultIterations().
+                addDefaultDeepTrace();
+
+        ProcessConfiguration processConfiguration = addProcessConfig(TestInstructionBuilder.PROCESSPATH_VALUE);
+        ActivityConfiguration activityConfiguration = addActivityToProcessConfig(processConfiguration,
+                TestInstructionBuilder.ACTIVITYID_VALUE);
+        when(njamsMock.getProcessFromConfiguration(TestInstructionBuilder.PROCESSPATH_VALUE))
+                .thenReturn(processConfiguration);
+        setTracingProcessor.processInstruction(instructionBuilder.build());
+        Tracepoint tracepoint = activityConfiguration.getTracepoint();
+        assertNotNull(tracepoint);
+        assertEquals(startInTenMinutes, tracepoint.getStarttime());
+        assertEquals(endInFiveMinutes, tracepoint.getEndtime());
+        //Todo: This shouldn't be possible, it is an illegal state.
+        assertTrue(startInTenMinutes.isAfter(endInFiveMinutes));
         assertTrue(TestInstructionBuilder.ITERATIONS_VALUE == tracepoint.getIterations().intValue());
         assertTrue(TestInstructionBuilder.DEEP_TRACE_VALUE == tracepoint.isDeeptrace().booleanValue());
         verify(setTracingProcessor).saveConfiguration(any());
