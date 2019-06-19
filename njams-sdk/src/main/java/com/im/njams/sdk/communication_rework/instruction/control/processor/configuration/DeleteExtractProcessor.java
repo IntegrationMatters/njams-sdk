@@ -32,7 +32,7 @@ public class DeleteExtractProcessor extends ConfigurationProcessor {
         ActivityConfiguration activity = null;
         activity = process.getActivity(activityId);
         if (activity == null) {
-            instructionSupport.error("Activity " + activityId + " not found");
+            instructionSupport.error("Activity " + activityId + " for process " + processPath + " not found");
             return;
         }
         activity.setExtract(null);

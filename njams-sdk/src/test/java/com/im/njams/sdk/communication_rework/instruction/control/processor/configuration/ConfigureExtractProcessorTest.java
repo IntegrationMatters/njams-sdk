@@ -105,8 +105,7 @@ public class ConfigureExtractProcessorTest extends AbstractConfigurationProcesso
 
         ProcessConfiguration process = addProcessConfig(TestInstructionBuilder.PROCESSPATH_VALUE);
         ActivityConfiguration activityConfiguration = addActivityToProcessConfig(process, TestInstructionBuilder.ACTIVITYID_VALUE);
-        String extractName = "TEST";
-        Extract extract = setExtractToActivityConfig(activityConfiguration, extractName);
+        Extract extract = setExtractToActivityConfig(activityConfiguration, TestInstructionBuilder.EXTRACT_KEY);
 
         when(njamsMock.getProcessFromConfiguration(TestInstructionBuilder.PROCESSPATH_VALUE)).thenReturn(configuration.getProcess(TestInstructionBuilder.PROCESSPATH_VALUE));
 
