@@ -56,7 +56,7 @@ public class SetLogLevelProcessorTest extends AbstractConfigurationProcessor {
     @Test
     public void setSetLogLevelWithExistingConfiguration() {
         ProcessConfiguration processConfiguration = addProcessConfig(TestInstructionBuilder.PROCESSPATH_VALUE);
-        final boolean excludedToOverride = !TestInstructionBuilder.EXCLUDED_VALUE;
+        final boolean excludedToOverride = !Boolean.valueOf(TestInstructionBuilder.EXCLUDED_VALUE);
         final LogLevel logLevelToOverride = LogLevel.WARNING;
 
         processConfiguration.setExclude(excludedToOverride);
@@ -85,7 +85,7 @@ public class SetLogLevelProcessorTest extends AbstractConfigurationProcessor {
 
         verify(njamsMock).setLogModeToConfiguration(logModeToSet);
         assertEquals(logLevelToSet, newlyCreatedProcess.getLogLevel());
-        assertEquals(TestInstructionBuilder.EXCLUDED_VALUE, newlyCreatedProcess.isExclude());
+        assertEquals(Boolean.valueOf(TestInstructionBuilder.EXCLUDED_VALUE), newlyCreatedProcess.isExclude());
 
         verify(setLogLevelProcessor).saveConfiguration(any());
 

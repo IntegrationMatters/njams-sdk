@@ -24,7 +24,7 @@ public class TestInstructionBuilder {
 
     public static final String ACTIVITYID_KEY = "activityId";
 
-    public static final String ACTIVITYID_VALUE= "act_1";
+    public static final String ACTIVITYID_VALUE = "act_1";
 
     public static final String EXTRACT_KEY = "extract";
 
@@ -40,7 +40,7 @@ public class TestInstructionBuilder {
 
     public static final String EXCLUDED_KEY = "exclude";
 
-    public static final boolean EXCLUDED_VALUE = true;
+    public static final String EXCLUDED_VALUE = "true";
 
     public static final String ENABLE_TRACING_KEY = "enableTracing";
 
@@ -57,6 +57,12 @@ public class TestInstructionBuilder {
 
     public static final String DEEP_TRACE_KEY = "deepTrace";
     public static final boolean DEEP_TRACE_VALUE = true;
+
+    public static final String ENGINE_WIDE_RECORDING_KEY = "EngineWideRecording";
+    public static final boolean ENGINE_WIDE_RECORDING_VALUE = true;
+
+    public static final String RECORDING_KEY = "Record";
+    public static final String RECORDING_VALUE = "all";
 
     private Instruction instruction;
 
@@ -75,7 +81,7 @@ public class TestInstructionBuilder {
         return prepareInstruction(Command.GET_LOG_LEVEL);
     }
 
-    public TestInstructionBuilder addDefaultPath(){
+    public TestInstructionBuilder addDefaultPath() {
         return addPath(PROCESSPATH_VALUE);
     }
 
@@ -83,7 +89,7 @@ public class TestInstructionBuilder {
         return addParameter(PROCESSPATH_KEY, path);
     }
 
-    public TestInstructionBuilder addDefaultActivityId(){
+    public TestInstructionBuilder addDefaultActivityId() {
         return addActivityId(ACTIVITYID_VALUE);
     }
 
@@ -95,7 +101,8 @@ public class TestInstructionBuilder {
         return addExtract("ex_1", RuleType.VALUE, "Hello", "IN");
     }
 
-    public TestInstructionBuilder addExtract(String name, RuleType type, String rule, String inout) throws JsonProcessingException {
+    public TestInstructionBuilder addExtract(String name, RuleType type, String rule, String inout)
+            throws JsonProcessingException {
         Extract ex = new Extract();
         ex.setName(name);
         ExtractRule extractRule = new ExtractRule();
@@ -106,63 +113,84 @@ public class TestInstructionBuilder {
         return addParameter(EXTRACT_KEY, JsonUtils.serialize(ex));
     }
 
-    public TestInstructionBuilder addDefaultLogLevel(){
+    public TestInstructionBuilder addDefaultLogLevel() {
         return addLogLevel(LOG_LEVEL_VALUE.name());
     }
 
-    public TestInstructionBuilder addLogLevel(String logLevelValue){
+    public TestInstructionBuilder addLogLevel(String logLevelValue) {
         return addParameter(LOG_LEVEL_KEY, logLevelValue);
     }
 
-    public TestInstructionBuilder addDefaultLogMode(){
+    public TestInstructionBuilder addDefaultLogMode() {
         return addLogMode(LOG_MODE_VALUE.name());
     }
 
-    public TestInstructionBuilder addLogMode(String logModeValue){
+    public TestInstructionBuilder addLogMode(String logModeValue) {
         return addParameter(LOG_MODE_KEY, logModeValue);
     }
 
-    public TestInstructionBuilder addDefaultExcluded(){
-        return addExcluded(EXCLUDED_VALUE);
+    public TestInstructionBuilder addDefaultExcluded() {
+        return addExcluded(String.valueOf(EXCLUDED_VALUE));
     }
 
-    public TestInstructionBuilder addExcluded(boolean isExcluded){
+    public TestInstructionBuilder addExcluded(String isExcluded) {
         return addParameter(EXCLUDED_KEY, isExcluded);
     }
 
-    public TestInstructionBuilder addDefaultStartTime(){
+    public TestInstructionBuilder addDefaultStartTime() {
         return addStartTime(DateTimeUtility.toString(START_TIME_VALUE));
     }
 
-    public TestInstructionBuilder addStartTime(String startTime){
+    public TestInstructionBuilder addStartTime(String startTime) {
         return addParameter(START_TIME_KEY, startTime);
     }
-    public TestInstructionBuilder addDefaultEndTime(){
+
+    public TestInstructionBuilder addDefaultEndTime() {
         return addEndTime(DateTimeUtility.toString(END_TIME_VALUE));
     }
-    public TestInstructionBuilder addEndTime(String endtime){
+
+    public TestInstructionBuilder addEndTime(String endtime) {
         return addParameter(END_TIME_KEY, endtime);
     }
 
-    public TestInstructionBuilder addDefaultIterations(){
+    public TestInstructionBuilder addDefaultIterations() {
         return addIterations(String.valueOf(ITERATIONS_VALUE));
     }
 
-    public TestInstructionBuilder addIterations(String iterations){
+    public TestInstructionBuilder addIterations(String iterations) {
         return addParameter(ITERATIONS_KEY, iterations);
     }
-    public TestInstructionBuilder addDefaultDeepTrace(){
+
+    public TestInstructionBuilder addDefaultDeepTrace() {
         return addDeepTrace(String.valueOf(DEEP_TRACE_VALUE));
     }
-    public TestInstructionBuilder addDeepTrace(String deepTrace){
+
+    public TestInstructionBuilder addDeepTrace(String deepTrace) {
         return addParameter(DEEP_TRACE_KEY, deepTrace);
     }
-    public TestInstructionBuilder addDefaultEnableTracing(){
+
+    public TestInstructionBuilder addDefaultEnableTracing() {
         return addEnableTracing(String.valueOf(ENABLE_TRACING_VALUE));
     }
 
-    public TestInstructionBuilder addEnableTracing(String enableTracing){
+    public TestInstructionBuilder addEnableTracing(String enableTracing) {
         return addParameter(ENABLE_TRACING_KEY, enableTracing);
+    }
+
+    public TestInstructionBuilder setDefaultEngineWideRecording() {
+        return setEngineWideRecording(String.valueOf(ENGINE_WIDE_RECORDING_VALUE));
+    }
+
+    public TestInstructionBuilder setEngineWideRecording(String setEngineWideRecording) {
+        return addParameter(ENGINE_WIDE_RECORDING_KEY, setEngineWideRecording);
+    }
+
+    public TestInstructionBuilder setDefaultRecording() {
+        return setRecording(String.valueOf(RECORDING_VALUE));
+    }
+
+    public TestInstructionBuilder setRecording(String setRecording) {
+        return addParameter(RECORDING_KEY, setRecording);
     }
 
     public TestInstructionBuilder addParameter(String name, Object value) {

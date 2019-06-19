@@ -25,6 +25,7 @@ public class RecordProcessor extends ConfigurationProcessor {
                 njams.setRecordingToConfiguration(engineWideRecording);
                 //reset to default after logic change
                 njams.getProcessesFromConfiguration().values().forEach(p -> p.setRecording(engineWideRecording));
+                LOG.debug("EngineWideRecording has been set to {}", engineWideRecording);
             } catch (final Exception e) {
                 instructionSupport.error("Unable to set client recording", e);
                 return;
@@ -43,6 +44,7 @@ public class RecordProcessor extends ConfigurationProcessor {
                 final String doRecordParameter = instructionSupport.getParameter("Record");
                 final boolean doRecord = "all".equalsIgnoreCase(doRecordParameter);
                 process.setRecording(doRecord);
+                LOG.debug("Recording for {} set to {}", processPath, doRecord);
             } catch (final Exception e) {
                 instructionSupport.error("Unable to set process recording", e);
                 return;
@@ -50,6 +52,5 @@ public class RecordProcessor extends ConfigurationProcessor {
         }
 
         saveConfiguration(instructionSupport);
-        LOG.debug("Recording for {}", processPath);
     }
 }
