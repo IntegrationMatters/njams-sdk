@@ -20,9 +20,15 @@ public class TestInstructionBuilder {
 
     public static final String PROCESSPATH_KEY = "processPath";
 
+    public static final String PROCESSPATH_VALUE = ">test>";
+
     public static final String ACTIVITYID_KEY = "activityId";
 
+    public static final String ACTIVITYID_VALUE= "act_1";
+
     public static final String EXTRACT_KEY = "extract";
+
+    public static final String EXTRACT_VALUE = "Extract";
 
     public static final String LOG_LEVEL_KEY = "logLevel";
 
@@ -31,10 +37,6 @@ public class TestInstructionBuilder {
     public static final String LOG_MODE_KEY = "logMode";
 
     public static final LogMode LOG_MODE_VALUE = LogMode.COMPLETE;
-
-    public static final String PROCESSPATH_VALUE = ">test>";
-
-    public static final String ACTIVITYID_VALUE= "act_1";
 
     public static final String EXCLUDED_KEY = "exclude";
 

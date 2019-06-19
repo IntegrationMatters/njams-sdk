@@ -37,12 +37,12 @@ public class GetExtractProcessor extends ConfigurationProcessor {
         }
         final ActivityConfiguration activity = process.getActivity(activityId);
         if (activity == null) {
-            instructionSupport.error("Activity " + activityId + " not found");
+            instructionSupport.error("Activity " + activityId + " for process " + processPath + " not found");
             return;
         }
         final Extract extract = activity.getExtract();
         if (extract == null) {
-            instructionSupport.error("Extract for actvitiy " + activityId + " not found");
+            instructionSupport.error("Extract for activity " + activityId + " for process " + processPath + " not found");
             return;
         }
         try {
