@@ -29,6 +29,9 @@ import java.util.Map;
  */
 public class ReplayResponse {
 
+    public static final String EXCEPTION_KEY = "Exception";
+    public static final String MAIN_LOG_ID_KEY = "MainLogId";
+
     private int resultCode;
     private String resultMessage;
     private String exception;
@@ -44,8 +47,8 @@ public class ReplayResponse {
     public void addParametersToInstruction(Instruction instruction) {
         instruction.setResponseResultCode(getResultCode());
         instruction.setResponseResultMessage(getResultMessage());
-        instruction.setResponseParameter("Exception", getException());
-        instruction.setResponseParameter("MainLogId", getMainLogId());
+        instruction.setResponseParameter(EXCEPTION_KEY, getException());
+        instruction.setResponseParameter(MAIN_LOG_ID_KEY, getMainLogId());
         instruction.getResponse().setDateTime(dateTime);
         instruction.getResponse().getParameters().putAll(getParameters());
     }
