@@ -37,6 +37,10 @@ public abstract class ObjectPool<T> {
         this.locked = new Hashtable<>();
     }
 
+    public synchronized int size(){
+        return unlocked.size() + locked.size();
+    }
+
     protected abstract T create();
 
     public abstract void expire(T o);
