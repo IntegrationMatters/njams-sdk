@@ -38,8 +38,7 @@ import java.util.LinkedList;
 import java.util.List;
 
 import static junit.framework.TestCase.assertNull;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.*;
 
 /**
  *
@@ -113,9 +112,6 @@ public class NjamsTest {
         Response resp = inst.getResponse();
         assertTrue(resp.getResultCode() == 0);
         assertEquals("Successfully send ProjectMessage via NjamsClient", resp.getResultMessage());
-    }
-
-    private void assertTrue(boolean b) {
     }
 
     @Test
