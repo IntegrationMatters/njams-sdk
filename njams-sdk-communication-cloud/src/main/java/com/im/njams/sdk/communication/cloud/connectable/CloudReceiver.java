@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Faiz & Siegeln Software GmbH
+ * Copyright (c) 2019 Faiz & Siegeln Software GmbH
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"),
  * to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
@@ -24,19 +24,20 @@ import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
 import com.faizsiegeln.njams.messageformat.v4.command.Request;
 import com.faizsiegeln.njams.messageformat.v4.command.Response;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
-import com.im.njams.sdk.communication.cloud.*;
+import com.im.njams.sdk.communication.cloud.CloudConstants;
 import com.im.njams.sdk.communication.cloud.connector.receiver.CloudReceiverConnector;
 import com.im.njams.sdk.communication.connectable.receiver.AbstractReceiver;
 import com.im.njams.sdk.communication.connector.Connector;
 import com.im.njams.sdk.utils.JsonUtils;
 import com.im.njams.sdk.utils.StringUtils;
+import org.slf4j.LoggerFactory;
+
+import javax.net.ssl.HttpsURLConnection;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.net.URL;
 import java.util.Map;
 import java.util.Properties;
-import javax.net.ssl.HttpsURLConnection;
-import org.slf4j.LoggerFactory;
 
 /**
  *
