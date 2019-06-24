@@ -31,8 +31,6 @@ import com.im.njams.sdk.settings.Settings;
 import java.util.HashMap;
 import java.util.Map;
 
-//import com.im.njams.sdk.communication.connectable.sender.TestSender;
-
 /**
  * This class is a helper class for all test classes that need some jobs or activities.
  *

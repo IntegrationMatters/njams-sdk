@@ -23,9 +23,6 @@
  */
 package com.im.njams.sdk.settings;
 
-//import com.im.njams.sdk.communication.http.HttpsSender;
-//import com.im.njams.sdk.communication.jms.JmsConstants;
-
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
