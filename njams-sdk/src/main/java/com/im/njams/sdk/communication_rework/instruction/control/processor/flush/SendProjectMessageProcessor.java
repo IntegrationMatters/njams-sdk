@@ -12,6 +12,8 @@ public class SendProjectMessageProcessor extends InstructionProcessor {
 
     private static final Logger LOG = LoggerFactory.getLogger(SendProjectMessageProcessor.class);
 
+    protected static final String SUCCESS_RESULT_MESSAGE = "Successfully send ProjectMessage via NjamsClient";
+
     public static final String SEND_PROJECTMESSAGE = Command.SEND_PROJECTMESSAGE.commandString();
 
     private Njams njams;
@@ -26,7 +28,7 @@ public class SendProjectMessageProcessor extends InstructionProcessor {
         njams.flushResources();
         Response response = new Response();
         response.setResultCode(0);
-        response.setResultMessage("Successfully send ProjectMessage via NjamsClient");
+        response.setResultMessage(SUCCESS_RESULT_MESSAGE);
         instruction.setResponse(response);
         LOG.debug("Sent ProjectMessage requested via Instruction via Njams");
     }
