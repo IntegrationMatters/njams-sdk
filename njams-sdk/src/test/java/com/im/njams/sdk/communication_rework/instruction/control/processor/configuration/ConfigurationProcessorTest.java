@@ -8,6 +8,8 @@ import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.time.LocalDateTime;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
@@ -53,6 +55,35 @@ public class ConfigurationProcessorTest {
         assertEquals(ConfigurationProcessor.UNABLE_TO_SAVE_CONFIGURATION + ": " + exceptionToThrow.getMessage(), response.getResultMessage());
         assertEquals(null, response.getDateTime());
         assertTrue(response.getParameters().isEmpty());
+    }
+
+    @Test
+    public void dontOverwriteAlreadySetResponseByDefault_SDK_148() {
+
+        Instruction instruction = new Instruction();
+        Response response = new Response();
+
+        final LocalDateTime time = LocalDateTime.of(2010, 12, 31, 1, 0);
+        response.setDateTime(time);
+
+        final int resultCode = 4711;
+        response.setResultCode(resultCode);
+
+        final String resultMessage = "XXX";
+        response.setResultMessage(resultMessage);
+
+        instruction.setResponse(response);
+
+        processor.processInstruction(instruction);
+
+        verify(processor, never()).saveConfiguration(any());
+
+        Response responseAfterProcessing = instruction.getResponse();
+
+        assertEquals(response, responseAfterProcessing);
+        assertEquals(resultCode, responseAfterProcessing.getResultCode());
+        assertEquals(resultMessage, responseAfterProcessing.getResultMessage());
+        assertEquals(time, responseAfterProcessing.getDateTime());
     }
 
     private class ConfigurationProcessorImpl extends ConfigurationProcessor{

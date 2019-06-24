@@ -57,10 +57,15 @@ public abstract class ConfigurationProcessor extends InstructionProcessor {
             this.instruction = instruction;
 
             // initialize success response; overwritten by error(...) methods-
-            response = new Response();
-            response.setResultCode(0);
-            response.setResultMessage("Success");
-            instruction.setResponse(response);
+            if(instruction.getResponse() == null) {
+                response = new Response();
+                response.setResultCode(0);
+                response.setResultMessage("Success");
+                instruction.setResponse(response);
+            }else{
+                response = instruction.getResponse();
+            }
+
         }
 
         /**
