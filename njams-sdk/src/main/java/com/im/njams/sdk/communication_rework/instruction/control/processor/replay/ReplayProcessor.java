@@ -7,9 +7,12 @@ import com.im.njams.sdk.communication_rework.instruction.control.processor.Instr
 
 public class ReplayProcessor extends InstructionProcessor {
 
-    private ReplayHandler replayHandler;
-
     public static final String REPLAY = Command.REPLAY.commandString();
+
+    protected static final String WARNING_RESULT_MESSAGE = "Client cannot replay processes. No replay handler is present.";
+
+    protected static final String ERROR_RESULT_MESSAGE_PREFIX = "Error while executing replay: ";
+    private ReplayHandler replayHandler;
 
     public ReplayProcessor() {
         super(REPLAY);
@@ -24,13 +27,13 @@ public class ReplayProcessor extends InstructionProcessor {
                 replayResponse.addParametersToInstruction(instruction);
             } catch (final Exception ex) {
                 response.setResultCode(2);
-                response.setResultMessage("Error while executing replay: " + ex.getMessage());
+                response.setResultMessage(ERROR_RESULT_MESSAGE_PREFIX + ex.getMessage());
                 instruction.setResponse(response);
-                instruction.setResponseParameter("Exception", String.valueOf(ex));
+                instruction.setResponseParameter(ReplayResponse.EXCEPTION_KEY, String.valueOf(ex));
             }
         } else {
             response.setResultCode(1);
-            response.setResultMessage("Client cannot replay processes. No replay handler is present.");
+            response.setResultMessage(WARNING_RESULT_MESSAGE);
             instruction.setResponse(response);
         }
     }
