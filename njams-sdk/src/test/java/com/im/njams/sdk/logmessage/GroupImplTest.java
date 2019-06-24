@@ -16,18 +16,17 @@
  */
 package com.im.njams.sdk.logmessage;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.when;
-
-import java.util.List;
-
-import org.junit.Test;
-import org.mockito.Mockito;
-
 import com.im.njams.sdk.AbstractTest;
 import com.im.njams.sdk.model.ActivityModel;
 import com.im.njams.sdk.model.GroupModel;
+import org.junit.Test;
+import org.mockito.Mockito;
+
+import java.util.List;
+
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.when;
 
 /**
  *
@@ -36,7 +35,7 @@ import com.im.njams.sdk.model.GroupModel;
 public class GroupImplTest extends AbstractTest {
 
     public GroupImplTest() {
-        super(null);
+        super();
     }
 
     /**

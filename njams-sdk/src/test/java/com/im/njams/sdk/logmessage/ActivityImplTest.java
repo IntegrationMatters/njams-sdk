@@ -17,12 +17,11 @@
 package com.im.njams.sdk.logmessage;
 
 import com.im.njams.sdk.AbstractTest;
+import com.im.njams.sdk.common.DateTimeUtility;
+import org.junit.Test;
 
 import java.time.LocalDateTime;
 import java.util.Map;
-
-import com.im.njams.sdk.common.DateTimeUtility;
-import org.junit.Test;
 
 import static org.junit.Assert.*;
 
@@ -38,7 +37,7 @@ public class ActivityImplTest extends AbstractTest {
      * This constructor calls super().
      */
     public ActivityImplTest(){
-        super(null);
+        super();
     }
 
     /**
