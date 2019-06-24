@@ -135,6 +135,7 @@ public class NjamsTest {
 
     @Test
     public void testOnCorrectReplayMessageInstruction() {
+        instance.start();
         ReplayHandler replayHandler = (ReplayRequest request) -> {
             ReplayResponse resp = new ReplayResponse();
             resp.setResultCode(0);
@@ -156,6 +157,7 @@ public class NjamsTest {
 
     @Test
     public void testOnThrownExceptionReplayMessageInstruction() {
+        instance.start();
         Instruction inst = new Instruction();
         ReplayHandler replayHandler = (ReplayRequest request) -> {
             throw new RuntimeException("TestException");
