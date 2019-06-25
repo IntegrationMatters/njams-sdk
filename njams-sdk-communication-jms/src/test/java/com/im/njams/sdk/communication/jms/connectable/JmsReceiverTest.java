@@ -52,13 +52,13 @@ public class JmsReceiverTest {
     private JmsReceiver jmsReceiver;
 
     @Before
-    public void setUp(){
+    public void setUp() {
         jmsReceiver = spy(new JmsReceiver());
     }
 
     //GetName
     @Test
-    public void getName(){
+    public void getName() {
         assertEquals(JmsConstants.COMMUNICATION_NAME, jmsReceiver.getName());
     }
 
@@ -74,7 +74,7 @@ public class JmsReceiverTest {
         verifyFailureOnMessage();
     }
 
-    private void verifyFailureOnMessage(){
+    private void verifyFailureOnMessage() {
         verify(jmsReceiver, times(0)).onInstruction(any());
         verify(jmsReceiver, times(0)).reply(any(), any());
     }
@@ -134,7 +134,7 @@ public class JmsReceiverTest {
         verifySuccessOnMessage(mockedMsg, instruction);
     }
 
-    private void verifySuccessOnMessage(Message msg, Instruction instruction){
+    private void verifySuccessOnMessage(Message msg, Instruction instruction) {
         verify(jmsReceiver, times(1)).reply(msg, instruction);
         verify(jmsReceiver, times(1)).onInstruction(instruction);
     }
@@ -142,7 +142,7 @@ public class JmsReceiverTest {
     //getInstruction
 
     @Test
-    public void getInstructionWithWrongMessageClass(){
+    public void getInstructionWithWrongMessageClass() {
         Message mockedMsg = mock(Message.class);
         Instruction instruction = jmsReceiver.getInstruction(mockedMsg);
         assertNull(instruction);
@@ -158,6 +158,7 @@ public class JmsReceiverTest {
         Instruction instructionAfterSerialization = jmsReceiver.getInstruction(mockedMsg);
         assertNull(instructionAfterSerialization);
     }
+
     @Test
     public void getInstructionFromMessage() throws JMSException, JsonProcessingException {
         fakeInitialize();
@@ -173,7 +174,7 @@ public class JmsReceiverTest {
         assertEquals(TEST_COMMAND, instructionAfterSerialization.getCommand());
     }
 
-    private void fakeInitialize(){
+    private void fakeInitialize() {
         JmsReceiverConnector mockedConnector = mock(JmsReceiverConnector.class);
         doReturn(mockedConnector).when(jmsReceiver).initialize(any());
         jmsReceiver.init(null);
@@ -234,19 +235,17 @@ public class JmsReceiverTest {
 
     //initialize
     @Test(expected = NullPointerException.class)
-    public void initializeWithoutNjams(){
-        doReturn("TestReceiver").when(jmsReceiver).getName();
+    public void initializeWithoutNjams() {
         Properties properties = new Properties();
         jmsReceiver.initialize(properties);
     }
 
     @Test
-    public void initialize(){
+    public void initialize() {
         Njams njams = mock(Njams.class);
         Path path = new Path("Test");
         when(njams.getClientPath()).thenReturn(path);
         jmsReceiver.setNjams(njams);
-        doReturn("TestReceiver").when(jmsReceiver).getName();
         Properties properties = new Properties();
         jmsReceiver.initialize(properties);
     }
