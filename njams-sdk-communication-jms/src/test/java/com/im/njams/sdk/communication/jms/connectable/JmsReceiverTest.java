@@ -28,6 +28,7 @@ import com.faizsiegeln.njams.messageformat.v4.command.Request;
 import com.faizsiegeln.njams.messageformat.v4.command.Response;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.im.njams.sdk.Njams;
+import com.im.njams.sdk.common.Path;
 import com.im.njams.sdk.communication.jms.JmsConstants;
 import com.im.njams.sdk.communication.jms.connector.JmsReceiverConnector;
 import com.im.njams.sdk.utils.JsonUtils;
@@ -239,9 +240,11 @@ public class JmsReceiverTest {
         jmsReceiver.initialize(properties);
     }
 
-    @Test(expected = NullPointerException.class)
+    @Test
     public void initialize(){
         Njams njams = mock(Njams.class);
+        Path path = new Path("Test");
+        when(njams.getClientPath()).thenReturn(path);
         jmsReceiver.setNjams(njams);
         doReturn("TestReceiver").when(jmsReceiver).getName();
         Properties properties = new Properties();
