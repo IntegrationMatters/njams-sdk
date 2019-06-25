@@ -50,7 +50,7 @@ public class JmsReceiverConnector extends JmsConnector {
 
     private static final org.slf4j.Logger LOG = LoggerFactory.getLogger(JmsReceiverConnector.class);
 
-    private String topicName;
+    protected String topicName;
     private String messageSelector;
     private MessageListener messageListener;
 

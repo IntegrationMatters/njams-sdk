@@ -44,7 +44,7 @@ public class JmsSenderConnector extends JmsConnector {
 
     private String destinationName;
 
-    private MessageProducer producer;
+    protected MessageProducer producer;
 
     public JmsSenderConnector(Properties properties, String name) {
         super(properties, name);
@@ -69,7 +69,7 @@ public class JmsSenderConnector extends JmsConnector {
      * @throws NamingException is thrown if something with the name is wrong.
      * @throws JMSException    is thrown if the topic can't be created.
      */
-    private Destination getOrCreateDestination(String destinationName) throws NamingException, JMSException {
+    protected Destination getOrCreateDestination(String destinationName) throws NamingException, JMSException {
         Destination destination = null;
         try {
             destination = (Destination) context.lookup(destinationName);
@@ -88,7 +88,7 @@ public class JmsSenderConnector extends JmsConnector {
      * @return
      * @throws JMSException
      */
-    private MessageProducer createProducer(Destination destination) throws JMSException {
+    protected MessageProducer createProducer(Destination destination) throws JMSException {
         return session.createProducer(destination);
     }
 
