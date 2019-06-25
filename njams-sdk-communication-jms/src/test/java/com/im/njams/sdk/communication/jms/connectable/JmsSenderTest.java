@@ -42,10 +42,10 @@ import javax.jms.MessageProducer;
 import javax.jms.Session;
 import javax.jms.TextMessage;
 import java.io.IOException;
+import java.time.LocalDateTime;
 import java.util.Properties;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
 
 public class JmsSenderTest {
@@ -253,5 +253,38 @@ public class JmsSenderTest {
         when(mockedDestination.toString()).thenReturn("TestDestination");
         final String data = "TestData";
         jmsSender.logSentMessage(msg, data);
+    }
+
+    /**
+     * The serializer should use ISO 8601 for serializing LocalDateTime.
+     * Supported from the Server are
+     * YYYY-MM-DDThh:mm:ss.sss and
+     * YYYY-MM-DDThh:mm:ss.sssZ
+     */
+    @Test
+    public void LocalDateTimeSerializerTest() {
+        final LocalDateTime JOBSTART = LocalDateTime.of(2018, 11, 20, 14, 55, 34, 555000000);
+        final LocalDateTime BUSINESSSTART = LocalDateTime.of(2018, 11, 20, 14, 57, 55, 240000000);
+        final LocalDateTime BUSINESSEND = LocalDateTime.of(2018, 11, 20, 14, 58, 12, 142000000);
+        final LocalDateTime JOBEND = LocalDateTime.of(2018, 11, 20, 14, 59, 58, 856000000);
+        final LocalDateTime SENTAT = LocalDateTime.of(2018, 11, 20, 15, 00, 01, 213000000);
+
+        LogMessage message = new LogMessage();
+        message.setJobStart(JOBSTART);
+        message.setBusinessStart(BUSINESSSTART);
+        message.setBusinessEnd(BUSINESSEND);
+        message.setJobEnd(JOBEND);
+        message.setSentAt(SENTAT);
+
+        try {
+            String data = JsonUtils.serialize(message);
+            assertTrue(data.contains("\"sentAt\" : \"2018-11-20T15:00:01.213\""));
+            assertTrue(data.contains("\"jobStart\" : \"2018-11-20T14:55:34.555\""));
+            assertTrue(data.contains("\"jobEnd\" : \"2018-11-20T14:59:58.856\""));
+            assertTrue(data.contains("\"businessStart\" : \"2018-11-20T14:57:55.240\""));
+            assertTrue(data.contains("\"businessEnd\" : \"2018-11-20T14:58:12.142\""));
+        } catch (Exception ex) {
+            fail(ex.getMessage());
+        }
     }
 }
