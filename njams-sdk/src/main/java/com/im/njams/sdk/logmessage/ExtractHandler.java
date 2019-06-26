@@ -16,6 +16,21 @@
  */
 package com.im.njams.sdk.logmessage;
 
+import com.faizsiegeln.njams.messageformat.v4.projectmessage.AttributeType;
+import com.faizsiegeln.njams.messageformat.v4.projectmessage.Extract;
+import com.faizsiegeln.njams.messageformat.v4.projectmessage.ExtractRule;
+import com.faizsiegeln.njams.messageformat.v4.projectmessage.RuleType;
+import com.im.njams.sdk.configuration.entity.ActivityConfiguration;
+import com.im.njams.sdk.configuration.entity.ProcessConfiguration;
+import com.im.njams.sdk.model.ActivityModel;
+import net.sf.saxon.xpath.XPathEvaluator;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.w3c.dom.NodeList;
+import org.xml.sax.InputSource;
+
+import javax.xml.transform.sax.SAXSource;
+import javax.xml.xpath.XPathConstants;
 import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -24,24 +39,6 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
-import javax.xml.transform.sax.SAXSource;
-import javax.xml.xpath.XPathConstants;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.w3c.dom.NodeList;
-import org.xml.sax.InputSource;
-
-import com.faizsiegeln.njams.messageformat.v4.projectmessage.AttributeType;
-import com.faizsiegeln.njams.messageformat.v4.projectmessage.Extract;
-import com.faizsiegeln.njams.messageformat.v4.projectmessage.ExtractRule;
-import com.faizsiegeln.njams.messageformat.v4.projectmessage.RuleType;
-import com.im.njams.sdk.configuration.ActivityConfiguration;
-import com.im.njams.sdk.configuration.ProcessConfiguration;
-import com.im.njams.sdk.model.ActivityModel;
-
-import net.sf.saxon.xpath.XPathEvaluator;
 
 /**
  *
@@ -115,8 +112,8 @@ public class ExtractHandler {
         ActivityModel model = activity.getActivityModel();
         if (model == null) {
             // deprecated
-            ProcessConfiguration processConfig = job.getNjams().getConfiguration()
-                    .getProcess(job.getProcessModel().getPath().toString());
+            ProcessConfiguration processConfig = job.getNjams()
+                    .getProcessFromConfiguration(job.getProcessModel().getPath().toString());
             if (processConfig == null) {
                 return;
             }

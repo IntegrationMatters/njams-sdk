@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Faiz & Siegeln Software GmbH
+ * Copyright (c) 2019 Faiz & Siegeln Software GmbH
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"),
  * to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
@@ -16,9 +16,7 @@
  */
 package com.im.njams.sdk;
 
-import com.faizsiegeln.njams.messageformat.v4.command.Command;
 import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
-import com.faizsiegeln.njams.messageformat.v4.command.Response;
 import com.faizsiegeln.njams.messageformat.v4.common.CommonMessage;
 import com.faizsiegeln.njams.messageformat.v4.common.TreeElement;
 import com.faizsiegeln.njams.messageformat.v4.common.TreeElementType;
@@ -30,17 +28,23 @@ import com.im.njams.sdk.common.DateTimeUtility;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.common.Path;
 import com.im.njams.sdk.communication.Communication;
-import com.im.njams.sdk.communication.InstructionListener;
-import com.im.njams.sdk.communication.ReplayHandler;
-import com.im.njams.sdk.communication.ReplayRequest;
-import com.im.njams.sdk.communication.ReplayResponse;
-import com.im.njams.sdk.configuration.Configuration;
-import com.im.njams.sdk.configuration.ConfigurationInstructionListener;
-import com.im.njams.sdk.configuration.ConfigurationProvider;
-import com.im.njams.sdk.configuration.ConfigurationProviderFactory;
-import com.im.njams.sdk.configuration.ProcessConfiguration;
-import com.im.njams.sdk.configuration.provider.FileConfigurationProvider;
-import com.im.njams.sdk.logmessage.DataMasking;
+import com.im.njams.sdk.communication_rework.CommunicationFacade;
+import com.im.njams.sdk.communication_rework.instruction.control.processor.InstructionProcessor;
+import com.im.njams.sdk.communication_rework.instruction.control.processor.configuration.ConfigureExtractProcessor;
+import com.im.njams.sdk.communication_rework.instruction.control.processor.configuration.DeleteExtractProcessor;
+import com.im.njams.sdk.communication_rework.instruction.control.processor.configuration.GetExtractProcessor;
+import com.im.njams.sdk.communication_rework.instruction.control.processor.configuration.GetLogLevelProcessor;
+import com.im.njams.sdk.communication_rework.instruction.control.processor.configuration.GetLogModeProcessor;
+import com.im.njams.sdk.communication_rework.instruction.control.processor.configuration.GetTracingProcessor;
+import com.im.njams.sdk.communication_rework.instruction.control.processor.configuration.RecordProcessor;
+import com.im.njams.sdk.communication_rework.instruction.control.processor.configuration.SetLogLevelProcessor;
+import com.im.njams.sdk.communication_rework.instruction.control.processor.configuration.SetLogModeProcessor;
+import com.im.njams.sdk.communication_rework.instruction.control.processor.configuration.SetTracingProcessor;
+import com.im.njams.sdk.communication_rework.instruction.control.processor.flush.SendProjectMessageProcessor;
+import com.im.njams.sdk.communication_rework.instruction.control.processor.replay.ReplayHandler;
+import com.im.njams.sdk.communication_rework.instruction.control.processor.replay.ReplayProcessor;
+import com.im.njams.sdk.configuration.boundary.ConfigurationFacade;
+import com.im.njams.sdk.configuration.entity.ProcessConfiguration;
 import com.im.njams.sdk.logmessage.Job;
 import com.im.njams.sdk.model.ProcessModel;
 import com.im.njams.sdk.model.image.ImageSupplier;
@@ -52,6 +56,7 @@ import com.im.njams.sdk.model.svg.ProcessDiagramFactory;
 import com.im.njams.sdk.serializer.Serializer;
 import com.im.njams.sdk.serializer.StringSerializer;
 import com.im.njams.sdk.settings.Settings;
+import com.im.njams.sdk.settings.encoding.Transformer;
 import org.slf4j.LoggerFactory;
 
 import java.net.URL;
@@ -78,7 +83,7 @@ import static java.util.stream.Collectors.toList;
  *
  * @author bwand
  */
-public class Njams implements InstructionListener {
+public class Njams {
 
     private static final org.slf4j.Logger LOG = LoggerFactory.getLogger(Njams.class);
 
@@ -90,8 +95,6 @@ public class Njams implements InstructionListener {
     private static final String DEFAULT_TAXONOMY_FOLDER_ICON = "images/folder.png";
     private static final String DEFAULT_TAXONOMY_CLIENT_ICON = "images/client.png";
     private static final String DEFAULT_TAXONOMY_PROCESS_ICON = "images/process.png";
-
-    private static final String DEFAULT_CACHE_PROVIDER = FileConfigurationProvider.NAME;
 
     /**
      * Static value for feature replay
@@ -150,8 +153,6 @@ public class Njams implements InstructionListener {
 
     private final ConcurrentMap<String, Job> jobs = new ConcurrentHashMap<>();
 
-    private final List<InstructionListener> instructionListeners = new ArrayList<>();
-
     // serializers
     private final HashMap<Class<?>, Serializer<?>> serializers = new HashMap<>();
 
@@ -163,20 +164,23 @@ public class Njams implements InstructionListener {
 
     private Communication communicationFactory;
 
-    private Configuration configuration;
+    private CommunicationFacade communicationFacade;
+
     private String machine;
     private boolean started = false;
     private static final String NOT_STARTED_EXCEPTION_MESSAGE = "The instance needs to be started first!";
 
-    private ReplayHandler replayHandler = null;
+    private final ConfigurationFacade configurationFacade;
+
+//    private final SettingsProxyFactory settingsProxyFactory;
 
     /**
      * Create a nJAMS client.
      *
-     * @param path the path in the tree
-     * @param version the version of the nNJAMS client
+     * @param path     the path in the tree
+     * @param version  the version of the nNJAMS client
      * @param category the category of the nJAMS client, should describe the
-     * technology
+     *                 technology
      * @param settings needed settings for client eg. for communication
      */
     public Njams(Path path, String version, String category, Settings settings) {
@@ -187,37 +191,113 @@ public class Njams implements InstructionListener {
         this.settings = settings;
         processDiagramFactory = new NjamsProcessDiagramFactory();
         processModelLayouter = new SimpleProcessModelLayouter();
-        loadConfigurationProvider();
         createTreeElements(path, TreeElementType.CLIENT);
         readVersions(version);
         printStartupBanner();
-        instructionListeners.add(this);
         setMachine();
         communicationFactory = new Communication(this, settings);
+        communicationFacade = new CommunicationFacade();
+        configurationFacade = new ConfigurationFacade(Transformer.decode(settings.getProperties()));
+    }
+
+    private void addInstructionProcessors() {
+        this.addInstructionProcessor(new SendProjectMessageProcessor(this));
+        this.addInstructionProcessor(new ConfigureExtractProcessor(this));
+        this.addInstructionProcessor(new DeleteExtractProcessor(this));
+        this.addInstructionProcessor(new GetExtractProcessor(this));
+        this.addInstructionProcessor(new GetLogLevelProcessor(this));
+        this.addInstructionProcessor(new GetLogModeProcessor(this));
+        this.addInstructionProcessor(new GetTracingProcessor(this));
+        this.addInstructionProcessor(new RecordProcessor(this));
+        this.addInstructionProcessor(new SetLogLevelProcessor(this));
+        this.addInstructionProcessor(new SetLogModeProcessor(this));
+        this.addInstructionProcessor(new SetTracingProcessor(this));
+        this.addInstructionProcessor(new ReplayProcessor());
+    }
+
+    public void addInstructionProcessor(InstructionProcessor instructionProcessor) {
+        communicationFacade.addInstructionProcessor(instructionProcessor);
+    }
+
+    public void removeInstructionProcessor(String instructionProcessorCommandName) {
+        communicationFacade.removeInstructionProcessor(instructionProcessorCommandName);
+    }
+
+    public void processReceivedInstruction(Instruction instruction) {
+        communicationFacade.processInstruction(instruction);
     }
 
     /**
-     * Load the ConfigurationProvider via the provided Properties
+     * Gets the current replay handler if present.
+     *
+     * @return Current replay handler if present or null otherwise.
      */
-    private void loadConfigurationProvider() {
-        Properties properties = settings.getProperties();
-        if (!properties.containsKey(ConfigurationProviderFactory.CONFIGURATION_PROVIDER)) {
-            settings.getProperties().put(ConfigurationProviderFactory.CONFIGURATION_PROVIDER, DEFAULT_CACHE_PROVIDER);
-        }
-        ConfigurationProvider configurationProvider =
-                new ConfigurationProviderFactory(properties, this).getConfigurationProvider();
-        configuration = new Configuration();
-        configuration.setConfigurationProvider(configurationProvider);
+    public ReplayHandler getReplayHandler() {
+        return communicationFacade.getReplayHandlerFromReplayProcessor();
     }
 
     /**
-     * load and apply configuration from configuration provider
+     * Sets a replay handler.
+     *
+     * @param replayHandler Replay handler to be set.
      */
-    private void loadConfiguration() {
-        ConfigurationProvider configurationProvider = configuration.getConfigurationProvider();
-        if (configurationProvider != null) {
-            configuration = configurationProvider.loadConfiguration();
+    public void setReplayHandler(final ReplayHandler replayHandler) {
+        communicationFacade.setReplayHandlerToReplayProcessor(replayHandler);
+        if (replayHandler == null) {
+            removeFeature(FEATURE_REPLAY);
+        } else {
+            addFeature(FEATURE_REPLAY);
         }
+    }
+
+    //For ServerInstructionSettings
+    public LogMode getLogModeFromConfiguration() {
+        return configurationFacade.getLogModeFromConfiguration();
+    }
+
+    public void setLogModeToConfiguration(LogMode logMode) {
+        configurationFacade.setLogModeToConfiguration(logMode);
+    }
+
+    public Map<String, ProcessConfiguration> getProcessesFromConfiguration() {
+        return configurationFacade.getProcessesFromConfiguration();
+    }
+
+    public void setProcessesToConfiguration(Map<String, ProcessConfiguration> processes) {
+        configurationFacade.setProcessesToConfiguration(processes);
+    }
+
+    public ProcessConfiguration getProcessFromConfiguration(String processPath) {
+        return configurationFacade.getProcessFromConfiguration(processPath);
+    }
+
+    public List<String> getDataMaskingFromConfiguration() {
+        return configurationFacade.getDataMaskingFromConfiguration();
+    }
+
+    public void setDataMaskingToConfiguration(List<String> dataMasking) {
+        configurationFacade.setDataMaskingToConfiguration(dataMasking);
+    }
+
+    public boolean isConfigurationRecording() {
+        return configurationFacade.isConfigurationRecording();
+    }
+
+    public void setRecordingToConfiguration(boolean recording) {
+        configurationFacade.setRecordingToConfiguration(recording);
+    }
+
+    public boolean isProcessExcluded(Path processPath) {
+        return configurationFacade.isProcessExcluded(processPath);
+    }
+
+    //For ConfigurationProxy
+    public void loadConfigurationFromStorageInMemory(){
+        configurationFacade.loadConfigurationFromStorageInMemory();
+    }
+
+    public void saveConfigurationFromMemoryToStorage(){
+        configurationFacade.saveConfigurationFromMemoryToStorage();
     }
 
     /**
@@ -229,7 +309,6 @@ public class Njams implements InstructionListener {
     }
 
     /**
-     *
      * @return the current nJAMS settings
      */
     public Settings getSettings() {
@@ -265,32 +344,9 @@ public class Njams implements InstructionListener {
     }
 
     /**
-     * Gets the current replay handler if present.
-     *
-     * @return Current replay handler if present or null otherwise.
-     */
-    public ReplayHandler getReplayHandler() {
-        return replayHandler;
-    }
-
-    /**
-     * Sets a replay handler.
-     *
-     * @param replayHandler Replay handler to be set.
-     */
-    public void setReplayHandler(final ReplayHandler replayHandler) {
-        this.replayHandler = replayHandler;
-        if (replayHandler == null) {
-            removeFeature(FEATURE_REPLAY);
-        } else {
-            addFeature(FEATURE_REPLAY);
-        }
-    }
-
-    /**
      * Adds a image for a given resource path.
      *
-     * @param key the key of the image
+     * @param key          the key of the image
      * @param resourcePath the path where to find the image
      */
     public void addImage(final String key, final String resourcePath) {
@@ -313,11 +369,11 @@ public class Njams implements InstructionListener {
         this.processDiagramFactory = processDiagramFactory;
     }
 
-    public void sendMessage(CommonMessage msg){
+    public void sendMessage(CommonMessage msg) {
         communicationFactory.sendMessage(msg);
     }
 
-    private void startReceiver(){
+    private void startReceiver() {
         communicationFactory.initializeNjamsReceiver();
     }
 
@@ -331,10 +387,8 @@ public class Njams implements InstructionListener {
             if (settings == null) {
                 throw new NjamsSdkRuntimeException("Settings not set");
             }
-            loadConfiguration();
-            initializeDataMasking();
-            instructionListeners.add(this);
-            instructionListeners.add(new ConfigurationInstructionListener(getConfiguration()));
+            configurationFacade.start();
+            addInstructionProcessors();
             startReceiver();
             LogMessageFlushTask.start(this);
             CleanTracepointsTask.start(this);
@@ -356,7 +410,7 @@ public class Njams implements InstructionListener {
             LogMessageFlushTask.stop(this);
             CleanTracepointsTask.stop(this);
             communicationFactory.stopAll();
-            instructionListeners.clear();
+            communicationFacade.stop();
             started = false;
         } else {
             throw new NjamsSdkRuntimeException(NOT_STARTED_EXCEPTION_MESSAGE);
@@ -413,7 +467,7 @@ public class Njams implements InstructionListener {
      * Create a process
      *
      * @param path Relative path to the client of the process which should be
-     * created
+     *             created
      * @return the new ProcessModel or a {@link NjamsSdkRuntimeException}
      */
     public ProcessModel createProcess(final Path path) {
@@ -444,7 +498,7 @@ public class Njams implements InstructionListener {
                 .forEach(ipm -> msg.getProcesses().add(ipm));
         images.forEach(i -> msg.getImages().put(i.getName(), i.getBase64Image()));
         msg.getGlobalVariables().putAll(globalVariables);
-        msg.setLogMode(configuration.getLogMode());
+        msg.setLogMode(getLogModeFromConfiguration());
 
         this.sendMessage(msg);
     }
@@ -497,7 +551,7 @@ public class Njams implements InstructionListener {
      * Returns the default icon type for a TreeElement, based on the criterias
      * first and TreeElementType
      *
-     * @param first Is this the root element
+     * @param first          Is this the root element
      * @param treeElmentType The treeElementType
      * @return the icon type
      */
@@ -636,72 +690,10 @@ public class Njams implements InstructionListener {
     }
 
     /**
-     * @return the instructionListeners
-     */
-    public List<InstructionListener> getInstructionListeners() {
-        return Collections.unmodifiableList(instructionListeners);
-    }
-
-    /**
-     * Adds a new InstructionListener which will be called if a new Instruction
-     * will be received.
-     *
-     * @param listener the new listener to be called
-     */
-    public void addInstructionListener(InstructionListener listener) {
-        instructionListeners.add(listener);
-    }
-
-    /**
-     * Removes a InstructionListener from the Receiver.
-     *
-     * @param listener the listener to remove
-     */
-    public void removeInstructionListener(InstructionListener listener) {
-        instructionListeners.remove(listener);
-    }
-
-    /**
-     *
      * @return the ProcessDiagramFactory
      */
     public ProcessDiagramFactory getProcessDiagramFactory() {
         return processDiagramFactory;
-    }
-
-    /**
-     * Implementation of the InstructionListener interface. Listens on
-     * sendProjectMessage and Replay.
-     *
-     * @param instruction The instruction which should be handled
-     */
-    @Override
-    public void onInstruction(Instruction instruction) {
-        if (instruction.getRequest().getCommand().equals(Command.SEND_PROJECTMESSAGE.commandString())) {
-            flushResources();
-            Response response = new Response();
-            response.setResultCode(0);
-            response.setResultMessage("Successfully send ProjectMessage via NjamsClient");
-            instruction.setResponse(response);
-            LOG.debug("Sent ProjectMessage requested via Instruction via Njams");
-        } else if (instruction.getRequest().getCommand().equalsIgnoreCase(Command.REPLAY.commandString())) {
-            final Response response = new Response();
-            if (replayHandler != null) {
-                try {
-                    ReplayResponse replayResponse = replayHandler.replay(new ReplayRequest(instruction));
-                    replayResponse.addParametersToInstruction(instruction);
-                } catch (final Exception ex) {
-                    response.setResultCode(2);
-                    response.setResultMessage("Error while executing replay: " + ex.getMessage());
-                    instruction.setResponse(response);
-                    instruction.setResponseParameter("Exception", String.valueOf(ex));
-                }
-            } else {
-                response.setResultCode(1);
-                response.setResultMessage("Client cannot replay processes. No replay handler is present.");
-                instruction.setResponse(response);
-            }
-        }
     }
 
     /**
@@ -710,10 +702,10 @@ public class Njams implements InstructionListener {
      * class with the registered serializer. If a serializer is already
      * registered, it will be replaced with the new serializer.
      *
-     * @param <T> Type of the serializer
-     * @param key Class for which the serializer should be registered
+     * @param <T>        Type of the serializer
+     * @param key        Class for which the serializer should be registered
      * @param serializer A serializer that can serialize instances of class key
-     * to strings.
+     *                   to strings.
      * @return The given serializer, or if one was already registered before,
      * the former registered serializer.
      */
@@ -764,7 +756,7 @@ public class Njams implements InstructionListener {
      * Serializes a given object using {@link #findSerializer(java.lang.Class) }
      *
      * @param <T> type of the class
-     * @param t Object to be serialied.
+     * @param t   Object to be serialied.
      * @return a string representation of the object.
      */
     public <T> String serialize(final T t) {
@@ -801,7 +793,7 @@ public class Njams implements InstructionListener {
      * hierarchy will be checked recursivly. if no (super) interface is
      * registed, <b>null</b> will be returned.
      *
-     * @param <T> Type of the class
+     * @param <T>   Type of the class
      * @param clazz Class for which a serializer will be searched.
      * @return Serizalier of <b>null</b>.
      */
@@ -849,21 +841,6 @@ public class Njams implements InstructionListener {
     }
 
     /**
-     *
-     * @return LogMode of this client
-     */
-    public LogMode getLogMode() {
-        return getConfiguration().getLogMode();
-    }
-
-    /**
-     * @return the configuration
-     */
-    public Configuration getConfiguration() {
-        return configuration;
-    }
-
-    /**
      * @return the machine name
      */
     public String getMachine() {
@@ -871,7 +848,6 @@ public class Njams implements InstructionListener {
     }
 
     /**
-     *
      * @return the list of features this client has
      */
     public List<String> getFeatures() {
@@ -903,30 +879,5 @@ public class Njams implements InstructionListener {
      */
     public boolean isStarted() {
         return started;
-    }
-
-    /**
-     * Returns if the given process is excluded. This could be explicitly set on
-     * the process, or if the Engine LogMode is set to none.
-     *
-     * @param processPath for the process which should be checked
-     * @return true if the process is excluded, or false if not
-     */
-    public boolean isExcluded(Path processPath) {
-        if (processPath == null) {
-            return false;
-        }
-        if (getConfiguration().getLogMode() == LogMode.NONE) {
-            return true;
-        }
-        ProcessConfiguration processConfiguration = getConfiguration().getProcess(processPath.toString());
-        return processConfiguration != null && processConfiguration.isExclude();
-    }
-
-    /**
-     * Initialize the datamasking feature
-     */
-    private void initializeDataMasking() {
-        DataMasking.addPatterns(configuration.getDataMasking());
     }
 }

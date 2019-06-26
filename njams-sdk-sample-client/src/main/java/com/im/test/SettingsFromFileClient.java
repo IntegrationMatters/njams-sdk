@@ -22,10 +22,10 @@ import com.im.njams.sdk.logmessage.Activity;
 import com.im.njams.sdk.logmessage.Job;
 import com.im.njams.sdk.model.ActivityModel;
 import com.im.njams.sdk.model.ProcessModel;
+import com.im.njams.sdk.service.factories.SettingsProxyFactory;
 import com.im.njams.sdk.settings.Settings;
 import com.im.njams.sdk.settings.SettingsProvider;
-import com.im.njams.sdk.settings.SettingsProviderFactory;
-import com.im.njams.sdk.settings.provider.PropertiesFileSettingsProvider;
+import com.im.njams.sdk.settings.proxy.PropertiesFileSettingsProxy;
 import java.util.Properties;
 
 /**
@@ -41,17 +41,15 @@ public class SettingsFromFileClient {
         String technology = "sdk4";
 
         // Use Properties File Settings Provider
-        Properties settingsProviderProperties = new Properties();
-        settingsProviderProperties.setProperty(SettingsProviderFactory.SETTINGS_PROVIDER,
-                PropertiesFileSettingsProvider.NAME);
-        SettingsProvider provider = SettingsProviderFactory.getSettingsProvider(settingsProviderProperties);
+        SettingsProxyFactory factory = new SettingsProxyFactory(PropertiesFileSettingsProxy.NAME);
+        SettingsProvider provider = factory.getInstance();
 
         // Specifiy location of properties file to load
         Properties fileConfig = new Properties();
         if (args.length < 1) {
-            fileConfig.setProperty(PropertiesFileSettingsProvider.FILE_CONFIGURATION, "target/classes/settings.properties");
+            fileConfig.setProperty(PropertiesFileSettingsProxy.FILE_CONFIGURATION, "target/classes/settings.properties");
         } else {
-            fileConfig.setProperty(PropertiesFileSettingsProvider.FILE_CONFIGURATION, args[0]);
+            fileConfig.setProperty(PropertiesFileSettingsProxy.FILE_CONFIGURATION, args[0]);
         }
         provider.configure(fileConfig);
         Settings settings = provider.loadSettings();

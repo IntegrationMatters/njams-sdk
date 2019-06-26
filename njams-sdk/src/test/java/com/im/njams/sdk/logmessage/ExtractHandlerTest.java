@@ -16,21 +16,6 @@
  */
 package com.im.njams.sdk.logmessage;
 
-import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.when;
-
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.BeforeClass;
-import org.junit.Test;
-
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.AttributeType;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.Extract;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.ExtractRule;
@@ -39,13 +24,24 @@ import com.faizsiegeln.njams.messageformat.v4.projectmessage.LogMode;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.RuleType;
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.common.Path;
-import com.im.njams.sdk.configuration.ActivityConfiguration;
-import com.im.njams.sdk.configuration.Configuration;
-import com.im.njams.sdk.configuration.ProcessConfiguration;
+import com.im.njams.sdk.configuration.entity.ActivityConfiguration;
+import com.im.njams.sdk.configuration.entity.Configuration;
+import com.im.njams.sdk.configuration.entity.ProcessConfiguration;
 import com.im.njams.sdk.logmessage.ExtractHandler.ExtractSource;
 import com.im.njams.sdk.model.ActivityModel;
 import com.im.njams.sdk.model.ProcessModel;
 import com.im.njams.sdk.settings.Settings;
+import org.junit.After;
+import org.junit.Assert;
+import org.junit.BeforeClass;
+import org.junit.Test;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import static org.mockito.Mockito.*;
 
 /**
  * This class tests if the Extracts are handled correctly.
@@ -92,11 +88,12 @@ public class ExtractHandlerTest {
         conf.setDataMasking(new ArrayList<>());
         conf.setRecording(true);
         Map<String, ProcessConfiguration> processes = new HashMap<>();
-        processes.put(njams.getProcessModel(processPath).getPath().toString(), processConf);
+        final String processPathAsString = njams.getProcessModel(processPath).getPath().toString();
+        processes.put(processPathAsString, processConf);
         conf.setProcesses(processes);
         //-------- Inject the Configuration instead of the one that was
         //created by njams
-        doReturn(conf).when(njams).getConfiguration();
+        when(njams.getProcessFromConfiguration(processPathAsString)).thenReturn(processConf);
     }
 
     /**
@@ -160,7 +157,7 @@ public class ExtractHandlerTest {
         Map<String, ActivityConfiguration> activityMap = new HashMap<>();
         activityMap.put(activityName, activity);
         //-------- Get the ProcessConfiguration and set the activityMap
-        njams.getConfiguration().getProcess(process.getPath().toString()).setActivities(activityMap);
+        njams.getProcessFromConfiguration(process.getPath().toString()).setActivities(activityMap);
         //-------- Test
         JobImpl job = (JobImpl) process.createJob();
         job.start();

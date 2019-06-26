@@ -1,4 +1,18 @@
 /*
+ * Copyright (c) 2019 Faiz & Siegeln Software GmbH
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"),
+ * to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
+ * and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+ *
+ * The Software shall be used for Good, not Evil.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
  */
 
 package com.im.njams.sdk.communication.jms.connector;
@@ -30,7 +44,7 @@ public class JmsSenderConnector extends JmsConnector {
 
     private String destinationName;
 
-    private MessageProducer producer;
+    protected MessageProducer producer;
 
     public JmsSenderConnector(Properties properties, String name) {
         super(properties, name);
@@ -55,7 +69,7 @@ public class JmsSenderConnector extends JmsConnector {
      * @throws NamingException is thrown if something with the name is wrong.
      * @throws JMSException    is thrown if the topic can't be created.
      */
-    private Destination getOrCreateDestination(String destinationName) throws NamingException, JMSException {
+    protected Destination getOrCreateDestination(String destinationName) throws NamingException, JMSException {
         Destination destination = null;
         try {
             destination = (Destination) context.lookup(destinationName);
@@ -74,7 +88,7 @@ public class JmsSenderConnector extends JmsConnector {
      * @return
      * @throws JMSException
      */
-    private MessageProducer createProducer(Destination destination) throws JMSException {
+    protected MessageProducer createProducer(Destination destination) throws JMSException {
         return session.createProducer(destination);
     }
 

@@ -16,12 +16,13 @@
  */
 package com.im.njams.sdk.settings;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * The settings contains settings needed for
@@ -35,7 +36,7 @@ public class Settings {
     //The Logger
     private static final Logger LOG = LoggerFactory.getLogger(Settings.class);
 
-    private Properties properties;
+    private Properties properties = new Properties();
 
     /**
      * Property njams.client.sdk.clientname

@@ -16,24 +16,26 @@
  */
 package com.im.njams.sdk.client;
 
+import com.faizsiegeln.njams.messageformat.v4.common.CommonMessage;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.Extract;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.LogLevel;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.Tracepoint;
 import com.faizsiegeln.njams.messageformat.v4.tracemessage.Activity;
 import com.faizsiegeln.njams.messageformat.v4.tracemessage.ProcessModel;
 import com.faizsiegeln.njams.messageformat.v4.tracemessage.TraceMessage;
-
 import com.im.njams.sdk.AbstractTest;
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.common.DateTimeUtility;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.common.Path;
-//import com.im.njams.sdk.communication.TestSender;
-import com.im.njams.sdk.configuration.ActivityConfiguration;
-import com.im.njams.sdk.configuration.ProcessConfiguration;
-import com.im.njams.sdk.configuration.TracepointExt;
+import com.im.njams.sdk.communication.connectable.sender.TestSender;
+import com.im.njams.sdk.communication.connectable.sender.Sender;
+import com.im.njams.sdk.communication.connector.Connector;
+import com.im.njams.sdk.communication.connector.NullConnector;
+import com.im.njams.sdk.configuration.entity.ActivityConfiguration;
+import com.im.njams.sdk.configuration.entity.ProcessConfiguration;
+import com.im.njams.sdk.configuration.entity.TracepointExt;
 import com.im.njams.sdk.utils.JsonUtils;
-
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -42,9 +44,13 @@ import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 
 import static org.junit.Assert.*;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+//import com.im.njams.sdk.communication.connectable.sender.TestSender;
 
 public class CleanTracepointsTaskTest extends AbstractTest {
 
@@ -55,8 +61,8 @@ public class CleanTracepointsTaskTest extends AbstractTest {
     private final String FULLPROCESSPATHNAME;
 
     public CleanTracepointsTaskTest() {
-        super(null);
-//        TestSender.setSenderMock(new SenderMock());
+        super();
+        TestSender.setSenderMock(new SenderMock());
         njams.start();
         this.createDefaultActivity(this.createDefaultStartedJob());
         FULLPROCESSPATHNAME = njams.getClientPath().add(PROCESSPATHNAME).toString();
@@ -194,12 +200,12 @@ public class CleanTracepointsTaskTest extends AbstractTest {
 
         fillActivityConfiguration(ldt1, ldt2);
 
-        assertNotNull(njams.getConfiguration().getProcess(FULLPROCESSPATHNAME).getActivity(ACTIVITYMODELID).getTracepoint());
+        assertNotNull(njams.getProcessFromConfiguration(FULLPROCESSPATHNAME).getActivity(ACTIVITYMODELID).getTracepoint());
         assertNull(message);
         testStartNormal();
         Thread.sleep(CleanTracepointsTask.DELAY + CleanTracepointsTask.INTERVAL);
         assertNotNull(message);
-        assertNull(njams.getConfiguration().getProcess(FULLPROCESSPATHNAME).getActivity(ACTIVITYMODELID).getTracepoint());
+        assertNull(njams.getProcessFromConfiguration(FULLPROCESSPATHNAME).getActivity(ACTIVITYMODELID).getTracepoint());
 
         checkTraceMessage(ldt1, ldt2);
         printMessageAsJson();
@@ -232,7 +238,7 @@ public class CleanTracepointsTaskTest extends AbstractTest {
 
         Map<String, ProcessConfiguration> pcs = new HashMap<>();
         pcs.put(FULLPROCESSPATHNAME, pc);
-        njams.getConfiguration().setProcesses(pcs);
+        njams.setProcessesToConfiguration(pcs);
     }
 
     private void checkTraceMessage(LocalDateTime ldt1, LocalDateTime ldt2) {
@@ -273,24 +279,34 @@ public class CleanTracepointsTaskTest extends AbstractTest {
 
    /**
      * This class is for fetching the messages that would be sent out.
-     *//*
+     */
     private static class SenderMock implements Sender {
 
-        *//**
+        /**
          * This method does nothing
          *
          * @param properties nothing to do with these
-         *//*
+         */
         @Override
         public void init(Properties properties) {
             //Do nothing
         }
 
-        *//**
+       @Override
+       public void stop() {
+
+       }
+
+       @Override
+       public Connector getConnector() {
+           return new NullConnector();
+       }
+
+       /**
          * This method safes all sent messages in the messages queue.
          *
          * @param msg
-         *//*
+         */
         @Override
         public void send(CommonMessage msg) {
             if (msg instanceof TraceMessage) {
@@ -298,22 +314,14 @@ public class CleanTracepointsTaskTest extends AbstractTest {
             }
         }
 
-        *//**
-         * This method does nothing
-         *//*
-        @Override
-        public void close() {
-            //Do nothing
-        }
-
-        *//**
+        /**
          * This method returns the name of the TestSender.
          *
          * @return name of the TestSender.
-         *//*
+         */
         @Override
         public String getName() {
             return TestSender.NAME;
         }
-    }*/
+   }
 }

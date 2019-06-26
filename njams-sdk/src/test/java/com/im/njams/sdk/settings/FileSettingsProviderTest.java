@@ -16,7 +16,10 @@
  */
 package com.im.njams.sdk.settings;
 
-import com.im.njams.sdk.settings.provider.FileSettingsProvider;
+import com.im.njams.sdk.service.factories.SettingsProxyFactory;
+import com.im.njams.sdk.settings.proxy.FileSettingsProxy;
+import org.junit.Test;
+
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -26,10 +29,10 @@ import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
+
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.junit.Assert.assertThat;
-import org.junit.Test;
 
 /**
  *
@@ -43,9 +46,8 @@ public class FileSettingsProviderTest {
         file.delete();
         assertThat(file.exists(), is(false));
 
-        Properties properties = new Properties();
-        properties.put(SettingsProviderFactory.SETTINGS_PROVIDER, FileSettingsProvider.NAME);
-        SettingsProvider provider = SettingsProviderFactory.getSettingsProvider(properties);
+        SettingsProxyFactory factory = new SettingsProxyFactory(FileSettingsProxy.NAME);
+        SettingsProvider provider = factory.getInstance();
 
         Settings conf = provider.loadSettings();
         assertThat(conf, notNullValue());

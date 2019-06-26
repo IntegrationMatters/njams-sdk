@@ -1,4 +1,18 @@
 /*
+ * Copyright (c) 2019 Faiz & Siegeln Software GmbH
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"),
+ * to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
+ * and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+ *
+ * The Software shall be used for Good, not Evil.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
  */
 
 package com.im.njams.sdk.communication.jms.connector;
@@ -45,7 +59,7 @@ public abstract class JmsConnector extends AbstractConnector implements Exceptio
     @Override
     public final void connect() {
         try {
-            if (njamsConnection.isConnected()) {
+            if (isConnected()) {
                 LOG.warn("Can't connect while being connected.");
                 return;
             }
@@ -70,6 +84,10 @@ public abstract class JmsConnector extends AbstractConnector implements Exceptio
         }
     }
 
+    protected boolean isConnected(){
+        return njamsConnection.isConnected();
+    }
+
     protected abstract void extConnect() throws Exception;
 
     /**
@@ -79,7 +97,7 @@ public abstract class JmsConnector extends AbstractConnector implements Exceptio
      * @return the InitialContext that has been created.
      * @throws NamingException is thrown if something with the name is wrong.
      */
-    private InitialContext getInitialContext() throws NamingException {
+    protected InitialContext getInitialContext() throws NamingException {
         return new InitialContext(PropertyUtil.filterAndCut(properties, JmsConstants.PROPERTY_PREFIX + "."));
     }
 
@@ -91,7 +109,7 @@ public abstract class JmsConnector extends AbstractConnector implements Exceptio
      * @return the ConnectionFactory, if found.
      * @throws NamingException is thrown if something with the name is wrong.
      */
-    private ConnectionFactory getConnectionFactory() throws NamingException {
+    protected ConnectionFactory getConnectionFactory() throws NamingException {
         return (ConnectionFactory) context.lookup(properties.getProperty(JmsConstants.CONNECTION_FACTORY));
     }
 
@@ -106,7 +124,7 @@ public abstract class JmsConnector extends AbstractConnector implements Exceptio
      * @throws JMSException is thrown if something is wrong with the username or
      *                      password.
      */
-    private Connection createConnection(ConnectionFactory factory) throws JMSException {
+    protected Connection createConnection(ConnectionFactory factory) throws JMSException {
         Connection con;
         if (properties.containsKey(JmsConstants.USERNAME) && properties.containsKey(JmsConstants.PASSWORD)) {
             con = factory.createConnection(properties.getProperty(JmsConstants.USERNAME),
@@ -125,7 +143,7 @@ public abstract class JmsConnector extends AbstractConnector implements Exceptio
      * @return the session if it can be created
      * @throws JMSException is thrown if something failed.
      */
-    private Session createSession() throws JMSException {
+    protected Session createSession() throws JMSException {
         return connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
     }
 
@@ -136,7 +154,7 @@ public abstract class JmsConnector extends AbstractConnector implements Exceptio
      * @throws JMSException is thrown if either setting the exceptionListener
      *                      didn't work or the connection didn't start.
      */
-    private void startConnection() throws JMSException {
+    protected void startConnection() throws JMSException {
         connection.setExceptionListener(this);
         connection.start();
     }

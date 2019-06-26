@@ -35,7 +35,7 @@ import static org.junit.Assert.*;
 public class LogMessageFlushTaskTest extends AbstractTest{
 
     public LogMessageFlushTaskTest(){
-        super(null);
+        super();
     }
     
     /**
@@ -62,33 +62,5 @@ public class LogMessageFlushTaskTest extends AbstractTest{
         //The job shouldn't be completly flushed, just the finished activity.
         assertTrue(job.getActivities().isEmpty());
         assertFalse(njams.getJobs().isEmpty());
-    }   
-    
-    
-    /**
-     * This test isn't useful anymore, because njams needs to be started before
-     * it can add jobs.
-    @Test
-    public void testStopWithoutStart(){
-        JobImpl job = createDefaultJob();
-        //A job is in the njams instance.
-        assertFalse(njams.getJobs().isEmpty());
-        assertEquals(njams.getJobById(job.getLogId()), job);
-        job.start();
-        
-        assertTrue(job.getActivities().isEmpty());
-        Activity activity = createDefaultActivity(job);
-        assertFalse(job.getActivities().isEmpty());
-        //This activity will be flushed
-        activity.setActivityStatus(ActivityStatus.SUCCESS);
-        assertFalse(job.getActivities().isEmpty());
-        
-        //call stop for this njams instance, without starting it before!
-        LogMessageFlushTask.stop(njams);
-        //The job shouldn't be flushed at all
-        assertFalse(job.getActivities().isEmpty());
-        assertEquals(job.getActivityByModelId(ACTIVITYMODELID), activity);
-        assertFalse(njams.getJobs().isEmpty());
     }
-    * */
 }

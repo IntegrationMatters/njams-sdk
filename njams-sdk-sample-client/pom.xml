@@ -41,12 +41,12 @@
         <dependency>
             <groupId>com.faizsiegeln.njams</groupId>
             <artifactId>njams4-sdk-communication-jms</artifactId>
-            <version>4.0.6-SNAPSHOT</version>
+            <version>4.0.8-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>com.faizsiegeln.njams</groupId>
             <artifactId>njams4-sdk-communication-http</artifactId>
-            <version>4.0.6-SNAPSHOT</version>
+            <version>4.0.8-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
@@ -99,6 +99,11 @@
             <artifactId>jms</artifactId>
             <version>2.0</version>
             <scope>runtime</scope>
+        </dependency>
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <scope>test</scope>
         </dependency>
     </dependencies>
 

@@ -27,8 +27,8 @@ import javax.xml.bind.annotation.XmlTransient;
 
 import com.faizsiegeln.njams.messageformat.v4.common.SubProcess;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.Activity;
-import com.im.njams.sdk.configuration.ActivityConfiguration;
-import com.im.njams.sdk.configuration.ProcessConfiguration;
+import com.im.njams.sdk.configuration.entity.ActivityConfiguration;
+import com.im.njams.sdk.configuration.entity.ProcessConfiguration;
 import com.im.njams.sdk.common.IdUtil;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 

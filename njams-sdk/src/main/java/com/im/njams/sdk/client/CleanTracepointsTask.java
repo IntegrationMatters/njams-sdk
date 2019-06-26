@@ -17,15 +17,13 @@
 package com.im.njams.sdk.client;
 
 import com.faizsiegeln.njams.messageformat.v4.tracemessage.Activity;
-import com.faizsiegeln.njams.messageformat.v4.tracemessage.ProcessModel;
 import com.faizsiegeln.njams.messageformat.v4.tracemessage.TraceMessage;
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.common.DateTimeUtility;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
-import com.im.njams.sdk.configuration.ActivityConfiguration;
-import com.im.njams.sdk.configuration.Configuration;
-import com.im.njams.sdk.configuration.ProcessConfiguration;
-import com.im.njams.sdk.configuration.TracepointExt;
+import com.im.njams.sdk.configuration.entity.ActivityConfiguration;
+import com.im.njams.sdk.configuration.entity.ProcessConfiguration;
+import com.im.njams.sdk.configuration.entity.TracepointExt;
 import org.slf4j.LoggerFactory;
 
 import java.time.LocalDateTime;
@@ -130,36 +128,31 @@ public class CleanTracepointsTask extends TimerTask {
     }
 
     private void checkNjams(Njams njams, LocalDateTime now) {
-        Configuration configuration = njams.getConfiguration();
-        TraceMessageBuilder tmBuilder = new TraceMessageBuilder(njams);
-        configuration.getProcesses().entrySet().forEach(processEntry -> checkProcess(configuration, processEntry, now, tmBuilder));
-        TraceMessage msg = tmBuilder.build();
-        if(msg != null){
-            njams.sendMessage(msg);
-        }
+        TraceMessageBuilder tmBuilder = new TraceMessageBuilder();
+        njams.getProcessesFromConfiguration().entrySet().forEach(processEntry -> checkProcess(njams, processEntry, now, tmBuilder));
+        sendTraceMessageIfNotEmpty(njams, tmBuilder);
     }
 
-    private void checkProcess(Configuration configuration, Entry<String, ProcessConfiguration> processEntry, LocalDateTime now, TraceMessageBuilder tmBuilder) {
+    private void checkProcess(Njams njams, Entry<String, ProcessConfiguration> processEntry, LocalDateTime now, TraceMessageBuilder tmBuilder) {
         //use itertor here, because we want to possibly modify the map itself
-        ProcessModel model = new ProcessModel();
         Iterator<Entry<String, ActivityConfiguration>> it = processEntry.getValue().getActivities().entrySet().iterator();
         while (it.hasNext()) {
             Entry<String, ActivityConfiguration> ae = it.next();
-            if (checkActivity(configuration, processEntry, ae, now, tmBuilder)) {
+            if (checkActivity(njams, processEntry, ae, now, tmBuilder)) {
                 it.remove();
-                configuration.save();
+                njams.saveConfigurationFromMemoryToStorage();
             }
         }
     }
 
-    private boolean checkActivity(Configuration configuration, Entry<String, ProcessConfiguration> processEntry, Entry<String, ActivityConfiguration> ae, LocalDateTime now, TraceMessageBuilder tmBuilder) {
+    private boolean checkActivity(Njams njams, Entry<String, ProcessConfiguration> processEntry, Entry<String, ActivityConfiguration> ae, LocalDateTime now, TraceMessageBuilder tmBuilder) {
         ActivityConfiguration activity = ae.getValue();
         TracepointExt tracepoint = activity.getTracepoint();
         if (tracepoint != null && (tracepoint.getEndtime().isBefore(now) || tracepoint.iterationsExceeded())) {
             try {
                 fillTraceMessageBuilder(processEntry, ae, tmBuilder);
                 activity.setTracepoint(null);
-                configuration.save();
+                njams.saveConfigurationFromMemoryToStorage();
                 if (activity.isEmpty()) {
                     return true;
                 }
@@ -176,6 +169,18 @@ public class CleanTracepointsTask extends TimerTask {
         act.setTracepoint(ae.getValue().getTracepoint());
 
         tmBuilder.addActivity(processEntry.getKey(), act);
+    }
+
+    private void sendTraceMessageIfNotEmpty(Njams njams, TraceMessageBuilder tmBuilder) {
+        if(!tmBuilder.isEmpty()){
+            TraceMessage traceMessageToBuild = tmBuilder.
+                    setClientVersion(njams.getClientVersion()).
+                    setSdkVersion(njams.getSdkVersion()).
+                    setCategory(njams.getCategory()).
+                    setPath(njams.getClientPath().toString()).
+                    build();
+            njams.sendMessage(traceMessageToBuild);
+        }
     }
 
 }
