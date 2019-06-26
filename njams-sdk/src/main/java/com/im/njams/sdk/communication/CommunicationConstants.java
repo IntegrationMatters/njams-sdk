@@ -16,12 +16,13 @@
  */
 package com.im.njams.sdk.communication;
 
+/**
+ * Summary of all relevant setting keys for communication
+ */
 public class CommunicationConstants {
 
     private CommunicationConstants(){}
 
-
-    public static final String COMMUNICATION = "njams.sdk.communication";
     /**
      * Property njams.client.sdk.instantpush
      */

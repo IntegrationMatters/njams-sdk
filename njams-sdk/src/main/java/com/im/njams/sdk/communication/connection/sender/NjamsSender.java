@@ -41,6 +41,7 @@ public class NjamsSender extends NjamsAbstractSender {
      * with the key: njams.sdk.communication.
      *
      * @param njams    the njamsInstance for which the messages will be send from.
+     * @param properties the Properties to initialize
      */
     public NjamsSender(Njams njams, Properties properties) {
         super(properties);

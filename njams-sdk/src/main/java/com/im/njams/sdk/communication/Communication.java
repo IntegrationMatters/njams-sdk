@@ -36,6 +36,9 @@ import java.util.Properties;
  */
 public class Communication {
 
+    /**
+     * Communication Key
+     */
     public static final String COMMUNICATION = "njams.sdk.communication";
     private static final Logger LOG = LoggerFactory.getLogger(Communication.class);
 

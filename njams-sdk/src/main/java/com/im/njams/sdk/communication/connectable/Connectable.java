@@ -26,7 +26,7 @@ public interface Connectable extends NjamsService {
 
     /**
      * This method should do all initialization with the given properties
-     * @param properties
+     * @param properties Properties to use for initialize
      */
     void init(Properties properties);
 

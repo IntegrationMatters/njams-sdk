@@ -53,7 +53,8 @@ public class ConnectableFactory {
 
     /**
      * This class loads a Factory for either Receiver or Sender connectables.
-     * @param njams
+     * @param njams Njams used for sending instructions to
+     * @param properties Properties to initialize
      */
     public ConnectableFactory(Njams njams, Properties properties){
         this.njams = njams;

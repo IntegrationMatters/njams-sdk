@@ -87,8 +87,8 @@ public abstract class ConfigurationProcessor extends InstructionProcessor {
         /**
          * Returns <code>true</code>, only if all given parameters exist and have none-blank values.
          * Sets according {@link #error(String)} response.
-         * @param names
-         * @return
+         * @param names names to validate
+         * @return true, if all names exists, otherwise false
          */
         public boolean validate(String... names) {
             Collection<String> missing =
@@ -105,9 +105,9 @@ public abstract class ConfigurationProcessor extends InstructionProcessor {
          * Returns <code>true</code> only if the given parameter's value can be parsed to an instance of the given
          * enumeration type.
          * Sets according {@link #error(String)} response.
-         * @param name
-         * @param enumeration
-         * @return
+         * @param name names to validate
+         * @param enumeration the enumeration to check for
+         * @return true, if the names exist in the enumeration, otherwise false
          */
         public <T extends Enum<T>> boolean validate(final String name, final Class<T> enumeration) {
             if (getEnumParameter(name, enumeration) == null) {
@@ -117,19 +117,10 @@ public abstract class ConfigurationProcessor extends InstructionProcessor {
             return true;
         }
 
-        /**
-         * Creates an error response with the given message.
-         * @param message
-         */
         public void error(final String message) {
             error(message, null);
         }
 
-        /**
-         * Creates an error response with the given message and exception.
-         * @param message
-         * @param e
-         */
         public void error(final String message, final Exception e) {
             LOG.error("Failed to execute command: [{}] on process: {}{}. Reason: {}", instruction.getCommand(),
                     getProcessPath(), getActivityId() != null ? "#" + getActivityId() : "", message, e);

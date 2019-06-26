@@ -40,8 +40,6 @@ public interface ConfigurationProxy extends NjamsService, ServerInstructionSetti
      * it should be tried to load a Configuration of the underlying storage.
      * If the storage does not contain a Configuration, it should return a new
      * empty Configuration and safe it in memory as well.
-     *
-     * @return Configuration
      */
     void loadConfiguration();
 

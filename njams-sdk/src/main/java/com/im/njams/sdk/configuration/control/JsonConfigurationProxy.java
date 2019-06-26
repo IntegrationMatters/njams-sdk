@@ -77,8 +77,6 @@ public class JsonConfigurationProxy extends MemoryConfigurationProxy {
 
     /**
      * Returns the value {@value #JSON_NAME} as name for this ConfigurationProxy
-     *
-     * @return the name of this ConfigurationProxy
      */
     @Override
     public String getName() {
@@ -88,8 +86,6 @@ public class JsonConfigurationProxy extends MemoryConfigurationProxy {
     /**
      * Loads the configuration from the underlying storage. If there is no Configuration or no underlying storage,
      * it creates a new Configuration and stores it in memory.
-     *
-     * @return the Configuration
      */
     @Override
     public void loadConfiguration() {

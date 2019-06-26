@@ -86,6 +86,8 @@ public class TraceMessageBuilder {
      *
      * @param processPath the ProcessPath of the Process where the activity belongs to
      * @param act         the Activity, whose TracePoint is expired.
+     *
+     * @return the traceMessageBuilder to continue to build
      */
     public TraceMessageBuilder addActivity(String processPath, Activity act) {
         List<Activity> activities = processesToSend.get(processPath);
