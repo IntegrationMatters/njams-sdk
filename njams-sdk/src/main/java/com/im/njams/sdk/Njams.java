@@ -400,10 +400,9 @@ public class Njams {
 
     /**
      * Stop a client; it stop processing and release the connections. It can't
-     * be stopped before it started. (NjamsSdkRuntimeException)
+     * be stopped before it started. (NjamsSdkRuntimeException will be thrown if it hasn't started before)
      *
      * @return true is stopping was successful.
-     * @throws NjamsSdkRuntimeException is thrown if this method is stopped before it started successfully.
      */
     public boolean stop() {
         if (isStarted()) {
