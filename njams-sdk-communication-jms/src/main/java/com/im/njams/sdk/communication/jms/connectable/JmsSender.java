@@ -28,7 +28,6 @@ import com.faizsiegeln.njams.messageformat.v4.common.MessageVersion;
 import com.faizsiegeln.njams.messageformat.v4.logmessage.LogMessage;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.ProjectMessage;
 import com.faizsiegeln.njams.messageformat.v4.tracemessage.TraceMessage;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.communication.connectable.sender.AbstractSender;
 import com.im.njams.sdk.communication.connectable.sender.Sender;
@@ -86,7 +85,7 @@ public class JmsSender extends AbstractSender {
         }
     }
 
-    protected String serializeMessageToJson(CommonMessage msg) throws JsonProcessingException {
+    protected String serializeMessageToJson(CommonMessage msg) throws Exception {
         return util.writeJson(msg);
     }
 

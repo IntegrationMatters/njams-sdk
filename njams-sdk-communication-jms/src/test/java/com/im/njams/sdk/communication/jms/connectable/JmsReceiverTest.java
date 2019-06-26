@@ -26,7 +26,6 @@ package com.im.njams.sdk.communication.jms.connectable;
 import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
 import com.faizsiegeln.njams.messageformat.v4.command.Request;
 import com.faizsiegeln.njams.messageformat.v4.command.Response;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.common.Path;
 import com.im.njams.sdk.communication.jms.JmsConstants;
@@ -149,7 +148,7 @@ public class JmsReceiverTest {
     }
 
     @Test
-    public void getInstructionWithNoRequest() throws JMSException, JsonProcessingException {
+    public void getInstructionWithNoRequest() throws Exception {
         fakeInitialize();
         TextMessage mockedMsg = mock(TextMessage.class);
         Instruction instructionBeforeSerialization = new Instruction();
@@ -160,7 +159,7 @@ public class JmsReceiverTest {
     }
 
     @Test
-    public void getInstructionFromMessage() throws JMSException, JsonProcessingException {
+    public void getInstructionFromMessage() throws Exception {
         fakeInitialize();
         TextMessage mockedMsg = mock(TextMessage.class);
         Instruction instructionBeforeSerialization = new Instruction();

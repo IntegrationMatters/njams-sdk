@@ -28,7 +28,6 @@ import com.faizsiegeln.njams.messageformat.v4.common.MessageVersion;
 import com.faizsiegeln.njams.messageformat.v4.logmessage.LogMessage;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.ProjectMessage;
 import com.faizsiegeln.njams.messageformat.v4.tracemessage.TraceMessage;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.im.njams.sdk.communication.connectable.sender.Sender;
 import com.im.njams.sdk.communication.jms.JmsConstants;
 import com.im.njams.sdk.communication.jms.connector.JmsSenderConnector;
@@ -41,7 +40,6 @@ import javax.jms.JMSException;
 import javax.jms.MessageProducer;
 import javax.jms.Session;
 import javax.jms.TextMessage;
-import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.Properties;
 
@@ -66,7 +64,7 @@ public class JmsSenderTest {
 
     //send
     @Test
-    public void sendLogMessage() throws JsonProcessingException, JMSException {
+    public void sendLogMessage() throws Exception {
         final LogMessage mockedLogMessage = mock(LogMessage.class);
         final String logMessageType = Sender.NJAMS_MESSAGETYPE_EVENT;
 
@@ -75,22 +73,20 @@ public class JmsSenderTest {
         verifySending(mockedLogMessage, logMessageType);
     }
 
-    private <T extends CommonMessage> void mockSend(T mockedMessage, String messageType)
-            throws JsonProcessingException, JMSException {
+    private <T extends CommonMessage> void mockSend(T mockedMessage, String messageType) throws Exception {
         doReturn(messageType).when(jmsSender).serializeMessageToJson(mockedMessage);
         doNothing().when(jmsSender).sendMessage(eq(mockedMessage), eq(messageType), any());
         doNothing().when(jmsSender).logSentMessage(eq(mockedMessage), any());
     }
 
-    private <T extends CommonMessage> void verifySending(T mockedMessage, String messageType)
-            throws JsonProcessingException, JMSException {
+    private <T extends CommonMessage> void verifySending(T mockedMessage, String messageType) throws Exception {
         verify(jmsSender).serializeMessageToJson(mockedMessage);
         verify(jmsSender).sendMessage(eq(mockedMessage), eq(messageType), any());
         verify(jmsSender).logSentMessage(eq(mockedMessage), any());
     }
 
     @Test
-    public void sendProjectMessage() throws JsonProcessingException, JMSException {
+    public void sendProjectMessage() throws Exception {
         final ProjectMessage mockedProjectMessage = mock(ProjectMessage.class);
         final String projectMessageType = Sender.NJAMS_MESSAGETYPE_PROJECT;
 
@@ -100,7 +96,7 @@ public class JmsSenderTest {
     }
 
     @Test
-    public void sendTraceMessage() throws JsonProcessingException, JMSException {
+    public void sendTraceMessage() throws Exception {
         final TraceMessage mockedTraceMessage = mock(TraceMessage.class);
         final String traceMessageType = Sender.NJAMS_MESSAGETYPE_TRACE;
 
@@ -118,7 +114,7 @@ public class JmsSenderTest {
     //serializeMessageToJson
 
     @Test
-    public void serializeLogMessageToJson() throws IOException {
+    public void serializeLogMessageToJson() throws Exception {
         fakeInitialize();
         LogMessage msg = new LogMessage();
         msg.setMachineName("Test");
@@ -129,7 +125,7 @@ public class JmsSenderTest {
     }
 
     @Test
-    public void serializeProjectMessageToJson() throws IOException {
+    public void serializeProjectMessageToJson() throws Exception {
         fakeInitialize();
         ProjectMessage msg = new ProjectMessage();
         msg.setMachine("Test");
@@ -140,7 +136,7 @@ public class JmsSenderTest {
     }
 
     @Test
-    public void serializeTraceMessageToJson() throws IOException {
+    public void serializeTraceMessageToJson() throws Exception {
         fakeInitialize();
         TraceMessage msg = new TraceMessage();
         msg.setClientVersion("Test");
