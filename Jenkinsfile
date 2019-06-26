@@ -1,7 +1,4 @@
 #!/usr/bin/env groovy
-
-import groovy.json.JsonOutput
-
 properties([
     buildDiscarder(logRotator(artifactDaysToKeepStr: '', artifactNumToKeepStr: '', daysToKeepStr: '', numToKeepStr: '10')),
     pipelineTriggers([
@@ -13,7 +10,6 @@ node ('master') {
     def scmInfo
     def mvnHome
     env.JAVA_HOME = tool 'jdk-8u92'
-
 	
     def nodeHome = tool name: 'NodeJS 6.9.1', type: 'jenkins.plugins.nodejs.tools.NodeJSInstallation'
     env.PATH = "${nodeHome}/bin:${env.PATH}"
@@ -45,6 +41,48 @@ node ('master') {
             archiveArtifacts 'target/*.jar'
         }
    }
+    stage('Build jms communication') {
+        echo "Build"
+        dir ('njams-sdk-communication-jms') {
+            try {
+                sh "'${mvnHome}/bin/mvn' clean deploy  -Psonar,jenkins-cli -DrevisionNumberPlugin.revision=${env.BUILD_NUMBER} -DscmBranch=${scmInfo.GIT_BRANCH} -DscmCommit=${scmInfo.GIT_COMMIT}"
+            } finally {
+                //junit 'target/surefire-reports/*.xml'
+            }
+            withSonarQubeEnv('sonar') {
+                sh "'${mvnHome}/bin/mvn' org.sonarsource.scanner.maven:sonar-maven-plugin:3.2:sonar"
+            }
+            archiveArtifacts 'target/*.jar'
+        }
+    }
+    stage('Build http communication') {
+        echo "Build"
+        dir ('njams-sdk-communication-http') {
+            try {
+                sh "'${mvnHome}/bin/mvn' clean deploy  -Psonar,jenkins-cli -DrevisionNumberPlugin.revision=${env.BUILD_NUMBER} -DscmBranch=${scmInfo.GIT_BRANCH} -DscmCommit=${scmInfo.GIT_COMMIT}"
+            } finally {
+                //junit 'target/surefire-reports/*.xml'
+            }
+            withSonarQubeEnv('sonar') {
+                sh "'${mvnHome}/bin/mvn' org.sonarsource.scanner.maven:sonar-maven-plugin:3.2:sonar"
+            }
+            archiveArtifacts 'target/*.jar'
+        }
+    }
+    stage('Build https communication') {
+        echo "Build"
+        dir ('njams-sdk-communication-https') {
+            try {
+                sh "'${mvnHome}/bin/mvn' clean deploy  -Psonar,jenkins-cli -DrevisionNumberPlugin.revision=${env.BUILD_NUMBER} -DscmBranch=${scmInfo.GIT_BRANCH} -DscmCommit=${scmInfo.GIT_COMMIT}"
+            } finally {
+                //junit 'target/surefire-reports/*.xml'
+            }
+            withSonarQubeEnv('sonar') {
+                sh "'${mvnHome}/bin/mvn' org.sonarsource.scanner.maven:sonar-maven-plugin:3.2:sonar"
+            }
+            archiveArtifacts 'target/*.jar'
+        }
+    }
    stage('Build cloud communication') {
         echo "Build"
         dir ('njams-sdk-communication-cloud') {
