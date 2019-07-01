@@ -19,9 +19,13 @@ package com.im.njams.sdk.service.factories;
 import com.im.njams.sdk.service.NjamsService;
 
 import java.util.Properties;
-
+/**
+ * Todo: Write Doc
+ */
 public class ConnectableFactory extends ServiceFactory {
-
+    /**
+     * Todo: Write Doc
+     */
     public static final String COMMUNICATION = "njams.sdk.communication";
 
     protected final Properties properties;

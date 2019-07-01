@@ -21,6 +21,9 @@ import org.slf4j.LoggerFactory;
 
 import java.util.Properties;
 
+/**
+ * Todo: Write Doc
+ */
 public abstract class AbstractConnector implements Connector {
 
     //The Logger

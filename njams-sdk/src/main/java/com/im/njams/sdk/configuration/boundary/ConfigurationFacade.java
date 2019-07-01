@@ -27,6 +27,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
+/**
+ * Todo: Write Doc
+ */
 public class ConfigurationFacade {
 
     private static final String DEFAULT_CONFIGURATION_FACTORY = JsonConfigurationProxy.JSON_NAME;

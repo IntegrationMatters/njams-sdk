@@ -20,10 +20,19 @@ package com.im.njams.sdk.communication.connector;
 
 import com.im.njams.sdk.communication.validator.ClasspathValidatable;
 
+/**
+ * Todo: Write Doc
+ */
 public interface Connector extends AutoCloseable, ClasspathValidatable {
 
+    /**
+     * Todo: Write Doc
+     */
     String SENDER_NAME_ENDING = "-Sender-Connector";
 
+    /**
+     * Todo: Write Doc
+     */
     String RECEIVER_NAME_ENDING = "-Receiver-Connector";
 
     /**

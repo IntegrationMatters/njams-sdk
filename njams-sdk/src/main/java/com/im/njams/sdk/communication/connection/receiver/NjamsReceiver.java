@@ -22,6 +22,9 @@ import com.im.njams.sdk.communication.pools.ReceiverPool;
 
 import java.util.Properties;
 
+/**
+ * Todo: Write Doc
+ */
 public class NjamsReceiver extends NjamsConnectable {
 
     public NjamsReceiver(Njams njams, Properties properties) {

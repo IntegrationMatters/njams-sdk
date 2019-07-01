@@ -22,6 +22,9 @@ import com.im.njams.sdk.configuration.entity.ProcessConfiguration;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Todo: Write Doc
+ */
 public interface ServerInstructionSettings {
 
     /**

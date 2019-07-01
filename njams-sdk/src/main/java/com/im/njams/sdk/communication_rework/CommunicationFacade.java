@@ -21,6 +21,9 @@ import com.im.njams.sdk.communication_rework.instruction.boundary.InstructionPro
 import com.im.njams.sdk.communication_rework.instruction.control.processor.InstructionProcessor;
 import com.im.njams.sdk.communication_rework.instruction.control.processor.replay.ReplayHandler;
 
+/**
+ * Todo: Write Doc
+ */
 public class CommunicationFacade {
 
     private InstructionProcessorFacade instructionProcessorController;

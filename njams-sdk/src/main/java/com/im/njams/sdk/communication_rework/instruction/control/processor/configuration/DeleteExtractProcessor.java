@@ -21,8 +21,14 @@ import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.configuration.entity.ActivityConfiguration;
 import com.im.njams.sdk.configuration.entity.ProcessConfiguration;
 
+/**
+ * Todo: Write Doc
+ */
 public class DeleteExtractProcessor extends ConfigurationProcessor {
 
+    /**
+     * Todo: Write Doc
+     */
     public static final String DELETE_EXTRACT = Command.DELETE_EXTRACT.commandString();
 
     public DeleteExtractProcessor(Njams njams) {

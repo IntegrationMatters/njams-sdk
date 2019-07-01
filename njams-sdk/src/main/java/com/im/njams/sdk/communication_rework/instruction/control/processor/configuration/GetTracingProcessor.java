@@ -22,8 +22,14 @@ import com.im.njams.sdk.configuration.entity.ActivityConfiguration;
 import com.im.njams.sdk.configuration.entity.ProcessConfiguration;
 import com.im.njams.sdk.configuration.entity.TracepointExt;
 
+/**
+ * Todo: Write Doc
+ */
 public class GetTracingProcessor extends ConfigurationProcessor {
 
+    /**
+     * Todo: Write Doc
+     */
     public static final String GET_TRACING = Command.GET_TRACING.commandString();
 
     public GetTracingProcessor(Njams njams) {

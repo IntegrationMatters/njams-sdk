@@ -22,10 +22,16 @@ import com.faizsiegeln.njams.messageformat.v4.command.Response;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * Todo: Write Doc
+ */
 public class FallbackProcessor extends InstructionProcessor {
 
     private static final Logger LOG = LoggerFactory.getLogger(FallbackProcessor.class);
 
+    /**
+     * Todo: Write Doc
+     */
     public static final String FALLBACK = "Fallback";
 
     protected static final String INSTRUCTION_IS_NULL = "Instruction should not be null";

@@ -21,6 +21,9 @@ import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * Todo: Write Doc
+ */
 public class NjamsConnection {
 
     //The logger

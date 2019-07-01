@@ -22,6 +22,9 @@ import com.im.njams.sdk.service.NjamsService;
 
 import java.util.Properties;
 
+/**
+ * Todo: Write Doc
+ */
 public interface Connectable extends NjamsService {
 
     /**

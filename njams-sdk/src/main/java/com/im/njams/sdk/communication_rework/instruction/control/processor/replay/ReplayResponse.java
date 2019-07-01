@@ -29,7 +29,14 @@ import java.util.Map;
  */
 public class ReplayResponse {
 
+    /**
+     * Todo: Write Doc
+     */
     public static final String EXCEPTION_KEY = "Exception";
+
+    /**
+     * Todo: Write Doc
+     */
     public static final String MAIN_LOG_ID_KEY = "MainLogId";
 
     private int resultCode;

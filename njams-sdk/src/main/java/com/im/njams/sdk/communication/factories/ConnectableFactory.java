@@ -36,10 +36,16 @@ import java.util.Spliterators;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
+/**
+ * Todo: Write Doc
+ */
 public class ConnectableFactory {
 
     private static final Logger LOG = LoggerFactory.getLogger(ConnectableFactory.class);
 
+    /**
+     * Todo: Write Doc
+     */
     public static final String COMMUNICATION = "njams.sdk.communication";
 
     private ServiceLoader<Receiver> receiverList;

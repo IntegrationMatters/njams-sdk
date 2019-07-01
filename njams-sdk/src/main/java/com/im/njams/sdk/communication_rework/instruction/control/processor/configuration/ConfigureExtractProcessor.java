@@ -26,10 +26,16 @@ import com.im.njams.sdk.configuration.entity.ProcessConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * Todo: Write Doc
+ */
 public class ConfigureExtractProcessor extends ConfigurationProcessor {
 
     private static final Logger LOG = LoggerFactory.getLogger(ConfigureExtractProcessor.class);
 
+    /**
+     * Todo: Write Doc
+     */
     public static final String CONFIGURE_EXTRACT = Command.CONFIGURE_EXTRACT.commandString();
 
     public ConfigureExtractProcessor(Njams njams) {

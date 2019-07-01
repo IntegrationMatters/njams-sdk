@@ -23,10 +23,16 @@ import com.im.njams.sdk.configuration.entity.ProcessConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * Todo: Write Doc
+ */
 public class GetLogLevelProcessor extends ConfigurationProcessor {
 
     private static final Logger LOG = LoggerFactory.getLogger(GetLogLevelProcessor.class);
 
+    /**
+     * Todo: Write Doc
+     */
     public static final String GET_LOG_LEVEL = Command.GET_LOG_LEVEL.commandString();
 
     public GetLogLevelProcessor(Njams njams) {

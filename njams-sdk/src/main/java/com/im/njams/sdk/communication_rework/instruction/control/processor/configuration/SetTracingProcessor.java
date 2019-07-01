@@ -28,10 +28,16 @@ import org.slf4j.LoggerFactory;
 
 import java.time.LocalDateTime;
 
+/**
+ * Todo: Write Doc
+ */
 public class SetTracingProcessor extends ConfigurationProcessor {
 
     private static final Logger LOG = LoggerFactory.getLogger(SetTracingProcessor.class);
 
+    /**
+     * Todo: Write Doc
+     */
     public static final String SET_TRACING = Command.SET_TRACING.commandString();
 
     private static final int TRACING_IS_ENABLED_IN_MINUTES = 15;

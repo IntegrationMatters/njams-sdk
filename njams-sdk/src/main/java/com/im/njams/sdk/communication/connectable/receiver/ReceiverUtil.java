@@ -21,6 +21,9 @@ import com.im.njams.sdk.communication.connectable.sender.SenderUtil;
 import java.io.IOException;
 import java.io.InputStream;
 
+/**
+ * Todo: Write Doc
+ */
 public class ReceiverUtil extends SenderUtil {
 
     public ReceiverUtil(){

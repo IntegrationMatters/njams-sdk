@@ -22,8 +22,14 @@ import com.faizsiegeln.njams.messageformat.v4.projectmessage.LogMode;
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.configuration.entity.ProcessConfiguration;
 
+/**
+ * Todo: Write Doc
+ */
 public class SetLogLevelProcessor extends ConfigurationProcessor {
 
+    /**
+     * Todo: Write Doc
+     */
     public static final String SET_LOG_LEVEL = Command.SET_LOG_LEVEL.commandString();
 
     public SetLogLevelProcessor(Njams njams) {

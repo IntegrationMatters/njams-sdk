@@ -6,6 +6,9 @@ import com.im.njams.sdk.serializer.JsonSerializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * Todo: Write Doc
+ */
 public class RequestLogger implements InstructionLogger {
 
     private static final Logger LOG = LoggerFactory.getLogger(RequestLogger.class);

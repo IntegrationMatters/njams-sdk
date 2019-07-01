@@ -16,5 +16,8 @@
  */
 package com.im.njams.sdk.communication.validator;
 
+/**
+ * Todo: Write Doc
+ */
 public interface Validatable{
 }

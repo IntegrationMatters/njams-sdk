@@ -1,5 +1,8 @@
 package com.im.njams.sdk.communication_rework.instruction.boundary.logging;
 
+/**
+ * Todo: Write Doc
+ */
 public class InstructionLoggerFactory {
 
     private InstructionLogger requestLogger;

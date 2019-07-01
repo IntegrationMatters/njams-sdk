@@ -19,7 +19,9 @@ package com.im.njams.sdk.service.factories;
 import com.im.njams.sdk.settings.SettingsProvider;
 
 import java.util.Properties;
-
+/**
+ * Todo: Write Doc
+ */
 public class SettingsProxyFactory extends ServiceFactory{
 
     private static SettingsProvider globalSettingsProviderInstance;

@@ -19,7 +19,9 @@ package com.im.njams.sdk.service.factories;
 import com.im.njams.sdk.communication.connectable.sender.Sender;
 
 import java.util.Properties;
-
+/**
+ * Todo: Write Doc
+ */
 public class SenderFactory extends ConnectableFactory {
 
     //Todo: Use the ObjectPool here

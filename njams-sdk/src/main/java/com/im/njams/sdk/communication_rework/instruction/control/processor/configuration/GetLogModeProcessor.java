@@ -22,10 +22,16 @@ import com.im.njams.sdk.Njams;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * Todo: Write Doc
+ */
 public class GetLogModeProcessor extends ConfigurationProcessor {
 
     private static final Logger LOG = LoggerFactory.getLogger(GetLogModeProcessor.class);
 
+    /**
+     * Todo: Write Doc
+     */
     public static final String GET_LOG_MODE = Command.GET_LOG_MODE.commandString();
 
     public GetLogModeProcessor(Njams njams) {

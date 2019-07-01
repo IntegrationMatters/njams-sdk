@@ -22,6 +22,10 @@ import com.im.njams.sdk.communication.factories.ConnectableFactory;
 
 import java.util.Properties;
 
+/**
+ * Todo: Write Doc
+ * @param <T> class to store in the connectablePool
+ */
 public abstract class ConnectablePool<T extends Connectable> extends ObjectPool<T>{
 
     protected ConnectableFactory connectableFactory;

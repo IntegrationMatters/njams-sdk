@@ -24,12 +24,18 @@ import com.im.njams.sdk.communication_rework.instruction.control.processor.Instr
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * Todo: Write Doc
+ */
 public class SendProjectMessageProcessor extends InstructionProcessor {
 
     private static final Logger LOG = LoggerFactory.getLogger(SendProjectMessageProcessor.class);
 
     protected static final String SUCCESS_RESULT_MESSAGE = "Successfully send ProjectMessage via NjamsClient";
 
+    /**
+     * Todo: Write Doc
+     */
     public static final String SEND_PROJECTMESSAGE = Command.SEND_PROJECTMESSAGE.commandString();
 
     private Njams njams;

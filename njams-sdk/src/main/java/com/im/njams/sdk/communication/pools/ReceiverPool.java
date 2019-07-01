@@ -21,6 +21,9 @@ import com.im.njams.sdk.communication.connectable.receiver.Receiver;
 
 import java.util.Properties;
 
+/**
+ * Todo: Write Doc
+ */
 public class ReceiverPool extends ConnectablePool<Receiver> {
 
     public ReceiverPool(Njams njams, Properties properties) {

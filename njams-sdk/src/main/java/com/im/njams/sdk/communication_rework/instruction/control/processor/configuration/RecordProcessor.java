@@ -22,10 +22,16 @@ import com.im.njams.sdk.configuration.entity.ProcessConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * Todo: Write Doc
+ */
 public class RecordProcessor extends ConfigurationProcessor {
 
     private static final Logger LOG = LoggerFactory.getLogger(RecordProcessor.class);
 
+    /**
+     * Todo: Write Doc
+     */
     public static final String RECORD = Command.RECORD.commandString();
 
     public RecordProcessor(Njams njams) {

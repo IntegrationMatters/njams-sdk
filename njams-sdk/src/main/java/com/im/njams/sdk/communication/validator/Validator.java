@@ -16,6 +16,10 @@
  */
 package com.im.njams.sdk.communication.validator;
 
+/**
+ * Todo: Write Doc
+ * @param <T> class to validate with this validator
+ */
 public interface Validator<T extends Validatable>{
 
     public void validate(T validatable) throws Exception;

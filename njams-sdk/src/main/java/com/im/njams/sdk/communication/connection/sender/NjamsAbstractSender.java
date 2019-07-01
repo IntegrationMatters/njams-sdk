@@ -27,6 +27,9 @@ import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
+/**
+ * Todo: Write Doc
+ */
 public abstract class NjamsAbstractSender extends NjamsConnectable {
 
     //The logger to log messages.
