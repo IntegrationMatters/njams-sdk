@@ -31,7 +31,9 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
-
+/**
+ * Todo: write doc
+ */
 public abstract class CloudConnector extends AbstractConnector {
 
     private static final org.slf4j.Logger LOG = LoggerFactory.getLogger(CloudConnector.class);

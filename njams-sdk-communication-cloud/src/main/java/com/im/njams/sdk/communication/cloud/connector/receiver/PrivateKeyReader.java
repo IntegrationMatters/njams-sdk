@@ -32,17 +32,29 @@ import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.RSAPrivateCrtKeySpec;
 
 /**
- *
+ * Todo: Write doc
  * @author pnientiedt
  */
 public class PrivateKeyReader {
 
     // Private key file using PKCS #1 encoding
+     /**
+     * Todo: Write Doc
+     */
     public static final String P1_BEGIN_MARKER = "-----BEGIN RSA PRIVATE KEY"; //$NON-NLS-1$
+    /**
+     * Todo: Write Doc
+     */
     public static final String P1_END_MARKER = "-----END RSA PRIVATE KEY"; //$NON-NLS-1$
 
     // Private key file using PKCS #8 encoding
+    /**
+     * Todo: Write Doc
+     */
     public static final String P8_BEGIN_MARKER = "-----BEGIN PRIVATE KEY"; //$NON-NLS-1$
+    /**
+     * Todo: Write Doc
+     */
     public static final String P8_END_MARKER = "-----END PRIVATE KEY"; //$NON-NLS-1$
 
     /**

@@ -41,6 +41,7 @@ import java.util.Set;
 import static java.nio.charset.Charset.defaultCharset;
 
 /**
+ * Todo Write doc
  * @author stkniep
  */
 public class CloudSender extends AbstractSender {

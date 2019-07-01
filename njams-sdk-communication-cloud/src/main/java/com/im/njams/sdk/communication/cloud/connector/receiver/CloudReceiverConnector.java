@@ -29,12 +29,19 @@ import java.util.List;
 import java.util.Properties;
 import java.util.UUID;
 
+/**
+ * Todo: write doc
+ */
 public class CloudReceiverConnector extends CloudConnector {
 
     private static final org.slf4j.Logger LOG = LoggerFactory.getLogger(CloudReceiverConnector.class);
-
+    /**
+     * Todo: Write Doc
+     */
     public static final String ON_CONNECT = "/onConnect/";
-
+    /**
+     * Todo: Write Doc
+     */
     public static final AWSIotQos QOS = AWSIotQos.QOS1;
 
     private UUID uuid = UUID.randomUUID();

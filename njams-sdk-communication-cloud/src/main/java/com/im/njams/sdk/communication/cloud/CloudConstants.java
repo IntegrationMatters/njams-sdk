@@ -23,21 +23,49 @@ package com.im.njams.sdk.communication.cloud;
 public class CloudConstants {
     
     private CloudConstants() {}
-
+    /**
+     * Todo: Write Doc
+     */
     public static final String PROPERTY_PREFIX = "njams.sdk.communication.cloud";
+    /**
+     * Todo: Write Doc
+     */
     public static final String COMMUNICATION_NAME = "CLOUD";
+    /**
+     * Todo: Write Doc
+     */
     public static final String ENDPOINT = PROPERTY_PREFIX + ".endpoint";
+    /**
+     * Todo: Write Doc
+     */
     public static final String APIKEY = PROPERTY_PREFIX + ".apikey";
+    /**
+     * Todo: Write Doc
+     */
     public static final String CLIENT_INSTANCEID = PROPERTY_PREFIX + ".client.instanceId";
+    /**
+     * Todo: Write Doc
+     */
     public static final String CLIENT_CERTIFICATE = PROPERTY_PREFIX + ".client.certificate";
+    /**
+     * Todo: Write Doc
+     */
     public static final String CLIENT_PRIVATEKEY = PROPERTY_PREFIX + ".client.privatekey";
-    
+    /**
+     * Todo: Write Doc
+     */
     public static final String MAX_PAYLOAD_BYTES = PROPERTY_PREFIX + ".maxPayloadBytes";
-
+    /**
+     * Todo: Write Doc
+     */
     public static final String CLIENT_KS = "client.ks";
-
+    /**
+     * Todo: Write Doc
+     */
     public static final String CLIENT_TS = "client.ts";
-
+    /**
+     * Todo: Write Doc
+     */
     public static final String TRUST_STORE = "javax.net.ssl.trustStore";
 
     /**
@@ -49,17 +77,36 @@ public class CloudConstants {
      * Content type text plain
      */
     public  static final String CONTENT_TYPE = "Content-Type";
+    /**
+     * Todo: Write Doc
+     */
     public  static final String CONTENT_TYPE_TEXT = "text/plain";
-
+    /**
+     * Todo: Write Doc
+     */
     public  static final String HTTP_REQUEST_TYPE_POST = "POST";
+    /**
+     * Todo: Write Doc
+     */
     public  static final String HTTP_REQUEST_TYPE_PUT= "PUT";
+    /**
+     * Todo: Write Doc
+     */
     public  static final String HTTP_REQUEST_TYPE_GET= "GET";
-
+    /**
+     * Todo: Write Doc
+     */
     public  static final String ACCEPT = "Accept";
-
+    /**
+     * Todo: Write Doc
+     */
     public  static final String CONTENT_LANGUAGE = "Content-Language";
-
+    /**
+     * Todo: Write Doc
+     */
     public  static final String CONTENT_LANGUAGE_EN_US = "en-US";
-
+    /**
+     * Todo: Write Doc
+     */
     public  static final String UTF_8 = "charset=UTF-8";
 }

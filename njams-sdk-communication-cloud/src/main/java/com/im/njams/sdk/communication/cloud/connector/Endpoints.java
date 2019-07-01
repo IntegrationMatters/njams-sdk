@@ -23,8 +23,13 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  * @author lmusebrink
  */
 public class Endpoints {
-    
+    /**
+     * Todo: Write Doc
+     */
     public String ingest;
+    /**
+     * Todo: Write Doc
+     */
     public String client;
 
     public Endpoints(@JsonProperty("ingest")String ingest, @JsonProperty("client")String client) {

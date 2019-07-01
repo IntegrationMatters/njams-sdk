@@ -36,10 +36,16 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
 
+/**
+ * Todo: write doc
+ */
 public class CloudSenderConnector extends CloudConnector {
 
     private static final org.slf4j.Logger LOG = LoggerFactory.getLogger(CloudSenderConnector.class);
 
+    /**
+     * Todo: write doc
+     */
     public static final int FALLBACK_MAX_PAYLOAD_BYTES = 10485760;
 
     private int maxPayloadBytes;
@@ -118,9 +124,6 @@ public class CloudSenderConnector extends CloudConnector {
         return connection;
     }
 
-    /**
-     * @return a presignedUrl
-     */
     public URL getPresignedUrl(final URL defaultUrl) throws IOException {
         HttpsURLConnection connection = (HttpsURLConnection) defaultUrl.openConnection();
         connection.setRequestMethod("GET");
@@ -155,9 +158,6 @@ public class CloudSenderConnector extends CloudConnector {
         }
     }
 
-    /**
-     * @return the ingest endpoint
-     */
     public String getIngestEndpoint(String endpoint) throws IOException {
         Endpoints endpoints = super.getEndpoints(endpoint);
         return endpoints.ingest.startsWith("https://") ? endpoints.ingest : "https://" + endpoints.ingest;

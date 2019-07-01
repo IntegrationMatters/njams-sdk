@@ -23,7 +23,9 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  * @author lmusebrink
  */
 public class PresignedUrl {
-    
+    /**
+     * Todo: Write Doc
+     */
     public String url;
 
     public PresignedUrl(@JsonProperty("url")String url) {

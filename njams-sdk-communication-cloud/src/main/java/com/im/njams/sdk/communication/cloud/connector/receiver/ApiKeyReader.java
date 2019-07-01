@@ -23,7 +23,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 
 /**
- *
+ * Todo: write doc
  * @author lmusebrink
  */
 public class ApiKeyReader {

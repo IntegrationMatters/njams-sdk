@@ -38,7 +38,7 @@ import java.util.List;
 import java.util.Properties;
 
 /**
- *
+ * Todo: write doc
  * @author pnientiedt
  */
 public class CertificateUtil {
@@ -46,10 +46,17 @@ public class CertificateUtil {
     private static final org.slf4j.Logger LOG = LoggerFactory.getLogger(CertificateUtil.class);
 
     private static final String PropertyFile = "aws-iot-sdk-samples.properties";
-
+    /**
+     * Todo: Write Doc
+     */
     public static class KeyStorePasswordPair {
-
+        /**
+         * Todo: Write Doc
+         */
         public KeyStore keyStore;
+        /**
+         * Todo: Write Doc
+         */
         public String keyPassword;
 
         public KeyStorePasswordPair(KeyStore keyStore, String keyPassword) {
