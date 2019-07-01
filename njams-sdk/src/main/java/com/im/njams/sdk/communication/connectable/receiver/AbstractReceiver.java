@@ -81,6 +81,7 @@ public abstract class AbstractReceiver implements Receiver {
      */
     @Override
     public void onInstruction(Instruction instruction) {
+        LOG.debug("Received instruction: {}", instruction == null ? "null" : instruction.getCommand());
         if (njams == null) {
             LOG.error("Njams should not be null");
             return;
