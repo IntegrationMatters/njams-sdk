@@ -29,7 +29,9 @@ import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
-
+/**
+ * Todo: write doc
+ */
 public class HttpsReceiverConnector extends HttpsConnector{
 
     private static final Logger LOG = LoggerFactory.getLogger(HttpsReceiverConnector.class);

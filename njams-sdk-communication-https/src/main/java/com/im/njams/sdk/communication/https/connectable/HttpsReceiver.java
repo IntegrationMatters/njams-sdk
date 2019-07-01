@@ -36,6 +36,9 @@ import java.util.Properties;
 import static java.net.HttpURLConnection.*;
 import static java.nio.charset.Charset.defaultCharset;
 
+/**
+ * Todo: write doc
+ */
 public class HttpsReceiver extends AbstractReceiver implements HttpHandler {
 
     /**

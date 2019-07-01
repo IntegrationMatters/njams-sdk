@@ -35,7 +35,9 @@ import java.util.List;
 import java.util.Properties;
 
 import static java.nio.charset.Charset.defaultCharset;
-
+/**
+ * Todo: write doc
+ */
 public class HttpsSenderConnector extends HttpsConnector {
 
     private static final org.slf4j.Logger LOG = LoggerFactory.getLogger(HttpsSenderConnector.class);

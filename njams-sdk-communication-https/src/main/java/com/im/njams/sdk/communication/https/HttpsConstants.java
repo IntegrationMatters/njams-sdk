@@ -15,11 +15,15 @@
  * IN THE SOFTWARE.
  */
 package com.im.njams.sdk.communication.https;
-
+/**
+ * Todo: write doc
+ */
 public class HttpsConstants {
 
     private HttpsConstants(){}
-
+    /**
+     * Todo: write doc
+     */
     public static final String PROPERTY_PREFIX = "njams.sdk.communication.http";
 
     /**
@@ -48,11 +52,17 @@ public class HttpsConstants {
      * http sender password
      */
     public static final String SENDER_PASSWORD = PROPERTY_PREFIX + ".sender.password";
-
+    /**
+     * Todo: write doc
+     */
     public static final String CLIENT_KS = "client.ks";
-
+    /**
+     * Todo: write doc
+     */
     public static final String CLIENT_TS = "client.ts";
-
+    /**
+     * Todo: write doc
+     */
     public static final String TRUST_STORE = "javax.net.ssl.trustStore";
 
     /**
@@ -64,17 +74,37 @@ public class HttpsConstants {
      * Content type text plain
      */
     public  static final String CONTENT_TYPE = "Content-Type";
+    /**
+     * Todo: write doc
+     */
     public  static final String CONTENT_TYPE_TEXT = "text/plain";
 
+    /**
+     * Todo: write doc
+     */
     public  static final String HTTP_REQUEST_TYPE_POST = "POST";
+    /**
+     * Todo: write doc
+     */
     public  static final String HTTP_REQUEST_TYPE_PUT= "PUT";
+    /**
+     * Todo: write doc
+     */
     public  static final String HTTP_REQUEST_TYPE_GET= "GET";
-
+    /**
+     * Todo: write doc
+     */
     public  static final String ACCEPT = "Accept";
-
+    /**
+     * Todo: write doc
+     */
     public  static final String CONTENT_LANGUAGE = "Content-Language";
-
+    /**
+     * Todo: write doc
+     */
     public  static final String CONTENT_LANGUAGE_EN_US = "en-US";
-
+    /**
+     * Todo: write doc
+     */
     public  static final String UTF_8 = "charset=UTF-8";
 }

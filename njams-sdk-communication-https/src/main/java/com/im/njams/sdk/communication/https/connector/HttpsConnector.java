@@ -24,7 +24,9 @@ import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
-
+/**
+ * Todo: write doc
+ */
 public abstract class HttpsConnector extends AbstractConnector {
 
     private static final Logger LOG = LoggerFactory.getLogger(HttpsConnector.class);
