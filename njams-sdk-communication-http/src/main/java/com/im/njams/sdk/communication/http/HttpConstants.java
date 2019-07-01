@@ -17,10 +17,16 @@
 
 package com.im.njams.sdk.communication.http;
 
+/**
+ * Todo: write doc
+ */
 public class HttpConstants {
 
     private HttpConstants(){}
 
+    /**
+     * Todo: write doc
+     */
     public static final String PROPERTY_PREFIX = "njams.sdk.communication.http";
 
     /**
@@ -40,7 +46,6 @@ public class HttpConstants {
      * http sender urlport
      */
     public static final String SENDER_URL = PROPERTY_PREFIX + ".sender.urlport";
-
 
     /**
      * http sender username

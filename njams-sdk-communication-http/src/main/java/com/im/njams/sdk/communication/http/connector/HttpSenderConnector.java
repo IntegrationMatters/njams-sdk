@@ -29,8 +29,10 @@ import java.util.*;
 
 import static java.nio.charset.Charset.defaultCharset;
 
+/**
+ * Todo: write doc
+ */
 public class HttpSenderConnector extends HttpConnector {
-
 
     /**
      * Content type json
@@ -41,18 +43,38 @@ public class HttpSenderConnector extends HttpConnector {
      * Content type text plain
      */
     public  static final String CONTENT_TYPE = "Content-Type";
+    /**
+     * Todo: write doc
+     */
     public  static final String CONTENT_TYPE_TEXT = "text/plain";
 
+    /**
+     * Todo: write doc
+     */
     public  static final String HTTP_REQUEST_TYPE_POST = "POST";
+    /**
+     * Todo: write doc
+     */
     public  static final String HTTP_REQUEST_TYPE_PUT= "PUT";
+    /**
+     * Todo: write doc
+     */
     public  static final String HTTP_REQUEST_TYPE_GET= "GET";
-
+    /**
+     * Todo: write doc
+     */
     public  static final String ACCEPT = "Accept";
-
+    /**
+     * Todo: write doc
+     */
     public  static final String CONTENT_LANGUAGE = "Content-Language";
-
+    /**
+     * Todo: write doc
+     */
     public  static final String CONTENT_LANGUAGE_EN_US = "en-US";
-
+    /**
+     * Todo: write doc
+     */
     public  static final String UTF_8 = "charset=UTF-8";
 
     protected String user;

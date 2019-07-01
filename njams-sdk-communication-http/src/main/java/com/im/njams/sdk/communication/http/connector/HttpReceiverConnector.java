@@ -31,6 +31,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
 
+/**
+ * Todo: write doc
+ */
 public class HttpReceiverConnector extends HttpConnector {
 
     private static final Logger LOG = LoggerFactory.getLogger(HttpReceiverConnector.class);
