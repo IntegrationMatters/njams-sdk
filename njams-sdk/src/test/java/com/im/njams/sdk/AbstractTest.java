@@ -122,6 +122,18 @@ public abstract class AbstractTest {
     }
 
     /**
+     * This method creates a default start Activity to the default job.
+     *
+     * @return It returns the ActivityModel with id = ACTIVITYMODELID, name = "Act" and
+     * type = null
+     */
+    protected Activity getStartedActivityForJob(JobImpl job) {
+        ActivityModel defaultActivityModel = getDefaultActivityModel();
+        defaultActivityModel.setStarter(true);
+        return job.createActivity(defaultActivityModel).setStarter().build();
+    }
+
+    /**
      * This method creates a default ActivityModel to the default ProcessModel.
      *
      * @return It returns the ActivityModel with id = ACTIVITYMODELID, name = "Act" and

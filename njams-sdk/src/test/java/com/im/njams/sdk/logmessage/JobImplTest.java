@@ -16,29 +16,6 @@
  */
 package com.im.njams.sdk.logmessage;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.Matchers.any;
-import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.when;
-
-import java.time.LocalDateTime;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.regex.Pattern;
-
-import org.junit.After;
-import org.junit.Test;
-import org.mockito.Mockito;
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.stubbing.Answer;
-
 import com.faizsiegeln.njams.messageformat.v4.common.CommonMessage;
 import com.faizsiegeln.njams.messageformat.v4.logmessage.ActivityStatus;
 import com.faizsiegeln.njams.messageformat.v4.logmessage.LogMessage;
@@ -53,6 +30,21 @@ import com.im.njams.sdk.model.GroupModel;
 import com.im.njams.sdk.model.ProcessModel;
 import com.im.njams.sdk.settings.Settings;
 import com.im.njams.sdk.utils.StringUtils;
+import org.junit.After;
+import org.junit.Test;
+import org.mockito.Mockito;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
+
+import java.time.LocalDateTime;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.regex.Pattern;
+
+import static org.junit.Assert.*;
+import static org.mockito.Matchers.any;
+import static org.mockito.Mockito.*;
 
 /**
  * This class tests some methods of the JobImpl.
@@ -475,5 +467,60 @@ public class JobImplTest extends AbstractTest {
         job.flush();
         assertFalse(job.getAttributes().isEmpty());
         assertEquals("b", job.getAttribute("a"));
+    }
+
+    @Test
+    public void testSetStartActivity(){
+        JobImpl job = createDefaultStartedJob();
+
+        assertNull(job.getStartActivity());
+        assertFalse(job.hasOrHadStartActivity);
+
+        Activity startedActivity = getStartedActivityForJob(job);
+
+        assertTrue(startedActivity.isStarter());
+        assertEquals(startedActivity, job.getStartActivity());
+        assertTrue(job.hasOrHadStartActivity);
+    }
+
+    @Test
+    public void testSetStartActivityAndFlushIt(){
+        JobImpl job = createDefaultStartedJob();
+
+        Activity startedActivity = getStartedActivityForJob(job);
+
+        startedActivity.end();
+
+        assertEquals(ActivityStatus.SUCCESS, startedActivity.getActivityStatus());
+
+        job.flush();
+
+        assertNull(job.getStartActivity());
+        assertTrue(job.hasOrHadStartActivity);
+    }
+
+    @Test(expected = NjamsSdkRuntimeException.class)
+    public void setMoreStartActivities(){
+        JobImpl job = createDefaultStartedJob();
+
+        Activity startedActivity = getStartedActivityForJob(job);
+
+        getStartedActivityForJob(job);
+    }
+
+    @Test(expected = NjamsSdkRuntimeException.class)
+    public void setMoreStartActivitiesAfterFlushingTheFirstStartActivity(){
+        JobImpl job = createDefaultStartedJob();
+
+        Activity startedActivity = getStartedActivityForJob(job);
+
+        startedActivity.end();
+
+        job.flush();
+
+        assertNull(job.getStartActivity());
+        assertTrue(job.hasOrHadStartActivity);
+
+        getStartedActivityForJob(job);
     }
 }
