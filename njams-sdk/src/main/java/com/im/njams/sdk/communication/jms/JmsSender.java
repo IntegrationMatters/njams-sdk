@@ -1,44 +1,33 @@
 /*
  * Copyright (c) 2019 Faiz & Siegeln Software GmbH
  *
- * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"),
- * to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
- * and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
+ * documentation files (the "Software"),
+ * to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge,
+ * publish, distribute, sublicense,
+ * and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to
+ * the following conditions:
  *
- * The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+ * The above copyright notice and this permission notice shall be included in all copies or substantial portions of
+ * the Software.
  *
  * The Software shall be used for Good, not Evil.
  *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
+ * THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE
+ *  FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+ * SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
  */
 package com.im.njams.sdk.communication.jms;
 
-import java.util.Properties;
-import java.util.concurrent.atomic.AtomicInteger;
-
-import javax.jms.Connection;
-import javax.jms.ConnectionFactory;
-import javax.jms.Destination;
-import javax.jms.ExceptionListener;
-import javax.jms.JMSContext;
-import javax.jms.JMSException;
-import javax.jms.MessageProducer;
-import javax.jms.Session;
-import javax.jms.TextMessage;
-import javax.naming.InitialContext;
-import javax.naming.NameNotFoundException;
-import javax.naming.NamingException;
-
 import com.faizsiegeln.njams.messageformat.v4.common.CommonMessage;
-import com.faizsiegeln.njams.messageformat.v4.tracemessage.TraceMessage;
-import org.slf4j.LoggerFactory;
-
 import com.faizsiegeln.njams.messageformat.v4.common.MessageVersion;
 import com.faizsiegeln.njams.messageformat.v4.logmessage.LogMessage;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.ProjectMessage;
+import com.faizsiegeln.njams.messageformat.v4.tracemessage.TraceMessage;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.im.njams.sdk.common.JsonSerializerFactory;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
@@ -46,6 +35,13 @@ import com.im.njams.sdk.communication.AbstractSender;
 import com.im.njams.sdk.communication.ConnectionStatus;
 import com.im.njams.sdk.communication.Sender;
 import com.im.njams.sdk.settings.PropertyUtil;
+import org.slf4j.LoggerFactory;
+
+import javax.jms.*;
+import javax.naming.InitialContext;
+import javax.naming.NameNotFoundException;
+import javax.naming.NamingException;
+import java.util.Properties;
 
 /**
  * JMS implementation for a Sender.
@@ -58,8 +54,8 @@ public class JmsSender extends AbstractSender implements ExceptionListener {
     private static final org.slf4j.Logger LOG = LoggerFactory.getLogger(JmsSender.class);
 
     private Connection connection;
-    private Session session;
-    private MessageProducer producer;
+    protected Session session;
+    protected MessageProducer producer;
     private final ObjectMapper mapper = JsonSerializerFactory.getDefaultMapper();
     private Thread reconnector;
 
@@ -95,10 +91,9 @@ public class JmsSender extends AbstractSender implements ExceptionListener {
         InitialContext context = null;
         try {
             connectionStatus = ConnectionStatus.CONNECTING;
-            context
-                    = new InitialContext(PropertyUtil.filterAndCut(properties, JmsConstants.PROPERTY_PREFIX + "."));
-            ConnectionFactory factory
-                    = (ConnectionFactory) context.lookup(properties.getProperty(JmsConstants.CONNECTION_FACTORY));
+            context = new InitialContext(PropertyUtil.filterAndCut(properties, JmsConstants.PROPERTY_PREFIX + "."));
+            ConnectionFactory factory = (ConnectionFactory) context
+                    .lookup(properties.getProperty(JmsConstants.CONNECTION_FACTORY));
             if (properties.containsKey(JmsConstants.USERNAME) && properties.containsKey(JmsConstants.PASSWORD)) {
                 connection = factory.createConnection(properties.getProperty(JmsConstants.USERNAME),
                         properties.getProperty(JmsConstants.PASSWORD));
@@ -197,7 +192,8 @@ public class JmsSender extends AbstractSender implements ExceptionListener {
         }
     }
 
-    private void sendMessage(CommonMessage msg, String messageType, String data) throws JMSException {
+    protected void sendMessage(CommonMessage msg, String messageType, String data)
+            throws JMSException, InterruptedException {
         TextMessage textMessage = session.createTextMessage(data);
         if (msg instanceof LogMessage) {
             textMessage.setStringProperty(Sender.NJAMS_LOGID, ((LogMessage) msg).getLogId());
@@ -205,14 +201,36 @@ public class JmsSender extends AbstractSender implements ExceptionListener {
         textMessage.setStringProperty(Sender.NJAMS_MESSAGEVERSION, MessageVersion.V4.toString());
         textMessage.setStringProperty(Sender.NJAMS_MESSAGETYPE, messageType);
         textMessage.setStringProperty(Sender.NJAMS_PATH, msg.getPath());
-        producer.send(textMessage);
+        tryToSend(textMessage);
     }
 
+    private void tryToSend(TextMessage textMessage) throws InterruptedException, JMSException {
+        boolean sended = false;
+        final int MAX_TRIES = 100;
+        int tries = 0;
+        final int EXCEPTION_IDLE_TIME = 50;
+        do {
+            try {
+                producer.send(textMessage);
+                sended = true;
+            } catch (ResourceAllocationException ex) {
+                //Queue limit exceeded
+                if (++tries >= MAX_TRIES) {
+                    LOG.warn("Try to reconnect, because the MessageQueue hasn't got enough space after {} seconds.",
+                            MAX_TRIES * EXCEPTION_IDLE_TIME);
+                    throw ex;
+                } else {
+                    Thread.sleep(EXCEPTION_IDLE_TIME);
+                }
+            }
+        } while (!sended);
+    }
 
     /**
      * Close this Sender.
      */
     @Override
+
     public synchronized void close() {
         if (!isConnected()) {
             return;
@@ -274,18 +292,10 @@ public class JmsSender extends AbstractSender implements ExceptionListener {
      */
     @Override
     public String[] librariesToCheck() {
-        return new String[]{
-                "javax.jms.Connection",
-                "javax.jms.ConnectionFactory",
-                "javax.jms.Destination",
-                "javax.jms.ExceptionListener",
-                "javax.jms.JMSContext",
-                "javax.jms.JMSException",
-                "javax.jms.MessageProducer",
-                "javax.jms.Session",
-                "javax.jms.TextMessage",
-                "javax.naming.InitialContext",
-                "javax.naming.NameNotFoundException",
-                "javax.naming.NamingException"};
+        return new String[]{"javax.jms.Connection", "javax.jms.ConnectionFactory", "javax.jms.Destination",
+                "javax" + ".jms" +
+                ".ExceptionListener", "javax.jms.JMSContext", "javax.jms.JMSException", "javax.jms.MessageProducer",
+                "javax.jms.Session", "javax.jms.TextMessage", "javax.naming.InitialContext",
+                "javax.naming" + ".NameNotFoundException", "javax.naming.NamingException"};
     }
 }

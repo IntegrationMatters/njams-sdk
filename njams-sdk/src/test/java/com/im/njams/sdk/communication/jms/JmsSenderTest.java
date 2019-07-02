@@ -16,18 +16,23 @@
  */
 package com.im.njams.sdk.communication.jms;
 
+import com.faizsiegeln.njams.messageformat.v4.common.CommonMessage;
 import com.faizsiegeln.njams.messageformat.v4.logmessage.LogMessage;
-
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-
 import com.im.njams.sdk.common.JsonSerializerFactory;
-
-import java.time.LocalDateTime;
-
 import org.junit.Test;
 
-import static org.junit.Assert.*;
+import javax.jms.JMSException;
+import javax.jms.MessageProducer;
+import javax.jms.ResourceAllocationException;
+import javax.jms.Session;
+import javax.jms.TextMessage;
+import java.time.LocalDateTime;
+
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+import static org.mockito.Mockito.*;
 
 /**
  * This class tests if the JmsSender works correctly.
@@ -69,6 +74,42 @@ public class JmsSenderTest {
             assertTrue(data.contains("\"businessEnd\" : \"2018-11-20T14:58:12.142\""));
         } catch (JsonProcessingException ex) {
             fail(ex.getMessage());
+        }
+    }
+
+    @Test
+    public void queueIsFullTest() throws JMSException, InterruptedException {
+        final String ERROR_MESSAGE = "Queue limit exceeded";
+        final JmsSender sender = spy(new JmsSender());
+        final MessageProducer producer = sender.producer = mock(MessageProducer.class);
+        final Session session = sender.session = mock(Session.class);
+        when(session.createTextMessage(any())).thenReturn(mock(TextMessage.class));
+        ResourceAllocationException er1 = new ResourceAllocationException(ERROR_MESSAGE);
+        ResourceAllocationException er2 = new ResourceAllocationException(ERROR_MESSAGE);
+        doThrow(er1).doThrow(er2).doNothing().when(producer).send(any());
+        final CommonMessage msg = mock(CommonMessage.class);
+        when(msg.getPath()).thenReturn("path");
+        sender.sendMessage(msg, "messageType", "data");
+        verify(producer, times(3)).send(any());
+    }
+
+    @Test(expected = ResourceAllocationException.class)
+    public void queueIsFullMaxTriesTest() throws JMSException, InterruptedException {
+        final String ERROR_MESSAGE = "Queue limit exceeded";
+        final JmsSender sender = spy(new JmsSender());
+        final MessageProducer producer = sender.producer = mock(MessageProducer.class);
+        final Session session = sender.session = mock(Session.class);
+        when(session.createTextMessage(any())).thenReturn(mock(TextMessage.class));
+        ResourceAllocationException er = new ResourceAllocationException(ERROR_MESSAGE);
+        doThrow(er).when(producer).send(any());
+        final CommonMessage msg = mock(CommonMessage.class);
+        when(msg.getPath()).thenReturn("path");
+        try {
+            sender.sendMessage(msg, "messageType", "data");
+        }catch(ResourceAllocationException ex){
+            throw ex;
+        }finally{
+            verify(producer, times(100)).send(any());
         }
     }
 }
