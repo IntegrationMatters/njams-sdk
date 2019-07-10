@@ -39,6 +39,7 @@ import com.im.njams.sdk.model.ActivityModel;
 import com.im.njams.sdk.model.GroupModel;
 import com.im.njams.sdk.model.SubProcessActivityModel;
 import com.im.njams.sdk.model.TransitionModel;
+import com.im.njams.sdk.utils.StringUtils;
 
 /**
  * This is internal implementation of the Activity. It is a extension of the
@@ -441,6 +442,7 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
                     LOG.trace("This status was set to job {} : {}", job.getLogId(), possibleStatus);
                 }
                 job.setStatus(possibleStatus);
+                job.setInstrumented();
             }
         } catch (NjamsSdkRuntimeException e) {
             LOG.error("{} for job with logId: {}. Using old status: {}", e.getMessage(), job.getLogId(),
@@ -513,6 +515,9 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
     public void setEventMessage(String message) {
         setExecutionIfNotSet();
         super.setEventMessage(message);
+        if (StringUtils.isNotBlank(message)) {
+            job.setInstrumented();
+        }
     }
 
     /**
@@ -524,6 +529,9 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
     public void setEventCode(String code) {
         setExecutionIfNotSet();
         super.setEventCode(code);
+        if (StringUtils.isNotBlank(code)) {
+            job.setInstrumented();
+        }
     }
 
     /**
@@ -537,10 +545,11 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
     public void setEventPayload(String eventPayload) {
         setExecutionIfNotSet();
         super.setEventPayload(eventPayload);
-        if (eventPayload != null) {
+        if (StringUtils.isNotBlank(eventPayload)) {
             int payloadSize = eventPayload.length();
             addToEstimatedSize(payloadSize);
             job.addToEstimatedSize(payloadSize);
+            job.setInstrumented();
         }
     }
 
@@ -559,6 +568,7 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
             int stackTraceSize = stackTrace.length();
             addToEstimatedSize(stackTraceSize);
             job.addToEstimatedSize(stackTraceSize);
+            job.setInstrumented();
         }
     }
 

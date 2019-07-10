@@ -210,14 +210,14 @@ public class ExtractHandler {
                 setAttributes(job, activity, setting, value);
             }
         }
-        job.setInstrumented(true);
+        job.setInstrumented();
     }
 
     private static void doEvent(JobImpl job, ActivityImpl activity, ExtractRule er) {
         String evt = er.getRule();
         if (evt != null && evt.length() > 0) {
             activity.setEventStatus(getEventStatus(evt));
-            job.setInstrumented(true);
+            job.setInstrumented();
         }
     }
 
@@ -227,7 +227,7 @@ public class ExtractHandler {
         } else {
             setAttributes(job, activity, er.getAttribute(), er.getRule());
         }
-        job.setInstrumented(true);
+        job.setInstrumented();
     }
 
     private static void doXpath(JobImpl job, ActivityImpl activity, ExtractRule er, Object sourceData,
@@ -286,7 +286,7 @@ public class ExtractHandler {
                 }
                 setAttributes(job, activity, er.getAttribute(), strResult);
             }
-            job.setInstrumented(true);
+            job.setInstrumented();
         } catch (Exception e) {
             LOG.error("", e);
         }
