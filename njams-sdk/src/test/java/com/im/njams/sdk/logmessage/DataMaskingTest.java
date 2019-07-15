@@ -40,7 +40,7 @@ public class DataMaskingTest {
     private static JobImpl JOB = Mockito.mock(JobImpl.class);
     private static ProcessModel MODEL = Mockito.mock(ProcessModel.class);
     private static Njams NJAMS = Mockito.mock(Njams.class);
-    private static ActivityImpl IMPL = new ActivityImpl(JOB, Mockito.mock(ActivityModel.class));
+    private static ActivityImpl IMPL = null;
 
     @BeforeClass
     public static void mockFields() {
@@ -49,6 +49,7 @@ public class DataMaskingTest {
         doAnswer(invocation -> NJAMS).when(MODEL).getNjams();
         doAnswer(invocation -> NJAMS).when(JOB).getNjams();
         doAnswer(invocation -> invocation.getArguments()[0]).when(NJAMS).serialize(anyObject());
+        IMPL = new ActivityImpl(JOB, Mockito.mock(ActivityModel.class));
         IMPL.start();
     }
 

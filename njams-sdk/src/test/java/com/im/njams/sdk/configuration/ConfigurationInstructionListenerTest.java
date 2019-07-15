@@ -283,7 +283,7 @@ public class ConfigurationInstructionListenerTest {
         assertEquals(DateTimeUtility.toString(tp.getStarttime()), parameters.get("starttime"));
         assertEquals(DateTimeUtility.toString(tp.getEndtime()), parameters.get("endtime"));
         assertEquals("5", parameters.get("iterations"));
-        assertEquals("true", parameters.get("deepTrace"));
+        assertEquals("true", parameters.get("deeptrace"));
     }
 
     @Test
