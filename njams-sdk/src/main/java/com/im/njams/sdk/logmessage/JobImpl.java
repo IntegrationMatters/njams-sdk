@@ -867,7 +867,7 @@ public class JobImpl implements Job {
      * (including sub processes).
      *
      * @param deepTrace
-     * <b>true</b> if deep trace shall be activiated.
+     * <b>true</b> if deep trace shall be activated.
      */
     @Override
     public void setDeepTrace(boolean deepTrace) {

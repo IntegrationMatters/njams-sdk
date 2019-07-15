@@ -62,7 +62,7 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
     private final Extract extract;
     private boolean starter = false;
     private GroupImpl parent = null;
-    private boolean trace = false;
+    private final boolean traceEnabled;
     private LocalDateTime startTime = DateTimeUtility.now();
 
     private long estimatedSize = 700L;
@@ -79,8 +79,14 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
     public ActivityImpl(JobImpl job, String modelId) {
         this.job = job;
         setModelId(modelId);
-        activityModel = null;
         extract = null;
+        activityModel = job.getProcessModel().getActivity(modelId);
+        if (activityModel != null) {
+            // SDK-159: always call to have deep-trace evaluated
+            traceEnabled = checkTrace();
+        } else {
+            traceEnabled = false;
+        }
     }
 
     public ActivityImpl(JobImpl job, ActivityModel model) {
@@ -93,6 +99,8 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
         } else {
             extract = null;
         }
+        // SDK-159: always call to have deep-trace evaluated
+        traceEnabled = checkTrace();
     }
 
     /**
@@ -349,42 +357,43 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
      * @param input
      */
     private void handleTracing(Object data, boolean input) {
-        //first check if there is any data to handle
-        if (data != null) {
-            //if tracepoint has already been evaluted, trace is true, if not, check deeptrace
-            if (!trace) {
-                trace = job.isDeepTrace();
+        if (traceEnabled && data != null) {
+            // if there is any data to handle add trace data
+            if (input) {
+                setInput(job.getNjams().serialize(data));
+            } else {
+                setOutput(job.getNjams().serialize(data));
             }
-            if (!trace) {
-                //if no deeptrace, check if tracepoint requires tracing
-                checkTracepoint();
-            }
-            if (trace) {
-                //add trace data
-                if (input) {
-                    setInput(job.getNjams().serialize(data));
-                } else {
-                    setOutput(job.getNjams().serialize(data));
-                }
-                job.setTraces(true);
-            }
+            job.setTraces(true);
         }
     }
 
-    private void checkTracepoint() {
+    /**
+     * Returns whether or not tracing is currently enabled for this activity. As a side effect, the deep-trace flag
+     * is on this  activity's tracepoint is evaluated and sets the according flag on the job if found.
+     * @return <code>true</code> if tracing is currently enabled for this activity.
+     */
+    private boolean checkTrace() {
+        // first check job's deepTrace setting
+        if (job.isDeepTrace()) {
+            return true;
+        }
+
+        // then check the activity's tracepoint, if any
         ActivityConfiguration activityConfig = job.getActivityConfiguration(activityModel);
         if (activityConfig == null) {
-            return;
+            return false;
         }
         TracepointExt tracepoint = activityConfig.getTracepoint();
         if (job.isActiveTracepoint(tracepoint)) {
-            trace = true;
             tracepoint.increaseCurrentIterations();
             //activate deeptrace if needed
             if (tracepoint.isDeeptrace()) {
                 job.setDeepTrace(true);
             }
+            return true;
         }
+        return false;
     }
 
     /**

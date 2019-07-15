@@ -19,6 +19,7 @@ package com.im.njams.sdk.configuration;
 import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Map.Entry;
 import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
@@ -140,11 +141,13 @@ public class ConfigurationInstructionListener implements InstructionListener {
         }
 
         private boolean hasParameter(final String name) {
-            return instruction.getRequest().getParameters().containsKey(name);
+            return instruction.getRequest().getParameters().keySet().stream().anyMatch(k -> k.equalsIgnoreCase(name));
         }
 
         private String getParameter(final String name) {
-            return instruction.getRequest().getParameters().get(name);
+            return instruction.getRequest().getParameters().entrySet().stream()
+                    .filter(e -> e.getKey().equalsIgnoreCase(name)).map(Entry::getValue)
+                    .findAny().orElse(null);
         }
 
         private int getIntParameter(final String name) {
@@ -176,6 +179,15 @@ public class ConfigurationInstructionListener implements InstructionListener {
     private static final String ACTIVITY_ID = "activityId";
     private static final String LOG_LEVEL = "logLevel";
     private static final String LOG_MODE = "logMode";
+    private static final String ITERATIONS = "iterations";
+    private static final String DEEP_TRACE = "deeptrace";
+    private static final String RECORD = "Record";
+    private static final String ENGINE_WIDE_RECORDING = "EngineWideRecording";
+    private static final String EXTRACT = "extract";
+    private static final String STARTTIME = "starttime";
+    private static final String ENABLE_TRACING = "enableTracing";
+    private static final String ENDTIME = "endtime";
+    private static final String EXCLUDE = "exclude";
 
     private final Configuration configuration;
 
@@ -276,7 +288,7 @@ public class ConfigurationInstructionListener implements InstructionListener {
             exclude = process.isExclude();
         }
 
-        instructionSupport.setParameter(LOG_LEVEL, logLevel.name()).setParameter("exclude", exclude)
+        instructionSupport.setParameter(LOG_LEVEL, logLevel.name()).setParameter(EXCLUDE, exclude)
                 .setParameter(LOG_MODE, configuration.getLogMode());
 
         LOG.debug("Return LogLevel for {}", processPath);
@@ -302,7 +314,7 @@ public class ConfigurationInstructionListener implements InstructionListener {
             configuration.setLogMode(logMode);
         }
         process.setLogLevel(loglevel);
-        process.setExclude(instructionSupport.getBoolParameter("exclude"));
+        process.setExclude(instructionSupport.getBoolParameter(EXCLUDE));
         saveConfiguration(instructionSupport);
     }
 
@@ -330,7 +342,7 @@ public class ConfigurationInstructionListener implements InstructionListener {
 
         LocalDateTime endTime;
         try {
-            endTime = parseDateTime(instructionSupport.getParameter("endtime"));
+            endTime = parseDateTime(instructionSupport.getParameter(ENDTIME));
         } catch (final Exception e) {
             instructionSupport.error("Unable to parse end-time from tracepoint.", e);
             return;
@@ -338,7 +350,7 @@ public class ConfigurationInstructionListener implements InstructionListener {
         if (endTime == null) {
             endTime = DateTimeUtility.now().plusMinutes(15);
         }
-        if (instructionSupport.getBoolParameter("enableTracing") && endTime.isAfter(DateTimeUtility.now())) {
+        if (instructionSupport.getBoolParameter(ENABLE_TRACING) && endTime.isAfter(DateTimeUtility.now())) {
             LOG.debug("Update tracepoint.");
             updateTracePoint(instructionSupport, endTime);
         } else {
@@ -357,7 +369,7 @@ public class ConfigurationInstructionListener implements InstructionListener {
     private void updateTracePoint(final InstructionSupport instructionSupport, final LocalDateTime endTime) {
         LocalDateTime startTime;
         try {
-            startTime = parseDateTime(instructionSupport.getParameter("starttime"));
+            startTime = parseDateTime(instructionSupport.getParameter(STARTTIME));
         } catch (final Exception e) {
             instructionSupport.error("Unable to parse start-time from tracepoint.", e);
             return;
@@ -383,8 +395,8 @@ public class ConfigurationInstructionListener implements InstructionListener {
         final TracepointExt tp = new TracepointExt();
         tp.setStarttime(startTime);
         tp.setEndtime(endTime);
-        tp.setIterations(instructionSupport.getIntParameter("iterations"));
-        tp.setDeeptrace(instructionSupport.getBoolParameter("deepTrace"));
+        tp.setIterations(instructionSupport.getIntParameter(ITERATIONS));
+        tp.setDeeptrace(instructionSupport.getBoolParameter(DEEP_TRACE));
         activity.setTracepoint(tp);
         saveConfiguration(instructionSupport);
         LOG.debug("Tracepoint on {}#{} updated", processPath, activityId);
@@ -411,13 +423,13 @@ public class ConfigurationInstructionListener implements InstructionListener {
     }
 
     private void configureExtract(final InstructionSupport instructionSupport) {
-        if (!instructionSupport.validate(PROCESS_PATH, ACTIVITY_ID, "extract")) {
+        if (!instructionSupport.validate(PROCESS_PATH, ACTIVITY_ID, EXTRACT)) {
             return;
         }
         //fetch parameters
         final String processPath = instructionSupport.getProcessPath();
         final String activityId = instructionSupport.getActivityId();
-        final String extractString = instructionSupport.getParameter("extract");
+        final String extractString = instructionSupport.getParameter(EXTRACT);
 
         //execute action
         ProcessConfiguration process = configuration.getProcess(processPath);
@@ -496,10 +508,10 @@ public class ConfigurationInstructionListener implements InstructionListener {
             return;
         }
 
-        instructionSupport.setParameter("starttime", tracepoint.getStarttime())
-                .setParameter("endtime", tracepoint.getEndtime())
-                .setParameter("iterations", tracepoint.getIterations())
-                .setParameter("deepTrace", tracepoint.isDeeptrace());
+        instructionSupport.setParameter(STARTTIME, tracepoint.getStarttime())
+                .setParameter(ENDTIME, tracepoint.getEndtime())
+                .setParameter(ITERATIONS, tracepoint.getIterations())
+                .setParameter(DEEP_TRACE, tracepoint.isDeeptrace());
 
     }
 
@@ -529,7 +541,7 @@ public class ConfigurationInstructionListener implements InstructionListener {
         }
         try {
             final ObjectMapper mapper = JsonSerializerFactory.getDefaultMapper();
-            instructionSupport.setParameter("extract", mapper.writeValueAsString(extract));
+            instructionSupport.setParameter(EXTRACT, mapper.writeValueAsString(extract));
         } catch (final Exception e) {
             instructionSupport.error("Unable to serialize Extract", e);
             return;
@@ -541,9 +553,9 @@ public class ConfigurationInstructionListener implements InstructionListener {
     private void record(final InstructionSupport instructionSupport) {
 
         //fetch parameters
-        if (instructionSupport.hasParameter("EngineWideRecording")) {
+        if (instructionSupport.hasParameter(ENGINE_WIDE_RECORDING)) {
             try {
-                final boolean engineWideRecording = instructionSupport.getBoolParameter("EngineWideRecording");
+                final boolean engineWideRecording = instructionSupport.getBoolParameter(ENGINE_WIDE_RECORDING);
                 configuration.setRecording(engineWideRecording);
                 //reset to default after logic change
                 configuration.getProcesses().values().forEach(p -> p.setRecording(engineWideRecording));
@@ -562,7 +574,7 @@ public class ConfigurationInstructionListener implements InstructionListener {
                     process = new ProcessConfiguration();
                     configuration.getProcesses().put(processPath, process);
                 }
-                final String doRecordParameter = instructionSupport.getParameter("Record");
+                final String doRecordParameter = instructionSupport.getParameter(RECORD);
                 final boolean doRecord = "all".equalsIgnoreCase(doRecordParameter);
                 process.setRecording(doRecord);
             } catch (final Exception e) {
