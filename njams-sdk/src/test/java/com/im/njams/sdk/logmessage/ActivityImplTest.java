@@ -1,14 +1,14 @@
 /*
  * Copyright (c) 2019 Faiz & Siegeln Software GmbH
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"),
  * to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
  * and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
- * 
+ *
  * The Software shall be used for Good, not Evil.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
@@ -16,15 +16,19 @@
  */
 package com.im.njams.sdk.logmessage;
 
-import com.im.njams.sdk.AbstractTest;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 import java.time.LocalDateTime;
 import java.util.Map;
 
-import com.im.njams.sdk.common.DateTimeUtility;
 import org.junit.Test;
 
-import static org.junit.Assert.*;
+import com.im.njams.sdk.AbstractTest;
+import com.im.njams.sdk.common.DateTimeUtility;
 
 /**
  * This class tests some methods of the ActivityImpl class.
@@ -33,11 +37,11 @@ import static org.junit.Assert.*;
  * @version 4.0.6
  */
 public class ActivityImplTest extends AbstractTest {
-    
+
     /**
      * This constructor calls super().
      */
-    public ActivityImplTest(){
+    public ActivityImplTest() {
         super();
     }
 
@@ -50,7 +54,7 @@ public class ActivityImplTest extends AbstractTest {
         //Initial there is no EventStatus and the JobStatus is CREATED.
         assertEquals(JobStatus.CREATED, job.getStatus());
         job.start();
-        ActivityImpl act = (ActivityImpl)createDefaultActivity(job);
+        ActivityImpl act = (ActivityImpl) createDefaultActivity(job);
 
         //Initial there is no EventStatus and the JobStatus is CREATED.
         assertEquals(null, act.getEventStatus());
@@ -106,37 +110,37 @@ public class ActivityImplTest extends AbstractTest {
         assertTrue(2 == act.getEventStatus());
         assertEquals(JobStatus.WARNING, job.getStatus());
     }
-    
+
     /**
      * This method tests if the Attributes can first be get and after that be set
      * in the map. This would bypass the datamasking! [SDK-94]
      */
     @Test(expected = UnsupportedOperationException.class)
-    public void testInjectUnmaskedAttributesWithGetAttributes(){
+    public void testInjectUnmaskedAttributesWithGetAttributes() {
         JobImpl job = super.createDefaultJob();
         job.start();
-        ActivityImpl act = (ActivityImpl)createDefaultActivity(job);
+        ActivityImpl act = (ActivityImpl) createDefaultActivity(job);
         act.addAttribute("a", "b");
         assertTrue(!act.getAttributes().isEmpty());
         Map<String, String> attributes = act.getAttributes();
         attributes.put("b", "c"); //This should throw an UnsupportedOperationException
     }
-    
+
     /**
      * This method tests if the unmodifiable map is consistent to the actual map.
      */
     @Test
-    public void testIsUnmodifiableMapConsistent(){
+    public void testIsUnmodifiableMapConsistent() {
         JobImpl job = super.createDefaultJob();
         job.start();
-        ActivityImpl act = (ActivityImpl)createDefaultActivity(job);
+        ActivityImpl act = (ActivityImpl) createDefaultActivity(job);
         act.addAttribute("a", "b");
         assertTrue(!act.getAttributes().isEmpty());
         Map<String, String> attributes = act.getAttributes();
         act.addAttribute("b", "c");
         assertTrue(attributes.containsKey("b"));
     }
-    
+
     /**
      * This method tests if the ActivityImpl copies the Attribute that was set there
      * to the Attributes list of the job.
@@ -162,7 +166,7 @@ public class ActivityImplTest extends AbstractTest {
     }
 
     @Test
-    public void testIsExecutionOnlySetIfAnEventIsSet(){
+    public void testIsExecutionOnlySetIfAnEventIsSet() {
         Activity act = getDefaultActivity();
         assertNull(act.getStackTrace());
         assertNull(act.getEventMessage());
@@ -173,7 +177,7 @@ public class ActivityImplTest extends AbstractTest {
     }
 
     @Test
-    public void testIsExecutionSetWithPayload(){
+    public void testIsExecutionSetWithPayload() {
         final String testPayload = "TestPayload";
         Activity act = getDefaultActivity();
 
@@ -184,7 +188,7 @@ public class ActivityImplTest extends AbstractTest {
     }
 
     @Test
-    public void testIsExecutionSetWithCode(){
+    public void testIsExecutionSetWithCode() {
         final String testCode = "TestCode";
         Activity act = getDefaultActivity();
 
@@ -195,7 +199,7 @@ public class ActivityImplTest extends AbstractTest {
     }
 
     @Test
-    public void testIsExecutionSetWithStacktrace(){
+    public void testIsExecutionSetWithStacktrace() {
         final String testStacktrace = "TestStacktrace";
         Activity act = getDefaultActivity();
 
@@ -206,7 +210,7 @@ public class ActivityImplTest extends AbstractTest {
     }
 
     @Test
-    public void testIsExecutionSetWithMessage(){
+    public void testIsExecutionSetWithMessage() {
         final String testMessage = "TestMessage";
         Activity act = getDefaultActivity();
 
@@ -217,7 +221,7 @@ public class ActivityImplTest extends AbstractTest {
     }
 
     @Test
-    public void testIsExecutionSetWithStatus(){
+    public void testIsExecutionSetWithStatus() {
         final EventStatus testStatus = EventStatus.SUCCESS;
         final Integer testStatusValue = testStatus.getValue();
         Activity act = getDefaultActivity();
@@ -229,7 +233,7 @@ public class ActivityImplTest extends AbstractTest {
     }
 
     @Test
-    public void testSetExecutionTime(){
+    public void testSetExecutionTime() {
         final LocalDateTime testExecution = DateTimeUtility.now();
         Activity act = getDefaultActivity();
 
@@ -239,7 +243,7 @@ public class ActivityImplTest extends AbstractTest {
     }
 
     @Test
-    public void testIsExecutionOverwrittenBySetExecution(){
+    public void testIsExecutionOverwrittenBySetExecution() {
         final LocalDateTime testExecution = DateTimeUtility.now().minusSeconds(1);
         final String testMessage = "TestMessage";
         Activity act = getDefaultActivity();
@@ -255,7 +259,7 @@ public class ActivityImplTest extends AbstractTest {
     }
 
     @Test
-    public void testIsExecutionNotOverwrittenByAnotherEventCall(){
+    public void testIsExecutionNotOverwrittenByAnotherEventCall() {
         final LocalDateTime testExecution = DateTimeUtility.now().minusSeconds(1);
         final String testMessage = "TestMessage";
         Activity act = getDefaultActivity();
@@ -271,17 +275,7 @@ public class ActivityImplTest extends AbstractTest {
     }
 
     @Test
-    public void isStartTimeSet(){
-        ActivityImpl act = (ActivityImpl)getDefaultActivity();
-        assertNotNull(act.getStartTime());
-        final LocalDateTime time = DateTimeUtility.now().plusSeconds(1);
-        assertNotEquals(act.getStartTime(), time);
-        act.setStartTime(time);
-        assertEquals(act.getStartTime(), time);
-    }
-
-    @Test
-    public void isExecutionTimeNotSetWithCreateEvent(){
+    public void isExecutionTimeNotSetWithCreateEvent() {
         Activity act = getDefaultActivity();
         assertNull(act.getExecution());
         Event event = act.createEvent();

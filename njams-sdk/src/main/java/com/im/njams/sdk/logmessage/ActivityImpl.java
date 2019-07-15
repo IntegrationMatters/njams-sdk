@@ -16,8 +16,6 @@
  */
 package com.im.njams.sdk.logmessage;
 
-import java.time.Duration;
-import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
@@ -63,7 +61,8 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
     private boolean starter = false;
     private GroupImpl parent = null;
     private final boolean traceEnabled;
-    private LocalDateTime startTime = DateTimeUtility.now();
+    // used only for calculating duration in ms
+    private long startTime = System.currentTimeMillis();
 
     private long estimatedSize = 700L;
     private boolean ended = false;
@@ -258,19 +257,10 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
      * Start this activity
      */
     public void start() {
-        startTime = DateTimeUtility.now();
+        startTime = System.currentTimeMillis();
         if (getActivityStatus() == null) {
             setActivityStatus(ActivityStatus.RUNNING);
         }
-    }
-
-    @XmlTransient
-    public LocalDateTime getStartTime() {
-        return startTime;
-    }
-
-    public void setStartTime(LocalDateTime startTime) {
-        this.startTime = startTime;
     }
 
     /**
@@ -307,7 +297,9 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
         if (ended) {
             return;
         }
-        setDuration(Duration.between(startTime, DateTimeUtility.now()).toMillis());
+        if (getDuration() < 1) {
+            setDuration(System.currentTimeMillis() - startTime);
+        }
         if (getActivityStatus() == ActivityStatus.RUNNING) {
             setActivityStatus(ActivityStatus.SUCCESS);
         }
@@ -364,6 +356,7 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
             } else {
                 setOutput(job.getNjams().serialize(data));
             }
+            setExecutionIfNotSet();
             job.setTraces(true);
         }
     }
@@ -461,7 +454,7 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
 
     private void setExecutionIfNotSet() {
         if (getExecution() == null) {
-            setExecution(DateTimeUtility.now());
+            setExecution(startTime > 0 ? DateTimeUtility.fromMillis(startTime) : DateTimeUtility.now());
         }
     }
 
