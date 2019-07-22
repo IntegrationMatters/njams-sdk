@@ -1,50 +1,50 @@
 /*
  * Copyright (c) 2019 Faiz & Siegeln Software GmbH
  *
- * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"),
- * to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
- * and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
+ * documentation files (the "Software"),
+ * to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge,
+ * publish, distribute, sublicense,
+ * and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to
+ * the following conditions:
  *
- * The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+ * The above copyright notice and this permission notice shall be included in all copies or substantial portions of
+ * the Software.
  *
  * The Software shall be used for Good, not Evil.
  *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
+ * THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE
+ *  FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+ * SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
  */
 package com.im.njams.sdk;
 
-import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
+import com.faizsiegeln.njams.messageformat.v4.command.Command;
 import com.faizsiegeln.njams.messageformat.v4.common.CommonMessage;
 import com.faizsiegeln.njams.messageformat.v4.common.TreeElement;
 import com.faizsiegeln.njams.messageformat.v4.common.TreeElementType;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.LogMode;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.ProjectMessage;
+import com.im.njams.sdk.api.communication.instruction.boundary.InstructionListener;
+import com.im.njams.sdk.api.plugin.PluginStorage;
 import com.im.njams.sdk.client.CleanTracepointsTask;
 import com.im.njams.sdk.client.LogMessageFlushTask;
 import com.im.njams.sdk.common.DateTimeUtility;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.common.Path;
-import com.im.njams.sdk.communication.Communication;
-import com.im.njams.sdk.communication_rework.CommunicationFacade;
-import com.im.njams.sdk.communication_rework.instruction.control.processor.InstructionProcessor;
-import com.im.njams.sdk.communication_rework.instruction.control.processor.configuration.ConfigureExtractProcessor;
-import com.im.njams.sdk.communication_rework.instruction.control.processor.configuration.DeleteExtractProcessor;
-import com.im.njams.sdk.communication_rework.instruction.control.processor.configuration.GetExtractProcessor;
-import com.im.njams.sdk.communication_rework.instruction.control.processor.configuration.GetLogLevelProcessor;
-import com.im.njams.sdk.communication_rework.instruction.control.processor.configuration.GetLogModeProcessor;
-import com.im.njams.sdk.communication_rework.instruction.control.processor.configuration.GetTracingProcessor;
-import com.im.njams.sdk.communication_rework.instruction.control.processor.configuration.RecordProcessor;
-import com.im.njams.sdk.communication_rework.instruction.control.processor.configuration.SetLogLevelProcessor;
-import com.im.njams.sdk.communication_rework.instruction.control.processor.configuration.SetLogModeProcessor;
-import com.im.njams.sdk.communication_rework.instruction.control.processor.configuration.SetTracingProcessor;
-import com.im.njams.sdk.communication_rework.instruction.control.processor.flush.SendProjectMessageProcessor;
-import com.im.njams.sdk.communication_rework.instruction.control.processor.replay.ReplayHandler;
-import com.im.njams.sdk.communication_rework.instruction.control.processor.replay.ReplayProcessor;
+import com.im.njams.sdk.communication.CommunicationFacade;
+import com.im.njams.sdk.communication.instruction.control.processor.configuration.*;
+import com.im.njams.sdk.communication.instruction.control.processor.flush.SendProjectMessageProcessor;
+import com.im.njams.sdk.communication.instruction.control.processor.replay.ReplayProcessor;
+import com.im.njams.sdk.communication.receiver.NjamsReceiver;
+import com.im.njams.sdk.communication_to_merge.Communication;
 import com.im.njams.sdk.configuration.boundary.ConfigurationFacade;
 import com.im.njams.sdk.configuration.entity.ProcessConfiguration;
+import com.im.njams.sdk.feature.NjamsFeatures;
 import com.im.njams.sdk.logmessage.Job;
 import com.im.njams.sdk.model.ProcessModel;
 import com.im.njams.sdk.model.image.ImageSupplier;
@@ -53,6 +53,8 @@ import com.im.njams.sdk.model.layout.ProcessModelLayouter;
 import com.im.njams.sdk.model.layout.SimpleProcessModelLayouter;
 import com.im.njams.sdk.model.svg.NjamsProcessDiagramFactory;
 import com.im.njams.sdk.model.svg.ProcessDiagramFactory;
+import com.im.njams.sdk.plugin.boundary.NjamsPluginStorage;
+import com.im.njams.sdk.plugin.replay.boundary.NjamsReplayPlugin;
 import com.im.njams.sdk.serializer.Serializer;
 import com.im.njams.sdk.serializer.StringSerializer;
 import com.im.njams.sdk.settings.Settings;
@@ -61,16 +63,7 @@ import org.slf4j.LoggerFactory;
 
 import java.net.URL;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Enumeration;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Properties;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.stream.Stream;
@@ -95,16 +88,6 @@ public class Njams {
     private static final String DEFAULT_TAXONOMY_FOLDER_ICON = "images/folder.png";
     private static final String DEFAULT_TAXONOMY_CLIENT_ICON = "images/client.png";
     private static final String DEFAULT_TAXONOMY_PROCESS_ICON = "images/process.png";
-
-    /**
-     * Static value for feature replay
-     */
-    public static final String FEATURE_REPLAY = "replay";
-    /**
-     * Static value for feature inject
-     */
-    public static final String FEATURE_INJECTION = "injection";
-
     /**
      * Key for clientVersion
      */
@@ -123,6 +106,8 @@ public class Njams {
     private static final Serializer<Object> NO_SERIALIZER = o -> null;
 
     private final String category;
+
+    private final NjamsFeatures features = new NjamsFeatures();
 
     // Path -> ProcessModel
     private final Map<String, ProcessModel> processModels = new HashMap<>();
@@ -159,18 +144,18 @@ public class Njams {
     // serializers
     private final HashMap<Class<?>, Serializer<?>> cachedSerializers = new HashMap<>();
 
-    // features
-    private final List<String> features = new ArrayList<>();
 
     private Communication communicationFactory;
 
-    private CommunicationFacade communicationFacade;
+    private com.im.njams.sdk.api.communication.Communication newCommunicationFacade;
 
     private String machine;
     private boolean started = false;
     private static final String NOT_STARTED_EXCEPTION_MESSAGE = "The instance needs to be started first!";
 
     private final ConfigurationFacade configurationFacade;
+
+    private final PluginStorage pluginStorage = new NjamsPluginStorage(features);
 
 //    private final SettingsProxyFactory settingsProxyFactory;
 
@@ -181,7 +166,7 @@ public class Njams {
      * @param version  the version of the nNJAMS client
      * @param category the category of the nJAMS client, should describe the
      *                 technology
-     * @param settings needed settings for client eg. for communication
+     * @param settings needed settings for client eg. for communication_to_merge
      */
     public Njams(Path path, String version, String category, Settings settings) {
         treeElements = new ArrayList<>();
@@ -195,59 +180,27 @@ public class Njams {
         readVersions(version);
         printStartupBanner();
         setMachine();
-        communicationFactory = new Communication(this, settings);
-        communicationFacade = new CommunicationFacade();
         configurationFacade = new ConfigurationFacade(Transformer.decode(settings.getProperties()));
+        communicationFactory = new Communication(this, settings);
+        newCommunicationFacade = new CommunicationFacade();
+        setDefaultInstructionListener();
+        fillPluginStorage();
     }
 
-    private void addInstructionProcessors() {
-        this.addInstructionProcessor(new SendProjectMessageProcessor(this));
-        this.addInstructionProcessor(new ConfigureExtractProcessor(this));
-        this.addInstructionProcessor(new DeleteExtractProcessor(this));
-        this.addInstructionProcessor(new GetExtractProcessor(this));
-        this.addInstructionProcessor(new GetLogLevelProcessor(this));
-        this.addInstructionProcessor(new GetLogModeProcessor(this));
-        this.addInstructionProcessor(new GetTracingProcessor(this));
-        this.addInstructionProcessor(new RecordProcessor(this));
-        this.addInstructionProcessor(new SetLogLevelProcessor(this));
-        this.addInstructionProcessor(new SetLogModeProcessor(this));
-        this.addInstructionProcessor(new SetTracingProcessor(this));
-        this.addInstructionProcessor(new ReplayProcessor());
+    private void fillPluginStorage() {
+        getPluginStorage().setReplayPlugin(new NjamsReplayPlugin(features));
     }
 
-    public void addInstructionProcessor(InstructionProcessor instructionProcessor) {
-        communicationFacade.addInstructionProcessor(instructionProcessor);
+    private void setDefaultInstructionListener() {
+        setInstructionListener(new NjamsReceiver());
     }
 
-    public void removeInstructionProcessor(String instructionProcessorCommandName) {
-        communicationFacade.removeInstructionProcessor(instructionProcessorCommandName);
+    public void setInstructionListener(InstructionListener instructionListener) {
+        newCommunicationFacade.setInstructionListener(instructionListener);
     }
 
-    public void processReceivedInstruction(Instruction instruction) {
-        communicationFacade.processInstruction(instruction);
-    }
-
-    /**
-     * Gets the current replay handler if present.
-     *
-     * @return Current replay handler if present or null otherwise.
-     */
-    public ReplayHandler getReplayHandler() {
-        return communicationFacade.getReplayHandlerFromReplayProcessor();
-    }
-
-    /**
-     * Sets a replay handler.
-     *
-     * @param replayHandler Replay handler to be set.
-     */
-    public void setReplayHandler(final ReplayHandler replayHandler) {
-        communicationFacade.setReplayHandlerToReplayProcessor(replayHandler);
-        if (replayHandler == null) {
-            removeFeature(FEATURE_REPLAY);
-        } else {
-            addFeature(FEATURE_REPLAY);
-        }
+    public InstructionListener getInstructionListener() {
+        return newCommunicationFacade.getInstructionListener();
     }
 
     //For ServerInstructionSettings
@@ -292,11 +245,11 @@ public class Njams {
     }
 
     //For ConfigurationProxy
-    public void loadConfigurationFromStorageInMemory(){
+    public void loadConfigurationFromStorageInMemory() {
         configurationFacade.loadConfigurationFromStorageInMemory();
     }
 
-    public void saveConfigurationFromMemoryToStorage(){
+    public void saveConfigurationFromMemoryToStorage() {
         configurationFacade.saveConfigurationFromMemoryToStorage();
     }
 
@@ -398,6 +351,30 @@ public class Njams {
         return isStarted();
     }
 
+    private void addInstructionProcessors() {
+        InstructionListener instructionListener = newCommunicationFacade.getInstructionListener();
+        instructionListener.putInstructionProcessor(Command.SEND_PROJECTMESSAGE.commandString(),
+                new SendProjectMessageProcessor(this));
+        instructionListener.putInstructionProcessor(Command.CONFIGURE_EXTRACT.commandString(),
+                new ConfigureExtractProcessor(this));
+        instructionListener
+                .putInstructionProcessor(Command.DELETE_EXTRACT.commandString(), new DeleteExtractProcessor(this));
+        instructionListener.putInstructionProcessor(Command.GET_EXTRACT.commandString(), new GetExtractProcessor(this));
+        instructionListener
+                .putInstructionProcessor(Command.GET_LOG_LEVEL.commandString(), new GetLogLevelProcessor(this));
+        instructionListener
+                .putInstructionProcessor(Command.GET_LOG_MODE.commandString(), new GetLogModeProcessor(this));
+        instructionListener.putInstructionProcessor(Command.GET_TRACING.commandString(), new GetTracingProcessor(this));
+        instructionListener.putInstructionProcessor(Command.RECORD.commandString(), new RecordProcessor(this));
+        instructionListener
+                .putInstructionProcessor(Command.SET_LOG_LEVEL.commandString(), new SetLogLevelProcessor(this));
+        instructionListener
+                .putInstructionProcessor(Command.SET_LOG_MODE.commandString(), new SetLogModeProcessor(this));
+        instructionListener.putInstructionProcessor(Command.SET_TRACING.commandString(), new SetTracingProcessor(this));
+        instructionListener.putInstructionProcessor(Command.REPLAY.commandString(),
+                new ReplayProcessor(getPluginStorage().getReplayPlugin()));
+    }
+
     /**
      * Stop a client; it stop processing and release the connections. It can't
      * be stopped before it started. (NjamsSdkRuntimeException will be thrown if it hasn't started before)
@@ -409,7 +386,7 @@ public class Njams {
             LogMessageFlushTask.stop(this);
             CleanTracepointsTask.stop(this);
             communicationFactory.stopAll();
-            communicationFacade.stop();
+            newCommunicationFacade.stop();
             started = false;
         } else {
             throw new NjamsSdkRuntimeException(NOT_STARTED_EXCEPTION_MESSAGE);
@@ -424,8 +401,8 @@ public class Njams {
      * @return the ProcessModel or {@link NjamsSdkRuntimeException}
      */
     public ProcessModel getProcessModel(final Path path) {
-        final List<String> parts =
-                Stream.of(getClientPath(), path).map(Path::getParts).flatMap(List::stream).collect(toList());
+        final List<String> parts = Stream.of(getClientPath(), path).map(Path::getParts).flatMap(List::stream)
+                .collect(toList());
         final ProcessModel processModel = processModels.get(new Path(parts).toString());
         if (processModel == null) {
             throw new NjamsSdkRuntimeException("ProcessModel not found for path " + path);
@@ -492,7 +469,7 @@ public class Njams {
         msg.setCategory(getCategory());
         msg.setStartTime(startTime);
         msg.setMachine(getMachine());
-        msg.setFeatures(features);
+        msg.setFeatures(features.getFeatures());
         processModels.values().stream().map(pm -> pm.getSerializableProcessModel())
                 .forEach(ipm -> msg.getProcesses().add(ipm));
         images.forEach(i -> msg.getImages().put(i.getName(), i.getBase64Image()));
@@ -847,36 +824,14 @@ public class Njams {
     }
 
     /**
-     * @return the list of features this client has
-     */
-    public List<String> getFeatures() {
-        return Collections.unmodifiableList(features);
-    }
-
-    /**
-     * Adds a new feature to the feature list
-     *
-     * @param feature to set
-     */
-    public void addFeature(String feature) {
-        if (!features.contains(feature)) {
-            features.add(feature);
-        }
-    }
-
-    /**
-     * Remove a feature from the feature list
-     *
-     * @param feature to remove
-     */
-    public void removeFeature(final String feature) {
-        features.remove(feature);
-    }
-
-    /**
      * @return if this client instance is started
      */
     public boolean isStarted() {
         return started;
     }
+
+    public PluginStorage getPluginStorage() {
+        return pluginStorage;
+    }
+
 }
