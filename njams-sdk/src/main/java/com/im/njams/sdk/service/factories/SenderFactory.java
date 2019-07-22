@@ -16,7 +16,7 @@
  */
 package com.im.njams.sdk.service.factories;
 
-import com.im.njams.sdk.communication.connectable.sender.Sender;
+import com.im.njams.sdk.communication_to_merge.connectable.sender.Sender;
 
 import java.util.Properties;
 /**

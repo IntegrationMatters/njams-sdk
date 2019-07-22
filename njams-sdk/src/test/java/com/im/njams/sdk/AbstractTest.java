@@ -19,7 +19,7 @@ package com.im.njams.sdk;
 import com.faizsiegeln.njams.messageformat.v4.common.SubProcess;
 import com.faizsiegeln.njams.messageformat.v4.logmessage.Predecessor;
 import com.im.njams.sdk.common.Path;
-import com.im.njams.sdk.communication.connectable.sender.TestSender;
+import com.im.njams.sdk.communication_to_merge.connectable.sender.TestSender;
 import com.im.njams.sdk.logmessage.Activity;
 import com.im.njams.sdk.logmessage.ActivityImpl;
 import com.im.njams.sdk.logmessage.Job;
@@ -56,7 +56,7 @@ public abstract class AbstractTest {
 
     /**
      * This constructor creates the njams instance with path SDK4-TEST-PROCESSES.
-     * The TestSender and TestReceiver are used as communication devices.
+     * The TestSender and TestReceiver are used as communication_to_merge devices.
      */
     public AbstractTest(){
         this(TestSender.getSettings());

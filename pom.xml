@@ -56,6 +56,7 @@
 
         <junit.version>4.11</junit.version>
         <mockito.version>1.10.19</mockito.version>
+        <messageformat.version>4.0.1</messageformat.version>
     </properties>
 
     <build>
@@ -163,6 +164,11 @@
 
     <dependencyManagement>
         <dependencies>
+            <dependency>
+                <groupId>com.faizsiegeln</groupId>
+                <artifactId>njams-messageformat</artifactId>
+                <version>${messageformat.version}</version>
+            </dependency>
             <dependency>
                 <groupId>tibco</groupId>
                 <artifactId>tibcrypt</artifactId>
@@ -444,6 +450,7 @@
     </distributionManagement>
 
     <modules>
+        <module>njams-sdk-api</module>
         <module>njams-sdk</module>
         <module>njams-sdk-sample-client</module>
         <module>njams-sdk-communication-jms</module>

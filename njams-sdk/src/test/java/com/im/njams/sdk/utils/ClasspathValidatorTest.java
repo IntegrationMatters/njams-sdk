@@ -16,8 +16,8 @@
  */
 package com.im.njams.sdk.utils;
 
-import com.im.njams.sdk.communication.validator.ClasspathValidatable;
-import com.im.njams.sdk.communication.validator.ClasspathValidator;
+import com.im.njams.sdk.communication_to_merge.validator.ClasspathValidatable;
+import com.im.njams.sdk.communication_to_merge.validator.ClasspathValidator;
 import org.junit.Test;
 
 /**

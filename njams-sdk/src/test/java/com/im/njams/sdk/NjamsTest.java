@@ -20,11 +20,11 @@ import com.faizsiegeln.njams.messageformat.v4.command.Command;
 import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
 import com.faizsiegeln.njams.messageformat.v4.command.Request;
 import com.faizsiegeln.njams.messageformat.v4.command.Response;
+import com.im.njams.sdk.api.plugin.replay.ReplayHandler;
+import com.im.njams.sdk.api.plugin.replay.ReplayRequest;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.common.Path;
-import com.im.njams.sdk.communication_rework.instruction.control.processor.replay.ReplayHandler;
-import com.im.njams.sdk.communication_rework.instruction.control.processor.replay.ReplayRequest;
-import com.im.njams.sdk.communication_rework.instruction.control.processor.replay.ReplayResponse;
+import com.im.njams.sdk.plugin.replay.entity.NjamsReplayResponse;
 import com.im.njams.sdk.logmessage.Job;
 import com.im.njams.sdk.model.ProcessModel;
 import com.im.njams.sdk.serializer.Serializer;
@@ -101,14 +101,13 @@ public class NjamsTest {
 
     @Test
     public void testOnCorrectSendProjectMessageInstruction() {
-
         instance.start();
         Instruction inst = new Instruction();
         Request req = new Request();
         req.setCommand(Command.SEND_PROJECTMESSAGE.commandString());
         inst.setRequest(req);
         assertNull(inst.getResponse());
-        instance.processReceivedInstruction(inst);
+        instance.getInstructionListener().onInstruction(inst);
         Response resp = inst.getResponse();
         assertTrue(resp.getResultCode() == 0);
         assertEquals("Successfully send ProjectMessage via NjamsClient", resp.getResultMessage());
@@ -122,7 +121,7 @@ public class NjamsTest {
         req.setCommand(Command.REPLAY.commandString());
         inst.setRequest(req);
         assertNull(inst.getResponse());
-        instance.processReceivedInstruction(inst);
+        instance.getInstructionListener().onInstruction(inst);
 
         Response resp = inst.getResponse();
         assertTrue(resp.getResultCode() == 1);
@@ -133,18 +132,18 @@ public class NjamsTest {
     public void testOnCorrectReplayMessageInstruction() {
         instance.start();
         ReplayHandler replayHandler = (ReplayRequest request) -> {
-            ReplayResponse resp = new ReplayResponse();
+            NjamsReplayResponse resp = new NjamsReplayResponse();
             resp.setResultCode(0);
             resp.setResultMessage("TestWorked");
             return resp;
         };
-        instance.setReplayHandler(replayHandler);
+        instance.getPluginStorage().getReplayPlugin().setPluginItem(replayHandler);
         Instruction inst = new Instruction();
         Request req = new Request();
         req.setCommand(Command.REPLAY.commandString());
         inst.setRequest(req);
         assertNull(inst.getResponse());
-        instance.processReceivedInstruction(inst);
+        instance.getInstructionListener().onInstruction(inst);
 
         Response resp = inst.getResponse();
         assertTrue(resp.getResultCode() == 0);
@@ -158,12 +157,12 @@ public class NjamsTest {
         ReplayHandler replayHandler = (ReplayRequest request) -> {
             throw new RuntimeException("TestException");
         };
-        instance.setReplayHandler(replayHandler);
+        instance.getPluginStorage().getReplayPlugin().setPluginItem(replayHandler);
         Request req = new Request();
         req.setCommand(Command.REPLAY.commandString());
         inst.setRequest(req);
         assertNull(inst.getResponse());
-        instance.processReceivedInstruction(inst);
+        instance.getInstructionListener().onInstruction(inst);
 
         Response resp = inst.getResponse();
         assertTrue(resp.getResultCode() == 2);

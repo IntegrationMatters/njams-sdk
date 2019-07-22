@@ -18,9 +18,9 @@ package com.im.test;
 
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.common.Path;
-import com.im.njams.sdk.communication.Communication;
-import com.im.njams.sdk.communication.cloud.CloudConstants;
-import com.im.njams.sdk.communication.jms.JmsConstants;
+import com.im.njams.sdk.communication_to_merge.Communication;
+import com.im.njams.sdk.communication_to_merge.cloud.CloudConstants;
+import com.im.njams.sdk.communication_to_merge.jms.JmsConstants;
 import com.im.njams.sdk.logmessage.Activity;
 import com.im.njams.sdk.logmessage.Group;
 import com.im.njams.sdk.logmessage.Job;
@@ -28,6 +28,7 @@ import com.im.njams.sdk.model.ActivityModel;
 import com.im.njams.sdk.model.GroupModel;
 import com.im.njams.sdk.model.ProcessModel;
 import com.im.njams.sdk.settings.Settings;
+
 import java.util.Properties;
 
 /**

@@ -112,9 +112,13 @@
 
         <!-- default scope - shaded -->
         <dependency>
+            <groupId>com.faizsiegeln.njams</groupId>
+            <artifactId>njams4-sdk-api</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
             <groupId>com.faizsiegeln</groupId>
             <artifactId>njams-messageformat</artifactId>
-            <version>4.0.1</version>
         </dependency>
 
         <dependency>
