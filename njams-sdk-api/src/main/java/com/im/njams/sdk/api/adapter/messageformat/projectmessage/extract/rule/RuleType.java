@@ -18,32 +18,24 @@
  * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package com.im.njams.sdk.adapter.messageformat.entity;
+package com.im.njams.sdk.api.adapter.messageformat.projectmessage.extract.rule;
 
-import com.im.njams.sdk.api.adapter.messageformat.Request;
+public enum RuleType {
 
-import java.util.Map;
+    EVENT(com.faizsiegeln.njams.messageformat.v4.projectmessage.RuleType.EVENT),
+    REGEXP(com.faizsiegeln.njams.messageformat.v4.projectmessage.RuleType.REGEXP),
+    VALUE(com.faizsiegeln.njams.messageformat.v4.projectmessage.RuleType.VALUE),
+    XPATH(com.faizsiegeln.njams.messageformat.v4.projectmessage.RuleType.XPATH),
+    DISABLED(com.faizsiegeln.njams.messageformat.v4.projectmessage.RuleType.DISABLED);
 
-public class NjamsRequest implements Request {
+    private com.faizsiegeln.njams.messageformat.v4.projectmessage.RuleType realRuleType;
 
-    private com.faizsiegeln.njams.messageformat.v4.command.Request messageFormatRequest;
-
-    public NjamsRequest(com.faizsiegeln.njams.messageformat.v4.command.Request messageFormatRequest) {
-        this.messageFormatRequest = messageFormatRequest;
+    RuleType(com.faizsiegeln.njams.messageformat.v4.projectmessage.RuleType ruleTypeToSet) {
+        realRuleType = ruleTypeToSet;
     }
 
-    @Override
-    public String getCommand() {
-        return messageFormatRequest.getCommand();
+    public com.faizsiegeln.njams.messageformat.v4.projectmessage.RuleType getRuleType() {
+        return realRuleType;
     }
 
-    @Override
-    public Map<String, String> getParameters() {
-        return messageFormatRequest.getParameters();
-    }
-
-    @Override
-    public String getParameter(String paramKey) {
-        return getParameters().get(paramKey);
-    }
 }

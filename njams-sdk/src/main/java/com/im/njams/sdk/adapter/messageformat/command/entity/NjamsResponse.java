@@ -18,15 +18,37 @@
  * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package com.im.njams.sdk.api.adapter.messageformat;
+package com.im.njams.sdk.adapter.messageformat.command.entity;
+
+import com.im.njams.sdk.api.adapter.messageformat.command.Response;
 
 import java.util.Map;
 
-public interface Request {
+public class NjamsResponse implements Response {
 
-    String getCommand();
+    private com.faizsiegeln.njams.messageformat.v4.command.Response messageFormatResponse;
 
-    Map<String, String> getParameters();
+    public NjamsResponse(com.faizsiegeln.njams.messageformat.v4.command.Response messageFormatResponse){
+        this.messageFormatResponse = messageFormatResponse;
+    }
 
-    String getParameter(String paramKey);
+    @Override
+    public void setResultCode(ResultCode resultCode) {
+        messageFormatResponse.setResultCode(resultCode.getResultCode());
+    }
+
+    @Override
+    public void setResultMessage(String resultMessage) {
+        messageFormatResponse.setResultMessage(resultMessage);
+    }
+
+    @Override
+    public void putParameter(String key, String value) {
+        messageFormatResponse.getParameters().put(key, value);
+    }
+
+    @Override
+    public void addParameters(Map<String, String> parameters) {
+        messageFormatResponse.getParameters().putAll(parameters);
+    }
 }

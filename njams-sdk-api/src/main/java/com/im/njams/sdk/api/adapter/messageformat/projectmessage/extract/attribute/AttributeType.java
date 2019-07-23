@@ -18,40 +18,21 @@
  * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package com.im.njams.sdk.adapter.messageformat.entity;
+package com.im.njams.sdk.api.adapter.messageformat.projectmessage.extract.attribute;
 
-import com.im.njams.sdk.api.adapter.messageformat.Instruction;
-import com.im.njams.sdk.api.adapter.messageformat.Request;
-import com.im.njams.sdk.api.adapter.messageformat.Response;
+public enum AttributeType {
 
-public class NjamsInstruction implements Instruction {
+    EVENT(com.faizsiegeln.njams.messageformat.v4.projectmessage.AttributeType.EVENT),
+    ATTRIBUTE(com.faizsiegeln.njams.messageformat.v4.projectmessage.AttributeType.ATTRIBUTE),
+    UNKNOWN(com.faizsiegeln.njams.messageformat.v4.projectmessage.AttributeType.UNKNOWN);
 
-    private Request request;
+    private com.faizsiegeln.njams.messageformat.v4.projectmessage.AttributeType realAttributeType;
 
-    private Response response;
-
-    public NjamsInstruction(com.faizsiegeln.njams.messageformat.v4.command.Instruction instruction){
-        request = new NjamsRequest(instruction.getRequest());
-        response = new NjamsResponse(instruction.getResponse());
+    AttributeType(com.faizsiegeln.njams.messageformat.v4.projectmessage.AttributeType attributeTypeToSet) {
+        realAttributeType = attributeTypeToSet;
     }
 
-    @Override
-    public Request getRequest() {
-        return request;
-    }
-
-    @Override
-    public boolean isRequestNotNull() {
-        return request != null;
-    }
-
-    @Override
-    public Response getResponse() {
-        return response;
-    }
-
-    @Override
-    public boolean isResponseNotNull() {
-        return response != null;
+    public com.faizsiegeln.njams.messageformat.v4.projectmessage.AttributeType getAttributeType() {
+        return realAttributeType;
     }
 }

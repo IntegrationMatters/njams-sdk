@@ -18,17 +18,22 @@
  * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package com.im.njams.sdk.api.adapter.messageformat;
+package com.im.njams.sdk.api.adapter.messageformat.projectmessage.extract;
 
-public interface Instruction {
+import com.im.njams.sdk.api.adapter.messageformat.projectmessage.extract.attribute.Attribute;
+import com.im.njams.sdk.api.adapter.messageformat.projectmessage.extract.rule.Rule;
 
-    Request getRequest();
+public interface ExtractRule {
 
-    boolean isRequestNotNull();
+    Attribute getAttribute();
 
-    Response getResponse();
+    void setAttribute(Attribute attributeToSet);
 
-    boolean isResponseNotNull();
+    Rule getRule();
 
+    void setRule(Rule ruleToSet);
 
+    Direction getDirection();
+
+    void setDirection(Direction direction);
 }

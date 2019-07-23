@@ -18,37 +18,21 @@
  * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package com.im.njams.sdk.adapter.messageformat.entity;
+package com.im.njams.sdk.api.adapter.messageformat.projectmessage;
 
-import com.im.njams.sdk.api.adapter.messageformat.Response;
+public enum LogMode {
 
-import java.util.Map;
+    NONE(com.faizsiegeln.njams.messageformat.v4.projectmessage.LogMode.NONE),
+    EXCLUSIVE(com.faizsiegeln.njams.messageformat.v4.projectmessage.LogMode.EXCLUSIVE),
+    COMPLETE(com.faizsiegeln.njams.messageformat.v4.projectmessage.LogMode.COMPLETE);
 
-public class NjamsResponse implements Response {
+    private com.faizsiegeln.njams.messageformat.v4.projectmessage.LogMode realLogMode;
 
-    private com.faizsiegeln.njams.messageformat.v4.command.Response messageFormatResponse;
-
-    public NjamsResponse(com.faizsiegeln.njams.messageformat.v4.command.Response messageFormatResponse){
-        this.messageFormatResponse = messageFormatResponse;
+    LogMode(com.faizsiegeln.njams.messageformat.v4.projectmessage.LogMode logModeToSet) {
+            realLogMode = logModeToSet;
     }
 
-    @Override
-    public void setResultCode(ResultCode resultCode) {
-        messageFormatResponse.setResultCode(resultCode.getResultCode());
-    }
-
-    @Override
-    public void setResultMessage(String resultMessage) {
-        messageFormatResponse.setResultMessage(resultMessage);
-    }
-
-    @Override
-    public void putParameter(String key, String value) {
-        messageFormatResponse.getParameters().put(key, value);
-    }
-
-    @Override
-    public void addParameters(Map<String, String> parameters) {
-        messageFormatResponse.getParameters().putAll(parameters);
+    public com.faizsiegeln.njams.messageformat.v4.projectmessage.LogMode getLogMode() {
+        return realLogMode;
     }
 }

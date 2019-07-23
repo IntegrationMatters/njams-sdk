@@ -18,30 +18,15 @@
  * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package com.im.njams.sdk.api.adapter.messageformat;
+package com.im.njams.sdk.api.adapter.messageformat.projectmessage.extract.attribute;
 
-import java.util.Map;
+public interface Attribute {
 
-public interface Response {
+    String getAttributeName();
 
-    enum ResultCode{
-        SUCCESS(0), WARNING(1), ERROR(2);
+    void setAttributeName(String attributeNameToSet);
 
-        private int resultCode;
+    AttributeType getAttributeType();
 
-        ResultCode(int resultCode){
-            this.resultCode = resultCode;
-        }
-
-        public int getResultCode(){
-            return resultCode;
-        }
-    }
-    void setResultCode(ResultCode resultCode);
-
-    void setResultMessage(String resultMessage);
-
-    void putParameter(String key, String value);
-
-    void addParameters(Map<String, String> parameters);
+    void setAttributeType(AttributeType attributeTypeToSet);
 }
