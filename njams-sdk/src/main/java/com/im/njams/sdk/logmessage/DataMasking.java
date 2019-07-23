@@ -46,30 +46,22 @@ public class DataMasking {
         if (inString == null || inString.isEmpty() || PATTERNS.isEmpty()) {
             return inString;
         }
-        int inVisibleCharacters = 0;
-        if (inVisibleCharacters < 0) {
-            inVisibleCharacters = 0;
-        }
 
-        String stringToMask = inString;
         String maskedString = inString;
-
         for (Pattern p : PATTERNS) {
-            Matcher m = p.matcher(stringToMask);
+            Matcher m = p.matcher(inString);
             while (m.find()) {
                 int startIdx = m.start();
                 int endIdx = m.end();
 
-                String patternMatch = stringToMask.substring(startIdx, endIdx);
-
-                String partToBeMasked = patternMatch.substring(0, patternMatch.length() - inVisibleCharacters);
+                String patternMatch = inString.substring(startIdx, endIdx);
+                String partToBeMasked = patternMatch.substring(0, patternMatch.length());
                 String mask = "";
                 for (int i = 0; i < partToBeMasked.length(); i++) {
                     mask = mask + MASK_CHAR;
                 }
 
-                String maskedNumber = mask + patternMatch.substring(patternMatch.length() - inVisibleCharacters);
-
+                String maskedNumber = mask + patternMatch.substring(patternMatch.length());
                 maskedString = maskedString.replace(patternMatch, maskedNumber);
             }
         }
