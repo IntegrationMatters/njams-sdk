@@ -20,7 +20,8 @@
 package com.im.njams.sdk.communication.instruction.control.processor.flush;
 
 import com.im.njams.sdk.Njams;
-import com.im.njams.sdk.communication.instruction.util.InstructionWrapper;
+import com.im.njams.sdk.api.adapter.messageformat.command.entity.Instruction;
+import com.im.njams.sdk.api.adapter.messageformat.command.entity.ResponseWriter;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -32,18 +33,15 @@ public class SendProjectMessageProcessorTest {
 
     private Njams njamsMock = mock(Njams.class);
 
-    private InstructionWrapper instructionWrapperMock = mock(InstructionWrapper.class);
-
     @Before
     public void initialize() {
         sendProjectMessageProcessor = spy(new SendProjectMessageProcessor(njamsMock));
-        doReturn(instructionWrapperMock).when(sendProjectMessageProcessor).getInstructionWrapper();
     }
 
 //Process tests
 
     @Test
-    public void testProcess(){
+    public void testProcess() {
         sendProjectMessageProcessor.process();
         verify(njamsMock).flushResources();
     }
@@ -52,7 +50,16 @@ public class SendProjectMessageProcessorTest {
 
     @Test
     public void testSetInstructionResponse() {
+        Instruction instructionMock = mock(Instruction.class);
+        ResponseWriter responseWriterMock = mock(ResponseWriter.class);
+        doReturn(instructionMock).when(sendProjectMessageProcessor).getInstruction();
+        when(instructionMock.getResponseWriter()).thenReturn(responseWriterMock);
+        when(responseWriterMock.setResultCode(any())).thenReturn(responseWriterMock);
+        when(responseWriterMock.setResultMessage(any())).thenReturn(responseWriterMock);
+
         sendProjectMessageProcessor.setInstructionResponse();
-        verify(instructionWrapperMock).createResponseForInstruction(InstructionWrapper.SUCCESS_RESULT_CODE, sendProjectMessageProcessor.SUCCESS_RESULT_MESSAGE);
+
+        verify(responseWriterMock).setResultCode(ResponseWriter.ResultCode.SUCCESS);
+        verify(responseWriterMock).setResultMessage(SendProjectMessageProcessor.SUCCESS_RESULT_MESSAGE);
     }
 }

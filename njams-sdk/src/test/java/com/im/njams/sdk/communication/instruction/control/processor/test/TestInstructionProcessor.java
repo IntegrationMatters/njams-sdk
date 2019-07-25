@@ -21,7 +21,7 @@
 package com.im.njams.sdk.communication.instruction.control.processor.test;
 
 import com.faizsiegeln.njams.messageformat.v4.command.Command;
-import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
+import com.im.njams.sdk.api.adapter.messageformat.command.entity.Instruction;
 import com.im.njams.sdk.api.communication.instruction.control.InstructionProcessor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

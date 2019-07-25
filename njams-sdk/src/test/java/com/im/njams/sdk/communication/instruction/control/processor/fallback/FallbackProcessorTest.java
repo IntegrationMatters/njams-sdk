@@ -19,13 +19,15 @@
  */
 package com.im.njams.sdk.communication.instruction.control.processor.fallback;
 
-import com.im.njams.sdk.communication.instruction.util.InstructionWrapper;
+import com.im.njams.sdk.adapter.messageformat.command.entity.DefaultInstruction;
+import com.im.njams.sdk.adapter.messageformat.command.entity.DefaultRequestReader;
+import com.im.njams.sdk.adapter.messageformat.command.entity.DefaultResponseWriter;
+import com.im.njams.sdk.api.adapter.messageformat.command.entity.ResponseWriter;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.verification.VerificationMode;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
 
 public class FallbackProcessorTest {
@@ -38,20 +40,30 @@ public class FallbackProcessorTest {
 
     private FallbackProcessor fallbackProcessor;
 
-    private InstructionWrapper instructionWrapperMock;
+    private DefaultInstruction instruction;
+
+    private DefaultRequestReader reader;
+
+    private DefaultResponseWriter writer;
 
     @Before
     public void initialize() {
         fallbackProcessor = spy(new FallbackProcessor());
-        instructionWrapperMock = mock(InstructionWrapper.class);
-        doReturn(instructionWrapperMock).when(fallbackProcessor).getInstructionWrapper();
+        instruction = mock(DefaultInstruction.class);
+        doReturn(instruction).when(fallbackProcessor).getInstruction();
+        reader = mock(DefaultRequestReader.class);
+        when(instruction.getRequestReader()).thenReturn(reader);
+        writer = mock(DefaultResponseWriter.class);
+        when(instruction.getResponseWriter()).thenReturn(writer);
+        when(writer.setResultCode(any())).thenReturn(writer);
+        when(writer.setResultMessage(any())).thenReturn(writer);
     }
 
 //AfterInit
 
     @Test
-    public void afterInit(){
-        assertEquals(InstructionWrapper.EMPTY_STRING, fallbackProcessor.warningMessage);
+    public void afterInit() {
+        assertEquals(DefaultRequestReader.EMPTY_STRING, fallbackProcessor.warningMessage);
     }
 
 //PrepareProcessing tests
@@ -59,55 +71,27 @@ public class FallbackProcessorTest {
     @Test
     public void prepareProcessingClearsOldWarningMessage() {
         String oldMessage = fallbackProcessor.warningMessage = "Message_To_Delete";
-        fallbackProcessor.prepareProcessing(null);
+        boolean prepareProcessingSuccessful = fallbackProcessor.prepareProcessing();
         assertNotEquals(oldMessage, fallbackProcessor.warningMessage);
+        assertTrue(prepareProcessingSuccessful);
     }
 
 //Process tests
 
     @Test
     public void processNullInstruction() {
-        mockInstructionWrapperMethods(NULL_INSTRUCTION_COMMAND);
+        mockInstructionMethods(NULL_INSTRUCTION_COMMAND);
         fallbackProcessor.process();
         checkWarningMessage(FallbackProcessor.InstructionProblem.INSTRUCTION_IS_NULL.getMessage());
     }
 
-    @Test
-    public void processNullRequest() {
-        mockInstructionWrapperMethods(NULL_REQUEST_COMMAND);
-        fallbackProcessor.process();
-        checkWarningMessage(FallbackProcessor.InstructionProblem.REQUEST_IS_NULL.getMessage());
-    }
-
-    @Test
-    public void processNullCommand() {
-        mockInstructionWrapperMethods(NULL_COMMAND_COMMAND);
-        fallbackProcessor.process();
-        checkWarningMessage(FallbackProcessor.InstructionProblem.COMMAND_IS_NULL.getMessage());
-    }
-
-    @Test
-    public void processEmptyCommand() {
-        mockInstructionWrapperMethods(EMPTY_COMMAND_COMMAND);
-        fallbackProcessor.process();
-        checkWarningMessage(FallbackProcessor.InstructionProblem.COMMAND_IS_EMPTY.getMessage());
-    }
-
-    @Test
-    public void processUnknownCommand() {
-        mockInstructionWrapperMethods(UNKNOWN_COMMAND_COMMAND);
-        when(instructionWrapperMock.getCommandOrEmptyString()).thenReturn(UNKNOWN_COMMAND_COMMAND);
-        fallbackProcessor.process();
-        checkWarningMessage(FallbackProcessor.InstructionProblem.COMMAND_IS_UNKNOWN.getMessage() + UNKNOWN_COMMAND_COMMAND);
-    }
-
-    private void mockInstructionWrapperMethods(String trueOrFalseString) {
+    private void mockInstructionMethods(String trueOrFalseString) {
         char[] trueOrFalseChars = trueOrFalseString.toCharArray();
 
-        when(instructionWrapperMock.isInstructionNull()).thenReturn(parseCharToBoolean(trueOrFalseChars[0]));
-        when(instructionWrapperMock.isRequestNull()).thenReturn(parseCharToBoolean(trueOrFalseChars[1]));
-        when(instructionWrapperMock.isCommandNull()).thenReturn(parseCharToBoolean(trueOrFalseChars[2]));
-        when(instructionWrapperMock.isCommandEmpty()).thenReturn(parseCharToBoolean(trueOrFalseChars[3]));
+        when(instruction.isEmpty()).thenReturn(parseCharToBoolean(trueOrFalseChars[0]));
+        when(reader.isEmpty()).thenReturn(parseCharToBoolean(trueOrFalseChars[1]));
+        when(reader.isCommandNull()).thenReturn(parseCharToBoolean(trueOrFalseChars[2]));
+        when(reader.isCommandEmpty()).thenReturn(parseCharToBoolean(trueOrFalseChars[3]));
 
     }
 
@@ -123,6 +107,36 @@ public class FallbackProcessorTest {
         assertEquals(expectedMessage, fallbackProcessor.warningMessage);
     }
 
+    @Test
+    public void processNullRequest() {
+        mockInstructionMethods(NULL_REQUEST_COMMAND);
+        fallbackProcessor.process();
+        checkWarningMessage(FallbackProcessor.InstructionProblem.REQUEST_IS_NULL.getMessage());
+    }
+
+    @Test
+    public void processNullCommand() {
+        mockInstructionMethods(NULL_COMMAND_COMMAND);
+        fallbackProcessor.process();
+        checkWarningMessage(FallbackProcessor.InstructionProblem.COMMAND_IS_NULL.getMessage());
+    }
+
+    @Test
+    public void processEmptyCommand() {
+        mockInstructionMethods(EMPTY_COMMAND_COMMAND);
+        fallbackProcessor.process();
+        checkWarningMessage(FallbackProcessor.InstructionProblem.COMMAND_IS_EMPTY.getMessage());
+    }
+
+    @Test
+    public void processUnknownCommand() {
+        mockInstructionMethods(UNKNOWN_COMMAND_COMMAND);
+        when(reader.getCommand()).thenReturn(UNKNOWN_COMMAND_COMMAND);
+        fallbackProcessor.process();
+        checkWarningMessage(
+                FallbackProcessor.InstructionProblem.COMMAND_IS_UNKNOWN.getMessage() + UNKNOWN_COMMAND_COMMAND);
+    }
+
 //setInstructionResponse
 
     @Test
@@ -135,11 +149,10 @@ public class FallbackProcessorTest {
         setResponse(true, times(0));
     }
 
-    private void setResponse(boolean isInstructionNull,
-            VerificationMode howManyTimesHasResponseBeSet) {
-
-        when(instructionWrapperMock.isInstructionNull()).thenReturn(isInstructionNull);
+    private void setResponse(boolean isInstructionNull, VerificationMode howManyTimesHasResponseBeSet) {
+        when(instruction.isEmpty()).thenReturn(isInstructionNull);
         fallbackProcessor.setInstructionResponse();
-        verify(instructionWrapperMock, howManyTimesHasResponseBeSet).createResponseForInstruction(isA(Integer.class), any());
+        verify(writer, howManyTimesHasResponseBeSet).setResultCode(ResponseWriter.ResultCode.WARNING);
+        verify(writer, howManyTimesHasResponseBeSet).setResultMessage(fallbackProcessor.warningMessage);
     }
 }

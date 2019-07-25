@@ -20,59 +20,70 @@
 
 package com.im.njams.sdk.communication.instruction.control.processor;
 
-import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
-import com.im.njams.sdk.communication.instruction.util.InstructionWrapper;
+import com.im.njams.sdk.api.adapter.messageformat.command.entity.Instruction;
 import org.junit.Before;
 import org.junit.Test;
 
-import static org.junit.Assert.assertNotEquals;
-import static org.mockito.Matchers.any;
+import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
 
 public class AbstractInstructionProcessorTest {
 
     private AbstractInstructionProcessor instructionProcessorMock;
 
+    private Instruction instructionMock = mock(Instruction.class);
+
     @Before
-    public void initialize(){
+    public void initialize() {
         instructionProcessorMock = spy(new AbstractInstructionProcessorImpl());
     }
 
 //ProcessInstruction tests
 
     @Test
-    public void testProcessInstruction() {
-        mockFallbackProcessor();
-        instructionProcessorMock.processInstruction(null);
-        verifyProcessInstruction();
+    public void successfulProcessInstruction() {
+        mockInstructionProcessor(true);
+        instructionProcessorMock.processInstruction(instructionMock);
+        verifyProcessInstruction(true);
     }
 
-    private void mockFallbackProcessor() {
-        doNothing().when(instructionProcessorMock).prepareProcessing(isA(Instruction.class));
+    private void mockInstructionProcessor(boolean preparingWorks) {
+        doNothing().when(instructionProcessorMock).setInstruction(instructionMock);
+        doReturn(preparingWorks).when(instructionProcessorMock).prepareProcessing();
         doNothing().when(instructionProcessorMock).process();
         doNothing().when(instructionProcessorMock).setInstructionResponse();
         doNothing().when(instructionProcessorMock).logFinishedProcessing();
     }
 
-    private void verifyProcessInstruction() {
-        verify(instructionProcessorMock).prepareProcessing(any());
-        verify(instructionProcessorMock).process();
+    private void verifyProcessInstruction(boolean processShouldBeCalled) {
+        verify(instructionProcessorMock).setInstruction(instructionMock);
+        verify(instructionProcessorMock).prepareProcessing();
+        if(processShouldBeCalled){
+            verify(instructionProcessorMock).process();
+        }else{
+            verify(instructionProcessorMock, times(0)).process();
+        }
         verify(instructionProcessorMock).setInstructionResponse();
         verify(instructionProcessorMock).logFinishedProcessing();
+    }
+
+    @Test
+    public void failedProcessInstruction() {
+        mockInstructionProcessor(false);
+        instructionProcessorMock.processInstruction(instructionMock);
+        verifyProcessInstruction(false);
     }
 
 //PrepareProcessing tests
 
     @Test
-    public void testPrepareProcessingSetsTheInstructionWrapper() {
-        InstructionWrapper oldWrapper = instructionProcessorMock.getInstructionWrapper();
-        instructionProcessorMock.prepareProcessing(null);
-        assertNotEquals(oldWrapper, instructionProcessorMock.getInstructionWrapper());
+    public void prepareProcessingReturnsSuccessAsDefault(){
+        assertTrue(instructionProcessorMock.prepareProcessing());
     }
 
 //Private class
 
-    private class AbstractInstructionProcessorImpl extends AbstractInstructionProcessor {
+    private class AbstractInstructionProcessorImpl extends AbstractInstructionProcessor<Instruction> {
 
         @Override
         protected void process() {

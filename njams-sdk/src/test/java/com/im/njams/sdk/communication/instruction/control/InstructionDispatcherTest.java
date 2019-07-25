@@ -19,7 +19,7 @@
  */
 package com.im.njams.sdk.communication.instruction.control;
 
-import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
+import com.im.njams.sdk.api.adapter.messageformat.command.entity.Instruction;
 import com.im.njams.sdk.api.communication.instruction.control.InstructionProcessor;
 import com.im.njams.sdk.communication.instruction.control.processor.test.TestInstructionProcessor;
 import com.im.njams.sdk.communication.instruction.entity.InstructionProcessorCollection;

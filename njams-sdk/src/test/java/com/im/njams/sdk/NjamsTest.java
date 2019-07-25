@@ -20,11 +20,10 @@ import com.faizsiegeln.njams.messageformat.v4.command.Command;
 import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
 import com.faizsiegeln.njams.messageformat.v4.command.Request;
 import com.faizsiegeln.njams.messageformat.v4.command.Response;
+import com.im.njams.sdk.api.adapter.messageformat.command.entity.ResponseWriter;
 import com.im.njams.sdk.api.plugin.replay.ReplayHandler;
-import com.im.njams.sdk.api.plugin.replay.ReplayRequest;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.common.Path;
-import com.im.njams.sdk.plugin.replay.entity.NjamsReplayResponse;
 import com.im.njams.sdk.logmessage.Job;
 import com.im.njams.sdk.model.ProcessModel;
 import com.im.njams.sdk.serializer.Serializer;
@@ -131,11 +130,10 @@ public class NjamsTest {
     @Test
     public void testOnCorrectReplayMessageInstruction() {
         instance.start();
-        ReplayHandler replayHandler = (ReplayRequest request) -> {
-            NjamsReplayResponse resp = new NjamsReplayResponse();
-            resp.setResultCode(0);
-            resp.setResultMessage("TestWorked");
-            return resp;
+        ReplayHandler replayHandler = (com.im.njams.sdk.api.adapter.messageformat.command.entity.Instruction instruction) -> {
+            instruction.getResponseWriter().
+                    setResultCode(ResponseWriter.ResultCode.SUCCESS).
+                    setResultMessage("TestWorked");
         };
         instance.getPluginStorage().getReplayPlugin().setPluginItem(replayHandler);
         Instruction inst = new Instruction();
@@ -154,7 +152,7 @@ public class NjamsTest {
     public void testOnThrownExceptionReplayMessageInstruction() {
         instance.start();
         Instruction inst = new Instruction();
-        ReplayHandler replayHandler = (ReplayRequest request) -> {
+        ReplayHandler replayHandler = (com.im.njams.sdk.api.adapter.messageformat.command.entity.Instruction instruction) -> {
             throw new RuntimeException("TestException");
         };
         instance.getPluginStorage().getReplayPlugin().setPluginItem(replayHandler);
