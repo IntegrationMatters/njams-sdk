@@ -22,6 +22,7 @@ package com.im.njams.sdk.communication.instruction.control.processor.configurati
 import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
 import com.faizsiegeln.njams.messageformat.v4.command.Response;
 import com.im.njams.sdk.Njams;
+import com.im.njams.sdk.adapter.messageformat.command.entity.AbstractInstruction;
 import com.im.njams.sdk.api.communication.instruction.control.InstructionProcessor;
 import com.im.njams.sdk.common.DateTimeUtility;
 import com.im.njams.sdk.utils.StringUtils;
@@ -47,8 +48,8 @@ public abstract class AbstractConfigurationProcessor implements InstructionProce
     }
 
     @Override
-    public final void processInstruction(Instruction instruction) {
-        InstructionSupport instructionSupport = new InstructionSupport(instruction);
+    public final void processInstruction(com.im.njams.sdk.api.adapter.messageformat.command.entity.Instruction instruction) {
+        InstructionSupport instructionSupport = new InstructionSupport(((AbstractInstruction)instruction).getRealInstruction());
         this.processInstruction(instructionSupport);
     }
 

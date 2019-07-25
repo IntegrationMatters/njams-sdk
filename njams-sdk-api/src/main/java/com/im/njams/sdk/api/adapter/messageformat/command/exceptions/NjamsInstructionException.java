@@ -18,14 +18,17 @@
  * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package com.im.njams.sdk.communication.instruction.boundary.logging;
+package com.im.njams.sdk.api.adapter.messageformat.command.exceptions;
 
+import java.io.IOException;
 
-import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
+public class NjamsInstructionException extends IOException {
 
-/**
- * Todo: Write Doc
- */
-public interface InstructionLogger {
-    public void log(Instruction instruction);
+    public NjamsInstructionException(String message) {
+        super(message);
+    }
+
+    public NjamsInstructionException(String message, Throwable cause) {
+        super(message, cause);
+    }
 }

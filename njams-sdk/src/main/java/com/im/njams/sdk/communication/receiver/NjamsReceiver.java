@@ -21,6 +21,8 @@
 package com.im.njams.sdk.communication.receiver;
 
 import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
+import com.im.njams.sdk.adapter.messageformat.command.control.NjamsInstructionWrapper;
+import com.im.njams.sdk.api.adapter.messageformat.command.exceptions.NjamsInstructionException;
 import com.im.njams.sdk.api.communication.instruction.boundary.InstructionListener;
 import com.im.njams.sdk.api.communication.instruction.control.InstructionProcessor;
 import com.im.njams.sdk.communication.instruction.boundary.InstructionProcessorService;
@@ -35,7 +37,11 @@ public class NjamsReceiver implements InstructionListener {
 
     @Override
     public void onInstruction(Instruction instruction) {
-        instructionProcessorService.processInstruction(instruction);
+        try {
+            instructionProcessorService.processInstruction(new NjamsInstructionWrapper(instruction).wrap());
+        } catch (NjamsInstructionException e) {
+            //Do nothing
+        }
     }
 
     @Override

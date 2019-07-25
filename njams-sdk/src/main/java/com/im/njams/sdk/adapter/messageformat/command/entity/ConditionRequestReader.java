@@ -18,14 +18,39 @@
  * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package com.im.njams.sdk.communication.instruction.boundary.logging;
+package com.im.njams.sdk.adapter.messageformat.command.entity;
 
+import com.faizsiegeln.njams.messageformat.v4.command.Request;
+import com.im.njams.sdk.utils.StringUtils;
 
-import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
+import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
 
-/**
- * Todo: Write Doc
- */
-public interface InstructionLogger {
-    public void log(Instruction instruction);
+public class ConditionRequestReader extends DefaultRequestReader {
+
+    public ConditionRequestReader(Request requestToRead) {
+        super(requestToRead);
+    }
+
+    public String getProcessPath(){
+        return getParamByConstant(ConditionParameter.PROCESS_PATH);
+    }
+
+    private String getParamByConstant(ConditionParameter param){
+        return getParameter(param.getParamKey());
+    }
+
+    public String getActivityId(){
+        return getParamByConstant(ConditionParameter.ACTIVITY_ID);
+    }
+
+    public String getExtract(){
+        return getParamByConstant(ConditionParameter.EXTRACT);
+    }
+
+    public List<ConditionParameter> searchForMissingParameters(ConditionParameter[] parametersToSearchFor){
+        return Arrays.stream(parametersToSearchFor).filter(neededParameter -> StringUtils.isBlank(getParamByConstant(neededParameter))).collect(
+                Collectors.toList());
+    }
 }

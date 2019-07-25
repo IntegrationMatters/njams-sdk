@@ -19,16 +19,17 @@
  */
 package com.im.njams.sdk.communication.instruction.control.processor.fallback;
 
-import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
+import com.im.njams.sdk.adapter.messageformat.command.entity.DefaultInstruction;
+import com.im.njams.sdk.adapter.messageformat.command.entity.DefaultRequestReader;
+import com.im.njams.sdk.api.adapter.messageformat.command.entity.ResponseWriter;
 import com.im.njams.sdk.communication.instruction.control.processor.AbstractInstructionProcessor;
-import com.im.njams.sdk.communication.instruction.util.InstructionWrapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
  * Todo: Write Doc
  */
-public class FallbackProcessor extends AbstractInstructionProcessor {
+public class FallbackProcessor extends AbstractInstructionProcessor<DefaultInstruction> {
 
     private static final Logger LOG = LoggerFactory.getLogger(FallbackProcessor.class);
 
@@ -52,19 +53,19 @@ public class FallbackProcessor extends AbstractInstructionProcessor {
 
     String warningMessage;
 
-    public FallbackProcessor(){
+    public FallbackProcessor() {
         super();
         setBackToStart();
     }
 
-    private void setBackToStart(){
-        warningMessage = InstructionWrapper.EMPTY_STRING;
+    private void setBackToStart() {
+        warningMessage = DefaultRequestReader.EMPTY_STRING;
     }
 
     @Override
-    protected void prepareProcessing(Instruction instruction) {
-        super.prepareProcessing(instruction);
+    protected boolean prepareProcessing() {
         setBackToStart();
+        return SUCCESS;
     }
 
     @Override
@@ -76,14 +77,18 @@ public class FallbackProcessor extends AbstractInstructionProcessor {
 
     private InstructionProblem checkTypeOfProblem() {
         InstructionProblem problemType = InstructionProblem.COMMAND_IS_UNKNOWN;
-        if (getInstructionWrapper().isInstructionNull()) {
+
+        if (getInstruction().isEmpty()) {
             problemType = InstructionProblem.INSTRUCTION_IS_NULL;
-        } else if (getInstructionWrapper().isRequestNull()) {
-            problemType = InstructionProblem.REQUEST_IS_NULL;
-        } else if (getInstructionWrapper().isCommandNull()) {
-            problemType = InstructionProblem.COMMAND_IS_NULL;
-        } else if (getInstructionWrapper().isCommandEmpty()) {
-            problemType = InstructionProblem.COMMAND_IS_EMPTY;
+        } else {
+            final DefaultRequestReader requestReader = getInstruction().getRequestReader();
+            if (requestReader.isEmpty()) {
+                problemType = InstructionProblem.REQUEST_IS_NULL;
+            } else if (requestReader.isCommandNull()) {
+                problemType = InstructionProblem.COMMAND_IS_NULL;
+            } else if (requestReader.isCommandEmpty()) {
+                problemType = InstructionProblem.COMMAND_IS_EMPTY;
+            }
         }
         return problemType;
     }
@@ -96,7 +101,7 @@ public class FallbackProcessor extends AbstractInstructionProcessor {
         String warningMessageToReturn = instructionProblem.getMessage();
 
         if (instructionProblem == instructionProblem.COMMAND_IS_UNKNOWN) {
-            warningMessageToReturn = warningMessageToReturn.concat(getInstructionWrapper().getCommandOrEmptyString());
+            warningMessageToReturn = warningMessageToReturn.concat(getInstruction().getRequestReader().getCommand());
         }
 
         return warningMessageToReturn;
@@ -110,11 +115,13 @@ public class FallbackProcessor extends AbstractInstructionProcessor {
     }
 
     private boolean canResponseBeSet() {
-        return !getInstructionWrapper().isInstructionNull();
+        return !getInstruction().isEmpty();
     }
 
     private void setResponse() {
-        getInstructionWrapper().createResponseForInstruction(InstructionWrapper.WARNING_RESULT_CODE, warningMessage);
+        getInstruction().getResponseWriter().
+                setResultCode(ResponseWriter.ResultCode.WARNING).
+                setResultMessage(warningMessage);
     }
 
     @Override

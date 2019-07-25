@@ -20,35 +20,11 @@
 
 package com.im.njams.sdk.adapter.messageformat.command.entity;
 
-import com.im.njams.sdk.api.adapter.messageformat.command.Response;
+import com.faizsiegeln.njams.messageformat.v4.command.Response;
 
-import java.util.Map;
+public class ConditionResponseWriter extends DefaultResponseWriter<ConditionResponseWriter> {
 
-public class NjamsResponse implements Response {
-
-    private com.faizsiegeln.njams.messageformat.v4.command.Response messageFormatResponse;
-
-    public NjamsResponse(com.faizsiegeln.njams.messageformat.v4.command.Response messageFormatResponse){
-        this.messageFormatResponse = messageFormatResponse;
-    }
-
-    @Override
-    public void setResultCode(ResultCode resultCode) {
-        messageFormatResponse.setResultCode(resultCode.getResultCode());
-    }
-
-    @Override
-    public void setResultMessage(String resultMessage) {
-        messageFormatResponse.setResultMessage(resultMessage);
-    }
-
-    @Override
-    public void putParameter(String key, String value) {
-        messageFormatResponse.getParameters().put(key, value);
-    }
-
-    @Override
-    public void addParameters(Map<String, String> parameters) {
-        messageFormatResponse.getParameters().putAll(parameters);
+    public ConditionResponseWriter(Response response) {
+        super(response);
     }
 }

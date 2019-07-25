@@ -19,7 +19,8 @@
  */
 package com.im.njams.sdk.communication.instruction.boundary;
 
-import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
+import com.im.njams.sdk.adapter.messageformat.command.entity.AbstractInstruction;
+import com.im.njams.sdk.api.adapter.messageformat.command.entity.Instruction;
 import com.im.njams.sdk.api.communication.instruction.control.InstructionProcessor;
 import com.im.njams.sdk.communication.instruction.boundary.logging.InstructionLoggerFactory;
 import com.im.njams.sdk.communication.instruction.control.InstructionDispatcher;
@@ -79,13 +80,13 @@ public class InstructionProcessorService {
     public synchronized void processInstruction(Instruction instruction) {
         if (instruction != null) {
             //log each instruction's request if available
-            instructionLoggerFactory.getRequestLogger().log(instruction);
+            instructionLoggerFactory.getRequestLogger().log(((AbstractInstruction)instruction).getRealInstruction());
 
             //dispatch instruction to correct InstructionProcessor
             instructionDispatcher.dispatchInstruction(instruction);
 
             //log each instruction's response
-            instructionLoggerFactory.getResponseLogger().log(instruction);
+            instructionLoggerFactory.getResponseLogger().log(((AbstractInstruction)instruction).getRealInstruction());
         } else if (LOG.isErrorEnabled()) {
             LOG.error("Instruction must not be null");
         }

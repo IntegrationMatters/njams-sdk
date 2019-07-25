@@ -20,8 +20,8 @@
 package com.im.njams.sdk.communication.instruction.control.processor.flush;
 
 import com.im.njams.sdk.Njams;
+import com.im.njams.sdk.api.adapter.messageformat.command.entity.ResponseWriter;
 import com.im.njams.sdk.communication.instruction.control.processor.AbstractInstructionProcessor;
-import com.im.njams.sdk.communication.instruction.util.InstructionWrapper;
 
 /**
  * Todo: Write Doc
@@ -42,7 +42,9 @@ public class SendProjectMessageProcessor extends AbstractInstructionProcessor {
     }
 
     @Override
-    protected void setInstructionResponse(){
-        getInstructionWrapper().createResponseForInstruction(InstructionWrapper.SUCCESS_RESULT_CODE, SUCCESS_RESULT_MESSAGE);
+    protected void setInstructionResponse() {
+        getInstruction().getResponseWriter().
+                setResultCode(ResponseWriter.ResultCode.SUCCESS).
+                setResultMessage(SUCCESS_RESULT_MESSAGE);
     }
 }

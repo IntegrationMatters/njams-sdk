@@ -19,20 +19,19 @@
  */
 package com.im.njams.sdk.communication.instruction.control.processor.replay;
 
-import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
+import com.im.njams.sdk.adapter.messageformat.command.entity.ReplayInstruction;
+import com.im.njams.sdk.adapter.messageformat.command.entity.ReplayResponseWriter;
+import com.im.njams.sdk.api.adapter.messageformat.command.entity.ResponseWriter;
 import com.im.njams.sdk.api.plugin.replay.ReplayHandler;
 import com.im.njams.sdk.api.plugin.replay.ReplayPlugin;
 import com.im.njams.sdk.communication.instruction.control.processor.AbstractInstructionProcessor;
-import com.im.njams.sdk.communication.instruction.util.InstructionWrapper;
-import com.im.njams.sdk.plugin.replay.entity.NjamsReplayRequest;
-import com.im.njams.sdk.plugin.replay.entity.NjamsReplayResponse;
 
 import static com.im.njams.sdk.communication.instruction.control.processor.replay.ReplayProcessor.ReplayResponseStatus.*;
 
 /**
  * Todo: Write Doc
  */
-public class ReplayProcessor extends AbstractInstructionProcessor {
+public class ReplayProcessor extends AbstractInstructionProcessor<ReplayInstruction> {
 
     enum ReplayResponseStatus {
         REPLAY_HANDLER_NOT_SET("Client cannot replay processes. No replay handler is present."),
@@ -54,8 +53,6 @@ public class ReplayProcessor extends AbstractInstructionProcessor {
 
     ReplayResponseStatus replayStatus;
 
-    NjamsReplayResponse replayResponse;
-
     Exception caughtExceptionWhileReplaying;
 
     public ReplayProcessor(ReplayPlugin replayPlugin) {
@@ -66,14 +63,13 @@ public class ReplayProcessor extends AbstractInstructionProcessor {
 
     private void setBackToStart() {
         this.replayStatus = REPLAY_HANDLER_NOT_SET;
-        this.replayResponse = null;
         this.caughtExceptionWhileReplaying = null;
     }
 
     @Override
-    protected void prepareProcessing(Instruction instruction) {
-        super.prepareProcessing(instruction);
+    protected boolean prepareProcessing() {
         setBackToStart();
+        return SUCCESS;
     }
 
     @Override
@@ -93,7 +89,7 @@ public class ReplayProcessor extends AbstractInstructionProcessor {
 
     private void replay() {
         ReplayHandler replayHandler = replayPlugin.getPluginItem();
-        replayResponse = (NjamsReplayResponse) replayHandler.replay(new NjamsReplayRequest(getInstructionWrapper()));
+        replayHandler.replay(getInstruction());
         replayStatus = REPLAY_SUCCESS;
     }
 
@@ -104,40 +100,28 @@ public class ReplayProcessor extends AbstractInstructionProcessor {
 
     @Override
     protected void setInstructionResponse() {
-        createReplayResponseIfNotSet();
-
-        fillResponse();
-    }
-
-    private void createReplayResponseIfNotSet() {
-        if(replayResponse == null){
-            replayResponse = new NjamsReplayResponse();
-        }
-    }
-
-    private void fillResponse() {
-        InstructionWrapper wrapper = getInstructionWrapper();
+        ReplayResponseWriter writer = getInstruction().getResponseWriter();
         if (replayStatus == REPLAY_SUCCESS) {
-            setSuccessResponseTo(wrapper);
+            //Was filled by the replay() caller
         } else if (replayStatus == EXCEPTION_WAS_THROWN_WHILE_REPLAYING) {
-            setErrorResponseTo(wrapper);
+            setExceptionWasThrownResponse(writer);
         } else { //REPLAY_HANDLER_NOT_SET
-            setWarningResponseTo(wrapper);
+            setReplayHandlerNotSetResponse(writer);
         }
     }
 
-    public void setSuccessResponseTo(InstructionWrapper wrapper){
-        replayResponse.addSuccessParametersTo(wrapper);
-    }
-
-    public void setErrorResponseTo(InstructionWrapper wrapper){
+    private void setExceptionWasThrownResponse(ReplayResponseWriter writer){
         final String resultMessage = replayStatus.getMessage() + caughtExceptionWhileReplaying.getMessage();
         final String errorMessage = String.valueOf(caughtExceptionWhileReplaying);
-        replayResponse.addErrorParametersTo(wrapper, resultMessage, errorMessage);
+        writer.
+                setResultCode(ResponseWriter.ResultCode.ERROR).
+                setResultMessage(resultMessage).
+                setException(errorMessage);
     }
 
-    public void setWarningResponseTo(InstructionWrapper wrapper){
-        final String resultMessage = replayStatus.getMessage();
-        replayResponse.addWarningparametersTo(wrapper, resultMessage);
+    private void setReplayHandlerNotSetResponse(ReplayResponseWriter writer){
+        writer.
+                setResultCode(ResponseWriter.ResultCode.WARNING).
+                setResultMessage(replayStatus.getMessage());
     }
 }

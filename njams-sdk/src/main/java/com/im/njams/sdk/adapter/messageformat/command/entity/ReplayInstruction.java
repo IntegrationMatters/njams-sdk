@@ -20,30 +20,21 @@
 
 package com.im.njams.sdk.adapter.messageformat.command.entity;
 
-import com.im.njams.sdk.api.adapter.messageformat.command.Request;
+import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
 
-import java.util.Map;
+public class ReplayInstruction extends AbstractInstruction<ReplayRequestReader, ReplayResponseWriter> {
 
-public class NjamsRequest implements Request {
-
-    private com.faizsiegeln.njams.messageformat.v4.command.Request messageFormatRequest;
-
-    public NjamsRequest(com.faizsiegeln.njams.messageformat.v4.command.Request messageFormatRequest) {
-        this.messageFormatRequest = messageFormatRequest;
+    public ReplayInstruction(Instruction messageFormatInstruction) {
+        super(messageFormatInstruction);
     }
 
     @Override
-    public String getCommand() {
-        return messageFormatRequest.getCommand();
+    protected ReplayRequestReader createRequestReaderInstance() {
+        return new ReplayRequestReader(messageFormatInstruction.getRequest());
     }
 
     @Override
-    public Map<String, String> getParameters() {
-        return messageFormatRequest.getParameters();
-    }
-
-    @Override
-    public String getParameter(String paramKey) {
-        return getParameters().get(paramKey);
+    protected ReplayResponseWriter createResponseWriterInstance() {
+        return new ReplayResponseWriter(messageFormatInstruction.getResponse());
     }
 }

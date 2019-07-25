@@ -20,32 +20,41 @@
 
 package com.im.njams.sdk.communication.instruction.control.processor;
 
-import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
+import com.im.njams.sdk.api.adapter.messageformat.command.entity.Instruction;
 import com.im.njams.sdk.api.communication.instruction.control.InstructionProcessor;
-import com.im.njams.sdk.communication.instruction.util.InstructionWrapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public abstract class AbstractInstructionProcessor implements InstructionProcessor {
+public abstract class AbstractInstructionProcessor<T extends Instruction> implements InstructionProcessor<T> {
 
     private static final Logger LOG = LoggerFactory.getLogger(AbstractInstructionProcessor.class);
 
-    private InstructionWrapper instructionWrapper;
+    protected static final boolean SUCCESS = true;
+
+    protected static final boolean FAILURE = false;
+
+    private T instruction;
 
     @Override
-    public synchronized void processInstruction(Instruction instruction) {
+    public synchronized void processInstruction(T instruction) {
 
-        prepareProcessing(instruction);
+        setInstruction(instruction);
 
-        process();
+        if (prepareProcessing()) {
+            process();
+        }
 
         setInstructionResponse();
 
         logFinishedProcessing();
     }
 
-    protected void prepareProcessing(Instruction instruction) {
-        instructionWrapper = new InstructionWrapper(instruction);
+    protected void setInstruction(T instruction){
+        this.instruction = instruction;
+    }
+
+    protected boolean prepareProcessing(){
+        return SUCCESS;
     }
 
     protected abstract void process();
@@ -54,12 +63,12 @@ public abstract class AbstractInstructionProcessor implements InstructionProcess
 
     protected void logFinishedProcessing() {
         if (LOG.isDebugEnabled()) {
-            LOG.debug("Processed {} by {}", instructionWrapper.getCommandOrEmptyString(),
+            LOG.debug("Processed {} by {}", instruction.getRequestReader().getCommand(),
                     this.getClass().getSimpleName());
         }
     }
 
-    public InstructionWrapper getInstructionWrapper() {
-        return instructionWrapper;
+    public T getInstruction(){
+        return instruction;
     }
 }

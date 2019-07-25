@@ -19,10 +19,9 @@
  */
 package com.im.njams.sdk.communication.instruction.control;
 
-import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
+import com.im.njams.sdk.api.adapter.messageformat.command.entity.Instruction;
 import com.im.njams.sdk.api.communication.instruction.control.InstructionProcessor;
 import com.im.njams.sdk.communication.instruction.entity.InstructionProcessorCollection;
-import com.im.njams.sdk.utils.InstructionHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -66,7 +65,7 @@ public class InstructionDispatcher {
     }
 
     protected String extractLowerCaseCommandFrom(Instruction instruction) {
-        return InstructionHelper.extractCommandOrEmptyStringFrom(instruction).toLowerCase();
+        return instruction.getRequestReader().getCommand().toLowerCase();
     }
 
     protected InstructionProcessor getExecutingProcessorFor(String commandToProcess) {

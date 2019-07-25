@@ -20,38 +20,18 @@
 
 package com.im.njams.sdk.adapter.messageformat.command.entity;
 
-import com.im.njams.sdk.api.adapter.messageformat.command.Instruction;
-import com.im.njams.sdk.api.adapter.messageformat.command.Request;
-import com.im.njams.sdk.api.adapter.messageformat.command.Response;
+public enum ConditionParameter{
+    PROCESS_PATH("processPath"),
+    ACTIVITY_ID("activityId"),
+    EXTRACT("extract");
 
-public class NjamsInstruction implements Instruction {
+    private String paramKey;
 
-    private Request request;
-
-    private Response response;
-
-    public NjamsInstruction(com.faizsiegeln.njams.messageformat.v4.command.Instruction instruction){
-        request = new NjamsRequest(instruction.getRequest());
-        response = new NjamsResponse(instruction.getResponse());
+    ConditionParameter(String paramKey){
+        this.paramKey = paramKey;
     }
 
-    @Override
-    public Request getRequest() {
-        return request;
-    }
-
-    @Override
-    public boolean isRequestNotNull() {
-        return request != null;
-    }
-
-    @Override
-    public Response getResponse() {
-        return response;
-    }
-
-    @Override
-    public boolean isResponseNotNull() {
-        return response != null;
+    public String getParamKey(){
+        return paramKey;
     }
 }

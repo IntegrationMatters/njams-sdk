@@ -18,14 +18,34 @@
  * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package com.im.njams.sdk.communication.instruction.boundary.logging;
+package com.im.njams.sdk.adapter.messageformat.command.entity;
 
+import com.faizsiegeln.njams.messageformat.v4.command.Response;
 
-import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
+import java.time.LocalDateTime;
 
-/**
- * Todo: Write Doc
- */
-public interface InstructionLogger {
-    public void log(Instruction instruction);
+public class ReplayResponseWriter extends DefaultResponseWriter<ReplayResponseWriter>  {
+
+    private static final String EXCEPTION = "Exception";
+
+    public static final String MAIN_LOG_ID= "MainLogId";
+
+    public ReplayResponseWriter(Response response) {
+        super(response);
+    }
+
+    public ReplayResponseWriter setException(String exception) {
+        putParameter(EXCEPTION, exception);
+        return this;
+    }
+
+    public ReplayResponseWriter setMainLogId(String mainLogId) {
+        putParameter(MAIN_LOG_ID, mainLogId);
+        return this;
+    }
+
+    public ReplayResponseWriter setDateTime(LocalDateTime dateTime) {
+        responseToBuild.setDateTime(dateTime);
+        return this;
+    }
 }

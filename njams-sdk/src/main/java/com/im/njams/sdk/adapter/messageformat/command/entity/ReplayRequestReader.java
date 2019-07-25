@@ -18,14 +18,39 @@
  * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package com.im.njams.sdk.communication.instruction.boundary.logging;
+package com.im.njams.sdk.adapter.messageformat.command.entity;
 
+import com.faizsiegeln.njams.messageformat.v4.command.Request;
 
-import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
+public class ReplayRequestReader extends DefaultRequestReader {
 
-/**
- * Todo: Write Doc
- */
-public interface InstructionLogger {
-    public void log(Instruction instruction);
+    private static final String PROCESS = "Process";
+    private static final String START_ACTIVITY = "StartActivity";
+    private static final String PAYLOAD = "Payload";
+    private static final String DEEPTRACE = "Deeptrace";
+    private static final String TEST = "Test";
+
+    public ReplayRequestReader(Request requestToRead) {
+        super(requestToRead);
+    }
+
+    public String getProcess() {
+        return getParameter(PROCESS);
+    }
+
+    public String getStartActivity() {
+        return getParameter(START_ACTIVITY);
+    }
+
+    public String getPayload() {
+        return getParameter(PAYLOAD);
+    }
+
+    public boolean isDeepTrace() {
+        return Boolean.valueOf(getParameter(DEEPTRACE));
+    }
+
+    public boolean getTest() {
+        return Boolean.valueOf(getParameter(TEST));
+    }
 }

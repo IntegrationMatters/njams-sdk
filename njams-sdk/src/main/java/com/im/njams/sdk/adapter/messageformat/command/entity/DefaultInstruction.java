@@ -18,14 +18,24 @@
  * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package com.im.njams.sdk.communication.instruction.boundary.logging;
-
+package com.im.njams.sdk.adapter.messageformat.command.entity;
 
 import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
 
-/**
- * Todo: Write Doc
- */
-public interface InstructionLogger {
-    public void log(Instruction instruction);
+public class DefaultInstruction extends AbstractInstruction<DefaultRequestReader, DefaultResponseWriter> {
+
+    public DefaultInstruction(Instruction messageFormatInstruction) {
+        super(messageFormatInstruction);
+    }
+
+    @Override
+    protected DefaultRequestReader createRequestReaderInstance() {
+        return new DefaultRequestReader(messageFormatInstruction.getRequest());
+    }
+
+    @Override
+    protected DefaultResponseWriter createResponseWriterInstance() {
+        return new DefaultResponseWriter(messageFormatInstruction.getResponse());
+    }
+
 }
