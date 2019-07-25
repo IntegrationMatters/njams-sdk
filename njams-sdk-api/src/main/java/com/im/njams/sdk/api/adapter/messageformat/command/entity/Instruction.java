@@ -18,21 +18,11 @@
  * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package com.im.njams.sdk.api.adapter.messageformat.projectmessage.extract.attribute;
+package com.im.njams.sdk.api.adapter.messageformat.command.entity;
 
-public enum AttributeType {
+public interface Instruction<R extends RequestReader, W extends ResponseWriter>{
 
-    EVENT(com.faizsiegeln.njams.messageformat.v4.projectmessage.AttributeType.EVENT),
-    ATTRIBUTE(com.faizsiegeln.njams.messageformat.v4.projectmessage.AttributeType.ATTRIBUTE),
-    UNKNOWN(com.faizsiegeln.njams.messageformat.v4.projectmessage.AttributeType.UNKNOWN);
+    R getRequestReader();
 
-    private com.faizsiegeln.njams.messageformat.v4.projectmessage.AttributeType realAttributeType;
-
-    AttributeType(com.faizsiegeln.njams.messageformat.v4.projectmessage.AttributeType attributeTypeToSet) {
-        realAttributeType = attributeTypeToSet;
-    }
-
-    public com.faizsiegeln.njams.messageformat.v4.projectmessage.AttributeType getAttributeType() {
-        return realAttributeType;
-    }
+    W getResponseWriter();
 }

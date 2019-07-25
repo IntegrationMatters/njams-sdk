@@ -18,13 +18,21 @@
  * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package com.im.njams.sdk.api.plugin.replay;
+package com.im.njams.sdk.api.adapter.messageformat.command.entity;
 
-import com.im.njams.sdk.api.adapter.messageformat.command.entity.Instruction;
-import com.im.njams.sdk.api.plugin.PluginItem;
+import java.util.Map;
 
-public interface ReplayHandler extends PluginItem {
+public interface RequestReader {
 
-    void replay(Instruction instructionToReplay);
+    boolean isEmpty();
 
+    boolean isCommandNull();
+
+    boolean isCommandEmpty();
+
+    String getCommand();
+
+    Map<String, String> getParameters();
+
+    String getParameter(String paramKey);
 }

@@ -18,15 +18,40 @@
  * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package com.im.njams.sdk.api.adapter.messageformat.projectmessage.extract.rule;
+package com.im.njams.sdk.api.adapter.messageformat.command.entity;
 
-public interface Rule {
+import java.util.Map;
 
-    String getRuleName();
+/**
+ * This interface uses the "Builder Pattern with Inheritance".
+ *
+ * @param <W> the actual type to return.
+ */
+public interface ResponseWriter<W extends ResponseWriter<W>> {
 
-    void setRuleName();
+    enum ResultCode{
+        SUCCESS(0), WARNING(1), ERROR(2);
 
-    RuleType getRuleType();
+        private int resultCode;
 
-    void setRuleType(RuleType ruleType);
+        ResultCode(int resultCode){
+            this.resultCode = resultCode;
+        }
+
+        public int getResultCode(){
+            return resultCode;
+        }
+    }
+
+    W setResultCode(ResultCode resultCode);
+
+    W setResultMessage(String resultMessage);
+
+    W putParameter(String key, String value);
+
+    W setParameters(Map<String, String> parameters);
+
+    W addParameters(Map<String, String> parameters);
+
+    W getThis();
 }

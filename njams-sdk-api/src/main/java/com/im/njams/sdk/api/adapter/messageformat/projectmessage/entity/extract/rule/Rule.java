@@ -18,22 +18,15 @@
  * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package com.im.njams.sdk.api.adapter.messageformat.projectmessage.extract;
+package com.im.njams.sdk.api.adapter.messageformat.projectmessage.entity.extract.rule;
 
+public interface Rule {
 
-import java.util.List;
+    String getRuleName();
 
-public interface Extract {
+    void setRuleName();
 
-    String getExtractName();
+    RuleType getRuleType();
 
-    void setExtractName(String extractNameToSet);
-
-    void setExtractRules(List<ExtractRule> extractRulesToSet);
-
-    void addExtractRule(ExtractRule extractRule);
-
-    List<ExtractRule> getExtractRules();
-
-    void removeExtractRule(ExtractRule extractRuleToRemove);
+    void setRuleType(RuleType ruleType);
 }

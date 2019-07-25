@@ -18,30 +18,13 @@
  * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package com.im.njams.sdk.api.adapter.messageformat.command;
+package com.im.njams.sdk.api.adapter.messageformat.command.boundary;
 
-import java.util.Map;
+import com.im.njams.sdk.api.adapter.messageformat.command.entity.Instruction;
+import com.im.njams.sdk.api.adapter.messageformat.command.exceptions.NjamsInstructionException;
 
-public interface Response {
+public interface InstructionFactory {
 
-    enum ResultCode{
-        SUCCESS(0), WARNING(1), ERROR(2);
+    Instruction getInstructionFor(String messageFormatInstructionAsJsonString) throws NjamsInstructionException;
 
-        private int resultCode;
-
-        ResultCode(int resultCode){
-            this.resultCode = resultCode;
-        }
-
-        public int getResultCode(){
-            return resultCode;
-        }
-    }
-    void setResultCode(ResultCode resultCode);
-
-    void setResultMessage(String resultMessage);
-
-    void putParameter(String key, String value);
-
-    void addParameters(Map<String, String> parameters);
 }

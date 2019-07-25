@@ -20,7 +20,7 @@
 
 package com.im.njams.sdk.api.client.condition;
 
-import com.im.njams.sdk.api.adapter.messageformat.projectmessage.LogLevel;
+import com.im.njams.sdk.api.adapter.messageformat.projectmessage.entity.LogLevel;
 
 import java.util.Map;
 

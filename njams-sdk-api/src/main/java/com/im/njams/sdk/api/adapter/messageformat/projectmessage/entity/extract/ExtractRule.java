@@ -18,33 +18,22 @@
  * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package com.im.njams.sdk.api.adapter.messageformat.projectmessage;
+package com.im.njams.sdk.api.adapter.messageformat.projectmessage.entity.extract;
 
-import java.time.LocalDateTime;
+import com.im.njams.sdk.api.adapter.messageformat.projectmessage.entity.extract.attribute.Attribute;
+import com.im.njams.sdk.api.adapter.messageformat.projectmessage.entity.extract.rule.Rule;
 
-public interface TracePoint {
+public interface ExtractRule {
 
-    LocalDateTime getStartTime();
+    Attribute getAttribute();
 
-    void setStartTime(LocalDateTime startTimeToSet);
+    void setAttribute(Attribute attributeToSet);
 
-    LocalDateTime getEndTime();
+    Rule getRule();
 
-    void setEndTime(LocalDateTime endTimeToSet);
+    void setRule(Rule ruleToSet);
 
-    int getMaxIterations();
+    Direction getDirection();
 
-    void setMaxIterations(int maxIterationsToSet);
-
-    int getCurrentIterations();
-
-    int addToCurrentIterations(int iterationsToAdd);
-
-    void setCurrentIterations();
-
-    int incrementAndGetCurrentIterations();
-
-    int getAndIncrementCurrentIterations();
-
-    boolean iterationsExceeded();
+    void setDirection(Direction direction);
 }

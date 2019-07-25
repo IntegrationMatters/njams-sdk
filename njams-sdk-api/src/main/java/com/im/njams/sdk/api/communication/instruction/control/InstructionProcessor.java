@@ -21,9 +21,9 @@
 package com.im.njams.sdk.api.communication.instruction.control;
 
 
-import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
+import com.im.njams.sdk.api.adapter.messageformat.command.entity.Instruction;
 
-public interface InstructionProcessor {
+public interface InstructionProcessor<T extends Instruction> {
 
-    void processInstruction(Instruction instructionToProcess);
+    void processInstruction(T instructionToProcess);
 }

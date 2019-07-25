@@ -18,17 +18,22 @@
  * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package com.im.njams.sdk.api.adapter.messageformat.command;
-
-public interface Instruction {
-
-    Request getRequest();
-
-    boolean isRequestNotNull();
-
-    Response getResponse();
-
-    boolean isResponseNotNull();
+package com.im.njams.sdk.api.adapter.messageformat.projectmessage.entity.extract;
 
 
+import java.util.List;
+
+public interface Extract {
+
+    String getExtractName();
+
+    void setExtractName(String extractNameToSet);
+
+    void setExtractRules(List<ExtractRule> extractRulesToSet);
+
+    void addExtractRule(ExtractRule extractRule);
+
+    List<ExtractRule> getExtractRules();
+
+    void removeExtractRule(ExtractRule extractRuleToRemove);
 }

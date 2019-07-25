@@ -18,8 +18,22 @@
  * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package com.im.njams.sdk.api.adapter.messageformat.projectmessage.extract;
+package com.im.njams.sdk.api.adapter.messageformat.projectmessage.entity;
 
-public enum Direction {
-    IN, OUT
+public enum LogLevel {
+
+    INFO(0),
+    SUCCESS(1),
+    WARNING(2),
+    ERROR(3);
+
+    private final int logLevel;
+
+    LogLevel(int logLevel) {
+        this.logLevel = logLevel;
+    }
+
+    public int getLogLevel() {
+        return logLevel;
+    }
 }

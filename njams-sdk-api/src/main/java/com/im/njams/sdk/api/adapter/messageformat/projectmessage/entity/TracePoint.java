@@ -18,21 +18,33 @@
  * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package com.im.njams.sdk.api.adapter.messageformat.projectmessage;
+package com.im.njams.sdk.api.adapter.messageformat.projectmessage.entity;
 
-public enum LogMode {
+import java.time.LocalDateTime;
 
-    NONE(com.faizsiegeln.njams.messageformat.v4.projectmessage.LogMode.NONE),
-    EXCLUSIVE(com.faizsiegeln.njams.messageformat.v4.projectmessage.LogMode.EXCLUSIVE),
-    COMPLETE(com.faizsiegeln.njams.messageformat.v4.projectmessage.LogMode.COMPLETE);
+public interface TracePoint {
 
-    private com.faizsiegeln.njams.messageformat.v4.projectmessage.LogMode realLogMode;
+    LocalDateTime getStartTime();
 
-    LogMode(com.faizsiegeln.njams.messageformat.v4.projectmessage.LogMode logModeToSet) {
-            realLogMode = logModeToSet;
-    }
+    void setStartTime(LocalDateTime startTimeToSet);
 
-    public com.faizsiegeln.njams.messageformat.v4.projectmessage.LogMode getLogMode() {
-        return realLogMode;
-    }
+    LocalDateTime getEndTime();
+
+    void setEndTime(LocalDateTime endTimeToSet);
+
+    int getMaxIterations();
+
+    void setMaxIterations(int maxIterationsToSet);
+
+    int getCurrentIterations();
+
+    int addToCurrentIterations(int iterationsToAdd);
+
+    void setCurrentIterations();
+
+    int incrementAndGetCurrentIterations();
+
+    int getAndIncrementCurrentIterations();
+
+    boolean iterationsExceeded();
 }

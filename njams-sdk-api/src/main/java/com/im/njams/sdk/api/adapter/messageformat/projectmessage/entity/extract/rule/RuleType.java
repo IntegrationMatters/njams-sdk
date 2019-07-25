@@ -18,22 +18,24 @@
  * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package com.im.njams.sdk.api.adapter.messageformat.projectmessage;
+package com.im.njams.sdk.api.adapter.messageformat.projectmessage.entity.extract.rule;
 
-public enum LogLevel {
+public enum RuleType {
 
-    INFO(com.faizsiegeln.njams.messageformat.v4.projectmessage.LogLevel.INFO),
-    SUCCESS(com.faizsiegeln.njams.messageformat.v4.projectmessage.LogLevel.SUCCESS),
-    WARNING(com.faizsiegeln.njams.messageformat.v4.projectmessage.LogLevel.WARNING),
-    ERROR(com.faizsiegeln.njams.messageformat.v4.projectmessage.LogLevel.ERROR);
+    EVENT("eventType"),
+    REGEXP("regexp"),
+    VALUE("value"),
+    XPATH("xpath"),
+    DISABLED("");
 
-    private com.faizsiegeln.njams.messageformat.v4.projectmessage.LogLevel realLogLevel;
+    private final String ruleType;
 
-    LogLevel(com.faizsiegeln.njams.messageformat.v4.projectmessage.LogLevel logLevelToSet) {
-        realLogLevel = logLevelToSet;
+    RuleType(final String ruleType) {
+        this.ruleType = ruleType;
     }
 
-    public com.faizsiegeln.njams.messageformat.v4.projectmessage.LogLevel getLogLevel() {
-        return realLogLevel;
+    @Override
+    public String toString() {
+        return this.ruleType;
     }
 }

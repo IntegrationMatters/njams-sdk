@@ -20,8 +20,8 @@
 
 package com.im.njams.sdk.api.client.condition;
 
-import com.im.njams.sdk.api.adapter.messageformat.projectmessage.extract.Extract;
-import com.im.njams.sdk.api.adapter.messageformat.projectmessage.TracePoint;
+import com.im.njams.sdk.api.adapter.messageformat.projectmessage.entity.extract.Extract;
+import com.im.njams.sdk.api.adapter.messageformat.projectmessage.entity.TracePoint;
 
 public interface ActivityCondition {
 

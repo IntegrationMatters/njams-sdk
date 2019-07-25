@@ -18,7 +18,7 @@
  * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package com.im.njams.sdk.api.adapter.messageformat.projectmessage.extract.attribute;
+package com.im.njams.sdk.api.adapter.messageformat.projectmessage.entity.extract.attribute;
 
 public interface Attribute {
 

@@ -18,24 +18,22 @@
  * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package com.im.njams.sdk.api.adapter.messageformat.projectmessage.extract.rule;
+package com.im.njams.sdk.api.adapter.messageformat.projectmessage.entity.extract.attribute;
 
-public enum RuleType {
+public enum AttributeType {
 
-    EVENT(com.faizsiegeln.njams.messageformat.v4.projectmessage.RuleType.EVENT),
-    REGEXP(com.faizsiegeln.njams.messageformat.v4.projectmessage.RuleType.REGEXP),
-    VALUE(com.faizsiegeln.njams.messageformat.v4.projectmessage.RuleType.VALUE),
-    XPATH(com.faizsiegeln.njams.messageformat.v4.projectmessage.RuleType.XPATH),
-    DISABLED(com.faizsiegeln.njams.messageformat.v4.projectmessage.RuleType.DISABLED);
+    EVENT("event"),
+    ATTRIBUTE("attribute"),
+    UNKNOWN("");
 
-    private com.faizsiegeln.njams.messageformat.v4.projectmessage.RuleType realRuleType;
+    private final String attributeName;
 
-    RuleType(com.faizsiegeln.njams.messageformat.v4.projectmessage.RuleType ruleTypeToSet) {
-        realRuleType = ruleTypeToSet;
+    AttributeType(final String attributeName) {
+        this.attributeName = attributeName;
     }
 
-    public com.faizsiegeln.njams.messageformat.v4.projectmessage.RuleType getRuleType() {
-        return realRuleType;
+    @Override
+    public String toString() {
+        return this.attributeName;
     }
-
 }

@@ -18,22 +18,9 @@
  * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package com.im.njams.sdk.api.adapter.messageformat.projectmessage.extract;
+package com.im.njams.sdk.api.adapter.messageformat.projectmessage.entity.extract;
 
-import com.im.njams.sdk.api.adapter.messageformat.projectmessage.extract.attribute.Attribute;
-import com.im.njams.sdk.api.adapter.messageformat.projectmessage.extract.rule.Rule;
-
-public interface ExtractRule {
-
-    Attribute getAttribute();
-
-    void setAttribute(Attribute attributeToSet);
-
-    Rule getRule();
-
-    void setRule(Rule ruleToSet);
-
-    Direction getDirection();
-
-    void setDirection(Direction direction);
+public enum Direction {
+    IN,
+    OUT
 }

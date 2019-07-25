@@ -18,15 +18,10 @@
  * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package com.im.njams.sdk.api.adapter.messageformat.command;
+package com.im.njams.sdk.api.adapter.messageformat.projectmessage.entity;
 
-import java.util.Map;
-
-public interface Request {
-
-    String getCommand();
-
-    Map<String, String> getParameters();
-
-    String getParameter(String paramKey);
+public enum LogMode {
+    NONE,
+    EXCLUSIVE,
+    COMPLETE
 }
