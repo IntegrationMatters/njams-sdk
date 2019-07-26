@@ -55,9 +55,9 @@ node('master') {
             archiveArtifacts 'target/*.jar'
         }
     }
-    stage('Build jms communication_to_merge') {
+    stage('Build jms communication') {
         echo "Build"
-        dir('njams-sdk-communication_to_merge-jms') {
+        dir('njams-sdk-communication-jms') {
             try {
                 sh "'${mvnHome}/bin/mvn' clean deploy  -Psonar,jenkins-cli -DrevisionNumberPlugin.revision=${env.BUILD_NUMBER} -DscmBranch=${scmInfo.GIT_BRANCH} -DscmCommit=${scmInfo.GIT_COMMIT}"
             } finally {
@@ -69,9 +69,9 @@ node('master') {
             archiveArtifacts 'target/*.jar'
         }
     }
-    stage('Build http communication_to_merge') {
+    stage('Build http communication') {
         echo "Build"
-        dir('njams-sdk-communication_to_merge-http') {
+        dir('njams-sdk-communication-http') {
             try {
                 sh "'${mvnHome}/bin/mvn' clean deploy  -Psonar,jenkins-cli -DrevisionNumberPlugin.revision=${env.BUILD_NUMBER} -DscmBranch=${scmInfo.GIT_BRANCH} -DscmCommit=${scmInfo.GIT_COMMIT}"
             } finally {
@@ -83,9 +83,9 @@ node('master') {
             archiveArtifacts 'target/*.jar'
         }
     }
-    stage('Build https communication_to_merge') {
+    stage('Build https communication') {
         echo "Build"
-        dir('njams-sdk-communication_to_merge-https') {
+        dir('njams-sdk-communication-https') {
             try {
                 sh "'${mvnHome}/bin/mvn' clean deploy  -Psonar,jenkins-cli -DrevisionNumberPlugin.revision=${env.BUILD_NUMBER} -DscmBranch=${scmInfo.GIT_BRANCH} -DscmCommit=${scmInfo.GIT_COMMIT}"
             } finally {
@@ -97,9 +97,9 @@ node('master') {
             archiveArtifacts 'target/*.jar'
         }
     }
-    stage('Build cloud communication_to_merge') {
+    stage('Build cloud communication') {
         echo "Build"
-        dir('njams-sdk-communication_to_merge-cloud') {
+        dir('njams-sdk-communication-cloud') {
             try {
                 sh "'${mvnHome}/bin/mvn' clean deploy  -Psonar,jenkins-cli -DrevisionNumberPlugin.revision=${env.BUILD_NUMBER} -DscmBranch=${scmInfo.GIT_BRANCH} -DscmCommit=${scmInfo.GIT_COMMIT}"
             } finally {
