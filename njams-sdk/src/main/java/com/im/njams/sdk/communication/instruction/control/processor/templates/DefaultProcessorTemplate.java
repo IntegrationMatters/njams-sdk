@@ -18,15 +18,30 @@
  * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package com.im.njams.sdk.api.plugin.replay;
+package com.im.njams.sdk.communication.instruction.control.processor.templates;
 
-public interface ReplayResponse {
+import com.im.njams.sdk.adapter.messageformat.command.entity.DefaultInstruction;
+import com.im.njams.sdk.adapter.messageformat.command.entity.DefaultRequestReader;
+import com.im.njams.sdk.adapter.messageformat.command.entity.DefaultResponseWriter;
 
-    String getException();
+public abstract class DefaultProcessorTemplate extends InstructionProcessorTemplate<DefaultInstruction> {
 
-    void setException(String exception);
+    @Override
+    protected void process(){
+        processDefaultInstruction();
 
-    String getMainLogId();
+        setInstructionResponse();
+    }
 
-    void setMainLogId(String mainLogId);
+    protected abstract void processDefaultInstruction();
+
+    protected abstract void setInstructionResponse();
+
+    public DefaultRequestReader getDefaultRequestReader(){
+        return getInstruction().getRequestReader();
+    }
+
+    public DefaultResponseWriter getDefaultResponseWriter(){
+        return getInstruction().getResponseWriter();
+    }
 }

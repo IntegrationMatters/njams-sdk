@@ -19,17 +19,16 @@
  */
 package com.im.njams.sdk.communication.instruction.control.processor.fallback;
 
-import com.im.njams.sdk.adapter.messageformat.command.entity.DefaultInstruction;
 import com.im.njams.sdk.adapter.messageformat.command.entity.DefaultRequestReader;
 import com.im.njams.sdk.api.adapter.messageformat.command.entity.ResponseWriter;
-import com.im.njams.sdk.communication.instruction.control.processor.AbstractInstructionProcessor;
+import com.im.njams.sdk.communication.instruction.control.processor.templates.DefaultProcessorTemplate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
  * Todo: Write Doc
  */
-public class FallbackProcessor extends AbstractInstructionProcessor<DefaultInstruction> {
+public class FallbackProcessor extends DefaultProcessorTemplate {
 
     private static final Logger LOG = LoggerFactory.getLogger(FallbackProcessor.class);
 
@@ -51,28 +50,19 @@ public class FallbackProcessor extends AbstractInstructionProcessor<DefaultInstr
         }
     }
 
-    String warningMessage;
-
-    public FallbackProcessor() {
-        super();
-        setBackToStart();
-    }
-
-    private void setBackToStart() {
-        warningMessage = DefaultRequestReader.EMPTY_STRING;
-    }
+    String warningMessage = DefaultRequestReader.EMPTY_STRING;
 
     @Override
-    protected boolean prepareProcessing() {
-        setBackToStart();
-        return SUCCESS;
-    }
+    protected void processDefaultInstruction() {
+        clear();
 
-    @Override
-    protected void process() {
         InstructionProblem instructionProblem = checkTypeOfProblem();
 
         handleProblem(instructionProblem);
+    }
+
+    private void clear() {
+        warningMessage = DefaultRequestReader.EMPTY_STRING;
     }
 
     private InstructionProblem checkTypeOfProblem() {
@@ -81,7 +71,7 @@ public class FallbackProcessor extends AbstractInstructionProcessor<DefaultInstr
         if (getInstruction().isEmpty()) {
             problemType = InstructionProblem.INSTRUCTION_IS_NULL;
         } else {
-            final DefaultRequestReader requestReader = getInstruction().getRequestReader();
+            final DefaultRequestReader requestReader = getDefaultRequestReader();
             if (requestReader.isEmpty()) {
                 problemType = InstructionProblem.REQUEST_IS_NULL;
             } else if (requestReader.isCommandNull()) {
@@ -101,7 +91,7 @@ public class FallbackProcessor extends AbstractInstructionProcessor<DefaultInstr
         String warningMessageToReturn = instructionProblem.getMessage();
 
         if (instructionProblem == instructionProblem.COMMAND_IS_UNKNOWN) {
-            warningMessageToReturn = warningMessageToReturn.concat(getInstruction().getRequestReader().getCommand());
+            warningMessageToReturn = warningMessageToReturn.concat(getDefaultRequestReader().getCommand());
         }
 
         return warningMessageToReturn;
@@ -119,13 +109,12 @@ public class FallbackProcessor extends AbstractInstructionProcessor<DefaultInstr
     }
 
     private void setResponse() {
-        getInstruction().getResponseWriter().
-                setResultCode(ResponseWriter.ResultCode.WARNING).
-                setResultMessage(warningMessage);
+        getDefaultResponseWriter().
+                setResultCodeAndResultMessage(ResponseWriter.ResultCode.WARNING, warningMessage);
     }
 
     @Override
-    protected void logFinishedProcessing() {
+    protected void logProcessing() {
         if (LOG.isWarnEnabled()) {
             LOG.warn(warningMessage);
         }

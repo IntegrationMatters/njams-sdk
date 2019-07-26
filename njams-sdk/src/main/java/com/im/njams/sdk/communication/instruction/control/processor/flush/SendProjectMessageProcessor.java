@@ -21,12 +21,12 @@ package com.im.njams.sdk.communication.instruction.control.processor.flush;
 
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.api.adapter.messageformat.command.entity.ResponseWriter;
-import com.im.njams.sdk.communication.instruction.control.processor.AbstractInstructionProcessor;
+import com.im.njams.sdk.communication.instruction.control.processor.templates.DefaultProcessorTemplate;
 
 /**
  * Todo: Write Doc
  */
-public class SendProjectMessageProcessor extends AbstractInstructionProcessor {
+public class SendProjectMessageProcessor extends DefaultProcessorTemplate {
 
     static final String SUCCESS_RESULT_MESSAGE = "Successfully send ProjectMessage via NjamsClient";
 
@@ -37,14 +37,12 @@ public class SendProjectMessageProcessor extends AbstractInstructionProcessor {
     }
 
     @Override
-    protected void process() {
+    protected void processDefaultInstruction() {
         njams.flushResources();
     }
 
     @Override
     protected void setInstructionResponse() {
-        getInstruction().getResponseWriter().
-                setResultCode(ResponseWriter.ResultCode.SUCCESS).
-                setResultMessage(SUCCESS_RESULT_MESSAGE);
+        getDefaultResponseWriter().setResultCodeAndResultMessage(ResponseWriter.ResultCode.SUCCESS, SUCCESS_RESULT_MESSAGE);
     }
 }

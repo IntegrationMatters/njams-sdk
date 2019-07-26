@@ -32,31 +32,30 @@ import static org.mockito.Mockito.*;
 
 public class FallbackProcessorTest {
 
-    private static final String NULL_INSTRUCTION_COMMAND = "Irce";
-    private static final String NULL_REQUEST_COMMAND = "iRce";
-    private static final String NULL_COMMAND_COMMAND = "irCe";
-    private static final String EMPTY_COMMAND_COMMAND = "ircE";
-    private static final String UNKNOWN_COMMAND_COMMAND = "irce";
+    private static final String NULL_INSTRUCTION_STATE = "Irce";
+    private static final String NULL_REQUEST_STATE = "iRce";
+    private static final String NULL_COMMAND_STATE = "irCe";
+    private static final String EMPTY_COMMAND_STATE = "ircE";
+    private static final String UNKNOWN_COMMAND_STATE = "irce";
 
     private FallbackProcessor fallbackProcessor;
 
-    private DefaultInstruction instruction;
+    private DefaultInstruction defaultInstructionMock;
 
-    private DefaultRequestReader reader;
+    private DefaultRequestReader defaultRequestReaderMock;
 
-    private DefaultResponseWriter writer;
+    private DefaultResponseWriter defaultResponseWriterMock;
 
     @Before
     public void initialize() {
         fallbackProcessor = spy(new FallbackProcessor());
-        instruction = mock(DefaultInstruction.class);
-        doReturn(instruction).when(fallbackProcessor).getInstruction();
-        reader = mock(DefaultRequestReader.class);
-        when(instruction.getRequestReader()).thenReturn(reader);
-        writer = mock(DefaultResponseWriter.class);
-        when(instruction.getResponseWriter()).thenReturn(writer);
-        when(writer.setResultCode(any())).thenReturn(writer);
-        when(writer.setResultMessage(any())).thenReturn(writer);
+        defaultInstructionMock = mock(DefaultInstruction.class);
+        defaultRequestReaderMock = mock(DefaultRequestReader.class);
+        defaultResponseWriterMock = mock(DefaultResponseWriter.class);
+
+        doReturn(defaultInstructionMock).when(fallbackProcessor).getInstruction();
+        doReturn(defaultRequestReaderMock).when(fallbackProcessor).getDefaultRequestReader();
+        doReturn(defaultResponseWriterMock).when(fallbackProcessor).getDefaultResponseWriter();
     }
 
 //AfterInit
@@ -66,32 +65,22 @@ public class FallbackProcessorTest {
         assertEquals(DefaultRequestReader.EMPTY_STRING, fallbackProcessor.warningMessage);
     }
 
-//PrepareProcessing tests
+//ProcessDefaultInstruction tests
 
     @Test
-    public void prepareProcessingClearsOldWarningMessage() {
-        String oldMessage = fallbackProcessor.warningMessage = "Message_To_Delete";
-        boolean prepareProcessingSuccessful = fallbackProcessor.prepareProcessing();
-        assertNotEquals(oldMessage, fallbackProcessor.warningMessage);
-        assertTrue(prepareProcessingSuccessful);
-    }
-
-//Process tests
-
-    @Test
-    public void processNullInstruction() {
-        mockInstructionMethods(NULL_INSTRUCTION_COMMAND);
-        fallbackProcessor.process();
+    public void processDefaultInstuctionWithNullInstruction() {
+        mockInstructionMethods(NULL_INSTRUCTION_STATE);
+        fallbackProcessor.processDefaultInstruction();
         checkWarningMessage(FallbackProcessor.InstructionProblem.INSTRUCTION_IS_NULL.getMessage());
     }
 
     private void mockInstructionMethods(String trueOrFalseString) {
         char[] trueOrFalseChars = trueOrFalseString.toCharArray();
 
-        when(instruction.isEmpty()).thenReturn(parseCharToBoolean(trueOrFalseChars[0]));
-        when(reader.isEmpty()).thenReturn(parseCharToBoolean(trueOrFalseChars[1]));
-        when(reader.isCommandNull()).thenReturn(parseCharToBoolean(trueOrFalseChars[2]));
-        when(reader.isCommandEmpty()).thenReturn(parseCharToBoolean(trueOrFalseChars[3]));
+        when(defaultInstructionMock.isEmpty()).thenReturn(parseCharToBoolean(trueOrFalseChars[0]));
+        when(defaultRequestReaderMock.isEmpty()).thenReturn(parseCharToBoolean(trueOrFalseChars[1]));
+        when(defaultRequestReaderMock.isCommandNull()).thenReturn(parseCharToBoolean(trueOrFalseChars[2]));
+        when(defaultRequestReaderMock.isCommandEmpty()).thenReturn(parseCharToBoolean(trueOrFalseChars[3]));
 
     }
 
@@ -108,33 +97,33 @@ public class FallbackProcessorTest {
     }
 
     @Test
-    public void processNullRequest() {
-        mockInstructionMethods(NULL_REQUEST_COMMAND);
-        fallbackProcessor.process();
+    public void processDefaultInstuctionWithNullRequest() {
+        mockInstructionMethods(NULL_REQUEST_STATE);
+        fallbackProcessor.processDefaultInstruction();
         checkWarningMessage(FallbackProcessor.InstructionProblem.REQUEST_IS_NULL.getMessage());
     }
 
     @Test
-    public void processNullCommand() {
-        mockInstructionMethods(NULL_COMMAND_COMMAND);
-        fallbackProcessor.process();
+    public void processDefaultInstuctionWithNullCommand() {
+        mockInstructionMethods(NULL_COMMAND_STATE);
+        fallbackProcessor.processDefaultInstruction();
         checkWarningMessage(FallbackProcessor.InstructionProblem.COMMAND_IS_NULL.getMessage());
     }
 
     @Test
-    public void processEmptyCommand() {
-        mockInstructionMethods(EMPTY_COMMAND_COMMAND);
-        fallbackProcessor.process();
+    public void processDefaultInstuctionWithEmptyCommand() {
+        mockInstructionMethods(EMPTY_COMMAND_STATE);
+        fallbackProcessor.processDefaultInstruction();
         checkWarningMessage(FallbackProcessor.InstructionProblem.COMMAND_IS_EMPTY.getMessage());
     }
 
     @Test
-    public void processUnknownCommand() {
-        mockInstructionMethods(UNKNOWN_COMMAND_COMMAND);
-        when(reader.getCommand()).thenReturn(UNKNOWN_COMMAND_COMMAND);
-        fallbackProcessor.process();
+    public void processDefaultInstuctionWithUnknownCommand() {
+        mockInstructionMethods(UNKNOWN_COMMAND_STATE);
+        when(defaultRequestReaderMock.getCommand()).thenReturn(UNKNOWN_COMMAND_STATE);
+        fallbackProcessor.processDefaultInstruction();
         checkWarningMessage(
-                FallbackProcessor.InstructionProblem.COMMAND_IS_UNKNOWN.getMessage() + UNKNOWN_COMMAND_COMMAND);
+                FallbackProcessor.InstructionProblem.COMMAND_IS_UNKNOWN.getMessage() + UNKNOWN_COMMAND_STATE);
     }
 
 //setInstructionResponse
@@ -150,9 +139,9 @@ public class FallbackProcessorTest {
     }
 
     private void setResponse(boolean isInstructionNull, VerificationMode howManyTimesHasResponseBeSet) {
-        when(instruction.isEmpty()).thenReturn(isInstructionNull);
+        when(defaultInstructionMock.isEmpty()).thenReturn(isInstructionNull);
         fallbackProcessor.setInstructionResponse();
-        verify(writer, howManyTimesHasResponseBeSet).setResultCode(ResponseWriter.ResultCode.WARNING);
-        verify(writer, howManyTimesHasResponseBeSet).setResultMessage(fallbackProcessor.warningMessage);
+        verify(defaultResponseWriterMock, howManyTimesHasResponseBeSet).setResultCodeAndResultMessage(
+                ResponseWriter.ResultCode.WARNING, fallbackProcessor.warningMessage);
     }
 }

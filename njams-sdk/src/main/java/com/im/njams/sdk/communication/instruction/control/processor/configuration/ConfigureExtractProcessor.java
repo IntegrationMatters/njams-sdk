@@ -20,22 +20,23 @@
 package com.im.njams.sdk.communication.instruction.control.processor.configuration;
 
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.Extract;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.adapter.messageformat.command.entity.ConditionParameter;
 import com.im.njams.sdk.adapter.messageformat.command.entity.ConditionRequestReader;
-import com.im.njams.sdk.adapter.messageformat.command.entity.DefaultRequestReader;
-import com.im.njams.sdk.api.adapter.messageformat.command.entity.ResponseWriter;
-import com.im.njams.sdk.common.JsonSerializerFactory;
+import com.im.njams.sdk.api.adapter.messageformat.command.exceptions.NjamsInstructionException;
+import com.im.njams.sdk.communication.instruction.control.processor.templates.ConditionWriterTemplate;
 import com.im.njams.sdk.configuration.entity.ActivityConfiguration;
 import com.im.njams.sdk.configuration.entity.ProcessConfiguration;
+import com.im.njams.sdk.utils.JsonUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
 
 /**
  * Todo: Write Doc
  */
-public class ConfigureExtractProcessor extends ConditionInstructionProcessor {
+public class ConfigureExtractProcessor extends ConditionWriterTemplate {
 
     private static final Logger LOG = LoggerFactory.getLogger(ConfigureExtractProcessor.class);
 
@@ -44,56 +45,9 @@ public class ConfigureExtractProcessor extends ConditionInstructionProcessor {
                     ConditionParameter.EXTRACT};
 
     private static final String UNABLE_TO_DESERIALZE_EXTRACT_MESSAGE = "Unable to deserialize extract";
-    private String processPath;
-
-    private String activityId;
-
-    private String extractAsString;
 
     public ConfigureExtractProcessor(Njams njams) {
         super(njams);
-    }
-
-//    protected void oldProcessInstruction(AbstractConfigurationProcessor.InstructionSupport instructionSupport) {
-//        if (!instructionSupport.validate(AbstractConfigurationProcessor.InstructionSupport.PROCESS_PATH,
-//                AbstractConfigurationProcessor.InstructionSupport.ACTIVITY_ID, "extract")) {
-//            return;
-//        }
-//        //fetch parameters
-//        final String processPath = instructionSupport.getProcessPath();
-//        final String activityId = instructionSupport.getActivityId();
-//        final String extractString = instructionSupport.getParameter("extract");
-//
-//        //execute action
-//        ProcessConfiguration process = njams.getProcessFromConfiguration(processPath);
-//        if (process == null) {
-//            process = new ProcessConfiguration();
-//            njams.getProcessesFromConfiguration().put(processPath, process);
-//        }
-//        ActivityConfiguration activity = null;
-//        activity = process.getActivity(activityId);
-//        if (activity == null) {
-//            activity = new ActivityConfiguration();
-//            process.getActivities().put(activityId, activity);
-//        }
-//        Extract extract = null;
-//        try {
-//            final ObjectMapper mapper = JsonSerializerFactory.getDefaultMapper();
-//            extract = mapper.readValue(extractString, Extract.class);
-//        } catch (final Exception e) {
-//            instructionSupport.error("Unable to deserialize extract", e);
-//            return;
-//        }
-//        activity.setExtract(extract);
-//        saveConfiguration(instructionSupport);
-//        LOG.debug("Configure extract for {}", processPath);
-//    }
-
-    @Override
-    protected void clear() {
-        processPath = DefaultRequestReader.EMPTY_STRING;
-        activityId = DefaultRequestReader.EMPTY_STRING;
-        extractAsString = DefaultRequestReader.EMPTY_STRING;
     }
 
     @Override
@@ -102,44 +56,28 @@ public class ConfigureExtractProcessor extends ConditionInstructionProcessor {
     }
 
     @Override
-    protected void process() {
-        //fetch parameters
-        fetchParameters();
+    protected void configureCondition() throws NjamsInstructionException {
+        ConditionRequestReader requestReader = getConditionRequestReader();
 
-        final ProcessConfiguration processConfiguration = getOrCreateProcessConfigurationFor(processPath);
-        final ActivityConfiguration activityConfiguration = getOrCreateActivityConfigurationFromProcessFor(processConfiguration, activityId);
+        final ProcessConfiguration processConfiguration = getOrCreateProcessConfigurationFor(
+                requestReader.getProcessPath());
+        final ActivityConfiguration activityConfiguration = getOrCreateActivityConfigurationFromProcessFor(
+                processConfiguration, requestReader.getActivityId());
 
-        //execute action
-
-        Extract extract = null;
         try {
-            final ObjectMapper mapper = JsonSerializerFactory.getDefaultMapper();
-            extract = mapper.readValue(extractAsString, Extract.class);
-        } catch (final Exception e) {
-            getInstruction().getResponseWriter().setResultCode(ResponseWriter.ResultCode.WARNING).setResultMessage(UNABLE_TO_DESERIALZE_EXTRACT_MESSAGE + (e != null ? ": " + e.getMessage() : ""));
+            Extract extract = JsonUtils.parse(requestReader.getExtract(), Extract.class);
+            activityConfiguration.setExtract(extract);
+        } catch (final IOException exceptionWhileDeserializingExtract) {
+            throw new NjamsInstructionException(UNABLE_TO_DESERIALZE_EXTRACT_MESSAGE,
+                    exceptionWhileDeserializingExtract);
         }
-
-        activityConfiguration.setExtract(extract);
-        saveConfiguration();
-    }
-
-    private void fetchParameters() {
-        ConditionRequestReader requestReader = getInstruction().getRequestReader();
-        processPath = requestReader.getProcessPath();
-        activityId = requestReader.getActivityId();
-        extractAsString = requestReader.getExtract();
     }
 
     @Override
-    protected void setInstructionResponse() {
-
-    }
-
-    @Override
-    protected void logFinishedProcessing() {
-        super.logFinishedProcessing();
+    protected void logProcessingSuccess() {
         if (LOG.isDebugEnabled()) {
-            LOG.debug("Configure extract for {}", processPath);
+            ConditionRequestReader requestReader = getConditionRequestReader();
+            LOG.debug("Configured extract for {}:{}", requestReader.getProcessPath(), requestReader.getProcessPath());
         }
     }
 }

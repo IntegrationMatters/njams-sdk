@@ -18,29 +18,43 @@
  * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package com.im.njams.sdk.api.plugin.replay;
+package com.im.njams.sdk.communication.instruction.control.processor.templates;
 
-import java.util.Map;
+import com.im.njams.sdk.api.adapter.messageformat.command.entity.Instruction;
+import com.im.njams.sdk.api.communication.instruction.control.InstructionProcessor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-public interface ReplayRequest {
+public abstract class InstructionProcessorTemplate<T extends Instruction> implements InstructionProcessor<T> {
 
-    String getProcess();
+    private static final Logger LOG = LoggerFactory.getLogger(DefaultProcessorTemplate.class);
 
-    void setProcess(String process);
+    private T instruction;
 
-    String getActivity();
+    @Override
+    public synchronized void processInstruction(T instruction) {
 
-    void setActivity(String activity);
+        setInstruction(instruction);
 
-    String getPayload();
+        process();
 
-    void setPayload(String data);
+        logProcessing();
+    }
 
-    boolean isDeepTrace();
+    private void setInstruction(T instruction) {
+        this.instruction = instruction;
+    }
 
-    void setDeepTrace(boolean deepTrace);
+    protected abstract void process();
 
-    Map<String, String> getParameters();
+    protected void logProcessing() {
+        if (LOG.isDebugEnabled()) {
+            LOG.debug("Processed {} by {}", instruction.getRequestReader().getCommand(),
+                    this.getClass().getSimpleName());
+        }
+    }
 
-    void setParameters(Map<String, String> parameters);
+    public T getInstruction() {
+        return instruction;
+    }
 }

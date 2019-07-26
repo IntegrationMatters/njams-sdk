@@ -20,11 +20,12 @@
 package com.im.njams.sdk.communication.instruction.control.processor.flush;
 
 import com.im.njams.sdk.Njams;
-import com.im.njams.sdk.api.adapter.messageformat.command.entity.Instruction;
+import com.im.njams.sdk.adapter.messageformat.command.entity.DefaultResponseWriter;
 import com.im.njams.sdk.api.adapter.messageformat.command.entity.ResponseWriter;
 import org.junit.Before;
 import org.junit.Test;
 
+import static com.im.njams.sdk.communication.instruction.control.processor.flush.SendProjectMessageProcessor.SUCCESS_RESULT_MESSAGE;
 import static org.mockito.Mockito.*;
 
 public class SendProjectMessageProcessorTest {
@@ -38,11 +39,11 @@ public class SendProjectMessageProcessorTest {
         sendProjectMessageProcessor = spy(new SendProjectMessageProcessor(njamsMock));
     }
 
-//Process tests
+//ProcessDefaultInstruction tests
 
     @Test
-    public void testProcess() {
-        sendProjectMessageProcessor.process();
+    public void testProcessDefaultInstruction() {
+        sendProjectMessageProcessor.processDefaultInstruction();
         verify(njamsMock).flushResources();
     }
 
@@ -50,16 +51,11 @@ public class SendProjectMessageProcessorTest {
 
     @Test
     public void testSetInstructionResponse() {
-        Instruction instructionMock = mock(Instruction.class);
-        ResponseWriter responseWriterMock = mock(ResponseWriter.class);
-        doReturn(instructionMock).when(sendProjectMessageProcessor).getInstruction();
-        when(instructionMock.getResponseWriter()).thenReturn(responseWriterMock);
-        when(responseWriterMock.setResultCode(any())).thenReturn(responseWriterMock);
-        when(responseWriterMock.setResultMessage(any())).thenReturn(responseWriterMock);
+        DefaultResponseWriter defaultResponseWriterMock = mock(DefaultResponseWriter.class);
+        doReturn(defaultResponseWriterMock).when(sendProjectMessageProcessor).getDefaultResponseWriter();
 
         sendProjectMessageProcessor.setInstructionResponse();
 
-        verify(responseWriterMock).setResultCode(ResponseWriter.ResultCode.SUCCESS);
-        verify(responseWriterMock).setResultMessage(SendProjectMessageProcessor.SUCCESS_RESULT_MESSAGE);
+        verify(defaultResponseWriterMock).setResultCodeAndResultMessage(ResponseWriter.ResultCode.SUCCESS, SUCCESS_RESULT_MESSAGE);
     }
 }

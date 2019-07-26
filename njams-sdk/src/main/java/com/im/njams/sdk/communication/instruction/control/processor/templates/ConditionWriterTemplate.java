@@ -18,50 +18,43 @@
  * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package com.im.njams.sdk.communication.instruction.control.processor.configuration;
+package com.im.njams.sdk.communication.instruction.control.processor.templates;
 
 import com.im.njams.sdk.Njams;
-import com.im.njams.sdk.adapter.messageformat.command.entity.ConditionInstruction;
-import com.im.njams.sdk.adapter.messageformat.command.entity.ConditionParameter;
-import com.im.njams.sdk.api.adapter.messageformat.command.entity.ResponseWriter;
-import com.im.njams.sdk.communication.instruction.control.processor.AbstractInstructionProcessor;
+import com.im.njams.sdk.api.adapter.messageformat.command.exceptions.NjamsInstructionException;
 import com.im.njams.sdk.configuration.entity.ActivityConfiguration;
 import com.im.njams.sdk.configuration.entity.ProcessConfiguration;
 
-import java.util.List;
-
-public abstract class ConditionInstructionProcessor extends AbstractInstructionProcessor<ConditionInstruction> {
+public abstract class ConditionWriterTemplate extends ConditionReaderTemplate {
 
     private static final String UNABLE_TO_SAVE_CONFIGURATION = "Unable to save configuration";
 
-    protected Njams njams;
-
-    public ConditionInstructionProcessor(Njams njams) {
-        this.njams = njams;
+    public ConditionWriterTemplate(Njams njams) {
+        super(njams);
     }
 
     @Override
-    protected boolean prepareProcessing() {
-        clear();
-        ConditionParameter[] neededParametersForProcessing = getNeededParametersForProcessing();
-        List<ConditionParameter> missingParameters = getInstruction().getRequestReader()
-                .searchForMissingParameters(neededParametersForProcessing);
-        boolean wereAllParametersSet = SUCCESS;
-        if (!missingParameters.isEmpty()) {
-            wereAllParametersSet = FAILURE;
-        }
-        return wereAllParametersSet;
+    public void processConditionInstruction() throws NjamsInstructionException {
+        configureCondition();
+
+        saveConfiguration();
     }
 
-    protected abstract void clear();
+    protected abstract void configureCondition() throws NjamsInstructionException;
 
-    protected abstract ConditionParameter[] getNeededParametersForProcessing();
+    private void saveConfiguration() throws NjamsInstructionException {
+        try {
+            getClientCondition().saveConfigurationFromMemoryToStorage();
+        } catch (final RuntimeException e) {
+            throw new NjamsInstructionException(UNABLE_TO_SAVE_CONFIGURATION, e);
+        }
+    }
 
     protected ProcessConfiguration getOrCreateProcessConfigurationFor(String processPath) {
-        ProcessConfiguration process = njams.getProcessFromConfiguration(processPath);
+        ProcessConfiguration process = getClientCondition().getProcessFromConfiguration(processPath);
         if (process == null) {
             process = new ProcessConfiguration();
-            njams.getProcessesFromConfiguration().put(processPath, process);
+            getClientCondition().getProcessesFromConfiguration().put(processPath, process);
         }
         return process;
     }
@@ -74,15 +67,5 @@ public abstract class ConditionInstructionProcessor extends AbstractInstructionP
             process.getActivities().put(activityId, activity);
         }
         return activity;
-    }
-
-    protected void saveConfiguration() {
-        try {
-            njams.saveConfigurationFromMemoryToStorage();
-        } catch (final Exception e) {
-            getInstruction().getResponseWriter().
-                    setResultCode(ResponseWriter.ResultCode.WARNING).
-                    setResultMessage(UNABLE_TO_SAVE_CONFIGURATION + (e != null ? ": " + e.getMessage() : ""));
-        }
     }
 }

@@ -18,17 +18,40 @@
  * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package com.im.njams.sdk.adapter.messageformat.command.entity;
+package com.im.njams.sdk.communication.instruction.control.processor.templates;
 
-import com.faizsiegeln.njams.messageformat.v4.command.Response;
+import com.im.njams.sdk.adapter.messageformat.command.entity.ReplayInstruction;
+import com.im.njams.sdk.adapter.messageformat.command.entity.ReplayRequestReader;
+import com.im.njams.sdk.adapter.messageformat.command.entity.ReplayResponseWriter;
 
-public class ConditionResponseWriter extends DefaultResponseWriter<ConditionResponseWriter> {
+public abstract class ReplayProcessorTemplate extends InstructionProcessorTemplate<ReplayInstruction> {
 
-    public ConditionResponseWriter(Response response) {
-        super(response);
+    @Override
+    protected void process() {
+        if(canReplay()){
+            try{
+                processReplayInstruction();
+            }catch (final RuntimeException ex){
+                setExceptionResponse(ex);
+            }
+        }else{
+            setCantReplayResponse();
+        }
     }
 
-    public boolean isEmpty(){
-        return responseToBuild == null;
+    protected abstract boolean canReplay();
+
+    protected abstract void processReplayInstruction();
+
+    protected abstract void setExceptionResponse(RuntimeException ex);
+
+    protected abstract void setCantReplayResponse();
+
+    public ReplayRequestReader getReplayRequestReader(){
+        return getInstruction().getRequestReader();
+    }
+
+    public ReplayResponseWriter getReplayResponseWriter(){
+        return getInstruction().getResponseWriter();
     }
 }

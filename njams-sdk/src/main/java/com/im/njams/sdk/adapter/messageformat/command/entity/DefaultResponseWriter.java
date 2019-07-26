@@ -78,4 +78,9 @@ public class DefaultResponseWriter<W extends DefaultResponseWriter<W>> implement
     public final W getThis() {
         return (W) this;
     }
+
+    public W setResultCodeAndResultMessage(ResultCode resultCode, String resultMessage){
+        setResultCode(resultCode).setResultMessage(resultMessage);
+        return getThis();
+    }
 }

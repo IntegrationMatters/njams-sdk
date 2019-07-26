@@ -20,145 +20,101 @@
 package com.im.njams.sdk.communication.instruction.control.processor.replay;
 
 import com.im.njams.sdk.adapter.messageformat.command.entity.ReplayInstruction;
+import com.im.njams.sdk.adapter.messageformat.command.entity.ReplayRequestReader;
 import com.im.njams.sdk.adapter.messageformat.command.entity.ReplayResponseWriter;
-import com.im.njams.sdk.api.adapter.messageformat.command.entity.Instruction;
 import com.im.njams.sdk.api.adapter.messageformat.command.entity.ResponseWriter;
 import com.im.njams.sdk.api.plugin.replay.ReplayHandler;
 import com.im.njams.sdk.api.plugin.replay.ReplayPlugin;
 import org.junit.Before;
 import org.junit.Test;
 
-import static org.junit.Assert.*;
+import static com.im.njams.sdk.communication.instruction.control.processor.replay.ReplayProcessor.EXCEPTION_WAS_THROWN_WHILE_REPLAYING;
+import static com.im.njams.sdk.communication.instruction.control.processor.replay.ReplayProcessor.REPLAY_PLUGIN_NOT_SET;
+import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.*;
 
 public class ReplayProcessorTest {
 
+    private static final String RUNTIME_EXCEPTION_MESSAGE = "Exception";
+
     private ReplayProcessor replayProcessor;
 
-    private ReplayPlugin replayPluginMock = mock(ReplayPlugin.class);
+    private ReplayPlugin replayPluginMock;
 
-    private ReplayHandler replayHandlerMock = mock(ReplayHandler.class);
+    private ReplayHandler replayHandlerMock;
 
-    private RuntimeException runtimeExceptionMock = mock(RuntimeException.class);
+    private ReplayInstruction replayInstruction;
+
+    private ReplayRequestReader replayRequestReaderMock;
+
+    private ReplayResponseWriter replayResponseWriterMock;
+
+    private RuntimeException runtimeExceptionMock;
 
     @Before
     public void initialize() {
-        replayProcessor = spy(new ReplayProcessor(replayPluginMock));
+        replayPluginMock = mock(ReplayPlugin.class);
+        replayHandlerMock = mock(ReplayHandler.class);
         when(replayPluginMock.getPluginItem()).thenReturn(replayHandlerMock);
+
+        replayProcessor = spy(new ReplayProcessor(replayPluginMock));
+
+        replayInstruction = mock(ReplayInstruction.class);
+        replayRequestReaderMock = mock(ReplayRequestReader.class);
+        replayResponseWriterMock = mock(ReplayResponseWriter.class);
+        when(replayResponseWriterMock.setResultCodeAndResultMessage(any(), any())).thenReturn(replayResponseWriterMock);
+
+        doReturn(replayInstruction).when(replayProcessor).getInstruction();
+        doReturn(replayRequestReaderMock).when(replayProcessor).getReplayRequestReader();
+        doReturn(replayResponseWriterMock).when(replayProcessor).getReplayResponseWriter();
+
+        runtimeExceptionMock = mock(RuntimeException.class);
+        when(runtimeExceptionMock.getMessage()).thenReturn(RUNTIME_EXCEPTION_MESSAGE);
     }
 
-//AfterInit
+//CanReplay tests
 
     @Test
-    public void afterInit() {
-        assertEquals(ReplayProcessor.ReplayResponseStatus.REPLAY_HANDLER_NOT_SET, replayProcessor.replayStatus);
-        assertEquals(null, replayProcessor.caughtExceptionWhileReplaying);
-    }
-
-//PrepareProcessing tests
-
-    @Test
-    public void doesPrepareProcessingClearTheReplayStatus() {
-        ReplayProcessor.ReplayResponseStatus status = replayProcessor.replayStatus =
-                ReplayProcessor.ReplayResponseStatus.REPLAY_SUCCESS;
-        replayProcessor.prepareProcessing();
-        assertNotEquals(status, replayProcessor.replayStatus);
-        assertEquals(ReplayProcessor.ReplayResponseStatus.REPLAY_HANDLER_NOT_SET, replayProcessor.replayStatus);
-    }
-
-    @Test
-    public void doesPrepareProcessingClearTheException() {
-        Exception exception = replayProcessor.caughtExceptionWhileReplaying = runtimeExceptionMock;
-        replayProcessor.prepareProcessing();
-        assertNotEquals(exception, replayProcessor.caughtExceptionWhileReplaying);
-        assertNull(replayProcessor.caughtExceptionWhileReplaying);
+    public void canReplayIfReplayHandlerIsSet() {
+        canReplayProcessorReplay(true);
     }
 
     @Test
-    public void doesPrepareProcessingDoNothingToReplayHandler() {
-        replayProcessor.prepareProcessing();
-        verifyZeroInteractions(replayPluginMock);
+    public void cantReplayIfReplayHandlerIsNotSet() {
+        canReplayProcessorReplay(false);
     }
 
-//Process tests
+
+    private void canReplayProcessorReplay(boolean isReplayHandlerSet) {
+        when(replayPluginMock.isReplayHandlerSet()).thenReturn(isReplayHandlerSet);
+        boolean canReplay = replayProcessor.canReplay();
+        assertEquals(isReplayHandlerSet, canReplay);
+    }
+
+//ProcessReplayInstruction tests
 
     @Test
     public void setStatusToReplayHandlerNotSetIfReplayHandlerIsNotSet() {
-        when(replayPluginMock.isReplayHandlerSet()).thenReturn(false);
-        replayProcessor.process();
-        assertEquals(ReplayProcessor.ReplayResponseStatus.REPLAY_HANDLER_NOT_SET, replayProcessor.replayStatus);
+        replayProcessor.processReplayInstruction();
+        verify(replayHandlerMock).replay(replayInstruction);
     }
+
+//SetExceptionResponse tests
 
     @Test
-    public void processAndReplay() {
-        when(replayPluginMock.isReplayHandlerSet()).thenReturn(true);
-        replayProcessor.process();
-        assertEquals(ReplayProcessor.ReplayResponseStatus.REPLAY_SUCCESS, replayProcessor.replayStatus);
+    public void setExceptionResponse() {
+        replayProcessor.setExceptionResponse(runtimeExceptionMock);
+        verify(replayResponseWriterMock).setResultCodeAndResultMessage(ResponseWriter.ResultCode.ERROR,
+                EXCEPTION_WAS_THROWN_WHILE_REPLAYING + RUNTIME_EXCEPTION_MESSAGE);
+        verify(replayResponseWriterMock).setException(String.valueOf(runtimeExceptionMock));
     }
+
+//SetCantReplayResponse tests
 
     @Test
-    public void processAndThrowExceptionWhileReplaying() {
-        when(replayPluginMock.isReplayHandlerSet()).thenReturn(true);
-        doThrow(runtimeExceptionMock).when(replayHandlerMock).replay(any(Instruction.class));
-        replayProcessor.process();
-        assertEquals(ReplayProcessor.ReplayResponseStatus.EXCEPTION_WAS_THROWN_WHILE_REPLAYING,
-                replayProcessor.replayStatus);
-        assertEquals(runtimeExceptionMock, replayProcessor.caughtExceptionWhileReplaying);
-    }
-
-//SetInstructionResponse tests
-
-    @Test
-    public void doNothingOnReplaySuccessBecauseItHasBeenSetByReplayCaller() {
-        ReplayInstruction replayInstructionMock = mock(ReplayInstruction.class);
-        ReplayResponseWriter responseWriterMock = mock(ReplayResponseWriter.class);
-        doReturn(replayInstructionMock).when(replayProcessor).getInstruction();
-        when(replayInstructionMock.getResponseWriter()).thenReturn(responseWriterMock);
-
-        replayProcessor.replayStatus = ReplayProcessor.ReplayResponseStatus.REPLAY_SUCCESS;
-        replayProcessor.setInstructionResponse();
-        verifyZeroInteractions(responseWriterMock);
-    }
-
-    @Test
-    public void setInstructionResponseOnNoReplayHandlerFound() {
-        ReplayInstruction replayInstructionMock = mock(ReplayInstruction.class);
-        ReplayResponseWriter responseWriterMock = mock(ReplayResponseWriter.class);
-        doReturn(replayInstructionMock).when(replayProcessor).getInstruction();
-        when(replayInstructionMock.getResponseWriter()).thenReturn(responseWriterMock);
-        mockReplayResponseWriter(responseWriterMock);
-
-        replayProcessor.replayStatus = ReplayProcessor.ReplayResponseStatus.REPLAY_HANDLER_NOT_SET;
-        replayProcessor.setInstructionResponse();
-        verify(responseWriterMock).setResultCode(ResponseWriter.ResultCode.WARNING);
-        verify(responseWriterMock).setResultMessage(
-                ReplayProcessor.ReplayResponseStatus.REPLAY_HANDLER_NOT_SET.getMessage());
-    }
-
-    private void mockReplayResponseWriter(ReplayResponseWriter responseWriterMock){
-        when(responseWriterMock.setResultCode(any())).thenReturn(responseWriterMock);
-        when(responseWriterMock.setResultMessage(any())).thenReturn(responseWriterMock);
-        when(responseWriterMock.setException(any())).thenReturn(responseWriterMock);
-    }
-
-    @Test
-    public void setInstructionResponseOnExceptionThrownWhileReplay() {
-        ReplayInstruction replayInstructionMock = mock(ReplayInstruction.class);
-        ReplayResponseWriter responseWriterMock = mock(ReplayResponseWriter.class);
-        doReturn(replayInstructionMock).when(replayProcessor).getInstruction();
-        when(replayInstructionMock.getResponseWriter()).thenReturn(responseWriterMock);
-        mockReplayResponseWriter(responseWriterMock);
-
-        replayProcessor.replayStatus = ReplayProcessor.ReplayResponseStatus.EXCEPTION_WAS_THROWN_WHILE_REPLAYING;
-        replayProcessor.caughtExceptionWhileReplaying = runtimeExceptionMock;
-        final String exceptionMessage = "ExceptionMessage";
-        when(runtimeExceptionMock.getMessage()).thenReturn(exceptionMessage);
-        replayProcessor.setInstructionResponse();
-
-        final String resultMessage = replayProcessor.replayStatus.getMessage() + exceptionMessage;
-        final String errorMessage = String.valueOf(runtimeExceptionMock);
-        verify(responseWriterMock).setResultCode(ResponseWriter.ResultCode.ERROR);
-        verify(responseWriterMock).setResultMessage(resultMessage);
-        verify(responseWriterMock).setException(errorMessage);
+    public void setCantReplayResponse() {
+        replayProcessor.setCantReplayResponse();
+        verify(replayResponseWriterMock)
+                .setResultCodeAndResultMessage(ResponseWriter.ResultCode.WARNING, REPLAY_PLUGIN_NOT_SET);
     }
 }

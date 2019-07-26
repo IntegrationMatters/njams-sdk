@@ -33,24 +33,26 @@ public class ConditionRequestReader extends DefaultRequestReader {
         super(requestToRead);
     }
 
-    public String getProcessPath(){
+    public String getProcessPath() {
         return getParamByConstant(ConditionParameter.PROCESS_PATH);
     }
 
-    private String getParamByConstant(ConditionParameter param){
+    private String getParamByConstant(ConditionParameter param) {
         return getParameter(param.getParamKey());
     }
 
-    public String getActivityId(){
+    public String getActivityId() {
         return getParamByConstant(ConditionParameter.ACTIVITY_ID);
     }
 
-    public String getExtract(){
+    public String getExtract() {
         return getParamByConstant(ConditionParameter.EXTRACT);
     }
 
-    public List<ConditionParameter> searchForMissingParameters(ConditionParameter[] parametersToSearchFor){
-        return Arrays.stream(parametersToSearchFor).filter(neededParameter -> StringUtils.isBlank(getParamByConstant(neededParameter))).collect(
-                Collectors.toList());
+    public List<String> searchForMissingParameters(ConditionParameter[] parametersToSearchFor) {
+        return Arrays.stream(parametersToSearchFor)
+                .filter(neededParameter -> StringUtils.isBlank(getParamByConstant(neededParameter)))
+                .map(notFoundConditionParameter -> notFoundConditionParameter.getParamKey())
+                .collect(Collectors.toList());
     }
 }
