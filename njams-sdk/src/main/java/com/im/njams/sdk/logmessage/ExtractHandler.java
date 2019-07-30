@@ -300,7 +300,7 @@ public class ExtractHandler {
                 m = pattern.matcher("");
                 MATCHER.put(rule, m);
             } catch (Exception e) {
-                LOG.warn("Could not compile pattern: {}: {}", rule);
+                LOG.warn("Could not compile pattern: {}", rule);
                 LOG.debug("Error in getExtractMatcher", e);
             }
         }
