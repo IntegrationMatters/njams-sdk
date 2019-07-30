@@ -67,6 +67,18 @@ public class ConditionWriterTemplateTest {
         when(processConfigurationMock.getActivities()).thenReturn(activitiesMock);
     }
 
+//ProcessConditionInstruction tests
+
+    @Test
+    public void processConditionInstruction() throws NjamsInstructionException {
+        doNothing().when(conditionWriterTemplate).saveConfiguration();
+
+        conditionWriterTemplate.processConditionInstruction();
+
+        verify(conditionWriterTemplate).configureCondition();
+        verify(conditionWriterTemplate).saveConfiguration();
+    }
+
 //SaveConfiguration tests
 
     @Test
