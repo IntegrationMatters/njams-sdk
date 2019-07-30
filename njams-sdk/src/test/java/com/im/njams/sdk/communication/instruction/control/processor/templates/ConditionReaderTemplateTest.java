@@ -27,8 +27,6 @@ import com.im.njams.sdk.adapter.messageformat.command.entity.ConditionRequestRea
 import com.im.njams.sdk.adapter.messageformat.command.entity.ConditionResponseWriter;
 import com.im.njams.sdk.api.adapter.messageformat.command.entity.ResponseWriter;
 import com.im.njams.sdk.api.adapter.messageformat.command.exceptions.NjamsInstructionException;
-import com.im.njams.sdk.configuration.entity.ActivityConfiguration;
-import com.im.njams.sdk.configuration.entity.ProcessConfiguration;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -133,6 +131,7 @@ public class ConditionReaderTemplateTest {
 
         if (parseCharToBoolean(trueOrFalseChars[0])) {
             verify(conditionReaderTemplate).processConditionInstruction();
+            verify(conditionReaderTemplate).resetConditionFacade();
             if (!parseCharToBoolean(trueOrFalseChars[1])) {
                 verify(conditionReaderTemplate).setDefaultSuccessResponse();
                 verify(conditionReaderTemplate).logProcessingSuccess();
@@ -149,6 +148,7 @@ public class ConditionReaderTemplateTest {
             verify(conditionReaderTemplate, times(0)).GetInvalidParametersMessage(any());
             verify(conditionReaderTemplate, times(0)).logInvalidParameters(any());
         } else {
+            verify(conditionReaderTemplate, times(0)).resetConditionFacade();
             verify(conditionReaderTemplate, times(0)).processConditionInstruction();
             verify(conditionReaderTemplate, times(0)).setDefaultSuccessResponse();
             verify(conditionReaderTemplate, times(0)).logProcessingSuccess();
@@ -319,7 +319,7 @@ public class ConditionReaderTemplateTest {
 
     @Test
     public void getClientConditionTest() {
-        assertTrue(conditionReaderTemplate.getClientCondition() instanceof Njams);
+        assertTrue(conditionReaderTemplate.getClientCondition() instanceof ConditionFacade);
     }
 
 //GetConditionRequestReader tests
@@ -338,82 +338,6 @@ public class ConditionReaderTemplateTest {
         ConditionResponseWriter conditionResponseWriter = conditionReaderTemplate.getConditionResponseWriter();
         verify(conditionInstructionMock).getResponseWriter();
         assertTrue(conditionResponseWriter instanceof ConditionResponseWriter);
-    }
-
-//GetProcessCondition tests
-
-    @Test
-    public void foundProcessCondition() throws NjamsInstructionException {
-        final String processPath = "TestProcess";
-        when(conditionRequestReaderMock.getProcessPath()).thenReturn(processPath);
-        ProcessConfiguration processCondition = mock(ProcessConfiguration.class);
-        when(njamsMock.getProcessFromConfiguration(processPath)).thenReturn(processCondition);
-        ProcessConfiguration returnedProcessCondition = conditionReaderTemplate.getProcessCondition();
-        verify(conditionRequestReaderMock).getProcessPath();
-        assertEquals(processCondition, returnedProcessCondition);
-    }
-
-    @Test(expected = NjamsInstructionException.class)
-    public void NoProcessConditionFound() throws NjamsInstructionException {
-        final String processPath = "TestProcess";
-        when(conditionRequestReaderMock.getProcessPath()).thenReturn(processPath);
-        try {
-            ProcessConfiguration returnedProcessCondition = conditionReaderTemplate.getProcessCondition();
-        } catch (NjamsInstructionException ex) {
-            assertEquals("Condition for process " + processPath + " not found", ex.getMessage());
-            throw ex;
-        }
-    }
-
-//GetActivityCondition tests
-
-    @Test(expected = NjamsInstructionException.class)
-    public void NoProcessConditionFoundWhileSearchingForActivityCondition() throws NjamsInstructionException {
-        final String processPath = "TestProcess";
-        when(conditionRequestReaderMock.getProcessPath()).thenReturn(processPath);
-        try {
-            ActivityConfiguration returnedActivityCondition = conditionReaderTemplate.getActivityCondition();
-        } catch (NjamsInstructionException ex) {
-            assertEquals("Condition for process " + processPath + " not found", ex.getMessage());
-            throw ex;
-        }
-    }
-
-    @Test(expected = NjamsInstructionException.class)
-    public void NoActivityConditionFound() throws NjamsInstructionException {
-        final String processPath = "TestProcess";
-        final String activityId = "TestId";
-        when(conditionRequestReaderMock.getProcessPath()).thenReturn(processPath);
-        when(conditionRequestReaderMock.getActivityId()).thenReturn(activityId);
-        ProcessConfiguration processCondition = mock(ProcessConfiguration.class);
-        doReturn(processCondition).when(conditionReaderTemplate).getProcessCondition();
-        when(processCondition.getActivity(activityId)).thenReturn(null);
-        try {
-            ActivityConfiguration returnedActivityCondition = conditionReaderTemplate.getActivityCondition();
-        } catch (NjamsInstructionException ex) {
-            assertEquals("Condition for activity " + activityId + " on process " + processPath + " not found",
-                    ex.getMessage());
-            throw ex;
-        }
-
-    }
-
-    @Test
-    public void foundActivityCondition() throws NjamsInstructionException {
-        final String processPath = "TestProcess";
-        final String activityId = "TestId";
-        when(conditionRequestReaderMock.getProcessPath()).thenReturn(processPath);
-        when(conditionRequestReaderMock.getActivityId()).thenReturn(activityId);
-        ProcessConfiguration processCondition = mock(ProcessConfiguration.class);
-        doReturn(processCondition).when(conditionReaderTemplate).getProcessCondition();
-        ActivityConfiguration activityCondition = mock(ActivityConfiguration.class);
-        when(processCondition.getActivity(activityId)).thenReturn(activityCondition);
-
-        ActivityConfiguration returnedActivityCondition = conditionReaderTemplate.getActivityCondition();
-
-        verify(conditionRequestReaderMock).getProcessPath();
-        verify(conditionRequestReaderMock).getActivityId();
-        assertEquals(activityCondition, returnedActivityCondition);
     }
 
 //Private helper classes

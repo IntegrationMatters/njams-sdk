@@ -22,16 +22,8 @@ package com.im.njams.sdk.communication.instruction.control.processor.templates;
 
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.api.adapter.messageformat.command.exceptions.NjamsInstructionException;
-import com.im.njams.sdk.configuration.entity.ActivityConfiguration;
-import com.im.njams.sdk.configuration.entity.ProcessConfiguration;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public abstract class ConditionWriterTemplate extends ConditionReaderTemplate {
-
-    private static final Logger LOG = LoggerFactory.getLogger(ConditionWriterTemplate.class);
-
-    private static final String UNABLE_TO_SAVE_CONFIGURATION = "Unable to save configuration";
 
     public ConditionWriterTemplate(Njams njams) {
         super(njams);
@@ -41,46 +33,8 @@ public abstract class ConditionWriterTemplate extends ConditionReaderTemplate {
     public void processConditionInstruction() throws NjamsInstructionException {
         configureCondition();
 
-        saveConfiguration();
+        getClientCondition().saveCondition();
     }
 
     protected abstract void configureCondition() throws NjamsInstructionException;
-
-    void saveConfiguration() throws NjamsInstructionException {
-        try {
-            getClientCondition().saveConfigurationFromMemoryToStorage();
-        } catch (final RuntimeException e) {
-            throw new NjamsInstructionException(UNABLE_TO_SAVE_CONFIGURATION, e);
-        }
-    }
-
-    public ProcessConfiguration getOrCreateProcessCondition() {
-        ProcessConfiguration processCondition;
-        try {
-            processCondition = getProcessCondition();
-        } catch (NjamsInstructionException processNotFoundException) {
-            if (LOG.isDebugEnabled()) {
-                LOG.debug(processNotFoundException.getMessage());
-            }
-            processCondition = new ProcessConfiguration();
-            getClientCondition().getProcessesFromConfiguration()
-                    .put(getConditionRequestReader().getProcessPath(), processCondition);
-        }
-        return processCondition;
-    }
-
-    public ActivityConfiguration getOrCreateActivityCondition() {
-        ProcessConfiguration processCondition = getOrCreateProcessCondition();
-        ActivityConfiguration activityCondition;
-        try {
-            activityCondition = getActivityCondition();
-        } catch (NjamsInstructionException activityNotFoundException) {
-            if (LOG.isDebugEnabled()) {
-                LOG.debug(activityNotFoundException.getMessage());
-            }
-            activityCondition = new ActivityConfiguration();
-            processCondition.getActivities().put(getConditionRequestReader().getActivityId(), activityCondition);
-        }
-        return activityCondition;
-    }
 }

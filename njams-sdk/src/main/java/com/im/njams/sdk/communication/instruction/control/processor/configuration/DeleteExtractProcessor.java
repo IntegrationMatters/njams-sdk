@@ -49,7 +49,7 @@ public class DeleteExtractProcessor extends ConditionWriterTemplate {
 
     @Override
     protected void configureCondition() throws NjamsInstructionException {
-        final ActivityConfiguration activityConfiguration = getActivityCondition();
+        final ActivityConfiguration activityConfiguration = getClientCondition().getActivityCondition();
 
         activityConfiguration.setExtract(null);
     }

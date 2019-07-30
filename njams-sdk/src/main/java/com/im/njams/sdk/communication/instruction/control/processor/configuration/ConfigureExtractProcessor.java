@@ -51,11 +51,11 @@ public class ConfigureExtractProcessor extends ConditionWriterTemplate {
 
     @Override
     protected void configureCondition() throws NjamsInstructionException {
-        final ActivityConfiguration activityCondition = getOrCreateActivityCondition();
+        ActivityConfiguration activityCondition = getClientCondition().getOrCreateActivityCondition();
 
-        Extract extract = getConditionRequestReader().getExtract();
+        Extract extractOfRequest = getConditionRequestReader().getExtract();
 
-        activityCondition.setExtract(extract);
+        activityCondition.setExtract(extractOfRequest);
     }
 
     @Override

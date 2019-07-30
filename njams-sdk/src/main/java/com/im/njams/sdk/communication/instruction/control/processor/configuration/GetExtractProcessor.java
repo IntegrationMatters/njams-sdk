@@ -25,7 +25,6 @@ import com.im.njams.sdk.adapter.messageformat.command.entity.ConditionParameter;
 import com.im.njams.sdk.adapter.messageformat.command.entity.ConditionRequestReader;
 import com.im.njams.sdk.api.adapter.messageformat.command.exceptions.NjamsInstructionException;
 import com.im.njams.sdk.communication.instruction.control.processor.templates.ConditionReaderTemplate;
-import com.im.njams.sdk.configuration.entity.ActivityConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -50,16 +49,8 @@ public class GetExtractProcessor extends ConditionReaderTemplate {
 
     @Override
     protected void processConditionInstruction() throws NjamsInstructionException {
-        ConditionRequestReader reader = getConditionRequestReader();
-        final String activityId = reader.getActivityId();
-        final String processPath = reader.getProcessPath();
-        ActivityConfiguration activityCondition = getActivityCondition();
+        Extract extract = getClientCondition().getExtract();
 
-        final Extract extract = activityCondition.getExtract();
-        if (extract == null) {
-            throw new NjamsInstructionException(
-                    "Extract for activity " + activityId + " for process " + processPath + " not found");
-        }
         getConditionResponseWriter().setExtract(extract);
     }
 

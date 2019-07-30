@@ -22,125 +22,37 @@ package com.im.njams.sdk.communication.instruction.control.processor.templates;
 
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.adapter.messageformat.command.entity.ConditionParameter;
-import com.im.njams.sdk.adapter.messageformat.command.entity.ConditionRequestReader;
 import com.im.njams.sdk.api.adapter.messageformat.command.exceptions.NjamsInstructionException;
-import com.im.njams.sdk.configuration.entity.ActivityConfiguration;
-import com.im.njams.sdk.configuration.entity.ProcessConfiguration;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.Map;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
 import static org.mockito.Mockito.*;
 
 public class ConditionWriterTemplateTest {
-
-    private static final String PROCESS_PATH_WITH_CONFIG = "TestProcessWithConfig";
-    private static final String ACTIVITY_ID_WITH_CONFIG = "TestActivityWithConfig";
 
     private ConditionWriterTemplate conditionWriterTemplate;
 
     private Njams njamsMock;
 
-    private ProcessConfiguration processConfigurationMock;
-
-    private Map<String, ProcessConfiguration> processesMock;
-
-    private ActivityConfiguration activityConfigurationMock;
-
-    private Map<String, ActivityConfiguration> activitiesMock;
-
-    private NjamsInstructionException njamsInstructionExceptionMock;
+    private ConditionFacade conditionFacadeMock;
 
     @Before
     public void initialize() {
         njamsMock = mock(Njams.class);
         conditionWriterTemplate = spy(new ConditionWriterTemplateImpl(njamsMock));
-        processConfigurationMock = mock(ProcessConfiguration.class);
-        activityConfigurationMock = mock(ActivityConfiguration.class);
-        processesMock = mock(Map.class);
-        activitiesMock = mock(Map.class);
-        njamsInstructionExceptionMock = mock(NjamsInstructionException.class);
-        when(njamsMock.getProcessFromConfiguration(PROCESS_PATH_WITH_CONFIG)).thenReturn(processConfigurationMock);
-        when(njamsMock.getProcessesFromConfiguration()).thenReturn(processesMock);
-        when(processConfigurationMock.getActivity(ACTIVITY_ID_WITH_CONFIG)).thenReturn(activityConfigurationMock);
-        when(processConfigurationMock.getActivities()).thenReturn(activitiesMock);
+
+        conditionFacadeMock = mock(ConditionFacade.class);
+        doReturn(conditionFacadeMock).when(conditionWriterTemplate).getClientCondition();
     }
 
 //ProcessConditionInstruction tests
 
     @Test
     public void processConditionInstruction() throws NjamsInstructionException {
-        doNothing().when(conditionWriterTemplate).saveConfiguration();
-
         conditionWriterTemplate.processConditionInstruction();
 
         verify(conditionWriterTemplate).configureCondition();
-        verify(conditionWriterTemplate).saveConfiguration();
-    }
-
-//SaveConfiguration tests
-
-    @Test
-    public void saveConfigurationSuccessfully() throws NjamsInstructionException {
-        conditionWriterTemplate.saveConfiguration();
-        verify(njamsMock).saveConfigurationFromMemoryToStorage();
-    }
-
-    @Test(expected = NjamsInstructionException.class)
-    public void saveConfigurationThrowsRuntimeException() throws NjamsInstructionException {
-        doThrow(mock(RuntimeException.class)).when(njamsMock).saveConfigurationFromMemoryToStorage();
-        conditionWriterTemplate.saveConfiguration();
-    }
-
-//GetOrCreateProcessConfigurationFor tests
-
-    @Test
-    public void getExistingProcessConfiguration() throws NjamsInstructionException {
-        doReturn(processConfigurationMock).when(conditionWriterTemplate).getProcessCondition();
-        ProcessConfiguration returnedProcess = conditionWriterTemplate.getOrCreateProcessCondition();
-        assertEquals(processConfigurationMock, returnedProcess);
-    }
-
-    @Test
-    public void createNewProcessConfigurationBecauseItDoesntExistYet() throws NjamsInstructionException {
-        final String processPath = "TestProcess";
-        ConditionRequestReader reader = mock(ConditionRequestReader.class);
-        when(reader.getProcessPath()).thenReturn(processPath);
-        doReturn(reader).when(conditionWriterTemplate).getConditionRequestReader();
-
-        doThrow(njamsInstructionExceptionMock).when(conditionWriterTemplate).getProcessCondition();
-        ProcessConfiguration returnedProcess = conditionWriterTemplate.getOrCreateProcessCondition();
-        verify(njamsMock).getProcessesFromConfiguration();
-        verify(processesMock).put(eq(processPath), any());
-        assertNotEquals(processConfigurationMock, returnedProcess);
-    }
-
-//GetOrCreateActivityConfigurationFromProcessFor tests
-
-    @Test
-    public void getExistingActivityConfiguration() throws NjamsInstructionException {
-        doReturn(processConfigurationMock).when(conditionWriterTemplate).getOrCreateProcessCondition();
-        doReturn(activityConfigurationMock).when(conditionWriterTemplate).getActivityCondition();
-        ActivityConfiguration returnedActivity = conditionWriterTemplate.getOrCreateActivityCondition();
-        assertEquals(activityConfigurationMock, returnedActivity);
-    }
-
-    @Test
-    public void createNewActivityConfigurationForGivenProcess() throws NjamsInstructionException {
-        final String activityId = "TestActivity";
-        ConditionRequestReader reader = mock(ConditionRequestReader.class);
-        when(reader.getActivityId()).thenReturn(activityId);
-        doReturn(reader).when(conditionWriterTemplate).getConditionRequestReader();
-
-        doReturn(processConfigurationMock).when(conditionWriterTemplate).getOrCreateProcessCondition();
-        doThrow(njamsInstructionExceptionMock).when(conditionWriterTemplate).getActivityCondition();
-        ActivityConfiguration returnedActivity = conditionWriterTemplate.getOrCreateActivityCondition();
-        verify(processConfigurationMock).getActivities();
-        verify(activitiesMock).put(eq(activityId), any());
-        assertNotEquals(processConfigurationMock, returnedActivity);
+        verify(conditionFacadeMock).saveCondition();
     }
 
 //Private helper classes

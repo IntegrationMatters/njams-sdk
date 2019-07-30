@@ -24,6 +24,7 @@ import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.adapter.messageformat.command.entity.ConditionParameter;
 import com.im.njams.sdk.adapter.messageformat.command.entity.ConditionRequestReader;
 import com.im.njams.sdk.api.adapter.messageformat.command.exceptions.NjamsInstructionException;
+import com.im.njams.sdk.communication.instruction.control.processor.templates.ConditionFacade;
 import com.im.njams.sdk.configuration.entity.ActivityConfiguration;
 import org.junit.Before;
 import org.junit.Test;
@@ -36,8 +37,6 @@ import static org.mockito.Mockito.*;
 
 public class ConfigureExtractProcessorTest {
 
-    private static final Extract CORRECT_EXTRACT_JSON = mock(Extract.class);
-
     private ConfigureExtractProcessor configureExtractProcessor;
 
     private Njams njamsMock;
@@ -46,16 +45,22 @@ public class ConfigureExtractProcessorTest {
 
     private ActivityConfiguration activityConfigurationMock;
 
+    private Extract extractMock;
+
+    private ConditionFacade conditionFacadeMock;
+
     @Before
     public void setNewProcessor() {
         njamsMock = mock(Njams.class);
         configureExtractProcessor = spy(new ConfigureExtractProcessor(njamsMock));
         readerMock = mock(ConditionRequestReader.class);
         activityConfigurationMock = mock(ActivityConfiguration.class);
+        extractMock = mock(Extract.class);
+        conditionFacadeMock = mock(ConditionFacade.class);
+        doReturn(conditionFacadeMock).when(configureExtractProcessor).getClientCondition();
+        when(conditionFacadeMock.getOrCreateActivityCondition()).thenReturn(activityConfigurationMock);
 
         doReturn(readerMock).when(configureExtractProcessor).getConditionRequestReader();
-
-        doReturn(activityConfigurationMock).when(configureExtractProcessor).getOrCreateActivityCondition();
     }
 
 //GetNeededParametersForProcessing tests
@@ -73,9 +78,10 @@ public class ConfigureExtractProcessorTest {
 
     @Test
     public void configureConditionWorks() throws NjamsInstructionException {
-        when(readerMock.getExtract()).thenReturn(CORRECT_EXTRACT_JSON);
+        when(readerMock.getExtract()).thenReturn(extractMock);
         configureExtractProcessor.configureCondition();
-        verify(configureExtractProcessor).getOrCreateActivityCondition();
+        verify(configureExtractProcessor).getClientCondition();
+        verify(conditionFacadeMock).getOrCreateActivityCondition();
         verify(activityConfigurationMock).setExtract(any());
     }
 
@@ -85,7 +91,8 @@ public class ConfigureExtractProcessorTest {
         try {
             configureExtractProcessor.configureCondition();
         } catch (NjamsInstructionException e) {
-            verify(configureExtractProcessor).getOrCreateActivityCondition();
+            verify(configureExtractProcessor).getClientCondition();
+            verify(conditionFacadeMock).getOrCreateActivityCondition();
             verify(activityConfigurationMock, times(0)).setExtract(any());
             throw e;
         }
