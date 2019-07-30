@@ -21,6 +21,8 @@
 package com.im.njams.sdk.communication.instruction.control.processor.templates;
 
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.Extract;
+import com.faizsiegeln.njams.messageformat.v4.projectmessage.LogLevel;
+import com.faizsiegeln.njams.messageformat.v4.projectmessage.LogMode;
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.api.adapter.messageformat.command.exceptions.NjamsInstructionException;
 import com.im.njams.sdk.configuration.entity.ActivityConfiguration;
@@ -82,6 +84,16 @@ public class ConditionFacade {
         return extract;
     }
 
+    public LogLevel getLogLevel() throws NjamsInstructionException {
+        ProcessConfiguration processCondition = getProcessCondition();
+        return processCondition.getLogLevel();
+    }
+
+    public boolean isExcluded() throws NjamsInstructionException {
+        ProcessConfiguration processCondition = getProcessCondition();
+        return processCondition.isExclude();
+    }
+
     public ProcessConfiguration getOrCreateProcessCondition() {
         ProcessConfiguration processCondition;
         try {
@@ -117,5 +129,9 @@ public class ConditionFacade {
         } catch (final RuntimeException e) {
             throw new NjamsInstructionException(UNABLE_TO_SAVE_CONFIGURATION, e);
         }
+    }
+
+    public LogMode getLogMode() {
+        return condition.getLogModeFromConfiguration();
     }
 }

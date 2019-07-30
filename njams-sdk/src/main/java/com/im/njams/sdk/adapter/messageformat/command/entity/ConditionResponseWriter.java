@@ -22,6 +22,8 @@ package com.im.njams.sdk.adapter.messageformat.command.entity;
 
 import com.faizsiegeln.njams.messageformat.v4.command.Response;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.Extract;
+import com.faizsiegeln.njams.messageformat.v4.projectmessage.LogLevel;
+import com.faizsiegeln.njams.messageformat.v4.projectmessage.LogMode;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.im.njams.sdk.api.adapter.messageformat.command.exceptions.NjamsInstructionException;
@@ -49,5 +51,17 @@ public class ConditionResponseWriter extends DefaultResponseWriter<ConditionResp
         } catch (JsonProcessingException e) {
             throw new NjamsInstructionException("Unable to serialize Object", e);
         }
+    }
+
+    public ConditionResponseWriter setLogMode(LogMode logMode){
+        return putParameter(ConditionParameter.LOG_MODE.getParamKey(), String.valueOf(logMode));
+    }
+
+    public ConditionResponseWriter setLogLevel(LogLevel logLevel){
+        return putParameter(ConditionParameter.LOG_LEVEL.getParamKey(), logLevel.name());
+    }
+
+    public ConditionResponseWriter setExcluded(boolean isExcluded){
+        return putParameter(ConditionParameter.EXCLUDE.getParamKey(), String.valueOf(isExcluded));
     }
 }
