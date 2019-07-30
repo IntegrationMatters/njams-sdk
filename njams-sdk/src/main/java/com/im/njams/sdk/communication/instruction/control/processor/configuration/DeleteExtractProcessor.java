@@ -20,41 +20,45 @@
 package com.im.njams.sdk.communication.instruction.control.processor.configuration;
 
 import com.im.njams.sdk.Njams;
+import com.im.njams.sdk.adapter.messageformat.command.entity.ConditionParameter;
+import com.im.njams.sdk.adapter.messageformat.command.entity.ConditionRequestReader;
+import com.im.njams.sdk.api.adapter.messageformat.command.exceptions.NjamsInstructionException;
+import com.im.njams.sdk.communication.instruction.control.processor.templates.ConditionWriterTemplate;
 import com.im.njams.sdk.configuration.entity.ActivityConfiguration;
-import com.im.njams.sdk.configuration.entity.ProcessConfiguration;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Todo: Write Doc
  */
-public class DeleteExtractProcessor extends AbstractConfigurationProcessor {
+public class DeleteExtractProcessor extends ConditionWriterTemplate {
+
+    private static final Logger LOG = LoggerFactory.getLogger(DeleteExtractProcessor.class);
+
+    private static final ConditionParameter[] neededParameter =
+            new ConditionParameter[]{ConditionParameter.PROCESS_PATH, ConditionParameter.ACTIVITY_ID};
 
     public DeleteExtractProcessor(Njams njams) {
         super(njams);
     }
 
     @Override
-    protected void processInstruction(InstructionSupport instructionSupport) {
-        if (!instructionSupport.validate(InstructionSupport.PROCESS_PATH, InstructionSupport.ACTIVITY_ID)) {
-            return;
-        }
-        //fetch parameters
-        final String processPath = instructionSupport.getProcessPath();
-        final String activityId = instructionSupport.getActivityId();
+    protected ConditionParameter[] getNeededParametersForProcessing() {
+        return neededParameter;
+    }
 
-        //execute action
-        ProcessConfiguration process = null;
-        process = njams.getProcessFromConfiguration(processPath);
-        if (process == null) {
-            instructionSupport.error("Process configuration " + processPath + " not found");
-            return;
+    @Override
+    protected void configureCondition() throws NjamsInstructionException {
+        final ActivityConfiguration activityConfiguration = getActivityCondition();
+
+        activityConfiguration.setExtract(null);
+    }
+
+    @Override
+    protected void logProcessingSuccess() {
+        if (LOG.isDebugEnabled()) {
+            ConditionRequestReader requestReader = getConditionRequestReader();
+            LOG.debug("Deleted extract for {}#{}", requestReader.getProcessPath(), requestReader.getActivityId());
         }
-        ActivityConfiguration activity = null;
-        activity = process.getActivity(activityId);
-        if (activity == null) {
-            instructionSupport.error("Activity " + activityId + " for process " + processPath + " not found");
-            return;
-        }
-        activity.setExtract(null);
-        saveConfiguration(instructionSupport);
     }
 }

@@ -20,14 +20,11 @@
 package com.im.njams.sdk.communication.instruction.control.processor.configuration;
 
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.Extract;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.adapter.messageformat.command.entity.ConditionParameter;
 import com.im.njams.sdk.adapter.messageformat.command.entity.ConditionRequestReader;
 import com.im.njams.sdk.api.adapter.messageformat.command.exceptions.NjamsInstructionException;
 import com.im.njams.sdk.configuration.entity.ActivityConfiguration;
-import com.im.njams.sdk.configuration.entity.ProcessConfiguration;
-import com.im.njams.sdk.utils.JsonUtils;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -39,27 +36,13 @@ import static org.mockito.Mockito.*;
 
 public class ConfigureExtractProcessorTest {
 
-    private static final String PROCESS_PATH = "TestProcessPath";
-    private static final String ACTIVITY_ID = "TestActivityId";
-    private static String CORRECT_EXTRACT_JSON;
-
-    static {
-        try {
-            CORRECT_EXTRACT_JSON = JsonUtils.serialize(new Extract());
-        } catch (JsonProcessingException e) {
-            e.printStackTrace();
-        }
-    }
-
-    private static final String NO_CORRECT_EXTRACT_JSON = "FailedExtract";
+    private static final Extract CORRECT_EXTRACT_JSON = mock(Extract.class);
 
     private ConfigureExtractProcessor configureExtractProcessor;
 
     private Njams njamsMock;
 
     private ConditionRequestReader readerMock;
-
-    private ProcessConfiguration processConfigurationMock;
 
     private ActivityConfiguration activityConfigurationMock;
 
@@ -68,17 +51,11 @@ public class ConfigureExtractProcessorTest {
         njamsMock = mock(Njams.class);
         configureExtractProcessor = spy(new ConfigureExtractProcessor(njamsMock));
         readerMock = mock(ConditionRequestReader.class);
-        processConfigurationMock = mock(ProcessConfiguration.class);
         activityConfigurationMock = mock(ActivityConfiguration.class);
 
         doReturn(readerMock).when(configureExtractProcessor).getConditionRequestReader();
-        when(readerMock.getProcessPath()).thenReturn(PROCESS_PATH);
-        when(readerMock.getActivityId()).thenReturn(ACTIVITY_ID);
 
-        doReturn(processConfigurationMock).when(configureExtractProcessor)
-                .getOrCreateProcessConfigurationFor(PROCESS_PATH);
-        doReturn(activityConfigurationMock).when(configureExtractProcessor)
-                .getOrCreateActivityConfigurationFromProcessFor(processConfigurationMock, ACTIVITY_ID);
+        doReturn(activityConfigurationMock).when(configureExtractProcessor).getOrCreateActivityCondition();
     }
 
 //GetNeededParametersForProcessing tests
@@ -98,23 +75,26 @@ public class ConfigureExtractProcessorTest {
     public void configureConditionWorks() throws NjamsInstructionException {
         when(readerMock.getExtract()).thenReturn(CORRECT_EXTRACT_JSON);
         configureExtractProcessor.configureCondition();
-        verify(configureExtractProcessor).getOrCreateProcessConfigurationFor(PROCESS_PATH);
-        verify(configureExtractProcessor).getOrCreateActivityConfigurationFromProcessFor(processConfigurationMock, ACTIVITY_ID);
+        verify(configureExtractProcessor).getOrCreateActivityCondition();
         verify(activityConfigurationMock).setExtract(any());
     }
 
     @Test(expected = NjamsInstructionException.class)
     public void configureConditionExtractIsNotARealExtract() throws NjamsInstructionException {
-        when(readerMock.getExtract()).thenReturn(NO_CORRECT_EXTRACT_JSON);
-        configureExtractProcessor.configureCondition();
-        verify(configureExtractProcessor).getOrCreateProcessConfigurationFor(PROCESS_PATH);
-        verify(configureExtractProcessor).getOrCreateActivityConfigurationFromProcessFor(processConfigurationMock, ACTIVITY_ID);
+        doThrow(new NjamsInstructionException("")).when(readerMock).getExtract();
+        try {
+            configureExtractProcessor.configureCondition();
+        } catch (NjamsInstructionException e) {
+            verify(configureExtractProcessor).getOrCreateActivityCondition();
+            verify(activityConfigurationMock, times(0)).setExtract(any());
+            throw e;
+        }
     }
 
 //LogProcessingSuccess test
 
     @Test
-    public void logProcessingTest(){
+    public void logProcessingTest() {
         configureExtractProcessor.logProcessingSuccess();
         verify(readerMock).getProcessPath();
         verify(readerMock).getActivityId();

@@ -24,8 +24,12 @@ import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.api.adapter.messageformat.command.exceptions.NjamsInstructionException;
 import com.im.njams.sdk.configuration.entity.ActivityConfiguration;
 import com.im.njams.sdk.configuration.entity.ProcessConfiguration;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public abstract class ConditionWriterTemplate extends ConditionReaderTemplate {
+
+    private static final Logger LOG = LoggerFactory.getLogger(ConditionWriterTemplate.class);
 
     private static final String UNABLE_TO_SAVE_CONFIGURATION = "Unable to save configuration";
 
@@ -50,22 +54,33 @@ public abstract class ConditionWriterTemplate extends ConditionReaderTemplate {
         }
     }
 
-    public ProcessConfiguration getOrCreateProcessConfigurationFor(String processPath) {
-        ProcessConfiguration process = getClientCondition().getProcessFromConfiguration(processPath);
-        if (process == null) {
-            process = new ProcessConfiguration();
-            getClientCondition().getProcessesFromConfiguration().put(processPath, process);
+    public ProcessConfiguration getOrCreateProcessCondition() {
+        ProcessConfiguration processCondition;
+        try {
+            processCondition = getProcessCondition();
+        } catch (NjamsInstructionException processNotFoundException) {
+            if (LOG.isDebugEnabled()) {
+                LOG.debug(processNotFoundException.getMessage());
+            }
+            processCondition = new ProcessConfiguration();
+            getClientCondition().getProcessesFromConfiguration()
+                    .put(getConditionRequestReader().getProcessPath(), processCondition);
         }
-        return process;
+        return processCondition;
     }
 
-    public ActivityConfiguration getOrCreateActivityConfigurationFromProcessFor(ProcessConfiguration process,
-            String activityId) {
-        ActivityConfiguration activity = process.getActivity(activityId);
-        if (activity == null) {
-            activity = new ActivityConfiguration();
-            process.getActivities().put(activityId, activity);
+    public ActivityConfiguration getOrCreateActivityCondition() {
+        ProcessConfiguration processCondition = getOrCreateProcessCondition();
+        ActivityConfiguration activityCondition;
+        try {
+            activityCondition = getActivityCondition();
+        } catch (NjamsInstructionException activityNotFoundException) {
+            if (LOG.isDebugEnabled()) {
+                LOG.debug(activityNotFoundException.getMessage());
+            }
+            activityCondition = new ActivityConfiguration();
+            processCondition.getActivities().put(getConditionRequestReader().getActivityId(), activityCondition);
         }
-        return activity;
+        return activityCondition;
     }
 }

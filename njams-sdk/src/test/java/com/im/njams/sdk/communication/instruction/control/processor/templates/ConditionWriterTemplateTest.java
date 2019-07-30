@@ -22,6 +22,7 @@ package com.im.njams.sdk.communication.instruction.control.processor.templates;
 
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.adapter.messageformat.command.entity.ConditionParameter;
+import com.im.njams.sdk.adapter.messageformat.command.entity.ConditionRequestReader;
 import com.im.njams.sdk.api.adapter.messageformat.command.exceptions.NjamsInstructionException;
 import com.im.njams.sdk.configuration.entity.ActivityConfiguration;
 import com.im.njams.sdk.configuration.entity.ProcessConfiguration;
@@ -37,9 +38,7 @@ import static org.mockito.Mockito.*;
 public class ConditionWriterTemplateTest {
 
     private static final String PROCESS_PATH_WITH_CONFIG = "TestProcessWithConfig";
-    private static final String PROCESS_PATH_WITHOUT_CONFIG = "TestProcessWithoutConfig";
     private static final String ACTIVITY_ID_WITH_CONFIG = "TestActivityWithConfig";
-    private static final String ACTIVITY_ID_WITHOUT_CONFIG = "TestActivityWithoutConfig";
 
     private ConditionWriterTemplate conditionWriterTemplate;
 
@@ -53,6 +52,8 @@ public class ConditionWriterTemplateTest {
 
     private Map<String, ActivityConfiguration> activitiesMock;
 
+    private NjamsInstructionException njamsInstructionExceptionMock;
+
     @Before
     public void initialize() {
         njamsMock = mock(Njams.class);
@@ -61,6 +62,7 @@ public class ConditionWriterTemplateTest {
         activityConfigurationMock = mock(ActivityConfiguration.class);
         processesMock = mock(Map.class);
         activitiesMock = mock(Map.class);
+        njamsInstructionExceptionMock = mock(NjamsInstructionException.class);
         when(njamsMock.getProcessFromConfiguration(PROCESS_PATH_WITH_CONFIG)).thenReturn(processConfigurationMock);
         when(njamsMock.getProcessesFromConfiguration()).thenReturn(processesMock);
         when(processConfigurationMock.getActivity(ACTIVITY_ID_WITH_CONFIG)).thenReturn(activityConfigurationMock);
@@ -96,18 +98,21 @@ public class ConditionWriterTemplateTest {
 //GetOrCreateProcessConfigurationFor tests
 
     @Test
-    public void getExistingProcessConfiguration() {
-        String processPath = PROCESS_PATH_WITH_CONFIG;
-        ProcessConfiguration returnedProcess = conditionWriterTemplate.getOrCreateProcessConfigurationFor(processPath);
-        verify(njamsMock).getProcessFromConfiguration(processPath);
+    public void getExistingProcessConfiguration() throws NjamsInstructionException {
+        doReturn(processConfigurationMock).when(conditionWriterTemplate).getProcessCondition();
+        ProcessConfiguration returnedProcess = conditionWriterTemplate.getOrCreateProcessCondition();
         assertEquals(processConfigurationMock, returnedProcess);
     }
 
     @Test
-    public void createNewProcessConfigurationBecauseItDoesntExistYet() {
-        String processPath = PROCESS_PATH_WITHOUT_CONFIG;
-        ProcessConfiguration returnedProcess = conditionWriterTemplate.getOrCreateProcessConfigurationFor(processPath);
-        verify(njamsMock).getProcessFromConfiguration(processPath);
+    public void createNewProcessConfigurationBecauseItDoesntExistYet() throws NjamsInstructionException {
+        final String processPath = "TestProcess";
+        ConditionRequestReader reader = mock(ConditionRequestReader.class);
+        when(reader.getProcessPath()).thenReturn(processPath);
+        doReturn(reader).when(conditionWriterTemplate).getConditionRequestReader();
+
+        doThrow(njamsInstructionExceptionMock).when(conditionWriterTemplate).getProcessCondition();
+        ProcessConfiguration returnedProcess = conditionWriterTemplate.getOrCreateProcessCondition();
         verify(njamsMock).getProcessesFromConfiguration();
         verify(processesMock).put(eq(processPath), any());
         assertNotEquals(processConfigurationMock, returnedProcess);
@@ -116,26 +121,26 @@ public class ConditionWriterTemplateTest {
 //GetOrCreateActivityConfigurationFromProcessFor tests
 
     @Test
-    public void getExistingActivityConfiguration() {
-        String activity = ACTIVITY_ID_WITH_CONFIG;
-
-        ActivityConfiguration activityConfiguration = conditionWriterTemplate
-                .getOrCreateActivityConfigurationFromProcessFor(processConfigurationMock, activity);
-        verify(processConfigurationMock).getActivity(activity);
-        assertEquals(activityConfigurationMock, activityConfiguration);
+    public void getExistingActivityConfiguration() throws NjamsInstructionException {
+        doReturn(processConfigurationMock).when(conditionWriterTemplate).getOrCreateProcessCondition();
+        doReturn(activityConfigurationMock).when(conditionWriterTemplate).getActivityCondition();
+        ActivityConfiguration returnedActivity = conditionWriterTemplate.getOrCreateActivityCondition();
+        assertEquals(activityConfigurationMock, returnedActivity);
     }
 
     @Test
-    public void createNewActivityConfigurationForGivenProcess() {
-        String activity = ACTIVITY_ID_WITHOUT_CONFIG;
+    public void createNewActivityConfigurationForGivenProcess() throws NjamsInstructionException {
+        final String activityId = "TestActivity";
+        ConditionRequestReader reader = mock(ConditionRequestReader.class);
+        when(reader.getActivityId()).thenReturn(activityId);
+        doReturn(reader).when(conditionWriterTemplate).getConditionRequestReader();
 
-        ActivityConfiguration activityConfiguration = conditionWriterTemplate
-                .getOrCreateActivityConfigurationFromProcessFor(processConfigurationMock, activity);
-        verify(processConfigurationMock).getActivity(activity);
+        doReturn(processConfigurationMock).when(conditionWriterTemplate).getOrCreateProcessCondition();
+        doThrow(njamsInstructionExceptionMock).when(conditionWriterTemplate).getActivityCondition();
+        ActivityConfiguration returnedActivity = conditionWriterTemplate.getOrCreateActivityCondition();
         verify(processConfigurationMock).getActivities();
-        verify(activitiesMock).put(eq(activity), any());
-
-        assertNotEquals(activityConfigurationMock, activityConfiguration);
+        verify(activitiesMock).put(eq(activityId), any());
+        assertNotEquals(processConfigurationMock, returnedActivity);
     }
 
 //Private helper classes

@@ -27,6 +27,8 @@ import com.im.njams.sdk.adapter.messageformat.command.entity.ConditionRequestRea
 import com.im.njams.sdk.adapter.messageformat.command.entity.ConditionResponseWriter;
 import com.im.njams.sdk.api.adapter.messageformat.command.entity.ResponseWriter;
 import com.im.njams.sdk.api.adapter.messageformat.command.exceptions.NjamsInstructionException;
+import com.im.njams.sdk.configuration.entity.ActivityConfiguration;
+import com.im.njams.sdk.configuration.entity.ProcessConfiguration;
 import com.im.njams.sdk.utils.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -140,5 +142,29 @@ public abstract class ConditionReaderTemplate extends InstructionProcessorTempla
 
     public ConditionResponseWriter getConditionResponseWriter() {
         return getInstruction().getResponseWriter();
+    }
+
+    public ProcessConfiguration getProcessCondition() throws NjamsInstructionException {
+        final String processPath = getConditionRequestReader().getProcessPath();
+
+        ProcessConfiguration process = getClientCondition().getProcessFromConfiguration(processPath);
+        if (process == null) {
+            throw new NjamsInstructionException("Condition for process " + processPath + " not found");
+        }
+        return process;
+    }
+
+    public ActivityConfiguration getActivityCondition() throws NjamsInstructionException {
+        final ConditionRequestReader reader = getConditionRequestReader();
+        final String processPath = reader.getProcessPath();
+        final String activityId = reader.getActivityId();
+
+        ProcessConfiguration processConfiguration = getProcessCondition();
+        ActivityConfiguration activity = processConfiguration.getActivity(activityId);
+
+        if (activity == null) {
+            throw new NjamsInstructionException("Condition for activity " + activityId + " on process " + processPath + " not found");
+        }
+        return activity;
     }
 }
