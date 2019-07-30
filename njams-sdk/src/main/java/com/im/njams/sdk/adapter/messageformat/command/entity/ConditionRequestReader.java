@@ -58,6 +58,14 @@ public class ConditionRequestReader extends DefaultRequestReader {
         return parse(getParamByConstant(ConditionParameter.EXTRACT), Extract.class);
     }
 
+    public String getEngineWideRecording(){
+        return getParamByConstant(ConditionParameter.ENGINE_WIDE_RECORDING);
+    }
+
+    public String getProcessRecording(){
+        return getParamByConstant(ConditionParameter.PROCESS_RECORDING);
+    }
+
     public List<String> searchForMissingParameters(ConditionParameter[] parametersToSearchFor) {
         return Arrays.stream(parametersToSearchFor)
                 .filter(neededParameter -> StringUtils.isBlank(getParamByConstant(neededParameter)))

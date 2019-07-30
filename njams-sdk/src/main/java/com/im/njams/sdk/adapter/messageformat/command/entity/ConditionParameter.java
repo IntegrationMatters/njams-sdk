@@ -26,7 +26,9 @@ public enum ConditionParameter{
     EXTRACT("extract"),
     LOG_LEVEL("logLevel"),
     LOG_MODE("logMode"),
-    EXCLUDE("exclude");
+    EXCLUDE("exclude"),
+    ENGINE_WIDE_RECORDING("EngineWideRecording"),
+    PROCESS_RECORDING("Record");
 
     private String paramKey;
 

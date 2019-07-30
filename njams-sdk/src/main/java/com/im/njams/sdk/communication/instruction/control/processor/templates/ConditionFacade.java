@@ -54,6 +54,10 @@ public class ConditionFacade {
         this.activityId = activityId;
     }
 
+    public Njams getCondition(){
+        return condition;
+    }
+
     public ProcessConfiguration getProcessCondition() throws NjamsInstructionException {
         ProcessConfiguration process = condition.getProcessFromConfiguration(processPath);
         if (process == null) {
