@@ -42,7 +42,7 @@ public abstract class ConditionWriterTemplate extends ConditionReaderTemplate {
 
     protected abstract void configureCondition() throws NjamsInstructionException;
 
-    private void saveConfiguration() throws NjamsInstructionException {
+    void saveConfiguration() throws NjamsInstructionException {
         try {
             getClientCondition().saveConfigurationFromMemoryToStorage();
         } catch (final RuntimeException e) {
