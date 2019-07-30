@@ -62,7 +62,7 @@ public class ConfigureExtractProcessor extends ConditionWriterTemplate {
     protected void logProcessingSuccess() {
         if (LOG.isDebugEnabled()) {
             ConditionRequestReader requestReader = getConditionRequestReader();
-            LOG.debug("Configured extract for {}#{}", requestReader.getProcessPath(), requestReader.getActivityId());
+            LOG.debug("Configured Extract for {}#{}.", requestReader.getProcessPath(), requestReader.getActivityId());
         }
     }
 }

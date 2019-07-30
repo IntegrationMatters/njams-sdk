@@ -87,7 +87,7 @@ public class GetLogLevelProcessor extends ConditionReaderTemplate {
     protected void logProcessingSuccess() {
         if (LOG.isDebugEnabled()) {
             ConditionRequestReader requestReader = getConditionRequestReader();
-            LOG.debug("Return LogLevel for {}", requestReader.getProcessPath());
+            LOG.debug("Get LogLevel from {}.", requestReader.getProcessPath());
         }
     }
 }

@@ -58,7 +58,7 @@ public class DeleteExtractProcessor extends ConditionWriterTemplate {
     protected void logProcessingSuccess() {
         if (LOG.isDebugEnabled()) {
             ConditionRequestReader requestReader = getConditionRequestReader();
-            LOG.debug("Deleted extract for {}#{}", requestReader.getProcessPath(), requestReader.getActivityId());
+            LOG.debug("Deleted Extract for {}#{}.", requestReader.getProcessPath(), requestReader.getActivityId());
         }
     }
 }

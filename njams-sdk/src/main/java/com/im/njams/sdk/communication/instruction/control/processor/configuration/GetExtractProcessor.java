@@ -58,7 +58,7 @@ public class GetExtractProcessor extends ConditionReaderTemplate {
     protected void logProcessingSuccess() {
         if (LOG.isDebugEnabled()) {
             ConditionRequestReader requestReader = getConditionRequestReader();
-            LOG.debug("Get Extract for {}#{}", requestReader.getProcessPath(), requestReader.getActivityId());
+            LOG.debug("Get Extract from {}#{}.", requestReader.getProcessPath(), requestReader.getActivityId());
         }
     }
 }

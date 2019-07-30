@@ -21,25 +21,38 @@ package com.im.njams.sdk.communication.instruction.control.processor.configurati
 
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.LogMode;
 import com.im.njams.sdk.Njams;
+import com.im.njams.sdk.adapter.messageformat.command.entity.ConditionParameter;
+import com.im.njams.sdk.communication.instruction.control.processor.templates.ConditionReaderTemplate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
  * Todo: Write Doc
  */
-public class GetLogModeProcessor extends AbstractConfigurationProcessor {
+public class GetLogModeProcessor extends ConditionReaderTemplate {
 
-    private static final Logger LOG = LoggerFactory.getLogger(
-            GetLogModeProcessor.class);
+    private static final Logger LOG = LoggerFactory.getLogger(GetLogModeProcessor.class);
 
     public GetLogModeProcessor(Njams njams) {
         super(njams);
     }
 
     @Override
-    protected void processInstruction(InstructionSupport instructionSupport) {
-        final LogMode savedLogMode = njams.getLogModeFromConfiguration();
-        instructionSupport.setParameter(InstructionSupport.LOG_MODE, savedLogMode);
-        LOG.debug("Return LogMode: {}", savedLogMode);
+    protected ConditionParameter[] getNeededParametersForProcessing() {
+        return new ConditionParameter[0];
+    }
+
+    @Override
+    protected void processConditionInstruction() {
+        final LogMode logMode = getClientCondition().getLogMode();
+
+        getConditionResponseWriter().setLogMode(logMode);
+    }
+
+    @Override
+    protected void logProcessingSuccess() {
+        if (LOG.isDebugEnabled()) {
+            LOG.debug("Get LogMode.");
+        }
     }
 }
