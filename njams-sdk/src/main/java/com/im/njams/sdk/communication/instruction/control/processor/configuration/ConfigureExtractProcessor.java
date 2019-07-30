@@ -67,9 +67,9 @@ public class ConfigureExtractProcessor extends ConditionWriterTemplate {
         try {
             Extract extract = JsonUtils.parse(requestReader.getExtract(), Extract.class);
             activityConfiguration.setExtract(extract);
-        } catch (final IOException exceptionWhileDeserializingExtract) {
+        } catch (final IOException exceptionWhileDeserializeExtract) {
             throw new NjamsInstructionException(UNABLE_TO_DESERIALZE_EXTRACT_MESSAGE,
-                    exceptionWhileDeserializingExtract);
+                    exceptionWhileDeserializeExtract);
         }
     }
 
@@ -77,7 +77,7 @@ public class ConfigureExtractProcessor extends ConditionWriterTemplate {
     protected void logProcessingSuccess() {
         if (LOG.isDebugEnabled()) {
             ConditionRequestReader requestReader = getConditionRequestReader();
-            LOG.debug("Configured extract for {}:{}", requestReader.getProcessPath(), requestReader.getProcessPath());
+            LOG.debug("Configured extract for {}:{}", requestReader.getProcessPath(), requestReader.getActivityId());
         }
     }
 }

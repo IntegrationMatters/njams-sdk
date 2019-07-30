@@ -50,7 +50,7 @@ public abstract class ConditionWriterTemplate extends ConditionReaderTemplate {
         }
     }
 
-    protected ProcessConfiguration getOrCreateProcessConfigurationFor(String processPath) {
+    public ProcessConfiguration getOrCreateProcessConfigurationFor(String processPath) {
         ProcessConfiguration process = getClientCondition().getProcessFromConfiguration(processPath);
         if (process == null) {
             process = new ProcessConfiguration();
@@ -59,7 +59,7 @@ public abstract class ConditionWriterTemplate extends ConditionReaderTemplate {
         return process;
     }
 
-    protected ActivityConfiguration getOrCreateActivityConfigurationFromProcessFor(ProcessConfiguration process,
+    public ActivityConfiguration getOrCreateActivityConfigurationFromProcessFor(ProcessConfiguration process,
             String activityId) {
         ActivityConfiguration activity = process.getActivity(activityId);
         if (activity == null) {
