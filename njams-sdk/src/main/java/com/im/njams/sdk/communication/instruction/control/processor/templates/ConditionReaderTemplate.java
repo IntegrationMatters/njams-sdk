@@ -31,23 +31,17 @@ import com.im.njams.sdk.utils.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import static com.im.njams.sdk.adapter.messageformat.command.entity.DefaultRequestReader.EMPTY_STRING;
-import static com.im.njams.sdk.utils.StringUtils.isBlank;
 
 public abstract class ConditionReaderTemplate extends InstructionProcessorTemplate<ConditionInstruction> {
+
+    private static final Logger LOG = LoggerFactory.getLogger(ConditionReaderTemplate.class);
 
     static final String DEFAULT_SUCCESS_MESSAGE = "Success";
 
     private Njams njams;
-
-    private List<String> missingParameters;
-
-    private ConditionRequestReader reader;
-
-    private ConditionResponseWriter writer;
 
     public ConditionReaderTemplate(Njams njams) {
         this.njams = njams;
@@ -55,68 +49,85 @@ public abstract class ConditionReaderTemplate extends InstructionProcessorTempla
 
     @Override
     public void process() {
-        clear();
 
-        setDefaultSuccessResponse();
+        List<String> missingParameters = fillMissingParametersList();
 
-        if (wereNeededRequestParametersSet()) {
+        if (wereAllNeededRequestParametersSet(missingParameters)) {
             try {
                 processConditionInstruction();
+                setDefaultSuccessResponse();
                 logProcessingSuccess();
             } catch (final NjamsInstructionException ex) {
-                setProcessingDidntWorkResponse(ex);
+                String processingExceptionMessage = getProcessingDidntWorkMessage(ex);
+                setWarningResponse(processingExceptionMessage);
                 logProcessingThrewException(ex);
             }
         } else {
-            setInvalidParametersResponse();
+            String invalidParametersMessage = GetInvalidParametersMessage(missingParameters);
+            setWarningResponse(invalidParametersMessage);
+            logInvalidParameters(invalidParametersMessage);
         }
     }
 
-    private void clear() {
-        missingParameters = new ArrayList<>();
-        reader = getInstruction().getRequestReader();
-        writer = getInstruction().getResponseWriter();
-    }
-
-    void setDefaultSuccessResponse() {
-        if (writer.isEmpty()) {
-            writer.setResultCodeAndResultMessage(ResponseWriter.ResultCode.SUCCESS, DEFAULT_SUCCESS_MESSAGE);
-        }
-    }
-
-    boolean wereNeededRequestParametersSet() {
+    List<String> fillMissingParametersList() {
         ConditionParameter[] neededParametersForProcessing = getNeededParametersForProcessing();
-        missingParameters = reader.searchForMissingParameters(neededParametersForProcessing);
-        return missingParameters.isEmpty();
+        return getConditionRequestReader().searchForMissingParameters(neededParametersForProcessing);
     }
 
     protected abstract ConditionParameter[] getNeededParametersForProcessing();
 
+    boolean wereAllNeededRequestParametersSet(List<String> missingParameters) {
+        return missingParameters.isEmpty();
+    }
+
     protected abstract void processConditionInstruction() throws NjamsInstructionException;
+
+    void setDefaultSuccessResponse() {
+        if (getConditionResponseWriter().isEmpty()) {
+            getConditionResponseWriter()
+                    .setResultCodeAndResultMessage(ResponseWriter.ResultCode.SUCCESS, DEFAULT_SUCCESS_MESSAGE);
+        }
+    }
 
     protected abstract void logProcessingSuccess();
 
-    void setProcessingDidntWorkResponse(NjamsInstructionException ex) {
-        final Throwable sourceException = ex.getCause();
-        String sourceExceptionMessage = EMPTY_STRING;
-        if (sourceException != null) {
-            sourceExceptionMessage = sourceException.getMessage();
-        }
-        setWarningResponse(ex.getMessage() + ": " + sourceExceptionMessage);
+    String getProcessingDidntWorkMessage(NjamsInstructionException ex) {
+        return ex.getMessage().concat(extractCauseExceptionMessage(ex.getCause()));
     }
 
-    private void setWarningResponse(String warningMessage) {
-        writer.setResultCodeAndResultMessage(ResponseWriter.ResultCode.WARNING, warningMessage);
+    void setWarningResponse(String warningMessage) {
+        getConditionResponseWriter().setResultCodeAndResultMessage(ResponseWriter.ResultCode.WARNING, warningMessage);
+    }
+
+    private String extractCauseExceptionMessage(Throwable sourceException) {
+        String resultMessageToReturn = EMPTY_STRING;
+        if (sourceException != null) {
+            String extractedMessage = sourceException.getMessage();
+            if (StringUtils.isNotBlank(extractedMessage)) {
+                resultMessageToReturn = ": " + extractedMessage;
+            }
+        }
+        return resultMessageToReturn;
     }
 
     void logProcessingThrewException(NjamsInstructionException ex) {
-        ConditionInstructionExceptionLogger logger = new ConditionInstructionExceptionLogger(reader.getCommand(),
-                reader.getProcessPath(), reader.getActivityId(), ex);
+        final ConditionRequestReader conditionRequestReader = getConditionRequestReader();
+        ConditionInstructionExceptionLogger logger = new ConditionInstructionExceptionLogger(
+                conditionRequestReader.getCommand(), conditionRequestReader.getProcessPath(),
+                conditionRequestReader.getActivityId(), ex);
         logger.log();
     }
 
-    void setInvalidParametersResponse() {
-        setWarningResponse("missing parameter(s): " + missingParameters);
+    String GetInvalidParametersMessage(List<String> notEmptyMissingParameters) {
+        String invalidParameterMessage = new MissingParameterMessageBuilder(notEmptyMissingParameters).build();
+
+        return invalidParameterMessage;
+    }
+
+    void logInvalidParameters(String invalidParametersMessage) {
+        if (LOG.isWarnEnabled()) {
+            LOG.warn(invalidParametersMessage);
+        }
     }
 
     public Njams getClientCondition() {
@@ -129,61 +140,5 @@ public abstract class ConditionReaderTemplate extends InstructionProcessorTempla
 
     public ConditionResponseWriter getConditionResponseWriter() {
         return getInstruction().getResponseWriter();
-    }
-
-    private static class ConditionInstructionExceptionLogger {
-
-        private static final Logger LOG = LoggerFactory.getLogger(ConditionInstructionExceptionLogger.class);
-
-        private String commandToLog;
-        private String processPathToLog;
-        private String activityIdToLog;
-        private String exceptionMessageToLog;
-        private Throwable throwableToLog;
-
-        public ConditionInstructionExceptionLogger(String command, String processPath, String activityId,
-                NjamsInstructionException ex) {
-            commandToLog = command;
-            processPathToLog = processPath;
-            activityIdToLog = activityId;
-            if (ex != null) {
-                exceptionMessageToLog = ex.getMessage();
-                throwableToLog = ex.getCause();
-            }
-        }
-
-        public void log() {
-            if (isBlank(commandToLog)) {
-                LOG.error("Instruction is invalid");
-            } else {
-                String loggableMessage = createLoggableMessage();
-                if (throwableToLog == null) {
-                    LOG.error(loggableMessage);
-                } else {
-                    LOG.error(loggableMessage, throwableToLog);
-                }
-            }
-        }
-
-        private String createLoggableMessage() {
-            StringBuilder builder = new StringBuilder();
-            builder.append("Failed to execute command: [").append(commandToLog).append("]");
-            if (isNotBlank(processPathToLog)) {
-                builder.append(" on process: ").append(processPathToLog);
-                if (isNotBlank(activityIdToLog)) {
-                    builder.append("#").append(activityIdToLog);
-                }
-                builder.append(".");
-            }
-            if (isNotBlank(exceptionMessageToLog)) {
-                builder.append(" Reason: ").append(exceptionMessageToLog);
-            }
-            return builder.toString();
-        }
-
-
-        private boolean isNotBlank(String paramToCheckIfNullOrEmpty) {
-            return StringUtils.isNotBlank(paramToCheckIfNullOrEmpty);
-        }
     }
 }
