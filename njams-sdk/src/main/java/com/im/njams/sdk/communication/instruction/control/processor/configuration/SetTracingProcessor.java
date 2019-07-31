@@ -84,7 +84,7 @@ public class SetTracingProcessor extends ConditionWriterTemplate {
         return endTime;
     }
 
-    private void updateTracePoint() throws NjamsInstructionException {
+    void updateTracePoint() throws NjamsInstructionException {
         TracepointExt tracePointToSet = createTracePointFromRequest();
 
         ActivityConfiguration activityCondition = conditionFacade.getOrCreateActivityCondition();
@@ -125,7 +125,7 @@ public class SetTracingProcessor extends ConditionWriterTemplate {
         return requestReader.getDeepTrace();
     }
 
-    private void deleteTracePoint() throws NjamsInstructionException {
+    void deleteTracePoint() throws NjamsInstructionException {
 
         ActivityConfiguration activityCondition = conditionFacade.getActivityCondition();
 

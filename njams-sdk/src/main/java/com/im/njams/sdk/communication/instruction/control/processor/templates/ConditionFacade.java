@@ -28,12 +28,8 @@ import com.im.njams.sdk.api.adapter.messageformat.command.exceptions.NjamsInstru
 import com.im.njams.sdk.configuration.entity.ActivityConfiguration;
 import com.im.njams.sdk.configuration.entity.ProcessConfiguration;
 import com.im.njams.sdk.configuration.entity.TracepointExt;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class ConditionFacade {
-
-    private static final Logger LOG = LoggerFactory.getLogger(ConditionFacade.class);
 
     private static final String UNABLE_TO_SAVE_CONFIGURATION = "Unable to save configuration";
 
