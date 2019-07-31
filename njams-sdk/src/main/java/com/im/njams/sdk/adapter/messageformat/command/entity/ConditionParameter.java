@@ -27,8 +27,13 @@ public enum ConditionParameter{
     LOG_LEVEL("logLevel"),
     LOG_MODE("logMode"),
     EXCLUDE("exclude"),
+    START_TIME("starttime"),
+    END_TIME("endtime"),
+    ITERATIONS("iterations"),
+    DEEP_TRACE("deepTrace"),
     ENGINE_WIDE_RECORDING("EngineWideRecording"),
     PROCESS_RECORDING("Record");
+
 
     private String paramKey;
 

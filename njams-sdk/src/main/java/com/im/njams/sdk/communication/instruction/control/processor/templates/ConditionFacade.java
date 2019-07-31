@@ -27,6 +27,7 @@ import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.api.adapter.messageformat.command.exceptions.NjamsInstructionException;
 import com.im.njams.sdk.configuration.entity.ActivityConfiguration;
 import com.im.njams.sdk.configuration.entity.ProcessConfiguration;
+import com.im.njams.sdk.configuration.entity.TracepointExt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -86,6 +87,17 @@ public class ConditionFacade {
                     "Extract for activity \"" + activityId + "\" on process \"" + processPath + "\" not found");
         }
         return extract;
+    }
+
+    public TracepointExt getTracePoint() throws NjamsInstructionException {
+        ActivityConfiguration activityCondition = getActivityCondition();
+
+        TracepointExt tracePoint = activityCondition.getTracepoint();
+        if (tracePoint == null) {
+            throw new NjamsInstructionException(
+                    "Tracepoint for activity \"" + activityId + "\" on process \"" + processPath + "\" not found");
+        }
+        return tracePoint;
     }
 
     public LogLevel getLogLevel() throws NjamsInstructionException {

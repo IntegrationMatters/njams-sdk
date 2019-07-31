@@ -27,7 +27,10 @@ import com.faizsiegeln.njams.messageformat.v4.projectmessage.LogMode;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.im.njams.sdk.api.adapter.messageformat.command.exceptions.NjamsInstructionException;
+import com.im.njams.sdk.common.DateTimeUtility;
 import com.im.njams.sdk.common.JsonSerializerFactory;
+
+import java.time.LocalDateTime;
 
 public class ConditionResponseWriter extends DefaultResponseWriter<ConditionResponseWriter> {
 
@@ -63,5 +66,21 @@ public class ConditionResponseWriter extends DefaultResponseWriter<ConditionResp
 
     public ConditionResponseWriter setExcluded(boolean isExcluded){
         return putParameter(ConditionParameter.EXCLUDE.getParamKey(), String.valueOf(isExcluded));
+    }
+
+    public ConditionResponseWriter setStartTime(LocalDateTime startTime){
+        return putParameter(ConditionParameter.START_TIME.getParamKey(), DateTimeUtility.toString(startTime));
+    }
+
+    public ConditionResponseWriter setEndTime(LocalDateTime endTime){
+        return putParameter(ConditionParameter.END_TIME.getParamKey(), DateTimeUtility.toString(endTime));
+    }
+
+    public ConditionResponseWriter setIterations(int iterations){
+        return putParameter(ConditionParameter.ITERATIONS.getParamKey(), String.valueOf(iterations));
+    }
+
+    public ConditionResponseWriter setDeepTrace(Boolean deepTrace){
+        return putParameter(ConditionParameter.DEEP_TRACE.getParamKey(), String.valueOf(deepTrace));
     }
 }

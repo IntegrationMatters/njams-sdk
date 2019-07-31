@@ -20,51 +20,49 @@
 package com.im.njams.sdk.communication.instruction.control.processor.configuration;
 
 import com.im.njams.sdk.Njams;
-import com.im.njams.sdk.configuration.entity.ActivityConfiguration;
-import com.im.njams.sdk.configuration.entity.ProcessConfiguration;
+import com.im.njams.sdk.adapter.messageformat.command.entity.ConditionParameter;
+import com.im.njams.sdk.adapter.messageformat.command.entity.ConditionRequestReader;
+import com.im.njams.sdk.adapter.messageformat.command.entity.ConditionResponseWriter;
+import com.im.njams.sdk.api.adapter.messageformat.command.exceptions.NjamsInstructionException;
+import com.im.njams.sdk.communication.instruction.control.processor.templates.ConditionFacade;
+import com.im.njams.sdk.communication.instruction.control.processor.templates.ConditionReaderTemplate;
 import com.im.njams.sdk.configuration.entity.TracepointExt;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Todo: Write Doc
  */
-public class GetTracingProcessor extends AbstractConfigurationProcessor {
+public class GetTracingProcessor extends ConditionReaderTemplate {
+
+    private static final Logger LOG = LoggerFactory.getLogger(GetTracingProcessor.class);
+
+    private static final ConditionParameter[] neededParameter =
+            new ConditionParameter[]{ConditionParameter.PROCESS_PATH, ConditionParameter.ACTIVITY_ID};
 
     public GetTracingProcessor(Njams njams) {
         super(njams);
     }
 
     @Override
-    protected void processInstruction(InstructionSupport instructionSupport) {
-        if (!instructionSupport.validate(InstructionSupport.PROCESS_PATH, InstructionSupport.ACTIVITY_ID)) {
-            return;
-        }
-        //fetch parameters
-        final String processPath = instructionSupport.getProcessPath();
-        final String activityId = instructionSupport.getActivityId();
+    protected ConditionParameter[] getNeededParametersForProcessing() {
+        return neededParameter;
+    }
 
-        //execute action
-        final ProcessConfiguration process = njams.getProcessFromConfiguration(processPath);
-        if (process == null) {
-            instructionSupport.error("Process " + processPath + " not found");
-            return;
-        }
-        ActivityConfiguration activity = null;
-        activity = process.getActivity(activityId);
-        if (activity == null) {
-            instructionSupport.error("Activity " + activityId + " for process " + processPath + " not found");
-            return;
-        }
-        TracepointExt tracepoint = null;
-        tracepoint = activity.getTracepoint();
-        if (tracepoint == null) {
-            instructionSupport.error("Tracepoint for activity " + activityId + " not found");
-            return;
-        }
+    @Override
+    protected void processConditionInstruction() throws NjamsInstructionException {
+        ConditionFacade clientCondition = getClientCondition();
+        TracepointExt tracePoint = clientCondition.getTracePoint();
 
-        instructionSupport.setParameter("starttime", tracepoint.getStarttime())
-                .setParameter("endtime", tracepoint.getEndtime())
-                .setParameter("iterations", tracepoint.getIterations())
-                .setParameter("deepTrace", tracepoint.isDeeptrace());
+        ConditionResponseWriter conditionResponseWriter = getConditionResponseWriter();
+        conditionResponseWriter.setStartTime(tracePoint.getStarttime()).setEndTime(tracePoint.getEndtime()).setIterations(tracePoint.getIterations()).setDeepTrace(tracePoint.isDeeptrace());
+    }
 
+    @Override
+    protected void logProcessingSuccess() {
+        if (LOG.isDebugEnabled()) {
+            ConditionRequestReader requestReader = getConditionRequestReader();
+            LOG.debug("Get Tracepoint from {}#{}.", requestReader.getProcessPath(), requestReader.getActivityId());
+        }
     }
 }
