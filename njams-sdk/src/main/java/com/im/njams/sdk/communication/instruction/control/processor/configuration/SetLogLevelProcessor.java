@@ -23,7 +23,6 @@ import com.faizsiegeln.njams.messageformat.v4.projectmessage.LogLevel;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.LogMode;
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.adapter.messageformat.command.entity.ConditionParameter;
-import com.im.njams.sdk.adapter.messageformat.command.entity.ConditionRequestReader;
 import com.im.njams.sdk.api.adapter.messageformat.command.exceptions.NjamsInstructionException;
 import com.im.njams.sdk.communication.instruction.control.processor.templates.ConditionWriterTemplate;
 import com.im.njams.sdk.configuration.entity.ProcessConfiguration;
@@ -44,68 +43,61 @@ public class SetLogLevelProcessor extends ConditionWriterTemplate {
         super(njams);
     }
 
+    private LogLevel logLevelToSet;
+
+    private boolean excludedToSet;
+
+    private LogMode logModeToSet;
+
     @Override
-    protected ConditionParameter[] getNeededParametersForProcessing() {
+    protected ConditionParameter[] getEssentialParametersForProcessing() {
         return neededParameter;
     }
 
     @Override
     protected void configureCondition() throws NjamsInstructionException {
 
-        setLogLevelToCondition();
+        logLevelToSet = getLogLevelFromRequest();
+        excludedToSet = getExcludedFromRequest();
+        logModeToSet = getLogModeFromRequest();
 
-        setExcludedToCondition();
+        setExtractedParametersToProcessCondition();
 
         setLogModeToCondition();
-
     }
 
-    private void setLogLevelToCondition() throws NjamsInstructionException {
-
-        LogLevel logLevelToSet = getConditionRequestReader().getLogLevel();
-
-        ProcessConfiguration processCondition = getClientCondition().getOrCreateProcessCondition();
-
+    private void setExtractedParametersToProcessCondition() {
+        ProcessConfiguration processCondition = conditionFacade.getOrCreateProcessCondition();
         processCondition.setLogLevel(logLevelToSet);
-
+        processCondition.setExclude(excludedToSet);
     }
 
-    private void setExcludedToCondition() {
+    private LogLevel getLogLevelFromRequest() throws NjamsInstructionException {
+        return requestReader.getLogLevel();
+    }
 
-        boolean isExclude = getConditionRequestReader().getExcluded();
+    private boolean getExcludedFromRequest() {
+        return requestReader.getExcluded();
+    }
 
-        ProcessConfiguration processCondition = getClientCondition().getOrCreateProcessCondition();
-
-        processCondition.setExclude(isExclude);
+    private LogMode getLogModeFromRequest() {
+        try {
+            return requestReader.getLogMode();
+        } catch (NjamsInstructionException e) {
+            return null;
+        }
     }
 
     private void setLogModeToCondition() {
-
-        LogMode optionalLogMode = getLogMode();
-
-        if (optionalLogMode != null) {
-
-            Njams condition = getClientCondition().getCondition();
-
-            condition.setLogModeToConfiguration(optionalLogMode);
+        if (logModeToSet != null) {
+            conditionFacade.getCondition().setLogModeToConfiguration(logModeToSet);
 
         }
-    }
-
-    private LogMode getLogMode() {
-        LogMode toReturn = null;
-        try {
-            toReturn = getConditionRequestReader().getLogMode();
-        } catch (NjamsInstructionException e) {
-            //Do nothing
-        }
-        return toReturn;
     }
 
     @Override
     protected void logProcessingSuccess() {
         if (LOG.isDebugEnabled()) {
-            ConditionRequestReader requestReader = getConditionRequestReader();
             LOG.debug("Set LogLevel for {}.", requestReader.getProcessPath());
         }
     }

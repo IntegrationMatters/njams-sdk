@@ -22,7 +22,6 @@ package com.im.njams.sdk.communication.instruction.control.processor.configurati
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.Extract;
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.adapter.messageformat.command.entity.ConditionParameter;
-import com.im.njams.sdk.adapter.messageformat.command.entity.ConditionRequestReader;
 import com.im.njams.sdk.api.adapter.messageformat.command.exceptions.NjamsInstructionException;
 import com.im.njams.sdk.communication.instruction.control.processor.templates.ConditionReaderTemplate;
 import org.slf4j.Logger;
@@ -43,21 +42,20 @@ public class GetExtractProcessor extends ConditionReaderTemplate {
     }
 
     @Override
-    protected ConditionParameter[] getNeededParametersForProcessing() {
+    protected ConditionParameter[] getEssentialParametersForProcessing() {
         return neededParameter;
     }
 
     @Override
     protected void processConditionInstruction() throws NjamsInstructionException {
-        Extract extract = getClientCondition().getExtract();
+        Extract extract = conditionFacade.getExtract();
 
-        getConditionResponseWriter().setExtract(extract);
+        responseWriter.setExtract(extract);
     }
 
     @Override
     protected void logProcessingSuccess() {
         if (LOG.isDebugEnabled()) {
-            ConditionRequestReader requestReader = getConditionRequestReader();
             LOG.debug("Get Extract from {}#{}.", requestReader.getProcessPath(), requestReader.getActivityId());
         }
     }

@@ -39,9 +39,15 @@ public abstract class ConditionReaderTemplate extends InstructionProcessorTempla
 
     private static final Logger LOG = LoggerFactory.getLogger(ConditionReaderTemplate.class);
 
+    protected static final ConditionParameter[] NO_ESSENTIAL_PARAMETERS = new ConditionParameter[0];
+
     static final String DEFAULT_SUCCESS_MESSAGE = "Success";
 
-    private final ConditionFacade conditionFacade;
+    protected final ConditionFacade conditionFacade;
+
+    protected ConditionRequestReader requestReader;
+
+    protected ConditionResponseWriter responseWriter;
 
     public ConditionReaderTemplate(Njams njams) {
         this.conditionFacade = new ConditionFacade(njams);
@@ -49,6 +55,9 @@ public abstract class ConditionReaderTemplate extends InstructionProcessorTempla
 
     @Override
     public void process() {
+
+        setReaderAndWriter();
+
         List<String> missingParameters = fillMissingParametersList();
 
         if (wereAllNeededRequestParametersSet(missingParameters)) {
@@ -69,27 +78,30 @@ public abstract class ConditionReaderTemplate extends InstructionProcessorTempla
         }
     }
 
-    List<String> fillMissingParametersList() {
-        ConditionParameter[] neededParametersForProcessing = getNeededParametersForProcessing();
-        return getConditionRequestReader().searchForMissingParameters(neededParametersForProcessing);
+    void setReaderAndWriter() {
+        requestReader = getInstruction().getRequestReader();
+        responseWriter = getInstruction().getResponseWriter();
     }
 
-    protected abstract ConditionParameter[] getNeededParametersForProcessing();
+    List<String> fillMissingParametersList() {
+        ConditionParameter[] neededParametersForProcessing = getEssentialParametersForProcessing();
+        return requestReader.searchForMissingParameters(neededParametersForProcessing);
+    }
+
+    protected abstract ConditionParameter[] getEssentialParametersForProcessing();
 
     boolean wereAllNeededRequestParametersSet(List<String> missingParameters) {
         return missingParameters.isEmpty();
     }
 
     void resetConditionFacade() {
-        ConditionRequestReader reader = getConditionRequestReader();
-        conditionFacade.setProcessPath(reader.getProcessPath());
-        conditionFacade.setActivityId(reader.getActivityId());
+        conditionFacade.setProcessPath(requestReader.getProcessPath());
+        conditionFacade.setActivityId(requestReader.getActivityId());
     }
 
     void setDefaultSuccessResponse() {
-        if (getConditionResponseWriter().isEmpty()) {
-            getConditionResponseWriter()
-                    .setResultCodeAndResultMessage(ResponseWriter.ResultCode.SUCCESS, DEFAULT_SUCCESS_MESSAGE);
+        if (responseWriter.isEmpty()) {
+            responseWriter.setResultCodeAndResultMessage(ResponseWriter.ResultCode.SUCCESS, DEFAULT_SUCCESS_MESSAGE);
         }
     }
 
@@ -102,7 +114,7 @@ public abstract class ConditionReaderTemplate extends InstructionProcessorTempla
     }
 
     void setWarningResponse(String warningMessage) {
-        getConditionResponseWriter().setResultCodeAndResultMessage(ResponseWriter.ResultCode.WARNING, warningMessage);
+        responseWriter.setResultCodeAndResultMessage(ResponseWriter.ResultCode.WARNING, warningMessage);
     }
 
     private String extractCauseExceptionMessage(Throwable sourceException) {
@@ -117,10 +129,9 @@ public abstract class ConditionReaderTemplate extends InstructionProcessorTempla
     }
 
     void logProcessingThrewException(NjamsInstructionException ex) {
-        final ConditionRequestReader conditionRequestReader = getConditionRequestReader();
         ConditionInstructionExceptionLogger logger = new ConditionInstructionExceptionLogger(
-                conditionRequestReader.getCommand(), conditionRequestReader.getProcessPath(),
-                conditionRequestReader.getActivityId(), ex);
+                requestReader.getCommand(), requestReader.getProcessPath(),
+                requestReader.getActivityId(), ex);
         logger.log();
     }
 
@@ -134,17 +145,5 @@ public abstract class ConditionReaderTemplate extends InstructionProcessorTempla
         if (LOG.isWarnEnabled()) {
             LOG.warn(invalidParametersMessage);
         }
-    }
-
-    public ConditionFacade getClientCondition() {
-        return conditionFacade;
-    }
-
-    public ConditionRequestReader getConditionRequestReader() {
-        return getInstruction().getRequestReader();
-    }
-
-    public ConditionResponseWriter getConditionResponseWriter() {
-        return getInstruction().getResponseWriter();
     }
 }

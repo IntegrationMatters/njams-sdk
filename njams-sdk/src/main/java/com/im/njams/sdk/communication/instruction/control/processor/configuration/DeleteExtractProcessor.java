@@ -21,7 +21,6 @@ package com.im.njams.sdk.communication.instruction.control.processor.configurati
 
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.adapter.messageformat.command.entity.ConditionParameter;
-import com.im.njams.sdk.adapter.messageformat.command.entity.ConditionRequestReader;
 import com.im.njams.sdk.api.adapter.messageformat.command.exceptions.NjamsInstructionException;
 import com.im.njams.sdk.communication.instruction.control.processor.templates.ConditionWriterTemplate;
 import com.im.njams.sdk.configuration.entity.ActivityConfiguration;
@@ -43,13 +42,13 @@ public class DeleteExtractProcessor extends ConditionWriterTemplate {
     }
 
     @Override
-    protected ConditionParameter[] getNeededParametersForProcessing() {
+    protected ConditionParameter[] getEssentialParametersForProcessing() {
         return neededParameter;
     }
 
     @Override
     protected void configureCondition() throws NjamsInstructionException {
-        final ActivityConfiguration activityConfiguration = getClientCondition().getActivityCondition();
+        final ActivityConfiguration activityConfiguration = conditionFacade.getActivityCondition();
 
         activityConfiguration.setExtract(null);
     }
@@ -57,7 +56,6 @@ public class DeleteExtractProcessor extends ConditionWriterTemplate {
     @Override
     protected void logProcessingSuccess() {
         if (LOG.isDebugEnabled()) {
-            ConditionRequestReader requestReader = getConditionRequestReader();
             LOG.debug("Deleted Extract for {}#{}.", requestReader.getProcessPath(), requestReader.getActivityId());
         }
     }

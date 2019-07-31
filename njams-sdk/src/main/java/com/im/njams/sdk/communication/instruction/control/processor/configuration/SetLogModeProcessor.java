@@ -43,18 +43,16 @@ public class SetLogModeProcessor extends ConditionWriterTemplate {
     }
 
     @Override
-    protected ConditionParameter[] getNeededParametersForProcessing() {
+    protected ConditionParameter[] getEssentialParametersForProcessing() {
         return neededParameter;
     }
 
     @Override
     protected void configureCondition() throws NjamsInstructionException {
 
-        logModeToSet = getConditionRequestReader().getLogMode();
+        logModeToSet = requestReader.getLogMode();
 
-        Njams condition = getClientCondition().getCondition();
-
-        condition.setLogModeToConfiguration(logModeToSet);
+        conditionFacade.getCondition().setLogModeToConfiguration(logModeToSet);
     }
 
     @Override

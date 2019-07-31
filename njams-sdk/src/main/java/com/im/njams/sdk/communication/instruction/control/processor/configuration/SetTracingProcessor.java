@@ -21,7 +21,6 @@ package com.im.njams.sdk.communication.instruction.control.processor.configurati
 
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.adapter.messageformat.command.entity.ConditionParameter;
-import com.im.njams.sdk.adapter.messageformat.command.entity.ConditionRequestReader;
 import com.im.njams.sdk.api.adapter.messageformat.command.exceptions.NjamsInstructionException;
 import com.im.njams.sdk.common.DateTimeUtility;
 import com.im.njams.sdk.communication.instruction.control.processor.templates.ConditionWriterTemplate;
@@ -57,7 +56,7 @@ public class SetTracingProcessor extends ConditionWriterTemplate {
     }
 
     @Override
-    protected ConditionParameter[] getNeededParametersForProcessing() {
+    protected ConditionParameter[] getEssentialParametersForProcessing() {
         return neededParameter;
     }
 
@@ -68,7 +67,7 @@ public class SetTracingProcessor extends ConditionWriterTemplate {
 
         isTracePointUseful = endTimeOfNewTracePoint.isAfter(DateTimeUtility.now());
 
-        isTracingEnabled = getConditionRequestReader().getTracingEnabled();
+        isTracingEnabled = requestReader.getTracingEnabled();
 
         if (isTracingEnabled && isTracePointUseful) {
             updateTracePoint();
@@ -78,7 +77,7 @@ public class SetTracingProcessor extends ConditionWriterTemplate {
     }
 
     private LocalDateTime getEndTime() throws NjamsInstructionException {
-        LocalDateTime endTime = getConditionRequestReader().getEndTime();
+        LocalDateTime endTime = requestReader.getEndTime();
         if (endTime == null) {
             endTime = DateTimeUtility.now().plusMinutes(DEFAULT_TRACING_ENABLED_IN_MINUTES);
         }
@@ -88,7 +87,7 @@ public class SetTracingProcessor extends ConditionWriterTemplate {
     private void updateTracePoint() throws NjamsInstructionException {
         TracepointExt tracePointToSet = createTracePointFromRequest();
 
-        ActivityConfiguration activityCondition = getClientCondition().getOrCreateActivityCondition();
+        ActivityConfiguration activityCondition = conditionFacade.getOrCreateActivityCondition();
 
         activityCondition.setTracepoint(tracePointToSet);
     }
@@ -103,7 +102,7 @@ public class SetTracingProcessor extends ConditionWriterTemplate {
     }
 
     private LocalDateTime getStartTime() throws NjamsInstructionException {
-        LocalDateTime startTime = getConditionRequestReader().getStartTime();
+        LocalDateTime startTime = requestReader.getStartTime();
         if (startTime == null) {
             startTime = DateTimeUtility.now();
         }
@@ -113,7 +112,7 @@ public class SetTracingProcessor extends ConditionWriterTemplate {
     private Integer getIterations() {
         Integer iterations = DEFAULT_ITERATIONS;
         try {
-            iterations = getConditionRequestReader().getIterations();
+            iterations = requestReader.getIterations();
         } catch (NjamsInstructionException e) {
             if (LOG.isErrorEnabled()) {
                 LOG.error(e.getMessage(), e.getCause());
@@ -123,12 +122,12 @@ public class SetTracingProcessor extends ConditionWriterTemplate {
     }
 
     private Boolean getDeepTrace() {
-        return getConditionRequestReader().getDeepTrace();
+        return requestReader.getDeepTrace();
     }
 
     private void deleteTracePoint() throws NjamsInstructionException {
 
-        ActivityConfiguration activityCondition = getClientCondition().getActivityCondition();
+        ActivityConfiguration activityCondition = conditionFacade.getActivityCondition();
 
         activityCondition.setTracepoint(null);
     }
@@ -137,8 +136,8 @@ public class SetTracingProcessor extends ConditionWriterTemplate {
     protected void logProcessingSuccess() {
         String updateOrDelete = isTracingEnabled && isTracePointUseful ? "Updated" : "Deleted";
         if (LOG.isDebugEnabled()) {
-            ConditionRequestReader requestReader = getConditionRequestReader();
-            LOG.debug("{} Tracepoint of {}#{}.", updateOrDelete, requestReader.getProcessPath(), requestReader.getActivityId());
+            LOG.debug("{} Tracepoint of {}#{}.", updateOrDelete, requestReader.getProcessPath(),
+                    requestReader.getActivityId());
         }
     }
 }

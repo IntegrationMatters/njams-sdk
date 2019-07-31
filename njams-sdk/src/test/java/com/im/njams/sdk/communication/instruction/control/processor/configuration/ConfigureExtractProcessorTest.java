@@ -24,6 +24,7 @@ import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.adapter.messageformat.command.entity.ConditionParameter;
 import com.im.njams.sdk.adapter.messageformat.command.entity.ConditionRequestReader;
 import com.im.njams.sdk.api.adapter.messageformat.command.exceptions.NjamsInstructionException;
+import com.im.njams.sdk.communication.instruction.control.processor.configuration.ConfigureExtractProcessor;
 import com.im.njams.sdk.communication.instruction.control.processor.templates.ConditionFacade;
 import com.im.njams.sdk.configuration.entity.ActivityConfiguration;
 import org.junit.Before;
@@ -68,7 +69,7 @@ public class ConfigureExtractProcessorTest {
     @Test
     public void getNeededParametersForProcessingTest() {
         List<ConditionParameter> neededParametersAsList = Arrays
-                .asList(configureExtractProcessor.getNeededParametersForProcessing());
+                .asList(configureExtractProcessor.getEssentialParametersForProcessing());
         assertTrue(neededParametersAsList.contains(ConditionParameter.PROCESS_PATH));
         assertTrue(neededParametersAsList.contains(ConditionParameter.ACTIVITY_ID));
         assertTrue(neededParametersAsList.contains(ConditionParameter.EXTRACT));

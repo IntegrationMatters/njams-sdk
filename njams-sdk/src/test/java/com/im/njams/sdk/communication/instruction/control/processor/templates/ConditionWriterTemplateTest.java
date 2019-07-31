@@ -34,25 +34,28 @@ public class ConditionWriterTemplateTest {
 
     private Njams njamsMock;
 
-    private ConditionFacade conditionFacadeMock;
-
     @Before
     public void initialize() {
         njamsMock = mock(Njams.class);
         conditionWriterTemplate = spy(new ConditionWriterTemplateImpl(njamsMock));
-
-        conditionFacadeMock = mock(ConditionFacade.class);
-        doReturn(conditionFacadeMock).when(conditionWriterTemplate).getClientCondition();
     }
 
 //ProcessConditionInstruction tests
 
     @Test
-    public void processConditionInstruction() throws NjamsInstructionException {
+    public void processConditionInstructionSuccess() throws NjamsInstructionException {
         conditionWriterTemplate.processConditionInstruction();
 
         verify(conditionWriterTemplate).configureCondition();
-        verify(conditionFacadeMock).saveCondition();
+        verify(conditionWriterTemplate).saveCondition();
+    }
+
+    @Test(expected = NjamsInstructionException.class)
+    public void processConditionThrowException() throws NjamsInstructionException {
+        NjamsInstructionException njamsInstructionExceptionMock = mock(NjamsInstructionException.class);
+        doThrow(njamsInstructionExceptionMock).when(conditionWriterTemplate).saveCondition();
+
+        conditionWriterTemplate.processConditionInstruction();
     }
 
 //Private helper classes
@@ -64,7 +67,7 @@ public class ConditionWriterTemplateTest {
         }
 
         @Override
-        protected ConditionParameter[] getNeededParametersForProcessing() {
+        protected ConditionParameter[] getEssentialParametersForProcessing() {
             return new ConditionParameter[0];
         }
 

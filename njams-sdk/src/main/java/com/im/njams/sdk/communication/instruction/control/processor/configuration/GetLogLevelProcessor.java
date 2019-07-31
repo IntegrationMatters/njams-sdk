@@ -23,9 +23,7 @@ import com.faizsiegeln.njams.messageformat.v4.projectmessage.LogLevel;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.LogMode;
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.adapter.messageformat.command.entity.ConditionParameter;
-import com.im.njams.sdk.adapter.messageformat.command.entity.ConditionRequestReader;
 import com.im.njams.sdk.api.adapter.messageformat.command.exceptions.NjamsInstructionException;
-import com.im.njams.sdk.communication.instruction.control.processor.templates.ConditionFacade;
 import com.im.njams.sdk.communication.instruction.control.processor.templates.ConditionReaderTemplate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,53 +38,59 @@ public class GetLogLevelProcessor extends ConditionReaderTemplate {
     private static final ConditionParameter[] neededParameter =
             new ConditionParameter[]{ConditionParameter.PROCESS_PATH};
 
+    private static final LogLevel DEFAULT_LOG_LEVEL = LogLevel.INFO;
+
+    private static final boolean DEFAULT_IS_EXCLUDED = false;
 
     public GetLogLevelProcessor(Njams njams) {
         super(njams);
     }
 
     @Override
-    protected ConditionParameter[] getNeededParametersForProcessing() {
+    protected ConditionParameter[] getEssentialParametersForProcessing() {
         return neededParameter;
     }
 
     @Override
     protected void processConditionInstruction() {
-        ConditionFacade clientCondition = getClientCondition();
 
-        final LogLevel logLevel = getLogLevel(clientCondition);
-        final boolean isExclude = isExclude(clientCondition);
-        final LogMode logMode = clientCondition.getLogMode();
+        final LogLevel logLevel = getLogLevel();
+        final boolean isExclude = isExclude();
+        final LogMode logMode = getLogMode();
 
-        getConditionResponseWriter().setLogLevel(logLevel).setExcluded(isExclude).setLogMode(logMode);
+        responseWriter.
+                setLogLevel(logLevel).
+                setExcluded(isExclude).
+                setLogMode(logMode);
     }
 
-    private LogLevel getLogLevel(ConditionFacade clientCondition) {
-        //default
-        LogLevel logLevel = LogLevel.INFO;
+    private LogLevel getLogLevel() {
+        LogLevel logLevel = DEFAULT_LOG_LEVEL;
         try {
-            logLevel = clientCondition.getLogLevel();
+            logLevel = conditionFacade.getLogLevel();
         } catch (NjamsInstructionException e) {
             //Do nothing, just use the default
         }
         return logLevel;
     }
 
-    private boolean isExclude(ConditionFacade clientCondition) {
-        //default
-        boolean isExclude = false;
-        try{
-            isExclude = clientCondition.isExcluded();
+    private boolean isExclude() {
+        boolean isExclude = DEFAULT_IS_EXCLUDED;
+        try {
+            isExclude = conditionFacade.isExcluded();
         } catch (NjamsInstructionException e) {
             //Do nothing, just use the default
         }
         return isExclude;
     }
 
+    private LogMode getLogMode() {
+        return conditionFacade.getLogMode();
+    }
+
     @Override
     protected void logProcessingSuccess() {
         if (LOG.isDebugEnabled()) {
-            ConditionRequestReader requestReader = getConditionRequestReader();
             LOG.debug("Get LogLevel from {}.", requestReader.getProcessPath());
         }
     }

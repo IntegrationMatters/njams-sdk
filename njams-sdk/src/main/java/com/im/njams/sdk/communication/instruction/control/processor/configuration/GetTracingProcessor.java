@@ -21,10 +21,7 @@ package com.im.njams.sdk.communication.instruction.control.processor.configurati
 
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.adapter.messageformat.command.entity.ConditionParameter;
-import com.im.njams.sdk.adapter.messageformat.command.entity.ConditionRequestReader;
-import com.im.njams.sdk.adapter.messageformat.command.entity.ConditionResponseWriter;
 import com.im.njams.sdk.api.adapter.messageformat.command.exceptions.NjamsInstructionException;
-import com.im.njams.sdk.communication.instruction.control.processor.templates.ConditionFacade;
 import com.im.njams.sdk.communication.instruction.control.processor.templates.ConditionReaderTemplate;
 import com.im.njams.sdk.configuration.entity.TracepointExt;
 import org.slf4j.Logger;
@@ -45,23 +42,23 @@ public class GetTracingProcessor extends ConditionReaderTemplate {
     }
 
     @Override
-    protected ConditionParameter[] getNeededParametersForProcessing() {
+    protected ConditionParameter[] getEssentialParametersForProcessing() {
         return neededParameter;
     }
 
     @Override
     protected void processConditionInstruction() throws NjamsInstructionException {
-        ConditionFacade clientCondition = getClientCondition();
-        TracepointExt tracePoint = clientCondition.getTracePoint();
+        TracepointExt tracePoint = conditionFacade.getTracePoint();
 
-        ConditionResponseWriter conditionResponseWriter = getConditionResponseWriter();
-        conditionResponseWriter.setStartTime(tracePoint.getStarttime()).setEndTime(tracePoint.getEndtime()).setIterations(tracePoint.getIterations()).setDeepTrace(tracePoint.isDeeptrace());
+        responseWriter.setStartTime(tracePoint.getStarttime()).
+                setEndTime(tracePoint.getEndtime()).
+                setIterations(tracePoint.getIterations()).
+                setDeepTrace(tracePoint.isDeeptrace());
     }
 
     @Override
     protected void logProcessingSuccess() {
         if (LOG.isDebugEnabled()) {
-            ConditionRequestReader requestReader = getConditionRequestReader();
             LOG.debug("Get Tracepoint from {}#{}.", requestReader.getProcessPath(), requestReader.getActivityId());
         }
     }

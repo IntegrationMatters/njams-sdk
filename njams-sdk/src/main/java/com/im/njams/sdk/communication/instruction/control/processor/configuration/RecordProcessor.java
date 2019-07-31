@@ -21,8 +21,6 @@ package com.im.njams.sdk.communication.instruction.control.processor.configurati
 
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.adapter.messageformat.command.entity.ConditionParameter;
-import com.im.njams.sdk.adapter.messageformat.command.entity.ConditionRequestReader;
-import com.im.njams.sdk.communication.instruction.control.processor.templates.ConditionFacade;
 import com.im.njams.sdk.communication.instruction.control.processor.templates.ConditionWriterTemplate;
 import com.im.njams.sdk.configuration.entity.ProcessConfiguration;
 import com.im.njams.sdk.utils.StringUtils;
@@ -37,71 +35,70 @@ public class RecordProcessor extends ConditionWriterTemplate {
 
     private static final Logger LOG = LoggerFactory.getLogger(RecordProcessor.class);
 
+    private boolean isEngineWideRecording;
+
+    private boolean isProcessRecording;
+
     public RecordProcessor(Njams njams) {
         super(njams);
     }
 
     @Override
-    protected ConditionParameter[] getNeededParametersForProcessing() {
-        return new ConditionParameter[0];
+    protected ConditionParameter[] getEssentialParametersForProcessing() {
+        return NO_ESSENTIAL_PARAMETERS;
     }
 
     @Override
-    protected void configureCondition(){
+    protected void configureCondition() {
         handleEngineWideRecording();
 
         handleProcessRecording();
     }
 
     private void handleEngineWideRecording() {
-        ConditionRequestReader conditionRequestReader = getConditionRequestReader();
-        ConditionFacade clientCondition = getClientCondition();
 
-        final String engineWideRecordingAsString = conditionRequestReader.getEngineWideRecording();
+        final String engineWideRecordingAsString = requestReader.getEngineWideRecording();
 
         if (StringUtils.isNotBlank(engineWideRecordingAsString)) {
-            final boolean engineWideRecording = Boolean.parseBoolean(engineWideRecordingAsString);
+            isEngineWideRecording = Boolean.parseBoolean(engineWideRecordingAsString);
 
-            Njams condition = clientCondition.getCondition();
-            condition.setRecordingToConfiguration(engineWideRecording);
-
-            changeAllProcessRecordingsOfConditionTo(condition, engineWideRecording);
+            setEngineWideRecording();
         }
     }
 
-    private void changeAllProcessRecordingsOfConditionTo(Njams condition, boolean isEngineWideRecording) {
+    private void setEngineWideRecording() {
+        Njams condition = conditionFacade.getCondition();
+
+        condition.setRecordingToConfiguration(isEngineWideRecording);
+
+        changeAllProcessRecordingsOfConditionTo(condition);
+    }
+
+    private void changeAllProcessRecordingsOfConditionTo(Njams condition) {
         condition.getProcessesFromConfiguration().values().forEach(p -> p.setRecording(isEngineWideRecording));
     }
 
     private void handleProcessRecording() {
-        ConditionRequestReader conditionRequestReader = getConditionRequestReader();
-        ConditionFacade clientCondition = getClientCondition();
-
-        final String processRecordingAsString = conditionRequestReader.getProcessRecording();
+        final String processRecordingAsString = requestReader.getProcessRecording();
 
         if (StringUtils.isNotBlank(processRecordingAsString)) {
-            final boolean processRecording = "all".equalsIgnoreCase(processRecordingAsString);
+            isProcessRecording = "all".equalsIgnoreCase(processRecordingAsString);
 
-            ProcessConfiguration processCondition = clientCondition.getOrCreateProcessCondition();
+            ProcessConfiguration processCondition = conditionFacade.getOrCreateProcessCondition();
 
-            processCondition.setRecording(processRecording);
+            processCondition.setRecording(isProcessRecording);
         }
     }
 
     @Override
     protected void logProcessingSuccess() {
         if (LOG.isDebugEnabled()) {
-            ConditionRequestReader conditionRequestReader = getConditionRequestReader();
-
-            final String engineWideRecordingAsString = conditionRequestReader.getEngineWideRecording();
-            if (StringUtils.isNotBlank(engineWideRecordingAsString)) {
-                LOG.debug("EngineWideRecording has been set to {}", Boolean.parseBoolean(engineWideRecordingAsString));
+            if (StringUtils.isNotBlank(requestReader.getEngineWideRecording())) {
+                LOG.debug("EngineWideRecording has been set to {}", isEngineWideRecording);
             }
 
-            final String processRecordingAsString = conditionRequestReader.getProcessRecording();
-            if (StringUtils.isNotBlank(processRecordingAsString)) {
-                LOG.debug("Recording for {} set to {}", getConditionRequestReader().getProcessPath(),
-                        "all".equalsIgnoreCase(processRecordingAsString));
+            if (StringUtils.isNotBlank(requestReader.getProcessRecording())) {
+                LOG.debug("Recording for {} set to {}", requestReader.getProcessPath(), isProcessRecording);
             }
         }
     }

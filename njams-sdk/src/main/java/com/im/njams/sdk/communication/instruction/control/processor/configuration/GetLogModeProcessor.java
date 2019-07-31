@@ -38,15 +38,15 @@ public class GetLogModeProcessor extends ConditionReaderTemplate {
     }
 
     @Override
-    protected ConditionParameter[] getNeededParametersForProcessing() {
-        return new ConditionParameter[0];
+    protected ConditionParameter[] getEssentialParametersForProcessing() {
+        return NO_ESSENTIAL_PARAMETERS;
     }
 
     @Override
     protected void processConditionInstruction() {
-        final LogMode logMode = getClientCondition().getLogMode();
+        final LogMode logMode = conditionFacade.getLogMode();
 
-        getConditionResponseWriter().setLogMode(logMode);
+        responseWriter.setLogMode(logMode);
     }
 
     @Override

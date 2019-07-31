@@ -37,7 +37,6 @@ import java.util.List;
 import static com.im.njams.sdk.communication.instruction.control.processor.templates.ConditionReaderTemplate.DEFAULT_SUCCESS_MESSAGE;
 import static java.util.Collections.EMPTY_LIST;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.*;
 
 public class ConditionReaderTemplateTest {
@@ -128,6 +127,7 @@ public class ConditionReaderTemplateTest {
         char[] trueOrFalseChars = trueOrFalseString.toCharArray();
 
         verify(conditionReaderTemplate).fillMissingParametersList();
+        verify(conditionReaderTemplate).setReaderAndWriter();
 
         if (parseCharToBoolean(trueOrFalseChars[0])) {
             verify(conditionReaderTemplate).processConditionInstruction();
@@ -164,7 +164,7 @@ public class ConditionReaderTemplateTest {
     @Test
     public void fillMissingParametersList() {
         ConditionParameter[] conditionParameterMock = new ConditionParameter[0];
-        doReturn(conditionParameterMock).when(conditionReaderTemplate).getNeededParametersForProcessing();
+        doReturn(conditionParameterMock).when(conditionReaderTemplate).getEssentialParametersForProcessing();
         when(conditionRequestReaderMock.searchForMissingParameters(conditionParameterMock))
                 .thenReturn(missingParameterMock);
 
@@ -314,31 +314,6 @@ public class ConditionReaderTemplateTest {
                 .forEach(conditionParameter -> missingParameters.add(conditionParameter.getParamKey()));
     }
 
-//GetClientCondition tests
-
-    @Test
-    public void getClientConditionTest() {
-        assertTrue(conditionReaderTemplate.getClientCondition() instanceof ConditionFacade);
-    }
-
-//GetConditionRequestReader tests
-
-    @Test
-    public void GetConditionRequestReaderTest() {
-        ConditionRequestReader conditionRequestReader = conditionReaderTemplate.getConditionRequestReader();
-        verify(conditionInstructionMock).getRequestReader();
-        assertTrue(conditionRequestReader instanceof ConditionRequestReader);
-    }
-
-//GetConditionResponseWriter tests
-
-    @Test
-    public void GetConditionResponseWriterTest() {
-        ConditionResponseWriter conditionResponseWriter = conditionReaderTemplate.getConditionResponseWriter();
-        verify(conditionInstructionMock).getResponseWriter();
-        assertTrue(conditionResponseWriter instanceof ConditionResponseWriter);
-    }
-
 //Private helper classes
 
     private class ConditionReaderTemplateImpl extends ConditionReaderTemplate {
@@ -348,7 +323,7 @@ public class ConditionReaderTemplateTest {
         }
 
         @Override
-        protected ConditionParameter[] getNeededParametersForProcessing() {
+        protected ConditionParameter[] getEssentialParametersForProcessing() {
             return new ConditionParameter[0];
         }
 

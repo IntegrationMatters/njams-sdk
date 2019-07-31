@@ -33,8 +33,12 @@ public abstract class ConditionWriterTemplate extends ConditionReaderTemplate {
     public void processConditionInstruction() throws NjamsInstructionException {
         configureCondition();
 
-        getClientCondition().saveCondition();
+        saveCondition();
     }
 
     protected abstract void configureCondition() throws NjamsInstructionException;
+
+    void saveCondition() throws NjamsInstructionException {
+        conditionFacade.saveCondition();
+    }
 }
