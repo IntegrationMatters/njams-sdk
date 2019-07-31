@@ -163,6 +163,7 @@ public class ConditionReaderTemplateTest {
 
     @Test
     public void fillMissingParametersList() {
+        conditionReaderTemplate.setReaderAndWriter();
         ConditionParameter[] conditionParameterMock = new ConditionParameter[0];
         doReturn(conditionParameterMock).when(conditionReaderTemplate).getEssentialParametersForProcessing();
         when(conditionRequestReaderMock.searchForMissingParameters(conditionParameterMock))
@@ -196,18 +197,10 @@ public class ConditionReaderTemplateTest {
 
     @Test
     public void setDefaultSuccessResponseWithEmptyWriter() {
-        setDefaultSuccessResponse(true, 1);
-    }
-
-    @Test
-    public void setNoDefaultResponseIfWriterIsNotEmpty() {
-        setDefaultSuccessResponse(false, 0);
-    }
-
-    private void setDefaultSuccessResponse(boolean isWriterEmpty, int howManyTimesShouldResponseBeSet) {
-        when(conditionResponseWriterMock.isEmpty()).thenReturn(isWriterEmpty);
+        conditionReaderTemplate.setReaderAndWriter();
+        when(conditionResponseWriterMock.isEmpty()).thenReturn(true);
         conditionReaderTemplate.setDefaultSuccessResponse();
-        verify(conditionResponseWriterMock, times(howManyTimesShouldResponseBeSet))
+        verify(conditionResponseWriterMock)
                 .setResultCodeAndResultMessage(ResponseWriter.ResultCode.SUCCESS, DEFAULT_SUCCESS_MESSAGE);
 
     }
@@ -269,6 +262,7 @@ public class ConditionReaderTemplateTest {
 
     @Test
     public void setWarningResponseTest() {
+        conditionReaderTemplate.setReaderAndWriter();
         conditionReaderTemplate.setWarningResponse(NJAMS_INSTRUCTION_EXCEPTION_MESSAGE);
         verify(conditionResponseWriterMock)
                 .setResultCodeAndResultMessage(ResponseWriter.ResultCode.WARNING, NJAMS_INSTRUCTION_EXCEPTION_MESSAGE);
@@ -278,6 +272,7 @@ public class ConditionReaderTemplateTest {
 
     @Test
     public void verifyThatCommandProcessPathAndActivityIdWillBeUsedForProcessLoggingIfExceptionIsThrown() {
+        conditionReaderTemplate.setReaderAndWriter();
         conditionReaderTemplate.logProcessingThrewException(njamsInstructionExceptionMock);
         verify(conditionRequestReaderMock).getCommand();
         verify(conditionRequestReaderMock).getProcessPath();

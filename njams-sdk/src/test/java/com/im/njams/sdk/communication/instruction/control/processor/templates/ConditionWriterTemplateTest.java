@@ -52,7 +52,7 @@ public class ConditionWriterTemplateTest {
 
     @Test(expected = NjamsInstructionException.class)
     public void processConditionThrowException() throws NjamsInstructionException {
-        NjamsInstructionException njamsInstructionExceptionMock = mock(NjamsInstructionException.class);
+        NjamsInstructionException njamsInstructionExceptionMock = new NjamsInstructionException("");
         doThrow(njamsInstructionExceptionMock).when(conditionWriterTemplate).saveCondition();
 
         conditionWriterTemplate.processConditionInstruction();
