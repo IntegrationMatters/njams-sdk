@@ -21,30 +21,46 @@ package com.im.njams.sdk.communication.instruction.control.processor.configurati
 
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.LogMode;
 import com.im.njams.sdk.Njams;
+import com.im.njams.sdk.adapter.messageformat.command.entity.ConditionParameter;
+import com.im.njams.sdk.api.adapter.messageformat.command.exceptions.NjamsInstructionException;
+import com.im.njams.sdk.communication.instruction.control.processor.templates.ConditionWriterTemplate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
  * Todo: Write Doc
  */
-public class SetLogModeProcessor extends AbstractConfigurationProcessor {
+public class SetLogModeProcessor extends ConditionWriterTemplate {
 
-    private static final Logger LOG = LoggerFactory.getLogger(
-            SetLogModeProcessor.class);
+    private static final Logger LOG = LoggerFactory.getLogger(SetLogModeProcessor.class);
+
+    private static final ConditionParameter[] neededParameter = new ConditionParameter[]{ConditionParameter.LOG_MODE};
+
+    private LogMode logModeToSet;
 
     public SetLogModeProcessor(Njams njams) {
         super(njams);
     }
 
     @Override
-    protected void processInstruction(InstructionSupport instructionSupport) {
-        if (!instructionSupport.validate(InstructionSupport.LOG_MODE) || !instructionSupport.validate(InstructionSupport.LOG_MODE, LogMode.class)) {
-            return;
+    protected ConditionParameter[] getNeededParametersForProcessing() {
+        return neededParameter;
+    }
+
+    @Override
+    protected void configureCondition() throws NjamsInstructionException {
+
+        logModeToSet = getConditionRequestReader().getLogMode();
+
+        Njams condition = getClientCondition().getCondition();
+
+        condition.setLogModeToConfiguration(logModeToSet);
+    }
+
+    @Override
+    protected void logProcessingSuccess() {
+        if (LOG.isDebugEnabled()) {
+            LOG.debug("Set LogMode to {}.", logModeToSet);
         }
-        //fetch parameters
-        final LogMode logMode = instructionSupport.getEnumParameter(InstructionSupport.LOG_MODE, LogMode.class);
-        njams.setLogModeToConfiguration(logMode);
-        saveConfiguration(instructionSupport);
-        LOG.debug("Set LogMode to {}", logMode);
     }
 }
