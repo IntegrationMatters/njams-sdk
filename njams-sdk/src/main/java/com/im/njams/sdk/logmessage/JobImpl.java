@@ -408,7 +408,7 @@ public class JobImpl implements Job {
                 LogMessage logMessage = createLogMessage(this);
                 addToLogMessageAndCleanup(logMessage);
                 logMessage.setSentAt(lastFlush);
-                processModel.getNjams().sendMessage(logMessage);
+                njams.sendMessage(logMessage);
                 // clean up jobImpl
                 pluginDataItems.clear();
                 calculateEstimatedSize();
@@ -487,14 +487,14 @@ public class JobImpl implements Job {
         LogMessage logMessage = new LogMessage();
         logMessage.setBusinessEnd(businessEnd);
         logMessage.setBusinessStart(businessStart);
-        logMessage.setCategory(processModel.getNjams().getCategory());
+        logMessage.setCategory(njams.getCategory());
         logMessage.setCorrelationLogId(correlationLogId);
         logMessage.setExternalLogId(externalLogId);
         logMessage.setJobEnd(endTime);
         logMessage.setJobId(jobId);
         logMessage.setJobStart(startTime);
         logMessage.setLogId(logId);
-        logMessage.setMachineName(processModel.getNjams().getMachine());
+        logMessage.setMachineName(njams.getMachine());
         logMessage.setMaxSeverity(maxSeverity.getValue());
         logMessage.setMessageNo(job.flushCounter.get());
         logMessage.setObjectName(businessObject);
@@ -503,6 +503,9 @@ public class JobImpl implements Job {
         logMessage.setProcessName(processModel.getName());
         logMessage.setStatus(status.getValue());
         logMessage.setServiceName(businessService);
+        logMessage.setClientVersion(njams.getClientVersion());
+        logMessage.setSdkVersion(njams.getSdkVersion());
+
         //attribute
         synchronized (attributes) {
             attributes.entrySet().forEach(e -> logMessage.addAtribute(e.getKey(), e.getValue()));
@@ -568,7 +571,7 @@ public class JobImpl implements Job {
             }
             flush();
             finished = true;
-            processModel.getNjams().removeJob(getJobId());
+            njams.removeJob(getJobId());
         }
     }
 
