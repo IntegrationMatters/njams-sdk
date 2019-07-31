@@ -20,21 +20,29 @@
 
 package com.im.njams.sdk.communication.instruction.control.processor.templates;
 
-import com.im.njams.sdk.Njams;
-import com.im.njams.sdk.api.adapter.messageformat.command.exceptions.NjamsInstructionException;
+import java.util.List;
 
-public abstract class ConditionWriterTemplate extends ConditionReaderTemplate {
+class MissingParameterMessageBuilder {
 
-    public ConditionWriterTemplate(Njams njams) {
-        super(njams);
+    static final String MISSING_PARAMETER_MESSAGE = "Missing parameter";
+
+    private StringBuilder invalidParameterResponseMessage;
+
+    public MissingParameterMessageBuilder(List<String> missingParameters) {
+        invalidParameterResponseMessage = new StringBuilder();
+        invalidParameterResponseMessage.append(MISSING_PARAMETER_MESSAGE);
+        if (isNotExactlyOneParameter(missingParameters)) {
+            invalidParameterResponseMessage.append("s");
+        }
+        invalidParameterResponseMessage.append(": ").append(missingParameters);
     }
 
-    @Override
-    public void processConditionInstruction() throws NjamsInstructionException {
-        configureCondition();
-
-        getClientCondition().saveCondition();
+    private boolean isNotExactlyOneParameter(List<String> notEmptyMissingParameters) {
+        return notEmptyMissingParameters != null && notEmptyMissingParameters.size() != 1;
     }
 
-    protected abstract void configureCondition() throws NjamsInstructionException;
+
+    public String build() {
+        return invalidParameterResponseMessage.toString();
+    }
 }

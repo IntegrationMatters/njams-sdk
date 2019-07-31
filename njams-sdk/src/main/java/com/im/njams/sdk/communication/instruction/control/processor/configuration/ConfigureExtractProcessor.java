@@ -26,12 +26,8 @@ import com.im.njams.sdk.adapter.messageformat.command.entity.ConditionRequestRea
 import com.im.njams.sdk.api.adapter.messageformat.command.exceptions.NjamsInstructionException;
 import com.im.njams.sdk.communication.instruction.control.processor.templates.ConditionWriterTemplate;
 import com.im.njams.sdk.configuration.entity.ActivityConfiguration;
-import com.im.njams.sdk.configuration.entity.ProcessConfiguration;
-import com.im.njams.sdk.utils.JsonUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.io.IOException;
 
 /**
  * Todo: Write Doc
@@ -44,8 +40,6 @@ public class ConfigureExtractProcessor extends ConditionWriterTemplate {
             new ConditionParameter[]{ConditionParameter.PROCESS_PATH, ConditionParameter.ACTIVITY_ID,
                     ConditionParameter.EXTRACT};
 
-    private static final String UNABLE_TO_DESERIALZE_EXTRACT_MESSAGE = "Unable to deserialize extract";
-
     public ConfigureExtractProcessor(Njams njams) {
         super(njams);
     }
@@ -57,27 +51,18 @@ public class ConfigureExtractProcessor extends ConditionWriterTemplate {
 
     @Override
     protected void configureCondition() throws NjamsInstructionException {
-        ConditionRequestReader requestReader = getConditionRequestReader();
+        ActivityConfiguration activityCondition = getClientCondition().getOrCreateActivityCondition();
 
-        final ProcessConfiguration processConfiguration = getOrCreateProcessConfigurationFor(
-                requestReader.getProcessPath());
-        final ActivityConfiguration activityConfiguration = getOrCreateActivityConfigurationFromProcessFor(
-                processConfiguration, requestReader.getActivityId());
+        Extract extractOfRequest = getConditionRequestReader().getExtract();
 
-        try {
-            Extract extract = JsonUtils.parse(requestReader.getExtract(), Extract.class);
-            activityConfiguration.setExtract(extract);
-        } catch (final IOException exceptionWhileDeserializingExtract) {
-            throw new NjamsInstructionException(UNABLE_TO_DESERIALZE_EXTRACT_MESSAGE,
-                    exceptionWhileDeserializingExtract);
-        }
+        activityCondition.setExtract(extractOfRequest);
     }
 
     @Override
     protected void logProcessingSuccess() {
         if (LOG.isDebugEnabled()) {
             ConditionRequestReader requestReader = getConditionRequestReader();
-            LOG.debug("Configured extract for {}:{}", requestReader.getProcessPath(), requestReader.getProcessPath());
+            LOG.debug("Configured Extract for {}#{}.", requestReader.getProcessPath(), requestReader.getActivityId());
         }
     }
 }

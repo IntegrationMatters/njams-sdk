@@ -23,7 +23,12 @@ package com.im.njams.sdk.adapter.messageformat.command.entity;
 public enum ConditionParameter{
     PROCESS_PATH("processPath"),
     ACTIVITY_ID("activityId"),
-    EXTRACT("extract");
+    EXTRACT("extract"),
+    LOG_LEVEL("logLevel"),
+    LOG_MODE("logMode"),
+    EXCLUDE("exclude"),
+    ENGINE_WIDE_RECORDING("EngineWideRecording"),
+    PROCESS_RECORDING("Record");
 
     private String paramKey;
 

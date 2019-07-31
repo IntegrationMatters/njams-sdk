@@ -20,46 +20,74 @@
 package com.im.njams.sdk.communication.instruction.control.processor.configuration;
 
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.LogLevel;
+import com.faizsiegeln.njams.messageformat.v4.projectmessage.LogMode;
 import com.im.njams.sdk.Njams;
-import com.im.njams.sdk.configuration.entity.ProcessConfiguration;
+import com.im.njams.sdk.adapter.messageformat.command.entity.ConditionParameter;
+import com.im.njams.sdk.adapter.messageformat.command.entity.ConditionRequestReader;
+import com.im.njams.sdk.api.adapter.messageformat.command.exceptions.NjamsInstructionException;
+import com.im.njams.sdk.communication.instruction.control.processor.templates.ConditionFacade;
+import com.im.njams.sdk.communication.instruction.control.processor.templates.ConditionReaderTemplate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
  * Todo: Write Doc
  */
-public class GetLogLevelProcessor extends AbstractConfigurationProcessor {
+public class GetLogLevelProcessor extends ConditionReaderTemplate {
 
-    private static final Logger LOG = LoggerFactory.getLogger(
-            GetLogLevelProcessor.class);
+    private static final Logger LOG = LoggerFactory.getLogger(GetLogLevelProcessor.class);
+
+    private static final ConditionParameter[] neededParameter =
+            new ConditionParameter[]{ConditionParameter.PROCESS_PATH};
+
 
     public GetLogLevelProcessor(Njams njams) {
         super(njams);
     }
 
     @Override
-    public void processInstruction(InstructionSupport instructionSupport) {
-        if (!instructionSupport.validate(InstructionSupport.PROCESS_PATH)) {
-            return;
-        }
-        //fetch parameters
-        final String processPath = instructionSupport.getProcessPath();
+    protected ConditionParameter[] getNeededParametersForProcessing() {
+        return neededParameter;
+    }
 
-        //execute action
-        // init with defaults
+    @Override
+    protected void processConditionInstruction() {
+        ConditionFacade clientCondition = getClientCondition();
+
+        final LogLevel logLevel = getLogLevel(clientCondition);
+        final boolean isExclude = isExclude(clientCondition);
+        final LogMode logMode = clientCondition.getLogMode();
+
+        getConditionResponseWriter().setLogLevel(logLevel).setExcluded(isExclude).setLogMode(logMode);
+    }
+
+    private LogLevel getLogLevel(ConditionFacade clientCondition) {
+        //default
         LogLevel logLevel = LogLevel.INFO;
-        boolean exclude = false;
-
-        // differing config stored?
-        final ProcessConfiguration process = njams.getProcessFromConfiguration(processPath);
-        if (process != null) {
-            logLevel = process.getLogLevel();
-            exclude = process.isExclude();
+        try {
+            logLevel = clientCondition.getLogLevel();
+        } catch (NjamsInstructionException e) {
+            //Do nothing, just use the default
         }
+        return logLevel;
+    }
 
-        instructionSupport.setParameter(InstructionSupport.LOG_LEVEL, logLevel.name()).setParameter("exclude", exclude)
-                .setParameter(InstructionSupport.LOG_MODE, njams.getLogModeFromConfiguration());
+    private boolean isExclude(ConditionFacade clientCondition) {
+        //default
+        boolean isExclude = false;
+        try{
+            isExclude = clientCondition.isExcluded();
+        } catch (NjamsInstructionException e) {
+            //Do nothing, just use the default
+        }
+        return isExclude;
+    }
 
-        LOG.debug("Return LogLevel for {}", processPath);
+    @Override
+    protected void logProcessingSuccess() {
+        if (LOG.isDebugEnabled()) {
+            ConditionRequestReader requestReader = getConditionRequestReader();
+            LOG.debug("Get LogLevel from {}.", requestReader.getProcessPath());
+        }
     }
 }

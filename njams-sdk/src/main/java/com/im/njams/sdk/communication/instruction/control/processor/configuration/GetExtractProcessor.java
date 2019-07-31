@@ -20,59 +20,45 @@
 package com.im.njams.sdk.communication.instruction.control.processor.configuration;
 
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.Extract;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.im.njams.sdk.Njams;
-import com.im.njams.sdk.common.JsonSerializerFactory;
-import com.im.njams.sdk.configuration.entity.ActivityConfiguration;
-import com.im.njams.sdk.configuration.entity.ProcessConfiguration;
+import com.im.njams.sdk.adapter.messageformat.command.entity.ConditionParameter;
+import com.im.njams.sdk.adapter.messageformat.command.entity.ConditionRequestReader;
+import com.im.njams.sdk.api.adapter.messageformat.command.exceptions.NjamsInstructionException;
+import com.im.njams.sdk.communication.instruction.control.processor.templates.ConditionReaderTemplate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
  * Todo: Write Doc
  */
-public class GetExtractProcessor extends AbstractConfigurationProcessor {
+public class GetExtractProcessor extends ConditionReaderTemplate {
 
-    private static final Logger LOG = LoggerFactory.getLogger(
-            GetExtractProcessor.class);
+    private static final Logger LOG = LoggerFactory.getLogger(GetExtractProcessor.class);
+
+    private static final ConditionParameter[] neededParameter =
+            new ConditionParameter[]{ConditionParameter.PROCESS_PATH, ConditionParameter.ACTIVITY_ID};
 
     public GetExtractProcessor(Njams njams) {
         super(njams);
     }
 
     @Override
-    protected void processInstruction(InstructionSupport instructionSupport) {
-        if (!instructionSupport.validate(InstructionSupport.PROCESS_PATH, InstructionSupport.ACTIVITY_ID)) {
-            return;
-        }
-        //fetch parameters
-        final String processPath = instructionSupport.getProcessPath();
-        final String activityId = instructionSupport.getActivityId();
+    protected ConditionParameter[] getNeededParametersForProcessing() {
+        return neededParameter;
+    }
 
-        //execute action
-        final ProcessConfiguration process = njams.getProcessFromConfiguration(processPath);
-        if (process == null) {
-            instructionSupport.error("Process " + processPath + " not found");
-            return;
-        }
-        final ActivityConfiguration activity = process.getActivity(activityId);
-        if (activity == null) {
-            instructionSupport.error("Activity " + activityId + " for process " + processPath + " not found");
-            return;
-        }
-        final Extract extract = activity.getExtract();
-        if (extract == null) {
-            instructionSupport.error("Extract for activity " + activityId + " for process " + processPath + " not found");
-            return;
-        }
-        try {
-            final ObjectMapper mapper = JsonSerializerFactory.getDefaultMapper();
-            instructionSupport.setParameter("extract", mapper.writeValueAsString(extract));
-        } catch (final Exception e) {
-            instructionSupport.error("Unable to serialize Extract", e);
-            return;
-        }
+    @Override
+    protected void processConditionInstruction() throws NjamsInstructionException {
+        Extract extract = getClientCondition().getExtract();
 
-        LOG.debug("Get Extract for {} -> {}", processPath, activityId);
+        getConditionResponseWriter().setExtract(extract);
+    }
+
+    @Override
+    protected void logProcessingSuccess() {
+        if (LOG.isDebugEnabled()) {
+            ConditionRequestReader requestReader = getConditionRequestReader();
+            LOG.debug("Get Extract from {}#{}.", requestReader.getProcessPath(), requestReader.getActivityId());
+        }
     }
 }

@@ -21,20 +21,61 @@
 package com.im.njams.sdk.communication.instruction.control.processor.templates;
 
 import com.im.njams.sdk.Njams;
+import com.im.njams.sdk.adapter.messageformat.command.entity.ConditionParameter;
 import com.im.njams.sdk.api.adapter.messageformat.command.exceptions.NjamsInstructionException;
+import org.junit.Before;
+import org.junit.Test;
 
-public abstract class ConditionWriterTemplate extends ConditionReaderTemplate {
+import static org.mockito.Mockito.*;
 
-    public ConditionWriterTemplate(Njams njams) {
-        super(njams);
+public class ConditionWriterTemplateTest {
+
+    private ConditionWriterTemplate conditionWriterTemplate;
+
+    private Njams njamsMock;
+
+    private ConditionFacade conditionFacadeMock;
+
+    @Before
+    public void initialize() {
+        njamsMock = mock(Njams.class);
+        conditionWriterTemplate = spy(new ConditionWriterTemplateImpl(njamsMock));
+
+        conditionFacadeMock = mock(ConditionFacade.class);
+        doReturn(conditionFacadeMock).when(conditionWriterTemplate).getClientCondition();
     }
 
-    @Override
+//ProcessConditionInstruction tests
+
+    @Test
     public void processConditionInstruction() throws NjamsInstructionException {
-        configureCondition();
+        conditionWriterTemplate.processConditionInstruction();
 
-        getClientCondition().saveCondition();
+        verify(conditionWriterTemplate).configureCondition();
+        verify(conditionFacadeMock).saveCondition();
     }
 
-    protected abstract void configureCondition() throws NjamsInstructionException;
+//Private helper classes
+
+    private class ConditionWriterTemplateImpl extends ConditionWriterTemplate {
+
+        public ConditionWriterTemplateImpl(Njams njams) {
+            super(njams);
+        }
+
+        @Override
+        protected ConditionParameter[] getNeededParametersForProcessing() {
+            return new ConditionParameter[0];
+        }
+
+        @Override
+        protected void logProcessingSuccess() {
+
+        }
+
+        @Override
+        protected void configureCondition() throws NjamsInstructionException {
+
+        }
+    }
 }

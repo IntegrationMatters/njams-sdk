@@ -21,13 +21,22 @@
 package com.im.njams.sdk.adapter.messageformat.command.entity;
 
 import com.faizsiegeln.njams.messageformat.v4.command.Request;
+import com.faizsiegeln.njams.messageformat.v4.projectmessage.Extract;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.im.njams.sdk.api.adapter.messageformat.command.exceptions.NjamsInstructionException;
+import com.im.njams.sdk.common.JsonSerializerFactory;
 import com.im.njams.sdk.utils.StringUtils;
 
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
 public class ConditionRequestReader extends DefaultRequestReader {
+
+    private static final String UNABLE_TO_DESERIALZE_OBJECT = "Unable to deserialize object";
+
+    private ObjectMapper mapper = JsonSerializerFactory.getDefaultMapper();
 
     public ConditionRequestReader(Request requestToRead) {
         super(requestToRead);
@@ -45,8 +54,16 @@ public class ConditionRequestReader extends DefaultRequestReader {
         return getParamByConstant(ConditionParameter.ACTIVITY_ID);
     }
 
-    public String getExtract() {
-        return getParamByConstant(ConditionParameter.EXTRACT);
+    public Extract getExtract() throws NjamsInstructionException {
+        return parse(getParamByConstant(ConditionParameter.EXTRACT), Extract.class);
+    }
+
+    public String getEngineWideRecording(){
+        return getParamByConstant(ConditionParameter.ENGINE_WIDE_RECORDING);
+    }
+
+    public String getProcessRecording(){
+        return getParamByConstant(ConditionParameter.PROCESS_RECORDING);
     }
 
     public List<String> searchForMissingParameters(ConditionParameter[] parametersToSearchFor) {
@@ -54,5 +71,13 @@ public class ConditionRequestReader extends DefaultRequestReader {
                 .filter(neededParameter -> StringUtils.isBlank(getParamByConstant(neededParameter)))
                 .map(notFoundConditionParameter -> notFoundConditionParameter.getParamKey())
                 .collect(Collectors.toList());
+    }
+
+    private <T> T parse(String objectToParse, Class<T> type) throws NjamsInstructionException {
+        try {
+            return mapper.readValue(objectToParse, type);
+        } catch (IOException e) {
+            throw new NjamsInstructionException(UNABLE_TO_DESERIALZE_OBJECT);
+        }
     }
 }
