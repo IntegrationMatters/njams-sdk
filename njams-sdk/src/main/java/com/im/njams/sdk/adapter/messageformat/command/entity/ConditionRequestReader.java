@@ -22,6 +22,8 @@ package com.im.njams.sdk.adapter.messageformat.command.entity;
 
 import com.faizsiegeln.njams.messageformat.v4.command.Request;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.Extract;
+import com.faizsiegeln.njams.messageformat.v4.projectmessage.LogLevel;
+import com.faizsiegeln.njams.messageformat.v4.projectmessage.LogMode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.im.njams.sdk.api.adapter.messageformat.command.exceptions.NjamsInstructionException;
 import com.im.njams.sdk.common.JsonSerializerFactory;
@@ -34,7 +36,7 @@ import java.util.stream.Collectors;
 
 public class ConditionRequestReader extends DefaultRequestReader {
 
-    private static final String UNABLE_TO_DESERIALZE_OBJECT = "Unable to deserialize object";
+    private static final String UNABLE_TO_DESERIALZE_OBJECT = "Unable to deserialize: ";
 
     private ObjectMapper mapper = JsonSerializerFactory.getDefaultMapper();
 
@@ -66,6 +68,18 @@ public class ConditionRequestReader extends DefaultRequestReader {
         return getParamByConstant(ConditionParameter.PROCESS_RECORDING);
     }
 
+    public LogLevel getLogLevel() throws NjamsInstructionException{
+        return parse(getParamByConstant(ConditionParameter.LOG_LEVEL), LogLevel.class);
+    }
+
+    public LogMode getLogMode() throws NjamsInstructionException{
+        return parse(getParamByConstant(ConditionParameter.LOG_MODE), LogMode.class);
+    }
+
+    public boolean getExcluded() {
+        return Boolean.parseBoolean(getParamByConstant(ConditionParameter.EXCLUDE));
+    }
+
     public List<String> searchForMissingParameters(ConditionParameter[] parametersToSearchFor) {
         return Arrays.stream(parametersToSearchFor)
                 .filter(neededParameter -> StringUtils.isBlank(getParamByConstant(neededParameter)))
@@ -77,7 +91,7 @@ public class ConditionRequestReader extends DefaultRequestReader {
         try {
             return mapper.readValue(objectToParse, type);
         } catch (IOException e) {
-            throw new NjamsInstructionException(UNABLE_TO_DESERIALZE_OBJECT);
+            throw new NjamsInstructionException(UNABLE_TO_DESERIALZE_OBJECT + objectToParse);
         }
     }
 }
