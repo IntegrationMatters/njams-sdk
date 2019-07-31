@@ -38,7 +38,7 @@ import java.util.stream.Collectors;
 
 public class ConditionRequestReader extends DefaultRequestReader {
 
-    private static final String UNABLE_TO_DESERIALZE_OBJECT = "Unable to deserialize: ";
+    public static final String UNABLE_TO_DESERIALZE_OBJECT = "Unable to deserialize: ";
 
     private ObjectMapper mapper = JsonSerializerFactory.getDefaultMapper();
 
@@ -71,11 +71,11 @@ public class ConditionRequestReader extends DefaultRequestReader {
     }
 
     public LogLevel getLogLevel() throws NjamsInstructionException {
-        return parseJson(getParamByConstant(ConditionParameter.LOG_LEVEL), LogLevel.class);
+        return parseEnumParameter(getParamByConstant(ConditionParameter.LOG_LEVEL), LogLevel.class);
     }
 
     public LogMode getLogMode() throws NjamsInstructionException {
-        return parseJson(getParamByConstant(ConditionParameter.LOG_MODE), LogMode.class);
+        return parseEnumParameter(getParamByConstant(ConditionParameter.LOG_MODE), LogMode.class);
     }
 
     public boolean getExcluded() {
@@ -109,11 +109,28 @@ public class ConditionRequestReader extends DefaultRequestReader {
                 .collect(Collectors.toList());
     }
 
+    private <T extends Enum<T>> T parseEnumParameter(final String enumParameterToParse, final Class<T> enumeration)
+            throws NjamsInstructionException {
+        T foundEnumParameter = null;
+        if (enumParameterToParse != null && enumeration != null && enumeration.getEnumConstants() != null) {
+            foundEnumParameter = Arrays.stream(enumeration.getEnumConstants())
+                    .filter(c -> c.name().equalsIgnoreCase(enumParameterToParse)).findAny().orElse(null);
+        }
+        if (foundEnumParameter == null) {
+            throw new NjamsInstructionException(
+                    UNABLE_TO_DESERIALZE_OBJECT + "\"" + enumParameterToParse + "\"" + " to " +
+                    enumeration.getSimpleName());
+        }
+        return foundEnumParameter;
+    }
+
     private <T> T parseJson(String objectToParse, Class<T> type) throws NjamsInstructionException {
         try {
             return mapper.readValue(objectToParse, type);
         } catch (IOException parsingException) {
-            throw new NjamsInstructionException(UNABLE_TO_DESERIALZE_OBJECT + objectToParse, parsingException);
+            throw new NjamsInstructionException(
+                    UNABLE_TO_DESERIALZE_OBJECT + "\"" + objectToParse + "\"" + " to " + type.getSimpleName(),
+                    parsingException);
         }
     }
 
