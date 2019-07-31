@@ -91,8 +91,8 @@ public class ConfigureExtractProcessorTest {
         try {
             configureExtractProcessor.configureCondition();
         } catch (NjamsInstructionException e) {
-            verify(configureExtractProcessor).getClientCondition();
-            verify(conditionFacadeMock).getOrCreateActivityCondition();
+            verify(configureExtractProcessor, times(0)).getClientCondition();
+            verify(conditionFacadeMock, times(0)).getOrCreateActivityCondition();
             verify(activityConfigurationMock, times(0)).setExtract(any());
             throw e;
         }
