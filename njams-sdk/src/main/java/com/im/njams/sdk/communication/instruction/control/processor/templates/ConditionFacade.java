@@ -115,9 +115,6 @@ public class ConditionFacade {
         try {
             processCondition = getProcessCondition();
         } catch (NjamsInstructionException processNotFoundException) {
-            if (LOG.isDebugEnabled()) {
-                LOG.debug(processNotFoundException.getMessage());
-            }
             processCondition = new ProcessConfiguration();
             condition.getProcessesFromConfiguration().put(processPath, processCondition);
         }
@@ -130,9 +127,6 @@ public class ConditionFacade {
         try {
             activityCondition = getActivityCondition();
         } catch (NjamsInstructionException activityNotFoundException) {
-            if (LOG.isDebugEnabled()) {
-                LOG.debug(activityNotFoundException.getMessage());
-            }
             activityCondition = new ActivityConfiguration();
             processCondition.getActivities().put(activityId, activityCondition);
         }

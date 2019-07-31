@@ -19,92 +19,150 @@
  */
 package com.im.njams.sdk.communication.instruction.control.processor.configuration;
 
+import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
+import com.faizsiegeln.njams.messageformat.v4.command.Response;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.Extract;
-import com.im.njams.sdk.Njams;
-import com.im.njams.sdk.adapter.messageformat.command.entity.ConditionParameter;
-import com.im.njams.sdk.adapter.messageformat.command.entity.ConditionRequestReader;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.im.njams.sdk.adapter.messageformat.command.entity.ConditionInstruction;
 import com.im.njams.sdk.api.adapter.messageformat.command.exceptions.NjamsInstructionException;
-import com.im.njams.sdk.communication.instruction.control.processor.configuration.ConfigureExtractProcessor;
-import com.im.njams.sdk.communication.instruction.control.processor.templates.ConditionFacade;
+import com.im.njams.sdk.communication.instruction.control.processor.TestInstructionBuilder;
 import com.im.njams.sdk.configuration.entity.ActivityConfiguration;
+import com.im.njams.sdk.configuration.entity.ProcessConfiguration;
+import com.im.njams.sdk.serializer.JsonSerializer;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.Arrays;
-import java.util.List;
+import java.util.Map;
 
-import static org.junit.Assert.assertTrue;
+import static com.faizsiegeln.njams.messageformat.v4.command.Command.CONFIGURE_EXTRACT;
+import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
 
-public class ConfigureExtractProcessorTest {
+public class ConfigureExtractProcessorTest extends AbstractConfigurationProcessorHelper {
 
     private ConfigureExtractProcessor configureExtractProcessor;
 
-    private Njams njamsMock;
-
-    private ConditionRequestReader readerMock;
-
-    private ActivityConfiguration activityConfigurationMock;
-
-    private Extract extractMock;
-
-    private ConditionFacade conditionFacadeMock;
-
     @Before
     public void setNewProcessor() {
-        njamsMock = mock(Njams.class);
         configureExtractProcessor = spy(new ConfigureExtractProcessor(njamsMock));
-        readerMock = mock(ConditionRequestReader.class);
-        activityConfigurationMock = mock(ActivityConfiguration.class);
-        extractMock = mock(Extract.class);
-        conditionFacadeMock = mock(ConditionFacade.class);
-        doReturn(conditionFacadeMock).when(configureExtractProcessor).getClientCondition();
-        when(conditionFacadeMock.getOrCreateActivityCondition()).thenReturn(activityConfigurationMock);
-
-        doReturn(readerMock).when(configureExtractProcessor).getConditionRequestReader();
     }
-
-//GetNeededParametersForProcessing tests
 
     @Test
-    public void getNeededParametersForProcessingTest() {
-        List<ConditionParameter> neededParametersAsList = Arrays
-                .asList(configureExtractProcessor.getEssentialParametersForProcessing());
-        assertTrue(neededParametersAsList.contains(ConditionParameter.PROCESS_PATH));
-        assertTrue(neededParametersAsList.contains(ConditionParameter.ACTIVITY_ID));
-        assertTrue(neededParametersAsList.contains(ConditionParameter.EXTRACT));
+    public void configureExtractWithoutAnyNeededParameters() throws NjamsInstructionException {
+        instructionBuilder.prepareInstruction(CONFIGURE_EXTRACT);
+        checkResultMessageForMissingsParameters(configureExtractProcessor, TestInstructionBuilder.PROCESSPATH_KEY,
+                TestInstructionBuilder.ACTIVITYID_KEY, TestInstructionBuilder.EXTRACT_KEY);
     }
-
-//ConfigureCondition tests
 
     @Test
-    public void configureConditionWorks() throws NjamsInstructionException {
-        when(readerMock.getExtract()).thenReturn(extractMock);
-        configureExtractProcessor.configureCondition();
-        verify(configureExtractProcessor).getClientCondition();
-        verify(conditionFacadeMock).getOrCreateActivityCondition();
-        verify(activityConfigurationMock).setExtract(any());
+    public void configureExtractWithoutPathAndExtract() throws NjamsInstructionException {
+        instructionBuilder.prepareInstruction(CONFIGURE_EXTRACT).addDefaultActivityId();
+        checkResultMessageForMissingsParameters(configureExtractProcessor, TestInstructionBuilder.PROCESSPATH_KEY,
+                TestInstructionBuilder.EXTRACT_KEY);
     }
-
-    @Test(expected = NjamsInstructionException.class)
-    public void configureConditionExtractIsNotARealExtract() throws NjamsInstructionException {
-        doThrow(new NjamsInstructionException("")).when(readerMock).getExtract();
-        try {
-            configureExtractProcessor.configureCondition();
-        } catch (NjamsInstructionException e) {
-            verify(configureExtractProcessor, times(0)).getClientCondition();
-            verify(conditionFacadeMock, times(0)).getOrCreateActivityCondition();
-            verify(activityConfigurationMock, times(0)).setExtract(any());
-            throw e;
-        }
-    }
-
-//LogProcessingSuccess test
 
     @Test
-    public void logProcessingTest() {
-        configureExtractProcessor.logProcessingSuccess();
-        verify(readerMock).getProcessPath();
-        verify(readerMock).getActivityId();
+    public void configureExtractWithoutPathAndActivityId() throws JsonProcessingException, NjamsInstructionException {
+        instructionBuilder.prepareInstruction(CONFIGURE_EXTRACT).addDefaultExtract();
+        checkResultMessageForMissingsParameters(configureExtractProcessor, TestInstructionBuilder.PROCESSPATH_KEY,
+                TestInstructionBuilder.ACTIVITYID_KEY);
+    }
+
+    @Test
+    public void configureExtractWithoutExtractAndActivityId() throws NjamsInstructionException {
+        instructionBuilder.prepareInstruction(CONFIGURE_EXTRACT).addDefaultPath();
+        checkResultMessageForMissingsParameters(configureExtractProcessor, TestInstructionBuilder.ACTIVITYID_KEY,
+                TestInstructionBuilder.EXTRACT_KEY);
+    }
+
+    @Test
+    public void configureExtractWithoutPath() throws JsonProcessingException, NjamsInstructionException {
+        instructionBuilder.prepareInstruction(CONFIGURE_EXTRACT).addDefaultActivityId().addDefaultExtract();
+        checkResultMessageForMissingsParameters(configureExtractProcessor, TestInstructionBuilder.PROCESSPATH_KEY);
+    }
+
+    @Test
+    public void configureExtractWithoutActivity() throws JsonProcessingException, NjamsInstructionException {
+        instructionBuilder.prepareInstruction(CONFIGURE_EXTRACT).addDefaultPath().addDefaultExtract();
+        checkResultMessageForMissingsParameters(configureExtractProcessor, TestInstructionBuilder.ACTIVITYID_KEY);
+    }
+
+    @Test
+    public void configureExtractWithoutExtract() throws NjamsInstructionException {
+        instructionBuilder.prepareInstruction(CONFIGURE_EXTRACT).addDefaultPath().addDefaultActivityId();
+        checkResultMessageForMissingsParameters(configureExtractProcessor, TestInstructionBuilder.EXTRACT_KEY);
+    }
+
+    @Test
+    public void configureExtractWithoutExistingConfiguration() throws Exception {
+        instructionBuilder.
+                prepareInstruction(CONFIGURE_EXTRACT).
+                addDefaultPath().
+                addDefaultActivityId().
+                addDefaultExtract();
+        Instruction instruction = instructionBuilder.build();
+        when(njamsMock.getProcessFromConfiguration(TestInstructionBuilder.PROCESSPATH_VALUE))
+                .thenReturn(configuration.getProcess(TestInstructionBuilder.PROCESSPATH_VALUE));
+
+        Map<String, ProcessConfiguration> processes = configuration.getProcesses();
+        when(njamsMock.getProcessesFromConfiguration()).thenReturn(processes);
+
+        configureExtractProcessor.processInstruction((ConditionInstruction) getWrappedInstruction(instruction));
+
+        verify(njamsMock).saveConfigurationFromMemoryToStorage();
+
+        ProcessConfiguration newlyCreatedProcess = processes.get(TestInstructionBuilder.PROCESSPATH_VALUE);
+        ActivityConfiguration newlyCreatedActivity = newlyCreatedProcess
+                .getActivity(TestInstructionBuilder.ACTIVITYID_VALUE);
+        JsonSerializer<Extract> serializer = new JsonSerializer();
+        assertEquals(instruction.getRequest().getParameters().get(TestInstructionBuilder.EXTRACT_KEY),
+                serializer.serialize(newlyCreatedActivity.getExtract()));
+
+        Response response = instruction.getResponse();
+        assertEquals(0, response.getResultCode());
+        assertEquals("Success", response.getResultMessage());
+        assertNull(response.getDateTime());
+        assertTrue(response.getParameters().isEmpty());
+
+    }
+
+    @Test
+    public void configureExtractWithConfiguration() throws Exception {
+        instructionBuilder.
+                prepareInstruction(CONFIGURE_EXTRACT).
+                addDefaultPath().
+                addDefaultActivityId().
+                addDefaultExtract();
+        Instruction instruction = instructionBuilder.build();
+
+        ProcessConfiguration process = addProcessConfig(TestInstructionBuilder.PROCESSPATH_VALUE);
+        ActivityConfiguration activityConfiguration = addActivityToProcessConfig(process,
+                TestInstructionBuilder.ACTIVITYID_VALUE);
+        Extract extract = setExtractToActivityConfig(activityConfiguration, TestInstructionBuilder.EXTRACT_KEY);
+
+        when(njamsMock.getProcessFromConfiguration(TestInstructionBuilder.PROCESSPATH_VALUE))
+                .thenReturn(configuration.getProcess(TestInstructionBuilder.PROCESSPATH_VALUE));
+
+        configureExtractProcessor.processInstruction((ConditionInstruction) getWrappedInstruction(instruction));
+
+        verify(njamsMock).saveConfigurationFromMemoryToStorage();
+
+        Map<String, ProcessConfiguration> processes = configuration.getProcesses();
+        ProcessConfiguration returnedProcess = processes.get(TestInstructionBuilder.PROCESSPATH_VALUE);
+        assertEquals(process, returnedProcess);
+        ActivityConfiguration returnedActivity = returnedProcess.getActivity(TestInstructionBuilder.ACTIVITYID_VALUE);
+        assertEquals(activityConfiguration, returnedActivity);
+
+        Extract returnedExtract = activityConfiguration.getExtract();
+        assertNotEquals(extract, returnedExtract);
+        JsonSerializer<Extract> serializer = new JsonSerializer();
+        assertEquals(instruction.getRequest().getParameters().get(TestInstructionBuilder.EXTRACT_KEY),
+                serializer.serialize(returnedExtract));
+
+        Response response = instruction.getResponse();
+        assertEquals(0, response.getResultCode());
+        assertEquals("Success", response.getResultMessage());
+        assertNull(response.getDateTime());
+        assertTrue(response.getParameters().isEmpty());
     }
 }

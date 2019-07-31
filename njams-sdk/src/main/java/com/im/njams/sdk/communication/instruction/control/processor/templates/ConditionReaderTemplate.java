@@ -100,9 +100,7 @@ public abstract class ConditionReaderTemplate extends InstructionProcessorTempla
     }
 
     void setDefaultSuccessResponse() {
-        if (responseWriter.isEmpty()) {
-            responseWriter.setResultCodeAndResultMessage(ResponseWriter.ResultCode.SUCCESS, DEFAULT_SUCCESS_MESSAGE);
-        }
+        responseWriter.setResultCodeAndResultMessage(ResponseWriter.ResultCode.SUCCESS, DEFAULT_SUCCESS_MESSAGE);
     }
 
     protected abstract void processConditionInstruction() throws NjamsInstructionException;
@@ -129,9 +127,8 @@ public abstract class ConditionReaderTemplate extends InstructionProcessorTempla
     }
 
     void logProcessingThrewException(NjamsInstructionException ex) {
-        ConditionInstructionExceptionLogger logger = new ConditionInstructionExceptionLogger(
-                requestReader.getCommand(), requestReader.getProcessPath(),
-                requestReader.getActivityId(), ex);
+        ConditionInstructionExceptionLogger logger = new ConditionInstructionExceptionLogger(requestReader.getCommand(),
+                requestReader.getProcessPath(), requestReader.getActivityId(), ex);
         logger.log();
     }
 
