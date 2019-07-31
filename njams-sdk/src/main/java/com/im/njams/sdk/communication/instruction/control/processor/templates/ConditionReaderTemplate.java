@@ -53,9 +53,9 @@ public abstract class ConditionReaderTemplate extends InstructionProcessorTempla
 
         if (wereAllNeededRequestParametersSet(missingParameters)) {
             resetConditionFacade();
+            setDefaultSuccessResponse();
             try {
                 processConditionInstruction();
-                setDefaultSuccessResponse();
                 logProcessingSuccess();
             } catch (final NjamsInstructionException ex) {
                 String processingExceptionMessage = getProcessingDidntWorkMessage(ex);
@@ -86,14 +86,14 @@ public abstract class ConditionReaderTemplate extends InstructionProcessorTempla
         conditionFacade.setActivityId(reader.getActivityId());
     }
 
-    protected abstract void processConditionInstruction() throws NjamsInstructionException;
-
     void setDefaultSuccessResponse() {
         if (getConditionResponseWriter().isEmpty()) {
             getConditionResponseWriter()
                     .setResultCodeAndResultMessage(ResponseWriter.ResultCode.SUCCESS, DEFAULT_SUCCESS_MESSAGE);
         }
     }
+
+    protected abstract void processConditionInstruction() throws NjamsInstructionException;
 
     protected abstract void logProcessingSuccess();
 

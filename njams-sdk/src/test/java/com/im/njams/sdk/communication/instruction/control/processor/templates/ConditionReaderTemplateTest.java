@@ -132,14 +132,13 @@ public class ConditionReaderTemplateTest {
         if (parseCharToBoolean(trueOrFalseChars[0])) {
             verify(conditionReaderTemplate).processConditionInstruction();
             verify(conditionReaderTemplate).resetConditionFacade();
+            verify(conditionReaderTemplate).setDefaultSuccessResponse();
             if (!parseCharToBoolean(trueOrFalseChars[1])) {
-                verify(conditionReaderTemplate).setDefaultSuccessResponse();
                 verify(conditionReaderTemplate).logProcessingSuccess();
                 verify(conditionReaderTemplate, times(0)).getProcessingDidntWorkMessage(njamsInstructionExceptionMock);
                 verify(conditionReaderTemplate, times(0)).setWarningResponse(any());
                 verify(conditionReaderTemplate, times(0)).logProcessingThrewException(njamsInstructionExceptionMock);
             } else {
-                verify(conditionReaderTemplate, times(0)).setDefaultSuccessResponse();
                 verify(conditionReaderTemplate, times(0)).logProcessingSuccess();
                 verify(conditionReaderTemplate).getProcessingDidntWorkMessage(njamsInstructionExceptionMock);
                 verify(conditionReaderTemplate).setWarningResponse(any());
