@@ -20,11 +20,13 @@
 package com.im.njams.sdk.communication.instruction.control.processor.configuration;
 
 import com.im.njams.sdk.Njams;
+import com.im.njams.sdk.adapter.messageformat.command.entity.ConditionParameter;
+import com.im.njams.sdk.adapter.messageformat.command.entity.ConditionRequestReader;
+import com.im.njams.sdk.api.adapter.messageformat.command.exceptions.NjamsInstructionException;
 import com.im.njams.sdk.common.DateTimeUtility;
+import com.im.njams.sdk.communication.instruction.control.processor.templates.ConditionWriterTemplate;
 import com.im.njams.sdk.configuration.entity.ActivityConfiguration;
-import com.im.njams.sdk.configuration.entity.ProcessConfiguration;
 import com.im.njams.sdk.configuration.entity.TracepointExt;
-import com.im.njams.sdk.utils.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -33,105 +35,110 @@ import java.time.LocalDateTime;
 /**
  * Todo: Write Doc
  */
-public class SetTracingProcessor extends AbstractConfigurationProcessor {
+public class SetTracingProcessor extends ConditionWriterTemplate {
 
-    private static final Logger LOG = LoggerFactory.getLogger(
-            SetTracingProcessor.class);
+    private static final Logger LOG = LoggerFactory.getLogger(SetTracingProcessor.class);
 
-    private static final int TRACING_IS_ENABLED_IN_MINUTES = 15;
+    private static final ConditionParameter[] neededParameter =
+            new ConditionParameter[]{ConditionParameter.PROCESS_PATH, ConditionParameter.ACTIVITY_ID};
+
+    private static final int DEFAULT_TRACING_ENABLED_IN_MINUTES = 15;
+
+    private static final int DEFAULT_ITERATIONS = 0;
+
+    private LocalDateTime endTimeOfNewTracePoint;
+
+    private boolean isTracePointUseful;
+
+    private boolean isTracingEnabled;
 
     public SetTracingProcessor(Njams njams) {
         super(njams);
     }
 
     @Override
-    protected void processInstruction(InstructionSupport instructionSupport) {
-        if (!instructionSupport.validate(InstructionSupport.PROCESS_PATH, InstructionSupport.ACTIVITY_ID)) {
-            return;
-        }
-        //fetch parameters
+    protected ConditionParameter[] getNeededParametersForProcessing() {
+        return neededParameter;
+    }
 
-        LocalDateTime endTime;
-        try {
-            endTime = parseDateTime(instructionSupport.getParameter("endtime"));
-        } catch (final Exception e) {
-            instructionSupport.error("Unable to parse endtime for tracepoint from instruction.", e);
-            return;
-        }
-        if (endTime == null) {
-            endTime = DateTimeUtility.now().plusMinutes(TRACING_IS_ENABLED_IN_MINUTES);
-        }
-        //TODO: is enable Tracing maybe a validatable? Because without enableTracing set, the Tracepoint will be deleted.
-        if (instructionSupport.getBoolParameter("enableTracing") && endTime.isAfter(DateTimeUtility.now())) {
-            LOG.debug("Update tracepoint.");
-            updateTracePoint(instructionSupport, endTime);
+    @Override
+    protected void configureCondition() throws NjamsInstructionException {
+
+        endTimeOfNewTracePoint = getEndTime();
+
+        isTracePointUseful = endTimeOfNewTracePoint.isAfter(DateTimeUtility.now());
+
+        isTracingEnabled = getConditionRequestReader().getTracingEnabled();
+
+        if (isTracingEnabled && isTracePointUseful) {
+            updateTracePoint();
         } else {
-            LOG.debug("Delete tracepoint.");
-            deleteTracePoint(instructionSupport);
+            deleteTracePoint();
         }
     }
 
-    private LocalDateTime parseDateTime(final String dateTime) {
-        if (StringUtils.isBlank(dateTime)) {
-            return null;
+    private LocalDateTime getEndTime() throws NjamsInstructionException {
+        LocalDateTime endTime = getConditionRequestReader().getEndTime();
+        if (endTime == null) {
+            endTime = DateTimeUtility.now().plusMinutes(DEFAULT_TRACING_ENABLED_IN_MINUTES);
         }
-        return DateTimeUtility.fromString(dateTime);
+        return endTime;
     }
 
-    void updateTracePoint(final InstructionSupport instructionSupport, final LocalDateTime endTime) {
-        LocalDateTime startTime;
-        //Todo: It is possible to set the TracePoint end before the TracePoint start, which makes no sense
-        try {
-            startTime = parseDateTime(instructionSupport.getParameter("starttime"));
-        } catch (final Exception e) {
-            instructionSupport.error("Unable to parse starttime for tracepoint from instruction.", e);
-            return;
-        }
+    private void updateTracePoint() throws NjamsInstructionException {
+        TracepointExt tracePointToSet = createTracePointFromRequest();
+
+        ActivityConfiguration activityCondition = getClientCondition().getOrCreateActivityCondition();
+
+        activityCondition.setTracepoint(tracePointToSet);
+    }
+
+    private TracepointExt createTracePointFromRequest() throws NjamsInstructionException {
+        final TracepointExt tp = new TracepointExt();
+        tp.setStarttime(getStartTime());
+        tp.setEndtime(endTimeOfNewTracePoint);
+        tp.setIterations(getIterations());
+        tp.setDeeptrace(getDeepTrace());
+        return tp;
+    }
+
+    private LocalDateTime getStartTime() throws NjamsInstructionException {
+        LocalDateTime startTime = getConditionRequestReader().getStartTime();
         if (startTime == null) {
             startTime = DateTimeUtility.now();
         }
-
-        final String processPath = instructionSupport.getProcessPath();
-        final String activityId = instructionSupport.getActivityId();
-
-        //execute action
-        ProcessConfiguration process = njams.getProcessFromConfiguration(processPath);
-        if (process == null) {
-            process = new ProcessConfiguration();
-            njams.getProcessesFromConfiguration().put(processPath, process);
-        }
-        ActivityConfiguration activity = process.getActivity(activityId);
-        if (activity == null) {
-            activity = new ActivityConfiguration();
-            process.getActivities().put(activityId, activity);
-        }
-        final TracepointExt tp = new TracepointExt();
-        tp.setStarttime(startTime);
-        tp.setEndtime(endTime);
-        tp.setIterations(instructionSupport.getIntParameter("iterations"));
-        tp.setDeeptrace(instructionSupport.getBoolParameter("deepTrace"));
-        activity.setTracepoint(tp);
-        saveConfiguration(instructionSupport);
-        LOG.debug("Tracepoint on {}#{} updated", processPath, activityId);
+        return startTime;
     }
 
-    void deleteTracePoint(final InstructionSupport instructionSupport) {
-        //execute action
-        final String processPath = instructionSupport.getProcessPath();
-        final String activityId = instructionSupport.getActivityId();
+    private Integer getIterations() {
+        Integer iterations = DEFAULT_ITERATIONS;
+        try {
+            iterations = getConditionRequestReader().getIterations();
+        } catch (NjamsInstructionException e) {
+            if (LOG.isErrorEnabled()) {
+                LOG.error(e.getMessage(), e.getCause());
+            }
+        }
+        return iterations;
+    }
 
-        final ProcessConfiguration process = njams.getProcessFromConfiguration(processPath);
-        if (process == null) {
-            LOG.debug("Can't delete tracepoint: no process configuration for: {}", processPath);
-            return;
+    private Boolean getDeepTrace() {
+        return getConditionRequestReader().getDeepTrace();
+    }
+
+    private void deleteTracePoint() throws NjamsInstructionException {
+
+        ActivityConfiguration activityCondition = getClientCondition().getActivityCondition();
+
+        activityCondition.setTracepoint(null);
+    }
+
+    @Override
+    protected void logProcessingSuccess() {
+        String updateOrDelete = isTracingEnabled && isTracePointUseful ? "Updated" : "Deleted";
+        if (LOG.isDebugEnabled()) {
+            ConditionRequestReader requestReader = getConditionRequestReader();
+            LOG.debug("{} Tracepoint of {}#{}.", updateOrDelete, requestReader.getProcessPath(), requestReader.getActivityId());
         }
-        final ActivityConfiguration activity = process.getActivity(activityId);
-        if (activity == null) {
-            LOG.debug("Can't delete tracepoint: no activity configuration for: {}#{}", processPath, activityId);
-            return;
-        }
-        activity.setTracepoint(null);
-        saveConfiguration(instructionSupport);
-        LOG.debug("Tracepoint on {}#{} deleted", processPath, activityId);
     }
 }

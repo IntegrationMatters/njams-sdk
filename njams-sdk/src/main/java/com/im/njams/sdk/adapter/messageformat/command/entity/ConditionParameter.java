@@ -20,7 +20,7 @@
 
 package com.im.njams.sdk.adapter.messageformat.command.entity;
 
-public enum ConditionParameter{
+public enum ConditionParameter {
     PROCESS_PATH("processPath"),
     ACTIVITY_ID("activityId"),
     EXTRACT("extract"),
@@ -32,16 +32,17 @@ public enum ConditionParameter{
     ITERATIONS("iterations"),
     DEEP_TRACE("deepTrace"),
     ENGINE_WIDE_RECORDING("EngineWideRecording"),
-    PROCESS_RECORDING("Record");
+    PROCESS_RECORDING("Record"),
+    ENABLE_TRACING("enableTracing");
 
 
     private String paramKey;
 
-    ConditionParameter(String paramKey){
+    ConditionParameter(String paramKey) {
         this.paramKey = paramKey;
     }
 
-    public String getParamKey(){
+    public String getParamKey() {
         return paramKey;
     }
 }

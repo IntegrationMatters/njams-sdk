@@ -26,10 +26,12 @@ import com.faizsiegeln.njams.messageformat.v4.projectmessage.LogLevel;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.LogMode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.im.njams.sdk.api.adapter.messageformat.command.exceptions.NjamsInstructionException;
+import com.im.njams.sdk.common.DateTimeUtility;
 import com.im.njams.sdk.common.JsonSerializerFactory;
 import com.im.njams.sdk.utils.StringUtils;
 
 import java.io.IOException;
+import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -57,27 +59,47 @@ public class ConditionRequestReader extends DefaultRequestReader {
     }
 
     public Extract getExtract() throws NjamsInstructionException {
-        return parse(getParamByConstant(ConditionParameter.EXTRACT), Extract.class);
+        return parseJson(getParamByConstant(ConditionParameter.EXTRACT), Extract.class);
     }
 
-    public String getEngineWideRecording(){
+    public String getEngineWideRecording() {
         return getParamByConstant(ConditionParameter.ENGINE_WIDE_RECORDING);
     }
 
-    public String getProcessRecording(){
+    public String getProcessRecording() {
         return getParamByConstant(ConditionParameter.PROCESS_RECORDING);
     }
 
-    public LogLevel getLogLevel() throws NjamsInstructionException{
-        return parse(getParamByConstant(ConditionParameter.LOG_LEVEL), LogLevel.class);
+    public LogLevel getLogLevel() throws NjamsInstructionException {
+        return parseJson(getParamByConstant(ConditionParameter.LOG_LEVEL), LogLevel.class);
     }
 
-    public LogMode getLogMode() throws NjamsInstructionException{
-        return parse(getParamByConstant(ConditionParameter.LOG_MODE), LogMode.class);
+    public LogMode getLogMode() throws NjamsInstructionException {
+        return parseJson(getParamByConstant(ConditionParameter.LOG_MODE), LogMode.class);
     }
 
     public boolean getExcluded() {
         return Boolean.parseBoolean(getParamByConstant(ConditionParameter.EXCLUDE));
+    }
+
+    public LocalDateTime getEndTime() throws NjamsInstructionException {
+        return parseDateTime(getParamByConstant(ConditionParameter.END_TIME));
+    }
+
+    public boolean getTracingEnabled() {
+        return Boolean.parseBoolean(getParamByConstant(ConditionParameter.ENABLE_TRACING));
+    }
+
+    public LocalDateTime getStartTime() throws NjamsInstructionException {
+        return parseDateTime(getParamByConstant(ConditionParameter.START_TIME));
+    }
+
+    public Integer getIterations() throws NjamsInstructionException {
+        return parseInteger(getParamByConstant(ConditionParameter.ITERATIONS));
+    }
+
+    public Boolean getDeepTrace() {
+        return Boolean.parseBoolean(getParamByConstant(ConditionParameter.DEEP_TRACE));
     }
 
     public List<String> searchForMissingParameters(ConditionParameter[] parametersToSearchFor) {
@@ -87,11 +109,30 @@ public class ConditionRequestReader extends DefaultRequestReader {
                 .collect(Collectors.toList());
     }
 
-    private <T> T parse(String objectToParse, Class<T> type) throws NjamsInstructionException {
+    private <T> T parseJson(String objectToParse, Class<T> type) throws NjamsInstructionException {
         try {
             return mapper.readValue(objectToParse, type);
-        } catch (IOException e) {
-            throw new NjamsInstructionException(UNABLE_TO_DESERIALZE_OBJECT + objectToParse);
+        } catch (IOException parsingException) {
+            throw new NjamsInstructionException(UNABLE_TO_DESERIALZE_OBJECT + objectToParse, parsingException);
+        }
+    }
+
+    private LocalDateTime parseDateTime(String localDateTimeString) throws NjamsInstructionException {
+        if (StringUtils.isBlank(localDateTimeString)) {
+            return null;
+        }
+        try {
+            return DateTimeUtility.fromString(localDateTimeString);
+        } catch (RuntimeException parsingException) {
+            throw new NjamsInstructionException(UNABLE_TO_DESERIALZE_OBJECT + localDateTimeString, parsingException);
+        }
+    }
+
+    private Integer parseInteger(String integerAsString) throws NjamsInstructionException {
+        try {
+            return Integer.parseInt(integerAsString);
+        } catch (NumberFormatException invalidIntegerException) {
+            throw new NjamsInstructionException(UNABLE_TO_DESERIALZE_OBJECT + integerAsString, invalidIntegerException);
         }
     }
 }
