@@ -18,24 +18,40 @@
  * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package com.im.njams.sdk.api;
+package com.im.njams.sdk.api.adapter.messageformat.command.entity;
 
-import com.im.njams.sdk.api.adapter.messageformat.command.InstructionFactory;
-import com.im.njams.sdk.api.communication.Communication;
-import com.im.njams.sdk.api.datamasking.DataMasking;
-import com.im.njams.sdk.api.plugin.PluginStorage;
+import java.util.Map;
 
-public interface Client {
+/**
+ * This interface uses the "Builder Pattern with Inheritance".
+ *
+ * @param <W> the actual type to return.
+ */
+public interface ResponseWriter<W extends ResponseWriter<W>> {
 
-    void start();
+    enum ResultCode{
+        SUCCESS(0), WARNING(1), ERROR(2);
 
-    PluginStorage getPluginStorage();
+        private int resultCode;
 
-    DataMasking getDataMasking();
+        ResultCode(int resultCode){
+            this.resultCode = resultCode;
+        }
 
-    Communication getCommunication();
+        public int getResultCode(){
+            return resultCode;
+        }
+    }
 
-    InstructionFactory getInstructionFactory();
+    W setResultCode(ResultCode resultCode);
 
-    void stop();
+    W setResultMessage(String resultMessage);
+
+    W putParameter(String key, String value);
+
+    W setParameters(Map<String, String> parameters);
+
+    W addParameters(Map<String, String> parameters);
+
+    W getThis();
 }

@@ -18,7 +18,7 @@
  * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package com.im.njams.sdk.api.adapter.messageformat.command;
+package com.im.njams.sdk.api.adapter.messageformat.command.exceptions;
 
 import java.io.IOException;
 
