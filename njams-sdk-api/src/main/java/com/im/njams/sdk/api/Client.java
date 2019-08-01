@@ -22,20 +22,21 @@ package com.im.njams.sdk.api;
 
 import com.im.njams.sdk.api.adapter.messageformat.command.InstructionFactory;
 import com.im.njams.sdk.api.communication.Communication;
-import com.im.njams.sdk.api.datamasking.DataMasking;
 import com.im.njams.sdk.api.plugin.PluginStorage;
 
 public interface Client {
 
-    void start();
+    boolean start();
 
     PluginStorage getPluginStorage();
 
-    DataMasking getDataMasking();
+//    DataMasking getDataMasking();
+
+//    ClientCondition getClientCondition();
 
     Communication getCommunication();
 
     InstructionFactory getInstructionFactory();
 
-    void stop();
+    boolean stop();
 }

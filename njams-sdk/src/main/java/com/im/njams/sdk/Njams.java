@@ -29,6 +29,9 @@ import com.faizsiegeln.njams.messageformat.v4.common.TreeElement;
 import com.faizsiegeln.njams.messageformat.v4.common.TreeElementType;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.LogMode;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.ProjectMessage;
+import com.im.njams.sdk.adapter.messageformat.command.boundary.NjamsInstructionFactory;
+import com.im.njams.sdk.api.Client;
+import com.im.njams.sdk.api.adapter.messageformat.command.InstructionFactory;
 import com.im.njams.sdk.api.communication.instruction.InstructionListener;
 import com.im.njams.sdk.api.plugin.PluginStorage;
 import com.im.njams.sdk.client.CleanTracepointsTask;
@@ -74,7 +77,7 @@ import static java.util.stream.Collectors.toList;
  *
  * @author bwand
  */
-public class Njams {
+public class Njams implements Client {
 
     private static final org.slf4j.Logger LOG = LoggerFactory.getLogger(Njams.class);
 
@@ -154,6 +157,8 @@ public class Njams {
     private final ConfigurationFacade configurationFacade;
 
     private final PluginStorage pluginStorage = new NjamsPluginStorage(features);
+
+    private final InstructionFactory instructionFactory = new NjamsInstructionFactory();
 
 //    private final SettingsProxyFactory settingsProxyFactory;
 
@@ -333,6 +338,7 @@ public class Njams {
      *
      * @return true if successfull
      */
+    @Override
     public boolean start() {
         if (!isStarted()) {
             if (settings == null) {
@@ -379,6 +385,7 @@ public class Njams {
      *
      * @return true is stopping was successful.
      */
+    @Override
     public boolean stop() {
         if (isStarted()) {
             LogMessageFlushTask.stop(this);
@@ -828,8 +835,19 @@ public class Njams {
         return started;
     }
 
+    @Override
     public PluginStorage getPluginStorage() {
         return pluginStorage;
+    }
+
+    @Override
+    public com.im.njams.sdk.api.communication.Communication getCommunication() {
+        return newCommunicationFacade;
+    }
+
+    @Override
+    public InstructionFactory getInstructionFactory() {
+        return instructionFactory;
     }
 
 }
