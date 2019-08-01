@@ -24,8 +24,8 @@ import com.faizsiegeln.njams.messageformat.v4.command.Command;
 import com.im.njams.sdk.adapter.messageformat.command.entity.ConditionInstruction;
 import com.im.njams.sdk.adapter.messageformat.command.entity.DefaultInstruction;
 import com.im.njams.sdk.adapter.messageformat.command.entity.ReplayInstruction;
-import com.im.njams.sdk.api.adapter.messageformat.command.entity.Instruction;
-import com.im.njams.sdk.api.adapter.messageformat.command.exceptions.NjamsInstructionException;
+import com.im.njams.sdk.api.adapter.messageformat.command.Instruction;
+import com.im.njams.sdk.api.adapter.messageformat.command.NjamsInstructionException;
 
 public class NjamsInstructionWrapper {
 

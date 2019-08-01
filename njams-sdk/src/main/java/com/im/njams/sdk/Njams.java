@@ -29,7 +29,7 @@ import com.faizsiegeln.njams.messageformat.v4.common.TreeElement;
 import com.faizsiegeln.njams.messageformat.v4.common.TreeElementType;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.LogMode;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.ProjectMessage;
-import com.im.njams.sdk.api.communication.instruction.boundary.InstructionListener;
+import com.im.njams.sdk.api.communication.instruction.InstructionListener;
 import com.im.njams.sdk.api.plugin.PluginStorage;
 import com.im.njams.sdk.client.CleanTracepointsTask;
 import com.im.njams.sdk.client.LogMessageFlushTask;
@@ -37,9 +37,7 @@ import com.im.njams.sdk.common.DateTimeUtility;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.common.Path;
 import com.im.njams.sdk.communication.CommunicationFacade;
-import com.im.njams.sdk.communication.instruction.control.processor.configuration.*;
-import com.im.njams.sdk.communication.instruction.control.processor.flush.SendProjectMessageProcessor;
-import com.im.njams.sdk.communication.instruction.control.processor.replay.ReplayProcessor;
+import com.im.njams.sdk.communication.instruction.control.processors.*;
 import com.im.njams.sdk.communication.receiver.NjamsReceiver;
 import com.im.njams.sdk.communication_to_merge.Communication;
 import com.im.njams.sdk.configuration.boundary.ConfigurationFacade;
@@ -352,7 +350,7 @@ public class Njams {
     }
 
     private void addInstructionProcessors() {
-        InstructionListener instructionListener = newCommunicationFacade.getInstructionListener();
+        NjamsReceiver instructionListener = (NjamsReceiver) newCommunicationFacade.getInstructionListener();
         instructionListener.putInstructionProcessor(Command.SEND_PROJECTMESSAGE.commandString(),
                 new SendProjectMessageProcessor(this));
         instructionListener.putInstructionProcessor(Command.CONFIGURE_EXTRACT.commandString(),

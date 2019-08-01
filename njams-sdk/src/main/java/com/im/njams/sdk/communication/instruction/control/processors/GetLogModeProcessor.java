@@ -17,33 +17,42 @@
  * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
  * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
+package com.im.njams.sdk.communication.instruction.control.processors;
 
-package com.im.njams.sdk.communication;
+import com.faizsiegeln.njams.messageformat.v4.projectmessage.LogMode;
+import com.im.njams.sdk.Njams;
+import com.im.njams.sdk.adapter.messageformat.command.entity.ConditionParameter;
+import com.im.njams.sdk.communication.instruction.control.templates.condition.ConditionReaderTemplate;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import com.im.njams.sdk.api.communication.Communication;
-import com.im.njams.sdk.api.communication.instruction.InstructionListener;
-import com.im.njams.sdk.common.NjamsSdkRuntimeException;
+/**
+ * Todo: Write Doc
+ */
+public class GetLogModeProcessor extends ConditionReaderTemplate {
 
-public class CommunicationFacade implements Communication {
+    private static final Logger LOG = LoggerFactory.getLogger(GetLogModeProcessor.class);
 
-    private InstructionListener instructionListener;
-
-    @Override
-    public void setInstructionListener(InstructionListener instructionListener) {
-        this.instructionListener = instructionListener;
+    public GetLogModeProcessor(Njams njams) {
+        super(njams);
     }
 
     @Override
-    public InstructionListener getInstructionListener() {
-        return instructionListener;
+    protected ConditionParameter[] getEssentialParametersForProcessing() {
+        return NO_ESSENTIAL_PARAMETERS;
     }
 
     @Override
-    public void stop() {
-        try {
-            instructionListener.close();
-        } catch (Exception stopDidntWork) {
-            throw new NjamsSdkRuntimeException("Stopping the communication didn't work", stopDidntWork);
+    protected void processConditionInstruction() {
+        final LogMode logMode = conditionFacade.getLogMode();
+
+        responseWriter.setLogMode(logMode);
+    }
+
+    @Override
+    protected void logProcessingSuccess() {
+        if (LOG.isDebugEnabled()) {
+            LOG.debug("Get LogMode.");
         }
     }
 }

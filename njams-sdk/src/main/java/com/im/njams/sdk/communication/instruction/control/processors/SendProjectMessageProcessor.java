@@ -17,33 +17,32 @@
  * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
  * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
+package com.im.njams.sdk.communication.instruction.control.processors;
 
-package com.im.njams.sdk.communication;
+import com.im.njams.sdk.Njams;
+import com.im.njams.sdk.api.adapter.messageformat.command.ResultCode;
+import com.im.njams.sdk.communication.instruction.control.templates.DefaultProcessorTemplate;
 
-import com.im.njams.sdk.api.communication.Communication;
-import com.im.njams.sdk.api.communication.instruction.InstructionListener;
-import com.im.njams.sdk.common.NjamsSdkRuntimeException;
+/**
+ * Todo: Write Doc
+ */
+public class SendProjectMessageProcessor extends DefaultProcessorTemplate {
 
-public class CommunicationFacade implements Communication {
+    static final String SUCCESS_RESULT_MESSAGE = "Successfully send ProjectMessage via NjamsClient";
 
-    private InstructionListener instructionListener;
+    private Njams njams;
 
-    @Override
-    public void setInstructionListener(InstructionListener instructionListener) {
-        this.instructionListener = instructionListener;
+    public SendProjectMessageProcessor(Njams njams) {
+        this.njams = njams;
     }
 
     @Override
-    public InstructionListener getInstructionListener() {
-        return instructionListener;
+    protected void processDefaultInstruction() {
+        njams.flushResources();
     }
 
     @Override
-    public void stop() {
-        try {
-            instructionListener.close();
-        } catch (Exception stopDidntWork) {
-            throw new NjamsSdkRuntimeException("Stopping the communication didn't work", stopDidntWork);
-        }
+    protected void setInstructionResponse() {
+        getDefaultResponseWriter().setResultCodeAndResultMessage(ResultCode.SUCCESS, SUCCESS_RESULT_MESSAGE);
     }
 }

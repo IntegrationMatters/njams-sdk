@@ -20,13 +20,13 @@
 
 package com.im.njams.sdk.communication.instruction.entity;
 
-import com.im.njams.sdk.api.communication.instruction.control.InstructionProcessor;
-import com.im.njams.sdk.communication.instruction.control.processor.fallback.FallbackProcessor;
-import com.im.njams.sdk.communication.instruction.control.processor.test.TestInstructionProcessor;
+import com.im.njams.sdk.communication.instruction.control.InstructionProcessor;
+import com.im.njams.sdk.communication.instruction.control.processors.FallbackProcessor;
+import com.im.njams.sdk.communication.instruction.control.processors.test.TestInstructionProcessor;
 import org.junit.Before;
 import org.junit.Test;
 
-import static com.im.njams.sdk.communication.instruction.control.processor.test.TestInstructionProcessor.TEST_COMMAND;
+import static com.im.njams.sdk.communication.instruction.control.processors.test.TestInstructionProcessor.TEST_COMMAND;
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
 

@@ -19,8 +19,8 @@
  */
 package com.im.njams.sdk.communication.instruction.entity;
 
-import com.im.njams.sdk.api.communication.instruction.control.InstructionProcessor;
-import com.im.njams.sdk.communication.instruction.control.processor.fallback.FallbackProcessor;
+import com.im.njams.sdk.communication.instruction.control.InstructionProcessor;
+import com.im.njams.sdk.communication.instruction.control.processors.FallbackProcessor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -56,8 +56,8 @@ public class InstructionProcessorCollection {
 
     private void logDefaultProcessorHasntChanged() {
         if (LOG.isWarnEnabled()) {
-            LOG.warn("Can't disable the default processor by setting it to null. The {} is still the fallback " +
-                     "processor.", fallbackProcessor.getClass().getSimpleName());
+            LOG.warn("Can't disable the default processors by setting it to null. The {} is still the fallback " +
+                     "processors.", fallbackProcessor.getClass().getSimpleName());
         }
     }
 

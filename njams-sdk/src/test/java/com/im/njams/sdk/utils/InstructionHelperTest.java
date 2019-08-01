@@ -23,7 +23,7 @@ package com.im.njams.sdk.utils;
 import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
 import org.junit.Test;
 
-import static com.im.njams.sdk.communication.instruction.control.processor.test.TestInstructionProcessor.TEST_COMMAND;
+import static com.im.njams.sdk.communication.instruction.control.processors.test.TestInstructionProcessor.TEST_COMMAND;
 import static com.im.njams.sdk.utils.InstructionHelper.EMPTY_STRING;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;

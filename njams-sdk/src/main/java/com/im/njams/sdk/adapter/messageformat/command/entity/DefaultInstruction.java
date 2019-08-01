@@ -23,8 +23,10 @@ package com.im.njams.sdk.adapter.messageformat.command.entity;
 import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
 import com.faizsiegeln.njams.messageformat.v4.command.Request;
 import com.faizsiegeln.njams.messageformat.v4.command.Response;
-import com.im.njams.sdk.api.adapter.messageformat.command.entity.RequestReader;
-import com.im.njams.sdk.api.adapter.messageformat.command.entity.ResponseWriter;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.im.njams.sdk.api.adapter.messageformat.command.ResultCode;
+import com.im.njams.sdk.common.NjamsSdkRuntimeException;
+import com.im.njams.sdk.utils.JsonUtils;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -32,6 +34,8 @@ import java.util.Map;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 public class DefaultInstruction extends AbstractInstruction<DefaultInstruction.DefaultRequestReader, DefaultInstruction.DefaultResponseWriter> {
+
+    public static final String UNABLE_TO_DESERIALZE_OBJECT = "Unable to deserialize: ";
 
     public DefaultInstruction(Instruction messageFormatInstruction) {
         super(messageFormatInstruction);
@@ -48,7 +52,7 @@ public class DefaultInstruction extends AbstractInstruction<DefaultInstruction.D
         return new DefaultResponseWriter(messageFormatInstruction.getResponse());
     }
 
-    public static class DefaultRequestReader implements RequestReader {
+    public static class DefaultRequestReader implements AbstractInstruction.RequestReader {
 
         public static final String EMPTY_STRING = "";
 
@@ -94,9 +98,18 @@ public class DefaultInstruction extends AbstractInstruction<DefaultInstruction.D
         public String getParameter(String paramKey) {
             return getParameters().get(paramKey);
         }
+
+        @Override
+        public String toString(){
+            try {
+                return JsonUtils.serialize(requestToRead);
+            } catch (JsonProcessingException e) {
+                throw new NjamsSdkRuntimeException(UNABLE_TO_DESERIALZE_OBJECT + requestToRead);
+            }
+        }
     }
 
-    public static class DefaultResponseWriter<W extends DefaultResponseWriter<W>> implements ResponseWriter<W> {
+    public static class DefaultResponseWriter<W extends DefaultResponseWriter<W>> implements AbstractInstruction.ResponseWriter<W> {
 
         protected Response responseToBuild;
 
@@ -152,6 +165,15 @@ public class DefaultInstruction extends AbstractInstruction<DefaultInstruction.D
         public W setResultCodeAndResultMessage(ResultCode resultCode, String resultMessage){
             setResultCode(resultCode).setResultMessage(resultMessage);
             return getThis();
+        }
+
+        @Override
+        public String toString(){
+            try {
+                return JsonUtils.serialize(responseToBuild);
+            } catch (JsonProcessingException e) {
+                throw new NjamsSdkRuntimeException(UNABLE_TO_DESERIALZE_OBJECT + responseToBuild);
+            }
         }
     }
 }

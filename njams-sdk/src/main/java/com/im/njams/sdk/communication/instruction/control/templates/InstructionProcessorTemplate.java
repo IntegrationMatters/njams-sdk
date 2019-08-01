@@ -18,32 +18,43 @@
  * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package com.im.njams.sdk.communication;
+package com.im.njams.sdk.communication.instruction.control.templates;
 
-import com.im.njams.sdk.api.communication.Communication;
-import com.im.njams.sdk.api.communication.instruction.InstructionListener;
-import com.im.njams.sdk.common.NjamsSdkRuntimeException;
+import com.im.njams.sdk.api.adapter.messageformat.command.Instruction;
+import com.im.njams.sdk.communication.instruction.control.InstructionProcessor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-public class CommunicationFacade implements Communication {
+public abstract class InstructionProcessorTemplate<T extends Instruction> implements InstructionProcessor<T> {
 
-    private InstructionListener instructionListener;
+    private static final Logger LOG = LoggerFactory.getLogger(DefaultProcessorTemplate.class);
+
+    private T instruction;
 
     @Override
-    public void setInstructionListener(InstructionListener instructionListener) {
-        this.instructionListener = instructionListener;
+    public synchronized void processInstruction(T instruction) {
+
+        setInstruction(instruction);
+
+        process();
+
+        logProcessing();
     }
 
-    @Override
-    public InstructionListener getInstructionListener() {
-        return instructionListener;
+    private void setInstruction(T instruction) {
+        this.instruction = instruction;
     }
 
-    @Override
-    public void stop() {
-        try {
-            instructionListener.close();
-        } catch (Exception stopDidntWork) {
-            throw new NjamsSdkRuntimeException("Stopping the communication didn't work", stopDidntWork);
+    protected abstract void process();
+
+    protected void logProcessing() {
+        if (LOG.isDebugEnabled()) {
+            LOG.debug("Processed {} by {}", instruction.getRequestReader().getCommand(),
+                    this.getClass().getSimpleName());
         }
+    }
+
+    public T getInstruction() {
+        return instruction;
     }
 }

@@ -21,11 +21,9 @@
 package com.im.njams.sdk.adapter.messageformat.command.entity;
 
 import com.faizsiegeln.njams.messageformat.v4.command.Response;
-import com.im.njams.sdk.api.adapter.messageformat.command.entity.Instruction;
-import com.im.njams.sdk.api.adapter.messageformat.command.entity.RequestReader;
-import com.im.njams.sdk.api.adapter.messageformat.command.entity.ResponseWriter;
+import com.im.njams.sdk.api.adapter.messageformat.command.Instruction;
 
-public abstract class AbstractInstruction<R extends RequestReader, W extends ResponseWriter> implements Instruction<R, W> {
+public abstract class AbstractInstruction<R extends Instruction.RequestReader, W extends Instruction.ResponseWriter> implements Instruction {
 
     protected com.faizsiegeln.njams.messageformat.v4.command.Instruction messageFormatInstruction;
 
@@ -37,10 +35,18 @@ public abstract class AbstractInstruction<R extends RequestReader, W extends Res
         this.messageFormatInstruction = messageFormatInstruction;
     }
 
+    public boolean isEmpty() {
+        return messageFormatInstruction == null;
+    }
+
+    public com.faizsiegeln.njams.messageformat.v4.command.Instruction getRealInstruction() {
+        return messageFormatInstruction;
+    }
+
     @Override
     public R getRequestReader() {
-        if(reader == null){
-            if(!isEmpty()){
+        if (reader == null) {
+            if (!isEmpty()) {
                 reader = createRequestReaderInstance();
             }
         }
@@ -51,10 +57,10 @@ public abstract class AbstractInstruction<R extends RequestReader, W extends Res
 
     @Override
     public W getResponseWriter() {
-        if(writer == null){
-            if(!isEmpty()){
+        if (writer == null) {
+            if (!isEmpty()) {
                 Response responseToWriteTo = messageFormatInstruction.getResponse();
-                if(responseToWriteTo == null){
+                if (responseToWriteTo == null) {
                     responseToWriteTo = new Response();
                     messageFormatInstruction.setResponse(responseToWriteTo);
                 }
@@ -65,12 +71,4 @@ public abstract class AbstractInstruction<R extends RequestReader, W extends Res
     }
 
     protected abstract W createResponseWriterInstance();
-
-    public boolean isEmpty(){
-        return messageFormatInstruction == null;
-    }
-
-    public com.faizsiegeln.njams.messageformat.v4.command.Instruction getRealInstruction(){
-        return messageFormatInstruction;
-    }
 }

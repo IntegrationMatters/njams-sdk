@@ -18,32 +18,31 @@
  * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package com.im.njams.sdk.communication;
+package com.im.njams.sdk.communication.instruction.control.templates.condition;
 
-import com.im.njams.sdk.api.communication.Communication;
-import com.im.njams.sdk.api.communication.instruction.InstructionListener;
-import com.im.njams.sdk.common.NjamsSdkRuntimeException;
+import java.util.List;
 
-public class CommunicationFacade implements Communication {
+class MissingParameterMessageBuilder {
 
-    private InstructionListener instructionListener;
+    static final String MISSING_PARAMETER_MESSAGE = "Missing parameter";
 
-    @Override
-    public void setInstructionListener(InstructionListener instructionListener) {
-        this.instructionListener = instructionListener;
-    }
+    private StringBuilder invalidParameterResponseMessage;
 
-    @Override
-    public InstructionListener getInstructionListener() {
-        return instructionListener;
-    }
-
-    @Override
-    public void stop() {
-        try {
-            instructionListener.close();
-        } catch (Exception stopDidntWork) {
-            throw new NjamsSdkRuntimeException("Stopping the communication didn't work", stopDidntWork);
+    public MissingParameterMessageBuilder(List<String> missingParameters) {
+        invalidParameterResponseMessage = new StringBuilder();
+        invalidParameterResponseMessage.append(MISSING_PARAMETER_MESSAGE);
+        if (isNotExactlyOneParameter(missingParameters)) {
+            invalidParameterResponseMessage.append("s");
         }
+        invalidParameterResponseMessage.append(": ").append(missingParameters);
+    }
+
+    private boolean isNotExactlyOneParameter(List<String> notEmptyMissingParameters) {
+        return notEmptyMissingParameters != null && notEmptyMissingParameters.size() != 1;
+    }
+
+
+    public String build() {
+        return invalidParameterResponseMessage.toString();
     }
 }

@@ -19,14 +19,13 @@
  */
 package com.im.njams.sdk.communication.instruction.control;
 
-import com.im.njams.sdk.api.adapter.messageformat.command.entity.Instruction;
-import com.im.njams.sdk.api.communication.instruction.control.InstructionProcessor;
-import com.im.njams.sdk.communication.instruction.control.processor.test.TestInstructionProcessor;
+import com.im.njams.sdk.api.adapter.messageformat.command.Instruction;
+import com.im.njams.sdk.communication.instruction.control.processors.test.TestInstructionProcessor;
 import com.im.njams.sdk.communication.instruction.entity.InstructionProcessorCollection;
 import org.junit.Before;
 import org.junit.Test;
 
-import static com.im.njams.sdk.communication.instruction.control.processor.test.TestInstructionProcessor.TEST_COMMAND;
+import static com.im.njams.sdk.communication.instruction.control.processors.test.TestInstructionProcessor.TEST_COMMAND;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.*;
 

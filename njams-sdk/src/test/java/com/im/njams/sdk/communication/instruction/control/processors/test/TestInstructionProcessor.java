@@ -18,32 +18,32 @@
  * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package com.im.njams.sdk.communication;
+package com.im.njams.sdk.communication.instruction.control.processors.test;
 
-import com.im.njams.sdk.api.communication.Communication;
-import com.im.njams.sdk.api.communication.instruction.InstructionListener;
-import com.im.njams.sdk.common.NjamsSdkRuntimeException;
+import com.faizsiegeln.njams.messageformat.v4.command.Command;
+import com.im.njams.sdk.api.adapter.messageformat.command.Instruction;
+import com.im.njams.sdk.communication.instruction.control.InstructionProcessor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-public class CommunicationFacade implements Communication {
+public class TestInstructionProcessor implements InstructionProcessor {
 
-    private InstructionListener instructionListener;
+    public static final String TEST_COMMAND = Command.TEST_EXPRESSION.commandString();
 
-    @Override
-    public void setInstructionListener(InstructionListener instructionListener) {
-        this.instructionListener = instructionListener;
+    private static final Logger LOG = LoggerFactory.getLogger(TestInstructionProcessor.class);
+
+    private static InstructionProcessor processor = null;
+
+    public static void setInstructionProcessorMock(InstructionProcessor instructionProcessor) {
+        processor = instructionProcessor;
     }
 
     @Override
-    public InstructionListener getInstructionListener() {
-        return instructionListener;
-    }
-
-    @Override
-    public void stop() {
-        try {
-            instructionListener.close();
-        } catch (Exception stopDidntWork) {
-            throw new NjamsSdkRuntimeException("Stopping the communication didn't work", stopDidntWork);
+    public void processInstruction(Instruction instruction) {
+        if (processor != null) {
+            processor.processInstruction(instruction);
+        } else {
+            LOG.debug("processInstruction in TestInstructionProcessor has been invoked.");
         }
     }
 }

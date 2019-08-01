@@ -18,32 +18,38 @@
  * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package com.im.njams.sdk.communication;
+package com.im.njams.sdk.communication.instruction.control.templates;
 
-import com.im.njams.sdk.api.communication.Communication;
-import com.im.njams.sdk.api.communication.instruction.InstructionListener;
-import com.im.njams.sdk.common.NjamsSdkRuntimeException;
+import com.im.njams.sdk.adapter.messageformat.command.entity.ReplayInstruction;
 
-public class CommunicationFacade implements Communication {
-
-    private InstructionListener instructionListener;
+public abstract class ReplayProcessorTemplate extends InstructionProcessorTemplate<ReplayInstruction> {
 
     @Override
-    public void setInstructionListener(InstructionListener instructionListener) {
-        this.instructionListener = instructionListener;
-    }
-
-    @Override
-    public InstructionListener getInstructionListener() {
-        return instructionListener;
-    }
-
-    @Override
-    public void stop() {
-        try {
-            instructionListener.close();
-        } catch (Exception stopDidntWork) {
-            throw new NjamsSdkRuntimeException("Stopping the communication didn't work", stopDidntWork);
+    protected void process() {
+        if(canReplay()){
+            try{
+                processReplayInstruction();
+            }catch (final RuntimeException ex){
+                setExceptionResponse(ex);
+            }
+        }else{
+            setCantReplayResponse();
         }
+    }
+
+    protected abstract boolean canReplay();
+
+    protected abstract void processReplayInstruction();
+
+    protected abstract void setExceptionResponse(RuntimeException ex);
+
+    protected abstract void setCantReplayResponse();
+
+    public ReplayInstruction.ReplayRequestReader getReplayRequestReader(){
+        return getInstruction().getRequestReader();
+    }
+
+    public ReplayInstruction.ReplayResponseWriter getReplayResponseWriter(){
+        return getInstruction().getResponseWriter();
     }
 }

@@ -22,10 +22,10 @@ package com.im.njams.sdk.communication.receiver;
 
 import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
 import com.im.njams.sdk.adapter.messageformat.command.control.NjamsInstructionWrapper;
-import com.im.njams.sdk.api.adapter.messageformat.command.exceptions.NjamsInstructionException;
-import com.im.njams.sdk.api.communication.instruction.boundary.InstructionListener;
-import com.im.njams.sdk.api.communication.instruction.control.InstructionProcessor;
+import com.im.njams.sdk.api.adapter.messageformat.command.NjamsInstructionException;
+import com.im.njams.sdk.api.communication.instruction.InstructionListener;
 import com.im.njams.sdk.communication.instruction.boundary.InstructionProcessorService;
+import com.im.njams.sdk.communication.instruction.control.InstructionProcessor;
 
 public class NjamsReceiver implements InstructionListener {
 
@@ -44,17 +44,14 @@ public class NjamsReceiver implements InstructionListener {
         }
     }
 
-    @Override
     public void putInstructionProcessor(String commandToListenTo, InstructionProcessor instructionProcessor) {
         instructionProcessorService.putInstructionProcessor(commandToListenTo, instructionProcessor);
     }
 
-    @Override
     public InstructionProcessor getInstructionProcessor(String commandToListenTo) {
         return instructionProcessorService.getInstructionProcessor(commandToListenTo);
     }
 
-    @Override
     public void removeInstructionProcessor(String commandToListenTo) {
         instructionProcessorService.removeInstructionProcessor(commandToListenTo);
     }

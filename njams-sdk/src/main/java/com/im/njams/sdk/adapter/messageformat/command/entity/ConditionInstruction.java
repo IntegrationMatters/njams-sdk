@@ -28,7 +28,7 @@ import com.faizsiegeln.njams.messageformat.v4.projectmessage.LogLevel;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.LogMode;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.im.njams.sdk.api.adapter.messageformat.command.exceptions.NjamsInstructionException;
+import com.im.njams.sdk.api.adapter.messageformat.command.NjamsInstructionException;
 import com.im.njams.sdk.common.DateTimeUtility;
 import com.im.njams.sdk.common.JsonSerializerFactory;
 import com.im.njams.sdk.utils.StringUtils;
@@ -38,6 +38,8 @@ import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
+
+import static com.im.njams.sdk.adapter.messageformat.command.entity.DefaultInstruction.UNABLE_TO_DESERIALZE_OBJECT;
 
 public class ConditionInstruction extends AbstractInstruction<ConditionInstruction.ConditionRequestReader, ConditionInstruction.ConditionResponseWriter>{
 
@@ -56,8 +58,6 @@ public class ConditionInstruction extends AbstractInstruction<ConditionInstructi
     }
 
     public static class ConditionRequestReader extends DefaultInstruction.DefaultRequestReader {
-
-        public static final String UNABLE_TO_DESERIALZE_OBJECT = "Unable to deserialize: ";
 
         private ObjectMapper mapper = JsonSerializerFactory.getDefaultMapper();
 

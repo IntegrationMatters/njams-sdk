@@ -18,32 +18,28 @@
  * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package com.im.njams.sdk.communication;
+package com.im.njams.sdk.communication.instruction.control.templates;
 
-import com.im.njams.sdk.api.communication.Communication;
-import com.im.njams.sdk.api.communication.instruction.InstructionListener;
-import com.im.njams.sdk.common.NjamsSdkRuntimeException;
+import com.im.njams.sdk.adapter.messageformat.command.entity.DefaultInstruction;
 
-public class CommunicationFacade implements Communication {
-
-    private InstructionListener instructionListener;
+public abstract class DefaultProcessorTemplate extends InstructionProcessorTemplate<DefaultInstruction> {
 
     @Override
-    public void setInstructionListener(InstructionListener instructionListener) {
-        this.instructionListener = instructionListener;
+    protected void process(){
+        processDefaultInstruction();
+
+        setInstructionResponse();
     }
 
-    @Override
-    public InstructionListener getInstructionListener() {
-        return instructionListener;
+    protected abstract void processDefaultInstruction();
+
+    protected abstract void setInstructionResponse();
+
+    public DefaultInstruction.DefaultRequestReader getDefaultRequestReader(){
+        return getInstruction().getRequestReader();
     }
 
-    @Override
-    public void stop() {
-        try {
-            instructionListener.close();
-        } catch (Exception stopDidntWork) {
-            throw new NjamsSdkRuntimeException("Stopping the communication didn't work", stopDidntWork);
-        }
+    public DefaultInstruction.DefaultResponseWriter getDefaultResponseWriter(){
+        return getInstruction().getResponseWriter();
     }
 }

@@ -18,32 +18,27 @@
  * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package com.im.njams.sdk.communication;
+package com.im.njams.sdk.communication.instruction.control.templates.condition;
 
-import com.im.njams.sdk.api.communication.Communication;
-import com.im.njams.sdk.api.communication.instruction.InstructionListener;
-import com.im.njams.sdk.common.NjamsSdkRuntimeException;
+import com.im.njams.sdk.Njams;
+import com.im.njams.sdk.api.adapter.messageformat.command.NjamsInstructionException;
 
-public class CommunicationFacade implements Communication {
+public abstract class ConditionWriterTemplate extends ConditionReaderTemplate {
 
-    private InstructionListener instructionListener;
-
-    @Override
-    public void setInstructionListener(InstructionListener instructionListener) {
-        this.instructionListener = instructionListener;
+    public ConditionWriterTemplate(Njams njams) {
+        super(njams);
     }
 
     @Override
-    public InstructionListener getInstructionListener() {
-        return instructionListener;
+    public void processConditionInstruction() throws NjamsInstructionException {
+        configureCondition();
+
+        saveCondition();
     }
 
-    @Override
-    public void stop() {
-        try {
-            instructionListener.close();
-        } catch (Exception stopDidntWork) {
-            throw new NjamsSdkRuntimeException("Stopping the communication didn't work", stopDidntWork);
-        }
+    protected abstract void configureCondition() throws NjamsInstructionException;
+
+    void saveCondition() throws NjamsInstructionException {
+        conditionFacade.saveCondition();
     }
 }

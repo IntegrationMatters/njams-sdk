@@ -22,9 +22,9 @@ package com.im.njams.sdk.adapter.messageformat.command.boundary;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.im.njams.sdk.adapter.messageformat.command.control.NjamsInstructionWrapper;
-import com.im.njams.sdk.api.adapter.messageformat.command.boundary.InstructionFactory;
-import com.im.njams.sdk.api.adapter.messageformat.command.entity.Instruction;
-import com.im.njams.sdk.api.adapter.messageformat.command.exceptions.NjamsInstructionException;
+import com.im.njams.sdk.api.adapter.messageformat.command.Instruction;
+import com.im.njams.sdk.api.adapter.messageformat.command.InstructionFactory;
+import com.im.njams.sdk.api.adapter.messageformat.command.NjamsInstructionException;
 import com.im.njams.sdk.common.JsonSerializerFactory;
 
 import java.io.IOException;
