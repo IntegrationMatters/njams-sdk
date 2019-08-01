@@ -31,7 +31,6 @@ import com.im.njams.sdk.utils.JsonUtils;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 public class DefaultInstruction extends AbstractInstruction<DefaultInstruction.DefaultRequestReader, DefaultInstruction.DefaultResponseWriter> {
 
@@ -39,7 +38,6 @@ public class DefaultInstruction extends AbstractInstruction<DefaultInstruction.D
 
     public DefaultInstruction(Instruction messageFormatInstruction) {
         super(messageFormatInstruction);
-        new ReentrantReadWriteLock();
     }
 
     @Override

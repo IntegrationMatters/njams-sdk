@@ -28,15 +28,15 @@ public interface Client {
 
     boolean start();
 
-    PluginStorage getPluginStorage();
-
-//    DataMasking getDataMasking();
-
-//    ClientCondition getClientCondition();
-
     Communication getCommunication();
 
     InstructionFactory getInstructionFactory();
+
+//    ClientCondition getClientCondition();
+
+    PluginStorage getPluginStorage();
+
+//    DataMasking getDataMasking();
 
     boolean stop();
 }
