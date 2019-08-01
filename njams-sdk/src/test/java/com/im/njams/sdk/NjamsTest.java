@@ -20,6 +20,8 @@ import com.faizsiegeln.njams.messageformat.v4.command.Command;
 import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
 import com.faizsiegeln.njams.messageformat.v4.command.Request;
 import com.faizsiegeln.njams.messageformat.v4.command.Response;
+import com.im.njams.sdk.adapter.messageformat.command.boundary.NjamsInstructionFactory;
+import com.im.njams.sdk.api.adapter.messageformat.command.NjamsInstructionException;
 import com.im.njams.sdk.api.adapter.messageformat.command.ResultCode;
 import com.im.njams.sdk.api.plugin.replay.ReplayHandler;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
@@ -99,28 +101,34 @@ public class NjamsTest {
     }
 
     @Test
-    public void testOnCorrectSendProjectMessageInstruction() {
+    public void testOnCorrectSendProjectMessageInstruction() throws NjamsInstructionException {
         instance.start();
         Instruction inst = new Instruction();
         Request req = new Request();
         req.setCommand(Command.SEND_PROJECTMESSAGE.commandString());
         inst.setRequest(req);
         assertNull(inst.getResponse());
-        instance.getInstructionListener().onInstruction(inst);
+        NjamsInstructionFactory instructionFactory = (NjamsInstructionFactory) instance.getInstructionFactory();
+        com.im.njams.sdk.api.adapter.messageformat.command.Instruction wrappedInst = instructionFactory
+                .getInstructionOf(inst);
+        instance.getInstructionListener().onInstruction(wrappedInst);
         Response resp = inst.getResponse();
         assertTrue(resp.getResultCode() == 0);
         assertEquals("Successfully send ProjectMessage via NjamsClient", resp.getResultMessage());
     }
 
     @Test
-    public void testOnNoReplyHandlerFoundReplayMessageInstruction() {
+    public void testOnNoReplyHandlerFoundReplayMessageInstruction() throws NjamsInstructionException {
         instance.start();
         Instruction inst = new Instruction();
         Request req = new Request();
         req.setCommand(Command.REPLAY.commandString());
         inst.setRequest(req);
         assertNull(inst.getResponse());
-        instance.getInstructionListener().onInstruction(inst);
+        NjamsInstructionFactory instructionFactory = (NjamsInstructionFactory) instance.getInstructionFactory();
+        com.im.njams.sdk.api.adapter.messageformat.command.Instruction wrappedInst = instructionFactory
+                .getInstructionOf(inst);
+        instance.getInstructionListener().onInstruction(wrappedInst);
 
         Response resp = inst.getResponse();
         assertTrue(resp.getResultCode() == 1);
@@ -128,7 +136,7 @@ public class NjamsTest {
     }
 
     @Test
-    public void testOnCorrectReplayMessageInstruction() {
+    public void testOnCorrectReplayMessageInstruction() throws NjamsInstructionException {
         instance.start();
         ReplayHandler replayHandler = (com.im.njams.sdk.api.adapter.messageformat.command.Instruction instruction) -> {
             instruction.getResponseWriter().
@@ -141,7 +149,10 @@ public class NjamsTest {
         req.setCommand(Command.REPLAY.commandString());
         inst.setRequest(req);
         assertNull(inst.getResponse());
-        instance.getInstructionListener().onInstruction(inst);
+        NjamsInstructionFactory instructionFactory = (NjamsInstructionFactory) instance.getInstructionFactory();
+        com.im.njams.sdk.api.adapter.messageformat.command.Instruction wrappedInst = instructionFactory
+                .getInstructionOf(inst);
+        instance.getInstructionListener().onInstruction(wrappedInst);
 
         Response resp = inst.getResponse();
         assertTrue(resp.getResultCode() == 0);
@@ -149,7 +160,7 @@ public class NjamsTest {
     }
 
     @Test
-    public void testOnThrownExceptionReplayMessageInstruction() {
+    public void testOnThrownExceptionReplayMessageInstruction() throws NjamsInstructionException {
         instance.start();
         Instruction inst = new Instruction();
         ReplayHandler replayHandler = (com.im.njams.sdk.api.adapter.messageformat.command.Instruction instruction) -> {
@@ -160,7 +171,10 @@ public class NjamsTest {
         req.setCommand(Command.REPLAY.commandString());
         inst.setRequest(req);
         assertNull(inst.getResponse());
-        instance.getInstructionListener().onInstruction(inst);
+        NjamsInstructionFactory instructionFactory = (NjamsInstructionFactory) instance.getInstructionFactory();
+        com.im.njams.sdk.api.adapter.messageformat.command.Instruction wrappedInst = instructionFactory
+                .getInstructionOf(inst);
+        instance.getInstructionListener().onInstruction(wrappedInst);
 
         Response resp = inst.getResponse();
         assertTrue(resp.getResultCode() == 2);

@@ -1,17 +1,24 @@
 /*
  * Copyright (c) 2019 Faiz & Siegeln Software GmbH
  *
- * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"),
- * to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
- * and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
+ * documentation files (the "Software"),
+ * to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge,
+ * publish, distribute, sublicense,
+ * and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to
+ * the following conditions:
  *
- * The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+ * The above copyright notice and this permission notice shall be included in all copies or substantial portions of
+ * the Software.
  *
  * The Software shall be used for Good, not Evil.
  *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
+ * THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE
+ *  FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+ * SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
  */
 package com.im.njams.sdk.communication_to_merge.connectable.receiver;
@@ -20,6 +27,9 @@ import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
 import com.faizsiegeln.njams.messageformat.v4.command.Request;
 import com.faizsiegeln.njams.messageformat.v4.command.Response;
 import com.im.njams.sdk.Njams;
+import com.im.njams.sdk.adapter.messageformat.command.boundary.NjamsInstructionFactory;
+import com.im.njams.sdk.api.adapter.messageformat.command.NjamsInstructionException;
+import com.im.njams.sdk.api.adapter.messageformat.command.ResultCode;
 import com.im.njams.sdk.communication_to_merge.connector.Connector;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -53,7 +63,7 @@ public abstract class AbstractReceiver implements Receiver {
      * @param properties the properties needed to initialize
      */
     @Override
-    public final void init(Properties properties){
+    public final void init(Properties properties) {
         connector = initialize(properties);
         connector.start();
         util = new ReceiverUtil();
@@ -81,39 +91,40 @@ public abstract class AbstractReceiver implements Receiver {
      */
     @Override
     public void onInstruction(Instruction instruction) {
-        LOG.debug("Received instruction: {}", instruction == null ? "null" : instruction.getCommand());
         if (njams == null) {
             LOG.error("Njams should not be null");
             return;
         }
-        if (instruction == null) {
+        NjamsInstructionFactory instructionFactory = (NjamsInstructionFactory) njams.getInstructionFactory();
+
+        try {
+            com.im.njams.sdk.api.adapter.messageformat.command.Instruction wrappedInstruction = instructionFactory
+                    .getInstructionOf(instruction);
+            com.im.njams.sdk.api.adapter.messageformat.command.Instruction.RequestReader requestReader =
+                    wrappedInstruction
+                    .getRequestReader();
+            com.im.njams.sdk.api.adapter.messageformat.command.Instruction.ResponseWriter responseWriter =
+                    wrappedInstruction
+                    .getResponseWriter();
+            LOG.debug("Received instruction: {}", requestReader.getCommand());
+            if (requestReader.isCommandNull()) {
+                LOG.error("Instruction should have a valid request with a command");
+                responseWriter.setResultCode(ResultCode.WARNING)
+                        .setResultMessage("Instruction should have a valid request with a command");
+                return;
+            }
+            //Extend your request here. If something doesn't work as expected,
+            //you can return a response that will be sent back to the server without further processing.
+            Response exceptionResponse = this.extendRequest(instruction.getRequest());
+            if (exceptionResponse != null) {
+                //Set the exception response
+                instruction.setResponse(exceptionResponse);
+            } else {
+                njams.getInstructionListener().onInstruction(wrappedInstruction);
+            }
+        } catch (NjamsInstructionException e) {
             LOG.error("Instruction should not be null");
             return;
-        }
-        if (instruction.getRequest() == null || instruction.getRequest().getCommand() == null) {
-            LOG.error("Instruction should have a valid request with a command");
-            Response response = new Response();
-            response.setResultCode(1);
-            response.setResultMessage("Instruction should have a valid request with a command");
-            instruction.setResponse(response);
-            return;
-        }
-        //Extend your request here. If something doesn't work as expected,
-        //you can return a response that will be sent back to the server without further processing.
-        Response exceptionResponse = this.extendRequest(instruction.getRequest());
-        if (exceptionResponse != null) {
-            //Set the exception response
-            instruction.setResponse(exceptionResponse);
-        } else {
-            njams.getInstructionListener().onInstruction(instruction);
-            //If response is empty, no InstructionListener found. Set default Response indicating this.
-            if (instruction.getResponse() == null) {
-                LOG.warn("No InstructionListener for {} found", instruction.getRequest().getCommand());
-                Response response = new Response();
-                response.setResultCode(1);
-                response.setResultMessage("No InstructionListener for " + instruction.getRequest().getCommand() + " found");
-                instruction.setResponse(response);
-            }
         }
     }
 
@@ -133,13 +144,13 @@ public abstract class AbstractReceiver implements Receiver {
     }
 
     @Override
-    public final void stop(){
+    public final void stop() {
         LOG.info("Stopping {}", this.getName() + Connector.RECEIVER_NAME_ENDING);
         connector.stop();
     }
 
     @Override
-    public Connector getConnector(){
+    public Connector getConnector() {
         return connector;
     }
 }

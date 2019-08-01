@@ -34,11 +34,11 @@ public class NjamsInstructionFactory implements InstructionFactory {
     private final ObjectMapper instructionParser = JsonSerializerFactory.getDefaultMapper();
 
     @Override
-    public Instruction getInstructionFor(String messageFormatInstructionAsJsonString) throws NjamsInstructionException {
+    public Instruction getInstructionOf(String messageFormatInstructionAsJsonString) throws NjamsInstructionException {
         try {
             final com.faizsiegeln.njams.messageformat.v4.command.Instruction messageFormatInstruction = readJsonAsMessageFormatInstruction(
                     messageFormatInstructionAsJsonString);
-            return getInstructionFor(messageFormatInstruction);
+            return getInstructionOf(messageFormatInstruction);
         } catch (IOException ex) {
             throw new NjamsInstructionException(ex.getMessage());
         }
@@ -50,7 +50,7 @@ public class NjamsInstructionFactory implements InstructionFactory {
                 com.faizsiegeln.njams.messageformat.v4.command.Instruction.class);
     }
 
-    public Instruction getInstructionFor(com.faizsiegeln.njams.messageformat.v4.command.Instruction messageFormatInstruction)
+    public Instruction getInstructionOf(com.faizsiegeln.njams.messageformat.v4.command.Instruction messageFormatInstruction)
             throws NjamsInstructionException {
         NjamsInstructionWrapper njamsInstructionWrapper = new NjamsInstructionWrapper(messageFormatInstruction);
         return njamsInstructionWrapper.wrap();
