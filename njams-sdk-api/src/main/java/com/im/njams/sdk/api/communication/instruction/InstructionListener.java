@@ -18,13 +18,11 @@
  * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package com.im.njams.sdk.api.adapter.messageformat.command.boundary;
+package com.im.njams.sdk.api.communication.instruction;
 
-import com.im.njams.sdk.api.adapter.messageformat.command.entity.Instruction;
-import com.im.njams.sdk.api.adapter.messageformat.command.exceptions.NjamsInstructionException;
+import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
 
-public interface InstructionFactory {
+public interface InstructionListener extends AutoCloseable {
 
-    Instruction getInstructionFor(String messageFormatInstructionAsJsonString) throws NjamsInstructionException;
-
+    void onInstruction(Instruction instruction);
 }

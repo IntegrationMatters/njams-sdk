@@ -18,11 +18,10 @@
  * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package com.im.njams.sdk.api.adapter.messageformat.command.entity;
+package com.im.njams.sdk.api.adapter.messageformat.command;
 
-public interface Instruction<R extends RequestReader, W extends ResponseWriter>{
+public interface InstructionFactory {
 
-    R getRequestReader();
+    Instruction getInstructionFor(String messageFormatInstructionAsJsonString) throws NjamsInstructionException;
 
-    W getResponseWriter();
 }

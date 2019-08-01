@@ -20,7 +20,7 @@
 
 package com.im.njams.sdk.api.plugin.replay;
 
-import com.im.njams.sdk.api.adapter.messageformat.command.entity.Instruction;
+import com.im.njams.sdk.api.adapter.messageformat.command.Instruction;
 import com.im.njams.sdk.api.plugin.PluginItem;
 
 public interface ReplayHandler extends PluginItem {
