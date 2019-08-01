@@ -19,7 +19,7 @@
  */
 package com.im.njams.sdk.api.communication;
 
-import com.im.njams.sdk.api.communication.instruction.boundary.InstructionListener;
+import com.im.njams.sdk.api.communication.instruction.InstructionListener;
 
 public interface Communication {
 

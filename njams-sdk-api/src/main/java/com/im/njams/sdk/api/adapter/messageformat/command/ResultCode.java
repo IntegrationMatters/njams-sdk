@@ -18,21 +18,22 @@
  * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package com.im.njams.sdk.api.adapter.messageformat.command.entity;
+package com.im.njams.sdk.api.adapter.messageformat.command;
 
-import java.util.Map;
+public enum ResultCode {
 
-public interface RequestReader {
+    SUCCESS(0),
+    WARNING(1),
+    ERROR(2);
 
-    boolean isEmpty();
+    private int resultCode;
 
-    boolean isCommandNull();
+    ResultCode(int resultCode) {
+        this.resultCode = resultCode;
+    }
 
-    boolean isCommandEmpty();
+    public int getResultCode() {
+        return resultCode;
+    }
 
-    String getCommand();
-
-    Map<String, String> getParameters();
-
-    String getParameter(String paramKey);
 }

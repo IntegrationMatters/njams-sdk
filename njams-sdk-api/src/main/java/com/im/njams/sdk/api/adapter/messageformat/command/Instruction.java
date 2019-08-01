@@ -18,18 +18,43 @@
  * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package com.im.njams.sdk.api.communication.instruction.boundary;
+package com.im.njams.sdk.api.adapter.messageformat.command;
 
-import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
-import com.im.njams.sdk.api.communication.instruction.control.InstructionProcessor;
+import java.util.Map;
 
-public interface InstructionListener extends AutoCloseable{
+public interface Instruction<R extends Instruction.RequestReader, W extends Instruction.ResponseWriter> {
 
-    void onInstruction(Instruction instruction);
+    R getRequestReader();
 
-    void putInstructionProcessor(String commandToListenTo, InstructionProcessor instructionProcessor);
+    W getResponseWriter();
 
-    InstructionProcessor getInstructionProcessor(String commandToListenTo);
+    interface RequestReader {
 
-    void removeInstructionProcessor(String commandToListenTo);
+        boolean isEmpty();
+
+        boolean isCommandNull();
+
+        boolean isCommandEmpty();
+
+        String getCommand();
+
+        Map<String, String> getParameters();
+
+        String getParameter(String paramKey);
+    }
+
+    interface ResponseWriter<W extends ResponseWriter<W>> {
+
+        W setResultCode(ResultCode resultCode);
+
+        W setResultMessage(String resultMessage);
+
+        W putParameter(String key, String value);
+
+        W setParameters(Map<String, String> parameters);
+
+        W addParameters(Map<String, String> parameters);
+
+        W getThis();
+    }
 }
