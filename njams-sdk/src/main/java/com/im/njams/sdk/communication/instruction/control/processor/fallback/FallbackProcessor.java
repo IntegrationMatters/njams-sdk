@@ -19,7 +19,7 @@
  */
 package com.im.njams.sdk.communication.instruction.control.processor.fallback;
 
-import com.im.njams.sdk.adapter.messageformat.command.entity.DefaultRequestReader;
+import com.im.njams.sdk.adapter.messageformat.command.entity.DefaultInstruction;
 import com.im.njams.sdk.api.adapter.messageformat.command.entity.ResponseWriter;
 import com.im.njams.sdk.communication.instruction.control.processor.templates.DefaultProcessorTemplate;
 import org.slf4j.Logger;
@@ -50,7 +50,7 @@ public class FallbackProcessor extends DefaultProcessorTemplate {
         }
     }
 
-    String warningMessage = DefaultRequestReader.EMPTY_STRING;
+    String warningMessage = DefaultInstruction.DefaultRequestReader.EMPTY_STRING;
 
     @Override
     protected void processDefaultInstruction() {
@@ -62,7 +62,7 @@ public class FallbackProcessor extends DefaultProcessorTemplate {
     }
 
     private void clear() {
-        warningMessage = DefaultRequestReader.EMPTY_STRING;
+        warningMessage = DefaultInstruction.DefaultRequestReader.EMPTY_STRING;
     }
 
     private InstructionProblem checkTypeOfProblem() {
@@ -71,7 +71,7 @@ public class FallbackProcessor extends DefaultProcessorTemplate {
         if (getInstruction().isEmpty()) {
             problemType = InstructionProblem.INSTRUCTION_IS_NULL;
         } else {
-            final DefaultRequestReader requestReader = getDefaultRequestReader();
+            final DefaultInstruction.DefaultRequestReader requestReader = getDefaultRequestReader();
             if (requestReader.isEmpty()) {
                 problemType = InstructionProblem.REQUEST_IS_NULL;
             } else if (requestReader.isCommandNull()) {

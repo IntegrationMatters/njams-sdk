@@ -21,7 +21,7 @@ package com.im.njams.sdk.communication.instruction.control.processor.configurati
 
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.adapter.messageformat.command.entity.ConditionParameter;
-import com.im.njams.sdk.communication.instruction.control.processor.templates.ConditionWriterTemplate;
+import com.im.njams.sdk.communication.instruction.control.processor.templates.condition.ConditionWriterTemplate;
 import com.im.njams.sdk.configuration.entity.ProcessConfiguration;
 import com.im.njams.sdk.utils.StringUtils;
 import org.slf4j.Logger;

@@ -33,7 +33,7 @@ import org.junit.Test;
 import java.util.Map;
 
 import static com.faizsiegeln.njams.messageformat.v4.command.Command.SET_LOG_LEVEL;
-import static com.im.njams.sdk.adapter.messageformat.command.entity.ConditionRequestReader.UNABLE_TO_DESERIALZE_OBJECT;
+import static com.im.njams.sdk.adapter.messageformat.command.entity.ConditionInstruction.ConditionRequestReader.UNABLE_TO_DESERIALZE_OBJECT;
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
 

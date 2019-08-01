@@ -18,7 +18,7 @@
  * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package com.im.njams.sdk.communication.instruction.control.processor.templates;
+package com.im.njams.sdk.communication.instruction.control.processor.templates.condition;
 
 import com.im.njams.sdk.adapter.messageformat.command.entity.ConditionParameter;
 import org.junit.Test;
@@ -27,7 +27,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import static com.im.njams.sdk.communication.instruction.control.processor.templates.MissingParameterMessageBuilder.MISSING_PARAMETER_MESSAGE;
+import static com.im.njams.sdk.communication.instruction.control.processor.templates.condition.MissingParameterMessageBuilder.MISSING_PARAMETER_MESSAGE;
 import static java.util.Collections.EMPTY_LIST;
 import static org.junit.Assert.assertEquals;
 

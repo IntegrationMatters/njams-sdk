@@ -32,7 +32,7 @@ import org.junit.Test;
 import java.time.LocalDateTime;
 
 import static com.faizsiegeln.njams.messageformat.v4.command.Command.SET_TRACING;
-import static com.im.njams.sdk.adapter.messageformat.command.entity.ConditionRequestReader.UNABLE_TO_DESERIALZE_OBJECT;
+import static com.im.njams.sdk.adapter.messageformat.command.entity.ConditionInstruction.ConditionRequestReader.UNABLE_TO_DESERIALZE_OBJECT;
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
 

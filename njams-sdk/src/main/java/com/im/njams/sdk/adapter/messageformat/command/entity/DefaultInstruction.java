@@ -21,11 +21,21 @@
 package com.im.njams.sdk.adapter.messageformat.command.entity;
 
 import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
+import com.faizsiegeln.njams.messageformat.v4.command.Request;
+import com.faizsiegeln.njams.messageformat.v4.command.Response;
+import com.im.njams.sdk.api.adapter.messageformat.command.entity.RequestReader;
+import com.im.njams.sdk.api.adapter.messageformat.command.entity.ResponseWriter;
 
-public class DefaultInstruction extends AbstractInstruction<DefaultRequestReader, DefaultResponseWriter> {
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
+
+public class DefaultInstruction extends AbstractInstruction<DefaultInstruction.DefaultRequestReader, DefaultInstruction.DefaultResponseWriter> {
 
     public DefaultInstruction(Instruction messageFormatInstruction) {
         super(messageFormatInstruction);
+        new ReentrantReadWriteLock();
     }
 
     @Override
@@ -38,4 +48,110 @@ public class DefaultInstruction extends AbstractInstruction<DefaultRequestReader
         return new DefaultResponseWriter(messageFormatInstruction.getResponse());
     }
 
+    public static class DefaultRequestReader implements RequestReader {
+
+        public static final String EMPTY_STRING = "";
+
+        protected Request requestToRead;
+
+        public DefaultRequestReader(Request requestToRead) {
+            this.requestToRead = requestToRead;
+        }
+
+        @Override
+        public boolean isEmpty(){
+            return requestToRead == null;
+        }
+
+        @Override
+        public boolean isCommandNull(){
+            return isEmpty() || requestToRead.getCommand() == null;
+        }
+
+        @Override
+        public boolean isCommandEmpty(){
+            return isCommandNull() || requestToRead.getCommand().equals(EMPTY_STRING);
+        }
+
+        @Override
+        public String getCommand() {
+            String foundCommand = EMPTY_STRING;
+            if(!isCommandNull()){
+                foundCommand = requestToRead.getCommand();
+            }
+            return foundCommand;
+        }
+
+        @Override
+        public Map<String, String> getParameters() {
+            if(!isEmpty()){
+                return Collections.unmodifiableMap(requestToRead.getParameters());
+            }
+            return Collections.EMPTY_MAP;
+        }
+
+        @Override
+        public String getParameter(String paramKey) {
+            return getParameters().get(paramKey);
+        }
+    }
+
+    public static class DefaultResponseWriter<W extends DefaultResponseWriter<W>> implements ResponseWriter<W> {
+
+        protected Response responseToBuild;
+
+        public DefaultResponseWriter(Response response) {
+            this.responseToBuild = response;
+        }
+
+        @Override
+        public W setResultCode(ResultCode resultCode) {
+            responseToBuild.setResultCode(resultCode.getResultCode());
+            return getThis();
+        }
+
+        @Override
+        public W setResultMessage(String resultMessage) {
+            responseToBuild.setResultMessage(resultMessage);
+            return getThis();
+        }
+
+        @Override
+        public W setParameters(Map<String, String> parameters) {
+            responseToBuild.setParameters(parameters);
+            return getThis();
+        }
+
+        @Override
+        public W putParameter(String key, String value) {
+            Map<String, String> parameters = responseToBuild.getParameters();
+            if(parameters == null){
+                parameters = new HashMap<>();
+                responseToBuild.setParameters(parameters);
+            }
+            parameters.put(key, value);
+            return getThis();
+        }
+
+        @Override
+        public W addParameters(Map<String, String> parameters) {
+            Map<String, String> parametersInResponse = responseToBuild.getParameters();
+            if(parametersInResponse == null){
+                responseToBuild.setParameters(parameters);
+            }else{
+                parametersInResponse.putAll(parameters);
+            }
+            return getThis();
+        }
+
+        @Override
+        public final W getThis() {
+            return (W) this;
+        }
+
+        public W setResultCodeAndResultMessage(ResultCode resultCode, String resultMessage){
+            setResultCode(resultCode).setResultMessage(resultMessage);
+            return getThis();
+        }
+    }
 }

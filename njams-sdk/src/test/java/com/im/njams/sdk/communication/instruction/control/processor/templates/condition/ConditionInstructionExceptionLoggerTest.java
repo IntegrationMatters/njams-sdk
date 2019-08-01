@@ -18,13 +18,13 @@
  * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package com.im.njams.sdk.communication.instruction.control.processor.templates;
+package com.im.njams.sdk.communication.instruction.control.processor.templates.condition;
 
 import com.im.njams.sdk.api.adapter.messageformat.command.exceptions.NjamsInstructionException;
 import org.junit.Test;
 
-import static com.im.njams.sdk.adapter.messageformat.command.entity.DefaultRequestReader.EMPTY_STRING;
-import static com.im.njams.sdk.communication.instruction.control.processor.templates.ConditionInstructionExceptionLogger.INVALID_INSTRUCTION;
+import static com.im.njams.sdk.adapter.messageformat.command.entity.DefaultInstruction.DefaultRequestReader.EMPTY_STRING;
+import static com.im.njams.sdk.communication.instruction.control.processor.templates.condition.ConditionInstructionExceptionLogger.INVALID_INSTRUCTION;
 import static org.mockito.Mockito.*;
 
 public class ConditionInstructionExceptionLoggerTest {

@@ -18,39 +18,31 @@
  * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package com.im.njams.sdk.adapter.messageformat.command.entity;
+package com.im.njams.sdk.communication.instruction.control.processor.templates.condition;
 
-import com.faizsiegeln.njams.messageformat.v4.command.Request;
+import java.util.List;
 
-public class ReplayRequestReader extends DefaultRequestReader {
+class MissingParameterMessageBuilder {
 
-    private static final String PROCESS = "Process";
-    private static final String START_ACTIVITY = "StartActivity";
-    private static final String PAYLOAD = "Payload";
-    private static final String DEEPTRACE = "Deeptrace";
-    private static final String TEST = "Test";
+    static final String MISSING_PARAMETER_MESSAGE = "Missing parameter";
 
-    public ReplayRequestReader(Request requestToRead) {
-        super(requestToRead);
+    private StringBuilder invalidParameterResponseMessage;
+
+    public MissingParameterMessageBuilder(List<String> missingParameters) {
+        invalidParameterResponseMessage = new StringBuilder();
+        invalidParameterResponseMessage.append(MISSING_PARAMETER_MESSAGE);
+        if (isNotExactlyOneParameter(missingParameters)) {
+            invalidParameterResponseMessage.append("s");
+        }
+        invalidParameterResponseMessage.append(": ").append(missingParameters);
     }
 
-    public String getProcess() {
-        return getParameter(PROCESS);
+    private boolean isNotExactlyOneParameter(List<String> notEmptyMissingParameters) {
+        return notEmptyMissingParameters != null && notEmptyMissingParameters.size() != 1;
     }
 
-    public String getStartActivity() {
-        return getParameter(START_ACTIVITY);
-    }
 
-    public String getPayload() {
-        return getParameter(PAYLOAD);
-    }
-
-    public boolean isDeepTrace() {
-        return Boolean.valueOf(getParameter(DEEPTRACE));
-    }
-
-    public boolean getTest() {
-        return Boolean.valueOf(getParameter(TEST));
+    public String build() {
+        return invalidParameterResponseMessage.toString();
     }
 }

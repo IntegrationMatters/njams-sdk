@@ -18,7 +18,7 @@
  * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package com.im.njams.sdk.communication.instruction.control.processor.templates;
+package com.im.njams.sdk.communication.instruction.control.processor.templates.condition;
 
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.Extract;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.LogLevel;
@@ -29,7 +29,7 @@ import com.im.njams.sdk.configuration.entity.ActivityConfiguration;
 import com.im.njams.sdk.configuration.entity.ProcessConfiguration;
 import com.im.njams.sdk.configuration.entity.TracepointExt;
 
-public class ConditionFacade {
+public class ConditionProxy {
 
     private static final String UNABLE_TO_SAVE_CONFIGURATION = "Unable to save configuration";
 
@@ -39,7 +39,7 @@ public class ConditionFacade {
 
     private String activityId;
 
-    public ConditionFacade(Njams condition) {
+    public ConditionProxy(Njams condition) {
         this.condition = condition;
     }
 

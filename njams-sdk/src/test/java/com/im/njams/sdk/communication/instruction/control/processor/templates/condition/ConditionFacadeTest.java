@@ -18,7 +18,7 @@
  * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package com.im.njams.sdk.communication.instruction.control.processor.templates;
+package com.im.njams.sdk.communication.instruction.control.processor.templates.condition;
 
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.Extract;
 import com.im.njams.sdk.Njams;
@@ -47,7 +47,7 @@ public class ConditionFacadeTest {
     private static final String EXTRACT_EXCEPTION_MESSAGE =
             "Extract for activity \"" + ACTIVITY_ID + "\" on process \"" + PROCESS_PATH + "\" not found";
 
-    private ConditionFacade conditionFacade;
+    private ConditionProxy conditionFacade;
 
     private Njams njamsMock;
 
@@ -62,7 +62,7 @@ public class ConditionFacadeTest {
     @Before
     public void initialize() {
         njamsMock = mock(Njams.class);
-        conditionFacade = spy(new ConditionFacade(njamsMock));
+        conditionFacade = spy(new ConditionProxy(njamsMock));
         conditionFacade.setProcessPath(PROCESS_PATH);
         conditionFacade.setActivityId(ACTIVITY_ID);
         processesMock = mock(Map.class);

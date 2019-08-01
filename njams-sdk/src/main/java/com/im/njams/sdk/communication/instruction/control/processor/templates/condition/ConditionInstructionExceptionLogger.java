@@ -18,7 +18,7 @@
  * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package com.im.njams.sdk.communication.instruction.control.processor.templates;
+package com.im.njams.sdk.communication.instruction.control.processor.templates.condition;
 
 import com.im.njams.sdk.api.adapter.messageformat.command.exceptions.NjamsInstructionException;
 import com.im.njams.sdk.utils.StringUtils;

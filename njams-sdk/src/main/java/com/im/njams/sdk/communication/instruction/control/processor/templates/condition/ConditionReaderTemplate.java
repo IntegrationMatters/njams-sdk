@@ -18,22 +18,21 @@
  * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package com.im.njams.sdk.communication.instruction.control.processor.templates;
+package com.im.njams.sdk.communication.instruction.control.processor.templates.condition;
 
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.adapter.messageformat.command.entity.ConditionInstruction;
 import com.im.njams.sdk.adapter.messageformat.command.entity.ConditionParameter;
-import com.im.njams.sdk.adapter.messageformat.command.entity.ConditionRequestReader;
-import com.im.njams.sdk.adapter.messageformat.command.entity.ConditionResponseWriter;
 import com.im.njams.sdk.api.adapter.messageformat.command.entity.ResponseWriter;
 import com.im.njams.sdk.api.adapter.messageformat.command.exceptions.NjamsInstructionException;
+import com.im.njams.sdk.communication.instruction.control.processor.templates.InstructionProcessorTemplate;
 import com.im.njams.sdk.utils.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
 
-import static com.im.njams.sdk.adapter.messageformat.command.entity.DefaultRequestReader.EMPTY_STRING;
+import static com.im.njams.sdk.adapter.messageformat.command.entity.DefaultInstruction.DefaultRequestReader.EMPTY_STRING;
 
 public abstract class ConditionReaderTemplate extends InstructionProcessorTemplate<ConditionInstruction> {
 
@@ -43,14 +42,14 @@ public abstract class ConditionReaderTemplate extends InstructionProcessorTempla
 
     static final String DEFAULT_SUCCESS_MESSAGE = "Success";
 
-    protected final ConditionFacade conditionFacade;
+    protected final ConditionProxy conditionFacade;
 
-    protected ConditionRequestReader requestReader;
+    protected ConditionInstruction.ConditionRequestReader requestReader;
 
-    protected ConditionResponseWriter responseWriter;
+    protected ConditionInstruction.ConditionResponseWriter responseWriter;
 
     public ConditionReaderTemplate(Njams njams) {
-        this.conditionFacade = new ConditionFacade(njams);
+        this.conditionFacade = new ConditionProxy(njams);
     }
 
     @Override

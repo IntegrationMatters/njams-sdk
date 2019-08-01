@@ -21,8 +21,6 @@
 package com.im.njams.sdk.communication.instruction.control.processor.templates;
 
 import com.im.njams.sdk.adapter.messageformat.command.entity.DefaultInstruction;
-import com.im.njams.sdk.adapter.messageformat.command.entity.DefaultRequestReader;
-import com.im.njams.sdk.adapter.messageformat.command.entity.DefaultResponseWriter;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -35,16 +33,16 @@ public class DefaultProcessorTemplateTest {
 
     private DefaultInstruction defaultInstructionMock;
 
-    private DefaultRequestReader defaultRequestReaderMock;
+    private DefaultInstruction.DefaultRequestReader defaultRequestReaderMock;
 
-    private DefaultResponseWriter defaultResponseWriterMock;
+    private DefaultInstruction.DefaultResponseWriter defaultResponseWriterMock;
 
     @Before
     public void initialize() {
         defaultProcessorTemplate = spy(new DefaultProcessorTemplateImpl());
         defaultInstructionMock = mock(DefaultInstruction.class);
-        defaultRequestReaderMock = mock(DefaultRequestReader.class);
-        defaultResponseWriterMock = mock(DefaultResponseWriter.class);
+        defaultRequestReaderMock = mock(DefaultInstruction.DefaultRequestReader.class);
+        defaultResponseWriterMock = mock(DefaultInstruction.DefaultResponseWriter.class);
         doReturn(defaultInstructionMock).when(defaultProcessorTemplate).getInstruction();
         when(defaultInstructionMock.getRequestReader()).thenReturn(defaultRequestReaderMock);
         when(defaultInstructionMock.getResponseWriter()).thenReturn(defaultResponseWriterMock);
@@ -63,14 +61,14 @@ public class DefaultProcessorTemplateTest {
 
     @Test
     public void getDefaultRequestReaderReturnsARequestReaderTypeObject(){
-        assertTrue(defaultProcessorTemplate.getDefaultRequestReader() instanceof DefaultRequestReader);
+        assertTrue(defaultProcessorTemplate.getDefaultRequestReader() instanceof DefaultInstruction.DefaultRequestReader);
     }
 
 //GetDefaultResponseWriter tests
 
     @Test
     public void getDefaultResponseWriterReturnsAResponseWriterTypeObject(){
-        assertTrue(defaultProcessorTemplate.getDefaultResponseWriter() instanceof DefaultResponseWriter);
+        assertTrue(defaultProcessorTemplate.getDefaultResponseWriter() instanceof DefaultInstruction.DefaultResponseWriter);
     }
 
 //Private helper classes

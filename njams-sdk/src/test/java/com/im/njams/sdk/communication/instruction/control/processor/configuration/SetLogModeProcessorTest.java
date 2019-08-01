@@ -27,8 +27,9 @@ import org.junit.Before;
 import org.junit.Test;
 
 import static com.faizsiegeln.njams.messageformat.v4.command.Command.SET_LOG_MODE;
-import static com.im.njams.sdk.adapter.messageformat.command.entity.ConditionRequestReader.UNABLE_TO_DESERIALZE_OBJECT;
-import static org.mockito.Mockito.*;
+import static com.im.njams.sdk.adapter.messageformat.command.entity.ConditionInstruction.ConditionRequestReader.UNABLE_TO_DESERIALZE_OBJECT;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.verify;
 
 public class SetLogModeProcessorTest extends AbstractConfigurationProcessorHelper {
 

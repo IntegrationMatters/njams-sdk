@@ -20,8 +20,6 @@
 package com.im.njams.sdk.communication.instruction.control.processor.replay;
 
 import com.im.njams.sdk.adapter.messageformat.command.entity.ReplayInstruction;
-import com.im.njams.sdk.adapter.messageformat.command.entity.ReplayRequestReader;
-import com.im.njams.sdk.adapter.messageformat.command.entity.ReplayResponseWriter;
 import com.im.njams.sdk.api.adapter.messageformat.command.entity.ResponseWriter;
 import com.im.njams.sdk.api.plugin.replay.ReplayHandler;
 import com.im.njams.sdk.api.plugin.replay.ReplayPlugin;
@@ -45,9 +43,9 @@ public class ReplayProcessorTest {
 
     private ReplayInstruction replayInstruction;
 
-    private ReplayRequestReader replayRequestReaderMock;
+    private ReplayInstruction.ReplayRequestReader replayRequestReaderMock;
 
-    private ReplayResponseWriter replayResponseWriterMock;
+    private ReplayInstruction.ReplayResponseWriter replayResponseWriterMock;
 
     private RuntimeException runtimeExceptionMock;
 
@@ -60,8 +58,8 @@ public class ReplayProcessorTest {
         replayProcessor = spy(new ReplayProcessor(replayPluginMock));
 
         replayInstruction = mock(ReplayInstruction.class);
-        replayRequestReaderMock = mock(ReplayRequestReader.class);
-        replayResponseWriterMock = mock(ReplayResponseWriter.class);
+        replayRequestReaderMock = mock(ReplayInstruction.ReplayRequestReader.class);
+        replayResponseWriterMock = mock(ReplayInstruction.ReplayResponseWriter.class);
         when(replayResponseWriterMock.setResultCodeAndResultMessage(any(), any())).thenReturn(replayResponseWriterMock);
 
         doReturn(replayInstruction).when(replayProcessor).getInstruction();

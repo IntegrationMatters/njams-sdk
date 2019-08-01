@@ -33,9 +33,9 @@ public class ReplayProcessorTemplateTest {
 
     private ReplayInstruction replayInstructionMock;
 
-    private ReplayRequestReader replayRequestReaderMock;
+    private ReplayInstruction.ReplayRequestReader replayRequestReaderMock;
 
-    private ReplayResponseWriter replayResponseWriterMock;
+    private ReplayInstruction.ReplayResponseWriter replayResponseWriterMock;
 
     private RuntimeException runtimeExceptionMock;
 
@@ -43,8 +43,8 @@ public class ReplayProcessorTemplateTest {
     public void initialize() {
         replayProcessorTemplate = spy(new ReplayProcessorTemplateImpl());
         replayInstructionMock = mock(ReplayInstruction.class);
-        replayRequestReaderMock = mock(ReplayRequestReader.class);
-        replayResponseWriterMock = mock(ReplayResponseWriter.class);
+        replayRequestReaderMock = mock(ReplayInstruction.ReplayRequestReader.class);
+        replayResponseWriterMock = mock(ReplayInstruction.ReplayResponseWriter.class);
         runtimeExceptionMock = mock(RuntimeException.class);
         doReturn(replayInstructionMock).when(replayProcessorTemplate).getInstruction();
         when(replayInstructionMock.getRequestReader()).thenReturn(replayRequestReaderMock);
@@ -119,14 +119,14 @@ public class ReplayProcessorTemplateTest {
 
     @Test
     public void getReplayRequestReaderReturnsARequestReaderTypeObject(){
-        assertTrue(replayProcessorTemplate.getReplayRequestReader() instanceof ReplayRequestReader);
+        assertTrue(replayProcessorTemplate.getReplayRequestReader() instanceof ReplayInstruction.ReplayRequestReader);
     }
 
 //GetReplayResponseWriter tests
 
     @Test
     public void getReplayResponseWriterReturnsAResponseWriterTypeObject(){
-        assertTrue(replayProcessorTemplate.getReplayResponseWriter() instanceof ReplayResponseWriter);
+        assertTrue(replayProcessorTemplate.getReplayResponseWriter() instanceof ReplayInstruction.ReplayResponseWriter);
     }
 
 //Private helper classes

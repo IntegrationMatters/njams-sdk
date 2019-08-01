@@ -24,7 +24,7 @@ import com.faizsiegeln.njams.messageformat.v4.projectmessage.LogMode;
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.adapter.messageformat.command.entity.ConditionParameter;
 import com.im.njams.sdk.api.adapter.messageformat.command.exceptions.NjamsInstructionException;
-import com.im.njams.sdk.communication.instruction.control.processor.templates.ConditionReaderTemplate;
+import com.im.njams.sdk.communication.instruction.control.processor.templates.condition.ConditionReaderTemplate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

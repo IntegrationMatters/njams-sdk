@@ -18,13 +18,11 @@
  * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package com.im.njams.sdk.communication.instruction.control.processor.templates;
+package com.im.njams.sdk.communication.instruction.control.processor.templates.condition;
 
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.adapter.messageformat.command.entity.ConditionInstruction;
 import com.im.njams.sdk.adapter.messageformat.command.entity.ConditionParameter;
-import com.im.njams.sdk.adapter.messageformat.command.entity.ConditionRequestReader;
-import com.im.njams.sdk.adapter.messageformat.command.entity.ConditionResponseWriter;
 import com.im.njams.sdk.api.adapter.messageformat.command.entity.ResponseWriter;
 import com.im.njams.sdk.api.adapter.messageformat.command.exceptions.NjamsInstructionException;
 import org.junit.Before;
@@ -34,7 +32,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import static com.im.njams.sdk.communication.instruction.control.processor.templates.ConditionReaderTemplate.DEFAULT_SUCCESS_MESSAGE;
+import static com.im.njams.sdk.communication.instruction.control.processor.templates.condition.ConditionReaderTemplate.DEFAULT_SUCCESS_MESSAGE;
 import static java.util.Collections.EMPTY_LIST;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.*;
@@ -49,9 +47,9 @@ public class ConditionReaderTemplateTest {
 
     private ConditionInstruction conditionInstructionMock;
 
-    private ConditionRequestReader conditionRequestReaderMock;
+    private ConditionInstruction.ConditionRequestReader conditionRequestReaderMock;
 
-    private ConditionResponseWriter conditionResponseWriterMock;
+    private ConditionInstruction.ConditionResponseWriter conditionResponseWriterMock;
 
     private NjamsInstructionException njamsInstructionExceptionMock;
 
@@ -62,8 +60,8 @@ public class ConditionReaderTemplateTest {
         njamsMock = mock(Njams.class);
         conditionReaderTemplate = spy(new ConditionReaderTemplateImpl(njamsMock));
         conditionInstructionMock = mock(ConditionInstruction.class);
-        conditionRequestReaderMock = mock(ConditionRequestReader.class);
-        conditionResponseWriterMock = mock(ConditionResponseWriter.class);
+        conditionRequestReaderMock = mock(ConditionInstruction.ConditionRequestReader.class);
+        conditionResponseWriterMock = mock(ConditionInstruction.ConditionResponseWriter.class);
         njamsInstructionExceptionMock = mock(NjamsInstructionException.class);
 
         doReturn(conditionInstructionMock).when(conditionReaderTemplate).getInstruction();
@@ -198,7 +196,6 @@ public class ConditionReaderTemplateTest {
     @Test
     public void setDefaultSuccessResponseWithEmptyWriter() {
         conditionReaderTemplate.setReaderAndWriter();
-        when(conditionResponseWriterMock.isEmpty()).thenReturn(true);
         conditionReaderTemplate.setDefaultSuccessResponse();
         verify(conditionResponseWriterMock)
                 .setResultCodeAndResultMessage(ResponseWriter.ResultCode.SUCCESS, DEFAULT_SUCCESS_MESSAGE);
