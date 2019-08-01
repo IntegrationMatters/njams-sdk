@@ -19,11 +19,10 @@
  */
 package com.im.njams.sdk.communication.instruction.boundary;
 
-import com.im.njams.sdk.adapter.messageformat.command.entity.AbstractInstruction;
-import com.im.njams.sdk.api.adapter.messageformat.command.entity.Instruction;
-import com.im.njams.sdk.api.communication.instruction.control.InstructionProcessor;
-import com.im.njams.sdk.communication.instruction.boundary.logging.InstructionLoggerFactory;
+import com.im.njams.sdk.api.adapter.messageformat.command.Instruction;
+import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.communication.instruction.control.InstructionDispatcher;
+import com.im.njams.sdk.communication.instruction.control.InstructionProcessor;
 import com.im.njams.sdk.utils.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,8 +33,6 @@ import org.slf4j.LoggerFactory;
 public class InstructionProcessorService {
 
     private static final Logger LOG = LoggerFactory.getLogger(InstructionProcessorService.class);
-
-    private InstructionLoggerFactory instructionLoggerFactory = new InstructionLoggerFactory();
 
     private InstructionDispatcher instructionDispatcher = new InstructionDispatcher();
 
@@ -79,14 +76,15 @@ public class InstructionProcessorService {
 
     public synchronized void processInstruction(Instruction instruction) {
         if (instruction != null) {
-            //log each instruction's request if available
-            instructionLoggerFactory.getRequestLogger().log(((AbstractInstruction)instruction).getRealInstruction());
 
-            //dispatch instruction to correct InstructionProcessor
+            InstructionLogger logger = new InstructionLogger(instruction);
+
+            logger.logRequest();
+
             instructionDispatcher.dispatchInstruction(instruction);
 
-            //log each instruction's response
-            instructionLoggerFactory.getResponseLogger().log(((AbstractInstruction)instruction).getRealInstruction());
+            logger.logResponse();
+
         } else if (LOG.isErrorEnabled()) {
             LOG.error("Instruction must not be null");
         }
@@ -94,6 +92,65 @@ public class InstructionProcessorService {
 
     public synchronized void stop() {
         instructionDispatcher.removeAllInstructionProcessors();
-        instructionLoggerFactory.stop();
+    }
+
+    private static class InstructionLogger {
+
+        private Instruction.RequestReader requestToLog;
+        private Instruction.ResponseWriter responseToLog;
+        private String command;
+
+        public InstructionLogger(Instruction instructionToLog) {
+            requestToLog = instructionToLog.getRequestReader();
+            responseToLog = instructionToLog.getResponseWriter();
+            command = requestToLog.getCommand();
+        }
+
+        public void logRequest() {
+            if (LOG.isDebugEnabled() && !requestToLog.isEmpty()) {
+                LOG.debug("Received request with command: {}", command);
+            }
+            if (LOG.isTraceEnabled()) {
+                try {
+                    LOG.trace("Request: \n{}", requestToLog);
+                } catch (NjamsSdkRuntimeException requestNotSerializableException) {
+                    LOG.error("Request couldn't be serialized successfully", requestNotSerializableException);
+                }
+            }
+        }
+
+        public void logResponse() {
+            if (!requestToLog.isEmpty()) {
+                logResponseForProcessedRequest();
+            } else {
+                logResponseForInvalidInstruction();
+            }
+        }
+
+        private void logResponseForProcessedRequest() {
+            if (LOG.isDebugEnabled()) {
+                LOG.debug("Created response for command {}", command);
+            }
+            if (LOG.isTraceEnabled()) {
+                try {
+                    LOG.trace("Response for command {} : \n{}", command, responseToLog);
+                } catch (Exception responseNotSerializableException) {
+                    LOG.error("Response couldn't be serialized successfully", responseNotSerializableException);
+                }
+            }
+        }
+
+        private void logResponseForInvalidInstruction() {
+            if (LOG.isDebugEnabled()) {
+                LOG.debug("Created response for invalid instruction");
+            }
+            if (LOG.isTraceEnabled()) {
+                try {
+                    LOG.trace("Response for a not forwarded request {} : \n{}", responseToLog);
+                } catch (Exception responseNotSerializableException) {
+                    LOG.error("Response couldn't be serialized successfully", responseNotSerializableException);
+                }
+            }
+        }
     }
 }
