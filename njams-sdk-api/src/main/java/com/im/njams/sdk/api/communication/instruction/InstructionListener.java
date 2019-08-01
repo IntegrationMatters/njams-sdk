@@ -20,7 +20,7 @@
 
 package com.im.njams.sdk.api.communication.instruction;
 
-import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
+import com.im.njams.sdk.api.adapter.messageformat.command.Instruction;
 
 public interface InstructionListener extends AutoCloseable {
 

@@ -22,6 +22,6 @@ package com.im.njams.sdk.api.adapter.messageformat.command;
 
 public interface InstructionFactory {
 
-    Instruction getInstructionFor(String messageFormatInstructionAsJsonString) throws NjamsInstructionException;
+    Instruction getInstructionOf(String messageFormatInstructionAsJsonString) throws NjamsInstructionException;
 
 }
