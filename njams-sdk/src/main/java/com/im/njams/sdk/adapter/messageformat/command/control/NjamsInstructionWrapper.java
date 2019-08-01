@@ -37,11 +37,8 @@ public class NjamsInstructionWrapper {
 
     private Instruction wrappedInstruction;
 
-    private CommandClassifier commandClassifier;
-
     public NjamsInstructionWrapper(com.faizsiegeln.njams.messageformat.v4.command.Instruction instructionToWrap) {
         this.instructionToWrap = instructionToWrap;
-        this.commandClassifier = new CommandClassifier();
     }
 
     public Instruction wrap() throws NjamsInstructionException {
@@ -68,42 +65,40 @@ public class NjamsInstructionWrapper {
     }
 
     private void setWrappedInstruction() {
-        CommandClassifier.TypeOfCommand typeOfCommand = commandClassifier
+        CommandClassifier typeOfCommand = CommandClassifier
                 .getTypeOfCommand(Command.getFromCommandString(instructionToWrap.getCommand()));
         wrappedInstruction = createInstructionBasedOnCommand(typeOfCommand);
     }
 
-    private Instruction createInstructionBasedOnCommand(CommandClassifier.TypeOfCommand typeOfCommand) {
-        if (typeOfCommand == CommandClassifier.TypeOfCommand.CONDITION) {
+    private Instruction createInstructionBasedOnCommand(CommandClassifier typeOfCommand) {
+        if (typeOfCommand == CommandClassifier.CONDITION) {
             return new ConditionInstruction(instructionToWrap);
-        } else if(typeOfCommand == CommandClassifier.TypeOfCommand.REPLAY){
+        } else if(typeOfCommand == CommandClassifier.REPLAY){
             return new ReplayInstruction(instructionToWrap);
         } else{
             return new DefaultInstruction(instructionToWrap);
         }
     }
 
-    private static class CommandClassifier{
+    private enum CommandClassifier{
 
-        private enum TypeOfCommand {
-            DEFAULT,
-            REPLAY,
-            CONDITION
-        }
+        DEFAULT,
+        REPLAY,
+        CONDITION;
 
-        public TypeOfCommand getTypeOfCommand(Command command){
-            TypeOfCommand typeOfCommand = TypeOfCommand.DEFAULT;
+        public static CommandClassifier getTypeOfCommand(Command command){
+            CommandClassifier typeOfCommand = DEFAULT;
             if (command != null) {
                 if (isConditionCommand(command)) {
-                    typeOfCommand = TypeOfCommand.CONDITION;
+                    typeOfCommand = CONDITION;
                 } else if (isReplayCommand(command)) {
-                    typeOfCommand = TypeOfCommand.REPLAY;
+                    typeOfCommand = REPLAY;
                 }
             }
             return typeOfCommand;
         }
 
-        private boolean isConditionCommand(Command commandToCheck) {
+        private static boolean isConditionCommand(Command commandToCheck) {
             switch (commandToCheck) {
                 case GET_LOG_LEVEL:
                 case SET_LOG_LEVEL:
@@ -121,7 +116,7 @@ public class NjamsInstructionWrapper {
             }
         }
 
-        private boolean isReplayCommand(Command command) {
+        private static boolean isReplayCommand(Command command) {
             if(command == Command.REPLAY){
                 return true;
             }

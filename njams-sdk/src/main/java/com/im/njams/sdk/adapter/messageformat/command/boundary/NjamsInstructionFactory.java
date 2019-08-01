@@ -34,21 +34,25 @@ public class NjamsInstructionFactory implements InstructionFactory {
     private final ObjectMapper instructionParser = JsonSerializerFactory.getDefaultMapper();
 
     @Override
-    public Instruction getInstructionFor(String messageFormatInstructionAsJsonString)
-            throws NjamsInstructionException {
+    public Instruction getInstructionFor(String messageFormatInstructionAsJsonString) throws NjamsInstructionException {
         try {
             final com.faizsiegeln.njams.messageformat.v4.command.Instruction messageFormatInstruction = readJsonAsMessageFormatInstruction(
                     messageFormatInstructionAsJsonString);
-            NjamsInstructionWrapper njamsInstructionWrapper = new NjamsInstructionWrapper(messageFormatInstruction);
-            return njamsInstructionWrapper.wrap();
-
+            return getInstructionFor(messageFormatInstruction);
         } catch (IOException ex) {
             throw new NjamsInstructionException(ex.getMessage());
         }
     }
 
-    private com.faizsiegeln.njams.messageformat.v4.command.Instruction readJsonAsMessageFormatInstruction(String messageFormatInstructionAsJsonString) throws IOException {
+    private com.faizsiegeln.njams.messageformat.v4.command.Instruction readJsonAsMessageFormatInstruction(String messageFormatInstructionAsJsonString)
+            throws IOException {
         return instructionParser.readValue(messageFormatInstructionAsJsonString,
                 com.faizsiegeln.njams.messageformat.v4.command.Instruction.class);
+    }
+
+    public Instruction getInstructionFor(com.faizsiegeln.njams.messageformat.v4.command.Instruction messageFormatInstruction)
+            throws NjamsInstructionException {
+        NjamsInstructionWrapper njamsInstructionWrapper = new NjamsInstructionWrapper(messageFormatInstruction);
+        return njamsInstructionWrapper.wrap();
     }
 }
