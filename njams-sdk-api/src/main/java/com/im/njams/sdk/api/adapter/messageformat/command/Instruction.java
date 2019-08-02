@@ -28,6 +28,8 @@ public interface Instruction<R extends Instruction.RequestReader, W extends Inst
 
     W getResponseWriter();
 
+    boolean isEmpty();
+
     interface RequestReader {
 
         boolean isEmpty();
@@ -44,6 +46,8 @@ public interface Instruction<R extends Instruction.RequestReader, W extends Inst
     }
 
     interface ResponseWriter<W extends ResponseWriter<W>> {
+
+        boolean isEmpty();
 
         W setResultCode(ResultCode resultCode);
 
