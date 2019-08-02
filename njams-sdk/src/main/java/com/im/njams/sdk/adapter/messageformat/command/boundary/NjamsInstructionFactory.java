@@ -36,8 +36,10 @@ public class NjamsInstructionFactory implements InstructionFactory {
     @Override
     public Instruction getInstructionOf(String messageFormatInstructionAsJsonString) throws NjamsInstructionException {
         try {
-            final com.faizsiegeln.njams.messageformat.v4.command.Instruction messageFormatInstruction = readJsonAsMessageFormatInstruction(
-                    messageFormatInstructionAsJsonString);
+            com.faizsiegeln.njams.messageformat.v4.command.Instruction messageFormatInstruction = null;
+            if (messageFormatInstructionAsJsonString != null) {
+                messageFormatInstruction = readJsonAsMessageFormatInstruction(messageFormatInstructionAsJsonString);
+            }
             return getInstructionOf(messageFormatInstruction);
         } catch (IOException ex) {
             throw new NjamsInstructionException(ex.getMessage());
@@ -50,8 +52,7 @@ public class NjamsInstructionFactory implements InstructionFactory {
                 com.faizsiegeln.njams.messageformat.v4.command.Instruction.class);
     }
 
-    public Instruction getInstructionOf(com.faizsiegeln.njams.messageformat.v4.command.Instruction messageFormatInstruction)
-            throws NjamsInstructionException {
+    public Instruction getInstructionOf(com.faizsiegeln.njams.messageformat.v4.command.Instruction messageFormatInstruction) {
         NjamsInstructionWrapper njamsInstructionWrapper = new NjamsInstructionWrapper(messageFormatInstruction);
         return njamsInstructionWrapper.wrap();
     }
