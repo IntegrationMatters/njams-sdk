@@ -48,20 +48,20 @@ public class ConditionInstruction extends AbstractInstruction<ConditionInstructi
     }
 
     @Override
-    protected ConditionRequestReader createRequestReaderInstance() {
-        return new ConditionRequestReader(messageFormatInstruction.getRequest());
+    protected ConditionRequestReader createRequestReaderInstance(Request request) {
+        return new ConditionRequestReader(request);
     }
 
     @Override
-    protected ConditionResponseWriter createResponseWriterInstance() {
-        return new ConditionResponseWriter(messageFormatInstruction.getResponse());
+    protected ConditionResponseWriter createResponseWriterInstance(Response response) {
+        return new ConditionResponseWriter(response);
     }
 
     public static class ConditionRequestReader extends DefaultInstruction.DefaultRequestReader {
 
         private ObjectMapper mapper = JsonSerializerFactory.getDefaultMapper();
 
-        public ConditionRequestReader(Request requestToRead) {
+        protected ConditionRequestReader(Request requestToRead) {
             super(requestToRead);
         }
 
@@ -177,7 +177,7 @@ public class ConditionInstruction extends AbstractInstruction<ConditionInstructi
 
         private final ObjectMapper mapper = JsonSerializerFactory.getDefaultMapper();
 
-        public ConditionResponseWriter(Response response) {
+        protected ConditionResponseWriter(Response response) {
             super(response);
         }
 

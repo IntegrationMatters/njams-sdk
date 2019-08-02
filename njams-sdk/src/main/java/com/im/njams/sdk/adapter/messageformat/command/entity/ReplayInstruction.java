@@ -33,13 +33,13 @@ public class ReplayInstruction extends AbstractInstruction<ReplayInstruction.Rep
     }
 
     @Override
-    protected ReplayRequestReader createRequestReaderInstance() {
-        return new ReplayRequestReader(messageFormatInstruction.getRequest());
+    protected ReplayRequestReader createRequestReaderInstance(Request request) {
+        return new ReplayRequestReader(request);
     }
 
     @Override
-    protected ReplayResponseWriter createResponseWriterInstance() {
-        return new ReplayResponseWriter(messageFormatInstruction.getResponse());
+    protected ReplayResponseWriter createResponseWriterInstance(Response response) {
+        return new ReplayResponseWriter(response);
     }
 
     public static class ReplayRequestReader extends DefaultInstruction.DefaultRequestReader {
@@ -50,7 +50,7 @@ public class ReplayInstruction extends AbstractInstruction<ReplayInstruction.Rep
         private static final String DEEPTRACE = "Deeptrace";
         private static final String TEST = "Test";
 
-        public ReplayRequestReader(Request requestToRead) {
+        protected ReplayRequestReader(Request requestToRead) {
             super(requestToRead);
         }
 
@@ -81,7 +81,7 @@ public class ReplayInstruction extends AbstractInstruction<ReplayInstruction.Rep
 
         public static final String MAIN_LOG_ID= "MainLogId";
 
-        public ReplayResponseWriter(Response response) {
+        protected ReplayResponseWriter(Response response) {
             super(response);
         }
 

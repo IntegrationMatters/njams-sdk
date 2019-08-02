@@ -32,7 +32,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import static com.im.njams.sdk.communication.instruction.control.templates.condition.ConditionReaderTemplate.DEFAULT_SUCCESS_MESSAGE;
 import static java.util.Collections.EMPTY_LIST;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.*;
@@ -68,6 +67,8 @@ public class ConditionReaderTemplateTest {
         when(conditionInstructionMock.getRequestReader()).thenReturn(conditionRequestReaderMock);
         when(conditionInstructionMock.getResponseWriter()).thenReturn(conditionResponseWriterMock);
         when(njamsInstructionExceptionMock.getMessage()).thenReturn(NJAMS_INSTRUCTION_EXCEPTION_MESSAGE);
+
+        conditionReaderTemplate.setReaderAndWriter();
     }
 
 //Process tests
@@ -102,7 +103,6 @@ public class ConditionReaderTemplateTest {
     private void mockProcessMethods(String trueOrFalseString) throws NjamsInstructionException {
         char[] trueOrFalseChars = trueOrFalseString.toCharArray();
 
-        doNothing().when(conditionReaderTemplate).setDefaultSuccessResponse();
         doNothing().when(conditionReaderTemplate).setWarningResponse(any());
         doNothing().when(conditionReaderTemplate).logProcessingThrewException(any());
 
@@ -125,12 +125,12 @@ public class ConditionReaderTemplateTest {
         char[] trueOrFalseChars = trueOrFalseString.toCharArray();
 
         verify(conditionReaderTemplate).fillMissingParametersList();
-        verify(conditionReaderTemplate).setReaderAndWriter();
+        //This is times 2 because it is called one time in the @Before method
+        verify(conditionReaderTemplate, times(2)).setReaderAndWriter();
 
         if (parseCharToBoolean(trueOrFalseChars[0])) {
             verify(conditionReaderTemplate).processConditionInstruction();
             verify(conditionReaderTemplate).resetConditionFacade();
-            verify(conditionReaderTemplate).setDefaultSuccessResponse();
             if (!parseCharToBoolean(trueOrFalseChars[1])) {
                 verify(conditionReaderTemplate).logProcessingSuccess();
                 verify(conditionReaderTemplate, times(0)).getProcessingDidntWorkMessage(njamsInstructionExceptionMock);
@@ -147,7 +147,6 @@ public class ConditionReaderTemplateTest {
         } else {
             verify(conditionReaderTemplate, times(0)).resetConditionFacade();
             verify(conditionReaderTemplate, times(0)).processConditionInstruction();
-            verify(conditionReaderTemplate, times(0)).setDefaultSuccessResponse();
             verify(conditionReaderTemplate, times(0)).logProcessingSuccess();
             verify(conditionReaderTemplate, times(0)).getProcessingDidntWorkMessage(any());
             verify(conditionReaderTemplate, times(0)).logProcessingThrewException(any());
@@ -161,7 +160,6 @@ public class ConditionReaderTemplateTest {
 
     @Test
     public void fillMissingParametersList() {
-        conditionReaderTemplate.setReaderAndWriter();
         ConditionParameter[] conditionParameterMock = new ConditionParameter[0];
         doReturn(conditionParameterMock).when(conditionReaderTemplate).getEssentialParametersForProcessing();
         when(conditionRequestReaderMock.searchForMissingParameters(conditionParameterMock))
@@ -189,17 +187,6 @@ public class ConditionReaderTemplateTest {
         boolean noMissingParameters = conditionReaderTemplate.wereAllNeededRequestParametersSet(missingParameterMock);
 
         assertEquals(noMissingParameters, isMissingParametersListEmpty);
-    }
-
-//SetDefaultSuccessResponse tests
-
-    @Test
-    public void setDefaultSuccessResponseWithEmptyWriter() {
-        conditionReaderTemplate.setReaderAndWriter();
-        conditionReaderTemplate.setDefaultSuccessResponse();
-        verify(conditionResponseWriterMock)
-                .setResultCodeAndResultMessage(ResultCode.SUCCESS, DEFAULT_SUCCESS_MESSAGE);
-
     }
 
 //GetProcessingDidntWorkMessage tests
@@ -259,7 +246,6 @@ public class ConditionReaderTemplateTest {
 
     @Test
     public void setWarningResponseTest() {
-        conditionReaderTemplate.setReaderAndWriter();
         conditionReaderTemplate.setWarningResponse(NJAMS_INSTRUCTION_EXCEPTION_MESSAGE);
         verify(conditionResponseWriterMock)
                 .setResultCodeAndResultMessage(ResultCode.WARNING, NJAMS_INSTRUCTION_EXCEPTION_MESSAGE);
@@ -269,7 +255,6 @@ public class ConditionReaderTemplateTest {
 
     @Test
     public void verifyThatCommandProcessPathAndActivityIdWillBeUsedForProcessLoggingIfExceptionIsThrown() {
-        conditionReaderTemplate.setReaderAndWriter();
         conditionReaderTemplate.logProcessingThrewException(njamsInstructionExceptionMock);
         verify(conditionRequestReaderMock).getCommand();
         verify(conditionRequestReaderMock).getProcessPath();

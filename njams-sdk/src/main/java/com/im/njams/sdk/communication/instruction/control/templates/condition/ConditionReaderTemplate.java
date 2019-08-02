@@ -40,8 +40,6 @@ public abstract class ConditionReaderTemplate extends InstructionProcessorTempla
 
     protected static final ConditionParameter[] NO_ESSENTIAL_PARAMETERS = new ConditionParameter[0];
 
-    static final String DEFAULT_SUCCESS_MESSAGE = "Success";
-
     protected final ConditionProxy conditionFacade;
 
     protected ConditionInstruction.ConditionRequestReader requestReader;
@@ -61,7 +59,6 @@ public abstract class ConditionReaderTemplate extends InstructionProcessorTempla
 
         if (wereAllNeededRequestParametersSet(missingParameters)) {
             resetConditionFacade();
-            setDefaultSuccessResponse();
             try {
                 processConditionInstruction();
                 logProcessingSuccess();
@@ -96,10 +93,6 @@ public abstract class ConditionReaderTemplate extends InstructionProcessorTempla
     void resetConditionFacade() {
         conditionFacade.setProcessPath(requestReader.getProcessPath());
         conditionFacade.setActivityId(requestReader.getActivityId());
-    }
-
-    void setDefaultSuccessResponse() {
-        responseWriter.setResultCodeAndResultMessage(ResultCode.SUCCESS, DEFAULT_SUCCESS_MESSAGE);
     }
 
     protected abstract void processConditionInstruction() throws NjamsInstructionException;

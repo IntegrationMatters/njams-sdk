@@ -20,12 +20,20 @@
 
 package com.im.njams.sdk.adapter.messageformat.command.entity;
 
+import com.faizsiegeln.njams.messageformat.v4.command.Request;
 import com.faizsiegeln.njams.messageformat.v4.command.Response;
 import com.im.njams.sdk.api.adapter.messageformat.command.Instruction;
+import com.im.njams.sdk.api.adapter.messageformat.command.ResultCode;
 
-public abstract class AbstractInstruction<R extends Instruction.RequestReader, W extends Instruction.ResponseWriter> implements Instruction {
+import java.util.HashMap;
+import java.util.Map;
 
-    protected com.faizsiegeln.njams.messageformat.v4.command.Instruction messageFormatInstruction;
+public abstract class AbstractInstruction<R extends Instruction.RequestReader,
+        W extends AbstractInstruction.AbstractResponseWriter> implements Instruction {
+
+    private com.faizsiegeln.njams.messageformat.v4.command.Instruction messageFormatInstruction;
+
+    public static final String DEFAULT_SUCCESS_MESSAGE = "Success";
 
     protected R reader;
 
@@ -35,6 +43,7 @@ public abstract class AbstractInstruction<R extends Instruction.RequestReader, W
         this.messageFormatInstruction = messageFormatInstruction;
     }
 
+    @Override
     public boolean isEmpty() {
         return messageFormatInstruction == null;
     }
@@ -47,28 +56,132 @@ public abstract class AbstractInstruction<R extends Instruction.RequestReader, W
     public R getRequestReader() {
         if (reader == null) {
             if (!isEmpty()) {
-                reader = createRequestReaderInstance();
+                reader = createRequestReaderInstance(messageFormatInstruction.getRequest());
+            } else {
+                reader = createRequestReaderInstance(null);
             }
         }
         return reader;
     }
 
-    protected abstract R createRequestReaderInstance();
+    protected abstract R createRequestReaderInstance(Request request);
 
     @Override
     public W getResponseWriter() {
         if (writer == null) {
             if (!isEmpty()) {
-                Response responseToWriteTo = messageFormatInstruction.getResponse();
-                if (responseToWriteTo == null) {
-                    responseToWriteTo = new Response();
-                    messageFormatInstruction.setResponse(responseToWriteTo);
+                Response response = messageFormatInstruction.getResponse();
+                if (response == null) {
+                    createDefaultSuccessResponseButLetItSeemToBeEmpty();
+                } else {
+                    writer = createResponseWriterInstance(response);
                 }
-                writer = createResponseWriterInstance();
+            } else {
+                writer = createResponseWriterInstance(null);
             }
         }
         return writer;
     }
 
-    protected abstract W createResponseWriterInstance();
+    /**
+     * This method is used because if there is an instruction without a current response, the
+     * responseWriter would have to create an response object by itself as soon as some method of the writer
+     * would be invoked. This must be set to the instruction after that, but it couldn't because the ResponseWriters
+     * don't know about the instruction itself.
+     *
+     * @return a newly created MessageFormat Response, with default values.
+     */
+    private Response createDefaultSuccessResponseButLetItSeemToBeEmpty() {
+        Response response = createDefaultSuccessResponse();
+
+        messageFormatInstruction.setResponse(response);
+        writer = createResponseWriterInstance(response);
+        writer.setResponseIsActuallyEmpty();
+        return response;
+    }
+
+    private Response createDefaultSuccessResponse() {
+        Response response = new Response();
+        response.setResultCode(ResultCode.SUCCESS.getResultCode());
+        response.setResultMessage(DEFAULT_SUCCESS_MESSAGE);
+        return response;
+    }
+
+    protected abstract W createResponseWriterInstance(Response response);
+
+
+
+    public static class AbstractResponseWriter<W extends AbstractResponseWriter<W>> implements Instruction.ResponseWriter<W> {
+
+        protected Response responseToBuild;
+
+        private boolean isActuallyEmpty = false;
+
+        protected AbstractResponseWriter(Response response) {
+            this.responseToBuild = response;
+        }
+
+        @Override
+        public boolean isEmpty() {
+            return responseToBuild == null || isActuallyEmpty;
+        }
+
+        @Override
+        public W setResultCode(ResultCode resultCode) {
+            responseIsFilled();
+            responseToBuild.setResultCode(resultCode.getResultCode());
+            return getThis();
+        }
+
+        @Override
+        public W setResultMessage(String resultMessage) {
+            responseIsFilled();
+            responseToBuild.setResultMessage(resultMessage);
+            return getThis();
+        }
+
+        @Override
+        public W setParameters(Map<String, String> parameters) {
+            responseIsFilled();
+            responseToBuild.setParameters(parameters);
+            return getThis();
+        }
+
+        @Override
+        public W putParameter(String key, String value) {
+            responseIsFilled();
+            Map<String, String> parameters = responseToBuild.getParameters();
+            if (parameters == null) {
+                parameters = new HashMap<>();
+                responseToBuild.setParameters(parameters);
+            }
+            parameters.put(key, value);
+            return getThis();
+        }
+
+        @Override
+        public W addParameters(Map<String, String> parameters) {
+            responseIsFilled();
+            Map<String, String> parametersInResponse = responseToBuild.getParameters();
+            if (parametersInResponse == null) {
+                responseToBuild.setParameters(parameters);
+            } else {
+                parametersInResponse.putAll(parameters);
+            }
+            return getThis();
+        }
+
+        public void setResponseIsActuallyEmpty() {
+            isActuallyEmpty = true;
+        }
+
+        private void responseIsFilled() {
+            isActuallyEmpty = false;
+        }
+
+        @Override
+        public final W getThis() {
+            return (W) this;
+        }
+    }
 }

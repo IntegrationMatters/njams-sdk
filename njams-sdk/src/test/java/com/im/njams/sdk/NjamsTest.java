@@ -101,7 +101,7 @@ public class NjamsTest {
     }
 
     @Test
-    public void testOnCorrectSendProjectMessageInstruction() throws NjamsInstructionException {
+    public void testOnCorrectSendProjectMessageInstruction(){
         instance.start();
         Instruction inst = new Instruction();
         Request req = new Request();
@@ -118,7 +118,7 @@ public class NjamsTest {
     }
 
     @Test
-    public void testOnNoReplyHandlerFoundReplayMessageInstruction() throws NjamsInstructionException {
+    public void testOnNoReplyHandlerFoundReplayMessageInstruction() {
         instance.start();
         Instruction inst = new Instruction();
         Request req = new Request();
@@ -136,7 +136,7 @@ public class NjamsTest {
     }
 
     @Test
-    public void testOnCorrectReplayMessageInstruction() throws NjamsInstructionException {
+    public void testOnCorrectReplayMessageInstruction() {
         instance.start();
         ReplayHandler replayHandler = (com.im.njams.sdk.api.adapter.messageformat.command.Instruction instruction) -> {
             instruction.getResponseWriter().
@@ -160,7 +160,7 @@ public class NjamsTest {
     }
 
     @Test
-    public void testOnThrownExceptionReplayMessageInstruction() throws NjamsInstructionException {
+    public void testOnThrownExceptionReplayMessageInstruction() {
         instance.start();
         Instruction inst = new Instruction();
         ReplayHandler replayHandler = (com.im.njams.sdk.api.adapter.messageformat.command.Instruction instruction) -> {

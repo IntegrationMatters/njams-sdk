@@ -99,5 +99,10 @@ public class InstructionProcessorTemplateTest {
             //Do nothing
             return null;
         }
+
+        @Override
+        public boolean isEmpty() {
+            return false;
+        }
     }
 }

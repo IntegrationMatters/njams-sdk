@@ -95,36 +95,20 @@ public abstract class AbstractReceiver implements Receiver {
             LOG.error("Njams should not be null");
             return;
         }
-        NjamsInstructionFactory instructionFactory = (NjamsInstructionFactory) njams.getInstructionFactory();
+        final String commandString = instruction != null ? instruction.getCommand() : null;
+        LOG.debug("Received instruction: {}", commandString);
 
-        try {
+        //Extend your request here. If something doesn't work as expected,
+        //you can return a response that will be sent back to the server without further processing.
+        Response exceptionResponse = this.extendRequest(instruction.getRequest());
+        if (exceptionResponse != null) {
+            //Set the exception response
+            instruction.setResponse(exceptionResponse);
+        } else {
+            NjamsInstructionFactory instructionFactory = (NjamsInstructionFactory) njams.getInstructionFactory();
             com.im.njams.sdk.api.adapter.messageformat.command.Instruction wrappedInstruction = instructionFactory
                     .getInstructionOf(instruction);
-            com.im.njams.sdk.api.adapter.messageformat.command.Instruction.RequestReader requestReader =
-                    wrappedInstruction
-                    .getRequestReader();
-            com.im.njams.sdk.api.adapter.messageformat.command.Instruction.ResponseWriter responseWriter =
-                    wrappedInstruction
-                    .getResponseWriter();
-            LOG.debug("Received instruction: {}", requestReader.getCommand());
-            if (requestReader.isCommandNull()) {
-                LOG.error("Instruction should have a valid request with a command");
-                responseWriter.setResultCode(ResultCode.WARNING)
-                        .setResultMessage("Instruction should have a valid request with a command");
-                return;
-            }
-            //Extend your request here. If something doesn't work as expected,
-            //you can return a response that will be sent back to the server without further processing.
-            Response exceptionResponse = this.extendRequest(instruction.getRequest());
-            if (exceptionResponse != null) {
-                //Set the exception response
-                instruction.setResponse(exceptionResponse);
-            } else {
-                njams.getInstructionListener().onInstruction(wrappedInstruction);
-            }
-        } catch (NjamsInstructionException e) {
-            LOG.error("Instruction should not be null");
-            return;
+            njams.getInstructionListener().onInstruction(wrappedInstruction);
         }
     }
 

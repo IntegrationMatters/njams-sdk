@@ -29,7 +29,6 @@ import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.utils.JsonUtils;
 
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
 
 public class DefaultInstruction extends AbstractInstruction<DefaultInstruction.DefaultRequestReader, DefaultInstruction.DefaultResponseWriter> {
@@ -41,44 +40,44 @@ public class DefaultInstruction extends AbstractInstruction<DefaultInstruction.D
     }
 
     @Override
-    protected DefaultRequestReader createRequestReaderInstance() {
-        return new DefaultRequestReader(messageFormatInstruction.getRequest());
+    protected DefaultRequestReader createRequestReaderInstance(Request request) {
+        return new DefaultRequestReader(request);
     }
 
     @Override
-    protected DefaultResponseWriter createResponseWriterInstance() {
-        return new DefaultResponseWriter(messageFormatInstruction.getResponse());
+    protected DefaultResponseWriter createResponseWriterInstance(Response response) {
+        return new DefaultResponseWriter(response);
     }
 
-    public static class DefaultRequestReader implements AbstractInstruction.RequestReader {
+    public static class DefaultRequestReader implements com.im.njams.sdk.api.adapter.messageformat.command.Instruction.RequestReader {
 
         public static final String EMPTY_STRING = "";
 
         protected Request requestToRead;
 
-        public DefaultRequestReader(Request requestToRead) {
+        protected DefaultRequestReader(Request requestToRead) {
             this.requestToRead = requestToRead;
         }
 
         @Override
-        public boolean isEmpty(){
+        public boolean isEmpty() {
             return requestToRead == null;
         }
 
         @Override
-        public boolean isCommandNull(){
+        public boolean isCommandNull() {
             return isEmpty() || requestToRead.getCommand() == null;
         }
 
         @Override
-        public boolean isCommandEmpty(){
+        public boolean isCommandEmpty() {
             return isCommandNull() || requestToRead.getCommand().equals(EMPTY_STRING);
         }
 
         @Override
         public String getCommand() {
             String foundCommand = EMPTY_STRING;
-            if(!isCommandNull()){
+            if (!isCommandNull()) {
                 foundCommand = requestToRead.getCommand();
             }
             return foundCommand;
@@ -86,7 +85,7 @@ public class DefaultInstruction extends AbstractInstruction<DefaultInstruction.D
 
         @Override
         public Map<String, String> getParameters() {
-            if(!isEmpty()){
+            if (!isEmpty()) {
                 return Collections.unmodifiableMap(requestToRead.getParameters());
             }
             return Collections.EMPTY_MAP;
@@ -98,7 +97,7 @@ public class DefaultInstruction extends AbstractInstruction<DefaultInstruction.D
         }
 
         @Override
-        public String toString(){
+        public String toString() {
             try {
                 return JsonUtils.serialize(requestToRead);
             } catch (JsonProcessingException e) {
@@ -107,66 +106,19 @@ public class DefaultInstruction extends AbstractInstruction<DefaultInstruction.D
         }
     }
 
-    public static class DefaultResponseWriter<W extends DefaultResponseWriter<W>> implements AbstractInstruction.ResponseWriter<W> {
+    public static class DefaultResponseWriter<W extends DefaultResponseWriter<W>> extends AbstractInstruction.AbstractResponseWriter<W> {
 
-        protected Response responseToBuild;
-
-        public DefaultResponseWriter(Response response) {
-            this.responseToBuild = response;
+        protected DefaultResponseWriter(Response response) {
+            super(response);
         }
 
-        @Override
-        public W setResultCode(ResultCode resultCode) {
-            responseToBuild.setResultCode(resultCode.getResultCode());
-            return getThis();
-        }
-
-        @Override
-        public W setResultMessage(String resultMessage) {
-            responseToBuild.setResultMessage(resultMessage);
-            return getThis();
-        }
-
-        @Override
-        public W setParameters(Map<String, String> parameters) {
-            responseToBuild.setParameters(parameters);
-            return getThis();
-        }
-
-        @Override
-        public W putParameter(String key, String value) {
-            Map<String, String> parameters = responseToBuild.getParameters();
-            if(parameters == null){
-                parameters = new HashMap<>();
-                responseToBuild.setParameters(parameters);
-            }
-            parameters.put(key, value);
-            return getThis();
-        }
-
-        @Override
-        public W addParameters(Map<String, String> parameters) {
-            Map<String, String> parametersInResponse = responseToBuild.getParameters();
-            if(parametersInResponse == null){
-                responseToBuild.setParameters(parameters);
-            }else{
-                parametersInResponse.putAll(parameters);
-            }
-            return getThis();
-        }
-
-        @Override
-        public final W getThis() {
-            return (W) this;
-        }
-
-        public W setResultCodeAndResultMessage(ResultCode resultCode, String resultMessage){
+        public W setResultCodeAndResultMessage(ResultCode resultCode, String resultMessage) {
             setResultCode(resultCode).setResultMessage(resultMessage);
             return getThis();
         }
 
         @Override
-        public String toString(){
+        public String toString() {
             try {
                 return JsonUtils.serialize(responseToBuild);
             } catch (JsonProcessingException e) {
