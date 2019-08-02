@@ -25,13 +25,8 @@ import com.im.njams.sdk.adapter.messageformat.command.entity.ConditionInstructio
 import com.im.njams.sdk.adapter.messageformat.command.entity.DefaultInstruction;
 import com.im.njams.sdk.adapter.messageformat.command.entity.ReplayInstruction;
 import com.im.njams.sdk.api.adapter.messageformat.command.Instruction;
-import com.im.njams.sdk.api.adapter.messageformat.command.NjamsInstructionException;
 
 public class NjamsInstructionWrapper {
-
-    private static final String INSTRUCTION_IS_NULL_EXCEPTION_MESSAGE = "Instruction is null and therefore can't be " +
-
-                                                                        "wrapped.";
 
     private com.faizsiegeln.njams.messageformat.v4.command.Instruction instructionToWrap;
 
@@ -41,7 +36,7 @@ public class NjamsInstructionWrapper {
         this.instructionToWrap = instructionToWrap;
     }
 
-    public Instruction wrap() throws NjamsInstructionException {
+    public Instruction wrap() {
         if (!isInstructionWrapped()) {
             wrapInstruction();
         }
@@ -52,41 +47,39 @@ public class NjamsInstructionWrapper {
         return wrappedInstruction != null;
     }
 
-    private void wrapInstruction() throws NjamsInstructionException {
-        checkInstruction();
+    private void wrapInstruction() {
+        Command commandFromInstruction = extractCommandFromInstruction();
 
-        setWrappedInstruction();
+        CommandClassifier typeOfCommand = CommandClassifier.getTypeOfCommand(commandFromInstruction);
+
+        wrappedInstruction = createInstructionBasedOnCommandType(typeOfCommand);
     }
 
-    private void checkInstruction() throws NjamsInstructionException {
-        if (instructionToWrap == null) {
-            throw new NjamsInstructionException(INSTRUCTION_IS_NULL_EXCEPTION_MESSAGE);
+    private Command extractCommandFromInstruction() {
+        try {
+            return Command.getFromCommandString(instructionToWrap.getCommand());
+        } catch (NullPointerException instructionIsNullException) {
+            return null;
         }
     }
 
-    private void setWrappedInstruction() {
-        CommandClassifier typeOfCommand = CommandClassifier
-                .getTypeOfCommand(Command.getFromCommandString(instructionToWrap.getCommand()));
-        wrappedInstruction = createInstructionBasedOnCommand(typeOfCommand);
-    }
-
-    private Instruction createInstructionBasedOnCommand(CommandClassifier typeOfCommand) {
+    private Instruction createInstructionBasedOnCommandType(CommandClassifier typeOfCommand) {
         if (typeOfCommand == CommandClassifier.CONDITION) {
             return new ConditionInstruction(instructionToWrap);
-        } else if(typeOfCommand == CommandClassifier.REPLAY){
+        } else if (typeOfCommand == CommandClassifier.REPLAY) {
             return new ReplayInstruction(instructionToWrap);
-        } else{
+        } else {
             return new DefaultInstruction(instructionToWrap);
         }
     }
 
-    private enum CommandClassifier{
+    private enum CommandClassifier {
 
         DEFAULT,
         REPLAY,
         CONDITION;
 
-        public static CommandClassifier getTypeOfCommand(Command command){
+        public static CommandClassifier getTypeOfCommand(Command command) {
             CommandClassifier typeOfCommand = DEFAULT;
             if (command != null) {
                 if (isConditionCommand(command)) {
@@ -117,10 +110,9 @@ public class NjamsInstructionWrapper {
         }
 
         private static boolean isReplayCommand(Command command) {
-            if(command == Command.REPLAY){
+            if (command == Command.REPLAY) {
                 return true;
-            }
-            else{
+            } else {
                 return false;
             }
         }
