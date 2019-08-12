@@ -307,12 +307,9 @@ public class ExtractHandler {
         return m;
     }
 
-    private static void setAttributes(Job job, ActivityImpl activity, String uncheckedsetting, String uncheckedvalue) {
-        String setting = checkLength("Extract Property/Attribute Name", uncheckedsetting, 500);
-        String value =
-                DataMasking.maskString(checkLength("Extract Property/Attribute '" + setting + "': ", uncheckedvalue,
-                        2000));
-        LOG.debug("nJAMS: setAttributes: {}/{}", uncheckedsetting, uncheckedvalue);
+    private static void setAttributes(Job job, ActivityImpl activity, String setting, String uncheckedvalue) {
+        String value = DataMasking.maskString(uncheckedvalue);
+        LOG.debug("nJAMS: setAttributes: {}/{}", setting, value);
 
         String settingLowerCase = setting.toLowerCase();
         switch (settingLowerCase) {
@@ -360,22 +357,4 @@ public class ExtractHandler {
         }
     }
 
-    /**
-     * Returns the given input string and ensures that it is not longer than the
-     * given maximum length.
-     *
-     * @param context Only used for logging
-     * @param in The input message that is returned but possibly truncated
-     * @param maxLength Maximum length for the returned string
-     * @return The given input but no longer thatn the given maximum length
-     */
-    public static String checkLength(String context, String in, int maxLength) {
-        String out = in;
-        if (in != null && out.length() > maxLength) {
-            LOG.warn("String too long (max length: " + maxLength + ") for '" + context + "': " + in);
-            out = out.substring(0, maxLength - 1);
-            LOG.warn("Using truncated version of input string: " + out);
-        }
-        return out;
-    }
 }

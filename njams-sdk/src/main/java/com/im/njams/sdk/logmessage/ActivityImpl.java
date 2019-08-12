@@ -16,6 +16,9 @@
  */
 package com.im.njams.sdk.logmessage;
 
+import static com.im.njams.sdk.logmessage.JobImpl.MAX_VALUE_LIMIT;
+import static com.im.njams.sdk.logmessage.JobImpl.limitLength;
+
 import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
@@ -516,7 +519,7 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
     @Override
     public void setEventMessage(String message) {
         setExecutionIfNotSet();
-        super.setEventMessage(message);
+        super.setEventMessage(limitLength("eventMessage", message, MAX_VALUE_LIMIT));
         if (StringUtils.isNotBlank(message)) {
             job.setInstrumented();
         }
@@ -530,7 +533,7 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
     @Override
     public void setEventCode(String code) {
         setExecutionIfNotSet();
-        super.setEventCode(code);
+        super.setEventCode(limitLength("eventCode", code, MAX_VALUE_LIMIT));
         if (StringUtils.isNotBlank(code)) {
             job.setInstrumented();
         }
@@ -615,9 +618,10 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
      */
     @Override
     public void addAttribute(String key, String value) {
+        String limitKey = limitLength("attributeName", key, 500);
         synchronized (attributesLock) {
-            job.addAttribute(key, value);
-            super.addAttribute(key, value);
+            job.addAttribute(limitKey, value);
+            super.addAttribute(limitKey, value);
         }
     }
 

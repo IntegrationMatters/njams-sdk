@@ -58,6 +58,8 @@ import com.im.njams.sdk.model.SubProcessActivityModel;
 public class JobImpl implements Job {
 
     private static final org.slf4j.Logger LOG = LoggerFactory.getLogger(JobImpl.class);
+    /** Maximum length for string values for size restricted fields. */
+    public static final int MAX_VALUE_LIMIT = 2000;
 
     private final ProcessModel processModel;
     private final Njams njams;
@@ -644,7 +646,7 @@ public class JobImpl implements Job {
      */
     @Override
     public void setCorrelationLogId(final String correlationLogId) {
-        this.correlationLogId = correlationLogId;
+        this.correlationLogId = limitLength("correlationLogId", correlationLogId, MAX_VALUE_LIMIT);
     }
 
     /**
@@ -664,7 +666,7 @@ public class JobImpl implements Job {
      */
     @Override
     public void setParentLogId(String parentLogId) {
-        this.parentLogId = parentLogId;
+        this.parentLogId = limitLength("parentLogId", parentLogId, MAX_VALUE_LIMIT);
     }
 
     /**
@@ -684,7 +686,7 @@ public class JobImpl implements Job {
      */
     @Override
     public void setExternalLogId(String externalLogId) {
-        this.externalLogId = externalLogId;
+        this.externalLogId = limitLength("externalLogId", externalLogId, MAX_VALUE_LIMIT);
     }
 
     /**
@@ -715,7 +717,7 @@ public class JobImpl implements Job {
     @Override
     public void setBusinessService(Path businessService) {
         if (businessService != null) {
-            this.businessService = businessService.toString();
+            this.businessService = limitLength("businessService", businessService.toString(), MAX_VALUE_LIMIT);
         }
     }
 
@@ -747,7 +749,7 @@ public class JobImpl implements Job {
     @Override
     public void setBusinessObject(Path businessObject) {
         if (businessObject != null) {
-            this.businessObject = businessObject.toString();
+            this.businessObject = limitLength("businessObject", businessObject.toString(), MAX_VALUE_LIMIT);
         }
     }
 
@@ -1150,8 +1152,9 @@ public class JobImpl implements Job {
      */
     @Override
     public void addAttribute(final String key, String value) {
+        String limitKey = limitLength("attributeName", key, 500);
         synchronized (attributes) {
-            attributes.put(key, value);
+            attributes.put(limitKey, value);
         }
     }
 
@@ -1165,5 +1168,22 @@ public class JobImpl implements Job {
         sb.append("JobImpl[process=").append(processModel.getName()).append("; logId=").append(getLogId())
                 .append("; jobId=").append(getJobId()).append(']');
         return sb.toString();
+    }
+
+    /**
+     * Returns the given input string and ensures that it is not longer than the given maximum length.
+     *
+     * @param fieldName Only used for logging
+     * @param value The input value that is returned but possibly truncated
+     * @param maxLength Maximum length for the returned string
+     * @return The given input but no longer than the given maximum length
+     */
+    public static String limitLength(String fieldName, String value, int maxLength) {
+        if (value != null && value.length() > maxLength) {
+            LOG.warn("Value of field '{}' exceeds max length of {} characters. Value will be truncated.", fieldName,
+                    maxLength);
+            return value.substring(0, maxLength - 1);
+        }
+        return value;
     }
 }
