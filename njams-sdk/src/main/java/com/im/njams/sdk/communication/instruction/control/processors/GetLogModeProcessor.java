@@ -21,7 +21,6 @@ package com.im.njams.sdk.communication.instruction.control.processors;
 
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.LogMode;
 import com.im.njams.sdk.Njams;
-import com.im.njams.sdk.adapter.messageformat.command.entity.ConditionParameter;
 import com.im.njams.sdk.communication.instruction.control.templates.condition.ConditionReaderTemplate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,7 +37,7 @@ public class GetLogModeProcessor extends ConditionReaderTemplate {
     }
 
     @Override
-    protected ConditionParameter[] getEssentialParametersForProcessing() {
+    protected String[] getEssentialParametersForProcessing() {
         return NO_ESSENTIAL_PARAMETERS;
     }
 

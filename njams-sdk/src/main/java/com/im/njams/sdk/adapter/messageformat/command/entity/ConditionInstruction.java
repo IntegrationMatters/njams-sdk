@@ -43,6 +43,20 @@ import static com.im.njams.sdk.adapter.messageformat.command.entity.DefaultInstr
 
 public class ConditionInstruction extends AbstractInstruction<ConditionInstruction.ConditionRequestReader, ConditionInstruction.ConditionResponseWriter>{
 
+    public static final String PROCESS_PATH = "processPath";
+    public static final String ACTIVITY_ID = "activityId";
+    public static final String EXTRACT = "extract";
+    public static final String LOG_LEVEL = "logLevel";
+    public static final String LOG_MODE = "logMode";
+    public static final String EXCLUDE = "exclude";
+    public static final String START_TIME = "starttime";
+    public static final String END_TIME = "endtime";
+    public static final String ITERATIONS = "iterations";
+    public static final String DEEP_TRACE = "deepTrace";
+    public static final String ENGINE_WIDE_RECORDING = "EngineWideRecording";
+    public static final String PROCESS_RECORDING = "Record";
+    public static final String ENABLE_TRACING = "enableTracing";
+
     public ConditionInstruction(Instruction messageFormatInstruction) {
         super(messageFormatInstruction);
     }
@@ -66,65 +80,60 @@ public class ConditionInstruction extends AbstractInstruction<ConditionInstructi
         }
 
         public String getProcessPath() {
-            return getParamByConstant(ConditionParameter.PROCESS_PATH);
-        }
-
-        private String getParamByConstant(ConditionParameter param) {
-            return getParameter(param.getParamKey());
+            return getParameter(PROCESS_PATH);
         }
 
         public String getActivityId() {
-            return getParamByConstant(ConditionParameter.ACTIVITY_ID);
+            return getParameter(ACTIVITY_ID);
         }
 
         public Extract getExtract() throws NjamsInstructionException {
-            return parseJson(getParamByConstant(ConditionParameter.EXTRACT), Extract.class);
+            return parseJson(getParameter(EXTRACT), Extract.class);
         }
 
         public String getEngineWideRecording() {
-            return getParamByConstant(ConditionParameter.ENGINE_WIDE_RECORDING);
+            return getParameter(ENGINE_WIDE_RECORDING);
         }
 
         public String getProcessRecording() {
-            return getParamByConstant(ConditionParameter.PROCESS_RECORDING);
+            return getParameter(PROCESS_RECORDING);
         }
 
         public LogLevel getLogLevel() throws NjamsInstructionException {
-            return parseEnumParameter(getParamByConstant(ConditionParameter.LOG_LEVEL), LogLevel.class);
+            return parseEnumParameter(getParameter(LOG_LEVEL), LogLevel.class);
         }
 
         public LogMode getLogMode() throws NjamsInstructionException {
-            return parseEnumParameter(getParamByConstant(ConditionParameter.LOG_MODE), LogMode.class);
+            return parseEnumParameter(getParameter(LOG_MODE), LogMode.class);
         }
 
         public boolean getExcluded() {
-            return Boolean.parseBoolean(getParamByConstant(ConditionParameter.EXCLUDE));
+            return Boolean.parseBoolean(getParameter(EXCLUDE));
         }
 
         public LocalDateTime getEndTime() throws NjamsInstructionException {
-            return parseDateTime(getParamByConstant(ConditionParameter.END_TIME));
+            return parseDateTime(getParameter(END_TIME));
         }
 
         public boolean getTracingEnabled() {
-            return Boolean.parseBoolean(getParamByConstant(ConditionParameter.ENABLE_TRACING));
+            return Boolean.parseBoolean(getParameter(ENABLE_TRACING));
         }
 
         public LocalDateTime getStartTime() throws NjamsInstructionException {
-            return parseDateTime(getParamByConstant(ConditionParameter.START_TIME));
+            return parseDateTime(getParameter(START_TIME));
         }
 
         public Integer getIterations() throws NjamsInstructionException {
-            return parseInteger(getParamByConstant(ConditionParameter.ITERATIONS));
+            return parseInteger(getParameter(ITERATIONS));
         }
 
         public Boolean getDeepTrace() {
-            return Boolean.parseBoolean(getParamByConstant(ConditionParameter.DEEP_TRACE));
+            return Boolean.parseBoolean(getParameter(DEEP_TRACE));
         }
 
-        public List<String> searchForMissingParameters(ConditionParameter[] parametersToSearchFor) {
+        public List<String> searchForMissingParameters(String[] parametersToSearchFor) {
             return Arrays.stream(parametersToSearchFor)
-                    .filter(neededParameter -> StringUtils.isBlank(getParamByConstant(neededParameter)))
-                    .map(notFoundConditionParameter -> notFoundConditionParameter.getParamKey())
+                    .filter(neededParameter -> StringUtils.isBlank(getParameter(neededParameter)))
                     .collect(Collectors.toList());
         }
 
@@ -182,7 +191,7 @@ public class ConditionInstruction extends AbstractInstruction<ConditionInstructi
         }
 
         public ConditionResponseWriter setExtract(Extract extract) throws NjamsInstructionException {
-            return putParameter(ConditionParameter.EXTRACT.getParamKey(), serialize(extract));
+            return putParameter(EXTRACT, serialize(extract));
         }
 
         private String serialize(Object object) throws NjamsInstructionException {
@@ -194,31 +203,31 @@ public class ConditionInstruction extends AbstractInstruction<ConditionInstructi
         }
 
         public ConditionResponseWriter setLogMode(LogMode logMode){
-            return putParameter(ConditionParameter.LOG_MODE.getParamKey(), String.valueOf(logMode));
+            return putParameter(LOG_MODE, String.valueOf(logMode));
         }
 
         public ConditionResponseWriter setLogLevel(LogLevel logLevel){
-            return putParameter(ConditionParameter.LOG_LEVEL.getParamKey(), logLevel.name());
+            return putParameter(LOG_LEVEL, logLevel.name());
         }
 
         public ConditionResponseWriter setExcluded(boolean isExcluded){
-            return putParameter(ConditionParameter.EXCLUDE.getParamKey(), String.valueOf(isExcluded));
+            return putParameter(EXCLUDE, String.valueOf(isExcluded));
         }
 
         public ConditionResponseWriter setStartTime(LocalDateTime startTime){
-            return putParameter(ConditionParameter.START_TIME.getParamKey(), DateTimeUtility.toString(startTime));
+            return putParameter(START_TIME, DateTimeUtility.toString(startTime));
         }
 
         public ConditionResponseWriter setEndTime(LocalDateTime endTime){
-            return putParameter(ConditionParameter.END_TIME.getParamKey(), DateTimeUtility.toString(endTime));
+            return putParameter(END_TIME, DateTimeUtility.toString(endTime));
         }
 
         public ConditionResponseWriter setIterations(int iterations){
-            return putParameter(ConditionParameter.ITERATIONS.getParamKey(), String.valueOf(iterations));
+            return putParameter(ITERATIONS, String.valueOf(iterations));
         }
 
         public ConditionResponseWriter setDeepTrace(Boolean deepTrace){
-            return putParameter(ConditionParameter.DEEP_TRACE.getParamKey(), String.valueOf(deepTrace));
+            return putParameter(DEEP_TRACE, String.valueOf(deepTrace));
         }
     }
 }

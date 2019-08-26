@@ -22,7 +22,6 @@ package com.im.njams.sdk.communication.instruction.control.templates.condition;
 
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.adapter.messageformat.command.entity.ConditionInstruction;
-import com.im.njams.sdk.adapter.messageformat.command.entity.ConditionParameter;
 import com.im.njams.sdk.api.adapter.messageformat.command.NjamsInstructionException;
 import com.im.njams.sdk.api.adapter.messageformat.command.ResultCode;
 import org.junit.Before;
@@ -160,7 +159,7 @@ public class ConditionReaderTemplateTest {
 
     @Test
     public void fillMissingParametersList() {
-        ConditionParameter[] conditionParameterMock = new ConditionParameter[0];
+        String[] conditionParameterMock = new String[0];
         doReturn(conditionParameterMock).when(conditionReaderTemplate).getEssentialParametersForProcessing();
         when(conditionRequestReaderMock.searchForMissingParameters(conditionParameterMock))
                 .thenReturn(missingParameterMock);
@@ -273,7 +272,7 @@ public class ConditionReaderTemplateTest {
     @Test
     public void setInvalidParameterResponseWithOneMissingParameter() {
         List<String> missingParameters = new ArrayList<>();
-        fillMissingParametersWith(missingParameters, ConditionParameter.PROCESS_PATH);
+        fillMissingParametersWith(missingParameters, ConditionInstruction.PROCESS_PATH);
         String invalidParameterMessage = conditionReaderTemplate.GetInvalidParametersMessage(missingParameters);
         assertEquals("Missing parameter: " + missingParameters.toString(), invalidParameterMessage);
     }
@@ -281,14 +280,14 @@ public class ConditionReaderTemplateTest {
     @Test
     public void setInvalidParameterResponseWithMoreThanOneMissingParameter() {
         List<String> missingParameters = new ArrayList<>();
-        fillMissingParametersWith(missingParameters, ConditionParameter.PROCESS_PATH, ConditionParameter.ACTIVITY_ID);
+        fillMissingParametersWith(missingParameters, ConditionInstruction.PROCESS_PATH, ConditionInstruction.ACTIVITY_ID);
         String invalidParameterMessage = conditionReaderTemplate.GetInvalidParametersMessage(missingParameters);
         assertEquals("Missing parameters: " + missingParameters.toString(), invalidParameterMessage);
     }
 
-    private void fillMissingParametersWith(List<String> missingParameters, ConditionParameter... parameters) {
+    private void fillMissingParametersWith(List<String> missingParameters, String... parameters) {
         Arrays.stream(parameters)
-                .forEach(conditionParameter -> missingParameters.add(conditionParameter.getParamKey()));
+                .forEach(conditionParameter -> missingParameters.add(conditionParameter));
     }
 
 //Private helper classes
@@ -300,8 +299,8 @@ public class ConditionReaderTemplateTest {
         }
 
         @Override
-        protected ConditionParameter[] getEssentialParametersForProcessing() {
-            return new ConditionParameter[0];
+        protected String[] getEssentialParametersForProcessing() {
+            return new String[0];
         }
 
         @Override

@@ -21,7 +21,6 @@
 package com.im.njams.sdk.communication.instruction.control.templates.condition;
 
 import com.im.njams.sdk.Njams;
-import com.im.njams.sdk.adapter.messageformat.command.entity.ConditionParameter;
 import com.im.njams.sdk.api.adapter.messageformat.command.NjamsInstructionException;
 import org.junit.Before;
 import org.junit.Test;
@@ -67,8 +66,8 @@ public class ConditionWriterTemplateTest {
         }
 
         @Override
-        protected ConditionParameter[] getEssentialParametersForProcessing() {
-            return new ConditionParameter[0];
+        protected String[] getEssentialParametersForProcessing() {
+            return new String[0];
         }
 
         @Override

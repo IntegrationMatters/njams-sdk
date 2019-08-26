@@ -20,7 +20,7 @@
 package com.im.njams.sdk.communication.instruction.control.processors;
 
 import com.im.njams.sdk.Njams;
-import com.im.njams.sdk.adapter.messageformat.command.entity.ConditionParameter;
+import com.im.njams.sdk.adapter.messageformat.command.entity.ConditionInstruction;
 import com.im.njams.sdk.api.adapter.messageformat.command.NjamsInstructionException;
 import com.im.njams.sdk.communication.instruction.control.templates.condition.ConditionWriterTemplate;
 import com.im.njams.sdk.configuration.entity.ActivityConfiguration;
@@ -34,15 +34,15 @@ public class DeleteExtractProcessor extends ConditionWriterTemplate {
 
     private static final Logger LOG = LoggerFactory.getLogger(DeleteExtractProcessor.class);
 
-    private static final ConditionParameter[] neededParameter =
-            new ConditionParameter[]{ConditionParameter.PROCESS_PATH, ConditionParameter.ACTIVITY_ID};
+    private static final String[] neededParameter =
+            new String[]{ConditionInstruction.PROCESS_PATH, ConditionInstruction.ACTIVITY_ID};
 
     public DeleteExtractProcessor(Njams njams) {
         super(njams);
     }
 
     @Override
-    protected ConditionParameter[] getEssentialParametersForProcessing() {
+    protected String[] getEssentialParametersForProcessing() {
         return neededParameter;
     }
 

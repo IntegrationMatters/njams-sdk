@@ -20,8 +20,10 @@
 
 package com.im.njams.sdk.communication.instruction.control.templates.condition;
 
-import com.im.njams.sdk.adapter.messageformat.command.entity.ConditionParameter;
+import com.im.njams.sdk.adapter.messageformat.command.entity.ConditionInstruction;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -33,6 +35,8 @@ import static org.junit.Assert.assertEquals;
 
 public class MissingParameterMessageBuilderTest {
 
+    private static final Logger LOG = LoggerFactory.getLogger(MissingParameterMessageBuilderTest.class);
+
     @Test
     public void setInvalidParameterResponseWithoutMissingParameters() {
         List<String> missingParameters = EMPTY_LIST;
@@ -43,7 +47,7 @@ public class MissingParameterMessageBuilderTest {
     @Test
     public void setInvalidParameterResponseWithOneMissingParameter() {
         List<String> missingParameters = new ArrayList<>();
-        fillMissingParametersWith(missingParameters, ConditionParameter.PROCESS_PATH);
+        fillMissingParametersWith(missingParameters, ConditionInstruction.PROCESS_PATH);
         String message = new MissingParameterMessageBuilder(missingParameters).build();
         assertSingularMessage(missingParameters, message);
     }
@@ -51,21 +55,24 @@ public class MissingParameterMessageBuilderTest {
     @Test
     public void setInvalidParameterResponseWithMoreThanOneMissingParameter() {
         List<String> missingParameters = new ArrayList<>();
-        fillMissingParametersWith(missingParameters, ConditionParameter.PROCESS_PATH, ConditionParameter.ACTIVITY_ID);
+        fillMissingParametersWith(missingParameters, ConditionInstruction.PROCESS_PATH, ConditionInstruction.ACTIVITY_ID);
         String message = new MissingParameterMessageBuilder(missingParameters).build();
         assertPluralMessage(missingParameters, message);
     }
 
-    private void fillMissingParametersWith(List<String> missingParameters, ConditionParameter... parameters) {
+    private void fillMissingParametersWith(List<String> missingParameters, String... parameters) {
         Arrays.stream(parameters)
-                .forEach(conditionParameter -> missingParameters.add(conditionParameter.getParamKey()));
+                .forEach(conditionParameter -> missingParameters.add(conditionParameter));
     }
 
     private void assertSingularMessage(List<String> parameters, String actualMessage){
+        LOG.debug(actualMessage);
         assertEquals(MISSING_PARAMETER_MESSAGE + ": " + parameters.toString(), actualMessage);
+
     }
 
     private void assertPluralMessage(List<String> parameters, String actualMessage){
+        LOG.debug(actualMessage);
         assertEquals(MISSING_PARAMETER_MESSAGE + "s" + ": " + parameters.toString(), actualMessage);
     }
 }

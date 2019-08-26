@@ -21,7 +21,7 @@ package com.im.njams.sdk.communication.instruction.control.processors;
 
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.LogMode;
 import com.im.njams.sdk.Njams;
-import com.im.njams.sdk.adapter.messageformat.command.entity.ConditionParameter;
+import com.im.njams.sdk.adapter.messageformat.command.entity.ConditionInstruction;
 import com.im.njams.sdk.api.adapter.messageformat.command.NjamsInstructionException;
 import com.im.njams.sdk.communication.instruction.control.templates.condition.ConditionWriterTemplate;
 import org.slf4j.Logger;
@@ -34,7 +34,7 @@ public class SetLogModeProcessor extends ConditionWriterTemplate {
 
     private static final Logger LOG = LoggerFactory.getLogger(SetLogModeProcessor.class);
 
-    private static final ConditionParameter[] neededParameter = new ConditionParameter[]{ConditionParameter.LOG_MODE};
+    private static final String[] neededParameter = new String[]{ConditionInstruction.LOG_MODE};
 
     private LogMode logModeToSet;
 
@@ -43,7 +43,7 @@ public class SetLogModeProcessor extends ConditionWriterTemplate {
     }
 
     @Override
-    protected ConditionParameter[] getEssentialParametersForProcessing() {
+    protected String[] getEssentialParametersForProcessing() {
         return neededParameter;
     }
 

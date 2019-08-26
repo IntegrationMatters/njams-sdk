@@ -20,7 +20,6 @@
 package com.im.njams.sdk.communication.instruction.control.processors;
 
 import com.im.njams.sdk.Njams;
-import com.im.njams.sdk.adapter.messageformat.command.entity.ConditionParameter;
 import com.im.njams.sdk.communication.instruction.control.templates.condition.ConditionWriterTemplate;
 import com.im.njams.sdk.configuration.entity.ProcessConfiguration;
 import com.im.njams.sdk.utils.StringUtils;
@@ -44,7 +43,7 @@ public class RecordProcessor extends ConditionWriterTemplate {
     }
 
     @Override
-    protected ConditionParameter[] getEssentialParametersForProcessing() {
+    protected String[] getEssentialParametersForProcessing() {
         return NO_ESSENTIAL_PARAMETERS;
     }
 

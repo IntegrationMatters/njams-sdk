@@ -22,7 +22,6 @@ package com.im.njams.sdk.communication.instruction.control.templates.condition;
 
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.adapter.messageformat.command.entity.ConditionInstruction;
-import com.im.njams.sdk.adapter.messageformat.command.entity.ConditionParameter;
 import com.im.njams.sdk.api.adapter.messageformat.command.NjamsInstructionException;
 import com.im.njams.sdk.api.adapter.messageformat.command.ResultCode;
 import com.im.njams.sdk.communication.instruction.control.templates.InstructionProcessorTemplate;
@@ -38,7 +37,7 @@ public abstract class ConditionReaderTemplate extends InstructionProcessorTempla
 
     private static final Logger LOG = LoggerFactory.getLogger(ConditionReaderTemplate.class);
 
-    protected static final ConditionParameter[] NO_ESSENTIAL_PARAMETERS = new ConditionParameter[0];
+    protected static final String[] NO_ESSENTIAL_PARAMETERS = new String[0];
 
     protected final ConditionProxy conditionFacade;
 
@@ -80,11 +79,11 @@ public abstract class ConditionReaderTemplate extends InstructionProcessorTempla
     }
 
     List<String> fillMissingParametersList() {
-        ConditionParameter[] neededParametersForProcessing = getEssentialParametersForProcessing();
+        String[] neededParametersForProcessing = getEssentialParametersForProcessing();
         return requestReader.searchForMissingParameters(neededParametersForProcessing);
     }
 
-    protected abstract ConditionParameter[] getEssentialParametersForProcessing();
+    protected abstract String[] getEssentialParametersForProcessing();
 
     boolean wereAllNeededRequestParametersSet(List<String> missingParameters) {
         return missingParameters.isEmpty();

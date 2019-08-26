@@ -20,7 +20,7 @@
 package com.im.njams.sdk.communication.instruction.control.processors;
 
 import com.im.njams.sdk.Njams;
-import com.im.njams.sdk.adapter.messageformat.command.entity.ConditionParameter;
+import com.im.njams.sdk.adapter.messageformat.command.entity.ConditionInstruction;
 import com.im.njams.sdk.api.adapter.messageformat.command.NjamsInstructionException;
 import com.im.njams.sdk.common.DateTimeUtility;
 import com.im.njams.sdk.communication.instruction.control.templates.condition.ConditionWriterTemplate;
@@ -38,8 +38,8 @@ public class SetTracingProcessor extends ConditionWriterTemplate {
 
     private static final Logger LOG = LoggerFactory.getLogger(SetTracingProcessor.class);
 
-    private static final ConditionParameter[] neededParameter =
-            new ConditionParameter[]{ConditionParameter.PROCESS_PATH, ConditionParameter.ACTIVITY_ID};
+    private static final String[] neededParameter =
+            new String[]{ConditionInstruction.PROCESS_PATH, ConditionInstruction.ACTIVITY_ID};
 
     private static final int DEFAULT_TRACING_ENABLED_IN_MINUTES = 15;
 
@@ -56,7 +56,7 @@ public class SetTracingProcessor extends ConditionWriterTemplate {
     }
 
     @Override
-    protected ConditionParameter[] getEssentialParametersForProcessing() {
+    protected String[] getEssentialParametersForProcessing() {
         return neededParameter;
     }
 
