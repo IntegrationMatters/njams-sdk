@@ -79,7 +79,7 @@ public class ReplayInstruction extends AbstractInstruction<ReplayInstruction.Rep
 
         private static final String EXCEPTION = "Exception";
 
-        public static final String MAIN_LOG_ID= "MainLogId";
+        public static final String MAIN_LOG_ID = "MainLogId";
 
         protected ReplayResponseWriter(Response response) {
             super(response);
