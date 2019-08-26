@@ -94,10 +94,5 @@ public class ReplayInstruction extends AbstractInstruction<ReplayInstruction.Rep
             putParameter(MAIN_LOG_ID, mainLogId);
             return this;
         }
-
-        public ReplayResponseWriter setDateTime(LocalDateTime dateTime) {
-            responseToBuild.setDateTime(dateTime);
-            return this;
-        }
     }
 }

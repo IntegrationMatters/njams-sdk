@@ -7,6 +7,7 @@ import com.im.njams.sdk.api.adapter.messageformat.command.ResultCode;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.time.LocalDateTime;
 import java.util.Map;
 
 import static com.im.njams.sdk.adapter.messageformat.command.entity.AbstractInstruction.DEFAULT_SUCCESS_MESSAGE;
@@ -154,6 +155,18 @@ public class AbstractInstructionTest {
     }
 
     @Test
+    public void instructionWithNullResponseHasAResponseAfterDateTimeWasSet(){
+        Instruction instruction = new Instruction();
+        assertNull(instruction.getResponse());
+        AbstractInstructionImpl.AbstractResponseWriter responseWriter = getAbstractResponseWriter(instruction);
+        assertTrue(responseWriter.isEmpty());
+
+        LocalDateTime now = LocalDateTime.now();
+        responseWriter.setDateTime(now);
+        assertNotNull(instruction.getResponse());
+    }
+
+    @Test
     public void instructionWithNullResponseHasAResponseAfterSetParameters() {
         Instruction instruction = new Instruction();
         assertNull(instruction.getResponse());
@@ -187,6 +200,15 @@ public class AbstractInstructionTest {
         responseWriter.setResultCode(ResultCode.SUCCESS);
         assertFalse(responseWriter.isEmpty());
         assertNotNull(instruction.getResponse());
+    }
+
+    @Test
+    public void checkToStringForResponseWriter(){
+        Instruction instruction = new Instruction();
+        assertNull(instruction.getResponse());
+        AbstractInstructionImpl.AbstractResponseWriter responseWriter = getAbstractResponseWriter(instruction);
+        String responseAsString = responseWriter.toString();
+        System.out.println(responseAsString);
     }
 
     private class AbstractInstructionImpl extends AbstractInstruction<AbstractRequestReaderImpl,

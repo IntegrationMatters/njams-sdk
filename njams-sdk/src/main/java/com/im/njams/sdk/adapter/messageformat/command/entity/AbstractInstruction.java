@@ -22,11 +22,17 @@ package com.im.njams.sdk.adapter.messageformat.command.entity;
 
 import com.faizsiegeln.njams.messageformat.v4.command.Request;
 import com.faizsiegeln.njams.messageformat.v4.command.Response;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.im.njams.sdk.api.adapter.messageformat.command.Instruction;
 import com.im.njams.sdk.api.adapter.messageformat.command.ResultCode;
+import com.im.njams.sdk.common.NjamsSdkRuntimeException;
+import com.im.njams.sdk.utils.JsonUtils;
 
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
+
+import static com.im.njams.sdk.adapter.messageformat.command.entity.DefaultInstruction.UNABLE_TO_DESERIALZE_OBJECT;
 
 public abstract class AbstractInstruction<R extends Instruction.RequestReader,
         W extends AbstractInstruction.AbstractResponseWriter> implements Instruction {
@@ -111,7 +117,7 @@ public abstract class AbstractInstruction<R extends Instruction.RequestReader,
 
     public static class AbstractResponseWriter<W extends AbstractResponseWriter<W>> implements Instruction.ResponseWriter<W> {
 
-        protected Response responseToBuild;
+        private Response responseToBuild;
 
         private boolean isActuallyEmpty = false;
 
@@ -142,6 +148,12 @@ public abstract class AbstractInstruction<R extends Instruction.RequestReader,
         public W setParameters(Map<String, String> parameters) {
             responseIsFilled();
             responseToBuild.setParameters(parameters);
+            return getThis();
+        }
+
+        public W setDateTime(LocalDateTime dateTime) {
+            responseIsFilled();
+            responseToBuild.setDateTime(dateTime);
             return getThis();
         }
 
@@ -180,6 +192,15 @@ public abstract class AbstractInstruction<R extends Instruction.RequestReader,
         @Override
         public final W getThis() {
             return (W) this;
+        }
+
+        @Override
+        public String toString() {
+            try {
+                return JsonUtils.serialize(responseToBuild);
+            } catch (JsonProcessingException e) {
+                throw new NjamsSdkRuntimeException(UNABLE_TO_DESERIALZE_OBJECT + responseToBuild);
+            }
         }
     }
 }

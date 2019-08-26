@@ -57,7 +57,7 @@ public class ReplayInstructionTest {
 //CreateRequestReader tests
 
     @Test
-    public void createRequestReaderInstanceCreatesDefaultRequestReader() {
+    public void createReplayRequestReader() {
         ReplayInstruction.ReplayRequestReader requestReaderInstance = replayInstruction
                 .createRequestReaderInstance(mock(Request.class));
         assertTrue(requestReaderInstance instanceof ReplayInstruction.ReplayRequestReader);
@@ -73,7 +73,7 @@ public class ReplayInstructionTest {
 //CreateResponseWriter tests
 
     @Test
-    public void createResponseWriterInstanceCreatesDefaultResponseWriter() {
+    public void createReplayResponseWriter() {
         ReplayInstruction.ReplayResponseWriter responseWriterInstance = replayInstruction
                 .createResponseWriterInstance(mock(Response.class));
         assertTrue(responseWriterInstance instanceof ReplayInstruction.ReplayResponseWriter);
@@ -166,13 +166,5 @@ public class ReplayInstructionTest {
         Map<String, String> mockedMap = setMockedMap();
         responseWriter.setMainLogId(MAIN_LOG_ID_VALUE);
         verify(mockedMap).put(MAIN_LOG_ID_KEY, MAIN_LOG_ID_VALUE);
-    }
-
-    @Test
-    public void setDateTime(){
-        ReplayInstruction.ReplayResponseWriter responseWriter = replayInstruction.getResponseWriter();
-        LocalDateTime now = LocalDateTime.now();
-        responseWriter.setDateTime(now);
-        verify(responseMock).setDateTime(now);
     }
 }

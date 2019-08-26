@@ -116,14 +116,5 @@ public class DefaultInstruction extends AbstractInstruction<DefaultInstruction.D
             setResultCode(resultCode).setResultMessage(resultMessage);
             return getThis();
         }
-
-        @Override
-        public String toString() {
-            try {
-                return JsonUtils.serialize(responseToBuild);
-            } catch (JsonProcessingException e) {
-                throw new NjamsSdkRuntimeException(UNABLE_TO_DESERIALZE_OBJECT + responseToBuild);
-            }
-        }
     }
 }

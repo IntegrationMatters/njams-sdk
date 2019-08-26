@@ -181,12 +181,4 @@ public class DefaultInstructionTest {
         verify(responseWriter).setResultCode(ResultCode.WARNING);
         verify(responseWriter).setResultMessage(resultMessage);
     }
-
-    @Test
-    public void checkToStringForResponseWriter(){
-        fillRequestAndResponse(null, new Response());
-        DefaultInstruction.DefaultResponseWriter responseWriter = defaultInstruction.getResponseWriter();
-        String responseAsString = responseWriter.toString();
-        System.out.println(responseAsString);
-    }
 }
