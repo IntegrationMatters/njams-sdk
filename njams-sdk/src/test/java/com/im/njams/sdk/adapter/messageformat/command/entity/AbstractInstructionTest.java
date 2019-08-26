@@ -125,11 +125,10 @@ public class AbstractInstructionTest {
 //AbstractResponseWriter tests
 
     @Test
-    public void testInstructionWithNullResponseHasAResponseAfterResultCodeWasSet() {
+    public void instructionWithNullResponseHasAResponseAfterResultCodeWasSet() {
         Instruction instruction = new Instruction();
         assertNull(instruction.getResponse());
-        DefaultInstruction defaultInstruction = new DefaultInstruction(instruction);
-        DefaultInstruction.DefaultResponseWriter responseWriter = defaultInstruction.getResponseWriter();
+        AbstractInstructionImpl.AbstractResponseWriter responseWriter = getAbstractResponseWriter(instruction);
         assertTrue(responseWriter.isEmpty());
 
         responseWriter.setResultCode(ResultCode.SUCCESS);
@@ -137,12 +136,16 @@ public class AbstractInstructionTest {
         assertNotNull(instruction.getResponse());
     }
 
+    private AbstractInstruction.AbstractResponseWriter getAbstractResponseWriter(Instruction instruction){
+        AbstractInstructionImpl abstractInstructionImpl = new AbstractInstructionImpl(instruction);
+        return abstractInstructionImpl.getResponseWriter();
+    }
+
     @Test
-    public void testInstructionWithNullResponseHasAResponseAfterResultMessageWasSet() {
+    public void instructionWithNullResponseHasAResponseAfterResultMessageWasSet() {
         Instruction instruction = new Instruction();
         assertNull(instruction.getResponse());
-        DefaultInstruction defaultInstruction = new DefaultInstruction(instruction);
-        DefaultInstruction.DefaultResponseWriter responseWriter = defaultInstruction.getResponseWriter();
+        AbstractInstructionImpl.AbstractResponseWriter responseWriter = getAbstractResponseWriter(instruction);
         assertTrue(responseWriter.isEmpty());
 
         responseWriter.setResultMessage("Test");
@@ -151,11 +154,10 @@ public class AbstractInstructionTest {
     }
 
     @Test
-    public void testInstructionWithNullResponseHasAResponseAfterSetParameters() {
+    public void instructionWithNullResponseHasAResponseAfterSetParameters() {
         Instruction instruction = new Instruction();
         assertNull(instruction.getResponse());
-        DefaultInstruction defaultInstruction = new DefaultInstruction(instruction);
-        DefaultInstruction.DefaultResponseWriter responseWriter = defaultInstruction.getResponseWriter();
+        AbstractInstructionImpl.AbstractResponseWriter responseWriter = getAbstractResponseWriter(instruction);
         assertTrue(responseWriter.isEmpty());
 
         responseWriter.setResultCode(ResultCode.SUCCESS);
@@ -164,11 +166,10 @@ public class AbstractInstructionTest {
     }
 
     @Test
-    public void testInstructionWithNullResponseHasAResponseAfterPutParameter() {
+    public void instructionWithNullResponseHasAResponseAfterPutParameter() {
         Instruction instruction = new Instruction();
         assertNull(instruction.getResponse());
-        DefaultInstruction defaultInstruction = new DefaultInstruction(instruction);
-        DefaultInstruction.DefaultResponseWriter responseWriter = defaultInstruction.getResponseWriter();
+        AbstractInstructionImpl.AbstractResponseWriter responseWriter = getAbstractResponseWriter(instruction);
         assertTrue(responseWriter.isEmpty());
 
         responseWriter.setResultCode(ResultCode.SUCCESS);
@@ -177,11 +178,10 @@ public class AbstractInstructionTest {
     }
 
     @Test
-    public void testInstructionWithNullResponseHasAResponseAfterAddParameter() {
+    public void instructionWithNullResponseHasAResponseAfterAddParameter() {
         Instruction instruction = new Instruction();
         assertNull(instruction.getResponse());
-        DefaultInstruction defaultInstruction = new DefaultInstruction(instruction);
-        DefaultInstruction.DefaultResponseWriter responseWriter = defaultInstruction.getResponseWriter();
+        AbstractInstructionImpl.AbstractResponseWriter responseWriter = getAbstractResponseWriter(instruction);
         assertTrue(responseWriter.isEmpty());
 
         responseWriter.setResultCode(ResultCode.SUCCESS);

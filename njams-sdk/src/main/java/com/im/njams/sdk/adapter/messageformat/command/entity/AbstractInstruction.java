@@ -109,8 +109,6 @@ public abstract class AbstractInstruction<R extends Instruction.RequestReader,
 
     protected abstract W createResponseWriterInstance(Response response);
 
-
-
     public static class AbstractResponseWriter<W extends AbstractResponseWriter<W>> implements Instruction.ResponseWriter<W> {
 
         protected Response responseToBuild;
