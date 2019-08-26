@@ -161,7 +161,7 @@ public class ConditionReaderTemplateTest {
     public void fillMissingParametersList() {
         String[] conditionParameterMock = new String[0];
         doReturn(conditionParameterMock).when(conditionReaderTemplate).getEssentialParametersForProcessing();
-        when(conditionRequestReaderMock.searchForMissingParameters(conditionParameterMock))
+        when(conditionRequestReaderMock.collectAllMissingParameters(conditionParameterMock))
                 .thenReturn(missingParameterMock);
 
         List<String> filledMissingParameters = conditionReaderTemplate.fillMissingParametersList();

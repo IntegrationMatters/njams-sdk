@@ -80,7 +80,7 @@ public abstract class ConditionReaderTemplate extends InstructionProcessorTempla
 
     List<String> fillMissingParametersList() {
         String[] neededParametersForProcessing = getEssentialParametersForProcessing();
-        return requestReader.searchForMissingParameters(neededParametersForProcessing);
+        return requestReader.collectAllMissingParameters(neededParametersForProcessing);
     }
 
     protected abstract String[] getEssentialParametersForProcessing();

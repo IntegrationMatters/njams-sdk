@@ -36,12 +36,14 @@ import com.im.njams.sdk.utils.StringUtils;
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
 import static com.im.njams.sdk.adapter.messageformat.command.entity.DefaultInstruction.UNABLE_TO_DESERIALZE_OBJECT;
 
-public class ConditionInstruction extends AbstractInstruction<ConditionInstruction.ConditionRequestReader, ConditionInstruction.ConditionResponseWriter>{
+public class ConditionInstruction extends AbstractInstruction<ConditionInstruction.ConditionRequestReader,
+        ConditionInstruction.ConditionResponseWriter> {
 
     public static final String PROCESS_PATH = "processPath";
     public static final String ACTIVITY_ID = "activityId";
@@ -131,10 +133,17 @@ public class ConditionInstruction extends AbstractInstruction<ConditionInstructi
             return Boolean.parseBoolean(getParameter(DEEP_TRACE));
         }
 
-        public List<String> searchForMissingParameters(String[] parametersToSearchFor) {
-            return Arrays.stream(parametersToSearchFor)
-                    .filter(neededParameter -> StringUtils.isBlank(getParameter(neededParameter)))
-                    .collect(Collectors.toList());
+        public List<String> collectAllMissingParameters(String[] parametersToSearchFor) {
+            if (parametersToSearchFor != null) {
+                return Arrays.stream(parametersToSearchFor)
+                        .filter(neededParameter -> isParameterMissing(neededParameter)).collect(Collectors.toList());
+            } else {
+                return Collections.EMPTY_LIST;
+            }
+        }
+
+        private boolean isParameterMissing(String parameterToCheck) {
+            return StringUtils.isBlank(getParameter(parameterToCheck));
         }
 
         private <T extends Enum<T>> T parseEnumParameter(final String enumParameterToParse, final Class<T> enumeration)
@@ -169,7 +178,8 @@ public class ConditionInstruction extends AbstractInstruction<ConditionInstructi
             try {
                 return DateTimeUtility.fromString(localDateTimeString);
             } catch (RuntimeException parsingException) {
-                throw new NjamsInstructionException(UNABLE_TO_DESERIALZE_OBJECT + localDateTimeString, parsingException);
+                throw new NjamsInstructionException(UNABLE_TO_DESERIALZE_OBJECT + localDateTimeString,
+                        parsingException);
             }
         }
 
@@ -177,7 +187,8 @@ public class ConditionInstruction extends AbstractInstruction<ConditionInstructi
             try {
                 return Integer.parseInt(integerAsString);
             } catch (NumberFormatException invalidIntegerException) {
-                throw new NjamsInstructionException(UNABLE_TO_DESERIALZE_OBJECT + integerAsString, invalidIntegerException);
+                throw new NjamsInstructionException(UNABLE_TO_DESERIALZE_OBJECT + integerAsString,
+                        invalidIntegerException);
             }
         }
     }
@@ -195,38 +206,38 @@ public class ConditionInstruction extends AbstractInstruction<ConditionInstructi
         }
 
         private String serialize(Object object) throws NjamsInstructionException {
-            try{
+            try {
                 return mapper.writeValueAsString(object);
             } catch (JsonProcessingException e) {
                 throw new NjamsInstructionException("Unable to serialize Object", e);
             }
         }
 
-        public ConditionResponseWriter setLogMode(LogMode logMode){
-            return putParameter(LOG_MODE, String.valueOf(logMode));
+        public ConditionResponseWriter setLogMode(LogMode logMode) {
+            return putParameter(LOG_MODE, logMode != null ? String.valueOf(logMode) : null);
         }
 
-        public ConditionResponseWriter setLogLevel(LogLevel logLevel){
-            return putParameter(LOG_LEVEL, logLevel.name());
+        public ConditionResponseWriter setLogLevel(LogLevel logLevel) {
+            return putParameter(LOG_LEVEL, logLevel != null ? logLevel.name() : null);
         }
 
-        public ConditionResponseWriter setExcluded(boolean isExcluded){
+        public ConditionResponseWriter setExcluded(boolean isExcluded) {
             return putParameter(EXCLUDE, String.valueOf(isExcluded));
         }
 
-        public ConditionResponseWriter setStartTime(LocalDateTime startTime){
+        public ConditionResponseWriter setStartTime(LocalDateTime startTime) {
             return putParameter(START_TIME, DateTimeUtility.toString(startTime));
         }
 
-        public ConditionResponseWriter setEndTime(LocalDateTime endTime){
+        public ConditionResponseWriter setEndTime(LocalDateTime endTime) {
             return putParameter(END_TIME, DateTimeUtility.toString(endTime));
         }
 
-        public ConditionResponseWriter setIterations(int iterations){
+        public ConditionResponseWriter setIterations(int iterations) {
             return putParameter(ITERATIONS, String.valueOf(iterations));
         }
 
-        public ConditionResponseWriter setDeepTrace(Boolean deepTrace){
+        public ConditionResponseWriter setDeepTrace(Boolean deepTrace) {
             return putParameter(DEEP_TRACE, String.valueOf(deepTrace));
         }
     }
