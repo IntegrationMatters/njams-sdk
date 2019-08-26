@@ -3,9 +3,7 @@ package com.im.njams.sdk.adapter.messageformat.command.boundary;
 import com.faizsiegeln.njams.messageformat.v4.command.Request;
 import com.faizsiegeln.njams.messageformat.v4.command.Response;
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.im.njams.sdk.adapter.messageformat.command.entity.AbstractInstruction;
 import com.im.njams.sdk.api.adapter.messageformat.command.Instruction;
-import com.im.njams.sdk.api.adapter.messageformat.command.InstructionFactory;
 import com.im.njams.sdk.api.adapter.messageformat.command.NjamsInstructionException;
 import com.im.njams.sdk.utils.JsonUtils;
 import org.junit.Test;
@@ -101,14 +99,13 @@ public class NjamsInstructionFactoryTest {
 //GetInstructionOf(Instruction) tests
 
     @Test
-    public void nullInstructionShouldReturnAnEmptyInstruction() throws NjamsInstructionException {
+    public void nullInstructionShouldReturnAnEmptyInstruction() {
         Instruction wrappedInstruction = instructionFactory.getInstructionOf((com.faizsiegeln.njams.messageformat.v4.command.Instruction) null);
         assertEmptyButNotNull(wrappedInstruction, true, true, true);
     }
 
     @Test
-    public void validInstructionShouldReturnANotEmptyInstruction()
-            throws NjamsInstructionException, JsonProcessingException {
+    public void validInstructionShouldReturnANotEmptyInstruction() {
         Instruction wrappedInstruction = instructionFactory.getInstructionOf(EMPTY_INSTRUCTION);
         assertEmptyButNotNull(wrappedInstruction, false, true, true);
     }
