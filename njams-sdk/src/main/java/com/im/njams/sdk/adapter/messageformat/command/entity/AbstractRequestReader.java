@@ -25,7 +25,6 @@
 package com.im.njams.sdk.adapter.messageformat.command.entity;
 
 import com.faizsiegeln.njams.messageformat.v4.command.Request;
-import com.faizsiegeln.njams.messageformat.v4.command.Response;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.im.njams.sdk.api.adapter.messageformat.command.Instruction;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
@@ -37,7 +36,7 @@ import java.util.Map;
 import static com.im.njams.sdk.adapter.messageformat.command.entity.AbstractInstruction.UNABLE_TO_DESERIALZE_OBJECT;
 
 /**
- * This class provides methods to read the incoming instruction's request.
+ * This abstract class provides methods to read the incoming instruction's request.
  *
  * @author krautenberg
  * @version 4.1.0

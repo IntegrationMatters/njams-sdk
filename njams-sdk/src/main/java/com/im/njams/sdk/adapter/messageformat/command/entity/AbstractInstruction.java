@@ -106,6 +106,12 @@ public abstract class AbstractInstruction<R extends AbstractRequestReader,
         return reader;
     }
 
+    /**
+     * Creates the actual instance of a {@link AbstractRequestReader AbstractRequestReader}
+     *
+     * @param request the request that the {@link AbstractRequestReader AbstractRequestReader} will have to read from
+     * @return a new {@link AbstractRequestReader AbstractRequestReader} that reads from the given request
+     */
     protected abstract R createRequestReaderInstance(Request request);
 
     /**
@@ -154,6 +160,12 @@ public abstract class AbstractInstruction<R extends AbstractRequestReader,
         return response;
     }
 
+    /**
+     * Creates the actual instance of a {@link AbstractResponseWriter AbstractResponseWriter}
+     *
+     * @param response the response that the {@link AbstractResponseWriter AbstractResponseWriter} will write to
+     * @return a new {@link AbstractResponseWriter AbstractResponseWriter} that writes to the given response
+     */
     protected abstract W createResponseWriterInstance(Response response);
 
 }

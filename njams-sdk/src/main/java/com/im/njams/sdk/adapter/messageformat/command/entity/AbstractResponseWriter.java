@@ -39,7 +39,7 @@ import java.util.Map;
 import static com.im.njams.sdk.adapter.messageformat.command.entity.AbstractInstruction.UNABLE_TO_DESERIALZE_OBJECT;
 
 /**
- * This class provides methods to write the outgoing instruction's response.
+ * This abstract class provides methods to write the outgoing instruction's response.
  *
  * @param <W> The type of the AbstractResponseWriter for chaining the methods of the AbstractResponseWriter.
  * @author krautenberg

@@ -31,7 +31,6 @@ import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.utils.JsonUtils;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.internal.matchers.Null;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
