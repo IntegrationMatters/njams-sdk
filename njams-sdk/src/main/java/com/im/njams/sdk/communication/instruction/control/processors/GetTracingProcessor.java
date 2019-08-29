@@ -20,7 +20,7 @@
 package com.im.njams.sdk.communication.instruction.control.processors;
 
 import com.im.njams.sdk.Njams;
-import com.im.njams.sdk.adapter.messageformat.command.entity.condition.ConditionInstruction;
+import com.im.njams.sdk.adapter.messageformat.command.entity.condition.ConditionConstants;
 import com.im.njams.sdk.api.adapter.messageformat.command.NjamsInstructionException;
 import com.im.njams.sdk.communication.instruction.control.templates.condition.ConditionReaderTemplate;
 import com.im.njams.sdk.configuration.entity.TracepointExt;
@@ -35,7 +35,7 @@ public class GetTracingProcessor extends ConditionReaderTemplate {
     private static final Logger LOG = LoggerFactory.getLogger(GetTracingProcessor.class);
 
     private static final String[] neededParameter =
-            new String[]{ConditionInstruction.PROCESS_PATH, ConditionInstruction.ACTIVITY_ID};
+            new String[]{ConditionConstants.PROCESS_PATH_KEY, ConditionConstants.ACTIVITY_ID_KEY};
 
     public GetTracingProcessor(Njams njams) {
         super(njams);

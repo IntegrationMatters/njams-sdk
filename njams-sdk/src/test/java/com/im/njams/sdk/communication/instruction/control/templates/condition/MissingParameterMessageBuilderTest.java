@@ -20,7 +20,7 @@
 
 package com.im.njams.sdk.communication.instruction.control.templates.condition;
 
-import com.im.njams.sdk.adapter.messageformat.command.entity.condition.ConditionInstruction;
+import com.im.njams.sdk.adapter.messageformat.command.entity.condition.ConditionConstants;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -47,7 +47,7 @@ public class MissingParameterMessageBuilderTest {
     @Test
     public void setInvalidParameterResponseWithOneMissingParameter() {
         List<String> missingParameters = new ArrayList<>();
-        fillMissingParametersWith(missingParameters, ConditionInstruction.PROCESS_PATH);
+        fillMissingParametersWith(missingParameters, ConditionConstants.PROCESS_PATH_KEY);
         String message = new MissingParameterMessageBuilder(missingParameters).build();
         assertSingularMessage(missingParameters, message);
     }
@@ -55,7 +55,7 @@ public class MissingParameterMessageBuilderTest {
     @Test
     public void setInvalidParameterResponseWithMoreThanOneMissingParameter() {
         List<String> missingParameters = new ArrayList<>();
-        fillMissingParametersWith(missingParameters, ConditionInstruction.PROCESS_PATH, ConditionInstruction.ACTIVITY_ID);
+        fillMissingParametersWith(missingParameters, ConditionConstants.PROCESS_PATH_KEY, ConditionConstants.ACTIVITY_ID_KEY);
         String message = new MissingParameterMessageBuilder(missingParameters).build();
         assertPluralMessage(missingParameters, message);
     }

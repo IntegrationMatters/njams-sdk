@@ -21,7 +21,7 @@ package com.im.njams.sdk.communication.instruction.control.processors;
 
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.Extract;
 import com.im.njams.sdk.Njams;
-import com.im.njams.sdk.adapter.messageformat.command.entity.condition.ConditionInstruction;
+import com.im.njams.sdk.adapter.messageformat.command.entity.condition.ConditionConstants;
 import com.im.njams.sdk.api.adapter.messageformat.command.NjamsInstructionException;
 import com.im.njams.sdk.communication.instruction.control.templates.condition.ConditionReaderTemplate;
 import org.slf4j.Logger;
@@ -35,7 +35,7 @@ public class GetExtractProcessor extends ConditionReaderTemplate {
     private static final Logger LOG = LoggerFactory.getLogger(GetExtractProcessor.class);
 
     private static final String[] neededParameter =
-            new String[]{ConditionInstruction.PROCESS_PATH, ConditionInstruction.ACTIVITY_ID};
+            new String[]{ConditionConstants.PROCESS_PATH_KEY, ConditionConstants.ACTIVITY_ID_KEY};
 
     public GetExtractProcessor(Njams njams) {
         super(njams);

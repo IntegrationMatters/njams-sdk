@@ -22,7 +22,7 @@ package com.im.njams.sdk.communication.instruction.control.processors;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.LogLevel;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.LogMode;
 import com.im.njams.sdk.Njams;
-import com.im.njams.sdk.adapter.messageformat.command.entity.condition.ConditionInstruction;
+import com.im.njams.sdk.adapter.messageformat.command.entity.condition.ConditionConstants;
 import com.im.njams.sdk.api.adapter.messageformat.command.NjamsInstructionException;
 import com.im.njams.sdk.communication.instruction.control.templates.condition.ConditionReaderTemplate;
 import org.slf4j.Logger;
@@ -36,7 +36,7 @@ public class GetLogLevelProcessor extends ConditionReaderTemplate {
     private static final Logger LOG = LoggerFactory.getLogger(GetLogLevelProcessor.class);
 
     private static final String[] neededParameter =
-            new String[]{ConditionInstruction.PROCESS_PATH};
+            new String[]{ConditionConstants.PROCESS_PATH_KEY};
 
     private static final LogLevel DEFAULT_LOG_LEVEL = LogLevel.INFO;
 

@@ -21,6 +21,7 @@
 package com.im.njams.sdk.communication.instruction.control.templates.condition;
 
 import com.im.njams.sdk.Njams;
+import com.im.njams.sdk.adapter.messageformat.command.entity.condition.ConditionConstants;
 import com.im.njams.sdk.adapter.messageformat.command.entity.condition.ConditionInstruction;
 import com.im.njams.sdk.adapter.messageformat.command.entity.condition.ConditionRequestReader;
 import com.im.njams.sdk.adapter.messageformat.command.entity.condition.ConditionResponseWriter;
@@ -274,7 +275,7 @@ public class ConditionReaderTemplateTest {
     @Test
     public void setInvalidParameterResponseWithOneMissingParameter() {
         List<String> missingParameters = new ArrayList<>();
-        fillMissingParametersWith(missingParameters, ConditionInstruction.PROCESS_PATH);
+        fillMissingParametersWith(missingParameters, ConditionConstants.PROCESS_PATH_KEY);
         String invalidParameterMessage = conditionReaderTemplate.GetInvalidParametersMessage(missingParameters);
         assertEquals("Missing parameter: " + missingParameters.toString(), invalidParameterMessage);
     }
@@ -282,7 +283,7 @@ public class ConditionReaderTemplateTest {
     @Test
     public void setInvalidParameterResponseWithMoreThanOneMissingParameter() {
         List<String> missingParameters = new ArrayList<>();
-        fillMissingParametersWith(missingParameters, ConditionInstruction.PROCESS_PATH, ConditionInstruction.ACTIVITY_ID);
+        fillMissingParametersWith(missingParameters, ConditionConstants.PROCESS_PATH_KEY, ConditionConstants.ACTIVITY_ID_KEY);
         String invalidParameterMessage = conditionReaderTemplate.GetInvalidParametersMessage(missingParameters);
         assertEquals("Missing parameters: " + missingParameters.toString(), invalidParameterMessage);
     }

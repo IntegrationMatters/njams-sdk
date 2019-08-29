@@ -35,23 +35,16 @@ import com.im.njams.sdk.api.adapter.messageformat.command.ResultCode;
  * @author krautenberg
  * @version 4.1.0
  */
-public abstract class AbstractInstruction<R extends AbstractRequestReader,
-        W extends AbstractResponseWriter> implements Instruction {
+public abstract class AbstractInstruction<R extends AbstractRequestReader, W extends AbstractResponseWriter> implements Instruction {
 
     /**
      * Default prefix for parsing Exceptions.
      */
     public static final String UNABLE_TO_DESERIALZE_OBJECT = "Unable to deserialize: ";
 
-    /**
-     * Default success resultCode that is used if a response needs to be created.
-     */
-    public static final ResultCode DEFAULT_SUCCESS_CODE = ResultCode.SUCCESS;
+    private static final ResultCode DEFAULT_SUCCESS_CODE = ResultCode.SUCCESS;
 
-    /**
-     * Default success message that is used if a response needs to be created.
-     */
-    public static final String DEFAULT_SUCCESS_MESSAGE = "Success";
+    private static final String DEFAULT_SUCCESS_MESSAGE = "Success";
 
     protected R reader;
 

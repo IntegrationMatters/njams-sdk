@@ -48,55 +48,55 @@ public class ConditionRequestReader extends DefaultRequestReader {
     }
 
     public String getProcessPath() {
-        return getParameter(ConditionInstruction.PROCESS_PATH);
+        return getParameter(ConditionConstants.PROCESS_PATH_KEY);
     }
 
     public String getActivityId() {
-        return getParameter(ConditionInstruction.ACTIVITY_ID);
+        return getParameter(ConditionConstants.ACTIVITY_ID_KEY);
     }
 
     public Extract getExtract() throws NjamsInstructionException {
-        return parseJson(getParameter(ConditionInstruction.EXTRACT), Extract.class);
+        return parseJson(getParameter(ConditionConstants.EXTRACT_KEY), Extract.class);
     }
 
     public String getEngineWideRecording() {
-        return getParameter(ConditionInstruction.ENGINE_WIDE_RECORDING);
+        return getParameter(ConditionConstants.ENGINE_WIDE_RECORDING_KEY);
     }
 
     public String getProcessRecording() {
-        return getParameter(ConditionInstruction.PROCESS_RECORDING);
+        return getParameter(ConditionConstants.PROCESS_RECORDING_KEY);
     }
 
     public LogLevel getLogLevel() throws NjamsInstructionException {
-        return parseEnumParameter(getParameter(ConditionInstruction.LOG_LEVEL), LogLevel.class);
+        return parseEnumParameter(getParameter(ConditionConstants.LOG_LEVEL_KEY), LogLevel.class);
     }
 
     public LogMode getLogMode() throws NjamsInstructionException {
-        return parseEnumParameter(getParameter(ConditionInstruction.LOG_MODE), LogMode.class);
+        return parseEnumParameter(getParameter(ConditionConstants.LOG_MODE_KEY), LogMode.class);
     }
 
     public boolean getExcluded() {
-        return Boolean.parseBoolean(getParameter(ConditionInstruction.EXCLUDE));
+        return Boolean.parseBoolean(getParameter(ConditionConstants.EXCLUDE_KEY));
     }
 
     public LocalDateTime getEndTime() throws NjamsInstructionException {
-        return parseDateTime(getParameter(ConditionInstruction.END_TIME));
+        return parseDateTime(getParameter(ConditionConstants.END_TIME_KEY));
     }
 
     public boolean getTracingEnabled() {
-        return Boolean.parseBoolean(getParameter(ConditionInstruction.ENABLE_TRACING));
+        return Boolean.parseBoolean(getParameter(ConditionConstants.ENABLE_TRACING_KEY));
     }
 
     public LocalDateTime getStartTime() throws NjamsInstructionException {
-        return parseDateTime(getParameter(ConditionInstruction.START_TIME));
+        return parseDateTime(getParameter(ConditionConstants.START_TIME_KEY));
     }
 
     public Integer getIterations() throws NjamsInstructionException {
-        return parseInteger(getParameter(ConditionInstruction.ITERATIONS));
+        return parseInteger(getParameter(ConditionConstants.ITERATIONS_KEY));
     }
 
     public Boolean getDeepTrace() {
-        return Boolean.parseBoolean(getParameter(ConditionInstruction.DEEP_TRACE));
+        return Boolean.parseBoolean(getParameter(ConditionConstants.DEEP_TRACE_KEY));
     }
 
     public List<String> collectAllMissingParameters(String[] parametersToSearchFor) {

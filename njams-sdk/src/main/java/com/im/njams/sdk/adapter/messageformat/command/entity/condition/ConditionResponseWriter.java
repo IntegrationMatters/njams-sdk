@@ -42,7 +42,7 @@ public class ConditionResponseWriter extends DefaultResponseWriter<ConditionResp
     }
 
     public ConditionResponseWriter setExtract(Extract extract) throws NjamsInstructionException {
-        return putParameter(ConditionInstruction.EXTRACT, serialize(extract));
+        return putParameter(ConditionConstants.EXTRACT_KEY, serialize(extract));
     }
 
     private String serialize(Object object) throws NjamsInstructionException {
@@ -54,30 +54,30 @@ public class ConditionResponseWriter extends DefaultResponseWriter<ConditionResp
     }
 
     public ConditionResponseWriter setLogMode(LogMode logMode) {
-        return putParameter(ConditionInstruction.LOG_MODE, logMode != null ? String.valueOf(logMode) : null);
+        return putParameter(ConditionConstants.LOG_MODE_KEY, logMode != null ? String.valueOf(logMode) : null);
     }
 
     public ConditionResponseWriter setLogLevel(LogLevel logLevel) {
-        return putParameter(ConditionInstruction.LOG_LEVEL, logLevel != null ? logLevel.name() : null);
+        return putParameter(ConditionConstants.LOG_LEVEL_KEY, logLevel != null ? logLevel.name() : null);
     }
 
     public ConditionResponseWriter setExcluded(boolean isExcluded) {
-        return putParameter(ConditionInstruction.EXCLUDE, String.valueOf(isExcluded));
+        return putParameter(ConditionConstants.EXCLUDE_KEY, String.valueOf(isExcluded));
     }
 
     public ConditionResponseWriter setStartTime(LocalDateTime startTime) {
-        return putParameter(ConditionInstruction.START_TIME, DateTimeUtility.toString(startTime));
+        return putParameter(ConditionConstants.START_TIME_KEY, DateTimeUtility.toString(startTime));
     }
 
     public ConditionResponseWriter setEndTime(LocalDateTime endTime) {
-        return putParameter(ConditionInstruction.END_TIME, DateTimeUtility.toString(endTime));
+        return putParameter(ConditionConstants.END_TIME_KEY, DateTimeUtility.toString(endTime));
     }
 
     public ConditionResponseWriter setIterations(int iterations) {
-        return putParameter(ConditionInstruction.ITERATIONS, String.valueOf(iterations));
+        return putParameter(ConditionConstants.ITERATIONS_KEY, String.valueOf(iterations));
     }
 
     public ConditionResponseWriter setDeepTrace(Boolean deepTrace) {
-        return putParameter(ConditionInstruction.DEEP_TRACE, String.valueOf(deepTrace));
+        return putParameter(ConditionConstants.DEEP_TRACE_KEY, String.valueOf(deepTrace));
     }
 }

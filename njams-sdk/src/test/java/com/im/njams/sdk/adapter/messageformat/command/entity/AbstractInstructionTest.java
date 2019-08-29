@@ -3,15 +3,18 @@ package com.im.njams.sdk.adapter.messageformat.command.entity;
 import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
 import com.faizsiegeln.njams.messageformat.v4.command.Request;
 import com.faizsiegeln.njams.messageformat.v4.command.Response;
+import com.im.njams.sdk.api.adapter.messageformat.command.ResultCode;
 import org.junit.Before;
 import org.junit.Test;
 
-
-import static com.im.njams.sdk.adapter.messageformat.command.entity.AbstractInstruction.DEFAULT_SUCCESS_MESSAGE;
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
 
 public class AbstractInstructionTest {
+
+    private static final ResultCode DEFAULT_SUCCESS_CODE = ResultCode.SUCCESS;
+
+    private static final String DEFAULT_SUCCESS_MESSAGE = "Success";
 
     private Instruction instructionMock;
 
@@ -107,7 +110,7 @@ public class AbstractInstructionTest {
         getResponseWriter(false, null);
         Response response = normalInstruction.getResponse();
         assertNotNull(response);
-        assertEquals(response.getResultCode(), 0);
+        assertEquals(response.getResultCode(), DEFAULT_SUCCESS_CODE.getResultCode());
         assertEquals(response.getResultMessage(), DEFAULT_SUCCESS_MESSAGE);
     }
 
