@@ -34,12 +34,24 @@ public class DefaultInstructionTest {
 
     private Instruction instructionMock;
 
+    private Request requestMock;
+
+    private Response responseMock;
+
     private DefaultInstruction defaultInstruction;
 
     @Before
     public void initialize() {
         instructionMock = mock(Instruction.class);
+        requestMock = mock(Request.class);
+        responseMock = mock(Response.class);
+        fillRequestAndResponse(requestMock, responseMock);
         defaultInstruction = spy(new DefaultInstruction(instructionMock));
+    }
+
+    private void fillRequestAndResponse(Request request, Response response) {
+        when(instructionMock.getRequest()).thenReturn(request);
+        when(instructionMock.getResponse()).thenReturn(response);
     }
 
 //CreateRequestReader tests
