@@ -20,53 +20,59 @@
 
 package com.im.njams.sdk.adapter.messageformat.command.entity.replay;
 
-import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
-import com.faizsiegeln.njams.messageformat.v4.command.Request;
 import com.faizsiegeln.njams.messageformat.v4.command.Response;
 import org.junit.Before;
 import org.junit.Test;
 
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
-import static org.mockito.Mockito.mock;
 
-public class ReplayInstructionTest {
+public class ReplayResponseWriterTest {
 
-    private Instruction instructionMock;
+    private static final String EXCEPTION_KEY = "Exception";
+    private static final String EXCEPTION_VALUE = "Ex";
+    private static final String MAIN_LOG_ID_KEY = "MainLogId";
+    private static final String MAIN_LOG_ID_VALUE = "mainLogId";
 
-    private ReplayInstruction replayInstruction;
+    private Response responseMock;
+
+    private ReplayResponseWriter replayResponseWriter;
 
     @Before
     public void initialize() {
-        instructionMock = mock(Instruction.class);
-        replayInstruction = spy(new ReplayInstruction(instructionMock));
-    }
-//CreateRequestReader tests
-
-    @Test
-    public void createReplayRequestReader() {
-        ReplayRequestReader requestReaderInstance = replayInstruction.createRequestReaderInstance(mock(Request.class));
-        assertTrue(requestReaderInstance instanceof ReplayRequestReader);
+        responseMock = mock(Response.class);
+        replayResponseWriter = spy(new ReplayResponseWriter(responseMock));
     }
 
-    @Test
-    public void createRequestReaderInstanceWithNullRequest() {
-        ReplayRequestReader requestReaderInstance = replayInstruction.createRequestReaderInstance(null);
-        assertTrue(requestReaderInstance instanceof ReplayRequestReader);
-    }
-
-//CreateResponseWriter tests
+//SetException tests
 
     @Test
-    public void createReplayResponseWriter() {
-        ReplayResponseWriter responseWriterInstance = replayInstruction
-                .createResponseWriterInstance(mock(Response.class));
-        assertTrue(responseWriterInstance instanceof ReplayResponseWriter);
+    public void setExceptionCallsSuperMethods() {
+        replayResponseWriter.setException(EXCEPTION_VALUE);
+
+        verify(replayResponseWriter).putParameter(EXCEPTION_KEY, EXCEPTION_VALUE);
     }
 
     @Test
-    public void createResponseWriterInstanceWithNullResponse() {
-        ReplayResponseWriter responseWriterInstance = replayInstruction.createResponseWriterInstance(null);
-        assertTrue(responseWriterInstance instanceof ReplayResponseWriter);
+    public void setExceptionReturnsThis() {
+        ReplayResponseWriter returnedReplayResponseWriter = replayResponseWriter.setException(EXCEPTION_VALUE);
+
+        assertEquals(replayResponseWriter, returnedReplayResponseWriter);
+    }
+
+//SetMainLogId tests
+
+    @Test
+    public void setMainLogIdCallsSuperMethods() {
+        replayResponseWriter.setMainLogId(MAIN_LOG_ID_VALUE);
+
+        verify(replayResponseWriter).putParameter(MAIN_LOG_ID_KEY, MAIN_LOG_ID_VALUE);
+    }
+
+    @Test
+    public void setMainLogIdReturnsThis() {
+        ReplayResponseWriter returnedReplayResponseWriter = replayResponseWriter.setMainLogId(MAIN_LOG_ID_VALUE);
+
+        assertEquals(replayResponseWriter, returnedReplayResponseWriter);
     }
 }

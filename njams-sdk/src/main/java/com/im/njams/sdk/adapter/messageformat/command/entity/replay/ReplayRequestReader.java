@@ -23,6 +23,12 @@ package com.im.njams.sdk.adapter.messageformat.command.entity.replay;
 import com.faizsiegeln.njams.messageformat.v4.command.Request;
 import com.im.njams.sdk.adapter.messageformat.command.entity.defaults.DefaultRequestReader;
 
+/**
+ * This class provides methods to read the incoming instruction's request.
+ *
+ * @author krautenberg
+ * @version 4.1.0
+ */
 public class ReplayRequestReader extends DefaultRequestReader {
 
     private static final String PROCESS = "Process";
@@ -31,27 +37,57 @@ public class ReplayRequestReader extends DefaultRequestReader {
     private static final String DEEPTRACE = "Deeptrace";
     private static final String TEST = "Test";
 
+    /**
+     * Sets the underlying request
+     *
+     * @param requestToRead the request to set
+     */
     protected ReplayRequestReader(Request requestToRead) {
         super(requestToRead);
     }
 
+    /**
+     * Returns the parameter value to the key {@value #PROCESS}.
+     *
+     * @return the value of the parameter {@value #PROCESS} or null if not found.
+     */
     public String getProcess() {
         return getParameter(PROCESS);
     }
 
+    /**
+     * Returns the parameter value to the key {@value #START_ACTIVITY}.
+     *
+     * @return the value of the parameter {@value #START_ACTIVITY} or null if not found.
+     */
     public String getStartActivity() {
         return getParameter(START_ACTIVITY);
     }
 
+    /**
+     * Returns the parameter value to the key {@value #PAYLOAD}.
+     *
+     * @return the value of the parameter {@value #PAYLOAD} or null if not found.
+     */
     public String getPayload() {
         return getParameter(PAYLOAD);
     }
 
+    /**
+     * Returns the parameter value to the key {@value #DEEPTRACE}.
+     *
+     * @return true, if the boolean parameter value of {@value #DEEPTRACE} is true, else false.
+     */
     public boolean isDeepTrace() {
         return Boolean.valueOf(getParameter(DEEPTRACE));
     }
 
-    public boolean getTest() {
+    /**
+     * Returns the parameter value to the key {@value #TEST}.
+     *
+     * @return true, if the boolean parameter value of {@value #TEST} is true, else false.
+     */
+    public boolean isTest() {
         return Boolean.valueOf(getParameter(TEST));
     }
 }

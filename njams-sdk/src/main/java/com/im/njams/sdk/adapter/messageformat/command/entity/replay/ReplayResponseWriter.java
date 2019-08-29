@@ -23,23 +23,44 @@ package com.im.njams.sdk.adapter.messageformat.command.entity.replay;
 import com.faizsiegeln.njams.messageformat.v4.command.Response;
 import com.im.njams.sdk.adapter.messageformat.command.entity.defaults.DefaultResponseWriter;
 
+/**
+ * This class provides methods to write the outgoing instruction's response.
+ *
+ * @author krautenberg
+ * @version 4.1.0
+ */
 public class ReplayResponseWriter extends DefaultResponseWriter<ReplayResponseWriter> {
 
     private static final String EXCEPTION = "Exception";
 
     private static final String MAIN_LOG_ID = "MainLogId";
 
-    protected ReplayResponseWriter(Response response) {
-        super(response);
+    /**
+     * Sets the underlying response
+     *
+     * @param responseToWrite the response to set
+     */
+    protected ReplayResponseWriter(Response responseToWrite) {
+        super(responseToWrite);
     }
 
+    /**
+     * Sets the parameter value for the key {@value #EXCEPTION} with the given string to the {@link Response response}.
+     *
+     * @param exception the exception to set
+     * @return itself via {@link #getThis() getThis()} for chaining ReplayResponseWriter methods
+     */
     public ReplayResponseWriter setException(String exception) {
-        putParameter(EXCEPTION, exception);
-        return this;
+        return putParameter(EXCEPTION, exception);
     }
 
+    /**
+     * Sets the parameter value for the key {@value #MAIN_LOG_ID} with the given string to the {@link Response response}.
+     *
+     * @param mainLogId the mainLogId to set
+     * @return itself via {@link #getThis() getThis()} for chaining ReplayResponseWriter methods
+     */
     public ReplayResponseWriter setMainLogId(String mainLogId) {
-        putParameter(MAIN_LOG_ID, mainLogId);
-        return this;
+        return putParameter(MAIN_LOG_ID, mainLogId);
     }
 }
