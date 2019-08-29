@@ -21,7 +21,7 @@ package com.im.njams.sdk.communication.instruction.control.processors;
 
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.Extract;
 import com.im.njams.sdk.Njams;
-import com.im.njams.sdk.adapter.messageformat.command.entity.ConditionInstruction;
+import com.im.njams.sdk.adapter.messageformat.command.entity.condition.ConditionInstruction;
 import com.im.njams.sdk.api.adapter.messageformat.command.NjamsInstructionException;
 import com.im.njams.sdk.communication.instruction.control.templates.condition.ConditionReaderTemplate;
 import org.slf4j.Logger;

@@ -2,9 +2,9 @@ package com.im.njams.sdk.adapter.messageformat.command.control;
 
 import com.faizsiegeln.njams.messageformat.v4.command.Command;
 import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
-import com.im.njams.sdk.adapter.messageformat.command.entity.ConditionInstruction;
-import com.im.njams.sdk.adapter.messageformat.command.entity.DefaultInstruction;
-import com.im.njams.sdk.adapter.messageformat.command.entity.ReplayInstruction;
+import com.im.njams.sdk.adapter.messageformat.command.entity.condition.ConditionInstruction;
+import com.im.njams.sdk.adapter.messageformat.command.entity.defaults.DefaultInstruction;
+import com.im.njams.sdk.adapter.messageformat.command.entity.replay.ReplayInstruction;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Test;

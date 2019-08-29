@@ -19,7 +19,9 @@
  */
 package com.im.njams.sdk.communication.instruction.control.processors;
 
-import com.im.njams.sdk.adapter.messageformat.command.entity.DefaultInstruction;
+import com.im.njams.sdk.adapter.messageformat.command.entity.defaults.DefaultInstruction;
+import com.im.njams.sdk.adapter.messageformat.command.entity.defaults.DefaultRequestReader;
+import com.im.njams.sdk.adapter.messageformat.command.entity.defaults.DefaultResponseWriter;
 import com.im.njams.sdk.api.adapter.messageformat.command.ResultCode;
 import org.junit.Before;
 import org.junit.Test;
@@ -40,16 +42,16 @@ public class FallbackProcessorTest {
 
     private DefaultInstruction defaultInstructionMock;
 
-    private DefaultInstruction.DefaultRequestReader defaultRequestReaderMock;
+    private DefaultRequestReader defaultRequestReaderMock;
 
-    private DefaultInstruction.DefaultResponseWriter defaultResponseWriterMock;
+    private DefaultResponseWriter defaultResponseWriterMock;
 
     @Before
     public void initialize() {
         fallbackProcessor = spy(new FallbackProcessor());
         defaultInstructionMock = mock(DefaultInstruction.class);
-        defaultRequestReaderMock = mock(DefaultInstruction.DefaultRequestReader.class);
-        defaultResponseWriterMock = mock(DefaultInstruction.DefaultResponseWriter.class);
+        defaultRequestReaderMock = mock(DefaultRequestReader.class);
+        defaultResponseWriterMock = mock(DefaultResponseWriter.class);
 
         doReturn(defaultInstructionMock).when(fallbackProcessor).getInstruction();
         doReturn(defaultRequestReaderMock).when(fallbackProcessor).getDefaultRequestReader();
@@ -60,7 +62,7 @@ public class FallbackProcessorTest {
 
     @Test
     public void afterInit() {
-        assertEquals(DefaultInstruction.DefaultRequestReader.EMPTY_STRING, fallbackProcessor.warningMessage);
+        assertEquals(DefaultRequestReader.EMPTY_STRING, fallbackProcessor.warningMessage);
     }
 
 //ProcessDefaultInstruction tests

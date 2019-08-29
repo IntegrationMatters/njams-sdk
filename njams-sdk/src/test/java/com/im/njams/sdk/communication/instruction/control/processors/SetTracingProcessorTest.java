@@ -20,7 +20,7 @@
 package com.im.njams.sdk.communication.instruction.control.processors;
 
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.Tracepoint;
-import com.im.njams.sdk.adapter.messageformat.command.entity.ConditionInstruction;
+import com.im.njams.sdk.adapter.messageformat.command.entity.condition.ConditionInstruction;
 import com.im.njams.sdk.api.adapter.messageformat.command.NjamsInstructionException;
 import com.im.njams.sdk.common.DateTimeUtility;
 import com.im.njams.sdk.configuration.entity.ActivityConfiguration;
@@ -31,7 +31,7 @@ import org.junit.Test;
 import java.time.LocalDateTime;
 
 import static com.faizsiegeln.njams.messageformat.v4.command.Command.SET_TRACING;
-import static com.im.njams.sdk.adapter.messageformat.command.entity.DefaultInstruction.UNABLE_TO_DESERIALZE_OBJECT;
+import static com.im.njams.sdk.adapter.messageformat.command.entity.defaults.DefaultInstruction.UNABLE_TO_DESERIALZE_OBJECT;
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
 

@@ -21,7 +21,9 @@
 package com.im.njams.sdk.communication.instruction.control.templates.condition;
 
 import com.im.njams.sdk.Njams;
-import com.im.njams.sdk.adapter.messageformat.command.entity.ConditionInstruction;
+import com.im.njams.sdk.adapter.messageformat.command.entity.condition.ConditionInstruction;
+import com.im.njams.sdk.adapter.messageformat.command.entity.condition.ConditionRequestReader;
+import com.im.njams.sdk.adapter.messageformat.command.entity.condition.ConditionResponseWriter;
 import com.im.njams.sdk.api.adapter.messageformat.command.NjamsInstructionException;
 import com.im.njams.sdk.api.adapter.messageformat.command.ResultCode;
 import com.im.njams.sdk.communication.instruction.control.templates.InstructionProcessorTemplate;
@@ -31,7 +33,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.List;
 
-import static com.im.njams.sdk.adapter.messageformat.command.entity.DefaultInstruction.DefaultRequestReader.EMPTY_STRING;
+import static com.im.njams.sdk.adapter.messageformat.command.entity.defaults.DefaultRequestReader.EMPTY_STRING;
 
 public abstract class ConditionReaderTemplate extends InstructionProcessorTemplate<ConditionInstruction> {
 
@@ -41,9 +43,9 @@ public abstract class ConditionReaderTemplate extends InstructionProcessorTempla
 
     protected final ConditionProxy conditionFacade;
 
-    protected ConditionInstruction.ConditionRequestReader requestReader;
+    protected ConditionRequestReader requestReader;
 
-    protected ConditionInstruction.ConditionResponseWriter responseWriter;
+    protected ConditionResponseWriter responseWriter;
 
     public ConditionReaderTemplate(Njams njams) {
         this.conditionFacade = new ConditionProxy(njams);

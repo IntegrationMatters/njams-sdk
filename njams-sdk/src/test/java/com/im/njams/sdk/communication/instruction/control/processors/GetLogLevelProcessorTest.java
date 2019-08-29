@@ -24,7 +24,7 @@ import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
 import com.faizsiegeln.njams.messageformat.v4.command.Response;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.LogLevel;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.LogMode;
-import com.im.njams.sdk.adapter.messageformat.command.entity.ConditionInstruction;
+import com.im.njams.sdk.adapter.messageformat.command.entity.condition.ConditionInstruction;
 import com.im.njams.sdk.api.adapter.messageformat.command.NjamsInstructionException;
 import com.im.njams.sdk.configuration.entity.ProcessConfiguration;
 import org.junit.Before;

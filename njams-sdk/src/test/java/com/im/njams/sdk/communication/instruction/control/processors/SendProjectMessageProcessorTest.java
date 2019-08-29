@@ -20,9 +20,8 @@
 package com.im.njams.sdk.communication.instruction.control.processors;
 
 import com.im.njams.sdk.Njams;
-import com.im.njams.sdk.adapter.messageformat.command.entity.DefaultInstruction;
+import com.im.njams.sdk.adapter.messageformat.command.entity.defaults.DefaultResponseWriter;
 import com.im.njams.sdk.api.adapter.messageformat.command.ResultCode;
-import com.im.njams.sdk.communication.instruction.control.processors.SendProjectMessageProcessor;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -52,7 +51,7 @@ public class SendProjectMessageProcessorTest {
 
     @Test
     public void testSetInstructionResponse() {
-        DefaultInstruction.DefaultResponseWriter defaultResponseWriterMock = mock(DefaultInstruction.DefaultResponseWriter.class);
+        DefaultResponseWriter defaultResponseWriterMock = mock(DefaultResponseWriter.class);
         doReturn(defaultResponseWriterMock).when(sendProjectMessageProcessor).getDefaultResponseWriter();
 
         sendProjectMessageProcessor.setInstructionResponse();

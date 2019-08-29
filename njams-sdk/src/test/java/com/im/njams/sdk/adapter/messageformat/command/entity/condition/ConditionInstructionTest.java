@@ -1,4 +1,16 @@
-package com.im.njams.sdk.adapter.messageformat.command.entity;
+/*
+ * Copyright (c) 2019 Faiz & Siegeln Software GmbH
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+ *
+ * The Software shall be used for Good, not Evil.
+ *
+ *  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ */
+
+package com.im.njams.sdk.adapter.messageformat.command.entity.condition;
 
 import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
 import com.faizsiegeln.njams.messageformat.v4.command.Request;
@@ -110,32 +122,32 @@ public class ConditionInstructionTest {
 
     @Test
     public void createConditionRequestReader() {
-        ConditionInstruction.ConditionRequestReader requestReaderInstance = conditionInstruction
+        ConditionRequestReader requestReaderInstance = conditionInstruction
                 .createRequestReaderInstance(mock(Request.class));
-        assertTrue(requestReaderInstance instanceof ConditionInstruction.ConditionRequestReader);
+        assertTrue(requestReaderInstance instanceof ConditionRequestReader);
     }
 
     @Test
     public void createRequestReaderInstanceWithNullRequest() {
-        ConditionInstruction.ConditionRequestReader requestReaderInstance = conditionInstruction
+        ConditionRequestReader requestReaderInstance = conditionInstruction
                 .createRequestReaderInstance(null);
-        assertTrue(requestReaderInstance instanceof ConditionInstruction.ConditionRequestReader);
+        assertTrue(requestReaderInstance instanceof ConditionRequestReader);
     }
 
 //CreateResponseWriter tests
 
     @Test
     public void createConditionResponseWriter() {
-        ConditionInstruction.ConditionResponseWriter responseWriterInstance = conditionInstruction
+        ConditionResponseWriter responseWriterInstance = conditionInstruction
                 .createResponseWriterInstance(mock(Response.class));
-        assertTrue(responseWriterInstance instanceof ConditionInstruction.ConditionResponseWriter);
+        assertTrue(responseWriterInstance instanceof ConditionResponseWriter);
     }
 
     @Test
     public void createResponseWriterInstanceWithNullResponse() {
-        ConditionInstruction.ConditionResponseWriter responseWriterInstance = conditionInstruction
+        ConditionResponseWriter responseWriterInstance = conditionInstruction
                 .createResponseWriterInstance(null);
-        assertTrue(responseWriterInstance instanceof ConditionInstruction.ConditionResponseWriter);
+        assertTrue(responseWriterInstance instanceof ConditionResponseWriter);
     }
 
 //ReplayRequestReader tests
@@ -143,7 +155,7 @@ public class ConditionInstructionTest {
     @Test
     public void getProcess() {
         fillParameters();
-        ConditionInstruction.ConditionRequestReader requestReader = conditionInstruction.getRequestReader();
+        ConditionRequestReader requestReader = conditionInstruction.getRequestReader();
         assertEquals(PROCESS_PATH_VALUE, requestReader.getProcessPath());
     }
 
@@ -168,14 +180,14 @@ public class ConditionInstructionTest {
     @Test
     public void getActivity() {
         fillParameters();
-        ConditionInstruction.ConditionRequestReader requestReader = conditionInstruction.getRequestReader();
+        ConditionRequestReader requestReader = conditionInstruction.getRequestReader();
         assertEquals(ACTIVITY_ID_VALUE, requestReader.getActivityId());
     }
 
     @Test
     public void getExtract() throws NjamsInstructionException {
         fillParameters();
-        ConditionInstruction.ConditionRequestReader requestReader = conditionInstruction.getRequestReader();
+        ConditionRequestReader requestReader = conditionInstruction.getRequestReader();
         assertEquals(EXTRACT_VALUE, serialize(requestReader.getExtract()));
     }
 
@@ -184,49 +196,49 @@ public class ConditionInstructionTest {
         Map<String, String> params = new HashMap<>();
         when(requestMock.getParameters()).thenReturn(params);
         params.put(EXTRACT_KEY, "null");
-        ConditionInstruction.ConditionRequestReader requestReader = conditionInstruction.getRequestReader();
+        ConditionRequestReader requestReader = conditionInstruction.getRequestReader();
         assertEquals("null", serialize(requestReader.getExtract()));
     }
 
     @Test
     public void getEngineWideRecording() {
         fillParameters();
-        ConditionInstruction.ConditionRequestReader requestReader = conditionInstruction.getRequestReader();
+        ConditionRequestReader requestReader = conditionInstruction.getRequestReader();
         assertEquals(ENGINE_WIDE_RECORDING_VALUE, requestReader.getEngineWideRecording());
     }
 
     @Test
     public void getProcessRecording() {
         fillParameters();
-        ConditionInstruction.ConditionRequestReader requestReader = conditionInstruction.getRequestReader();
+        ConditionRequestReader requestReader = conditionInstruction.getRequestReader();
         assertEquals(PROCESS_RECORDING_VALUE, requestReader.getProcessRecording());
     }
 
     @Test
     public void getLogLevel() throws NjamsInstructionException {
         fillParameters();
-        ConditionInstruction.ConditionRequestReader requestReader = conditionInstruction.getRequestReader();
+        ConditionRequestReader requestReader = conditionInstruction.getRequestReader();
         assertEquals(LogLevel.valueOf(LOG_LEVEL_VALUE), requestReader.getLogLevel());
     }
 
     @Test
     public void getLogMode() throws NjamsInstructionException {
         fillParameters();
-        ConditionInstruction.ConditionRequestReader requestReader = conditionInstruction.getRequestReader();
+        ConditionRequestReader requestReader = conditionInstruction.getRequestReader();
         assertEquals(LogMode.valueOf(LOG_MODE_VALUE), requestReader.getLogMode());
     }
 
     @Test
     public void getExcluded() {
         fillParameters();
-        ConditionInstruction.ConditionRequestReader requestReader = conditionInstruction.getRequestReader();
+        ConditionRequestReader requestReader = conditionInstruction.getRequestReader();
         assertEquals(Boolean.parseBoolean(EXCLUDE_VALUE), requestReader.getExcluded());
     }
 
     @Test
     public void getEndTime() throws NjamsInstructionException {
         fillParameters();
-        ConditionInstruction.ConditionRequestReader requestReader = conditionInstruction.getRequestReader();
+        ConditionRequestReader requestReader = conditionInstruction.getRequestReader();
         assertEquals(LocalDateTime.parse(END_TIME_VALUE, DateTimeFormatter.ISO_LOCAL_DATE_TIME),
                 requestReader.getEndTime());
     }
@@ -234,14 +246,14 @@ public class ConditionInstructionTest {
     @Test
     public void getTracingEnabled() {
         fillParameters();
-        ConditionInstruction.ConditionRequestReader requestReader = conditionInstruction.getRequestReader();
+        ConditionRequestReader requestReader = conditionInstruction.getRequestReader();
         assertEquals(Boolean.parseBoolean(ENABLE_TRACING_VALUE), requestReader.getTracingEnabled());
     }
 
     @Test
     public void getStartTime() throws NjamsInstructionException {
         fillParameters();
-        ConditionInstruction.ConditionRequestReader requestReader = conditionInstruction.getRequestReader();
+        ConditionRequestReader requestReader = conditionInstruction.getRequestReader();
         assertEquals(LocalDateTime.parse(START_TIME_VALUE, DateTimeFormatter.ISO_LOCAL_DATE_TIME),
                 requestReader.getStartTime());
     }
@@ -249,21 +261,21 @@ public class ConditionInstructionTest {
     @Test
     public void getIterations() throws NjamsInstructionException {
         fillParameters();
-        ConditionInstruction.ConditionRequestReader requestReader = conditionInstruction.getRequestReader();
+        ConditionRequestReader requestReader = conditionInstruction.getRequestReader();
         assertEquals(new Integer(ITERATIONS_VALUE), requestReader.getIterations());
     }
 
     @Test
     public void getDeepTrace() {
         fillParameters();
-        ConditionInstruction.ConditionRequestReader requestReader = conditionInstruction.getRequestReader();
+        ConditionRequestReader requestReader = conditionInstruction.getRequestReader();
         assertEquals(Boolean.parseBoolean(DEEP_TRACE_VALUE), requestReader.getDeepTrace());
     }
 
     @Test
     public void collectAllMissingParameters() {
         fillParameters();
-        ConditionInstruction.ConditionRequestReader requestReader = conditionInstruction.getRequestReader();
+        ConditionRequestReader requestReader = conditionInstruction.getRequestReader();
 
         final String doesntExist = "bla";
         String[] parametersToCheck = new String[]{PROCESS_PATH_KEY, ACTIVITY_ID_KEY, doesntExist};
@@ -276,7 +288,7 @@ public class ConditionInstructionTest {
 
     @Test
     public void collectAllMissingParametersWithoutFillingParameters() {
-        ConditionInstruction.ConditionRequestReader requestReader = conditionInstruction.getRequestReader();
+        ConditionRequestReader requestReader = conditionInstruction.getRequestReader();
 
         final String doesntExist = "bla";
         String[] parametersToCheck = new String[]{PROCESS_PATH_KEY, ACTIVITY_ID_KEY, doesntExist};
@@ -289,7 +301,7 @@ public class ConditionInstructionTest {
 
     @Test
     public void collectAllMissingParametersWithEmptyStringArray() {
-        ConditionInstruction.ConditionRequestReader requestReader = conditionInstruction.getRequestReader();
+        ConditionRequestReader requestReader = conditionInstruction.getRequestReader();
 
         List<String> missingParameters = requestReader.collectAllMissingParameters(new String[0]);
 
@@ -298,7 +310,7 @@ public class ConditionInstructionTest {
 
     @Test
     public void collectAllMissingParametersWithNullStringArray() {
-        ConditionInstruction.ConditionRequestReader requestReader = conditionInstruction.getRequestReader();
+        ConditionRequestReader requestReader = conditionInstruction.getRequestReader();
 
         List<String> missingParameters = requestReader.collectAllMissingParameters(null);
 
@@ -309,7 +321,7 @@ public class ConditionInstructionTest {
 
     @Test
     public void setExtract() throws NjamsInstructionException {
-        ConditionInstruction.ConditionResponseWriter responseWriter = conditionInstruction.getResponseWriter();
+        ConditionResponseWriter responseWriter = conditionInstruction.getResponseWriter();
         Map<String, String> mockedMap = setMockedMap();
         responseWriter.setExtract(EXTRACT);
         verify(mockedMap).put(EXTRACT_KEY, EXTRACT_VALUE);
@@ -317,7 +329,7 @@ public class ConditionInstructionTest {
 
     @Test
     public void setNullExtract() throws NjamsInstructionException {
-        ConditionInstruction.ConditionResponseWriter responseWriter = conditionInstruction.getResponseWriter();
+        ConditionResponseWriter responseWriter = conditionInstruction.getResponseWriter();
         Map<String, String> mockedMap = setMockedMap();
         responseWriter.setExtract(null);
         verify(mockedMap).put(EXTRACT_KEY, "null");
@@ -331,7 +343,7 @@ public class ConditionInstructionTest {
 
     @Test
     public void setLogMode() {
-        ConditionInstruction.ConditionResponseWriter responseWriter = conditionInstruction.getResponseWriter();
+        ConditionResponseWriter responseWriter = conditionInstruction.getResponseWriter();
         Map<String, String> mockedMap = setMockedMap();
         responseWriter.setLogMode(LOG_MODE);
         verify(mockedMap).put(LOG_MODE_KEY, LOG_MODE_VALUE);
@@ -339,7 +351,7 @@ public class ConditionInstructionTest {
 
     @Test
     public void setNullLogMode() {
-        ConditionInstruction.ConditionResponseWriter responseWriter = conditionInstruction.getResponseWriter();
+        ConditionResponseWriter responseWriter = conditionInstruction.getResponseWriter();
         Map<String, String> mockedMap = setMockedMap();
         responseWriter.setLogMode(null);
         verify(mockedMap).put(LOG_MODE_KEY, null);
@@ -347,7 +359,7 @@ public class ConditionInstructionTest {
 
     @Test
     public void setLogLevel() {
-        ConditionInstruction.ConditionResponseWriter responseWriter = conditionInstruction.getResponseWriter();
+        ConditionResponseWriter responseWriter = conditionInstruction.getResponseWriter();
         Map<String, String> mockedMap = setMockedMap();
         responseWriter.setLogLevel(LOG_LEVEL);
         verify(mockedMap).put(LOG_LEVEL_KEY, LOG_LEVEL_VALUE);
@@ -355,7 +367,7 @@ public class ConditionInstructionTest {
 
     @Test
     public void setNullLogLevel() {
-        ConditionInstruction.ConditionResponseWriter responseWriter = conditionInstruction.getResponseWriter();
+        ConditionResponseWriter responseWriter = conditionInstruction.getResponseWriter();
         Map<String, String> mockedMap = setMockedMap();
         responseWriter.setLogLevel(null);
         verify(mockedMap).put(LOG_LEVEL_KEY, null);
@@ -363,7 +375,7 @@ public class ConditionInstructionTest {
 
     @Test
     public void setExcluded() {
-        ConditionInstruction.ConditionResponseWriter responseWriter = conditionInstruction.getResponseWriter();
+        ConditionResponseWriter responseWriter = conditionInstruction.getResponseWriter();
         Map<String, String> mockedMap = setMockedMap();
         responseWriter.setExcluded(EXCLUDE);
         verify(mockedMap).put(EXCLUDE_KEY, EXCLUDE_VALUE);
@@ -371,7 +383,7 @@ public class ConditionInstructionTest {
 
     @Test
     public void setStartTime() {
-        ConditionInstruction.ConditionResponseWriter responseWriter = conditionInstruction.getResponseWriter();
+        ConditionResponseWriter responseWriter = conditionInstruction.getResponseWriter();
         Map<String, String> mockedMap = setMockedMap();
         responseWriter.setStartTime(START_TIME);
         verify(mockedMap).put(START_TIME_KEY, START_TIME_VALUE);
@@ -379,7 +391,7 @@ public class ConditionInstructionTest {
 
     @Test
     public void setNullStartTime() {
-        ConditionInstruction.ConditionResponseWriter responseWriter = conditionInstruction.getResponseWriter();
+        ConditionResponseWriter responseWriter = conditionInstruction.getResponseWriter();
         Map<String, String> mockedMap = setMockedMap();
         responseWriter.setStartTime(null);
         verify(mockedMap).put(START_TIME_KEY, null);
@@ -387,7 +399,7 @@ public class ConditionInstructionTest {
 
     @Test
     public void setEndTime() {
-        ConditionInstruction.ConditionResponseWriter responseWriter = conditionInstruction.getResponseWriter();
+        ConditionResponseWriter responseWriter = conditionInstruction.getResponseWriter();
         Map<String, String> mockedMap = setMockedMap();
         responseWriter.setEndTime(END_TIME);
         verify(mockedMap).put(END_TIME_KEY, END_TIME_VALUE);
@@ -395,7 +407,7 @@ public class ConditionInstructionTest {
 
     @Test
     public void setNullEndTime() {
-        ConditionInstruction.ConditionResponseWriter responseWriter = conditionInstruction.getResponseWriter();
+        ConditionResponseWriter responseWriter = conditionInstruction.getResponseWriter();
         Map<String, String> mockedMap = setMockedMap();
         responseWriter.setEndTime(null);
         verify(mockedMap).put(END_TIME_KEY, null);
@@ -403,7 +415,7 @@ public class ConditionInstructionTest {
 
     @Test
     public void setIterations() {
-        ConditionInstruction.ConditionResponseWriter responseWriter = conditionInstruction.getResponseWriter();
+        ConditionResponseWriter responseWriter = conditionInstruction.getResponseWriter();
         Map<String, String> mockedMap = setMockedMap();
         responseWriter.setIterations(ITERATIONS);
         verify(mockedMap).put(ITERATIONS_KEY, ITERATIONS_VALUE);
@@ -411,7 +423,7 @@ public class ConditionInstructionTest {
 
     @Test
     public void setDeepTrace() {
-        ConditionInstruction.ConditionResponseWriter responseWriter = conditionInstruction.getResponseWriter();
+        ConditionResponseWriter responseWriter = conditionInstruction.getResponseWriter();
         Map<String, String> mockedMap = setMockedMap();
         responseWriter.setDeepTrace(DEEP_TRACE);
         verify(mockedMap).put(DEEP_TRACE_KEY, DEEP_TRACE_VALUE);

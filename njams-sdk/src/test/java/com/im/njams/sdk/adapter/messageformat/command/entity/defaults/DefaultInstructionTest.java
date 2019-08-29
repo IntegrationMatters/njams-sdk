@@ -1,4 +1,16 @@
-package com.im.njams.sdk.adapter.messageformat.command.entity;
+/*
+ * Copyright (c) 2019 Faiz & Siegeln Software GmbH
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+ *
+ * The Software shall be used for Good, not Evil.
+ *
+ *  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ */
+
+package com.im.njams.sdk.adapter.messageformat.command.entity.defaults;
 
 import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
 import com.faizsiegeln.njams.messageformat.v4.command.Request;
@@ -43,30 +55,30 @@ public class DefaultInstructionTest {
 
     @Test
     public void createRequestReaderInstanceCreatesDefaultRequestReader() {
-        DefaultInstruction.DefaultRequestReader requestReader = defaultInstruction
+        DefaultRequestReader requestReader = defaultInstruction
                 .createRequestReaderInstance(mock(Request.class));
-        assertTrue(requestReader instanceof DefaultInstruction.DefaultRequestReader);
+        assertTrue(requestReader instanceof DefaultRequestReader);
     }
 
     @Test
     public void createRequestReaderInstanceWithNullRequest() {
-        DefaultInstruction.DefaultRequestReader requestReader = defaultInstruction.createRequestReaderInstance(null);
-        assertTrue(requestReader instanceof DefaultInstruction.DefaultRequestReader);
+        DefaultRequestReader requestReader = defaultInstruction.createRequestReaderInstance(null);
+        assertTrue(requestReader instanceof DefaultRequestReader);
     }
 
 //CreateResponseWriter tests
 
     @Test
     public void createResponseWriterInstanceCreatesDefaultResponseWriter() {
-        DefaultInstruction.DefaultResponseWriter responseWriter = defaultInstruction
+        DefaultResponseWriter responseWriter = defaultInstruction
                 .createResponseWriterInstance(mock(Response.class));
-        assertTrue(responseWriter instanceof DefaultInstruction.DefaultResponseWriter);
+        assertTrue(responseWriter instanceof DefaultResponseWriter);
     }
 
     @Test
     public void createResponseWriterInstanceWithNullResponse() {
-        DefaultInstruction.DefaultResponseWriter responseWriter = defaultInstruction.createResponseWriterInstance(null);
-        assertTrue(responseWriter instanceof DefaultInstruction.DefaultResponseWriter);
+        DefaultResponseWriter responseWriter = defaultInstruction.createResponseWriterInstance(null);
+        assertTrue(responseWriter instanceof DefaultResponseWriter);
     }
 
 //DefaultRequestReader tests
@@ -75,12 +87,12 @@ public class DefaultInstructionTest {
     public void instructionWithNullRequestIsEmpty() {
         fillRequestAndResponse(null, null);
         assertNull(instructionMock.getRequest());
-        DefaultInstruction.DefaultRequestReader requestReader = defaultInstruction.getRequestReader();
+        DefaultRequestReader requestReader = defaultInstruction.getRequestReader();
 
         assertRequestReaderFields(requestReader, true, true, true, EMPTY_STRING);
     }
 
-    private void assertRequestReaderFields(DefaultInstruction.DefaultRequestReader requestReader,
+    private void assertRequestReaderFields(DefaultRequestReader requestReader,
             boolean shouldRequestBeEmpty, boolean shouldCommandBeNull, boolean shouldCommandBeEmpty,
             String commandName) {
         assertEquals(shouldRequestBeEmpty, requestReader.isEmpty());
@@ -91,7 +103,7 @@ public class DefaultInstructionTest {
 
     @Test
     public void instructionWithNullCommand(){
-        DefaultInstruction.DefaultRequestReader requestReader = defaultInstruction.getRequestReader();
+        DefaultRequestReader requestReader = defaultInstruction.getRequestReader();
 
         assertRequestReaderFields(requestReader, false, true, true, EMPTY_STRING);
     }
@@ -99,7 +111,7 @@ public class DefaultInstructionTest {
     @Test
     public void instructionWithEmptyCommand(){
         when(requestMock.getCommand()).thenReturn(EMPTY_STRING);
-        DefaultInstruction.DefaultRequestReader requestReader = defaultInstruction.getRequestReader();
+        DefaultRequestReader requestReader = defaultInstruction.getRequestReader();
 
         assertRequestReaderFields(requestReader, false, false, true, EMPTY_STRING);
     }
@@ -108,14 +120,14 @@ public class DefaultInstructionTest {
     public void instructionWithCommand(){
         String testString = "test";
         when(requestMock.getCommand()).thenReturn(testString);
-        DefaultInstruction.DefaultRequestReader requestReader = defaultInstruction.getRequestReader();
+        DefaultRequestReader requestReader = defaultInstruction.getRequestReader();
 
         assertRequestReaderFields(requestReader, false, false, false, testString);
     }
 
     @Test
     public void instructionWithoutParameters(){
-        DefaultInstruction.DefaultRequestReader requestReader = defaultInstruction.getRequestReader();
+        DefaultRequestReader requestReader = defaultInstruction.getRequestReader();
 
         assertTrue(requestReader.getParameters().isEmpty());
     }
@@ -127,7 +139,7 @@ public class DefaultInstructionTest {
         String value = "value";
         params.put(key, value);
         when(requestMock.getParameters()).thenReturn(params);
-        DefaultInstruction.DefaultRequestReader requestReader = defaultInstruction.getRequestReader();
+        DefaultRequestReader requestReader = defaultInstruction.getRequestReader();
 
         assertFalse(requestReader.getParameters().isEmpty());
         assertEquals(value, requestReader.getParameter(key));
@@ -137,7 +149,7 @@ public class DefaultInstructionTest {
     public void instructionWithoutRequestWillGetAnEmptyParametersMapThatCantBeFilled(){
         fillRequestAndResponse(null, null);
 
-        DefaultInstruction.DefaultRequestReader requestReader = defaultInstruction.getRequestReader();
+        DefaultRequestReader requestReader = defaultInstruction.getRequestReader();
 
         Map<String, String> emptyParameters = requestReader.getParameters();
         assertTrue(emptyParameters.isEmpty());
@@ -154,7 +166,7 @@ public class DefaultInstructionTest {
         String value = "value";
         params.put(key, value);
         when(requestMock.getParameters()).thenReturn(params);
-        DefaultInstruction.DefaultRequestReader requestReader = defaultInstruction.getRequestReader();
+        DefaultRequestReader requestReader = defaultInstruction.getRequestReader();
 
         Map<String, String> unmodifiableParameters = requestReader.getParameters();
         assertEquals(value, requestReader.getParameter(key));
@@ -165,7 +177,7 @@ public class DefaultInstructionTest {
     @Test
     public void checkToStringForRequestReader(){
         fillRequestAndResponse(new Request(), null);
-        DefaultInstruction.DefaultRequestReader requestReader = defaultInstruction.getRequestReader();
+        DefaultRequestReader requestReader = defaultInstruction.getRequestReader();
         String requestAsString = requestReader.toString();
         System.out.println(requestAsString);
     }
@@ -174,7 +186,7 @@ public class DefaultInstructionTest {
 
     @Test
     public void setResultCodeAndResultMessage(){
-        DefaultInstruction.DefaultResponseWriter responseWriter = spy(defaultInstruction.getResponseWriter());
+        DefaultResponseWriter responseWriter = spy(defaultInstruction.getResponseWriter());
         final String resultMessage = "test";
         responseWriter.setResultCodeAndResultMessage(ResultCode.WARNING, resultMessage);
         assertFalse(responseWriter.isEmpty());

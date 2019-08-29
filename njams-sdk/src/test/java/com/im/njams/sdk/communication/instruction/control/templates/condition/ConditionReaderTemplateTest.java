@@ -21,7 +21,9 @@
 package com.im.njams.sdk.communication.instruction.control.templates.condition;
 
 import com.im.njams.sdk.Njams;
-import com.im.njams.sdk.adapter.messageformat.command.entity.ConditionInstruction;
+import com.im.njams.sdk.adapter.messageformat.command.entity.condition.ConditionInstruction;
+import com.im.njams.sdk.adapter.messageformat.command.entity.condition.ConditionRequestReader;
+import com.im.njams.sdk.adapter.messageformat.command.entity.condition.ConditionResponseWriter;
 import com.im.njams.sdk.api.adapter.messageformat.command.NjamsInstructionException;
 import com.im.njams.sdk.api.adapter.messageformat.command.ResultCode;
 import org.junit.Before;
@@ -45,9 +47,9 @@ public class ConditionReaderTemplateTest {
 
     private ConditionInstruction conditionInstructionMock;
 
-    private ConditionInstruction.ConditionRequestReader conditionRequestReaderMock;
+    private ConditionRequestReader conditionRequestReaderMock;
 
-    private ConditionInstruction.ConditionResponseWriter conditionResponseWriterMock;
+    private ConditionResponseWriter conditionResponseWriterMock;
 
     private NjamsInstructionException njamsInstructionExceptionMock;
 
@@ -58,8 +60,8 @@ public class ConditionReaderTemplateTest {
         njamsMock = mock(Njams.class);
         conditionReaderTemplate = spy(new ConditionReaderTemplateImpl(njamsMock));
         conditionInstructionMock = mock(ConditionInstruction.class);
-        conditionRequestReaderMock = mock(ConditionInstruction.ConditionRequestReader.class);
-        conditionResponseWriterMock = mock(ConditionInstruction.ConditionResponseWriter.class);
+        conditionRequestReaderMock = mock(ConditionRequestReader.class);
+        conditionResponseWriterMock = mock(ConditionResponseWriter.class);
         njamsInstructionExceptionMock = mock(NjamsInstructionException.class);
 
         doReturn(conditionInstructionMock).when(conditionReaderTemplate).getInstruction();

@@ -23,7 +23,7 @@ package com.im.njams.sdk.communication.instruction.control.templates.condition;
 import com.im.njams.sdk.api.adapter.messageformat.command.NjamsInstructionException;
 import org.junit.Test;
 
-import static com.im.njams.sdk.adapter.messageformat.command.entity.DefaultInstruction.DefaultRequestReader.EMPTY_STRING;
+import static com.im.njams.sdk.adapter.messageformat.command.entity.defaults.DefaultRequestReader.EMPTY_STRING;
 import static com.im.njams.sdk.communication.instruction.control.templates.condition.ConditionInstructionExceptionLogger.INVALID_INSTRUCTION;
 import static org.mockito.Mockito.*;
 

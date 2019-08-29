@@ -1,4 +1,16 @@
-package com.im.njams.sdk.adapter.messageformat.command.entity;
+/*
+ * Copyright (c) 2019 Faiz & Siegeln Software GmbH
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+ *
+ * The Software shall be used for Good, not Evil.
+ *
+ *  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ */
+
+package com.im.njams.sdk.adapter.messageformat.command.entity.replay;
 
 import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
 import com.faizsiegeln.njams.messageformat.v4.command.Request;
@@ -6,7 +18,6 @@ import com.faizsiegeln.njams.messageformat.v4.command.Response;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -58,32 +69,32 @@ public class ReplayInstructionTest {
 
     @Test
     public void createReplayRequestReader() {
-        ReplayInstruction.ReplayRequestReader requestReaderInstance = replayInstruction
+        ReplayRequestReader requestReaderInstance = replayInstruction
                 .createRequestReaderInstance(mock(Request.class));
-        assertTrue(requestReaderInstance instanceof ReplayInstruction.ReplayRequestReader);
+        assertTrue(requestReaderInstance instanceof ReplayRequestReader);
     }
 
     @Test
     public void createRequestReaderInstanceWithNullRequest() {
-        ReplayInstruction.ReplayRequestReader requestReaderInstance = replayInstruction
+        ReplayRequestReader requestReaderInstance = replayInstruction
                 .createRequestReaderInstance(null);
-        assertTrue(requestReaderInstance instanceof ReplayInstruction.ReplayRequestReader);
+        assertTrue(requestReaderInstance instanceof ReplayRequestReader);
     }
 
 //CreateResponseWriter tests
 
     @Test
     public void createReplayResponseWriter() {
-        ReplayInstruction.ReplayResponseWriter responseWriterInstance = replayInstruction
+        ReplayResponseWriter responseWriterInstance = replayInstruction
                 .createResponseWriterInstance(mock(Response.class));
-        assertTrue(responseWriterInstance instanceof ReplayInstruction.ReplayResponseWriter);
+        assertTrue(responseWriterInstance instanceof ReplayResponseWriter);
     }
 
     @Test
     public void createResponseWriterInstanceWithNullResponse() {
-        ReplayInstruction.ReplayResponseWriter responseWriterInstance = replayInstruction
+        ReplayResponseWriter responseWriterInstance = replayInstruction
                 .createResponseWriterInstance(null);
-        assertTrue(responseWriterInstance instanceof ReplayInstruction.ReplayResponseWriter);
+        assertTrue(responseWriterInstance instanceof ReplayResponseWriter);
     }
 
 //ReplayRequestReader tests
@@ -91,7 +102,7 @@ public class ReplayInstructionTest {
     @Test
     public void getProcess(){
         fillRequestParameters();
-        ReplayInstruction.ReplayRequestReader requestReader = replayInstruction.getRequestReader();
+        ReplayRequestReader requestReader = replayInstruction.getRequestReader();
         assertEquals(PROCESS_VALUE, requestReader.getProcess());
     }
 
@@ -108,39 +119,39 @@ public class ReplayInstructionTest {
     @Test
     public void getStartActivity(){
         fillRequestParameters();
-        ReplayInstruction.ReplayRequestReader requestReader = replayInstruction.getRequestReader();
+        ReplayRequestReader requestReader = replayInstruction.getRequestReader();
         assertEquals(START_ACTIVITY_VALUE, requestReader.getStartActivity());
     }
 
     @Test
     public void getPayload(){
         fillRequestParameters();
-        ReplayInstruction.ReplayRequestReader requestReader = replayInstruction.getRequestReader();
+        ReplayRequestReader requestReader = replayInstruction.getRequestReader();
         assertEquals(PAYLOAD_VALUE, requestReader.getPayload());
     }
 
     @Test
     public void isDeeptrace(){
         fillRequestParameters();
-        ReplayInstruction.ReplayRequestReader requestReader = replayInstruction.getRequestReader();
+        ReplayRequestReader requestReader = replayInstruction.getRequestReader();
         assertTrue(requestReader.isDeepTrace());
     }
     @Test
     public void isDeeptraceNotSet(){
-        ReplayInstruction.ReplayRequestReader requestReader = replayInstruction.getRequestReader();
+        ReplayRequestReader requestReader = replayInstruction.getRequestReader();
         assertFalse(requestReader.isDeepTrace());
     }
 
     @Test
     public void isTest(){
         fillRequestParameters();
-        ReplayInstruction.ReplayRequestReader requestReader = replayInstruction.getRequestReader();
+        ReplayRequestReader requestReader = replayInstruction.getRequestReader();
         assertTrue(requestReader.getTest());
     }
 
     @Test
     public void isTestNotSet(){
-        ReplayInstruction.ReplayRequestReader requestReader = replayInstruction.getRequestReader();
+        ReplayRequestReader requestReader = replayInstruction.getRequestReader();
         assertFalse(requestReader.getTest());
     }
 
@@ -148,7 +159,7 @@ public class ReplayInstructionTest {
 
     @Test
     public void setException(){
-        ReplayInstruction.ReplayResponseWriter responseWriter = replayInstruction.getResponseWriter();
+        ReplayResponseWriter responseWriter = replayInstruction.getResponseWriter();
         Map<String, String> mockedMap = setMockedMap();
         responseWriter.setException(EXCEPTION_VALUE);
         verify(mockedMap).put(EXCEPTION_KEY, EXCEPTION_VALUE);
@@ -162,7 +173,7 @@ public class ReplayInstructionTest {
 
     @Test
     public void setMainLogId(){
-        ReplayInstruction.ReplayResponseWriter responseWriter = replayInstruction.getResponseWriter();
+        ReplayResponseWriter responseWriter = replayInstruction.getResponseWriter();
         Map<String, String> mockedMap = setMockedMap();
         responseWriter.setMainLogId(MAIN_LOG_ID_VALUE);
         verify(mockedMap).put(MAIN_LOG_ID_KEY, MAIN_LOG_ID_VALUE);
