@@ -22,42 +22,78 @@ package com.im.njams.sdk.adapter.messageformat.command.entity;
 
 import com.faizsiegeln.njams.messageformat.v4.command.Request;
 import com.faizsiegeln.njams.messageformat.v4.command.Response;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.im.njams.sdk.api.adapter.messageformat.command.Instruction;
 import com.im.njams.sdk.api.adapter.messageformat.command.ResultCode;
-import com.im.njams.sdk.common.NjamsSdkRuntimeException;
-import com.im.njams.sdk.utils.JsonUtils;
 
-import java.time.LocalDateTime;
-import java.util.HashMap;
-import java.util.Map;
+/**
+ * This abstract class represents the instruction that was sent to the client by the server. It holds a
+ * {@link AbstractRequestReader AbstractRequestReader} to read the incoming request and a
+ * {@link AbstractResponseWriter AbstractResponseWriter} to write a response to the processed request respectively.
+ *
+ * @param <R> The AbstractRequestReader to read the request from
+ * @param <W> The AbstractResponseWriter to write the response to
+ * @author krautenberg
+ * @version 4.1.0
+ */
+public abstract class AbstractInstruction<R extends AbstractRequestReader,
+        W extends AbstractResponseWriter> implements Instruction {
 
-import static com.im.njams.sdk.adapter.messageformat.command.entity.DefaultInstruction.UNABLE_TO_DESERIALZE_OBJECT;
+    /**
+     * Default prefix for parsing Exceptions.
+     */
+    public static final String UNABLE_TO_DESERIALZE_OBJECT = "Unable to deserialize: ";
 
-public abstract class AbstractInstruction<R extends Instruction.RequestReader,
-        W extends AbstractInstruction.AbstractResponseWriter> implements Instruction {
+    /**
+     * Default success resultCode that is used if a response needs to be created.
+     */
+    public static final ResultCode DEFAULT_SUCCESS_CODE = ResultCode.SUCCESS;
 
-    private com.faizsiegeln.njams.messageformat.v4.command.Instruction messageFormatInstruction;
-
+    /**
+     * Default success message that is used if a response needs to be created.
+     */
     public static final String DEFAULT_SUCCESS_MESSAGE = "Success";
 
     protected R reader;
 
     protected W writer;
 
+    private com.faizsiegeln.njams.messageformat.v4.command.Instruction messageFormatInstruction;
+
+    /**
+     * Sets the underlying instruction
+     *
+     * @param messageFormatInstruction the instruction to set
+     */
     public AbstractInstruction(com.faizsiegeln.njams.messageformat.v4.command.Instruction messageFormatInstruction) {
         this.messageFormatInstruction = messageFormatInstruction;
     }
 
+    /**
+     * Checks if the {@link com.faizsiegeln.njams.messageformat.v4.command.Instruction instruction} to work with is
+     * null.
+     *
+     * @return true, if instruction is null, else false
+     */
     @Override
     public boolean isEmpty() {
         return messageFormatInstruction == null;
     }
 
+    /**
+     * This method returns the underlying instruction.
+     *
+     * @return the underlying {@link com.faizsiegeln.njams.messageformat.v4.command.Instruction instruction} or null,
+     * if {@link #isEmpty() isEmpty()} is true.
+     */
     public com.faizsiegeln.njams.messageformat.v4.command.Instruction getRealInstruction() {
         return messageFormatInstruction;
     }
 
+    /**
+     * Returns the corresponding RequestReader to the {@link Instruction instruction}.
+     *
+     * @return instance of a RequestReader
+     */
     @Override
     public R getRequestReader() {
         if (reader == null) {
@@ -72,6 +108,11 @@ public abstract class AbstractInstruction<R extends Instruction.RequestReader,
 
     protected abstract R createRequestReaderInstance(Request request);
 
+    /**
+     * Returns the corresponding AbstractResponseWriter to the {@link Instruction instruction}
+     *
+     * @return instance of a ResponseWriter
+     */
     @Override
     public W getResponseWriter() {
         if (writer == null) {
@@ -108,99 +149,11 @@ public abstract class AbstractInstruction<R extends Instruction.RequestReader,
 
     private Response createDefaultSuccessResponse() {
         Response response = new Response();
-        response.setResultCode(ResultCode.SUCCESS.getResultCode());
+        response.setResultCode(DEFAULT_SUCCESS_CODE.getResultCode());
         response.setResultMessage(DEFAULT_SUCCESS_MESSAGE);
         return response;
     }
 
     protected abstract W createResponseWriterInstance(Response response);
 
-    public static class AbstractResponseWriter<W extends AbstractResponseWriter<W>> implements Instruction.ResponseWriter<W> {
-
-        private Response responseToBuild;
-
-        private boolean isActuallyEmpty = false;
-
-        protected AbstractResponseWriter(Response response) {
-            this.responseToBuild = response;
-        }
-
-        @Override
-        public boolean isEmpty() {
-            return responseToBuild == null || isActuallyEmpty;
-        }
-
-        @Override
-        public W setResultCode(ResultCode resultCode) {
-            responseIsFilled();
-            responseToBuild.setResultCode(resultCode.getResultCode());
-            return getThis();
-        }
-
-        @Override
-        public W setResultMessage(String resultMessage) {
-            responseIsFilled();
-            responseToBuild.setResultMessage(resultMessage);
-            return getThis();
-        }
-
-        @Override
-        public W setParameters(Map<String, String> parameters) {
-            responseIsFilled();
-            responseToBuild.setParameters(parameters);
-            return getThis();
-        }
-
-        public W setDateTime(LocalDateTime dateTime) {
-            responseIsFilled();
-            responseToBuild.setDateTime(dateTime);
-            return getThis();
-        }
-
-        @Override
-        public W putParameter(String key, String value) {
-            responseIsFilled();
-            Map<String, String> parameters = responseToBuild.getParameters();
-            if (parameters == null) {
-                parameters = new HashMap<>();
-                responseToBuild.setParameters(parameters);
-            }
-            parameters.put(key, value);
-            return getThis();
-        }
-
-        @Override
-        public W addParameters(Map<String, String> parameters) {
-            responseIsFilled();
-            Map<String, String> parametersInResponse = responseToBuild.getParameters();
-            if (parametersInResponse == null) {
-                responseToBuild.setParameters(parameters);
-            } else {
-                parametersInResponse.putAll(parameters);
-            }
-            return getThis();
-        }
-
-        public void setResponseIsActuallyEmpty() {
-            isActuallyEmpty = true;
-        }
-
-        private void responseIsFilled() {
-            isActuallyEmpty = false;
-        }
-
-        @Override
-        public final W getThis() {
-            return (W) this;
-        }
-
-        @Override
-        public String toString() {
-            try {
-                return JsonUtils.serialize(responseToBuild);
-            } catch (JsonProcessingException e) {
-                throw new NjamsSdkRuntimeException(UNABLE_TO_DESERIALZE_OBJECT + responseToBuild);
-            }
-        }
-    }
 }

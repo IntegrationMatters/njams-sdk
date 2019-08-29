@@ -3,12 +3,9 @@ package com.im.njams.sdk.adapter.messageformat.command.entity;
 import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
 import com.faizsiegeln.njams.messageformat.v4.command.Request;
 import com.faizsiegeln.njams.messageformat.v4.command.Response;
-import com.im.njams.sdk.api.adapter.messageformat.command.ResultCode;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.time.LocalDateTime;
-import java.util.Map;
 
 import static com.im.njams.sdk.adapter.messageformat.command.entity.AbstractInstruction.DEFAULT_SUCCESS_MESSAGE;
 import static org.junit.Assert.*;
@@ -123,96 +120,19 @@ public class AbstractInstructionTest {
         verify(instructionWithNormalInstruction).createResponseWriterInstance(response);
     }
 
-//AbstractResponseWriter tests
-
     @Test
-    public void instructionWithNullResponseHasAResponseAfterResultCodeWasSet() {
-        Instruction instruction = new Instruction();
-        assertNull(instruction.getResponse());
-        AbstractInstructionImpl.AbstractResponseWriter responseWriter = getAbstractResponseWriter(instruction);
-        assertTrue(responseWriter.isEmpty());
-
-        responseWriter.setResultCode(ResultCode.SUCCESS);
-        assertFalse(responseWriter.isEmpty());
-        assertNotNull(instruction.getResponse());
+    public void getResponseWriterTwiceGivesTheSameWriter() {
+        com.im.njams.sdk.api.adapter.messageformat.command.Instruction.ResponseWriter responseWriter1 = instruction
+                .getResponseWriter();
+        com.im.njams.sdk.api.adapter.messageformat.command.Instruction.ResponseWriter responseWriter2 = instruction
+                .getResponseWriter();
+        assertEquals(responseWriter1, responseWriter2);
     }
 
-    private AbstractInstruction.AbstractResponseWriter getAbstractResponseWriter(Instruction instruction){
-        AbstractInstructionImpl abstractInstructionImpl = new AbstractInstructionImpl(instruction);
-        return abstractInstructionImpl.getResponseWriter();
-    }
-
-    @Test
-    public void instructionWithNullResponseHasAResponseAfterResultMessageWasSet() {
-        Instruction instruction = new Instruction();
-        assertNull(instruction.getResponse());
-        AbstractInstructionImpl.AbstractResponseWriter responseWriter = getAbstractResponseWriter(instruction);
-        assertTrue(responseWriter.isEmpty());
-
-        responseWriter.setResultMessage("Test");
-        assertFalse(responseWriter.isEmpty());
-        assertNotNull(instruction.getResponse());
-    }
-
-    @Test
-    public void instructionWithNullResponseHasAResponseAfterDateTimeWasSet(){
-        Instruction instruction = new Instruction();
-        assertNull(instruction.getResponse());
-        AbstractInstructionImpl.AbstractResponseWriter responseWriter = getAbstractResponseWriter(instruction);
-        assertTrue(responseWriter.isEmpty());
-
-        LocalDateTime now = LocalDateTime.now();
-        responseWriter.setDateTime(now);
-        assertNotNull(instruction.getResponse());
-    }
-
-    @Test
-    public void instructionWithNullResponseHasAResponseAfterSetParameters() {
-        Instruction instruction = new Instruction();
-        assertNull(instruction.getResponse());
-        AbstractInstructionImpl.AbstractResponseWriter responseWriter = getAbstractResponseWriter(instruction);
-        assertTrue(responseWriter.isEmpty());
-
-        responseWriter.setResultCode(ResultCode.SUCCESS);
-        assertFalse(responseWriter.isEmpty());
-        assertNotNull(instruction.getResponse());
-    }
-
-    @Test
-    public void instructionWithNullResponseHasAResponseAfterPutParameter() {
-        Instruction instruction = new Instruction();
-        assertNull(instruction.getResponse());
-        AbstractInstructionImpl.AbstractResponseWriter responseWriter = getAbstractResponseWriter(instruction);
-        assertTrue(responseWriter.isEmpty());
-
-        responseWriter.setResultCode(ResultCode.SUCCESS);
-        assertFalse(responseWriter.isEmpty());
-        assertNotNull(instruction.getResponse());
-    }
-
-    @Test
-    public void instructionWithNullResponseHasAResponseAfterAddParameter() {
-        Instruction instruction = new Instruction();
-        assertNull(instruction.getResponse());
-        AbstractInstructionImpl.AbstractResponseWriter responseWriter = getAbstractResponseWriter(instruction);
-        assertTrue(responseWriter.isEmpty());
-
-        responseWriter.setResultCode(ResultCode.SUCCESS);
-        assertFalse(responseWriter.isEmpty());
-        assertNotNull(instruction.getResponse());
-    }
-
-    @Test
-    public void checkToStringForResponseWriter(){
-        Instruction instruction = new Instruction();
-        assertNull(instruction.getResponse());
-        AbstractInstructionImpl.AbstractResponseWriter responseWriter = getAbstractResponseWriter(instruction);
-        String responseAsString = responseWriter.toString();
-        System.out.println(responseAsString);
-    }
+//Private Helper Classes
 
     private class AbstractInstructionImpl extends AbstractInstruction<AbstractRequestReaderImpl,
-            AbstractInstruction.AbstractResponseWriter> {
+            AbstractResponseWriter> {
 
         public AbstractInstructionImpl(Instruction messageFormatInstruction) {
             super(messageFormatInstruction);
@@ -220,45 +140,26 @@ public class AbstractInstructionTest {
 
         @Override
         protected AbstractRequestReaderImpl createRequestReaderInstance(Request request) {
-            return new AbstractRequestReaderImpl();
+            return new AbstractRequestReaderImpl(request);
         }
 
         @Override
-        protected AbstractResponseWriter createResponseWriterInstance(Response response) {
-            return new AbstractResponseWriter(response);
+        protected AbstractResponseWriterImpl createResponseWriterInstance(Response response) {
+            return new AbstractResponseWriterImpl(response);
         }
     }
 
-    private class AbstractRequestReaderImpl implements com.im.njams.sdk.api.adapter.messageformat.command.Instruction.RequestReader {
+    private class AbstractRequestReaderImpl extends AbstractRequestReader {
 
-        @Override
-        public boolean isEmpty() {
-            return false;
+        protected AbstractRequestReaderImpl(Request requestToRead) {
+            super(requestToRead);
         }
+    }
 
-        @Override
-        public boolean isCommandNull() {
-            return false;
-        }
+    private class AbstractResponseWriterImpl<T extends AbstractResponseWriterImpl<T>> extends AbstractResponseWriter<T> {
 
-        @Override
-        public boolean isCommandEmpty() {
-            return false;
-        }
-
-        @Override
-        public String getCommand() {
-            return null;
-        }
-
-        @Override
-        public Map<String, String> getParameters() {
-            return null;
-        }
-
-        @Override
-        public String getParameter(String paramKey) {
-            return null;
+        protected AbstractResponseWriterImpl(Response response) {
+            super(response);
         }
     }
 }
