@@ -21,35 +21,44 @@
 package com.im.njams.sdk.adapter.messageformat.command.entity.defaults;
 
 import com.faizsiegeln.njams.messageformat.v4.command.Response;
-import com.im.njams.sdk.adapter.messageformat.command.entity.AbstractResponseWriter;
 import com.im.njams.sdk.api.adapter.messageformat.command.ResultCode;
+import org.junit.Before;
+import org.junit.Test;
 
-/**
- * This class provides methods to write the outgoing instruction's response.
- *
- * @param <W> The type of the DefaultResponseWriter for chaining the methods of the DefaultResponseWriter.
- * @author krautenberg
- * @version 4.1.0
- */
-public class DefaultResponseWriter<W extends DefaultResponseWriter<W>> extends AbstractResponseWriter<W> {
+import static org.junit.Assert.*;
+import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.spy;
 
-    /**
-     * Sets the underlying response
-     *
-     * @param responseToWrite the response to set
-     */
-    protected DefaultResponseWriter(Response responseToWrite) {
-        super(responseToWrite);
+public class DefaultResponseWriterTest {
+
+    private static final ResultCode TEST_RESULT_CODE = ResultCode.SUCCESS;
+    private static final String TEST_RESULT_MESSAGE = "test";
+
+    private Response responseMock;
+
+    private DefaultResponseWriter defaultResponseWriter;
+
+    @Before
+    public void initialize() {
+        responseMock = mock(Response.class);
+        defaultResponseWriter = spy(new DefaultResponseWriter(responseMock));
     }
 
-    /**
-     * Sets the {@link ResultCode ResultCode} and the ResultMessage to the {@link Response response}.
-     *
-     * @param resultCode    the resultCode to set
-     * @param resultMessage the resultMessage to set
-     * @return itself via {@link #getThis() getThis()} for chaining DefaultResponseWriter methods
-     */
-    public W setResultCodeAndResultMessage(ResultCode resultCode, String resultMessage) {
-        return setResultCode(resultCode).setResultMessage(resultMessage);
+//SetResultCodeAndResultMessage tests
+
+    @Test
+    public void CallingSuperMethods() {
+        defaultResponseWriter.setResultCodeAndResultMessage(TEST_RESULT_CODE, TEST_RESULT_MESSAGE);
+
+        verify(defaultResponseWriter).setResultCode(TEST_RESULT_CODE);
+        verify(defaultResponseWriter).setResultMessage(TEST_RESULT_MESSAGE);
+    }
+
+    @Test
+    public void returnsThis() {
+        DefaultResponseWriter returnedResponseWriter = defaultResponseWriter
+                .setResultCodeAndResultMessage(TEST_RESULT_CODE, TEST_RESULT_MESSAGE);
+
+        assertEquals(defaultResponseWriter, returnedResponseWriter);
     }
 }

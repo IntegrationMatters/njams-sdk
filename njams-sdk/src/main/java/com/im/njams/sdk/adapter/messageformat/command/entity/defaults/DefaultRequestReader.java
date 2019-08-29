@@ -23,8 +23,19 @@ package com.im.njams.sdk.adapter.messageformat.command.entity.defaults;
 import com.faizsiegeln.njams.messageformat.v4.command.Request;
 import com.im.njams.sdk.adapter.messageformat.command.entity.AbstractRequestReader;
 
+/**
+ * This class provides methods to read the incoming instruction's request.
+ *
+ * @author krautenberg
+ * @version 4.1.0
+ */
 public class DefaultRequestReader extends AbstractRequestReader {
 
+    /**
+     * Sets the underlying request
+     *
+     * @param requestToRead the request to set
+     */
     protected DefaultRequestReader(Request requestToRead) {
         super(requestToRead);
     }

@@ -25,17 +25,42 @@ import com.faizsiegeln.njams.messageformat.v4.command.Request;
 import com.faizsiegeln.njams.messageformat.v4.command.Response;
 import com.im.njams.sdk.adapter.messageformat.command.entity.AbstractInstruction;
 
+/**
+ * This class represents the instruction that was sent to the client by the server. It holds a
+ * {@link DefaultRequestReader DefaultRequestReader} to read the incoming request and a
+ * {@link DefaultResponseWriter DefaultResponseWriter} to write a response to the processed request respectively.
+ *
+ * @author krautenberg
+ * @version 4.1.0
+ */
 public class DefaultInstruction extends AbstractInstruction<DefaultRequestReader, DefaultResponseWriter> {
 
+    /**
+     * Sets the underlying instruction
+     *
+     * @param messageFormatInstruction the instruction to set
+     */
     public DefaultInstruction(Instruction messageFormatInstruction) {
         super(messageFormatInstruction);
     }
 
+    /**
+     * Creates the actual instance of a {@link DefaultRequestReader DefaultRequestReader}
+     *
+     * @param request the request that the {@link DefaultRequestReader DefaultRequestReader} will have to read from
+     * @return a new {@link DefaultRequestReader DefaultRequestReader} that reads from the given request
+     */
     @Override
     protected DefaultRequestReader createRequestReaderInstance(Request request) {
         return new DefaultRequestReader(request);
     }
 
+    /**
+     * Creates the actual instance of a {@link DefaultResponseWriter DefaultResponseWriter}
+     *
+     * @param response the response that the {@link DefaultResponseWriter DefaultResponseWriter} will write to
+     * @return a new {@link DefaultResponseWriter DefaultResponseWriter} that writes to the given response
+     */
     @Override
     protected DefaultResponseWriter createResponseWriterInstance(Response response) {
         return new DefaultResponseWriter(response);
