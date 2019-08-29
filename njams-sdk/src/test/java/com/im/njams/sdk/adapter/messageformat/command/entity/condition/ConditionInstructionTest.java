@@ -61,11 +61,11 @@ public class ConditionInstructionTest {
 
     public static final String START_TIME_KEY = "starttime";
     public static final LocalDateTime START_TIME = DateTimeUtility.now();
-    public static final String START_TIME_VALUE = START_TIME.toString();
+    public static final String START_TIME_VALUE = DateTimeUtility.toString(START_TIME);
 
     public static final String END_TIME_KEY = "endtime";
     public static final LocalDateTime END_TIME = DateTimeUtility.now().plusMinutes(15);
-    public static final String END_TIME_VALUE = END_TIME.toString();
+    public static final String END_TIME_VALUE = DateTimeUtility.toString(END_TIME);
 
     public static final String ITERATIONS_KEY = "iterations";
     public static final int ITERATIONS = 10;
