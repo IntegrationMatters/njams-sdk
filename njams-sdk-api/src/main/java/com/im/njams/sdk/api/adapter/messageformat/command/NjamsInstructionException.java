@@ -22,12 +22,30 @@ package com.im.njams.sdk.api.adapter.messageformat.command;
 
 import java.io.IOException;
 
+/**
+ * Exception for anything that uses {@link Instruction instructions}.
+ *
+ * @author krautenberg
+ * @version 4.1.0
+ */
 public class NjamsInstructionException extends IOException {
 
+    /**
+     * Use this if you do not have a Root Cause. Provide clear and informative Message with all needed Context
+     * Information.
+     *
+     * @param message the message for the exception
+     */
     public NjamsInstructionException(String message) {
         super(message);
     }
 
+    /**
+     * Use this one if you have a Root Cause. Provide clear and informative Message with all needed Context Information.
+     *
+     * @param message the message for the exception
+     * @param cause   the root cause for the exception
+     */
     public NjamsInstructionException(String message, Throwable cause) {
         super(message, cause);
     }

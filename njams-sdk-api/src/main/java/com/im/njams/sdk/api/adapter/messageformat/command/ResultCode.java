@@ -20,6 +20,9 @@
 
 package com.im.njams.sdk.api.adapter.messageformat.command;
 
+/**
+ * This enum provides the possible result codes that may be sent back to the Server.
+ */
 public enum ResultCode {
 
     SUCCESS(0),

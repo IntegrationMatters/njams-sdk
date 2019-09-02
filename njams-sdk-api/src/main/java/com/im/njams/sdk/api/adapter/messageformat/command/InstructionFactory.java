@@ -20,8 +20,21 @@
 
 package com.im.njams.sdk.api.adapter.messageformat.command;
 
+/**
+ * This interface provides a method to produce {@link Instruction instructions}.
+ *
+ * @author krautenberg
+ * @version 4.1.0
+ */
 public interface InstructionFactory {
 
+    /**
+     * This method creates a {@link Instruction instruction} out of the messageFormatInstructionAsJsonString.
+     *
+     * @param messageFormatInstructionAsJsonString the messageFormatInstruction as Json String.
+     * @return {@link Instruction Instruction} that wraps the messageFormatInstruction.
+     * @throws NjamsInstructionException might be thrown if the {@link Instruction instruction} couldn't be created.
+     */
     Instruction getInstructionOf(String messageFormatInstructionAsJsonString) throws NjamsInstructionException;
 
 }
