@@ -34,7 +34,8 @@ import com.im.njams.sdk.adapter.messageformat.command.entity.NjamsInstruction;
 public class ConditionInstruction extends NjamsInstruction<ConditionRequestReader, ConditionResponseWriter> {
 
     /**
-     * Sets the underlying instruction and creates a {@link ConditionRequestReader ConditionRequestReader} to read the request
+     * Sets the underlying instruction and creates a {@link ConditionRequestReader ConditionRequestReader} to read
+     * the request
      * and a {@link ConditionResponseWriter ConditionResponseWriter} to write the response.
      *
      * @param messageFormatInstruction the instruction to read from and write to

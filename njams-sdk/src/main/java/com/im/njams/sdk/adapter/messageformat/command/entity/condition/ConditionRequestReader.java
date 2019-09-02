@@ -41,7 +41,7 @@ import java.util.stream.Collectors;
 
 public class ConditionRequestReader extends NjamsRequestReader {
 
-    private ObjectMapper mapper = JsonSerializerFactory.getDefaultMapper();
+    private RequestParser requestParser = new RequestParser();
 
     /**
      * Sets the underlying request
@@ -61,7 +61,7 @@ public class ConditionRequestReader extends NjamsRequestReader {
     }
 
     public Extract getExtract() throws NjamsInstructionException {
-        return parseJson(getParameter(ConditionConstants.EXTRACT_KEY), Extract.class);
+        return requestParser.parseJson(getParameter(ConditionConstants.EXTRACT_KEY), Extract.class);
     }
 
     public String getEngineWideRecording() {
@@ -73,35 +73,35 @@ public class ConditionRequestReader extends NjamsRequestReader {
     }
 
     public LogLevel getLogLevel() throws NjamsInstructionException {
-        return parseEnumParameter(getParameter(ConditionConstants.LOG_LEVEL_KEY), LogLevel.class);
+        return requestParser.parseEnumParameter(getParameter(ConditionConstants.LOG_LEVEL_KEY), LogLevel.class);
     }
 
     public LogMode getLogMode() throws NjamsInstructionException {
-        return parseEnumParameter(getParameter(ConditionConstants.LOG_MODE_KEY), LogMode.class);
+        return requestParser.parseEnumParameter(getParameter(ConditionConstants.LOG_MODE_KEY), LogMode.class);
     }
 
     public boolean getExcluded() {
-        return Boolean.parseBoolean(getParameter(ConditionConstants.EXCLUDE_KEY));
+        return requestParser.parseBoolean(getParameter(ConditionConstants.EXCLUDE_KEY));
     }
 
     public LocalDateTime getEndTime() throws NjamsInstructionException {
-        return parseDateTime(getParameter(ConditionConstants.END_TIME_KEY));
+        return requestParser.parseDateTime(getParameter(ConditionConstants.END_TIME_KEY));
     }
 
     public boolean getTracingEnabled() {
-        return Boolean.parseBoolean(getParameter(ConditionConstants.ENABLE_TRACING_KEY));
+        return requestParser.parseBoolean(getParameter(ConditionConstants.ENABLE_TRACING_KEY));
     }
 
     public LocalDateTime getStartTime() throws NjamsInstructionException {
-        return parseDateTime(getParameter(ConditionConstants.START_TIME_KEY));
+        return requestParser.parseDateTime(getParameter(ConditionConstants.START_TIME_KEY));
     }
 
     public Integer getIterations() throws NjamsInstructionException {
-        return parseInteger(getParameter(ConditionConstants.ITERATIONS_KEY));
+        return requestParser.parseInteger(getParameter(ConditionConstants.ITERATIONS_KEY));
     }
 
     public Boolean getDeepTrace() {
-        return Boolean.parseBoolean(getParameter(ConditionConstants.DEEP_TRACE_KEY));
+        return requestParser.parseBoolean(getParameter(ConditionConstants.DEEP_TRACE_KEY));
     }
 
     public List<String> collectAllMissingParameters(String[] parametersToSearchFor) {
@@ -117,49 +117,58 @@ public class ConditionRequestReader extends NjamsRequestReader {
         return StringUtils.isBlank(getParameter(parameterToCheck));
     }
 
-    private <T extends Enum<T>> T parseEnumParameter(final String enumParameterToParse, final Class<T> enumeration)
-            throws NjamsInstructionException {
-        T foundEnumParameter = null;
-        if (enumParameterToParse != null && enumeration != null && enumeration.getEnumConstants() != null) {
-            foundEnumParameter = Arrays.stream(enumeration.getEnumConstants())
-                    .filter(c -> c.name().equalsIgnoreCase(enumParameterToParse)).findAny().orElse(null);
-        }
-        if (foundEnumParameter == null) {
-            throw new NjamsInstructionException(
-                    NjamsInstruction.UNABLE_TO_DESERIALIZE_OBJECT + "\"" + enumParameterToParse + "\"" + " to " +
-                    enumeration.getSimpleName());
-        }
-        return foundEnumParameter;
-    }
+    private static class RequestParser{
 
-    private <T> T parseJson(String objectToParse, Class<T> type) throws NjamsInstructionException {
-        try {
-            return mapper.readValue(objectToParse, type);
-        } catch (IOException parsingException) {
-            throw new NjamsInstructionException(
-                    NjamsInstruction.UNABLE_TO_DESERIALIZE_OBJECT + "\"" + objectToParse + "\"" + " to " +
-                    type.getSimpleName(), parsingException);
-        }
-    }
+        private ObjectMapper mapper = JsonSerializerFactory.getDefaultMapper();
 
-    private LocalDateTime parseDateTime(String localDateTimeString) throws NjamsInstructionException {
-        if (StringUtils.isBlank(localDateTimeString)) {
-            return null;
+        private <T extends Enum<T>> T parseEnumParameter(final String enumParameterToParse, final Class<T> enumeration)
+                throws NjamsInstructionException {
+            T foundEnumParameter = null;
+            if (enumParameterToParse != null && enumeration != null && enumeration.getEnumConstants() != null) {
+                foundEnumParameter = Arrays.stream(enumeration.getEnumConstants())
+                        .filter(c -> c.name().equalsIgnoreCase(enumParameterToParse)).findAny().orElse(null);
+            }
+            if (foundEnumParameter == null) {
+                throw new NjamsInstructionException(
+                        NjamsInstruction.UNABLE_TO_DESERIALIZE_OBJECT + "\"" + enumParameterToParse + "\"" + " to " +
+                        enumeration.getSimpleName());
+            }
+            return foundEnumParameter;
         }
-        try {
-            return DateTimeUtility.fromString(localDateTimeString);
-        } catch (RuntimeException parsingException) {
-            throw new NjamsInstructionException(NjamsInstruction.UNABLE_TO_DESERIALIZE_OBJECT + localDateTimeString,
-                    parsingException);
-        }
-    }
 
-    private Integer parseInteger(String integerAsString) throws NjamsInstructionException {
-        try {
-            return Integer.parseInt(integerAsString);
-        } catch (NumberFormatException invalidIntegerException) {
-            throw new NjamsInstructionException(NjamsInstruction.UNABLE_TO_DESERIALIZE_OBJECT + integerAsString,
-                    invalidIntegerException);
+        private <T> T parseJson(String objectToParse, Class<T> type) throws NjamsInstructionException {
+            try {
+                return mapper.readValue(objectToParse, type);
+            } catch (IOException parsingException) {
+                throw new NjamsInstructionException(
+                        NjamsInstruction.UNABLE_TO_DESERIALIZE_OBJECT + "\"" + objectToParse + "\"" + " to " +
+                        type.getSimpleName(), parsingException);
+            }
+        }
+
+        private LocalDateTime parseDateTime(String localDateTimeString) throws NjamsInstructionException {
+            if (StringUtils.isBlank(localDateTimeString)) {
+                return null;
+            }
+            try {
+                return DateTimeUtility.fromString(localDateTimeString);
+            } catch (RuntimeException parsingException) {
+                throw new NjamsInstructionException(NjamsInstruction.UNABLE_TO_DESERIALIZE_OBJECT + localDateTimeString,
+                        parsingException);
+            }
+        }
+
+        private Integer parseInteger(String integerAsString) throws NjamsInstructionException {
+            try {
+                return Integer.parseInt(integerAsString);
+            } catch (NumberFormatException invalidIntegerException) {
+                throw new NjamsInstructionException(NjamsInstruction.UNABLE_TO_DESERIALIZE_OBJECT + integerAsString,
+                        invalidIntegerException);
+            }
+        }
+
+        private Boolean parseBoolean(String parameter) {
+            return Boolean.parseBoolean(parameter);
         }
     }
 }

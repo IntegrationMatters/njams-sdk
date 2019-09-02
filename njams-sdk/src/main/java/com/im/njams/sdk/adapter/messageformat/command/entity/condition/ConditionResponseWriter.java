@@ -35,7 +35,7 @@ import java.time.LocalDateTime;
 
 public class ConditionResponseWriter extends NjamsResponseWriter<ConditionResponseWriter> {
 
-    private final ObjectMapper mapper = JsonSerializerFactory.getDefaultMapper();
+    private ResponseSerializer responseSerializer = new ResponseSerializer();
 
     /**
      * Sets the underlying response
@@ -47,42 +47,63 @@ public class ConditionResponseWriter extends NjamsResponseWriter<ConditionRespon
     }
 
     public ConditionResponseWriter setExtract(Extract extract) throws NjamsInstructionException {
-        return putParameter(ConditionConstants.EXTRACT_KEY, serialize(extract));
-    }
-
-    private String serialize(Object object) throws NjamsInstructionException {
-        try {
-            return mapper.writeValueAsString(object);
-        } catch (JsonProcessingException e) {
-            throw new NjamsInstructionException("Unable to serialize Object", e);
-        }
+        return putParameter(ConditionConstants.EXTRACT_KEY, responseSerializer.serializeObject(extract));
     }
 
     public ConditionResponseWriter setLogMode(LogMode logMode) {
-        return putParameter(ConditionConstants.LOG_MODE_KEY, logMode != null ? String.valueOf(logMode) : null);
+        return putParameter(ConditionConstants.LOG_MODE_KEY, responseSerializer.serializeEnum(logMode));
     }
 
     public ConditionResponseWriter setLogLevel(LogLevel logLevel) {
-        return putParameter(ConditionConstants.LOG_LEVEL_KEY, logLevel != null ? logLevel.name() : null);
+        return putParameter(ConditionConstants.LOG_LEVEL_KEY, responseSerializer.serializeEnum(logLevel));
     }
 
     public ConditionResponseWriter setExcluded(boolean isExcluded) {
-        return putParameter(ConditionConstants.EXCLUDE_KEY, String.valueOf(isExcluded));
+        return putParameter(ConditionConstants.EXCLUDE_KEY, responseSerializer.serializeBoolean(isExcluded));
     }
 
     public ConditionResponseWriter setStartTime(LocalDateTime startTime) {
-        return putParameter(ConditionConstants.START_TIME_KEY, DateTimeUtility.toString(startTime));
+        return putParameter(ConditionConstants.START_TIME_KEY, responseSerializer.serializeDateTime(startTime));
     }
 
     public ConditionResponseWriter setEndTime(LocalDateTime endTime) {
-        return putParameter(ConditionConstants.END_TIME_KEY, DateTimeUtility.toString(endTime));
+        return putParameter(ConditionConstants.END_TIME_KEY, responseSerializer.serializeDateTime(endTime));
     }
 
     public ConditionResponseWriter setIterations(int iterations) {
-        return putParameter(ConditionConstants.ITERATIONS_KEY, String.valueOf(iterations));
+        return putParameter(ConditionConstants.ITERATIONS_KEY, responseSerializer.serializeInteger(iterations));
     }
 
-    public ConditionResponseWriter setDeepTrace(Boolean deepTrace) {
-        return putParameter(ConditionConstants.DEEP_TRACE_KEY, String.valueOf(deepTrace));
+    public ConditionResponseWriter setDeepTrace(boolean deepTrace) {
+        return putParameter(ConditionConstants.DEEP_TRACE_KEY, responseSerializer.serializeBoolean(deepTrace));
+    }
+
+    private static class ResponseSerializer {
+
+        private final ObjectMapper mapper = JsonSerializerFactory.getDefaultMapper();
+
+        private String serializeObject(Object object) throws NjamsInstructionException {
+            try {
+                return mapper.writeValueAsString(object);
+            } catch (JsonProcessingException e) {
+                throw new NjamsInstructionException("Unable to serialize Object", e);
+            }
+        }
+
+        private String serializeEnum(Enum enumParameter) {
+            return enumParameter != null ? enumParameter.name() : null;
+        }
+
+        private String serializeBoolean(boolean booleanParameter) {
+            return String.valueOf(booleanParameter);
+        }
+
+        private String serializeInteger(int integerParameter) {
+            return String.valueOf(integerParameter);
+        }
+
+        private String serializeDateTime(LocalDateTime localDateTime) {
+            return DateTimeUtility.toString(localDateTime);
+        }
     }
 }
