@@ -22,8 +22,6 @@ package com.im.njams.sdk.adapter.messageformat.command.entity;
 
 import com.faizsiegeln.njams.messageformat.v4.command.Request;
 import com.faizsiegeln.njams.messageformat.v4.command.Response;
-import com.im.njams.sdk.adapter.messageformat.command.control.RequestReaderFactory;
-import com.im.njams.sdk.adapter.messageformat.command.control.ResponseWriterFactory;
 import com.im.njams.sdk.api.adapter.messageformat.command.Instruction;
 
 /**
