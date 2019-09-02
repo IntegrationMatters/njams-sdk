@@ -21,7 +21,7 @@
 package com.im.njams.sdk.adapter.messageformat.command.entity.replay;
 
 import com.faizsiegeln.njams.messageformat.v4.command.Request;
-import com.im.njams.sdk.adapter.messageformat.command.entity.defaults.DefaultRequestReader;
+import com.im.njams.sdk.adapter.messageformat.command.entity.NjamsRequestReader;
 
 /**
  * This class provides methods to read the incoming instruction's request.
@@ -29,7 +29,7 @@ import com.im.njams.sdk.adapter.messageformat.command.entity.defaults.DefaultReq
  * @author krautenberg
  * @version 4.1.0
  */
-public class ReplayRequestReader extends DefaultRequestReader {
+public class ReplayRequestReader extends NjamsRequestReader {
 
     private static final String PROCESS = "Process";
     private static final String START_ACTIVITY = "StartActivity";
@@ -40,10 +40,10 @@ public class ReplayRequestReader extends DefaultRequestReader {
     /**
      * Sets the underlying request
      *
-     * @param requestToRead the request to set
+     * @param requestToReadFrom the request to set
      */
-    protected ReplayRequestReader(Request requestToRead) {
-        super(requestToRead);
+    public ReplayRequestReader(Request requestToReadFrom) {
+        super(requestToReadFrom);
     }
 
     /**

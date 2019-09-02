@@ -21,9 +21,6 @@
 package com.im.njams.sdk.adapter.messageformat.command.entity.replay;
 
 import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
-import com.faizsiegeln.njams.messageformat.v4.command.Request;
-import com.faizsiegeln.njams.messageformat.v4.command.Response;
-import org.junit.Before;
 import org.junit.Test;
 
 import static org.junit.Assert.*;
@@ -32,41 +29,13 @@ import static org.mockito.Mockito.mock;
 
 public class ReplayInstructionTest {
 
-    private Instruction instructionMock;
 
-    private ReplayInstruction replayInstruction;
-
-    @Before
-    public void initialize() {
-        instructionMock = mock(Instruction.class);
-        replayInstruction = spy(new ReplayInstruction(instructionMock));
-    }
-//CreateRequestReader tests
+//Constructor test
 
     @Test
-    public void createReplayRequestReader() {
-        ReplayRequestReader requestReaderInstance = replayInstruction.createRequestReaderInstance(mock(Request.class));
-        assertTrue(requestReaderInstance instanceof ReplayRequestReader);
-    }
-
-    @Test
-    public void createRequestReaderInstanceWithNullRequest() {
-        ReplayRequestReader requestReaderInstance = replayInstruction.createRequestReaderInstance(null);
-        assertTrue(requestReaderInstance instanceof ReplayRequestReader);
-    }
-
-//CreateResponseWriter tests
-
-    @Test
-    public void createReplayResponseWriter() {
-        ReplayResponseWriter responseWriterInstance = replayInstruction
-                .createResponseWriterInstance(mock(Response.class));
-        assertTrue(responseWriterInstance instanceof ReplayResponseWriter);
-    }
-
-    @Test
-    public void createResponseWriterInstanceWithNullResponse() {
-        ReplayResponseWriter responseWriterInstance = replayInstruction.createResponseWriterInstance(null);
-        assertTrue(responseWriterInstance instanceof ReplayResponseWriter);
+    public void constructorCreatesCorrectReaderAndWriter(){
+        ReplayInstruction replayInstruction = spy(new ReplayInstruction(mock(Instruction.class)));
+        assertTrue(replayInstruction.getRequestReader() instanceof ReplayRequestReader);
+        assertTrue(replayInstruction.getResponseWriter() instanceof ReplayResponseWriter);
     }
 }

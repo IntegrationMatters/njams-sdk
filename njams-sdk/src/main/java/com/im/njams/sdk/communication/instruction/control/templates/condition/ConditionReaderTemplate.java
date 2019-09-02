@@ -33,11 +33,15 @@ import org.slf4j.LoggerFactory;
 
 import java.util.List;
 
-import static com.im.njams.sdk.adapter.messageformat.command.entity.defaults.DefaultRequestReader.EMPTY_STRING;
+import static com.im.njams.sdk.api.adapter.messageformat.command.Instruction.RequestReader.EMPTY_STRING;
 
 public abstract class ConditionReaderTemplate extends InstructionProcessorTemplate<ConditionInstruction> {
 
     private static final Logger LOG = LoggerFactory.getLogger(ConditionReaderTemplate.class);
+
+    private static final ResultCode DEFAULT_SUCCESS_CODE = ResultCode.SUCCESS;
+
+    private static final String DEFAULT_SUCCESS_MESSAGE = "Success";
 
     protected static final String[] NO_ESSENTIAL_PARAMETERS = new String[0];
 
@@ -60,6 +64,7 @@ public abstract class ConditionReaderTemplate extends InstructionProcessorTempla
 
         if (wereAllNeededRequestParametersSet(missingParameters)) {
             resetConditionFacade();
+            setDefaultSuccessResponse();
             try {
                 processConditionInstruction();
                 logProcessingSuccess();
@@ -73,6 +78,10 @@ public abstract class ConditionReaderTemplate extends InstructionProcessorTempla
             setWarningResponse(invalidParametersMessage);
             logInvalidParameters(invalidParametersMessage);
         }
+    }
+
+    void setDefaultSuccessResponse() {
+        responseWriter.setResultCodeAndResultMessage(DEFAULT_SUCCESS_CODE, DEFAULT_SUCCESS_MESSAGE);
     }
 
     void setReaderAndWriter() {

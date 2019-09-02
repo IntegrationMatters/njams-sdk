@@ -20,11 +20,12 @@
 
 package com.im.njams.sdk.communication.instruction.control.templates;
 
-import com.im.njams.sdk.adapter.messageformat.command.entity.defaults.DefaultInstruction;
-import com.im.njams.sdk.adapter.messageformat.command.entity.defaults.DefaultRequestReader;
-import com.im.njams.sdk.adapter.messageformat.command.entity.defaults.DefaultResponseWriter;
 
-public abstract class DefaultProcessorTemplate extends InstructionProcessorTemplate<DefaultInstruction> {
+import com.im.njams.sdk.adapter.messageformat.command.entity.NjamsInstruction;
+import com.im.njams.sdk.adapter.messageformat.command.entity.NjamsRequestReader;
+import com.im.njams.sdk.adapter.messageformat.command.entity.NjamsResponseWriter;
+
+public abstract class DefaultProcessorTemplate extends InstructionProcessorTemplate<NjamsInstruction> {
 
     @Override
     protected void process(){
@@ -37,11 +38,11 @@ public abstract class DefaultProcessorTemplate extends InstructionProcessorTempl
 
     protected abstract void setInstructionResponse();
 
-    public DefaultRequestReader getDefaultRequestReader(){
+    public NjamsRequestReader getDefaultRequestReader(){
         return getInstruction().getRequestReader();
     }
 
-    public DefaultResponseWriter getDefaultResponseWriter(){
+    public NjamsResponseWriter getDefaultResponseWriter(){
         return getInstruction().getResponseWriter();
     }
 }

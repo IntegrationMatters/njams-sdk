@@ -36,68 +36,76 @@ import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 
-import static com.im.njams.sdk.adapter.messageformat.command.entity.AbstractInstruction.UNABLE_TO_DESERIALZE_OBJECT;
+import static com.im.njams.sdk.adapter.messageformat.command.entity.NjamsInstruction.UNABLE_TO_DESERIALIZE_OBJECT;
 
 /**
- * This abstract class provides methods to write the outgoing instruction's response.
+ * This class provides methods to write the outgoing instruction's response.
  *
- * @param <W> The type of the AbstractResponseWriter for chaining the methods of the AbstractResponseWriter.
+ * @param <W> The type of the NjamsResponseWriter for chaining the methods of the NjamsResponseWriter.
  * @author krautenberg
  * @version 4.1.0
  */
-public abstract class AbstractResponseWriter<W extends AbstractResponseWriter<W>> implements Instruction.ResponseWriter<W> {
+public class NjamsResponseWriter<W extends NjamsResponseWriter<W>> implements Instruction.ResponseWriter<W> {
 
-    /**
-     * The Response should be private because subclasses of the AbstractResponseWriter should use the provided
-     * methods of this class to interact with the response.
-     */
     private Response responseToWrite;
-
-    private boolean isUnchangedResponse = false;
 
     /**
      * Sets the underlying response
      *
-     * @param responseToWrite the response to set
+     * @param responseToWriteTo the response to set
      */
-    protected AbstractResponseWriter(Response responseToWrite) {
-        this.responseToWrite = responseToWrite;
+    public NjamsResponseWriter(Response responseToWriteTo) {
+        this.responseToWrite = responseToWriteTo;
     }
 
     /**
-     * Checks if the underlying response is null or if it is not null, if it has been changed by this instance.
-     * WARNING: This only works if you use the provided methods of this class. If you change
-     * the underlying response without this instance, isEmpty() might return true instead of false
-     * because it is NOT checked if the underlying response changed at all.
+     * Checks if the underlying response is null or was only initialized.
      *
-     * @return true, if underlying response is not null and hasn't changed by this instance, else false
+     * @return true, if underlying response is null or was only initialized, else false
      */
     @Override
     public boolean isEmpty() {
-        boolean isEmpty = isUnderlyingResponseNull();
+        boolean isEmpty = responseToWrite == null;
         if (!isEmpty) {
-            isEmpty = hasNotBeenChanged();
+            isEmpty = isEmptyResponse();
         }
         return isEmpty;
     }
 
-    private boolean isUnderlyingResponseNull() {
-        return responseToWrite == null;
+    private boolean isEmptyResponse() {
+        boolean isResultCodeDefault = resultCodeHasntChanged();
+        boolean isResultMessageDefault = resultMessageHasntChanged();
+        boolean isDateTimeDefault = dateTimeHasntChanged();
+        boolean areParametersDefault = parametersHaventChanged();
+        return isResultCodeDefault && isResultMessageDefault && isDateTimeDefault && areParametersDefault ;
     }
 
-    private boolean hasNotBeenChanged() {
-        return isUnchangedResponse;
+    private boolean parametersHaventChanged() {
+        return responseToWrite.getParameters() == null ? false : responseToWrite
+                .getParameters().isEmpty();
     }
+
+    private boolean dateTimeHasntChanged() {
+        return responseToWrite.getDateTime() == null;
+    }
+
+    private boolean resultCodeHasntChanged() {
+        return responseToWrite.getResultCode() == ResultCode.SUCCESS.getResultCode();
+    }
+
+    private boolean resultMessageHasntChanged() {
+        return responseToWrite.getResultMessage() == null;
+    }
+
 
     /**
      * Sets the {@link ResultCode ResultCode} to the {@link Response response}.
      *
      * @param resultCode the resultCode to set
-     * @return itself via {@link #getThis() getThis()} for chaining AbstractResponseWriter methods.
+     * @return itself via {@link #getThis() getThis()} for chaining NjamsResponseWriter methods.
      */
     @Override
     public W setResultCode(ResultCode resultCode) {
-        responseChanged();
         responseToWrite.setResultCode(resultCode.getResultCode());
         return getThis();
     }
@@ -106,23 +114,32 @@ public abstract class AbstractResponseWriter<W extends AbstractResponseWriter<W>
      * Sets the ResultMessage to the {@link Response response}
      *
      * @param resultMessage the resultMessage to set
-     * @return itself via {@link #getThis() getThis()} for chaining AbstractResponseWriter methods.
+     * @return itself via {@link #getThis() getThis()} for chaining NjamsResponseWriter methods.
      */
     @Override
     public W setResultMessage(String resultMessage) {
-        responseChanged();
         responseToWrite.setResultMessage(resultMessage);
         return getThis();
+    }
+
+    /**
+     * Sets the {@link ResultCode ResultCode} and the ResultMessage to the {@link Response response}.
+     *
+     * @param resultCode    the resultCode to set
+     * @param resultMessage the resultMessage to set
+     * @return itself via {@link #getThis() getThis()} for chaining NjamsResponseWriter methods
+     */
+    public W setResultCodeAndResultMessage(ResultCode resultCode, String resultMessage) {
+        return setResultCode(resultCode).setResultMessage(resultMessage);
     }
 
     /**
      * Sets the {@link LocalDateTime} to the {@link Response response}.
      *
      * @param localDateTime the localDateTime to set
-     * @return itself via {@link #getThis() getThis()} for chaining AbstractResponseWriter methods.
+     * @return itself via {@link #getThis() getThis()} for chaining NjamsResponseWriter methods.
      */
     public W setDateTime(LocalDateTime localDateTime) {
-        responseChanged();
         responseToWrite.setDateTime(localDateTime);
         return getThis();
     }
@@ -133,11 +150,10 @@ public abstract class AbstractResponseWriter<W extends AbstractResponseWriter<W>
      *
      * @param key   the key of the key-value pair
      * @param value the value of the key-value pair
-     * @return itself via {@link #getThis() getThis()} for chaining AbstractResponseWriter methods.
+     * @return itself via {@link #getThis() getThis()} for chaining NjamsResponseWriter methods.
      */
     @Override
     public W putParameter(String key, String value) {
-        responseChanged();
         Map<String, String> parameters = responseToWrite.getParameters();
         if (parameters == null) {
             parameters = new HashMap<>();
@@ -151,11 +167,10 @@ public abstract class AbstractResponseWriter<W extends AbstractResponseWriter<W>
      * Sets the given parameters to the {@link Response response}.
      *
      * @param parameters the parameters to set
-     * @return itself via {@link #getThis() getThis()} for chaining AbstractResponseWriter methods.
+     * @return itself via {@link #getThis() getThis()} for chaining NjamsResponseWriter methods.
      */
     @Override
     public W setParameters(Map<String, String> parameters) {
-        responseChanged();
         responseToWrite.setParameters(parameters);
         return getThis();
     }
@@ -166,11 +181,10 @@ public abstract class AbstractResponseWriter<W extends AbstractResponseWriter<W>
      * old key-value pairs.
      *
      * @param parameters the parameters to add
-     * @return itself via {@link #getThis() getThis()} for chaining AbstractResponseWriter methods.
+     * @return itself via {@link #getThis() getThis()} for chaining NjamsResponseWriter methods.
      */
     @Override
     public W addParameters(Map<String, String> parameters) {
-        responseChanged();
         Map<String, String> parametersInResponse = responseToWrite.getParameters();
         if (parametersInResponse == null) {
             responseToWrite.setParameters(parameters);
@@ -181,19 +195,8 @@ public abstract class AbstractResponseWriter<W extends AbstractResponseWriter<W>
     }
 
     /**
-     * Sets the {@link #isUnchangedResponse isUnchangedResponse} to true.
-     */
-    void setResponseIsActuallyEmpty() {
-        isUnchangedResponse = true;
-    }
-
-    private void responseChanged() {
-        isUnchangedResponse = false;
-    }
-
-    /**
-     * This method is a helper method for all other methods in the AbstractResponseWriter to refer to the correct
-     * AbstractResponseWriter type.
+     * This method is a helper method for all other methods in the NjamsResponseWriter to refer to the correct
+     * NjamsResponseWriter type.
      *
      * @return this
      */
@@ -210,9 +213,13 @@ public abstract class AbstractResponseWriter<W extends AbstractResponseWriter<W>
     @Override
     public String toString() {
         try {
-            return JsonUtils.serialize(responseToWrite);
+            String toReturn = "null";
+            if (!isEmpty()) {
+                toReturn = JsonUtils.serialize(responseToWrite);
+            }
+            return toReturn;
         } catch (JsonProcessingException e) {
-            throw new NjamsSdkRuntimeException(UNABLE_TO_DESERIALZE_OBJECT + responseToWrite);
+            throw new NjamsSdkRuntimeException(UNABLE_TO_DESERIALIZE_OBJECT + responseToWrite);
         }
     }
 }

@@ -118,38 +118,6 @@ public class ConditionInstructionTest {
         when(instructionMock.getResponse()).thenReturn(response);
     }
 
-//CreateRequestReader tests
-
-    @Test
-    public void createConditionRequestReader() {
-        ConditionRequestReader requestReaderInstance = conditionInstruction
-                .createRequestReaderInstance(mock(Request.class));
-        assertTrue(requestReaderInstance instanceof ConditionRequestReader);
-    }
-
-    @Test
-    public void createRequestReaderInstanceWithNullRequest() {
-        ConditionRequestReader requestReaderInstance = conditionInstruction
-                .createRequestReaderInstance(null);
-        assertTrue(requestReaderInstance instanceof ConditionRequestReader);
-    }
-
-//CreateResponseWriter tests
-
-    @Test
-    public void createConditionResponseWriter() {
-        ConditionResponseWriter responseWriterInstance = conditionInstruction
-                .createResponseWriterInstance(mock(Response.class));
-        assertTrue(responseWriterInstance instanceof ConditionResponseWriter);
-    }
-
-    @Test
-    public void createResponseWriterInstanceWithNullResponse() {
-        ConditionResponseWriter responseWriterInstance = conditionInstruction
-                .createResponseWriterInstance(null);
-        assertTrue(responseWriterInstance instanceof ConditionResponseWriter);
-    }
-
 //ReplayRequestReader tests
 
     @Test

@@ -19,10 +19,9 @@
  */
 
 package com.im.njams.sdk.communication.instruction.control.templates;
-
-import com.im.njams.sdk.adapter.messageformat.command.entity.defaults.DefaultInstruction;
-import com.im.njams.sdk.adapter.messageformat.command.entity.defaults.DefaultRequestReader;
-import com.im.njams.sdk.adapter.messageformat.command.entity.defaults.DefaultResponseWriter;
+import com.im.njams.sdk.adapter.messageformat.command.entity.NjamsInstruction;
+import com.im.njams.sdk.adapter.messageformat.command.entity.NjamsRequestReader;
+import com.im.njams.sdk.adapter.messageformat.command.entity.NjamsResponseWriter;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -33,21 +32,21 @@ public class DefaultProcessorTemplateTest {
 
     private DefaultProcessorTemplate defaultProcessorTemplate;
 
-    private DefaultInstruction defaultInstructionMock;
+    private NjamsInstruction njamsInstructionMock;
 
-    private DefaultRequestReader defaultRequestReaderMock;
+    private NjamsRequestReader njamsRequestReaderMock;
 
-    private DefaultResponseWriter defaultResponseWriterMock;
+    private NjamsResponseWriter njamsResponseWriterMock;
 
     @Before
     public void initialize() {
         defaultProcessorTemplate = spy(new DefaultProcessorTemplateImpl());
-        defaultInstructionMock = mock(DefaultInstruction.class);
-        defaultRequestReaderMock = mock(DefaultRequestReader.class);
-        defaultResponseWriterMock = mock(DefaultResponseWriter.class);
-        doReturn(defaultInstructionMock).when(defaultProcessorTemplate).getInstruction();
-        when(defaultInstructionMock.getRequestReader()).thenReturn(defaultRequestReaderMock);
-        when(defaultInstructionMock.getResponseWriter()).thenReturn(defaultResponseWriterMock);
+        njamsInstructionMock = mock(NjamsInstruction.class);
+        njamsRequestReaderMock = mock(NjamsRequestReader.class);
+        njamsResponseWriterMock = mock(NjamsResponseWriter.class);
+        doReturn(njamsInstructionMock).when(defaultProcessorTemplate).getInstruction();
+        when(njamsInstructionMock.getRequestReader()).thenReturn(njamsRequestReaderMock);
+        when(njamsInstructionMock.getResponseWriter()).thenReturn(njamsResponseWriterMock);
     }
 
 //Process tests
@@ -63,14 +62,14 @@ public class DefaultProcessorTemplateTest {
 
     @Test
     public void getDefaultRequestReaderReturnsARequestReaderTypeObject(){
-        assertTrue(defaultProcessorTemplate.getDefaultRequestReader() instanceof DefaultRequestReader);
+        assertTrue(defaultProcessorTemplate.getDefaultRequestReader() instanceof NjamsRequestReader);
     }
 
 //GetDefaultResponseWriter tests
 
     @Test
     public void getDefaultResponseWriterReturnsAResponseWriterTypeObject(){
-        assertTrue(defaultProcessorTemplate.getDefaultResponseWriter() instanceof DefaultResponseWriter);
+        assertTrue(defaultProcessorTemplate.getDefaultResponseWriter() instanceof NjamsResponseWriter);
     }
 
 //Private helper classes

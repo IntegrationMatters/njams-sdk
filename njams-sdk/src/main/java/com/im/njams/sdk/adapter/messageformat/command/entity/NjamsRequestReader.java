@@ -33,25 +33,25 @@ import com.im.njams.sdk.utils.JsonUtils;
 import java.util.Collections;
 import java.util.Map;
 
-import static com.im.njams.sdk.adapter.messageformat.command.entity.AbstractInstruction.UNABLE_TO_DESERIALZE_OBJECT;
+import static com.im.njams.sdk.adapter.messageformat.command.entity.NjamsInstruction.UNABLE_TO_DESERIALIZE_OBJECT;
 
 /**
- * This abstract class provides methods to read the incoming instruction's request.
+ * This class provides methods to read the incoming instruction's request.
  *
  * @author krautenberg
  * @version 4.1.0
  */
-public abstract class AbstractRequestReader implements Instruction.RequestReader {
+public class NjamsRequestReader implements Instruction.RequestReader {
 
     private Request requestToRead;
 
     /**
      * Sets the underlying request
      *
-     * @param requestToRead the request to set
+     * @param requestToReadFrom the request to set
      */
-    protected AbstractRequestReader(Request requestToRead) {
-        this.requestToRead = requestToRead;
+    public NjamsRequestReader(Request requestToReadFrom){
+        requestToRead = requestToReadFrom;
     }
 
     /**
@@ -130,9 +130,13 @@ public abstract class AbstractRequestReader implements Instruction.RequestReader
     @Override
     public String toString() {
         try {
-            return JsonUtils.serialize(requestToRead);
+            String toReturn = "null";
+            if (!isEmpty()) {
+                toReturn = JsonUtils.serialize(requestToRead);
+            }
+            return toReturn;
         } catch (JsonProcessingException e) {
-            throw new NjamsSdkRuntimeException(UNABLE_TO_DESERIALZE_OBJECT + requestToRead);
+            throw new NjamsSdkRuntimeException(UNABLE_TO_DESERIALIZE_OBJECT + requestToRead);
         }
     }
 }

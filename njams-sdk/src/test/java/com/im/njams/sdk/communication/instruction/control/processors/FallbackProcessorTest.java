@@ -19,14 +19,15 @@
  */
 package com.im.njams.sdk.communication.instruction.control.processors;
 
-import com.im.njams.sdk.adapter.messageformat.command.entity.defaults.DefaultInstruction;
-import com.im.njams.sdk.adapter.messageformat.command.entity.defaults.DefaultRequestReader;
-import com.im.njams.sdk.adapter.messageformat.command.entity.defaults.DefaultResponseWriter;
+import com.im.njams.sdk.adapter.messageformat.command.entity.NjamsInstruction;
+import com.im.njams.sdk.adapter.messageformat.command.entity.NjamsRequestReader;
+import com.im.njams.sdk.adapter.messageformat.command.entity.NjamsResponseWriter;
 import com.im.njams.sdk.api.adapter.messageformat.command.ResultCode;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.verification.VerificationMode;
 
+import static com.im.njams.sdk.api.adapter.messageformat.command.Instruction.RequestReader.EMPTY_STRING;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.*;
 
@@ -40,18 +41,18 @@ public class FallbackProcessorTest {
 
     private FallbackProcessor fallbackProcessor;
 
-    private DefaultInstruction defaultInstructionMock;
+    private NjamsInstruction defaultInstructionMock;
 
-    private DefaultRequestReader defaultRequestReaderMock;
+    private NjamsRequestReader defaultRequestReaderMock;
 
-    private DefaultResponseWriter defaultResponseWriterMock;
+    private NjamsResponseWriter defaultResponseWriterMock;
 
     @Before
     public void initialize() {
         fallbackProcessor = spy(new FallbackProcessor());
-        defaultInstructionMock = mock(DefaultInstruction.class);
-        defaultRequestReaderMock = mock(DefaultRequestReader.class);
-        defaultResponseWriterMock = mock(DefaultResponseWriter.class);
+        defaultInstructionMock = mock(NjamsInstruction.class);
+        defaultRequestReaderMock = mock(NjamsRequestReader.class);
+        defaultResponseWriterMock = mock(NjamsResponseWriter.class);
 
         doReturn(defaultInstructionMock).when(fallbackProcessor).getInstruction();
         doReturn(defaultRequestReaderMock).when(fallbackProcessor).getDefaultRequestReader();
@@ -62,7 +63,7 @@ public class FallbackProcessorTest {
 
     @Test
     public void afterInit() {
-        assertEquals(DefaultRequestReader.EMPTY_STRING, fallbackProcessor.warningMessage);
+        assertEquals(EMPTY_STRING, fallbackProcessor.warningMessage);
     }
 
 //ProcessDefaultInstruction tests

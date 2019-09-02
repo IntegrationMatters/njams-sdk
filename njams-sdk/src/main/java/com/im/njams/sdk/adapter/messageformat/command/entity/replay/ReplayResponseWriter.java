@@ -21,7 +21,7 @@
 package com.im.njams.sdk.adapter.messageformat.command.entity.replay;
 
 import com.faizsiegeln.njams.messageformat.v4.command.Response;
-import com.im.njams.sdk.adapter.messageformat.command.entity.defaults.DefaultResponseWriter;
+import com.im.njams.sdk.adapter.messageformat.command.entity.NjamsResponseWriter;
 
 /**
  * This class provides methods to write the outgoing instruction's response.
@@ -29,7 +29,7 @@ import com.im.njams.sdk.adapter.messageformat.command.entity.defaults.DefaultRes
  * @author krautenberg
  * @version 4.1.0
  */
-public class ReplayResponseWriter extends DefaultResponseWriter<ReplayResponseWriter> {
+public class ReplayResponseWriter extends NjamsResponseWriter<ReplayResponseWriter> {
 
     private static final String EXCEPTION = "Exception";
 
@@ -38,10 +38,10 @@ public class ReplayResponseWriter extends DefaultResponseWriter<ReplayResponseWr
     /**
      * Sets the underlying response
      *
-     * @param responseToWrite the response to set
+     * @param responseToWriteTo the response to set
      */
-    protected ReplayResponseWriter(Response responseToWrite) {
-        super(responseToWrite);
+    public ReplayResponseWriter(Response responseToWriteTo) {
+        super(responseToWriteTo);
     }
 
     /**

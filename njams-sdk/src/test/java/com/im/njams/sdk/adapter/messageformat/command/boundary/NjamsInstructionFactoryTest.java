@@ -5,7 +5,9 @@ import com.faizsiegeln.njams.messageformat.v4.command.Response;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.im.njams.sdk.api.adapter.messageformat.command.Instruction;
 import com.im.njams.sdk.api.adapter.messageformat.command.NjamsInstructionException;
+import com.im.njams.sdk.api.adapter.messageformat.command.ResultCode;
 import com.im.njams.sdk.utils.JsonUtils;
+import org.junit.Before;
 import org.junit.Test;
 
 import static org.junit.Assert.*;
@@ -18,7 +20,11 @@ public class NjamsInstructionFactoryTest {
 
     private static final Request REQUEST = new Request();
 
-    private static final Response RESPONSE = new Response();
+    private static final Response EMPTY_RESPONSE = new Response();
+
+    private static final Response FILLED_RESPONSE = new Response();
+
+    private static final ResultCode TEST_RESULT_CODE = ResultCode.ERROR;
 
     private static final com.faizsiegeln.njams.messageformat.v4.command.Instruction INSTRUCTION_WITH_REQUEST;
 
@@ -30,14 +36,20 @@ public class NjamsInstructionFactoryTest {
         INSTRUCTION_WITH_REQUEST = new com.faizsiegeln.njams.messageformat.v4.command.Instruction();
         INSTRUCTION_WITH_REQUEST.setRequest(REQUEST);
         INSTRUCTION_WITH_RESPONSE = new com.faizsiegeln.njams.messageformat.v4.command.Instruction();
-        INSTRUCTION_WITH_RESPONSE.setResponse(RESPONSE);
+        FILLED_RESPONSE.setResultCode(TEST_RESULT_CODE.getResultCode());
         INSTRUCTION = new com.faizsiegeln.njams.messageformat.v4.command.Instruction();
         INSTRUCTION.setRequest(REQUEST);
-        INSTRUCTION.setResponse(RESPONSE);
+        INSTRUCTION.setResponse(EMPTY_RESPONSE);
     }
 
     public NjamsInstructionFactoryTest(){
         instructionFactory = new NjamsInstructionFactory();
+    }
+
+    @Before
+    public void resetInstructionResponse(){
+        INSTRUCTION.setResponse(EMPTY_RESPONSE);
+        INSTRUCTION_WITH_RESPONSE.setResponse(EMPTY_RESPONSE);
     }
 
 //GetInstructionOf(String) tests
@@ -83,14 +95,30 @@ public class NjamsInstructionFactoryTest {
     }
 
     @Test
-    public void validInstructionContentWithResponseButNoRequest() throws JsonProcessingException, NjamsInstructionException {
+    public void validInstructionContentWithEmptyResponseButNoRequest() throws JsonProcessingException, NjamsInstructionException {
+        String serializedInstruction = JsonUtils.serialize(INSTRUCTION_WITH_RESPONSE);
+        Instruction wrappedInstruction = instructionFactory.getInstructionOf(serializedInstruction);
+        assertEmptyButNotNull(wrappedInstruction, false, true, true);
+    }
+
+    @Test
+    public void validInstructionContentWithFilledResponseButNoRequest() throws JsonProcessingException, NjamsInstructionException {
+        INSTRUCTION_WITH_RESPONSE.setResponse(FILLED_RESPONSE);
         String serializedInstruction = JsonUtils.serialize(INSTRUCTION_WITH_RESPONSE);
         Instruction wrappedInstruction = instructionFactory.getInstructionOf(serializedInstruction);
         assertEmptyButNotNull(wrappedInstruction, false, true, false);
     }
 
     @Test
-    public void validInstructionContentWithRequestAndResponse() throws JsonProcessingException, NjamsInstructionException {
+    public void validInstructionContentWithRequestAndEmptyResponse() throws JsonProcessingException, NjamsInstructionException {
+        String serializedInstruction = JsonUtils.serialize(INSTRUCTION);
+        Instruction wrappedInstruction = instructionFactory.getInstructionOf(serializedInstruction);
+        assertEmptyButNotNull(wrappedInstruction, false, false, true);
+    }
+
+    @Test
+    public void validInstructionContentWithRequestAndFilledResponse() throws JsonProcessingException, NjamsInstructionException {
+        INSTRUCTION.setResponse(FILLED_RESPONSE);
         String serializedInstruction = JsonUtils.serialize(INSTRUCTION);
         Instruction wrappedInstruction = instructionFactory.getInstructionOf(serializedInstruction);
         assertEmptyButNotNull(wrappedInstruction, false, false, false);
@@ -117,13 +145,27 @@ public class NjamsInstructionFactoryTest {
     }
 
     @Test
-    public void validInstructionWithResponseButNoRequest() {
+    public void validInstructionWithEmptyResponseButNoRequest() {
+        Instruction wrappedInstruction = instructionFactory.getInstructionOf(INSTRUCTION_WITH_RESPONSE);
+        assertEmptyButNotNull(wrappedInstruction, false, true, true);
+    }
+
+    @Test
+    public void validInstructionWithFilledResponseButNoRequest() {
+        INSTRUCTION_WITH_RESPONSE.setResponse(FILLED_RESPONSE);
         Instruction wrappedInstruction = instructionFactory.getInstructionOf(INSTRUCTION_WITH_RESPONSE);
         assertEmptyButNotNull(wrappedInstruction, false, true, false);
     }
 
     @Test
-    public void validInstructionWithRequestAndResponse() {
+    public void validInstructionWithRequestAndEmptyResponse() {
+        Instruction wrappedInstruction = instructionFactory.getInstructionOf(INSTRUCTION);
+        assertEmptyButNotNull(wrappedInstruction, false, false, true);
+    }
+
+    @Test
+    public void validInstructionWithRequestAndFilledResponse() {
+        INSTRUCTION.setResponse(FILLED_RESPONSE);
         Instruction wrappedInstruction = instructionFactory.getInstructionOf(INSTRUCTION);
         assertEmptyButNotNull(wrappedInstruction, false, false, false);
     }

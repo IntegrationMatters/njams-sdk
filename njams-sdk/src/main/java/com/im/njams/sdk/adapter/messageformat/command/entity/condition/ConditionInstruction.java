@@ -21,9 +21,7 @@
 package com.im.njams.sdk.adapter.messageformat.command.entity.condition;
 
 import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
-import com.faizsiegeln.njams.messageformat.v4.command.Request;
-import com.faizsiegeln.njams.messageformat.v4.command.Response;
-import com.im.njams.sdk.adapter.messageformat.command.entity.AbstractInstruction;
+import com.im.njams.sdk.adapter.messageformat.command.entity.NjamsInstruction;
 
 /**
  * This class represents the instruction that was sent to the client by the server. It holds a
@@ -33,37 +31,16 @@ import com.im.njams.sdk.adapter.messageformat.command.entity.AbstractInstruction
  * @author krautenberg
  * @version 4.1.0
  */
-public class ConditionInstruction extends AbstractInstruction<ConditionRequestReader, ConditionResponseWriter> {
+public class ConditionInstruction extends NjamsInstruction<ConditionRequestReader, ConditionResponseWriter> {
 
     /**
-     * Sets the underlying instruction
+     * Sets the underlying instruction and creates a {@link ConditionRequestReader ConditionRequestReader} to read the request
+     * and a {@link ConditionResponseWriter ConditionResponseWriter} to write the response.
      *
-     * @param messageFormatInstruction the instruction to set
+     * @param messageFormatInstruction the instruction to read from and write to
      */
     public ConditionInstruction(Instruction messageFormatInstruction) {
-        super(messageFormatInstruction);
-    }
-
-    /**
-     * Creates the actual instance of a {@link ConditionRequestReader ConditionRequestReader}
-     *
-     * @param request the request that the {@link ConditionRequestReader ConditionRequestReader} will have to read from
-     * @return a new {@link ConditionRequestReader ConditionRequestReader} that reads from the given request
-     */
-    @Override
-    protected ConditionRequestReader createRequestReaderInstance(Request request) {
-        return new ConditionRequestReader(request);
-    }
-
-    /**
-     * Creates the actual instance of a {@link ConditionResponseWriter ConditionResponseWriter}
-     *
-     * @param response the response that the {@link ConditionResponseWriter ConditionResponseWriter} will write to
-     * @return a new {@link ConditionResponseWriter ConditionResponseWriter} that writes to the given response
-     */
-    @Override
-    protected ConditionResponseWriter createResponseWriterInstance(Response response) {
-        return new ConditionResponseWriter(response);
+        super(messageFormatInstruction, ConditionRequestReader.class, ConditionResponseWriter.class);
     }
 
 }

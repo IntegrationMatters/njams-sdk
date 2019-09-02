@@ -31,7 +31,7 @@ import org.junit.Test;
 import java.time.LocalDateTime;
 
 import static com.faizsiegeln.njams.messageformat.v4.command.Command.SET_TRACING;
-import static com.im.njams.sdk.adapter.messageformat.command.entity.defaults.DefaultInstruction.UNABLE_TO_DESERIALZE_OBJECT;
+import static com.im.njams.sdk.adapter.messageformat.command.entity.NjamsInstruction.UNABLE_TO_DESERIALIZE_OBJECT;
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
 
@@ -67,7 +67,7 @@ public class SetTracingProcessorTest extends AbstractConfigurationProcessorHelpe
     public void setInvalidEndTime() throws NjamsInstructionException {
         instructionBuilder.prepareInstruction(SET_TRACING).addDefaultActivityId().addDefaultPath()
                 .addEndTime("Invalid");
-        checkResultMessageForMissingsParameters(setTracingProcessor, UNABLE_TO_DESERIALZE_OBJECT);
+        checkResultMessageForMissingsParameters(setTracingProcessor, UNABLE_TO_DESERIALIZE_OBJECT);
     }
 
     @Test
@@ -153,7 +153,7 @@ public class SetTracingProcessorTest extends AbstractConfigurationProcessorHelpe
                 addDefaultEndTime().
                 addDefaultEnableTracing().
                 addStartTime("INVALID");
-        checkResultMessageForMissingsParameters(setTracingProcessor, UNABLE_TO_DESERIALZE_OBJECT);
+        checkResultMessageForMissingsParameters(setTracingProcessor, UNABLE_TO_DESERIALIZE_OBJECT);
     }
 
     @Test

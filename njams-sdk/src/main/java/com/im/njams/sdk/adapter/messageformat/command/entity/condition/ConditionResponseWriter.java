@@ -26,19 +26,24 @@ import com.faizsiegeln.njams.messageformat.v4.projectmessage.LogLevel;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.LogMode;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.im.njams.sdk.adapter.messageformat.command.entity.defaults.DefaultResponseWriter;
+import com.im.njams.sdk.adapter.messageformat.command.entity.NjamsResponseWriter;
 import com.im.njams.sdk.api.adapter.messageformat.command.NjamsInstructionException;
 import com.im.njams.sdk.common.DateTimeUtility;
 import com.im.njams.sdk.common.JsonSerializerFactory;
 
 import java.time.LocalDateTime;
 
-public class ConditionResponseWriter extends DefaultResponseWriter<ConditionResponseWriter> {
+public class ConditionResponseWriter extends NjamsResponseWriter<ConditionResponseWriter> {
 
     private final ObjectMapper mapper = JsonSerializerFactory.getDefaultMapper();
 
-    protected ConditionResponseWriter(Response response) {
-        super(response);
+    /**
+     * Sets the underlying response
+     *
+     * @param responseToWriteTo the response to set
+     */
+    public ConditionResponseWriter(Response responseToWriteTo) {
+        super(responseToWriteTo);
     }
 
     public ConditionResponseWriter setExtract(Extract extract) throws NjamsInstructionException {

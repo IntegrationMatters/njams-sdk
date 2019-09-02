@@ -19,11 +19,13 @@
  */
 package com.im.njams.sdk.communication.instruction.control.processors;
 
-import com.im.njams.sdk.adapter.messageformat.command.entity.defaults.DefaultRequestReader;
+import com.im.njams.sdk.adapter.messageformat.command.entity.NjamsRequestReader;
 import com.im.njams.sdk.api.adapter.messageformat.command.ResultCode;
 import com.im.njams.sdk.communication.instruction.control.templates.DefaultProcessorTemplate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static com.im.njams.sdk.api.adapter.messageformat.command.Instruction.RequestReader.EMPTY_STRING;
 
 /**
  * Todo: Write Doc
@@ -50,7 +52,7 @@ public class FallbackProcessor extends DefaultProcessorTemplate {
         }
     }
 
-    String warningMessage = DefaultRequestReader.EMPTY_STRING;
+    String warningMessage = EMPTY_STRING;
 
     @Override
     protected void processDefaultInstruction() {
@@ -62,7 +64,7 @@ public class FallbackProcessor extends DefaultProcessorTemplate {
     }
 
     private void clear() {
-        warningMessage = DefaultRequestReader.EMPTY_STRING;
+        warningMessage = EMPTY_STRING;
     }
 
     private InstructionProblem checkTypeOfProblem() {
@@ -71,7 +73,7 @@ public class FallbackProcessor extends DefaultProcessorTemplate {
         if (getInstruction().isEmpty()) {
             problemType = InstructionProblem.INSTRUCTION_IS_NULL;
         } else {
-            final DefaultRequestReader requestReader = getDefaultRequestReader();
+            final NjamsRequestReader requestReader = getDefaultRequestReader();
             if (requestReader.isEmpty()) {
                 problemType = InstructionProblem.REQUEST_IS_NULL;
             } else if (requestReader.isCommandNull()) {

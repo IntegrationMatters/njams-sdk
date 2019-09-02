@@ -34,13 +34,13 @@ import org.junit.Test;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
-import java.util.Collections;
 import java.util.Map;
 
+import static java.util.Collections.EMPTY_MAP;
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
 
-public class AbstractResponseWriterTest {
+public class NjamsResponseWriterTest {
 
     private static final ResultCode TEST_RESULT_CODE = ResultCode.SUCCESS;
     private static final String TEST_RESULT_MESSAGE = "test";
@@ -48,205 +48,224 @@ public class AbstractResponseWriterTest {
     private static final String TEST_PARAMETER_KEY = "key";
     private static final String TEST_PARAMETER_VALUE = "value";
 
-    private Response responseMock;
+    private Response responseSpy;
 
     private Map<String, String> mockedMap;
 
-    private AbstractResponseWriterImpl abstractResponseWriterImpl;
+    private NjamsResponseWriter njamsResponseWriter;
 
-    private AbstractResponseWriterImpl abstractResponseWriterWithNull;
+    private NjamsResponseWriter njamsResponseWriterWithNull;
 
     @Before
     public void initialize() {
-        responseMock = mock(Response.class);
+        responseSpy = spy(new Response());
         mockedMap = mock(Map.class);
-        when(responseMock.getParameters()).thenReturn(mockedMap);
-        abstractResponseWriterImpl = spy(new AbstractResponseWriterImpl<>(responseMock));
-        abstractResponseWriterWithNull = spy(new AbstractResponseWriterImpl<>(null));
+        when(responseSpy.getParameters()).thenReturn(mockedMap);
+        njamsResponseWriter = spy(new NjamsResponseWriter<>(responseSpy));
+        njamsResponseWriterWithNull = spy(new NjamsResponseWriter<>(null));
     }
 
 //IsEmpty test
 
     @Test
     public void isEmptyIsTrueIfUnderlyingResponseIsNull() {
-        assertTrue(abstractResponseWriterWithNull.isEmpty());
-        abstractResponseWriterWithNull.setResponseIsActuallyEmpty();
-        assertTrue(true);
+        assertTrue(njamsResponseWriterWithNull.isEmpty());
     }
 
     @Test
-    public void isEmptyIsTrueIfIsActuallyEmptyIsTrue() {
-        abstractResponseWriterImpl.setResponseIsActuallyEmpty();
-        assertTrue(abstractResponseWriterImpl.isEmpty());
+    public void isEmptyIsTrueIfResponseIsUntouched() {
+        when(mockedMap.isEmpty()).thenReturn(true);
+        assertTrue(njamsResponseWriter.isEmpty());
     }
 
     @Test
-    public void isEmptyIsFalseIfIsActuallyEmptyIsFalse() {
-        assertFalse(abstractResponseWriterImpl.isEmpty());
+    public void isEmptyIsFalseIfResponseHasBeenChanged() {
+        when(responseSpy.getResultCode()).thenReturn(ResultCode.ERROR.getResultCode());
+        assertFalse(njamsResponseWriter.isEmpty());
+    }
+
+    @Test
+    public void responseDefaultConstructorIsLikeThis(){
+        Response response = new Response();
+        assertEquals(response.getResultCode(), ResultCode.SUCCESS.getResultCode());
+        assertNull(response.getResultMessage());
+        assertNull(response.getDateTime());
+        assertEquals(response.getParameters(), EMPTY_MAP);
     }
 
 //SetResultCode tests
 
     @Test
     public void afterSetResultCodeIsEmptyIsFalse() {
-        abstractResponseWriterImpl.setResponseIsActuallyEmpty();
+        njamsResponseWriter.setResultCode(TEST_RESULT_CODE);
 
-        abstractResponseWriterImpl.setResultCode(TEST_RESULT_CODE);
-
-        assertFalse(abstractResponseWriterImpl.isEmpty());
+        assertFalse(njamsResponseWriter.isEmpty());
     }
 
     @Test
     public void setResultCodeSetsResultCodeInUnderlyingResponse() {
-        abstractResponseWriterImpl.setResultCode(TEST_RESULT_CODE);
+        njamsResponseWriter.setResultCode(TEST_RESULT_CODE);
 
-        verify(responseMock).setResultCode(TEST_RESULT_CODE.getResultCode());
+        verify(responseSpy).setResultCode(TEST_RESULT_CODE.getResultCode());
     }
 
     @Test(expected = NullPointerException.class)
     public void setResultCodeThrowsNullPointer() {
-        abstractResponseWriterWithNull.setResultCode(TEST_RESULT_CODE);
+        njamsResponseWriterWithNull.setResultCode(TEST_RESULT_CODE);
     }
 
 //SetResultMessage tests
 
     @Test
     public void afterSetResultMessageIsEmptyIsFalse() {
-        abstractResponseWriterImpl.setResponseIsActuallyEmpty();
+        njamsResponseWriter.setResultMessage(TEST_RESULT_MESSAGE);
 
-        abstractResponseWriterImpl.setResultMessage(TEST_RESULT_MESSAGE);
-
-        assertFalse(abstractResponseWriterImpl.isEmpty());
+        assertFalse(njamsResponseWriter.isEmpty());
     }
 
     @Test
     public void setResultMessageSetsResultMessageInUnderlyingResponse() {
-        abstractResponseWriterImpl.setResultMessage(TEST_RESULT_MESSAGE);
+        njamsResponseWriter.setResultMessage(TEST_RESULT_MESSAGE);
 
-        verify(responseMock).setResultMessage(TEST_RESULT_MESSAGE);
+        verify(responseSpy).setResultMessage(TEST_RESULT_MESSAGE);
     }
 
     @Test(expected = NullPointerException.class)
     public void setResultMessageThrowsNullPointer() {
-        abstractResponseWriterWithNull.setResultMessage(TEST_RESULT_MESSAGE);
+        njamsResponseWriterWithNull.setResultMessage(TEST_RESULT_MESSAGE);
+    }
+
+//SetResultCodeAndResultMessage tests
+
+    @Test
+    public void afterSetResultCodeAndResultMessageIsEmptyIsFalse() {
+        njamsResponseWriter.setResultCodeAndResultMessage(TEST_RESULT_CODE, TEST_RESULT_MESSAGE);
+
+        assertFalse(njamsResponseWriter.isEmpty());
+    }
+
+    @Test
+    public void setResultCodeAndResultMessageSetsResultCodeAndResultMessageInUnderlyingResponse() {
+        njamsResponseWriter.setResultCodeAndResultMessage(TEST_RESULT_CODE, TEST_RESULT_MESSAGE);
+
+        verify(responseSpy).setResultCode(TEST_RESULT_CODE.getResultCode());
+        verify(responseSpy).setResultMessage(TEST_RESULT_MESSAGE);
+    }
+
+    @Test(expected = NullPointerException.class)
+    public void setResultCodeAndResultMessageThrowsNullPointer() {
+        njamsResponseWriterWithNull.setResultCodeAndResultMessage(TEST_RESULT_CODE, TEST_RESULT_MESSAGE);
     }
 
 //SetDateTime tests
 
     @Test
     public void afterSetDateTimeIsEmptyIsFalse() {
-        abstractResponseWriterImpl.setResponseIsActuallyEmpty();
+        njamsResponseWriter.setDateTime(TEST_LOCAL_DATE_TIME);
 
-        abstractResponseWriterImpl.setDateTime(TEST_LOCAL_DATE_TIME);
-
-        assertFalse(abstractResponseWriterImpl.isEmpty());
+        assertFalse(njamsResponseWriter.isEmpty());
     }
 
     @Test
     public void setDateTimeSetsDateTimeInUnderlyingResponse() {
-        abstractResponseWriterImpl.setDateTime(TEST_LOCAL_DATE_TIME);
+        njamsResponseWriter.setDateTime(TEST_LOCAL_DATE_TIME);
 
-        verify(responseMock).setDateTime(TEST_LOCAL_DATE_TIME);
+        verify(responseSpy).setDateTime(TEST_LOCAL_DATE_TIME);
     }
 
     @Test(expected = NullPointerException.class)
     public void setDateTimeThrowsNullPointer() {
-        abstractResponseWriterWithNull.setDateTime(TEST_LOCAL_DATE_TIME);
+        njamsResponseWriterWithNull.setDateTime(TEST_LOCAL_DATE_TIME);
     }
 
 //PutParameter tests
 
     @Test
     public void afterPutParameterIsEmptyIsFalse() {
-        abstractResponseWriterImpl.setResponseIsActuallyEmpty();
+        njamsResponseWriter.putParameter(TEST_PARAMETER_KEY, TEST_PARAMETER_VALUE);
 
-        abstractResponseWriterImpl.putParameter(TEST_PARAMETER_KEY, TEST_PARAMETER_VALUE);
-
-        assertFalse(abstractResponseWriterImpl.isEmpty());
+        assertFalse(njamsResponseWriter.isEmpty());
     }
 
     @Test
     public void putParameterPutsParameterInUnderlyingResponseMap() {
-        abstractResponseWriterImpl.putParameter(TEST_PARAMETER_KEY, TEST_PARAMETER_VALUE);
-        verify(responseMock).getParameters();
+        njamsResponseWriter.putParameter(TEST_PARAMETER_KEY, TEST_PARAMETER_VALUE);
+        verify(responseSpy).getParameters();
         verify(mockedMap).put(TEST_PARAMETER_KEY, TEST_PARAMETER_VALUE);
-        verify(responseMock, times(0)).setParameters(any());
+        verify(responseSpy, times(0)).setParameters(any());
     }
 
     @Test
     public void putParameterCreatesUnderlyingParametersMapIfNotExistent() {
-        when(responseMock.getParameters()).thenReturn(null);
+        when(responseSpy.getParameters()).thenReturn(null);
 
-        abstractResponseWriterImpl.putParameter(TEST_PARAMETER_KEY, TEST_PARAMETER_VALUE);
-        verify(responseMock).getParameters();
-        verify(responseMock).setParameters(any());
+        njamsResponseWriter.putParameter(TEST_PARAMETER_KEY, TEST_PARAMETER_VALUE);
+        verify(responseSpy).getParameters();
+        verify(responseSpy).setParameters(any());
     }
 
     @Test(expected = NullPointerException.class)
     public void putParameterThrowsNullPointer() {
-        abstractResponseWriterWithNull.putParameter(TEST_PARAMETER_KEY, TEST_PARAMETER_VALUE);
+        njamsResponseWriterWithNull.putParameter(TEST_PARAMETER_KEY, TEST_PARAMETER_VALUE);
     }
 
 //SetParameters tests
 
     @Test
     public void afterSetParametersIsEmptyIsFalse() {
-        abstractResponseWriterImpl.setResponseIsActuallyEmpty();
+        njamsResponseWriter.setParameters(mockedMap);
 
-        abstractResponseWriterImpl.setParameters(mockedMap);
-
-        assertFalse(abstractResponseWriterImpl.isEmpty());
+        assertFalse(njamsResponseWriter.isEmpty());
     }
 
     @Test
     public void setParametersSetsTheParametersInUnderlyingResponse() {
-        abstractResponseWriterImpl.setParameters(Collections.EMPTY_MAP);
+        njamsResponseWriter.setParameters(EMPTY_MAP);
 
-        verify(responseMock).setParameters(Collections.EMPTY_MAP);
+        verify(responseSpy).setParameters(EMPTY_MAP);
     }
 
     @Test(expected = NullPointerException.class)
     public void setParametersThrowsNullPointer() {
-        abstractResponseWriterWithNull.setParameters(mockedMap);
+        njamsResponseWriterWithNull.setParameters(mockedMap);
     }
 
 //AddParameters tests
 
     @Test
     public void afterAddParametersIsEmptyIsFalse() {
-        abstractResponseWriterImpl.setResponseIsActuallyEmpty();
+        njamsResponseWriter.addParameters(EMPTY_MAP);
 
-        abstractResponseWriterImpl.addParameters(Collections.EMPTY_MAP);
-
-        assertFalse(abstractResponseWriterImpl.isEmpty());
+        assertFalse(njamsResponseWriter.isEmpty());
     }
 
     @Test
     public void addParametersPutsAllParametersInUnderlyingResponseMap() {
-        abstractResponseWriterImpl.addParameters(Collections.EMPTY_MAP);
-        verify(mockedMap).putAll(Collections.EMPTY_MAP);
-        verify(responseMock, times(0)).setParameters(any());
+        njamsResponseWriter.addParameters(EMPTY_MAP);
+        verify(mockedMap).putAll(EMPTY_MAP);
+        verify(responseSpy, times(0)).setParameters(any());
     }
 
     @Test
     public void addParameterSetsParametersInUnderlyingParametersMapIfNotExist() {
-        when(responseMock.getParameters()).thenReturn(null);
+        when(responseSpy.getParameters()).thenReturn(null);
 
-        abstractResponseWriterImpl.addParameters(Collections.EMPTY_MAP);
-        verify(responseMock).setParameters(Collections.EMPTY_MAP);
+        njamsResponseWriter.addParameters(EMPTY_MAP);
+        verify(responseSpy).setParameters(EMPTY_MAP);
     }
 
     @Test(expected = NullPointerException.class)
     public void addParametersThrowsNullPointer() {
-        abstractResponseWriterWithNull.addParameters(mockedMap);
+        njamsResponseWriterWithNull.addParameters(mockedMap);
     }
 
 //GetThis tests
 
     @Test
     public void getThisReturnsTheActualObject() {
-        AbstractResponseWriter abstractResponseWriterImplCalledWithThis = abstractResponseWriterImpl.getThis();
-        assertEquals(abstractResponseWriterImpl, abstractResponseWriterImplCalledWithThis);
+        com.im.njams.sdk.adapter.messageformat.command.entity.NjamsResponseWriter abstractResponseWriterImplCalledWithThis = njamsResponseWriter
+                .getThis();
+        assertEquals(njamsResponseWriter, abstractResponseWriterImplCalledWithThis);
     }
 
 //ToString tests
@@ -254,9 +273,9 @@ public class AbstractResponseWriterTest {
     @Test
     public void checkToStringForResponseWriter() throws IOException {
         Response responseToSet = createRealResponse();
-        abstractResponseWriterImpl = new AbstractResponseWriterImpl(responseToSet);
+        njamsResponseWriter = new NjamsResponseWriter(responseToSet);
 
-        String responseAsString = abstractResponseWriterImpl.toString();
+        String responseAsString = njamsResponseWriter.toString();
         System.out.println(responseAsString);
         assertToStringCreatesSerializableOutput(responseToSet, responseAsString);
     }
@@ -285,22 +304,13 @@ public class AbstractResponseWriterTest {
 
     @Test
     public void toStringReturnsEmptyJsonForNullResponse() {
-        String s = abstractResponseWriterWithNull.toString();
+        String s = njamsResponseWriterWithNull.toString();
         assertEquals(s, "null");
     }
 
     @Test(expected = NjamsSdkRuntimeException.class)
     public void toStringThrowsNjamsSdkRuntimeExceptionWithMockedResponse() {
-        abstractResponseWriterImpl.toString();
-    }
-
-//Helper Classes
-
-    private class AbstractResponseWriterImpl<T extends AbstractResponseWriterImpl<T>> extends AbstractResponseWriter<T> {
-
-        protected AbstractResponseWriterImpl(Response response) {
-            super(response);
-        }
+        njamsResponseWriter.toString();
     }
 
 }

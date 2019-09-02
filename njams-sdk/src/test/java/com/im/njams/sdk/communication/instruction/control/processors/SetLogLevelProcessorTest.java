@@ -32,7 +32,7 @@ import org.junit.Test;
 import java.util.Map;
 
 import static com.faizsiegeln.njams.messageformat.v4.command.Command.SET_LOG_LEVEL;
-import static com.im.njams.sdk.adapter.messageformat.command.entity.defaults.DefaultInstruction.UNABLE_TO_DESERIALZE_OBJECT;
+import static com.im.njams.sdk.adapter.messageformat.command.entity.NjamsInstruction.UNABLE_TO_DESERIALIZE_OBJECT;
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
 
@@ -66,7 +66,7 @@ public class SetLogLevelProcessorTest extends AbstractConfigurationProcessorHelp
     @Test
     public void setLogLevelWithInvalidLogLevel() throws NjamsInstructionException {
         instructionBuilder.prepareInstruction(SET_LOG_LEVEL).addDefaultPath().addLogLevel("INVALID");
-        checkResultMessageForMissingsParameters(setLogLevelProcessor, UNABLE_TO_DESERIALZE_OBJECT);
+        checkResultMessageForMissingsParameters(setLogLevelProcessor, UNABLE_TO_DESERIALIZE_OBJECT);
     }
 
     @Test

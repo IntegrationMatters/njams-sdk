@@ -21,9 +21,7 @@
 package com.im.njams.sdk.adapter.messageformat.command.entity.replay;
 
 import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
-import com.faizsiegeln.njams.messageformat.v4.command.Request;
-import com.faizsiegeln.njams.messageformat.v4.command.Response;
-import com.im.njams.sdk.adapter.messageformat.command.entity.AbstractInstruction;
+import com.im.njams.sdk.adapter.messageformat.command.entity.NjamsInstruction;
 
 /**
  * This class represents the instruction that was sent to the client by the server. It holds a
@@ -33,37 +31,16 @@ import com.im.njams.sdk.adapter.messageformat.command.entity.AbstractInstruction
  * @author krautenberg
  * @version 4.1.0
  */
-public class ReplayInstruction extends AbstractInstruction<ReplayRequestReader, ReplayResponseWriter> {
+public class ReplayInstruction extends NjamsInstruction<ReplayRequestReader, ReplayResponseWriter> {
 
     /**
-     * Sets the underlying instruction
+     * Sets the underlying instruction and creates a {@link ReplayRequestReader ReplayRequestReader} to read the request
+     * and a {@link ReplayResponseWriter ReplayResponseWriter} to write the response.
      *
-     * @param messageFormatInstruction the instruction to set
+     * @param messageFormatInstruction the instruction to read from and write to
      */
-    public ReplayInstruction(Instruction messageFormatInstruction) {
-        super(messageFormatInstruction);
-    }
-
-    /**
-     * Creates the actual instance of a {@link ReplayRequestReader ReplayRequestReader}
-     *
-     * @param request the request that the {@link ReplayRequestReader ReplayRequestReader} will have to read from
-     * @return a new {@link ReplayRequestReader ReplayRequestReader} that reads from the given request
-     */
-    @Override
-    protected ReplayRequestReader createRequestReaderInstance(Request request) {
-        return new ReplayRequestReader(request);
-    }
-
-    /**
-     * Creates the actual instance of a {@link ReplayResponseWriter ReplayResponseWriter}
-     *
-     * @param response the response that the {@link ReplayResponseWriter ReplayResponseWriter} will write to
-     * @return a new {@link ReplayResponseWriter ReplayResponseWriter} that writes to the given response
-     */
-    @Override
-    protected ReplayResponseWriter createResponseWriterInstance(Response response) {
-        return new ReplayResponseWriter(response);
+    public ReplayInstruction(Instruction messageFormatInstruction){
+        super(messageFormatInstruction, ReplayRequestReader.class, ReplayResponseWriter.class);
     }
 
 }

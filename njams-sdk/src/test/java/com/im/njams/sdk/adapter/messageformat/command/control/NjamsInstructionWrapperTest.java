@@ -2,8 +2,8 @@ package com.im.njams.sdk.adapter.messageformat.command.control;
 
 import com.faizsiegeln.njams.messageformat.v4.command.Command;
 import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
+import com.im.njams.sdk.adapter.messageformat.command.entity.NjamsInstruction;
 import com.im.njams.sdk.adapter.messageformat.command.entity.condition.ConditionInstruction;
-import com.im.njams.sdk.adapter.messageformat.command.entity.defaults.DefaultInstruction;
 import com.im.njams.sdk.adapter.messageformat.command.entity.replay.ReplayInstruction;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -42,12 +42,12 @@ public class NjamsInstructionWrapperTest {
     @Test
     public void wrapNullGivesADefaultInstruction(){
         NjamsInstructionWrapper nullWrapper = new NjamsInstructionWrapper(null);
-        assertTrue(nullWrapper.wrap() instanceof DefaultInstruction);
+        assertTrue(nullWrapper.wrap() instanceof NjamsInstruction);
     }
 
     private void assertDefaultFor(String commandToUse){
         when(instructionMock.getCommand()).thenReturn(commandToUse);
-        assertTrue(instructionWrapper.wrap() instanceof DefaultInstruction);
+        assertTrue(instructionWrapper.wrap() instanceof NjamsInstruction);
         checkedCommands.add(commandToUse);
     }
 

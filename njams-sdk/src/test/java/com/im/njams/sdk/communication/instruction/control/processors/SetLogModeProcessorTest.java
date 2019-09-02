@@ -26,7 +26,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import static com.faizsiegeln.njams.messageformat.v4.command.Command.SET_LOG_MODE;
-import static com.im.njams.sdk.adapter.messageformat.command.entity.defaults.DefaultInstruction.UNABLE_TO_DESERIALZE_OBJECT;
+import static com.im.njams.sdk.adapter.messageformat.command.entity.NjamsInstruction.UNABLE_TO_DESERIALIZE_OBJECT;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 
@@ -48,7 +48,7 @@ public class SetLogModeProcessorTest extends AbstractConfigurationProcessorHelpe
     @Test
     public void setLogModeWithInvalidLogMode() throws NjamsInstructionException {
         instructionBuilder.prepareInstruction(SET_LOG_MODE).addLogMode("INVALID");
-        checkResultMessageForMissingsParameters(setLogModeProcessor, UNABLE_TO_DESERIALZE_OBJECT);
+        checkResultMessageForMissingsParameters(setLogModeProcessor, UNABLE_TO_DESERIALIZE_OBJECT);
     }
 
     @Test

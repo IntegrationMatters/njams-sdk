@@ -25,6 +25,7 @@ import com.faizsiegeln.njams.messageformat.v4.command.Request;
 import com.im.njams.sdk.common.DateTimeUtility;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.utils.JsonUtils;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -37,7 +38,7 @@ import static com.im.njams.sdk.api.adapter.messageformat.command.Instruction.Req
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
 
-public class AbstractRequestReaderTest {
+public class NjamsRequestReaderTest {
 
     private static final String TEST_COMMAND = "command";
 
@@ -57,9 +58,9 @@ public class AbstractRequestReaderTest {
 
     private Map<String, String> map;
 
-    private AbstractRequestReaderImpl abstractRequestReaderImpl;
+    private NjamsRequestReader njamsRequestReader;
 
-    private AbstractRequestReaderImpl abstractRequestReaderWithNull;
+    private NjamsRequestReader njamsRequestReaderWithNull;
 
     @Before
     public void initialize() {
@@ -67,38 +68,38 @@ public class AbstractRequestReaderTest {
         map = new HashMap<>();
         map.put(TEST_PARAMETER_KEY, TEST_PARAMETER_VALUE);
         when(requestMock.getParameters()).thenReturn(map);
-        abstractRequestReaderImpl = spy(new AbstractRequestReaderImpl(requestMock));
-        abstractRequestReaderWithNull = spy(new AbstractRequestReaderImpl(null));
+        njamsRequestReader = spy(new NjamsRequestReader(requestMock));
+        njamsRequestReaderWithNull = spy(new NjamsRequestReader(null));
     }
 
 //IsEmpty tests
 
     @Test
     public void requestIsNull() {
-        assertTrue(abstractRequestReaderWithNull.isEmpty());
+        assertTrue(njamsRequestReaderWithNull.isEmpty());
     }
 
     @Test
     public void requestIsNotNull() {
-        assertFalse(abstractRequestReaderImpl.isEmpty());
+        assertFalse(njamsRequestReader.isEmpty());
     }
 
 //IsCommandNull tests
 
     @Test
     public void isCommandNullIfRequestIsNull() {
-        assertTrue(abstractRequestReaderWithNull.isCommandNull());
+        assertTrue(njamsRequestReaderWithNull.isCommandNull());
     }
 
     @Test
     public void isCommandNull() {
-        assertTrue(abstractRequestReaderImpl.isCommandNull());
+        assertTrue(njamsRequestReader.isCommandNull());
     }
 
     @Test
     public void isCommandNotNull() {
         applyTestCommand();
-        assertFalse(abstractRequestReaderImpl.isCommandNull());
+        assertFalse(njamsRequestReader.isCommandNull());
     }
 
     private void applyTestCommand() {
@@ -109,24 +110,24 @@ public class AbstractRequestReaderTest {
 
     @Test
     public void isCommandEmptyIfRequestIsNull() {
-        assertTrue(abstractRequestReaderWithNull.isCommandEmpty());
+        assertTrue(njamsRequestReaderWithNull.isCommandEmpty());
     }
 
     @Test
     public void isCommandEmptyIfCommandIsNull() {
-        assertTrue(abstractRequestReaderImpl.isCommandEmpty());
+        assertTrue(njamsRequestReader.isCommandEmpty());
     }
 
     @Test
     public void isCommandEmpty() {
         applyEmptyTestCommand();
-        assertTrue(abstractRequestReaderImpl.isCommandEmpty());
+        assertTrue(njamsRequestReader.isCommandEmpty());
     }
 
     @Test
     public void isCommandNotEmpty() {
         applyTestCommand();
-        assertFalse(abstractRequestReaderImpl.isCommandEmpty());
+        assertFalse(njamsRequestReader.isCommandEmpty());
     }
 
     private void applyEmptyTestCommand() {
@@ -137,45 +138,45 @@ public class AbstractRequestReaderTest {
 
     @Test
     public void returnsEmptyStringIfRequestIsNull(){
-        assertEquals(EMPTY_COMMAND, abstractRequestReaderWithNull.getCommand());
+        Assert.assertEquals(EMPTY_COMMAND, njamsRequestReaderWithNull.getCommand());
     }
 
     @Test
     public void returnsEmptyStringIfCommandIsNull(){
-        assertEquals(EMPTY_COMMAND, abstractRequestReaderImpl.getCommand());
+        Assert.assertEquals(EMPTY_COMMAND, njamsRequestReader.getCommand());
     }
 
     @Test
     public void returnsEmptyStringIfCommandIsEmpty(){
         applyEmptyTestCommand();
-        assertEquals(EMPTY_COMMAND, abstractRequestReaderImpl.getCommand());
+        Assert.assertEquals(EMPTY_COMMAND, njamsRequestReader.getCommand());
     }
 
     @Test
     public void returnsUnderlyingCommand(){
         applyTestCommand();
-        assertEquals(TEST_COMMAND, abstractRequestReaderImpl.getCommand());
+        Assert.assertEquals(TEST_COMMAND, njamsRequestReader.getCommand());
     }
 
 //GetParameters tests
 
     @Test(expected = UnsupportedOperationException.class)
     public void returnAnEmptyUnmodifiableMapIfRequestIsNull(){
-        Map<String, String> parameters = abstractRequestReaderWithNull.getParameters();
+        Map<String, String> parameters = njamsRequestReaderWithNull.getParameters();
         assertTrue(parameters.isEmpty());
         parameters.put(TEST_PARAMETER_KEY, TEST_PARAMETER_VALUE);
     }
 
     @Test(expected = UnsupportedOperationException.class)
     public void returnsUnmodifiableRequestMap(){
-        Map<String, String> parameters = abstractRequestReaderImpl.getParameters();
+        Map<String, String> parameters = njamsRequestReader.getParameters();
         assertEquals(TEST_PARAMETER_VALUE, parameters.get(TEST_PARAMETER_KEY));
         parameters.put(TEST_PARAMETER_KEY, TEST_PARAMETER_VALUE);
     }
 
     @Test
     public void returnsUnderlyingRequestsMap(){
-        Map<String, String> parameters = abstractRequestReaderImpl.getParameters();
+        Map<String, String> parameters = njamsRequestReader.getParameters();
         assertFalse(parameters.isEmpty());
         assertTrue(parameters.containsKey(TEST_PARAMETER_KEY));
         assertEquals(TEST_PARAMETER_VALUE, parameters.get(TEST_PARAMETER_KEY));
@@ -185,22 +186,22 @@ public class AbstractRequestReaderTest {
 
     @Test
     public void returnsNullForNullRequest(){
-        assertNull(abstractRequestReaderWithNull.getParameter(TEST_PARAMETER_KEY));
+        assertNull(njamsRequestReaderWithNull.getParameter(TEST_PARAMETER_KEY));
     }
 
     @Test
     public void returnsNullForNullKey() {
-        assertNull(abstractRequestReaderImpl.getParameter(null));
+        assertNull(njamsRequestReader.getParameter(null));
     }
 
     @Test
     public void returnsNullForWrongKey() {
-        assertNull(abstractRequestReaderImpl.getParameter(KEY_WITHOUT_VALUE));
+        assertNull(njamsRequestReader.getParameter(KEY_WITHOUT_VALUE));
     }
 
     @Test
     public void returnsValueForCorrectKey(){
-        String value = abstractRequestReaderImpl.getParameter(TEST_PARAMETER_KEY);
+        String value = njamsRequestReader.getParameter(TEST_PARAMETER_KEY);
         assertNotNull(value);
         assertEquals(TEST_PARAMETER_VALUE, value);
     }
@@ -210,9 +211,9 @@ public class AbstractRequestReaderTest {
     @Test
     public void checkToStringForResponseWriter() throws IOException {
         Request requestToSet = createRealRequest();
-        abstractRequestReaderImpl = new AbstractRequestReaderImpl(requestToSet);
+        njamsRequestReader = new NjamsRequestReader(requestToSet);
 
-        String requestAsString = abstractRequestReaderImpl.toString();
+        String requestAsString = njamsRequestReader.toString();
         System.out.println(requestAsString);
         assertToStringCreatesSerializableOutput(requestToSet, requestAsString);
     }
@@ -241,20 +242,12 @@ public class AbstractRequestReaderTest {
 
     @Test
     public void toStringReturnsEmptyJsonForNullResponse() {
-        String s = abstractRequestReaderWithNull.toString();
+        String s = njamsRequestReaderWithNull.toString();
         assertEquals(s, "null");
     }
 
     @Test(expected = NjamsSdkRuntimeException.class)
     public void toStringThrowsNjamsSdkRuntimeExceptionWithMockedResponse() {
-        abstractRequestReaderImpl.toString();
-    }
-
-//Private helper class
-
-    private class AbstractRequestReaderImpl extends AbstractRequestReader {
-        protected AbstractRequestReaderImpl(Request requestToRead) {
-            super(requestToRead);
-        }
+        njamsRequestReader.toString();
     }
 }

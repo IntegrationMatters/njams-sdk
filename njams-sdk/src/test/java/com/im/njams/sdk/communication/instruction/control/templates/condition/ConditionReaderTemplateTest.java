@@ -131,8 +131,9 @@ public class ConditionReaderTemplateTest {
         verify(conditionReaderTemplate, times(2)).setReaderAndWriter();
 
         if (parseCharToBoolean(trueOrFalseChars[0])) {
-            verify(conditionReaderTemplate).processConditionInstruction();
             verify(conditionReaderTemplate).resetConditionFacade();
+            verify(conditionReaderTemplate).setDefaultSuccessResponse();
+            verify(conditionReaderTemplate).processConditionInstruction();
             if (!parseCharToBoolean(trueOrFalseChars[1])) {
                 verify(conditionReaderTemplate).logProcessingSuccess();
                 verify(conditionReaderTemplate, times(0)).getProcessingDidntWorkMessage(njamsInstructionExceptionMock);
@@ -148,6 +149,7 @@ public class ConditionReaderTemplateTest {
             verify(conditionReaderTemplate, times(0)).logInvalidParameters(any());
         } else {
             verify(conditionReaderTemplate, times(0)).resetConditionFacade();
+            verify(conditionReaderTemplate, times(0)).setDefaultSuccessResponse();
             verify(conditionReaderTemplate, times(0)).processConditionInstruction();
             verify(conditionReaderTemplate, times(0)).logProcessingSuccess();
             verify(conditionReaderTemplate, times(0)).getProcessingDidntWorkMessage(any());

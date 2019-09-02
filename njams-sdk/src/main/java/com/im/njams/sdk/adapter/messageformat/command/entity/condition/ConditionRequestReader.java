@@ -25,8 +25,8 @@ import com.faizsiegeln.njams.messageformat.v4.projectmessage.Extract;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.LogLevel;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.LogMode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.im.njams.sdk.adapter.messageformat.command.entity.AbstractInstruction;
-import com.im.njams.sdk.adapter.messageformat.command.entity.defaults.DefaultRequestReader;
+import com.im.njams.sdk.adapter.messageformat.command.entity.NjamsInstruction;
+import com.im.njams.sdk.adapter.messageformat.command.entity.NjamsRequestReader;
 import com.im.njams.sdk.api.adapter.messageformat.command.NjamsInstructionException;
 import com.im.njams.sdk.common.DateTimeUtility;
 import com.im.njams.sdk.common.JsonSerializerFactory;
@@ -39,12 +39,17 @@ import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
-public class ConditionRequestReader extends DefaultRequestReader {
+public class ConditionRequestReader extends NjamsRequestReader {
 
     private ObjectMapper mapper = JsonSerializerFactory.getDefaultMapper();
 
-    protected ConditionRequestReader(Request requestToRead) {
-        super(requestToRead);
+    /**
+     * Sets the underlying request
+     *
+     * @param requestToReadFrom the request to set
+     */
+    public ConditionRequestReader(Request requestToReadFrom) {
+        super(requestToReadFrom);
     }
 
     public String getProcessPath() {
@@ -121,7 +126,7 @@ public class ConditionRequestReader extends DefaultRequestReader {
         }
         if (foundEnumParameter == null) {
             throw new NjamsInstructionException(
-                    AbstractInstruction.UNABLE_TO_DESERIALZE_OBJECT + "\"" + enumParameterToParse + "\"" + " to " +
+                    NjamsInstruction.UNABLE_TO_DESERIALIZE_OBJECT + "\"" + enumParameterToParse + "\"" + " to " +
                     enumeration.getSimpleName());
         }
         return foundEnumParameter;
@@ -132,7 +137,7 @@ public class ConditionRequestReader extends DefaultRequestReader {
             return mapper.readValue(objectToParse, type);
         } catch (IOException parsingException) {
             throw new NjamsInstructionException(
-                    AbstractInstruction.UNABLE_TO_DESERIALZE_OBJECT + "\"" + objectToParse + "\"" + " to " +
+                    NjamsInstruction.UNABLE_TO_DESERIALIZE_OBJECT + "\"" + objectToParse + "\"" + " to " +
                     type.getSimpleName(), parsingException);
         }
     }
@@ -144,7 +149,7 @@ public class ConditionRequestReader extends DefaultRequestReader {
         try {
             return DateTimeUtility.fromString(localDateTimeString);
         } catch (RuntimeException parsingException) {
-            throw new NjamsInstructionException(AbstractInstruction.UNABLE_TO_DESERIALZE_OBJECT + localDateTimeString,
+            throw new NjamsInstructionException(NjamsInstruction.UNABLE_TO_DESERIALIZE_OBJECT + localDateTimeString,
                     parsingException);
         }
     }
@@ -153,7 +158,7 @@ public class ConditionRequestReader extends DefaultRequestReader {
         try {
             return Integer.parseInt(integerAsString);
         } catch (NumberFormatException invalidIntegerException) {
-            throw new NjamsInstructionException(AbstractInstruction.UNABLE_TO_DESERIALZE_OBJECT + integerAsString,
+            throw new NjamsInstructionException(NjamsInstruction.UNABLE_TO_DESERIALIZE_OBJECT + integerAsString,
                     invalidIntegerException);
         }
     }
