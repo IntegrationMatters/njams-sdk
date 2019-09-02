@@ -29,6 +29,9 @@ import com.im.njams.sdk.api.adapter.messageformat.command.Instruction;
 /**
  * This class wraps an {@link com.faizsiegeln.njams.messageformat.v4.command.Instruction messageFormatInstruction}
  * inside a {@link Instruction apiInstruction}.
+ *
+ * @author krautenberg
+ * @version 4.1.0
  */
 public class NjamsInstructionWrapper {
 

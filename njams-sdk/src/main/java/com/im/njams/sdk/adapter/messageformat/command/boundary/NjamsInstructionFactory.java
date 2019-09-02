@@ -29,10 +29,27 @@ import com.im.njams.sdk.common.JsonSerializerFactory;
 
 import java.io.IOException;
 
+/**
+ * This class creates {@link Instruction instructions} for (non-) serialized
+ * {@link com.faizsiegeln.njams.messageformat.v4.command.Instruction messageFormatInstructions}.
+ *
+ * @author krautenberg
+ * @version 4.1.0
+ */
 public class NjamsInstructionFactory implements InstructionFactory {
 
     private final ObjectMapper instructionParser = JsonSerializerFactory.getDefaultMapper();
 
+    /**
+     * This method creates a {@link Instruction instruction} for the
+     * {@link com.faizsiegeln.njams.messageformat.v4.command.Instruction messageFormatInstruction} as String.
+     *
+     * @param messageFormatInstructionAsJsonString the
+     * {@link com.faizsiegeln.njams.messageformat.v4.command.Instruction messageFormatInstruction} as Json String.
+     * @return {@link Instruction Instruction} that wraps the
+     * {@link com.faizsiegeln.njams.messageformat.v4.command.Instruction messageFormatInstruction}.
+     * @throws NjamsInstructionException the parameters is not a valid Json.
+     */
     @Override
     public Instruction getInstructionOf(String messageFormatInstructionAsJsonString) throws NjamsInstructionException {
         try {
@@ -52,6 +69,15 @@ public class NjamsInstructionFactory implements InstructionFactory {
                 com.faizsiegeln.njams.messageformat.v4.command.Instruction.class);
     }
 
+    /**
+     * This method creates a {@link Instruction instruction} for the
+     * {@link com.faizsiegeln.njams.messageformat.v4.command.Instruction messageFormatInstruction}.
+     *
+     * @param messageFormatInstruction the {@link com.faizsiegeln.njams.messageformat.v4.command.Instruction
+     * messageFormatInstruction} to wrap.
+     * @return {@link Instruction Instruction} that wraps the
+     * {@link com.faizsiegeln.njams.messageformat.v4.command.Instruction messageFormatInstruction}.
+     */
     public Instruction getInstructionOf(com.faizsiegeln.njams.messageformat.v4.command.Instruction messageFormatInstruction) {
         NjamsInstructionWrapper njamsInstructionWrapper = new NjamsInstructionWrapper(messageFormatInstruction);
         return njamsInstructionWrapper.wrap();
