@@ -33,7 +33,7 @@ import java.lang.reflect.InvocationTargetException;
  * @author krautenberg
  * @version 4.1.0
  */
-public class ResponseWriterFactory {
+class ResponseWriterFactory {
 
     private static final Logger LOG = LoggerFactory.getLogger(ResponseWriterFactory.class);
 

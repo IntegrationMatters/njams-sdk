@@ -1,13 +1,21 @@
 /*
  * Copyright (c) 2019 Faiz & Siegeln Software GmbH
  *
- * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
+ * documentation files (the "Software"), to deal in the Software without restriction, including without limitation
+ * the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and
+ * to permit persons to whom the Software is furnished to do so, subject to the following conditions:
  *
- * The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+ * The above copyright notice and this permission notice shall be included in all copies or substantial portions of
+ * the Software.
  *
  * The Software shall be used for Good, not Evil.
  *
- *  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ *  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
+ * THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
+ * CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
  */
 
 package com.im.njams.sdk.adapter.messageformat.command.entity;
@@ -29,13 +37,13 @@ public class RequestReaderFactoryTest {
     private Request requestMock;
 
     @Before
-    public void initialize(){
+    public void initialize() {
         requestMock = mock(Request.class);
         when(requestMock.getCommand()).thenReturn(COMMAND);
     }
 
     @Test
-    public void createNjamsRequestReader(){
+    public void createNjamsRequestReader() {
         NjamsRequestReader requestReader = RequestReaderFactory.create(requestMock, NjamsRequestReader.class);
         assertEquals(requestReader.getCommand(), COMMAND);
 
@@ -45,7 +53,7 @@ public class RequestReaderFactoryTest {
     }
 
     @Test
-    public void createReplayRequestReader(){
+    public void createReplayRequestReader() {
         NjamsRequestReader requestReader = RequestReaderFactory.create(requestMock, ReplayRequestReader.class);
         assertEquals(requestReader.getCommand(), COMMAND);
 
@@ -55,7 +63,7 @@ public class RequestReaderFactoryTest {
     }
 
     @Test
-    public void createConditionRequestReader(){
+    public void createConditionRequestReader() {
         NjamsRequestReader requestReader = RequestReaderFactory.create(requestMock, ConditionRequestReader.class);
         assertEquals(requestReader.getCommand(), COMMAND);
 
@@ -65,7 +73,7 @@ public class RequestReaderFactoryTest {
     }
 
     @Test
-    public void createRequestReaderImpl(){
+    public void createRequestReaderImpl() {
         NjamsRequestReader requestReader = RequestReaderFactory.create(requestMock, RequestReaderImpl.class);
         assertEquals(requestReader.getCommand(), COMMAND);
 
@@ -75,7 +83,7 @@ public class RequestReaderFactoryTest {
         assertTrue(requestReader instanceof RequestReaderImpl);
     }
 
-    private static class RequestReaderImpl extends NjamsRequestReader{
+    private static class RequestReaderImpl extends NjamsRequestReader {
 
         /**
          * Sets the underlying request

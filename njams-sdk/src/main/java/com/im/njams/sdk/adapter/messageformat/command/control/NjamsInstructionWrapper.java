@@ -26,16 +26,35 @@ import com.im.njams.sdk.adapter.messageformat.command.entity.condition.Condition
 import com.im.njams.sdk.adapter.messageformat.command.entity.replay.ReplayInstruction;
 import com.im.njams.sdk.api.adapter.messageformat.command.Instruction;
 
+/**
+ * This class wraps an {@link com.faizsiegeln.njams.messageformat.v4.command.Instruction messageFormatInstruction}
+ * inside a {@link Instruction apiInstruction}.
+ */
 public class NjamsInstructionWrapper {
 
     private com.faizsiegeln.njams.messageformat.v4.command.Instruction instructionToWrap;
 
     private Instruction wrappedInstruction;
 
+    /**
+     * Creates an NjamsInstructionWrapper that can wrap a
+     * {@link com.faizsiegeln.njams.messageformat.v4.command.Instruction messageFormatInstruction} inside
+     * a {@link Instruction apiInstruction}.
+     *
+     * @param instructionToWrap the {@link com.faizsiegeln.njams.messageformat.v4.command.Instruction
+     *                          messageFormatInstruction} that needs to be wrapped.
+     */
     public NjamsInstructionWrapper(com.faizsiegeln.njams.messageformat.v4.command.Instruction instructionToWrap) {
         this.instructionToWrap = instructionToWrap;
     }
 
+    /**
+     * Wraps the {@link com.faizsiegeln.njams.messageformat.v4.command.Instruction messageFormatInstruction} in a
+     * {@link Instruction apiInstruction}.
+     *
+     * @return the {@link Instruction apiInstruction} that wraps the
+     * {@link com.faizsiegeln.njams.messageformat.v4.command.Instruction messageFormatInstruction}.
+     */
     public Instruction wrap() {
         if (!isInstructionWrapped()) {
             wrapInstruction();
