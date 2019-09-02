@@ -80,15 +80,6 @@ public class NjamsResponseWriter<W extends NjamsResponseWriter<W>> implements In
         return isResultCodeDefault && isResultMessageDefault && isDateTimeDefault && areParametersDefault ;
     }
 
-    private boolean parametersHaventChanged() {
-        return responseToWrite.getParameters() == null ? false : responseToWrite
-                .getParameters().isEmpty();
-    }
-
-    private boolean dateTimeHasntChanged() {
-        return responseToWrite.getDateTime() == null;
-    }
-
     private boolean resultCodeHasntChanged() {
         return responseToWrite.getResultCode() == ResultCode.SUCCESS.getResultCode();
     }
@@ -97,6 +88,14 @@ public class NjamsResponseWriter<W extends NjamsResponseWriter<W>> implements In
         return responseToWrite.getResultMessage() == null;
     }
 
+    private boolean dateTimeHasntChanged() {
+        return responseToWrite.getDateTime() == null;
+    }
+
+    private boolean parametersHaventChanged() {
+        return responseToWrite.getParameters() == null ? false : responseToWrite
+                .getParameters().isEmpty();
+    }
 
     /**
      * Sets the {@link ResultCode ResultCode} to the {@link Response response}.

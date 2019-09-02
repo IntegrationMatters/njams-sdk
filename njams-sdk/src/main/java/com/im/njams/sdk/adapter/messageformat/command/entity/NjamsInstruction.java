@@ -121,7 +121,7 @@ public class NjamsInstruction<R extends NjamsRequestReader, W extends NjamsRespo
     }
 
     /**
-     * Returns the corresponding NjamsRequestReader to the {@link Instruction instruction}.
+     * Returns the corresponding {@link R NjamsRequestReader} to the {@link Instruction instruction}.
      *
      * @return instance of a RequestReader
      */
@@ -131,7 +131,7 @@ public class NjamsInstruction<R extends NjamsRequestReader, W extends NjamsRespo
     }
 
     /**
-     * Returns the corresponding NjamsResponseWriter to the {@link Instruction instruction}
+     * Returns the corresponding {@link W NjamsResponseWriter} to the {@link Instruction instruction}
      *
      * @return instance of a ResponseWriter
      */
