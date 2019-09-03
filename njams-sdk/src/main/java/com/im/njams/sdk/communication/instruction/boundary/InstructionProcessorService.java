@@ -129,7 +129,7 @@ public class InstructionProcessorService {
 
         private void logResponseForProcessedRequest() {
             if (LOG.isDebugEnabled()) {
-                LOG.debug("Created response for command {}", command);
+                LOG.debug("Created response for command: {}", command);
             }
             if (LOG.isTraceEnabled()) {
                 try {

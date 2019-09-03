@@ -23,7 +23,7 @@ package com.im.njams.sdk.api.communication.instruction;
 import com.im.njams.sdk.api.adapter.messageformat.command.Instruction;
 
 /**
- * This interface provides a method to process an {@link Instruction instruction} that was sent by the server.
+ * This interface provides functionality to process an {@link Instruction instruction} that was sent by the server.
  *
  * @author krautenberg
  * @version 4.1.0

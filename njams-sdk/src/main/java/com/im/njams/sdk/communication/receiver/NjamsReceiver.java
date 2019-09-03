@@ -23,33 +23,48 @@ package com.im.njams.sdk.communication.receiver;
 import com.im.njams.sdk.api.adapter.messageformat.command.Instruction;
 import com.im.njams.sdk.api.communication.instruction.InstructionListener;
 import com.im.njams.sdk.communication.instruction.boundary.InstructionProcessorService;
-import com.im.njams.sdk.communication.instruction.control.InstructionProcessor;
 
+/**
+ * This class provides functionality to process an {@link Instruction instruction} that was sent by the server.
+ *
+ * @author krautenberg
+ * @version 4.1.0
+ */
 public class NjamsReceiver implements InstructionListener {
 
     private InstructionProcessorService instructionProcessorService;
 
+    /**
+     * Initializes to process the incoming instructions correctly.
+     */
     public NjamsReceiver() {
         this.instructionProcessorService = new InstructionProcessorService();
     }
 
+    /**
+     * Processes the {@link Instruction Instruction}.
+     *
+     * @param instruction the instruction with the given {@link Instruction.RequestReader request} and
+     *                    {@link Instruction.ResponseWriter response}.
+     */
     @Override
     public void onInstruction(Instruction instruction) {
         instructionProcessorService.processInstruction(instruction);
     }
 
-    public void putInstructionProcessor(String commandToListenTo, InstructionProcessor instructionProcessor) {
-        instructionProcessorService.putInstructionProcessor(commandToListenTo, instructionProcessor);
+    /**
+     * Returns the {@link InstructionProcessorService InstructionProcessorService} that is actually used to process
+     * the {@link Instruction instruction} from the server.
+     *
+     * @return the instructionProcessorService that is used to process instructions.
+     */
+    public InstructionProcessorService getInstructionProcessorService() {
+        return instructionProcessorService;
     }
 
-    public InstructionProcessor getInstructionProcessor(String commandToListenTo) {
-        return instructionProcessorService.getInstructionProcessor(commandToListenTo);
-    }
-
-    public void removeInstructionProcessor(String commandToListenTo) {
-        instructionProcessorService.removeInstructionProcessor(commandToListenTo);
-    }
-
+    /**
+     * Stops to listen to the instructions.
+     */
     @Override
     public void close() {
         instructionProcessorService.stop();
