@@ -24,20 +24,41 @@ import com.im.njams.sdk.api.communication.Communication;
 import com.im.njams.sdk.api.communication.instruction.InstructionListener;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 
+/**
+ * This class provides functionality for receiving instructions from the server.
+ *
+ * @author krautenberg
+ * @version 4.1.0
+ */
 public class CommunicationFacade implements Communication {
 
     private InstructionListener instructionListener;
 
+    /**
+     * Sets the {@link InstructionListener instructionListener} that is responsible for processing the incoming
+     * instructions correctly.
+     *
+     * @param instructionListener the instructionListener to process instructions correctly.
+     */
     @Override
     public void setInstructionListener(InstructionListener instructionListener) {
         this.instructionListener = instructionListener;
     }
 
+    /**
+     * Returns the {@link InstructionListener instructionListener} that is currently responsible for processing the
+     * incoming instructions.
+     *
+     * @return the instructionListener that processes the incoming instructions.
+     */
     @Override
     public InstructionListener getInstructionListener() {
         return instructionListener;
     }
 
+    /**
+     * Stops the processing of the incoming instructions.
+     */
     @Override
     public void stop() {
         try {
