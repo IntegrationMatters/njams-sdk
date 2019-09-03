@@ -25,6 +25,7 @@ import com.faizsiegeln.njams.messageformat.v4.command.Response;
 import com.im.njams.sdk.adapter.messageformat.command.entity.NjamsInstruction;
 import com.im.njams.sdk.api.adapter.messageformat.command.Instruction;
 import com.im.njams.sdk.communication.receiver.instruction.boundary.InstructionProcessorService;
+import com.im.njams.sdk.communication.receiver.instruction.control.InstructionProcessor;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -32,8 +33,6 @@ import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
 
 public class NjamsReceiverTest {
-
-    private static final String TEST_COMMAND = "Test";
 
     private NjamsReceiver njamsReceiver;
 
@@ -45,12 +44,13 @@ public class NjamsReceiverTest {
 
     private Response response;
 
+
     @Before
     public void initialize() {
         njamsReceiver = spy(new NjamsReceiver());
         messageFormatInstruction = spy(new com.faizsiegeln.njams.messageformat.v4.command.Instruction());
         request = spy(new Request());
-        request.setCommand(TEST_COMMAND);
+        request.setCommand(InstructionProcessorImpl.TEST_COMMAND);
         response = spy(new Response());
         messageFormatInstruction.setRequest(request);
         messageFormatInstruction.setResponse(response);
@@ -68,11 +68,10 @@ public class NjamsReceiverTest {
     @Test
     public void onInstructionWithCorrespondingInstructionProcessor() {
         InstructionProcessorService instructionProcessorService = njamsReceiver.getInstructionProcessorService();
-        instructionProcessorService.putInstructionProcessor(TEST_COMMAND,
-                (instruction) -> instruction.getResponseWriter().setResultMessage(TEST_COMMAND));
+        instructionProcessorService.addInstructionProcessor(new InstructionProcessorImpl());
 
         njamsReceiver.onInstruction(instruction);
-        assertEquals(TEST_COMMAND, response.getResultMessage());
+        assertEquals(InstructionProcessorImpl.TEST_COMMAND, response.getResultMessage());
     }
 
 //GetInstructionProcessorService tests
@@ -87,12 +86,11 @@ public class NjamsReceiverTest {
     @Test
     public void closeRemovesAllInstructionProcessorsFromInstructionProcessorService() {
         InstructionProcessorService instructionProcessorService = njamsReceiver.getInstructionProcessorService();
-        instructionProcessorService.putInstructionProcessor(TEST_COMMAND,
-                (instruction) -> instruction.getResponseWriter().setResultMessage(TEST_COMMAND));
+        instructionProcessorService.addInstructionProcessor(new InstructionProcessorImpl());
 
-        assertNotNull(instructionProcessorService.getInstructionProcessor(TEST_COMMAND));
+        assertNotNull(instructionProcessorService.getInstructionProcessor(InstructionProcessorImpl.TEST_COMMAND));
         njamsReceiver.close();
-        assertNull(instructionProcessorService.getInstructionProcessor(TEST_COMMAND));
+        assertNull(instructionProcessorService.getInstructionProcessor(InstructionProcessorImpl.TEST_COMMAND));
     }
 
     @Test
@@ -100,5 +98,20 @@ public class NjamsReceiverTest {
         njamsReceiver.close();
         njamsReceiver.onInstruction(instruction);
         assertFalse(instruction.getResponseWriter().isEmpty());
+    }
+
+    private static class InstructionProcessorImpl implements InstructionProcessor {
+
+        private static final String TEST_COMMAND = "Test";
+
+        @Override
+        public String getCommandToListenTo() {
+            return TEST_COMMAND;
+        }
+
+        @Override
+        public void processInstruction(Instruction instructionToProcess) {
+            instructionToProcess.getResponseWriter().setResultMessage(TEST_COMMAND);
+        }
     }
 }

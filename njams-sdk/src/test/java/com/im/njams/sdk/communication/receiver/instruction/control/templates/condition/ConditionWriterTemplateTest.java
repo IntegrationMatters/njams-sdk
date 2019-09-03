@@ -80,5 +80,10 @@ public class ConditionWriterTemplateTest {
         protected void configureCondition() throws NjamsInstructionException {
 
         }
+
+        @Override
+        public String getCommandToListenTo() {
+            return null;
+        }
     }
 }

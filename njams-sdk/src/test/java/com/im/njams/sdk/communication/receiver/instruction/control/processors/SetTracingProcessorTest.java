@@ -45,6 +45,11 @@ public class SetTracingProcessorTest extends AbstractConfigurationProcessorHelpe
     }
 
     @Test
+    public void getCommandToListenToIsCorrect(){
+        assertEquals(SET_TRACING.commandString(), setTracingProcessor.getCommandToListenTo());
+    }
+
+    @Test
     public void setTracingWithoutAnyNeededParameters() throws NjamsInstructionException {
         instructionBuilder.prepareInstruction(SET_TRACING);
         checkResultMessageForMissingsParameters(setTracingProcessor, TestInstructionBuilder.PROCESSPATH_KEY,

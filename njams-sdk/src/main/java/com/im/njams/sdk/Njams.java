@@ -23,7 +23,6 @@
  */
 package com.im.njams.sdk;
 
-import com.faizsiegeln.njams.messageformat.v4.command.Command;
 import com.faizsiegeln.njams.messageformat.v4.common.CommonMessage;
 import com.faizsiegeln.njams.messageformat.v4.common.TreeElement;
 import com.faizsiegeln.njams.messageformat.v4.common.TreeElementType;
@@ -358,30 +357,21 @@ public class Njams implements Client {
 
     private void addInstructionProcessors() {
         NjamsReceiver instructionListener = (NjamsReceiver) newCommunicationFacade.getInstructionListener();
+
         InstructionProcessorService instructionProcessorService = instructionListener.getInstructionProcessorService();
-        instructionProcessorService.putInstructionProcessor(Command.SEND_PROJECTMESSAGE.commandString(),
-                new SendProjectMessageProcessor(this));
-        instructionProcessorService.putInstructionProcessor(Command.CONFIGURE_EXTRACT.commandString(),
-                new ConfigureExtractProcessor(this));
-        instructionProcessorService
-                .putInstructionProcessor(Command.DELETE_EXTRACT.commandString(), new DeleteExtractProcessor(this));
-        instructionProcessorService
-                .putInstructionProcessor(Command.GET_EXTRACT.commandString(), new GetExtractProcessor(this));
-        instructionProcessorService
-                .putInstructionProcessor(Command.GET_LOG_LEVEL.commandString(), new GetLogLevelProcessor(this));
-        instructionProcessorService
-                .putInstructionProcessor(Command.GET_LOG_MODE.commandString(), new GetLogModeProcessor(this));
-        instructionProcessorService
-                .putInstructionProcessor(Command.GET_TRACING.commandString(), new GetTracingProcessor(this));
-        instructionProcessorService.putInstructionProcessor(Command.RECORD.commandString(), new RecordProcessor(this));
-        instructionProcessorService
-                .putInstructionProcessor(Command.SET_LOG_LEVEL.commandString(), new SetLogLevelProcessor(this));
-        instructionProcessorService
-                .putInstructionProcessor(Command.SET_LOG_MODE.commandString(), new SetLogModeProcessor(this));
-        instructionProcessorService
-                .putInstructionProcessor(Command.SET_TRACING.commandString(), new SetTracingProcessor(this));
-        instructionProcessorService.putInstructionProcessor(Command.REPLAY.commandString(),
-                new ReplayProcessor(getPluginStorage().getReplayPlugin()));
+
+        instructionProcessorService.addInstructionProcessor(new SendProjectMessageProcessor(this));
+        instructionProcessorService.addInstructionProcessor(new ConfigureExtractProcessor(this));
+        instructionProcessorService.addInstructionProcessor(new DeleteExtractProcessor(this));
+        instructionProcessorService.addInstructionProcessor(new GetExtractProcessor(this));
+        instructionProcessorService.addInstructionProcessor(new GetLogLevelProcessor(this));
+        instructionProcessorService.addInstructionProcessor(new GetLogModeProcessor(this));
+        instructionProcessorService.addInstructionProcessor(new GetTracingProcessor(this));
+        instructionProcessorService.addInstructionProcessor(new RecordProcessor(this));
+        instructionProcessorService.addInstructionProcessor(new SetLogLevelProcessor(this));
+        instructionProcessorService.addInstructionProcessor(new SetLogModeProcessor(this));
+        instructionProcessorService.addInstructionProcessor(new SetTracingProcessor(this));
+        instructionProcessorService.addInstructionProcessor(new ReplayProcessor(getPluginStorage().getReplayPlugin()));
     }
 
     /**

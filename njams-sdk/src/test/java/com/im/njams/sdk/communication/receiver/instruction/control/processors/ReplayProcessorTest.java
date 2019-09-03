@@ -29,6 +29,8 @@ import com.im.njams.sdk.communication.receiver.instruction.control.processors.Re
 import org.junit.Before;
 import org.junit.Test;
 
+import static com.faizsiegeln.njams.messageformat.v4.command.Command.RECORD;
+import static com.faizsiegeln.njams.messageformat.v4.command.Command.REPLAY;
 import static com.im.njams.sdk.communication.receiver.instruction.control.processors.ReplayProcessor.EXCEPTION_WAS_THROWN_WHILE_REPLAYING;
 import static com.im.njams.sdk.communication.receiver.instruction.control.processors.ReplayProcessor.REPLAY_PLUGIN_NOT_SET;
 import static org.junit.Assert.assertEquals;
@@ -71,6 +73,11 @@ public class ReplayProcessorTest {
 
         runtimeExceptionMock = mock(RuntimeException.class);
         when(runtimeExceptionMock.getMessage()).thenReturn(RUNTIME_EXCEPTION_MESSAGE);
+    }
+
+    @Test
+    public void getCommandToListenToIsCorrect(){
+        assertEquals(REPLAY.commandString(), replayProcessor.getCommandToListenTo());
     }
 
 //CanReplay tests

@@ -87,5 +87,10 @@ public class DefaultProcessorTemplateTest {
         protected void setInstructionResponse() {
             //Do nothing
         }
+
+        @Override
+        public String getCommandToListenTo() {
+            return null;
+        }
     }
 }

@@ -19,6 +19,7 @@
  */
 package com.im.njams.sdk.communication.receiver.instruction.control.processors;
 
+import com.faizsiegeln.njams.messageformat.v4.command.Command;
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.adapter.messageformat.command.entity.condition.ConditionConstants;
 import com.im.njams.sdk.api.adapter.messageformat.command.NjamsInstructionException;
@@ -53,6 +54,11 @@ public class SetTracingProcessor extends ConditionWriterTemplate {
 
     public SetTracingProcessor(Njams njams) {
         super(njams);
+    }
+
+    @Override
+    public String getCommandToListenTo(){
+        return Command.SET_TRACING.commandString();
     }
 
     @Override

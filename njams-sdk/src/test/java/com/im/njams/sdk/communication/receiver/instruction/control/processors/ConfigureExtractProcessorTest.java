@@ -47,6 +47,11 @@ public class ConfigureExtractProcessorTest extends AbstractConfigurationProcesso
     }
 
     @Test
+    public void getCommandToListenToIsCorrect(){
+        assertEquals(CONFIGURE_EXTRACT.commandString(), configureExtractProcessor.getCommandToListenTo());
+    }
+
+    @Test
     public void configureExtractWithoutAnyNeededParameters() throws NjamsInstructionException {
         instructionBuilder.prepareInstruction(CONFIGURE_EXTRACT);
         checkResultMessageForMissingsParameters(configureExtractProcessor, TestInstructionBuilder.PROCESSPATH_KEY,

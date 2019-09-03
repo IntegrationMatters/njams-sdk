@@ -29,6 +29,7 @@ import org.junit.Test;
 
 import java.util.Map;
 
+import static com.faizsiegeln.njams.messageformat.v4.command.Command.GET_LOG_LEVEL;
 import static com.faizsiegeln.njams.messageformat.v4.command.Command.GET_LOG_MODE;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
@@ -42,6 +43,11 @@ public class GetLogModeProcessorTest extends AbstractConfigurationProcessorHelpe
     @Before
     public void setNewProcessor() {
         getLogModeProcessor = spy(new GetLogModeProcessor(njamsMock));
+    }
+
+    @Test
+    public void getCommandToListenToIsCorrect(){
+        assertEquals(GET_LOG_MODE.commandString(), getLogModeProcessor.getCommandToListenTo());
     }
 
     @Test

@@ -19,6 +19,7 @@
  */
 package com.im.njams.sdk.communication.receiver.instruction.control.processors;
 
+import com.faizsiegeln.njams.messageformat.v4.command.Command;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.Extract;
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.adapter.messageformat.command.entity.condition.ConditionConstants;
@@ -39,6 +40,11 @@ public class GetExtractProcessor extends ConditionReaderTemplate {
 
     public GetExtractProcessor(Njams njams) {
         super(njams);
+    }
+
+    @Override
+    public String getCommandToListenTo(){
+        return Command.GET_EXTRACT.commandString();
     }
 
     @Override

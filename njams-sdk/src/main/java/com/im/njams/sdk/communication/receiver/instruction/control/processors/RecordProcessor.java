@@ -19,6 +19,7 @@
  */
 package com.im.njams.sdk.communication.receiver.instruction.control.processors;
 
+import com.faizsiegeln.njams.messageformat.v4.command.Command;
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.communication.receiver.instruction.control.templates.condition.ConditionWriterTemplate;
 import com.im.njams.sdk.configuration.entity.ProcessConfiguration;
@@ -40,6 +41,11 @@ public class RecordProcessor extends ConditionWriterTemplate {
 
     public RecordProcessor(Njams njams) {
         super(njams);
+    }
+
+    @Override
+    public String getCommandToListenTo(){
+        return Command.RECORD.commandString();
     }
 
     @Override

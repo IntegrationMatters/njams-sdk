@@ -155,5 +155,10 @@ public class ReplayProcessorTemplateTest {
         protected void setCantReplayResponse() {
             //Do nothing
         }
+
+        @Override
+        public String getCommandToListenTo() {
+            return null;
+        }
     }
 }

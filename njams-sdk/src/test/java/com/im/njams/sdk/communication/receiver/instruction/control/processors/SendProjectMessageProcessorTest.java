@@ -22,11 +22,13 @@ package com.im.njams.sdk.communication.receiver.instruction.control.processors;
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.adapter.messageformat.command.entity.NjamsResponseWriter;
 import com.im.njams.sdk.api.adapter.messageformat.command.ResultCode;
-import com.im.njams.sdk.communication.receiver.instruction.control.processors.SendProjectMessageProcessor;
 import org.junit.Before;
 import org.junit.Test;
 
+import static com.faizsiegeln.njams.messageformat.v4.command.Command.REPLAY;
+import static com.faizsiegeln.njams.messageformat.v4.command.Command.SEND_PROJECTMESSAGE;
 import static com.im.njams.sdk.communication.receiver.instruction.control.processors.SendProjectMessageProcessor.SUCCESS_RESULT_MESSAGE;
+import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.*;
 
 public class SendProjectMessageProcessorTest {
@@ -41,6 +43,11 @@ public class SendProjectMessageProcessorTest {
     }
 
 //ProcessDefaultInstruction tests
+
+    @Test
+    public void getCommandToListenToIsCorrect(){
+        assertEquals(SEND_PROJECTMESSAGE.commandString(), sendProjectMessageProcessor.getCommandToListenTo());
+    }
 
     @Test
     public void testProcessDefaultInstruction() {

@@ -25,5 +25,7 @@ import com.im.njams.sdk.api.adapter.messageformat.command.Instruction;
 
 public interface InstructionProcessor<T extends Instruction> {
 
+    String getCommandToListenTo();
+
     void processInstruction(T instructionToProcess);
 }

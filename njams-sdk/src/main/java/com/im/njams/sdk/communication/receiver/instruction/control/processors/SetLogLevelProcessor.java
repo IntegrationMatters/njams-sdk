@@ -19,6 +19,7 @@
  */
 package com.im.njams.sdk.communication.receiver.instruction.control.processors;
 
+import com.faizsiegeln.njams.messageformat.v4.command.Command;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.LogLevel;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.LogMode;
 import com.im.njams.sdk.Njams;
@@ -48,6 +49,11 @@ public class SetLogLevelProcessor extends ConditionWriterTemplate {
     private boolean excludedToSet;
 
     private LogMode logModeToSet;
+
+    @Override
+    public String getCommandToListenTo(){
+        return Command.SET_LOG_LEVEL.commandString();
+    }
 
     @Override
     protected String[] getEssentialParametersForProcessing() {

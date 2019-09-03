@@ -28,6 +28,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.verification.VerificationMode;
 
+import static com.faizsiegeln.njams.messageformat.v4.command.Command.DELETE_EXTRACT;
 import static com.im.njams.sdk.api.adapter.messageformat.command.Instruction.RequestReader.EMPTY_STRING;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.*;
@@ -65,6 +66,13 @@ public class FallbackProcessorTest {
     @Test
     public void afterInit() {
         assertEquals(EMPTY_STRING, fallbackProcessor.warningMessage);
+    }
+
+//GetCommandToListenTo tests
+
+    @Test
+    public void getCommandToListenToIsCorrect(){
+        assertEquals("", fallbackProcessor.getCommandToListenTo());
     }
 
 //ProcessDefaultInstruction tests

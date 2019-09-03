@@ -27,9 +27,9 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
+import static com.faizsiegeln.njams.messageformat.v4.command.Command.GET_TRACING;
 import static com.faizsiegeln.njams.messageformat.v4.command.Command.RECORD;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
 
 public class RecordProcessorTest extends AbstractConfigurationProcessorHelper {
@@ -46,6 +46,10 @@ public class RecordProcessorTest extends AbstractConfigurationProcessorHelper {
         configuration.setRecording(false);
     }
 
+    @Test
+    public void getCommandToListenToIsCorrect(){
+        assertEquals(RECORD.commandString(), recordProcessor.getCommandToListenTo());
+    }
 
     @Test
     public void engineWideRecording() throws NjamsInstructionException {

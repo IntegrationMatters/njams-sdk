@@ -32,6 +32,7 @@ import org.junit.Test;
 import java.time.LocalDateTime;
 import java.util.Map;
 
+import static com.faizsiegeln.njams.messageformat.v4.command.Command.GET_LOG_MODE;
 import static com.faizsiegeln.njams.messageformat.v4.command.Command.GET_TRACING;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
@@ -45,6 +46,11 @@ public class GetTracingProcessorTest extends AbstractConfigurationProcessorHelpe
     @Before
     public void setNewProcessor() {
         getTracingProcessor = spy(new GetTracingProcessor(njamsMock));
+    }
+
+    @Test
+    public void getCommandToListenToIsCorrect(){
+        assertEquals(GET_TRACING.commandString(), getTracingProcessor.getCommandToListenTo());
     }
 
     @Test

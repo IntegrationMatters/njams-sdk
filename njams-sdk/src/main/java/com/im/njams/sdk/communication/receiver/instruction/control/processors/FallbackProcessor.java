@@ -19,6 +19,7 @@
  */
 package com.im.njams.sdk.communication.receiver.instruction.control.processors;
 
+import com.faizsiegeln.njams.messageformat.v4.command.Command;
 import com.im.njams.sdk.adapter.messageformat.command.entity.NjamsRequestReader;
 import com.im.njams.sdk.api.adapter.messageformat.command.ResultCode;
 import com.im.njams.sdk.communication.receiver.instruction.control.templates.DefaultProcessorTemplate;
@@ -33,6 +34,13 @@ import static com.im.njams.sdk.api.adapter.messageformat.command.Instruction.Req
 public class FallbackProcessor extends DefaultProcessorTemplate {
 
     private static final Logger LOG = LoggerFactory.getLogger(FallbackProcessor.class);
+
+    private static final String EMPTY_COMMAND = "";
+
+    @Override
+    public String getCommandToListenTo(){
+        return EMPTY_COMMAND;
+    }
 
     enum InstructionProblem {
         INSTRUCTION_IS_NULL("Instruction is null."),

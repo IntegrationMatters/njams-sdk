@@ -28,9 +28,9 @@ import com.im.njams.sdk.configuration.entity.ProcessConfiguration;
 import org.junit.Before;
 import org.junit.Test;
 
+import static com.faizsiegeln.njams.messageformat.v4.command.Command.CONFIGURE_EXTRACT;
 import static com.faizsiegeln.njams.messageformat.v4.command.Command.DELETE_EXTRACT;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
+import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
 
 public class DeleteExtractProcessorTest extends AbstractConfigurationProcessorHelper {
@@ -40,6 +40,11 @@ public class DeleteExtractProcessorTest extends AbstractConfigurationProcessorHe
     @Before
     public void setNewProcessor() {
         deleteExtractProcessor = spy(new DeleteExtractProcessor(njamsMock));
+    }
+
+    @Test
+    public void getCommandToListenToIsCorrect(){
+        assertEquals(DELETE_EXTRACT.commandString(), deleteExtractProcessor.getCommandToListenTo());
     }
 
     @Test

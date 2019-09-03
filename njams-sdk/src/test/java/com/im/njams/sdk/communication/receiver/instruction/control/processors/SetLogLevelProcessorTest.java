@@ -31,6 +31,7 @@ import org.junit.Test;
 
 import java.util.Map;
 
+import static com.faizsiegeln.njams.messageformat.v4.command.Command.SEND_PROJECTMESSAGE;
 import static com.faizsiegeln.njams.messageformat.v4.command.Command.SET_LOG_LEVEL;
 import static com.im.njams.sdk.adapter.messageformat.command.entity.NjamsInstruction.UNABLE_TO_DESERIALIZE_OBJECT;
 import static org.junit.Assert.*;
@@ -43,6 +44,11 @@ public class SetLogLevelProcessorTest extends AbstractConfigurationProcessorHelp
     @Before
     public void setNewProcessor() {
         setLogLevelProcessor = spy(new SetLogLevelProcessor(njamsMock));
+    }
+
+    @Test
+    public void getCommandToListenToIsCorrect(){
+        assertEquals(SET_LOG_LEVEL.commandString(), setLogLevelProcessor.getCommandToListenTo());
     }
 
     @Test

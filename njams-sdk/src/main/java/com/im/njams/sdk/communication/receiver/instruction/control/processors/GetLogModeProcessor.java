@@ -19,6 +19,7 @@
  */
 package com.im.njams.sdk.communication.receiver.instruction.control.processors;
 
+import com.faizsiegeln.njams.messageformat.v4.command.Command;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.LogMode;
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.communication.receiver.instruction.control.templates.condition.ConditionReaderTemplate;
@@ -34,6 +35,11 @@ public class GetLogModeProcessor extends ConditionReaderTemplate {
 
     public GetLogModeProcessor(Njams njams) {
         super(njams);
+    }
+
+    @Override
+    public String getCommandToListenTo(){
+        return Command.GET_LOG_MODE.commandString();
     }
 
     @Override

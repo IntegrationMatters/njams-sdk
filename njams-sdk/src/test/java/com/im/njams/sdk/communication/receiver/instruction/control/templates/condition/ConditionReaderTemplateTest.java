@@ -318,5 +318,10 @@ public class ConditionReaderTemplateTest {
         protected void logProcessingSuccess() {
 
         }
+
+        @Override
+        public String getCommandToListenTo() {
+            return null;
+        }
     }
 }

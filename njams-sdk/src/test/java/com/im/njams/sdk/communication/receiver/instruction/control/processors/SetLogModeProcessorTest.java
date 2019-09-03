@@ -27,6 +27,7 @@ import org.junit.Test;
 
 import static com.faizsiegeln.njams.messageformat.v4.command.Command.SET_LOG_MODE;
 import static com.im.njams.sdk.adapter.messageformat.command.entity.NjamsInstruction.UNABLE_TO_DESERIALIZE_OBJECT;
+import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 
@@ -37,6 +38,11 @@ public class SetLogModeProcessorTest extends AbstractConfigurationProcessorHelpe
     @Before
     public void setNewProcessor() {
         setLogModeProcessor = spy(new SetLogModeProcessor(njamsMock));
+    }
+
+    @Test
+    public void getCommandToListenToIsCorrect(){
+        assertEquals(SET_LOG_MODE.commandString(), setLogModeProcessor.getCommandToListenTo());
     }
 
     @Test

@@ -19,6 +19,7 @@
  */
 package com.im.njams.sdk.communication.receiver.instruction.control.processors;
 
+import com.faizsiegeln.njams.messageformat.v4.command.Command;
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.api.adapter.messageformat.command.ResultCode;
 import com.im.njams.sdk.communication.receiver.instruction.control.templates.DefaultProcessorTemplate;
@@ -34,6 +35,11 @@ public class SendProjectMessageProcessor extends DefaultProcessorTemplate {
 
     public SendProjectMessageProcessor(Njams njams) {
         this.njams = njams;
+    }
+
+    @Override
+    public String getCommandToListenTo(){
+        return Command.SEND_PROJECTMESSAGE.commandString();
     }
 
     @Override

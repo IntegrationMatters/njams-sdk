@@ -28,7 +28,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Todo: Write Doc
+ * This class provides checks that only valid {@link InstructionProcessor instructionProcessors} are
+ * used to process {@link Instruction instructions}. Furthermore the class logs the
+ * {@link com.faizsiegeln.njams.messageformat.v4.command.Request requests} and
+ * {@link com.faizsiegeln.njams.messageformat.v4.command.Response responses} that are processed here.
+ *
+ * @author krautenberg
+ * @version 4.1.0
  */
 public class InstructionProcessorService {
 
@@ -36,10 +42,17 @@ public class InstructionProcessorService {
 
     private InstructionDispatcher instructionDispatcher = new InstructionDispatcher();
 
-    public synchronized void putInstructionProcessor(String commandToListenTo,
-            InstructionProcessor instructionProcessor) {
+    /**
+     * Adds an {@link InstructionProcessor instructionProcessor} for the command String that it is referring to by
+     * {@link InstructionProcessor#getCommandToListenTo()}. If a InstructionProcessor with the same commandString is
+     * found, the old InstructionProcessor will be overwritten by the new instructionProcessor.
+     *
+     * @param instructionProcessor the InstructionProcessor to add
+     */
+    public synchronized void addInstructionProcessor(InstructionProcessor instructionProcessor) {
         if (instructionProcessor != null) {
             if (LOG.isDebugEnabled()) {
+                String commandToListenTo = instructionProcessor.getCommandToListenTo();
                 if (StringUtils.isBlank(commandToListenTo)) {
                     LOG.warn("Cannot set InstructionProcessor for no command");
                 } else {
@@ -56,10 +69,25 @@ public class InstructionProcessorService {
         }
     }
 
+    /**
+     * Returns the InstructionProcessor that is used to handle the {@link Instruction instruction} with the given
+     * command.
+     *
+     * @param commandToListenTo the command the {@link InstructionProcessor instructionProcessor} is listening to
+     * @return the {@link InstructionProcessor instructionProcessor} that listens to this command, or null if no
+     * {@link InstructionProcessor instructionProcessor} is found.
+     */
     public InstructionProcessor getInstructionProcessor(String commandToListenTo) {
         return instructionDispatcher.getInstructionProcessor(commandToListenTo);
     }
 
+    /**
+     * Removes the {@link InstructionProcessor instructionProcessor} that listens to the given command. If no
+     * {@link InstructionProcessor instructionProcessor} can be found that listens to the command, nothing happens.
+     *
+     * @param instructionProcessorCommand the command the {@link InstructionProcessor instructionProcessor} is
+     *                                    listening to.
+     */
     public synchronized void removeInstructionProcessor(String instructionProcessorCommand) {
         InstructionProcessor removedInstructionProcessor = instructionDispatcher
                 .removeInstructionProcessor(instructionProcessorCommand);
@@ -74,6 +102,14 @@ public class InstructionProcessorService {
         }
     }
 
+    /**
+     * Processes the {@link Instruction instruction} by the correct InstructionListener that listens to the command
+     * that is brought by the {@link Instruction instruction}, if a suitable {@link InstructionProcessor
+     * instructionProcessor} has been
+     * {@link InstructionProcessorService#addInstructionProcessor(InstructionProcessor) added} before.
+     *
+     * @param instruction the instruction to process.
+     */
     public synchronized void processInstruction(Instruction instruction) {
         if (instruction != null) {
 
@@ -90,6 +126,9 @@ public class InstructionProcessorService {
         }
     }
 
+    /**
+     * Stops the normal processing of the instructions.
+     */
     public synchronized void stop() {
         instructionDispatcher.removeAllInstructionProcessors();
     }
@@ -100,13 +139,13 @@ public class InstructionProcessorService {
         private Instruction.ResponseWriter responseToLog;
         private String command;
 
-        public InstructionLogger(Instruction instructionToLog) {
+        private InstructionLogger(Instruction instructionToLog) {
             requestToLog = instructionToLog.getRequestReader();
             responseToLog = instructionToLog.getResponseWriter();
             command = requestToLog.getCommand();
         }
 
-        public void logRequest() {
+        private void logRequest() {
             if (LOG.isDebugEnabled() && !requestToLog.isEmpty()) {
                 LOG.debug("Received request with command: {}", command);
             }
@@ -119,7 +158,7 @@ public class InstructionProcessorService {
             }
         }
 
-        public void logResponse() {
+        private void logResponse() {
             if (!requestToLog.isEmpty()) {
                 logResponseForProcessedRequest();
             } else {

@@ -84,6 +84,11 @@ public class InstructionProcessorTemplateTest {
         protected void process() {
             //Do nothing
         }
+
+        @Override
+        public String getCommandToListenTo() {
+            return null;
+        }
     }
 
     private class InstructionImpl implements Instruction {

@@ -39,6 +39,15 @@ public class TestInstructionProcessor implements InstructionProcessor {
     }
 
     @Override
+    public String getCommandToListenTo() {
+        if (processor != null) {
+            return processor.getCommandToListenTo();
+        } else {
+            return TEST_COMMAND;
+        }
+    }
+
+    @Override
     public void processInstruction(Instruction instruction) {
         if (processor != null) {
             processor.processInstruction(instruction);

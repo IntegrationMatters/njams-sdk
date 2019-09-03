@@ -32,6 +32,7 @@ import org.junit.Test;
 
 import java.util.Map;
 
+import static com.faizsiegeln.njams.messageformat.v4.command.Command.DELETE_EXTRACT;
 import static com.faizsiegeln.njams.messageformat.v4.command.Command.GET_EXTRACT;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
@@ -44,6 +45,11 @@ public class GetExtractProcessorTest extends AbstractConfigurationProcessorHelpe
     @Before
     public void setNewProcessor() {
         getExtractProcessor = spy(new GetExtractProcessor(njamsMock));
+    }
+
+    @Test
+    public void getCommandToListenToIsCorrect(){
+        assertEquals(GET_EXTRACT.commandString(), getExtractProcessor.getCommandToListenTo());
     }
 
     @Test

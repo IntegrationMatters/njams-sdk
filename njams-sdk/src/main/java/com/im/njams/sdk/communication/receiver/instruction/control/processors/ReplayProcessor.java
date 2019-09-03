@@ -19,6 +19,7 @@
  */
 package com.im.njams.sdk.communication.receiver.instruction.control.processors;
 
+import com.faizsiegeln.njams.messageformat.v4.command.Command;
 import com.im.njams.sdk.api.adapter.messageformat.command.ResultCode;
 import com.im.njams.sdk.api.plugin.replay.ReplayHandler;
 import com.im.njams.sdk.api.plugin.replay.ReplayPlugin;
@@ -38,6 +39,11 @@ public class ReplayProcessor extends ReplayProcessorTemplate {
     public ReplayProcessor(ReplayPlugin replayPlugin) {
         super();
         this.replayPlugin = replayPlugin;
+    }
+
+    @Override
+    public String getCommandToListenTo(){
+        return Command.REPLAY.commandString();
     }
 
     @Override
