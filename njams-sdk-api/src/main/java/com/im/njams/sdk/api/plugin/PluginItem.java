@@ -20,5 +20,10 @@
 
 package com.im.njams.sdk.api.plugin;
 
-public interface PluginItem {
-}
+/**
+ * This interface provides extended functionality that can be set to a {@link Plugin plugin}.
+ *
+ * @author krautenberg
+ * @version 4.1.0
+ */
+public interface PluginItem {}

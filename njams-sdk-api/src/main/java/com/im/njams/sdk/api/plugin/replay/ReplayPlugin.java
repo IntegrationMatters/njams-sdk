@@ -22,12 +22,20 @@ package com.im.njams.sdk.api.plugin.replay;
 
 import com.im.njams.sdk.api.feature.Feature;
 import com.im.njams.sdk.api.plugin.Plugin;
+import com.im.njams.sdk.api.plugin.PluginItem;
 
+/**
+ * This interface provides functionality for the servers replay plugin. The type of the {@link PluginItem pluginItem}
+ * that the {@link ReplayPlugin replayPlugin} works with is {@link ReplayHandler}.
+ *
+ * @author krautenberg
+ * @version 4.1.0
+ */
 public interface ReplayPlugin extends Plugin<ReplayHandler>, Feature {
 
     String REPLAY_FEATURE = "replay";
 
-    default String getFeature(){
+    default String getFeature() {
         return REPLAY_FEATURE;
     }
 

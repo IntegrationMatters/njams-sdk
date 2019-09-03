@@ -21,11 +21,32 @@ package com.im.njams.sdk.api.communication;
 
 import com.im.njams.sdk.api.communication.instruction.InstructionListener;
 
+/**
+ * This interface provides functionality for sending messages to and receiving instructions from the server.
+ *
+ * @author krautenberg
+ * @version 4.1.0
+ */
 public interface Communication {
 
+    /**
+     * Sets the {@link InstructionListener instructionListener} that is responsible for processing the incoming
+     * instructions correctly.
+     *
+     * @param instructionListener the instructionListener to process instructions correctly.
+     */
     void setInstructionListener(InstructionListener instructionListener);
 
+    /**
+     * Returns the {@link InstructionListener instructionListener} that is currently responsible for processing the
+     * incoming instructions.
+     *
+     * @return the instructionListener that processes the incoming instructions.
+     */
     InstructionListener getInstructionListener();
 
+    /**
+     * Initializes the termination of the senders and stops the processing of the incoming instructions.
+     */
     void stop();
 }

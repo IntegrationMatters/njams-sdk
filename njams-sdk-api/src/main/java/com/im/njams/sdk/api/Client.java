@@ -20,23 +20,58 @@
 
 package com.im.njams.sdk.api;
 
+import com.im.njams.sdk.api.adapter.messageformat.command.Instruction;
 import com.im.njams.sdk.api.adapter.messageformat.command.InstructionFactory;
 import com.im.njams.sdk.api.communication.Communication;
+import com.im.njams.sdk.api.plugin.Plugin;
 import com.im.njams.sdk.api.plugin.PluginStorage;
 
+/**
+ * This interface is the mediator between all other interfaces that communicate with each other.
+ *
+ * @author krautenberg
+ * @version 4.1.0
+ */
 public interface Client {
 
+    /**
+     * Starts the client; It will initiate the connections and start processing.
+     *
+     * @return true, if everything started successfully, otherwise false
+     */
     boolean start();
 
-    Communication getCommunication();
-
+    /**
+     * Returns a facility to create {@link Instruction instruction} instances.
+     *
+     * @return a factory to produce {@link Instruction instructions}.
+     */
     InstructionFactory getInstructionFactory();
+
+    /**
+     * Returns the {@link Communication communication} that is responsible for the senders and receivers for this
+     * client.
+     *
+     * @return the communication of the client.
+     */
+    Communication getCommunication();
 
 //    ClientCondition getClientCondition();
 
+    /**
+     * Returns the {@link PluginStorage pluginStorage} that holds the {@link Plugin plugins} that can be used by this
+     * client.
+     *
+     * @return the pluginStorage with all plugins of this client.
+     */
     PluginStorage getPluginStorage();
 
 //    DataMasking getDataMasking();
 
+    /**
+     * Stops a client; It will stop the processing and release the connections.
+     *
+     * @return true, if everything stopped successfully, otherwise false
+     */
     boolean stop();
 }

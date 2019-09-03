@@ -22,7 +22,20 @@ package com.im.njams.sdk.api.communication.instruction;
 
 import com.im.njams.sdk.api.adapter.messageformat.command.Instruction;
 
+/**
+ * This interface provides a method to process an {@link Instruction instruction} that was sent by the server.
+ *
+ * @author krautenberg
+ * @version 4.1.0
+ */
 public interface InstructionListener extends AutoCloseable {
 
+    /**
+     * The {@link Instruction.RequestReader request} will be read, processed and a {@link Instruction.ResponseWriter}
+     * response} will be created and set to the {@link Instruction instruction}.
+     *
+     * @param instruction the instruction with the given {@link Instruction.RequestReader request} and
+     *                    {@link Instruction.ResponseWriter response}.
+     */
     void onInstruction(Instruction instruction);
 }

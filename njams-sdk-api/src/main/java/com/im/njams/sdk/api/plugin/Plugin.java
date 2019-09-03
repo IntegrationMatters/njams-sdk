@@ -20,9 +20,27 @@
 
 package com.im.njams.sdk.api.plugin;
 
+/**
+ * This interface provides functionality to set and get the corresponding {@link PluginItem pluginItem} to the plugin
+ * instance.
+ *
+ * @param <T> the actual type of the {@link PluginItem pluginItem} the plugin provides functionality for.
+ * @author krautenberg
+ * @version 4.1.0
+ */
 public interface Plugin<T extends PluginItem> {
 
+    /**
+     * Set the {@link PluginItem plugin item} that belongs to the plugin instance.
+     *
+     * @param item the pluginItem to set
+     */
     void setPluginItem(T item);
 
+    /**
+     * Gets the {@link PluginItem plugin item} that belongs to the plugin instance.
+     *
+     * @return the plugin item that has been set to the plugin or null, if no plugin item has been set before.
+     */
     T getPluginItem();
 }

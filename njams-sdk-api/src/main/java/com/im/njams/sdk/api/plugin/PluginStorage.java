@@ -22,15 +22,50 @@ package com.im.njams.sdk.api.plugin;
 
 import com.im.njams.sdk.api.plugin.replay.ReplayPlugin;
 
+/**
+ * This interface provides a data structure for interacting with the plugins.
+ *
+ * @author krautenberg
+ * @version 4.1.0
+ */
 public interface PluginStorage {
 
+    /**
+     * Maps a plugin name to a {@link Plugin plugin}.
+     *
+     * @param pluginName  the identifier of the plugin
+     * @param pluginToAdd the plugin
+     */
     void putPlugin(String pluginName, Plugin pluginToAdd);
 
+    /**
+     * Returns the {@link Plugin plugin} that is mapped to the given plugin name.
+     *
+     * @param pluginName the identifier for the {@link Plugin plugin} to search for
+     * @return the plugin that is linked to the plugin name or null, if nothing was found.
+     */
     Plugin getPlugin(String pluginName);
 
+    /**
+     * Removes and returns the {@link Plugin plugin} that is mapped to the given plugin name.
+     *
+     * @param pluginName the identifier for the {@link Plugin plugin} to delete.
+     * @return the plugin that was deleted or null, if nothing was found.
+     */
     Plugin removePlugin(String pluginName);
 
+    /**
+     * Sets the {@link ReplayPlugin replay plugin} in the plugin storage.
+     *
+     * @param replayPluginToSet the replay plugin to set in the storage.
+     */
     void setReplayPlugin(ReplayPlugin replayPluginToSet);
 
+    /**
+     * Returns the {@link ReplayPlugin replay plugin} in the plugin storage.
+     *
+     * @return the ReplayPlugin that is safed in the plugin storage or null, if no {@link ReplayPlugin replayPlugin}
+     * is set.
+     */
     ReplayPlugin getReplayPlugin();
 }

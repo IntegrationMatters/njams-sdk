@@ -23,8 +23,19 @@ package com.im.njams.sdk.api.plugin.replay;
 import com.im.njams.sdk.api.adapter.messageformat.command.Instruction;
 import com.im.njams.sdk.api.plugin.PluginItem;
 
+/**
+ * This interface provides a method to replay an {@link Instruction instruction}.
+ *
+ * @author krautenberg
+ * @version 4.1.0
+ */
 public interface ReplayHandler extends PluginItem {
 
+    /**
+     * Replays the instruction.
+     *
+     * @param instructionToReplay the instruction to replay.
+     */
     void replay(Instruction instructionToReplay);
 
 }

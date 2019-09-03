@@ -20,7 +20,19 @@
 
 package com.im.njams.sdk.api.feature;
 
+/**
+ * This interface provides a method to get the feature name. It is used to send the server
+ * which {@link Feature features} are used at the moment.
+ *
+ * @author krautenberg
+ * @version 4.1.0
+ */
 public interface Feature {
 
+    /**
+     * Gets the feature that will be sent to the server.
+     *
+     * @return the identifier for the feature.
+     */
     String getFeature();
 }
