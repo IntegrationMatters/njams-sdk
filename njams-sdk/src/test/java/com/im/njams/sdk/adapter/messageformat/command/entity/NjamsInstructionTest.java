@@ -73,6 +73,39 @@ public class NjamsInstructionTest {
         assertEquals(instructionMockWithoutRequestAndResponse, njamsInstructionWithoutRequestAndResponse.getRealInstruction());
     }
 
+    @Test
+    public void changingTheRequestOfTheRealInstructionDoesntMakeTheNjamsInstructionUseless(){
+        Instruction instruction = new Instruction();
+        instruction.setRequest(requestMock);
+        when(requestMock.getCommand()).thenReturn("Test1");
+
+        njamsInstruction = new NjamsInstruction(instruction);
+
+        Instruction realInstruction = njamsInstruction.getRealInstruction();
+        Request originalRequest = realInstruction.getRequest();
+        Request newRequestMock = mock(Request.class);
+        when(newRequestMock.getCommand()).thenReturn("Test2");
+        realInstruction.setRequest(newRequestMock);
+        assertEquals("Test2", njamsInstruction.getRequestReader().getCommand());
+    }
+
+    @Test
+    public void changingTheResponseOfTheRealInstructionDoesntMakeTheNjamsInstructionUseless(){
+        Instruction instruction = new Instruction();
+        instruction.setResponse(responseMock);
+
+        njamsInstruction = new NjamsInstruction(instruction);
+        njamsInstruction.getResponseWriter().setResultCode(ResultCode.WARNING);
+        verify(responseMock).setResultCode(1);
+
+        Instruction realInstruction = njamsInstruction.getRealInstruction();
+        Response newResponseMock = mock(Response.class);
+        realInstruction.setResponse(newResponseMock);
+
+        njamsInstruction.getResponseWriter().setResultCode(ResultCode.ERROR);
+        verify(newResponseMock).setResultCode(2);
+    }
+
 //GetRequestReader tests
 
     @Test
@@ -116,7 +149,7 @@ public class NjamsInstructionTest {
     public void getResponseWriterWithEmptyResponse(){
         NjamsResponseWriter responseWriter = njamsInstruction.getResponseWriter();
         assertNotNull(responseWriter);
-        assertTrue(responseWriter.isEmpty());
+        assertFalse(responseWriter.isEmpty());
     }
 
     @Test

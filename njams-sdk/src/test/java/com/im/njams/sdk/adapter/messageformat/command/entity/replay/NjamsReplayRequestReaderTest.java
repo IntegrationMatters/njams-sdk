@@ -20,6 +20,7 @@
 
 package com.im.njams.sdk.adapter.messageformat.command.entity.replay;
 
+import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
 import com.faizsiegeln.njams.messageformat.v4.command.Request;
 import org.junit.Before;
 import org.junit.Test;
@@ -43,6 +44,8 @@ public class NjamsReplayRequestReaderTest {
     private static final String TEST_KEY = "Test";
     private static final String TEST_VALUE = "true";
 
+    private Instruction instructionMock;
+
     private Request requestMock;
 
     private Map<String, String> parameters;
@@ -52,9 +55,11 @@ public class NjamsReplayRequestReaderTest {
     @Before
     public void initialize() {
         requestMock = mock(Request.class);
+        instructionMock = mock(Instruction.class);
         parameters = new HashMap<>();
         when(requestMock.getParameters()).thenReturn(parameters);
-        replayRequestReader = spy(new NjamsReplayRequestReader(requestMock));
+        when(instructionMock.getRequest()).thenReturn(requestMock);
+        replayRequestReader = spy(new NjamsReplayRequestReader(instructionMock));
     }
 
 //GetProcess tests

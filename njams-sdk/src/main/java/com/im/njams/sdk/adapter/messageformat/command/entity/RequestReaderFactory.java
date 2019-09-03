@@ -20,6 +20,7 @@
 
 package com.im.njams.sdk.adapter.messageformat.command.entity;
 
+import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
 import com.faizsiegeln.njams.messageformat.v4.command.Request;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -42,21 +43,21 @@ class RequestReaderFactory {
      * to create an instance of the given {@link Class<R> readerClass}. If it doesn't work, a
      * {@link NjamsRequestReader NjamsRequestReader} will be returned.
      *
-     * @param requestToReadFrom the request to set in the created {@link R NjamsRequestReader}.
+     * @param instructionToReadFrom the instruction to set in the created {@link R NjamsRequestReader}.
      * @param readerClass       the class to initialize the {@link NjamsRequestReader NjamsRequestReader}.
      * @param <R>               The type of class to initialize and to return.
      * @return either a correctly instantiated {@link NjamsRequestReader NjamsRequestReader} of type {@link R R} or
      * a default {@link NjamsRequestReader NjamsRequestReader} if the actual object of type {@link R R} couldn't be
      * created.
      */
-    public static <R extends NjamsRequestReader> R create(Request requestToReadFrom, Class<R> readerClass) {
+    public static <R extends NjamsRequestReader> R create(Instruction instructionToReadFrom, Class<R> readerClass) {
         R requestReader;
         try {
-            Constructor constructorOfRequestReader = readerClass.getConstructor(Request.class);
+            Constructor constructorOfRequestReader = readerClass.getConstructor(Instruction.class);
             constructorOfRequestReader.setAccessible(true);
-            requestReader = (R) constructorOfRequestReader.newInstance(requestToReadFrom);
+            requestReader = (R) constructorOfRequestReader.newInstance(instructionToReadFrom);
         } catch (IllegalAccessException | InstantiationException | NoSuchMethodException | InvocationTargetException couldntCreateObject) {
-            requestReader = (R) new NjamsRequestReader(requestToReadFrom);
+            requestReader = (R) new NjamsRequestReader(instructionToReadFrom);
             if (LOG.isWarnEnabled()) {
                 LOG.warn("Creating a {} as default RequestReader. Cause: {}", requestReader.getClass().getSimpleName(),
                         couldntCreateObject);

@@ -98,7 +98,7 @@ public class NjamsInstructionFactoryTest {
     public void validInstructionContentWithEmptyResponseButNoRequest() throws JsonProcessingException, NjamsInstructionException {
         String serializedInstruction = JsonUtils.serialize(INSTRUCTION_WITH_RESPONSE);
         Instruction wrappedInstruction = instructionFactory.getInstructionOf(serializedInstruction);
-        assertEmptyButNotNull(wrappedInstruction, false, true, true);
+        assertEmptyButNotNull(wrappedInstruction, false, true, false);
     }
 
     @Test
@@ -113,7 +113,7 @@ public class NjamsInstructionFactoryTest {
     public void validInstructionContentWithRequestAndEmptyResponse() throws JsonProcessingException, NjamsInstructionException {
         String serializedInstruction = JsonUtils.serialize(INSTRUCTION);
         Instruction wrappedInstruction = instructionFactory.getInstructionOf(serializedInstruction);
-        assertEmptyButNotNull(wrappedInstruction, false, false, true);
+        assertEmptyButNotNull(wrappedInstruction, false, false, false);
     }
 
     @Test
@@ -147,7 +147,7 @@ public class NjamsInstructionFactoryTest {
     @Test
     public void validInstructionWithEmptyResponseButNoRequest() {
         Instruction wrappedInstruction = instructionFactory.getInstructionOf(INSTRUCTION_WITH_RESPONSE);
-        assertEmptyButNotNull(wrappedInstruction, false, true, true);
+        assertEmptyButNotNull(wrappedInstruction, false, true, false);
     }
 
     @Test
@@ -160,7 +160,7 @@ public class NjamsInstructionFactoryTest {
     @Test
     public void validInstructionWithRequestAndEmptyResponse() {
         Instruction wrappedInstruction = instructionFactory.getInstructionOf(INSTRUCTION);
-        assertEmptyButNotNull(wrappedInstruction, false, false, true);
+        assertEmptyButNotNull(wrappedInstruction, false, false, false);
     }
 
     @Test

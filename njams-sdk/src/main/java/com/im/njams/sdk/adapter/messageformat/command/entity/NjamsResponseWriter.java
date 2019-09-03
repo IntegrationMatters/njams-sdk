@@ -47,54 +47,45 @@ import static com.im.njams.sdk.adapter.messageformat.command.entity.NjamsInstruc
  */
 public class NjamsResponseWriter<W extends NjamsResponseWriter<W>> implements Instruction.ResponseWriter<W> {
 
-    private Response responseToWrite;
+    private com.faizsiegeln.njams.messageformat.v4.command.Instruction instructionToWriteTo;
 
     /**
-     * Sets the underlying response
+     * Sets the instruction that is write to.
      *
-     * @param responseToWriteTo the response to set
+     * @param instructionToWriteTo the instruction to write to
      */
-    public NjamsResponseWriter(Response responseToWriteTo) {
-        this.responseToWrite = responseToWriteTo;
+    public NjamsResponseWriter(com.faizsiegeln.njams.messageformat.v4.command.Instruction instructionToWriteTo) {
+        this.instructionToWriteTo = instructionToWriteTo;
+    }
+
+    private Response getResponse(){
+        if(instructionToWriteTo != null){
+            return instructionToWriteTo.getResponse();
+        }else{
+            return null;
+        }
+    }
+
+    private Response getOrCreateResponse(){
+        if(instructionToWriteTo != null){
+            Response response = instructionToWriteTo.getResponse();
+            if(response == null){
+                instructionToWriteTo.setResponse(new Response());
+            }
+            return instructionToWriteTo.getResponse();
+        }else{
+            return null;
+        }
     }
 
     /**
-     * Checks if the underlying response is null or was only initialized.
+     * Checks if the underlying response is null
      *
-     * @return true, if underlying response is null or was only initialized, else false
+     * @return true, if underlying response is null, else false
      */
     @Override
     public boolean isEmpty() {
-        boolean isEmpty = responseToWrite == null;
-        if (!isEmpty) {
-            isEmpty = isEmptyResponse();
-        }
-        return isEmpty;
-    }
-
-    private boolean isEmptyResponse() {
-        boolean isResultCodeDefault = resultCodeHasntChanged();
-        boolean isResultMessageDefault = resultMessageHasntChanged();
-        boolean isDateTimeDefault = dateTimeHasntChanged();
-        boolean areParametersDefault = parametersHaventChanged();
-        return isResultCodeDefault && isResultMessageDefault && isDateTimeDefault && areParametersDefault ;
-    }
-
-    private boolean resultCodeHasntChanged() {
-        return responseToWrite.getResultCode() == ResultCode.SUCCESS.getResultCode();
-    }
-
-    private boolean resultMessageHasntChanged() {
-        return responseToWrite.getResultMessage() == null;
-    }
-
-    private boolean dateTimeHasntChanged() {
-        return responseToWrite.getDateTime() == null;
-    }
-
-    private boolean parametersHaventChanged() {
-        return responseToWrite.getParameters() == null ? false : responseToWrite
-                .getParameters().isEmpty();
+        return getResponse() == null;
     }
 
     /**
@@ -105,7 +96,7 @@ public class NjamsResponseWriter<W extends NjamsResponseWriter<W>> implements In
      */
     @Override
     public W setResultCode(ResultCode resultCode) {
-        responseToWrite.setResultCode(resultCode.getResultCode());
+        getOrCreateResponse().setResultCode(resultCode.getResultCode());
         return getThis();
     }
 
@@ -117,7 +108,7 @@ public class NjamsResponseWriter<W extends NjamsResponseWriter<W>> implements In
      */
     @Override
     public W setResultMessage(String resultMessage) {
-        responseToWrite.setResultMessage(resultMessage);
+        getOrCreateResponse().setResultMessage(resultMessage);
         return getThis();
     }
 
@@ -139,7 +130,7 @@ public class NjamsResponseWriter<W extends NjamsResponseWriter<W>> implements In
      * @return itself via {@link #getThis() getThis()} for chaining NjamsResponseWriter methods.
      */
     public W setDateTime(LocalDateTime localDateTime) {
-        responseToWrite.setDateTime(localDateTime);
+        getOrCreateResponse().setDateTime(localDateTime);
         return getThis();
     }
 
@@ -153,10 +144,10 @@ public class NjamsResponseWriter<W extends NjamsResponseWriter<W>> implements In
      */
     @Override
     public W putParameter(String key, String value) {
-        Map<String, String> parameters = responseToWrite.getParameters();
+        Map<String, String> parameters = getOrCreateResponse().getParameters();
         if (parameters == null) {
             parameters = new HashMap<>();
-            responseToWrite.setParameters(parameters);
+            getOrCreateResponse().setParameters(parameters);
         }
         parameters.put(key, value);
         return getThis();
@@ -170,7 +161,7 @@ public class NjamsResponseWriter<W extends NjamsResponseWriter<W>> implements In
      */
     @Override
     public W setParameters(Map<String, String> parameters) {
-        responseToWrite.setParameters(parameters);
+        getOrCreateResponse().setParameters(parameters);
         return getThis();
     }
 
@@ -184,9 +175,9 @@ public class NjamsResponseWriter<W extends NjamsResponseWriter<W>> implements In
      */
     @Override
     public W addParameters(Map<String, String> parameters) {
-        Map<String, String> parametersInResponse = responseToWrite.getParameters();
+        Map<String, String> parametersInResponse = getOrCreateResponse().getParameters();
         if (parametersInResponse == null) {
-            responseToWrite.setParameters(parameters);
+            getOrCreateResponse().setParameters(parameters);
         } else {
             parametersInResponse.putAll(parameters);
         }
@@ -214,11 +205,11 @@ public class NjamsResponseWriter<W extends NjamsResponseWriter<W>> implements In
         try {
             String toReturn = "null";
             if (!isEmpty()) {
-                toReturn = JsonUtils.serialize(responseToWrite);
+                toReturn = JsonUtils.serialize(getResponse());
             }
             return toReturn;
         } catch (JsonProcessingException e) {
-            throw new NjamsSdkRuntimeException(UNABLE_TO_DESERIALIZE_OBJECT + responseToWrite);
+            throw new NjamsSdkRuntimeException(UNABLE_TO_DESERIALIZE_OBJECT + getResponse());
         }
     }
 }

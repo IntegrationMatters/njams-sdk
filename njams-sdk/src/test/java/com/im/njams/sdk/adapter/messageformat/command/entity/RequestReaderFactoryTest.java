@@ -20,6 +20,7 @@
 
 package com.im.njams.sdk.adapter.messageformat.command.entity;
 
+import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
 import com.faizsiegeln.njams.messageformat.v4.command.Request;
 import com.im.njams.sdk.adapter.messageformat.command.entity.condition.ConditionRequestReader;
 import com.im.njams.sdk.adapter.messageformat.command.entity.replay.NjamsReplayRequestReader;
@@ -34,17 +35,21 @@ public class RequestReaderFactoryTest {
 
     private static final String COMMAND = "Command";
 
+    private Instruction instructionMock;
+
     private Request requestMock;
 
     @Before
     public void initialize() {
+        instructionMock = mock(Instruction.class);
         requestMock = mock(Request.class);
+        when(instructionMock.getRequest()).thenReturn(requestMock);
         when(requestMock.getCommand()).thenReturn(COMMAND);
     }
 
     @Test
     public void createNjamsRequestReader() {
-        NjamsRequestReader requestReader = RequestReaderFactory.create(requestMock, NjamsRequestReader.class);
+        NjamsRequestReader requestReader = RequestReaderFactory.create(instructionMock, NjamsRequestReader.class);
         assertEquals(requestReader.getCommand(), COMMAND);
 
         assertTrue(requestReader instanceof NjamsRequestReader);
@@ -54,7 +59,7 @@ public class RequestReaderFactoryTest {
 
     @Test
     public void createReplayRequestReader() {
-        NjamsRequestReader requestReader = RequestReaderFactory.create(requestMock, NjamsReplayRequestReader.class);
+        NjamsRequestReader requestReader = RequestReaderFactory.create(instructionMock, NjamsReplayRequestReader.class);
         assertEquals(requestReader.getCommand(), COMMAND);
 
         assertTrue(requestReader instanceof NjamsRequestReader);
@@ -64,7 +69,7 @@ public class RequestReaderFactoryTest {
 
     @Test
     public void createConditionRequestReader() {
-        NjamsRequestReader requestReader = RequestReaderFactory.create(requestMock, ConditionRequestReader.class);
+        NjamsRequestReader requestReader = RequestReaderFactory.create(instructionMock, ConditionRequestReader.class);
         assertEquals(requestReader.getCommand(), COMMAND);
 
         assertTrue(requestReader instanceof NjamsRequestReader);
@@ -74,7 +79,7 @@ public class RequestReaderFactoryTest {
 
     @Test
     public void createRequestReaderImpl() {
-        NjamsRequestReader requestReader = RequestReaderFactory.create(requestMock, RequestReaderImpl.class);
+        NjamsRequestReader requestReader = RequestReaderFactory.create(instructionMock, RequestReaderImpl.class);
         assertEquals(requestReader.getCommand(), COMMAND);
 
         assertTrue(requestReader instanceof NjamsRequestReader);
@@ -85,13 +90,8 @@ public class RequestReaderFactoryTest {
 
     private static class RequestReaderImpl extends NjamsRequestReader {
 
-        /**
-         * Sets the underlying request
-         *
-         * @param requestToReadFrom the request to set
-         */
-        public RequestReaderImpl(Request requestToReadFrom) {
-            super(requestToReadFrom);
+        public RequestReaderImpl(Instruction instructionMock) {
+            super(instructionMock);
         }
     }
 

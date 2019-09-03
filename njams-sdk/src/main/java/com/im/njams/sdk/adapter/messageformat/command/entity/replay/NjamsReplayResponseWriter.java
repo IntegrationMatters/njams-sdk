@@ -20,6 +20,7 @@
 
 package com.im.njams.sdk.adapter.messageformat.command.entity.replay;
 
+import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
 import com.faizsiegeln.njams.messageformat.v4.command.Response;
 import com.im.njams.sdk.adapter.messageformat.command.entity.NjamsResponseWriter;
 import com.im.njams.sdk.api.adapter.messageformat.command.ReplayInstruction;
@@ -37,12 +38,12 @@ public class NjamsReplayResponseWriter extends NjamsResponseWriter<NjamsReplayRe
     private static final String MAIN_LOG_ID = "MainLogId";
 
     /**
-     * Sets the underlying response
+     * Sets the instruction that is write to.
      *
-     * @param responseToWriteTo the response to set
+     * @param instructionToWriteTo the instruction to write to
      */
-    public NjamsReplayResponseWriter(Response responseToWriteTo) {
-        super(responseToWriteTo);
+    public NjamsReplayResponseWriter(Instruction instructionToWriteTo) {
+        super(instructionToWriteTo);
     }
 
     /**
@@ -57,7 +58,8 @@ public class NjamsReplayResponseWriter extends NjamsResponseWriter<NjamsReplayRe
     }
 
     /**
-     * Sets the parameter value for the key {@value #MAIN_LOG_ID} with the given string to the {@link Response response}.
+     * Sets the parameter value for the key {@value #MAIN_LOG_ID} with the given string to the {@link Response
+     * response}.
      *
      * @param mainLogId the mainLogId to set
      * @return itself via {@link #getThis() getThis()} for chaining NjamsReplayResponseWriter methods

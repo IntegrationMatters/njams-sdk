@@ -20,8 +20,6 @@
 
 package com.im.njams.sdk.adapter.messageformat.command.entity;
 
-import com.faizsiegeln.njams.messageformat.v4.command.Request;
-import com.faizsiegeln.njams.messageformat.v4.command.Response;
 import com.im.njams.sdk.api.adapter.messageformat.command.Instruction;
 
 /**
@@ -47,10 +45,6 @@ public class NjamsInstruction<R extends NjamsRequestReader, W extends NjamsRespo
 
     private com.faizsiegeln.njams.messageformat.v4.command.Instruction messageFormatInstruction;
 
-    private Request requestToReadFrom;
-
-    private Response responseToWriteTo;
-
     /**
      * Sets the underlying instruction and creates a {@link NjamsRequestReader NjamsRequestReader} of actual type
      * {@link NjamsRequestReader NjamsRequestReader}
@@ -75,25 +69,8 @@ public class NjamsInstruction<R extends NjamsRequestReader, W extends NjamsRespo
     public NjamsInstruction(com.faizsiegeln.njams.messageformat.v4.command.Instruction messageFormatInstruction,
             Class<R> readerClass, Class<W> writerClass) {
         this.messageFormatInstruction = messageFormatInstruction;
-        if (!isEmpty()) {
-            this.requestToReadFrom = getRequestToReadFrom();
-            this.responseToWriteTo = getResponseToWriteTo();
-        }
-        this.reader = RequestReaderFactory.create(requestToReadFrom, readerClass);
-        this.writer = ResponseWriterFactory.create(responseToWriteTo, writerClass);
-    }
-
-    private Request getRequestToReadFrom() {
-        return messageFormatInstruction.getRequest();
-    }
-
-    private Response getResponseToWriteTo() {
-        Response responseOfMessageFormat = messageFormatInstruction.getResponse();
-        if (responseOfMessageFormat == null) {
-            responseOfMessageFormat = new Response();
-            messageFormatInstruction.setResponse(responseOfMessageFormat);
-        }
-        return responseOfMessageFormat;
+        this.reader = RequestReaderFactory.create(messageFormatInstruction, readerClass);
+        this.writer = ResponseWriterFactory.create(messageFormatInstruction, writerClass);
     }
 
     /**

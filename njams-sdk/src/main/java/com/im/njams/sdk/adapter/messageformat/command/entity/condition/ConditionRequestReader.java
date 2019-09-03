@@ -20,6 +20,7 @@
 
 package com.im.njams.sdk.adapter.messageformat.command.entity.condition;
 
+import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
 import com.faizsiegeln.njams.messageformat.v4.command.Request;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.Extract;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.LogLevel;
@@ -50,12 +51,12 @@ public class ConditionRequestReader extends NjamsRequestReader {
     private RequestParser requestParser = new RequestParser();
 
     /**
-     * Sets the underlying request
+     * Sets the instruction that is read from.
      *
-     * @param requestToReadFrom the request to set
+     * @param instructionToReadFrom the instruction to read from
      */
-    public ConditionRequestReader(Request requestToReadFrom) {
-        super(requestToReadFrom);
+    public ConditionRequestReader(Instruction instructionToReadFrom) {
+        super(instructionToReadFrom);
     }
 
     /**

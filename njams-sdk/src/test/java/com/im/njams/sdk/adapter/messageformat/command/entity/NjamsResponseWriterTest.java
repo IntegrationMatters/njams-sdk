@@ -24,6 +24,7 @@
 
 package com.im.njams.sdk.adapter.messageformat.command.entity;
 
+import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
 import com.faizsiegeln.njams.messageformat.v4.command.Response;
 import com.im.njams.sdk.api.adapter.messageformat.command.ResultCode;
 import com.im.njams.sdk.common.DateTimeUtility;
@@ -54,6 +55,8 @@ public class NjamsResponseWriterTest {
 
     private NjamsResponseWriter njamsResponseWriter;
 
+    private Instruction instructionMock;
+
     private NjamsResponseWriter njamsResponseWriterWithNull;
 
     @Before
@@ -61,7 +64,9 @@ public class NjamsResponseWriterTest {
         responseSpy = spy(new Response());
         mockedMap = mock(Map.class);
         when(responseSpy.getParameters()).thenReturn(mockedMap);
-        njamsResponseWriter = spy(new NjamsResponseWriter<>(responseSpy));
+        instructionMock = mock(Instruction.class);
+        when(instructionMock.getResponse()).thenReturn(responseSpy);
+        njamsResponseWriter = spy(new NjamsResponseWriter<>(instructionMock));
         njamsResponseWriterWithNull = spy(new NjamsResponseWriter<>(null));
     }
 
@@ -70,12 +75,6 @@ public class NjamsResponseWriterTest {
     @Test
     public void isEmptyIsTrueIfUnderlyingResponseIsNull() {
         assertTrue(njamsResponseWriterWithNull.isEmpty());
-    }
-
-    @Test
-    public void isEmptyIsTrueIfResponseIsUntouched() {
-        when(mockedMap.isEmpty()).thenReturn(true);
-        assertTrue(njamsResponseWriter.isEmpty());
     }
 
     @Test
@@ -273,7 +272,8 @@ public class NjamsResponseWriterTest {
     @Test
     public void checkToStringForResponseWriter() throws IOException {
         Response responseToSet = createRealResponse();
-        njamsResponseWriter = new NjamsResponseWriter(responseToSet);
+        when(instructionMock.getResponse()).thenReturn(responseToSet);
+        njamsResponseWriter = new NjamsResponseWriter(instructionMock);
 
         String responseAsString = njamsResponseWriter.toString();
         System.out.println(responseAsString);

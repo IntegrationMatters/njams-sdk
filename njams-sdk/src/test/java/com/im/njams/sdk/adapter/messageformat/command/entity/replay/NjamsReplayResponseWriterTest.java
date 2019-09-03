@@ -20,6 +20,7 @@
 
 package com.im.njams.sdk.adapter.messageformat.command.entity.replay;
 
+import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
 import com.faizsiegeln.njams.messageformat.v4.command.Response;
 import org.junit.Before;
 import org.junit.Test;
@@ -34,14 +35,18 @@ public class NjamsReplayResponseWriterTest {
     private static final String MAIN_LOG_ID_KEY = "MainLogId";
     private static final String MAIN_LOG_ID_VALUE = "mainLogId";
 
+    private Instruction instructionMock;
+
     private Response responseMock;
 
     private NjamsReplayResponseWriter replayResponseWriter;
 
     @Before
     public void initialize() {
+        instructionMock = mock(Instruction.class);
         responseMock = mock(Response.class);
-        replayResponseWriter = spy(new NjamsReplayResponseWriter(responseMock));
+        when(instructionMock.getResponse()).thenReturn(responseMock);
+        replayResponseWriter = spy(new NjamsReplayResponseWriter(instructionMock));
     }
 
 //SetException tests

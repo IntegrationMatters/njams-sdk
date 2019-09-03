@@ -20,6 +20,7 @@
 
 package com.im.njams.sdk.adapter.messageformat.command.entity.condition;
 
+import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
 import com.faizsiegeln.njams.messageformat.v4.command.Response;
 import com.im.njams.sdk.api.adapter.messageformat.command.NjamsInstructionException;
 import org.junit.Before;
@@ -34,14 +35,18 @@ import static org.mockito.Mockito.verify;
 
 public class ConditionResponseWriterTest {
 
+    private Instruction instructionMock;
+
     private Response responseMock;
 
     private ConditionResponseWriter responseWriter;
 
     @Before
     public void initialize(){
+        instructionMock = mock(Instruction.class);
         responseMock = mock(Response.class);
-        responseWriter = new ConditionResponseWriter(responseMock);
+        when(instructionMock.getResponse()).thenReturn(responseMock);
+        responseWriter = new ConditionResponseWriter(instructionMock);
     }
 //ReplayResponseWriter tests
 

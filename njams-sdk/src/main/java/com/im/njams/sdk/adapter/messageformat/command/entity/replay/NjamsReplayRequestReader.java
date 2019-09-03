@@ -20,7 +20,7 @@
 
 package com.im.njams.sdk.adapter.messageformat.command.entity.replay;
 
-import com.faizsiegeln.njams.messageformat.v4.command.Request;
+import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
 import com.im.njams.sdk.adapter.messageformat.command.entity.NjamsRequestReader;
 import com.im.njams.sdk.api.adapter.messageformat.command.ReplayInstruction;
 
@@ -39,12 +39,12 @@ public class NjamsReplayRequestReader extends NjamsRequestReader implements Repl
     private static final String TEST = "Test";
 
     /**
-     * Sets the underlying request
+     * Sets the instruction that is read from.
      *
-     * @param requestToReadFrom the request to set
+     * @param instructionToReadFrom the instruction to read from
      */
-    public NjamsReplayRequestReader(Request requestToReadFrom) {
-        super(requestToReadFrom);
+    public NjamsReplayRequestReader(Instruction instructionToReadFrom) {
+        super(instructionToReadFrom);
     }
 
     /**

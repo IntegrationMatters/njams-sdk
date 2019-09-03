@@ -57,6 +57,7 @@ public class NjamsReceiverTest {
         messageFormatInstruction.setResponse(response);
         instruction = spy(new NjamsInstruction(messageFormatInstruction));
     }
+
 //OnInstruction tests
 
     @Test

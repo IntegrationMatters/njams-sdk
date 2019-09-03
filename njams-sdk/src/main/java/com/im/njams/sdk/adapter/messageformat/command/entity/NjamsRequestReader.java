@@ -43,15 +43,23 @@ import static com.im.njams.sdk.adapter.messageformat.command.entity.NjamsInstruc
  */
 public class NjamsRequestReader implements Instruction.RequestReader {
 
-    private Request requestToRead;
+    private com.faizsiegeln.njams.messageformat.v4.command.Instruction instructionToReadFrom;
 
     /**
-     * Sets the underlying request
+     * Sets the instruction that is read from.
      *
-     * @param requestToReadFrom the request to set
+     * @param instructionToReadFrom the instruction to read from
      */
-    public NjamsRequestReader(Request requestToReadFrom){
-        requestToRead = requestToReadFrom;
+    public NjamsRequestReader(com.faizsiegeln.njams.messageformat.v4.command.Instruction instructionToReadFrom){
+        this.instructionToReadFrom = instructionToReadFrom;
+    }
+
+    private Request getRequest(){
+        if(instructionToReadFrom != null){
+            return instructionToReadFrom.getRequest();
+        }else{
+            return null;
+        }
     }
 
     /**
@@ -61,7 +69,7 @@ public class NjamsRequestReader implements Instruction.RequestReader {
      */
     @Override
     public boolean isEmpty() {
-        return requestToRead == null;
+        return getRequest() == null;
     }
 
     /**
@@ -71,7 +79,7 @@ public class NjamsRequestReader implements Instruction.RequestReader {
      */
     @Override
     public boolean isCommandNull() {
-        return isEmpty() || requestToRead.getCommand() == null;
+        return isEmpty() || getRequest().getCommand() == null;
     }
 
     /**
@@ -81,7 +89,7 @@ public class NjamsRequestReader implements Instruction.RequestReader {
      */
     @Override
     public boolean isCommandEmpty() {
-        return isCommandNull() || requestToRead.getCommand().equals(EMPTY_STRING);
+        return isCommandNull() || getRequest().getCommand().equals(EMPTY_STRING);
     }
 
     /**
@@ -93,7 +101,7 @@ public class NjamsRequestReader implements Instruction.RequestReader {
     public String getCommand() {
         String foundCommand = EMPTY_STRING;
         if (!isCommandNull()) {
-            foundCommand = requestToRead.getCommand();
+            foundCommand = getRequest().getCommand();
         }
         return foundCommand;
     }
@@ -106,7 +114,7 @@ public class NjamsRequestReader implements Instruction.RequestReader {
     @Override
     public Map<String, String> getParameters() {
         if (!isEmpty()) {
-            return Collections.unmodifiableMap(requestToRead.getParameters());
+            return Collections.unmodifiableMap(getRequest().getParameters());
         }
         return Collections.EMPTY_MAP;
     }
@@ -132,11 +140,11 @@ public class NjamsRequestReader implements Instruction.RequestReader {
         try {
             String toReturn = "null";
             if (!isEmpty()) {
-                toReturn = JsonUtils.serialize(requestToRead);
+                toReturn = JsonUtils.serialize(getRequest());
             }
             return toReturn;
         } catch (JsonProcessingException e) {
-            throw new NjamsSdkRuntimeException(UNABLE_TO_DESERIALIZE_OBJECT + requestToRead);
+            throw new NjamsSdkRuntimeException(UNABLE_TO_DESERIALIZE_OBJECT + getRequest());
         }
     }
 }

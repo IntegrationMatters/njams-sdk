@@ -20,6 +20,7 @@
 
 package com.im.njams.sdk.adapter.messageformat.command.entity.condition;
 
+import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
 import com.faizsiegeln.njams.messageformat.v4.command.Response;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.Extract;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.LogLevel;
@@ -44,12 +45,12 @@ public class ConditionResponseWriter extends NjamsResponseWriter<ConditionRespon
     private ResponseSerializer responseSerializer = new ResponseSerializer();
 
     /**
-     * Sets the underlying response
+     * Sets the instruction that is write to.
      *
-     * @param responseToWriteTo the response to set
+     * @param instructionToWriteTo the instruction to write to
      */
-    public ConditionResponseWriter(Response responseToWriteTo) {
-        super(responseToWriteTo);
+    public ConditionResponseWriter(Instruction instructionToWriteTo) {
+        super(instructionToWriteTo);
     }
 
     /**

@@ -20,6 +20,7 @@
 
 package com.im.njams.sdk.adapter.messageformat.command.entity.condition;
 
+import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
 import com.faizsiegeln.njams.messageformat.v4.command.Request;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.LogLevel;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.LogMode;
@@ -47,6 +48,8 @@ public class ConditionRequestReaderTest {
     private static final String ACTIVITY_ID_VALUE = "activityIdValue";
 
     //ReplayRequestReader tests
+    private Instruction instructionMock;
+
     private Request requestMock;
 
     private ConditionRequestReader requestReader;
@@ -54,7 +57,9 @@ public class ConditionRequestReaderTest {
     @Before
     public void initialize(){
         requestMock = mock(Request.class);
-        requestReader = new ConditionRequestReader(requestMock);
+        instructionMock = mock(Instruction.class);
+        when(instructionMock.getRequest()).thenReturn(requestMock);
+        requestReader = new ConditionRequestReader(instructionMock);
     }
 
     @Test

@@ -20,6 +20,7 @@
 
 package com.im.njams.sdk.adapter.messageformat.command.entity;
 
+import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
 import com.faizsiegeln.njams.messageformat.v4.command.Request;
 
 import com.im.njams.sdk.common.DateTimeUtility;
@@ -54,6 +55,8 @@ public class NjamsRequestReaderTest {
 
     private static final String TEST_PLUGIN = "plugin";
 
+    private Instruction instructionMock;
+
     private Request requestMock;
 
     private Map<String, String> map;
@@ -65,10 +68,12 @@ public class NjamsRequestReaderTest {
     @Before
     public void initialize() {
         requestMock = mock(Request.class);
+        instructionMock = mock(Instruction.class);
+        when(instructionMock.getRequest()).thenReturn(requestMock);
         map = new HashMap<>();
         map.put(TEST_PARAMETER_KEY, TEST_PARAMETER_VALUE);
         when(requestMock.getParameters()).thenReturn(map);
-        njamsRequestReader = spy(new NjamsRequestReader(requestMock));
+        njamsRequestReader = spy(new NjamsRequestReader(instructionMock));
         njamsRequestReaderWithNull = spy(new NjamsRequestReader(null));
     }
 
@@ -211,7 +216,8 @@ public class NjamsRequestReaderTest {
     @Test
     public void checkToStringForResponseWriter() throws IOException {
         Request requestToSet = createRealRequest();
-        njamsRequestReader = new NjamsRequestReader(requestToSet);
+        when(instructionMock.getRequest()).thenReturn(requestToSet);
+        njamsRequestReader = new NjamsRequestReader(instructionMock);
 
         String requestAsString = njamsRequestReader.toString();
         System.out.println(requestAsString);

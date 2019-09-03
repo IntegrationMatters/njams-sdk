@@ -20,6 +20,7 @@
 
 package com.im.njams.sdk.adapter.messageformat.command.entity;
 
+import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
 import com.faizsiegeln.njams.messageformat.v4.command.Response;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -42,21 +43,21 @@ class ResponseWriterFactory {
      * to create an instance of the given {@link Class<W> writerClass}. If it doesn't work, a
      * {@link NjamsResponseWriter NjamsResponseWriter} will be returned.
      *
-     * @param responseToWriteTo the response to set in the created {@link W NjamsResponseWriter}.
+     * @param instructionToWriteTo the instruction to set in the created {@link W NjamsResponseWriter}.
      * @param writerClass       the class to initialize the {@link NjamsResponseWriter NjamsResponseWriter}.
      * @param <W>               The type of class to initialize and to return.
      * @return either a correctly instantiated {@link NjamsResponseWriter NjamsResponseWriter} of type {@link W W} or
      * a default {@link NjamsResponseWriter NjamsResponseWriter} if the actual object of type {@link W W} couldn't be
      * created.
      */
-    public static <W extends NjamsResponseWriter> W create(Response responseToWriteTo, Class<W> writerClass) {
+    public static <W extends NjamsResponseWriter> W create(Instruction instructionToWriteTo, Class<W> writerClass) {
         W responseWriter;
         try {
-            Constructor constructorOfResponseWriter = writerClass.getConstructor(Response.class);
+            Constructor constructorOfResponseWriter = writerClass.getConstructor(Instruction.class);
             constructorOfResponseWriter.setAccessible(true);
-            responseWriter = (W) constructorOfResponseWriter.newInstance(responseToWriteTo);
+            responseWriter = (W) constructorOfResponseWriter.newInstance(instructionToWriteTo);
         } catch (IllegalAccessException | InstantiationException | NoSuchMethodException | InvocationTargetException couldntCreateObject) {
-            responseWriter = (W) new NjamsResponseWriter<>(responseToWriteTo);
+            responseWriter = (W) new NjamsResponseWriter<>(instructionToWriteTo);
             if (LOG.isWarnEnabled()) {
                 LOG.warn("Creating a {} as default ResponseWriter. Cause: {}",
                         responseWriter.getClass().getSimpleName(), couldntCreateObject);
