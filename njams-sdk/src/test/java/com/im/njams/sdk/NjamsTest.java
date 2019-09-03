@@ -22,6 +22,7 @@ import com.faizsiegeln.njams.messageformat.v4.command.Request;
 import com.faizsiegeln.njams.messageformat.v4.command.Response;
 import com.im.njams.sdk.adapter.messageformat.command.boundary.NjamsInstructionFactory;
 import com.im.njams.sdk.api.adapter.messageformat.command.NjamsInstructionException;
+import com.im.njams.sdk.api.adapter.messageformat.command.ReplayInstruction;
 import com.im.njams.sdk.api.adapter.messageformat.command.ResultCode;
 import com.im.njams.sdk.api.plugin.replay.ReplayHandler;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
@@ -138,7 +139,7 @@ public class NjamsTest {
     @Test
     public void testOnCorrectReplayMessageInstruction() {
         instance.start();
-        ReplayHandler replayHandler = (com.im.njams.sdk.api.adapter.messageformat.command.Instruction instruction) -> {
+        ReplayHandler replayHandler = (ReplayInstruction instruction) -> {
             instruction.getResponseWriter().
                     setResultCode(ResultCode.SUCCESS).
                     setResultMessage("TestWorked");
@@ -163,7 +164,7 @@ public class NjamsTest {
     public void testOnThrownExceptionReplayMessageInstruction() {
         instance.start();
         Instruction inst = new Instruction();
-        ReplayHandler replayHandler = (com.im.njams.sdk.api.adapter.messageformat.command.Instruction instruction) -> {
+        ReplayHandler replayHandler = (ReplayInstruction instruction) -> {
             throw new RuntimeException("TestException");
         };
         instance.getPluginStorage().getReplayPlugin().setPluginItem(replayHandler);

@@ -20,9 +20,9 @@
 
 package com.im.njams.sdk.communication.instruction.control.templates;
 
-import com.im.njams.sdk.adapter.messageformat.command.entity.replay.ReplayInstruction;
-import com.im.njams.sdk.adapter.messageformat.command.entity.replay.ReplayRequestReader;
-import com.im.njams.sdk.adapter.messageformat.command.entity.replay.ReplayResponseWriter;
+import com.im.njams.sdk.adapter.messageformat.command.entity.replay.NjamsReplayInstruction;
+import com.im.njams.sdk.adapter.messageformat.command.entity.replay.NjamsReplayRequestReader;
+import com.im.njams.sdk.adapter.messageformat.command.entity.replay.NjamsReplayResponseWriter;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -33,20 +33,20 @@ public class ReplayProcessorTemplateTest {
 
     private ReplayProcessorTemplate replayProcessorTemplate;
 
-    private ReplayInstruction replayInstructionMock;
+    private NjamsReplayInstruction replayInstructionMock;
 
-    private ReplayRequestReader replayRequestReaderMock;
+    private NjamsReplayRequestReader replayRequestReaderMock;
 
-    private ReplayResponseWriter replayResponseWriterMock;
+    private NjamsReplayResponseWriter replayResponseWriterMock;
 
     private RuntimeException runtimeExceptionMock;
 
     @Before
     public void initialize() {
         replayProcessorTemplate = spy(new ReplayProcessorTemplateImpl());
-        replayInstructionMock = mock(ReplayInstruction.class);
-        replayRequestReaderMock = mock(ReplayRequestReader.class);
-        replayResponseWriterMock = mock(ReplayResponseWriter.class);
+        replayInstructionMock = mock(NjamsReplayInstruction.class);
+        replayRequestReaderMock = mock(NjamsReplayRequestReader.class);
+        replayResponseWriterMock = mock(NjamsReplayResponseWriter.class);
         runtimeExceptionMock = mock(RuntimeException.class);
         doReturn(replayInstructionMock).when(replayProcessorTemplate).getInstruction();
         when(replayInstructionMock.getRequestReader()).thenReturn(replayRequestReaderMock);
@@ -121,14 +121,14 @@ public class ReplayProcessorTemplateTest {
 
     @Test
     public void getReplayRequestReaderReturnsARequestReaderTypeObject(){
-        assertTrue(replayProcessorTemplate.getReplayRequestReader() instanceof ReplayRequestReader);
+        assertTrue(replayProcessorTemplate.getReplayRequestReader() instanceof NjamsReplayRequestReader);
     }
 
 //GetReplayResponseWriter tests
 
     @Test
     public void getReplayResponseWriterReturnsAResponseWriterTypeObject(){
-        assertTrue(replayProcessorTemplate.getReplayResponseWriter() instanceof ReplayResponseWriter);
+        assertTrue(replayProcessorTemplate.getReplayResponseWriter() instanceof NjamsReplayResponseWriter);
     }
 
 //Private helper classes

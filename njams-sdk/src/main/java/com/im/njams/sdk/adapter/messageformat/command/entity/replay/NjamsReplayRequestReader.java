@@ -22,6 +22,7 @@ package com.im.njams.sdk.adapter.messageformat.command.entity.replay;
 
 import com.faizsiegeln.njams.messageformat.v4.command.Request;
 import com.im.njams.sdk.adapter.messageformat.command.entity.NjamsRequestReader;
+import com.im.njams.sdk.api.adapter.messageformat.command.ReplayInstruction;
 
 /**
  * This class provides methods to read the incoming instruction's request.
@@ -29,7 +30,7 @@ import com.im.njams.sdk.adapter.messageformat.command.entity.NjamsRequestReader;
  * @author krautenberg
  * @version 4.1.0
  */
-public class ReplayRequestReader extends NjamsRequestReader {
+public class NjamsReplayRequestReader extends NjamsRequestReader implements ReplayInstruction.ReplayRequestReader {
 
     private static final String PROCESS = "Process";
     private static final String START_ACTIVITY = "StartActivity";
@@ -42,7 +43,7 @@ public class ReplayRequestReader extends NjamsRequestReader {
      *
      * @param requestToReadFrom the request to set
      */
-    public ReplayRequestReader(Request requestToReadFrom) {
+    public NjamsReplayRequestReader(Request requestToReadFrom) {
         super(requestToReadFrom);
     }
 
@@ -51,6 +52,7 @@ public class ReplayRequestReader extends NjamsRequestReader {
      *
      * @return the value of the parameter {@value #PROCESS} or null if not found.
      */
+    @Override
     public String getProcess() {
         return getParameter(PROCESS);
     }
@@ -60,6 +62,7 @@ public class ReplayRequestReader extends NjamsRequestReader {
      *
      * @return the value of the parameter {@value #START_ACTIVITY} or null if not found.
      */
+    @Override
     public String getStartActivity() {
         return getParameter(START_ACTIVITY);
     }
@@ -69,6 +72,7 @@ public class ReplayRequestReader extends NjamsRequestReader {
      *
      * @return the value of the parameter {@value #PAYLOAD} or null if not found.
      */
+    @Override
     public String getPayload() {
         return getParameter(PAYLOAD);
     }
@@ -78,6 +82,7 @@ public class ReplayRequestReader extends NjamsRequestReader {
      *
      * @return true, if the boolean parameter value of {@value #DEEPTRACE} is true, else false.
      */
+    @Override
     public boolean isDeepTrace() {
         return Boolean.valueOf(getParameter(DEEPTRACE));
     }
@@ -87,6 +92,7 @@ public class ReplayRequestReader extends NjamsRequestReader {
      *
      * @return true, if the boolean parameter value of {@value #TEST} is true, else false.
      */
+    @Override
     public boolean isTest() {
         return Boolean.valueOf(getParameter(TEST));
     }

@@ -22,7 +22,7 @@ package com.im.njams.sdk.adapter.messageformat.command.entity;
 
 import com.faizsiegeln.njams.messageformat.v4.command.Request;
 import com.im.njams.sdk.adapter.messageformat.command.entity.condition.ConditionRequestReader;
-import com.im.njams.sdk.adapter.messageformat.command.entity.replay.ReplayRequestReader;
+import com.im.njams.sdk.adapter.messageformat.command.entity.replay.NjamsReplayRequestReader;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -48,17 +48,17 @@ public class RequestReaderFactoryTest {
         assertEquals(requestReader.getCommand(), COMMAND);
 
         assertTrue(requestReader instanceof NjamsRequestReader);
-        assertFalse(requestReader instanceof ReplayRequestReader);
+        assertFalse(requestReader instanceof NjamsReplayRequestReader);
         assertFalse(requestReader instanceof ConditionRequestReader);
     }
 
     @Test
     public void createReplayRequestReader() {
-        NjamsRequestReader requestReader = RequestReaderFactory.create(requestMock, ReplayRequestReader.class);
+        NjamsRequestReader requestReader = RequestReaderFactory.create(requestMock, NjamsReplayRequestReader.class);
         assertEquals(requestReader.getCommand(), COMMAND);
 
         assertTrue(requestReader instanceof NjamsRequestReader);
-        assertTrue(requestReader instanceof ReplayRequestReader);
+        assertTrue(requestReader instanceof NjamsReplayRequestReader);
         assertFalse(requestReader instanceof ConditionRequestReader);
     }
 
@@ -68,7 +68,7 @@ public class RequestReaderFactoryTest {
         assertEquals(requestReader.getCommand(), COMMAND);
 
         assertTrue(requestReader instanceof NjamsRequestReader);
-        assertFalse(requestReader instanceof ReplayRequestReader);
+        assertFalse(requestReader instanceof NjamsReplayRequestReader);
         assertTrue(requestReader instanceof ConditionRequestReader);
     }
 
@@ -78,7 +78,7 @@ public class RequestReaderFactoryTest {
         assertEquals(requestReader.getCommand(), COMMAND);
 
         assertTrue(requestReader instanceof NjamsRequestReader);
-        assertFalse(requestReader instanceof ReplayRequestReader);
+        assertFalse(requestReader instanceof NjamsReplayRequestReader);
         assertFalse(requestReader instanceof ConditionRequestReader);
         assertTrue(requestReader instanceof RequestReaderImpl);
     }

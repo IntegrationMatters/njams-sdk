@@ -19,9 +19,9 @@
  */
 package com.im.njams.sdk.communication.instruction.control.processors;
 
-import com.im.njams.sdk.adapter.messageformat.command.entity.replay.ReplayInstruction;
-import com.im.njams.sdk.adapter.messageformat.command.entity.replay.ReplayRequestReader;
-import com.im.njams.sdk.adapter.messageformat.command.entity.replay.ReplayResponseWriter;
+import com.im.njams.sdk.adapter.messageformat.command.entity.replay.NjamsReplayInstruction;
+import com.im.njams.sdk.adapter.messageformat.command.entity.replay.NjamsReplayRequestReader;
+import com.im.njams.sdk.adapter.messageformat.command.entity.replay.NjamsReplayResponseWriter;
 import com.im.njams.sdk.api.adapter.messageformat.command.ResultCode;
 import com.im.njams.sdk.api.plugin.replay.ReplayHandler;
 import com.im.njams.sdk.api.plugin.replay.ReplayPlugin;
@@ -43,11 +43,11 @@ public class ReplayProcessorTest {
 
     private ReplayHandler replayHandlerMock;
 
-    private ReplayInstruction replayInstruction;
+    private NjamsReplayInstruction replayInstruction;
 
-    private ReplayRequestReader replayRequestReaderMock;
+    private NjamsReplayRequestReader replayRequestReaderMock;
 
-    private ReplayResponseWriter replayResponseWriterMock;
+    private NjamsReplayResponseWriter replayResponseWriterMock;
 
     private RuntimeException runtimeExceptionMock;
 
@@ -59,9 +59,9 @@ public class ReplayProcessorTest {
 
         replayProcessor = spy(new ReplayProcessor(replayPluginMock));
 
-        replayInstruction = mock(ReplayInstruction.class);
-        replayRequestReaderMock = mock(ReplayRequestReader.class);
-        replayResponseWriterMock = mock(ReplayResponseWriter.class);
+        replayInstruction = mock(NjamsReplayInstruction.class);
+        replayRequestReaderMock = mock(NjamsReplayRequestReader.class);
+        replayResponseWriterMock = mock(NjamsReplayResponseWriter.class);
         when(replayResponseWriterMock.setResultCodeAndResultMessage(any(), any())).thenReturn(replayResponseWriterMock);
 
         doReturn(replayInstruction).when(replayProcessor).getInstruction();

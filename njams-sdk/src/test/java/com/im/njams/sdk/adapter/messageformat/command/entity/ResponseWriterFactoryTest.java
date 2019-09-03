@@ -22,7 +22,7 @@ package com.im.njams.sdk.adapter.messageformat.command.entity;
 
 import com.faizsiegeln.njams.messageformat.v4.command.Response;
 import com.im.njams.sdk.adapter.messageformat.command.entity.condition.ConditionResponseWriter;
-import com.im.njams.sdk.adapter.messageformat.command.entity.replay.ReplayResponseWriter;
+import com.im.njams.sdk.adapter.messageformat.command.entity.replay.NjamsReplayResponseWriter;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -43,16 +43,16 @@ public class ResponseWriterFactoryTest {
         NjamsResponseWriter responseWriter = ResponseWriterFactory.create(responseMock, NjamsResponseWriter.class);
 
         assertTrue(responseWriter instanceof NjamsResponseWriter);
-        assertFalse(responseWriter instanceof ReplayResponseWriter);
+        assertFalse(responseWriter instanceof NjamsReplayResponseWriter);
         assertFalse(responseWriter instanceof ConditionResponseWriter);
     }
 
     @Test
     public void createReplayResponseWriter() {
-        NjamsResponseWriter responseWriter = ResponseWriterFactory.create(responseMock, ReplayResponseWriter.class);
+        NjamsResponseWriter responseWriter = ResponseWriterFactory.create(responseMock, NjamsReplayResponseWriter.class);
 
         assertTrue(responseWriter instanceof NjamsResponseWriter);
-        assertTrue(responseWriter instanceof ReplayResponseWriter);
+        assertTrue(responseWriter instanceof NjamsReplayResponseWriter);
         assertFalse(responseWriter instanceof ConditionResponseWriter);
     }
 
@@ -61,7 +61,7 @@ public class ResponseWriterFactoryTest {
         NjamsResponseWriter responseWriter = ResponseWriterFactory.create(responseMock, ConditionResponseWriter.class);
 
         assertTrue(responseWriter instanceof NjamsResponseWriter);
-        assertFalse(responseWriter instanceof ReplayResponseWriter);
+        assertFalse(responseWriter instanceof NjamsReplayResponseWriter);
         assertTrue(responseWriter instanceof ConditionResponseWriter);
     }
 
@@ -70,7 +70,7 @@ public class ResponseWriterFactoryTest {
         NjamsResponseWriter responseWriter = ResponseWriterFactory.create(responseMock, ResponseWriterImpl.class);
 
         assertTrue(responseWriter instanceof NjamsResponseWriter);
-        assertFalse(responseWriter instanceof ReplayResponseWriter);
+        assertFalse(responseWriter instanceof NjamsReplayResponseWriter);
         assertFalse(responseWriter instanceof ConditionResponseWriter);
         assertTrue(responseWriter instanceof ResponseWriterImpl);
     }

@@ -4,7 +4,7 @@ import com.faizsiegeln.njams.messageformat.v4.command.Command;
 import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
 import com.im.njams.sdk.adapter.messageformat.command.entity.NjamsInstruction;
 import com.im.njams.sdk.adapter.messageformat.command.entity.condition.ConditionInstruction;
-import com.im.njams.sdk.adapter.messageformat.command.entity.replay.ReplayInstruction;
+import com.im.njams.sdk.adapter.messageformat.command.entity.replay.NjamsReplayInstruction;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Test;
@@ -150,7 +150,7 @@ public class NjamsInstructionWrapperTest {
 
     private void assertReplayFor(String commandToUse){
         when(instructionMock.getCommand()).thenReturn(commandToUse);
-        assertTrue(instructionWrapper.wrap() instanceof ReplayInstruction);
+        assertTrue(instructionWrapper.wrap() instanceof NjamsReplayInstruction);
         checkedCommands.add(commandToUse);
     }
 

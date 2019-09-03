@@ -22,6 +22,7 @@ package com.im.njams.sdk.adapter.messageformat.command.entity.replay;
 
 import com.faizsiegeln.njams.messageformat.v4.command.Response;
 import com.im.njams.sdk.adapter.messageformat.command.entity.NjamsResponseWriter;
+import com.im.njams.sdk.api.adapter.messageformat.command.ReplayInstruction;
 
 /**
  * This class provides methods to write the outgoing instruction's response.
@@ -29,7 +30,7 @@ import com.im.njams.sdk.adapter.messageformat.command.entity.NjamsResponseWriter
  * @author krautenberg
  * @version 4.1.0
  */
-public class ReplayResponseWriter extends NjamsResponseWriter<ReplayResponseWriter> {
+public class NjamsReplayResponseWriter extends NjamsResponseWriter<NjamsReplayResponseWriter> implements ReplayInstruction.ReplayResponseWriter<NjamsReplayResponseWriter> {
 
     private static final String EXCEPTION = "Exception";
 
@@ -40,7 +41,7 @@ public class ReplayResponseWriter extends NjamsResponseWriter<ReplayResponseWrit
      *
      * @param responseToWriteTo the response to set
      */
-    public ReplayResponseWriter(Response responseToWriteTo) {
+    public NjamsReplayResponseWriter(Response responseToWriteTo) {
         super(responseToWriteTo);
     }
 
@@ -48,9 +49,10 @@ public class ReplayResponseWriter extends NjamsResponseWriter<ReplayResponseWrit
      * Sets the parameter value for the key {@value #EXCEPTION} with the given string to the {@link Response response}.
      *
      * @param exception the exception to set
-     * @return itself via {@link #getThis() getThis()} for chaining ReplayResponseWriter methods
+     * @return itself via {@link #getThis() getThis()} for chaining NjamsReplayResponseWriter methods
      */
-    public ReplayResponseWriter setException(String exception) {
+    @Override
+    public NjamsReplayResponseWriter setException(String exception) {
         return putParameter(EXCEPTION, exception);
     }
 
@@ -58,9 +60,10 @@ public class ReplayResponseWriter extends NjamsResponseWriter<ReplayResponseWrit
      * Sets the parameter value for the key {@value #MAIN_LOG_ID} with the given string to the {@link Response response}.
      *
      * @param mainLogId the mainLogId to set
-     * @return itself via {@link #getThis() getThis()} for chaining ReplayResponseWriter methods
+     * @return itself via {@link #getThis() getThis()} for chaining NjamsReplayResponseWriter methods
      */
-    public ReplayResponseWriter setMainLogId(String mainLogId) {
+    @Override
+    public NjamsReplayResponseWriter setMainLogId(String mainLogId) {
         return putParameter(MAIN_LOG_ID, mainLogId);
     }
 }

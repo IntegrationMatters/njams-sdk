@@ -47,14 +47,14 @@ public class ReplayRequestReaderTest {
 
     private Map<String, String> parameters;
 
-    private ReplayRequestReader replayRequestReader;
+    private NjamsReplayRequestReader replayRequestReader;
 
     @Before
     public void initialize() {
         requestMock = mock(Request.class);
         parameters = new HashMap<>();
         when(requestMock.getParameters()).thenReturn(parameters);
-        replayRequestReader = spy(new ReplayRequestReader(requestMock));
+        replayRequestReader = spy(new NjamsReplayRequestReader(requestMock));
     }
 
 //GetProcess tests

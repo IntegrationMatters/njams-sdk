@@ -22,25 +22,26 @@ package com.im.njams.sdk.adapter.messageformat.command.entity.replay;
 
 import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
 import com.im.njams.sdk.adapter.messageformat.command.entity.NjamsInstruction;
+import com.im.njams.sdk.api.adapter.messageformat.command.ReplayInstruction;
 
 /**
  * This class represents the instruction that was sent to the client by the server. It holds a
- * {@link ReplayRequestReader ReplayRequestReader} to read the incoming request and a
- * {@link ReplayResponseWriter ReplayResponseWriter} to write a response to the processed request respectively.
+ * {@link NjamsReplayRequestReader njamsReplayRequestReader} to read the incoming request and a
+ * {@link NjamsReplayResponseWriter njamsReplayResponseWriter} to write a response to the processed request respectively.
  *
  * @author krautenberg
  * @version 4.1.0
  */
-public class ReplayInstruction extends NjamsInstruction<ReplayRequestReader, ReplayResponseWriter> {
+public class NjamsReplayInstruction extends NjamsInstruction<NjamsReplayRequestReader, NjamsReplayResponseWriter> implements ReplayInstruction {
 
     /**
-     * Sets the underlying instruction and creates a {@link ReplayRequestReader ReplayRequestReader} to read the request
-     * and a {@link ReplayResponseWriter ReplayResponseWriter} to write the response.
+     * Sets the underlying instruction and creates a {@link NjamsReplayRequestReader njamsReplayRequestReader} to read the request
+     * and a {@link NjamsReplayResponseWriter njamsReplayResponseWriter} to write the response.
      *
      * @param messageFormatInstruction the instruction to read from and write to
      */
-    public ReplayInstruction(Instruction messageFormatInstruction){
-        super(messageFormatInstruction, ReplayRequestReader.class, ReplayResponseWriter.class);
+    public NjamsReplayInstruction(Instruction messageFormatInstruction){
+        super(messageFormatInstruction, NjamsReplayRequestReader.class, NjamsReplayResponseWriter.class);
     }
 
 }

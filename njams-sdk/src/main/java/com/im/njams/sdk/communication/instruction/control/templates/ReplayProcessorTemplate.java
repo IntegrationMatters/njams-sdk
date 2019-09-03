@@ -20,11 +20,11 @@
 
 package com.im.njams.sdk.communication.instruction.control.templates;
 
-import com.im.njams.sdk.adapter.messageformat.command.entity.replay.ReplayInstruction;
-import com.im.njams.sdk.adapter.messageformat.command.entity.replay.ReplayRequestReader;
-import com.im.njams.sdk.adapter.messageformat.command.entity.replay.ReplayResponseWriter;
+import com.im.njams.sdk.adapter.messageformat.command.entity.replay.NjamsReplayInstruction;
+import com.im.njams.sdk.adapter.messageformat.command.entity.replay.NjamsReplayRequestReader;
+import com.im.njams.sdk.adapter.messageformat.command.entity.replay.NjamsReplayResponseWriter;
 
-public abstract class ReplayProcessorTemplate extends InstructionProcessorTemplate<ReplayInstruction> {
+public abstract class ReplayProcessorTemplate extends InstructionProcessorTemplate<NjamsReplayInstruction> {
 
     @Override
     protected void process() {
@@ -47,11 +47,11 @@ public abstract class ReplayProcessorTemplate extends InstructionProcessorTempla
 
     protected abstract void setCantReplayResponse();
 
-    public ReplayRequestReader getReplayRequestReader(){
+    public NjamsReplayRequestReader getReplayRequestReader(){
         return getInstruction().getRequestReader();
     }
 
-    public ReplayResponseWriter getReplayResponseWriter(){
+    public NjamsReplayResponseWriter getReplayResponseWriter(){
         return getInstruction().getResponseWriter();
     }
 }

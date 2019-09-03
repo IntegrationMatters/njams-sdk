@@ -36,12 +36,12 @@ public class ReplayResponseWriterTest {
 
     private Response responseMock;
 
-    private ReplayResponseWriter replayResponseWriter;
+    private NjamsReplayResponseWriter replayResponseWriter;
 
     @Before
     public void initialize() {
         responseMock = mock(Response.class);
-        replayResponseWriter = spy(new ReplayResponseWriter(responseMock));
+        replayResponseWriter = spy(new NjamsReplayResponseWriter(responseMock));
     }
 
 //SetException tests
@@ -55,7 +55,7 @@ public class ReplayResponseWriterTest {
 
     @Test
     public void setExceptionReturnsThis() {
-        ReplayResponseWriter returnedReplayResponseWriter = replayResponseWriter.setException(EXCEPTION_VALUE);
+        NjamsReplayResponseWriter returnedReplayResponseWriter = replayResponseWriter.setException(EXCEPTION_VALUE);
 
         assertEquals(replayResponseWriter, returnedReplayResponseWriter);
     }
@@ -71,7 +71,7 @@ public class ReplayResponseWriterTest {
 
     @Test
     public void setMainLogIdReturnsThis() {
-        ReplayResponseWriter returnedReplayResponseWriter = replayResponseWriter.setMainLogId(MAIN_LOG_ID_VALUE);
+        NjamsReplayResponseWriter returnedReplayResponseWriter = replayResponseWriter.setMainLogId(MAIN_LOG_ID_VALUE);
 
         assertEquals(replayResponseWriter, returnedReplayResponseWriter);
     }

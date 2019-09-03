@@ -23,7 +23,7 @@ package com.im.njams.sdk.adapter.messageformat.command.control;
 import com.faizsiegeln.njams.messageformat.v4.command.Command;
 import com.im.njams.sdk.adapter.messageformat.command.entity.NjamsInstruction;
 import com.im.njams.sdk.adapter.messageformat.command.entity.condition.ConditionInstruction;
-import com.im.njams.sdk.adapter.messageformat.command.entity.replay.ReplayInstruction;
+import com.im.njams.sdk.adapter.messageformat.command.entity.replay.NjamsReplayInstruction;
 import com.im.njams.sdk.api.adapter.messageformat.command.Instruction;
 
 /**
@@ -89,7 +89,7 @@ public class NjamsInstructionWrapper {
         if (typeOfCommand == CommandClassifier.CONDITION) {
             return new ConditionInstruction(instructionToWrap);
         } else if (typeOfCommand == CommandClassifier.REPLAY) {
-            return new ReplayInstruction(instructionToWrap);
+            return new NjamsReplayInstruction(instructionToWrap);
         } else {
             return new NjamsInstruction(instructionToWrap);
         }

@@ -34,8 +34,8 @@ public class ReplayInstructionTest {
 
     @Test
     public void constructorCreatesCorrectReaderAndWriter(){
-        ReplayInstruction replayInstruction = spy(new ReplayInstruction(mock(Instruction.class)));
-        assertTrue(replayInstruction.getRequestReader() instanceof ReplayRequestReader);
-        assertTrue(replayInstruction.getResponseWriter() instanceof ReplayResponseWriter);
+        NjamsReplayInstruction replayInstruction = spy(new NjamsReplayInstruction(mock(Instruction.class)));
+        assertTrue(replayInstruction.getRequestReader() instanceof NjamsReplayRequestReader);
+        assertTrue(replayInstruction.getResponseWriter() instanceof NjamsReplayResponseWriter);
     }
 }
