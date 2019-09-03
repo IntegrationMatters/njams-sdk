@@ -47,7 +47,7 @@ public class CommunicationFacade implements Communication {
 
     /**
      * Returns the {@link InstructionListener instructionListener} that is currently responsible for processing the
-     * incoming instructions.
+     * incoming instructions or null, if no {@link InstructionListener instructionListener} has been set before.
      *
      * @return the instructionListener that processes the incoming instructions.
      */
@@ -62,7 +62,9 @@ public class CommunicationFacade implements Communication {
     @Override
     public void stop() {
         try {
-            instructionListener.close();
+            if (instructionListener != null) {
+                instructionListener.close();
+            }
         } catch (Exception stopDidntWork) {
             throw new NjamsSdkRuntimeException("Stopping the communication didn't work", stopDidntWork);
         }
