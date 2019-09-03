@@ -27,7 +27,7 @@ import org.junit.Test;
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
 
-public class ReplayResponseWriterTest {
+public class NjamsReplayResponseWriterTest {
 
     private static final String EXCEPTION_KEY = "Exception";
     private static final String EXCEPTION_VALUE = "Ex";

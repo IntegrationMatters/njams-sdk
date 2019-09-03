@@ -30,7 +30,7 @@ import java.util.Map;
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
 
-public class ReplayRequestReaderTest {
+public class NjamsReplayRequestReaderTest {
 
     private static final String PROCESS_KEY = "Process";
     private static final String PROCESS_VALUE = "process";

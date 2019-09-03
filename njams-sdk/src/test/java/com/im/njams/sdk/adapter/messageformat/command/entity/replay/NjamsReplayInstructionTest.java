@@ -27,13 +27,11 @@ import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
 import static org.mockito.Mockito.mock;
 
-public class ReplayInstructionTest {
-
-
+public class NjamsReplayInstructionTest {
 //Constructor test
 
     @Test
-    public void constructorCreatesCorrectReaderAndWriter(){
+    public void constructorCreatesCorrectReaderAndWriter() {
         NjamsReplayInstruction replayInstruction = spy(new NjamsReplayInstruction(mock(Instruction.class)));
         assertTrue(replayInstruction.getRequestReader() instanceof NjamsReplayRequestReader);
         assertTrue(replayInstruction.getResponseWriter() instanceof NjamsReplayResponseWriter);
