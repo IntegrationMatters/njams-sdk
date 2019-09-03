@@ -22,7 +22,7 @@ package com.im.njams.sdk.communication.receiver;
 
 import com.im.njams.sdk.api.adapter.messageformat.command.Instruction;
 import com.im.njams.sdk.api.communication.instruction.InstructionListener;
-import com.im.njams.sdk.communication.instruction.boundary.InstructionProcessorService;
+import com.im.njams.sdk.communication.receiver.instruction.boundary.InstructionProcessorService;
 
 /**
  * This class provides functionality to process an {@link Instruction instruction} that was sent by the server.

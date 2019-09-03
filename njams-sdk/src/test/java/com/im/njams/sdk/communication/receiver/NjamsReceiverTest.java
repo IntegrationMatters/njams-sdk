@@ -24,8 +24,7 @@ import com.faizsiegeln.njams.messageformat.v4.command.Request;
 import com.faizsiegeln.njams.messageformat.v4.command.Response;
 import com.im.njams.sdk.adapter.messageformat.command.entity.NjamsInstruction;
 import com.im.njams.sdk.api.adapter.messageformat.command.Instruction;
-import com.im.njams.sdk.communication.instruction.boundary.InstructionProcessorService;
-import com.im.njams.sdk.communication.instruction.control.InstructionProcessor;
+import com.im.njams.sdk.communication.receiver.instruction.boundary.InstructionProcessorService;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -86,7 +85,7 @@ public class NjamsReceiverTest {
 //Close tests
 
     @Test
-    public void closeRemovesAllInstructionProcessorsFromInstructionProcessorService(){
+    public void closeRemovesAllInstructionProcessorsFromInstructionProcessorService() {
         InstructionProcessorService instructionProcessorService = njamsReceiver.getInstructionProcessorService();
         instructionProcessorService.putInstructionProcessor(TEST_COMMAND,
                 (instruction) -> instruction.getResponseWriter().setResultMessage(TEST_COMMAND));
@@ -97,7 +96,7 @@ public class NjamsReceiverTest {
     }
 
     @Test
-    public void afterCloseFallbackProcessingStillWorks(){
+    public void afterCloseFallbackProcessingStillWorks() {
         njamsReceiver.close();
         njamsReceiver.onInstruction(instruction);
         assertFalse(instruction.getResponseWriter().isEmpty());
