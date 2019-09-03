@@ -1,17 +1,24 @@
 /*
  * Copyright (c) 2019 Faiz & Siegeln Software GmbH
  *
- * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"),
- * to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
- * and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
+ * documentation files (the "Software"),
+ * to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge,
+ * publish, distribute, sublicense,
+ * and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to
+ * the following conditions:
  *
- * The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+ * The above copyright notice and this permission notice shall be included in all copies or substantial portions of
+ * the Software.
  *
  * The Software shall be used for Good, not Evil.
  *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
+ * THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE
+ *  FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+ * SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
  */
 package com.im.njams.sdk;
@@ -24,9 +31,12 @@ import com.im.njams.sdk.adapter.messageformat.command.boundary.NjamsInstructionF
 import com.im.njams.sdk.api.adapter.messageformat.command.NjamsInstructionException;
 import com.im.njams.sdk.api.adapter.messageformat.command.ReplayInstruction;
 import com.im.njams.sdk.api.adapter.messageformat.command.ResultCode;
+import com.im.njams.sdk.api.communication.instruction.InstructionListener;
 import com.im.njams.sdk.api.plugin.replay.ReplayHandler;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.common.Path;
+import com.im.njams.sdk.communication.receiver.NjamsReceiver;
+import com.im.njams.sdk.communication.receiver.instruction.boundary.InstructionProcessorService;
 import com.im.njams.sdk.logmessage.Job;
 import com.im.njams.sdk.model.ProcessModel;
 import com.im.njams.sdk.serializer.Serializer;
@@ -43,7 +53,6 @@ import static junit.framework.TestCase.assertNull;
 import static org.junit.Assert.*;
 
 /**
- *
  * @author stkniep
  */
 public class NjamsTest {
@@ -102,7 +111,7 @@ public class NjamsTest {
     }
 
     @Test
-    public void testOnCorrectSendProjectMessageInstruction(){
+    public void testOnCorrectSendProjectMessageInstruction() {
         instance.start();
         Instruction inst = new Instruction();
         Request req = new Request();
@@ -181,5 +190,16 @@ public class NjamsTest {
         assertTrue(resp.getResultCode() == 2);
         assertEquals("Error while executing replay: TestException", resp.getResultMessage());
         assertEquals("java.lang.RuntimeException: TestException", inst.getResponseParameterByName("Exception"));
+    }
+
+    @Test
+    public void testThatAllActualCommandsCanBeServedByInstructionProcessors() {
+        instance.start();
+        NjamsReceiver instructionListener = (NjamsReceiver) instance.getInstructionListener();
+        InstructionProcessorService instructionProcessorService = instructionListener.getInstructionProcessorService();
+
+        for (Command command : Command.values()) {
+            assertNotNull(instructionProcessorService.getInstructionProcessor(command.commandString()));
+        }
     }
 }

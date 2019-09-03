@@ -372,6 +372,7 @@ public class Njams implements Client {
         instructionProcessorService.addInstructionProcessor(new SetLogModeProcessor(this));
         instructionProcessorService.addInstructionProcessor(new SetTracingProcessor(this));
         instructionProcessorService.addInstructionProcessor(new ReplayProcessor(getPluginStorage().getReplayPlugin()));
+        instructionProcessorService.addInstructionProcessor(new TestExpressionProcessor());
     }
 
     /**
