@@ -23,12 +23,10 @@ import com.im.njams.sdk.adapter.messageformat.command.entity.NjamsInstruction;
 import com.im.njams.sdk.adapter.messageformat.command.entity.NjamsRequestReader;
 import com.im.njams.sdk.adapter.messageformat.command.entity.NjamsResponseWriter;
 import com.im.njams.sdk.api.adapter.messageformat.command.ResultCode;
-import com.im.njams.sdk.communication.receiver.instruction.control.processors.FallbackProcessor;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.verification.VerificationMode;
 
-import static com.faizsiegeln.njams.messageformat.v4.command.Command.DELETE_EXTRACT;
 import static com.im.njams.sdk.api.adapter.messageformat.command.Instruction.RequestReader.EMPTY_STRING;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.*;
@@ -59,6 +57,10 @@ public class FallbackProcessorTest {
         doReturn(defaultInstructionMock).when(fallbackProcessor).getInstruction();
         doReturn(defaultRequestReaderMock).when(fallbackProcessor).getDefaultRequestReader();
         doReturn(defaultResponseWriterMock).when(fallbackProcessor).getDefaultResponseWriter();
+
+        when(defaultResponseWriterMock.setResultMessage(any())).thenReturn(defaultResponseWriterMock);
+        when(defaultResponseWriterMock.setResultCode(any())).thenReturn(defaultResponseWriterMock);
+        when(defaultResponseWriterMock.setParameters(any())).thenReturn(defaultResponseWriterMock);
     }
 
 //AfterInit
@@ -71,7 +73,7 @@ public class FallbackProcessorTest {
 //GetCommandToListenTo tests
 
     @Test
-    public void getCommandToListenToIsCorrect(){
+    public void getCommandToListenToIsCorrect() {
         assertEquals("", fallbackProcessor.getCommandToListenTo());
     }
 
@@ -151,7 +153,8 @@ public class FallbackProcessorTest {
     private void setResponse(boolean isInstructionNull, VerificationMode howManyTimesHasResponseBeSet) {
         when(defaultInstructionMock.isEmpty()).thenReturn(isInstructionNull);
         fallbackProcessor.setInstructionResponse();
+        verify(defaultResponseWriterMock, howManyTimesHasResponseBeSet).setResultCode(ResultCode.WARNING);
         verify(defaultResponseWriterMock, howManyTimesHasResponseBeSet)
-                .setResultCodeAndResultMessage(ResultCode.WARNING, fallbackProcessor.warningMessage);
+                .setResultMessage(fallbackProcessor.warningMessage);
     }
 }

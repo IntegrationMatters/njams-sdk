@@ -19,8 +19,6 @@
  */
 package com.im.njams.sdk.communication.receiver.instruction.control.processors;
 
-import com.im.njams.sdk.adapter.messageformat.command.entity.NjamsRequestReader;
-import com.im.njams.sdk.adapter.messageformat.command.entity.NjamsResponseWriter;
 import com.im.njams.sdk.api.adapter.messageformat.command.Instruction;
 import com.im.njams.sdk.api.adapter.messageformat.command.ResultCode;
 import com.im.njams.sdk.communication.receiver.instruction.control.templates.DefaultProcessorTemplate;
@@ -120,7 +118,7 @@ public class FallbackProcessor extends DefaultProcessorTemplate {
     }
 
     private void setResponse() {
-        ((NjamsResponseWriter)getDefaultResponseWriter()).setResultCodeAndResultMessage(ResultCode.WARNING, warningMessage);
+        getDefaultResponseWriter().setResultCode(ResultCode.WARNING).setResultMessage(warningMessage);
     }
 
     @Override
