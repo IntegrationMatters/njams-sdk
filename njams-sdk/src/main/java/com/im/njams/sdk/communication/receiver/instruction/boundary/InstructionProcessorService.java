@@ -133,6 +133,9 @@ public class InstructionProcessorService {
         instructionDispatcher.removeAllInstructionProcessors();
     }
 
+    /**
+     * Facility to log requests and responses.
+     */
     private static class InstructionLogger {
 
         private Instruction.RequestReader requestToLog;
