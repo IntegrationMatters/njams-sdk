@@ -21,8 +21,8 @@ package com.im.njams.sdk.communication.receiver.instruction.boundary;
 
 import com.im.njams.sdk.api.adapter.messageformat.command.Instruction;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
-import com.im.njams.sdk.communication.receiver.instruction.control.InstructionDispatcher;
-import com.im.njams.sdk.communication.receiver.instruction.control.InstructionProcessor;
+import com.im.njams.sdk.communication.receiver.instruction.control.InstructionController;
+import com.im.njams.sdk.communication.receiver.instruction.control.processors.InstructionProcessor;
 import com.im.njams.sdk.utils.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,12 +40,13 @@ public class InstructionProcessorService {
 
     private static final Logger LOG = LoggerFactory.getLogger(InstructionProcessorService.class);
 
-    private InstructionDispatcher instructionDispatcher = new InstructionDispatcher();
+    private InstructionController instructionController = new InstructionController();
 
     /**
-     * Adds an {@link InstructionProcessor instructionProcessor} for the command String that it is referring to by
-     * {@link InstructionProcessor#getCommandToListenTo()}. If a InstructionProcessor with the same commandString is
-     * found, the old InstructionProcessor will be overwritten by the new instructionProcessor.
+     * Adds an {@link InstructionProcessor instructionProcessor} for the command String that is referring to
+     * {@link InstructionProcessor#getCommandToListenTo()}. If a {@link InstructionProcessor instructionProcessor}
+     * with the same commandString is found, the old InstructionProcessor will be overwritten by the new
+     * instructionProcessor.
      *
      * @param instructionProcessor the InstructionProcessor to add
      */
@@ -56,14 +57,14 @@ public class InstructionProcessorService {
                 if (StringUtils.isBlank(commandToListenTo)) {
                     LOG.warn("Cannot set InstructionProcessor for no command");
                 } else {
-                    InstructionProcessor oldInstructionProcessor = instructionDispatcher
+                    InstructionProcessor oldInstructionProcessor = instructionController
                             .getInstructionProcessor(commandToListenTo);
                     if (oldInstructionProcessor != null) {
                         LOG.debug("Replacing InstructionProcessor {} for command {} by {}.",
                                 oldInstructionProcessor.getClass().getSimpleName(), commandToListenTo,
                                 instructionProcessor.getClass().getSimpleName());
                     }
-                    this.instructionDispatcher.putInstructionProcessor(commandToListenTo, instructionProcessor);
+                    this.instructionController.putInstructionProcessor(commandToListenTo, instructionProcessor);
                 }
             }
         }
@@ -74,11 +75,12 @@ public class InstructionProcessorService {
      * command.
      *
      * @param commandToListenTo the command the {@link InstructionProcessor instructionProcessor} is listening to
-     * @return the {@link InstructionProcessor instructionProcessor} that listens to this command, or null if no
-     * {@link InstructionProcessor instructionProcessor} is found.
+     * @return the {@link InstructionProcessor instructionProcessor} that would process the {@link Instruction
+     * instruction} with the given command or null, if there is no {@link InstructionProcessor instructionProcessor}
+     * for this command.
      */
     public InstructionProcessor getInstructionProcessor(String commandToListenTo) {
-        return instructionDispatcher.getInstructionProcessor(commandToListenTo);
+        return instructionController.getInstructionProcessor(commandToListenTo);
     }
 
     /**
@@ -89,7 +91,7 @@ public class InstructionProcessorService {
      *                                    listening to.
      */
     public synchronized void removeInstructionProcessor(String instructionProcessorCommand) {
-        InstructionProcessor removedInstructionProcessor = instructionDispatcher
+        InstructionProcessor removedInstructionProcessor = instructionController
                 .removeInstructionProcessor(instructionProcessorCommand);
         if (LOG.isDebugEnabled()) {
             if (removedInstructionProcessor != null) {
@@ -117,7 +119,7 @@ public class InstructionProcessorService {
 
             logger.logRequest();
 
-            instructionDispatcher.dispatchInstruction(instruction);
+            instructionController.processInstruction(instruction);
 
             logger.logResponse();
 
@@ -130,7 +132,7 @@ public class InstructionProcessorService {
      * Stops the normal processing of the instructions.
      */
     public synchronized void stop() {
-        instructionDispatcher.removeAllInstructionProcessors();
+        instructionController.removeAllInstructionProcessors();
     }
 
     /**

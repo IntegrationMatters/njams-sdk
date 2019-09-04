@@ -20,70 +20,74 @@
 package com.im.njams.sdk.communication.receiver.instruction.control;
 
 import com.im.njams.sdk.api.adapter.messageformat.command.Instruction;
+import com.im.njams.sdk.communication.receiver.instruction.control.processors.InstructionProcessor;
 import com.im.njams.sdk.communication.receiver.instruction.entity.InstructionProcessorCollection;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Todo: Write Doc
+ * This class provides functionality to dispatch an incoming {@link Instruction instruction} to the given
+ * {@link InstructionProcessorCollection instructionProcessors}.
+ *
+ * @author krautenberg
+ * @version 4.1.0
  */
-public class InstructionDispatcher {
+class InstructionDispatcher {
 
     private static final Logger LOG = LoggerFactory.getLogger(InstructionDispatcher.class);
 
-    protected InstructionProcessorCollection instructionProcessorCollection;
+    private Instruction instructionToProcess;
 
-    public InstructionDispatcher() {
-        this.instructionProcessorCollection = new InstructionProcessorCollection();
+    private String lowerCaseCommandToProcess;
+
+    private InstructionProcessor processorToExecute;
+
+    /**
+     * The constructor sets the {@link Instruction instruction} to process, extracts the {@link String command} from the
+     * {@link Instruction instruction} and determines the {@link InstructionProcessor instructionProcessor} that is
+     * responsible for
+     * processing the instruction.
+     *
+     * @param processorsToDispatchTo the collection of instruction processors to choose from for dispatching
+     * @param instructionToProcess   the instruction to process
+     */
+    InstructionDispatcher(InstructionProcessorCollection processorsToDispatchTo, Instruction instructionToProcess) {
+        this.instructionToProcess = instructionToProcess;
+        this.lowerCaseCommandToProcess = extractLowerCaseCommand();
+        this.processorToExecute = extractExecutingProcessor(processorsToDispatchTo);
     }
 
-    public void putInstructionProcessor(String commandToListenTo, InstructionProcessor instructionProcessor) {
-        instructionProcessorCollection.putIfNotNull(commandToListenTo.toLowerCase(), instructionProcessor);
+    private String extractLowerCaseCommand() {
+        return instructionToProcess.getRequestReader().getCommand().toLowerCase();
     }
 
-    public InstructionProcessor getInstructionProcessor(String commandToListenTo) {
-        return instructionProcessorCollection.get(commandToListenTo.toLowerCase());
-    }
-
-    public InstructionProcessor removeInstructionProcessor(String commandToListenTo) {
-        return instructionProcessorCollection.remove(commandToListenTo.toLowerCase());
-    }
-
-    public void removeAllInstructionProcessors() {
-        instructionProcessorCollection.clear();
-    }
-
-    public void dispatchInstruction(Instruction instructionToProcess) {
-        String commandToProcess = extractLowerCaseCommandFrom(instructionToProcess);
-
-        InstructionProcessor processorToExecute = getExecutingProcessorFor(commandToProcess);
-
-        logDispatching(commandToProcess, processorToExecute);
-
-        processInstructionWithProcessor(instructionToProcess, processorToExecute);
-    }
-
-    protected String extractLowerCaseCommandFrom(Instruction instruction) {
-        return instruction.getRequestReader().getCommand().toLowerCase();
-    }
-
-    protected InstructionProcessor getExecutingProcessorFor(String commandToProcess) {
-        InstructionProcessor matchingProcessor = instructionProcessorCollection.get(commandToProcess);
+    private InstructionProcessor extractExecutingProcessor(InstructionProcessorCollection processorsToDispatchTo) {
+        InstructionProcessor matchingProcessor = processorsToDispatchTo.get(lowerCaseCommandToProcess);
         if (matchingProcessor == null) {
-            matchingProcessor = instructionProcessorCollection.getDefault();
+            matchingProcessor = processorsToDispatchTo.getDefault();
         }
         return matchingProcessor;
     }
 
-    protected void logDispatching(String commandToProcess, InstructionProcessor executingProcessor) {
+    /**
+     * Processes the {@link InstructionDispatcher#instructionToProcess instruction} by dispatching it to the
+     * {@link InstructionDispatcher#processorToExecute} which processes it.
+     */
+    public void dispatchInstruction() {
+        logDispatching();
+
+        processInstructionWithProcessor();
+    }
+
+    private void logDispatching() {
         if (LOG.isDebugEnabled()) {
-            LOG.debug("Dispatching instruction with command {} to {}", commandToProcess,
-                    executingProcessor.getClass().getSimpleName());
+            LOG.debug("Dispatching instruction with command {} to {}", lowerCaseCommandToProcess,
+                    processorToExecute.getClass().getSimpleName());
         }
     }
 
-    protected void processInstructionWithProcessor(Instruction instructionToProcess,
-            InstructionProcessor processorToExecute) {
+    private void processInstructionWithProcessor() {
         processorToExecute.processInstruction(instructionToProcess);
     }
 }
+
