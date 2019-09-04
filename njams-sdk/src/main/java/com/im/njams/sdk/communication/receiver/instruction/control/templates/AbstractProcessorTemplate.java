@@ -25,7 +25,7 @@ import com.im.njams.sdk.communication.receiver.instruction.control.processors.In
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public abstract class InstructionProcessorTemplate<T extends Instruction> implements InstructionProcessor<T> {
+public abstract class AbstractProcessorTemplate<T extends Instruction> implements InstructionProcessor<T> {
 
     private static final Logger LOG = LoggerFactory.getLogger(DefaultProcessorTemplate.class);
 

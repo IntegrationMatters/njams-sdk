@@ -26,7 +26,7 @@ import com.im.njams.sdk.adapter.messageformat.command.entity.condition.Condition
 import com.im.njams.sdk.adapter.messageformat.command.entity.condition.ConditionResponseWriter;
 import com.im.njams.sdk.api.adapter.messageformat.command.NjamsInstructionException;
 import com.im.njams.sdk.api.adapter.messageformat.command.ResultCode;
-import com.im.njams.sdk.communication.receiver.instruction.control.templates.InstructionProcessorTemplate;
+import com.im.njams.sdk.communication.receiver.instruction.control.templates.AbstractProcessorTemplate;
 import com.im.njams.sdk.utils.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,7 +35,7 @@ import java.util.List;
 
 import static com.im.njams.sdk.api.adapter.messageformat.command.Instruction.RequestReader.EMPTY_STRING;
 
-public abstract class ConditionReaderTemplate extends InstructionProcessorTemplate<ConditionInstruction> {
+public abstract class ConditionReaderTemplate extends AbstractProcessorTemplate<ConditionInstruction> {
 
     private static final Logger LOG = LoggerFactory.getLogger(ConditionReaderTemplate.class);
 

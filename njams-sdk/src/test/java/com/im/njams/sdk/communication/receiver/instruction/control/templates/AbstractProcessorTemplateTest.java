@@ -29,9 +29,9 @@ import static junit.framework.TestCase.assertTrue;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.*;
 
-public class InstructionProcessorTemplateTest {
+public class AbstractProcessorTemplateTest {
 
-    private InstructionProcessorTemplate instructionProcessorTemplate;
+    private AbstractProcessorTemplate instructionProcessorTemplate;
 
     private Instruction instructionMock;
 
@@ -78,7 +78,7 @@ public class InstructionProcessorTemplateTest {
 
 //Private helper classes
 
-    private class InstructionProcessorTemplateImpl extends InstructionProcessorTemplate<InstructionImpl> {
+    private class InstructionProcessorTemplateImpl extends AbstractProcessorTemplate<InstructionImpl> {
 
         @Override
         protected void process() {

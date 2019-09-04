@@ -21,6 +21,8 @@ package com.im.njams.sdk.communication.receiver.instruction.control.processors;
 
 import com.faizsiegeln.njams.messageformat.v4.command.Command;
 import com.im.njams.sdk.Njams;
+import com.im.njams.sdk.adapter.messageformat.command.entity.NjamsInstruction;
+import com.im.njams.sdk.adapter.messageformat.command.entity.NjamsResponseWriter;
 import com.im.njams.sdk.api.adapter.messageformat.command.ResultCode;
 import com.im.njams.sdk.communication.receiver.instruction.control.templates.DefaultProcessorTemplate;
 
@@ -49,6 +51,6 @@ public class SendProjectMessageProcessor extends DefaultProcessorTemplate {
 
     @Override
     protected void setInstructionResponse() {
-        getDefaultResponseWriter().setResultCodeAndResultMessage(ResultCode.SUCCESS, SUCCESS_RESULT_MESSAGE);
+        ((NjamsResponseWriter)getDefaultResponseWriter()).setResultCodeAndResultMessage(ResultCode.SUCCESS, SUCCESS_RESULT_MESSAGE);
     }
 }

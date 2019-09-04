@@ -19,8 +19,9 @@
  */
 package com.im.njams.sdk.communication.receiver.instruction.control.processors;
 
-import com.faizsiegeln.njams.messageformat.v4.command.Command;
 import com.im.njams.sdk.adapter.messageformat.command.entity.NjamsRequestReader;
+import com.im.njams.sdk.adapter.messageformat.command.entity.NjamsResponseWriter;
+import com.im.njams.sdk.api.adapter.messageformat.command.Instruction;
 import com.im.njams.sdk.api.adapter.messageformat.command.ResultCode;
 import com.im.njams.sdk.communication.receiver.instruction.control.templates.DefaultProcessorTemplate;
 import org.slf4j.Logger;
@@ -38,7 +39,7 @@ public class FallbackProcessor extends DefaultProcessorTemplate {
     private static final String EMPTY_COMMAND = "";
 
     @Override
-    public String getCommandToListenTo(){
+    public String getCommandToListenTo() {
         return EMPTY_COMMAND;
     }
 
@@ -81,7 +82,7 @@ public class FallbackProcessor extends DefaultProcessorTemplate {
         if (getInstruction().isEmpty()) {
             problemType = InstructionProblem.INSTRUCTION_IS_NULL;
         } else {
-            final NjamsRequestReader requestReader = getDefaultRequestReader();
+            final Instruction.RequestReader requestReader = getDefaultRequestReader();
             if (requestReader.isEmpty()) {
                 problemType = InstructionProblem.REQUEST_IS_NULL;
             } else if (requestReader.isCommandNull()) {
@@ -119,8 +120,7 @@ public class FallbackProcessor extends DefaultProcessorTemplate {
     }
 
     private void setResponse() {
-        getDefaultResponseWriter().
-                setResultCodeAndResultMessage(ResultCode.WARNING, warningMessage);
+        ((NjamsResponseWriter)getDefaultResponseWriter()).setResultCodeAndResultMessage(ResultCode.WARNING, warningMessage);
     }
 
     @Override

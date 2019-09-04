@@ -24,7 +24,7 @@ import com.im.njams.sdk.adapter.messageformat.command.entity.replay.NjamsReplayI
 import com.im.njams.sdk.adapter.messageformat.command.entity.replay.NjamsReplayRequestReader;
 import com.im.njams.sdk.adapter.messageformat.command.entity.replay.NjamsReplayResponseWriter;
 
-public abstract class ReplayProcessorTemplate extends InstructionProcessorTemplate<NjamsReplayInstruction> {
+public abstract class ReplayProcessorTemplate extends AbstractProcessorTemplate<NjamsReplayInstruction> {
 
     @Override
     protected void process() {
