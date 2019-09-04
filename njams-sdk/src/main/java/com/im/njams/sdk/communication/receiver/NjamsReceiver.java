@@ -32,14 +32,7 @@ import com.im.njams.sdk.communication.receiver.instruction.boundary.InstructionP
  */
 public class NjamsReceiver implements InstructionListener {
 
-    private InstructionProcessorService instructionProcessorService;
-
-    /**
-     * Initializes to process the incoming instructions correctly.
-     */
-    public NjamsReceiver() {
-        this.instructionProcessorService = new InstructionProcessorService();
-    }
+    private InstructionProcessorService instructionProcessorService = new InstructionProcessorService();
 
     /**
      * Processes the {@link Instruction Instruction}.
