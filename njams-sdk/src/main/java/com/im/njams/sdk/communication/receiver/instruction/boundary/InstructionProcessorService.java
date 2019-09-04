@@ -20,6 +20,7 @@
 package com.im.njams.sdk.communication.receiver.instruction.boundary;
 
 import com.im.njams.sdk.api.adapter.messageformat.command.Instruction;
+import com.im.njams.sdk.api.adapter.messageformat.command.NjamsInstructionException;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.communication.receiver.instruction.control.InstructionController;
 import com.im.njams.sdk.communication.receiver.instruction.control.processors.InstructionProcessor;
@@ -52,20 +53,20 @@ public class InstructionProcessorService {
      */
     public synchronized void addInstructionProcessor(InstructionProcessor instructionProcessor) {
         if (instructionProcessor != null) {
-            if (LOG.isDebugEnabled()) {
-                String commandToListenTo = instructionProcessor.getCommandToListenTo();
-                if (StringUtils.isBlank(commandToListenTo)) {
-                    LOG.warn("Cannot set InstructionProcessor for no command");
-                } else {
-                    InstructionProcessor oldInstructionProcessor = instructionController
-                            .getInstructionProcessor(commandToListenTo);
-                    if (oldInstructionProcessor != null) {
+            String commandToListenTo = instructionProcessor.getCommandToListenTo();
+            if (StringUtils.isBlank(commandToListenTo)) {
+                LOG.warn("Cannot set InstructionProcessor for no command");
+            } else {
+                InstructionProcessor oldInstructionProcessor = instructionController
+                        .getInstructionProcessor(commandToListenTo);
+                if (oldInstructionProcessor != null) {
+                    if (LOG.isDebugEnabled()) {
                         LOG.debug("Replacing InstructionProcessor {} for command {} by {}.",
                                 oldInstructionProcessor.getClass().getSimpleName(), commandToListenTo,
                                 instructionProcessor.getClass().getSimpleName());
                     }
-                    this.instructionController.putInstructionProcessor(commandToListenTo, instructionProcessor);
                 }
+                this.instructionController.putInstructionProcessor(commandToListenTo, instructionProcessor);
             }
         }
     }
@@ -113,8 +114,7 @@ public class InstructionProcessorService {
      * @param instruction the instruction to process.
      */
     public synchronized void processInstruction(Instruction instruction) {
-        if (instruction != null) {
-
+        try {
             InstructionLogger logger = new InstructionLogger(instruction);
 
             logger.logRequest();
@@ -122,9 +122,10 @@ public class InstructionProcessorService {
             instructionController.processInstruction(instruction);
 
             logger.logResponse();
-
-        } else if (LOG.isErrorEnabled()) {
-            LOG.error("Instruction must not be null");
+        } catch (NjamsInstructionException njamsInstructionIsCorruptedException) {
+            if (LOG.isWarnEnabled()) {
+                LOG.warn(njamsInstructionIsCorruptedException.getMessage());
+            }
         }
     }
 
@@ -140,14 +141,33 @@ public class InstructionProcessorService {
      */
     private static class InstructionLogger {
 
+        private static final String NJAMS_INSTRUCTION_IS_NULL_EXCEPTION = "NjamsInstruction must not be null";
+        private static final String REQUEST_READER_IS_NULL_EXCEPTION = "RequestReader must not be null";
+
         private Instruction.RequestReader requestToLog;
         private Instruction.ResponseWriter responseToLog;
         private String command;
 
-        private InstructionLogger(Instruction instructionToLog) {
-            requestToLog = instructionToLog.getRequestReader();
-            responseToLog = instructionToLog.getResponseWriter();
-            command = requestToLog.getCommand();
+        private InstructionLogger(Instruction instructionToLog) throws NjamsInstructionException {
+            setRequestReaderAndResponseWriter(instructionToLog);
+            setCommandToLog();
+        }
+
+        private void setRequestReaderAndResponseWriter(Instruction instructionToLog) throws NjamsInstructionException {
+            try {
+                requestToLog = instructionToLog.getRequestReader();
+                responseToLog = instructionToLog.getResponseWriter();
+            } catch (NullPointerException instructionIsNullException) {
+                throw new NjamsInstructionException(NJAMS_INSTRUCTION_IS_NULL_EXCEPTION, instructionIsNullException);
+            }
+        }
+
+        private void setCommandToLog() throws NjamsInstructionException {
+            try {
+                command = requestToLog.getCommand();
+            } catch (NullPointerException requestIsNullException) {
+                throw new NjamsInstructionException(REQUEST_READER_IS_NULL_EXCEPTION, requestIsNullException);
+            }
         }
 
         private void logRequest() {

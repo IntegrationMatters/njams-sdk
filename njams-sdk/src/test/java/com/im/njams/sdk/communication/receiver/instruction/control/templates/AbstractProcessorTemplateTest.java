@@ -58,8 +58,6 @@ public class AbstractProcessorTemplateTest {
     public void processInstructionLogsProcessedCommand() {
         instructionProcessorTemplate.processInstruction(instructionMock);
         verify(instructionProcessorTemplate).logProcessing();
-        verify(instructionMock).getRequestReader();
-        verify(requestReaderMock).getCommand();
     }
 
     @Test
