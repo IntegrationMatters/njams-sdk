@@ -20,94 +20,138 @@
 package com.im.njams.sdk.communication.receiver.instruction.control;
 
 import com.im.njams.sdk.api.adapter.messageformat.command.Instruction;
-import com.im.njams.sdk.communication.receiver.instruction.control.processors.test.TestInstructionProcessor;
+import com.im.njams.sdk.api.adapter.messageformat.command.NjamsInstructionException;
+import com.im.njams.sdk.api.adapter.messageformat.command.ResultCode;
+import com.im.njams.sdk.communication.receiver.instruction.control.processors.InstructionProcessor;
 import com.im.njams.sdk.communication.receiver.instruction.entity.InstructionProcessorCollection;
 import org.junit.Before;
 import org.junit.Test;
 
-import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.*;
 
 public class InstructionDispatcherTest {
 
-    private final TestInstructionProcessor testInstructionProcessor = spy(new TestInstructionProcessor());
+    private static final String COMMAND = "TeSt";
 
-    private InstructionDispatcher dispatcher;
+    private InstructionProcessorCollection instructionProcessorCollection;
+
+    private Instruction instructionMockWithoutRequestReader;
+
+    private Instruction instructionMockWithoutCommand;
+
+    private Instruction.RequestReader requestReaderWithoutCommand;
+
+    private Instruction instructionMock;
+
+    private Instruction.RequestReader requestReaderMock;
+
+    private InstructionDispatcher instructionDispatcher;
+
+    private Instruction.ResponseWriter responseWriterMock;
 
     @Before
-    public void cleanUpInstructionProcessors() {
-        dispatcher = new InstructionDispatcher();
-        dispatcher.instructionProcessorCollection = mock(InstructionProcessorCollection.class);
+    public void initialize() throws NjamsInstructionException {
+        instructionMockWithoutRequestReader = mock(Instruction.class);
+
+        instructionMockWithoutCommand = mock(Instruction.class);
+        requestReaderWithoutCommand = mock(Instruction.RequestReader.class);
+        responseWriterMock = mock(Instruction.ResponseWriter.class);
+        when(instructionMockWithoutCommand.getRequestReader()).thenReturn(requestReaderWithoutCommand);
+        when(instructionMockWithoutCommand.getResponseWriter()).thenReturn(responseWriterMock);
+        when(responseWriterMock.setResultMessage(any())).thenReturn(responseWriterMock);
+        when(responseWriterMock.setResultCode(any())).thenReturn(responseWriterMock);
+        when(responseWriterMock.setParameters(any())).thenReturn(responseWriterMock);
+
+        instructionMock = mock(Instruction.class);
+        requestReaderMock = mock(Instruction.RequestReader.class);
+        when(instructionMock.getRequestReader()).thenReturn(requestReaderMock);
+        when(requestReaderMock.getCommand()).thenReturn(COMMAND);
+        when(instructionMock.getResponseWriter()).thenReturn(responseWriterMock);
+
+        instructionProcessorCollection = new InstructionProcessorCollection();
+        instructionDispatcher = new InstructionDispatcher(instructionProcessorCollection, instructionMock);
+    }
+
+//Constructor tests
+
+    @Test(expected = NjamsInstructionException.class)
+    public void initializeWithoutProcessorCollectionAndWithoutInstruction() throws NjamsInstructionException {
+        new InstructionDispatcher(null, null);
+    }
+
+    @Test(expected = NjamsInstructionException.class)
+    public void initializeWithoutProcessorCollectionAndWithNullRequest() throws NjamsInstructionException {
+        new InstructionDispatcher(null, instructionMockWithoutRequestReader);
+    }
+
+    @Test(expected = NjamsInstructionException.class)
+    public void initializeWithoutProcessorCollectionAndWithNullCommand() throws NjamsInstructionException {
+        new InstructionDispatcher(null, instructionMockWithoutCommand);
+    }
+
+    @Test(expected = NjamsInstructionException.class)
+    public void initializeWithoutProcessorCollectionAndNormalInstruction() throws NjamsInstructionException {
+        new InstructionDispatcher(null, instructionMock);
+    }
+
+    @Test(expected = NjamsInstructionException.class)
+    public void initializeWithoutInstruction() throws NjamsInstructionException {
+        new InstructionDispatcher(instructionProcessorCollection, null);
+    }
+
+    @Test(expected = NjamsInstructionException.class)
+    public void initializeWithNullRequest() throws NjamsInstructionException {
+        new InstructionDispatcher(instructionProcessorCollection, instructionMockWithoutRequestReader);
+    }
+
+//DispatchInstruction tests
+
+    @Test
+    public void dispatchNullCommand() throws NjamsInstructionException {
+        instructionDispatcher = new InstructionDispatcher(instructionProcessorCollection,
+                instructionMockWithoutCommand);
+        when(requestReaderWithoutCommand.isCommandNull()).thenReturn(true);
+        instructionDispatcher.dispatchInstruction();
+        verify(responseWriterMock).setResultCode(ResultCode.WARNING);
     }
 
     @Test
-    public void putInstructionProcessorUsesCollectionWithLowerCaseCommand() {
-        dispatcher.putInstructionProcessor(TestInstructionProcessor.TEST_COMMAND, testInstructionProcessor);
-        verify(dispatcher.instructionProcessorCollection)
-                .putIfNotNull(TestInstructionProcessor.TEST_COMMAND.toLowerCase(), testInstructionProcessor);
+    public void dispatchEmptyCommand() throws NjamsInstructionException {
+        instructionDispatcher = new InstructionDispatcher(instructionProcessorCollection,
+                instructionMock);
+        when(requestReaderWithoutCommand.isCommandEmpty()).thenReturn(true);
+        instructionDispatcher.dispatchInstruction();
+        verify(responseWriterMock).setResultCode(ResultCode.WARNING);
     }
 
     @Test
-    public void getInstructionProcessorUsesCollectionWithLowerCaseCommand() {
-        dispatcher.getInstructionProcessor(TestInstructionProcessor.TEST_COMMAND);
-        verify(dispatcher.instructionProcessorCollection).get(TestInstructionProcessor.TEST_COMMAND.toLowerCase());
+    public void dispatchUnknownCommand() throws NjamsInstructionException {
+        instructionDispatcher = new InstructionDispatcher(instructionProcessorCollection,
+                instructionMock);
+        instructionDispatcher.dispatchInstruction();
+        verify(responseWriterMock).setResultCode(ResultCode.WARNING);
     }
 
     @Test
-    public void removeInstructionProcessorUsesCollectionWithLowerCaseCommand() {
-        dispatcher.removeInstructionProcessor(TestInstructionProcessor.TEST_COMMAND);
-        verify(dispatcher.instructionProcessorCollection).remove(TestInstructionProcessor.TEST_COMMAND.toLowerCase());
+    public void dispatchWithNormalCommand() throws NjamsInstructionException {
+        InstructionProcessor instructionProcessor = new InstructionProcessorImpl();
+        instructionProcessorCollection.putIfNotNull(COMMAND, instructionProcessor);
+        instructionDispatcher = new InstructionDispatcher(instructionProcessorCollection,
+                instructionMock);
+        instructionDispatcher.dispatchInstruction();
+        verify(responseWriterMock).setResultCode(ResultCode.SUCCESS);
     }
 
-    @Test
-    public void removeAllInstructionProcessorUsesCollection() {
-        dispatcher.removeAllInstructionProcessors();
-        verify(dispatcher.instructionProcessorCollection).clear();
-    }
+    private class InstructionProcessorImpl implements InstructionProcessor{
 
-    @Test
-    public void dispatch() {
-        dispatcher = spy(dispatcher);
-        mockProtectedMethods();
-        dispatcher.dispatchInstruction(mock(Instruction.class));
-        verifyProtectedMethods();
-    }
+        @Override
+        public String getCommandToListenTo() {
+            return COMMAND;
+        }
 
-    private void mockProtectedMethods() {
-        doReturn(null).when(dispatcher).extractLowerCaseCommandFrom(any());
-        doReturn(null).when(dispatcher).getExecutingProcessorFor(any());
-        doNothing().when(dispatcher).logDispatching(any(), any());
-        doNothing().when(dispatcher).processInstructionWithProcessor(any(), any());
-    }
-
-    private void verifyProtectedMethods() {
-        verify(dispatcher).extractLowerCaseCommandFrom(any());
-        verify(dispatcher).getExecutingProcessorFor(any());
-        verify(dispatcher).logDispatching(any(), any());
-        verify(dispatcher).processInstructionWithProcessor(any(), any());
-    }
-
-    @Test
-    public void getDefaultProcessor() {
-        when(dispatcher.instructionProcessorCollection.get(any())).thenReturn(null);
-        dispatcher.getExecutingProcessorFor(TestInstructionProcessor.TEST_COMMAND);
-        verify(dispatcher.instructionProcessorCollection).getDefault();
-    }
-
-    @Test
-    public void findMatchingProcessor() {
-        when(dispatcher.instructionProcessorCollection.get(TestInstructionProcessor.TEST_COMMAND))
-                .thenReturn(testInstructionProcessor);
-        InstructionProcessor foundProcessor = dispatcher
-                .getExecutingProcessorFor(TestInstructionProcessor.TEST_COMMAND);
-        assertEquals(testInstructionProcessor, foundProcessor);
-        verify(dispatcher.instructionProcessorCollection, times(0)).getDefault();
-    }
-
-    @Test
-    public void processInstructionWithProcessor() {
-        Instruction instructionMock = mock(Instruction.class);
-        dispatcher.processInstructionWithProcessor(instructionMock, testInstructionProcessor);
-        verify(testInstructionProcessor).processInstruction(instructionMock);
+        @Override
+        public void processInstruction(Instruction instructionToProcess) {
+            instructionToProcess.getResponseWriter().setResultCode(ResultCode.SUCCESS);
+        }
     }
 }

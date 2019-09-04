@@ -20,6 +20,7 @@
 package com.im.njams.sdk.communication.receiver.instruction.control;
 
 import com.im.njams.sdk.api.adapter.messageformat.command.Instruction;
+import com.im.njams.sdk.api.adapter.messageformat.command.NjamsInstructionException;
 import com.im.njams.sdk.communication.receiver.instruction.control.processors.InstructionProcessor;
 import com.im.njams.sdk.communication.receiver.instruction.entity.InstructionProcessorCollection;
 import org.slf4j.Logger;
@@ -36,6 +37,12 @@ class InstructionDispatcher {
 
     private static final Logger LOG = LoggerFactory.getLogger(InstructionDispatcher.class);
 
+    private static final String NJAMS_INSTRUCTION_IS_NULL_EXCEPTION = "NjamsInstruction must not be null";
+
+    private static final String REQUEST_READER_IS_NULL_EXCEPTION = "RequestReader must not be null";
+
+    private static final String NO_INSTRUCTION_PROCESSORS_TO_DISPATCH_TO = "InstructionProcessorCollection must not be null";
+
     private Instruction instructionToProcess;
 
     private String lowerCaseCommandToProcess;
@@ -45,28 +52,52 @@ class InstructionDispatcher {
     /**
      * The constructor sets the {@link Instruction instruction} to process, extracts the {@link String command} from the
      * {@link Instruction instruction} and determines the {@link InstructionProcessor instructionProcessor} that is
-     * responsible for
-     * processing the instruction.
+     * responsible for processing the instruction.
      *
      * @param processorsToDispatchTo the collection of instruction processors to choose from for dispatching
      * @param instructionToProcess   the instruction to process
+     * @throws NjamsInstructionException when {@link Instruction instructionToProcess} or its
+     *                                   {@link Instruction.RequestReader requestReader} is null.
      */
-    InstructionDispatcher(InstructionProcessorCollection processorsToDispatchTo, Instruction instructionToProcess) {
+    InstructionDispatcher(InstructionProcessorCollection processorsToDispatchTo, Instruction instructionToProcess)
+            throws NjamsInstructionException {
         this.instructionToProcess = instructionToProcess;
         this.lowerCaseCommandToProcess = extractLowerCaseCommand();
         this.processorToExecute = extractExecutingProcessor(processorsToDispatchTo);
     }
 
-    private String extractLowerCaseCommand() {
-        return instructionToProcess.getRequestReader().getCommand().toLowerCase();
+    private String extractLowerCaseCommand() throws NjamsInstructionException {
+        Instruction.RequestReader requestReader = getRequestReader();
+        return extractCommand(requestReader);
     }
 
-    private InstructionProcessor extractExecutingProcessor(InstructionProcessorCollection processorsToDispatchTo) {
-        InstructionProcessor matchingProcessor = processorsToDispatchTo.get(lowerCaseCommandToProcess);
-        if (matchingProcessor == null) {
-            matchingProcessor = processorsToDispatchTo.getDefault();
+    private Instruction.RequestReader getRequestReader() throws NjamsInstructionException {
+        try {
+            return instructionToProcess.getRequestReader();
+        } catch (NullPointerException instructionIsNullException) {
+            throw new NjamsInstructionException(NJAMS_INSTRUCTION_IS_NULL_EXCEPTION, instructionIsNullException);
         }
-        return matchingProcessor;
+    }
+
+    private String extractCommand(Instruction.RequestReader requestReader) throws NjamsInstructionException {
+        try {
+            return requestReader.getCommand();
+        } catch (NullPointerException requestReaderIsNullException) {
+            throw new NjamsInstructionException(REQUEST_READER_IS_NULL_EXCEPTION, requestReaderIsNullException);
+        }
+    }
+
+    private InstructionProcessor extractExecutingProcessor(InstructionProcessorCollection processorsToDispatchTo)
+            throws NjamsInstructionException {
+        try {
+            InstructionProcessor matchingProcessor = processorsToDispatchTo.get(lowerCaseCommandToProcess);
+            if (matchingProcessor == null) {
+                matchingProcessor = processorsToDispatchTo.getDefault();
+            }
+            return matchingProcessor;
+        }catch(NullPointerException noProcessorsToDispatchTo){
+            throw new NjamsInstructionException(NO_INSTRUCTION_PROCESSORS_TO_DISPATCH_TO, noProcessorsToDispatchTo);
+        }
     }
 
     /**
