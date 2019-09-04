@@ -21,11 +21,32 @@
 package com.im.njams.sdk.communication.receiver.instruction.control;
 
 
+import com.faizsiegeln.njams.messageformat.v4.command.Command;
 import com.im.njams.sdk.api.adapter.messageformat.command.Instruction;
 
+/**
+ * This interface provides functionality to actually process {@link Instruction instructions} of type {@link T T}.
+ * Each {@link InstructionProcessor instruction processor} is designed to listen to exactly one
+ * {@link Command command}.
+ *
+ * @param <T> The actual type of {@link Instruction instruction} to process
+ * @author krautenberg
+ * @version 4.1.0
+ */
 public interface InstructionProcessor<T extends Instruction> {
 
+    /**
+     * Returns the {@link Command command} as String that this {@link InstructionProcessor instruction processor} was
+     * designed for.
+     *
+     * @return the command as String to listen to
+     */
     String getCommandToListenTo();
 
+    /**
+     * Processes the given {@link Instruction instruction}.
+     *
+     * @param instructionToProcess the instruction to process.
+     */
     void processInstruction(T instructionToProcess);
 }
