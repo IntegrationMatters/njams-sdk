@@ -27,7 +27,6 @@ import com.faizsiegeln.njams.messageformat.v4.projectmessage.Tracepoint;
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.adapter.messageformat.command.control.NjamsInstructionWrapper;
 import com.im.njams.sdk.api.adapter.messageformat.command.NjamsInstructionException;
-import com.im.njams.sdk.communication.receiver.instruction.control.InstructionProcessor;
 import com.im.njams.sdk.configuration.entity.ActivityConfiguration;
 import com.im.njams.sdk.configuration.entity.Configuration;
 import com.im.njams.sdk.configuration.entity.ProcessConfiguration;

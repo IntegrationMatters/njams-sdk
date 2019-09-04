@@ -19,7 +19,7 @@
  */
 package com.im.njams.sdk.communication.receiver.instruction.entity;
 
-import com.im.njams.sdk.communication.receiver.instruction.control.InstructionProcessor;
+import com.im.njams.sdk.communication.receiver.instruction.control.processors.InstructionProcessor;
 import com.im.njams.sdk.communication.receiver.instruction.control.processors.FallbackProcessor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

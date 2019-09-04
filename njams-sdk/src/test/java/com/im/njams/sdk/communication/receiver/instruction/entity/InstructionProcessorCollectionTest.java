@@ -20,7 +20,7 @@
 
 package com.im.njams.sdk.communication.receiver.instruction.entity;
 
-import com.im.njams.sdk.communication.receiver.instruction.control.InstructionProcessor;
+import com.im.njams.sdk.communication.receiver.instruction.control.processors.InstructionProcessor;
 import com.im.njams.sdk.communication.receiver.instruction.control.processors.FallbackProcessor;
 import com.im.njams.sdk.communication.receiver.instruction.control.processors.test.TestInstructionProcessor;
 import org.junit.Before;

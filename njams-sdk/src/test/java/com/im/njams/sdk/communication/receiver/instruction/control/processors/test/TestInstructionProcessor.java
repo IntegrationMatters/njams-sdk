@@ -22,7 +22,7 @@ package com.im.njams.sdk.communication.receiver.instruction.control.processors.t
 
 import com.faizsiegeln.njams.messageformat.v4.command.Command;
 import com.im.njams.sdk.api.adapter.messageformat.command.Instruction;
-import com.im.njams.sdk.communication.receiver.instruction.control.InstructionProcessor;
+import com.im.njams.sdk.communication.receiver.instruction.control.processors.InstructionProcessor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
