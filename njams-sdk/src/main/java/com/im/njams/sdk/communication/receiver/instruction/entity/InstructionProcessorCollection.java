@@ -19,6 +19,7 @@
  */
 package com.im.njams.sdk.communication.receiver.instruction.entity;
 
+import com.im.njams.sdk.api.adapter.messageformat.command.Instruction;
 import com.im.njams.sdk.communication.receiver.instruction.control.processors.InstructionProcessor;
 import com.im.njams.sdk.communication.receiver.instruction.control.processors.FallbackProcessor;
 import org.slf4j.Logger;
@@ -28,45 +29,54 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Todo: Write Doc
+ * This class provides a data structure for saving one-to-one mappings from {@String lower-case-commands} to
+ * {@link InstructionProcessor instructionProcessors}. Furthermore it provides a default {@link InstructionProcessor
+ * instructionProcessor} that can always be used for any Instruction to process.
+ *
+ * @author krautenberg
+ * @version 4.1.0
  */
 public class InstructionProcessorCollection {
 
     private static final Logger LOG = LoggerFactory.getLogger(InstructionProcessorCollection.class);
 
-    protected Map<String, InstructionProcessor> instructionProcessors = new HashMap<>();
+    private Map<String, InstructionProcessor> instructionProcessors = new HashMap<>();
 
     private InstructionProcessor fallbackProcessor = new FallbackProcessor();
 
+    /**
+     * Returns the default {@link InstructionProcessor instructionProcessor} that can be used for every
+     * {@link Instruction instruction}. Even if the data structure is {@link InstructionProcessorCollection#clear()
+     * cleared}, it will return a {@link InstructionProcessor instructionProcessor}.
+     *
+     * @return A default InstructionProcessor that can be used to process any {@link Instruction instruction}.
+     */
     public InstructionProcessor getDefault() {
         return fallbackProcessor;
     }
 
-    public void setDefaultIfNotNull(InstructionProcessor defaultProcessor) {
-        if (defaultProcessor != null) {
-            setDefault(defaultProcessor);
-        } else {
-            logDefaultProcessorHasntChanged();
-        }
-    }
-
-    private void setDefault(InstructionProcessor newInstructionProcessor) {
-        this.fallbackProcessor = newInstructionProcessor;
-    }
-
-    private void logDefaultProcessorHasntChanged() {
-        if (LOG.isWarnEnabled()) {
-            LOG.warn("Can't disable the default processors by setting it to null. The {} is still the fallback " +
-                     "processors.", fallbackProcessor.getClass().getSimpleName());
-        }
-    }
-
+    /**
+     * Puts a mapping of a not-null {@link String command} to a not-null {@link InstructionProcessor
+     * instructionProcessor}. If there already is a mapping for the given command in lower case, it will be
+     * overwritten by the new one. If either of the parameters is null, nothing happens.
+     *
+     * @param commandToListenTo               the key of the mapping
+     * @param overwritingInstructionProcessor the value of the mapping
+     */
     public void putIfNotNull(String commandToListenTo, InstructionProcessor overwritingInstructionProcessor) {
         if (commandToListenTo != null && overwritingInstructionProcessor != null) {
-            put(commandToListenTo, overwritingInstructionProcessor);
+            instructionProcessors.put(toLowerCaseOrNull(commandToListenTo), overwritingInstructionProcessor);
         } else {
             logPutHasntWorked(commandToListenTo, overwritingInstructionProcessor);
         }
+    }
+
+    private String toLowerCaseOrNull(String command) {
+        String lowerCaseCommand = null;
+        if (command != null) {
+            lowerCaseCommand = command.toLowerCase();
+        }
+        return lowerCaseCommand;
     }
 
     private void logPutHasntWorked(String commandToListenTo, InstructionProcessor overwritingInstructionProcessor) {
@@ -75,18 +85,31 @@ public class InstructionProcessorCollection {
         }
     }
 
-    private void put(String commandToListenTo, InstructionProcessor overwritingInstructionProcessor) {
-        instructionProcessors.put(commandToListenTo, overwritingInstructionProcessor);
-    }
-
+    /**
+     * Returns the corresponding mapped {@link InstructionProcessor instructionProcessor} for the command in lower
+     * case or null, if there is no mapping.
+     *
+     * @param commandOfInstruction the key for the mapping
+     * @return the found InstructionProcessor if there is any, otherwise null
+     */
     public InstructionProcessor get(String commandOfInstruction) {
-        return instructionProcessors.get(commandOfInstruction);
+        return instructionProcessors.get(toLowerCaseOrNull(commandOfInstruction));
     }
 
+    /**
+     * Removes the mapping for the given command in lower case. If there is no mapping, it does nothing and returns
+     * null.
+     *
+     * @param commandOfInstruction the key for the mapping
+     * @return the removed instructionProcessor if there is any, otherwise null
+     */
     public InstructionProcessor remove(String commandOfInstruction) {
-        return instructionProcessors.remove(commandOfInstruction);
+        return instructionProcessors.remove(toLowerCaseOrNull(commandOfInstruction));
     }
 
+    /**
+     * Removes all mappings for explicitly set {@link InstructionProcessor instructionProcessors} (Not the default one).
+     */
     public void clear() {
         instructionProcessors.clear();
     }

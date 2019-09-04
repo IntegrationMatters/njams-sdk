@@ -20,6 +20,7 @@
 package com.im.njams.sdk.communication.receiver.instruction.control;
 
 import com.im.njams.sdk.api.adapter.messageformat.command.Instruction;
+import com.im.njams.sdk.api.adapter.messageformat.command.NjamsInstructionException;
 import com.im.njams.sdk.communication.receiver.instruction.control.processors.InstructionProcessor;
 import com.im.njams.sdk.communication.receiver.instruction.entity.InstructionProcessorCollection;
 
@@ -40,33 +41,33 @@ public class InstructionController {
      * {@link String commandToListenTo} is found, the old InstructionProcessor will be overwritten by the new
      * instructionProcessor.
      *
-     * @param commandToListenTo    the case insensitive command the instructionProcessor is listening to
+     * @param commandToListenTo    the command the instructionProcessor is listening to
      * @param instructionProcessor the InstructionProcessor to process {@link Instruction instructions} with the
      *                             given command.
      */
     public void putInstructionProcessor(String commandToListenTo, InstructionProcessor instructionProcessor) {
-        instructionProcessorCollection.putIfNotNull(commandToListenTo.toLowerCase(), instructionProcessor);
+        instructionProcessorCollection.putIfNotNull(commandToListenTo, instructionProcessor);
     }
 
     /**
      * Gets the responsible {@link InstructionProcessor instructionProcessor} for the given commandToListenTo.
      *
-     * @param commandToListenTo the case insensitive command the instructionProcessor is listening to
+     * @param commandToListenTo the command the instructionProcessor is listening to
      * @return the InstructionProcessor that would be used to process the {@link Instruction instruction} for the
      * given command or null, if there is no {@link InstructionProcessor instructionProcessor} for this command.
      */
     public InstructionProcessor getInstructionProcessor(String commandToListenTo) {
-        return instructionProcessorCollection.get(commandToListenTo.toLowerCase());
+        return instructionProcessorCollection.get(commandToListenTo);
     }
 
     /**
      * Removes the {@link InstructionProcessor instructionProcessor} for the given commandToListenTo.
      *
-     * @param commandToListenTo the case insensitive command the instructionProcessor is listening to
+     * @param commandToListenTo the command the instructionProcessor is listening to
      * @return the InstructionProcessor that used to listen to the given command or null
      */
     public InstructionProcessor removeInstructionProcessor(String commandToListenTo) {
-        return instructionProcessorCollection.remove(commandToListenTo.toLowerCase());
+        return instructionProcessorCollection.remove(commandToListenTo);
     }
 
     /**
@@ -82,7 +83,7 @@ public class InstructionController {
      *
      * @param instructionToProcess the instruction to process
      */
-    public void processInstruction(Instruction instructionToProcess) {
+    public void processInstruction(Instruction instructionToProcess) throws NjamsInstructionException {
         InstructionDispatcher dispatcher = new InstructionDispatcher(instructionProcessorCollection,
                 instructionToProcess);
         dispatcher.dispatchInstruction();
