@@ -27,6 +27,7 @@ import org.junit.Test;
 
 import static junit.framework.TestCase.assertTrue;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 import static org.mockito.Mockito.*;
 
 public class AbstractProcessorTemplateTest {
@@ -60,6 +61,7 @@ public class AbstractProcessorTemplateTest {
 
     @Test
     public void processInstructionSetsTheInstruction() {
+        assertNull(instructionProcessorTemplate.getInstruction());
         instructionProcessorTemplate.processInstruction(instructionMock);
         assertEquals(instructionMock, instructionProcessorTemplate.getInstruction());
     }
@@ -75,7 +77,7 @@ public class AbstractProcessorTemplateTest {
 //getRequestReader tests
 
     @Test
-    public void getRequestReaderTest(){
+    public void getRequestReaderTest() {
         instructionProcessorTemplate.processInstruction(instructionMock);
         assertTrue(instructionProcessorTemplate.getRequestReader() instanceof Instruction.RequestReader);
     }
@@ -83,7 +85,7 @@ public class AbstractProcessorTemplateTest {
 //getRequestReader tests
 
     @Test
-    public void getResponseWriterTest(){
+    public void getResponseWriterTest() {
         instructionProcessorTemplate.processInstruction(instructionMock);
         assertTrue(instructionProcessorTemplate.getResponseWriter() instanceof Instruction.ResponseWriter);
     }
