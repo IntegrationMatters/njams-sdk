@@ -511,6 +511,9 @@ public class JobImpl implements Job {
         logMessage.setProcessName(processModel.getName());
         logMessage.setStatus(status.getValue());
         logMessage.setServiceName(businessService);
+        logMessage.setClientVersion(njams.getClientVersion());
+        logMessage.setSdkVersion(njams.getSdkVersion());
+
         //attribute
         synchronized (attributes) {
             attributes.entrySet().forEach(e -> logMessage.addAtribute(e.getKey(), e.getValue()));
