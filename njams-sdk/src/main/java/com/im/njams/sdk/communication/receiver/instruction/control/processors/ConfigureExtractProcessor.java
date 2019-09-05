@@ -23,6 +23,7 @@ import com.faizsiegeln.njams.messageformat.v4.command.Command;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.Extract;
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.adapter.messageformat.command.entity.condition.ConditionConstants;
+import com.im.njams.sdk.adapter.messageformat.command.entity.condition.ConditionRequestReader;
 import com.im.njams.sdk.api.adapter.messageformat.command.NjamsInstructionException;
 import com.im.njams.sdk.communication.receiver.instruction.control.processors.templates.condition.ConditionProcessorTemplate;
 import com.im.njams.sdk.configuration.entity.ActivityConfiguration;
@@ -55,9 +56,9 @@ public class ConfigureExtractProcessor extends ConditionProcessorTemplate {
 
     @Override
     protected void processConditionInstruction() throws NjamsInstructionException {
-        Extract extractOfRequest = requestReader.getExtract();
+        Extract extractOfRequest = getRequestReader().getExtract();
 
-        ActivityConfiguration activityCondition = conditionFacade.getOrCreateActivityCondition();
+        ActivityConfiguration activityCondition = conditionProxy.getOrCreateActivityCondition();
 
         activityCondition.setExtract(extractOfRequest);
 
@@ -67,7 +68,8 @@ public class ConfigureExtractProcessor extends ConditionProcessorTemplate {
     @Override
     protected void logProcessingSuccess() {
         if (LOG.isDebugEnabled()) {
-            LOG.debug("Configured Extract for {}#{}.", requestReader.getProcessPath(), requestReader.getActivityId());
+            ConditionRequestReader conditionRequestReader = getRequestReader();
+            LOG.debug("Configured Extract for {}#{}.", conditionRequestReader.getProcessPath(), conditionRequestReader.getActivityId());
         }
     }
 }

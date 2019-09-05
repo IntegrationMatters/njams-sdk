@@ -34,7 +34,7 @@ import com.im.njams.sdk.communication.receiver.instruction.control.processors.te
 public abstract class ReplayProcessorTemplate extends AbstractProcessorTemplate {
 
     /**
-     * Replays the {@link NjamsReplayInstruction replayInstruction} and logs the response accordingly.
+     * Replays the {@link NjamsReplayInstruction replayInstruction} and writes the response and logs accordingly.
      */
     @Override
     protected void process() {

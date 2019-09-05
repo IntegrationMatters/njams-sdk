@@ -20,13 +20,18 @@
 
 package com.im.njams.sdk.communication.receiver.instruction.control.processors.templates.condition;
 
+import com.faizsiegeln.njams.messageformat.v4.command.Request;
+import com.faizsiegeln.njams.messageformat.v4.projectmessage.Extract;
+import com.faizsiegeln.njams.messageformat.v4.projectmessage.Tracepoint;
 import com.im.njams.sdk.Njams;
+import com.im.njams.sdk.adapter.messageformat.command.entity.condition.ConditionConstants;
 import com.im.njams.sdk.adapter.messageformat.command.entity.condition.ConditionInstruction;
 import com.im.njams.sdk.adapter.messageformat.command.entity.condition.ConditionRequestReader;
 import com.im.njams.sdk.adapter.messageformat.command.entity.condition.ConditionResponseWriter;
 import com.im.njams.sdk.api.adapter.messageformat.command.NjamsInstructionException;
 import com.im.njams.sdk.api.adapter.messageformat.command.ResultCode;
 import com.im.njams.sdk.communication.receiver.instruction.control.processors.templates.AbstractProcessorTemplate;
+import com.im.njams.sdk.configuration.entity.ActivityConfiguration;
 import com.im.njams.sdk.utils.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,30 +40,42 @@ import java.util.List;
 
 import static com.im.njams.sdk.api.adapter.messageformat.command.Instruction.RequestReader.EMPTY_STRING;
 
+/**
+ * This abstract class provides a template for processing {@link ConditionInstruction conditionInstructions}.
+ *
+ * @author krautenberg
+ * @version 4.1.0
+ */
 public abstract class ConditionProcessorTemplate extends AbstractProcessorTemplate {
 
     private static final Logger LOG = LoggerFactory.getLogger(ConditionProcessorTemplate.class);
 
-    private static final ResultCode DEFAULT_SUCCESS_CODE = ResultCode.SUCCESS;
+    /**
+     * Can be used as return value for {@link ConditionProcessorTemplate#getEssentialParametersForProcessing()} if there
+     * are no essential parameters.
+     */
+    protected static final String[] NO_ESSENTIAL_PARAMETERS = new String[0];
 
     private static final String DEFAULT_SUCCESS_MESSAGE = "Success";
 
-    protected static final String[] NO_ESSENTIAL_PARAMETERS = new String[0];
+    protected final ConditionProxy conditionProxy;
 
-    protected final ConditionProxy conditionFacade;
-
-    protected ConditionRequestReader requestReader;
-
-    protected ConditionResponseWriter responseWriter;
-
-    public ConditionProcessorTemplate(Njams njams) {
-        this.conditionFacade = new ConditionProxy(njams);
+    /**
+     * Initializes a {@link ConditionProxy conditionProxy} from the given {@link Njams Condition}.
+     *
+     * @param condition the Condition to read the client's condition from and for example set new {@link Tracepoint
+     *                  tracepoints} to.
+     */
+    public ConditionProcessorTemplate(Njams condition) {
+        this.conditionProxy = new ConditionProxy(condition);
     }
 
+    /**
+     * Gets or sets data such as {@link Tracepoint tracepoints}, {@link Extract extracts} and so on from/to the
+     * {@link ConditionProxy conditionProxy} and writes the response and logs accordingly.
+     */
     @Override
     public void process() {
-
-        setReaderAndWriter();
 
         List<String> missingParameters = fillMissingParametersList();
 
@@ -80,41 +97,52 @@ public abstract class ConditionProcessorTemplate extends AbstractProcessorTempla
         }
     }
 
-    void setDefaultSuccessResponse() {
-        responseWriter.setResultCodeAndResultMessage(DEFAULT_SUCCESS_CODE, DEFAULT_SUCCESS_MESSAGE);
-    }
-
-    void setReaderAndWriter() {
-        requestReader = getInstruction().getRequestReader();
-        responseWriter = getInstruction().getResponseWriter();
-    }
-
-    List<String> fillMissingParametersList() {
+    private List<String> fillMissingParametersList() {
         String[] neededParametersForProcessing = getEssentialParametersForProcessing();
-        return requestReader.collectAllMissingParameters(neededParametersForProcessing);
+        return getRequestReader().collectAllMissingParameters(neededParametersForProcessing);
     }
 
+    /**
+     * Returns the parameters that are needed by the {@link ConditionProcessorTemplate instructionProcessor} and must
+     * be set in the {@link ConditionRequestReader requestReader's} parameters. The common parameters can be found in
+     * the {@link ConditionConstants conditionConstants} interface.
+     *
+     * @return all Parameters that must have been set in the {@link Request request's} parameters. If no parameters
+     * are needed for processing, return {@link ConditionProcessorTemplate#NO_ESSENTIAL_PARAMETERS
+     * NO_ESSENTIAL_PARAMETERS} or null.
+     */
     protected abstract String[] getEssentialParametersForProcessing();
 
-    boolean wereAllNeededRequestParametersSet(List<String> missingParameters) {
+    private boolean wereAllNeededRequestParametersSet(List<String> missingParameters) {
         return missingParameters.isEmpty();
     }
 
-    void resetConditionFacade() {
-        conditionFacade.setProcessPath(requestReader.getProcessPath());
-        conditionFacade.setActivityId(requestReader.getActivityId());
+    private void resetConditionFacade() {
+        ConditionRequestReader conditionRequestReader = getRequestReader();
+        conditionProxy.setProcessPath(conditionRequestReader.getProcessPath());
+        conditionProxy.setActivityId(conditionRequestReader.getActivityId());
     }
 
+    private void setDefaultSuccessResponse() {
+        getResponseWriter().setResultCodeAndResultMessage(ResultCode.SUCCESS, DEFAULT_SUCCESS_MESSAGE);
+    }
+
+    /**
+     * Process the {@link ConditionInstruction instruction}.
+     *
+     * @throws NjamsInstructionException might be thrown from {@link ConditionProcessorTemplate#saveCondition()} or
+     *                                   for example because a {@link ActivityConfiguration activityCondition}
+     *                                   couldn't be found.
+     */
     protected abstract void processConditionInstruction() throws NjamsInstructionException;
 
+    /**
+     * Log the successfully processed {@link ConditionInstruction instruction}.
+     */
     protected abstract void logProcessingSuccess();
 
-    String getProcessingDidntWorkMessage(NjamsInstructionException ex) {
+    private String getProcessingDidntWorkMessage(NjamsInstructionException ex) {
         return ex.getMessage().concat(extractCauseExceptionMessage(ex.getCause()));
-    }
-
-    void setWarningResponse(String warningMessage) {
-        responseWriter.setResultCodeAndResultMessage(ResultCode.WARNING, warningMessage);
     }
 
     private String extractCauseExceptionMessage(Throwable sourceException) {
@@ -128,26 +156,33 @@ public abstract class ConditionProcessorTemplate extends AbstractProcessorTempla
         return resultMessageToReturn;
     }
 
-    void logProcessingThrewException(NjamsInstructionException ex) {
-        ConditionInstructionExceptionLogger logger = new ConditionInstructionExceptionLogger(requestReader.getCommand(),
-                requestReader.getProcessPath(), requestReader.getActivityId(), ex);
+    private void setWarningResponse(String warningMessage) {
+        getResponseWriter().setResultCodeAndResultMessage(ResultCode.WARNING, warningMessage);
+    }
+
+    private void logProcessingThrewException(NjamsInstructionException ex) {
+        ConditionRequestReader conditionRequestReader = getRequestReader();
+        ConditionInstructionExceptionLogger logger = new ConditionInstructionExceptionLogger(
+                conditionRequestReader.getCommand(), conditionRequestReader.getProcessPath(),
+                conditionRequestReader.getActivityId(), ex);
         logger.log();
     }
 
-    String GetInvalidParametersMessage(List<String> notEmptyMissingParameters) {
+    private String GetInvalidParametersMessage(List<String> notEmptyMissingParameters) {
         String invalidParameterMessage = new MissingParameterMessageBuilder(notEmptyMissingParameters).build();
 
         return invalidParameterMessage;
     }
 
-    void logInvalidParameters(String invalidParametersMessage) {
+    private void logInvalidParameters(String invalidParametersMessage) {
         if (LOG.isWarnEnabled()) {
             LOG.warn(invalidParametersMessage);
         }
     }
 
     /**
-     * Returns the instruction to process by this InstructionProcessor.
+     * Returns the {@link ConditionInstruction conditionInstruction} to process by this
+     * {@link ConditionProcessorTemplate instructionProcessor}.
      *
      * @return the instruction to process.
      */
@@ -157,26 +192,31 @@ public abstract class ConditionProcessorTemplate extends AbstractProcessorTempla
     }
 
     /**
-     * Returns the instructions requestReader.
+     * Returns the instructions {@link ConditionRequestReader conditionRequestReader}.
      *
      * @return the requestReader to the corresponding instruction.
      */
     @Override
-    public ConditionRequestReader getRequestReader(){
+    public ConditionRequestReader getRequestReader() {
         return getInstruction().getRequestReader();
     }
 
     /**
-     * Returns the instructions responseWriter.
+     * Returns the instructions {@link ConditionResponseWriter conditionResponseWriter}.
      *
      * @return the responseWriter to the corresponding instruction.
      */
     @Override
-    public ConditionResponseWriter getResponseWriter(){
+    public ConditionResponseWriter getResponseWriter() {
         return getInstruction().getResponseWriter();
     }
 
+    /**
+     * Saves the conditions that are set in the {@link ConditionProxy conditionProxy}.
+     *
+     * @throws NjamsInstructionException might be thrown if an exception occurs while saving the client condition.
+     */
     protected void saveCondition() throws NjamsInstructionException {
-        conditionFacade.saveCondition();
+        conditionProxy.saveCondition();
     }
 }

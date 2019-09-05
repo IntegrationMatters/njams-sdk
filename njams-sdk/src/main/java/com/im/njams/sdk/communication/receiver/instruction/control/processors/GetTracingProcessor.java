@@ -22,6 +22,7 @@ package com.im.njams.sdk.communication.receiver.instruction.control.processors;
 import com.faizsiegeln.njams.messageformat.v4.command.Command;
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.adapter.messageformat.command.entity.condition.ConditionConstants;
+import com.im.njams.sdk.adapter.messageformat.command.entity.condition.ConditionRequestReader;
 import com.im.njams.sdk.api.adapter.messageformat.command.NjamsInstructionException;
 import com.im.njams.sdk.communication.receiver.instruction.control.processors.templates.condition.ConditionProcessorTemplate;
 import com.im.njams.sdk.configuration.entity.TracepointExt;
@@ -54,9 +55,9 @@ public class GetTracingProcessor extends ConditionProcessorTemplate {
 
     @Override
     protected void processConditionInstruction() throws NjamsInstructionException {
-        TracepointExt tracePoint = conditionFacade.getTracePoint();
+        TracepointExt tracePoint = conditionProxy.getTracePoint();
 
-        responseWriter.setStartTime(tracePoint.getStarttime()).
+        getResponseWriter().setStartTime(tracePoint.getStarttime()).
                 setEndTime(tracePoint.getEndtime()).
                 setIterations(tracePoint.getIterations()).
                 setDeepTrace(tracePoint.isDeeptrace());
@@ -65,7 +66,8 @@ public class GetTracingProcessor extends ConditionProcessorTemplate {
     @Override
     protected void logProcessingSuccess() {
         if (LOG.isDebugEnabled()) {
-            LOG.debug("Get Tracepoint from {}#{}.", requestReader.getProcessPath(), requestReader.getActivityId());
+            ConditionRequestReader conditionRequestReader = getRequestReader();
+            LOG.debug("Get Tracepoint from {}#{}.", conditionRequestReader.getProcessPath(), conditionRequestReader.getActivityId());
         }
     }
 }

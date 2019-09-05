@@ -49,9 +49,9 @@ public class GetLogModeProcessor extends ConditionProcessorTemplate {
 
     @Override
     protected void processConditionInstruction() {
-        final LogMode logMode = conditionFacade.getLogMode();
+        final LogMode logMode = conditionProxy.getLogMode();
 
-        responseWriter.setLogMode(logMode);
+        getResponseWriter().setLogMode(logMode);
     }
 
     @Override

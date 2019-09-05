@@ -22,6 +22,7 @@ package com.im.njams.sdk.communication.receiver.instruction.control.processors;
 import com.faizsiegeln.njams.messageformat.v4.command.Command;
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.adapter.messageformat.command.entity.condition.ConditionConstants;
+import com.im.njams.sdk.adapter.messageformat.command.entity.condition.ConditionRequestReader;
 import com.im.njams.sdk.api.adapter.messageformat.command.NjamsInstructionException;
 import com.im.njams.sdk.common.DateTimeUtility;
 import com.im.njams.sdk.communication.receiver.instruction.control.processors.templates.condition.ConditionProcessorTemplate;
@@ -73,7 +74,7 @@ public class SetTracingProcessor extends ConditionProcessorTemplate {
 
         isTracePointUseful = endTimeOfNewTracePoint.isAfter(DateTimeUtility.now());
 
-        isTracingEnabled = requestReader.getTracingEnabled();
+        isTracingEnabled = getRequestReader().getTracingEnabled();
 
         if (isTracingEnabled && isTracePointUseful) {
             updateTracePoint();
@@ -85,7 +86,7 @@ public class SetTracingProcessor extends ConditionProcessorTemplate {
     }
 
     private LocalDateTime getEndTime() throws NjamsInstructionException {
-        LocalDateTime endTime = requestReader.getEndTime();
+        LocalDateTime endTime = getRequestReader().getEndTime();
         if (endTime == null) {
             endTime = DateTimeUtility.now().plusMinutes(DEFAULT_TRACING_ENABLED_IN_MINUTES);
         }
@@ -95,7 +96,7 @@ public class SetTracingProcessor extends ConditionProcessorTemplate {
     void updateTracePoint() throws NjamsInstructionException {
         TracepointExt tracePointToSet = createTracePointFromRequest();
 
-        ActivityConfiguration activityCondition = conditionFacade.getOrCreateActivityCondition();
+        ActivityConfiguration activityCondition = conditionProxy.getOrCreateActivityCondition();
 
         activityCondition.setTracepoint(tracePointToSet);
     }
@@ -110,7 +111,7 @@ public class SetTracingProcessor extends ConditionProcessorTemplate {
     }
 
     private LocalDateTime getStartTime() throws NjamsInstructionException {
-        LocalDateTime startTime = requestReader.getStartTime();
+        LocalDateTime startTime = getRequestReader().getStartTime();
         if (startTime == null) {
             startTime = DateTimeUtility.now();
         }
@@ -120,7 +121,7 @@ public class SetTracingProcessor extends ConditionProcessorTemplate {
     private Integer getIterations() {
         Integer iterations = DEFAULT_ITERATIONS;
         try {
-            iterations = requestReader.getIterations();
+            iterations = getRequestReader().getIterations();
         } catch (NjamsInstructionException e) {
             if (LOG.isErrorEnabled()) {
                 LOG.error(e.getMessage(), e.getCause());
@@ -130,22 +131,23 @@ public class SetTracingProcessor extends ConditionProcessorTemplate {
     }
 
     private Boolean getDeepTrace() {
-        return requestReader.getDeepTrace();
+        return getRequestReader().getDeepTrace();
     }
 
     void deleteTracePoint() throws NjamsInstructionException {
 
-        ActivityConfiguration activityCondition = conditionFacade.getActivityCondition();
+        ActivityConfiguration activityCondition = conditionProxy.getActivityCondition();
 
         activityCondition.setTracepoint(null);
     }
 
     @Override
     protected void logProcessingSuccess() {
-        String updateOrDelete = isTracingEnabled && isTracePointUseful ? "Updated" : "Deleted";
         if (LOG.isDebugEnabled()) {
-            LOG.debug("{} Tracepoint of {}#{}.", updateOrDelete, requestReader.getProcessPath(),
-                    requestReader.getActivityId());
+            String updateOrDelete = isTracingEnabled && isTracePointUseful ? "Updated" : "Deleted";
+            ConditionRequestReader conditionRequestReader = getRequestReader();
+            LOG.debug("{} Tracepoint of {}#{}.", updateOrDelete, conditionRequestReader.getProcessPath(),
+                    conditionRequestReader.getActivityId());
         }
     }
 }

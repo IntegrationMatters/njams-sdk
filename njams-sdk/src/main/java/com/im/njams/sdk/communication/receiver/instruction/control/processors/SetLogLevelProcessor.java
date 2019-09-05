@@ -75,22 +75,22 @@ public class SetLogLevelProcessor extends ConditionProcessorTemplate {
     }
 
     private void setExtractedParametersToProcessCondition() {
-        ProcessConfiguration processCondition = conditionFacade.getOrCreateProcessCondition();
+        ProcessConfiguration processCondition = conditionProxy.getOrCreateProcessCondition();
         processCondition.setLogLevel(logLevelToSet);
         processCondition.setExclude(excludedToSet);
     }
 
     private LogLevel getLogLevelFromRequest() throws NjamsInstructionException {
-        return requestReader.getLogLevel();
+        return getRequestReader().getLogLevel();
     }
 
     private boolean getExcludedFromRequest() {
-        return requestReader.getExcluded();
+        return getRequestReader().getExcluded();
     }
 
     private LogMode getLogModeFromRequest() {
         try {
-            return requestReader.getLogMode();
+            return getRequestReader().getLogMode();
         } catch (NjamsInstructionException e) {
             return null;
         }
@@ -98,7 +98,7 @@ public class SetLogLevelProcessor extends ConditionProcessorTemplate {
 
     private void setLogModeToCondition() {
         if (logModeToSet != null) {
-            conditionFacade.getCondition().setLogModeToConfiguration(logModeToSet);
+            conditionProxy.getCondition().setLogModeToConfiguration(logModeToSet);
 
         }
     }
@@ -106,7 +106,7 @@ public class SetLogLevelProcessor extends ConditionProcessorTemplate {
     @Override
     protected void logProcessingSuccess() {
         if (LOG.isDebugEnabled()) {
-            LOG.debug("Set LogLevel for {}.", requestReader.getProcessPath());
+            LOG.debug("Set LogLevel for {}.", getRequestReader().getProcessPath());
         }
     }
 }

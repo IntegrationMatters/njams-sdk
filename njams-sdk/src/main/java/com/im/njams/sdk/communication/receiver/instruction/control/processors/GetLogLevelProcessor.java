@@ -63,7 +63,7 @@ public class GetLogLevelProcessor extends ConditionProcessorTemplate {
         final boolean isExclude = isExclude();
         final LogMode logMode = getLogMode();
 
-        responseWriter.
+        getResponseWriter().
                 setLogLevel(logLevel).
                 setExcluded(isExclude).
                 setLogMode(logMode);
@@ -72,7 +72,7 @@ public class GetLogLevelProcessor extends ConditionProcessorTemplate {
     private LogLevel getLogLevel() {
         LogLevel logLevel = DEFAULT_LOG_LEVEL;
         try {
-            logLevel = conditionFacade.getLogLevel();
+            logLevel = conditionProxy.getLogLevel();
         } catch (NjamsInstructionException e) {
             //Do nothing, just use the default
         }
@@ -82,7 +82,7 @@ public class GetLogLevelProcessor extends ConditionProcessorTemplate {
     private boolean isExclude() {
         boolean isExclude = DEFAULT_IS_EXCLUDED;
         try {
-            isExclude = conditionFacade.isExcluded();
+            isExclude = conditionProxy.isExcluded();
         } catch (NjamsInstructionException e) {
             //Do nothing, just use the default
         }
@@ -90,13 +90,13 @@ public class GetLogLevelProcessor extends ConditionProcessorTemplate {
     }
 
     private LogMode getLogMode() {
-        return conditionFacade.getLogMode();
+        return conditionProxy.getLogMode();
     }
 
     @Override
     protected void logProcessingSuccess() {
         if (LOG.isDebugEnabled()) {
-            LOG.debug("Get LogLevel from {}.", requestReader.getProcessPath());
+            LOG.debug("Get LogLevel from {}.", getRequestReader().getProcessPath());
         }
     }
 }

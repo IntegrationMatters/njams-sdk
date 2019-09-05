@@ -56,9 +56,9 @@ public class SetLogModeProcessor extends ConditionProcessorTemplate {
     @Override
     protected void processConditionInstruction() throws NjamsInstructionException {
 
-        logModeToSet = requestReader.getLogMode();
+        logModeToSet = getRequestReader().getLogMode();
 
-        conditionFacade.getCondition().setLogModeToConfiguration(logModeToSet);
+        conditionProxy.getCondition().setLogModeToConfiguration(logModeToSet);
 
         saveCondition();
     }
