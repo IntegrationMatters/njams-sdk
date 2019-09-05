@@ -25,7 +25,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * This abstract class provides a template for processing instructions in general.
+ * This abstract class provides a template for processing {@link Instruction instructions} in general.
  *
  * @author krautenberg
  * @version 4.1.0
@@ -69,7 +69,7 @@ public abstract class AbstractProcessorTemplate implements InstructionProcessor 
     }
 
     /**
-     * Returns the instruction to process by this InstructionProcessor.
+     * Returns the {@link Instruction instruction} to process by this {@link AbstractProcessorTemplate instructionProcessor}.
      *
      * @return the instruction to process.
      */
@@ -78,7 +78,7 @@ public abstract class AbstractProcessorTemplate implements InstructionProcessor 
     }
 
     /**
-     * Returns the instructions requestReader.
+     * Returns the instructions {@link Instruction.RequestReader requestReader}.
      *
      * @return the requestReader to the corresponding instruction.
      */
@@ -87,7 +87,7 @@ public abstract class AbstractProcessorTemplate implements InstructionProcessor 
     }
 
     /**
-     * Returns the instructions responseWriter.
+     * Returns the instructions {@link Instruction.ResponseWriter responseWriter}.
      *
      * @return the responseWriter to the corresponding instruction.
      */

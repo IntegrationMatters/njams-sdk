@@ -15,7 +15,6 @@ package com.im.njams.sdk.communication.receiver.instruction.control.processors.t
 import com.im.njams.sdk.adapter.messageformat.command.entity.replay.NjamsReplayInstruction;
 import com.im.njams.sdk.adapter.messageformat.command.entity.replay.NjamsReplayRequestReader;
 import com.im.njams.sdk.adapter.messageformat.command.entity.replay.NjamsReplayResponseWriter;
-import com.im.njams.sdk.communication.receiver.instruction.control.processors.templates.replay.ReplayProcessorTemplate;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -110,17 +109,24 @@ public class ReplayProcessorTemplateTest {
         }
     }
 
-//GetReplayRequestReader tests
+//getInstruction tests
 
     @Test
-    public void getReplayRequestReaderReturnsARequestReaderTypeObject() {
+    public void getInstructionReturnsAnInstruction() {
+        assertTrue(replayProcessorTemplate.getInstruction() instanceof NjamsReplayInstruction);
+    }
+
+//getRequestReader tests
+
+    @Test
+    public void getRequestReaderTest() {
         assertTrue(replayProcessorTemplate.getRequestReader() instanceof NjamsReplayRequestReader);
     }
 
-//GetReplayResponseWriter tests
+//getRequestReader tests
 
     @Test
-    public void getReplayResponseWriterReturnsAResponseWriterTypeObject() {
+    public void getResponseWriterTest() {
         assertTrue(replayProcessorTemplate.getResponseWriter() instanceof NjamsReplayResponseWriter);
     }
 
