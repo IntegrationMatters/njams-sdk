@@ -42,7 +42,7 @@ public class ReplayProcessor extends ReplayProcessorTemplate {
     }
 
     @Override
-    public String getCommandToListenTo(){
+    public String getCommandToListenTo() {
         return Command.REPLAY.commandString();
     }
 
@@ -61,14 +61,14 @@ public class ReplayProcessor extends ReplayProcessorTemplate {
     protected void setExceptionResponse(RuntimeException ex) {
         final String resultMessage = EXCEPTION_WAS_THROWN_WHILE_REPLAYING + ex.getMessage();
         final String errorMessage = String.valueOf(ex);
-        getReplayResponseWriter().
+        getResponseWriter().
                 setResultCodeAndResultMessage(ResultCode.ERROR, resultMessage).
                 setException(errorMessage);
     }
 
     @Override
     protected void setCantReplayResponse() {
-        getReplayResponseWriter().
+        getResponseWriter().
                 setResultCodeAndResultMessage(ResultCode.WARNING, REPLAY_PLUGIN_NOT_SET);
     }
 }

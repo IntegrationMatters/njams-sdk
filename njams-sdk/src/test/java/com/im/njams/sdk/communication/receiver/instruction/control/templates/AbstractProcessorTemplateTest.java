@@ -37,12 +37,16 @@ public class AbstractProcessorTemplateTest {
 
     private Instruction.RequestReader requestReaderMock;
 
+    private Instruction.ResponseWriter responseWriterMock;
+
     @Before
     public void initialize() {
         instructionProcessorTemplate = spy(new InstructionProcessorTemplateImpl());
-        instructionMock = mock(InstructionImpl.class);
+        instructionMock = mock(Instruction.class);
         requestReaderMock = mock(Instruction.RequestReader.class);
+        responseWriterMock = mock(Instruction.ResponseWriter.class);
         when(instructionMock.getRequestReader()).thenReturn(requestReaderMock);
+        when(instructionMock.getResponseWriter()).thenReturn(responseWriterMock);
         when(requestReaderMock.getCommand()).thenReturn(Command.TEST_EXPRESSION.commandString());
     }
 
@@ -55,12 +59,6 @@ public class AbstractProcessorTemplateTest {
     }
 
     @Test
-    public void processInstructionLogsProcessedCommand() {
-        instructionProcessorTemplate.processInstruction(instructionMock);
-        verify(instructionProcessorTemplate).logProcessing();
-    }
-
-    @Test
     public void processInstructionSetsTheInstruction() {
         instructionProcessorTemplate.processInstruction(instructionMock);
         assertEquals(instructionMock, instructionProcessorTemplate.getInstruction());
@@ -69,14 +67,30 @@ public class AbstractProcessorTemplateTest {
 //getInstruction tests
 
     @Test
-    public void getInstructionReturnsAnInstructionImplTypeObject() {
+    public void getInstructionReturnsAnInstruction() {
         instructionProcessorTemplate.processInstruction(instructionMock);
-        assertTrue(instructionProcessorTemplate.getInstruction() instanceof InstructionImpl);
+        assertTrue(instructionProcessorTemplate.getInstruction() instanceof Instruction);
+    }
+
+//getRequestReader tests
+
+    @Test
+    public void getRequestReaderTest(){
+        instructionProcessorTemplate.processInstruction(instructionMock);
+        assertTrue(instructionProcessorTemplate.getRequestReader() instanceof Instruction.RequestReader);
+    }
+
+//getRequestReader tests
+
+    @Test
+    public void getResponseWriterTest(){
+        instructionProcessorTemplate.processInstruction(instructionMock);
+        assertTrue(instructionProcessorTemplate.getResponseWriter() instanceof Instruction.ResponseWriter);
     }
 
 //Private helper classes
 
-    private class InstructionProcessorTemplateImpl extends AbstractProcessorTemplate<InstructionImpl> {
+    private class InstructionProcessorTemplateImpl extends AbstractProcessorTemplate {
 
         @Override
         protected void process() {
@@ -86,26 +100,6 @@ public class AbstractProcessorTemplateTest {
         @Override
         public String getCommandToListenTo() {
             return null;
-        }
-    }
-
-    private class InstructionImpl implements Instruction {
-
-        @Override
-        public RequestReader getRequestReader() {
-            //Do nothing
-            return null;
-        }
-
-        @Override
-        public ResponseWriter getResponseWriter() {
-            //Do nothing
-            return null;
-        }
-
-        @Override
-        public boolean isEmpty() {
-            return false;
         }
     }
 }

@@ -121,14 +121,14 @@ public class ReplayProcessorTemplateTest {
 
     @Test
     public void getReplayRequestReaderReturnsARequestReaderTypeObject() {
-        assertTrue(replayProcessorTemplate.getReplayRequestReader() instanceof NjamsReplayRequestReader);
+        assertTrue(replayProcessorTemplate.getRequestReader() instanceof NjamsReplayRequestReader);
     }
 
 //GetReplayResponseWriter tests
 
     @Test
     public void getReplayResponseWriterReturnsAResponseWriterTypeObject() {
-        assertTrue(replayProcessorTemplate.getReplayResponseWriter() instanceof NjamsReplayResponseWriter);
+        assertTrue(replayProcessorTemplate.getResponseWriter() instanceof NjamsReplayResponseWriter);
     }
 
 //Private helper classes

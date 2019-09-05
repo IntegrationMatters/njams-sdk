@@ -21,7 +21,7 @@ package com.im.njams.sdk.communication.receiver.instruction.control.processors;
 
 import com.im.njams.sdk.api.adapter.messageformat.command.Instruction;
 import com.im.njams.sdk.api.adapter.messageformat.command.ResultCode;
-import com.im.njams.sdk.communication.receiver.instruction.control.templates.DefaultProcessorTemplate;
+import com.im.njams.sdk.communication.receiver.instruction.control.templates.AbstractProcessorTemplate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -30,7 +30,7 @@ import static com.im.njams.sdk.api.adapter.messageformat.command.Instruction.Req
 /**
  * Todo: Write Doc
  */
-public class FallbackProcessor extends DefaultProcessorTemplate {
+public class FallbackProcessor extends AbstractProcessorTemplate {
 
     private static final Logger LOG = LoggerFactory.getLogger(FallbackProcessor.class);
 
@@ -62,12 +62,14 @@ public class FallbackProcessor extends DefaultProcessorTemplate {
     String warningMessage = EMPTY_STRING;
 
     @Override
-    protected void processDefaultInstruction() {
+    protected void process() {
         clear();
 
         InstructionProblem instructionProblem = checkTypeOfProblem();
 
         handleProblem(instructionProblem);
+
+        setWarningResponse();
     }
 
     private void clear() {
@@ -80,7 +82,7 @@ public class FallbackProcessor extends DefaultProcessorTemplate {
         if (getInstruction().isEmpty()) {
             problemType = InstructionProblem.INSTRUCTION_IS_NULL;
         } else {
-            final Instruction.RequestReader requestReader = getDefaultRequestReader();
+            final Instruction.RequestReader requestReader = getRequestReader();
             if (requestReader.isEmpty()) {
                 problemType = InstructionProblem.REQUEST_IS_NULL;
             } else if (requestReader.isCommandNull()) {
@@ -100,25 +102,16 @@ public class FallbackProcessor extends DefaultProcessorTemplate {
         String warningMessageToReturn = instructionProblem.getMessage();
 
         if (instructionProblem == instructionProblem.COMMAND_IS_UNKNOWN) {
-            warningMessageToReturn = warningMessageToReturn.concat(getDefaultRequestReader().getCommand());
+            warningMessageToReturn = warningMessageToReturn.concat(getRequestReader().getCommand());
         }
 
         return warningMessageToReturn;
     }
 
-    @Override
-    protected void setInstructionResponse() {
-        if (canResponseBeSet()) {
-            setResponse();
+    private void setWarningResponse() {
+        if (!getInstruction().isEmpty()) {
+            getResponseWriter().setResultCode(ResultCode.WARNING).setResultMessage(warningMessage);
         }
-    }
-
-    private boolean canResponseBeSet() {
-        return !getInstruction().isEmpty();
-    }
-
-    private void setResponse() {
-        getDefaultResponseWriter().setResultCode(ResultCode.WARNING).setResultMessage(warningMessage);
     }
 
     @Override

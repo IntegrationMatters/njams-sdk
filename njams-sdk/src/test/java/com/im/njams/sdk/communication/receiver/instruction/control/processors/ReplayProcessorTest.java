@@ -68,8 +68,8 @@ public class ReplayProcessorTest {
         when(replayResponseWriterMock.setResultCodeAndResultMessage(any(), any())).thenReturn(replayResponseWriterMock);
 
         doReturn(replayInstruction).when(replayProcessor).getInstruction();
-        doReturn(replayRequestReaderMock).when(replayProcessor).getReplayRequestReader();
-        doReturn(replayResponseWriterMock).when(replayProcessor).getReplayResponseWriter();
+        doReturn(replayRequestReaderMock).when(replayProcessor).getRequestReader();
+        doReturn(replayResponseWriterMock).when(replayProcessor).getResponseWriter();
 
         runtimeExceptionMock = mock(RuntimeException.class);
         when(runtimeExceptionMock.getMessage()).thenReturn(RUNTIME_EXCEPTION_MESSAGE);

@@ -25,6 +25,7 @@ import com.im.njams.sdk.adapter.messageformat.command.entity.condition.Condition
 import com.im.njams.sdk.adapter.messageformat.command.entity.condition.ConditionRequestReader;
 import com.im.njams.sdk.adapter.messageformat.command.entity.condition.ConditionResponseWriter;
 import com.im.njams.sdk.api.adapter.messageformat.command.NjamsInstructionException;
+import com.im.njams.sdk.api.adapter.messageformat.command.ReplayInstruction;
 import com.im.njams.sdk.api.adapter.messageformat.command.ResultCode;
 import com.im.njams.sdk.communication.receiver.instruction.control.templates.AbstractProcessorTemplate;
 import com.im.njams.sdk.utils.StringUtils;
@@ -35,7 +36,7 @@ import java.util.List;
 
 import static com.im.njams.sdk.api.adapter.messageformat.command.Instruction.RequestReader.EMPTY_STRING;
 
-public abstract class ConditionReaderTemplate extends AbstractProcessorTemplate<ConditionInstruction> {
+public abstract class ConditionReaderTemplate extends AbstractProcessorTemplate {
 
     private static final Logger LOG = LoggerFactory.getLogger(ConditionReaderTemplate.class);
 
@@ -144,5 +145,35 @@ public abstract class ConditionReaderTemplate extends AbstractProcessorTemplate<
         if (LOG.isWarnEnabled()) {
             LOG.warn(invalidParametersMessage);
         }
+    }
+
+    /**
+     * Returns the instruction to process by this InstructionProcessor.
+     *
+     * @return the instruction to process.
+     */
+    @Override
+    public ConditionInstruction getInstruction() {
+        return (ConditionInstruction) super.getInstruction();
+    }
+
+    /**
+     * Returns the instructions requestReader.
+     *
+     * @return the requestReader to the corresponding instruction.
+     */
+    @Override
+    public ConditionRequestReader getRequestReader(){
+        return getInstruction().getRequestReader();
+    }
+
+    /**
+     * Returns the instructions responseWriter.
+     *
+     * @return the responseWriter to the corresponding instruction.
+     */
+    @Override
+    public ConditionResponseWriter getResponseWriter(){
+        return getInstruction().getResponseWriter();
     }
 }

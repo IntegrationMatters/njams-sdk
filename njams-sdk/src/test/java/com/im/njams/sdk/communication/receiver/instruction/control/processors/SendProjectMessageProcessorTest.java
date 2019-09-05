@@ -25,7 +25,6 @@ import com.im.njams.sdk.api.adapter.messageformat.command.ResultCode;
 import org.junit.Before;
 import org.junit.Test;
 
-import static com.faizsiegeln.njams.messageformat.v4.command.Command.REPLAY;
 import static com.faizsiegeln.njams.messageformat.v4.command.Command.SEND_PROJECTMESSAGE;
 import static com.im.njams.sdk.communication.receiver.instruction.control.processors.SendProjectMessageProcessor.SUCCESS_RESULT_MESSAGE;
 import static org.junit.Assert.assertEquals;
@@ -51,19 +50,11 @@ public class SendProjectMessageProcessorTest {
 
     @Test
     public void testProcessDefaultInstruction() {
-        sendProjectMessageProcessor.processDefaultInstruction();
-        verify(njamsMock).flushResources();
-    }
-
-//SetInstructionResponse tests
-
-    @Test
-    public void testSetInstructionResponse() {
         NjamsResponseWriter defaultResponseWriterMock = mock(NjamsResponseWriter.class);
-        doReturn(defaultResponseWriterMock).when(sendProjectMessageProcessor).getDefaultResponseWriter();
-
-        sendProjectMessageProcessor.setInstructionResponse();
-
+        doReturn(defaultResponseWriterMock).when(sendProjectMessageProcessor).getResponseWriter();
+        sendProjectMessageProcessor.process();
+        verify(njamsMock).flushResources();
         verify(defaultResponseWriterMock).setResultCodeAndResultMessage(ResultCode.SUCCESS, SUCCESS_RESULT_MESSAGE);
+
     }
 }

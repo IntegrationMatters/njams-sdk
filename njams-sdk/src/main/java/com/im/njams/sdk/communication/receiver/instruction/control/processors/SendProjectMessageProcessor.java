@@ -21,15 +21,14 @@ package com.im.njams.sdk.communication.receiver.instruction.control.processors;
 
 import com.faizsiegeln.njams.messageformat.v4.command.Command;
 import com.im.njams.sdk.Njams;
-import com.im.njams.sdk.adapter.messageformat.command.entity.NjamsInstruction;
 import com.im.njams.sdk.adapter.messageformat.command.entity.NjamsResponseWriter;
 import com.im.njams.sdk.api.adapter.messageformat.command.ResultCode;
-import com.im.njams.sdk.communication.receiver.instruction.control.templates.DefaultProcessorTemplate;
+import com.im.njams.sdk.communication.receiver.instruction.control.templates.AbstractProcessorTemplate;
 
 /**
  * Todo: Write Doc
  */
-public class SendProjectMessageProcessor extends DefaultProcessorTemplate {
+public class SendProjectMessageProcessor extends AbstractProcessorTemplate {
 
     static final String SUCCESS_RESULT_MESSAGE = "Successfully send ProjectMessage via NjamsClient";
 
@@ -45,12 +44,12 @@ public class SendProjectMessageProcessor extends DefaultProcessorTemplate {
     }
 
     @Override
-    protected void processDefaultInstruction() {
+    protected void process() {
         njams.flushResources();
+        setSuccessResponse();
     }
 
-    @Override
-    protected void setInstructionResponse() {
-        ((NjamsResponseWriter)getDefaultResponseWriter()).setResultCodeAndResultMessage(ResultCode.SUCCESS, SUCCESS_RESULT_MESSAGE);
+    private void setSuccessResponse() {
+        ((NjamsResponseWriter)getResponseWriter()).setResultCodeAndResultMessage(ResultCode.SUCCESS, SUCCESS_RESULT_MESSAGE);
     }
 }

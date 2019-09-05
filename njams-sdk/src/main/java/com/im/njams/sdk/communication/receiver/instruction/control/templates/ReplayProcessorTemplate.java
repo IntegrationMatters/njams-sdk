@@ -24,7 +24,7 @@ import com.im.njams.sdk.adapter.messageformat.command.entity.replay.NjamsReplayI
 import com.im.njams.sdk.adapter.messageformat.command.entity.replay.NjamsReplayRequestReader;
 import com.im.njams.sdk.adapter.messageformat.command.entity.replay.NjamsReplayResponseWriter;
 
-public abstract class ReplayProcessorTemplate extends AbstractProcessorTemplate<NjamsReplayInstruction> {
+public abstract class ReplayProcessorTemplate extends AbstractProcessorTemplate {
 
     @Override
     protected void process() {
@@ -47,11 +47,33 @@ public abstract class ReplayProcessorTemplate extends AbstractProcessorTemplate<
 
     protected abstract void setCantReplayResponse();
 
-    public NjamsReplayRequestReader getReplayRequestReader() {
+    /**
+     * Returns the instruction to process by this InstructionProcessor.
+     *
+     * @return the instruction to process.
+     */
+    @Override
+    public NjamsReplayInstruction getInstruction() {
+        return (NjamsReplayInstruction)super.getInstruction();
+    }
+
+    /**
+     * Returns the instructions requestReader.
+     *
+     * @return the requestReader to the corresponding instruction.
+     */
+    @Override
+    public NjamsReplayRequestReader getRequestReader(){
         return getInstruction().getRequestReader();
     }
 
-    public NjamsReplayResponseWriter getReplayResponseWriter() {
+    /**
+     * Returns the instructions responseWriter.
+     *
+     * @return the responseWriter to the corresponding instruction.
+     */
+    @Override
+    public NjamsReplayResponseWriter getResponseWriter(){
         return getInstruction().getResponseWriter();
     }
 }

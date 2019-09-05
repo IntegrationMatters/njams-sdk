@@ -25,36 +25,71 @@ import com.im.njams.sdk.communication.receiver.instruction.control.processors.In
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public abstract class AbstractProcessorTemplate<T extends Instruction> implements InstructionProcessor<T> {
+/**
+ * This abstract class provides a template for processing instructions in general.
+ *
+ * @author krautenberg
+ * @version 4.1.0
+ */
+public abstract class AbstractProcessorTemplate implements InstructionProcessor {
 
-    private static final Logger LOG = LoggerFactory.getLogger(DefaultProcessorTemplate.class);
+    private static final Logger LOG = LoggerFactory.getLogger(AbstractProcessorTemplate.class);
 
-    private T instruction;
+    private Instruction instruction;
 
+    /**
+     * First the {@link Instruction instruction} is saved for further processing. Secondly the instruction will be
+     * processed ({@link AbstractProcessorTemplate#process()}) and lastly the processing will be logged
+     * ({@link AbstractProcessorTemplate#logProcessing()}).
+     *
+     * @param instruction the instruction to process
+     */
     @Override
-    public synchronized void processInstruction(T instruction) {
+    public final synchronized void processInstruction(Instruction instruction) {
 
-        setInstruction(instruction);
+        this.instruction = instruction;
 
         process();
 
         logProcessing();
     }
 
-    private void setInstruction(T instruction) {
-        this.instruction = instruction;
-    }
-
+    /**
+     * Processes the instruction and writes a response accordingly.
+     */
     protected abstract void process();
 
-    protected void logProcessing() {
+    private void logProcessing() {
         if (LOG.isDebugEnabled()) {
             LOG.debug("Processed {} by {}", instruction.getRequestReader().getCommand(),
                     this.getClass().getSimpleName());
         }
     }
 
-    public T getInstruction() {
+    /**
+     * Returns the instruction to process by this InstructionProcessor.
+     *
+     * @return the instruction to process.
+     */
+    public Instruction getInstruction() {
         return instruction;
+    }
+
+    /**
+     * Returns the instructions requestReader.
+     *
+     * @return the requestReader to the corresponding instruction.
+     */
+    public Instruction.RequestReader getRequestReader() {
+        return getInstruction().getRequestReader();
+    }
+
+    /**
+     * Returns the instructions responseWriter.
+     *
+     * @return the responseWriter to the corresponding instruction.
+     */
+    public Instruction.ResponseWriter getResponseWriter() {
+        return getInstruction().getResponseWriter();
     }
 }

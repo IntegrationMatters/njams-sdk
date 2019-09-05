@@ -55,8 +55,8 @@ public class FallbackProcessorTest {
         defaultResponseWriterMock = mock(NjamsResponseWriter.class);
 
         doReturn(defaultInstructionMock).when(fallbackProcessor).getInstruction();
-        doReturn(defaultRequestReaderMock).when(fallbackProcessor).getDefaultRequestReader();
-        doReturn(defaultResponseWriterMock).when(fallbackProcessor).getDefaultResponseWriter();
+        doReturn(defaultRequestReaderMock).when(fallbackProcessor).getRequestReader();
+        doReturn(defaultResponseWriterMock).when(fallbackProcessor).getResponseWriter();
 
         when(defaultResponseWriterMock.setResultMessage(any())).thenReturn(defaultResponseWriterMock);
         when(defaultResponseWriterMock.setResultCode(any())).thenReturn(defaultResponseWriterMock);
@@ -77,13 +77,15 @@ public class FallbackProcessorTest {
         assertEquals("", fallbackProcessor.getCommandToListenTo());
     }
 
-//ProcessDefaultInstruction tests
+//Process tests
 
     @Test
     public void processDefaultInstuctionWithNullInstruction() {
         mockInstructionMethods(NULL_INSTRUCTION_STATE);
-        fallbackProcessor.processDefaultInstruction();
+
+        fallbackProcessor.process();
         checkWarningMessage(FallbackProcessor.InstructionProblem.INSTRUCTION_IS_NULL.getMessage());
+        setResponse(times(0));
     }
 
     private void mockInstructionMethods(String trueOrFalseString) {
@@ -108,53 +110,43 @@ public class FallbackProcessorTest {
         assertEquals(expectedMessage, fallbackProcessor.warningMessage);
     }
 
+    private void setResponse(VerificationMode howManyTimesHasResponseBeSet) {
+        verify(defaultResponseWriterMock, howManyTimesHasResponseBeSet).setResultCode(ResultCode.WARNING);
+        verify(defaultResponseWriterMock, howManyTimesHasResponseBeSet)
+                .setResultMessage(fallbackProcessor.warningMessage);
+    }
+
     @Test
     public void processDefaultInstuctionWithNullRequest() {
         mockInstructionMethods(NULL_REQUEST_STATE);
-        fallbackProcessor.processDefaultInstruction();
+        fallbackProcessor.process();
         checkWarningMessage(FallbackProcessor.InstructionProblem.REQUEST_IS_NULL.getMessage());
+        setResponse(times(1));
     }
 
     @Test
     public void processDefaultInstuctionWithNullCommand() {
         mockInstructionMethods(NULL_COMMAND_STATE);
-        fallbackProcessor.processDefaultInstruction();
+        fallbackProcessor.process();
         checkWarningMessage(FallbackProcessor.InstructionProblem.COMMAND_IS_NULL.getMessage());
+        setResponse(times(1));
     }
 
     @Test
     public void processDefaultInstuctionWithEmptyCommand() {
         mockInstructionMethods(EMPTY_COMMAND_STATE);
-        fallbackProcessor.processDefaultInstruction();
+        fallbackProcessor.process();
         checkWarningMessage(FallbackProcessor.InstructionProblem.COMMAND_IS_EMPTY.getMessage());
+        setResponse(times(1));
     }
 
     @Test
     public void processDefaultInstuctionWithUnknownCommand() {
         mockInstructionMethods(UNKNOWN_COMMAND_STATE);
         when(defaultRequestReaderMock.getCommand()).thenReturn(UNKNOWN_COMMAND_STATE);
-        fallbackProcessor.processDefaultInstruction();
+        fallbackProcessor.process();
         checkWarningMessage(
                 FallbackProcessor.InstructionProblem.COMMAND_IS_UNKNOWN.getMessage() + UNKNOWN_COMMAND_STATE);
-    }
-
-//setInstructionResponse
-
-    @Test
-    public void responseCanBeSetIfInstructionIsNotNull() {
-        setResponse(false, times(1));
-    }
-
-    @Test
-    public void responseCantBeSetIfInstructionIsNull() {
-        setResponse(true, times(0));
-    }
-
-    private void setResponse(boolean isInstructionNull, VerificationMode howManyTimesHasResponseBeSet) {
-        when(defaultInstructionMock.isEmpty()).thenReturn(isInstructionNull);
-        fallbackProcessor.setInstructionResponse();
-        verify(defaultResponseWriterMock, howManyTimesHasResponseBeSet).setResultCode(ResultCode.WARNING);
-        verify(defaultResponseWriterMock, howManyTimesHasResponseBeSet)
-                .setResultMessage(fallbackProcessor.warningMessage);
+        setResponse(times(1));
     }
 }
