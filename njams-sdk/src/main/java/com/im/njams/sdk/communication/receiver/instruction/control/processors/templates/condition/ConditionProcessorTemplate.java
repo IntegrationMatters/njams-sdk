@@ -35,9 +35,9 @@ import java.util.List;
 
 import static com.im.njams.sdk.api.adapter.messageformat.command.Instruction.RequestReader.EMPTY_STRING;
 
-public abstract class ConditionReaderTemplate extends AbstractProcessorTemplate {
+public abstract class ConditionProcessorTemplate extends AbstractProcessorTemplate {
 
-    private static final Logger LOG = LoggerFactory.getLogger(ConditionReaderTemplate.class);
+    private static final Logger LOG = LoggerFactory.getLogger(ConditionProcessorTemplate.class);
 
     private static final ResultCode DEFAULT_SUCCESS_CODE = ResultCode.SUCCESS;
 
@@ -51,7 +51,7 @@ public abstract class ConditionReaderTemplate extends AbstractProcessorTemplate 
 
     protected ConditionResponseWriter responseWriter;
 
-    public ConditionReaderTemplate(Njams njams) {
+    public ConditionProcessorTemplate(Njams njams) {
         this.conditionFacade = new ConditionProxy(njams);
     }
 
@@ -174,5 +174,9 @@ public abstract class ConditionReaderTemplate extends AbstractProcessorTemplate 
     @Override
     public ConditionResponseWriter getResponseWriter(){
         return getInstruction().getResponseWriter();
+    }
+
+    protected void saveCondition() throws NjamsInstructionException {
+        conditionFacade.saveCondition();
     }
 }

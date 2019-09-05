@@ -25,14 +25,14 @@ import com.faizsiegeln.njams.messageformat.v4.projectmessage.LogMode;
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.adapter.messageformat.command.entity.condition.ConditionConstants;
 import com.im.njams.sdk.api.adapter.messageformat.command.NjamsInstructionException;
-import com.im.njams.sdk.communication.receiver.instruction.control.processors.templates.condition.ConditionReaderTemplate;
+import com.im.njams.sdk.communication.receiver.instruction.control.processors.templates.condition.ConditionProcessorTemplate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
  * Todo: Write Doc
  */
-public class GetLogLevelProcessor extends ConditionReaderTemplate {
+public class GetLogLevelProcessor extends ConditionProcessorTemplate {
 
     private static final Logger LOG = LoggerFactory.getLogger(GetLogLevelProcessor.class);
 

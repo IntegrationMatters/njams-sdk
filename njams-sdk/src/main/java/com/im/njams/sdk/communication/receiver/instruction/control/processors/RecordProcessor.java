@@ -21,7 +21,8 @@ package com.im.njams.sdk.communication.receiver.instruction.control.processors;
 
 import com.faizsiegeln.njams.messageformat.v4.command.Command;
 import com.im.njams.sdk.Njams;
-import com.im.njams.sdk.communication.receiver.instruction.control.processors.templates.condition.ConditionWriterTemplate;
+import com.im.njams.sdk.api.adapter.messageformat.command.NjamsInstructionException;
+import com.im.njams.sdk.communication.receiver.instruction.control.processors.templates.condition.ConditionProcessorTemplate;
 import com.im.njams.sdk.configuration.entity.ProcessConfiguration;
 import com.im.njams.sdk.utils.StringUtils;
 import org.slf4j.Logger;
@@ -31,7 +32,7 @@ import org.slf4j.LoggerFactory;
  * Todo: Write Doc
  * Todo: Split the RecordProcessor to a EngineWideRecordingProcessor and a ProcessRecordProcessor
  */
-public class RecordProcessor extends ConditionWriterTemplate {
+public class RecordProcessor extends ConditionProcessorTemplate {
 
     private static final Logger LOG = LoggerFactory.getLogger(RecordProcessor.class);
 
@@ -54,10 +55,12 @@ public class RecordProcessor extends ConditionWriterTemplate {
     }
 
     @Override
-    protected void configureCondition() {
+    protected void processConditionInstruction() throws NjamsInstructionException {
         handleEngineWideRecording();
 
         handleProcessRecording();
+
+        saveCondition();
     }
 
     private void handleEngineWideRecording() {

@@ -24,7 +24,7 @@ import com.faizsiegeln.njams.messageformat.v4.projectmessage.Extract;
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.adapter.messageformat.command.entity.condition.ConditionConstants;
 import com.im.njams.sdk.api.adapter.messageformat.command.NjamsInstructionException;
-import com.im.njams.sdk.communication.receiver.instruction.control.processors.templates.condition.ConditionWriterTemplate;
+import com.im.njams.sdk.communication.receiver.instruction.control.processors.templates.condition.ConditionProcessorTemplate;
 import com.im.njams.sdk.configuration.entity.ActivityConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,7 +32,7 @@ import org.slf4j.LoggerFactory;
 /**
  * Todo: Write Doc
  */
-public class ConfigureExtractProcessor extends ConditionWriterTemplate {
+public class ConfigureExtractProcessor extends ConditionProcessorTemplate {
 
     private static final Logger LOG = LoggerFactory.getLogger(ConfigureExtractProcessor.class);
 
@@ -54,12 +54,14 @@ public class ConfigureExtractProcessor extends ConditionWriterTemplate {
     }
 
     @Override
-    protected void configureCondition() throws NjamsInstructionException {
+    protected void processConditionInstruction() throws NjamsInstructionException {
         Extract extractOfRequest = requestReader.getExtract();
 
         ActivityConfiguration activityCondition = conditionFacade.getOrCreateActivityCondition();
 
         activityCondition.setExtract(extractOfRequest);
+
+        saveCondition();
     }
 
     @Override

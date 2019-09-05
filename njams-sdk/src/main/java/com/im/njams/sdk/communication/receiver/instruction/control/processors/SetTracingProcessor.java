@@ -24,7 +24,7 @@ import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.adapter.messageformat.command.entity.condition.ConditionConstants;
 import com.im.njams.sdk.api.adapter.messageformat.command.NjamsInstructionException;
 import com.im.njams.sdk.common.DateTimeUtility;
-import com.im.njams.sdk.communication.receiver.instruction.control.processors.templates.condition.ConditionWriterTemplate;
+import com.im.njams.sdk.communication.receiver.instruction.control.processors.templates.condition.ConditionProcessorTemplate;
 import com.im.njams.sdk.configuration.entity.ActivityConfiguration;
 import com.im.njams.sdk.configuration.entity.TracepointExt;
 import org.slf4j.Logger;
@@ -35,7 +35,7 @@ import java.time.LocalDateTime;
 /**
  * Todo: Write Doc
  */
-public class SetTracingProcessor extends ConditionWriterTemplate {
+public class SetTracingProcessor extends ConditionProcessorTemplate {
 
     private static final Logger LOG = LoggerFactory.getLogger(SetTracingProcessor.class);
 
@@ -67,7 +67,7 @@ public class SetTracingProcessor extends ConditionWriterTemplate {
     }
 
     @Override
-    protected void configureCondition() throws NjamsInstructionException {
+    protected void processConditionInstruction() throws NjamsInstructionException {
 
         endTimeOfNewTracePoint = getEndTime();
 
@@ -80,6 +80,8 @@ public class SetTracingProcessor extends ConditionWriterTemplate {
         } else {
             deleteTracePoint();
         }
+
+        saveCondition();
     }
 
     private LocalDateTime getEndTime() throws NjamsInstructionException {

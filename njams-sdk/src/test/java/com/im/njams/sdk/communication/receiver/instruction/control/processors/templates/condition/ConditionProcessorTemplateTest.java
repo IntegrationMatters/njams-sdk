@@ -38,11 +38,11 @@ import static java.util.Collections.EMPTY_LIST;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.*;
 
-public class ConditionReaderTemplateTest {
+public class ConditionProcessorTemplateTest {
 
     private static final String NJAMS_INSTRUCTION_EXCEPTION_MESSAGE = "Njams-Exception-message";
 
-    private ConditionReaderTemplate conditionReaderTemplate;
+    private ConditionProcessorTemplate conditionReaderTemplate;
 
     private Njams njamsMock;
 
@@ -297,7 +297,7 @@ public class ConditionReaderTemplateTest {
 
 //Private helper classes
 
-    private class ConditionReaderTemplateImpl extends ConditionReaderTemplate {
+    private class ConditionReaderTemplateImpl extends ConditionProcessorTemplate {
 
         public ConditionReaderTemplateImpl(Njams njams) {
             super(njams);

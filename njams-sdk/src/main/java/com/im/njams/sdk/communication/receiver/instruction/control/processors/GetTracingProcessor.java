@@ -23,7 +23,7 @@ import com.faizsiegeln.njams.messageformat.v4.command.Command;
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.adapter.messageformat.command.entity.condition.ConditionConstants;
 import com.im.njams.sdk.api.adapter.messageformat.command.NjamsInstructionException;
-import com.im.njams.sdk.communication.receiver.instruction.control.processors.templates.condition.ConditionReaderTemplate;
+import com.im.njams.sdk.communication.receiver.instruction.control.processors.templates.condition.ConditionProcessorTemplate;
 import com.im.njams.sdk.configuration.entity.TracepointExt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,7 +31,7 @@ import org.slf4j.LoggerFactory;
 /**
  * Todo: Write Doc
  */
-public class GetTracingProcessor extends ConditionReaderTemplate {
+public class GetTracingProcessor extends ConditionProcessorTemplate {
 
     private static final Logger LOG = LoggerFactory.getLogger(GetTracingProcessor.class);
 
