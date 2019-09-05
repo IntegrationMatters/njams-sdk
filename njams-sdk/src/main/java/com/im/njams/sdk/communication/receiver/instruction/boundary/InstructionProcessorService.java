@@ -23,7 +23,7 @@ import com.im.njams.sdk.api.adapter.messageformat.command.Instruction;
 import com.im.njams.sdk.api.adapter.messageformat.command.NjamsInstructionException;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.communication.receiver.instruction.control.InstructionController;
-import com.im.njams.sdk.communication.receiver.instruction.control.processors.InstructionProcessor;
+import com.im.njams.sdk.communication.receiver.instruction.control.processors.templates.InstructionProcessor;
 import com.im.njams.sdk.utils.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

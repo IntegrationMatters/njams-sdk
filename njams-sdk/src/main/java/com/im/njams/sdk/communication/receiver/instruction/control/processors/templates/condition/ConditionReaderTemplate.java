@@ -18,16 +18,15 @@
  * IN THE SOFTWARE.
  */
 
-package com.im.njams.sdk.communication.receiver.instruction.control.templates.condition;
+package com.im.njams.sdk.communication.receiver.instruction.control.processors.templates.condition;
 
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.adapter.messageformat.command.entity.condition.ConditionInstruction;
 import com.im.njams.sdk.adapter.messageformat.command.entity.condition.ConditionRequestReader;
 import com.im.njams.sdk.adapter.messageformat.command.entity.condition.ConditionResponseWriter;
 import com.im.njams.sdk.api.adapter.messageformat.command.NjamsInstructionException;
-import com.im.njams.sdk.api.adapter.messageformat.command.ReplayInstruction;
 import com.im.njams.sdk.api.adapter.messageformat.command.ResultCode;
-import com.im.njams.sdk.communication.receiver.instruction.control.templates.AbstractProcessorTemplate;
+import com.im.njams.sdk.communication.receiver.instruction.control.processors.templates.AbstractProcessorTemplate;
 import com.im.njams.sdk.utils.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

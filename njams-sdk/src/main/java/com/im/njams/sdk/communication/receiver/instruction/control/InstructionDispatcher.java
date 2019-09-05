@@ -21,7 +21,7 @@ package com.im.njams.sdk.communication.receiver.instruction.control;
 
 import com.im.njams.sdk.api.adapter.messageformat.command.Instruction;
 import com.im.njams.sdk.api.adapter.messageformat.command.NjamsInstructionException;
-import com.im.njams.sdk.communication.receiver.instruction.control.processors.InstructionProcessor;
+import com.im.njams.sdk.communication.receiver.instruction.control.processors.templates.InstructionProcessor;
 import com.im.njams.sdk.communication.receiver.instruction.entity.InstructionProcessorCollection;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

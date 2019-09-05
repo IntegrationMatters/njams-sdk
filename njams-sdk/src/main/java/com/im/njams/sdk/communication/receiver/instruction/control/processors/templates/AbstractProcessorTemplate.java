@@ -18,10 +18,9 @@
  * IN THE SOFTWARE.
  */
 
-package com.im.njams.sdk.communication.receiver.instruction.control.templates;
+package com.im.njams.sdk.communication.receiver.instruction.control.processors.templates;
 
 import com.im.njams.sdk.api.adapter.messageformat.command.Instruction;
-import com.im.njams.sdk.communication.receiver.instruction.control.processors.InstructionProcessor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -59,7 +58,10 @@ public abstract class AbstractProcessorTemplate implements InstructionProcessor 
      */
     protected abstract void process();
 
-    private void logProcessing() {
+    /**
+     * Logs the command of the instruction and the class that processed the instruction.
+     */
+    protected void logProcessing() {
         if (LOG.isDebugEnabled()) {
             LOG.debug("Processed {} by {}", instruction.getRequestReader().getCommand(),
                     this.getClass().getSimpleName());

@@ -21,7 +21,7 @@ package com.im.njams.sdk.communication.receiver.instruction.control.processors;
 
 import com.faizsiegeln.njams.messageformat.v4.command.Command;
 import com.im.njams.sdk.Njams;
-import com.im.njams.sdk.communication.receiver.instruction.control.templates.condition.ConditionWriterTemplate;
+import com.im.njams.sdk.communication.receiver.instruction.control.processors.templates.condition.ConditionWriterTemplate;
 import com.im.njams.sdk.configuration.entity.ProcessConfiguration;
 import com.im.njams.sdk.utils.StringUtils;
 import org.slf4j.Logger;

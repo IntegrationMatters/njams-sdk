@@ -21,7 +21,7 @@ package com.im.njams.sdk.communication.receiver.instruction.control.processors;
 
 import com.im.njams.sdk.api.adapter.messageformat.command.Instruction;
 import com.im.njams.sdk.api.adapter.messageformat.command.ResultCode;
-import com.im.njams.sdk.communication.receiver.instruction.control.templates.AbstractProcessorTemplate;
+import com.im.njams.sdk.communication.receiver.instruction.control.processors.templates.AbstractProcessorTemplate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

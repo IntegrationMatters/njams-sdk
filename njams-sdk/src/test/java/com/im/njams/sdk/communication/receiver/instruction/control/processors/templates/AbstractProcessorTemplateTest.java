@@ -18,7 +18,7 @@
  * IN THE SOFTWARE.
  */
 
-package com.im.njams.sdk.communication.receiver.instruction.control.templates;
+package com.im.njams.sdk.communication.receiver.instruction.control.processors.templates;
 
 import com.faizsiegeln.njams.messageformat.v4.command.Command;
 import com.im.njams.sdk.api.adapter.messageformat.command.Instruction;

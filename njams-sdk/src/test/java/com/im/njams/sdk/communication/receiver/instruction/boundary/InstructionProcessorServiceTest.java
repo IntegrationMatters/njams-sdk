@@ -24,8 +24,7 @@ import com.faizsiegeln.njams.messageformat.v4.command.Request;
 import com.im.njams.sdk.adapter.messageformat.command.entity.NjamsInstruction;
 import com.im.njams.sdk.api.adapter.messageformat.command.Instruction;
 import com.im.njams.sdk.api.adapter.messageformat.command.ResultCode;
-import com.im.njams.sdk.communication.receiver.instruction.control.processors.InstructionProcessor;
-import net.sf.saxon.functions.Remove;
+import com.im.njams.sdk.communication.receiver.instruction.control.processors.templates.InstructionProcessor;
 import org.junit.Before;
 import org.junit.Test;
 

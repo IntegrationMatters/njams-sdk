@@ -18,12 +18,11 @@
  * IN THE SOFTWARE.
  */
 
-package com.im.njams.sdk.communication.receiver.instruction.control.templates.condition;
+package com.im.njams.sdk.communication.receiver.instruction.control.processors.templates.condition;
 
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.Extract;
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.api.adapter.messageformat.command.NjamsInstructionException;
-import com.im.njams.sdk.communication.receiver.instruction.control.templates.condition.ConditionProxy;
 import com.im.njams.sdk.configuration.entity.ActivityConfiguration;
 import com.im.njams.sdk.configuration.entity.ProcessConfiguration;
 import org.junit.Before;

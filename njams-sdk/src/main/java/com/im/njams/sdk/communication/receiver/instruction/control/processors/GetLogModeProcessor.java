@@ -22,7 +22,7 @@ package com.im.njams.sdk.communication.receiver.instruction.control.processors;
 import com.faizsiegeln.njams.messageformat.v4.command.Command;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.LogMode;
 import com.im.njams.sdk.Njams;
-import com.im.njams.sdk.communication.receiver.instruction.control.templates.condition.ConditionReaderTemplate;
+import com.im.njams.sdk.communication.receiver.instruction.control.processors.templates.condition.ConditionReaderTemplate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

@@ -18,7 +18,7 @@
  * IN THE SOFTWARE.
  */
 
-package com.im.njams.sdk.communication.receiver.instruction.control.templates.condition;
+package com.im.njams.sdk.communication.receiver.instruction.control.processors.templates.condition;
 
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.Extract;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.LogLevel;

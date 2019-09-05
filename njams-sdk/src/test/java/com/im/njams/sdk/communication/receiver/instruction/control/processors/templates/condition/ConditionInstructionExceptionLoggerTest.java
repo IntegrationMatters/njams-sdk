@@ -18,14 +18,13 @@
  * IN THE SOFTWARE.
  */
 
-package com.im.njams.sdk.communication.receiver.instruction.control.templates.condition;
+package com.im.njams.sdk.communication.receiver.instruction.control.processors.templates.condition;
 
 import com.im.njams.sdk.api.adapter.messageformat.command.NjamsInstructionException;
-import com.im.njams.sdk.communication.receiver.instruction.control.templates.condition.ConditionInstructionExceptionLogger;
 import org.junit.Test;
 
 import static com.im.njams.sdk.api.adapter.messageformat.command.Instruction.RequestReader.EMPTY_STRING;
-import static com.im.njams.sdk.communication.receiver.instruction.control.templates.condition.ConditionInstructionExceptionLogger.INVALID_INSTRUCTION;
+import static com.im.njams.sdk.communication.receiver.instruction.control.processors.templates.condition.ConditionInstructionExceptionLogger.INVALID_INSTRUCTION;
 import static org.mockito.Mockito.*;
 
 public class ConditionInstructionExceptionLoggerTest {

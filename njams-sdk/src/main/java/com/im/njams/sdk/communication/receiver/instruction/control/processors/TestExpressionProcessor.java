@@ -21,7 +21,7 @@
 package com.im.njams.sdk.communication.receiver.instruction.control.processors;
 
 import com.faizsiegeln.njams.messageformat.v4.command.Command;
-import com.im.njams.sdk.communication.receiver.instruction.control.templates.AbstractProcessorTemplate;
+import com.im.njams.sdk.communication.receiver.instruction.control.processors.templates.AbstractProcessorTemplate;
 
 public class TestExpressionProcessor extends AbstractProcessorTemplate {
 

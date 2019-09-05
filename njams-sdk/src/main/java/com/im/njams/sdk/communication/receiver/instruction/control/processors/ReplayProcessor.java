@@ -23,7 +23,7 @@ import com.faizsiegeln.njams.messageformat.v4.command.Command;
 import com.im.njams.sdk.api.adapter.messageformat.command.ResultCode;
 import com.im.njams.sdk.api.plugin.replay.ReplayHandler;
 import com.im.njams.sdk.api.plugin.replay.ReplayPlugin;
-import com.im.njams.sdk.communication.receiver.instruction.control.templates.ReplayProcessorTemplate;
+import com.im.njams.sdk.communication.receiver.instruction.control.processors.templates.replay.ReplayProcessorTemplate;
 
 /**
  * Todo: Write Doc

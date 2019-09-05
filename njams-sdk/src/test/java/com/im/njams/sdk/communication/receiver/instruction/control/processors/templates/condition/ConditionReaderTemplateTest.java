@@ -18,7 +18,7 @@
  * IN THE SOFTWARE.
  */
 
-package com.im.njams.sdk.communication.receiver.instruction.control.templates.condition;
+package com.im.njams.sdk.communication.receiver.instruction.control.processors.templates.condition;
 
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.adapter.messageformat.command.entity.condition.ConditionConstants;
@@ -27,7 +27,6 @@ import com.im.njams.sdk.adapter.messageformat.command.entity.condition.Condition
 import com.im.njams.sdk.adapter.messageformat.command.entity.condition.ConditionResponseWriter;
 import com.im.njams.sdk.api.adapter.messageformat.command.NjamsInstructionException;
 import com.im.njams.sdk.api.adapter.messageformat.command.ResultCode;
-import com.im.njams.sdk.communication.receiver.instruction.control.templates.condition.ConditionReaderTemplate;
 import org.junit.Before;
 import org.junit.Test;
 

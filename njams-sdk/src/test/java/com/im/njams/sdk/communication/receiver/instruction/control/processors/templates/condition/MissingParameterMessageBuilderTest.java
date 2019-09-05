@@ -18,7 +18,7 @@
  * IN THE SOFTWARE.
  */
 
-package com.im.njams.sdk.communication.receiver.instruction.control.templates.condition;
+package com.im.njams.sdk.communication.receiver.instruction.control.processors.templates.condition;
 
 import com.im.njams.sdk.adapter.messageformat.command.entity.condition.ConditionConstants;
 import org.junit.Test;
@@ -29,7 +29,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import static com.im.njams.sdk.communication.receiver.instruction.control.templates.condition.MissingParameterMessageBuilder.MISSING_PARAMETER_MESSAGE;
+import static com.im.njams.sdk.communication.receiver.instruction.control.processors.templates.condition.MissingParameterMessageBuilder.MISSING_PARAMETER_MESSAGE;
 import static java.util.Collections.EMPTY_LIST;
 import static org.junit.Assert.assertEquals;
 
