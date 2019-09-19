@@ -15,7 +15,7 @@ The nJAMS Client SDK
 * Use SDK as a dependency in your Client project.
 * Instantiate Njams Object with your Client Path
 * Add images and ProcessModels to Njams
-* Start Njams and begin to create Jobs/Logmessages for a process
+* Start Njams and begin to create Jobs/Logmessages for a Process
 
 ## FAQ
 * [FAQ](https://github.com/IntegrationMatters/njams-sdk/wiki/FAQ) - Questions on how to use SDK Features
