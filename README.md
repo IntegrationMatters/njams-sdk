@@ -1,6 +1,6 @@
 # nJAMS SDK
 
-The new nJAMS Client SDK
+The nJAMS Client SDK
 
 ## JavaDoc
 
