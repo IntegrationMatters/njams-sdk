@@ -12,6 +12,10 @@ The nJAMS Client SDK
 
 * [Sample](https://github.com/IntegrationMatters/njams-sdk/tree/master/njams-sdk-sample-client/src/main/java/com/faizsiegeln/test) - See our sample client implementations
 * [Releases](https://github.com/IntegrationMatters/njams-sdk/releases) - Download latest SDK Release
+* Use SDK as a dependency in your Client project.
+* Instantiate Njams Object with your Client Path
+* Add images and ProcessModels to Njams
+* Start Njams and begin to create Jobs/Logmessages for a process
 
 ## FAQ
 * [FAQ](https://github.com/IntegrationMatters/njams-sdk/wiki/FAQ) - Questions on how to use SDK Features
