@@ -2,6 +2,8 @@
 
 The nJAMS Client SDK provides implementations to connect to nJAMS Server and create messages via Java classes. It should be the underlying base when you try to create a nJAMS client.
 
+SDK uses the [Messageformat](https://github.com/IntegrationMatters/njams-messageformat) which contains the shared Message structures between client and server.
+
 ## JavaDoc
 
 * [JavaDoc nJAMS SDK](https://integrationmatters.github.io/njams-sdk/index-njams-sdk.html) - The newest SDK JavaDocs
