@@ -20,7 +20,7 @@
 
 package com.im.njams.sdk.subagent;
 
-public class ArgosSignature {
+public class ArgosComponent {
 
     // the id of this very component
     private String id;
@@ -31,13 +31,17 @@ public class ArgosSignature {
     // the name of the container of this component; can be a server, or JVM name, or similar
     private String containerId;
 
+    // the measurement name
+    private String measurement;
+
     // the technology type
     private String type;
 
-    public ArgosSignature(String id, String name, String containerId, String type) {
+    public ArgosComponent(String id, String name, String containerId, String measurement,  String type) {
         this.id = id;
         this.name = name;
         this.containerId = containerId;
+        this.measurement = measurement;
         this.type = type;
     }
 
@@ -65,6 +69,14 @@ public class ArgosSignature {
         this.containerId = containerId;
     }
 
+    public String getMeasurement() {
+        return measurement;
+    }
+
+    public void setMeasurement(String measurement) {
+        this.measurement = measurement;
+    }
+
     public String getType() {
         return type;
     }
@@ -78,10 +90,11 @@ public class ArgosSignature {
         boolean isEqual = true;
         if (!super.equals(signatureToCheck)) {
             try {
-                ArgosSignature argosSignatureToCheck = (ArgosSignature) signatureToCheck;
+                ArgosComponent argosSignatureToCheck = (ArgosComponent) signatureToCheck;
                 if (!(argosSignatureToCheck.getContainerId().equals(this.getContainerId()) &&
                       argosSignatureToCheck.getId().equals(this.getId()) &&
                       argosSignatureToCheck.getName().equals(this.getName()) &&
+                      argosSignatureToCheck.getMeasurement().equals(this.getMeasurement()) &&
                       argosSignatureToCheck.getType().equals(this.getType()))) {
                     isEqual = false;
                 }

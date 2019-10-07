@@ -20,15 +20,10 @@
 
 package com.im.njams.sdk.subagent;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.ObjectWriter;
-import com.fasterxml.jackson.databind.SerializationFeature;
-
 import java.util.HashMap;
 import java.util.Map;
 
-public abstract class TelemetrySupplier {
+public abstract class ArgosStatistics {
 
     public static final String DEFAULT = "abstract";
 
@@ -49,14 +44,11 @@ public abstract class TelemetrySupplier {
 
     private Map<String, Object> tags;
 
-    private final ObjectWriter writer = new ObjectMapper()
-            .configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false).writer().withDefaultPrettyPrinter();
-
     /**
      * This constructor sets the id, name, containerId, measurement and type to {@value #DEFAULT}
      * and initializes the tags with an empty HashMap.
      */
-    public TelemetrySupplier() {
+    public ArgosStatistics() {
         this.id = this.name = this.containerid = this.measurement = this.type = DEFAULT;
         this.tags = new HashMap<>();
     }
@@ -111,16 +103,5 @@ public abstract class TelemetrySupplier {
 
     public void addTag(String key, Object value) {
         tags.put(key, value);
-    }
-
-    @Override
-    public String toString() {
-        try {
-            return writer.writeValueAsString(this);
-        } catch (JsonProcessingException e) {
-            e.printStackTrace();
-        }
-
-        return "";
     }
 }

@@ -34,10 +34,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.stream.Stream;
 
-import com.im.njams.sdk.subagent.DataPublisher;
-import com.im.njams.sdk.subagent.TelemetryProducer;
-import com.im.njams.sdk.subagent.jvm.JVMStats;
-import com.im.njams.sdk.subagent.jvm.JVMTelemetryFactory;
+import com.im.njams.sdk.subagent.ArgosSender;
 import org.slf4j.LoggerFactory;
 
 import com.faizsiegeln.njams.messageformat.v4.command.Command;
@@ -179,7 +176,7 @@ public class Njams implements InstructionListener {
 
     private ReplayHandler replayHandler = null;
 
-    private DataPublisher dataPublisher;
+    private ArgosSender argosSender;
 
     /**
      * Create a nJAMS client.
@@ -198,8 +195,7 @@ public class Njams implements InstructionListener {
         this.settings = settings;
         processDiagramFactory = new NjamsProcessDiagramFactory();
         processModelLayouter = new SimpleProcessModelLayouter();
-        dataPublisher = new DataPublisher(settings);
-        fillDataPublisher();
+        argosSender = new ArgosSender(settings);
         loadConfigurationProvider();
         createTreeElements(path, TreeElementType.CLIENT);
         readVersions(version);
@@ -207,13 +203,8 @@ public class Njams implements InstructionListener {
         setMachine();
     }
 
-    private void fillDataPublisher() {
-        TelemetryProducer telemetryProducer = dataPublisher.getTelemetryProducer();
-        telemetryProducer.addTelemetrySupplierFactory(new JVMTelemetryFactory());
-    }
-
-    public DataPublisher getDataPublisher(){
-        return dataPublisher;
+    public ArgosSender getArgosSender(){
+        return argosSender;
     }
 
     /**
@@ -384,7 +375,7 @@ public class Njams implements InstructionListener {
             CleanTracepointsTask.start(this);
             started = true;
             flushResources();
-            dataPublisher.start();
+            argosSender.start();
         }
         return isStarted();
     }
@@ -399,7 +390,7 @@ public class Njams implements InstructionListener {
         if (isStarted()) {
             LogMessageFlushTask.stop(this);
             CleanTracepointsTask.stop(this);
-            dataPublisher.close();
+            argosSender.close();
             if (sender != null) {
                 sender.close();
             }

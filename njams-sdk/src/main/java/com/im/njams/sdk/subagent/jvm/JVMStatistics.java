@@ -20,13 +20,12 @@
 
 package com.im.njams.sdk.subagent.jvm;
 
-import com.im.njams.sdk.subagent.TelemetrySupplier;
+import com.im.njams.sdk.subagent.ArgosStatistics;
 
-import java.net.InetAddress;
 import java.util.HashMap;
 import java.util.Map;
 
-public class JVMStats extends TelemetrySupplier {
+public class JVMStatistics extends ArgosStatistics {
 
     private long heapCommitted = 0;
     private long heapInit = 0;
@@ -42,17 +41,8 @@ public class JVMStats extends TelemetrySupplier {
     private Map<String, GCStats> gc = new HashMap<>();
     private OsProcessStats processStats;
 
-    private String hostname = "localhost";
-
-    public JVMStats() {
+    public JVMStatistics() {
         super();
-        try {
-            InetAddress localMachine = InetAddress.getLocalHost();
-            this.hostname = localMachine.getCanonicalHostName();
-        } catch (Exception ex) {
-            // ignore
-        }
-        super.setContainerId(hostname);
     }
 
     public long getHeapCommitted() {

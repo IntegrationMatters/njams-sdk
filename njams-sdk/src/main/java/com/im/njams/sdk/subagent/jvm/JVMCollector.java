@@ -20,33 +20,64 @@
 
 package com.im.njams.sdk.subagent.jvm;
 
-import com.im.njams.sdk.subagent.TelemetrySupplier;
-import com.im.njams.sdk.subagent.TelemetrySupplierFactory;
+import com.im.njams.sdk.subagent.ArgosComponent;
+import com.im.njams.sdk.subagent.ArgosCollector;
 
 import java.lang.management.GarbageCollectorMXBean;
 import java.lang.management.ManagementFactory;
 import java.lang.management.MemoryMXBean;
 import java.lang.management.MemoryUsage;
+import java.net.InetAddress;
 import java.util.HashMap;
 import java.util.Map;
 
-public class JVMTelemetryFactory extends TelemetrySupplierFactory {
+public class JVMCollector extends ArgosCollector<JVMStatistics> {
 
     public static final String MEASUREMENT = "jvm";
 
-    private static int pid = 0;
+    private int pid = 0;
 
-    public static void setPid(int pid){
-        JVMTelemetryFactory.pid = pid;
+    public JVMCollector(String id, String name, String type){
+        this(id, name, type, getPid());
     }
 
-    public JVMTelemetryFactory() {
-        super(MEASUREMENT);
+    private static int getPid(){
+        if (ManagementFactory.getRuntimeMXBean().getName().contains("@")) {
+            try {
+                //Try to get the JVM id
+                return Integer.valueOf(ManagementFactory.getRuntimeMXBean().getName().split("@")[0]);
+            } catch (Exception e) {
+                // ignore
+            }
+        }
+        return 0;
+    }
+
+    public JVMCollector(String id, String name, String type, int pid){
+        this(createDefaultJVMComponent(id, name, type), pid);
+    }
+
+    private static ArgosComponent createDefaultJVMComponent(String id, String name, String type){
+        return new ArgosComponent(id, name, getHost(), MEASUREMENT, type);
+    }
+
+    public JVMCollector(ArgosComponent argosComponent, int pid) {
+        super(argosComponent);
+        this.pid = pid;
+    }
+
+    private static String getHost(){
+        try {
+            InetAddress localMachine = InetAddress.getLocalHost();
+            return localMachine.getCanonicalHostName();
+        } catch (Exception ex) {
+            return "localhost";
+        }
     }
 
     @Override
-    protected TelemetrySupplier create() {
-        JVMStats jvmStats = new JVMStats();
+    protected JVMStatistics create() {
+        JVMStatistics jvmStats = new JVMStatistics();
 
         MemoryMXBean memoryMxBean = ManagementFactory.getMemoryMXBean();
         MemoryUsage mu = memoryMxBean.getHeapMemoryUsage();

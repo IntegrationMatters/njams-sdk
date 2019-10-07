@@ -26,19 +26,20 @@ package com.faizsiegeln.test.argos;
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.common.Path;
 import com.im.njams.sdk.settings.Settings;
-import com.im.njams.sdk.subagent.ArgosSignature;
-import com.im.njams.sdk.subagent.DataPublisher;
-import com.im.njams.sdk.subagent.jvm.JVMTelemetryFactory;
+import com.im.njams.sdk.subagent.ArgosCollector;
+import com.im.njams.sdk.subagent.ArgosComponent;
+import com.im.njams.sdk.subagent.ArgosSender;
+import com.im.njams.sdk.subagent.ArgosStatistics;
 
-import java.lang.management.ManagementFactory;
 import java.util.Properties;
+import java.util.Random;
 
 /**
- * This is a sample client that sends JVM statistics.
+ * This is a sample client that sends random numbers for my own random number collector.
  *
  * @author krautenberg
  */
-public class JVMDataSupplierClient {
+public class RandomNumberSenderClient {
 
     private static Njams njams;
 
@@ -46,7 +47,7 @@ public class JVMDataSupplierClient {
 
         createAndStartNjams();
 
-        addJVMSupplier();
+        addRandomNumberCollector();
 
         //Start client and flush resources, which will create a projectmessage to send all resources to the server
         //It starts the DataPublisher aswell
@@ -58,7 +59,7 @@ public class JVMDataSupplierClient {
         njams.stop();
     }
 
-    private static void createAndStartNjams(){
+    private static void createAndStartNjams() {
         String technology = "sdk4";
 
         //Specify a client path. This path specifies where your client instance will be visible in the object tree.
@@ -66,9 +67,9 @@ public class JVMDataSupplierClient {
 
         //Create communicationProperties, which specify how your client will communicate with the server
         Properties properties = new Properties();
-        properties.put(DataPublisher.NJAMS_SUBAGENT_HOST, "os1113");
-        properties.put(DataPublisher.NJAMS_SUBAGENT_PORT, "6450");
-        properties.put(DataPublisher.NJAMS_SUBAGENT_ENABLED, "true");
+        properties.put(ArgosSender.NJAMS_SUBAGENT_HOST, "os1113");
+        properties.put(ArgosSender.NJAMS_SUBAGENT_PORT, "6450");
+        properties.put(ArgosSender.NJAMS_SUBAGENT_ENABLED, "true");
         //Properties properties = getCloudProperties();
 
         //Create client settings and add the properties
@@ -79,26 +80,39 @@ public class JVMDataSupplierClient {
         njams = new Njams(clientPath, "4.0.11", technology, config);
     }
 
-    private static void addJVMSupplier() {
-        //Get the JVM telemetry factory
-        JVMTelemetryFactory jvmTelemetryFactory = (JVMTelemetryFactory) njams.getDataPublisher().getTelemetryProducer()
-                .getTelemetrySupplierFactoryByMeasurement(JVMTelemetryFactory.MEASUREMENT);
-        //If you want to monitor OSProcessStats as well, set the pid for the factory
-        int pid = 0;
-        if (ManagementFactory.getRuntimeMXBean().getName().contains("@")) {
-            try {
-                //Try to get the JVM id
-                pid = Integer.valueOf(ManagementFactory.getRuntimeMXBean().getName().split("@")[0]);
-            } catch (Exception e) {
-                // ignore
-            }
-        }
-        JVMTelemetryFactory.setPid(pid);
-        //Create a signature that can be chosen on the Argos Dashboard afterwards
-        ArgosSignature signature = new ArgosSignature("testId", "testName", "testContainerId", "testType");
-        jvmTelemetryFactory.addSignatureIfAbsent(signature);
+    private static void addRandomNumberCollector() {
+        RandomNumberCollector randomNumberCollector = new RandomNumberCollector();
+        njams.getArgosSender().addArgosCollector(randomNumberCollector);
+    }
 
-//        j = new JVMCollector(pid, id, name, containerId);
-//        njams.addArgosCollector(j);
+    private static class RandomNumberCollector extends ArgosCollector<RandomNumberStatistics> {
+
+        private Random randomGenerator;
+
+        public RandomNumberCollector() {
+            super(new ArgosComponent("testRandomNumberId", "testRandomNumberName", "testRandomNumberContainer",
+                    "testRandomNumberMeasurement", "testRandomNumberType"));
+            randomGenerator = new Random();
+        }
+
+        @Override
+        protected RandomNumberStatistics create() {
+            RandomNumberStatistics statistics = new RandomNumberStatistics();
+            statistics.setRandomNumber(randomGenerator.nextInt(100));
+            return statistics;
+        }
+    }
+
+    private static class RandomNumberStatistics extends ArgosStatistics {
+
+        private int randomNumber = 0;
+
+        public int getRandomNumber() {
+            return randomNumber;
+        }
+
+        public void setRandomNumber(int randomNumber) {
+            this.randomNumber = randomNumber;
+        }
     }
 }

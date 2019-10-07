@@ -12,16 +12,14 @@
 
 package com.im.njams.sdk.subagent;
 
-import com.im.njams.sdk.subagent.jvm.JVMStats;
+import com.im.njams.sdk.subagent.jvm.JVMStatistics;
 import org.junit.Test;
-
-import static org.junit.Assert.*;
 
 public class TelemetrySupplierTest {
 
     @Test
     public void testIfStaticsAreWrittenInAJson() {
-        JVMStats jvmStats = new JVMStats();
+        JVMStatistics jvmStats = new JVMStatistics();
         System.out.println(jvmStats.toString());
     }
 }
