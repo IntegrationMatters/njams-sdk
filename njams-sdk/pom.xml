@@ -173,6 +173,12 @@
             <artifactId>jackson-dataformat-xml</artifactId>
             <scope>compile</scope>
         </dependency>
+        <dependency>
+            <groupId>com.github.oshi</groupId>
+            <artifactId>oshi-core</artifactId>
+            <version>3.8.2</version>
+            <scope>compile</scope>
+        </dependency>
 
         <!-- provided - not shaded -->
         <dependency>

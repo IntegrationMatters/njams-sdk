@@ -1,0 +1,126 @@
+/*
+ * Copyright (c) 2019 Faiz & Siegeln Software GmbH
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
+ * documentation files (the "Software"), to deal in the Software without restriction, including without limitation
+ * the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and
+ * to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all copies or substantial portions of
+ * the Software.
+ *
+ * The Software shall be used for Good, not Evil.
+ *
+ *  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
+ * THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
+ * CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
+ */
+
+package com.im.njams.sdk.subagent;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectWriter;
+import com.fasterxml.jackson.databind.SerializationFeature;
+
+import java.util.HashMap;
+import java.util.Map;
+
+public abstract class TelemetrySupplier {
+
+    public static final String DEFAULT = "abstract";
+
+    // the id of this very component
+    private String id;
+
+    // the logical name (short name) of this component
+    private String name;
+
+    // the name of the container of this component; can be a server, or JVM name, or similar
+    private String containerid;
+
+    // the measurement name
+    private String measurement;
+
+    // the technology type
+    private String type;
+
+    private Map<String, Object> tags;
+
+    private final ObjectWriter writer = new ObjectMapper()
+            .configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false).writer().withDefaultPrettyPrinter();
+
+    /**
+     * This constructor sets the id, name, containerId, measurement and type to {@value #DEFAULT}
+     * and initializes the tags with an empty HashMap.
+     */
+    public TelemetrySupplier() {
+        this.id = this.name = this.containerid = this.measurement = this.type = DEFAULT;
+        this.tags = new HashMap<>();
+    }
+
+    public String getId() {
+        return id;
+    }
+
+    public void setId(String id) {
+        this.id = id;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public String getContainerId() {
+        return containerid;
+    }
+
+    public void setContainerId(String containerId) {
+        this.containerid = containerId;
+    }
+
+    public String getMeasurement() {
+        return measurement;
+    }
+
+    public void setMeasurement(String measurement) {
+        this.measurement = measurement;
+    }
+
+    public String getType() {
+        return type;
+    }
+
+    public void setType(String type) {
+        this.type = type;
+    }
+
+    public Map<String, Object> getTags() {
+        return tags;
+    }
+
+    public void setTags(Map<String, Object> tags) {
+        this.tags = tags;
+    }
+
+    public void addTag(String key, Object value) {
+        tags.put(key, value);
+    }
+
+    @Override
+    public String toString() {
+        try {
+            return writer.writeValueAsString(this);
+        } catch (JsonProcessingException e) {
+            e.printStackTrace();
+        }
+
+        return "";
+    }
+}
