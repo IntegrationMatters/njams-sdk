@@ -26,8 +26,8 @@ package com.faizsiegeln.test.argos;
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.common.Path;
 import com.im.njams.sdk.settings.Settings;
-import com.im.njams.sdk.subagent.ArgosSender;
-import com.im.njams.sdk.subagent.jvm.JVMCollector;
+import com.im.njams.sdk.argos.ArgosSender;
+import com.im.njams.sdk.argos.jvm.JVMCollector;
 
 import java.util.Properties;
 

@@ -26,10 +26,10 @@ package com.faizsiegeln.test.argos;
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.common.Path;
 import com.im.njams.sdk.settings.Settings;
-import com.im.njams.sdk.subagent.ArgosCollector;
-import com.im.njams.sdk.subagent.ArgosComponent;
-import com.im.njams.sdk.subagent.ArgosSender;
-import com.im.njams.sdk.subagent.ArgosStatistics;
+import com.im.njams.sdk.argos.ArgosCollector;
+import com.im.njams.sdk.argos.ArgosComponent;
+import com.im.njams.sdk.argos.ArgosSender;
+import com.im.njams.sdk.argos.ArgosStatistics;
 
 import java.util.Properties;
 import java.util.Random;
