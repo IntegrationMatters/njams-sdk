@@ -18,9 +18,9 @@
  * IN THE SOFTWARE.
  */
 
-package com.im.njams.sdk.subagent.jvm;
+package com.im.njams.sdk.argos.jvm;
 
-import com.im.njams.sdk.subagent.ArgosStatistics;
+import com.im.njams.sdk.argos.ArgosStatistics;
 
 import java.util.HashMap;
 import java.util.Map;

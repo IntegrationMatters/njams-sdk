@@ -34,7 +34,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.stream.Stream;
 
-import com.im.njams.sdk.subagent.ArgosSender;
+import com.im.njams.sdk.argos.ArgosSender;
 import org.slf4j.LoggerFactory;
 
 import com.faizsiegeln.njams.messageformat.v4.command.Command;

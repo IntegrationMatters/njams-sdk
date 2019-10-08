@@ -18,10 +18,10 @@
  * IN THE SOFTWARE.
  */
 
-package com.im.njams.sdk.subagent.jvm;
+package com.im.njams.sdk.argos.jvm;
 
-import com.im.njams.sdk.subagent.ArgosComponent;
-import com.im.njams.sdk.subagent.ArgosCollector;
+import com.im.njams.sdk.argos.ArgosComponent;
+import com.im.njams.sdk.argos.ArgosCollector;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

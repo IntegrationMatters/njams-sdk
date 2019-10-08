@@ -18,7 +18,7 @@
  * IN THE SOFTWARE.
  */
 
-package com.im.njams.sdk.subagent;
+package com.im.njams.sdk.argos;
 
 public abstract class ArgosCollector<T extends ArgosStatistics> {
 

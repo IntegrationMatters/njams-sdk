@@ -18,7 +18,7 @@
  * IN THE SOFTWARE.
  */
 
-package com.im.njams.sdk.subagent.jvm;
+package com.im.njams.sdk.argos.jvm;
 
 import oshi.SystemInfo;
 import oshi.hardware.CentralProcessor;
