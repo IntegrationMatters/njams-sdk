@@ -27,7 +27,7 @@ public abstract class ArgosStatistics {
 
     public static final String DEFAULT = "abstract";
 
-    // the id of this very component
+    // the id of this component
     private String id;
 
     // the logical name (short name) of this component

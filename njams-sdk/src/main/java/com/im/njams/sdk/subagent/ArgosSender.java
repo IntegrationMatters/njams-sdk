@@ -39,12 +39,11 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 public class ArgosSender implements Runnable, AutoCloseable {
+    private static final Logger LOG = LoggerFactory.getLogger(ArgosSender.class);
 
     public static final String NJAMS_SUBAGENT_PORT = "njams.client.subagent.port";
     public static final String NJAMS_SUBAGENT_ENABLED = "njams.client.subagent.enabled";
     public static final String NJAMS_SUBAGENT_HOST = "njams.client.subagent.host";
-
-    private static final Logger LOG = LoggerFactory.getLogger(ArgosSender.class);
 
     private static final String DEFAULT_HOST = "localhost";
     private static final int DEFAULT_PORT = 6450;
@@ -54,6 +53,7 @@ public class ArgosSender implements Runnable, AutoCloseable {
             .configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false).writer().withDefaultPrettyPrinter();
 
     private DatagramSocket socket;
+    private String host;
     private InetAddress ip;
     private Integer port;
     private boolean enabled;
@@ -65,44 +65,53 @@ public class ArgosSender implements Runnable, AutoCloseable {
 
     public ArgosSender(Settings settings) {
         Properties properties = settings.getProperties();
-        try {
-            this.port = Integer.parseInt(Transformer.decode(properties.getProperty(NJAMS_SUBAGENT_PORT)));
-        } catch (Exception couldntParseInt) {
-            this.port = DEFAULT_PORT;
-        }
-        this.enabled = Boolean
+
+        enabled = Boolean
                 .parseBoolean(Transformer.decode(properties.getProperty(NJAMS_SUBAGENT_ENABLED, DEFAULT_ENABLED)));
 
-        if (enabled) {
-            try {
-                String host = Transformer.decode(properties.getProperty(NJAMS_SUBAGENT_HOST, DEFAULT_HOST));
-                ip = InetAddress.getByName(host);
-                socket = new DatagramSocket();
-                LOG.info("Enabled nJAMS data collector with target address {}:{}", ip, port);
+        host = Transformer.decode(properties.getProperty(NJAMS_SUBAGENT_HOST, DEFAULT_HOST));
 
-            } catch (SocketException | UnknownHostException e) {
-                LOG.error("Failed to resolve address: {}", ip, e);
-                this.enabled = false;
-            }
+        try {
+            this.port = Integer.parseInt(Transformer.decode(properties.getProperty(NJAMS_SUBAGENT_PORT)));
+        } catch (NumberFormatException e) {
+            LOG.debug("Could not parse property: ", e);
+            LOG.warn("Could not parse property " + NJAMS_SUBAGENT_PORT + " to an Integer. " +
+                    "Using default Port " + DEFAULT_PORT + " instead");
+            this.port = DEFAULT_PORT;
         }
+
         argosCollectors = new HashMap<>();
     }
 
-    public void addArgosCollector(ArgosCollector collector){
+    public void addArgosCollector(ArgosCollector collector) {
         argosCollectors.put(collector.getArgosComponent(), collector);
     }
 
     public void start() {
         if (enabled) {
+            try {
+                ip = InetAddress.getByName(host);
+                socket = new DatagramSocket();
+                LOG.info("Enabled Argos Sender with target address {}:{}", ip, port);
+
+            } catch (SocketException | UnknownHostException e) {
+                LOG.error("Failed to resolve address: {}", ip, e);
+                this.enabled = false;
+                LOG.warn("Argos Sender is disabled. Will not send any Metrics.");
+                return;
+            }
+
             execService = Executors.newSingleThreadScheduledExecutor();
             execService.scheduleAtFixedRate(this, 10, 10, TimeUnit.SECONDS);
+        } else {
+                LOG.info("Argos Sender is disabled. Will not send any Metrics.");
         }
     }
 
     @Override
     public void run() {
         if (socket == null) {
-            LOG.warn("no open connection. Aborting.");
+            LOG.warn("Socket connection for Argos Sender is not open. Cannot send Metrics.");
             return;
         }
         publishData();
@@ -123,12 +132,12 @@ public class ArgosSender implements Runnable, AutoCloseable {
                 DatagramPacket packet = new DatagramPacket(buf, buf.length, ip, port);
                 socket.send(packet);
             } catch (Exception e) {
-                LOG.error("Failed to send data.", e);
+                LOG.error("Failed to send data. Cause: ", e);
             }
         }
     }
 
-    private String serializeStatistics(ArgosStatistics statisticsToSerialize){
+    private String serializeStatistics(ArgosStatistics statisticsToSerialize) {
         try {
             return writer.writeValueAsString(statisticsToSerialize);
         } catch (JsonProcessingException e) {

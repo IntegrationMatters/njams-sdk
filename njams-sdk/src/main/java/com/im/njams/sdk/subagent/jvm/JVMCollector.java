@@ -22,6 +22,8 @@ package com.im.njams.sdk.subagent.jvm;
 
 import com.im.njams.sdk.subagent.ArgosComponent;
 import com.im.njams.sdk.subagent.ArgosCollector;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.lang.management.GarbageCollectorMXBean;
 import java.lang.management.ManagementFactory;
@@ -32,14 +34,11 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class JVMCollector extends ArgosCollector<JVMStatistics> {
+    private static final Logger LOG = LoggerFactory.getLogger(JVMCollector.class);
 
     public static final String MEASUREMENT = "jvm";
 
     private int pid = 0;
-
-    public JVMCollector(String id, String name, String type){
-        this(id, name, type, getPid());
-    }
 
     private static int getPid(){
         if (ManagementFactory.getRuntimeMXBean().getName().contains("@")) {
@@ -47,32 +46,33 @@ public class JVMCollector extends ArgosCollector<JVMStatistics> {
                 //Try to get the JVM id
                 return Integer.valueOf(ManagementFactory.getRuntimeMXBean().getName().split("@")[0]);
             } catch (Exception e) {
-                // ignore
+                LOG.warn("Could not get the JVM process id (PID).", e);
             }
         }
         return 0;
     }
 
-    public JVMCollector(String id, String name, String type, int pid){
-        this(createDefaultJVMComponent(id, name, type), pid);
+    private static String getLocalHost(){
+        try {
+            InetAddress localMachine = InetAddress.getLocalHost();
+            return localMachine.getCanonicalHostName();
+        } catch (Exception e) {
+            LOG.warn("Could not get local host. Using localhost as default.", e);
+            return "localhost";
+        }
     }
 
     private static ArgosComponent createDefaultJVMComponent(String id, String name, String type){
-        return new ArgosComponent(id, name, getHost(), MEASUREMENT, type);
+        return new ArgosComponent(id, name, getLocalHost(), MEASUREMENT, type);
+    }
+
+    public JVMCollector(String id, String name, String type){
+        this(createDefaultJVMComponent(id, name, type), getPid());
     }
 
     public JVMCollector(ArgosComponent argosComponent, int pid) {
         super(argosComponent);
         this.pid = pid;
-    }
-
-    private static String getHost(){
-        try {
-            InetAddress localMachine = InetAddress.getLocalHost();
-            return localMachine.getCanonicalHostName();
-        } catch (Exception ex) {
-            return "localhost";
-        }
     }
 
     @Override
