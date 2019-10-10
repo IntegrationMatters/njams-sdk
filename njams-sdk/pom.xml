@@ -117,6 +117,10 @@
                                     <pattern>org.codehaus</pattern>
                                     <shadedPattern>com.im.codehaus</shadedPattern>
                                 </relocation>
+                                <relocation>
+                                    <pattern>oshi</pattern>
+                                    <shadedPattern>com.im.oshi</shadedPattern>
+                                </relocation>
                             </relocations>
                             <filters>
                                 <filter>
@@ -152,6 +156,13 @@
             <classifier>xpath</classifier>
         </dependency>
         <dependency>
+            <groupId>com.github.oshi</groupId>
+            <artifactId>oshi-core</artifactId>
+            <version>3.8.2</version>
+            <scope>compile</scope>
+        </dependency>
+
+        <dependency>
             <groupId>net.sourceforge.saxon</groupId>
             <artifactId>saxon</artifactId>
             <version>9.1.0.8</version>
@@ -171,12 +182,6 @@
         <dependency>
             <groupId>com.fasterxml.jackson.dataformat</groupId>
             <artifactId>jackson-dataformat-xml</artifactId>
-            <scope>compile</scope>
-        </dependency>
-        <dependency>
-            <groupId>com.github.oshi</groupId>
-            <artifactId>oshi-core</artifactId>
-            <version>3.8.2</version>
             <scope>compile</scope>
         </dependency>
 
