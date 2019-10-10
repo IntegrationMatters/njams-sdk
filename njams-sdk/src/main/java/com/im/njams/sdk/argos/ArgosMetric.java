@@ -23,8 +23,18 @@ package com.im.njams.sdk.argos;
 import java.util.HashMap;
 import java.util.Map;
 
-public abstract class ArgosStatistics {
+/**
+ * Abstract base class for Argos Metrics.
+ *
+ * Extend this class and use it in your @see {@link ArgosCollector}
+ * Provide all attributes you want to send to Argos.
+ *
+ */
+public abstract class ArgosMetric {
 
+    /**
+     *   Default Value for default constructor
+     */
     public static final String DEFAULT = "abstract";
 
     // the id of this component
@@ -48,7 +58,7 @@ public abstract class ArgosStatistics {
      * This constructor sets the id, name, containerId, measurement and type to {@value #DEFAULT}
      * and initializes the tags with an empty HashMap.
      */
-    public ArgosStatistics() {
+    public ArgosMetric() {
         this.id = this.name = this.containerid = this.measurement = this.type = DEFAULT;
         this.tags = new HashMap<>();
     }

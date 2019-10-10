@@ -29,7 +29,7 @@ import com.im.njams.sdk.settings.Settings;
 import com.im.njams.sdk.argos.ArgosCollector;
 import com.im.njams.sdk.argos.ArgosComponent;
 import com.im.njams.sdk.argos.ArgosSender;
-import com.im.njams.sdk.argos.ArgosStatistics;
+import com.im.njams.sdk.argos.ArgosMetric;
 
 import java.util.Properties;
 import java.util.Random;
@@ -103,7 +103,7 @@ public class RandomNumberSenderClient {
         }
     }
 
-    private static class RandomNumberStatistics extends ArgosStatistics {
+    private static class RandomNumberStatistics extends ArgosMetric {
 
         private int randomNumber = 0;
 

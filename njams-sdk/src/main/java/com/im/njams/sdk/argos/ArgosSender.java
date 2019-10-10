@@ -39,26 +39,26 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 /**
- * This class will send statistics to the nJAMS Agent.
- *
- * @author krautenberg
- * @version 4.0.11
+ * This class cares about collecting and sending Argos Metrics via UPD to an nJAMS Agent.
+ * It will send every 10 seconds all available Metrics.
+ * <p>
+ * To provide Metrics you must register an @see {@link ArgosCollector}.
  */
 public class ArgosSender implements Runnable, AutoCloseable {
     private static final Logger LOG = LoggerFactory.getLogger(ArgosSender.class);
 
     /**
-     * Property {@value NJAMS_SUBAGENT_PORT} for defining the port the receiving nJAMS Agent is listening to.
-     */
-    public static final String NJAMS_SUBAGENT_PORT = "njams.client.subagent.port";
-
-    /**
-     * Property {@value NJAMS_SUBAGENT_ENABLED} for defining if the SDK should create and send statistics.
+     * Name of the property flag to enable or disable collecting Argos Metrics.
      */
     public static final String NJAMS_SUBAGENT_ENABLED = "njams.client.subagent.enabled";
 
     /**
-     * Property {@value NJAMS_SUBAGENT_HOST} for defining the hostname of the nJAMS Agent.
+     * Name of the property port where the nJAMS Agent runs and ArgosSender will send metrics
+     */
+    public static final String NJAMS_SUBAGENT_PORT = "njams.client.subagent.port";
+
+    /**
+     * Name of the property host where the nJAMS Agent runs and ArgosSender will send metrics
      */
     public static final String NJAMS_SUBAGENT_HOST = "njams.client.subagent.host";
 
@@ -67,7 +67,7 @@ public class ArgosSender implements Runnable, AutoCloseable {
     private static final int DEFAULT_PORT = 6450;
     private static final String DEFAULT_ENABLED = "true";
 
-    //For serializing the statistics
+    //For serializing the metrics
     private final ObjectWriter writer = new ObjectMapper().configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false)
             .writer().withDefaultPrettyPrinter();
 
@@ -83,7 +83,7 @@ public class ArgosSender implements Runnable, AutoCloseable {
     // the scheduler to run this
     private ScheduledExecutorService execService;
 
-    // All registered ArgosCollectors that will create statistics.
+    // All registered ArgosCollectors that will create metrics.
     private Map<ArgosComponent, ArgosCollector> argosCollectors;
 
     /**
@@ -113,9 +113,9 @@ public class ArgosSender implements Runnable, AutoCloseable {
     }
 
     /**
-     * Adds a collector that will create statistics every time {@link #run() run()} is called.
+     * Adds a collector that will create metrics every time {@link #run() run()} is called.
      *
-     * @param collector The collector that collects statistics
+     * @param collector The collector that collects metrics
      */
     public void addArgosCollector(ArgosCollector collector) {
         argosCollectors.put(collector.getArgosComponent(), collector);
@@ -146,7 +146,7 @@ public class ArgosSender implements Runnable, AutoCloseable {
     }
 
     /**
-     * Create and send statistics
+     * Create and send metrics
      */
     @Override
     public void run() {
@@ -162,7 +162,7 @@ public class ArgosSender implements Runnable, AutoCloseable {
         while (iterator.hasNext()) {
             try {
                 ArgosCollector collector = iterator.next();
-                ArgosStatistics collectedStatistics = collector.collect();
+                ArgosMetric collectedStatistics = collector.collect();
 
                 String data = serializeStatistics(collectedStatistics);
                 if (LOG.isTraceEnabled()) {
@@ -177,7 +177,7 @@ public class ArgosSender implements Runnable, AutoCloseable {
         }
     }
 
-    private String serializeStatistics(ArgosStatistics statisticsToSerialize) {
+    private String serializeStatistics(ArgosMetric statisticsToSerialize) {
         try {
             return writer.writeValueAsString(statisticsToSerialize);
         } catch (JsonProcessingException e) {

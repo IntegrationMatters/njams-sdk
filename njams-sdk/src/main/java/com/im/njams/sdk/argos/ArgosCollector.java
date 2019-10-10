@@ -21,11 +21,13 @@
 package com.im.njams.sdk.argos;
 
 /**
- * This class will create statistics.
+ * Abstract base class for an ArgosCollector
  *
- * @param <T> the type of the statistics that will be created.
+ * Extend this class, implement the collect method and register it in @see {@link ArgosSender}
+ *
+ * @param <T>
  */
-public abstract class ArgosCollector<T extends ArgosStatistics> {
+public abstract class ArgosCollector<T extends ArgosMetric> {
 
     private ArgosComponent argosComponent;
 
@@ -60,19 +62,19 @@ public abstract class ArgosCollector<T extends ArgosStatistics> {
     }
 
     private void addComponentFieldsToStatistics(T argosStatistics) {
-        if (argosStatistics.getId().equals(ArgosStatistics.DEFAULT)) {
+        if (argosStatistics.getId().equals(ArgosMetric.DEFAULT)) {
             argosStatistics.setId(argosComponent.getId());
         }
-        if (argosStatistics.getName().equals(ArgosStatistics.DEFAULT)) {
+        if (argosStatistics.getName().equals(ArgosMetric.DEFAULT)) {
             argosStatistics.setName(argosComponent.getName());
         }
-        if (argosStatistics.getContainerId().equals(ArgosStatistics.DEFAULT)) {
+        if (argosStatistics.getContainerId().equals(ArgosMetric.DEFAULT)) {
             argosStatistics.setContainerId(argosComponent.getContainerId());
         }
-        if (argosStatistics.getMeasurement().equals(ArgosStatistics.DEFAULT)) {
+        if(argosStatistics.getMeasurement().equals(ArgosMetric.DEFAULT)){
             argosStatistics.setMeasurement(argosComponent.getMeasurement());
         }
-        if (argosStatistics.getType().equals(ArgosStatistics.DEFAULT)) {
+        if (argosStatistics.getType().equals(ArgosMetric.DEFAULT)) {
             argosStatistics.setType(argosComponent.getType());
         }
     }

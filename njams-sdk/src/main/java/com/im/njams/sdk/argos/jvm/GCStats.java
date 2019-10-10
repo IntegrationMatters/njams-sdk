@@ -16,6 +16,11 @@ import java.lang.management.GarbageCollectorMXBean;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * This class collects garbage collection statistic metrics.
+ *
+ * It is used in @see {@link JVMStatistics}
+ */
 public class GCStats {
 
     private long collections = 0;

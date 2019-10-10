@@ -33,9 +33,18 @@ import java.net.InetAddress;
 import java.util.HashMap;
 import java.util.Map;
 
+
+/**
+ * This is a concrete implementation for collecting JMV statistic metrics.
+ *
+ * It uses also @see {@link GCStats} and @see {@link OsProcessStats} classes.
+  */
 public class JVMCollector extends ArgosCollector<JVMStatistics> {
     private static final Logger LOG = LoggerFactory.getLogger(JVMCollector.class);
 
+    /**
+     * The name of this measurement. It is used in @see {@link ArgosComponent}
+     */
     public static final String MEASUREMENT = "jvm";
 
     private int pid = 0;
