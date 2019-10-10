@@ -25,6 +25,11 @@ import com.im.njams.sdk.argos.ArgosMetric;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * This is a concrete implementation of an @see {@link ArgosMetric} for JMV statistics
+ *
+ * It is used b @see {@link JVMCollector}
+ */
 public class JVMStatistics extends ArgosMetric {
 
     private long heapCommitted = 0;
