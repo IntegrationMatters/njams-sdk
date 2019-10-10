@@ -32,7 +32,8 @@ import java.util.Map;
  */
 public abstract class ArgosMetric {
 
-    private static final String DEFAULT = "abstract";
+    // Default Value
+    public static final String DEFAULT = "abstract";
 
     // the id of this component
     private String id;
