@@ -82,7 +82,7 @@ public class RandomNumberSenderClient {
 
     private static void addRandomNumberCollector() {
         RandomNumberCollector randomNumberCollector = new RandomNumberCollector();
-        njams.getArgosSender().addArgosCollector(randomNumberCollector);
+        njams.addArgosCollector(randomNumberCollector);
     }
 
     private static class RandomNumberCollector extends ArgosCollector<RandomNumberStatistics> {

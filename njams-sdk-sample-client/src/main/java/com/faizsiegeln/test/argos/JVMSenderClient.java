@@ -79,6 +79,6 @@ public class JVMSenderClient {
 
     private static void addJVMCollector() {
         JVMCollector jvmCollector = new JVMCollector("testId", "testName", "testType");
-        njams.getArgosSender().addArgosCollector(jvmCollector);
+        njams.addArgosCollector(jvmCollector);
     }
 }

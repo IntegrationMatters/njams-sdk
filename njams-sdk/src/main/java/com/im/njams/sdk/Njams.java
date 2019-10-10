@@ -34,6 +34,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.stream.Stream;
 
+import com.im.njams.sdk.argos.ArgosCollector;
 import com.im.njams.sdk.argos.ArgosSender;
 import org.slf4j.LoggerFactory;
 
@@ -203,8 +204,13 @@ public class Njams implements InstructionListener {
         setMachine();
     }
 
-    public ArgosSender getArgosSender(){
-        return argosSender;
+    /**
+     * Adds a collector that will create statistics.
+     *
+     * @param collector The collector that collects statistics
+     */
+    public void addArgosCollector(ArgosCollector collector){
+        argosSender.addArgosCollector(collector);
     }
 
     /**
