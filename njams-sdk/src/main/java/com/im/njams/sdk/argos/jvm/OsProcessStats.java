@@ -25,6 +25,11 @@ import oshi.hardware.CentralProcessor;
 import oshi.software.os.OSProcess;
 import oshi.software.os.OperatingSystem;
 
+/**
+ * This class collects operating system process statistic metrics.
+ *
+ * It is used in @see {@link JVMStatistics}
+ */
 public class OsProcessStats {
     private OSProcess process;
     private long previousTimestamp = -1, previousCpuTime = -1, previousKernelTime = -1, previousUserTime = -1;

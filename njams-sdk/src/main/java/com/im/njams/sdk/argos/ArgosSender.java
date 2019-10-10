@@ -48,11 +48,19 @@ import java.util.concurrent.TimeUnit;
 public class ArgosSender implements Runnable, AutoCloseable {
     private static final Logger LOG = LoggerFactory.getLogger(ArgosSender.class);
 
-    // Flag to enable or disable collecting Argos Metrics.
+    /**
+     * Name of the property flag to enable or disable collecting Argos Metrics.
+     */
     public static final String NJAMS_SUBAGENT_ENABLED = "njams.client.subagent.enabled";
-    // Port where the nJAMS Agent runs and ArgosSender will send metrics
+
+    /**
+     * Name of the property port where the nJAMS Agent runs and ArgosSender will send metrics
+     */
     public static final String NJAMS_SUBAGENT_PORT = "njams.client.subagent.port";
-    // Host where the nJAMS Agent runs and ArgosSender will send metrics
+
+    /**
+     * Name of the property host where the nJAMS Agent runs and ArgosSender will send metrics
+     */
     public static final String NJAMS_SUBAGENT_HOST = "njams.client.subagent.host";
 
     private static final String DEFAULT_HOST = "localhost";
