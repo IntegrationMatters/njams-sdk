@@ -20,18 +20,39 @@
 
 package com.im.njams.sdk.argos;
 
+/**
+ * This class will create statistics.
+ *
+ * @param <T> the type of the statistics that will be created.
+ */
 public abstract class ArgosCollector<T extends ArgosStatistics> {
 
     private ArgosComponent argosComponent;
 
+    /**
+     * Sets the given ArgosComponent.
+     *
+     * @param argosComponent the argosComponent to set.
+     */
     public ArgosCollector(ArgosComponent argosComponent) {
         this.argosComponent = argosComponent;
     }
 
+    /**
+     * Returns the ArgosComponent for this collector.
+     *
+     * @return the argosComponent for this collector.
+     */
     public ArgosComponent getArgosComponent() {
         return argosComponent;
     }
 
+    /**
+     * Creates the ArgosStatistics of type {@link T}. Sets the fields of the abstract ArgosStatistics
+     * with values of the ArgosComponent if they are not set while creating.
+     *
+     * @return the created and filled statistics.
+     */
     public T collect() {
         T argosStatistics = create();
         addComponentFieldsToStatistics(argosStatistics);
@@ -48,7 +69,7 @@ public abstract class ArgosCollector<T extends ArgosStatistics> {
         if (argosStatistics.getContainerId().equals(ArgosStatistics.DEFAULT)) {
             argosStatistics.setContainerId(argosComponent.getContainerId());
         }
-        if(argosStatistics.getMeasurement().equals(ArgosStatistics.DEFAULT)){
+        if (argosStatistics.getMeasurement().equals(ArgosStatistics.DEFAULT)) {
             argosStatistics.setMeasurement(argosComponent.getMeasurement());
         }
         if (argosStatistics.getType().equals(ArgosStatistics.DEFAULT)) {
@@ -56,5 +77,10 @@ public abstract class ArgosCollector<T extends ArgosStatistics> {
         }
     }
 
+    /**
+     * Creates the concrete statistics.
+     *
+     * @return the statistics
+     */
     protected abstract T create();
 }

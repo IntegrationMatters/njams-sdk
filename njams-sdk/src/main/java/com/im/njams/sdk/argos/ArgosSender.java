@@ -38,19 +38,41 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
+/**
+ * This class will send statistics to the nJAMS Agent.
+ *
+ * @author krautenberg
+ * @version 4.0.11
+ */
 public class ArgosSender implements Runnable, AutoCloseable {
     private static final Logger LOG = LoggerFactory.getLogger(ArgosSender.class);
 
+    /**
+     * Property {@value NJAMS_SUBAGENT_PORT} for defining the port the receiving nJAMS Agent is listening to.
+     */
     public static final String NJAMS_SUBAGENT_PORT = "njams.client.subagent.port";
+
+    /**
+     * Property {@value NJAMS_SUBAGENT_ENABLED} for defining if the SDK should create and send statistics.
+     */
     public static final String NJAMS_SUBAGENT_ENABLED = "njams.client.subagent.enabled";
+
+    /**
+     * Property {@value NJAMS_SUBAGENT_HOST} for defining the hostname of the nJAMS Agent.
+     */
     public static final String NJAMS_SUBAGENT_HOST = "njams.client.subagent.host";
 
+    //Defaults
     private static final String DEFAULT_HOST = "localhost";
     private static final int DEFAULT_PORT = 6450;
     private static final String DEFAULT_ENABLED = "true";
 
-    private final ObjectWriter writer = new ObjectMapper()
-            .configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false).writer().withDefaultPrettyPrinter();
+    //For serializing the statistics
+    private final ObjectWriter writer = new ObjectMapper().configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false)
+            .writer().withDefaultPrettyPrinter();
+
+    private static final long INITIAL_DELAY = 10;
+    private static final long INTERVAL = 10;
 
     private DatagramSocket socket;
     private String host;
@@ -61,8 +83,15 @@ public class ArgosSender implements Runnable, AutoCloseable {
     // the scheduler to run this
     private ScheduledExecutorService execService;
 
+    // All registered ArgosCollectors that will create statistics.
     private Map<ArgosComponent, ArgosCollector> argosCollectors;
 
+    /**
+     * Reads the properties {@value NJAMS_SUBAGENT_HOST}, {@value NJAMS_SUBAGENT_PORT} and
+     * {@value NJAMS_SUBAGENT_ENABLED} from the given settings.
+     *
+     * @param settings the settings for connection establishment
+     */
     public ArgosSender(Settings settings) {
         Properties properties = settings.getProperties();
 
@@ -75,18 +104,26 @@ public class ArgosSender implements Runnable, AutoCloseable {
             this.port = Integer.parseInt(Transformer.decode(properties.getProperty(NJAMS_SUBAGENT_PORT)));
         } catch (NumberFormatException e) {
             LOG.debug("Could not parse property: ", e);
-            LOG.warn("Could not parse property " + NJAMS_SUBAGENT_PORT + " to an Integer. " +
-                    "Using default Port " + DEFAULT_PORT + " instead");
+            LOG.warn("Could not parse property " + NJAMS_SUBAGENT_PORT + " to an Integer. " + "Using default Port " +
+                     DEFAULT_PORT + " instead");
             this.port = DEFAULT_PORT;
         }
 
         argosCollectors = new HashMap<>();
     }
 
+    /**
+     * Adds a collector that will create statistics every time {@link #run() run()} is called.
+     *
+     * @param collector The collector that collects statistics
+     */
     public void addArgosCollector(ArgosCollector collector) {
         argosCollectors.put(collector.getArgosComponent(), collector);
     }
 
+    /**
+     * Tries to establish a connection and starts a sending thread.
+     */
     public void start() {
         if (enabled) {
             try {
@@ -102,12 +139,15 @@ public class ArgosSender implements Runnable, AutoCloseable {
             }
 
             execService = Executors.newSingleThreadScheduledExecutor();
-            execService.scheduleAtFixedRate(this, 10, 10, TimeUnit.SECONDS);
+            execService.scheduleAtFixedRate(this, INITIAL_DELAY, INTERVAL, TimeUnit.SECONDS);
         } else {
-                LOG.info("Argos Sender is disabled. Will not send any Metrics.");
+            LOG.info("Argos Sender is disabled. Will not send any Metrics.");
         }
     }
 
+    /**
+     * Create and send statistics
+     */
     @Override
     public void run() {
         if (socket == null) {
@@ -147,6 +187,9 @@ public class ArgosSender implements Runnable, AutoCloseable {
         return "";
     }
 
+    /**
+     * Stop the sending thread and close the connection
+     */
     @Override
     public void close() {
         if (execService != null) {
