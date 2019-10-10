@@ -38,11 +38,21 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
+/**
+ * This class cares about collecting and sending Argos Metrics via UPD to an nJAMS Agent.
+ * It will send every 10 seconds all available Metrics.
+ *
+ * To provide Metrics you must register an @see {@link ArgosCollector}.
+ *
+ */
 public class ArgosSender implements Runnable, AutoCloseable {
     private static final Logger LOG = LoggerFactory.getLogger(ArgosSender.class);
 
-    public static final String NJAMS_SUBAGENT_PORT = "njams.client.subagent.port";
+    // Flag to enable or disable collecting Argos Metrics.
     public static final String NJAMS_SUBAGENT_ENABLED = "njams.client.subagent.enabled";
+    // Port where the nJAMS Agent runs and ArgosSender will send metrics
+    public static final String NJAMS_SUBAGENT_PORT = "njams.client.subagent.port";
+    // Host where the nJAMS Agent runs and ArgosSender will send metrics
     public static final String NJAMS_SUBAGENT_HOST = "njams.client.subagent.host";
 
     private static final String DEFAULT_HOST = "localhost";
@@ -122,7 +132,7 @@ public class ArgosSender implements Runnable, AutoCloseable {
         while (iterator.hasNext()) {
             try {
                 ArgosCollector collector = iterator.next();
-                ArgosStatistics collectedStatistics = collector.collect();
+                ArgosMetric collectedStatistics = collector.collect();
 
                 String data = serializeStatistics(collectedStatistics);
                 if (LOG.isTraceEnabled()) {
@@ -137,7 +147,7 @@ public class ArgosSender implements Runnable, AutoCloseable {
         }
     }
 
-    private String serializeStatistics(ArgosStatistics statisticsToSerialize) {
+    private String serializeStatistics(ArgosMetric statisticsToSerialize) {
         try {
             return writer.writeValueAsString(statisticsToSerialize);
         } catch (JsonProcessingException e) {

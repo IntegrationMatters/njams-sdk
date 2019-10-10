@@ -20,12 +20,12 @@
 
 package com.im.njams.sdk.argos.jvm;
 
-import com.im.njams.sdk.argos.ArgosStatistics;
+import com.im.njams.sdk.argos.ArgosMetric;
 
 import java.util.HashMap;
 import java.util.Map;
 
-public class JVMStatistics extends ArgosStatistics {
+public class JVMStatistics extends ArgosMetric {
 
     private long heapCommitted = 0;
     private long heapInit = 0;

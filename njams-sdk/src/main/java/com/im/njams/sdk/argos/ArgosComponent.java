@@ -20,6 +20,11 @@
 
 package com.im.njams.sdk.argos;
 
+/**
+ * This defines all basic attributes needed for an Argos Component.
+ *
+ * This class is just a POJO and can be used to handle components.
+ */
 public class ArgosComponent {
 
     // the id of this very component
