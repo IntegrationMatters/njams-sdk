@@ -96,8 +96,8 @@ public class RandomNumberSenderClient {
         }
 
         @Override
-        protected RandomNumberStatistics create() {
-            RandomNumberStatistics statistics = new RandomNumberStatistics();
+        protected RandomNumberStatistics create(ArgosComponent argosComponent) {
+            RandomNumberStatistics statistics = new RandomNumberStatistics(argosComponent);
             statistics.setRandomNumber(randomGenerator.nextInt(100));
             return statistics;
         }
@@ -107,6 +107,11 @@ public class RandomNumberSenderClient {
 
         private int randomNumber = 0;
 
+        public RandomNumberStatistics(ArgosComponent argosComponent) {
+            super(argosComponent.getId(),argosComponent.getName(), argosComponent.getContainerId(),
+                    argosComponent.getMeasurement(), argosComponent.getType());
+        }
+
         public int getRandomNumber() {
             return randomNumber;
         }
@@ -114,5 +119,7 @@ public class RandomNumberSenderClient {
         public void setRandomNumber(int randomNumber) {
             this.randomNumber = randomNumber;
         }
+
+
     }
 }
