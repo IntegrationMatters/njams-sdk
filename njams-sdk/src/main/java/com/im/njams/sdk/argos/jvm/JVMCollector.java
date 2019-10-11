@@ -85,8 +85,8 @@ public class JVMCollector extends ArgosCollector<JVMStatistics> {
     }
 
     @Override
-    protected JVMStatistics create() {
-        JVMStatistics jvmStats = new JVMStatistics();
+    protected JVMStatistics create(ArgosComponent argosComponent) {
+        JVMStatistics jvmStats = new JVMStatistics(argosComponent);
 
         MemoryMXBean memoryMxBean = ManagementFactory.getMemoryMXBean();
         MemoryUsage mu = memoryMxBean.getHeapMemoryUsage();

@@ -20,6 +20,7 @@
 
 package com.im.njams.sdk.argos.jvm;
 
+import com.im.njams.sdk.argos.ArgosComponent;
 import com.im.njams.sdk.argos.ArgosMetric;
 
 import java.util.HashMap;
@@ -46,8 +47,8 @@ public class JVMStatistics extends ArgosMetric {
     private Map<String, GCStats> gc = new HashMap<>();
     private OsProcessStats processStats;
 
-    public JVMStatistics() {
-        super();
+    public JVMStatistics(ArgosComponent component) {
+        super(component.getId(), component.getName(), component.getContainerId(), component.getMeasurement(), component.getType());
     }
 
     public long getHeapCommitted() {

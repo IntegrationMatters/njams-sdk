@@ -32,11 +32,6 @@ import java.util.Map;
  */
 public abstract class ArgosMetric {
 
-    /**
-     *   Default Value for default constructor
-     */
-    public static final String DEFAULT = "abstract";
-
     // the id of this component
     private String id;
 
@@ -54,13 +49,12 @@ public abstract class ArgosMetric {
 
     private Map<String, Object> tags;
 
-    /**
-     * This constructor sets the id, name, containerId, measurement and type to {@value #DEFAULT}
-     * and initializes the tags with an empty HashMap.
-     */
-    public ArgosMetric() {
-        this.id = this.name = this.containerid = this.measurement = this.type = DEFAULT;
-        this.tags = new HashMap<>();
+    public ArgosMetric(String id, String name, String containerid, String measurement, String type) {
+        this.id = id;
+        this.name = name;
+        this.containerid = containerid;
+        this.measurement = measurement;
+        this.type = type;
     }
 
     public String getId() {

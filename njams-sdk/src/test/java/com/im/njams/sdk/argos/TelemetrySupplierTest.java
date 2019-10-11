@@ -19,7 +19,9 @@ public class TelemetrySupplierTest {
 
     @Test
     public void testIfStaticsAreWrittenInAJson() {
-        JVMStatistics jvmStats = new JVMStatistics();
+        ArgosComponent argosComponent = new ArgosComponent("id", "name", "containerid",
+                "measurement", "type");
+        JVMStatistics jvmStats = new JVMStatistics(argosComponent);
         System.out.println(jvmStats.toString());
     }
 }

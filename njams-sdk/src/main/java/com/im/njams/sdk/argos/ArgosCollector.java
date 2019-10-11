@@ -50,39 +50,25 @@ public abstract class ArgosCollector<T extends ArgosMetric> {
     }
 
     /**
-     * Creates the ArgosStatistics of type {@link T}. Sets the fields of the abstract ArgosStatistics
-     * with values of the ArgosComponent if they are not set while creating.
+     * Overwrite this method in your implementation of this class.
      *
-     * @return the created and filled statistics.
+     * Create @see {@link ArgosMetric} and return it.
+     *
+     * @param argosComponent
+     * @return
      */
-    public T collect() {
-        T argosStatistics = create();
-        addComponentFieldsToStatistics(argosStatistics);
-        return argosStatistics;
-    }
-
-    private void addComponentFieldsToStatistics(T argosStatistics) {
-        if (argosStatistics.getId().equals(ArgosMetric.DEFAULT)) {
-            argosStatistics.setId(argosComponent.getId());
-        }
-        if (argosStatistics.getName().equals(ArgosMetric.DEFAULT)) {
-            argosStatistics.setName(argosComponent.getName());
-        }
-        if (argosStatistics.getContainerId().equals(ArgosMetric.DEFAULT)) {
-            argosStatistics.setContainerId(argosComponent.getContainerId());
-        }
-        if(argosStatistics.getMeasurement().equals(ArgosMetric.DEFAULT)){
-            argosStatistics.setMeasurement(argosComponent.getMeasurement());
-        }
-        if (argosStatistics.getType().equals(ArgosMetric.DEFAULT)) {
-            argosStatistics.setType(argosComponent.getType());
-        }
-    }
+    protected abstract T create(ArgosComponent argosComponent);
 
     /**
-     * Creates the concrete statistics.
+     * This gets called by @see {@link ArgosSender} in periodic manner.
      *
-     * @return the statistics
+     * It will create a new @see {@link ArgosMetric} with the correct implementation
+     * and return it so that it can be send via UDP.
+     *
+     * @return
      */
-    protected abstract T create();
+    public T collect() {
+        T argosStatistics = create(argosComponent);;
+        return argosStatistics;
+    }
 }
