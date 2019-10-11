@@ -55,7 +55,7 @@ public abstract class ArgosCollector<T extends ArgosMetric> {
      * Create @see {@link ArgosMetric} and return it.
      *
      * @param argosComponent
-     * @return
+     * @return the created @see {@link ArgosMetric}
      */
     protected abstract T create(ArgosComponent argosComponent);
 
@@ -65,7 +65,7 @@ public abstract class ArgosCollector<T extends ArgosMetric> {
      * It will create a new @see {@link ArgosMetric} with the correct implementation
      * and return it so that it can be send via UDP.
      *
-     * @return
+     * @return the collected @see {@link ArgosMetric}
      */
     public T collect() {
         T argosStatistics = create(argosComponent);;
