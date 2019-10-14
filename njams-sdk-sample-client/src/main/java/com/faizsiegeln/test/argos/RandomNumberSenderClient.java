@@ -25,6 +25,8 @@ package com.faizsiegeln.test.argos;
 
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.common.Path;
+import com.im.njams.sdk.communication.CommunicationFactory;
+import com.im.njams.sdk.communication.jms.JmsConstants;
 import com.im.njams.sdk.settings.Settings;
 import com.im.njams.sdk.argos.ArgosCollector;
 import com.im.njams.sdk.argos.ArgosComponent;
@@ -66,10 +68,7 @@ public class RandomNumberSenderClient {
         Path clientPath = new Path("SDK4", "Client", "Argos");
 
         //Create communicationProperties, which specify how your client will communicate with the server
-        Properties properties = new Properties();
-        properties.put(ArgosSender.NJAMS_SUBAGENT_HOST, "os1113");
-        properties.put(ArgosSender.NJAMS_SUBAGENT_PORT, "6450");
-        properties.put(ArgosSender.NJAMS_SUBAGENT_ENABLED, "true");
+        Properties properties = getProperties();
         //Properties properties = getCloudProperties();
 
         //Create client settings and add the properties
@@ -78,6 +77,28 @@ public class RandomNumberSenderClient {
 
         //Instantiate client for first application
         njams = new Njams(clientPath, "4.0.11", technology, config);
+    }
+
+    private static Properties getProperties() {
+        Properties communicationProperties = new Properties();
+        communicationProperties.put(CommunicationFactory.COMMUNICATION, "JMS");
+        communicationProperties.put(JmsConstants.INITIAL_CONTEXT_FACTORY,
+                "com.tibco.tibjms.naming.TibjmsInitialContextFactory");
+        communicationProperties.put(JmsConstants.SECURITY_PRINCIPAL, "njams");
+        communicationProperties.put(JmsConstants.SECURITY_CREDENTIALS, "njams");
+        communicationProperties.put(JmsConstants.PROVIDER_URL, "tibjmsnaming://vslems01:7222");
+        communicationProperties.put(JmsConstants.CONNECTION_FACTORY, "ConnectionFactory");
+        communicationProperties.put(JmsConstants.USERNAME, "njams");
+        communicationProperties.put(JmsConstants.PASSWORD, "njams");
+        communicationProperties.put(JmsConstants.DESTINATION, "njams.endurance");
+        //optional: if you want to use a topic for commands not following the name of the other destinations, specify it here
+        communicationProperties.put(JmsConstants.COMMANDS_DESTINATION, "njams4.dev.phillip.commands");
+
+        //Argos relevant properties
+        communicationProperties.put(ArgosSender.NJAMS_SUBAGENT_HOST, "os1113");
+        communicationProperties.put(ArgosSender.NJAMS_SUBAGENT_PORT, "6450");
+        communicationProperties.put(ArgosSender.NJAMS_SUBAGENT_ENABLED, "true");
+        return communicationProperties;
     }
 
     private static void addRandomNumberCollector() {
