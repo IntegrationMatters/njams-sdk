@@ -34,6 +34,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.stream.Stream;
 
+import com.im.njams.sdk.argos.ArgosCollector;
+import com.im.njams.sdk.argos.ArgosSender;
 import org.slf4j.LoggerFactory;
 
 import com.faizsiegeln.njams.messageformat.v4.command.Command;
@@ -175,6 +177,8 @@ public class Njams implements InstructionListener {
 
     private ReplayHandler replayHandler = null;
 
+    private ArgosSender argosSender;
+
     /**
      * Create a nJAMS client.
      *
@@ -192,11 +196,21 @@ public class Njams implements InstructionListener {
         this.settings = settings;
         processDiagramFactory = new NjamsProcessDiagramFactory();
         processModelLayouter = new SimpleProcessModelLayouter();
+        argosSender = new ArgosSender(settings);
         loadConfigurationProvider();
         createTreeElements(path, TreeElementType.CLIENT);
         readVersions(version);
         printStartupBanner();
         setMachine();
+    }
+
+    /**
+     * Adds a collector that will create statistics.
+     *
+     * @param collector The collector that collects statistics
+     */
+    public void addArgosCollector(ArgosCollector collector){
+        argosSender.addArgosCollector(collector);
     }
 
     /**
@@ -367,6 +381,7 @@ public class Njams implements InstructionListener {
             CleanTracepointsTask.start(this);
             started = true;
             flushResources();
+            argosSender.start();
         }
         return isStarted();
     }
@@ -381,6 +396,7 @@ public class Njams implements InstructionListener {
         if (isStarted()) {
             LogMessageFlushTask.stop(this);
             CleanTracepointsTask.stop(this);
+            argosSender.close();
             if (sender != null) {
                 sender.close();
             }
