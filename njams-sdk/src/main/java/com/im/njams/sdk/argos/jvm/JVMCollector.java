@@ -36,10 +36,10 @@ import java.util.Map;
 
 /**
  * This is a concrete implementation for collecting JMV statistic metrics.
- *
+ * <p>
  * It uses also @see {@link GCStats} and @see {@link OsProcessStats} classes.
-  */
-public class JVMCollector extends ArgosCollector<JVMStatistics> {
+ */
+public class JVMCollector extends ArgosCollector<JVMMetric> {
     private static final Logger LOG = LoggerFactory.getLogger(JVMCollector.class);
 
     /**
@@ -49,7 +49,7 @@ public class JVMCollector extends ArgosCollector<JVMStatistics> {
 
     private int pid = 0;
 
-    private static int getPid(){
+    private static int getPid() {
         if (ManagementFactory.getRuntimeMXBean().getName().contains("@")) {
             try {
                 //Try to get the JVM id
@@ -61,7 +61,7 @@ public class JVMCollector extends ArgosCollector<JVMStatistics> {
         return 0;
     }
 
-    private static String getLocalHost(){
+    private static String getLocalHost() {
         try {
             InetAddress localMachine = InetAddress.getLocalHost();
             return localMachine.getCanonicalHostName();
@@ -71,11 +71,11 @@ public class JVMCollector extends ArgosCollector<JVMStatistics> {
         }
     }
 
-    private static ArgosComponent createDefaultJVMComponent(String id, String name, String type){
+    private static ArgosComponent createDefaultJVMComponent(String id, String name, String type) {
         return new ArgosComponent(id, name, getLocalHost(), MEASUREMENT, type);
     }
 
-    public JVMCollector(String id, String name, String type){
+    public JVMCollector(String id, String name, String type) {
         this(createDefaultJVMComponent(id, name, type), getPid());
     }
 
@@ -85,8 +85,8 @@ public class JVMCollector extends ArgosCollector<JVMStatistics> {
     }
 
     @Override
-    protected JVMStatistics create(ArgosComponent argosComponent) {
-        JVMStatistics jvmStats = new JVMStatistics(argosComponent);
+    protected JVMMetric create(ArgosComponent argosComponent) {
+        JVMMetric jvmStats = new JVMMetric(argosComponent);
 
         MemoryMXBean memoryMxBean = ManagementFactory.getMemoryMXBean();
         MemoryUsage mu = memoryMxBean.getHeapMemoryUsage();

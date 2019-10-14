@@ -28,10 +28,10 @@ import java.util.Map;
 
 /**
  * This is a concrete implementation of an @see {@link ArgosMetric} for JMV statistics
- *
- * It is used b @see {@link JVMCollector}
+ * <p>
+ * It is used in @see {@link JVMCollector}
  */
-public class JVMStatistics extends ArgosMetric {
+public class JVMMetric extends ArgosMetric {
 
     private long heapCommitted = 0;
     private long heapInit = 0;
@@ -47,7 +47,7 @@ public class JVMStatistics extends ArgosMetric {
     private Map<String, GCStats> gc = new HashMap<>();
     private OsProcessStats processStats;
 
-    public JVMStatistics(ArgosComponent component) {
+    public JVMMetric(ArgosComponent component) {
         super(component.getId(), component.getName(), component.getContainerId(), component.getMeasurement(), component.getType());
     }
 

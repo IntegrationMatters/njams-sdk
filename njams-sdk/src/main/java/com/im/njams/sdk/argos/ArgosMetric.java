@@ -20,15 +20,13 @@
 
 package com.im.njams.sdk.argos;
 
-import java.util.HashMap;
 import java.util.Map;
 
 /**
  * Abstract base class for Argos Metrics.
- *
+ * <p>
  * Extend this class and use it in your @see {@link ArgosCollector}
  * Provide all attributes you want to send to Argos.
- *
  */
 public abstract class ArgosMetric {
 

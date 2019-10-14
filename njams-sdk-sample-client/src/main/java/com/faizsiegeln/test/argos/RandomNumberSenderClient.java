@@ -85,7 +85,7 @@ public class RandomNumberSenderClient {
         njams.addArgosCollector(randomNumberCollector);
     }
 
-    private static class RandomNumberCollector extends ArgosCollector<RandomNumberStatistics> {
+    private static class RandomNumberCollector extends ArgosCollector<RandomNumberMetric> {
 
         private Random randomGenerator;
 
@@ -96,18 +96,18 @@ public class RandomNumberSenderClient {
         }
 
         @Override
-        protected RandomNumberStatistics create(ArgosComponent argosComponent) {
-            RandomNumberStatistics statistics = new RandomNumberStatistics(argosComponent);
+        protected RandomNumberMetric create(ArgosComponent argosComponent) {
+            RandomNumberMetric statistics = new RandomNumberMetric(argosComponent);
             statistics.setRandomNumber(randomGenerator.nextInt(100));
             return statistics;
         }
     }
 
-    private static class RandomNumberStatistics extends ArgosMetric {
+    private static class RandomNumberMetric extends ArgosMetric {
 
         private int randomNumber = 0;
 
-        public RandomNumberStatistics(ArgosComponent argosComponent) {
+        public RandomNumberMetric(ArgosComponent argosComponent) {
             super(argosComponent.getId(),argosComponent.getName(), argosComponent.getContainerId(),
                     argosComponent.getMeasurement(), argosComponent.getType());
         }

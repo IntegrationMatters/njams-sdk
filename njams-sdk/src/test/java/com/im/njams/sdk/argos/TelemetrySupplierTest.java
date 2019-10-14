@@ -12,7 +12,7 @@
 
 package com.im.njams.sdk.argos;
 
-import com.im.njams.sdk.argos.jvm.JVMStatistics;
+import com.im.njams.sdk.argos.jvm.JVMMetric;
 import org.junit.Test;
 
 public class TelemetrySupplierTest {
@@ -21,7 +21,7 @@ public class TelemetrySupplierTest {
     public void testIfStaticsAreWrittenInAJson() {
         ArgosComponent argosComponent = new ArgosComponent("id", "name", "containerid",
                 "measurement", "type");
-        JVMStatistics jvmStats = new JVMStatistics(argosComponent);
+        JVMMetric jvmStats = new JVMMetric(argosComponent);
         System.out.println(jvmStats.toString());
     }
 }

@@ -22,7 +22,7 @@ package com.im.njams.sdk.argos;
 
 /**
  * Abstract base class for an ArgosCollector
- *
+ * <p>
  * Extend this class, implement the collect method and register it in @see {@link ArgosSender}
  *
  * @param <T>
@@ -51,7 +51,7 @@ public abstract class ArgosCollector<T extends ArgosMetric> {
 
     /**
      * Overwrite this method in your implementation of this class.
-     *
+     * <p>
      * Create @see {@link ArgosMetric} and return it.
      *
      * @param argosComponent
@@ -61,14 +61,14 @@ public abstract class ArgosCollector<T extends ArgosMetric> {
 
     /**
      * This gets called by @see {@link ArgosSender} in periodic manner.
-     *
+     * <p>
      * It will create a new @see {@link ArgosMetric} with the correct implementation
      * and return it so that it can be send via UDP.
      *
      * @return the collected @see {@link ArgosMetric}
      */
     public T collect() {
-        T argosStatistics = create(argosComponent);;
+        T argosStatistics = create(argosComponent);
         return argosStatistics;
     }
 }

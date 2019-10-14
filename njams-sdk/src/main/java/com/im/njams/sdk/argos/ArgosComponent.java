@@ -22,7 +22,7 @@ package com.im.njams.sdk.argos;
 
 /**
  * This defines all basic attributes needed for an Argos Component.
- *
+ * <p>
  * This class is just a POJO and can be used to handle components.
  */
 public class ArgosComponent {
@@ -42,7 +42,7 @@ public class ArgosComponent {
     // the technology type
     private String type;
 
-    public ArgosComponent(String id, String name, String containerId, String measurement,  String type) {
+    public ArgosComponent(String id, String name, String containerId, String measurement, String type) {
         this.id = id;
         this.name = name;
         this.containerId = containerId;

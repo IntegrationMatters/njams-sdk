@@ -27,8 +27,8 @@ import oshi.software.os.OperatingSystem;
 
 /**
  * This class collects operating system process statistic metrics.
- *
- * It is used in @see {@link JVMStatistics}
+ * <p>
+ * It is used in @see {@link JVMMetric}
  */
 public class OsProcessStats {
     private OSProcess process;
