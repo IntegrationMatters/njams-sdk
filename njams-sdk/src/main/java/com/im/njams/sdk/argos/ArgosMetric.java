@@ -20,6 +20,7 @@
 
 package com.im.njams.sdk.argos;
 
+import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -45,7 +46,7 @@ public abstract class ArgosMetric {
     // the technology type
     private String type;
 
-    private Map<String, Object> tags;
+    private Map<String, Object> tags = new HashMap<>();
 
     public ArgosMetric(String id, String name, String containerid, String measurement, String type) {
         this.id = id;
