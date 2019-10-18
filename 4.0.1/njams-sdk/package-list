@@ -1,4 +1,6 @@
 com.im.njams.sdk
+com.im.njams.sdk.argos
+com.im.njams.sdk.argos.jvm
 com.im.njams.sdk.client
 com.im.njams.sdk.common
 com.im.njams.sdk.communication
