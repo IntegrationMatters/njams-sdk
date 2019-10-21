@@ -259,7 +259,7 @@ public class JobImplTest extends AbstractTest {
         activities.forEach(activity -> assertFalse(onlyAsterisksOrNull(activity.getActivityStatus().toString())));
         activities.forEach(activity -> assertFalse(onlyAsterisksOrNull(activity.getEventStatus().toString())));
         activities.forEach(activity -> assertFalse(onlyAsterisksOrNull(activity.getSubProcess().getName())));
-        activities.forEach(activity -> assertFalse(onlyAsterisksOrNull(activity.getSubProcess().getPath())));
+        activities.forEach(activity -> assertFalse(onlyAsterisksOrNull(activity.getSubProcess().getSubProcessPath())));
         activities.forEach(activity -> assertFalse(onlyAsterisksOrNull(activity.getSubProcess().getLogId())));
 
         //Those shouldn't be masked because they were set directly by us, not by the ExtractHandler [SDK-125]

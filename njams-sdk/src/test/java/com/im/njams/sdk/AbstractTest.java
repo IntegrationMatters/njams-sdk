@@ -171,7 +171,7 @@ public abstract class AbstractTest {
         SubProcess subProcess = new SubProcess();
         subProcess.setLogId("SomeSubProcessLogId");
         subProcess.setName("SomeSubProcessName");
-        subProcess.setPath("SomeSubProcessPath");
+        subProcess.setSubProcessPath("SomeSubProcessPath");
         act.setSubProcess(subProcess);
         //Set one Predecessor
         Predecessor pre = new Predecessor();
