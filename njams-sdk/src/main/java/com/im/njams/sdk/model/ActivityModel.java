@@ -102,7 +102,7 @@ public class ActivityModel {
             SubProcess sb = new SubProcess();
             sb.setName(((SubProcessActivityModel) this).getSubProcessName());
             if (((SubProcessActivityModel) this).getSubProcessPath() != null) {
-                sb.setPath(((SubProcessActivityModel) this).getSubProcessPath().toString());
+                sb.setSubProcessPath(((SubProcessActivityModel) this).getSubProcessPath().toString());
             }
             activity.setSubProcess(sb);
         }
