@@ -162,4 +162,20 @@ public class NjamsTest {
         assertEquals("Error while executing replay: TestException", resp.getResultMessage());
         assertEquals("java.lang.RuntimeException: TestException", inst.getResponseParameterByName("Exception"));
     }
+
+    @Test
+    public void testHasNoProcessModel() {
+        assertFalse(instance.hasProcessModel(new Path("PROCESSES")));
+    }
+
+    @Test
+    public void testNoProcessModelForNullPath() {
+        assertFalse(instance.hasProcessModel(null));
+    }
+
+    @Test
+    public void testHasProcessModel() {
+        instance.createProcess(new Path("PROCESSES"));
+        assertTrue(instance.hasProcessModel(new Path("PROCESSES")));
+    }
 }

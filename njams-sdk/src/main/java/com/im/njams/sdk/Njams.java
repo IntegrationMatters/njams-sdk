@@ -418,13 +418,34 @@ public class Njams implements InstructionListener {
      * @return the ProcessModel or {@link NjamsSdkRuntimeException}
      */
     public ProcessModel getProcessModel(final Path path) {
+        if(!hasProcessModel(path)) {
+            throw new NjamsSdkRuntimeException("ProcessModel not found for path " + path);
+        }
+
+        final List<String> parts =
+                Stream.of(getClientPath(), path).map(Path::getParts).flatMap(List::stream).collect(toList());
+        final ProcessModel processModel = processModels.get(new Path(parts).toString());
+        return processModel;
+    }
+
+    /**
+     * Check for a process model under that path
+     *
+     * @param path the path where to search for a {@link ProcessModel}.
+     * @return true if found else false
+     */
+    public boolean hasProcessModel(final Path path){
+        if (path == null) {
+            return false;
+        }
         final List<String> parts =
                 Stream.of(getClientPath(), path).map(Path::getParts).flatMap(List::stream).collect(toList());
         final ProcessModel processModel = processModels.get(new Path(parts).toString());
         if (processModel == null) {
-            throw new NjamsSdkRuntimeException("ProcessModel not found for path " + path);
+           return false;
+        } else {
+            return true;
         }
-        return processModel;
     }
 
     /**
