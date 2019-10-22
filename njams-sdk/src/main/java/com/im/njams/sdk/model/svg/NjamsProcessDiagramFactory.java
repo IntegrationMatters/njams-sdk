@@ -109,7 +109,7 @@ public class NjamsProcessDiagramFactory implements ProcessDiagramFactory {
             createSvg(context, processModel);
 
             String svg = serializeDocument(context);
-            LOG.debug("ProcessDiagram: {}", svg);
+            LOG.trace("Created ProcessDiagram from ProcessModel: {}", svg);
             return svg;
         } catch (Exception e) {
             LOG.error("Error in NjamsProcessDiagramFactory", e);

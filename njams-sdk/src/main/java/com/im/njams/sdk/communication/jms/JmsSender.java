@@ -154,7 +154,12 @@ public class JmsSender extends AbstractSender implements ExceptionListener {
         try {
             String data = mapper.writeValueAsString(msg);
             sendMessage(msg, Sender.NJAMS_MESSAGETYPE_EVENT, data);
-            LOG.debug("Send LogMessage {} to {}:\n{}", msg.getPath(), producer.getDestination(), data);
+            if (LOG.isTraceEnabled()) {
+                LOG.trace("Send LogMessage {} to {}:\n{}", msg.getPath(), producer.getDestination(), data);
+            } else {
+                LOG.debug("Send Logmessage for {} to {}", msg.getPath(), producer.getDestination());
+            }
+
         } catch (Exception e) {
             throw new NjamsSdkRuntimeException("Unable to send LogMessage", e);
         }
@@ -170,7 +175,12 @@ public class JmsSender extends AbstractSender implements ExceptionListener {
         try {
             String data = mapper.writeValueAsString(msg);
             sendMessage(msg, Sender.NJAMS_MESSAGETYPE_PROJECT, data);
-            LOG.debug("Send ProjectMessage {} to {}:\n{}", msg.getPath(), producer.getDestination(), data);
+            if (LOG.isTraceEnabled()) {
+                LOG.trace("Send ProjectMessage {} to {}:\n{}", msg.getPath(), producer.getDestination(), data);
+            } else {
+                LOG.debug("Send ProjectMessage for {} to {}", msg.getPath(), producer.getDestination());
+            }
+
         } catch (Exception e) {
             throw new NjamsSdkRuntimeException("Unable to send ProjectMessage", e);
         }
@@ -186,7 +196,11 @@ public class JmsSender extends AbstractSender implements ExceptionListener {
         try {
             String data = mapper.writeValueAsString(msg);
             sendMessage(msg, Sender.NJAMS_MESSAGETYPE_TRACE, data);
-            LOG.debug("Send TraceMessage {} to {}:\n{}", msg.getPath(), producer.getDestination(), data);
+            if (LOG.isTraceEnabled()) {
+                LOG.trace("Send TraceMessage {} to {}:\n{}", msg.getPath(), producer.getDestination(), data);
+            } else {
+                LOG.debug("Send TraceMessage for {} to {}", msg.getPath(), producer.getDestination());
+            }
         } catch (Exception e) {
             throw new NjamsSdkRuntimeException("Unable to send TraceMessage", e);
         }
