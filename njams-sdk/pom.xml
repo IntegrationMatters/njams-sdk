@@ -63,6 +63,7 @@
                 <configuration>
                     <forceCreation>true</forceCreation>
                     <archive>
+                        <addMavenDescriptor>false</addMavenDescriptor>
                         <manifest>
                             <addClasspath>true</addClasspath>
                             <mainClass>com.im.njams.sdk.settings.encoding.CMDHandler</mainClass>
@@ -95,7 +96,7 @@
                             <goal>shade</goal>
                         </goals>
                         <configuration>
-                            <createDependencyReducedPom>false</createDependencyReducedPom>
+                            <createDependencyReducedPom>true</createDependencyReducedPom>
                             <createSourcesJar>true</createSourcesJar>
                             <transformers>
                                 <transformer implementation="org.apache.maven.plugins.shade.resource.ApacheLicenseResourceTransformer" />
@@ -103,6 +104,10 @@
                                     <addHeader>false</addHeader>
                                 </transformer>
                                 <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer" />
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.IncludeResourceTransformer">
+                                    <resource>META-INF/maven/com.faizsiegeln.njams/njams-sdk/pom.xml</resource>
+                                    <file>dependency-reduced-pom.xml</file>
+                                </transformer>
                             </transformers>
                             <relocations>
                                 <relocation>
