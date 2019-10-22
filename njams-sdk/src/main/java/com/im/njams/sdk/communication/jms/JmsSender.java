@@ -100,7 +100,7 @@ public class JmsSender extends AbstractSender implements ExceptionListener {
             } else {
                 connection = factory.createConnection();
             }
-            session = connection.createSession(false, JMSContext.CLIENT_ACKNOWLEDGE);
+            session = connection.createSession(false, Session.CLIENT_ACKNOWLEDGE);
             Destination destination = null;
             String destinationName = properties.getProperty(JmsConstants.DESTINATION) + ".event";
             try {
@@ -294,7 +294,7 @@ public class JmsSender extends AbstractSender implements ExceptionListener {
     public String[] librariesToCheck() {
         return new String[]{"javax.jms.Connection", "javax.jms.ConnectionFactory", "javax.jms.Destination",
                 "javax" + ".jms" +
-                ".ExceptionListener", "javax.jms.JMSContext", "javax.jms.JMSException", "javax.jms.MessageProducer",
+                ".ExceptionListener", "javax.jms.Session", "javax.jms.JMSException", "javax.jms.MessageProducer",
                 "javax.jms.Session", "javax.jms.TextMessage", "javax.naming.InitialContext",
                 "javax.naming" + ".NameNotFoundException", "javax.naming.NamingException"};
     }
