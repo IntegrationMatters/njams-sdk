@@ -25,7 +25,7 @@ package com.im.njams.sdk.argos;
  * <p>
  * Extend this class, implement the collect method and register it in @see {@link ArgosSender}
  *
- * @param <T>
+ * @param <T> an ArgosCollector is responsible to create one ArgosMetric
  */
 public abstract class ArgosCollector<T extends ArgosMetric> {
 
@@ -54,7 +54,7 @@ public abstract class ArgosCollector<T extends ArgosMetric> {
      * <p>
      * Create @see {@link ArgosMetric} and return it.
      *
-     * @param argosComponent
+     * @param argosComponent this identifies a component in Argos
      * @return the created @see {@link ArgosMetric}
      */
     protected abstract T create(ArgosComponent argosComponent);

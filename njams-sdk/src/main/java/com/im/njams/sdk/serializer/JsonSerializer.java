@@ -38,7 +38,7 @@ public class JsonSerializer<T> implements Serializer<T> {
      *
      * @param object to serialize
      * @return serielized object
-     * @throws Exception exception
+     * @throws NjamsSdkRuntimeException exception
      */
     @Override
     public String serialize(final T object) throws NjamsSdkRuntimeException {

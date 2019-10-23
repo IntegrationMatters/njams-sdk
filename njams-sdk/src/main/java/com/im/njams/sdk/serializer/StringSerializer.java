@@ -16,6 +16,8 @@
  */
 package com.im.njams.sdk.serializer;
 
+import com.im.njams.sdk.common.NjamsSdkRuntimeException;
+
 /**
  * String Serializer
  *
@@ -29,10 +31,10 @@ public class StringSerializer<T> implements Serializer<T> {
      *
      * @param t generic to serialize
      * @return serialized generic
-     * @throws Exception exception
+     * @throws NjamsSdkRuntimeException exception
      */
     @Override
-    public String serialize(final T t) {
+    public String serialize(final T t) throws NjamsSdkRuntimeException{
         return t == null ? "" : t.toString();
     }
 
