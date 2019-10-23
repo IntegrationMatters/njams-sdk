@@ -16,6 +16,8 @@
  */
 package com.im.njams.sdk.serializer;
 
+import com.im.njams.sdk.common.NjamsSdkRuntimeException;
+
 /**
  * Serializer Interface
  *
@@ -29,7 +31,7 @@ public interface Serializer<T> {
      *
      * @param object Object to be serialized
      * @return String representation for the given Object
-     * @throws Exception Any Exception is allowed for overriding classes
+     * @throws NjamsSdkRuntimeException overriding classes should throw exception
      */
-    public abstract String serialize(T object) throws Exception;
+    public abstract String serialize(T object) throws NjamsSdkRuntimeException;
 }

@@ -1,6 +1,7 @@
 package com.im.njams.sdk.utils;
 
 import com.im.njams.sdk.common.JsonSerializerFactory;
+import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 
 /**
  * Utilities for serializing to and parsing from JSON.
@@ -27,8 +28,13 @@ public class JsonUtils {
      * @throws Exception
      *             If parsing the given JSON into the target type failed.
      */
-    public static <T> T parse(String json, Class<T> type) throws Exception {
+    public static <T> T parse(String json, Class<T> type) throws NjamsSdkRuntimeException {
+        try {
         return JsonSerializerFactory.getDefaultMapper().readValue(json, type);
+        } catch (Exception e) {
+            throw new NjamsSdkRuntimeException("Could not parse JSON string " + json + " to type " + type.getSimpleName(), e);
+        }
+
     }
 
     /**
@@ -40,7 +46,11 @@ public class JsonUtils {
      * @throws Exception
      *             If serializing the object to JSON failed.
      */
-    public static String serialize(Object object) throws Exception {
-        return JsonSerializerFactory.getDefaultMapper().writeValueAsString(object);
+    public static String serialize(Object object) throws NjamsSdkRuntimeException {
+        try {
+            return JsonSerializerFactory.getDefaultMapper().writeValueAsString(object);
+        } catch (Exception e) {
+            throw new NjamsSdkRuntimeException("Could not serialize Object " + object, e);
+        }
     }
 }

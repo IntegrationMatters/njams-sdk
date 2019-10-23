@@ -35,6 +35,7 @@ import com.im.njams.sdk.communication.AbstractSender;
 import com.im.njams.sdk.communication.ConnectionStatus;
 import com.im.njams.sdk.communication.Sender;
 import com.im.njams.sdk.settings.PropertyUtil;
+import com.im.njams.sdk.utils.JsonUtils;
 import org.slf4j.LoggerFactory;
 
 import javax.jms.*;
@@ -56,7 +57,6 @@ public class JmsSender extends AbstractSender implements ExceptionListener {
     private Connection connection;
     protected Session session;
     protected MessageProducer producer;
-    private final ObjectMapper mapper = JsonSerializerFactory.getDefaultMapper();
     private Thread reconnector;
 
     /**
@@ -152,7 +152,7 @@ public class JmsSender extends AbstractSender implements ExceptionListener {
     @Override
     protected void send(LogMessage msg) throws NjamsSdkRuntimeException {
         try {
-            String data = mapper.writeValueAsString(msg);
+            String data = JsonUtils.serialize(msg);
             sendMessage(msg, Sender.NJAMS_MESSAGETYPE_EVENT, data);
             if (LOG.isTraceEnabled()) {
                 LOG.trace("Send LogMessage {} to {}:\n{}", msg.getPath(), producer.getDestination(), data);
@@ -173,7 +173,7 @@ public class JmsSender extends AbstractSender implements ExceptionListener {
     @Override
     protected void send(ProjectMessage msg) throws NjamsSdkRuntimeException {
         try {
-            String data = mapper.writeValueAsString(msg);
+            String data = JsonUtils.serialize(msg);
             sendMessage(msg, Sender.NJAMS_MESSAGETYPE_PROJECT, data);
             if (LOG.isTraceEnabled()) {
                 LOG.trace("Send ProjectMessage {} to {}:\n{}", msg.getPath(), producer.getDestination(), data);
@@ -194,7 +194,7 @@ public class JmsSender extends AbstractSender implements ExceptionListener {
     @Override
     protected void send(TraceMessage msg) throws NjamsSdkRuntimeException {
         try {
-            String data = mapper.writeValueAsString(msg);
+            String data = JsonUtils.serialize(msg);
             sendMessage(msg, Sender.NJAMS_MESSAGETYPE_TRACE, data);
             if (LOG.isTraceEnabled()) {
                 LOG.trace("Send TraceMessage {} to {}:\n{}", msg.getPath(), producer.getDestination(), data);

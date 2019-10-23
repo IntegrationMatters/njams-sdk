@@ -32,7 +32,7 @@ public class StringSerializer<T> implements Serializer<T> {
      * @throws Exception exception
      */
     @Override
-    public String serialize(final T t) throws Exception {
+    public String serialize(final T t) {
         return t == null ? "" : t.toString();
     }
 

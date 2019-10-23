@@ -22,6 +22,7 @@ import java.util.Collection;
 import java.util.Map.Entry;
 import java.util.stream.Collectors;
 
+import com.im.njams.sdk.utils.JsonUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -540,8 +541,7 @@ public class ConfigurationInstructionListener implements InstructionListener {
             return;
         }
         try {
-            final ObjectMapper mapper = JsonSerializerFactory.getDefaultMapper();
-            instructionSupport.setParameter(EXTRACT, mapper.writeValueAsString(extract));
+            instructionSupport.setParameter(EXTRACT, JsonUtils.serialize(extract));
         } catch (final Exception e) {
             instructionSupport.error("Unable to serialize Extract", e);
             return;

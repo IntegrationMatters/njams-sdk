@@ -19,6 +19,8 @@ package com.im.njams.sdk.serializer;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectWriter;
 import com.im.njams.sdk.common.JsonSerializerFactory;
+import com.im.njams.sdk.common.NjamsSdkRuntimeException;
+
 import java.io.StringWriter;
 
 /**
@@ -39,13 +41,17 @@ public class JsonSerializer<T> implements Serializer<T> {
      * @throws Exception exception
      */
     @Override
-    public String serialize(final T object) throws Exception {
-        if (object == null) {
-            return "{}";
+    public String serialize(final T object) throws NjamsSdkRuntimeException {
+        try {
+            if (object == null) {
+                return "{}";
+            }
+            final StringWriter writer = new StringWriter();
+            objectWriter.writeValue(writer, object);
+            return writer.toString();
+        } catch (Exception e) {
+            throw new NjamsSdkRuntimeException("Could nit serialize object " + object.toString(), e);
         }
-        final StringWriter writer = new StringWriter();
-        objectWriter.writeValue(writer, object);
-        return writer.toString();
     }
 
 }
