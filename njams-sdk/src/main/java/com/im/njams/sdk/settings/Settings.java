@@ -38,41 +38,38 @@ public class Settings {
     private Properties properties;
 
     /**
-     * Property njams.client.sdk.clientname
-     */
-    public static final String PROPERTY_CLIENT_NAME = "njams.client.sdk.clientname";
-    /**
-     * Property njams.client.sdk.clientversion
-     */
-    public static final String PROPERTY_CLIENT_VERSION = "njams.client.sdk.clientversion";
-    /**
-     * Property njams.client.sdk.flushsize
+     * This property is a flush criterium with a default of 5mb.
+     * If the flush size of the logmessage exceedes this threshold, the message will be flushed
      */
     public static final String PROPERTY_FLUSH_SIZE = "njams.client.sdk.flushsize";
     /**
-     * Property njams.client.sdk.flush_interval
+     * This property is a flush criterium with a default of 30s.
+     * If no logmessage has been sent in the last 30 seconds, the logmessage will be flushed now
      */
     public static final String PROPERTY_FLUSH_INTERVAL = "njams.client.sdk.flush_interval";
     /**
-     * Property njams.client.sdk.minqueuelength
+     * This property's default is 1 sender thread as core thread
+     * (that means it can't be closed even if its idle time has been exceeded)
+     * that can send project and log messages to the server.
      */
     public static final String PROPERTY_MIN_QUEUE_LENGTH = "njams.client.sdk.minqueuelength";
     /**
-     * Property njams.client.sdk.maxqueuelength
+     * This property's default is 8 sender threads as maximum threads that can be used.
+     * This means if there are more messages to handle than there are sender threads at the moment
+     * and the threshold hasn't exceeded, a new thread will be started. If the thread isn't in use for
+     * (look below njams.client.sdk.senderthreadidletime), the thread will be removed.
      */
     public static final String PROPERTY_MAX_QUEUE_LENGTH = "njams.client.sdk.maxqueuelength";
     /**
-     * Property njams.client.sdk.senderidletime
+     * This property's default is 10000 (ms) that means that idle sender threads that haven't send any
+     * message in the last 10 seconds and are not core threads will be removed.
      */
     public static final String PROPERTY_SENDER_THREAD_IDLE_TIME = "njams.client.sdk.senderthreadidletime";
     /**
-     * Property njams.client.sdk.discardpolicy
+     * This property decides what to do with a logmessage that couldn't be delivered (because of connection loss, full queue, etc.)
+     * Possible values are: none|onconnectionloss|discard (Default is none)
      */
     public static final String PROPERTY_DISCARD_POLICY = "njams.client.sdk.discardpolicy";
-    /**
-     * Property njams.client.sdk.instantpush
-     */
-    public static final String PROPERTY_INSTANT_PUSH = "njams.client.sdk.instantpush";
 
     /**
      * @return client properties
