@@ -83,12 +83,13 @@ public class NjamsSender implements Sender {
     @Override
     public void init(Properties properties) {
         CommunicationFactory communicationFactory = new CommunicationFactory(njams, settings);
-        int minQueueLength = Integer.parseInt(properties.getProperty(Settings.PROPERTY_MIN_QUEUE_LENGTH, "1"));
-        int maxQueueLength = Integer.parseInt(properties.getProperty(Settings.PROPERTY_MAX_QUEUE_LENGTH, "8"));
+        int minSenderThreads = Integer.parseInt(properties.getProperty(Settings.PROPERTY_MIN_SENDER_THREADS, "1"));
+        int maxSenderThreads = Integer.parseInt(properties.getProperty(Settings.PROPERTY_MAX_SENDER_THREADS, "8"));
+        int maxQueueLength =  Integer.parseInt(properties.getProperty(Settings.PROPERTY_MAX_QUEUE_LENGTH, "8"));
         long idleTime = Long.parseLong(properties.getProperty(Settings.PROPERTY_SENDER_THREAD_IDLE_TIME, "10000"));
         ThreadFactory threadFactory = new ThreadFactoryBuilder()
                 .setNamePrefix(getName() + "-Sender-Thread").setDaemon(true).build();
-        this.executor = new ThreadPoolExecutor(minQueueLength, maxQueueLength, idleTime, TimeUnit.MILLISECONDS,
+        this.executor = new ThreadPoolExecutor(minSenderThreads, maxSenderThreads, idleTime, TimeUnit.MILLISECONDS,
                 new ArrayBlockingQueue<>(maxQueueLength), threadFactory,
                 new MaxQueueLengthHandler(properties));
         this.senderPool = new SenderPool(communicationFactory, properties);

@@ -11,7 +11,7 @@ public class ObjectPoolTest {
     public void expireAll() throws Exception {
         AutoCloseable mockedAC = mock(AutoCloseable.class);
         AutoCloseable mockedAC2 = mock(AutoCloseable.class);
-        ObjectPool<AutoCloseable> op = new ObjectPool<AutoCloseable>(0) {
+        ObjectPool<AutoCloseable> op = new ObjectPool<AutoCloseable>() {
             public boolean first = true;
             @Override
             protected AutoCloseable create() {

@@ -81,11 +81,11 @@ public class NjamsSenderTest extends AbstractTest {
      * Test of initialize, of class NjamsSender.
      */
     @Test(expected = IllegalArgumentException.class)
-    public void testIllegalArgumentMaxQueueLength() {
+    public void testIllegalArgumentMaxSenderThreads() {
         Settings settings = new Settings();
         Properties props = new Properties();
         props.put(CommunicationFactory.COMMUNICATION, TestSender.NAME);
-        props.put(Settings.PROPERTY_MAX_QUEUE_LENGTH, "-1");
+        props.put(Settings.PROPERTY_MAX_SENDER_THREADS, "-1");
         settings.setProperties(props);
         NjamsSender njamsSender = new NjamsSender(njams, settings);
     }
@@ -107,12 +107,12 @@ public class NjamsSenderTest extends AbstractTest {
      * Test of initialize, of class NjamsSender.
      */
     @Test(expected = IllegalArgumentException.class)
-    public void testIllegalArgumentMaxQueueLengthLessThanMinQueueLength() {
+    public void testIllegalArgumentMaxSenderThreadsLessThanMinSenderThreads() {
         Settings settings = new Settings();
         Properties props = new Properties();
         props.put(CommunicationFactory.COMMUNICATION, TestSender.NAME);
-        props.put(Settings.PROPERTY_MIN_QUEUE_LENGTH, "5");
-        props.put(Settings.PROPERTY_MAX_QUEUE_LENGTH, "4");
+        props.put(Settings.PROPERTY_MIN_SENDER_THREADS, "5");
+        props.put(Settings.PROPERTY_MAX_SENDER_THREADS, "4");
         settings.setProperties(props);
         NjamsSender njamsSender = new NjamsSender(njams, settings);
     }
@@ -121,11 +121,11 @@ public class NjamsSenderTest extends AbstractTest {
      * Test of initialize, of class NjamsSender.
      */
     @Test(expected = IllegalArgumentException.class)
-    public void testIllegalArgumentMinQueueLength() {
+    public void testIllegalArgumentMinSenderThreads() {
         Settings settings = new Settings();
         Properties props = new Properties();
         props.put(CommunicationFactory.COMMUNICATION, TestSender.NAME);
-        props.put(Settings.PROPERTY_MIN_QUEUE_LENGTH, "-1");
+        props.put(Settings.PROPERTY_MIN_SENDER_THREADS, "-1");
         settings.setProperties(props);
         NjamsSender njamsSender = new NjamsSender(njams, settings);
     }
@@ -135,8 +135,8 @@ public class NjamsSenderTest extends AbstractTest {
         Settings settings = new Settings();
         Properties props = new Properties();
         props.put(CommunicationFactory.COMMUNICATION, TestSender.NAME);
-        props.put(Settings.PROPERTY_MIN_QUEUE_LENGTH, "3");
-        props.put(Settings.PROPERTY_MAX_QUEUE_LENGTH, "10");
+        props.put(Settings.PROPERTY_MIN_SENDER_THREADS, "3");
+        props.put(Settings.PROPERTY_MAX_SENDER_THREADS, "10");
         props.put(Settings.PROPERTY_SENDER_THREAD_IDLE_TIME, "5000");
         settings.setProperties(props);
         NjamsSender sender = new NjamsSender(njams, settings);

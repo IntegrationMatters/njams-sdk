@@ -33,7 +33,7 @@ public class SenderPool extends ObjectPool<Sender> {
     private CommunicationFactory factory;
 
     public SenderPool(CommunicationFactory factory, Properties properties) {
-        super(Integer.parseInt(properties.getProperty(Settings.PROPERTY_MAX_QUEUE_LENGTH, "8")));
+        super();
         this.properties = properties;
         this.factory = factory;
     }

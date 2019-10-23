@@ -32,7 +32,7 @@ public abstract class ObjectPool<T extends AutoCloseable> {
 
     private final Hashtable<T, Long> unlocked, locked;
 
-    public ObjectPool(int maxCapacity) {
+    public ObjectPool() {
         unlocked = new Hashtable<>();
         locked = new Hashtable<>();
     }

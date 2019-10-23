@@ -52,12 +52,17 @@ public class Settings {
      * (that means it can't be closed even if its idle time has been exceeded)
      * that can send project and log messages to the server.
      */
-    public static final String PROPERTY_MIN_QUEUE_LENGTH = "njams.client.sdk.minqueuelength";
+    public static final String PROPERTY_MIN_SENDER_THREADS = "njams.client.sdk.minsenderthreads";
     /**
      * This property's default is 8 sender threads as maximum threads that can be used.
      * This means if there are more messages to handle than there are sender threads at the moment
      * and the threshold hasn't exceeded, a new thread will be started. If the thread isn't in use for
      * (look below njams.client.sdk.senderthreadidletime), the thread will be removed.
+     */
+    public static final String PROPERTY_MAX_SENDER_THREADS = "njams.client.sdk.maxsenderthreads";
+    /**
+     * This property's default is 8 messages that can be hold in the message Queue before the
+     * messages will be discarded or client will stop processing until the queue has space again.
      */
     public static final String PROPERTY_MAX_QUEUE_LENGTH = "njams.client.sdk.maxqueuelength";
     /**
