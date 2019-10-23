@@ -380,7 +380,7 @@ public class Njams implements InstructionListener {
             LogMessageFlushTask.start(this);
             CleanTracepointsTask.start(this);
             started = true;
-            flushResources();
+            sendProjectMessage();
             argosSender.start();
         }
         return isStarted();
@@ -496,7 +496,7 @@ public class Njams implements InstructionListener {
      * Flush all Resources to the server by creating a new ProjectMessage. It
      * can only be flushed when the instance was started.
      */
-    public void flushResources() {
+    public void sendProjectMessage() {
         addDefaultImagesIfNeededAndAbsent();
         final ProjectMessage msg = new ProjectMessage();
         setStarters();
@@ -514,7 +514,6 @@ public class Njams implements InstructionListener {
         msg.getGlobalVariables().putAll(globalVariables);
         msg.setLogMode(configuration.getLogMode());
         getSender().send(msg);
-
     }
 
     /**
@@ -602,6 +601,52 @@ public class Njams implements InstructionListener {
     private void setStarters() {
         treeElements.stream().filter(te -> te.getTreeElementType() == TreeElementType.PROCESS)
                 .filter(te -> processModels.get(te.getPath()).isStarter()).forEach(te -> te.setStarter(true));
+    }
+
+    /**
+     * Send an additional process for an already started client.
+     * This will create a small ProjectMessage only containing the new process.
+     *
+     * @param model the additional model to send
+     */
+    public void sendAdditionalProcess(final ProcessModel model) {
+        if (!isStarted()) {
+            throw new NjamsSdkRuntimeException("Njams is not started. Please use createProcess Method instead");
+        }
+        final ProjectMessage msg = new ProjectMessage();
+        msg.setPath(clientPath.toString());
+        msg.setClientVersion(versions.get(CLIENT_VERSION_KEY));
+        msg.setSdkVersion(versions.get(SDK_VERSION_KEY));
+        msg.setCategory(getCategory());
+        msg.setStartTime(startTime);
+        msg.setMachine(getMachine());
+        msg.setFeatures(features);
+        msg.setLogMode(configuration.getLogMode());
+
+        addTreeElements(msg.getTreeElements(), getClientPath(), TreeElementType.CLIENT, false);
+        addTreeElements(msg.getTreeElements(), model.getPath(), TreeElementType.PROCESS, model.isStarter());
+
+        msg.getProcesses().add(model.getSerializableProcessModel());
+        getSender().send(msg);
+    }
+
+    private List<TreeElement> addTreeElements(List<TreeElement> treeElements, Path processPath,
+                                              TreeElementType targetDomainObjectType, boolean isStarter) {
+        String currentPath = ">";
+        for (int i = 0; i < processPath.getParts().size(); i++) {
+            String part = processPath.getParts().get(i);
+            currentPath += part + ">";
+            final String finalPath = currentPath;
+            boolean found = treeElements.stream().filter(d -> d.getPath().equals(finalPath)).findAny().isPresent();
+            if (!found) {
+                TreeElementType domainObjectType = i == processPath.getParts().size() - 1 ? targetDomainObjectType : null;
+                String type = getTreeElementDefaultType(i == 0, domainObjectType);
+                treeElements.add(new TreeElement(currentPath, part, type, domainObjectType));
+            }
+        }
+        treeElements.stream().filter(te -> te.getTreeElementType() == TreeElementType.PROCESS)
+                .forEach(te -> te.setStarter(isStarter));
+        return treeElements;
     }
 
     /**
@@ -746,7 +791,7 @@ public class Njams implements InstructionListener {
     @Override
     public void onInstruction(Instruction instruction) {
         if (instruction.getRequest().getCommand().equals(Command.SEND_PROJECTMESSAGE.commandString())) {
-            flushResources();
+            sendProjectMessage();
             Response response = new Response();
             response.setResultCode(0);
             response.setResultMessage("Successfully send ProjectMessage via NjamsClient");
