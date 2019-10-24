@@ -155,7 +155,6 @@ public class PropertiesFileSettingsProviderTest {
      *
      * @throws IOException
      */
-    /**
     @Test
     public void testCircleShouldNotBePossible() throws IOException {
         String circle1 = "circle1";
@@ -183,6 +182,4 @@ public class PropertiesFileSettingsProviderTest {
             circle2File.delete();
         }
     }
-    */
-
 }

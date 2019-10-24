@@ -77,6 +77,8 @@ public class PropertiesFileSettingsProvider implements SettingsProvider {
      */
     private String parentKey = PARENT_CONFIGURATION;
 
+    private int circuitBreaker = 0;
+
     /**
      * Configures this FileSettingsProvider via the given Properties.
      * <p>
@@ -169,7 +171,13 @@ public class PropertiesFileSettingsProvider implements SettingsProvider {
                 parentFile = new File(file.getParent(), parentFile.getName());
             }
             //Get the Properties of its the currentfiles parents
-            parentProps = loadProperties(parentFile);
+            circuitBreaker = ++circuitBreaker;
+            if(circuitBreaker > 100) {
+                LOG.warn("Circuit breaker detected a circle in load of settings parents. Stop loading parents. Please" +
+                        "check for circular dependencies in settings.");
+            } else {
+                parentProps = loadProperties(parentFile);
+            }
         }
 
         //Set the current Properties to the parentproperties, override them if needed to
