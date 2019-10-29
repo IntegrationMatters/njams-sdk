@@ -72,25 +72,6 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
     private boolean inputProcessecd = false;
     private boolean outputProcessed = false;
 
-    /**
-     * @deprecated SDK-140
-     * @param job The job
-     * @param modelId The model Id
-     */
-    @Deprecated
-    public ActivityImpl(JobImpl job, String modelId) {
-        this.job = job;
-        setModelId(modelId);
-        extract = null;
-        activityModel = job.getProcessModel().getActivity(modelId);
-        if (activityModel != null) {
-            // SDK-159: always call to have deep-trace evaluated
-            traceEnabled = checkTrace();
-        } else {
-            traceEnabled = false;
-        }
-    }
-
     public ActivityImpl(JobImpl job, ActivityModel model) {
         this.job = job;
         activityModel = Objects.requireNonNull(model);
@@ -126,21 +107,6 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
     @Override
     public void addPredecessor(String predecessorInstanceId, String transitionModelId) {
         getPredecessors().add(new Predecessor(transitionModelId, predecessorInstanceId));
-    }
-
-    /**
-     * Step to a new Activity with a given toActivityModelId.
-     * @deprecated SDK-140 Does not work for sub-processes.
-     * @param toActivityModelId to step to
-     * @return the ActivityBuilder for the new Activity
-     */
-    @Override
-    @Deprecated
-    public ActivityBuilder stepTo(String toActivityModelId) {
-        end();
-        ActivityBuilder builder = new ActivityBuilder(job, toActivityModelId);
-        builder.stepFrom(this);
-        return builder;
     }
 
     /**
@@ -208,21 +174,6 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
     }
 
     /**
-     * Step to a new Group with a given toGroupModelId.
-     * @deprecated SDK-140 Does not work for sub-processes.
-     * @param toGroupModelId to step to
-     * @return the GroupBuilder for the new Group
-     */
-    @Override
-    @Deprecated
-    public GroupBuilder stepToGroup(String toGroupModelId) {
-        end();
-        GroupBuilder builder = new GroupBuilder(job, toGroupModelId);
-        builder.stepFrom(this);
-        return builder;
-    }
-
-    /**
      * Step to a new Group with a given toGroupModel.
      *
      * @param toGroupModel to step to
@@ -285,10 +236,8 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
 
         if (extract != null) {
             ExtractHandler.handleExtract(job, extract, this, ExtractSource.INPUT, input, getInput());
-        } else if (activityModel == null) {
-            // deprecated SDK-140
-            ExtractHandler.handleExtract(job, this, ExtractSource.INPUT, input, getInput());
         }
+
         inputProcessecd = true;
     }
 
@@ -338,10 +287,8 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
         }
         if (extract != null) {
             ExtractHandler.handleExtract(job, extract, this, ExtractSource.OUTPUT, output, getOutput());
-        } else if (activityModel == null) {
-            // deprecated SDK-140
-            ExtractHandler.handleExtract(job, this, ExtractSource.OUTPUT, output, getOutput());
         }
+
         outputProcessed = true;
     }
 

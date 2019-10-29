@@ -38,32 +38,9 @@ public class GroupImpl extends ActivityImpl implements Group {
 
     private final Map<String, ActivityImpl> childActivities = new LinkedHashMap<>();
 
-    @Deprecated
-    public GroupImpl(JobImpl job, String modelId) {
-        super(job, modelId);
-        setMaxIterations(1L);
-    }
-
     public GroupImpl(JobImpl job, ActivityModel model) {
         super(job, model);
         setMaxIterations(1L);
-    }
-
-    /**
-     * Creates a new Activity as child activity of the current activity. This
-     * makes the current activity to a group, if it is not already one.
-     * @deprecated Does not work for sub-processes.
-     * @param childActivityModelId to step to
-     * @return the ActivityBuilder for the new Activity
-     */
-    @Deprecated
-    @Override
-    public ActivityBuilder createChildActivity(String childActivityModelId) {
-        JobImpl job = (JobImpl) getJob();
-        ActivityBuilder builder = new ActivityBuilder(job, childActivityModelId);
-        builder.setParent(this);
-        builder.setIteration(getMaxIterations());
-        return builder;
     }
 
     /**
@@ -143,22 +120,6 @@ public class GroupImpl extends ActivityImpl implements Group {
     @Override
     public void iterate() {
         setMaxIterations(getMaxIterations() + 1);
-    }
-
-    /**
-     * Creates a new Group as child group of the current group.
-     * @deprecated Does not work for sub-processes.
-     * @param childGroupModelId to step to
-     * @return the GroupBuilder for the new Group
-     */
-    @Override
-    @Deprecated
-    public GroupBuilder createChildGroup(String childGroupModelId) {
-        JobImpl job = (JobImpl) getJob();
-        GroupBuilder builder = new GroupBuilder(job, childGroupModelId);
-        builder.setParent(this);
-        builder.setIteration(getMaxIterations());
-        return builder;
     }
 
     /**

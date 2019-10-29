@@ -204,18 +204,6 @@ public class JobImpl implements Job {
     }
 
     /**
-     * Creates ActivityBuilder with a given activityModeId.
-     * @deprecated Does not work for sub-processes.
-     * @param activityModelId to create
-     * @return a builder
-     */
-    @Deprecated
-    @Override
-    public ActivityBuilder createActivity(String activityModelId) {
-        return new ActivityBuilder(this, getProcessModel().getActivity(activityModelId));
-    }
-
-    /**
      * Creates ActivityBuilder with a given ActivityModel.
      *
      * @param activityModel to create
@@ -230,18 +218,6 @@ public class JobImpl implements Job {
             return createSubProcess((SubProcessActivityModel) activityModel);
         }
         return new ActivityBuilder(this, activityModel);
-    }
-
-    /**
-     * Creates GroupBuilder with a given groupModelId.
-     * @deprecated Does not work for sub-processes.
-     * @param groupModelId to create
-     * @return a builder
-     */
-    @Deprecated
-    @Override
-    public GroupBuilder createGroup(String groupModelId) {
-        return new GroupBuilder(this, (GroupModel) getProcessModel().getActivity(groupModelId));
     }
 
     /**
@@ -632,17 +608,6 @@ public class JobImpl implements Job {
     }
 
     /**
-     * Return the ProcessModel
-     * @deprecated SDK-140 A job may use multiple process model.
-     * @return the ProcessModel
-     */
-    @Deprecated
-    @Override
-    public ProcessModel getProcessModel() {
-        return processModel;
-    }
-
-    /**
      * Sets the correlation log id of this job.
      *
      * @param correlationLogId collreation log id
@@ -900,16 +865,6 @@ public class JobImpl implements Job {
     }
 
     /**
-     * @deprecated Replaced by {@link #setInstrumented()} because a job once instrumented must not be reset to
-     * not-instrumented.
-     * @param instrumented the instrumented to set
-     */
-    @Deprecated
-    void setInstrumented(boolean instrumented) {
-        setInstrumented();
-    }
-
-    /**
      * Marks this job instance as instrumented.
      */
     void setInstrumented() {
@@ -1021,20 +976,6 @@ public class JobImpl implements Job {
      */
     public void addToEstimatedSize(long estimatedSize) {
         this.estimatedSize += estimatedSize;
-    }
-
-    @Override
-    @Deprecated
-    public boolean needsData(String activityModelId) {
-        if (deepTrace) {
-            return true;
-        }
-        ActivityModel activityModel = getProcessModel().getActivity(activityModelId);
-        if (activityModel != null) {
-            return needsData(activityModel);
-        }
-
-        return false;
     }
 
     @Override

@@ -31,13 +31,6 @@ import com.im.njams.sdk.model.TransitionModel;
  */
 public class GroupBuilder extends ActivityBuilder {
 
-    @Deprecated
-    GroupBuilder(JobImpl job, String modelId) {
-        super(getModel(job, modelId) != null ? new GroupImpl(job, getModel(job, modelId))
-                : new GroupImpl(job, modelId));
-        getActivity().setSequence(job.getNextSequence());
-    }
-
     GroupBuilder(JobImpl job, GroupModel model) {
         super(new GroupImpl(job, model));
         getActivity().setSequence(job.getNextSequence());
@@ -45,11 +38,6 @@ public class GroupBuilder extends ActivityBuilder {
 
     GroupBuilder(GroupImpl group) {
         super(group);
-    }
-
-    @Deprecated
-    private static GroupModel getModel(JobImpl job, String modelId) {
-        return (GroupModel) job.getProcessModel().getActivity(modelId);
     }
 
     /**

@@ -85,20 +85,6 @@ public class ExtractHandler {
     }
 
     /**
-     * @deprecated Use {@link #handleExtract(JobImpl, ActivityImpl, ExtractSource, Object, String)} instead.
-     * @param job The job in which the extract is to be handled
-     * @param activity The activity instance on that the extract is to be applied.
-     * @param direction Whether the extract applies to the activity's input or output data.
-     * @param sourceData The data object on that the extract is being evaluated.
-     * @param data The serialized data object on that the extract is being evaluated.
-     */
-    @Deprecated
-    public static void handleExtract(JobImpl job, ActivityImpl activity, String direction, Object sourceData,
-            String data) {
-        handleExtract(job, activity, ExtractSource.valueOf(direction), sourceData, data);
-    }
-
-    /**
      * Handle extract. Input is the sourceData object and the string data, which
      * is only filled if a tracepoint was already evaluated. If not, the
      * sourceData has to be serialized via Njams to get extractData.
@@ -113,17 +99,8 @@ public class ExtractHandler {
             Object sourceData, String data) {
         ActivityConfiguration config = null;
         ActivityModel model = activity.getActivityModel();
-        if (model == null) {
-            // deprecated
-            ProcessConfiguration processConfig = job.getNjams().getConfiguration()
-                    .getProcess(job.getProcessModel().getPath().toString());
-            if (processConfig == null) {
-                return;
-            }
-            processConfig.getActivity(activity.getModelId());
-        } else {
-            config = job.getActivityConfiguration(model);
-        }
+        config = job.getActivityConfiguration(model);
+
         if (config == null) {
             return;
         }

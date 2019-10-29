@@ -30,18 +30,6 @@ import com.im.njams.sdk.model.TransitionModel;
  */
 public class SubProcessActivityBuilder extends GroupBuilder {
 
-    /**
-     * @deprecated SDK-140
-     * @param job
-     * @param modelId
-     */
-    @Deprecated
-    SubProcessActivityBuilder(JobImpl job, String modelId) {
-        super(getModel(job, modelId) != null ? new SubProcessActivityImpl(job, getModel(job, modelId))
-                : new SubProcessActivityImpl(job, modelId));
-        getActivity().setSequence(job.getNextSequence());
-    }
-
     SubProcessActivityBuilder(JobImpl job, SubProcessActivityModel model) {
         super(new SubProcessActivityImpl(job, model));
         getActivity().setSequence(job.getNextSequence());
@@ -49,11 +37,6 @@ public class SubProcessActivityBuilder extends GroupBuilder {
 
     SubProcessActivityBuilder(SubProcessActivityImpl subProcess) {
         super(subProcess);
-    }
-
-    @Deprecated
-    private static SubProcessActivityModel getModel(JobImpl job, String modelId) {
-        return (SubProcessActivityModel) job.getProcessModel().getActivity(modelId);
     }
 
     /**

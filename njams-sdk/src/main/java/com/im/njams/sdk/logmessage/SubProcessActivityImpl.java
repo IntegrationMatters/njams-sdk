@@ -26,17 +26,6 @@ import com.im.njams.sdk.model.SubProcessActivityModel;
  */
 public class SubProcessActivityImpl extends GroupImpl implements SubProcessActivity {
 
-    /**
-     * Create SubProcessActivityImpl with given JobImpl
-     * @deprecated SDK-140
-     * @param job Job which contains this SubProcessActivityImpl
-     * @param modelId The activity model ID for this instance.
-     */
-    @Deprecated
-    public SubProcessActivityImpl(JobImpl job, String modelId) {
-        super(job, modelId);
-    }
-
     public SubProcessActivityImpl(JobImpl job, SubProcessActivityModel model) {
         super(job, model);
     }

@@ -22,6 +22,7 @@ import static org.junit.Assert.assertThat;
 import java.time.LocalDateTime;
 import java.util.Properties;
 
+import com.im.njams.sdk.model.ActivityModel;
 import org.junit.Test;
 
 import com.faizsiegeln.njams.messageformat.v4.logmessage.ActivityStatus;
@@ -57,7 +58,8 @@ public class JobTest {
 
         //Creates an empty process model
         ProcessModel process = njams.createProcess(processPath);
-        process.createActivity("a", "a", "a").transitionTo("b", "b", "b");
+        ActivityModel actModelA = process.createActivity("a", "a", "a");
+        ActivityModel actModelB = actModelA.transitionTo("b", "b", "b");
         njams.start();
 
         ExtractRule rule = new ExtractRule();
@@ -88,13 +90,13 @@ public class JobTest {
         job.start();
 
         //Create activitys
-        Activity a = job.createActivity("a").setExecution(LocalDateTime.now()).setActivityStatus(ActivityStatus.SUCCESS)
+        Activity a = job.createActivity(actModelA).setExecution(LocalDateTime.now()).setActivityStatus(ActivityStatus.SUCCESS)
                 .build();
         assertThat(job.getStatus(), is(JobStatus.RUNNING));
         assertThat(job.getMaxSeverity(), is(JobStatus.RUNNING));
 
         //step to b
-        Activity b = a.stepTo("b").setExecution(LocalDateTime.now()).build();
+        Activity b = a.stepTo(actModelB).setExecution(LocalDateTime.now()).build();
         b.end();
         assertThat(job.getStatus(), is(JobStatus.ERROR));
         assertThat(job.getMaxSeverity(), is(JobStatus.ERROR));

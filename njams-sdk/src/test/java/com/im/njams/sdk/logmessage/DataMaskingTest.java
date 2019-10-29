@@ -45,7 +45,6 @@ public class DataMaskingTest {
     @BeforeClass
     public static void mockFields() {
         doAnswer(invocation -> true).when(JOB).isDeepTrace();
-        doAnswer(invocation -> MODEL).when(JOB).getProcessModel();
         doAnswer(invocation -> NJAMS).when(MODEL).getNjams();
         doAnswer(invocation -> NJAMS).when(JOB).getNjams();
         doAnswer(invocation -> invocation.getArguments()[0]).when(NJAMS).serialize(anyObject());

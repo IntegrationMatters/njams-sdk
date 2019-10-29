@@ -42,30 +42,12 @@ public interface Job {
     public void addActivity(final Activity activity);
 
     /**
-     * Creates ActivityBuilder with a given activityModeId.
-     * @deprecated Does not work for sub-processes.
-     * @param activityModelId to create
-     * @return a builder
-     */
-    @Deprecated
-    public ActivityBuilder createActivity(String activityModelId);
-
-    /**
      * Creates ActivityBuilder with a given ActivityModel.
      *
      * @param activityModel to create
      * @return a builder
      */
     public ActivityBuilder createActivity(ActivityModel activityModel);
-
-    /**
-     * Creates GroupBuilder with a given groupModelId.
-     * @deprecated Does not work for sub-processes.
-     * @param groupModelId to create
-     * @return a builder
-     */
-    @Deprecated
-    public GroupBuilder createGroup(String groupModelId);
 
     /**
      * Creates GroupBuilder with a given GroupModel.
@@ -197,15 +179,6 @@ public interface Job {
      * @return the parentLogId
      */
     public String getParentLogId();
-
-    /**
-     * Return the ProcessModel
-     * @deprecated SDK-140 A job may use multiple process models.
-     *
-     * @return the ProcessModel
-     */
-    @Deprecated
-    public ProcessModel getProcessModel();
 
     /**
      * Gets a properties value. Properties will not be send within project
@@ -412,16 +385,6 @@ public interface Job {
      * set before, and flags the job to begin flushing.
      */
     public void start();
-
-    /**
-     * Returns true if a Activity for a given activityModelId needs input or
-     * output data, based on extracts and tracepoints
-     * @deprecated Does not work for sub-processes. Use {@link #needsData(ActivityModel)} instead.
-     * @param activityModelId activityModelId to check
-     * @return boolean if true
-     */
-    @Deprecated
-    public boolean needsData(String activityModelId);
 
     /**
      * Returns <code>true</code> if activities for a given activityModel require input or

@@ -30,30 +30,12 @@ import com.im.njams.sdk.model.SubProcessActivityModel;
 public interface Activity extends IActivity {
 
     /**
-     * Step to a new Activity with a given toActivityModelId.
-     * @deprecated SDK-140 Does not work for sub-processes.
-     * @param toActivityModelId to step to
-     * @return the ActivityBuilder for the new Activity
-     */
-    @Deprecated
-    public ActivityBuilder stepTo(String toActivityModelId);
-
-    /**
      * Step to a new Activity with a given toActivityModel.
      *
      * @param toActivityModel to step to
      * @return the ActivityBuilder for the new Activity
      */
     public ActivityBuilder stepTo(ActivityModel toActivityModel);
-
-    /**
-     * Step to a new Group with a given toGroupModelId.
-     * @deprecated SDK-140 Does not work for sub-processes.
-     * @param toGroupModelId to step to
-     * @return the GroupBuilder for the new Group
-     */
-    @Deprecated
-    public GroupBuilder stepToGroup(String toGroupModelId);
 
     /**
      * Step to a new Group with a given toGroupModel.

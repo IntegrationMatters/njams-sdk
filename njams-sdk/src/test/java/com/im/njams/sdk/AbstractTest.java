@@ -155,7 +155,7 @@ public abstract class AbstractTest {
      * @return a fully filled activity.
      */
     protected ActivityImpl createFullyFilledActivity(JobImpl job) {
-        ActivityImpl act = (ActivityImpl) job.createActivity("id").build();
+        ActivityImpl act = (ActivityImpl) job.createActivity(getDefaultActivityModel()).build();
         act.setInput("SomeInput");
         act.setOutput("SomeOutput");
         act.setMaxIterations(5L);

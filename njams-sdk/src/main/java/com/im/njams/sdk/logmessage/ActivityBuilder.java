@@ -37,22 +37,6 @@ public class ActivityBuilder {
     //The activity which will be build by this builder
     private final ActivityImpl activity;
 
-    /**
-     * @deprecated SDK-140
-     * @param job
-     * @param modelId
-     */
-    @Deprecated
-    ActivityBuilder(JobImpl job, String modelId) {
-        ActivityModel model = job.getProcessModel().getActivity(modelId);
-        if (model == null) {
-            activity = new ActivityImpl(job, modelId);
-        } else {
-            activity = new ActivityImpl(job, model);
-        }
-        activity.setSequence(job.getNextSequence());
-    }
-
     ActivityBuilder(JobImpl job, ActivityModel model) {
         activity = new ActivityImpl(job, model);
         activity.setSequence(job.getNextSequence());
