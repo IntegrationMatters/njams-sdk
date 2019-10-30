@@ -148,6 +148,7 @@ public class JobImpl implements Job {
     private final Object errorLock = new Object();
     private ActivityImpl errorActivity = null;
     private ErrorEvent errorEvent = null;
+    /** Setting for enabling the logAllErrors feature. */
     public static final String LOG_ALL_ERRORS = "njams.sdk.logAllErrors";
     private final boolean allErrors;
 
