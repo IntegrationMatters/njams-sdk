@@ -174,7 +174,7 @@ public class ErrorEvent {
     /**
      * Set the event time
      *
-     * @param executionTime the event time to set
+     * @param eventTime the event time to set
      * @return this event
      */
     public ErrorEvent setEventTime(final LocalDateTime eventTime) {

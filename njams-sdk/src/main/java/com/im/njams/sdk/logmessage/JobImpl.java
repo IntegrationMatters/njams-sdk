@@ -148,6 +148,7 @@ public class JobImpl implements Job {
     private final Object errorLock = new Object();
     private ActivityImpl errorActivity = null;
     private ErrorEvent errorEvent = null;
+    /** Setting for enabling the logAllErrors feature. */
     public static final String LOG_ALL_ERRORS = "njams.sdk.logAllErrors";
     private final boolean allErrors;
 
@@ -577,8 +578,8 @@ public class JobImpl implements Job {
             }
             //end all not ended activities
             activities.values().stream()
-            .filter(a -> a.getActivityStatus() == null || a.getActivityStatus() == ActivityStatus.RUNNING)
-            .forEach(a -> a.end());
+                    .filter(a -> a.getActivityStatus() == null || a.getActivityStatus() == ActivityStatus.RUNNING)
+                    .forEach(a -> a.end());
             if (getEndTime() == null) {
                 setEndTime(DateTimeUtility.now());
             }
@@ -1259,7 +1260,7 @@ public class JobImpl implements Job {
     public String toString() {
         StringBuilder sb = new StringBuilder();
         sb.append("JobImpl[process=").append(processModel.getName()).append("; logId=").append(getLogId())
-        .append("; jobId=").append(getJobId()).append(']');
+                .append("; jobId=").append(getJobId()).append(']');
         return sb.toString();
     }
 
