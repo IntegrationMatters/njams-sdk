@@ -6,6 +6,7 @@
     <artifactId>njams4-sdk</artifactId>
     <name>njams4-sdk</name>
 
+
     <parent>
         <groupId>com.faizsiegeln</groupId>
         <artifactId>njams4-sdk-root</artifactId>
