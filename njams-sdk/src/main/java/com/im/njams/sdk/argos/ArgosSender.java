@@ -191,7 +191,7 @@ public class ArgosSender implements Runnable, AutoCloseable {
                 ArgosMetric collectedStatistics = collector.collect();
 
                 String data = serializeStatistics(collectedStatistics);
-                LOG.error("{}", data);
+                LOG.trace("Sending: {}", data);
                 byte[] buf = data.getBytes();
                 DatagramPacket packet = new DatagramPacket(buf, buf.length, ip, port);
                 socket.send(packet);
