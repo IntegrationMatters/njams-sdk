@@ -16,6 +16,7 @@
  */
 package com.im.njams.sdk.logmessage;
 
+import com.faizsiegeln.njams.messageformat.v4.logmessage.ActivityStatus;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 
 /**
@@ -51,6 +52,19 @@ public enum EventStatus {
      */
     public int getValue() {
         return value;
+    }
+
+    public ActivityStatus mapToActivityStatus() {
+        switch (this) {
+        case SUCCESS:
+            return ActivityStatus.SUCCESS;
+        case ERROR:
+            return ActivityStatus.ERROR;
+        case WARNING:
+            return ActivityStatus.WARNING;
+        default:
+            return ActivityStatus.RUNNING;
+        }
     }
 
     /**

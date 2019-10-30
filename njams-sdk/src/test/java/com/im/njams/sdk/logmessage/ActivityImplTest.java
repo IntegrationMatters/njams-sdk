@@ -79,7 +79,7 @@ public class ActivityImplTest extends AbstractTest {
 
         //Here the EventStatus is set to null, but the JobStatus is not affected.
         //The JobStatus is still SUCCESS.
-        act.setEventStatus(null);
+        act.setEventStatus((Integer) null);
         assertEquals(null, act.getEventStatus());
         assertEquals(JobStatus.SUCCESS, job.getStatus());
 

@@ -68,9 +68,9 @@ public class JobImpl implements Job {
 
     private final String logId;
     /*
-     * the status of the job
+     * the latest status of the job, set by any event
      */
-    private JobStatus status;
+    private JobStatus lastStatus = JobStatus.CREATED;
 
     /*
      * maximum severity recorded
@@ -145,6 +145,12 @@ public class JobImpl implements Job {
 
     private LocalDateTime businessStart;
 
+    private final Object errorLock = new Object();
+    private ActivityImpl errorActivity = null;
+    private ErrorEvent errorEvent = null;
+    public static final String LOG_ALL_ERRORS = "njams.sdk.logAllErrors";
+    private final boolean allErrors;
+
     /**
      * Create a job with a givenModelId, a jobId and a logId
      *
@@ -169,6 +175,7 @@ public class JobImpl implements Job {
         //will be set to true.
         startTime = DateTimeUtility.now();
         startTimeExplicitlySet = false;
+        allErrors = "true".equalsIgnoreCase(njams.getSettings().getProperties().getProperty(LOG_ALL_ERRORS));
     }
 
     /**
@@ -413,7 +420,7 @@ public class JobImpl implements Job {
                 }
                 flushCounter.incrementAndGet();
                 lastFlush = DateTimeUtility.now();
-                LogMessage logMessage = createLogMessage(this);
+                LogMessage logMessage = createLogMessage();
                 addToLogMessageAndCleanup(logMessage);
                 logMessage.setSentAt(lastFlush);
                 processModel.getNjams().getSender().send(logMessage);
@@ -472,15 +479,13 @@ public class JobImpl implements Job {
     }
 
     private boolean isLogLevelHigherAsJobStateAndHasNoTraces() {
+        boolean b = hasStarted() && maxSeverity.getValue() < logLevel.value() && !traces;
+
         if (LOG.isDebugEnabled()) {
-            LOG.debug("{} : {}, {}", getStatus(), logLevel.value(), traces);
+            LOG.debug("hasStarted[{}] && maxSeverity[{}] < logLevel[{}] && !traces[{}] == {}", hasStarted(),
+                    maxSeverity.getValue(), logLevel.value(), traces, b);
         }
-        if (hasStarted() && status.getValue() < logLevel.value() && !traces) {
-            LOG.debug("isLogLevelHigherAsJobStateAndHasNoTraces: true");
-            return true;
-        } else {
-            return false;
-        }
+        return b;
     }
 
     /**
@@ -490,7 +495,7 @@ public class JobImpl implements Job {
      * @param job the job whose fields will be send
      * @return the created and with the job's information filled logMessage
      */
-    private LogMessage createLogMessage(JobImpl job) {
+    private LogMessage createLogMessage() {
         LOG.trace("Creating LogMessage for job with logId: {}", logId);
         LogMessage logMessage = new LogMessage();
         logMessage.setBusinessEnd(businessEnd);
@@ -504,13 +509,16 @@ public class JobImpl implements Job {
         logMessage.setLogId(logId);
         logMessage.setMachineName(processModel.getNjams().getMachine());
         logMessage.setMaxSeverity(maxSeverity.getValue());
-        logMessage.setMessageNo(job.flushCounter.get());
+        logMessage.setMessageNo(flushCounter.get());
         logMessage.setObjectName(businessObject);
         logMessage.setParentLogId(parentLogId);
         logMessage.setPath(processModel.getPath().toString());
         logMessage.setProcessName(processModel.getName());
-        logMessage.setStatus(status.getValue());
+        logMessage.setStatus(getStatus().getValue());
         logMessage.setServiceName(businessService);
+        logMessage.setClientVersion(njams.getClientVersion());
+        logMessage.setSdkVersion(njams.getSdkVersion());
+
         //attribute
         synchronized (attributes) {
             attributes.entrySet().forEach(e -> logMessage.addAtribute(e.getKey(), e.getValue()));
@@ -550,34 +558,115 @@ public class JobImpl implements Job {
     }
 
     /**
-     * Set the logMessage status to success if the status is running. Then flush
-     * it. If the job has been finished before or if the job hasn't been started
-     * before it is finished, an NjamsSdkRuntimeException is thrown.
+     * @param normalCompletion Set to <code>true</code> if the engine reported the job to complete normally, or
+     * <code>false</code> if the engine reported that the job execution has failed.
      */
     @Override
-    public void end() {
+    public void end(boolean normalCompletion) {
         if (finished) {
             throw new NjamsSdkRuntimeException("Job already finished");
         }
         synchronized (activities) {
+            if (!normalCompletion) {
+                // unhandled error
+                lastStatus = JobStatus.ERROR;
+                commitActivityError();
+            } else if (lastStatus == null || lastStatus.getValue() <= JobStatus.RUNNING.getValue()) {
+                // if we never had a status update, we are setting SUCCESS
+                lastStatus = JobStatus.SUCCESS;
+            }
             //end all not ended activities
             activities.values().stream()
                     .filter(a -> a.getActivityStatus() == null || a.getActivityStatus() == ActivityStatus.RUNNING)
                     .forEach(a -> a.end());
-
-            if (!hasStarted()) {
-                setStatusAndSeverity(JobStatus.WARNING);
-                LOG.warn("Job has been finished before it started.");
-            } else if (status == JobStatus.RUNNING) {
-                setStatusAndSeverity(JobStatus.SUCCESS);
-            }
             if (getEndTime() == null) {
                 setEndTime(DateTimeUtility.now());
             }
-            flush();
+            if (!hasStarted()) {
+                LOG.warn("Job has been finished before it started.");
+            }
             finished = true;
             processModel.getNjams().removeJob(getJobId());
+            flush();
         }
+    }
+
+    /**
+     * If the job has failed, there was an unhandled error that should have been recorded by
+     * {@link #setActivityErrorEvent(Activity, ErrorEvent)}. If so, the error is now committed to an according error
+     * event on this activity.
+     */
+    private void commitActivityError() {
+        if (allErrors) {
+            return;
+        }
+        synchronized (errorLock) {
+            if (errorActivity != null) {
+                LOG.debug("Committing error event to {}", errorActivity);
+                updateActivityErrorEvent(errorActivity, errorEvent);
+                if (getActivityByInstanceId(errorActivity.getInstanceId()) == null) {
+                    addActivity(errorActivity);
+                }
+                errorActivity = null;
+                errorEvent = null;
+            }
+        }
+    }
+
+    /**
+     * Records that an error occurred for the given activity. Whether or not an according event is
+     * generated depends on the {@link JobImpl#LOG_ALL_ERRORS} setting, or the job's end status
+     * reported by the executing engine.
+     *
+     * @param errorActivity The activity instance on that the given error occurred.
+     * @param errorEvent Information about the error that occurred. This information is used for
+     * generating an according event if required.
+     */
+    public void setActivityErrorEvent(Activity errorActivity, ErrorEvent errorEvent) {
+        if (errorActivity != null && errorEvent != null) {
+            if (allErrors) {
+                // add the event to the activity
+                LOG.debug("Adding error event to {}", errorActivity);
+                updateActivityErrorEvent((ActivityImpl) errorActivity, errorEvent);
+            } else {
+                // store as last error until job-end
+                LOG.debug("Storing error event for {}", errorActivity);
+                synchronized (errorLock) {
+                    this.errorActivity = (ActivityImpl) errorActivity;
+                    this.errorEvent = errorEvent;
+                }
+            }
+        }
+    }
+
+    /**
+     * Update the event information on the given activity, based on the given error information.
+     * @param activity
+     * @param errorEvent
+     */
+    private void updateActivityErrorEvent(ActivityImpl activity, ErrorEvent errorEvent) {
+        EventStatus status = errorEvent.getStatus() == null ? EventStatus.ERROR : errorEvent.getStatus();
+        activity.setActivityStatus(status.mapToActivityStatus());
+        activity.setEventStatus(status);
+        if (activity.getExecution() == null) {
+            activity.setExecution(errorEvent.getEventTime() == null ? DateTimeUtility.now() : errorEvent.getEventTime());
+        }
+        activity.setEventCode(errorEvent.getCode());
+        activity.setEventMessage(errorEvent.getMessage());
+        activity.setEventPayload(errorEvent.getPayload());
+        activity.setStackTrace(errorEvent.getStacktrace());
+    }
+
+    /**
+     * Set the logMessage status to success if the status is running. Then flush
+     * it. If the job has been finished before or if the job hasn't been started
+     * before it is finished, an NjamsSdkRuntimeException is thrown.
+     * @deprecated Replaced by {@link #end(boolean)}
+     */
+    @Override
+    @Deprecated
+    public void end() {
+        end(true);
     }
 
     /**
@@ -612,20 +701,22 @@ public class JobImpl implements Job {
     }
 
     private void setStatusAndSeverity(JobStatus status) {
-        this.status = status;
-        if (maxSeverity == null || maxSeverity.getValue() < this.status.getValue()) {
+        lastStatus = status;
+        if (maxSeverity == null || maxSeverity.getValue() < lastStatus.getValue()) {
             maxSeverity = status;
         }
     }
 
     /**
-     * Gets a status for this {@link Job}
+     * Returns the status for this {@link Job}.
      *
-     * @return the status
+     * @return {@link JobStatus#CREATED} before this job has been started, then {@link JobStatus#RUNNING} until
+     * the job has ended. Finally, when the job has ended, its final status is returned.
      */
     @Override
     public JobStatus getStatus() {
-        return status;
+        return finished ? lastStatus : hasStarted() ? JobStatus.RUNNING : JobStatus.CREATED;
+
     }
 
     /**
@@ -642,7 +733,7 @@ public class JobImpl implements Job {
     /**
      * Sets the correlation log id of this job.
      *
-     * @param correlationLogId collreation log id
+     * @param correlationLogId correlation log id
      */
     @Override
     public void setCorrelationLogId(final String correlationLogId) {
@@ -1141,7 +1232,7 @@ public class JobImpl implements Job {
      * ERROR). return false, if the job hasn't been started (CREATED)
      */
     public boolean hasStarted() {
-        return status != JobStatus.CREATED;
+        return lastStatus != JobStatus.CREATED;
     }
 
     /**
