@@ -68,8 +68,20 @@ public interface Job {
     /**
      * Set the logMessage status to success if the status is running. Then flush
      * it
+     * @deprecated Replaced by {@link #end(boolean)}
      */
+    @Deprecated
     public void end();
+
+    /**
+     * Ends processing for this job instance.
+     * @param normalCompletion Whether the executing engine reported normal completion for this job,
+     * or a failure (<code>false</code>).<br>
+     * This value is used for calculating job status. If the engine reports a fault (<code>false</code>)
+     * the job will always gets {@link JobStatus#ERROR}. Otherwise the status results from
+     * the nJAMS events that have been generated during execution.
+     */
+    public void end(boolean normalCompletion);
 
     /**
      * Return all Activities
@@ -375,9 +387,11 @@ public interface Job {
     /**
      * Sets a status for this {@link Job}. Also set the maxSeverityStatus if it
      * is not set or lower than the status
-     *
+     * @deprecated Manually setting the job status is no longer supported; status is calculated based
+     * on activities/events and the executing engine's process result.
      * @param status the status to set
      */
+    @Deprecated
     public void setStatus(JobStatus status);
 
     /**

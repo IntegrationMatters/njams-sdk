@@ -116,4 +116,23 @@ public interface Activity extends IActivity {
      * @param startData startData to add
      */
     public void processStartData(Object startData);
+
+    /**
+     * Sets the EventStatus for this job. The status of the corresponding job to this
+     * activity will be set to SUCCESS, WARNING or ERROR likewise. For INFO only
+     * the eventStatus will be set, but the job status will stay the same.
+     *
+     * @param status eventStatus to set.
+     */
+    public void setEventStatus(EventStatus status);
+
+    /**
+     * Records that an error occurred when executing this activity instance . Whether or not an
+     * according event is generated depends on the {@value JobImpl#LOG_ALL_ERRORS} setting,
+     * or the job's end status reported by the executing engine.
+     *
+     * @param errorEvent Information about the error that occurred. This information is used for
+     * generating an according event if required.
+     */
+    public void setActivityError(ErrorEvent errorEvent);
 }

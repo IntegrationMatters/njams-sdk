@@ -257,7 +257,7 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
         }
         if (this instanceof GroupImpl) {
             ((GroupImpl) this).getChildActivities().stream()
-                    .filter(a -> a.getActivityStatus() == ActivityStatus.RUNNING).forEach(a -> a.end());
+            .filter(a -> a.getActivityStatus() == ActivityStatus.RUNNING).forEach(a -> a.end());
         }
         //process input and output if not done yet, for extract rules which do not need data
         if (!inputProcessecd) {
@@ -382,13 +382,39 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
      */
     @Override
     public void setEventStatus(Integer eventStatus) {
+        if (eventStatus == null) {
+            super.setEventStatus(null);
+            return;
+        }
         try {
-            //This will cause a NjamsSdkRuntimeException, if the eventStatus
-            //is not valid.
-            EventStatus.byValue(eventStatus);
+            //This will cause a NjamsSdkRuntimeException, if the eventStatus is not valid.
+            //            EventStatus.byValue(eventStatus);
+            setEventStatus(EventStatus.byValue(eventStatus));
+        } catch (NjamsSdkRuntimeException e) {
+            LOG.error("{} for job with logId: {}. Using old status: {}", e.getMessage(), job.getLogId(),
+                    super.getEventStatus());
+        }
+
+    }
+
+    /**
+     * Sets the EventStatus for this job. The status of the corresponding job to this
+     * activity will be set to SUCCESS, WARNING or ERROR likewise. For INFO only
+     * the eventStatus will be set, but the job status will stay the same.
+     *
+     * @param status eventStatus to set.
+     */
+    @Override
+    public void setEventStatus(EventStatus status) {
+        if (status == null) {
+            super.setEventStatus(null);
+            return;
+        }
+        try {
             setExecutionIfNotSet();
+            int eventStatus = status.getValue();
             super.setEventStatus(eventStatus);
-            if (eventStatus != null && 1 <= eventStatus && eventStatus <= 3) {
+            if (1 <= eventStatus && eventStatus <= 3) {
                 JobStatus possibleStatus = JobStatus.byValue(eventStatus);
                 if (LOG.isTraceEnabled()) {
                     LOG.trace("This status was set to job {} : {}", job.getLogId(), possibleStatus);
@@ -400,6 +426,11 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
             LOG.error("{} for job with logId: {}. Using old status: {}", e.getMessage(), job.getLogId(),
                     super.getEventStatus());
         }
+    }
+
+    @Override
+    public void setActivityError(ErrorEvent errorEvent) {
+        job.setActivityErrorEvent(this, errorEvent);
     }
 
     private void setExecutionIfNotSet() {
