@@ -553,8 +553,8 @@ public class JobImpl implements Job {
             }
             //end all not ended activities
             activities.values().stream()
-                    .filter(a -> a.getActivityStatus() == null || a.getActivityStatus() == ActivityStatus.RUNNING)
-                    .forEach(a -> a.end());
+            .filter(a -> a.getActivityStatus() == null || a.getActivityStatus() == ActivityStatus.RUNNING)
+            .forEach(a -> a.end());
             if (getEndTime() == null) {
                 setEndTime(DateTimeUtility.now());
             }
@@ -574,6 +574,7 @@ public class JobImpl implements Job {
      */
     private void commitActivityError() {
         if (allErrors) {
+            // all errors have already been added to their activities.
             return;
         }
         synchronized (errorLock) {
@@ -581,6 +582,7 @@ public class JobImpl implements Job {
                 LOG.debug("Committing error event to {}", errorActivity);
                 updateActivityErrorEvent(errorActivity, errorEvent);
                 if (getActivityByInstanceId(errorActivity.getInstanceId()) == null) {
+                    // the activity is already sent, i.e., re-send
                     addActivity(errorActivity);
                 }
                 errorActivity = null;
@@ -601,11 +603,11 @@ public class JobImpl implements Job {
     public void setActivityErrorEvent(Activity errorActivity, ErrorEvent errorEvent) {
         if (errorActivity != null && errorEvent != null) {
             if (allErrors) {
-                // add the event to the activity
+                // add all errors directly to the activity
                 LOG.debug("Adding error event to {}", errorActivity);
                 updateActivityErrorEvent((ActivityImpl) errorActivity, errorEvent);
             } else {
-                // store as last error until job-end
+                // store as last error until job-end; then we know whether to add or ignore it
                 LOG.debug("Storing error event for {}", errorActivity);
                 synchronized (errorLock) {
                     this.errorActivity = (ActivityImpl) errorActivity;
@@ -1198,7 +1200,7 @@ public class JobImpl implements Job {
     public String toString() {
         StringBuilder sb = new StringBuilder();
         sb.append("JobImpl[process=").append(processModel.getName()).append("; logId=").append(getLogId())
-                .append("; jobId=").append(getJobId()).append(']');
+        .append("; jobId=").append(getJobId()).append(']');
         return sb.toString();
     }
 

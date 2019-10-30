@@ -16,6 +16,30 @@
  */
 package com.im.njams.sdk.logmessage;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Matchers.any;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.when;
+
+import java.time.LocalDateTime;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.regex.Pattern;
+
+import org.junit.After;
+import org.junit.Test;
+import org.mockito.Mockito;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
+
 import com.faizsiegeln.njams.messageformat.v4.common.CommonMessage;
 import com.faizsiegeln.njams.messageformat.v4.logmessage.ActivityStatus;
 import com.faizsiegeln.njams.messageformat.v4.logmessage.LogMessage;
@@ -30,21 +54,6 @@ import com.im.njams.sdk.model.GroupModel;
 import com.im.njams.sdk.model.ProcessModel;
 import com.im.njams.sdk.settings.Settings;
 import com.im.njams.sdk.utils.StringUtils;
-import org.junit.After;
-import org.junit.Test;
-import org.mockito.Mockito;
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.stubbing.Answer;
-
-import java.time.LocalDateTime;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.regex.Pattern;
-
-import static org.junit.Assert.*;
-import static org.mockito.Matchers.any;
-import static org.mockito.Mockito.*;
 
 /**
  * This class tests some methods of the JobImpl.
@@ -310,15 +319,15 @@ public class JobImplTest extends AbstractTest {
         assertFalse(job.isFinished());
         //Success
         job.setStatus(JobStatus.SUCCESS);
-        assertEquals(JobStatus.SUCCESS, job.getStatus());
+        assertEquals(JobStatus.RUNNING, job.getStatus());
         assertFalse(job.isFinished());
         //Warning
         job.setStatus(JobStatus.WARNING);
-        assertEquals(JobStatus.WARNING, job.getStatus());
+        assertEquals(JobStatus.RUNNING, job.getStatus());
         assertFalse(job.isFinished());
         //Error
         job.setStatus(JobStatus.ERROR);
-        assertEquals(JobStatus.ERROR, job.getStatus());
+        assertEquals(JobStatus.RUNNING, job.getStatus());
         assertFalse(job.isFinished());
         //End
         job.end();
@@ -418,7 +427,7 @@ public class JobImplTest extends AbstractTest {
         JobImpl job = createDefaultJob();
 
         job.end();
-        assertTrue(job.getStatus() == JobStatus.WARNING);
+        assertTrue(job.getStatus() == JobStatus.SUCCESS);
     }
 
     /**
@@ -470,7 +479,7 @@ public class JobImplTest extends AbstractTest {
     }
 
     @Test
-    public void testSetStartActivity(){
+    public void testSetStartActivity() {
         JobImpl job = createDefaultStartedJob();
 
         assertNull(job.getStartActivity());
@@ -484,7 +493,7 @@ public class JobImplTest extends AbstractTest {
     }
 
     @Test
-    public void testSetStartActivityAndFlushIt(){
+    public void testSetStartActivityAndFlushIt() {
         JobImpl job = createDefaultStartedJob();
 
         Activity startedActivity = getStartedActivityForJob(job);
@@ -500,7 +509,7 @@ public class JobImplTest extends AbstractTest {
     }
 
     @Test(expected = NjamsSdkRuntimeException.class)
-    public void setMoreStartActivities(){
+    public void setMoreStartActivities() {
         JobImpl job = createDefaultStartedJob();
 
         Activity startedActivity = getStartedActivityForJob(job);
@@ -509,7 +518,7 @@ public class JobImplTest extends AbstractTest {
     }
 
     @Test(expected = NjamsSdkRuntimeException.class)
-    public void setMoreStartActivitiesAfterFlushingTheFirstStartActivity(){
+    public void setMoreStartActivitiesAfterFlushingTheFirstStartActivity() {
         JobImpl job = createDefaultStartedJob();
 
         Activity startedActivity = getStartedActivityForJob(job);
