@@ -75,40 +75,40 @@ public class ActivityImplTest extends AbstractTest {
         //Here the EventStatus is set to SUCCESS and the JobStatus likewise.
         act.setEventStatus(1);
         assertTrue(1 == act.getEventStatus());
-        assertEquals(JobStatus.SUCCESS, job.getStatus());
+        assertEquals(JobStatus.RUNNING, job.getStatus());
 
         //Here the EventStatus is set to null, but the JobStatus is not affected.
         //The JobStatus is still SUCCESS.
         act.setEventStatus((Integer) null);
         assertEquals(null, act.getEventStatus());
-        assertEquals(JobStatus.SUCCESS, job.getStatus());
+        assertEquals(JobStatus.RUNNING, job.getStatus());
 
         //Here the EventStatus is set to INFO, but the JobStatus is not affected.
         //The JobStatus is still SUCCESS.
         act.setEventStatus(0);
         assertTrue(0 == act.getEventStatus());
-        assertEquals(JobStatus.SUCCESS, job.getStatus());
+        assertEquals(JobStatus.RUNNING, job.getStatus());
 
         //Here an invalid Status is tested again. After that the EventStatus
         //is still INFO and the JobStatus is still SUCCESS.
         act.setEventStatus(Integer.MIN_VALUE);
         assertTrue(0 == act.getEventStatus());
-        assertEquals(JobStatus.SUCCESS, job.getStatus());
+        assertEquals(JobStatus.RUNNING, job.getStatus());
 
         //Here the Event Status is set to WARNING and the JobStatus likewise.
         act.setEventStatus(2);
         assertTrue(2 == act.getEventStatus());
-        assertEquals(JobStatus.WARNING, job.getStatus());
+        assertEquals(JobStatus.RUNNING, job.getStatus());
 
         //Here the Event Status is set to ERROR and the JobStatus likewise.
         act.setEventStatus(3);
         assertTrue(3 == act.getEventStatus());
-        assertEquals(JobStatus.ERROR, job.getStatus());
+        assertEquals(JobStatus.RUNNING, job.getStatus());
 
         //Here the Event Status is set back to WARNING and the JobStatus likewise.
         act.setEventStatus(2);
         assertTrue(2 == act.getEventStatus());
-        assertEquals(JobStatus.WARNING, job.getStatus());
+        assertEquals(JobStatus.RUNNING, job.getStatus());
     }
 
     /**

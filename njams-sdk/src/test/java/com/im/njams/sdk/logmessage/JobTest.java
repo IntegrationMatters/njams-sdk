@@ -88,19 +88,20 @@ public class JobTest {
         job.start();
 
         //Create activitys
-        Activity a = job.createActivity("a").setExecution(LocalDateTime.now()).setActivityStatus(ActivityStatus.SUCCESS)
-                .build();
+        Activity a =
+                job.createActivity("a").setExecution(LocalDateTime.now()).setActivityStatus(ActivityStatus.SUCCESS)
+                        .build();
         assertThat(job.getStatus(), is(JobStatus.RUNNING));
         assertThat(job.getMaxSeverity(), is(JobStatus.RUNNING));
 
         //step to b
         Activity b = a.stepTo("b").setExecution(LocalDateTime.now()).build();
         b.end();
-        assertThat(job.getStatus(), is(JobStatus.ERROR));
+        assertThat(job.getStatus(), is(JobStatus.RUNNING));
         assertThat(job.getMaxSeverity(), is(JobStatus.ERROR));
 
         ActivityImpl bExt = (ActivityImpl) b;
-        assertThat(job.getStatus(), is(JobStatus.ERROR));
+        assertThat(job.getStatus(), is(JobStatus.RUNNING));
         assertThat(job.getMaxSeverity(), is(JobStatus.ERROR));
     }
 }
