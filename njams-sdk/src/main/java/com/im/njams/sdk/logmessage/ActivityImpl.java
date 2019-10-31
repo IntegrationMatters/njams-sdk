@@ -430,6 +430,7 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
 
     @Override
     public void setActivityError(ErrorEvent errorEvent) {
+        setActivityStatus(ActivityStatus.ERROR);
         job.setActivityErrorEvent(this, errorEvent);
     }
 
