@@ -20,11 +20,6 @@
 
 package com.im.njams.sdk.argos.jvm;
 
-import com.im.njams.sdk.argos.ArgosComponent;
-import com.im.njams.sdk.argos.ArgosCollector;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.lang.management.GarbageCollectorMXBean;
 import java.lang.management.ManagementFactory;
 import java.lang.management.MemoryMXBean;
@@ -33,6 +28,11 @@ import java.net.InetAddress;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.im.njams.sdk.argos.ArgosCollector;
+import com.im.njams.sdk.argos.ArgosComponent;
 
 /**
  * This is a concrete implementation for collecting JMV statistic metrics.
@@ -47,7 +47,7 @@ public class JVMCollector extends ArgosCollector<JVMMetric> {
      */
     public static final String MEASUREMENT = "jvm";
 
-    private int pid = 0;
+    private OsProcessStats processStats = null;
 
     private static int getPid() {
         if (ManagementFactory.getRuntimeMXBean().getName().contains("@")) {
@@ -81,7 +81,13 @@ public class JVMCollector extends ArgosCollector<JVMMetric> {
 
     public JVMCollector(ArgosComponent argosComponent, int pid) {
         super(argosComponent);
-        this.pid = pid;
+        if (pid > 0) {
+            try {
+                processStats = new OsProcessStats(pid).collectProcessStats();
+            } catch (Throwable e) {
+                //Do nothing
+            }
+        }
     }
 
     @Override
@@ -111,15 +117,11 @@ public class JVMCollector extends ArgosCollector<JVMMetric> {
             gc.put(bean.getName().replace(" ", "_"), gcStats.collectStatistics(bean));
         }
         jvmStats.setGc(gc);
-        OsProcessStats processStats = null;
-        if (pid > 0) {
-            try {
-                processStats = new OsProcessStats(pid).collectProcessStats();
-            } catch (Throwable e) {
-                //Do nothing
-            }
+        if (processStats != null) {
+            processStats.collectProcessStats();
         }
         jvmStats.setProcessStats(processStats);
+
         return jvmStats;
     }
 }
