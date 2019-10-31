@@ -308,7 +308,7 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
         }
         if (this instanceof GroupImpl) {
             ((GroupImpl) this).getChildActivities().stream()
-            .filter(a -> a.getActivityStatus() == ActivityStatus.RUNNING).forEach(a -> a.end());
+                    .filter(a -> a.getActivityStatus() == ActivityStatus.RUNNING).forEach(a -> a.end());
         }
         //process input and output if not done yet, for extract rules which do not need data
         if (!inputProcessecd) {
@@ -483,6 +483,7 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
 
     @Override
     public void setActivityError(ErrorEvent errorEvent) {
+        setActivityStatus(ActivityStatus.ERROR);
         job.setActivityErrorEvent(this, errorEvent);
     }
 
