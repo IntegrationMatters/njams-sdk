@@ -22,7 +22,6 @@ import static org.junit.Assert.assertThat;
 import java.time.LocalDateTime;
 import java.util.Properties;
 
-import com.im.njams.sdk.model.ActivityModel;
 import org.junit.Test;
 
 import com.faizsiegeln.njams.messageformat.v4.logmessage.ActivityStatus;
@@ -34,6 +33,7 @@ import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.common.Path;
 import com.im.njams.sdk.configuration.ActivityConfiguration;
 import com.im.njams.sdk.configuration.ProcessConfiguration;
+import com.im.njams.sdk.model.ActivityModel;
 import com.im.njams.sdk.model.ProcessModel;
 import com.im.njams.sdk.settings.Settings;
 
@@ -90,7 +90,8 @@ public class JobTest {
         job.start();
 
         //Create activitys
-        Activity a = job.createActivity("a").setExecution(LocalDateTime.now()).setActivityStatus(ActivityStatus.SUCCESS)
+        Activity a = job.createActivity(actModelA).setExecution(LocalDateTime.now())
+                .setActivityStatus(ActivityStatus.SUCCESS)
                 .build();
         assertThat(job.getStatus(), is(JobStatus.RUNNING));
         assertThat(job.getMaxSeverity(), is(JobStatus.RUNNING));
