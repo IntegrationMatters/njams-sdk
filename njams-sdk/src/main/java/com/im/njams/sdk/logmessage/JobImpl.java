@@ -75,7 +75,7 @@ public class JobImpl implements Job {
     /*
      * maximum severity recorded
      */
-    private JobStatus maxSeverity;
+    private JobStatus maxSeverity = JobStatus.SUCCESS;
 
     // instanceId -> activity
     private final Map<String, Activity> activities = Collections.synchronizedMap(new LinkedHashMap<>());
@@ -652,7 +652,8 @@ public class JobImpl implements Job {
         activity.setActivityStatus(status.mapToActivityStatus());
         activity.setEventStatus(status);
         if (activity.getExecution() == null) {
-            activity.setExecution(errorEvent.getEventTime() == null ? DateTimeUtility.now() : errorEvent.getEventTime());
+            activity.setExecution(
+                    errorEvent.getEventTime() == null ? DateTimeUtility.now() : errorEvent.getEventTime());
         }
         activity.setEventCode(errorEvent.getCode());
         activity.setEventMessage(errorEvent.getMessage());
