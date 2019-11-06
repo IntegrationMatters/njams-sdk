@@ -85,7 +85,7 @@ public class JobTest {
         Job job = process.createJob("myJobId");
 
         assertThat(job.getStatus(), is(JobStatus.CREATED));
-        assertThat(job.getMaxSeverity(), is(JobStatus.CREATED));
+        assertThat(job.getMaxSeverity(), is(JobStatus.SUCCESS));
 
         job.start();
 
@@ -94,7 +94,7 @@ public class JobTest {
                 .setActivityStatus(ActivityStatus.SUCCESS)
                 .build();
         assertThat(job.getStatus(), is(JobStatus.RUNNING));
-        assertThat(job.getMaxSeverity(), is(JobStatus.RUNNING));
+        assertThat(job.getMaxSeverity(), is(JobStatus.SUCCESS));
 
         //step to b
         Activity b = a.stepTo(actModelB).setExecution(LocalDateTime.now()).build();
