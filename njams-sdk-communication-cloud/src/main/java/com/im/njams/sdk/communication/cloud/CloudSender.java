@@ -16,6 +16,29 @@
  */
 package com.im.njams.sdk.communication.cloud;
 
+import static java.nio.charset.Charset.defaultCharset;
+
+import java.io.BufferedReader;
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
+import java.net.URL;
+import java.security.KeyStore;
+import java.util.Map;
+import java.util.Properties;
+import java.util.Set;
+
+import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.KeyManager;
+import javax.net.ssl.KeyManagerFactory;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.TrustManagerFactory;
+
+import org.slf4j.LoggerFactory;
+
 import com.faizsiegeln.njams.messageformat.v4.common.MessageVersion;
 import com.faizsiegeln.njams.messageformat.v4.logmessage.LogMessage;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.ProjectMessage;
@@ -24,25 +47,6 @@ import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.communication.AbstractSender;
 import com.im.njams.sdk.communication.Sender;
 import com.im.njams.sdk.utils.JsonUtils;
-import java.io.BufferedReader;
-import java.io.DataOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
-import java.net.URL;
-import static java.nio.charset.Charset.defaultCharset;
-import java.security.KeyStore;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Set;
-import javax.net.ssl.HttpsURLConnection;
-import javax.net.ssl.KeyManager;
-import javax.net.ssl.KeyManagerFactory;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.TrustManager;
-import javax.net.ssl.TrustManagerFactory;
-import org.slf4j.LoggerFactory;
 
 /**
  *
@@ -79,7 +83,8 @@ public class CloudSender extends AbstractSender {
         }
 
         try {
-            maxPayloadBytes = Integer.parseInt(properties.getProperty(CloudConstants.MAX_PAYLOAD_BYTES));
+            maxPayloadBytes = Integer.parseInt(properties.getProperty(CloudConstants.MAX_PAYLOAD_BYTES,
+                    String.valueOf(FALLBACK_MAX_PAYLOAD_BYTES)));
             LOG.debug("maxPayloadBytes: {} Bytes", maxPayloadBytes);
         } catch (Exception e) {
             LOG.warn("Invalid value for maxPayloadBytes, fallback to {} Bytes", FALLBACK_MAX_PAYLOAD_BYTES);
@@ -87,10 +92,11 @@ public class CloudSender extends AbstractSender {
         }
 
         if (maxPayloadBytes > FALLBACK_MAX_PAYLOAD_BYTES) {
-            LOG.warn("The value for maxPayloadBytes: {} is too great, fallback to {} Bytes", maxPayloadBytes, FALLBACK_MAX_PAYLOAD_BYTES);
-             maxPayloadBytes = FALLBACK_MAX_PAYLOAD_BYTES;
+            LOG.warn("The value for maxPayloadBytes: {} is too great, fallback to {} Bytes", maxPayloadBytes,
+                    FALLBACK_MAX_PAYLOAD_BYTES);
+            maxPayloadBytes = FALLBACK_MAX_PAYLOAD_BYTES;
         }
-        
+
         try {
             apikey = ApiKeyReader.getApiKey(apikeypath);
         } catch (Exception e) {
@@ -147,7 +153,7 @@ public class CloudSender extends AbstractSender {
         try {
             LOG.trace("Sending project message");
             final String body = JsonUtils.serialize(msg);
-            
+
             byte[] byteBody = body.getBytes("UTF-8");
             int utf8Bytes = byteBody.length;
             LOG.debug("Message size in Bytes: {}", utf8Bytes);
@@ -160,7 +166,7 @@ public class CloudSender extends AbstractSender {
                 final String response = send(body, properties);
                 LOG.trace("Response: " + response);
             }
-            
+
         } catch (Exception ex) {
             LOG.error("Error sending ProjectMessage", ex);
         }
@@ -193,9 +199,9 @@ public class CloudSender extends AbstractSender {
         }
     }
 
-     /**
-     * @return the ingest endpoint
-     */
+    /**
+    * @return the ingest endpoint
+    */
     protected String getIngestEndpoint(String endpoint) throws Exception {
         String endpointUrl = "https://" + endpoint.trim() + "/v1/endpoints";
 
@@ -222,10 +228,10 @@ public class CloudSender extends AbstractSender {
 
         return endpoints.ingest.startsWith("https://") ? endpoints.ingest : "https://" + endpoints.ingest;
     }
-    
-     /**
-     * @return a presignedUrl
-     */
+
+    /**
+    * @return a presignedUrl
+    */
     protected URL getPresignedUrl(final Properties properties) throws Exception {
         HttpsURLConnection connection = (HttpsURLConnection) url.openConnection();
         connection.setRequestMethod("GET");
@@ -235,7 +241,8 @@ public class CloudSender extends AbstractSender {
         connection.setRequestProperty(NJAMS_MESSAGEVERSION, MessageVersion.V4.toString());
         addAddtionalProperties(properties, connection);
 
-        connection.getRequestProperties().entrySet().forEach(e -> LOG.debug("Header {} : {}", e.getKey(), e.getValue()));
+        connection.getRequestProperties().entrySet()
+                .forEach(e -> LOG.debug("Header {} : {}", e.getKey(), e.getValue()));
         BufferedReader in = new BufferedReader(new InputStreamReader(connection.getInputStream()));
 
         String inputLine;
@@ -255,7 +262,8 @@ public class CloudSender extends AbstractSender {
 
     private void addAddtionalProperties(final Properties properties, final HttpsURLConnection connection) {
         final Set<Map.Entry<Object, Object>> entrySet = properties.entrySet();
-        entrySet.forEach(entry -> connection.setRequestProperty(entry.getKey().toString(), entry.getValue().toString()));
+        entrySet.forEach(
+                entry -> connection.setRequestProperty(entry.getKey().toString(), entry.getValue().toString()));
     }
 
     private void send(final String body, final URL presignedUrl) {
@@ -273,7 +281,7 @@ public class CloudSender extends AbstractSender {
             out.write(body);
             out.close();
 
-            // Check the HTTP response code. To complete the upload and make the object available, 
+            // Check the HTTP response code. To complete the upload and make the object available,
             // you must interact with the connection object in some way.
             connection.getResponseCode();
 
@@ -321,7 +329,8 @@ public class CloudSender extends AbstractSender {
             connection.setRequestProperty(NJAMS_MESSAGEVERSION, MessageVersion.V4.toString());
             addAddtionalProperties(properties, connection);
 
-            connection.getRequestProperties().entrySet().forEach(e -> LOG.debug("Header {} : {}", e.getKey(), e.getValue()));
+            connection.getRequestProperties().entrySet()
+                    .forEach(e -> LOG.debug("Header {} : {}", e.getKey(), e.getValue()));
 
             //Send request
             try (final DataOutputStream wr = new DataOutputStream(connection.getOutputStream())) {
@@ -360,10 +369,10 @@ public class CloudSender extends AbstractSender {
 
     private void loadKeystore() throws IOException {
         if (System.getProperty("javax.net.ssl.trustStore") == null) {
-            try (InputStream keystoreInput
-                    = Thread.currentThread().getContextClassLoader().getResourceAsStream("client.ks");
-                    InputStream truststoreInput
-                    = Thread.currentThread().getContextClassLoader().getResourceAsStream("client.ts")) {
+            try (InputStream keystoreInput =
+                    Thread.currentThread().getContextClassLoader().getResourceAsStream("client.ks");
+                    InputStream truststoreInput =
+                            Thread.currentThread().getContextClassLoader().getResourceAsStream("client.ts")) {
                 setSSLFactories(keystoreInput, "password", truststoreInput);
             }
         } else {
@@ -371,7 +380,8 @@ public class CloudSender extends AbstractSender {
         }
     }
 
-    private static void setSSLFactories(final InputStream keyStream, final String keyStorePassword, final InputStream trustStream) {
+    private static void setSSLFactories(final InputStream keyStream, final String keyStorePassword,
+            final InputStream trustStream) {
 
         try {
             // Get keyStore
@@ -399,7 +409,8 @@ public class CloudSender extends AbstractSender {
             trustStore.load(trustStream, null);
 
             // initialize a trust manager factory with the trusted store
-            final TrustManagerFactory trustFactory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+            final TrustManagerFactory trustFactory =
+                    TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
             trustFactory.init(trustStore);
 
             // get the trust managers from the factory
