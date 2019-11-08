@@ -19,13 +19,11 @@ package com.im.njams.sdk.communication.cloud;
 import com.amazonaws.services.iot.client.AWSIotMessage;
 import com.amazonaws.services.iot.client.AWSIotMqttClient;
 import com.amazonaws.services.iot.client.AWSIotQos;
-import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
 import com.faizsiegeln.njams.messageformat.v4.command.Request;
 import com.faizsiegeln.njams.messageformat.v4.command.Response;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.communication.AbstractReceiver;
 import com.im.njams.sdk.communication.ConnectionStatus;
-import com.im.njams.sdk.communication.InstructionListener;
 import com.im.njams.sdk.communication.cloud.CertificateUtil.KeyStorePasswordPair;
 import com.im.njams.sdk.utils.JsonUtils;
 import com.im.njams.sdk.utils.StringUtils;
@@ -255,9 +253,10 @@ public class CloudReceiver extends AbstractReceiver {
 
             // send onConnect            
             topicName = "/onConnect/";
-            AWSIotMessage msg = new AWSIotMessage(topicName, AWSIotQos.QOS1, "{\"connectionId\":\"" + uuid.toString() + "\", \"instanceId\":\"" + instanceId + "\", \"path\":\"" + njams.getClientPath().toString() + "\", \"clientVersion\":\"" + njams.getClientVersion() + "\", \"sdkVersion\":\"" + njams.getSdkVersion() + "\", \"machine\":\"" + njams.getMachine() + "\" }");
+            AWSIotMessage msg = new AWSIotMessage(topicName, AWSIotQos.QOS1, "{\"connectionId\":\"" + uuid.toString() + "\", \"iotClientId\":\"" + mqttclient.getClientId() + "\",\"instanceId\":\"" + instanceId + "\", \"path\":\"" + njams.getClientPath().toString() + "\", \"clientVersion\":\"" + njams.getClientVersion() + "\", \"sdkVersion\":\"" + njams.getSdkVersion() + "\", \"machine\":\"" + njams.getMachine() + "\" }");
             LOG.debug("Send message: {} to topic: {}", msg.getStringPayload(), topicName);
             getMqttclient().publish(msg);
+            
 
             // subscribe commands topic      
             topicName = "/" + instanceId + "/commands/" + uuid.toString() + "/";
