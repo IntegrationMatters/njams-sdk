@@ -41,14 +41,12 @@ public class ArgosSenderTest {
 
     @Before
     public void init() {
-        Properties communicationProperties = new Properties();
-        //Argos relevant properties
-        communicationProperties.put(ArgosSender.NJAMS_SUBAGENT_HOST, ADDRESS);
-        communicationProperties.put(ArgosSender.NJAMS_SUBAGENT_PORT, Integer.toString(PORT));
-        communicationProperties.put(ArgosSender.NJAMS_SUBAGENT_ENABLED, "true");
-
         Settings settings = new Settings();
-        settings.setProperties(communicationProperties);
+        //Argos relevant properties
+        settings.put(ArgosSender.NJAMS_SUBAGENT_HOST, ADDRESS);
+        settings.put(ArgosSender.NJAMS_SUBAGENT_PORT, Integer.toString(PORT));
+        settings.put(ArgosSender.NJAMS_SUBAGENT_ENABLED, "true");
+
         this.argosSender = spy(new ArgosSender(settings));
         argosSender.start();
     }

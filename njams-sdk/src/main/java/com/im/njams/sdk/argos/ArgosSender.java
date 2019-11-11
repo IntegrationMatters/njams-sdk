@@ -100,7 +100,7 @@ public class ArgosSender implements Runnable, AutoCloseable {
      * @param settings the settings for connection establishment
      */
     public ArgosSender(Settings settings) {
-        Properties properties = settings.getProperties();
+        Properties properties = settings.getAllProperties();
 
         enabled = Boolean.parseBoolean(getProperty(properties, NJAMS_SUBAGENT_ENABLED, DEFAULT_ENABLED));
 
@@ -120,8 +120,7 @@ public class ArgosSender implements Runnable, AutoCloseable {
 
     private String getProperty(Properties properties, String key, String defaultValue) {
         // SDK-175: njams.client.* parameters are deprecated
-        return Transformer.decode(properties.getProperty(key,
-                properties.getProperty(key.replace("\\.sdk\\.", ".client."), defaultValue)));
+        return properties.getProperty(key, properties.getProperty(key.replace("\\.sdk\\.", ".client."), defaultValue));
     }
 
     /**

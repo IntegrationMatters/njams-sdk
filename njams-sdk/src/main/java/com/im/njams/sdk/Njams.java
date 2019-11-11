@@ -217,12 +217,11 @@ public class Njams implements InstructionListener {
      * Load the ConfigurationProvider via the provided Properties
      */
     private void loadConfigurationProvider() {
-        Properties properties = settings.getProperties();
-        if (!properties.containsKey(ConfigurationProviderFactory.CONFIGURATION_PROVIDER)) {
-            settings.getProperties().put(ConfigurationProviderFactory.CONFIGURATION_PROVIDER, DEFAULT_CACHE_PROVIDER);
+        if (!settings.containsKey(ConfigurationProviderFactory.CONFIGURATION_PROVIDER)) {
+            settings.put(ConfigurationProviderFactory.CONFIGURATION_PROVIDER, DEFAULT_CACHE_PROVIDER);
         }
         ConfigurationProvider configurationProvider =
-                new ConfigurationProviderFactory(properties, this).getConfigurationProvider();
+                new ConfigurationProviderFactory(settings, this).getConfigurationProvider();
         configuration = new Configuration();
         configuration.setConfigurationProvider(configurationProvider);
     }

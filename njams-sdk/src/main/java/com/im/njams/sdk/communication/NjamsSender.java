@@ -69,8 +69,8 @@ public class NjamsSender implements Sender {
     public NjamsSender(Njams njams, Settings settings) {
         this.njams = njams;
         this.settings = settings;
-        this.name = Transformer.decode(settings.getProperties().getProperty(CommunicationFactory.COMMUNICATION));
-        this.init(Transformer.decode(settings.getProperties()));
+        this.name = settings.getProperty(CommunicationFactory.COMMUNICATION);
+        this.init(settings.getAllProperties());
     }
 
     /**

@@ -176,7 +176,7 @@ public class JobImpl implements Job {
         //will be set to true.
         startTime = DateTimeUtility.now();
         startTimeExplicitlySet = false;
-        allErrors = "true".equalsIgnoreCase(njams.getSettings().getProperties().getProperty(LOG_ALL_ERRORS));
+        allErrors = "true".equalsIgnoreCase(njams.getSettings().getProperty(LOG_ALL_ERRORS));
     }
 
     /**
