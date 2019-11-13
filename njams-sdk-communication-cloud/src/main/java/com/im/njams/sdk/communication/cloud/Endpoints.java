@@ -16,20 +16,32 @@
  */
 package com.im.njams.sdk.communication.cloud;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
+import com.im.fasterxml.jackson.annotation.JsonCreator;
+import com.im.fasterxml.jackson.annotation.JsonProperty;
 
 /**
  *
  * @author lmusebrink
  */
+
 public class Endpoints {
     
     public String ingest;
     public String client;
-
-    public Endpoints(@JsonProperty("ingest")String ingest, @JsonProperty("client")String client) {
+    public boolean error;
+    public String errorMessage;
+    
+    public Endpoints(){
+        
+    }
+    
+    @JsonCreator
+    public Endpoints(@JsonProperty("ingest")String ingest, @JsonProperty("client")String client, @JsonProperty("error")boolean error, @JsonProperty("errorMessage")String errorMessage ) {
         this.ingest = ingest;
         this.client = client;
+        this.error = error;
+        this.errorMessage = errorMessage;
     }
+    
     
 }

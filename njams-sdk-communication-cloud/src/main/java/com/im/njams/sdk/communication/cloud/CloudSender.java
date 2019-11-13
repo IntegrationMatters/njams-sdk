@@ -16,8 +16,16 @@
  */
 package com.im.njams.sdk.communication.cloud;
 
-import static java.nio.charset.Charset.defaultCharset;
-
+import com.faizsiegeln.njams.messageformat.v4.common.CommonMessage;
+import com.faizsiegeln.njams.messageformat.v4.common.MessageVersion;
+import com.faizsiegeln.njams.messageformat.v4.logmessage.LogMessage;
+import com.faizsiegeln.njams.messageformat.v4.projectmessage.ProjectMessage;
+import com.faizsiegeln.njams.messageformat.v4.tracemessage.TraceMessage;
+import com.im.njams.sdk.common.NjamsSdkRuntimeException;
+import com.im.njams.sdk.communication.AbstractSender;
+import com.im.njams.sdk.communication.ConnectionStatus;
+import com.im.njams.sdk.communication.Sender;
+import com.im.njams.sdk.utils.JsonUtils;
 import java.io.BufferedReader;
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -25,28 +33,18 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.net.URL;
+import static java.nio.charset.Charset.defaultCharset;
 import java.security.KeyStore;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
-
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.KeyManager;
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
-
 import org.slf4j.LoggerFactory;
-
-import com.faizsiegeln.njams.messageformat.v4.common.MessageVersion;
-import com.faizsiegeln.njams.messageformat.v4.logmessage.LogMessage;
-import com.faizsiegeln.njams.messageformat.v4.projectmessage.ProjectMessage;
-import com.faizsiegeln.njams.messageformat.v4.tracemessage.TraceMessage;
-import com.im.njams.sdk.common.NjamsSdkRuntimeException;
-import com.im.njams.sdk.communication.AbstractSender;
-import com.im.njams.sdk.communication.Sender;
-import com.im.njams.sdk.utils.JsonUtils;
 
 /**
  *
@@ -66,6 +64,14 @@ public class CloudSender extends AbstractSender {
 
     private URL url;
     private String apikey;
+    private String instanceId;
+
+    private boolean endpointError = false;
+    private String endpointErrorMessage = "";
+    private long reconnectTime = 0;
+
+    private String endpointUrl;
+    private String connectionId;
 
     @Override
     public void init(Properties properties) {
@@ -103,11 +109,16 @@ public class CloudSender extends AbstractSender {
             LOG.error("Failed to load api key from file " + apikeypath, e);
             throw new IllegalStateException("Failed to load api key from file");
         }
+        endpointUrl = properties.getProperty(CloudConstants.ENDPOINT);
+        instanceId = properties.getProperty(CloudConstants.CLIENT_INSTANCEID);
+        connectionId = Utils.generateClientId(njams, instanceId);
 
         try {
-            url = new URL(getIngestEndpoint(properties.getProperty(CloudConstants.ENDPOINT)));
+            url = new URL(getIngestEndpoint(endpointUrl));
+            this.connectionStatus = ConnectionStatus.CONNECTED;
         } catch (final Exception ex) {
-            throw new NjamsSdkRuntimeException("unable to init http sender", ex);
+            this.connectionStatus = ConnectionStatus.DISCONNECTED;
+            throw new NjamsSdkRuntimeException("unable to init CloudSender", ex);
         }
     }
 
@@ -116,32 +127,56 @@ public class CloudSender extends AbstractSender {
         return CloudConstants.NAME;
     }
 
+    protected void retryInit() {
+        try {
+            url = new URL(getIngestEndpoint(endpointUrl));
+            this.connectionStatus = ConnectionStatus.CONNECTED;
+        } catch (final Exception ex) {
+            this.connectionStatus = ConnectionStatus.DISCONNECTED;
+            throw new NjamsSdkRuntimeException("unable to init CloudSender", ex);
+        }
+    }
+
+    protected void sendMessage(final CommonMessage msg, final Properties properties) {
+        if (!endpointError) {
+            try {
+                LOG.trace("Sending {} message", properties.get(NJAMS_MESSAGETYPE));
+                final String body = JsonUtils.serialize(msg);
+
+                byte[] byteBody = body.getBytes("UTF-8");
+                int utf8Bytes = byteBody.length;
+                LOG.debug("Message size in Bytes: {}", utf8Bytes);
+                if (utf8Bytes > maxPayloadBytes) {
+                    LOG.debug("Message exceeds Byte limit: {}/{}", utf8Bytes, maxPayloadBytes);
+                    URL presignedUrl = getPresignedUrl(properties);
+                    send(body, presignedUrl);
+
+                } else {
+                    final String response = send(body, properties);
+                    LOG.trace("Response: " + response);
+                }
+
+            } catch (Exception ex) {
+                LOG.error("Error sending {}", properties.get(NJAMS_MESSAGETYPE), ex);
+            }
+        } else {
+            LOG.warn("Message ({}) discarded because your client is not allowed to connect the CloudSender due to the following problem: {}", properties.get(NJAMS_MESSAGETYPE), endpointErrorMessage);
+            if (System.currentTimeMillis() > reconnectTime) {
+                LOG.info("Try to establish connection again.");
+                retryInit();
+            }
+        }
+    }
+
     @Override
     protected void send(final LogMessage msg) {
         final Properties properties = new Properties();
         properties.put(NJAMS_MESSAGETYPE, Sender.NJAMS_MESSAGETYPE_EVENT);
         properties.put(NJAMS_PATH, msg.getPath());
         properties.put(NJAMS_LOGID, msg.getLogId());
-        try {
-            LOG.trace("Sending log message");
-            final String body = JsonUtils.serialize(msg);
 
-            byte[] byteBody = body.getBytes("UTF-8");
-            int utf8Bytes = byteBody.length;
-            LOG.debug("Message size in Bytes: {}", utf8Bytes);
-            if (utf8Bytes > maxPayloadBytes) {
-                LOG.debug("Message exceeds Byte limit: {}/{}", utf8Bytes, maxPayloadBytes);
-                URL presignedUrl = getPresignedUrl(properties);
-                send(body, presignedUrl);
+        sendMessage(msg, properties);
 
-            } else {
-                final String response = send(body, properties);
-                LOG.trace("Response: " + response);
-            }
-
-        } catch (Exception ex) {
-            LOG.error("Error sending LogMessage", ex);
-        }
     }
 
     @Override
@@ -150,26 +185,7 @@ public class CloudSender extends AbstractSender {
         properties.put(NJAMS_MESSAGETYPE, Sender.NJAMS_MESSAGETYPE_PROJECT);
         properties.put(NJAMS_PATH, msg.getPath());
 
-        try {
-            LOG.trace("Sending project message");
-            final String body = JsonUtils.serialize(msg);
-
-            byte[] byteBody = body.getBytes("UTF-8");
-            int utf8Bytes = byteBody.length;
-            LOG.debug("Message size in Bytes: {}", utf8Bytes);
-            if (utf8Bytes > maxPayloadBytes) {
-                LOG.debug("Message exceeds Byte limit: {}/{}", utf8Bytes, maxPayloadBytes);
-                URL presignedUrl = getPresignedUrl(properties);
-                send(body, presignedUrl);
-
-            } else {
-                final String response = send(body, properties);
-                LOG.trace("Response: " + response);
-            }
-
-        } catch (Exception ex) {
-            LOG.error("Error sending ProjectMessage", ex);
-        }
+        sendMessage(msg, properties);
     }
 
     @Override
@@ -178,30 +194,12 @@ public class CloudSender extends AbstractSender {
         properties.put(NJAMS_MESSAGETYPE, Sender.NJAMS_MESSAGETYPE_TRACE);
         properties.put(NJAMS_PATH, msg.getPath());
 
-        try {
-            LOG.trace("Sending trace message");
-            final String body = JsonUtils.serialize(msg);
-
-            byte[] byteBody = body.getBytes("UTF-8");
-            int utf8Bytes = byteBody.length;
-            LOG.debug("Message size in Bytes: {}", utf8Bytes);
-            if (utf8Bytes > maxPayloadBytes) {
-                LOG.debug("Message exceeds Byte limit: {}/{}", utf8Bytes, maxPayloadBytes);
-                URL presignedUrl = getPresignedUrl(properties);
-                send(body, presignedUrl);
-
-            } else {
-                final String response = send(body, properties);
-                LOG.trace("Response: " + response);
-            }
-        } catch (Exception ex) {
-            LOG.error("Error sending TraceMessage", ex);
-        }
+        sendMessage(msg, properties);
     }
 
     /**
-    * @return the ingest endpoint
-    */
+     * @return the ingest endpoint
+     */
     protected String getIngestEndpoint(String endpoint) throws Exception {
         String endpointUrl = "https://" + endpoint.trim() + "/v1/endpoints";
 
@@ -209,6 +207,7 @@ public class CloudSender extends AbstractSender {
         HttpsURLConnection connection = (HttpsURLConnection) url.openConnection();
         connection.setRequestMethod("GET");
         connection.setRequestProperty("x-api-key", apikey);
+        connection.setRequestProperty("x-connection-id", connectionId);
 
         int responseCode = connection.getResponseCode();
         LOG.debug("\nSending 'GET' request to URL : " + url);
@@ -226,12 +225,25 @@ public class CloudSender extends AbstractSender {
 
         Endpoints endpoints = JsonUtils.parse(response.toString(), Endpoints.class);
 
+        if (endpoints.error) {
+            LOG.error(endpoints.errorMessage);
+            endpointError = true;
+            endpointErrorMessage = endpoints.errorMessage;
+
+            reconnectTime = System.currentTimeMillis() + 60000;
+            LOG.info("Try to establish connection again in 10 min.");
+
+            return "https://localhost";
+        }
+
+        endpointError = false;
+
         return endpoints.ingest.startsWith("https://") ? endpoints.ingest : "https://" + endpoints.ingest;
     }
 
     /**
-    * @return a presignedUrl
-    */
+     * @return a presignedUrl
+     */
     protected URL getPresignedUrl(final Properties properties) throws Exception {
         HttpsURLConnection connection = (HttpsURLConnection) url.openConnection();
         connection.setRequestMethod("GET");
@@ -369,10 +381,10 @@ public class CloudSender extends AbstractSender {
 
     private void loadKeystore() throws IOException {
         if (System.getProperty("javax.net.ssl.trustStore") == null) {
-            try (InputStream keystoreInput =
-                    Thread.currentThread().getContextClassLoader().getResourceAsStream("client.ks");
-                    InputStream truststoreInput =
-                            Thread.currentThread().getContextClassLoader().getResourceAsStream("client.ts")) {
+            try (InputStream keystoreInput
+                    = Thread.currentThread().getContextClassLoader().getResourceAsStream("client.ks");
+                    InputStream truststoreInput
+                    = Thread.currentThread().getContextClassLoader().getResourceAsStream("client.ts")) {
                 setSSLFactories(keystoreInput, "password", truststoreInput);
             }
         } else {
@@ -409,8 +421,8 @@ public class CloudSender extends AbstractSender {
             trustStore.load(trustStream, null);
 
             // initialize a trust manager factory with the trusted store
-            final TrustManagerFactory trustFactory =
-                    TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+            final TrustManagerFactory trustFactory
+                    = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
             trustFactory.init(trustStore);
 
             // get the trust managers from the factory
