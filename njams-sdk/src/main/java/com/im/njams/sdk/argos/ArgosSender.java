@@ -20,11 +20,15 @@
 
 package com.im.njams.sdk.argos;
 
-import java.net.DatagramPacket;
-import java.net.DatagramSocket;
-import java.net.InetAddress;
-import java.net.SocketException;
-import java.net.UnknownHostException;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectWriter;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.im.njams.sdk.settings.Settings;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.net.*;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -33,22 +37,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.ObjectWriter;
-import com.fasterxml.jackson.databind.SerializationFeature;
-import com.im.njams.sdk.settings.Settings;
-import com.im.njams.sdk.settings.encoding.Transformer;
-
-/**
- * This class cares about collecting and sending Argos Metrics via UPD to an nJAMS Agent.
- * It will send every 10 seconds all available Metrics.
- * <p>
- * To provide Metrics you must register an @see {@link ArgosCollector}.
- */
 public class ArgosSender implements Runnable, AutoCloseable {
     private static final Logger LOG = LoggerFactory.getLogger(ArgosSender.class);
 
@@ -93,17 +81,34 @@ public class ArgosSender implements Runnable, AutoCloseable {
 
     private boolean isRunning = false;
 
+    private static ArgosSender instance = null;
+
+    protected ArgosSender() {
+    }
+
+    // Lazy Initialization (If required then only)
+    public static ArgosSender getInstance() {
+        if (instance == null) {
+            // Thread Safe. Might be costly operation in some case
+            synchronized (ArgosSender.class) {
+                if (instance == null) {
+                    LOG.info("Instantiate singleton for ArgosSender.");
+                    instance = new ArgosSender();
+                }
+            }
+        }
+        return instance;
+    }
+
     /**
      * Reads the properties {@value NJAMS_SUBAGENT_HOST}, {@value NJAMS_SUBAGENT_PORT} and
      * {@value NJAMS_SUBAGENT_ENABLED} from the given settings.
      *
      * @param settings the settings for connection establishment
      */
-    public ArgosSender(Settings settings) {
+    public void init(Settings settings) {
         Properties properties = settings.getAllProperties();
-
         enabled = Boolean.parseBoolean(getProperty(properties, NJAMS_SUBAGENT_ENABLED, DEFAULT_ENABLED));
-
         host = getProperty(properties, NJAMS_SUBAGENT_HOST, DEFAULT_HOST);
 
         try {
@@ -115,7 +120,6 @@ public class ArgosSender implements Runnable, AutoCloseable {
                     DEFAULT_PORT + " instead");
             port = DEFAULT_PORT;
         }
-
     }
 
     private String getProperty(Properties properties, String key, String defaultValue) {
@@ -130,7 +134,6 @@ public class ArgosSender implements Runnable, AutoCloseable {
      */
     public void addArgosCollector(ArgosCollector collector) {
         synchronized (argosCollectors) {
-
             argosCollectors.put(collector.getArgosComponent(), collector);
         }
         start();

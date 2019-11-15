@@ -25,11 +25,6 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.io.IOException;
-import java.net.DatagramSocket;
-import java.util.Properties;
-
-import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.*;
 
 public class ArgosSenderTest {
@@ -47,7 +42,8 @@ public class ArgosSenderTest {
         settings.put(ArgosSender.NJAMS_SUBAGENT_PORT, Integer.toString(PORT));
         settings.put(ArgosSender.NJAMS_SUBAGENT_ENABLED, "true");
 
-        this.argosSender = spy(new ArgosSender(settings));
+        this.argosSender = ArgosSender.getInstance();
+        argosSender.init(settings);
         argosSender.start();
     }
 

@@ -16,28 +16,6 @@
  */
 package com.im.njams.sdk;
 
-import static java.util.stream.Collectors.toList;
-
-import java.net.URL;
-import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Enumeration;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Properties;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.stream.Stream;
-
-import com.im.njams.sdk.argos.ArgosCollector;
-import com.im.njams.sdk.argos.ArgosSender;
-import org.slf4j.LoggerFactory;
-
 import com.faizsiegeln.njams.messageformat.v4.command.Command;
 import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
 import com.faizsiegeln.njams.messageformat.v4.command.Response;
@@ -45,24 +23,15 @@ import com.faizsiegeln.njams.messageformat.v4.common.TreeElement;
 import com.faizsiegeln.njams.messageformat.v4.common.TreeElementType;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.LogMode;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.ProjectMessage;
+import com.im.njams.sdk.argos.ArgosCollector;
+import com.im.njams.sdk.argos.ArgosSender;
 import com.im.njams.sdk.client.CleanTracepointsTask;
 import com.im.njams.sdk.client.LogMessageFlushTask;
 import com.im.njams.sdk.common.DateTimeUtility;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.common.Path;
-import com.im.njams.sdk.communication.CommunicationFactory;
-import com.im.njams.sdk.communication.InstructionListener;
-import com.im.njams.sdk.communication.NjamsSender;
-import com.im.njams.sdk.communication.Receiver;
-import com.im.njams.sdk.communication.ReplayHandler;
-import com.im.njams.sdk.communication.ReplayRequest;
-import com.im.njams.sdk.communication.ReplayResponse;
-import com.im.njams.sdk.communication.Sender;
-import com.im.njams.sdk.configuration.Configuration;
-import com.im.njams.sdk.configuration.ConfigurationInstructionListener;
-import com.im.njams.sdk.configuration.ConfigurationProvider;
-import com.im.njams.sdk.configuration.ConfigurationProviderFactory;
-import com.im.njams.sdk.configuration.ProcessConfiguration;
+import com.im.njams.sdk.communication.*;
+import com.im.njams.sdk.configuration.*;
 import com.im.njams.sdk.configuration.provider.FileConfigurationProvider;
 import com.im.njams.sdk.logmessage.DataMasking;
 import com.im.njams.sdk.logmessage.Job;
@@ -76,6 +45,16 @@ import com.im.njams.sdk.model.svg.ProcessDiagramFactory;
 import com.im.njams.sdk.serializer.Serializer;
 import com.im.njams.sdk.serializer.StringSerializer;
 import com.im.njams.sdk.settings.Settings;
+import org.slf4j.LoggerFactory;
+
+import java.net.URL;
+import java.time.LocalDateTime;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.stream.Stream;
+
+import static java.util.stream.Collectors.toList;
 
 /**
  * This is an instance of nJAMS. It cares about lifecycle and initializations
@@ -177,7 +156,7 @@ public class Njams implements InstructionListener {
 
     private ReplayHandler replayHandler = null;
 
-    private ArgosSender argosSender;
+    private ArgosSender argosSender = null;
 
     /**
      * Create a nJAMS client.
@@ -196,7 +175,8 @@ public class Njams implements InstructionListener {
         this.settings = settings;
         processDiagramFactory = new NjamsProcessDiagramFactory();
         processModelLayouter = new SimpleProcessModelLayouter();
-        argosSender = new ArgosSender(settings);
+        argosSender = ArgosSender.getInstance();
+        argosSender.init(settings);
         loadConfigurationProvider();
         createTreeElements(path, TreeElementType.CLIENT);
         readVersions(version);
@@ -440,11 +420,7 @@ public class Njams implements InstructionListener {
         final List<String> parts =
                 Stream.of(getClientPath(), path).map(Path::getParts).flatMap(List::stream).collect(toList());
         final ProcessModel processModel = processModels.get(new Path(parts).toString());
-        if (processModel == null) {
-           return false;
-        } else {
-            return true;
-        }
+        return processModel != null;
     }
 
     /**
@@ -833,7 +809,7 @@ public class Njams implements InstructionListener {
         synchronized (cachedSerializers) {
             if (key != null && serializer != null) {
                 cachedSerializers.clear();
-                return Serializer.class.cast(serializers.put(key, serializer));
+                return (Serializer) serializers.put(key, serializer);
             }
             return null;
         }
@@ -851,7 +827,7 @@ public class Njams implements InstructionListener {
         synchronized (cachedSerializers) {
             if (key != null) {
                 cachedSerializers.clear();
-                return Serializer.class.cast(serializers.remove(key));
+                return (Serializer) serializers.remove(key);
             }
             return null;
         }
@@ -867,7 +843,7 @@ public class Njams implements InstructionListener {
      */
     public <T> Serializer<T> getSerializer(final Class<T> key) {
         if (key != null) {
-            return Serializer.class.cast(serializers.get(key));
+            return (Serializer) serializers.get(key);
         }
         return null;
     }
@@ -885,7 +861,7 @@ public class Njams implements InstructionListener {
             return null;
         }
 
-        final Class<? super T> clazz = Class.class.cast(t.getClass());
+        final Class<? super T> clazz = (Class) t.getClass();
         synchronized (cachedSerializers) {
 
             // search serializer
@@ -924,7 +900,7 @@ public class Njams implements InstructionListener {
             if (cached == NO_SERIALIZER) {
                 return null;
             } else if (cached != null) {
-                return Serializer.class.cast(cached);
+                return (Serializer) cached;
             }
             final Class<? super T> superclass = clazz.getSuperclass();
             if (superclass != null) {
@@ -934,8 +910,8 @@ public class Njams implements InstructionListener {
         if (serializer == null) {
             final Class<?>[] interfaces = clazz.getInterfaces();
             for (int i = 0; i < interfaces.length && serializer == null; i++) {
-                final Class<? super T> anInterface = Class.class.cast(interfaces[i]);
-                serializer = Serializer.class.cast(findSerializer(anInterface));
+                final Class<? super T> anInterface = (Class) interfaces[i];
+                serializer = (Serializer) findSerializer(anInterface);
             }
         }
         if (serializer != null) {
