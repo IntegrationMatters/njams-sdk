@@ -37,6 +37,12 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
+/**
+ * This Singleton class cares about collecting and sending Argos Metrics via UPD to an nJAMS Agent.
+ * It will send every 10 seconds all available Metrics.
+ * <p>
+ * To provide Metrics you must register an @see {@link ArgosCollector}.
+ */
 public class ArgosSender implements Runnable, AutoCloseable {
     private static final Logger LOG = LoggerFactory.getLogger(ArgosSender.class);
 
