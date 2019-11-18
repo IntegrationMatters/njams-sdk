@@ -16,14 +16,14 @@
  */
 package com.im.njams.sdk.settings;
 
+import com.im.njams.sdk.settings.encoding.Transformer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
-
-import com.im.njams.sdk.settings.encoding.Transformer;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * The settings contains settings needed for
@@ -77,6 +77,13 @@ public class Settings {
      * Possible values are: none|onconnectionloss|discard (Default is none)
      */
     public static final String PROPERTY_DISCARD_POLICY = "njams.client.sdk.discardpolicy";
+    /**
+     * New field subProcessPath has been added for Messageformat 4.1.0
+     * <p>
+     * This Property can be set to use deprecated format; this might be used when sending to a server not compatible
+     * because he uses an older Messageformat version.
+     */
+    public static final String PROPERTY_USE_DEPRECATED_PATH_FIELD_FOR_SUBPROCESSES = "njams.client.sdk.deprecatedsubprocesspathfield";
 
     public Settings() {
         properties = new Properties();
@@ -139,12 +146,12 @@ public class Settings {
         properties.keySet().forEach(key -> list.add((String)key));
         Collections.sort(list); 
         list.forEach((key) -> {
-            String toCheck = ((String)key).toLowerCase();
+            String toCheck = key.toLowerCase();
             if (toCheck.contains("password") || toCheck.contains("credentials")) {
                 LOG.info("***      {} = {}", key, "****");
             }
-            else{
-                LOG.info("***      {} = {}", key, properties.getProperty((String) key));
+            else {
+                LOG.info("***      {} = {}", key, properties.getProperty(key));
             }
         });
     }
