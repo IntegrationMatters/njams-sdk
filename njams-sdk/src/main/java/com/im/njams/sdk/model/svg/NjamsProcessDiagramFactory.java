@@ -144,8 +144,8 @@ public class NjamsProcessDiagramFactory implements ProcessDiagramFactory {
         svgRoot.setAttributeNS(null, "height", String.valueOf(context.getHeight()));
 
         // draw root activities
-        List<ActivityModel> rootActivities
-                = processModel.getActivityModels().stream().filter(a -> a.getParent() == null)
+        List<ActivityModel> rootActivities =
+                processModel.getActivityModels().stream().filter(a -> a.getParent() == null)
                         .filter(a -> !(a instanceof GroupModel)).collect(Collectors.toList());
         rootActivities.forEach(a -> drawActivity(context, a));
 
@@ -465,7 +465,7 @@ public class NjamsProcessDiagramFactory implements ProcessDiagramFactory {
             toPoint = getRadiusPoint(fromPoint, toPoint, DEFAULT_MARKER_SIZE);
             LOG.debug("new toPoint for Group {} is {}:{}", toActivity.getName(), toPoint.getX(), toPoint.getY());
         }
-        return new Point[]{fromPoint, toPoint};
+        return new Point[] { fromPoint, toPoint };
     }
 
     /**
@@ -478,7 +478,7 @@ public class NjamsProcessDiagramFactory implements ProcessDiagramFactory {
      */
     private String serializeDocument(NjamsProcessDiagramContext context) throws TransformerException {
         StringWriter sw = new StringWriter();
-        TransformerFactory tf = TransformerFactory.newInstance();
+        TransformerFactory tf = TransformerFactory.newInstance("net.sf.saxon.TransformerFactoryImpl", null);
         Transformer transformer = tf.newTransformer();
         transformer.setOutputProperty(OutputKeys.OMIT_XML_DECLARATION, "no");
         transformer.setOutputProperty(OutputKeys.METHOD, "xml");

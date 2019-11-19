@@ -135,6 +135,12 @@
                                         <exclude>META-INF/services/**</exclude>
                                     </excludes>
                                 </filter>
+                                <filter>
+                                    <artifact>net.sourceforge.saxon:saxon:jar:*</artifact>
+                                    <excludes>
+										<exclude>META-INF/services/javax.xml.transform.TransformerFactory</exclude>
+                                    </excludes>
+                                </filter>
                             </filters>
                         </configuration>
                     </execution>
