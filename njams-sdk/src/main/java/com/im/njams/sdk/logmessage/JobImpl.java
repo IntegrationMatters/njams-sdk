@@ -578,8 +578,8 @@ public class JobImpl implements Job {
             }
             //end all not ended activities
             activities.values().stream()
-                    .filter(a -> a.getActivityStatus() == null || a.getActivityStatus() == ActivityStatus.RUNNING)
-                    .forEach(a -> a.end());
+            .filter(a -> a.getActivityStatus() == null || a.getActivityStatus() == ActivityStatus.RUNNING)
+            .forEach(a -> a.end());
             if (getEndTime() == null) {
                 setEndTime(DateTimeUtility.now());
             }
@@ -1150,7 +1150,7 @@ public class JobImpl implements Job {
         if (tracepoint != null) {
             //if tracepoint exists, check timings
             LocalDateTime now = DateTimeUtility.now();
-            if (now.isAfter(tracepoint.getStarttime()) && now.isBefore(tracepoint.getEndtime())
+            if (!now.isBefore(tracepoint.getStarttime()) && now.isBefore(tracepoint.getEndtime())
                     && !tracepoint.iterationsExceeded()) {
                 //timing is right, and iterations are less than configured
                 return true;
@@ -1261,7 +1261,7 @@ public class JobImpl implements Job {
     public String toString() {
         StringBuilder sb = new StringBuilder();
         sb.append("JobImpl[process=").append(processModel.getName()).append("; logId=").append(getLogId())
-                .append("; jobId=").append(getJobId()).append(']');
+        .append("; jobId=").append(getJobId()).append(']');
         return sb.toString();
     }
 
