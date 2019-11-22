@@ -118,7 +118,6 @@ public class CommunicationFactory {
                         LOG.info("Create sender {}", sender.getName());
                         Sender newInstance = sender.getClass().newInstance();
                         newInstance.validate();
-                        newInstance.setNjams(njams);
                         newInstance.init(settings.getAllProperties());
                         return newInstance;
                     } catch (Exception e) {
