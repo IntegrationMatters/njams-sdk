@@ -55,7 +55,8 @@ public class NjamsSampleTest {
     public void testWithModel() throws Exception {
         Path clientPath = new Path("SDK4", "TEST");
 
-        Properties communicationProperties = new Properties();
+        // Create client config
+        Settings communicationProperties = new Settings();
         communicationProperties.put(CommunicationFactory.COMMUNICATION, "JMS");
         communicationProperties.put(JmsConstants.INITIAL_CONTEXT_FACTORY,
                 "com.tibco.tibjms.naming.TibjmsInitialContextFactory");
@@ -67,12 +68,8 @@ public class NjamsSampleTest {
         communicationProperties.put(JmsConstants.PASSWORD, "njams");
         communicationProperties.put(JmsConstants.DESTINATION, "njams.endurance");
 
-        // Create client config
-        Settings config = new Settings();
-        config.setProperties(communicationProperties);
-
         // Instantiate client for first application
-        Njams njams = new Njams(clientPath, "1.0.0", "sdk4", config);
+        Njams njams = new Njams(clientPath, "1.0.0", "sdk4", communicationProperties);
 
         Path processPath = new Path("PROCESSES", "testWithModel");
 
@@ -151,7 +148,8 @@ public class NjamsSampleTest {
     public void testWithModelWithBranches() throws Exception {
         Path clientPath = new Path("SDK4", "TEST");
 
-        Properties communicationProperties = new Properties();
+        // Create client config
+        Settings communicationProperties = new Settings();
         communicationProperties.put(CommunicationFactory.COMMUNICATION, "JMS");
         communicationProperties.put(JmsConstants.INITIAL_CONTEXT_FACTORY,
                 "com.tibco.tibjms.naming.TibjmsInitialContextFactory");
@@ -163,12 +161,8 @@ public class NjamsSampleTest {
         communicationProperties.put(JmsConstants.PASSWORD, "njams");
         communicationProperties.put(JmsConstants.DESTINATION, "njams.endurance");
 
-        // Create client config
-        Settings config = new Settings();
-        config.setProperties(communicationProperties);
-
         // Instantiate client for first application
-        Njams njams = new Njams(clientPath, "1.0.0", "sdk4", config);
+        Njams njams = new Njams(clientPath, "1.0.0", "sdk4", communicationProperties);
 
         Path processPath = new Path("PROCESSES", "testWithModelWithBranches");
 
@@ -287,7 +281,8 @@ public class NjamsSampleTest {
     public void testGroupWithModel() throws Exception {
         Path clientPath = new Path("SDK4", "TEST");
 
-        Properties communicationProperties = new Properties();
+        // Create client config
+        Settings communicationProperties = new Settings();
         communicationProperties.put(CommunicationFactory.COMMUNICATION, "JMS");
         communicationProperties.put(JmsConstants.INITIAL_CONTEXT_FACTORY,
                 "com.tibco.tibjms.naming.TibjmsInitialContextFactory");
@@ -299,11 +294,7 @@ public class NjamsSampleTest {
         communicationProperties.put(JmsConstants.PASSWORD, "njams");
         communicationProperties.put(JmsConstants.DESTINATION, "njams.endurance");
 
-        // Create client config
-        Settings config = new Settings();
-        config.setProperties(communicationProperties);
-
-        Njams njams = new Njams(clientPath, "1.0.0", "sdk4", config);
+        Njams njams = new Njams(clientPath, "1.0.0", "sdk4", communicationProperties);
 
         Path processPath = new Path("PROCESSES", "testGroupWithModel");
 
@@ -427,7 +418,8 @@ public class NjamsSampleTest {
     public void testGroupInGroupWithModel() throws Exception {
         Path clientPath = new Path("SDK4", "TEST");
 
-        Properties communicationProperties = new Properties();
+        // Create client config
+        Settings communicationProperties = new Settings();
         communicationProperties.put(CommunicationFactory.COMMUNICATION, "JMS");
         communicationProperties.put(JmsConstants.INITIAL_CONTEXT_FACTORY,
                 "com.tibco.tibjms.naming.TibjmsInitialContextFactory");
@@ -439,11 +431,7 @@ public class NjamsSampleTest {
         communicationProperties.put(JmsConstants.PASSWORD, "njams");
         communicationProperties.put(JmsConstants.DESTINATION, "njams.endurance");
 
-        // Create client config
-        Settings config = new Settings();
-        config.setProperties(communicationProperties);
-
-        Njams njams = new Njams(clientPath, "1.0.0", "sdk4", config);
+        Njams njams = new Njams(clientPath, "1.0.0", "sdk4", communicationProperties);
 
         Path processPath = new Path("PROCESSES", "testGroupInGroupWithModel");
 
@@ -600,7 +588,8 @@ public class NjamsSampleTest {
     public void testSubprocess() throws Exception {
         Path clientPath = new Path("SDK4", "TEST");
 
-        Properties communicationProperties = new Properties();
+        // Create client config
+        Settings communicationProperties = new Settings();
         communicationProperties.put(CommunicationFactory.COMMUNICATION, "JMS");
         communicationProperties.put(JmsConstants.INITIAL_CONTEXT_FACTORY,
                 "com.tibco.tibjms.naming.TibjmsInitialContextFactory");
@@ -612,12 +601,8 @@ public class NjamsSampleTest {
         communicationProperties.put(JmsConstants.PASSWORD, "njams");
         communicationProperties.put(JmsConstants.DESTINATION, "njams.endurance");
 
-        // Create client config
-        Settings config = new Settings();
-        config.setProperties(communicationProperties);
-
         // Instantiate client for first application
-        Njams njams = new Njams(clientPath, "1.0.0", "sdk4", config);
+        Njams njams = new Njams(clientPath, "1.0.0", "sdk4", communicationProperties);
 
         Path processPath = new Path("PROCESSES", "SubProcessCaller");
 
@@ -700,7 +685,8 @@ public class NjamsSampleTest {
     public void testGroupInGroupWithFlushes() throws Exception {
         Path clientPath = new Path("SDK4", "TEST");
 
-        Properties communicationProperties = new Properties();
+        // Create client config
+        Settings communicationProperties = new Settings();
         communicationProperties.put(CommunicationFactory.COMMUNICATION, "JMS");
         communicationProperties.put(JmsConstants.INITIAL_CONTEXT_FACTORY,
                 "com.tibco.tibjms.naming.TibjmsInitialContextFactory");
@@ -712,11 +698,7 @@ public class NjamsSampleTest {
         communicationProperties.put(JmsConstants.PASSWORD, "njams");
         communicationProperties.put(JmsConstants.DESTINATION, "njams.endurance");
 
-        // Create client config
-        Settings config = new Settings();
-        config.setProperties(communicationProperties);
-
-        Njams njams = new Njams(clientPath, "1.0.0", "sdk4", config);
+        Njams njams = new Njams(clientPath, "1.0.0", "sdk4", communicationProperties);
 
         Path processPath = new Path("PROCESSES", "testGroupInGroupWithFlushes");
 
@@ -881,7 +863,8 @@ public class NjamsSampleTest {
     public void testSubprocessSpawned() throws Exception {
         Path clientPath = new Path("SDK4", "TEST");
 
-        Properties communicationProperties = new Properties();
+        // Create client config
+        Settings communicationProperties = new Settings();
         communicationProperties.put(CommunicationFactory.COMMUNICATION, "JMS");
         communicationProperties.put(JmsConstants.INITIAL_CONTEXT_FACTORY,
                 "com.tibco.tibjms.naming.TibjmsInitialContextFactory");
@@ -893,12 +876,8 @@ public class NjamsSampleTest {
         communicationProperties.put(JmsConstants.PASSWORD, "njams");
         communicationProperties.put(JmsConstants.DESTINATION, "njams.endurance");
 
-        // Create client config
-        Settings config = new Settings();
-        config.setProperties(communicationProperties);
-
         // Instantiate client for first application
-        Njams njams = new Njams(clientPath, "1.0.0", "sdk4", config);
+        Njams njams = new Njams(clientPath, "1.0.0", "sdk4", communicationProperties);
 
         Path processPath = new Path("PROCESSES", "SubProcessSpawner");
 
@@ -981,7 +960,8 @@ public class NjamsSampleTest {
     public void testGroupInGroupWithFlushesAndEncoded() throws Exception {
         Path clientPath = new Path("SDK4", "TEST");
 
-        Properties communicationProperties = new Properties();
+        // Create client config
+        Settings communicationProperties = new Settings();
         communicationProperties.put(CommunicationFactory.COMMUNICATION, Transformer.encode("JMS"));
         communicationProperties.put(JmsConstants.INITIAL_CONTEXT_FACTORY,
                 Transformer.encode("com.tibco.tibjms.naming.TibjmsInitialContextFactory"));
@@ -993,11 +973,7 @@ public class NjamsSampleTest {
         communicationProperties.put(JmsConstants.PASSWORD, Transformer.encode("njams"));
         communicationProperties.put(JmsConstants.DESTINATION, Transformer.encode("njams.endurance"));
 
-        // Create client config
-        Settings config = new Settings();
-        config.setProperties(communicationProperties);
-
-        Njams njams = new Njams(clientPath, "1.0.0", "sdk4", config);
+        Njams njams = new Njams(clientPath, "1.0.0", "sdk4", communicationProperties);
 
         Path processPath = new Path("PROCESSES", "testGroupInGroupWithFlushesAndEncoded");
 

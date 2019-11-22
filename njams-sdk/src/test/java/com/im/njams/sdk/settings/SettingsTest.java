@@ -40,8 +40,7 @@ public class SettingsTest {
     
     @Before
     public void reset(){
-        Properties communicationProperties = new Properties();       
-        settings.setProperties(communicationProperties); 
+        settings.reset();
     }
     
     /**
@@ -50,7 +49,7 @@ public class SettingsTest {
      */
     @Test
     public void testPrintPropertiesWithoutChangingThem() {  
-        Properties properties = settings.getProperties();
+        Properties properties = settings.getAllProperties();
         properties.put(JmsConstants.SECURITY_CREDENTIALS, "njams");
         properties.put(JmsConstants.PASSWORD, "njams");
         properties.put(HttpsSender.SENDER_PASSWORD, "njams");
@@ -69,7 +68,7 @@ public class SettingsTest {
      */
     @Test
     public void testPrintPropertiesInCorrectOrder() {
-        Properties properties = settings.getProperties();
+        Properties properties = settings.getAllProperties();
         properties.put("a", "a");
         properties.put("c", "c");
         properties.put("d", "d");

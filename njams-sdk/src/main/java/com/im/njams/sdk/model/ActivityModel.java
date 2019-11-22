@@ -16,21 +16,17 @@
  */
 package com.im.njams.sdk.model;
 
-import java.util.Collections;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.stream.Collectors;
-
-import javax.xml.bind.annotation.XmlTransient;
-
 import com.faizsiegeln.njams.messageformat.v4.common.SubProcess;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.Activity;
-import com.im.njams.sdk.configuration.ActivityConfiguration;
-import com.im.njams.sdk.configuration.ProcessConfiguration;
 import com.im.njams.sdk.common.IdUtil;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
+import com.im.njams.sdk.configuration.ActivityConfiguration;
+import com.im.njams.sdk.configuration.ProcessConfiguration;
+import com.im.njams.sdk.settings.Settings;
+
+import javax.xml.bind.annotation.XmlTransient;
+import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * This class represents a Activity when creating the initial Model.
@@ -102,7 +98,14 @@ public class ActivityModel {
             SubProcess sb = new SubProcess();
             sb.setName(((SubProcessActivityModel) this).getSubProcessName());
             if (((SubProcessActivityModel) this).getSubProcessPath() != null) {
-                sb.setSubProcessPath(((SubProcessActivityModel) this).getSubProcessPath().toString());
+                String useDeprecatedField = processModel.getNjams().getSettings().
+                        getProperty(Settings.PROPERTY_USE_DEPRECATED_PATH_FIELD_FOR_SUBPROCESSES);
+                if (useDeprecatedField != null && "true".equalsIgnoreCase(useDeprecatedField)) {
+                    sb.setPath(((SubProcessActivityModel) this).getSubProcessPath().toString());
+                } else {
+                    sb.setSubProcessPath(((SubProcessActivityModel) this).getSubProcessPath().toString());
+                }
+
             }
             activity.setSubProcess(sb);
         }

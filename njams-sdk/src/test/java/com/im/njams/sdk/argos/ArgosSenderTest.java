@@ -25,11 +25,6 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.io.IOException;
-import java.net.DatagramSocket;
-import java.util.Properties;
-
-import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.*;
 
 public class ArgosSenderTest {
@@ -41,15 +36,14 @@ public class ArgosSenderTest {
 
     @Before
     public void init() {
-        Properties communicationProperties = new Properties();
-        //Argos relevant properties
-        communicationProperties.put(ArgosSender.NJAMS_SUBAGENT_HOST, ADDRESS);
-        communicationProperties.put(ArgosSender.NJAMS_SUBAGENT_PORT, Integer.toString(PORT));
-        communicationProperties.put(ArgosSender.NJAMS_SUBAGENT_ENABLED, "true");
-
         Settings settings = new Settings();
-        settings.setProperties(communicationProperties);
-        this.argosSender = spy(new ArgosSender(settings));
+        //Argos relevant properties
+        settings.put(ArgosSender.NJAMS_SUBAGENT_HOST, ADDRESS);
+        settings.put(ArgosSender.NJAMS_SUBAGENT_PORT, Integer.toString(PORT));
+        settings.put(ArgosSender.NJAMS_SUBAGENT_ENABLED, "true");
+
+        this.argosSender = ArgosSender.getInstance();
+        argosSender.init(settings);
         argosSender.start();
     }
 

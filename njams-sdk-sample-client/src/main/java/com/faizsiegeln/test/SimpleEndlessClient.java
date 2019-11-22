@@ -44,17 +44,12 @@ public class SimpleEndlessClient {
         Path clientPath = new Path("SDK4", "Client", "Simple");
 
         //Create communicationProperties, which specify how your client will communicate with the server
-        Properties properties = getJmsProperties();
-        //Properties properties = getCloudProperties();
-        properties.setProperty(Settings.PROPERTY_MAX_QUEUE_LENGTH, "2");
-        properties.setProperty(Settings.PROPERTY_DISCARD_POLICY, "none");
-
-        //Create client settings and add the properties
-        Settings config = new Settings();
-        config.setProperties(properties);
+        Settings settings = getJmsProperties();
+        settings.put(Settings.PROPERTY_MAX_QUEUE_LENGTH, "2");
+        settings.put(Settings.PROPERTY_DISCARD_POLICY, "none");
 
         //Instantiate client for first application
-        Njams njams = new Njams(clientPath, "1.0.0", technology, config);
+        Njams njams = new Njams(clientPath, "1.0.0", technology, settings);
 
         //add custom image for your technology
         njams.addImage(technology, "images/njams_java_sdk_process_step.png");
@@ -120,8 +115,8 @@ public class SimpleEndlessClient {
         njams.stop();
     }
 
-    private static Properties getCloudProperties() {
-        Properties communicationProperties = new Properties();
+    private static Settings getCloudProperties() {
+        Settings communicationProperties = new Settings();
         communicationProperties.put(CommunicationFactory.COMMUNICATION, CloudConstants.NAME);
         communicationProperties.put(CloudConstants.ENDPOINT, "<cloud url>");
         communicationProperties.put(CloudConstants.APIKEY, "<cloud apikey>");
@@ -131,8 +126,8 @@ public class SimpleEndlessClient {
         return communicationProperties;
     }
 
-    private static Properties getJmsProperties() {
-        Properties communicationProperties = new Properties();
+    private static Settings getJmsProperties() {
+        Settings communicationProperties = new Settings();
         communicationProperties.put(CommunicationFactory.COMMUNICATION, "JMS");
         communicationProperties.put(JmsConstants.INITIAL_CONTEXT_FACTORY,
                 "com.tibco.tibjms.naming.TibjmsInitialContextFactory");
