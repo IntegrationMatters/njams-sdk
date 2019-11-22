@@ -62,8 +62,7 @@ public class CloudSender extends AbstractSender {
     public static final String NJAMS_PATH = "x-njams-path";
     public static final String NJAMS_LOGID = "x-njams-logid";
 
-    public static final int FALLBACK_MAX_PAYLOAD_BYTES = 900000;
-    private int maxPayloadBytes;
+    public static final int MAX_PAYLOAD_BYTES = 900000;
 
     private URL url;
     private String apikey;
@@ -95,21 +94,6 @@ public class CloudSender extends AbstractSender {
 
         if (instanceIdPath == null) {
             LOG.error("Please provide property {} for CloudSender", CloudConstants.CLIENT_INSTANCEID);
-        }
-
-        try {
-            maxPayloadBytes = Integer.parseInt(properties.getProperty(CloudConstants.MAX_PAYLOAD_BYTES,
-                    String.valueOf(FALLBACK_MAX_PAYLOAD_BYTES)));
-            LOG.debug("maxPayloadBytes: {} Bytes", maxPayloadBytes);
-        } catch (Exception e) {
-            LOG.warn("Invalid value for maxPayloadBytes, fallback to {} Bytes", FALLBACK_MAX_PAYLOAD_BYTES);
-            maxPayloadBytes = FALLBACK_MAX_PAYLOAD_BYTES;
-        }
-
-        if (maxPayloadBytes > FALLBACK_MAX_PAYLOAD_BYTES) {
-            LOG.warn("The value for maxPayloadBytes: {} is too great, fallback to {} Bytes", maxPayloadBytes,
-                    FALLBACK_MAX_PAYLOAD_BYTES);
-            maxPayloadBytes = FALLBACK_MAX_PAYLOAD_BYTES;
         }
 
         try {
@@ -164,15 +148,15 @@ public class CloudSender extends AbstractSender {
 
                 int len = body.length();
                 LOG.debug("Message size: {}", len);
-                if (len > maxPayloadBytes) {
-                    LOG.debug("Message exceeds size limit: {}/{}", len, maxPayloadBytes);
+                if (len > MAX_PAYLOAD_BYTES) {
+                    LOG.debug("Message exceeds size limit: {}/{}", len, MAX_PAYLOAD_BYTES);
 
                     String bodyEncoded = Base64.getEncoder().encodeToString(body.getBytes("utf-8"));
                     len = bodyEncoded.length();
 
                     LOG.debug("Encoded message size: {}", len);
 
-                    int chunkMax = (int) Math.ceil((double) len / maxPayloadBytes);
+                    int chunkMax = (int) Math.ceil((double) len / MAX_PAYLOAD_BYTES);
                     chunkMax = chunkMax - 1;
 
                     LOG.debug("chunkMax: {}", chunkMax);
@@ -183,8 +167,8 @@ public class CloudSender extends AbstractSender {
                     properties.setProperty(NJAMS_ORGMESSAGETYPE, properties.getProperty(NJAMS_MESSAGETYPE));
                     properties.setProperty(NJAMS_MESSAGETYPE, "chunked");
 
-                    for (int i = 0; i < len; i += maxPayloadBytes) {
-                        String chunk = bodyEncoded.substring(i, Math.min(len, i + maxPayloadBytes));
+                    for (int i = 0; i < len; i += MAX_PAYLOAD_BYTES) {
+                        String chunk = bodyEncoded.substring(i, Math.min(len, i + MAX_PAYLOAD_BYTES));
                         LOG.debug("CHUNK {}/{}\n {}", chunkCounter, chunkMax);
                     
                         properties.setProperty(NJAMS_CHUNK, chunkCounter + ";" + chunkMax);
