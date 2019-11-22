@@ -19,13 +19,13 @@ package com.im.njams.sdk.configuration;
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.settings.PropertyUtil;
 import java.util.Iterator;
-import java.util.Properties;
 import java.util.ServiceLoader;
 import java.util.Spliterator;
 import java.util.Spliterators;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
+import com.im.njams.sdk.settings.Settings;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -44,18 +44,18 @@ public class ConfigurationProviderFactory {
      */
     public static final String CONFIGURATION_PROVIDER = "njams.sdk.configuration.provider";
 
-    private Properties properties;
+    private Settings settings;
     private final Njams njams;
 
     /**
      * Properties should contain a value for {@value #CONFIGURATION_PROVIDER}.
      * This value must match to the name of the ConfigurationProvider.
      *
-     * @param properties Settings Properties
+     * @param settings Settings
      * @param njams Njams instance
      */
-    public ConfigurationProviderFactory(Properties properties, Njams njams) {
-        this.properties = properties;
+    public ConfigurationProviderFactory(Settings settings, Njams njams) {
+        this.settings = settings;
         this.njams = njams;
     }
 
@@ -66,15 +66,15 @@ public class ConfigurationProviderFactory {
      * @return Configuration Provider matching CONFIGURATION_PROVIDER
      */
     public ConfigurationProvider getConfigurationProvider() {
-        if (properties.containsKey(CONFIGURATION_PROVIDER)) {
-            String name = properties.getProperty(CONFIGURATION_PROVIDER);
+        if (settings.containsKey(CONFIGURATION_PROVIDER)) {
+            String name = settings.getProperty(CONFIGURATION_PROVIDER);
             ServiceLoader<ConfigurationProvider> receiverList = ServiceLoader.load(ConfigurationProvider.class);
             Iterator<ConfigurationProvider> iterator = receiverList.iterator();
             while (iterator.hasNext()) {
                 ConfigurationProvider configurationProvider = iterator.next();
                 if (configurationProvider.getName().equals(name)) {
                     LOG.info("Create ConfigurationProvider {}", configurationProvider.getName());
-                    configurationProvider.configure(PropertyUtil.filter(properties, configurationProvider.getPropertyPrefix()), njams);
+                    configurationProvider.configure(settings.filter(configurationProvider.getPropertyPrefix()), njams);
                     return configurationProvider;
                 }
             }

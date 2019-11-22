@@ -28,8 +28,6 @@ import com.faizsiegeln.njams.messageformat.v4.common.MessageVersion;
 import com.faizsiegeln.njams.messageformat.v4.logmessage.LogMessage;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.ProjectMessage;
 import com.faizsiegeln.njams.messageformat.v4.tracemessage.TraceMessage;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.im.njams.sdk.common.JsonSerializerFactory;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.communication.AbstractSender;
 import com.im.njams.sdk.communication.ConnectionStatus;
@@ -220,14 +218,19 @@ public class JmsSender extends AbstractSender implements ExceptionListener {
 
     private void tryToSend(TextMessage textMessage) throws InterruptedException, JMSException {
         boolean sended = false;
+        final int EXCEPTION_IDLE_TIME = 50;
         final int MAX_TRIES = 100;
         int tries = 0;
-        final int EXCEPTION_IDLE_TIME = 50;
+
         do {
             try {
                 producer.send(textMessage);
                 sended = true;
             } catch (ResourceAllocationException ex) {
+                if ("onconnectionloss".equalsIgnoreCase(discardPolicy)) {
+                    LOG.debug("JMS Queue limit exceeded. Applying discard policy [{}]. Message discarded.", discardPolicy);
+                    break;
+                }
                 //Queue limit exceeded
                 if (++tries >= MAX_TRIES) {
                     LOG.warn("Try to reconnect, because the MessageQueue hasn't got enough space after {} seconds.",

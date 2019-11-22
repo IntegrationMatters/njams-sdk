@@ -478,7 +478,7 @@ public class NjamsProcessDiagramFactory implements ProcessDiagramFactory {
      */
     private String serializeDocument(NjamsProcessDiagramContext context) throws TransformerException {
         StringWriter sw = new StringWriter();
-        TransformerFactory tf = TransformerFactory.newInstance();
+        TransformerFactory tf = TransformerFactory.newInstance("net.sf.saxon.TransformerFactoryImpl", null);
         Transformer transformer = tf.newTransformer();
         transformer.setOutputProperty(OutputKeys.OMIT_XML_DECLARATION, "no");
         transformer.setOutputProperty(OutputKeys.METHOD, "xml");

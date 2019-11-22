@@ -61,8 +61,11 @@ public class SystemPropertiesSettingsProvider implements SettingsProvider {
     public Settings loadSettings() {
         Properties sysPropsCopy = new Properties();
         sysPropsCopy.putAll(System.getProperties());
+
         Settings settings = new Settings();
-        settings.setProperties(sysPropsCopy);
+        sysPropsCopy.entrySet()
+                .stream()
+                .forEach(e -> settings.put((String)e.getKey(), (String)e.getValue()));
         return settings;
     }
 
