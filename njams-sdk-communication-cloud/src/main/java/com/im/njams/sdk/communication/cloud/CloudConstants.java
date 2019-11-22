@@ -26,7 +26,7 @@ public class CloudConstants {
         //utility
     }
 
-    public static final String PROPERTY_PREFIX = "njams.sdk.communication.cloud.client";
+    public static final String PROPERTY_PREFIX = "njams.sdk.communication.cloud";
     public static final String NAME = "CLOUD";
     public static final String ENDPOINT = PROPERTY_PREFIX + ".endpoint";
     public static final String APIKEY = PROPERTY_PREFIX + ".apikey";
