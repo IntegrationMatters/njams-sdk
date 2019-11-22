@@ -16,14 +16,12 @@
  */
 package com.im.njams.sdk.settings;
 
-import com.im.njams.sdk.settings.encoding.Transformer;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * The settings contains settings needed for
@@ -77,64 +75,22 @@ public class Settings {
      * Possible values are: none|onconnectionloss|discard (Default is none)
      */
     public static final String PROPERTY_DISCARD_POLICY = "njams.client.sdk.discardpolicy";
-    /**
-     * New field subProcessPath has been added for Messageformat 4.1.0
-     * <p>
-     * This Property can be set to use deprecated format; this might be used when sending to a server not compatible
-     * because he uses an older Messageformat version.
-     */
-    public static final String PROPERTY_USE_DEPRECATED_PATH_FIELD_FOR_SUBPROCESSES = "njams.client.sdk.deprecatedsubprocesspathfield";
 
-    public Settings() {
-        properties = new Properties();
+    /**
+     * @return client properties
+     */
+    public Properties getProperties() {
+        if (properties == null) {
+            properties = new Properties();
+        }
+        return properties;
     }
 
     /**
-     * Return decoded property or null if not found
-     *
-     * @param key to look for
-     * @return the found setting value
+     * @param properties client properties
      */
-    public String getProperty(String key) {
-        return Transformer.decode(properties.getProperty(key));
-    }
-
-    /**
-     * * Return decoded property or default value if not found
-     *
-     * @param key to look for
-     * @param defaultValue which is returned if not found
-     * @return the value.
-     */
-    public String getProperty(String key, String defaultValue) {
-        return Transformer.decode(properties.getProperty(key, defaultValue));
-    }
-
-    /**
-     * Check if key is found
-     *
-     * @param key to check
-     * @return true if found else false
-     */
-    public boolean containsKey(String key) {
-        return properties.containsKey(key);
-    }
-
-    /**
-     * Put a key/value pair to settings.
-     *
-     * @param key the key
-     * @param value the value
-     */
-    public void put(String key, String value) {
-        properties.put(key, value);
-    }
-
-    /**
-     * Reset the settings, which means everything will be deleted.
-     */
-    public void reset() {
-        properties = new Properties();
+    public void setProperties(final Properties properties) {
+        this.properties = properties;
     }
     
     /**
@@ -146,55 +102,13 @@ public class Settings {
         properties.keySet().forEach(key -> list.add((String)key));
         Collections.sort(list); 
         list.forEach((key) -> {
-            String toCheck = key.toLowerCase();
+            String toCheck = ((String)key).toLowerCase();
             if (toCheck.contains("password") || toCheck.contains("credentials")) {
                 LOG.info("***      {} = {}", key, "****");
             }
-            else {
-                LOG.info("***      {} = {}", key, properties.getProperty(key));
+            else{
+                LOG.info("***      {} = {}", key, properties.getProperty((String) key));
             }
         });
-    }
-
-    /**
-     * Return all Properties.They will be decoded because user cannot know which ones are encoded.
-     *
-     * @return the properties.
-     */
-    public Properties getAllProperties() {
-        return Transformer.decode(properties);
-    }
-
-    /**
-     * Return Properties, which contains only the properties starting with a given prefix.
-     *
-     * @param prefix prefix
-     * @return new filtered Properties
-     */
-    public Properties filter(String prefix) {
-        Properties response = new Properties();
-        properties.entrySet()
-                .stream()
-                .filter(e -> String.class.isAssignableFrom(e.getKey().getClass()))
-                .filter(e -> ((String) e.getKey()).startsWith(prefix))
-                .forEach(e -> response.setProperty((String) e.getKey(), (String) e.getValue()));
-        return Transformer.decode(properties);
-    }
-
-    /**
-     * Return new Properties, which contains only the properties starting with a
-     * given prefix, stripped from that prefix.
-     *
-     * @param prefix prefix
-     * @return new filtered and stripped Properties
-     */
-    public Properties filterAndCut(String prefix) {
-        Properties response = new Properties();
-        properties.entrySet()
-                .stream()
-                .filter(e -> String.class.isAssignableFrom(e.getKey().getClass()))
-                .filter(e -> ((String) e.getKey()).startsWith(prefix))
-                .forEach(e -> response.setProperty(((String) e.getKey()).substring(((String) e.getKey()).indexOf(prefix) + prefix.length()), (String) e.getValue()));
-        return Transformer.decode(properties);
     }
 }

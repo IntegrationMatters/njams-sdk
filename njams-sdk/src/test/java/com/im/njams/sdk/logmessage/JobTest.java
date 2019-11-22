@@ -47,8 +47,10 @@ public class JobTest {
     public void testEventExtract() throws Exception {
         Path clientPath = new Path("SDK4", "TEST");
 
+        Properties properties = new Properties();
         // Create client config
         Settings config = new Settings();
+        config.setProperties(properties);
 
         Njams njams = new Njams(clientPath, "1.0.0", "sdk4", config);
 

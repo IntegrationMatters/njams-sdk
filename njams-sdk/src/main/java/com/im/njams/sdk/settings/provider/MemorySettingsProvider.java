@@ -58,10 +58,7 @@ public class MemorySettingsProvider implements SettingsProvider {
         if (settings == null) {
             settings = new Settings();
         }
-
-        properties.entrySet()
-                .stream()
-                .forEach(e -> settings.put((String)e.getKey(), (String)e.getValue()));
+        settings.getProperties().putAll(properties);
     }
 
     /**

@@ -23,10 +23,15 @@ public class AdditionalProcessClient {
         Path clientPath = new Path("SDK4", "Client", "Simple");
 
         //Create communicationProperties, which specify how your client will communicate with the server
-        Settings settings = getJmsProperties();
+        Properties properties = getJmsProperties();
+        //Properties properties = getCloudProperties();
+
+        //Create client settings and add the properties
+        Settings config = new Settings();
+        config.setProperties(properties);
 
         //Instantiate client for first application
-        Njams njams = new Njams(clientPath, "1.0.0", technology, settings);
+        Njams njams = new Njams(clientPath, "1.0.0", technology, config);
 
         //add custom image for your technology
         njams.addImage(technology, "images/njams_java_sdk_process_step.png");
@@ -82,8 +87,8 @@ public class AdditionalProcessClient {
         njams.stop();
     }
 
-    private static Settings getJmsProperties() {
-        Settings communicationProperties = new Settings();
+    private static Properties getJmsProperties() {
+        Properties communicationProperties = new Properties();
         communicationProperties.put(CommunicationFactory.COMMUNICATION, "JMS");
         communicationProperties.put(JmsConstants.INITIAL_CONTEXT_FACTORY,
                 "com.tibco.tibjms.naming.TibjmsInitialContextFactory");

@@ -45,7 +45,7 @@ public class PropertiesFileSettingsProviderTest {
         providerProps.setProperty(PropertiesFileSettingsProvider.FILE_CONFIGURATION, testFile.getAbsolutePath());
         provider = new PropertiesFileSettingsProvider();
         provider.configure(providerProps);
-        properties = provider.loadSettings().getAllProperties();
+        properties = provider.loadSettings().getProperties();
     }
 
     private File getTmpFile(String name) {
