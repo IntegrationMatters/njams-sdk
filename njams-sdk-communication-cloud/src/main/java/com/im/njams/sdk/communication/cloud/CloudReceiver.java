@@ -19,13 +19,11 @@ package com.im.njams.sdk.communication.cloud;
 import com.amazonaws.services.iot.client.AWSIotMessage;
 import com.amazonaws.services.iot.client.AWSIotMqttClient;
 import com.amazonaws.services.iot.client.AWSIotQos;
-import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
 import com.faizsiegeln.njams.messageformat.v4.command.Request;
 import com.faizsiegeln.njams.messageformat.v4.command.Response;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.communication.AbstractReceiver;
 import com.im.njams.sdk.communication.ConnectionStatus;
-import com.im.njams.sdk.communication.InstructionListener;
 import com.im.njams.sdk.communication.cloud.CertificateUtil.KeyStorePasswordPair;
 import com.im.njams.sdk.utils.JsonUtils;
 import com.im.njams.sdk.utils.StringUtils;
@@ -34,7 +32,6 @@ import java.io.InputStreamReader;
 import java.net.URL;
 import java.util.Map;
 import java.util.Properties;
-import java.util.UUID;
 import javax.net.ssl.HttpsURLConnection;
 import org.slf4j.LoggerFactory;
 
@@ -44,11 +41,11 @@ import org.slf4j.LoggerFactory;
  */
 public class CloudReceiver extends AbstractReceiver {
 
-    private static final org.slf4j.Logger LOG = LoggerFactory.getLogger(CloudTopic.class);
+    private static final org.slf4j.Logger LOG = LoggerFactory.getLogger(CloudReceiver.class);
 
     private String endpoint;
     private String instanceId;
-    private String clientId;
+    private String connectionId;
     private String certificateFile;
     private String privateKeyFile;
 
@@ -59,8 +56,6 @@ public class CloudReceiver extends AbstractReceiver {
     private KeyStorePasswordPair keyStorePasswordPair;
     private String apikey;
 
-    private UUID uuid;
-
     @Override
     public String getName() {
         return CloudConstants.NAME;
@@ -69,12 +64,16 @@ public class CloudReceiver extends AbstractReceiver {
     @Override
     public void init(Properties properties) {
 
-        uuid = UUID.randomUUID();
-
         String apikeypath = properties.getProperty(CloudConstants.APIKEY);
 
         if (apikeypath == null) {
             LOG.error("Please provide property {} for CloudSender", CloudConstants.APIKEY);
+        }
+
+        String instanceIdPath = properties.getProperty(CloudConstants.CLIENT_INSTANCEID);
+
+        if (instanceIdPath == null) {
+            LOG.error("Please provide property {} for CloudSender", CloudConstants.CLIENT_INSTANCEID);
         }
 
         try {
@@ -85,18 +84,23 @@ public class CloudReceiver extends AbstractReceiver {
         }
 
         try {
+            instanceId = ApiKeyReader.getApiKey(instanceIdPath);
+        } catch (Exception e) {
+            LOG.error("Failed to load instanceId from file " + apikeypath, e);
+            throw new IllegalStateException("Failed to load instanceId from file");
+        }
+
+        try {
             endpoint = getClientEndpoint(properties.getProperty(CloudConstants.ENDPOINT));
+
         } catch (final Exception ex) {
-            throw new NjamsSdkRuntimeException("unable to init http sender", ex);
+            throw new NjamsSdkRuntimeException("Unable to init CloudReceiver", ex);
         }
 
         if (endpoint == null) {
             LOG.error("Please provide property {} for CloudReceiver", CloudConstants.ENDPOINT);
         }
-        instanceId = properties.getProperty(CloudConstants.CLIENT_INSTANCEID);
-        if (instanceId == null) {
-            LOG.error("Please provide property {} for CloudReceiver", CloudConstants.CLIENT_INSTANCEID);
-        }
+
         certificateFile = properties.getProperty(CloudConstants.CLIENT_CERTIFICATE);
         if (certificateFile == null) {
             LOG.error("Please provide property {} for CloudReceiver", CloudConstants.CLIENT_CERTIFICATE);
@@ -111,7 +115,9 @@ public class CloudReceiver extends AbstractReceiver {
         if (keyStorePasswordPair == null) {
             throw new IllegalStateException("Certificate or PrivateKey invalid");
         }
-        clientId = instanceId + "_" + uuid.toString();
+
+        connectionId = Utils.generateClientId(njams, instanceId);
+
     }
 
     @Override
@@ -152,7 +158,19 @@ public class CloudReceiver extends AbstractReceiver {
         }
         in.close();
 
+        LOG.debug("Response Payload : " + response.toString());
+
         Endpoints endpoints = JsonUtils.parse(response.toString(), Endpoints.class);
+
+        if (endpoints.error) {
+            LOG.error(endpoints.errorMessage);
+
+            LOG.info("Try to establish connection again in 10 min.");
+            Thread.sleep(60000);
+            LOG.info("Try to establish connection again.");
+
+            return getClientEndpoint(endpoint);
+        }
 
         return endpoints.client;
     }
@@ -200,7 +218,7 @@ public class CloudReceiver extends AbstractReceiver {
      * @return the clientId
      */
     public String getClientId() {
-        return clientId;
+        return connectionId;
     }
 
     /**
@@ -246,8 +264,8 @@ public class CloudReceiver extends AbstractReceiver {
         }
         try {
             connectionStatus = ConnectionStatus.CONNECTING;
-            LOG.debug("Connect to endpoint: {} with clientId: {}", endpoint, clientId);
-            mqttclient = new AWSIotMqttClient(endpoint, clientId, keyStorePasswordPair.keyStore, keyStorePasswordPair.keyPassword);
+            LOG.debug("Connect to endpoint: {} with clientId: {}", endpoint, connectionId);
+            mqttclient = new AWSIotMqttClient(endpoint, connectionId, keyStorePasswordPair.keyStore, keyStorePasswordPair.keyPassword);
 
             // optional parameters can be set before connect()
             getMqttclient().connect();
@@ -255,37 +273,40 @@ public class CloudReceiver extends AbstractReceiver {
 
             // send onConnect            
             topicName = "/onConnect/";
-            AWSIotMessage msg = new AWSIotMessage(topicName, AWSIotQos.QOS1, "{\"connectionId\":\"" + uuid.toString() + "\", \"instanceId\":\"" + instanceId + "\", \"path\":\"" + njams.getClientPath().toString() + "\", \"clientVersion\":\"" + njams.getClientVersion() + "\", \"sdkVersion\":\"" + njams.getSdkVersion() + "\", \"machine\":\"" + njams.getMachine() + "\" }");
+            AWSIotMessage msg = new AWSIotMessage(topicName, AWSIotQos.QOS1, "{\"connectionId\":\"" + connectionId + "\", \"instanceId\":\"" + instanceId + "\", \"path\":\"" + njams.getClientPath().toString() + "\", \"clientVersion\":\"" + njams.getClientVersion() + "\", \"sdkVersion\":\"" + njams.getSdkVersion() + "\", \"machine\":\"" + njams.getMachine() + "\" }");
             LOG.debug("Send message: {} to topic: {}", msg.getStringPayload(), topicName);
             getMqttclient().publish(msg);
 
             // subscribe commands topic      
-            topicName = "/" + instanceId + "/commands/" + uuid.toString() + "/";
+            topicName = "/" + instanceId + "/commands/" + connectionId + "/";
             CloudTopic topic = new CloudTopic(this);
 
             LOG.debug("Topic Subscription: {}", topic.getTopic());
 
             getMqttclient().subscribe(topic);
             connectionStatus = ConnectionStatus.CONNECTED;
+
+            njams.getSettings().getAllProperties().setProperty("iotClientId", mqttclient.getClientId());
+
         } catch (Exception e) {
             connectionStatus = ConnectionStatus.DISCONNECTED;
             throw new NjamsSdkRuntimeException("Unable to initialize", e);
         }
     }
-    
+
     /**
-     * Every time onInstruction in the AbstractReceiver is called, the instruction's
-     * request is extended by this method.
-     * 
+     * Every time onInstruction in the AbstractReceiver is called, the
+     * instruction's request is extended by this method.
+     *
      * @param request the request that will be extended
-     * @return an exception response if there was a problem while retrieving payload
-     * from nJAMS Cloud. If everything worked fine, it returns null.
+     * @return an exception response if there was a problem while retrieving
+     * payload from nJAMS Cloud. If everything worked fine, it returns null.
      */
     @Override
     protected Response extendRequest(Request request) {
         String payloadUrl = "";
         Map<String, String> parameters = request.getParameters();
-        if(parameters != null){
+        if (parameters != null) {
             payloadUrl = parameters.get("PayloadUrl");
         }
         if (StringUtils.isNotBlank(payloadUrl)) {

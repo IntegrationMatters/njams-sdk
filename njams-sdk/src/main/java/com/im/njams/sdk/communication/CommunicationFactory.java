@@ -16,19 +16,16 @@
  */
 package com.im.njams.sdk.communication;
 
+import com.im.njams.sdk.Njams;
+import com.im.njams.sdk.settings.Settings;
 import java.util.Iterator;
 import java.util.ServiceLoader;
 import java.util.Spliterator;
 import java.util.Spliterators;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.im.njams.sdk.Njams;
-import com.im.njams.sdk.settings.Settings;
-import com.im.njams.sdk.settings.encoding.Transformer;
 
 /**
  * Factory for creating Sender and Receiver
@@ -119,6 +116,7 @@ public class CommunicationFactory {
                         LOG.info("Create sender {}", sender.getName());
                         Sender newInstance = sender.getClass().newInstance();
                         newInstance.validate();
+                        newInstance.setNjams(njams);
                         newInstance.init(settings.getAllProperties());
                         return newInstance;
                     } catch (Exception e) {
