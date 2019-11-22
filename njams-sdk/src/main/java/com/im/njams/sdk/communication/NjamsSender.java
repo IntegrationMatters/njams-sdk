@@ -21,13 +21,12 @@ import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.factories.ThreadFactoryBuilder;
 import com.im.njams.sdk.settings.Settings;
 import com.im.njams.sdk.settings.encoding.Transformer;
-import org.slf4j.LoggerFactory;
-
 import java.util.Properties;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import org.slf4j.LoggerFactory;
 
 /**
  * This class enforces the maxQueueLength setting. It uses the
@@ -159,6 +158,11 @@ public class NjamsSender implements Sender {
      */
     ThreadPoolExecutor getExecutor(){
         return executor;
+    }
+    
+    @Override
+    public void setNjams(Njams njams) {
+        //Do nothing
     }
 
 }

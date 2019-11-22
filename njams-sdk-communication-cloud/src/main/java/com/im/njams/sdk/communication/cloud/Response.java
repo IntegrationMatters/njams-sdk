@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Faiz & Siegeln Software GmbH
+ * Copyright (c) 2019 Faiz & Siegeln Software GmbH
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"),
  * to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
@@ -16,32 +16,25 @@
  */
 package com.im.njams.sdk.communication.cloud;
 
-import com.im.fasterxml.jackson.annotation.JsonCreator;
-import com.im.fasterxml.jackson.annotation.JsonProperty;
-
 /**
  *
  * @author lmusebrink
  */
+public class Response {
 
-public class Endpoints {
-    
-    public String ingest;
-    public String client;
-    public boolean error;
-    public String errorMessage;
-    
-    public Endpoints(){
-        
+    private int statusCode;
+    private String body;
+
+    public Response(int statusCode, String body) {
+        this.statusCode = statusCode;
+        this.body = body;
     }
-    
-    @JsonCreator
-    public Endpoints(@JsonProperty("ingest")String ingest, @JsonProperty("client")String client, @JsonProperty("error")boolean error, @JsonProperty("errorMessage")String errorMessage ) {
-        this.ingest = ingest;
-        this.client = client;
-        this.error = error;
-        this.errorMessage = errorMessage;
+
+    public int getStatusCode() {
+        return statusCode;
     }
-    
-    
+
+    public String getBody() {
+        return body;
+    }
 }

@@ -19,26 +19,22 @@ package com.im.njams.sdk.logmessage;
 import com.faizsiegeln.njams.messageformat.v4.common.CommonMessage;
 import com.faizsiegeln.njams.messageformat.v4.logmessage.Activity;
 import com.faizsiegeln.njams.messageformat.v4.logmessage.LogMessage;
-
 import com.im.njams.sdk.AbstractTest;
+import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.communication.Sender;
 import com.im.njams.sdk.communication.TestSender;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
-
 import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
-
 import static org.junit.Assert.fail;
 import org.junit.Ignore;
-
 import org.junit.Test;
 import org.slf4j.LoggerFactory;
 
@@ -401,6 +397,11 @@ public class JobImplIT extends AbstractTest {
         @Override
         public String getName() {
             return TestSender.NAME;
+        }
+
+        @Override
+        public void setNjams(Njams njams) {
+            //Do nothing
         }
     }
 }

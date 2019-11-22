@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Faiz & Siegeln Software GmbH
+ * Copyright (c) 2019 Faiz & Siegeln Software GmbH
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"),
  * to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
@@ -16,32 +16,42 @@
  */
 package com.im.njams.sdk.communication.cloud;
 
-import com.im.fasterxml.jackson.annotation.JsonCreator;
-import com.im.fasterxml.jackson.annotation.JsonProperty;
+import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.util.zip.GZIPInputStream;
+import java.util.zip.GZIPOutputStream;
 
 /**
  *
  * @author lmusebrink
  */
+public class Gzip {
 
-public class Endpoints {
-    
-    public String ingest;
-    public String client;
-    public boolean error;
-    public String errorMessage;
-    
-    public Endpoints(){
-        
-    }
-    
-    @JsonCreator
-    public Endpoints(@JsonProperty("ingest")String ingest, @JsonProperty("client")String client, @JsonProperty("error")boolean error, @JsonProperty("errorMessage")String errorMessage ) {
-        this.ingest = ingest;
-        this.client = client;
-        this.error = error;
-        this.errorMessage = errorMessage;
-    }
-    
-    
+	public static byte[] compress(String data) throws IOException {
+		ByteArrayOutputStream bos = new ByteArrayOutputStream(data.length());
+		GZIPOutputStream gzip = new GZIPOutputStream(bos);
+		gzip.write(data.getBytes());
+		gzip.close();
+		byte[] compressed = bos.toByteArray();
+		bos.close();
+		return compressed;
+	}
+	
+	public static String decompress(byte[] compressed) throws IOException {
+		ByteArrayInputStream bis = new ByteArrayInputStream(compressed);
+		GZIPInputStream gis = new GZIPInputStream(bis);
+		BufferedReader br = new BufferedReader(new InputStreamReader(gis, "UTF-8"));
+		StringBuilder sb = new StringBuilder();
+		String line;
+		while((line = br.readLine()) != null) {
+			sb.append(line);
+		}
+		br.close();
+		gis.close();
+		bis.close();
+		return sb.toString();
+	}
 }

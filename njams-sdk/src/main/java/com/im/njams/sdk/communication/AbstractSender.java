@@ -16,22 +16,22 @@
  */
 package com.im.njams.sdk.communication;
 
-import java.util.Properties;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
-
-import com.faizsiegeln.njams.messageformat.v4.tracemessage.TraceMessage;
-import org.slf4j.LoggerFactory;
-
 import com.faizsiegeln.njams.messageformat.v4.common.CommonMessage;
 import com.faizsiegeln.njams.messageformat.v4.logmessage.LogMessage;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.ProjectMessage;
+import com.faizsiegeln.njams.messageformat.v4.tracemessage.TraceMessage;
+import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.settings.Settings;
+import java.util.Properties;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+import org.slf4j.LoggerFactory;
 
 /**
- * Superclass for all Senders. When writing your own Sender, extend this class and overwrite methods, when needed.
- * All Sender will be automatically pooled by the SDK; you must not implement your own connection pooling!
+ * Superclass for all Senders. When writing your own Sender, extend this class
+ * and overwrite methods, when needed. All Sender will be automatically pooled
+ * by the SDK; you must not implement your own connection pooling!
  *
  * @author hsiegeln
  * @version 4.0.6
@@ -47,6 +47,21 @@ public abstract class AbstractSender implements Sender {
     private static final AtomicBoolean hasConnected = new AtomicBoolean(false);
 
     private static final AtomicInteger connecting = new AtomicInteger(0);
+
+    /**
+     * Njams to hold
+     */
+    protected Njams njams;
+
+    /**
+     * This constructor sets the njams instance for getting the instruction
+     * listeners.
+     *
+     * @param njams the instance that holds the instructionListeners.
+     */
+    public void setNjams(Njams njams) {
+        this.njams = njams;
+    }
 
     /**
      * returns a new AbstractSender
@@ -81,8 +96,8 @@ public abstract class AbstractSender implements Sender {
     }
 
     /**
-     * initiates a reconnect, if isConnected() is false and no other reconnect is currently executed.
-     * Override this for your own reconnect handling
+     * initiates a reconnect, if isConnected() is false and no other reconnect
+     * is currently executed. Override this for your own reconnect handling
      *
      * @param ex the exception that initiated the reconnect
      */
@@ -126,7 +141,8 @@ public abstract class AbstractSender implements Sender {
     }
 
     /**
-     * Send the given message. This method automatically applies the discardPolicy onConnectionLoss, if set
+     * Send the given message. This method automatically applies the
+     * discardPolicy onConnectionLoss, if set
      *
      * @param msg the message to send
      */
@@ -173,9 +189,9 @@ public abstract class AbstractSender implements Sender {
     }
 
     /**
-     * used to implement your exception handling for this sender. Is called, if sending of a message fails.
-     * It will automatically close any try to reconnect the connection;
-     * override this method for your own handling
+     * used to implement your exception handling for this sender. Is called, if
+     * sending of a message fails. It will automatically close any try to
+     * reconnect the connection; override this method for your own handling
      *
      * @param exception NjamsSdkRuntimeException
      */
