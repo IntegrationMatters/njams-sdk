@@ -53,9 +53,12 @@ public class TestSender extends AbstractSender {
      * @return
      */
     public static Settings getSettings() {
+        Properties properties = new Properties();
+        properties.setProperty(CommunicationFactory.COMMUNICATION, NAME);
+        properties.setProperty(ConfigurationProviderFactory.CONFIGURATION_PROVIDER, "memory");
+
         Settings config = new Settings();
-        config.put(CommunicationFactory.COMMUNICATION, NAME);
-        config.put(ConfigurationProviderFactory.CONFIGURATION_PROVIDER, "memory");
+        config.setProperties(properties);
         return config;
     }
     

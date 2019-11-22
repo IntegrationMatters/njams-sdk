@@ -65,10 +65,15 @@ public class JVMSenderClient {
         Path clientPath = new Path("SDK4", "Client", "Argos");
 
         //Create communicationProperties, which specify how your client will communicate with the server
-        Settings settings = getProperties();
+        Properties properties = getProperties();
+        //Properties properties = getCloudProperties();
+
+        //Create client settings and add the properties
+        Settings config = new Settings();
+        config.setProperties(properties);
 
         //Instantiate client for first application
-        njams = new Njams(clientPath, "4.0.11", technology, settings);
+        njams = new Njams(clientPath, "4.0.11", technology, config);
     }
 
     private static void addJVMCollector() {
@@ -76,8 +81,8 @@ public class JVMSenderClient {
         njams.addArgosCollector(jvmCollector);
     }
 
-    private static Settings getProperties() {
-        Settings communicationProperties = new Settings();
+    private static Properties getProperties() {
+        Properties communicationProperties = new Properties();
         communicationProperties.put(CommunicationFactory.COMMUNICATION, "JMS");
         communicationProperties.put(JmsConstants.INITIAL_CONTEXT_FACTORY,
                 "com.tibco.tibjms.naming.TibjmsInitialContextFactory");

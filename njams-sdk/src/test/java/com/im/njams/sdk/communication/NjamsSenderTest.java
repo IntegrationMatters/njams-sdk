@@ -49,7 +49,9 @@ public class NjamsSenderTest extends AbstractTest {
     @BeforeClass
     public static void createSettings() {
         SETTINGS = new Settings();
-        SETTINGS.put(CommunicationFactory.COMMUNICATION, TestSender.NAME);
+        Properties props = new Properties();
+        props.put(CommunicationFactory.COMMUNICATION, TestSender.NAME);
+        SETTINGS.setProperties(props);
     }
 
     public NjamsSenderTest() {
@@ -81,8 +83,10 @@ public class NjamsSenderTest extends AbstractTest {
     @Test(expected = IllegalArgumentException.class)
     public void testIllegalArgumentMaxSenderThreads() {
         Settings settings = new Settings();
-        settings.put(CommunicationFactory.COMMUNICATION, TestSender.NAME);
-        settings.put(Settings.PROPERTY_MAX_SENDER_THREADS, "-1");
+        Properties props = new Properties();
+        props.put(CommunicationFactory.COMMUNICATION, TestSender.NAME);
+        props.put(Settings.PROPERTY_MAX_SENDER_THREADS, "-1");
+        settings.setProperties(props);
         NjamsSender njamsSender = new NjamsSender(njams, settings);
     }
 
@@ -92,8 +96,10 @@ public class NjamsSenderTest extends AbstractTest {
     @Test(expected = IllegalArgumentException.class)
     public void testIllegalArgument2SenderThreadIdleTime() {
         Settings settings = new Settings();
-        settings.put(CommunicationFactory.COMMUNICATION, TestSender.NAME);
-        settings.put(Settings.PROPERTY_SENDER_THREAD_IDLE_TIME, "-1");
+        Properties props = new Properties();
+        props.put(CommunicationFactory.COMMUNICATION, TestSender.NAME);
+        props.put(Settings.PROPERTY_SENDER_THREAD_IDLE_TIME, "-1");
+        settings.setProperties(props);
         NjamsSender njamsSender = new NjamsSender(njams, settings);
     }
 
@@ -103,9 +109,11 @@ public class NjamsSenderTest extends AbstractTest {
     @Test(expected = IllegalArgumentException.class)
     public void testIllegalArgumentMaxSenderThreadsLessThanMinSenderThreads() {
         Settings settings = new Settings();
-        settings.put(CommunicationFactory.COMMUNICATION, TestSender.NAME);
-        settings.put(Settings.PROPERTY_MIN_SENDER_THREADS, "5");
-        settings.put(Settings.PROPERTY_MAX_SENDER_THREADS, "4");
+        Properties props = new Properties();
+        props.put(CommunicationFactory.COMMUNICATION, TestSender.NAME);
+        props.put(Settings.PROPERTY_MIN_SENDER_THREADS, "5");
+        props.put(Settings.PROPERTY_MAX_SENDER_THREADS, "4");
+        settings.setProperties(props);
         NjamsSender njamsSender = new NjamsSender(njams, settings);
     }
 
@@ -115,19 +123,22 @@ public class NjamsSenderTest extends AbstractTest {
     @Test(expected = IllegalArgumentException.class)
     public void testIllegalArgumentMinSenderThreads() {
         Settings settings = new Settings();
-        settings.put(CommunicationFactory.COMMUNICATION, TestSender.NAME);
-        settings.put(Settings.PROPERTY_MIN_SENDER_THREADS, "-1");
+        Properties props = new Properties();
+        props.put(CommunicationFactory.COMMUNICATION, TestSender.NAME);
+        props.put(Settings.PROPERTY_MIN_SENDER_THREADS, "-1");
+        settings.setProperties(props);
         NjamsSender njamsSender = new NjamsSender(njams, settings);
     }
 
     @Test
     public void testConfiguredNjamsSender() {
         Settings settings = new Settings();
-        settings.put(CommunicationFactory.COMMUNICATION, TestSender.NAME);
-        settings.put(Settings.PROPERTY_MIN_SENDER_THREADS, "3");
-        settings.put(Settings.PROPERTY_MAX_SENDER_THREADS, "10");
-        settings.put(Settings.PROPERTY_SENDER_THREAD_IDLE_TIME, "5000");
-
+        Properties props = new Properties();
+        props.put(CommunicationFactory.COMMUNICATION, TestSender.NAME);
+        props.put(Settings.PROPERTY_MIN_SENDER_THREADS, "3");
+        props.put(Settings.PROPERTY_MAX_SENDER_THREADS, "10");
+        props.put(Settings.PROPERTY_SENDER_THREAD_IDLE_TIME, "5000");
+        settings.setProperties(props);
         NjamsSender sender = new NjamsSender(njams, settings);
         ThreadPoolExecutor executor = sender.getExecutor();
         assertEquals(0, executor.getActiveCount());

@@ -46,10 +46,15 @@ public class SubProcessClient {
         Path clientPath = new Path("SDK4", "Client", "SubProcess");
 
         //Create communicationProperties, which specify how your client will communicate with the server
-        Settings settings = getJmsProperties();
+        Properties properties = getJmsProperties();
+        //Properties properties = getCloudProperties();
+
+        //Create client settings and add the properties
+        Settings config = new Settings();
+        config.setProperties(properties);
 
         //Instantiate client for first application
-        Njams njams = new Njams(clientPath, "1.0.0", technology, settings);
+        Njams njams = new Njams(clientPath, "1.0.0", technology, config);
 
         //add custom image for your technology
         njams.addImage(technology, "images/njams_java_sdk_process_step.png");
@@ -132,8 +137,8 @@ public class SubProcessClient {
         njams.stop();
     }
 
-    private static Settings getCloudProperties() {
-        Settings communicationProperties = new Settings();
+    private static Properties getCloudProperties() {
+        Properties communicationProperties = new Properties();
         communicationProperties.put(CommunicationFactory.COMMUNICATION, CloudConstants.NAME);
         communicationProperties.put(CloudConstants.ENDPOINT, "<cloud url>");
         communicationProperties.put(CloudConstants.APIKEY, "<cloud apikey>");
@@ -143,8 +148,8 @@ public class SubProcessClient {
         return communicationProperties;
     }
 
-    private static Settings getJmsProperties() {
-        Settings communicationProperties = new Settings();
+    private static Properties getJmsProperties() {
+        Properties communicationProperties = new Properties();
         communicationProperties.put(CommunicationFactory.COMMUNICATION, "JMS");
         communicationProperties.put(JmsConstants.INITIAL_CONTEXT_FACTORY,
                 "com.tibco.tibjms.naming.TibjmsInitialContextFactory");

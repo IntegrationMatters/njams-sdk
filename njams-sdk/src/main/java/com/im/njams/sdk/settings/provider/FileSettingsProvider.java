@@ -97,18 +97,17 @@ public class FileSettingsProvider implements SettingsProvider {
      */
     @Override
     public Settings loadSettings() {
+        Settings settings;
         if (!file.exists()) {
-            return new Settings();
+            settings = new Settings();
         } else {
             try (InputStream is = new FileInputStream(file)) {
-                Properties properties = objectMapper.readValue(is, Properties.class);
-                Settings settings = new Settings();
-                properties.keySet().forEach(key -> settings.put((String) key, (String) properties.get(key)));
-                return settings;
+                settings = objectMapper.readValue(is, Settings.class);
             } catch (Exception e) {
                 throw new NjamsSdkRuntimeException("Unable to load file", e);
             }
         }
+        return settings;
     }
 
 

@@ -51,16 +51,17 @@ public class FileSettingsProviderTest {
         assertThat(conf, notNullValue());
         assertThat(file.exists(), is(false));
 
-        conf.put("key1", "value1");
-        saveProps(file ,conf.getAllProperties());
+        conf.getProperties().put("key1", "value1");
+        saveProps(file ,conf.getProperties());
         assertThat(file.exists(), is(true));
 
-        List<String> lines = Arrays.asList("{", "\"test-key\" : \"test-value\"", "}");
+        List<String> lines = Arrays.asList("{", "\"properties\" : {", "\"test-key\" : \"test-value\"", "}", "}");
         Files.write(Paths.get(file.toString()), lines, Charset.forName("UTF-8"));
         conf = provider.loadSettings();
         assertThat(conf, notNullValue());
-        assertThat(conf.getAllProperties().size(), is(1));
-        assertThat(conf.getAllProperties().getProperty("test-key"), is("test-value"));
+        assertThat(conf.getProperties(), notNullValue());
+        assertThat(conf.getProperties().size(), is(1));
+        assertThat(conf.getProperties().getProperty("test-key"), is("test-value"));
 
         file.delete();
         assertThat(file.exists(), is(false));
