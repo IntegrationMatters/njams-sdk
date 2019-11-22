@@ -159,6 +159,8 @@ public class CloudSender extends AbstractSender {
             try {
                 LOG.trace("Sending {} message", properties.get(NJAMS_MESSAGETYPE));
                 final String body = JsonUtils.serialize(msg);
+                
+                LOG.trace("Send msg {}", body);
 
                 int len = body.length();
                 LOG.debug("Message size: {}", len);
@@ -183,8 +185,8 @@ public class CloudSender extends AbstractSender {
 
                     for (int i = 0; i < len; i += maxPayloadBytes) {
                         String chunk = bodyEncoded.substring(i, Math.min(len, i + maxPayloadBytes));
-                        LOG.debug("CHUNK {}/{}\n {}", chunkCounter, chunkMax, chunk);
-
+                        LOG.debug("CHUNK {}/{}\n {}", chunkCounter, chunkMax);
+                    
                         properties.setProperty(NJAMS_CHUNK, chunkCounter + ";" + chunkMax);
                         send(chunk, properties);
                         chunkCounter++;
@@ -297,10 +299,12 @@ public class CloudSender extends AbstractSender {
                 entry -> connection.setRequestProperty(entry.getKey().toString(), entry.getValue().toString()));
     }
 
-    private Response send(final String body, final Properties properties) {
+    private Response send(String body, final Properties properties) {
         HttpsURLConnection connection = null;
-
+      
         try {
+            byte[] bodyCompressed = Gzip.compress(body);            
+            
             //Create connection
             connection = (HttpsURLConnection) url.openConnection();
             connection.setRequestMethod("POST");
@@ -309,8 +313,9 @@ public class CloudSender extends AbstractSender {
             connection.setRequestProperty("Connection", "keep-alive");
             connection.setRequestProperty("x-api-key", apikey);
 
-            connection.setRequestProperty("Content-Length", Integer.toString(body.getBytes("UTF-8").length));
+            connection.setRequestProperty("Content-Length", Integer.toString(bodyCompressed.length));
             connection.setRequestProperty("Content-Language", "en-US");
+            connection.setRequestProperty("Content-Encoding", "gzip");
 
             connection.setUseCaches(false);
             connection.setDoOutput(true);
@@ -323,11 +328,10 @@ public class CloudSender extends AbstractSender {
 
             //Send request
             try (final DataOutputStream wr = new DataOutputStream(connection.getOutputStream())) {
-                wr.writeBytes(body);
+                wr.write(bodyCompressed);
             }
 
-            LOG.debug("Send msg {}", body);
-
+   
             final int responseCode = connection.getResponseCode();
 
             if (responseCode < HttpURLConnection.HTTP_BAD_REQUEST) {

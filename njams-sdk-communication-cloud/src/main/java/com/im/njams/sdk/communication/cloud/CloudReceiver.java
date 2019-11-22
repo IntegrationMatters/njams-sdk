@@ -286,7 +286,7 @@ public class CloudReceiver extends AbstractReceiver {
             getMqttclient().subscribe(topic);
             connectionStatus = ConnectionStatus.CONNECTED;
 
-            njams.getSettings().getProperties().setProperty("iotClientId", mqttclient.getClientId());
+            njams.getSettings().getAllProperties().setProperty("iotClientId", mqttclient.getClientId());
 
         } catch (Exception e) {
             connectionStatus = ConnectionStatus.DISCONNECTED;

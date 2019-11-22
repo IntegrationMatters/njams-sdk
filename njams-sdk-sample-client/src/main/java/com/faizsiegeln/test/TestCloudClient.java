@@ -25,7 +25,6 @@ import com.im.njams.sdk.logmessage.Job;
 import com.im.njams.sdk.model.ActivityModel;
 import com.im.njams.sdk.model.ProcessModel;
 import com.im.njams.sdk.settings.Settings;
-import java.util.Properties;
 
 /**
  * This is a simple sample client, which creates a simple process with three
@@ -44,16 +43,11 @@ public class TestCloudClient {
 
         //Create communicationProperties, which specify how your client will communicate with the server
         //Properties properties = getJmsProperties();
-        Properties properties = getCloudProperties();
-        properties.setProperty(Settings.PROPERTY_MAX_QUEUE_LENGTH, "2");
-        properties.setProperty(Settings.PROPERTY_DISCARD_POLICY, "none");
-
-        //Create client settings and add the properties
-        Settings config = new Settings();
-        config.setProperties(properties);
+        Settings settings = getCloudSettings();
+  
 
         //Instantiate client for first application
-        Njams njams = new Njams(clientPath, "1.0.0", technology, config);
+        Njams njams = new Njams(clientPath, "1.0.0", technology, settings);
 
         //add custom image for your technology
         njams.addImage(technology, "images/njams_java_sdk_process_step.png");
@@ -140,8 +134,8 @@ public class TestCloudClient {
         return sb.toString();
     }
 
-    private static Properties getCloudProperties() {
-        Properties communicationProperties = new Properties();
+    private static Settings getCloudSettings() {
+        Settings communicationProperties = new Settings();
         communicationProperties.put(CommunicationFactory.COMMUNICATION, CloudConstants.NAME);
         communicationProperties.put(CloudConstants.ENDPOINT, "ingest.dev.njams.cloud");
         communicationProperties.put(CloudConstants.APIKEY, "C:\\Dev\\njams-sdk\\njams-sdk-sample-client\\src\\main\\resources\\certs\\test\\723ce3f9b2-api.key");
