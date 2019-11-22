@@ -16,17 +16,18 @@
  */
 package com.im.njams.sdk.communication;
 
-import com.im.njams.sdk.Njams;
-import com.im.njams.sdk.settings.Settings;
-import com.im.njams.sdk.settings.encoding.Transformer;
 import java.util.Iterator;
 import java.util.ServiceLoader;
 import java.util.Spliterator;
 import java.util.Spliterators;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.im.njams.sdk.Njams;
+import com.im.njams.sdk.settings.Settings;
 
 /**
  * Factory for creating Sender and Receiver
@@ -67,9 +68,9 @@ public class CommunicationFactory {
      * @return new initialized Receiver
      */
     public Receiver getReceiver() {
-        if (settings.getProperties().containsKey(COMMUNICATION)) {
+        if (settings.containsKey(COMMUNICATION)) {
             final Iterator<Receiver> iterator = receiverList.iterator();
-            final String requiredReceiverName = Transformer.decode(settings.getProperties().getProperty(COMMUNICATION));
+            final String requiredReceiverName = settings.getProperty(COMMUNICATION);
             while (iterator.hasNext()) {
                 final Receiver receiver = iterator.next();
                 if (receiver.getName().equals(requiredReceiverName)) {
@@ -79,7 +80,7 @@ public class CommunicationFactory {
                         Receiver newInstance = receiver.getClass().newInstance();
                         newInstance.validate();
                         newInstance.setNjams(njams);
-                        newInstance.init(Transformer.decode(settings.getProperties()));
+                        newInstance.init(settings.getAllProperties());
                         return newInstance;
                     } catch (Exception e) {
                         throw new UnsupportedOperationException(
@@ -106,9 +107,9 @@ public class CommunicationFactory {
      * @return new initialized Sender
      */
     public Sender getSender() {
-        if (settings.getProperties().containsKey(COMMUNICATION)) {
+        if (settings.containsKey(COMMUNICATION)) {
             final Iterator<Sender> iterator = senderList.iterator();
-            final String requiredSenderName = Transformer.decode(settings.getProperties().getProperty(COMMUNICATION));
+            final String requiredSenderName = settings.getProperty(COMMUNICATION);
             while (iterator.hasNext()) {
                 final Sender sender = iterator.next();
                 if (sender.getName().equals(requiredSenderName)) {
@@ -118,7 +119,7 @@ public class CommunicationFactory {
                         Sender newInstance = sender.getClass().newInstance();
                         newInstance.validate();
                         newInstance.setNjams(njams);
-                        newInstance.init(Transformer.decode(settings.getProperties()));
+                        newInstance.init(settings.getAllProperties());
                         return newInstance;
                     } catch (Exception e) {
                         throw new UnsupportedOperationException(
