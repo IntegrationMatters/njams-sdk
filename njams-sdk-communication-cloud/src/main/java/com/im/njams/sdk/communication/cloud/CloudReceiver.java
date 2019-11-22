@@ -70,11 +70,24 @@ public class CloudReceiver extends AbstractReceiver {
             LOG.error("Please provide property {} for CloudSender", CloudConstants.APIKEY);
         }
 
+        String instanceIdPath = properties.getProperty(CloudConstants.CLIENT_INSTANCEID);
+
+        if (instanceIdPath == null) {
+            LOG.error("Please provide property {} for CloudSender", CloudConstants.CLIENT_INSTANCEID);
+        }
+
         try {
             apikey = ApiKeyReader.getApiKey(apikeypath);
         } catch (Exception e) {
             LOG.error("Failed to load api key from file " + apikeypath, e);
             throw new IllegalStateException("Failed to load api key from file");
+        }
+
+        try {
+            instanceId = ApiKeyReader.getApiKey(instanceIdPath);
+        } catch (Exception e) {
+            LOG.error("Failed to load instanceId from file " + apikeypath, e);
+            throw new IllegalStateException("Failed to load instanceId from file");
         }
 
         try {
@@ -87,10 +100,7 @@ public class CloudReceiver extends AbstractReceiver {
         if (endpoint == null) {
             LOG.error("Please provide property {} for CloudReceiver", CloudConstants.ENDPOINT);
         }
-        instanceId = properties.getProperty(CloudConstants.CLIENT_INSTANCEID);
-        if (instanceId == null) {
-            LOG.error("Please provide property {} for CloudReceiver", CloudConstants.CLIENT_INSTANCEID);
-        }
+
         certificateFile = properties.getProperty(CloudConstants.CLIENT_CERTIFICATE);
         if (certificateFile == null) {
             LOG.error("Please provide property {} for CloudReceiver", CloudConstants.CLIENT_CERTIFICATE);
