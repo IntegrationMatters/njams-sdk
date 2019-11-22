@@ -16,10 +16,10 @@
  */
 package com.im.njams.sdk.communication;
 
+import com.faizsiegeln.njams.messageformat.v4.common.CommonMessage;
+import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.utils.ClasspathValidator;
 import java.util.Properties;
-
-import com.faizsiegeln.njams.messageformat.v4.common.CommonMessage;
 
 /**
  * This interface must be implemented to create a nJAMS Sender Inplementations
@@ -59,6 +59,14 @@ public interface Sender extends AutoCloseable, ClasspathValidator {
      * Property value for header properties which specifies a tracemessage
      */
     public static final String NJAMS_MESSAGETYPE_TRACE = "command";
+
+    /**
+     * Set njams instance
+     *
+     * @param njams instance
+     */
+    void setNjams(Njams njams);
+
     /**
      * This new implementation should initialize itself via the given
      * Properties.
