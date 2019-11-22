@@ -106,7 +106,7 @@ public class CloudSender extends AbstractSender {
         try {
             instanceId = ApiKeyReader.getApiKey(instanceIdPath);
         } catch (Exception e) {
-            LOG.error("Failed to load instanceId from file " + apikeypath, e);
+            LOG.error("Failed to load instanceId from file " + instanceIdPath, e);
             throw new IllegalStateException("Failed to load instanceId from file");
         }
 
