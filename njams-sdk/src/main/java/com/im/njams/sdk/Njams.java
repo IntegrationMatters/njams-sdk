@@ -285,7 +285,7 @@ public class Njams implements InstructionListener {
 
     /**
      * Adds the given global variables to this instance's global variables.
-     * @param globalVariables
+     * @param globalVariables The global variables to be added to this instance.
      */
     public void addGlobalVariables(Map<String, String> globalVariables) {
         synchronized (processModels) {
@@ -533,7 +533,7 @@ public class Njams implements InstructionListener {
         msg.setLogMode(configuration.getLogMode());
         synchronized (processModels) {
             processModels.values().stream().map(pm -> pm.getSerializableProcessModel())
-            .forEach(ipm -> msg.getProcesses().add(ipm));
+                    .forEach(ipm -> msg.getProcesses().add(ipm));
             images.forEach(i -> msg.getImages().put(i.getName(), i.getBase64Image()));
             msg.getGlobalVariables().putAll(globalVariables);
             LOG.debug("Sending project message with {} process-models, {} images, {} global-variables.",
@@ -634,7 +634,7 @@ public class Njams implements InstructionListener {
      */
     private void setStarters() {
         treeElements.stream().filter(te -> te.getTreeElementType() == TreeElementType.PROCESS)
-        .filter(te -> processModels.get(te.getPath()).isStarter()).forEach(te -> te.setStarter(true));
+                .filter(te -> processModels.get(te.getPath()).isStarter()).forEach(te -> te.setStarter(true));
     }
 
     /**
