@@ -16,14 +16,15 @@
  */
 package com.im.njams.sdk.settings;
 
-import com.im.njams.sdk.settings.encoding.Transformer;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.im.njams.sdk.settings.encoding.Transformer;
 
 /**
  * The settings contains settings needed for
@@ -33,7 +34,7 @@ import java.util.Properties;
  *
  */
 public class Settings {
-    
+
     //The Logger
     private static final Logger LOG = LoggerFactory.getLogger(Settings.class);
 
@@ -83,7 +84,8 @@ public class Settings {
      * This Property can be set to use deprecated format; this might be used when sending to a server not compatible
      * because he uses an older Messageformat version.
      */
-    public static final String PROPERTY_USE_DEPRECATED_PATH_FIELD_FOR_SUBPROCESSES = "njams.client.sdk.deprecatedsubprocesspathfield";
+    public static final String PROPERTY_USE_DEPRECATED_PATH_FIELD_FOR_SUBPROCESSES =
+            "njams.client.sdk.deprecatedsubprocesspathfield";
 
     public Settings() {
         properties = new Properties();
@@ -136,22 +138,30 @@ public class Settings {
     public void reset() {
         properties = new Properties();
     }
-    
+
     /**
      * This method prints all Properties, but the values of all keys that contains
      * "password" or "credentials" are changed to "****".
      */
-    public void printPropertiesWithoutPasswords(){   
+    public void printPropertiesWithoutPasswords() {
+        printPropertiesWithoutPasswords(LOG);
+    }
+
+    /**
+     * This method prints all properties to the given logger, but the values of all keys that contain
+     * "password" or "credentials" are changed to "****".
+     * @param logger The logger used for printing properties.
+     */
+    public void printPropertiesWithoutPasswords(Logger logger) {
         List<String> list = new ArrayList<>();
-        properties.keySet().forEach(key -> list.add((String)key));
-        Collections.sort(list); 
+        properties.keySet().forEach(key -> list.add((String) key));
+        Collections.sort(list);
         list.forEach((key) -> {
             String toCheck = key.toLowerCase();
             if (toCheck.contains("password") || toCheck.contains("credentials")) {
-                LOG.info("***      {} = {}", key, "****");
-            }
-            else {
-                LOG.info("***      {} = {}", key, properties.getProperty(key));
+                logger.info("***      {} = {}", key, "****");
+            } else {
+                logger.info("***      {} = {}", key, properties.getProperty(key));
             }
         });
     }
@@ -194,7 +204,9 @@ public class Settings {
                 .stream()
                 .filter(e -> String.class.isAssignableFrom(e.getKey().getClass()))
                 .filter(e -> ((String) e.getKey()).startsWith(prefix))
-                .forEach(e -> response.setProperty(((String) e.getKey()).substring(((String) e.getKey()).indexOf(prefix) + prefix.length()), (String) e.getValue()));
+                .forEach(e -> response.setProperty(
+                        ((String) e.getKey()).substring(((String) e.getKey()).indexOf(prefix) + prefix.length()),
+                        (String) e.getValue()));
         return Transformer.decode(properties);
     }
 }
