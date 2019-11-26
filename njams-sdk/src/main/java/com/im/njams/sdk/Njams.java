@@ -285,7 +285,7 @@ public class Njams implements InstructionListener {
 
     /**
      * Adds the given global variables to this instance's global variables.
-     * @param globalVariables
+     * @param globalVariables The global variables to be added to this instance.
      */
     public void addGlobalVariables(Map<String, String> globalVariables) {
         synchronized (processModels) {
