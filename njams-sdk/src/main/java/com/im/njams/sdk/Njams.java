@@ -34,8 +34,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.stream.Stream;
 
-import com.im.njams.sdk.argos.ArgosCollector;
-import com.im.njams.sdk.argos.ArgosSender;
 import org.slf4j.LoggerFactory;
 
 import com.faizsiegeln.njams.messageformat.v4.command.Command;
@@ -45,6 +43,8 @@ import com.faizsiegeln.njams.messageformat.v4.common.TreeElement;
 import com.faizsiegeln.njams.messageformat.v4.common.TreeElementType;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.LogMode;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.ProjectMessage;
+import com.im.njams.sdk.argos.ArgosCollector;
+import com.im.njams.sdk.argos.ArgosSender;
 import com.im.njams.sdk.client.CleanTracepointsTask;
 import com.im.njams.sdk.client.LogMessageFlushTask;
 import com.im.njams.sdk.common.DateTimeUtility;
@@ -126,6 +126,8 @@ public class Njams implements InstructionListener {
 
     private final String category;
 
+    // Also used for synchronizing access to the project message resources:
+    // process-models, images, global-variables, tree-elements
     // Path -> ProcessModel
     private final Map<String, ProcessModel> processModels = new HashMap<>();
 
@@ -164,7 +166,7 @@ public class Njams implements InstructionListener {
     private final HashMap<Class<?>, Serializer<?>> cachedSerializers = new HashMap<>();
 
     // features
-    private final List<String> features = new ArrayList<>();
+    private final List<String> features = Collections.synchronizedList(new ArrayList<>());
 
     // TODO: implement pooling
     private Sender sender;
@@ -209,7 +211,7 @@ public class Njams implements InstructionListener {
      *
      * @param collector The collector that collects statistics
      */
-    public void addArgosCollector(ArgosCollector collector){
+    public void addArgosCollector(ArgosCollector collector) {
         argosSender.addArgosCollector(collector);
     }
 
@@ -282,6 +284,16 @@ public class Njams implements InstructionListener {
     }
 
     /**
+     * Adds the given global variables to this instance's global variables.
+     * @param globalVariables
+     */
+    public void addGlobalVariables(Map<String, String> globalVariables) {
+        synchronized (processModels) {
+            this.globalVariables.putAll(globalVariables);
+        }
+    }
+
+    /**
      * Gets the current replay handler if present.
      *
      * @return Current replay handler if present or null otherwise.
@@ -311,7 +323,7 @@ public class Njams implements InstructionListener {
      * @param resourcePath the path where to find the image
      */
     public void addImage(final String key, final String resourcePath) {
-        images.add(new ResourceImageSupplier(key, resourcePath));
+        addImage(new ResourceImageSupplier(key, resourcePath));
     }
 
     /**
@@ -320,7 +332,9 @@ public class Njams implements InstructionListener {
      * @param imageSupplier the supplier used by SDK to find the image
      */
     public void addImage(final ImageSupplier imageSupplier) {
-        images.add(imageSupplier);
+        synchronized (processModels) {
+            images.add(imageSupplier);
+        }
     }
 
     /**
@@ -420,11 +434,13 @@ public class Njams implements InstructionListener {
     public ProcessModel getProcessModel(final Path path) {
         final List<String> parts =
                 Stream.of(getClientPath(), path).map(Path::getParts).flatMap(List::stream).collect(toList());
-        final ProcessModel processModel = processModels.get(new Path(parts).toString());
-        if (processModel == null) {
-            throw new NjamsSdkRuntimeException("ProcessModel not found for path " + path);
+        synchronized (processModels) {
+            final ProcessModel processModel = processModels.get(new Path(parts).toString());
+            if (processModel == null) {
+                throw new NjamsSdkRuntimeException("ProcessModel not found for path " + path);
+            }
+            return processModel;
         }
-        return processModel;
     }
 
     /**
@@ -433,7 +449,9 @@ public class Njams implements InstructionListener {
      * @return Collection of all process models
      */
     public Collection<ProcessModel> getProcessModels() {
-        return Collections.unmodifiableCollection(processModels.values());
+        synchronized (processModels) {
+            return Collections.unmodifiableCollection(processModels.values());
+        }
     }
 
     /**
@@ -457,7 +475,7 @@ public class Njams implements InstructionListener {
     }
 
     /**
-     * Create a process
+     * Create a process model and adds it to this instance.
      *
      * @param path Relative path to the client of the process which should be
      * created
@@ -466,9 +484,34 @@ public class Njams implements InstructionListener {
     public ProcessModel createProcess(final Path path) {
         final Path fullClientPath = path.addBase(clientPath);
         final ProcessModel model = new ProcessModel(fullClientPath, this);
-        createTreeElements(fullClientPath, TreeElementType.PROCESS);
-        processModels.put(fullClientPath.toString(), model);
+        synchronized (processModels) {
+            createTreeElements(fullClientPath, TreeElementType.PROCESS);
+            processModels.put(fullClientPath.toString(), model);
+        }
         return model;
+    }
+
+    /**
+     * Adds a process model to this instance. The model must be build for this instance.
+     * @param processModel The model to be added.
+     * @throws NjamsSdkRuntimeException if the given model was created for another instance than this.
+     */
+    public void addProcessModel(final ProcessModel processModel) {
+        if (processModel == null) {
+            return;
+        }
+        if (processModel.getNjams() != this) {
+            throw new NjamsSdkRuntimeException("Process model has been created for a different nJAMS instance.");
+        }
+        final List<String> clientParts = clientPath.getParts();
+        final List<String> prefix = processModel.getPath().getParts().subList(0, clientParts.size());
+        if (!clientParts.equals(prefix)) {
+            throw new NjamsSdkRuntimeException("Process model path does not match this nJAMS instance.");
+        }
+        synchronized (processModels) {
+            createTreeElements(processModel.getPath(), TreeElementType.PROCESS);
+            processModels.put(processModel.getPath().toString(), processModel);
+        }
     }
 
     /**
@@ -487,11 +530,15 @@ public class Njams implements InstructionListener {
         msg.setStartTime(startTime);
         msg.setMachine(getMachine());
         msg.setFeatures(features);
-        processModels.values().stream().map(pm -> pm.getSerializableProcessModel())
-                .forEach(ipm -> msg.getProcesses().add(ipm));
-        images.forEach(i -> msg.getImages().put(i.getName(), i.getBase64Image()));
-        msg.getGlobalVariables().putAll(globalVariables);
         msg.setLogMode(configuration.getLogMode());
+        synchronized (processModels) {
+            processModels.values().stream().map(pm -> pm.getSerializableProcessModel())
+            .forEach(ipm -> msg.getProcesses().add(ipm));
+            images.forEach(i -> msg.getImages().put(i.getName(), i.getBase64Image()));
+            msg.getGlobalVariables().putAll(globalVariables);
+            LOG.debug("Sending project message with {} process-models, {} images, {} global-variables.",
+                    processModels.size(), images.size(), globalVariables.size());
+        }
         getSender().send(msg);
 
     }
@@ -515,9 +562,11 @@ public class Njams implements InstructionListener {
      * @param treeDefaultIcon icon which should be added if needed
      */
     private void addDefaultImagesIfNeededAndAbsent(String treeDefaultType, String treeDefaultIcon) {
-        boolean found = treeElements.stream().anyMatch(te -> te.getType().equals(treeDefaultType));
-        if (found && images.stream().noneMatch(i -> i.getName().equals(treeDefaultType))) {
-            addImage(treeDefaultType, treeDefaultIcon);
+        synchronized (processModels) {
+            boolean found = treeElements.stream().anyMatch(te -> te.getType().equals(treeDefaultType));
+            if (found && images.stream().noneMatch(i -> i.getName().equals(treeDefaultType))) {
+                addImage(treeDefaultType, treeDefaultIcon);
+            }
         }
     }
 
@@ -526,16 +575,18 @@ public class Njams implements InstructionListener {
      * client
      */
     private void createTreeElements(Path path, TreeElementType targetDomainObjectType) {
-        String currentPath = ">";
-        for (int i = 0; i < path.getParts().size(); i++) {
-            String part = path.getParts().get(i);
-            currentPath += part + ">";
-            final String finalPath = currentPath;
-            boolean found = treeElements.stream().filter(d -> d.getPath().equals(finalPath)).findAny().isPresent();
-            if (!found) {
-                TreeElementType domainObjectType = i == path.getParts().size() - 1 ? targetDomainObjectType : null;
-                String type = getTreeElementDefaultType(i == 0, domainObjectType);
-                treeElements.add(new TreeElement(currentPath, part, type, domainObjectType));
+        synchronized (processModels) {
+            String currentPath = ">";
+            for (int i = 0; i < path.getParts().size(); i++) {
+                String part = path.getParts().get(i);
+                currentPath += part + ">";
+                final String finalPath = currentPath;
+                boolean found = treeElements.stream().filter(d -> d.getPath().equals(finalPath)).findAny().isPresent();
+                if (!found) {
+                    TreeElementType domainObjectType = i == path.getParts().size() - 1 ? targetDomainObjectType : null;
+                    String type = getTreeElementDefaultType(i == 0, domainObjectType);
+                    treeElements.add(new TreeElement(currentPath, part, type, domainObjectType));
+                }
             }
         }
     }
@@ -567,11 +618,14 @@ public class Njams implements InstructionListener {
      * @param type icon type of the tree element
      */
     public void setTreeElementType(Path path, String type) {
-        TreeElement dos = treeElements.stream().filter(d -> d.getPath().equals(path.toString())).findAny().orElse(null);
-        if (dos == null) {
-            throw new NjamsSdkRuntimeException("Unable to find DomainObjectStructure for path " + path);
+        synchronized (processModels) {
+            TreeElement dos =
+                    treeElements.stream().filter(d -> d.getPath().equals(path.toString())).findAny().orElse(null);
+            if (dos == null) {
+                throw new NjamsSdkRuntimeException("Unable to find DomainObjectStructure for path " + path);
+            }
+            dos.setType(type);
         }
-        dos.setType(type);
     }
 
     /**
@@ -580,7 +634,7 @@ public class Njams implements InstructionListener {
      */
     private void setStarters() {
         treeElements.stream().filter(te -> te.getTreeElementType() == TreeElementType.PROCESS)
-                .filter(te -> processModels.get(te.getPath()).isStarter()).forEach(te -> te.setStarter(true));
+        .filter(te -> processModels.get(te.getPath()).isStarter()).forEach(te -> te.setStarter(true));
     }
 
     /**
@@ -677,7 +731,7 @@ public class Njams implements InstructionListener {
         versions.entrySet().forEach(e -> LOG.info("***      " + e.getKey() + ": " + e.getValue()));
         LOG.info("*** ");
         LOG.info("***      Settings:");
-        settings.printPropertiesWithoutPasswords();
+        settings.printPropertiesWithoutPasswords(LOG);
         LOG.info("************************************************************");
 
     }
