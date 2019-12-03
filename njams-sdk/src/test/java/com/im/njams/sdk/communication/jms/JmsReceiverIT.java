@@ -20,21 +20,18 @@ import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
 import com.faizsiegeln.njams.messageformat.v4.command.Request;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-
 import com.im.njams.sdk.communication.CommunicationFactory;
-
-import java.util.Properties;
+import org.junit.*;
+import org.slf4j.LoggerFactory;
 
 import javax.jms.JMSException;
 import javax.jms.Session;
 import javax.jms.TemporaryQueue;
 import javax.jms.TextMessage;
-
-import org.junit.*;
+import java.util.Properties;
 
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
-import org.slf4j.LoggerFactory;
 
 /**
  * This class tests some methods that try to use a real JMS connection.
@@ -58,7 +55,7 @@ public class JmsReceiverIT {
                 "com.tibco.tibjms.naming.TibjmsInitialContextFactory");
         FILLEDPROPS.put(JmsConstants.SECURITY_PRINCIPAL, "njams");
         FILLEDPROPS.put(JmsConstants.SECURITY_CREDENTIALS, "njams");
-        FILLEDPROPS.put(JmsConstants.PROVIDER_URL, "tibjmsnaming://vslems01:7222");
+        FILLEDPROPS.put(JmsConstants.PROVIDER_URL, "tibjmsnaming://vslems01:7222,tibjmsnaming://vslems01:7224");
         FILLEDPROPS.put(JmsConstants.CONNECTION_FACTORY, "ConnectionFactory");
         FILLEDPROPS.put(JmsConstants.USERNAME, "njams");
         FILLEDPROPS.put(JmsConstants.PASSWORD, "njams");
@@ -101,7 +98,7 @@ public class JmsReceiverIT {
                 "com.tibco.tibjms.naming.TibjmsInitialContextFactory");
         props.put(JmsConstants.SECURITY_PRINCIPAL, "njams");
         props.put(JmsConstants.SECURITY_CREDENTIALS, "njams");
-        props.put(JmsConstants.PROVIDER_URL, "tibjmsnaming://vslems01:7222");
+        props.put(JmsConstants.PROVIDER_URL, "tibjmsnaming://vslems01:7222,tibjmsnaming://vslems01:7224");
         props.put(JmsConstants.CONNECTION_FACTORY, "ConnectionFactory");
         props.put(JmsConstants.USERNAME, "njams");
         props.put(JmsConstants.PASSWORD, "njams");
