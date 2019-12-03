@@ -39,8 +39,6 @@ import static org.junit.Assert.assertThat;
  */
 public class NjamsSampleTest {
 
-    public static final String PROVIDER_URL = "tibjmsnaming://vslems01:7222,tibjmsnaming://vslems01:7224";
-
     private Settings getSettings() {
         Settings communicationProperties = new Settings();
         communicationProperties.put(CommunicationFactory.COMMUNICATION, TestSender.NAME);
