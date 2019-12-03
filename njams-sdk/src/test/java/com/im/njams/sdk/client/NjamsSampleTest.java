@@ -19,7 +19,7 @@ package com.im.njams.sdk.client;
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.common.Path;
 import com.im.njams.sdk.communication.CommunicationFactory;
-import com.im.njams.sdk.communication.jms.JmsConstants;
+import com.im.njams.sdk.communication.TestSender;
 import com.im.njams.sdk.logmessage.*;
 import com.im.njams.sdk.model.ActivityModel;
 import com.im.njams.sdk.model.GroupModel;
@@ -35,25 +35,15 @@ import static org.hamcrest.CoreMatchers.*;
 import static org.junit.Assert.assertThat;
 
 /**
- *
  * @author bwand
  */
-public class NjamsSampleIT {
+public class NjamsSampleTest {
 
     public static final String PROVIDER_URL = "tibjmsnaming://vslems01:7222,tibjmsnaming://vslems01:7224";
 
     private Settings getSettings() {
         Settings communicationProperties = new Settings();
-        communicationProperties.put(CommunicationFactory.COMMUNICATION, "JMS");
-        communicationProperties.put(JmsConstants.INITIAL_CONTEXT_FACTORY,
-                "com.tibco.tibjms.naming.TibjmsInitialContextFactory");
-        communicationProperties.put(JmsConstants.SECURITY_PRINCIPAL, "njams");
-        communicationProperties.put(JmsConstants.SECURITY_CREDENTIALS, "njams");
-        communicationProperties.put(JmsConstants.PROVIDER_URL, PROVIDER_URL);
-        communicationProperties.put(JmsConstants.CONNECTION_FACTORY, "ConnectionFactory");
-        communicationProperties.put(JmsConstants.USERNAME, "njams");
-        communicationProperties.put(JmsConstants.PASSWORD, "njams");
-        communicationProperties.put(JmsConstants.DESTINATION, "njams.endurance");
+        communicationProperties.put(CommunicationFactory.COMMUNICATION, TestSender.NAME);
         return communicationProperties;
     }
 
@@ -898,16 +888,7 @@ public class NjamsSampleIT {
 
         // Create client config
         Settings communicationProperties = new Settings();
-        communicationProperties.put(CommunicationFactory.COMMUNICATION, Transformer.encode("JMS"));
-        communicationProperties.put(JmsConstants.INITIAL_CONTEXT_FACTORY,
-                Transformer.encode("com.tibco.tibjms.naming.TibjmsInitialContextFactory"));
-        communicationProperties.put(JmsConstants.SECURITY_PRINCIPAL, Transformer.encode("njams"));
-        communicationProperties.put(JmsConstants.SECURITY_CREDENTIALS, Transformer.encode("njams"));
-        communicationProperties.put(JmsConstants.PROVIDER_URL, Transformer.encode("tibjmsnaming://vslems01:7222,tibjmsnaming://vslems01:7224"));
-        communicationProperties.put(JmsConstants.CONNECTION_FACTORY, Transformer.encode("ConnectionFactory"));
-        communicationProperties.put(JmsConstants.USERNAME, Transformer.encode("njams"));
-        communicationProperties.put(JmsConstants.PASSWORD, Transformer.encode("njams"));
-        communicationProperties.put(JmsConstants.DESTINATION, Transformer.encode("njams.endurance"));
+        communicationProperties.put(CommunicationFactory.COMMUNICATION, Transformer.encode(TestSender.NAME));
 
         Njams njams = new Njams(clientPath, "1.0.0", "sdk4", communicationProperties);
 
