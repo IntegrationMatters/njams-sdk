@@ -38,6 +38,7 @@ node ('master') {
                 sh "'${mvnHome}/bin/mvn' clean deploy  -Psonar,jenkins-cli -DrevisionNumberPlugin.revision=${env.BUILD_NUMBER} -DscmBranch=${scmInfo.GIT_BRANCH} -DscmCommit=${scmInfo.GIT_COMMIT}"
             } finally {
                 junit 'target/surefire-reports/*.xml'
+                junit 'target/failsafe-reports/*.xml'
             }
             withSonarQubeEnv('sonar') {
               sh "'${mvnHome}/bin/mvn' org.sonarsource.scanner.maven:sonar-maven-plugin:3.2:sonar"
