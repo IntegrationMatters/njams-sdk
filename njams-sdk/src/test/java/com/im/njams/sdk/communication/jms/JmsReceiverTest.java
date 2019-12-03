@@ -18,27 +18,23 @@ package com.im.njams.sdk.communication.jms;
 
 import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
 import com.faizsiegeln.njams.messageformat.v4.command.Request;
-
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
-
 import com.im.njams.sdk.communication.CommunicationFactory;
 import com.im.njams.sdk.communication.ConnectionStatus;
-
-import java.util.Properties;
-
-import javax.jms.JMSException;
-import javax.jms.Message;
-import javax.jms.TextMessage;
-
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import static org.junit.Assert.*;
+import javax.jms.JMSException;
+import javax.jms.Message;
+import javax.jms.TextMessage;
+import java.util.Properties;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -66,7 +62,7 @@ public class JmsReceiverTest {
                 "com.tibco.tibjms.naming.TibjmsInitialContextFactory");
         props.put(JmsConstants.SECURITY_PRINCIPAL, "njams");
         props.put(JmsConstants.SECURITY_CREDENTIALS, "njams");
-        props.put(JmsConstants.PROVIDER_URL, "tibjmsnaming://vslems01:7222");
+        props.put(JmsConstants.PROVIDER_URL, "tibjmsnaming://blablub:7222");
         props.put(JmsConstants.CONNECTION_FACTORY, "ConnectionFactory");
         props.put(JmsConstants.USERNAME, "njams");
         props.put(JmsConstants.PASSWORD, "njams");
@@ -223,7 +219,7 @@ public class JmsReceiverTest {
                 "com.tibco.tibjms.naming.TibjmsInitialContextFactory");
         props.put(JmsConstants.SECURITY_PRINCIPAL, "njams");
         props.put(JmsConstants.SECURITY_CREDENTIALS, "njams");
-        props.put(JmsConstants.PROVIDER_URL, "tibjmsnaming://vslems01:7222");
+        props.put(JmsConstants.PROVIDER_URL, "tibjmsnaming://blablub:7222");
         props.put(JmsConstants.CONNECTION_FACTORY, "ConnectionFactory");
         props.put(JmsConstants.DESTINATION, "njams4.dev.kai");
 
