@@ -16,9 +16,16 @@
  */
 package com.im.njams.sdk.model.svg;
 
-import java.io.StringWriter;
-import java.util.List;
-import java.util.stream.Collectors;
+import com.im.njams.sdk.common.NjamsSdkRuntimeException;
+import com.im.njams.sdk.model.ActivityModel;
+import com.im.njams.sdk.model.GroupModel;
+import com.im.njams.sdk.model.ProcessModel;
+import com.im.njams.sdk.model.TransitionModel;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.w3c.dom.DOMImplementation;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -28,18 +35,9 @@ import javax.xml.transform.TransformerException;
 import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.w3c.dom.DOMImplementation;
-import org.w3c.dom.Document;
-import org.w3c.dom.Element;
-
-import com.im.njams.sdk.common.NjamsSdkRuntimeException;
-import com.im.njams.sdk.model.ActivityModel;
-import com.im.njams.sdk.model.GroupModel;
-import com.im.njams.sdk.model.ProcessModel;
-import com.im.njams.sdk.model.TransitionModel;
+import java.io.StringWriter;
+import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * This is the default SDK ProcessDiagramFactory. It converts a ProcessModel
@@ -112,7 +110,6 @@ public class NjamsProcessDiagramFactory implements ProcessDiagramFactory {
             LOG.trace("Created ProcessDiagram from ProcessModel: {}", svg);
             return svg;
         } catch (Exception e) {
-            LOG.error("Error in NjamsProcessDiagramFactory", e);
             throw new NjamsSdkRuntimeException("Error in NjamsProcessDiagramFactory", e);
         }
     }
@@ -221,8 +218,8 @@ public class NjamsProcessDiagramFactory implements ProcessDiagramFactory {
         /**
          * Calculate absolute coordinates.
          */
-        double activityX = context.getStartX() + activityModel.getX();
-        double activityY = context.getStartY() + activityModel.getY();
+        double activityX = context.getStartX() + Double.valueOf(activityModel.getX());
+        double activityY = context.getStartY() + Double.valueOf(activityModel.getY());
         double labelX = activityX + DEFAULT_HALF_ACTIVITY_SIZE;
         double labelY = activityY + DEFAULT_ACTIVITY_SIZE + DEFAULT_TEXT_SIZE;
         double statsX = labelX;
@@ -459,7 +456,7 @@ public class NjamsProcessDiagramFactory implements ProcessDiagramFactory {
         }
         if (!(toActivity instanceof GroupModel)) {
             // add the marker size to the radius, because it will come on top of the line drawn.
-            toPoint = getRadiusPoint(fromPoint, toPoint, DEFAULT_ACTIVITY_RADIUS + DEFAULT_MARKER_SIZE);
+            toPoint = getRadiusPoint(fromPoint, toPoint, DEFAULT_ACTIVITY_RADIUS + Double.valueOf(DEFAULT_MARKER_SIZE));
         } else {
             // calculate for marker radius
             toPoint = getRadiusPoint(fromPoint, toPoint, DEFAULT_MARKER_SIZE);
