@@ -20,6 +20,8 @@
 
 package com.im.njams.sdk.argos;
 
+import java.util.Objects;
+
 /**
  * This defines all basic attributes needed for an Argos Component.
  * <p>
@@ -118,5 +120,10 @@ public class ArgosComponent {
             }
         }
         return isEqual;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id, name, containerId, measurement, type);
     }
 }
