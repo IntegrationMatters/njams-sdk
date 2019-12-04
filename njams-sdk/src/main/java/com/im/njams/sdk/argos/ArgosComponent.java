@@ -92,18 +92,28 @@ public class ArgosComponent {
 
     @Override
     public boolean equals(Object signatureToCheck) {
+        if (this == signatureToCheck) {
+            return true;
+        }
+        if (signatureToCheck == null) {
+            return false;
+        }
+        if (getClass() != signatureToCheck.getClass()) {
+            return false;
+        }
+
         boolean isEqual = true;
         if (!super.equals(signatureToCheck)) {
             try {
                 ArgosComponent argosSignatureToCheck = (ArgosComponent) signatureToCheck;
                 if (!(argosSignatureToCheck.getContainerId().equals(this.getContainerId()) &&
-                      argosSignatureToCheck.getId().equals(this.getId()) &&
-                      argosSignatureToCheck.getName().equals(this.getName()) &&
-                      argosSignatureToCheck.getMeasurement().equals(this.getMeasurement()) &&
-                      argosSignatureToCheck.getType().equals(this.getType()))) {
+                        argosSignatureToCheck.getId().equals(this.getId()) &&
+                        argosSignatureToCheck.getName().equals(this.getName()) &&
+                        argosSignatureToCheck.getMeasurement().equals(this.getMeasurement()) &&
+                        argosSignatureToCheck.getType().equals(this.getType()))) {
                     isEqual = false;
                 }
-            } catch (Throwable t) {
+            } catch (Exception t) {
                 isEqual = false;
             }
         }
