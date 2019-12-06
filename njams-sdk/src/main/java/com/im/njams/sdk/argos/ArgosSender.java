@@ -208,7 +208,7 @@ public class ArgosSender implements Runnable, AutoCloseable {
         try {
             return writer.writeValueAsString(statisticsToSerialize);
         } catch (JsonProcessingException e) {
-            e.printStackTrace();
+            LOG.error("Failed to serialize statistics. Cause: ", e);
         }
 
         return "";
