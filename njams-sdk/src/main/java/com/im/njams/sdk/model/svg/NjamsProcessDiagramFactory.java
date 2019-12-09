@@ -27,6 +27,7 @@ import org.w3c.dom.DOMImplementation;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 
+import javax.xml.XMLConstants;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.transform.OutputKeys;
@@ -91,6 +92,7 @@ public class NjamsProcessDiagramFactory implements ProcessDiagramFactory {
 
             // create a new DocumentBuilderFactory
             DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+            factory.setAttribute(XMLConstants.FEATURE_SECURE_PROCESSING, true);
 
             // use the factory to create a documentbuilder
             DocumentBuilder builder = factory.newDocumentBuilder();
