@@ -75,6 +75,8 @@ public class CloudSender extends AbstractSender {
     private String endpointUrl;
     private String connectionId;
 
+    private static final int retryInterval = 600000;
+
     @Override
     public void init(Properties properties) {
         //TODO: do it for production
@@ -143,7 +145,7 @@ public class CloudSender extends AbstractSender {
             try {
                 LOG.trace("Sending {} message", properties.get(NJAMS_MESSAGETYPE));
                 final String body = JsonUtils.serialize(msg);
-                
+
                 LOG.trace("Send msg {}", body);
 
                 int len = body.length();
@@ -170,7 +172,7 @@ public class CloudSender extends AbstractSender {
                     for (int i = 0; i < len; i += MAX_PAYLOAD_BYTES) {
                         String chunk = bodyEncoded.substring(i, Math.min(len, i + MAX_PAYLOAD_BYTES));
                         LOG.debug("CHUNK {}/{}\n {}", chunkCounter, chunkMax);
-                    
+
                         properties.setProperty(NJAMS_CHUNK, chunkCounter + ";" + chunkMax);
                         send(chunk, properties);
                         chunkCounter++;
@@ -266,7 +268,7 @@ public class CloudSender extends AbstractSender {
             endpointError = true;
             endpointErrorMessage = endpoints.errorMessage;
 
-            reconnectTime = System.currentTimeMillis() + 60000;
+            reconnectTime = System.currentTimeMillis() + retryInterval;
             LOG.info("Try to establish connection again in 10 min.");
 
             return "https://localhost";
@@ -285,10 +287,10 @@ public class CloudSender extends AbstractSender {
 
     private Response send(String body, final Properties properties) {
         HttpsURLConnection connection = null;
-      
+
         try {
-            byte[] bodyCompressed = Gzip.compress(body);            
-            
+            byte[] bodyCompressed = Gzip.compress(body);
+
             //Create connection
             connection = (HttpsURLConnection) url.openConnection();
             connection.setRequestMethod("POST");
@@ -315,7 +317,6 @@ public class CloudSender extends AbstractSender {
                 wr.write(bodyCompressed);
             }
 
-   
             final int responseCode = connection.getResponseCode();
 
             if (responseCode < HttpURLConnection.HTTP_BAD_REQUEST) {

@@ -40,7 +40,7 @@ public class TestCloudClient {
         String technology = "sdk4";
 
         //Specify a client path. This path specifies where your client instance will be visible in the object tree.
-        Path clientPath = new Path("LOAD", "Client", "" + System.currentTimeMillis());
+        Path clientPath = new Path("CloudTEST", "Client", "Test");
 
         //Create communicationProperties, which specify how your client will communicate with the server
         //Properties properties = getJmsProperties();
@@ -123,7 +123,7 @@ public class TestCloudClient {
             //End the job, which will flush all previous steps into a logmessage wich will be send to the server
             job.end();
             System.out.println(i);
-            //Thread.sleep(1500);
+            Thread.sleep(30000);
         }
         //If you are finished with processing or the application goes down, stop the client...
         Thread.sleep(30000);
