@@ -32,6 +32,9 @@ import java.io.InputStreamReader;
 import java.net.URL;
 import java.util.Map;
 import java.util.Properties;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import javax.net.ssl.HttpsURLConnection;
 import org.slf4j.LoggerFactory;
 
@@ -43,6 +46,7 @@ public class CloudReceiver extends AbstractReceiver {
 
     private static final org.slf4j.Logger LOG = LoggerFactory.getLogger(CloudReceiver.class);
 
+    private String mainEndpoint;
     private String endpoint;
     private String instanceId;
     private String connectionId;
@@ -55,6 +59,10 @@ public class CloudReceiver extends AbstractReceiver {
 
     private KeyStorePasswordPair keyStorePasswordPair;
     private String apikey;
+
+    private boolean retryConnection = false;
+    private ScheduledExecutorService retryService = null;
+    private static final int retryInterval = 600000;
 
     @Override
     public String getName() {
@@ -86,13 +94,18 @@ public class CloudReceiver extends AbstractReceiver {
         try {
             instanceId = ApiKeyReader.getApiKey(instanceIdPath);
         } catch (Exception e) {
-            LOG.error("Failed to load instanceId from file " + apikeypath, e);
+            LOG.error("Failed to load instanceId from file " + instanceIdPath, e);
             throw new IllegalStateException("Failed to load instanceId from file");
         }
 
-        try {
-            endpoint = getClientEndpoint(properties.getProperty(CloudConstants.ENDPOINT));
+        mainEndpoint = properties.getProperty(CloudConstants.ENDPOINT);
 
+        if (mainEndpoint == null) {
+            LOG.error("Please provide property {} for CloudSender", CloudConstants.ENDPOINT);
+        }
+
+        try {
+            endpoint = getClientEndpoint(mainEndpoint);
         } catch (final Exception ex) {
             throw new NjamsSdkRuntimeException("Unable to init CloudReceiver", ex);
         }
@@ -118,6 +131,15 @@ public class CloudReceiver extends AbstractReceiver {
 
         connectionId = Utils.generateClientId(njams, instanceId);
 
+    }
+
+    protected void retryInit() {
+        try {
+            this.endpoint = getClientEndpoint(mainEndpoint);
+            connect();
+        } catch (final Exception ex) {
+            throw new NjamsSdkRuntimeException("unable to init CloudReceiver", ex);
+        }
     }
 
     @Override
@@ -166,12 +188,11 @@ public class CloudReceiver extends AbstractReceiver {
             LOG.error(endpoints.errorMessage);
 
             LOG.info("Try to establish connection again in 10 min.");
-            Thread.sleep(60000);
-            LOG.info("Try to establish connection again.");
+            retryConnection = true;
 
-            return getClientEndpoint(endpoint);
+            return "https://localhost";
         }
-
+        retryConnection = false;
         return endpoints.client;
     }
 
@@ -259,10 +280,30 @@ public class CloudReceiver extends AbstractReceiver {
 
     @Override
     public void connect() {
-        if (isConnected()) {
-            return;
-        }
         try {
+            if (retryConnection) {
+                connectionStatus = ConnectionStatus.CONNECTED;
+
+                if (retryService == null) {
+                    LOG.debug("Spawning CloudReceiverRetry");
+                    Runnable r = new CloudReceiverRetry(this);
+                    retryService = Executors.newScheduledThreadPool(1);
+                    retryService.scheduleAtFixedRate(r, retryInterval, retryInterval, TimeUnit.MILLISECONDS);
+                }
+
+                return;
+            }
+
+            if (!retryConnection && retryService != null) {
+                LOG.debug("Shutdown CloudReceiverRetry");
+                retryService.shutdownNow();
+                connectionStatus = ConnectionStatus.CONNECTING;
+            }
+
+            if (isConnected()) {
+                return;
+            }
+
             connectionStatus = ConnectionStatus.CONNECTING;
             LOG.debug("Connect to endpoint: {} with clientId: {}", endpoint, connectionId);
             mqttclient = new AWSIotMqttClient(endpoint, connectionId, keyStorePasswordPair.keyStore, keyStorePasswordPair.keyPassword);

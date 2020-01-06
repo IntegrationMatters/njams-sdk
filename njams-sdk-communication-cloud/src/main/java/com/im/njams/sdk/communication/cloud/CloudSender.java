@@ -62,8 +62,7 @@ public class CloudSender extends AbstractSender {
     public static final String NJAMS_PATH = "x-njams-path";
     public static final String NJAMS_LOGID = "x-njams-logid";
 
-    public static final int FALLBACK_MAX_PAYLOAD_BYTES = 900000;
-    private int maxPayloadBytes;
+    public static final int MAX_PAYLOAD_BYTES = 900000;
 
     private URL url;
     private String apikey;
@@ -75,6 +74,8 @@ public class CloudSender extends AbstractSender {
 
     private String endpointUrl;
     private String connectionId;
+
+    private static final int retryInterval = 600000;
 
     @Override
     public void init(Properties properties) {
@@ -98,21 +99,6 @@ public class CloudSender extends AbstractSender {
         }
 
         try {
-            maxPayloadBytes = Integer.parseInt(properties.getProperty(CloudConstants.MAX_PAYLOAD_BYTES,
-                    String.valueOf(FALLBACK_MAX_PAYLOAD_BYTES)));
-            LOG.debug("maxPayloadBytes: {} Bytes", maxPayloadBytes);
-        } catch (Exception e) {
-            LOG.warn("Invalid value for maxPayloadBytes, fallback to {} Bytes", FALLBACK_MAX_PAYLOAD_BYTES);
-            maxPayloadBytes = FALLBACK_MAX_PAYLOAD_BYTES;
-        }
-
-        if (maxPayloadBytes > FALLBACK_MAX_PAYLOAD_BYTES) {
-            LOG.warn("The value for maxPayloadBytes: {} is too great, fallback to {} Bytes", maxPayloadBytes,
-                    FALLBACK_MAX_PAYLOAD_BYTES);
-            maxPayloadBytes = FALLBACK_MAX_PAYLOAD_BYTES;
-        }
-
-        try {
             apikey = ApiKeyReader.getApiKey(apikeypath);
         } catch (Exception e) {
             LOG.error("Failed to load api key from file " + apikeypath, e);
@@ -122,7 +108,7 @@ public class CloudSender extends AbstractSender {
         try {
             instanceId = ApiKeyReader.getApiKey(instanceIdPath);
         } catch (Exception e) {
-            LOG.error("Failed to load instanceId from file " + apikeypath, e);
+            LOG.error("Failed to load instanceId from file " + instanceIdPath, e);
             throw new IllegalStateException("Failed to load instanceId from file");
         }
 
@@ -159,20 +145,20 @@ public class CloudSender extends AbstractSender {
             try {
                 LOG.trace("Sending {} message", properties.get(NJAMS_MESSAGETYPE));
                 final String body = JsonUtils.serialize(msg);
-                
+
                 LOG.trace("Send msg {}", body);
 
                 int len = body.length();
                 LOG.debug("Message size: {}", len);
-                if (len > maxPayloadBytes) {
-                    LOG.debug("Message exceeds size limit: {}/{}", len, maxPayloadBytes);
+                if (len > MAX_PAYLOAD_BYTES) {
+                    LOG.debug("Message exceeds size limit: {}/{}", len, MAX_PAYLOAD_BYTES);
 
                     String bodyEncoded = Base64.getEncoder().encodeToString(body.getBytes("utf-8"));
                     len = bodyEncoded.length();
 
                     LOG.debug("Encoded message size: {}", len);
 
-                    int chunkMax = (int) Math.ceil((double) len / maxPayloadBytes);
+                    int chunkMax = (int) Math.ceil((double) len / MAX_PAYLOAD_BYTES);
                     chunkMax = chunkMax - 1;
 
                     LOG.debug("chunkMax: {}", chunkMax);
@@ -183,10 +169,10 @@ public class CloudSender extends AbstractSender {
                     properties.setProperty(NJAMS_ORGMESSAGETYPE, properties.getProperty(NJAMS_MESSAGETYPE));
                     properties.setProperty(NJAMS_MESSAGETYPE, "chunked");
 
-                    for (int i = 0; i < len; i += maxPayloadBytes) {
-                        String chunk = bodyEncoded.substring(i, Math.min(len, i + maxPayloadBytes));
+                    for (int i = 0; i < len; i += MAX_PAYLOAD_BYTES) {
+                        String chunk = bodyEncoded.substring(i, Math.min(len, i + MAX_PAYLOAD_BYTES));
                         LOG.debug("CHUNK {}/{}\n {}", chunkCounter, chunkMax);
-                    
+
                         properties.setProperty(NJAMS_CHUNK, chunkCounter + ";" + chunkMax);
                         send(chunk, properties);
                         chunkCounter++;
@@ -282,7 +268,7 @@ public class CloudSender extends AbstractSender {
             endpointError = true;
             endpointErrorMessage = endpoints.errorMessage;
 
-            reconnectTime = System.currentTimeMillis() + 60000;
+            reconnectTime = System.currentTimeMillis() + retryInterval;
             LOG.info("Try to establish connection again in 10 min.");
 
             return "https://localhost";
@@ -301,10 +287,10 @@ public class CloudSender extends AbstractSender {
 
     private Response send(String body, final Properties properties) {
         HttpsURLConnection connection = null;
-      
+
         try {
-            byte[] bodyCompressed = Gzip.compress(body);            
-            
+            byte[] bodyCompressed = Gzip.compress(body);
+
             //Create connection
             connection = (HttpsURLConnection) url.openConnection();
             connection.setRequestMethod("POST");
@@ -331,7 +317,6 @@ public class CloudSender extends AbstractSender {
                 wr.write(bodyCompressed);
             }
 
-   
             final int responseCode = connection.getResponseCode();
 
             if (responseCode < HttpURLConnection.HTTP_BAD_REQUEST) {

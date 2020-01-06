@@ -39,15 +39,14 @@ public class TestCloudClient {
         String technology = "sdk4";
 
         //Specify a client path. This path specifies where your client instance will be visible in the object tree.
-        Path clientPath = new Path("LOAD", "Client", "" + System.currentTimeMillis());
+        Path clientPath = new Path("CloudTEST", "Client", "Test");
 
         //Create communicationProperties, which specify how your client will communicate with the server
-        //Properties properties = getJmsProperties();
-        Settings settings = getCloudSettings();
-  
+        //Create client settings and add the properties
+        Settings config = getCloudProperties();
 
         //Instantiate client for first application
-        Njams njams = new Njams(clientPath, "1.0.0", technology, settings);
+        Njams njams = new Njams(clientPath, "1.0.0", technology, config);
 
         //add custom image for your technology
         njams.addImage(technology, "images/njams_java_sdk_process_step.png");
@@ -82,7 +81,7 @@ public class TestCloudClient {
          */
         //Thread.sleep(30000);
         int i = 0;
-        
+
         boolean payload = true;
         while (i++ < 10000) {
 
@@ -91,16 +90,15 @@ public class TestCloudClient {
 
             // Starts the job, i.e., sets the according status, job start date if not set before, and flags the job to begin flushing.
             job.start();
-            
-            
+
             //add input and output data to the activity
-            if(payload){
+            if (payload) {
                 job.setDeepTrace(true);
                 payload = false;
-            }else{
+            } else {
                 payload = true;
             }
-            
+
             //Create the start activity from the previously creates startModel
             Activity start = job.createActivity(startModel).build();
             start.processInput(createDataSize(900000));
@@ -119,7 +117,7 @@ public class TestCloudClient {
             //End the job, which will flush all previous steps into a logmessage wich will be send to the server
             job.end();
             System.out.println(i);
-            //Thread.sleep(1500);
+            Thread.sleep(30000);
         }
         //If you are finished with processing or the application goes down, stop the client...
         Thread.sleep(30000);
@@ -134,7 +132,7 @@ public class TestCloudClient {
         return sb.toString();
     }
 
-    private static Settings getCloudSettings() {
+    private static Settings getCloudProperties() {
         Settings communicationProperties = new Settings();
         communicationProperties.put(CommunicationFactory.COMMUNICATION, CloudConstants.NAME);
         communicationProperties.put(CloudConstants.ENDPOINT, "ingest.dev.njams.cloud");
@@ -142,6 +140,7 @@ public class TestCloudClient {
         communicationProperties.put(CloudConstants.CLIENT_INSTANCEID, "C:\\Dev\\njams-sdk\\njams-sdk-sample-client\\src\\main\\resources\\certs\\test\\723ce3f9b2-instanceId");
         communicationProperties.put(CloudConstants.CLIENT_CERTIFICATE, "C:\\Dev\\njams-sdk\\njams-sdk-sample-client\\src\\main\\resources\\certs\\test\\723ce3f9b2-certificate.pem");
         communicationProperties.put(CloudConstants.CLIENT_PRIVATEKEY, "C:\\Dev\\njams-sdk\\njams-sdk-sample-client\\src\\main\\resources\\certs\\test\\723ce3f9b2-private.pem.key");
+        
         return communicationProperties;
     }
 
