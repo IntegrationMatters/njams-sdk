@@ -30,9 +30,7 @@ public class CloudConstants {
     public static final String NAME = "CLOUD";
     public static final String ENDPOINT = PROPERTY_PREFIX + ".endpoint";
     public static final String APIKEY = PROPERTY_PREFIX + ".apikey";
-    public static final String CLIENT_INSTANCEID = PROPERTY_PREFIX + ".client.instanceId";
-    public static final String CLIENT_CERTIFICATE = PROPERTY_PREFIX + ".client.certificate";
-    public static final String CLIENT_PRIVATEKEY = PROPERTY_PREFIX + ".client.privatekey";
-    
-    public static final String MAX_PAYLOAD_BYTES = PROPERTY_PREFIX + ".maxPayloadBytes";
+    public static final String CLIENT_INSTANCEID = PROPERTY_PREFIX + ".instanceid";
+    public static final String CLIENT_CERTIFICATE = PROPERTY_PREFIX + ".certificate";
+    public static final String CLIENT_PRIVATEKEY = PROPERTY_PREFIX + ".privatekey";
 }
