@@ -23,18 +23,17 @@
  */
 package com.faizsiegeln.test.argos;
 
+import java.util.Random;
+
 import com.im.njams.sdk.Njams;
+import com.im.njams.sdk.argos.ArgosCollector;
+import com.im.njams.sdk.argos.ArgosComponent;
+import com.im.njams.sdk.argos.ArgosMetric;
+import com.im.njams.sdk.argos.ArgosSender;
 import com.im.njams.sdk.common.Path;
 import com.im.njams.sdk.communication.CommunicationFactory;
 import com.im.njams.sdk.communication.jms.JmsConstants;
 import com.im.njams.sdk.settings.Settings;
-import com.im.njams.sdk.argos.ArgosCollector;
-import com.im.njams.sdk.argos.ArgosComponent;
-import com.im.njams.sdk.argos.ArgosSender;
-import com.im.njams.sdk.argos.ArgosMetric;
-
-import java.util.Properties;
-import java.util.Random;
 
 /**
  * This is a sample client that sends random numbers for my own random number collector.
@@ -112,8 +111,8 @@ public class RandomNumberSenderClient {
         }
 
         @Override
-        protected RandomNumberMetric create(ArgosComponent argosComponent) {
-            RandomNumberMetric statistics = new RandomNumberMetric(argosComponent);
+        protected RandomNumberMetric create() {
+            RandomNumberMetric statistics = new RandomNumberMetric(getArgosComponent());
             statistics.setRandomNumber(randomGenerator.nextInt(100));
             return statistics;
         }
@@ -124,7 +123,7 @@ public class RandomNumberSenderClient {
         private int randomNumber = 0;
 
         public RandomNumberMetric(ArgosComponent argosComponent) {
-            super(argosComponent.getId(),argosComponent.getName(), argosComponent.getContainerId(),
+            super(argosComponent.getId(), argosComponent.getName(), argosComponent.getContainerId(),
                     argosComponent.getMeasurement(), argosComponent.getType());
         }
 
@@ -135,7 +134,6 @@ public class RandomNumberSenderClient {
         public void setRandomNumber(int randomNumber) {
             this.randomNumber = randomNumber;
         }
-
 
     }
 }
