@@ -57,7 +57,6 @@ public abstract class ArgosMultiCollector<T extends ArgosMetric> {
      * <p>
      * Create a collection of {@link ArgosMetric} and return it.
      *
-     * @param argosComponent this identifies a component in Argos
      * @return the created  {@link ArgosMetric}s
      */
     protected abstract Collection<T> createAll();
