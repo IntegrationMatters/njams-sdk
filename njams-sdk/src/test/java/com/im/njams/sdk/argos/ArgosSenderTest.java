@@ -20,12 +20,16 @@
 
 package com.im.njams.sdk.argos;
 
-import com.im.njams.sdk.settings.Settings;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import static org.mockito.Mockito.*;
+import com.im.njams.sdk.settings.Settings;
 
 public class ArgosSenderTest {
 
@@ -42,7 +46,7 @@ public class ArgosSenderTest {
         settings.put(ArgosSender.NJAMS_SUBAGENT_PORT, Integer.toString(PORT));
         settings.put(ArgosSender.NJAMS_SUBAGENT_ENABLED, "true");
 
-        this.argosSender = ArgosSender.getInstance();
+        argosSender = ArgosSender.getInstance();
         argosSender.init(settings);
         argosSender.start();
     }
@@ -59,12 +63,12 @@ public class ArgosSenderTest {
 
         when(collector.getArgosComponent()).thenReturn(comp);
 
-        verify(collector, times(0)).collect();
+        verify(collector, times(0)).collectAll();
 
         argosSender.addArgosCollector(collector);
 
         Thread.sleep(15000);
 
-        verify(collector).collect();
+        verify(collector).collectAll();
     }
 }
