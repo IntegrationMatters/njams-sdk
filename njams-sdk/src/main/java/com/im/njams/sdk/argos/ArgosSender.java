@@ -170,7 +170,7 @@ public class ArgosSender implements Closeable {
 
     /**
      * Removes the given collector from the sender instance.
-     * @param collector
+     * @param collector The collector instance to be removed from the sender.
      * @return <code>true</code> only if the given collector was registered with the sender.
      */
     public boolean removeArgosCollector(ArgosMultiCollector collector) {
