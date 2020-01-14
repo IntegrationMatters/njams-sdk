@@ -48,6 +48,7 @@ public class JVMCollector extends ArgosCollector<JVMMetric> {
     public static final String MEASUREMENT = "jvm";
 
     private OsProcessStats processStats = null;
+    private final int pid;
 
     private static int getPid() {
         if (ManagementFactory.getRuntimeMXBean().getName().contains("@")) {
@@ -81,6 +82,7 @@ public class JVMCollector extends ArgosCollector<JVMMetric> {
 
     public JVMCollector(ArgosComponent argosComponent, int pid) {
         super(argosComponent);
+        this.pid = pid;
         if (pid > 0) {
             try {
                 processStats = new OsProcessStats(pid).collectProcessStats();
@@ -91,12 +93,13 @@ public class JVMCollector extends ArgosCollector<JVMMetric> {
     }
 
     @Override
-    protected JVMMetric create(ArgosComponent argosComponent) {
-        JVMMetric jvmStats = new JVMMetric(argosComponent);
+    protected JVMMetric create() {
+        JVMMetric jvmStats = new JVMMetric(getArgosComponent());
 
         MemoryMXBean memoryMxBean = ManagementFactory.getMemoryMXBean();
         MemoryUsage mu = memoryMxBean.getHeapMemoryUsage();
 
+        jvmStats.setPid(pid);
         jvmStats.setThreadCount(ManagementFactory.getThreadMXBean().getThreadCount());
         jvmStats.setHeapCommitted(mu.getCommitted());
         jvmStats.setHeapInit(mu.getInit());

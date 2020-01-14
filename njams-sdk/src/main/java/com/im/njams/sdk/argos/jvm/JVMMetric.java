@@ -20,11 +20,11 @@
 
 package com.im.njams.sdk.argos.jvm;
 
-import com.im.njams.sdk.argos.ArgosComponent;
-import com.im.njams.sdk.argos.ArgosMetric;
-
 import java.util.HashMap;
 import java.util.Map;
+
+import com.im.njams.sdk.argos.ArgosComponent;
+import com.im.njams.sdk.argos.ArgosMetric;
 
 /**
  * This is a concrete implementation of an @see {@link ArgosMetric} for JMV statistics
@@ -44,11 +44,13 @@ public class JVMMetric extends ArgosMetric {
     private long offUsed = 0;
     private long offFree = 0;
     private long threadCount = 0;
+    private int pid = 0;
     private Map<String, GCStats> gc = new HashMap<>();
     private OsProcessStats processStats;
 
     public JVMMetric(ArgosComponent component) {
-        super(component.getId(), component.getName(), component.getContainerId(), component.getMeasurement(), component.getType());
+        super(component.getId(), component.getName(), component.getContainerId(), component.getMeasurement(), component
+                .getType());
     }
 
     public long getHeapCommitted() {
@@ -154,4 +156,13 @@ public class JVMMetric extends ArgosMetric {
     public void setProcessStats(OsProcessStats processStats) {
         this.processStats = processStats;
     }
+
+    public int getPid() {
+        return pid;
+    }
+
+    public void setPid(int pid) {
+        this.pid = pid;
+    }
+
 }

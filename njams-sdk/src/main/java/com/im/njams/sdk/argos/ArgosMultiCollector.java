@@ -21,56 +21,56 @@
 package com.im.njams.sdk.argos;
 
 import java.util.Collection;
-import java.util.Collections;
 
 /**
- * Abstract base class for an ArgosCollector
+ * Abstract base class for an ArgosCollector that collects several metrics of the same type.
  * <p>
- * Extend this class, implement the collect method and register it in {@link ArgosSender}
+ * Extend this class, implement the collect method and register it in  {@link ArgosSender}
  *
- * @param <T> The type of the metric that this collector creates.
- * @see ArgosMultiCollector
+ * @param <T>  The type of the metric that this collector creates.
+ * @see ArgosCollector
  */
-public abstract class ArgosCollector<T extends ArgosMetric> extends ArgosMultiCollector<T> {
+public abstract class ArgosMultiCollector<T extends ArgosMetric> {
+
+    private ArgosComponent argosComponent;
 
     /**
      * Sets the given ArgosComponent.
      *
      * @param argosComponent the argosComponent to set.
      */
-    public ArgosCollector(ArgosComponent argosComponent) {
-        super(argosComponent);
+    public ArgosMultiCollector(ArgosComponent argosComponent) {
+        this.argosComponent = argosComponent;
+    }
+
+    /**
+     * Returns the ArgosComponent for this collector.
+     *
+     * @return the argosComponent for this collector.
+     */
+    public ArgosComponent getArgosComponent() {
+        return argosComponent;
     }
 
     /**
      * Overwrite this method in your implementation of this class.
      * <p>
-     * Create {@link ArgosMetric} and return it.
+     * Create a collection of {@link ArgosMetric} and return it.
      *
-     * @return the created {@link ArgosMetric}
+     * @param argosComponent this identifies a component in Argos
+     * @return the created  {@link ArgosMetric}s
      */
-    protected abstract T create();
+    protected abstract Collection<T> createAll();
 
     /**
-     * Wraps the metric created by {@link #create()} into a collection.
-     * @see com.im.njams.sdk.argos.ArgosMultiCollector#createAll()
-     */
-    @Override
-    protected Collection<T> createAll() {
-        return Collections.singletonList(create());
-    }
-
-    /**
-     * This gets called by {@link ArgosSender} in periodic manner.
+     * This gets called by  {@link ArgosSender} in periodic manner.
      * <p>
-     * It will create a new {@link ArgosMetric} with the correct implementation
-     * and return it so that it can be send via UDP.
+     * It will collect {@link ArgosMetric}s from this implementation
+     * and send it to the configured agent.
      *
-     * @deprecated Replaced by {@link ArgosMultiCollector#collectAll()}.
-     * @return the collected {@link ArgosMetric}
+     * @return the collected  {@link ArgosMetric}s
      */
-    @Deprecated
-    public T collect() {
-        return create();
+    public Collection<T> collectAll() {
+        return createAll();
     }
 }

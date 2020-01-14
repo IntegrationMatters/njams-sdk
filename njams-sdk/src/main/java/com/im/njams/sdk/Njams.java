@@ -43,7 +43,7 @@ import com.faizsiegeln.njams.messageformat.v4.common.TreeElement;
 import com.faizsiegeln.njams.messageformat.v4.common.TreeElementType;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.LogMode;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.ProjectMessage;
-import com.im.njams.sdk.argos.ArgosCollector;
+import com.im.njams.sdk.argos.ArgosMultiCollector;
 import com.im.njams.sdk.argos.ArgosSender;
 import com.im.njams.sdk.client.CleanTracepointsTask;
 import com.im.njams.sdk.client.LogMessageFlushTask;
@@ -180,6 +180,7 @@ public class Njams implements InstructionListener {
     private ReplayHandler replayHandler = null;
 
     private ArgosSender argosSender = null;
+    private final Collection<ArgosMultiCollector<?>> argosCollectors = new ArrayList<>();
 
     /**
      * Create a nJAMS client.
@@ -212,8 +213,14 @@ public class Njams implements InstructionListener {
      *
      * @param collector The collector that collects statistics
      */
-    public void addArgosCollector(ArgosCollector collector) {
+    public void addArgosCollector(ArgosMultiCollector collector) {
+        argosCollectors.add(collector);
         argosSender.addArgosCollector(collector);
+    }
+
+    public void removeArgosCollector(ArgosMultiCollector collector) {
+        argosCollectors.remove(collector);
+        argosSender.removeArgosCollector(collector);
     }
 
     /**
@@ -395,7 +402,6 @@ public class Njams implements InstructionListener {
             CleanTracepointsTask.start(this);
             started = true;
             sendProjectMessage();
-            argosSender.start();
         }
         return isStarted();
     }
@@ -410,7 +416,10 @@ public class Njams implements InstructionListener {
         if (isStarted()) {
             LogMessageFlushTask.stop(this);
             CleanTracepointsTask.stop(this);
-            argosSender.close();
+
+            argosCollectors.forEach(argosSender::removeArgosCollector);
+            argosCollectors.clear();
+
             if (sender != null) {
                 sender.close();
             }
@@ -552,7 +561,7 @@ public class Njams implements InstructionListener {
         msg.setLogMode(configuration.getLogMode());
         synchronized (processModels) {
             processModels.values().stream().map(pm -> pm.getSerializableProcessModel())
-                    .forEach(ipm -> msg.getProcesses().add(ipm));
+            .forEach(ipm -> msg.getProcesses().add(ipm));
             images.forEach(i -> msg.getImages().put(i.getName(), i.getBase64Image()));
             msg.getGlobalVariables().putAll(globalVariables);
             LOG.debug("Sending project message with {} process-models, {} images, {} global-variables.",
@@ -652,7 +661,7 @@ public class Njams implements InstructionListener {
      */
     private void setStarters() {
         treeElements.stream().filter(te -> te.getTreeElementType() == TreeElementType.PROCESS)
-                .filter(te -> processModels.get(te.getPath()).isStarter()).forEach(te -> te.setStarter(true));
+        .filter(te -> processModels.get(te.getPath()).isStarter()).forEach(te -> te.setStarter(true));
     }
 
     /**
@@ -698,7 +707,7 @@ public class Njams implements InstructionListener {
             }
         }
         treeElements.stream().filter(te -> te.getTreeElementType() == TreeElementType.PROCESS)
-                .forEach(te -> te.setStarter(isStarter));
+        .forEach(te -> te.setStarter(isStarter));
         return treeElements;
     }
 

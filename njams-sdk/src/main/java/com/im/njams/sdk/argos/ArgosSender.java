@@ -20,22 +20,29 @@
 
 package com.im.njams.sdk.argos;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.ObjectWriter;
-import com.fasterxml.jackson.databind.SerializationFeature;
-import com.im.njams.sdk.settings.Settings;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.net.*;
+import java.io.Closeable;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
+import java.net.InetAddress;
+import java.net.SocketException;
+import java.net.UnknownHostException;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectWriter;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.im.njams.sdk.settings.Settings;
 
 /**
  * This Singleton class cares about collecting and sending Argos Metrics via UPD to an nJAMS Agent.
@@ -43,7 +50,7 @@ import java.util.concurrent.TimeUnit;
  * <p>
  * To provide Metrics you must register an @see {@link ArgosCollector}.
  */
-public class ArgosSender implements Runnable, AutoCloseable {
+public class ArgosSender implements Closeable {
     private static final Logger LOG = LoggerFactory.getLogger(ArgosSender.class);
 
     /**
@@ -83,9 +90,10 @@ public class ArgosSender implements Runnable, AutoCloseable {
     private ScheduledExecutorService execService;
 
     // All registered ArgosCollectors that will create metrics.
-    private final Map<ArgosComponent, ArgosCollector> argosCollectors = new HashMap<>();
+    private final Map<ArgosComponent, ArgosMultiCollector> argosCollectors = new HashMap<>();
 
     private boolean isRunning = false;
+    private boolean isInitialized = false;
 
     private static ArgosSender instance = null;
 
@@ -95,7 +103,7 @@ public class ArgosSender implements Runnable, AutoCloseable {
     // Lazy Initialization (If required then only)
     public synchronized static ArgosSender getInstance() {
         if (instance == null) {
-            LOG.info("Instantiate singleton for ArgosSender.");
+            LOG.debug("Instantiate singleton for ArgosSender.");
             instance = new ArgosSender();
         }
         return instance;
@@ -107,11 +115,15 @@ public class ArgosSender implements Runnable, AutoCloseable {
      *
      * @param settings the settings for connection establishment
      */
-    public void init(Settings settings) {
+    public synchronized void init(Settings settings) {
+        if (isInitialized) {
+            LOG.debug("ArgosSender already initialized.");
+            return;
+        }
+        LOG.debug("Initialize ArgosSender.");
         Properties properties = settings.getAllProperties();
         enabled = Boolean.parseBoolean(getProperty(properties, NJAMS_SUBAGENT_ENABLED, DEFAULT_ENABLED));
         host = getProperty(properties, NJAMS_SUBAGENT_HOST, DEFAULT_HOST);
-
         try {
             port =
                     Integer.parseInt(getProperty(properties, NJAMS_SUBAGENT_PORT, String.valueOf(DEFAULT_PORT)));
@@ -121,6 +133,7 @@ public class ArgosSender implements Runnable, AutoCloseable {
                     DEFAULT_PORT + " instead");
             port = DEFAULT_PORT;
         }
+        isInitialized = true;
     }
 
     private String getProperty(Properties properties, String key, String defaultValue) {
@@ -133,11 +146,44 @@ public class ArgosSender implements Runnable, AutoCloseable {
      *
      * @param collector The collector that collects metrics
      */
-    public void addArgosCollector(ArgosCollector collector) {
+    public void addArgosCollector(ArgosMultiCollector collector) {
+        if (collector == null) {
+            return;
+        }
         synchronized (argosCollectors) {
             argosCollectors.put(collector.getArgosComponent(), collector);
         }
+        LOG.debug("Added collector: {} ({})", collector.getArgosComponent().getId(), collector.getArgosComponent()
+                .getMeasurement());
         start();
+    }
+
+    /**
+     * Removes all collectors and closes the sender instance.
+     */
+    public void removeAllArgosCollectors() {
+        synchronized (argosCollectors) {
+            argosCollectors.clear();
+            close();
+        }
+    }
+
+    /**
+     * Removes the given collector from the sender instance.
+     * @param collector
+     * @return <code>true</code> only if the given collector was registered with the sender.
+     */
+    public boolean removeArgosCollector(ArgosMultiCollector collector) {
+        if (collector == null) {
+            return false;
+        }
+        synchronized (argosCollectors) {
+            boolean removed = argosCollectors.remove(collector.getArgosComponent()) != null;
+            if (removed && argosCollectors.isEmpty()) {
+                close();
+            }
+            return removed;
+        }
     }
 
     /**
@@ -171,14 +217,13 @@ public class ArgosSender implements Runnable, AutoCloseable {
         }
 
         execService = Executors.newSingleThreadScheduledExecutor();
-        execService.scheduleAtFixedRate(this, INITIAL_DELAY, INTERVAL, TimeUnit.SECONDS);
+        execService.scheduleAtFixedRate(this::run, INITIAL_DELAY, INTERVAL, TimeUnit.SECONDS);
     }
 
     /**
      * Create and send metrics
      */
-    @Override
-    public void run() {
+    private void run() {
         if (socket == null) {
             LOG.warn("Socket connection for Argos Sender is not open. Cannot send Metrics.");
             return;
@@ -187,21 +232,27 @@ public class ArgosSender implements Runnable, AutoCloseable {
     }
 
     private void publishData() {
-        Iterator<ArgosCollector> iterator = argosCollectors.values().iterator();
-        while (iterator.hasNext()) {
+        final Collection<ArgosMultiCollector> collectors;
+        synchronized (argosCollectors) {
+            collectors = new ArrayList<>(argosCollectors.values());
+        }
+        int count = 0;
+        for (ArgosMultiCollector collector : collectors) {
             try {
-                ArgosCollector collector = iterator.next();
-                ArgosMetric collectedStatistics = collector.collect();
-
-                String data = serializeStatistics(collectedStatistics);
-                LOG.error("{}", data);
-                byte[] buf = data.getBytes();
-                DatagramPacket packet = new DatagramPacket(buf, buf.length, ip, port);
-                socket.send(packet);
+                final Collection<ArgosMetric> allCollectedStatistics = collector.collectAll();
+                for (ArgosMetric collectedStatistics : allCollectedStatistics) {
+                    final String data = serializeStatistics(collectedStatistics);
+                    LOG.trace("Publishing metric:\n{}", data);
+                    final byte[] buf = data.getBytes();
+                    final DatagramPacket packet = new DatagramPacket(buf, buf.length, ip, port);
+                    socket.send(packet);
+                    count++;
+                }
             } catch (Exception e) {
                 LOG.error("Failed to send data. Cause: ", e);
             }
         }
+        LOG.debug("Published {} metrics to {}:{}", count, ip, port);
     }
 
     private String serializeStatistics(ArgosMetric statisticsToSerialize) {
