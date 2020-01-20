@@ -232,7 +232,6 @@
                 <version>${jackson.version}</version>
                 <scope>provided</scope>
             </dependency>
-
             <!-- Latest version of SaxonB, see http://saxon.sourceforge.net/ -->
             <dependency>
                 <groupId>net.sourceforge.saxon</groupId>
