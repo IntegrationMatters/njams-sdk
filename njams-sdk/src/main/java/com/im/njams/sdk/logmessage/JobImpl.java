@@ -156,7 +156,10 @@ public class JobImpl implements Job {
 
     /** Setting for truncate limit (nJAMS strip-mode). Number of activities/events before messages are truncated.  */
     public static final String TRUNCATE_LIMIT = "njams.sdk.truncateActivitiesLimit";
+    /** Setting for truncating successful jobs, provided that they were processed as single message.  */
+    public static final String TRUNCATE_ON_SUCCESS = "njams.sdk.truncateOnSuccess";
     private final int truncateLimit;
+    private final boolean truncateOnSuccess;
     private boolean isTruncatingActivities = false;
     private boolean isTruncatingEvents = false;
     // access to truncate fields is synchronized on activities!
@@ -188,6 +191,7 @@ public class JobImpl implements Job {
         startTime = DateTimeUtility.now();
         startTimeExplicitlySet = false;
         allErrors = "true".equalsIgnoreCase(njams.getSettings().getProperty(LOG_ALL_ERRORS));
+        truncateOnSuccess = "true".equalsIgnoreCase(njams.getSettings().getProperty(TRUNCATE_ON_SUCCESS));
         truncateLimit = getTruncateLimit();
     }
 
@@ -196,13 +200,13 @@ public class JobImpl implements Job {
         try {
             s = njams.getSettings().getProperty(TRUNCATE_LIMIT);
             if (StringUtils.isBlank(s)) {
-                return 0;
+                return Integer.MAX_VALUE;
             }
             final int i = Integer.parseInt(s);
-            return i;
+            return i > 0 ? i : Integer.MAX_VALUE;
         } catch (Exception e) {
             LOG.warn("Failed  to parse setting: {}={} - Truncating will be disabled.", TRUNCATE_LIMIT, s);
-            return 0;
+            return Integer.MAX_VALUE;
         }
     }
 
@@ -540,9 +544,13 @@ public class JobImpl implements Job {
 
     private void addToLogMessageAndCleanup(LogMessage logMessage) {
         synchronized (activities) {
+            // If this is the final message being sent, and truncate-on-success is selected and this job was
+            // successful, truncate all activities w/o events.
+            boolean finishedWithSuccess = logMessage.getJobEnd() != null && getStatus() == JobStatus.SUCCESS;
+
             //add all to logMessage
             for (Activity activity : activities.values()) {
-                if (checkTruncating(activity)) {
+                if (checkTruncating(activity, finishedWithSuccess)) {
                     logMessage.addActivity(activity);
                 } else {
                     logMessage.setTruncated(true);
@@ -556,10 +564,11 @@ public class JobImpl implements Job {
     /**
      * Checks truncating limit and indicates whether or not the given activity shall be added to the next log message.
      * @param activity The activity to test
+     * @param finishedSuccess Whether this job has yet finished successfully.
      * @return <code>true</code> if the given activity shall be added, <code>false</code> if not.
      */
-    boolean checkTruncating(final Activity activity) {
-        if (truncateLimit <= 0) {
+    boolean checkTruncating(final Activity activity, boolean finishedSuccess) {
+        if (!truncateOnSuccess && truncateLimit >= Integer.MAX_VALUE) {
             // truncating is disabled
             return true;
         }
@@ -572,7 +581,7 @@ public class JobImpl implements Job {
         if (!isTruncatingActivities) {
             activityIds.put(activity.getInstanceId(), hasEvent);
             // check limit reached
-            if (activityIds.size() > truncateLimit) {
+            if (truncateOnSuccess && finishedSuccess || activityIds.size() > truncateLimit) {
                 isTruncatingActivities = true;
                 activityIds.values().removeIf(b -> !b);
                 LOG.debug("Start truncating activities for {}", this);

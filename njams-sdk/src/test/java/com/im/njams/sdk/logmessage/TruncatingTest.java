@@ -21,6 +21,7 @@ public class TruncatingTest {
     private final Random random = new Random();
     private ProcessModel processModel = null;
     private int limit = 10;
+    private boolean truncateOnSuccess = false;
 
     @Before
     public void setup() {
@@ -30,11 +31,13 @@ public class TruncatingTest {
         Settings settings = mock(Settings.class);
         when(njams.getSettings()).thenReturn(settings);
         when(settings.getProperty(eq(JobImpl.TRUNCATE_LIMIT))).then(i -> String.valueOf(limit));
+        when(settings.getProperty(eq(JobImpl.TRUNCATE_ON_SUCCESS))).then(i -> String.valueOf(truncateOnSuccess));
         job = null;
     }
 
-    private void init(int limit) {
+    private void init(int limit, boolean onSuccess) {
         this.limit = limit;
+        truncateOnSuccess = onSuccess;
         job = new JobImpl(processModel, "4711", "4812");
     }
 
@@ -53,98 +56,175 @@ public class TruncatingTest {
 
     @Test
     public void testLimit10() {
-        init(10);
-        assertTrue(job.checkTruncating(activity()));
-        assertTrue(job.checkTruncating(activity()));
-        assertTrue(job.checkTruncating(activity()));
-        assertTrue(job.checkTruncating(activity()));
-        assertTrue(job.checkTruncating(activity()));
+        init(10, false);
+        assertTrue(job.checkTruncating(activity(), false));
+        assertTrue(job.checkTruncating(activity(), false));
+        assertTrue(job.checkTruncating(activity(), false));
+        assertTrue(job.checkTruncating(activity(), false));
+        assertTrue(job.checkTruncating(activity(), false));
+        assertTrue(job.checkTruncating(activity(), false));
+        assertTrue(job.checkTruncating(activity(), false));
+        assertTrue(job.checkTruncating(activity(), false));
+        assertTrue(job.checkTruncating(activity(), false));
+        assertTrue(job.checkTruncating(activity(), false));
+        assertFalse(job.checkTruncating(activity(), false));
 
-        assertTrue(job.checkTruncating(event()));
-        assertTrue(job.checkTruncating(event()));
-        assertTrue(job.checkTruncating(event()));
-        assertTrue(job.checkTruncating(event()));
-        assertTrue(job.checkTruncating(event()));
+        assertTrue(job.checkTruncating(event(), false));
+        assertTrue(job.checkTruncating(event(), false));
+        assertTrue(job.checkTruncating(event(), false));
+        assertTrue(job.checkTruncating(event(), false));
+        assertTrue(job.checkTruncating(event(), false));
+        assertTrue(job.checkTruncating(event(), false));
+        assertTrue(job.checkTruncating(event(), false));
+        assertTrue(job.checkTruncating(event(), false));
+        assertTrue(job.checkTruncating(event(), false));
+        assertTrue(job.checkTruncating(event(), false));
+        assertFalse(job.checkTruncating(event(), false));
+
+    }
+
+    @Test
+    public void testLimit10_2() {
+        init(10, false);
+        assertTrue(job.checkTruncating(activity(), false));
+        assertTrue(job.checkTruncating(activity(), false));
+        assertTrue(job.checkTruncating(activity(), false));
+        assertTrue(job.checkTruncating(activity(), false));
+        assertTrue(job.checkTruncating(activity(), false));
+        assertTrue(job.checkTruncating(activity(), false));
+        assertTrue(job.checkTruncating(activity(), false));
+
+        assertTrue(job.checkTruncating(event(), false));
+        assertTrue(job.checkTruncating(event(), false));
+        assertTrue(job.checkTruncating(event(), false));
+        assertTrue(job.checkTruncating(event(), false));
+        assertTrue(job.checkTruncating(event(), false));
 
         // no more activities
-        assertFalse(job.checkTruncating(activity()));
-        assertFalse(job.checkTruncating(activity()));
-        assertFalse(job.checkTruncating(activity()));
-        assertFalse(job.checkTruncating(activity()));
-        assertFalse(job.checkTruncating(activity()));
+        assertFalse(job.checkTruncating(activity(), false));
+        assertFalse(job.checkTruncating(activity(), false));
+        assertFalse(job.checkTruncating(activity(), false));
+        assertFalse(job.checkTruncating(activity(), false));
+        assertFalse(job.checkTruncating(activity(), false));
 
-        assertTrue(job.checkTruncating(event()));
-        assertTrue(job.checkTruncating(event()));
-        assertTrue(job.checkTruncating(event()));
-        assertTrue(job.checkTruncating(event()));
-        assertTrue(job.checkTruncating(event()));
+        assertTrue(job.checkTruncating(event(), false));
+        assertTrue(job.checkTruncating(event(), false));
+        assertTrue(job.checkTruncating(event(), false));
+        assertTrue(job.checkTruncating(event(), false));
+        assertTrue(job.checkTruncating(event(), false));
 
         // no more events
-        assertFalse(job.checkTruncating(activity()));
-        assertFalse(job.checkTruncating(activity()));
-        assertFalse(job.checkTruncating(activity()));
-        assertFalse(job.checkTruncating(activity()));
-        assertFalse(job.checkTruncating(activity()));
+        assertFalse(job.checkTruncating(activity(), false));
+        assertFalse(job.checkTruncating(activity(), false));
+        assertFalse(job.checkTruncating(activity(), false));
+        assertFalse(job.checkTruncating(activity(), false));
+        assertFalse(job.checkTruncating(activity(), false));
 
-        assertFalse(job.checkTruncating(event()));
-        assertFalse(job.checkTruncating(event()));
-        assertFalse(job.checkTruncating(event()));
-        assertFalse(job.checkTruncating(event()));
-        assertFalse(job.checkTruncating(event()));
+        assertFalse(job.checkTruncating(event(), false));
+        assertFalse(job.checkTruncating(event(), false));
+        assertFalse(job.checkTruncating(event(), false));
+        assertFalse(job.checkTruncating(event(), false));
+        assertFalse(job.checkTruncating(event(), false));
     }
 
     @Test
     public void testAllEvents() {
-        init(10);
-        assertTrue(job.checkTruncating(event()));
-        assertTrue(job.checkTruncating(event()));
-        assertTrue(job.checkTruncating(event()));
-        assertTrue(job.checkTruncating(event()));
-        assertTrue(job.checkTruncating(event()));
-        assertTrue(job.checkTruncating(event()));
-        assertTrue(job.checkTruncating(event()));
-        assertTrue(job.checkTruncating(event()));
-        assertTrue(job.checkTruncating(event()));
-        assertTrue(job.checkTruncating(event()));
+        init(5, false);
+        assertTrue(job.checkTruncating(event(), false));
+        assertTrue(job.checkTruncating(event(), false));
+        assertTrue(job.checkTruncating(event(), false));
+        assertTrue(job.checkTruncating(event(), false));
+        assertTrue(job.checkTruncating(event(), false));
 
-        assertFalse(job.checkTruncating(event()));
-        assertFalse(job.checkTruncating(activity()));
+        assertFalse(job.checkTruncating(event(), false));
+        assertFalse(job.checkTruncating(activity(), false));
     }
 
     @Test
     public void testDisabled() {
-        init(0);
-        assertTrue(job.checkTruncating(activity()));
-        assertTrue(job.checkTruncating(activity()));
-        assertTrue(job.checkTruncating(activity()));
-        assertTrue(job.checkTruncating(activity()));
-        assertTrue(job.checkTruncating(activity()));
-        assertTrue(job.checkTruncating(event()));
-        assertTrue(job.checkTruncating(event()));
-        assertTrue(job.checkTruncating(event()));
-        assertTrue(job.checkTruncating(event()));
-        assertTrue(job.checkTruncating(event()));
-        assertTrue(job.checkTruncating(activity()));
-        assertTrue(job.checkTruncating(activity()));
-        assertTrue(job.checkTruncating(activity()));
-        assertTrue(job.checkTruncating(activity()));
-        assertTrue(job.checkTruncating(activity()));
-        assertTrue(job.checkTruncating(event()));
-        assertTrue(job.checkTruncating(event()));
-        assertTrue(job.checkTruncating(event()));
-        assertTrue(job.checkTruncating(event()));
-        assertTrue(job.checkTruncating(event()));
-        assertTrue(job.checkTruncating(activity()));
-        assertTrue(job.checkTruncating(activity()));
-        assertTrue(job.checkTruncating(activity()));
-        assertTrue(job.checkTruncating(activity()));
-        assertTrue(job.checkTruncating(activity()));
-        assertTrue(job.checkTruncating(event()));
-        assertTrue(job.checkTruncating(event()));
-        assertTrue(job.checkTruncating(event()));
-        assertTrue(job.checkTruncating(event()));
-        assertTrue(job.checkTruncating(event()));
-
+        init(0, false);
+        assertTrue(job.checkTruncating(activity(), false));
+        assertTrue(job.checkTruncating(activity(), false));
+        assertTrue(job.checkTruncating(activity(), false));
+        assertTrue(job.checkTruncating(activity(), false));
+        assertTrue(job.checkTruncating(activity(), false));
+        assertTrue(job.checkTruncating(event(), false));
+        assertTrue(job.checkTruncating(event(), false));
+        assertTrue(job.checkTruncating(event(), false));
+        assertTrue(job.checkTruncating(event(), false));
+        assertTrue(job.checkTruncating(event(), false));
+        assertTrue(job.checkTruncating(activity(), false));
+        assertTrue(job.checkTruncating(activity(), false));
+        assertTrue(job.checkTruncating(activity(), false));
+        assertTrue(job.checkTruncating(activity(), false));
+        assertTrue(job.checkTruncating(activity(), false));
+        assertTrue(job.checkTruncating(event(), false));
+        assertTrue(job.checkTruncating(event(), false));
+        assertTrue(job.checkTruncating(event(), false));
+        assertTrue(job.checkTruncating(event(), false));
+        assertTrue(job.checkTruncating(event(), false));
+        assertTrue(job.checkTruncating(activity(), false));
+        assertTrue(job.checkTruncating(activity(), false));
+        assertTrue(job.checkTruncating(activity(), false));
+        assertTrue(job.checkTruncating(activity(), false));
+        assertTrue(job.checkTruncating(activity(), false));
+        assertTrue(job.checkTruncating(event(), false));
+        assertTrue(job.checkTruncating(event(), false));
+        assertTrue(job.checkTruncating(event(), false));
+        assertTrue(job.checkTruncating(event(), false));
+        assertTrue(job.checkTruncating(event(), false));
     }
 
+    @Test
+    public void testOnSuccess() {
+        init(10, true);
+        assertTrue(job.checkTruncating(activity(), false));
+        assertTrue(job.checkTruncating(activity(), false));
+        assertTrue(job.checkTruncating(activity(), false));
+        assertTrue(job.checkTruncating(event(), false));
+        assertTrue(job.checkTruncating(event(), false));
+        assertTrue(job.checkTruncating(event(), false));
+
+        assertFalse(job.checkTruncating(activity(), true));
+        assertTrue(job.checkTruncating(event(), true));
+        assertTrue(job.checkTruncating(event(), true));
+        assertTrue(job.checkTruncating(event(), true));
+        assertTrue(job.checkTruncating(event(), true));
+        assertTrue(job.checkTruncating(event(), true));
+        assertTrue(job.checkTruncating(event(), true));
+        assertTrue(job.checkTruncating(event(), true));
+        // limit 10
+        assertFalse(job.checkTruncating(event(), true));
+    }
+
+    @Test
+    public void testOnSuccess2() {
+        init(10, true);
+        assertTrue(job.checkTruncating(activity(), false));
+        assertTrue(job.checkTruncating(activity(), false));
+        assertTrue(job.checkTruncating(activity(), false));
+        assertTrue(job.checkTruncating(activity(), false));
+        assertTrue(job.checkTruncating(activity(), false));
+        assertTrue(job.checkTruncating(activity(), false));
+        assertTrue(job.checkTruncating(activity(), false));
+        assertTrue(job.checkTruncating(activity(), false));
+        assertTrue(job.checkTruncating(activity(), false));
+        assertTrue(job.checkTruncating(activity(), false));
+        assertFalse(job.checkTruncating(activity(), false));
+
+        assertTrue(job.checkTruncating(event(), false));
+        assertTrue(job.checkTruncating(event(), false));
+        assertTrue(job.checkTruncating(event(), false));
+        assertTrue(job.checkTruncating(event(), false));
+        assertTrue(job.checkTruncating(event(), false));
+        assertTrue(job.checkTruncating(event(), false));
+        assertTrue(job.checkTruncating(event(), false));
+        assertTrue(job.checkTruncating(event(), false));
+        assertTrue(job.checkTruncating(event(), false));
+        assertTrue(job.checkTruncating(event(), false));
+        assertFalse(job.checkTruncating(event(), false));
+
+        assertFalse(job.checkTruncating(activity(), true));
+        assertFalse(job.checkTruncating(event(), true));
+    }
 }
