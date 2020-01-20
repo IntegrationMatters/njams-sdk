@@ -23,11 +23,13 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
@@ -561,7 +563,7 @@ public class Njams implements InstructionListener {
         msg.setLogMode(configuration.getLogMode());
         synchronized (processModels) {
             processModels.values().stream().map(pm -> pm.getSerializableProcessModel())
-            .forEach(ipm -> msg.getProcesses().add(ipm));
+                    .forEach(ipm -> msg.getProcesses().add(ipm));
             images.forEach(i -> msg.getImages().put(i.getName(), i.getBase64Image()));
             msg.getGlobalVariables().putAll(globalVariables);
             LOG.debug("Sending project message with {} process-models, {} images, {} global-variables.",
@@ -661,7 +663,7 @@ public class Njams implements InstructionListener {
      */
     private void setStarters() {
         treeElements.stream().filter(te -> te.getTreeElementType() == TreeElementType.PROCESS)
-        .filter(te -> processModels.get(te.getPath()).isStarter()).forEach(te -> te.setStarter(true));
+                .filter(te -> processModels.get(te.getPath()).isStarter()).forEach(te -> te.setStarter(true));
     }
 
     /**
@@ -707,7 +709,7 @@ public class Njams implements InstructionListener {
             }
         }
         treeElements.stream().filter(te -> te.getTreeElementType() == TreeElementType.PROCESS)
-        .forEach(te -> te.setStarter(isStarter));
+                .forEach(te -> te.setStarter(isStarter));
         return treeElements;
     }
 
@@ -802,7 +804,9 @@ public class Njams implements InstructionListener {
         LOG.info("***      nJAMS SDK: Copyright (c) " + versions.get(CURRENT_YEAR) + " Faiz & Siegeln Software GmbH");
         LOG.info("*** ");
         LOG.info("***      Version Info:");
-        versions.entrySet().forEach(e -> LOG.info("***      " + e.getKey() + ": " + e.getValue()));
+        versions.entrySet().stream().filter(e -> !CURRENT_YEAR.equals(e.getKey()))
+                .sorted(Comparator.comparing(Entry::getKey))
+                .forEach(e -> LOG.info("***      " + e.getKey() + ": " + e.getValue()));
         LOG.info("*** ");
         LOG.info("***      Settings:");
         settings.printPropertiesWithoutPasswords(LOG);

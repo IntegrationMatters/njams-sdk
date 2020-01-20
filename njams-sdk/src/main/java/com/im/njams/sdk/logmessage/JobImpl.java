@@ -16,6 +16,23 @@
  */
 package com.im.njams.sdk.logmessage;
 
+import static java.util.Collections.unmodifiableCollection;
+
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.ListIterator;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
+
+import org.slf4j.LoggerFactory;
+
 import com.faizsiegeln.njams.messageformat.v4.logmessage.ActivityStatus;
 import com.faizsiegeln.njams.messageformat.v4.logmessage.LogMessage;
 import com.faizsiegeln.njams.messageformat.v4.logmessage.PluginDataItem;
@@ -33,14 +50,7 @@ import com.im.njams.sdk.model.ActivityModel;
 import com.im.njams.sdk.model.GroupModel;
 import com.im.njams.sdk.model.ProcessModel;
 import com.im.njams.sdk.model.SubProcessActivityModel;
-import org.slf4j.LoggerFactory;
-
-import java.time.LocalDateTime;
-import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicInteger;
-
-import static java.util.Collections.unmodifiableCollection;
+import com.im.njams.sdk.utils.StringUtils;
 
 /**
  * This represents an instance of a process/flow etc in engine to monitor.
@@ -144,6 +154,15 @@ public class JobImpl implements Job {
     public static final String LOG_ALL_ERRORS = "njams.sdk.logAllErrors";
     private final boolean allErrors;
 
+    /** Setting for truncate limit (nJAMS strip-mode). Number of activities/events before messages are truncated.  */
+    public static final String TRUNCATE_LIMIT = "njams.sdk.truncateActivitiesLimit";
+    private final int truncateLimit;
+    private boolean isTruncatingActivities = false;
+    private boolean isTruncatingEvents = false;
+    // access to truncate fields is synchronized on activities!
+    // activity-instance-ID --> hasEvent(activity)
+    private final Map<String, Boolean> activityIds = new HashMap<>();
+
     /**
      * Create a job with a givenModelId, a jobId and a logId
      *
@@ -169,6 +188,22 @@ public class JobImpl implements Job {
         startTime = DateTimeUtility.now();
         startTimeExplicitlySet = false;
         allErrors = "true".equalsIgnoreCase(njams.getSettings().getProperty(LOG_ALL_ERRORS));
+        truncateLimit = getTruncateLimit();
+    }
+
+    private int getTruncateLimit() {
+        String s = null;
+        try {
+            s = njams.getSettings().getProperty(TRUNCATE_LIMIT);
+            if (StringUtils.isBlank(s)) {
+                return 0;
+            }
+            final int i = Integer.parseInt(s);
+            return i;
+        } catch (Exception e) {
+            LOG.warn("Failed  to parse setting: {}={} - Truncating will be disabled.", TRUNCATE_LIMIT, s);
+            return 0;
+        }
     }
 
     /**
@@ -269,8 +304,15 @@ public class JobImpl implements Job {
         }
     }
 
+    private boolean hasEvent(final Activity activity) {
+        return activity.getEventStatus() != null || StringUtils.isNotBlank(activity.getEventCode())
+                || StringUtils.isNotBlank(activity.getEventMessage())
+                || StringUtils.isNotBlank(activity.getEventPayload())
+                || StringUtils.isNotBlank(activity.getStackTrace());
+    }
+
     /**
-     * Returns a activity to a given instanceId.
+     * Returns an activity for a given instanceId.
      *
      * @param activityInstanceId to get
      * @return the {@link Activity}
@@ -499,10 +541,59 @@ public class JobImpl implements Job {
     private void addToLogMessageAndCleanup(LogMessage logMessage) {
         synchronized (activities) {
             //add all to logMessage
-            activities.values().forEach(logMessage::addActivity);
+            for (Activity activity : activities.values()) {
+                if (checkTruncating(activity)) {
+                    logMessage.addActivity(activity);
+                } else {
+                    logMessage.setTruncated(true);
+                }
+            }
             //remove finished
             removeNotRunningActivities();
         }
+    }
+
+    /**
+     * Checks truncating limit and indicates whether or not the given activity shall be added to the next log message.
+     * @param activity The activity to test
+     * @return <code>true</code> if the given activity shall be added, <code>false</code> if not.
+     */
+    boolean checkTruncating(final Activity activity) {
+        if (truncateLimit <= 0) {
+            // truncating is disabled
+            return true;
+        }
+        if (isTruncatingEvents) {
+            // already truncating completely
+            return false;
+        }
+        // collect IDs
+        final boolean hasEvent = hasEvent(activity);
+        if (!isTruncatingActivities) {
+            activityIds.put(activity.getInstanceId(), hasEvent);
+            // check limit reached
+            if (activityIds.size() > truncateLimit) {
+                isTruncatingActivities = true;
+                activityIds.values().removeIf(b -> !b);
+                LOG.debug("Start truncating activities for {}", this);
+            }
+        }
+        if (isTruncatingActivities && hasEvent && !isTruncatingEvents) {
+            activityIds.put(activity.getInstanceId(), true);
+            // check limit reached again
+            if (activityIds.size() > truncateLimit) {
+                isTruncatingEvents = true;
+                activityIds.clear();
+                LOG.debug("Start truncating events for {}", this);
+            }
+        }
+        // result for the given activity
+        if (isTruncatingEvents) {
+            // full stop
+            return false;
+        }
+        // no truncating, or truncating activities but not events
+        return !isTruncatingActivities || hasEvent;
     }
 
     private void calculateEstimatedSize() {
