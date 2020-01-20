@@ -809,6 +809,7 @@ public class Njams implements InstructionListener {
                 .forEach(e -> LOG.info("***      " + e.getKey() + ": " + e.getValue()));
         LOG.info("*** ");
         LOG.info("***      Settings:");
+
         settings.printPropertiesWithoutPasswords(LOG);
         LOG.info("************************************************************");
 
