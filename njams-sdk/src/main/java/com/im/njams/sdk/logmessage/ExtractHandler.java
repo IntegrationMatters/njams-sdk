@@ -38,8 +38,8 @@ import com.faizsiegeln.njams.messageformat.v4.projectmessage.Extract;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.ExtractRule;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.RuleType;
 import com.im.njams.sdk.configuration.ActivityConfiguration;
-import com.im.njams.sdk.configuration.ProcessConfiguration;
 import com.im.njams.sdk.model.ActivityModel;
+import com.im.njams.sdk.utils.StringUtils;
 
 import net.sf.saxon.xpath.XPathEvaluator;
 
@@ -126,8 +126,6 @@ public class ExtractHandler {
         }
         Iterator<ExtractRule> erl = extract.getExtractRules().iterator();
 
-        XpathContext xpathContext = new XpathContext();
-
         while (erl.hasNext()) {
             ExtractRule er = erl.next();
 
@@ -149,7 +147,7 @@ public class ExtractHandler {
                 doValue(job, activity, er);
                 break;
             case XPATH:
-                doXpath(job, activity, er, sourceData, data, xpathContext);
+                doXpath(job, activity, er, sourceData, data);
                 break;
             default:
                 break;
@@ -190,6 +188,83 @@ public class ExtractHandler {
         job.setInstrumented();
     }
 
+    public static String testExpression(RuleType type, String expression, String testData) throws Exception {
+        if (type == null) {
+            throw new IllegalArgumentException("Missing rule type.");
+        }
+        switch (type) {
+        case REGEXP:
+            return testRegexp(expression, testData);
+        case VALUE:
+            return expression;
+        case XPATH:
+            return applyXpath(expression, testData);
+
+        case DISABLED:
+        case EVENT:
+        default:
+            return null;
+        }
+    }
+
+    private static String applyXpath(String xpath, String data) throws Exception {
+        if (StringUtils.isBlank(xpath) || StringUtils.isBlank(data)) {
+            return null;
+        }
+        XpathContext xpathContext = new XpathContext();
+        if (xpathContext.getXpf() == null) {
+            xpathContext.setXpf(new net.sf.saxon.xpath.XPathFactoryImpl());
+            xpathContext.setXpath(xpathContext.getXpf().newXPath());
+            xpathContext.getXpath().setNamespaceContext(new NamespaceResolver(data, false));
+            xpathContext.setSs(new SAXSource(new InputSource(new StringReader(data))));
+            xpathContext.setDoc(((XPathEvaluator) xpathContext.getXpath()).setSource(xpathContext.getSs()));
+        }
+        xpathContext.setExpr(xpathContext.getXpath().compile(xpath));
+        Object result = xpathContext.getExpr().evaluate(xpathContext.getDoc(), XPathConstants.NODESET);
+        List nodes = null;
+        if (result instanceof List) {
+            nodes = (List) result;
+        } else if (result instanceof NodeList) {
+            final int len = ((NodeList) result).getLength();
+            nodes = new ArrayList<>(len);
+            for (int i = 0; i < len; i++) {
+                String val = ((NodeList) result).item(i).getNodeValue();
+                nodes.add(val);
+            }
+        } else {
+            LOG.error("Unknown class " + result.getClass() + " returned from XPath evaluator");
+        }
+        String strResult = "";
+        if (nodes != null) {
+            for (Object node : nodes) {
+                Object o = node;
+                if (o instanceof net.sf.saxon.tinytree.TinyNodeImpl) {
+                    if (!(o instanceof net.sf.saxon.tinytree.WhitespaceTextImpl)) {
+                        strResult += ((net.sf.saxon.tinytree.TinyNodeImpl) o).getStringValue();
+                    }
+                } else {
+                    strResult += node;
+                }
+            }
+        }
+        return strResult;
+    }
+
+    private static String testRegexp(String regex, String data) {
+        if (StringUtils.isBlank(regex) || StringUtils.isBlank(data)) {
+            return null;
+        }
+        final Pattern pattern = Pattern.compile(regex);
+        Matcher matcher = pattern.matcher(data);
+        if (matcher.find()) {
+            int group = matcher.groupCount() > 0 ? 1 : 0;
+            String value = matcher.group(group);
+            LOG.debug("nJAMS: regex result: {}", value);
+            return value;
+        }
+        return null;
+    }
+
     private static void doEvent(JobImpl job, ActivityImpl activity, ExtractRule er) {
         String evt = er.getRule();
         if (evt != null && evt.length() > 0) {
@@ -208,7 +283,7 @@ public class ExtractHandler {
     }
 
     private static void doXpath(JobImpl job, ActivityImpl activity, ExtractRule er, Object sourceData,
-            String paramData, XpathContext xpathContext) {
+            String paramData) {
         String data = paramData;
         if (paramData == null || paramData.length() == 0) {
             data = job.getNjams().serialize(sourceData);
@@ -217,41 +292,7 @@ public class ExtractHandler {
             }
         }
         try {
-            if (xpathContext.getXpf() == null) {
-                xpathContext.setXpf(new net.sf.saxon.xpath.XPathFactoryImpl());
-                xpathContext.setXpath(xpathContext.getXpf().newXPath());
-                xpathContext.getXpath().setNamespaceContext(new NamespaceResolver(data, false));
-                xpathContext.setSs(new SAXSource(new InputSource(new StringReader(data))));
-                xpathContext.setDoc(((XPathEvaluator) xpathContext.getXpath()).setSource(xpathContext.getSs()));
-            }
-            xpathContext.setExpr(xpathContext.getXpath().compile(er.getRule()));
-            Object result = xpathContext.getExpr().evaluate(xpathContext.getDoc(), XPathConstants.NODESET);
-            List nodes = null;
-            if (result instanceof List) {
-                nodes = (List) result;
-            } else if (result instanceof NodeList) {
-                final int len = ((NodeList) result).getLength();
-                nodes = new ArrayList<>(len);
-                for (int i = 0; i < len; i++) {
-                    String val = ((NodeList) result).item(i).getNodeValue();
-                    nodes.add(val);
-                }
-            } else {
-                LOG.error("Unknown class " + result.getClass() + " returned from XPath evaluator");
-            }
-            String strResult = "";
-            if (nodes != null) {
-                for (int i = 0; i < nodes.size(); i++) {
-                    Object o = nodes.get(i);
-                    if (o instanceof net.sf.saxon.tinytree.TinyNodeImpl) {
-                        if (!(o instanceof net.sf.saxon.tinytree.WhitespaceTextImpl)) {
-                            strResult += ((net.sf.saxon.tinytree.TinyNodeImpl) o).getStringValue();
-                        }
-                    } else {
-                        strResult += nodes.get(i);
-                    }
-                }
-            }
+            String strResult = applyXpath(er.getRule(), data);
             if (er.getAttributeType() == AttributeType.EVENT) {
                 LOG.debug("nJAMS: xpath extract for setting: {}", er.getAttribute());
                 LOG.debug("nJAMS: xpath result: {}", strResult);
@@ -265,7 +306,7 @@ public class ExtractHandler {
             }
             job.setInstrumented();
         } catch (Exception e) {
-            LOG.error("", e);
+            LOG.error("Failed to evaluate X-Path.", e);
         }
     }
 

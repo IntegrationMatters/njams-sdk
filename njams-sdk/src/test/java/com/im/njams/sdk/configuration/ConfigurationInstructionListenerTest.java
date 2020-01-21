@@ -1,21 +1,7 @@
 package com.im.njams.sdk.configuration;
 
-import static com.faizsiegeln.njams.messageformat.v4.command.Command.CONFIGURE_EXTRACT;
-import static com.faizsiegeln.njams.messageformat.v4.command.Command.DELETE_EXTRACT;
-import static com.faizsiegeln.njams.messageformat.v4.command.Command.GET_EXTRACT;
-import static com.faizsiegeln.njams.messageformat.v4.command.Command.GET_LOG_LEVEL;
-import static com.faizsiegeln.njams.messageformat.v4.command.Command.GET_LOG_MODE;
-import static com.faizsiegeln.njams.messageformat.v4.command.Command.GET_TRACING;
-import static com.faizsiegeln.njams.messageformat.v4.command.Command.RECORD;
-import static com.faizsiegeln.njams.messageformat.v4.command.Command.REPLAY;
-import static com.faizsiegeln.njams.messageformat.v4.command.Command.SET_LOG_LEVEL;
-import static com.faizsiegeln.njams.messageformat.v4.command.Command.SET_LOG_MODE;
-import static com.faizsiegeln.njams.messageformat.v4.command.Command.SET_TRACING;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static com.faizsiegeln.njams.messageformat.v4.command.Command.*;
+import static org.junit.Assert.*;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
@@ -575,5 +561,90 @@ public class ConfigurationInstructionListenerTest {
         assertEquals(4711, instruction.getResponse().getResultCode());
         assertEquals("XXX", instruction.getResponse().getResultMessage());
         assertEquals(time, instruction.getResponse().getDateTime());
+    }
+
+    @Test
+    public void testExpressionTestRegex() {
+        prepareInstruction(Command.TEST_EXPRESSION);
+        instruction.setRequestParameter("ruleType", "regexp");
+        instruction.setRequestParameter("expression", "wo\\w+");
+        instruction.setRequestParameter("data", "Hello world!!!");
+        listener.onInstruction(instruction);
+
+        Response response = instruction.getResponse();
+        assertEquals(0, response.getResultCode());
+        assertEquals("world", response.getParameters().get("matchResult"));
+
+    }
+
+    @Test
+    public void testExpressionTestXpath() {
+        prepareInstruction(Command.TEST_EXPRESSION);
+        instruction.setRequestParameter("ruleType", "xpath");
+        instruction.setRequestParameter("expression", "//name");
+        instruction.setRequestParameter("data", "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\r\n" +
+                "<configuration scan=\"true\">\r\n" +
+                "    <name>Hello world</name>\r\n" +
+                "</configuration>");
+        listener.onInstruction(instruction);
+
+        Response response = instruction.getResponse();
+        assertEquals(0, response.getResultCode());
+        assertEquals("Hello world", response.getParameters().get("matchResult"));
+
+    }
+
+    @Test
+    public void testExpressionTestValue() {
+        prepareInstruction(Command.TEST_EXPRESSION);
+        instruction.setRequestParameter("ruleType", "value");
+        instruction.setRequestParameter("expression", "bla");
+        instruction.setRequestParameter("data", "Hello world!!!");
+        listener.onInstruction(instruction);
+
+        Response response = instruction.getResponse();
+        assertEquals(0, response.getResultCode());
+        assertEquals("bla", response.getParameters().get("matchResult"));
+
+    }
+
+    @Test
+    public void testExpressionTestOther() {
+        prepareInstruction(Command.TEST_EXPRESSION);
+        instruction.setRequestParameter("ruleType", "xxx");
+        instruction.setRequestParameter("expression", "bla");
+        instruction.setRequestParameter("data", "Hello world!!!");
+
+        listener.onInstruction(instruction);
+        Response response = instruction.getResponse();
+        assertEquals(0, response.getResultCode());
+        assertNull(response.getParameters().get("matchResult"));
+
+        instruction.setRequestParameter("ruleType", "eventType");
+        listener.onInstruction(instruction);
+        response = instruction.getResponse();
+        assertEquals(0, response.getResultCode());
+        assertNull(response.getParameters().get("matchResult"));
+    }
+
+    @Test
+    public void testExpressionTestFail() {
+        prepareInstruction(Command.TEST_EXPRESSION);
+        listener.onInstruction(instruction);
+        Response response = instruction.getResponse();
+        assertEquals(1, response.getResultCode());
+        assertNotNull(response.getResultMessage());
+        assertTrue(response.getResultMessage().startsWith("missing parameter"));
+        assertNull(response.getParameters().get("matchResult"));
+
+        instruction.setRequestParameter("ruleType", "regexp");
+        instruction.setRequestParameter("expression", "wo\\E");
+        instruction.setRequestParameter("data", "Hello world!!!");
+        listener.onInstruction(instruction);
+        response = instruction.getResponse();
+        assertEquals(1, response.getResultCode());
+        assertNotNull(response.getResultMessage());
+        assertTrue(response.getResultMessage().startsWith("Expression test failed"));
+        assertNull(response.getParameters().get("matchResult"));
     }
 }

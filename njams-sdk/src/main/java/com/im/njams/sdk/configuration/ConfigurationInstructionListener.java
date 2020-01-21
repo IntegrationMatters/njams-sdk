@@ -20,9 +20,9 @@ import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Map.Entry;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import com.im.njams.sdk.utils.JsonUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -32,10 +32,13 @@ import com.faizsiegeln.njams.messageformat.v4.command.Response;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.Extract;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.LogLevel;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.LogMode;
+import com.faizsiegeln.njams.messageformat.v4.projectmessage.RuleType;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.im.njams.sdk.common.DateTimeUtility;
 import com.im.njams.sdk.common.JsonSerializerFactory;
 import com.im.njams.sdk.communication.InstructionListener;
+import com.im.njams.sdk.logmessage.ExtractHandler;
+import com.im.njams.sdk.utils.JsonUtils;
 import com.im.njams.sdk.utils.StringUtils;
 
 /**
@@ -120,37 +123,70 @@ public class ConfigurationInstructionListener implements InstructionListener {
             return;
         }
 
+        /**
+         * Whether or not the response is flagged as error.
+         * @return
+         */
         private boolean isError() {
             return response.getResultCode() == 1;
         }
 
+        /**
+         * Sets a response parameter.
+         * @param name The name of the parameter to set into the response.
+         * @param value The value to set for the given parameter.
+         * @return
+         */
         private InstructionSupport setParameter(final String name, final Object value) {
             if (value instanceof LocalDateTime) {
                 response.getParameters().put(name, DateTimeUtility.toString((LocalDateTime) value));
             } else {
-                response.getParameters().put(name, String.valueOf(value));
+                response.getParameters().put(name, value == null ? null : String.valueOf(value));
             }
             return this;
         }
 
+        /**
+         * Returns the process path from the request, if set.
+         * @return
+         */
         private String getProcessPath() {
             return getParameter(PROCESS_PATH);
         }
 
+        /**
+         * Returns the activity ID from the request, if any.
+         * @return
+         */
         private String getActivityId() {
             return getParameter(ACTIVITY_ID);
         }
 
+        /**
+         * Whether or not the request has a parameter with the given name.
+         * @param name The parameter name to test.
+         * @return
+         */
         private boolean hasParameter(final String name) {
             return instruction.getRequest().getParameters().keySet().stream().anyMatch(k -> k.equalsIgnoreCase(name));
         }
 
+        /**
+         * Returns a request parameter.
+         * @param name The name of the parameter to return.
+         * @return
+         */
         private String getParameter(final String name) {
             return instruction.getRequest().getParameters().entrySet().stream()
                     .filter(e -> e.getKey().equalsIgnoreCase(name)).map(Entry::getValue)
                     .findAny().orElse(null);
         }
 
+        /**
+         * Returns a request parameter as integer.
+         * @param name The name of the parameter to return.
+         * @return
+         */
         private int getIntParameter(final String name) {
             final String s = getParameter(name);
             try {
@@ -161,10 +197,22 @@ public class ConfigurationInstructionListener implements InstructionListener {
             }
         }
 
+        /**
+         * Returns a request parameter as boolean.
+         * @param name The name of the parameter to return.
+         * @return
+         */
         private boolean getBoolParameter(final String name) {
-            return Boolean.parseBoolean(getParameter(name));
+            return getParameter(name, Boolean::parseBoolean);
         }
 
+        /**
+         * Returns a request parameter as enum value.
+         * @param <T> The type of the enum.
+         * @param name The name of the parameter to return.
+         * @param enumeration The enum type.
+         * @return
+         */
         private <T extends Enum<T>> T getEnumParameter(final String name, final Class<T> enumeration) {
             final String constantName = getParameter(name);
             if (constantName == null || enumeration == null || enumeration.getEnumConstants() == null) {
@@ -172,6 +220,18 @@ public class ConfigurationInstructionListener implements InstructionListener {
             }
             return Arrays.stream(enumeration.getEnumConstants()).filter(c -> c.name().equalsIgnoreCase(constantName))
                     .findAny().orElse(null);
+        }
+
+        /**
+         * Returns a request parameter build by invoking the given producer method, passing in the value read from
+         * the request.
+         * @param <T> The target type to produce.
+         * @param name The name of the parameter to return.
+         * @param producer The producer method accepting the raw string parameter value from the request.
+         * @return
+         */
+        private <T> T getParameter(final String name, Function<String, T> producer) {
+            return producer.apply(getParameter(name));
         }
     }
 
@@ -189,6 +249,10 @@ public class ConfigurationInstructionListener implements InstructionListener {
     private static final String ENABLE_TRACING = "enableTracing";
     private static final String ENDTIME = "endtime";
     private static final String EXCLUDE = "exclude";
+    private static final String MATCH_RESULT = "matchResult";
+    private static final String DATA = "data";
+    private static final String EXPRESSION = "expression";
+    private static final String RULE_TYPE = "ruleType";
 
     private final Configuration configuration;
 
@@ -248,10 +312,12 @@ public class ConfigurationInstructionListener implements InstructionListener {
         case SET_TRACING:
             setTracing(instructionSupport);
             break;
+        case TEST_EXPRESSION:
+            testExpression(instructionSupport);
+            break;
 
         case SEND_PROJECTMESSAGE:
         case REPLAY:
-        case TEST_EXPRESSION:
             // not handled here.
             LOG.debug("Ignoring command: {}", command);
             return;
@@ -585,6 +651,23 @@ public class ConfigurationInstructionListener implements InstructionListener {
 
         saveConfiguration(instructionSupport);
         LOG.debug("Recording for {}", processPath);
+    }
+
+    private void testExpression(final InstructionSupport instructionSupport) {
+        if (!instructionSupport.validate(RULE_TYPE, EXPRESSION, DATA)) {
+            return;
+        }
+
+        final RuleType ruleType = instructionSupport.getParameter(RULE_TYPE, RuleType::fromValue);
+        final String expression = instructionSupport.getParameter(EXPRESSION);
+        final String testdata = instructionSupport.getParameter(DATA);
+        try {
+            instructionSupport.setParameter(MATCH_RESULT,
+                    ExtractHandler.testExpression(ruleType, expression, testdata));
+        } catch (Exception e) {
+            instructionSupport.error("Expression test failed.", e);
+        }
+
     }
 
     private void saveConfiguration(InstructionSupport instructionSupport) {

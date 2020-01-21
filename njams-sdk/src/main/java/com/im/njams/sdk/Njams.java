@@ -100,13 +100,59 @@ public class Njams implements InstructionListener {
 
     private static final String DEFAULT_CACHE_PROVIDER = FileConfigurationProvider.NAME;
 
+    public enum Feature {
+        /** Value indicating that this instance supports replay functionality. */
+        REPLAY("replay"),
+        /** Value indicating that this instance supports the header injection feature. */
+        INJECTION("injection"),
+        /** Value indicating that this instance implements expression test functionality. */
+        EXPRESSION_TEST("expressionTest");
+
+        private final String key;
+
+        private Feature(String key) {
+            this.key = key;
+        }
+
+        @Override
+        public String toString() {
+            return key;
+        }
+
+        /**
+         * Raw string value to be used when sending information to nJAMS.
+         * @return
+         */
+        public String key() {
+            return key;
+        }
+
+        /**
+         * Tries to find the instance according to the given name.
+         * @param name The name of the instance that shall be returned.
+         * @return The instance for the given name, or <code>null</code> if no matching instance was found.
+         */
+        public static Feature byName(String name) {
+            for (Feature f : values()) {
+                if (f.name().equalsIgnoreCase(name) || f.key.equalsIgnoreCase(name)) {
+                    return f;
+                }
+            }
+            return null;
+        }
+    }
+
     /**
      * Static value for feature replay
+     * @deprecated Use {@link Feature#key()} on instance {@link Feature#REPLAY} instead.
      */
+    @Deprecated
     public static final String FEATURE_REPLAY = "replay";
     /**
      * Static value for feature inject
+     * @deprecated Use {@link Feature#key()} on instance {@link Feature#INJECTION} instead.
      */
+    @Deprecated
     public static final String FEATURE_INJECTION = "injection";
 
     /**
@@ -168,7 +214,8 @@ public class Njams implements InstructionListener {
     private final HashMap<Class<?>, Serializer<?>> cachedSerializers = new HashMap<>();
 
     // features
-    private final List<String> features = Collections.synchronizedList(new ArrayList<>());
+    private final List<String> features =
+            Collections.synchronizedList(new ArrayList<>(Collections.singleton(Feature.EXPRESSION_TEST.toString())));
 
     // TODO: implement pooling
     private Sender sender;
@@ -1070,12 +1117,30 @@ public class Njams implements InstructionListener {
     }
 
     /**
+     * Adds a new feature to the feature list
+     *
+     * @param feature to set
+     */
+    public void addFeature(Feature feature) {
+        addFeature(feature.key());
+    }
+
+    /**
      * Remove a feature from the feature list
      *
      * @param feature to remove
      */
     public void removeFeature(final String feature) {
         features.remove(feature);
+    }
+
+    /**
+     * Remove a feature from the feature list
+     *
+     * @param feature to remove
+     */
+    public void removeFeature(final Feature feature) {
+        removeFeature(feature.key());
     }
 
     /**
