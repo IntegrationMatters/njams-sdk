@@ -292,7 +292,41 @@ public class ExtractHandler {
             }
         }
         try {
+            //            if (xpathContext.getXpf() == null) {
+            //                xpathContext.setXpf(new net.sf.saxon.xpath.XPathFactoryImpl());
+            //                xpathContext.setXpath(xpathContext.getXpf().newXPath());
+            //                xpathContext.getXpath().setNamespaceContext(new NamespaceResolver(data, false));
+            //                xpathContext.setSs(new SAXSource(new InputSource(new StringReader(data))));
+            //                xpathContext.setDoc(((XPathEvaluator) xpathContext.getXpath()).setSource(xpathContext.getSs()));
+            //            }
+            //            xpathContext.setExpr(xpathContext.getXpath().compile(er.getRule()));
+            //            Object result = xpathContext.getExpr().evaluate(xpathContext.getDoc(), XPathConstants.NODESET);
+            //            List nodes = null;
+            //            if (result instanceof List) {
+            //                nodes = (List) result;
+            //            } else if (result instanceof NodeList) {
+            //                final int len = ((NodeList) result).getLength();
+            //                nodes = new ArrayList<>(len);
+            //                for (int i = 0; i < len; i++) {
+            //                    String val = ((NodeList) result).item(i).getNodeValue();
+            //                    nodes.add(val);
+            //                }
+            //            } else {
+            //                LOG.error("Unknown class " + result.getClass() + " returned from XPath evaluator");
+            //            }
             String strResult = applyXpath(er.getRule(), data);
+            //            if (nodes != null) {
+            //                for (Object node : nodes) {
+            //                    Object o = node;
+            //                    if (o instanceof net.sf.saxon.tinytree.TinyNodeImpl) {
+            //                        if (!(o instanceof net.sf.saxon.tinytree.WhitespaceTextImpl)) {
+            //                            strResult += ((net.sf.saxon.tinytree.TinyNodeImpl) o).getStringValue();
+            //                        }
+            //                    } else {
+            //                        strResult += node;
+            //                    }
+            //                }
+            //            }
             if (er.getAttributeType() == AttributeType.EVENT) {
                 LOG.debug("nJAMS: xpath extract for setting: {}", er.getAttribute());
                 LOG.debug("nJAMS: xpath result: {}", strResult);

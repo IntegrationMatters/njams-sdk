@@ -100,6 +100,9 @@ public class Njams implements InstructionListener {
 
     private static final String DEFAULT_CACHE_PROVIDER = FileConfigurationProvider.NAME;
 
+    /**
+     * Defines the standard set of optional features that an nJAMS client may support.
+     */
     public enum Feature {
         /** Value indicating that this instance supports replay functionality. */
         REPLAY("replay"),
@@ -121,7 +124,7 @@ public class Njams implements InstructionListener {
 
         /**
          * Raw string value to be used when sending information to nJAMS.
-         * @return
+         * @return Raw string value.
          */
         public String key() {
             return key;
