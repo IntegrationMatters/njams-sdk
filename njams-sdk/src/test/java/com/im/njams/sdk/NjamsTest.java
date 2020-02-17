@@ -22,17 +22,16 @@ import com.faizsiegeln.njams.messageformat.v4.command.Request;
 import com.faizsiegeln.njams.messageformat.v4.command.Response;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.common.Path;
-import com.im.njams.sdk.communication.ReplayHandler;
-import com.im.njams.sdk.communication.ReplayRequest;
-import com.im.njams.sdk.communication.ReplayResponse;
+import com.im.njams.sdk.communication.*;
+import com.im.njams.sdk.communication.jms.JmsConstants;
+import com.im.njams.sdk.logmessage.DataMasking;
 import com.im.njams.sdk.logmessage.Job;
 import com.im.njams.sdk.model.ProcessModel;
 import com.im.njams.sdk.settings.Settings;
 import com.im.njams.sdk.serializer.Serializer;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
+
+import java.util.*;
+
 import org.junit.Test;
 import static org.junit.Assert.*;
 import org.junit.Before;
@@ -161,5 +160,77 @@ public class NjamsTest {
         assertTrue(resp.getResultCode() == 2);
         assertEquals("Error while executing replay: TestException", resp.getResultMessage());
         assertEquals("java.lang.RuntimeException: TestException", inst.getResponseParameterByName("Exception"));
+    }
+
+    @Test
+    public void setDataMaskingViaSettings(){
+        DataMasking.removePatterns();
+        Properties properties = new Properties();
+        properties.put(DataMasking.DATA_MASKING_ENABLED, "true");
+        properties.put(DataMasking.DATA_MASKING_REGEX_PREFIX + "MaskAll", ".*");
+        properties.put(CommunicationFactory.COMMUNICATION, TestSender.NAME);
+
+        Settings settings = new Settings();
+        settings.setProperties(properties);
+
+        Njams njams = new Njams(new Path("TestPath"), "1.0.0", "SDK", settings);
+        njams.start();
+
+        assertEquals("*****", DataMasking.maskString("Hello"));
+    }
+
+    @Test
+    public void disableDataMaskingViaSettings(){
+        DataMasking.removePatterns();
+        Properties properties = new Properties();
+        properties.put(DataMasking.DATA_MASKING_ENABLED, "false");
+        properties.put(DataMasking.DATA_MASKING_REGEX_PREFIX, ".*");
+        properties.put(CommunicationFactory.COMMUNICATION, TestSender.NAME);
+
+        Settings settings = new Settings();
+        settings.setProperties(properties);
+
+        Njams njams = new Njams(new Path("TestPath"), "1.0.0", "SDK", settings);
+        njams.start();
+
+        assertEquals("Hello", DataMasking.maskString("Hello"));
+    }
+
+    @Test
+    public void disableDataMaskingDisablesAllDataMasking(){
+        DataMasking.removePatterns();
+        Properties properties = new Properties();
+        properties.put(DataMasking.DATA_MASKING_ENABLED, "false");
+        properties.put(DataMasking.DATA_MASKING_REGEX_PREFIX, ".*");
+        properties.put(CommunicationFactory.COMMUNICATION, TestSender.NAME);
+
+        Settings settings = new Settings();
+        settings.setProperties(properties);
+
+        Njams njams = new Njams(new Path("TestPath"), "1.0.0", "SDK", settings);
+
+        List<String> dataMaskingStrings = new ArrayList<>();
+        dataMaskingStrings.add("Hello");
+        njams.getConfiguration().setDataMasking(dataMaskingStrings);
+        njams.start();
+
+        assertEquals("Hello", DataMasking.maskString("Hello"));
+    }
+
+    @Test
+    public void enableDataMaskingWithoutRegex(){
+        DataMasking.removePatterns();
+        Properties properties = new Properties();
+        properties.put(DataMasking.DATA_MASKING_ENABLED, "true");
+        properties.put(CommunicationFactory.COMMUNICATION, TestSender.NAME);
+
+        Settings settings = new Settings();
+        settings.setProperties(properties);
+
+        Njams njams = new Njams(new Path("TestPath"), "1.0.0", "SDK", settings);
+
+        njams.start();
+
+        assertEquals("Hello", DataMasking.maskString("Hello"));
     }
 }

@@ -16,6 +16,7 @@
  */
 package com.im.njams.sdk.logmessage;
 
+import static junit.framework.TestCase.assertEquals;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.not;
 import static org.junit.Assert.assertThat;
@@ -30,6 +31,8 @@ import org.mockito.Mockito;
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.model.ActivityModel;
 import com.im.njams.sdk.model.ProcessModel;
+
+import java.util.Properties;
 
 /**
  *
@@ -100,6 +103,19 @@ public class DataMaskingTest {
         DataMasking.addPattern("<requesturi>(\\p{Alpha}|/|\\p{Digit})*</requesturi>");
         IMPL.processInput("<requesturi>/DateServlet/DateServlet</requesturi>");
         assertThat(IMPL.getInput(), not("<requesturi>/DateServlet/DateServlet</requesturi>"));
+    }
+
+    @Test
+    public void addPatternsFromProperties(){
+        Properties properties = new Properties();
+        properties.put(DataMasking.DATA_MASKING_REGEX_PREFIX + "creditcard", "Creditcard Number : \\p{Digit}+");
+        properties.put("SomeOtherString", ".*");
+        DataMasking.addPatterns(properties);
+        final String maskedString1 = DataMasking.maskString("Creditcard Number : 1234");
+        final String maskedString2 = DataMasking.maskString("Anything else");
+        assertEquals("************************", maskedString1);
+        assertEquals("Anything else", maskedString2);
+
     }
 
 }

@@ -37,6 +37,11 @@ public class Configuration {
 
     private LogMode logMode = LogMode.COMPLETE;
     private Map<String, ProcessConfiguration> processes = new HashMap<>();
+
+    /**
+     * Should be provided by the Settings
+     */
+    @Deprecated
     private List<String> dataMasking = new ArrayList<>();
     private boolean recording = true;
 
@@ -102,15 +107,20 @@ public class Configuration {
     }
 
     /**
+     * Should be provided by the Settings
      * @return the dataMasking
      */
+    @Deprecated
     public List<String> getDataMasking() {
         return dataMasking;
     }
 
     /**
+     * Should be provided by the Settings
+     *
      * @param dataMasking the dataMasking to set
      */
+    @Deprecated
     public void setDataMasking(List<String> dataMasking) {
         this.dataMasking = dataMasking;
     }
