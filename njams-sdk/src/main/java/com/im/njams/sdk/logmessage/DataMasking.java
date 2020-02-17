@@ -26,7 +26,6 @@ package com.im.njams.sdk.logmessage;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Matcher;
 
 import org.slf4j.Logger;
@@ -97,30 +96,26 @@ public class DataMasking {
     }
 
     /**
-     * Deprecated, use {@link #addPatterns(Properties)} instead to provide good names for the regexes. Otherwise, a
-     * number will be added for each regex that has been added without a name.
+     * This method adds all patterns to the pattern list
      *
      * @param patterns the patterns to add
      */
-    @Deprecated
     public static void addPatterns(List<String> patterns) {
         patterns.forEach(DataMasking::addPattern);
     }
 
     /**
-     * Deprecated, use {@link #addPattern(String, String)} instead to provide a good name for the regex. Otherwise, a
-     * number will be added for each regex that has been added without a name.
+     * This method adds a pattern to the pattern list.
      *
      * @param pattern the pattern to add
      */
-    @Deprecated
     public static void addPattern(String pattern) {
         addPattern(null, pattern);
     }
 
     /**
      * This method takes a reads all key-value pairs where the key starts with {@link #DATA_MASKING_REGEX_PREFIX} and
-     * adds them to a datamasking map.
+     * adds them to a data masking list.
      *
      * @param properties the properties to provide
      */
