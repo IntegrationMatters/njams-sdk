@@ -1,17 +1,24 @@
 /*
  * Copyright (c) 2018 Faiz & Siegeln Software GmbH
  *
- * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"),
- * to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
- * and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
+ * documentation files (the "Software"),
+ * to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge,
+ * publish, distribute, sublicense,
+ * and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to
+ * the following conditions:
  *
- * The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+ * The above copyright notice and this permission notice shall be included in all copies or substantial portions of
+ * the Software.
  *
  * The Software shall be used for Good, not Evil.
  *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
+ * THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE
+ *  FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+ * SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
  */
 package com.im.njams.sdk;
@@ -104,11 +111,17 @@ public class Njams implements InstructionListener {
      * Defines the standard set of optional features that an nJAMS client may support.
      */
     public enum Feature {
-        /** Value indicating that this instance supports replay functionality. */
+        /**
+         * Value indicating that this instance supports replay functionality.
+         */
         REPLAY("replay"),
-        /** Value indicating that this instance supports the header injection feature. */
+        /**
+         * Value indicating that this instance supports the header injection feature.
+         */
         INJECTION("injection"),
-        /** Value indicating that this instance implements expression test functionality. */
+        /**
+         * Value indicating that this instance implements expression test functionality.
+         */
         EXPRESSION_TEST("expressionTest");
 
         private final String key;
@@ -124,6 +137,7 @@ public class Njams implements InstructionListener {
 
         /**
          * Raw string value to be used when sending information to nJAMS.
+         *
          * @return Raw string value.
          */
         public String key() {
@@ -132,6 +146,7 @@ public class Njams implements InstructionListener {
 
         /**
          * Tries to find the instance according to the given name.
+         *
          * @param name The name of the instance that shall be returned.
          * @return The instance for the given name, or <code>null</code> if no matching instance was found.
          */
@@ -147,12 +162,14 @@ public class Njams implements InstructionListener {
 
     /**
      * Static value for feature replay
+     *
      * @deprecated Use {@link Feature#key()} on instance {@link Feature#REPLAY} instead.
      */
     @Deprecated
     public static final String FEATURE_REPLAY = "replay";
     /**
      * Static value for feature inject
+     *
      * @deprecated Use {@link Feature#key()} on instance {@link Feature#INJECTION} instead.
      */
     @Deprecated
@@ -217,8 +234,8 @@ public class Njams implements InstructionListener {
     private final HashMap<Class<?>, Serializer<?>> cachedSerializers = new HashMap<>();
 
     // features
-    private final List<String> features =
-            Collections.synchronizedList(new ArrayList<>(Collections.singleton(Feature.EXPRESSION_TEST.toString())));
+    private final List<String> features = Collections
+            .synchronizedList(new ArrayList<>(Collections.singleton(Feature.EXPRESSION_TEST.toString())));
 
     // TODO: implement pooling
     private Sender sender;
@@ -237,10 +254,10 @@ public class Njams implements InstructionListener {
     /**
      * Create a nJAMS client.
      *
-     * @param path the path in the tree
-     * @param version the version of the nNJAMS client
+     * @param path     the path in the tree
+     * @param version  the version of the nNJAMS client
      * @param category the category of the nJAMS client, should describe the
-     * technology
+     *                 technology
      * @param settings needed settings for client eg. for communication
      */
     public Njams(Path path, String version, String category, Settings settings) {
@@ -282,8 +299,8 @@ public class Njams implements InstructionListener {
         if (!settings.containsKey(ConfigurationProviderFactory.CONFIGURATION_PROVIDER)) {
             settings.put(ConfigurationProviderFactory.CONFIGURATION_PROVIDER, DEFAULT_CACHE_PROVIDER);
         }
-        ConfigurationProvider configurationProvider =
-                new ConfigurationProviderFactory(settings, this).getConfigurationProvider();
+        ConfigurationProvider configurationProvider = new ConfigurationProviderFactory(settings, this)
+                .getConfigurationProvider();
         configuration = new Configuration();
         configuration.setConfigurationProvider(configurationProvider);
     }
@@ -307,7 +324,6 @@ public class Njams implements InstructionListener {
     }
 
     /**
-     *
      * @return the current nJAMS settings
      */
     public Settings getSettings() {
@@ -344,6 +360,7 @@ public class Njams implements InstructionListener {
 
     /**
      * Adds the given global variables to this instance's global variables.
+     *
      * @param globalVariables The global variables to be added to this instance.
      */
     public void addGlobalVariables(Map<String, String> globalVariables) {
@@ -378,7 +395,7 @@ public class Njams implements InstructionListener {
     /**
      * Adds a image for a given resource path.
      *
-     * @param key the key of the image
+     * @param key          the key of the image
      * @param resourcePath the path where to find the image
      */
     public void addImage(final String key, final String resourcePath) {
@@ -497,8 +514,8 @@ public class Njams implements InstructionListener {
             throw new NjamsSdkRuntimeException("ProcessModel not found for path " + path);
         }
 
-        final List<String> parts =
-                Stream.of(getClientPath(), path).map(Path::getParts).flatMap(List::stream).collect(toList());
+        final List<String> parts = Stream.of(getClientPath(), path).map(Path::getParts).flatMap(List::stream)
+                .collect(toList());
         synchronized (processModels) {
             final ProcessModel processModel = processModels.get(new Path(parts).toString());
             return processModel;
@@ -515,8 +532,8 @@ public class Njams implements InstructionListener {
         if (path == null) {
             return false;
         }
-        final List<String> parts =
-                Stream.of(getClientPath(), path).map(Path::getParts).flatMap(List::stream).collect(toList());
+        final List<String> parts = Stream.of(getClientPath(), path).map(Path::getParts).flatMap(List::stream)
+                .collect(toList());
         synchronized (processModels) {
             final ProcessModel processModel = processModels.get(new Path(parts).toString());
             return processModel != null;
@@ -558,7 +575,7 @@ public class Njams implements InstructionListener {
      * Create a process and add it to this instance.
      *
      * @param path Relative path to the client of the process which should be
-     * created
+     *             created
      * @return the new ProcessModel or a {@link NjamsSdkRuntimeException}
      */
     public ProcessModel createProcess(final Path path) {
@@ -573,8 +590,9 @@ public class Njams implements InstructionListener {
 
     /**
      * Adds a process model to this instance. The model must be build for this instance.
-     * @param processModel The model to be added.
-     * @throws NjamsSdkRuntimeException if the given model was created for another instance than this.
+     *
+     * @param processModel The model to be added. A {@link NjamsSdkRuntimeException} is thrown if the given model was
+     *                     created for another instance than this.
      */
     public void addProcessModel(final ProcessModel processModel) {
         if (processModel == null) {
@@ -674,7 +692,7 @@ public class Njams implements InstructionListener {
      * Returns the default icon type for a TreeElement, based on the criterias
      * first and TreeElementType
      *
-     * @param first Is this the root element
+     * @param first          Is this the root element
      * @param treeElmentType The treeElementType
      * @return the icon type
      */
@@ -698,8 +716,8 @@ public class Njams implements InstructionListener {
      */
     public void setTreeElementType(Path path, String type) {
         synchronized (processModels) {
-            TreeElement dos =
-                    treeElements.stream().filter(d -> d.getPath().equals(path.toString())).findAny().orElse(null);
+            TreeElement dos = treeElements.stream().filter(d -> d.getPath().equals(path.toString())).findAny()
+                    .orElse(null);
             if (dos == null) {
                 throw new NjamsSdkRuntimeException("Unable to find DomainObjectStructure for path " + path);
             }
@@ -892,7 +910,6 @@ public class Njams implements InstructionListener {
     }
 
     /**
-     *
      * @return the ProcessDiagramFactory
      */
     public ProcessDiagramFactory getProcessDiagramFactory() {
@@ -940,10 +957,10 @@ public class Njams implements InstructionListener {
      * class with the registered serializer. If a serializer is already
      * registered, it will be replaced with the new serializer.
      *
-     * @param <T> Type of the serializer
-     * @param key Class for which the serializer should be registered
+     * @param <T>        Type of the serializer
+     * @param key        Class for which the serializer should be registered
      * @param serializer A serializer that can serialize instances of class key
-     * to strings.
+     *                   to strings.
      * @return The given serializer, or if one was already registered before,
      * the former registered serializer.
      */
@@ -994,7 +1011,7 @@ public class Njams implements InstructionListener {
      * Serializes a given object using {@link #findSerializer(java.lang.Class) }
      *
      * @param <T> type of the class
-     * @param t Object to be serialied.
+     * @param t   Object to be serialied.
      * @return a string representation of the object.
      */
     public <T> String serialize(final T t) {
@@ -1031,7 +1048,7 @@ public class Njams implements InstructionListener {
      * hierarchy will be checked recursivly. if no (super) interface is
      * registed, <b>null</b> will be returned.
      *
-     * @param <T> Type of the class
+     * @param <T>   Type of the class
      * @param clazz Class for which a serializer will be searched.
      * @return Serizalier of <b>null</b>.
      */
@@ -1079,7 +1096,6 @@ public class Njams implements InstructionListener {
     }
 
     /**
-     *
      * @return LogMode of this client
      */
     public LogMode getLogMode() {
@@ -1101,7 +1117,6 @@ public class Njams implements InstructionListener {
     }
 
     /**
-     *
      * @return the list of features this client has
      */
     public List<String> getFeatures() {
@@ -1175,6 +1190,23 @@ public class Njams implements InstructionListener {
      * Initialize the datamasking feature
      */
     private void initializeDataMasking() {
-        DataMasking.addPatterns(configuration.getDataMasking());
+
+        Properties properties = settings.getAllProperties();
+        boolean dataMaskingEnabled = true;
+        if (properties != null) {
+            dataMaskingEnabled = Boolean.parseBoolean(properties.getProperty(DataMasking.DATA_MASKING_ENABLED, "true"));
+            if (dataMaskingEnabled) {
+                DataMasking.addPatterns(properties);
+            } else {
+                LOG.info("DataMasking is disabled.");
+            }
+        }
+        if (dataMaskingEnabled && !configuration.getDataMasking().isEmpty()) {
+            LOG.warn("DataMasking via the configuration is deprecated but will be used as well. Use settings " +
+                     "with the properties \n{} = " +
+                     "\"true\" \nand multiple \n{}<YOUR-REGEX-NAME> = <YOUR-REGEX> \nfor this.",
+                    DataMasking.DATA_MASKING_ENABLED, DataMasking.DATA_MASKING_REGEX_PREFIX);
+            DataMasking.addPatterns(configuration.getDataMasking());
+        }
     }
 }
