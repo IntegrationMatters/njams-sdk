@@ -155,6 +155,9 @@ public class ExtractHandler {
             case XPATH:
                 doXpath(job, activity, er, sourceData, data);
                 break;
+            case JMESPATH:
+                doJmespath(job, activity, er, sourceData, data);
+                break;
             default:
                 break;
             }
@@ -311,6 +314,34 @@ public class ExtractHandler {
         job.setInstrumented();
     }
 
+    private static void doJmespath(JobImpl job, ActivityImpl activity, ExtractRule er, Object sourceData,
+            String paramData) {
+        String data = paramData;
+        if (paramData == null || paramData.length() == 0) {
+            data = job.getNjams().serialize(sourceData);
+            if (data == null || data.length() == 0) {
+                return;
+            }
+        }
+        try {
+            String strResult = applyJmespath(er.getRule(), data);
+            if (er.getAttributeType() == AttributeType.EVENT) {
+                LOG.debug("nJAMS: jmespath extract for setting: {}", er.getAttribute());
+                LOG.debug("nJAMS: jmespath result: {}", strResult);
+                activity.setEventStatus(getEventStatus(strResult));
+            } else {
+                if (LOG.isDebugEnabled()) {
+                    LOG.debug("nJAMS: jmespath extract for setting: {}", er.getAttribute());
+                    LOG.debug("nJAMS: jmespath result: {}", strResult);
+                }
+                setAttributes(job, activity, er.getAttribute(), strResult);
+            }
+            job.setInstrumented();
+        } catch (Exception e) {
+            LOG.error("Failed to evaluate jmespath.", e);
+        }
+    }
+
     private static void doXpath(JobImpl job, ActivityImpl activity, ExtractRule er, Object sourceData,
             String paramData) {
         String data = paramData;
@@ -369,7 +400,7 @@ public class ExtractHandler {
             }
             job.setInstrumented();
         } catch (Exception e) {
-            LOG.error("Failed to evaluate X-Path.", e);
+            LOG.error("Failed to evaluate xpath.", e);
         }
     }
 
