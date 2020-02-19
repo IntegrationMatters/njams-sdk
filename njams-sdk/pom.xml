@@ -154,7 +154,7 @@
         <dependency>
             <groupId>com.faizsiegeln</groupId>
             <artifactId>njams-messageformat</artifactId>
-            <version>4.1.1</version>
+            <version>4.1.2-SNAPSHOT</version>
         </dependency>
 
         <dependency>
@@ -194,6 +194,12 @@
             <groupId>com.fasterxml.jackson.dataformat</groupId>
             <artifactId>jackson-dataformat-xml</artifactId>
             <scope>compile</scope>
+        </dependency>
+        
+        <dependency>
+            <groupId>io.burt</groupId>
+            <artifactId>jmespath-jackson</artifactId>
+            <version>0.2.0</version>
         </dependency>
 
         <!-- provided - not shaded -->

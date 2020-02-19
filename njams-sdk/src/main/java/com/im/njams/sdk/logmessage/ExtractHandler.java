@@ -16,6 +16,7 @@
  */
 package com.im.njams.sdk.logmessage;
 
+import java.io.IOException;
 import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -37,10 +38,15 @@ import com.faizsiegeln.njams.messageformat.v4.projectmessage.AttributeType;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.Extract;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.ExtractRule;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.RuleType;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.im.njams.sdk.configuration.ActivityConfiguration;
 import com.im.njams.sdk.model.ActivityModel;
 import com.im.njams.sdk.utils.StringUtils;
 
+import io.burt.jmespath.Expression;
+import io.burt.jmespath.JmesPath;
+import io.burt.jmespath.jackson.JacksonRuntime;
 import net.sf.saxon.xpath.XPathEvaluator;
 
 /**
@@ -199,12 +205,35 @@ public class ExtractHandler {
             return expression;
         case XPATH:
             return applyXpath(expression, testData);
-
+        case JMESPATH:
+            return applyJmespath(expression, testData);
         case DISABLED:
         case EVENT:
         default:
             return null;
         }
+    }
+
+    private static String applyJmespath(String expression, String data) throws Exception {
+        if (StringUtils.isBlank(expression) || StringUtils.isBlank(data)) {
+            return null;
+        }
+        String strResult = "";
+        JsonNode result = null;
+        try {
+            final ObjectMapper mapper = com.im.njams.sdk.common.JsonSerializerFactory.getDefaultMapper();
+            final JmesPath<JsonNode> jmespath = new JacksonRuntime();
+            final Expression<JsonNode> jmesexpression = jmespath.compile(expression);
+            final JsonNode input = mapper.readTree(data);
+            result = jmesexpression.search(input);
+            if (LOG.isTraceEnabled()) {
+                LOG.trace("Executed JMESPath query: {}\non:\n{}\nResult:\n{}", expression, data,
+                        mapper.writeValueAsString(result));
+            }
+        } catch (final IOException e) {
+            LOG.error("Unable to get jmespath " + expression + " from " + data, e);
+        }
+        return strResult;
     }
 
     private static String applyXpath(String xpath, String data) throws Exception {
