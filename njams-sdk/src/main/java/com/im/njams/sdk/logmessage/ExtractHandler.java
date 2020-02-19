@@ -221,7 +221,7 @@ public class ExtractHandler {
         if (StringUtils.isBlank(expression) || StringUtils.isBlank(data)) {
             return null;
         }
-        String strResult = "";
+        String strResult = null;
         JsonNode result = null;
         try {
             final ObjectMapper mapper = com.im.njams.sdk.common.JsonSerializerFactory.getDefaultMapper();
@@ -229,6 +229,10 @@ public class ExtractHandler {
             final Expression<JsonNode> jmesexpression = jmespath.compile(expression);
             final JsonNode input = mapper.readTree(data);
             result = jmesexpression.search(input);
+            if (result != null) {
+                // remove surrounding quotes
+                strResult = result.toString().replaceAll("^\"|\"$", "");
+            }
             if (LOG.isTraceEnabled()) {
                 LOG.trace("Executed JMESPath query: {}\non:\n{}\nResult:\n{}", expression, data,
                         mapper.writeValueAsString(result));
@@ -236,6 +240,7 @@ public class ExtractHandler {
         } catch (final IOException e) {
             LOG.error("Unable to get jmespath " + expression + " from " + data, e);
         }
+
         return strResult;
     }
 
