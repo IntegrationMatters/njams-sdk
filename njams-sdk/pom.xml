@@ -161,7 +161,7 @@
 		<dependency>
 			<groupId>com.faizsiegeln</groupId>
 			<artifactId>njams-messageformat</artifactId>
-			<version>4.0.2-SNAPSHOT</version>
+			<version>4.0.2</version>
 		</dependency>
 
 		<dependency>
