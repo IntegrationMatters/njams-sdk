@@ -16,6 +16,7 @@
  */
 package com.im.njams.sdk.logmessage;
 
+import java.io.IOException;
 import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -37,10 +38,15 @@ import com.faizsiegeln.njams.messageformat.v4.projectmessage.AttributeType;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.Extract;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.ExtractRule;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.RuleType;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.im.njams.sdk.configuration.ActivityConfiguration;
 import com.im.njams.sdk.configuration.ProcessConfiguration;
 import com.im.njams.sdk.model.ActivityModel;
 
+import io.burt.jmespath.Expression;
+import io.burt.jmespath.JmesPath;
+import io.burt.jmespath.jackson.JacksonRuntime;
 import net.sf.saxon.xpath.XPathEvaluator;
 
 /**
@@ -174,6 +180,9 @@ public class ExtractHandler {
             case XPATH:
                 doXpath(job, activity, er, sourceData, data, xpathContext);
                 break;
+            case JMESPATH:
+                doJmespath(job, activity, er, sourceData, data);
+                break;
             default:
                 break;
             }
@@ -289,6 +298,43 @@ public class ExtractHandler {
             job.setInstrumented();
         } catch (Exception e) {
             LOG.error("", e);
+        }
+    }
+
+    private static void doJmespath(JobImpl job, ActivityImpl activity, ExtractRule er, Object sourceData,
+            String paramData) {
+        String data = paramData;
+        if (paramData == null || paramData.length() == 0) {
+            data = job.getNjams().serialize(sourceData);
+            if (data == null || data.length() == 0) {
+                return;
+            }
+        }
+        String strResult = null;
+        JsonNode result = null;
+        try {
+            final String expression = er.getRule();
+            final ObjectMapper mapper = com.im.njams.sdk.common.JsonSerializerFactory.getDefaultMapper();
+            final JmesPath<JsonNode> jmespath = new JacksonRuntime();
+            final Expression<JsonNode> jmesexpression = jmespath.compile(expression);
+            final JsonNode input = mapper.readTree(data);
+            result = jmesexpression.search(input);
+            if (result != null) {
+                // remove surrounding quotes
+                strResult = result.toString().replaceAll("^\"|\"$", "");
+            }
+            if (LOG.isTraceEnabled()) {
+                LOG.trace("Executed JMESPath query: {}\non:\n{}\nResult:\n{}", expression, data,
+                        mapper.writeValueAsString(result));
+            }
+            if (er.getAttributeType() == AttributeType.EVENT) {
+                activity.setEventStatus(getEventStatus(strResult));
+            } else {
+                setAttributes(job, activity, er.getAttribute(), strResult);
+            }
+            job.setInstrumented();
+        } catch (final IOException e) {
+            LOG.error("Unable to get jmespath " + er.getRule() + " from " + data, e);
         }
     }
 
