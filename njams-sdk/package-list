@@ -1,4 +1,6 @@
 com.im.njams.sdk
+com.im.njams.sdk.argos
+com.im.njams.sdk.argos.jvm
 com.im.njams.sdk.client
 com.im.njams.sdk.common
 com.im.njams.sdk.communication
@@ -16,5 +18,6 @@ com.im.njams.sdk.plugins
 com.im.njams.sdk.pools
 com.im.njams.sdk.serializer
 com.im.njams.sdk.settings
+com.im.njams.sdk.settings.encoding
 com.im.njams.sdk.settings.provider
 com.im.njams.sdk.utils
