@@ -1,14 +1,14 @@
-/* 
+/*
  * Copyright (c) 2018 Faiz & Siegeln Software GmbH
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"),
  * to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
  * and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
- * 
+ *
  * The Software shall be used for Good, not Evil.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
@@ -16,21 +16,23 @@
  */
 package com.im.njams.sdk.logmessage;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.w3c.dom.*;
-import org.xml.sax.SAXException;
+import java.io.ByteArrayInputStream;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
 
 import javax.xml.XMLConstants;
 import javax.xml.namespace.NamespaceContext;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.w3c.dom.Attr;
+import org.w3c.dom.Document;
+import org.w3c.dom.NamedNodeMap;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
 
 /**
  *
@@ -43,8 +45,11 @@ public class NamespaceResolver implements NamespaceContext {
     private static final String DEFAULT_NS = "DEFAULT";
     private final Map<String, String> prefix2Uri = new HashMap<String, String>();
     private final Map<String, String> uri2Prefix = new HashMap<String, String>();
+    private boolean namespacesLoaded = false;
     private String strXML = null;
     private Boolean toplevelOnly = false;
+
+    private static DocumentBuilderFactory docBuilderFactory = getDefaultDocumentBuilderFactory();
 
     /**
      * This constructor parses the document and stores all namespaces it can
@@ -65,19 +70,45 @@ public class NamespaceResolver implements NamespaceContext {
         putInCache("xs", "http://www.w3.org/2001/XMLSchema");
     }
 
-    private void loadNamespaces() {
+    /**
+     * Allows overriding the default {@link DocumentBuilderFactory} that should be used by all instances of this class.
+     * @param factory If <code>null</code> the default factory is set.
+     */
+    public static synchronized void setDocumentBuilderFactory(DocumentBuilderFactory factory) {
+        if (factory == null) {
+            docBuilderFactory = getDefaultDocumentBuilderFactory();
+        } else {
+            docBuilderFactory = factory;
+        }
+    }
+
+    private static synchronized DocumentBuilderFactory getDefaultDocumentBuilderFactory() {
+        DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
         try {
-            DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
             dbFactory.setAttribute(XMLConstants.FEATURE_SECURE_PROCESSING, true);
+        } catch (Exception e) {
+            LOG.debug("Failed to set secure-processing feature.", e);
+        }
+        return dbFactory;
+    }
+
+    private DocumentBuilderFactory getDocumentBuilderFactory() {
+        return docBuilderFactory;
+    }
+
+    private synchronized void loadNamespaces() {
+        if (namespacesLoaded) {
+            return;
+        }
+
+        namespacesLoaded = true;
+        try {
+            DocumentBuilderFactory dbFactory = getDocumentBuilderFactory();
             DocumentBuilder dBuilder = dbFactory.newDocumentBuilder();
             Document document = dBuilder.parse(new ByteArrayInputStream(strXML.getBytes()));
             examineNode(document.getFirstChild(), toplevelOnly);
-        } catch (ParserConfigurationException e) {
-            LOG.error("", e);
-        } catch (SAXException e) {
-            LOG.error("", e);
-        } catch (IOException e) {
-            LOG.error("", e);
+        } catch (Exception e) {
+            LOG.error("Failed to parse namespaces on:\n{}", strXML, e);
         }
     }
 
@@ -141,19 +172,13 @@ public class NamespaceResolver implements NamespaceContext {
      */
     @Override
     public String getNamespaceURI(String prefix) {
-        if (prefix == null || prefix.equals(XMLConstants.DEFAULT_NS_PREFIX)) {
-            String pre = prefix2Uri.get(DEFAULT_NS);
-            if (pre == null) {
-                loadNamespaces();
-            }
-            return prefix2Uri.get(DEFAULT_NS);
-        } else {
-            String pre = prefix2Uri.get(prefix);
-            if (pre == null) {
-                loadNamespaces();
-            }
-            return prefix2Uri.get(prefix);
+        if (!namespacesLoaded) {
+            loadNamespaces();
         }
+        if (prefix == null || prefix.equals(XMLConstants.DEFAULT_NS_PREFIX)) {
+            return prefix2Uri.get(DEFAULT_NS);
+        }
+        return prefix2Uri.get(prefix);
     }
 
     /**
