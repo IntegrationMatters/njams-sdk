@@ -110,36 +110,46 @@ public class NjamsSampleTest {
         // Start client and flush resources
         njams.start();
 
-        // add jmespath extract
-        Extract e = new Extract();
-        e.setName("test-extract");
-        ExtractRule rule = new ExtractRule();
-        rule.setRuleType(RuleType.JMESPATH);
-        rule.setInout("out");
-        rule.setRule("test.id");
-        rule.setAttribute("jsonId");
-        rule.setAttributeType(AttributeType.ATTRIBUTE);
-        e.getExtractRules().add(rule);
+        // create jmespath extract
+        ExtractRule jmesPathRule = new ExtractRule();
+        jmesPathRule.setRuleType(RuleType.JMESPATH);
+        jmesPathRule.setInout("in");
+        jmesPathRule.setRule("test.data");
+        jmesPathRule.setAttribute("json");
+        jmesPathRule.setAttributeType(AttributeType.ATTRIBUTE);
+
+        // create xpath extract
+        ExtractRule xpathRule = new ExtractRule();
+        xpathRule.setRuleType(RuleType.XPATH);
+        xpathRule.setInout("out");
+        xpathRule.setRule("/test");
+        xpathRule.setAttribute("xml");
+        xpathRule.setAttributeType(AttributeType.ATTRIBUTE);
+
+        // apply Exctracts
+        Extract extract = new Extract();
+        extract.setName("test-extract");
+        extract.getExtractRules().add(jmesPathRule);
+        extract.getExtractRules().add(xpathRule);
         ActivityConfiguration ac = new ActivityConfiguration();
-        ac.setExtract(e);
+        ac.setExtract(extract);
         ProcessConfiguration pc = new ProcessConfiguration();
-        pc.getActivities().put("start", ac);
+        pc.getActivities().put("log", ac);
         njams.getConfiguration().getProcesses().put(process.getPath().toString(), pc);
 
         // Create a Log Message
         Job job = process.createJob();
         job.start();
         Activity start = job.createActivity(startModel).build();
-        start.processInput("{ \"test\": { \"id\": \"testdata\" } }");
-        start.processOutput("{ \"test\": { \"id\": \"testdata\" } }");
-        assertThat(job.getAttribute("jsonId"), is("testdata"));
         assertThat(start.getModelId(), is("start"));
         assertThat(start.getSequence(), is(1L));
         assertThat(start.getInstanceId(), is("start$1"));
 
         Activity log = start.stepTo(logModel).build();
-        log.processInput("testdata");
-        log.processOutput("testdata");
+        log.processInput("{ \"test\": { \"data\": \"json test data\" } }");
+        log.processOutput("<test>xml test data</test>");
+        assertThat(job.getAttribute("json"), is("json test data"));
+        assertThat(job.getAttribute("xml"), is("xml test data"));
         assertThat(log.getModelId(), is("log"));
         assertThat(log.getSequence(), is(2L));
         assertThat(log.getInstanceId(), is("log$2"));
