@@ -1,3 +1,7 @@
 /target/
 /.classpath
 /.project
+<<<<<<< HEAD
+/configuration.json
+=======
+>>>>>>> branch 'master' of https://github.com/IntegrationMatters/njams-sdk.git
