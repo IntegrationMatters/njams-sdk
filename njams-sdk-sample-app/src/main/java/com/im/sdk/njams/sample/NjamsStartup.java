@@ -85,12 +85,12 @@ public class NjamsStartup {
         }
 
         Settings settings = new Settings();
-        settings.setProperties(props);
+        props.forEach((k, v) -> settings.put((String)k, (String)v));
         return settings;
     }
 
     private Settings getEmsJmsProperties() {
-        Properties communicationProperties = new Properties();
+        Settings communicationProperties = new Settings();
         communicationProperties.put(CommunicationFactory.COMMUNICATION, "JMS");
         communicationProperties.put(JmsConstants.INITIAL_CONTEXT_FACTORY,
                 "com.tibco.tibjms.naming.TibjmsInitialContextFactory");
@@ -104,14 +104,11 @@ public class NjamsStartup {
         //optional: if you want to use a topic for commands not following the name of the other destinations, specify it here
         communicationProperties.put(JmsConstants.COMMANDS_DESTINATION, "njams4.dev.bjoern.commands");
 
-        //Create client settings and add the properties
-        Settings settings = new Settings();
-        settings.setProperties(communicationProperties);
-        return settings;
+        return communicationProperties;
     }
 
     private Settings getActiveMqJmsProperties() {
-        Properties communicationProperties = new Properties();
+        Settings communicationProperties = new Settings();
         communicationProperties.put(CommunicationFactory.COMMUNICATION, "JMS");
         communicationProperties.put(JmsConstants.INITIAL_CONTEXT_FACTORY,
                 "org.apache.activemq.jndi.ActiveMQInitialContextFactory");
@@ -125,9 +122,6 @@ public class NjamsStartup {
         //optional: if you want to use a topic for commands not following the name of the other destinations, specify it here
         //communicationProperties.put(JmsConstants.COMMANDS_DESTINATION, "njams4.dev.bjoern.commands");
 
-        //Create client settings and add the properties
-        Settings settings = new Settings();
-        settings.setProperties(communicationProperties);
-        return settings;
+        return communicationProperties;
     }
 }

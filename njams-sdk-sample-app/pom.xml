@@ -30,7 +30,7 @@
         <dependency>
             <groupId>com.faizsiegeln.njams</groupId>
             <artifactId>njams4-sdk</artifactId>
-            <version>4.0.10</version>
+            <version>${project.version}</version>
         </dependency>
 
         <dependency>
