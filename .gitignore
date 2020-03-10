@@ -5,12 +5,8 @@
 njams-sdk/dependency-reduced-pom.xml
 /njams-sdk/nbproject/
 /njams-sdk-sample-client/src/main/resources/certs/
-.idea
-/njams-sdk/.idea
-njams4-sdk-root.iml
-njams-sdk/njams4-sdk.iml
-njams-sdk-communication-cloud/njams4-sdk-communication-cloud.iml
-njams-sdk-sample-client/njams4-sdk-sample-client.iml
+*.idea
+*.iml
 *.bak
 njams-sdk-sample-app/.classpath
 njams-sdk-sample-app/.settings/.jsdtscope
