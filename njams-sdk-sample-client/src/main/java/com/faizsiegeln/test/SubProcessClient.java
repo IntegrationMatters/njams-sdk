@@ -145,6 +145,10 @@ public class SubProcessClient {
 
     private static Settings getJmsProperties() {
         Settings communicationProperties = new Settings();
+
+        //Use this if your nJAMS Server version is < 5.1
+        //communicationProperties.put(Settings.PROPERTY_USE_DEPRECATED_PATH_FIELD_FOR_SUBPROCESSES, "true");
+
         communicationProperties.put(CommunicationFactory.COMMUNICATION, "JMS");
         communicationProperties.put(JmsConstants.INITIAL_CONTEXT_FACTORY,
                 "com.tibco.tibjms.naming.TibjmsInitialContextFactory");
