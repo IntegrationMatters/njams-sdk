@@ -16,14 +16,6 @@
  */
 package com.im.njams.sdk.client;
 
-import com.im.njams.sdk.Njams;
-import com.im.njams.sdk.common.DateTimeUtility;
-import com.im.njams.sdk.common.NjamsSdkRuntimeException;
-import com.im.njams.sdk.logmessage.Job;
-import com.im.njams.sdk.logmessage.JobImpl;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.HashMap;
@@ -31,6 +23,15 @@ import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.atomic.AtomicBoolean;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.im.njams.sdk.Njams;
+import com.im.njams.sdk.common.DateTimeUtility;
+import com.im.njams.sdk.common.NjamsSdkRuntimeException;
+import com.im.njams.sdk.logmessage.Job;
+import com.im.njams.sdk.logmessage.JobImpl;
 
 /**
  * LogMessageFlushTask flushes new content of jobs periodically into LogMessages
@@ -129,6 +130,10 @@ public class LogMessageFlushTask extends TimerTask {
 
     private void processJob(LMFTEntry entry, final Job jobParam, LocalDateTime boundary) {
         JobImpl job = (JobImpl) jobParam;
+        if (!job.hasStarted()) {
+            LOG.trace("Job {} not started.", job);
+            return;
+        }
         // only send updates automatically, if a change has been
         // made to the job between individual send events.
         LOG.trace("Job {}: lastPush: {}, age: {}, size: {}", job, job.getLastFlush(),
