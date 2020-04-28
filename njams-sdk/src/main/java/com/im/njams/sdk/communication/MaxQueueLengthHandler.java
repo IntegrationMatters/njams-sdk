@@ -47,6 +47,7 @@ public class MaxQueueLengthHandler implements RejectedExecutionHandler {
         switch (discardPolicy) {
         case DISCARD:
             LOG.debug("Message discarded");
+            DiscardMonitor.discard();
             break;
         case ON_CONNECTION_LOSS:
             // discardPolicy onConnectionLoss must be handled inside sender implementation,

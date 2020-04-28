@@ -48,6 +48,7 @@ import com.faizsiegeln.njams.messageformat.v4.tracemessage.TraceMessage;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.communication.AbstractSender;
 import com.im.njams.sdk.communication.ConnectionStatus;
+import com.im.njams.sdk.communication.DiscardMonitor;
 import com.im.njams.sdk.communication.DiscardPolicy;
 import com.im.njams.sdk.communication.Sender;
 import com.im.njams.sdk.settings.PropertyUtil;
@@ -241,6 +242,7 @@ public class JmsSender extends AbstractSender implements ExceptionListener {
                 if (discardPolicy == DiscardPolicy.ON_CONNECTION_LOSS) {
                     LOG.debug("JMS Queue limit exceeded. Applying discard policy [{}]. Message discarded.",
                             discardPolicy);
+                    DiscardMonitor.discard();
                     break;
                 }
                 //Queue limit exceeded

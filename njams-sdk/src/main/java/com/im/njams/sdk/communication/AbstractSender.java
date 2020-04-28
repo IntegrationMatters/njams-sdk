@@ -173,6 +173,7 @@ public abstract class AbstractSender implements Sender {
                 // discard message, if onConnectionLoss is used
                 isSent = discardPolicy == DiscardPolicy.ON_CONNECTION_LOSS;
                 if (isSent) {
+                    DiscardMonitor.discard();
                     LOG.debug("Applying discard policy [{}]. Message discarded.", discardPolicy);
                     break;
                 }
