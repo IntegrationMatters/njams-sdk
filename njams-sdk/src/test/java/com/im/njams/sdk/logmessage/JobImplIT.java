@@ -1,14 +1,14 @@
 /*
  * Copyright (c) 2019 Faiz & Siegeln Software GmbH
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"),
  * to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
  * and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
- * 
+ *
  * The Software shall be used for Good, not Evil.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
@@ -16,14 +16,8 @@
  */
 package com.im.njams.sdk.logmessage;
 
-import com.faizsiegeln.njams.messageformat.v4.common.CommonMessage;
-import com.faizsiegeln.njams.messageformat.v4.logmessage.Activity;
-import com.faizsiegeln.njams.messageformat.v4.logmessage.LogMessage;
-import com.im.njams.sdk.AbstractTest;
-import com.im.njams.sdk.Njams;
-import com.im.njams.sdk.common.NjamsSdkRuntimeException;
-import com.im.njams.sdk.communication.Sender;
-import com.im.njams.sdk.communication.TestSender;
+import static org.junit.Assert.fail;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -33,10 +27,18 @@ import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
-import static org.junit.Assert.fail;
+
 import org.junit.Ignore;
 import org.junit.Test;
 import org.slf4j.LoggerFactory;
+
+import com.faizsiegeln.njams.messageformat.v4.common.CommonMessage;
+import com.faizsiegeln.njams.messageformat.v4.logmessage.Activity;
+import com.faizsiegeln.njams.messageformat.v4.logmessage.LogMessage;
+import com.im.njams.sdk.AbstractTest;
+import com.im.njams.sdk.common.NjamsSdkRuntimeException;
+import com.im.njams.sdk.communication.Sender;
+import com.im.njams.sdk.communication.TestSender;
 
 /**
  * This class tests if flushing the logMessages while processing the jobs is
@@ -113,7 +115,8 @@ public class JobImplIT extends AbstractTest {
      * @throws InterruptedException is thrown when the threads sleep will be
      * interrupted.
      */
-    private void testFlushingAndAddingAttributes(int activityQuantity, int flusherQuantity, NjamsSdkRuntimeExceptionWrapper stop) throws InterruptedException {
+    private void testFlushingAndAddingAttributes(int activityQuantity, int flusherQuantity,
+            NjamsSdkRuntimeExceptionWrapper stop) throws InterruptedException {
         final Set<String> attr = Collections.synchronizedSet(new HashSet<>());
 
         JobImpl job = createDefaultJob();
@@ -121,30 +124,30 @@ public class JobImplIT extends AbstractTest {
         AtomicInteger flushCounter = new AtomicInteger(0);
         AtomicInteger activityCounter = new AtomicInteger(0);
         final AtomicBoolean run = new AtomicBoolean(true);
-        this.fillJobWithMoreAttributes(job, 10);
+        fillJobWithMoreAttributes(job, 10);
         final AtomicInteger activityThreadsJoined = new AtomicInteger(0);
         final AtomicInteger flusherThreadsJoined = new AtomicInteger(0);
         //Create activityCreator
         for (int i = 0; i < activityQuantity; i++) {
-            Runnable act = ((Runnable) () -> {
+            Runnable act = (Runnable) () -> {
                 while (run.get() && !stop.wasThrown.get()) {
                     try {
                         for (int j = 0; j <= 10; j++) {
                             ActivityImpl actImpl = createFullyFilledActivity(job);
                             //This is a critical part, because it fills a map.
-                            this.fillActivityWithMoreAttributes(actImpl, 10);
-                            attr.addAll(actImpl.getAttributes().keySet());
-                            actImpl.end();
-                            activityCounter.incrementAndGet();
-                        }
-                    } catch (Exception e) {
-                        stop.setException(new NjamsSdkRuntimeException("Exception in activityThread was thrown: ", e));
-                        run.set(false);
-                    }
+                    fillActivityWithMoreAttributes(actImpl, 10);
+                    attr.addAll(actImpl.getAttributes().keySet());
+                    actImpl.end();
+                    activityCounter.incrementAndGet();
                 }
-                //exit the while loop
-                activityThreadsJoined.incrementAndGet();
-            });
+            } catch (Exception e) {
+                stop.setException(new NjamsSdkRuntimeException("Exception in activityThread was thrown: ", e));
+                run.set(false);
+            }
+        }
+        //exit the while loop
+        activityThreadsJoined.incrementAndGet();
+    }       ;
             Thread t = new Thread(act);
             t.start();
         }
@@ -152,7 +155,7 @@ public class JobImplIT extends AbstractTest {
         Thread.sleep(STARTFLUSHING);
         //Create flusher
         for (int i = 0; i < flusherQuantity; i++) {
-            Runnable flush = ((Runnable) () -> {
+            Runnable flush = (Runnable) () -> {
                 while (run.get() && !stop.wasThrown.get()) {
                     try {
                         job.flush();
@@ -170,8 +173,8 @@ public class JobImplIT extends AbstractTest {
                     }
                 }
                 //exit the while loop
-                flusherThreadsJoined.incrementAndGet();
-            });
+                    flusherThreadsJoined.incrementAndGet();
+                };
             Thread t = new Thread(flush);
             t.start();
         }
@@ -191,7 +194,8 @@ public class JobImplIT extends AbstractTest {
             Thread.sleep(1000);
         }
 
-        LOG.info("{} ActivityThreadsJoined, {} FlusherThreadsJoined", activityThreadsJoined.get(), flusherThreadsJoined.get());
+        LOG.info("{} ActivityThreadsJoined, {} FlusherThreadsJoined", activityThreadsJoined.get(),
+                flusherThreadsJoined.get());
         LOG.info("{} Flusherthreads flushed {} times.", flusherQuantity, flushCounter.get());
         LOG.info("{} ActivityCreatorThreads created {} activities.", activityQuantity, activityCounter.get());
         long before = System.currentTimeMillis();
@@ -234,7 +238,7 @@ public class JobImplIT extends AbstractTest {
             });
         }
 
-        //Check if all attributes of the job are safed in the logmessages attributes    
+        //Check if all attributes of the job are safed in the logmessages attributes
         checkAttributes(message.getAttributes().keySet(), job, stop);
     }
 
@@ -255,7 +259,9 @@ public class JobImplIT extends AbstractTest {
                 }
             }
             if (!exceptions.isEmpty()) {
-                stop.setException(new NjamsSdkRuntimeException("Not all Attributes of job have been added to the logmessage!", new UnsupportedOperationException(String.join(", ", exceptions) + " weren't found.")));
+                stop.setException(new NjamsSdkRuntimeException(
+                        "Not all Attributes of job have been added to the logmessage!",
+                        new UnsupportedOperationException(String.join(", ", exceptions) + " weren't found.")));
                 LOG.error("{} attributes haven't been found!", exceptions.size());
             }
         }
@@ -281,7 +287,7 @@ public class JobImplIT extends AbstractTest {
                 attr.addAll(attributeKeys);
             }
         });
-        //Check if all attributes of the job are safed in the logmessages attributes    
+        //Check if all attributes of the job are safed in the logmessages attributes
         checkAttributes(attr, job, stop);
     }
 
@@ -298,7 +304,9 @@ public class JobImplIT extends AbstractTest {
             }
         }
         if (!exceptions.isEmpty()) {
-            stop.setException(new NjamsSdkRuntimeException("Not all Attributes of the activities have been added to the job!", new UnsupportedOperationException(String.join(", ", exceptions) + " weren't found.")));
+            stop.setException(new NjamsSdkRuntimeException(
+                    "Not all Attributes of the activities have been added to the job!",
+                    new UnsupportedOperationException(String.join(", ", exceptions) + " weren't found.")));
         }
     }
 
@@ -399,9 +407,5 @@ public class JobImplIT extends AbstractTest {
             return TestSender.NAME;
         }
 
-        @Override
-        public void setNjams(Njams njams) {
-           //Do nothing
-        }
     }
 }

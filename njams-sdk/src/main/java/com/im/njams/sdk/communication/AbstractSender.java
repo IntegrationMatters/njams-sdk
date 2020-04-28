@@ -16,17 +16,19 @@
  */
 package com.im.njams.sdk.communication;
 
+import java.util.Properties;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.faizsiegeln.njams.messageformat.v4.common.CommonMessage;
 import com.faizsiegeln.njams.messageformat.v4.logmessage.LogMessage;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.ProjectMessage;
 import com.faizsiegeln.njams.messageformat.v4.tracemessage.TraceMessage;
-import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.settings.Settings;
-import java.util.Properties;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Superclass for all Senders. When writing your own Sender, extend this class
@@ -38,30 +40,15 @@ import org.slf4j.LoggerFactory;
  */
 public abstract class AbstractSender implements Sender {
 
-    private static final org.slf4j.Logger LOG = LoggerFactory.getLogger(AbstractSender.class);
+    private static final Logger LOG = LoggerFactory.getLogger(AbstractSender.class);
 
     protected ConnectionStatus connectionStatus;
-    protected String discardPolicy;
+    protected DiscardPolicy discardPolicy = DiscardPolicy.DEFAULT;
     protected Properties properties;
 
     private static final AtomicBoolean hasConnected = new AtomicBoolean(false);
 
     private static final AtomicInteger connecting = new AtomicInteger(0);
-
-    /**
-     * Njams to hold
-     */
-    protected Njams njams;
-
-    /**
-     * This constructor sets the njams instance for getting the instruction
-     * listeners.
-     *
-     * @param njams the instance that holds the instructionListeners.
-     */
-    public void setNjams(Njams njams) {
-        this.njams = njams;
-    }
 
     /**
      * returns a new AbstractSender
@@ -73,7 +60,7 @@ public abstract class AbstractSender implements Sender {
     @Override
     public void init(Properties properties) {
         this.properties = properties;
-        discardPolicy = properties.getProperty(Settings.PROPERTY_DISCARD_POLICY, "none").toLowerCase();
+        discardPolicy = DiscardPolicy.byValue(properties.getProperty(Settings.PROPERTY_DISCARD_POLICY));
     }
 
     /**
@@ -168,8 +155,9 @@ public abstract class AbstractSender implements Sender {
             }
             if (isDisconnected()) {
                 // discard message, if onConnectionLoss is used
-                isSent = "onconnectionloss".equalsIgnoreCase(discardPolicy);
+                isSent = discardPolicy == DiscardPolicy.ON_CONNECTION_LOSS;
                 if (isSent) {
+                    DiscardMonitor.discard();
                     LOG.debug("Applying discard policy [{}]. Message discarded.", discardPolicy);
                     break;
                 }

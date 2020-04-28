@@ -16,15 +16,8 @@
  */
 package com.im.njams.sdk.communication;
 
-import com.faizsiegeln.njams.messageformat.v4.common.CommonMessage;
-import com.faizsiegeln.njams.messageformat.v4.logmessage.LogMessage;
-import com.faizsiegeln.njams.messageformat.v4.projectmessage.ProjectMessage;
-import com.faizsiegeln.njams.messageformat.v4.tracemessage.TraceMessage;
-import com.im.njams.sdk.AbstractTest;
-import com.im.njams.sdk.common.NjamsSdkRuntimeException;
-import com.im.njams.sdk.settings.Settings;
+import static org.junit.Assert.assertEquals;
 
-import java.util.*;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -32,7 +25,13 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import static org.junit.Assert.*;
+import com.faizsiegeln.njams.messageformat.v4.common.CommonMessage;
+import com.faizsiegeln.njams.messageformat.v4.logmessage.LogMessage;
+import com.faizsiegeln.njams.messageformat.v4.projectmessage.ProjectMessage;
+import com.faizsiegeln.njams.messageformat.v4.tracemessage.TraceMessage;
+import com.im.njams.sdk.AbstractTest;
+import com.im.njams.sdk.common.NjamsSdkRuntimeException;
+import com.im.njams.sdk.settings.Settings;
 
 /**
  * Tests the NjamsSender
@@ -61,15 +60,12 @@ public class NjamsSenderTest extends AbstractTest {
      */
     @Test
     public void testClose() {
-        NjamsSender sender = new NjamsSender(njams, SETTINGS);
+        NjamsSender sender = new NjamsSender(SETTINGS);
         ThreadPoolExecutor executor = sender.getExecutor();
-        executor.execute(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    Thread.sleep(15000L);
-                } catch (InterruptedException ex) {
-                }
+        executor.execute(() -> {
+            try {
+                Thread.sleep(15000L);
+            } catch (InterruptedException ex) {
             }
         });
         sender.close();
@@ -83,7 +79,7 @@ public class NjamsSenderTest extends AbstractTest {
         Settings settings = new Settings();
         settings.put(CommunicationFactory.COMMUNICATION, TestSender.NAME);
         settings.put(Settings.PROPERTY_MAX_SENDER_THREADS, "-1");
-        NjamsSender njamsSender = new NjamsSender(njams, settings);
+        NjamsSender njamsSender = new NjamsSender(settings);
     }
 
     /**
@@ -94,7 +90,7 @@ public class NjamsSenderTest extends AbstractTest {
         Settings settings = new Settings();
         settings.put(CommunicationFactory.COMMUNICATION, TestSender.NAME);
         settings.put(Settings.PROPERTY_SENDER_THREAD_IDLE_TIME, "-1");
-        NjamsSender njamsSender = new NjamsSender(njams, settings);
+        NjamsSender njamsSender = new NjamsSender(settings);
     }
 
     /**
@@ -106,7 +102,7 @@ public class NjamsSenderTest extends AbstractTest {
         settings.put(CommunicationFactory.COMMUNICATION, TestSender.NAME);
         settings.put(Settings.PROPERTY_MIN_SENDER_THREADS, "5");
         settings.put(Settings.PROPERTY_MAX_SENDER_THREADS, "4");
-        NjamsSender njamsSender = new NjamsSender(njams, settings);
+        NjamsSender njamsSender = new NjamsSender(settings);
     }
 
     /**
@@ -117,7 +113,7 @@ public class NjamsSenderTest extends AbstractTest {
         Settings settings = new Settings();
         settings.put(CommunicationFactory.COMMUNICATION, TestSender.NAME);
         settings.put(Settings.PROPERTY_MIN_SENDER_THREADS, "-1");
-        NjamsSender njamsSender = new NjamsSender(njams, settings);
+        NjamsSender njamsSender = new NjamsSender(settings);
     }
 
     @Test
@@ -128,7 +124,7 @@ public class NjamsSenderTest extends AbstractTest {
         settings.put(Settings.PROPERTY_MAX_SENDER_THREADS, "10");
         settings.put(Settings.PROPERTY_SENDER_THREAD_IDLE_TIME, "5000");
 
-        NjamsSender sender = new NjamsSender(njams, settings);
+        NjamsSender sender = new NjamsSender(settings);
         ThreadPoolExecutor executor = sender.getExecutor();
         assertEquals(0, executor.getActiveCount());
         assertEquals(3, executor.getCorePoolSize());
@@ -143,7 +139,6 @@ public class NjamsSenderTest extends AbstractTest {
         executor.getLargestPoolSize();
     }
 
-
     /**
      * The TRIES in ExceptionSender +1 senders should be reconnected at the end
      * It only reconnects one sender, because the NjamsSender creates multiple TestSenders
@@ -153,7 +148,7 @@ public class NjamsSenderTest extends AbstractTest {
     public void testReconnectingSenders() throws InterruptedException {
         //Set static ExceptionSender to redirect calls to the TestSender
         TestSender.setSenderMock(new ExceptionSender());
-        NjamsSender sender = new NjamsSender(njams, SETTINGS);
+        NjamsSender sender = new NjamsSender(SETTINGS);
         int messagesToSend = 1000;
         for (int i = 0; i < messagesToSend; i++) {
             Thread t = new Thread(() -> sender.send(null));

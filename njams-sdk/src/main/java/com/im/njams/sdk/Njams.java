@@ -67,6 +67,7 @@ import com.im.njams.sdk.communication.ReplayHandler;
 import com.im.njams.sdk.communication.ReplayRequest;
 import com.im.njams.sdk.communication.ReplayResponse;
 import com.im.njams.sdk.communication.Sender;
+import com.im.njams.sdk.communication.ShareableReceiver;
 import com.im.njams.sdk.configuration.Configuration;
 import com.im.njams.sdk.configuration.ConfigurationInstructionListener;
 import com.im.njams.sdk.configuration.ConfigurationProvider;
@@ -237,8 +238,7 @@ public class Njams implements InstructionListener {
     private final List<String> features = Collections
             .synchronizedList(new ArrayList<>(Collections.singleton(Feature.EXPRESSION_TEST.toString())));
 
-    // TODO: implement pooling
-    private Sender sender;
+    private NjamsSender sender;
     private Receiver receiver;
 
     private Configuration configuration;
@@ -300,7 +300,7 @@ public class Njams implements InstructionListener {
             settings.put(ConfigurationProviderFactory.CONFIGURATION_PROVIDER, DEFAULT_CACHE_PROVIDER);
         }
         ConfigurationProvider configurationProvider = new ConfigurationProviderFactory(settings, this)
-                .getConfigurationProvider();
+        .getConfigurationProvider();
         configuration = new Configuration();
         configuration.setConfigurationProvider(configurationProvider);
     }
@@ -428,8 +428,13 @@ public class Njams implements InstructionListener {
      */
     public Sender getSender() {
         if (sender == null) {
-            // sender = new CommunicationFactory(this, settings).getSender();
-            sender = new NjamsSender(this, settings);
+            if ("true".equalsIgnoreCase(settings.getProperty(Settings.PROPERTY_SHARED_COMMUNICATIONS))) {
+                LOG.debug("Using shared sender pool for {}", getClientPath());
+                sender = NjamsSender.takeSharedSender(settings);
+            } else {
+                LOG.debug("Creating individual sender pool for {}", getClientPath());
+                sender = new NjamsSender(settings);
+            }
         }
         return sender;
     }
@@ -439,7 +444,7 @@ public class Njams implements InstructionListener {
      */
     private void startReceiver() {
         try {
-            receiver = new CommunicationFactory(this, settings).getReceiver();
+            receiver = new CommunicationFactory(settings).getReceiver(this);
             receiver.start();
         } catch (Exception e) {
             LOG.error("Error starting Receiver", e);
@@ -455,7 +460,7 @@ public class Njams implements InstructionListener {
     /**
      * Start a client; it will initiate the connections and start processing.
      *
-     * @return true if successfull
+     * @return true if successful
      */
     public boolean start() {
         if (!isStarted()) {
@@ -493,7 +498,11 @@ public class Njams implements InstructionListener {
                 sender.close();
             }
             if (receiver != null) {
-                receiver.stop();
+                if (receiver instanceof ShareableReceiver) {
+                    ((ShareableReceiver) receiver).removeNjams(this);
+                } else {
+                    receiver.stop();
+                }
             }
             instructionListeners.clear();
             started = false;
@@ -631,7 +640,7 @@ public class Njams implements InstructionListener {
         msg.setLogMode(configuration.getLogMode());
         synchronized (processModels) {
             processModels.values().stream().map(pm -> pm.getSerializableProcessModel())
-                    .forEach(ipm -> msg.getProcesses().add(ipm));
+            .forEach(ipm -> msg.getProcesses().add(ipm));
             images.forEach(i -> msg.getImages().put(i.getName(), i.getBase64Image()));
             msg.getGlobalVariables().putAll(globalVariables);
             LOG.debug("Sending project message with {} process-models, {} images, {} global-variables.",
@@ -731,7 +740,7 @@ public class Njams implements InstructionListener {
      */
     private void setStarters() {
         treeElements.stream().filter(te -> te.getTreeElementType() == TreeElementType.PROCESS)
-                .filter(te -> processModels.get(te.getPath()).isStarter()).forEach(te -> te.setStarter(true));
+        .filter(te -> processModels.get(te.getPath()).isStarter()).forEach(te -> te.setStarter(true));
     }
 
     /**
@@ -777,7 +786,7 @@ public class Njams implements InstructionListener {
             }
         }
         treeElements.stream().filter(te -> te.getTreeElementType() == TreeElementType.PROCESS)
-                .forEach(te -> te.setStarter(isStarter));
+        .forEach(te -> te.setStarter(isStarter));
         return treeElements;
     }
 
@@ -873,8 +882,8 @@ public class Njams implements InstructionListener {
         LOG.info("*** ");
         LOG.info("***      Version Info:");
         versions.entrySet().stream().filter(e -> !CURRENT_YEAR.equals(e.getKey()))
-                .sorted(Comparator.comparing(Entry::getKey))
-                .forEach(e -> LOG.info("***      " + e.getKey() + ": " + e.getValue()));
+        .sorted(Comparator.comparing(Entry::getKey))
+        .forEach(e -> LOG.info("***      " + e.getKey() + ": " + e.getValue()));
         LOG.info("*** ");
         LOG.info("***      Settings:");
 
@@ -1203,8 +1212,8 @@ public class Njams implements InstructionListener {
         }
         if (dataMaskingEnabled && !configuration.getDataMasking().isEmpty()) {
             LOG.warn("DataMasking via the configuration is deprecated but will be used as well. Use settings " +
-                     "with the properties \n{} = " +
-                     "\"true\" \nand multiple \n{}<YOUR-REGEX-NAME> = <YOUR-REGEX> \nfor this.",
+                    "with the properties \n{} = " +
+                    "\"true\" \nand multiple \n{}<YOUR-REGEX-NAME> = <YOUR-REGEX> \nfor this.",
                     DataMasking.DATA_MASKING_ENABLED, DataMasking.DATA_MASKING_REGEX_PREFIX);
             DataMasking.addPatterns(configuration.getDataMasking());
         }

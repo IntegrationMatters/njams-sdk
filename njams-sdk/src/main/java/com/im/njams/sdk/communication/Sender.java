@@ -20,7 +20,6 @@ import java.io.Closeable;
 import java.util.Properties;
 
 import com.faizsiegeln.njams.messageformat.v4.common.CommonMessage;
-import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.utils.ClasspathValidator;
 
 /**
@@ -61,13 +60,6 @@ public interface Sender extends Closeable, ClasspathValidator {
      * Property value for header properties which specifies a tracemessage
      */
     public static final String NJAMS_MESSAGETYPE_TRACE = "command";
-
-    /**
-     * Set njams instance
-     *
-     * @param njams instance
-     */
-    void setNjams(Njams njams);
 
     /**
      * This new implementation should initialize itself via the given

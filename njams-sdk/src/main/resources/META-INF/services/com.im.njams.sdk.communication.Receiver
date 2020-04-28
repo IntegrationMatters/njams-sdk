@@ -1,2 +1,3 @@
 com.im.njams.sdk.communication.jms.JmsReceiver
+com.im.njams.sdk.communication.jms.SharedJmsReceiver
 com.im.njams.sdk.communication.http.HttpReceiver

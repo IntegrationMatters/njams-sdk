@@ -16,15 +16,9 @@
  */
 package com.im.njams.sdk.communication.jms;
 
-import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.im.njams.sdk.common.JsonSerializerFactory;
-import com.im.njams.sdk.common.NjamsSdkRuntimeException;
-import com.im.njams.sdk.common.Path;
-import com.im.njams.sdk.communication.AbstractReceiver;
-import com.im.njams.sdk.communication.ConnectionStatus;
-import com.im.njams.sdk.settings.PropertyUtil;
-import org.slf4j.LoggerFactory;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Properties;
 
 import javax.jms.Connection;
 import javax.jms.ConnectionFactory;
@@ -40,9 +34,19 @@ import javax.jms.Topic;
 import javax.naming.InitialContext;
 import javax.naming.NameNotFoundException;
 import javax.naming.NamingException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Properties;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.im.njams.sdk.Njams;
+import com.im.njams.sdk.common.JsonSerializerFactory;
+import com.im.njams.sdk.common.NjamsSdkRuntimeException;
+import com.im.njams.sdk.common.Path;
+import com.im.njams.sdk.communication.AbstractReceiver;
+import com.im.njams.sdk.communication.ConnectionStatus;
+import com.im.njams.sdk.settings.PropertyUtil;
 
 /**
  * JMS implementation for a Receiver.
@@ -52,15 +56,16 @@ import java.util.Properties;
  */
 public class JmsReceiver extends AbstractReceiver implements MessageListener, ExceptionListener {
 
-    private static final org.slf4j.Logger LOG = LoggerFactory.getLogger(JmsReceiver.class);
+    private static final Logger LOG = LoggerFactory.getLogger(JmsReceiver.class);
 
     private Connection connection;
-    private Session session;
+    protected Session session;
     private Properties properties;
-    private MessageConsumer consumer;
+    protected MessageConsumer consumer;
     private String topicName;
     private ObjectMapper mapper;
-    private String messageSelector;
+    protected Topic topic;
+    protected String messageSelector;
 
     /**
      * Returns the name for this Receiver. (JMS)
@@ -91,13 +96,13 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
     public void init(Properties props) {
         connectionStatus = ConnectionStatus.DISCONNECTED;
         mapper = JsonSerializerFactory.getDefaultMapper();
-        this.properties = props;
+        properties = props;
         if (props.containsKey(JmsConstants.COMMANDS_DESTINATION)) {
             topicName = props.getProperty(JmsConstants.COMMANDS_DESTINATION);
         } else {
             topicName = props.getProperty(JmsConstants.DESTINATION) + ".commands";
         }
-        this.messageSelector = this.createMessageSelector();
+
     }
 
     /**
@@ -105,7 +110,8 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
      *
      * @return the message selector String.
      */
-    private String createMessageSelector() {
+    protected String createMessageSelector() {
+
         Path fullPath = new Path(njams.getClientPath().toString());
         Path path = null;
         StringBuilder selector = new StringBuilder();
@@ -116,9 +122,8 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
                 path = path.add(part);
                 selector.append(" OR ");
             }
-            selector.append("NJAMS_RECEIVER = '").append(path.toString()).append("'");
+            selector.append("NJAMS_RECEIVER = '").append(path.toString()).append('\'');
         }
-
         return selector.toString();
     }
 
@@ -129,11 +134,11 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
     @Override
     public synchronized void connect() {
         if (!isConnected()) {
-            this.connectionStatus = ConnectionStatus.CONNECTING;
+            connectionStatus = ConnectionStatus.CONNECTING;
 
-            this.tryToConnect(this.properties);
+            tryToConnect(properties);
 
-            this.connectionStatus = ConnectionStatus.CONNECTED;
+            connectionStatus = ConnectionStatus.CONNECTED;
         }
     }
 
@@ -147,25 +152,25 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
     private void tryToConnect(Properties props) {
         InitialContext context = null;
         try {
-            context = this.getInitialContext(props);
+            context = getInitialContext(props);
             LOG.trace("The InitialContext was created successfully.");
 
-            ConnectionFactory factory = this.getConnectionFactory(props, context);
+            ConnectionFactory factory = getConnectionFactory(props, context);
             LOG.trace("The ConnectionFactory was created successfully.");
 
-            this.connection = this.createConnection(props, factory);
+            connection = createConnection(props, factory);
             LOG.trace("The Connection was created successfully.");
 
-            this.session = this.createSession(this.connection);
+            session = createSession(connection);
             LOG.trace("The Session was created successfully.");
 
-            Topic topic = this.getOrCreateTopic(context, session);
+            topic = getOrCreateTopic(context, session);
             LOG.trace("The Topic was created successfully.");
 
-            this.consumer = this.createConsumer(this.session, topic);
+            consumer = createConsumer(session, topic);
             LOG.trace("The MessageConsumer was created successfully.");
 
-            this.startConnection(this.connection);
+            startConnection(connection);
             LOG.trace("The Connection was started successfully.");
 
         } catch (Exception e) {
@@ -253,11 +258,11 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
     private Topic getOrCreateTopic(InitialContext context, Session session) throws NamingException, JMSException {
         Topic topic;
         try {
-            topic = (Topic) context.lookup(this.topicName);
-            LOG.info("Topic {} has been found.", this.topicName);
+            topic = (Topic) context.lookup(topicName);
+            LOG.info("Topic {} has been found.", topicName);
         } catch (NameNotFoundException e) {
-            LOG.info("Topic {} hasn't been found. Create Topic...", this.topicName);
-            topic = session.createTopic(this.topicName);
+            LOG.info("Topic {} hasn't been found. Create Topic...", topicName);
+            topic = session.createTopic(topicName);
         }
         return topic;
     }
@@ -277,10 +282,16 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
      * @throws JMSException is thrown if the MessageConsumer can' be created.
      */
     @SuppressWarnings("squid:S2095")
-    private MessageConsumer createConsumer(Session sess, Topic topic) throws JMSException {
-        MessageConsumer cons = sess.createConsumer(topic, this.messageSelector);
+    protected MessageConsumer createConsumer(Session sess, Topic topic) throws JMSException {
+        MessageConsumer cons = sess.createConsumer(topic, messageSelector);
         cons.setMessageListener(this);
         return cons;
+    }
+
+    @Override
+    public void setNjams(Njams njams) {
+        super.setNjams(njams);
+        messageSelector = createMessageSelector();
     }
 
     /**
@@ -330,6 +341,7 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
         if (connection != null) {
             try {
                 connection.close();
+
             } catch (JMSException ex) {
                 exceptions.add(new NjamsSdkRuntimeException("Unable to close connection correctly", ex));
             } finally {
@@ -341,7 +353,7 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
 
     /**
      * This method sets the connectionStatus to DISCONNECTED and closes all
-     * resources that have been safed as fields. Furthermore it closes the
+     * resources that have been saved as fields. Furthermore it closes the
      * initial context hat has been provided as parameter.
      *
      * @param context the context that is tried to be closed.
@@ -376,15 +388,15 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
      */
     @Override
     public void stop() {
-        if (!this.isConnected()) {
+        if (!isConnected()) {
             return;
         }
         List<Exception> exceptions = this.closeAll();
         if (!exceptions.isEmpty()) {
             printExceptions(exceptions);
-            LOG.warn("Unable to close JmsReceiver correctly.");
+            LOG.warn("Unable to close {} correctly.", getClass().getSimpleName());
         } else {
-            LOG.info("JmsReceiver has been stopped successfully.");
+            LOG.info("{} has been stopped successfully.", getClass().getSimpleName());
         }
     }
 
@@ -397,16 +409,18 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
     @Override
     public void onMessage(Message msg) {
         try {
-            String njamsContent = msg.getStringProperty("NJAMS_CONTENT");
+            final String njamsContent = msg.getStringProperty("NJAMS_CONTENT");
             if (!njamsContent.equalsIgnoreCase("json")) {
                 LOG.debug("Received non json instruction -> ignore");
                 return;
             }
-            Instruction instruction = getInstruction(msg);
-            if (instruction != null) {
-                super.onInstruction(instruction);
-                this.reply(msg, instruction);
+            final Instruction instruction = getInstruction(msg);
+            if (instruction == null) {
+                return;
             }
+
+            onInstruction(instruction);
+            reply(msg, instruction);
         } catch (Exception e) {
             LOG.error("Error in onMessage", e);
         }
@@ -420,11 +434,11 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
      * @return the Instruction object that was extracted or null, if no valid
      * instruction was found or it could be parsed to an instruction object.
      */
-    private Instruction getInstruction(Message message) {
+    protected Instruction getInstruction(Message message) {
         try {
             String instructionString = ((TextMessage) message).getText();
             Instruction instruction = mapper.readValue(instructionString, Instruction.class
-            );
+                    );
             if (instruction.getRequest() != null) {
                 return instruction;
             }
@@ -444,7 +458,7 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
      * jmsCorrelationId are safed in here.
      * @param instruction the instruction that holds the response.
      */
-    private void reply(Message message, Instruction instruction) {
+    protected void reply(Message message, Instruction instruction) {
         MessageProducer replyProducer = null;
         try {
             replyProducer = session.createProducer(message.getJMSReplyTo());
@@ -464,7 +478,7 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
                 try {
                     replyProducer.close();
                 } catch (JMSException ex) {
-                    LOG.error("Error while closing the {} receiver's reply producer.", this.getName());
+                    LOG.error("Error while closing the {} receiver's reply producer.", getName());
                 }
             }
         }
@@ -488,20 +502,21 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
      */
     @Override
     public String[] librariesToCheck() {
-        return new String[]{
-            "javax.jms.Connection",
-            "javax.jms.ConnectionFactory",
-            "javax.jms.ExceptionListener",
-            "javax.jms.JMSException",
-            "javax.jms.Message",
-            "javax.jms.MessageConsumer",
-            "javax.jms.MessageListener",
-            "javax.jms.Session",
-            "javax.jms.TextMessage",
-            "javax.jms.MessageProducer",
-            "javax.jms.Topic",
-            "javax.naming.InitialContext",
-            "javax.naming.NameNotFoundException",
-            "javax.naming.NamingException"};
+        return new String[] {
+                "javax.jms.Connection",
+                "javax.jms.ConnectionFactory",
+                "javax.jms.ExceptionListener",
+                "javax.jms.JMSException",
+                "javax.jms.Message",
+                "javax.jms.MessageConsumer",
+                "javax.jms.MessageListener",
+                "javax.jms.Session",
+                "javax.jms.TextMessage",
+                "javax.jms.MessageProducer",
+                "javax.jms.Topic",
+                "javax.naming.InitialContext",
+                "javax.naming.NameNotFoundException",
+                "javax.naming.NamingException" };
     }
+
 }

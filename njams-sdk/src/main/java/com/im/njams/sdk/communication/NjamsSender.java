@@ -1,14 +1,14 @@
-/* 
+/*
  * Copyright (c) 2019 Faiz & Siegeln Software GmbH
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"),
  * to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
  * and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
- * 
+ *
  * The Software shall be used for Good, not Evil.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
@@ -16,17 +16,18 @@
  */
 package com.im.njams.sdk.communication;
 
-import com.faizsiegeln.njams.messageformat.v4.common.CommonMessage;
-import com.im.njams.sdk.Njams;
-import com.im.njams.sdk.factories.ThreadFactoryBuilder;
-import com.im.njams.sdk.settings.Settings;
-import com.im.njams.sdk.settings.encoding.Transformer;
 import java.util.Properties;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+
+import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.faizsiegeln.njams.messageformat.v4.common.CommonMessage;
+import com.im.njams.sdk.factories.ThreadFactoryBuilder;
+import com.im.njams.sdk.settings.Settings;
 
 /**
  * This class enforces the maxQueueLength setting. It uses the
@@ -39,37 +40,89 @@ import org.slf4j.LoggerFactory;
  */
 public class NjamsSender implements Sender {
 
+    private static class NjamsSharedSender extends NjamsSender {
+        private final Object lock = new Object();
+        private int usage = 0;
+
+        private NjamsSharedSender(Settings settings) {
+            super(settings);
+        }
+
+        @Override
+        public void close() {
+            // do not close the singleton before shutdown
+            boolean doClose;
+            synchronized (lock) {
+                doClose = --usage < 1;
+            }
+            if (doClose) {
+                super.close();
+                LOG.info("Closed shared sender instance.");
+            }
+
+        }
+
+        private void take() {
+            synchronized (lock) {
+                usage++;
+            }
+        }
+
+        private boolean isDestroyed() {
+            synchronized (lock) {
+                return usage < 1;
+            }
+        }
+
+    }
+
     //The logger to log messages.
-    private static final org.slf4j.Logger LOG = LoggerFactory.getLogger(NjamsSender.class);
-    
-    //The senderPool where the senders will be safed.
+    private static final Logger LOG = LoggerFactory.getLogger(NjamsSender.class);
+    private static NjamsSharedSender sharedInstance = null;
+    //The senderPool where the senders will be saved.
     private SenderPool senderPool = null;
-    
+
     //The executor Threadpool that send the messages to the right senders.
-    private ThreadPoolExecutor executor = null;    
-    
-    //The njamsInstance to work for
-    private final Njams njams;
-    
+    private ThreadPoolExecutor executor = null;
+
     //The settings will be used for the name and max-queue-length
     private final Settings settings;
-    
+
     //The name for the executor threads.
     private final String name;
 
     /**
-     * This constructor initializes a NjamsSender. It safes the njams instance,
+     * This constructor initializes a NjamsSender. It saves
      * the settings and gets the name for the executor threads from the settings
      * with the key: njams.sdk.communication.
      *
-     * @param njams the njamsInstance for which the messages will be send from.
      * @param settings the setting where some settings will be taken from.
      */
-    public NjamsSender(Njams njams, Settings settings) {
-        this.njams = njams;
+    public NjamsSender(Settings settings) {
         this.settings = settings;
-        this.name = settings.getProperty(CommunicationFactory.COMMUNICATION);
-        this.init(settings.getAllProperties());
+        name = settings.getProperty(CommunicationFactory.COMMUNICATION);
+        init(settings.getAllProperties());
+    }
+
+    /**
+     * Returns the one shared sender instance. On first access, the instance is lazily created. All later access will
+     * get the same instance until the instance has closed. Then a new instance is created if required.
+     * Calling this method tracks usage of the sender instance. I.e., after <i>taking</i> a sender, it must be
+     * {@link Sender#close()}d to return the instance and allow the implementation to keep track of usage. Calling
+     * {@link Sender#close()} does not really close the actual sender as long as it is still being used.
+     * Only when it is no longer used (close has been called as often as it has been taken), the real sender instance
+     * will be closed finally.
+     *
+     * @param settings Only used if a new instance needs to be created.
+     * @return The shared sender instance as explained above.
+     */
+    public static synchronized NjamsSender takeSharedSender(Settings settings) {
+        if (sharedInstance == null || sharedInstance.isDestroyed()) {
+            sharedInstance = new NjamsSharedSender(settings);
+        }
+        sharedInstance.take();
+        LOG.debug("Providing shared sender instance (used {} times)", sharedInstance.usage);
+        return sharedInstance;
     }
 
     /**
@@ -81,17 +134,17 @@ public class NjamsSender implements Sender {
      */
     @Override
     public void init(Properties properties) {
-        CommunicationFactory communicationFactory = new CommunicationFactory(njams, settings);
         int minSenderThreads = Integer.parseInt(properties.getProperty(Settings.PROPERTY_MIN_SENDER_THREADS, "1"));
         int maxSenderThreads = Integer.parseInt(properties.getProperty(Settings.PROPERTY_MAX_SENDER_THREADS, "8"));
-        int maxQueueLength =  Integer.parseInt(properties.getProperty(Settings.PROPERTY_MAX_QUEUE_LENGTH, "8"));
+        int maxQueueLength = Integer.parseInt(properties.getProperty(Settings.PROPERTY_MAX_QUEUE_LENGTH, "8"));
         long idleTime = Long.parseLong(properties.getProperty(Settings.PROPERTY_SENDER_THREAD_IDLE_TIME, "10000"));
         ThreadFactory threadFactory = new ThreadFactoryBuilder()
                 .setNamePrefix(getName() + "-Sender-Thread").setDaemon(true).build();
-        this.executor = new ThreadPoolExecutor(minSenderThreads, maxSenderThreads, idleTime, TimeUnit.MILLISECONDS,
+        executor = new ThreadPoolExecutor(minSenderThreads, maxSenderThreads, idleTime, TimeUnit.MILLISECONDS,
                 new ArrayBlockingQueue<>(maxQueueLength), threadFactory,
                 new MaxQueueLengthHandler(properties));
-        this.senderPool = new SenderPool(communicationFactory, properties);
+        final CommunicationFactory communicationFactory = new CommunicationFactory(settings);
+        senderPool = new SenderPool(communicationFactory);
     }
 
     /**
@@ -131,8 +184,8 @@ public class NjamsSender implements Sender {
             TimeUnit unit = TimeUnit.SECONDS;
             executor.shutdown();
             boolean awaitTermination = executor.awaitTermination(waitTime, unit);
-            if(!awaitTermination){
-               LOG.error("The termination time of the executor has been exceeded ({} {}).", waitTime, unit); 
+            if (!awaitTermination) {
+                LOG.error("The termination time of the executor has been exceeded ({} {}).", waitTime, unit);
             }
         } catch (InterruptedException ex) {
             LOG.error("The shutdown of the sender's threadpool has been interrupted. {}", ex);
@@ -151,19 +204,14 @@ public class NjamsSender implements Sender {
     public String getName() {
         return name;
     }
-    
+
     /**
      * This method return the ThreadPoolExecutor
-     * 
+     *
      * @return the ThreadPoolExecutor
      */
-    ThreadPoolExecutor getExecutor(){
+    ThreadPoolExecutor getExecutor() {
         return executor;
-    }
-
-    @Override
-    public void setNjams(Njams njams) {
-        //Do nothing
     }
 
 }

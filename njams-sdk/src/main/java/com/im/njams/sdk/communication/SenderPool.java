@@ -17,9 +17,6 @@
 package com.im.njams.sdk.communication;
 
 import com.im.njams.sdk.pools.ObjectPool;
-import com.im.njams.sdk.settings.Settings;
-
-import java.util.Properties;
 
 /**
  * pool for Sender sub-classes
@@ -29,20 +26,16 @@ import java.util.Properties;
  */
 public class SenderPool extends ObjectPool<Sender> {
 
-    private Properties properties;
-    private CommunicationFactory factory;
+    private final CommunicationFactory factory;
 
-    public SenderPool(CommunicationFactory factory, Properties properties) {
+    public SenderPool(CommunicationFactory factory) {
         super();
-        this.properties = properties;
         this.factory = factory;
     }
 
     @Override
     protected Sender create() {
-        Sender sender = factory.getSender();
-        //        sender.init(properties);
-        return sender;
+        return factory.getSender();
     }
 
     @Override
@@ -56,8 +49,8 @@ public class SenderPool extends ObjectPool<Sender> {
         sender.close();
     }
 
-    public void setSenderFactory(CommunicationFactory senderFactory) {
-        this.factory = senderFactory;
-    }
+    //    public void setSenderFactory(CommunicationFactory senderFactory) {
+    //        factory = senderFactory;
+    //    }
 
 }

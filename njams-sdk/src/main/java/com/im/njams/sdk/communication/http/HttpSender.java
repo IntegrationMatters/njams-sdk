@@ -31,17 +31,17 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 
-import com.faizsiegeln.njams.messageformat.v4.tracemessage.TraceMessage;
+import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.faizsiegeln.njams.messageformat.v4.common.MessageVersion;
 import com.faizsiegeln.njams.messageformat.v4.logmessage.LogMessage;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.ProjectMessage;
+import com.faizsiegeln.njams.messageformat.v4.tracemessage.TraceMessage;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.communication.AbstractSender;
 import com.im.njams.sdk.communication.Sender;
-import com.im.njams.sdk.settings.Settings;
 
 /**
  * HttpSender
@@ -50,7 +50,7 @@ import com.im.njams.sdk.settings.Settings;
  */
 public class HttpSender extends AbstractSender {
 
-    private static final org.slf4j.Logger LOG = LoggerFactory.getLogger(HttpSender.class);
+    private static final Logger LOG = LoggerFactory.getLogger(HttpSender.class);
 
     private static final String PROPERTY_PREFIX = "njams.sdk.communication.http";
     protected ObjectMapper mapper;
@@ -90,7 +90,6 @@ public class HttpSender extends AbstractSender {
     @Override
     public void init(Properties properties) {
         this.properties = properties;
-        discardPolicy = properties.getProperty(Settings.PROPERTY_DISCARD_POLICY, "none").toLowerCase();
         try {
             url = new URL(properties.getProperty(SENDER_URL));
         } catch (final MalformedURLException ex) {
@@ -133,7 +132,7 @@ public class HttpSender extends AbstractSender {
     }
 
     @Override
-    protected void send(TraceMessage msg) throws NjamsSdkRuntimeException{
+    protected void send(TraceMessage msg) throws NjamsSdkRuntimeException {
         final Properties properties = new Properties();
         properties.put(Sender.NJAMS_MESSAGEVERSION, MessageVersion.V4.toString());
         properties.put(Sender.NJAMS_MESSAGETYPE, Sender.NJAMS_MESSAGETYPE_TRACE);

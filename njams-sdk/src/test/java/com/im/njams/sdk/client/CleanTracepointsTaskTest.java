@@ -16,6 +16,20 @@
  */
 package com.im.njams.sdk.client;
 
+import static org.junit.Assert.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Test;
+
 import com.faizsiegeln.njams.messageformat.v4.common.CommonMessage;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.Extract;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.LogLevel;
@@ -34,16 +48,6 @@ import com.im.njams.sdk.configuration.ActivityConfiguration;
 import com.im.njams.sdk.configuration.ProcessConfiguration;
 import com.im.njams.sdk.configuration.TracepointExt;
 import com.im.njams.sdk.utils.JsonUtils;
-import java.time.LocalDateTime;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-import static org.junit.Assert.*;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
-import static org.mockito.Mockito.*;
 
 public class CleanTracepointsTaskTest extends AbstractTest {
 
@@ -57,7 +61,7 @@ public class CleanTracepointsTaskTest extends AbstractTest {
         super();
         TestSender.setSenderMock(new SenderMock());
         njams.start();
-        this.createDefaultActivity(this.createDefaultStartedJob());
+        createDefaultActivity(createDefaultStartedJob());
         FULLPROCESSPATHNAME = njams.getClientPath().add(PROCESSPATHNAME).toString();
     }
 
@@ -193,18 +197,20 @@ public class CleanTracepointsTaskTest extends AbstractTest {
 
         fillActivityConfiguration(ldt1, ldt2);
 
-        assertNotNull(njams.getConfiguration().getProcess(FULLPROCESSPATHNAME).getActivity(ACTIVITYMODELID).getTracepoint());
+        assertNotNull(njams.getConfiguration().getProcess(FULLPROCESSPATHNAME).getActivity(ACTIVITYMODELID)
+                .getTracepoint());
         assertNull(message);
         testStartNormal();
         Thread.sleep(CleanTracepointsTask.DELAY + CleanTracepointsTask.INTERVAL);
         assertNotNull(message);
-        assertNull(njams.getConfiguration().getProcess(FULLPROCESSPATHNAME).getActivity(ACTIVITYMODELID).getTracepoint());
+        assertNull(njams.getConfiguration().getProcess(FULLPROCESSPATHNAME).getActivity(ACTIVITYMODELID)
+                .getTracepoint());
 
         checkTraceMessage(ldt1, ldt2);
         printMessageAsJson();
     }
 
-    private void fillActivityConfiguration(LocalDateTime ldt1, LocalDateTime ldt2){
+    private void fillActivityConfiguration(LocalDateTime ldt1, LocalDateTime ldt2) {
         ActivityConfiguration ac = new ActivityConfiguration();
         Extract ex = new Extract();
         ex.setName("ExtractTest");
@@ -254,7 +260,7 @@ public class CleanTracepointsTaskTest extends AbstractTest {
         Activity act = activities.get(0);
         assertEquals(act.getActivityId(), ACTIVITYMODELID);
 
-        Tracepoint messageTP= act.getTracepoint();
+        Tracepoint messageTP = act.getTracepoint();
         assertEquals(messageTP.getStarttime(), ldt1);
         assertEquals(messageTP.getEndtime(), ldt2);
         assertEquals(messageTP.getIterations(), new Integer(30));
@@ -315,9 +321,5 @@ public class CleanTracepointsTaskTest extends AbstractTest {
             return TestSender.NAME;
         }
 
-        @Override
-        public void setNjams(Njams njams) {
-            //Do nothing
-        }
     }
 }

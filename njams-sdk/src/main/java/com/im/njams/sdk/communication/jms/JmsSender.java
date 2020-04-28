@@ -23,6 +23,23 @@
  */
 package com.im.njams.sdk.communication.jms;
 
+import java.util.Properties;
+
+import javax.jms.Connection;
+import javax.jms.ConnectionFactory;
+import javax.jms.Destination;
+import javax.jms.ExceptionListener;
+import javax.jms.JMSException;
+import javax.jms.MessageProducer;
+import javax.jms.ResourceAllocationException;
+import javax.jms.Session;
+import javax.jms.TextMessage;
+import javax.naming.InitialContext;
+import javax.naming.NameNotFoundException;
+import javax.naming.NamingException;
+
+import org.slf4j.LoggerFactory;
+
 import com.faizsiegeln.njams.messageformat.v4.common.CommonMessage;
 import com.faizsiegeln.njams.messageformat.v4.common.MessageVersion;
 import com.faizsiegeln.njams.messageformat.v4.logmessage.LogMessage;
@@ -31,16 +48,11 @@ import com.faizsiegeln.njams.messageformat.v4.tracemessage.TraceMessage;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.communication.AbstractSender;
 import com.im.njams.sdk.communication.ConnectionStatus;
+import com.im.njams.sdk.communication.DiscardMonitor;
+import com.im.njams.sdk.communication.DiscardPolicy;
 import com.im.njams.sdk.communication.Sender;
 import com.im.njams.sdk.settings.PropertyUtil;
 import com.im.njams.sdk.utils.JsonUtils;
-import org.slf4j.LoggerFactory;
-
-import javax.jms.*;
-import javax.naming.InitialContext;
-import javax.naming.NameNotFoundException;
-import javax.naming.NamingException;
-import java.util.Properties;
 
 /**
  * JMS implementation for a Sender.
@@ -227,8 +239,10 @@ public class JmsSender extends AbstractSender implements ExceptionListener {
                 producer.send(textMessage);
                 sended = true;
             } catch (ResourceAllocationException ex) {
-                if ("onconnectionloss".equalsIgnoreCase(discardPolicy)) {
-                    LOG.debug("JMS Queue limit exceeded. Applying discard policy [{}]. Message discarded.", discardPolicy);
+                if (discardPolicy == DiscardPolicy.ON_CONNECTION_LOSS) {
+                    LOG.debug("JMS Queue limit exceeded. Applying discard policy [{}]. Message discarded.",
+                            discardPolicy);
+                    DiscardMonitor.discard();
                     break;
                 }
                 //Queue limit exceeded
@@ -247,7 +261,6 @@ public class JmsSender extends AbstractSender implements ExceptionListener {
      * Close this Sender.
      */
     @Override
-
     public synchronized void close() {
         if (!isConnected()) {
             return;
@@ -298,7 +311,7 @@ public class JmsSender extends AbstractSender implements ExceptionListener {
         // reconnect
         reconnector = new Thread(() -> reconnect(exception));
         reconnector.setDaemon(true);
-        reconnector.setName(String.format("%s-Sender-Reconnector-Thread", this.getName()));
+        reconnector.setName(String.format("%s-Sender-Reconnector-Thread", getName()));
         reconnector.start();
     }
 
@@ -309,10 +322,11 @@ public class JmsSender extends AbstractSender implements ExceptionListener {
      */
     @Override
     public String[] librariesToCheck() {
-        return new String[]{"javax.jms.Connection", "javax.jms.ConnectionFactory", "javax.jms.Destination",
+        return new String[] { "javax.jms.Connection", "javax.jms.ConnectionFactory", "javax.jms.Destination",
                 "javax" + ".jms" +
-                ".ExceptionListener", "javax.jms.Session", "javax.jms.JMSException", "javax.jms.MessageProducer",
-                "javax.jms.Session", "javax.jms.TextMessage", "javax.naming.InitialContext",
-                "javax.naming" + ".NameNotFoundException", "javax.naming.NamingException"};
+                        ".ExceptionListener", "javax.jms.Session", "javax.jms.JMSException",
+                "javax.jms.MessageProducer",
+                        "javax.jms.Session", "javax.jms.TextMessage", "javax.naming.InitialContext",
+                        "javax.naming" + ".NameNotFoundException", "javax.naming.NamingException" };
     }
 }

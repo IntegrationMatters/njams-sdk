@@ -24,6 +24,7 @@ import java.util.Properties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.settings.encoding.Transformer;
 
 /**
@@ -78,6 +79,12 @@ public class Settings {
      * Possible values are: none|onconnectionloss|discard (Default is none)
      */
     public static final String PROPERTY_DISCARD_POLICY = "njams.client.sdk.discardpolicy";
+    /**
+     * If set to <code>true</code> communications (senders and receivers) will be shared accross multiple {@link Njams}
+     * instances if supported by the configured implementations. By default (or if set to <code>false</code>) each
+     * {@link Njams} instance uses a dedicated instance of sender and receiver pools.
+     */
+    public static final String PROPERTY_SHARED_COMMUNICATIONS = "njams.client.sdk.sharedcommunications";
     /**
      * New field subProcessPath has been added for Messageformat 4.1.0
      * <p>
@@ -184,10 +191,10 @@ public class Settings {
     public Properties filter(String prefix) {
         Properties response = new Properties();
         properties.entrySet()
-                .stream()
-                .filter(e -> String.class.isAssignableFrom(e.getKey().getClass()))
-                .filter(e -> ((String) e.getKey()).startsWith(prefix))
-                .forEach(e -> response.setProperty((String) e.getKey(), (String) e.getValue()));
+        .stream()
+        .filter(e -> String.class.isAssignableFrom(e.getKey().getClass()))
+        .filter(e -> ((String) e.getKey()).startsWith(prefix))
+        .forEach(e -> response.setProperty((String) e.getKey(), (String) e.getValue()));
         return Transformer.decode(properties);
     }
 
@@ -201,12 +208,12 @@ public class Settings {
     public Properties filterAndCut(String prefix) {
         Properties response = new Properties();
         properties.entrySet()
-                .stream()
-                .filter(e -> String.class.isAssignableFrom(e.getKey().getClass()))
-                .filter(e -> ((String) e.getKey()).startsWith(prefix))
-                .forEach(e -> response.setProperty(
-                        ((String) e.getKey()).substring(((String) e.getKey()).indexOf(prefix) + prefix.length()),
-                        (String) e.getValue()));
+        .stream()
+        .filter(e -> String.class.isAssignableFrom(e.getKey().getClass()))
+        .filter(e -> ((String) e.getKey()).startsWith(prefix))
+        .forEach(e -> response.setProperty(
+                ((String) e.getKey()).substring(((String) e.getKey()).indexOf(prefix) + prefix.length()),
+                (String) e.getValue()));
         return Transformer.decode(properties);
     }
 }
