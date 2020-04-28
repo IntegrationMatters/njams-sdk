@@ -16,6 +16,12 @@
  */
 package com.im.njams.sdk.communication;
 
+import java.util.Properties;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+
+import org.slf4j.LoggerFactory;
+
 import com.faizsiegeln.njams.messageformat.v4.common.CommonMessage;
 import com.faizsiegeln.njams.messageformat.v4.logmessage.LogMessage;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.ProjectMessage;
@@ -23,10 +29,6 @@ import com.faizsiegeln.njams.messageformat.v4.tracemessage.TraceMessage;
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.settings.Settings;
-import java.util.Properties;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Superclass for all Senders. When writing your own Sender, extend this class
@@ -41,7 +43,7 @@ public abstract class AbstractSender implements Sender {
     private static final org.slf4j.Logger LOG = LoggerFactory.getLogger(AbstractSender.class);
 
     protected ConnectionStatus connectionStatus;
-    protected String discardPolicy;
+    protected DiscardPolicy discardPolicy = DiscardPolicy.DEFAULT;
     protected Properties properties;
 
     private static final AtomicBoolean hasConnected = new AtomicBoolean(false);
@@ -59,6 +61,7 @@ public abstract class AbstractSender implements Sender {
      *
      * @param njams the instance that holds the instructionListeners.
      */
+    @Override
     public void setNjams(Njams njams) {
         this.njams = njams;
     }
@@ -73,7 +76,7 @@ public abstract class AbstractSender implements Sender {
     @Override
     public void init(Properties properties) {
         this.properties = properties;
-        discardPolicy = properties.getProperty(Settings.PROPERTY_DISCARD_POLICY, "none").toLowerCase();
+        discardPolicy = DiscardPolicy.byValue(properties.getProperty(Settings.PROPERTY_DISCARD_POLICY));
     }
 
     /**
@@ -168,7 +171,7 @@ public abstract class AbstractSender implements Sender {
             }
             if (isDisconnected()) {
                 // discard message, if onConnectionLoss is used
-                isSent = "onconnectionloss".equalsIgnoreCase(discardPolicy);
+                isSent = discardPolicy == DiscardPolicy.ON_CONNECTION_LOSS;
                 if (isSent) {
                     LOG.debug("Applying discard policy [{}]. Message discarded.", discardPolicy);
                     break;
