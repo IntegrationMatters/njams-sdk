@@ -54,7 +54,7 @@ public class DiscardMonitor {
         synchronized (DiscardMonitor.class) {
             if (now >= nextMessage) {
                 nextMessage = now + 60000;
-                final long minutes = now - (lastMessage + 30000) / 60000;
+                final long minutes = (now - lastMessage + 30000) / 60000;
                 lastMessage = now;
                 final int discarded = discardCount - lastDiscardCount;
                 lastDiscardCount = discardCount;
@@ -62,5 +62,4 @@ public class DiscardMonitor {
             }
         }
     }
-
 }

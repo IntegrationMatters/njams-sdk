@@ -38,6 +38,7 @@ import javax.naming.InitialContext;
 import javax.naming.NameNotFoundException;
 import javax.naming.NamingException;
 
+import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.faizsiegeln.njams.messageformat.v4.common.CommonMessage;
@@ -62,7 +63,7 @@ import com.im.njams.sdk.utils.JsonUtils;
  */
 public class JmsSender extends AbstractSender implements ExceptionListener {
 
-    private static final org.slf4j.Logger LOG = LoggerFactory.getLogger(JmsSender.class);
+    private static final Logger LOG = LoggerFactory.getLogger(JmsSender.class);
 
     private Connection connection;
     protected Session session;
@@ -324,9 +325,10 @@ public class JmsSender extends AbstractSender implements ExceptionListener {
     public String[] librariesToCheck() {
         return new String[] { "javax.jms.Connection", "javax.jms.ConnectionFactory", "javax.jms.Destination",
                 "javax" + ".jms" +
-                        ".ExceptionListener", "javax.jms.Session", "javax.jms.JMSException",
+                        ".ExceptionListener",
+                "javax.jms.Session", "javax.jms.JMSException",
                 "javax.jms.MessageProducer",
-                        "javax.jms.Session", "javax.jms.TextMessage", "javax.naming.InitialContext",
-                        "javax.naming" + ".NameNotFoundException", "javax.naming.NamingException" };
+                "javax.jms.Session", "javax.jms.TextMessage", "javax.naming.InitialContext",
+                "javax.naming" + ".NameNotFoundException", "javax.naming.NamingException" };
     }
 }

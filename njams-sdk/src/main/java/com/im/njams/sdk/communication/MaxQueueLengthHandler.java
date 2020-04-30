@@ -61,7 +61,9 @@ public class MaxQueueLengthHandler implements RejectedExecutionHandler {
                 try {
                     // block until this entry can be added
                     LOG.trace("Waiting for free slot in dispatch queue");
+                    long start = System.currentTimeMillis();
                     executor.getQueue().put(r);
+                    ThrottleMonitor.throttle(System.currentTimeMillis() - start);
                 } catch (InterruptedException e) {
                     // exit handler
                 }
