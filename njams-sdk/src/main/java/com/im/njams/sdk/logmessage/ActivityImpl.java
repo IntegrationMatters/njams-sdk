@@ -83,7 +83,7 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
             extract = null;
         }
         // SDK-159: always call to have deep-trace evaluated
-        traceEnabled = checkTrace();
+        traceEnabled = initTraceFromSettings();
     }
 
     /**
@@ -257,7 +257,7 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
         }
         if (this instanceof GroupImpl) {
             ((GroupImpl) this).getChildActivities().stream()
-            .filter(a -> a.getActivityStatus() == ActivityStatus.RUNNING).forEach(a -> a.end());
+                    .filter(a -> a.getActivityStatus() == ActivityStatus.RUNNING).forEach(a -> a.end());
         }
         //process input and output if not done yet, for extract rules which do not need data
         if (!inputProcessecd) {
@@ -299,7 +299,7 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
      * @param input
      */
     private void handleTracing(Object data, boolean input) {
-        if (traceEnabled && data != null) {
+        if (data != null && isTracing()) {
             // if there is any data to handle add trace data
             if (input) {
                 setInput(job.getNjams().serialize(data));
@@ -316,11 +316,7 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
      * is on this  activity's tracepoint is evaluated and sets the according flag on the job if found.
      * @return <code>true</code> if tracing is currently enabled for this activity.
      */
-    private boolean checkTrace() {
-        // first check job's deepTrace setting
-        if (job.isDeepTrace()) {
-            return true;
-        }
+    private boolean initTraceFromSettings() {
 
         // then check the activity's tracepoint, if any
         ActivityConfiguration activityConfig = job.getActivityConfiguration(activityModel);
@@ -337,6 +333,12 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
             return true;
         }
         return false;
+    }
+
+    private boolean isTracing() {
+        // SDK-210 Check deeptrace on each call
+        return traceEnabled || job.isDeepTrace();
+
     }
 
     /**
