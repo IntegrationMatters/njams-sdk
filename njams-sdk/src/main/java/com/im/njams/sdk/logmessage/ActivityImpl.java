@@ -370,7 +370,10 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
      * @return <code>true</code> if tracing is currently enabled for this activity.
      */
     private boolean initTraceFromSettings() {
-
+        // first check job's deepTrace setting
+        if (job.isDeepTrace()) {
+            return true;
+        }
         // then check the activity's tracepoint, if any
         ActivityConfiguration activityConfig = job.getActivityConfiguration(activityModel);
         if (activityConfig == null) {
