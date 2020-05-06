@@ -74,7 +74,7 @@ public class CommunicationFactory {
                     "true".equalsIgnoreCase(settings.getProperty(Settings.PROPERTY_SHARED_COMMUNICATIONS));
             Class<? extends Receiver> type = findReceiverType(requiredReceiverName, shared);
             if (type != null) {
-                Receiver newInstance = createReceiver(type, shared, requiredReceiverName);
+                final Receiver newInstance = createReceiver(type, shared, requiredReceiverName);
                 newInstance.setNjams(njams);
                 return newInstance;
 
@@ -106,7 +106,11 @@ public class CommunicationFactory {
                 found = receiver;
             }
         }
-        return found.getClass();
+        if (sharable && found != null) {
+            LOG.info("The requested communication type '{}' does not support sharing the receiver instance. "
+                    + "Creating a dedicated instance instead.", found.getName());
+        }
+        return found == null ? null : found.getClass();
     }
 
     private Receiver createReceiver(Class<? extends Receiver> clazz, boolean shared, String name) {
@@ -166,7 +170,7 @@ public class CommunicationFactory {
                     .stream(Spliterators.spliteratorUnknownSize(
                             ServiceLoader.load(Sender.class).iterator(),
                             Spliterator.ORDERED), false)
-                            .map(cp -> cp.getName()).collect(Collectors.joining(", "));
+                    .map(cp -> cp.getName()).collect(Collectors.joining(", "));
             throw new UnsupportedOperationException(
                     "Unable to find sender implementation for " + requiredSenderName + ", available are: " + available);
         } else {
