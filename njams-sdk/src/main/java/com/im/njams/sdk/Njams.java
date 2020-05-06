@@ -39,6 +39,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Properties;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.stream.Stream;
@@ -59,6 +60,7 @@ import com.im.njams.sdk.client.LogMessageFlushTask;
 import com.im.njams.sdk.common.DateTimeUtility;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.common.Path;
+import com.im.njams.sdk.communication.AbstractReplayHandler;
 import com.im.njams.sdk.communication.CommunicationFactory;
 import com.im.njams.sdk.communication.InstructionListener;
 import com.im.njams.sdk.communication.NjamsSender;
@@ -86,6 +88,7 @@ import com.im.njams.sdk.model.svg.ProcessDiagramFactory;
 import com.im.njams.sdk.serializer.Serializer;
 import com.im.njams.sdk.serializer.StringSerializer;
 import com.im.njams.sdk.settings.Settings;
+import com.im.njams.sdk.utils.StringUtils;
 
 /**
  * This is an instance of nJAMS. It cares about lifecycle and initializations
@@ -247,6 +250,7 @@ public class Njams implements InstructionListener {
     private static final String NOT_STARTED_EXCEPTION_MESSAGE = "The instance needs to be started first!";
 
     private ReplayHandler replayHandler = null;
+    private final Set<String> replayedLogIds = new HashSet<>();
 
     private ArgosSender argosSender = null;
     private final Collection<ArgosMultiCollector<?>> argosCollectors = new ArrayList<>();
@@ -300,7 +304,7 @@ public class Njams implements InstructionListener {
             settings.put(ConfigurationProviderFactory.CONFIGURATION_PROVIDER, DEFAULT_CACHE_PROVIDER);
         }
         ConfigurationProvider configurationProvider = new ConfigurationProviderFactory(settings, this)
-        .getConfigurationProvider();
+                .getConfigurationProvider();
         configuration = new Configuration();
         configuration.setConfigurationProvider(configurationProvider);
     }
@@ -382,6 +386,7 @@ public class Njams implements InstructionListener {
      * Sets a replay handler.
      *
      * @param replayHandler Replay handler to be set.
+     * @see AbstractReplayHandler
      */
     public void setReplayHandler(final ReplayHandler replayHandler) {
         this.replayHandler = replayHandler;
@@ -640,7 +645,7 @@ public class Njams implements InstructionListener {
         msg.setLogMode(configuration.getLogMode());
         synchronized (processModels) {
             processModels.values().stream().map(pm -> pm.getSerializableProcessModel())
-            .forEach(ipm -> msg.getProcesses().add(ipm));
+                    .forEach(ipm -> msg.getProcesses().add(ipm));
             images.forEach(i -> msg.getImages().put(i.getName(), i.getBase64Image()));
             msg.getGlobalVariables().putAll(globalVariables);
             LOG.debug("Sending project message with {} process-models, {} images, {} global-variables.",
@@ -740,7 +745,7 @@ public class Njams implements InstructionListener {
      */
     private void setStarters() {
         treeElements.stream().filter(te -> te.getTreeElementType() == TreeElementType.PROCESS)
-        .filter(te -> processModels.get(te.getPath()).isStarter()).forEach(te -> te.setStarter(true));
+                .filter(te -> processModels.get(te.getPath()).isStarter()).forEach(te -> te.setStarter(true));
     }
 
     /**
@@ -786,7 +791,7 @@ public class Njams implements InstructionListener {
             }
         }
         treeElements.stream().filter(te -> te.getTreeElementType() == TreeElementType.PROCESS)
-        .forEach(te -> te.setStarter(isStarter));
+                .forEach(te -> te.setStarter(isStarter));
         return treeElements;
     }
 
@@ -834,6 +839,11 @@ public class Njams implements InstructionListener {
      */
     public void addJob(Job job) {
         if (isStarted()) {
+            synchronized (replayedLogIds) {
+                if (replayedLogIds.remove(job.getLogId())) {
+                    job.addAttribute(ReplayHandler.NJAMS_REPLAYED_ATTRIBUTE, "true");
+                }
+            }
             jobs.put(job.getJobId(), job);
         } else {
             throw new NjamsSdkRuntimeException(NOT_STARTED_EXCEPTION_MESSAGE);
@@ -882,8 +892,8 @@ public class Njams implements InstructionListener {
         LOG.info("*** ");
         LOG.info("***      Version Info:");
         versions.entrySet().stream().filter(e -> !CURRENT_YEAR.equals(e.getKey()))
-        .sorted(Comparator.comparing(Entry::getKey))
-        .forEach(e -> LOG.info("***      " + e.getKey() + ": " + e.getValue()));
+                .sorted(Comparator.comparing(Entry::getKey))
+                .forEach(e -> LOG.info("***      " + e.getKey() + ": " + e.getValue()));
         LOG.info("*** ");
         LOG.info("***      Settings:");
 
@@ -944,8 +954,12 @@ public class Njams implements InstructionListener {
             final Response response = new Response();
             if (replayHandler != null) {
                 try {
-                    ReplayResponse replayResponse = replayHandler.replay(new ReplayRequest(instruction));
+                    final ReplayRequest replayRequest = new ReplayRequest(instruction);
+                    final ReplayResponse replayResponse = replayHandler.replay(replayRequest);
                     replayResponse.addParametersToInstruction(instruction);
+                    if (!replayRequest.getTest()) {
+                        setReplayMarker(replayResponse.getMainLogId());
+                    }
                 } catch (final Exception ex) {
                     response.setResultCode(2);
                     response.setResultMessage("Error while executing replay: " + ex.getMessage());
@@ -956,6 +970,26 @@ public class Njams implements InstructionListener {
                 response.setResultCode(1);
                 response.setResultMessage("Client cannot replay processes. No replay handler is present.");
                 instruction.setResponse(response);
+            }
+        }
+    }
+
+    /**
+     * SDK-197
+     * @param logId
+     */
+    private void setReplayMarker(final String logId) {
+        if (StringUtils.isBlank(logId)) {
+            return;
+        }
+        final Job job = getJobs().stream().filter(j -> j.getLogId().equals(logId)).findAny().orElse(null);
+        if (job != null) {
+            // if the job is already known, set the marker
+            job.addAttribute(ReplayHandler.NJAMS_REPLAYED_ATTRIBUTE, "true");
+        } else {
+            // remember the log ID for when the job is added later -> consumed by addJob(...)
+            synchronized (replayedLogIds) {
+                replayedLogIds.add(logId);
             }
         }
     }
