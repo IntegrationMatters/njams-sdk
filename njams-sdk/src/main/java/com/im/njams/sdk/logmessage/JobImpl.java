@@ -1278,6 +1278,9 @@ public class JobImpl implements Job {
      */
     @Override
     public void addAttribute(final String key, String value) {
+        if (value == null) {
+            return;
+        }
         String limitKey = limitLength("attributeName", key, 500);
         synchronized (attributes) {
             attributes.put(limitKey, value);

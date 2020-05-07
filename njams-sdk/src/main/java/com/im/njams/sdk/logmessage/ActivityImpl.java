@@ -602,6 +602,9 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
      */
     @Override
     public void addAttribute(String key, String value) {
+        if (value == null) {
+            return;
+        }
         String limitKey = limitLength("attributeName", key, 500);
         synchronized (attributesLock) {
             job.addAttribute(limitKey, value);
