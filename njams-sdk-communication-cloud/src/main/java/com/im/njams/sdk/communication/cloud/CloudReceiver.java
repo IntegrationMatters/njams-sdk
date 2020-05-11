@@ -309,7 +309,7 @@ public class CloudReceiver extends AbstractReceiver {
                     keyStorePasswordPair.keyPassword);
 
             // optional parameters can be set before connect()
-            getMqttclient().connect();
+            getMqttclient().connect(30000);
             setQos(AWSIotQos.QOS1);
 
             // send onConnect
