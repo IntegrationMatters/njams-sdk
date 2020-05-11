@@ -43,7 +43,7 @@ public class ThrottleMonitor {
      * Adds throttle time and issues an info message if it's time. To be called for messages that could not be processed
      * immediately.
      * 
-     *  @param duration in milliseconds
+     *  @param ms duration in milliseconds
      */
     public static void throttle(long ms) {
         if (!LOG.isInfoEnabled()) {
