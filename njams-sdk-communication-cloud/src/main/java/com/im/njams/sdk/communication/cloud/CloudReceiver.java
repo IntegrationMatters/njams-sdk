@@ -123,13 +123,12 @@ public class CloudReceiver extends AbstractReceiver {
             LOG.error("Please provide property {} for CloudReceiver", CloudConstants.CLIENT_PRIVATEKEY);
         }
         LOG.info("Creating KeyStorePasswordPair from {} and {}", getCertificateFile(), getPrivateKeyFile());
-        keyStorePasswordPair
-                = CertificateUtil.getKeyStorePasswordPair(getCertificateFile(), getPrivateKeyFile());
+        keyStorePasswordPair = CertificateUtil.getKeyStorePasswordPair(getCertificateFile(), getPrivateKeyFile());
         if (keyStorePasswordPair == null) {
             throw new IllegalStateException("Certificate or PrivateKey invalid");
         }
-
-        connectionId = Utils.generateClientId(njams, instanceId);
+        connectionId = CloudClientId.getInstance(instanceId).clientId;
+        LOG.debug("connectionId: {}", connectionId);
 
     }
 
@@ -306,19 +305,24 @@ public class CloudReceiver extends AbstractReceiver {
 
             connectionStatus = ConnectionStatus.CONNECTING;
             LOG.debug("Connect to endpoint: {} with clientId: {}", endpoint, connectionId);
-            mqttclient = new AWSIotMqttClient(endpoint, connectionId, keyStorePasswordPair.keyStore, keyStorePasswordPair.keyPassword);
+            mqttclient = new AWSIotMqttClient(endpoint, connectionId, keyStorePasswordPair.keyStore,
+                    keyStorePasswordPair.keyPassword);
 
             // optional parameters can be set before connect()
             getMqttclient().connect();
             setQos(AWSIotQos.QOS1);
 
-            // send onConnect            
+            // send onConnect
             topicName = "/onConnect/";
-            AWSIotMessage msg = new AWSIotMessage(topicName, AWSIotQos.QOS1, "{\"connectionId\":\"" + connectionId + "\", \"instanceId\":\"" + instanceId + "\", \"path\":\"" + njams.getClientPath().toString() + "\", \"clientVersion\":\"" + njams.getClientVersion() + "\", \"sdkVersion\":\"" + njams.getSdkVersion() + "\", \"machine\":\"" + njams.getMachine() + "\", \"category\":\"" + njams.getCategory() + "\" }");
+            AWSIotMessage msg = new AWSIotMessage(topicName, AWSIotQos.QOS1,
+                    "{\"connectionId\":\"" + connectionId + "\", \"instanceId\":\"" + instanceId + "\", \"path\":\""
+                            + njams.getClientPath().toString() + "\", \"clientVersion\":\"" + njams.getClientVersion()
+                            + "\", \"sdkVersion\":\"" + njams.getSdkVersion() + "\", \"machine\":\""
+                            + njams.getMachine() + "\", \"category\":\"" + njams.getCategory() + "\" }");
             LOG.debug("Send message: {} to topic: {}", msg.getStringPayload(), topicName);
             getMqttclient().publish(msg);
 
-            // subscribe commands topic      
+            // subscribe commands topic
             topicName = "/" + instanceId + "/commands/" + connectionId + "/";
             CloudTopic topic = new CloudTopic(this);
 
@@ -336,12 +340,12 @@ public class CloudReceiver extends AbstractReceiver {
     }
 
     /**
-     * Every time onInstruction in the AbstractReceiver is called, the
-     * instruction's request is extended by this method.
+     * Every time onInstruction in the AbstractReceiver is called, the instruction's
+     * request is extended by this method.
      *
      * @param request the request that will be extended
-     * @return an exception response if there was a problem while retrieving
-     * payload from nJAMS Cloud. If everything worked fine, it returns null.
+     * @return an exception response if there was a problem while retrieving payload
+     *         from nJAMS Cloud. If everything worked fine, it returns null.
      */
     @Override
     protected Response extendRequest(Request request) {
@@ -361,7 +365,7 @@ public class CloudReceiver extends AbstractReceiver {
                 return response;
             }
         }
-        //Everything worked fine
+        // Everything worked fine
         return null;
     }
 }
