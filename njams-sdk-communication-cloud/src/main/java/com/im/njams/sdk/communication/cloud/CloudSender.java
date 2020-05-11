@@ -79,13 +79,7 @@ public class CloudSender extends AbstractSender {
 
     @Override
     public void init(Properties properties) {
-        //TODO: do it for production
-        //        try {
-        //            loadKeystore();
-        //        } catch (final Exception ex) {
-        //            LOG.error("Error initializing keystore", ex);
-        //            throw new NjamsSdkRuntimeException("Error initializing keystore", ex);
-        //        }
+
         String apikeypath = properties.getProperty(CloudConstants.APIKEY);
 
         if (apikeypath == null) {
@@ -114,7 +108,9 @@ public class CloudSender extends AbstractSender {
 
         endpointUrl = properties.getProperty(CloudConstants.ENDPOINT);
 
-        connectionId = Utils.generateClientId(njams, instanceId);
+        connectionId = CloudClientId.getInstance(instanceId).clientId;
+
+        LOG.debug("connectionId: {}", connectionId);
 
         try {
             url = new URL(getIngestEndpoint(endpointUrl));
@@ -184,11 +180,14 @@ public class CloudSender extends AbstractSender {
 
                     if (response.getStatusCode() != 200) {
                         switch (response.getStatusCode()) {
-                            case (429):
-                                LOG.warn("Message ({}) discarded since the endpoint returns that too many requests are made (HTTP 429 Too Many Requests). This is caused by you crossing your booked tier.", properties.get(NJAMS_MESSAGETYPE));
-                                break;
-                            case (500):
-                                LOG.error("Error sending {} please contact support referencing: {} {} ", properties.get(NJAMS_MESSAGETYPE), instanceId, response.getBody());
+                        case (429):
+                            LOG.warn(
+                                    "Message ({}) discarded since the endpoint returns that too many requests are made (HTTP 429 Too Many Requests). This is caused by you crossing your booked tier.",
+                                    properties.get(NJAMS_MESSAGETYPE));
+                            break;
+                        case (500):
+                            LOG.error("Error sending {} please contact support referencing: {} {} ",
+                                    properties.get(NJAMS_MESSAGETYPE), instanceId, response.getBody());
                         }
                     }
 
@@ -198,7 +197,9 @@ public class CloudSender extends AbstractSender {
                 LOG.error("Error sending {}", properties.get(NJAMS_MESSAGETYPE), ex);
             }
         } else {
-            LOG.warn("Message ({}) discarded because your client is not allowed to connect the CloudSender due to the following problem: {}", properties.get(NJAMS_MESSAGETYPE), endpointErrorMessage);
+            LOG.warn(
+                    "Message ({}) discarded because your client is not allowed to connect the CloudSender due to the following problem: {}",
+                    properties.get(NJAMS_MESSAGETYPE), endpointErrorMessage);
             if (System.currentTimeMillis() > reconnectTime) {
                 LOG.info("Try to establish connection again.");
                 retryInit();
@@ -291,7 +292,7 @@ public class CloudSender extends AbstractSender {
         try {
             byte[] bodyCompressed = Gzip.compress(body);
 
-            //Create connection
+            // Create connection
             connection = (HttpsURLConnection) url.openConnection();
             connection.setRequestMethod("POST");
             connection.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
@@ -312,7 +313,7 @@ public class CloudSender extends AbstractSender {
             connection.getRequestProperties().entrySet()
                     .forEach(e -> LOG.debug("Header {} : {}", e.getKey(), e.getValue()));
 
-            //Send request
+            // Send request
             try (final DataOutputStream wr = new DataOutputStream(connection.getOutputStream())) {
                 wr.write(bodyCompressed);
             }
@@ -321,7 +322,7 @@ public class CloudSender extends AbstractSender {
 
             if (responseCode < HttpURLConnection.HTTP_BAD_REQUEST) {
 
-                //Get Response
+                // Get Response
                 final InputStream is = connection.getInputStream();
                 final StringBuilder response;
                 try (final BufferedReader rd = new BufferedReader(new InputStreamReader(is, defaultCharset()))) {
@@ -361,10 +362,10 @@ public class CloudSender extends AbstractSender {
 
     private void loadKeystore() throws IOException {
         if (System.getProperty("javax.net.ssl.trustStore") == null) {
-            try (InputStream keystoreInput
-                    = Thread.currentThread().getContextClassLoader().getResourceAsStream("client.ks");
-                    InputStream truststoreInput
-                    = Thread.currentThread().getContextClassLoader().getResourceAsStream("client.ts")) {
+            try (InputStream keystoreInput = Thread.currentThread().getContextClassLoader()
+                    .getResourceAsStream("client.ks");
+                    InputStream truststoreInput = Thread.currentThread().getContextClassLoader()
+                            .getResourceAsStream("client.ts")) {
                 setSSLFactories(keystoreInput, "password", truststoreInput);
             }
         } else {
@@ -401,8 +402,8 @@ public class CloudSender extends AbstractSender {
             trustStore.load(trustStream, null);
 
             // initialize a trust manager factory with the trusted store
-            final TrustManagerFactory trustFactory
-                    = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+            final TrustManagerFactory trustFactory = TrustManagerFactory
+                    .getInstance(TrustManagerFactory.getDefaultAlgorithm());
             trustFactory.init(trustStore);
 
             // get the trust managers from the factory
