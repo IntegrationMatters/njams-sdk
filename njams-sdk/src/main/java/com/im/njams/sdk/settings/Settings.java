@@ -18,8 +18,10 @@ package com.im.njams.sdk.settings;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Properties;
+import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,6 +42,12 @@ public class Settings {
     private static final Logger LOG = LoggerFactory.getLogger(Settings.class);
 
     private Properties properties;
+
+    /**
+     * all properties registered here are masked and not printed during startup phase
+     * always use lowercase when adding an entry to this set!
+     */
+    private Set<String> secureProperties = new HashSet<String>();
 
     /**
      * This property is a flush criterium with a default of 5mb.
@@ -96,6 +104,9 @@ public class Settings {
 
     public Settings() {
         properties = new Properties();
+        secureProperties.add("password");
+        secureProperties.add("credentials");
+        secureProperties.add("secret");
     }
 
     /**
@@ -165,7 +176,7 @@ public class Settings {
         Collections.sort(list);
         list.forEach((key) -> {
             String toCheck = key.toLowerCase();
-            if (toCheck.contains("password") || toCheck.contains("credentials")) {
+            if (secureProperties.contains(toCheck)) {
                 logger.info("***      {} = {}", key, "****");
             } else {
                 logger.info("***      {} = {}", key, properties.getProperty(key));
@@ -191,10 +202,10 @@ public class Settings {
     public Properties filter(String prefix) {
         Properties response = new Properties();
         properties.entrySet()
-        .stream()
-        .filter(e -> String.class.isAssignableFrom(e.getKey().getClass()))
-        .filter(e -> ((String) e.getKey()).startsWith(prefix))
-        .forEach(e -> response.setProperty((String) e.getKey(), (String) e.getValue()));
+                .stream()
+                .filter(e -> String.class.isAssignableFrom(e.getKey().getClass()))
+                .filter(e -> ((String) e.getKey()).startsWith(prefix))
+                .forEach(e -> response.setProperty((String) e.getKey(), (String) e.getValue()));
         return Transformer.decode(properties);
     }
 
@@ -208,12 +219,18 @@ public class Settings {
     public Properties filterAndCut(String prefix) {
         Properties response = new Properties();
         properties.entrySet()
-        .stream()
-        .filter(e -> String.class.isAssignableFrom(e.getKey().getClass()))
-        .filter(e -> ((String) e.getKey()).startsWith(prefix))
-        .forEach(e -> response.setProperty(
-                ((String) e.getKey()).substring(((String) e.getKey()).indexOf(prefix) + prefix.length()),
-                (String) e.getValue()));
+                .stream()
+                .filter(e -> String.class.isAssignableFrom(e.getKey().getClass()))
+                .filter(e -> ((String) e.getKey()).startsWith(prefix))
+                .forEach(e -> response.setProperty(
+                        ((String) e.getKey()).substring(((String) e.getKey()).indexOf(prefix) + prefix.length()),
+                        (String) e.getValue()));
         return Transformer.decode(properties);
+    }
+
+    public void addSecureProperties(Set<String> secureProperties) {
+        secureProperties.forEach(property -> {
+            this.secureProperties.add(property.toLowerCase());
+        });
     }
 }

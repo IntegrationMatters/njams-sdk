@@ -16,8 +16,11 @@
  */
 package com.im.njams.sdk.configuration;
 
-import com.im.njams.sdk.Njams;
+import java.util.Collections;
 import java.util.Properties;
+import java.util.Set;
+
+import com.im.njams.sdk.Njams;
 
 /**
  * This interface must be implemented for creating new ConfigurationProvider
@@ -66,4 +69,14 @@ public interface ConfigurationProvider {
      * @return the prefix
      */
     public String getPropertyPrefix();
+
+    /**
+     * Configuration providers store secrets, such as passwords, etc. 
+     * They should return the name of any property here, that must not be printed to console or log files
+     * 
+     * @return Collection of secure settings that must not be printed into the startup banner
+     */
+    default Set<String> getSecureProperties() {
+        return Collections.EMPTY_SET;
+    }
 }

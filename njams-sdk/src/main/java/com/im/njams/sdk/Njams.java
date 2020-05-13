@@ -307,6 +307,8 @@ public class Njams implements InstructionListener {
                 .getConfigurationProvider();
         configuration = new Configuration();
         configuration.setConfigurationProvider(configurationProvider);
+        settings.addSecureProperties(configurationProvider.getSecureProperties());
+
     }
 
     /**
