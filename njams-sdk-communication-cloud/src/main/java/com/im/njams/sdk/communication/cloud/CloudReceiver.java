@@ -38,9 +38,12 @@ import java.util.Properties;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.logging.LogManager;
+
 import javax.net.ssl.HttpsURLConnection;
 
 import org.slf4j.LoggerFactory;
+import org.slf4j.bridge.SLF4JBridgeHandler;
 
 /**
  *
@@ -73,6 +76,11 @@ public class CloudReceiver extends AbstractReceiver {
     @Override
     public String getName() {
         return CloudConstants.NAME;
+    }
+
+    static {
+        LogManager.getLogManager().reset();
+        SLF4JBridgeHandler.install();
     }
 
     @Override
@@ -311,18 +319,13 @@ public class CloudReceiver extends AbstractReceiver {
 
             connectionStatus = ConnectionStatus.CONNECTING;
             LOG.debug("Connect to endpoint: {} with clientId: {}", endpoint, connectionId);
-            mqttclient = new AWSIotMqttClient(endpoint, connectionId, keyStorePasswordPair.keyStore,
-                    keyStorePasswordPair.keyPassword);
+            mqttclient = new CustomAWSIotMqttClient(endpoint, connectionId, keyStorePasswordPair.keyStore,
+                    keyStorePasswordPair.keyPassword, this);
 
             // optional parameters can be set before connect()
-            
+
             getMqttclient().connect(30000);
             setQos(AWSIotQos.QOS1);
-
-            // send onConnect            
-
-            sendOnConnectMessage(isShared, connectionId, instanceId, njams.getClientPath().toString(),
-                    njams.getClientVersion(), njams.getSdkVersion(), njams.getMachine(), njams.getCategory());
 
             // subscribe commands topic
             topicName = "/" + instanceId + "/commands/" + connectionId + "/";
@@ -337,6 +340,15 @@ public class CloudReceiver extends AbstractReceiver {
             connectionStatus = ConnectionStatus.DISCONNECTED;
             throw new NjamsSdkRuntimeException("Unable to initialize", e);
         }
+    }
+
+    protected void onConnectionSuccess() {
+
+    }
+
+    public void resendOnConnect() throws JsonProcessingException, AWSIotException {
+        sendOnConnectMessage(isShared, connectionId, instanceId, njams.getClientPath().toString(),
+                njams.getClientVersion(), njams.getSdkVersion(), njams.getMachine(), njams.getCategory());
     }
 
     protected void sendOnConnectMessage(Boolean isShared, String connectionId, String instanceId, String path,

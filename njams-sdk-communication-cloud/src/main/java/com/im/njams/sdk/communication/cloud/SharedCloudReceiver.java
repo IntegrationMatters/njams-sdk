@@ -121,17 +121,12 @@ public class SharedCloudReceiver extends CloudReceiver implements ShareableRecei
 
             connectionStatus = ConnectionStatus.CONNECTING;
             LOG.debug("Connect to endpoint: {} with clientId: {}", endpoint, connectionId);
-            mqttclient = new AWSIotMqttClient(endpoint, connectionId, keyStorePasswordPair.keyStore,
-                    keyStorePasswordPair.keyPassword);
+            mqttclient = new CustomAWSIotMqttClient(endpoint, connectionId, keyStorePasswordPair.keyStore,
+                    keyStorePasswordPair.keyPassword, this);
 
             // optional parameters can be set before connect()
             getMqttclient().connect(30000);
             setQos(AWSIotQos.QOS1);
-
-            // send on connect for first client
-            for (Entry<Path, Njams> entry : njamsInstances.entrySet()) {
-                sendOnConnect(entry.getValue());
-            }
 
             // subscribe commands topic
             this.topicName = "/" + instanceId + "/commands/" + connectionId + "/";
@@ -156,6 +151,12 @@ public class SharedCloudReceiver extends CloudReceiver implements ShareableRecei
             sendOnConnect(njamsInstance);
         } catch (Exception e) {
             LOG.error("Failed to update consumer", e);
+        }
+    }
+
+    public void resendOnConnect() throws JsonProcessingException, AWSIotException {
+        for (Entry<Path, Njams> entry : njamsInstances.entrySet()) {
+            sendOnConnect(entry.getValue());
         }
     }
 

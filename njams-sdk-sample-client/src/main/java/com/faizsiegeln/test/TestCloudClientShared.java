@@ -32,12 +32,15 @@ public class TestCloudClientShared {
 
         Njams njamsA = createNjamsClient("ClientA");
         Njams njamsB = createNjamsClient("ClientB");
+        Njams njamsC = createNjamsClient("ClientC");
 
         ProcessModel processModelA = createProcess(njamsA);
         ProcessModel processModelB = createProcess(njamsB);
+        ProcessModel processModelC = createProcess(njamsC);
 
         njamsA.start();
         njamsB.start();
+        njamsC.start();
 
         /**
          * Running a process by creating a job
@@ -52,6 +55,7 @@ public class TestCloudClientShared {
 
             if (useA) {
                 createJob(processModelA);
+                createJob(processModelC);
                 useA = false;
 
             } else {
@@ -66,6 +70,7 @@ public class TestCloudClientShared {
         Thread.sleep(30000);
         njamsA.stop();
         njamsB.stop();
+        njamsC.stop();
     }
 
     private static Njams createNjamsClient(String path) {
