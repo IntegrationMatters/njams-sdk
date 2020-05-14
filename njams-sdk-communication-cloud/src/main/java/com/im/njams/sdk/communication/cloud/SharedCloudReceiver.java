@@ -60,11 +60,13 @@ public class SharedCloudReceiver extends CloudReceiver implements ShareableRecei
         super.setNjams(null);
         synchronized (njamsInstances) {
             njamsInstances.put(njamsInstance.getClientPath(), njamsInstance);
-            updateConsumer(njamsInstance);
+            
+            updateReceiver(njamsInstance);
         }
         LOG.debug("Added client {} to shared receiver; {} attached receivers.", njamsInstance.getClientPath(),
                 njamsInstances.size());
     }
+    
 
     @Override
     public void removeNjams(Njams njamsInstance) {
@@ -73,9 +75,7 @@ public class SharedCloudReceiver extends CloudReceiver implements ShareableRecei
         synchronized (njamsInstances) {
             njamsInstances.remove(njamsInstance.getClientPath());
             callStop = njamsInstances.isEmpty();
-            if (!callStop) {
-                updateConsumer(njamsInstance);
-            }
+
         }
         LOG.debug("Removed client {} from shared receiver; {} remaining receivers.", njamsInstance.getClientPath(),
                 njamsInstances.size());
@@ -94,8 +94,11 @@ public class SharedCloudReceiver extends CloudReceiver implements ShareableRecei
     }
 
     @Override
-    public void connect() {
+    public synchronized void connect() {
         try {
+            if (isConnected() || isConnecting()) {
+                return;
+            }
             if (retryConnection) {
                 connectionStatus = ConnectionStatus.CONNECTED;
 
@@ -115,7 +118,7 @@ public class SharedCloudReceiver extends CloudReceiver implements ShareableRecei
                 connectionStatus = ConnectionStatus.CONNECTING;
             }
 
-            if (isConnected()) {
+            if (isConnected() || isConnecting()) {
                 return;
             }
 
@@ -143,14 +146,16 @@ public class SharedCloudReceiver extends CloudReceiver implements ShareableRecei
         }
     }
 
-    private void updateConsumer(Njams njamsInstance) {
+    private void updateReceiver(Njams njamsInstance) {
+
+        if (!isConnected()) {
+            return;
+        }
+
         try {
-            if (!isConnected()) {
-                return;
-            }
             sendOnConnect(njamsInstance);
         } catch (Exception e) {
-            LOG.error("Failed to update consumer", e);
+            LOG.error("Failed to update receiver", e);
         }
     }
 

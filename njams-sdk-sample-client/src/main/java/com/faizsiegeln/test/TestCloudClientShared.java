@@ -17,6 +17,7 @@
 package com.faizsiegeln.test;
 
 import com.im.njams.sdk.Njams;
+
 import com.im.njams.sdk.common.Path;
 import com.im.njams.sdk.communication.CommunicationFactory;
 import com.im.njams.sdk.communication.cloud.CloudConstants;
@@ -26,54 +27,49 @@ import com.im.njams.sdk.model.ActivityModel;
 import com.im.njams.sdk.model.ProcessModel;
 import com.im.njams.sdk.settings.Settings;
 
+class MyThread extends Thread {
+
+    String name;
+
+    public MyThread(String name) {
+        this.name = name;
+    }
+
+    public void run() {
+        try {
+            Njams njams = TestCloudClientShared.createNjamsClient(name);
+            ProcessModel processModel = TestCloudClientShared.createProcess(njams);
+
+            njams.start();
+
+            int i = 0;
+
+            while (i++ < 10000) {
+                TestCloudClientShared.createJob(processModel);
+                Thread.sleep(10000);
+            }
+            Thread.sleep(30000);
+            njams.stop();
+
+        } catch (Exception e) {
+            // Throwing an exception 
+            System.out.println("Exception is caught");
+        }
+    }
+}
+
 public class TestCloudClientShared {
 
     public static void main(String[] args) throws InterruptedException {
 
-        Njams njamsA = createNjamsClient("ClientA");
-        Njams njamsB = createNjamsClient("ClientB");
-        Njams njamsC = createNjamsClient("ClientC");
-
-        ProcessModel processModelA = createProcess(njamsA);
-        ProcessModel processModelB = createProcess(njamsB);
-        ProcessModel processModelC = createProcess(njamsC);
-
-        njamsA.start();
-        njamsB.start();
-        njamsC.start();
-
-        /**
-         * Running a process by creating a job
-         */
-
-        int i = 0;
-
-        boolean payload = true;
-        boolean useA = true;
-
-        while (i++ < 10000) {
-
-            if (useA) {
-                createJob(processModelA);
-                createJob(processModelC);
-                useA = false;
-
-            } else {
-                createJob(processModelB);
-                useA = true;
-            }
-
-            Thread.sleep(10000);
+        int n = 3; // Number of threads 
+        for (int i = 0; i < n; i++) {
+            MyThread object = new MyThread("Client" + i);
+            object.start();
         }
-
-        //If you are finished with processing or the application goes down, stop the client...
-        Thread.sleep(30000);
-        njamsA.stop();
-        njamsB.stop();
-        njamsC.stop();
     }
 
-    private static Njams createNjamsClient(String path) {
+    public static Njams createNjamsClient(String path) {
         String technology = "sdk4";
 
         //Specify a client path. This path specifies where your client instance will be visible in the object tree.
@@ -97,7 +93,7 @@ public class TestCloudClientShared {
         return njams;
     }
 
-    private static ProcessModel createProcess(Njams njams) {
+    public static ProcessModel createProcess(Njams njams) {
         /**
          * Creating a process by adding a ProcessModel
          */
@@ -118,7 +114,7 @@ public class TestCloudClientShared {
         return process;
     }
 
-    private static void createJob(ProcessModel process) {
+    public static void createJob(ProcessModel process) {
         //Create a job from a previously created ProcessModel
         Job job = process.createJob();
 
@@ -144,7 +140,7 @@ public class TestCloudClientShared {
         job.end();
     }
 
-    private static String createDataSize(int msgSize) {
+    public static String createDataSize(int msgSize) {
         StringBuilder sb = new StringBuilder(msgSize);
         for (int i = 0; i < msgSize; i++) {
             sb.append('a');
@@ -152,7 +148,7 @@ public class TestCloudClientShared {
         return sb.toString();
     }
 
-    private static Settings getCloudProperties() {
+    public static Settings getCloudProperties() {
         Settings communicationProperties = new Settings();
         communicationProperties.put(CommunicationFactory.COMMUNICATION, CloudConstants.NAME);
         communicationProperties.put(CloudConstants.ENDPOINT, "ingest.dev.njams.cloud");

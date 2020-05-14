@@ -38,12 +38,9 @@ import java.util.Properties;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-import java.util.logging.LogManager;
-
 import javax.net.ssl.HttpsURLConnection;
 
 import org.slf4j.LoggerFactory;
-import org.slf4j.bridge.SLF4JBridgeHandler;
 
 /**
  *
@@ -76,11 +73,6 @@ public class CloudReceiver extends AbstractReceiver {
     @Override
     public String getName() {
         return CloudConstants.NAME;
-    }
-
-    static {
-        LogManager.getLogManager().reset();
-        SLF4JBridgeHandler.install();
     }
 
     @Override
@@ -292,8 +284,14 @@ public class CloudReceiver extends AbstractReceiver {
     }
 
     @Override
-    public void connect() {
+    public synchronized void connect() {
+
+        if (isConnected()) {
+            return;
+        }
+
         try {
+
             if (retryConnection) {
                 connectionStatus = ConnectionStatus.CONNECTED;
 
