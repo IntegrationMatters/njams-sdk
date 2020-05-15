@@ -16,11 +16,14 @@
  */
 package com.im.njams.sdk.communication.cloud;
 
+import com.amazonaws.services.iot.client.AWSIotException;
 import com.amazonaws.services.iot.client.AWSIotMessage;
 import com.amazonaws.services.iot.client.AWSIotMqttClient;
 import com.amazonaws.services.iot.client.AWSIotQos;
 import com.faizsiegeln.njams.messageformat.v4.command.Request;
 import com.faizsiegeln.njams.messageformat.v4.command.Response;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.communication.AbstractReceiver;
 import com.im.njams.sdk.communication.ConnectionStatus;
@@ -36,6 +39,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import javax.net.ssl.HttpsURLConnection;
+
 import org.slf4j.LoggerFactory;
 
 /**
@@ -46,23 +50,25 @@ public class CloudReceiver extends AbstractReceiver {
 
     private static final org.slf4j.Logger LOG = LoggerFactory.getLogger(CloudReceiver.class);
 
+    private static final Boolean isShared = false;
+
     private String mainEndpoint;
-    private String endpoint;
-    private String instanceId;
-    private String connectionId;
+    protected String endpoint;
+    protected String instanceId;
+    protected String connectionId;
     private String certificateFile;
     private String privateKeyFile;
 
     private AWSIotQos qos;
-    private AWSIotMqttClient mqttclient;
-    private String topicName;
+    protected AWSIotMqttClient mqttclient;
+    protected String topicName;
 
-    private KeyStorePasswordPair keyStorePasswordPair;
+    protected KeyStorePasswordPair keyStorePasswordPair;
     private String apikey;
 
-    private boolean retryConnection = false;
-    private ScheduledExecutorService retryService = null;
-    private static final int retryInterval = 600000;
+    protected boolean retryConnection = false;
+    protected ScheduledExecutorService retryService = null;
+    protected static final int retryInterval = 600000;
 
     @Override
     public String getName() {
@@ -278,8 +284,14 @@ public class CloudReceiver extends AbstractReceiver {
     }
 
     @Override
-    public void connect() {
+    public synchronized void connect() {
+
+        if (isConnected()) {
+            return;
+        }
+
         try {
+
             if (retryConnection) {
                 connectionStatus = ConnectionStatus.CONNECTED;
 
@@ -305,22 +317,13 @@ public class CloudReceiver extends AbstractReceiver {
 
             connectionStatus = ConnectionStatus.CONNECTING;
             LOG.debug("Connect to endpoint: {} with clientId: {}", endpoint, connectionId);
-            mqttclient = new AWSIotMqttClient(endpoint, connectionId, keyStorePasswordPair.keyStore,
-                    keyStorePasswordPair.keyPassword);
+            mqttclient = new CustomAWSIotMqttClient(endpoint, connectionId, keyStorePasswordPair.keyStore,
+                    keyStorePasswordPair.keyPassword, this);
 
             // optional parameters can be set before connect()
+
             getMqttclient().connect(30000);
             setQos(AWSIotQos.QOS1);
-
-            // send onConnect
-            topicName = "/onConnect/";
-            AWSIotMessage msg = new AWSIotMessage(topicName, AWSIotQos.QOS1,
-                    "{\"connectionId\":\"" + connectionId + "\", \"instanceId\":\"" + instanceId + "\", \"path\":\""
-                            + njams.getClientPath().toString() + "\", \"clientVersion\":\"" + njams.getClientVersion()
-                            + "\", \"sdkVersion\":\"" + njams.getSdkVersion() + "\", \"machine\":\""
-                            + njams.getMachine() + "\", \"category\":\"" + njams.getCategory() + "\" }");
-            LOG.debug("Send message: {} to topic: {}", msg.getStringPayload(), topicName);
-            getMqttclient().publish(msg);
 
             // subscribe commands topic
             topicName = "/" + instanceId + "/commands/" + connectionId + "/";
@@ -331,12 +334,37 @@ public class CloudReceiver extends AbstractReceiver {
             getMqttclient().subscribe(topic);
             connectionStatus = ConnectionStatus.CONNECTED;
 
-            njams.getSettings().getAllProperties().setProperty("iotClientId", mqttclient.getClientId());
-
         } catch (Exception e) {
             connectionStatus = ConnectionStatus.DISCONNECTED;
             throw new NjamsSdkRuntimeException("Unable to initialize", e);
         }
+    }
+
+    protected void onConnectionSuccess() {
+
+    }
+
+    public void resendOnConnect() throws JsonProcessingException, AWSIotException {
+        sendOnConnectMessage(isShared, connectionId, instanceId, njams.getClientPath().toString(),
+                njams.getClientVersion(), njams.getSdkVersion(), njams.getMachine(), njams.getCategory());
+    }
+
+    protected void sendOnConnectMessage(Boolean isShared, String connectionId, String instanceId, String path,
+            String clientVersion, String sdkVersion, String machine, String category)
+            throws JsonProcessingException, AWSIotException {
+        String topicName = "/onConnect/";
+        OnConnectMessage onConnectMessage =
+                new OnConnectMessage(isShared, connectionId, instanceId, path, clientVersion, sdkVersion, machine,
+                        category);
+
+        ObjectMapper objectMapper = new ObjectMapper();
+
+        String message = objectMapper.writeValueAsString(onConnectMessage);
+
+        AWSIotMessage msg = new AWSIotMessage(topicName, AWSIotQos.QOS1, message);
+
+        LOG.debug("Send message: {} to topic: {}", msg.getStringPayload(), topicName);
+        getMqttclient().publish(msg);
     }
 
     /**
@@ -368,4 +396,5 @@ public class CloudReceiver extends AbstractReceiver {
         // Everything worked fine
         return null;
     }
+
 }

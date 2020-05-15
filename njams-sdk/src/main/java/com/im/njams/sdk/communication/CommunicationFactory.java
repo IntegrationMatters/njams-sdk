@@ -127,12 +127,14 @@ public class CommunicationFactory {
                     receiver = clazz.newInstance();
                     receiver.validate();
                     sharedReceivers.put(clazz, (ShareableReceiver) receiver);
+                    receiver.init(settings.getAllProperties());
+                    return receiver;
                 }
-            } else {
-                LOG.debug("Creating dedicated receiver {}", clazz);
-                receiver = clazz.newInstance();
-                receiver.validate();
             }
+            LOG.debug("Creating dedicated receiver {}", clazz);
+            receiver = clazz.newInstance();
+            receiver.validate();
+
             receiver.init(settings.getAllProperties());
             return receiver;
         } catch (Exception e) {

@@ -1,5 +1,5 @@
 /* 
- * Copyright (c) 2018 Faiz & Siegeln Software GmbH
+ * Copyright (c) 2020 Faiz & Siegeln Software GmbH
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"),
  * to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
@@ -17,6 +17,7 @@
 package com.faizsiegeln.test;
 
 import com.im.njams.sdk.Njams;
+
 import com.im.njams.sdk.common.Path;
 import com.im.njams.sdk.communication.CommunicationFactory;
 import com.im.njams.sdk.communication.cloud.CloudConstants;
@@ -26,20 +27,53 @@ import com.im.njams.sdk.model.ActivityModel;
 import com.im.njams.sdk.model.ProcessModel;
 import com.im.njams.sdk.settings.Settings;
 
-/**
- * This is a simple sample client, which creates a simple process with three
- * steps.
- *
- * @author pnientiedt
- */
-public class TestCloudClient {
+class MyThread extends Thread {
+
+    String name;
+
+    public MyThread(String name) {
+        this.name = name;
+    }
+
+    public void run() {
+        try {
+            Njams njams = TestCloudClientShared.createNjamsClient(name);
+            ProcessModel processModel = TestCloudClientShared.createProcess(njams);
+
+            njams.start();
+
+            int i = 0;
+
+            while (i++ < 10000) {
+                TestCloudClientShared.createJob(processModel);
+                Thread.sleep(10000);
+            }
+            Thread.sleep(30000);
+            njams.stop();
+
+        } catch (Exception e) {
+            // Throwing an exception 
+            System.out.println("Exception is caught");
+        }
+    }
+}
+
+public class TestCloudClientShared {
 
     public static void main(String[] args) throws InterruptedException {
 
+        int n = 3; // Number of threads 
+        for (int i = 0; i < n; i++) {
+            MyThread object = new MyThread("Client" + i);
+            object.start();
+        }
+    }
+
+    public static Njams createNjamsClient(String path) {
         String technology = "sdk4";
 
         //Specify a client path. This path specifies where your client instance will be visible in the object tree.
-        Path clientPath = new Path("CloudTEST", "Client", "Test");
+        Path clientPath = new Path(path, "Client", "Test");
 
         //Create communicationProperties, which specify how your client will communicate with the server
         //Create client settings and add the properties
@@ -56,6 +90,10 @@ public class TestCloudClient {
         njams.addImage("stepType", "images/njams_java_sdk_process_step.png");
         njams.addImage("endType", "images/njams_java_sdk_process_end.png");
 
+        return njams;
+    }
+
+    public static ProcessModel createProcess(Njams njams) {
         /**
          * Creating a process by adding a ProcessModel
          */
@@ -73,58 +111,36 @@ public class TestCloudClient {
         //step to the end activity
         ActivityModel endModel = logModel.transitionTo("end", "End", "endType");
 
-        // Start client and flush resources, which will create a projectmessage to send all resources to the server
-        njams.start();
-
-        /**
-         * Running a process by creating a job
-         */
-        //Thread.sleep(30000);
-        int i = 0;
-
-        boolean payload = true;
-        while (i++ < 10000) {
-
-            //Create a job from a previously created ProcessModel
-            Job job = process.createJob();
-
-            // Starts the job, i.e., sets the according status, job start date if not set before, and flags the job to begin flushing.
-            job.start();
-
-            //add input and output data to the activity
-            if (payload) {
-                job.setDeepTrace(true);
-                payload = false;
-            } else {
-                payload = true;
-            }
-
-            //Create the start activity from the previously creates startModel
-            Activity start = job.createActivity(startModel).build();
-            start.processInput(createDataSize(900000));
-            start.processOutput("startOutput");
-
-            //step to the next activity from the previous one.
-            Activity log = start.stepTo(logModel).build();
-            log.processInput("logInput");
-            log.processOutput("logOutput");
-
-            //step to the end
-            Activity end = log.stepTo(endModel).build();
-            end.processInput("endInput");
-            end.processOutput("endOutput");
-
-            //End the job, which will flush all previous steps into a logmessage wich will be send to the server
-            job.end();
-            System.out.println(i);
-            Thread.sleep(30000);
-        }
-        //If you are finished with processing or the application goes down, stop the client...
-        Thread.sleep(30000);
-        njams.stop();
+        return process;
     }
 
-    private static String createDataSize(int msgSize) {
+    public static void createJob(ProcessModel process) {
+        //Create a job from a previously created ProcessModel
+        Job job = process.createJob();
+
+        // Starts the job, i.e., sets the according status, job start date if not set before, and flags the job to begin flushing.
+        job.start();
+
+        //Create the start activity from the previously creates startModel
+        Activity start = job.createActivity(process.getActivity("start")).build();
+        start.processInput(createDataSize(900000));
+        start.processOutput("startOutput");
+
+        //step to the next activity from the previous one.
+        Activity log = start.stepTo(process.getActivity("log")).build();
+        log.processInput("logInput");
+        log.processOutput("logOutput");
+
+        //step to the end
+        Activity end = log.stepTo(process.getActivity("end")).build();
+        end.processInput("endInput");
+        end.processOutput("endOutput");
+
+        //End the job, which will flush all previous steps into a logmessage wich will be send to the server
+        job.end();
+    }
+
+    public static String createDataSize(int msgSize) {
         StringBuilder sb = new StringBuilder(msgSize);
         for (int i = 0; i < msgSize; i++) {
             sb.append('a');
@@ -132,7 +148,7 @@ public class TestCloudClient {
         return sb.toString();
     }
 
-    private static Settings getCloudProperties() {
+    public static Settings getCloudProperties() {
         Settings communicationProperties = new Settings();
         communicationProperties.put(CommunicationFactory.COMMUNICATION, CloudConstants.NAME);
         communicationProperties.put(CloudConstants.ENDPOINT, "ingest.integrationmatters.com");
@@ -146,7 +162,8 @@ public class TestCloudClient {
                 "/tmp/njams_hcpqjtw_certificate/661ab6fea1-private.pem.key");
 
         communicationProperties.put(Settings.PROPERTY_USE_DEPRECATED_PATH_FIELD_FOR_SUBPROCESSES, "false");
-        communicationProperties.put("njams.client.sdk.sharedcommunications", "false");
+        communicationProperties.put("njams.client.sdk.sharedcommunications", "true");
+
         return communicationProperties;
     }
 
