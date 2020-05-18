@@ -28,6 +28,7 @@ import org.slf4j.LoggerFactory;
 
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.settings.encoding.Transformer;
+import com.im.njams.sdk.utils.StringUtils;
 
 /**
  * The settings contains settings needed for
@@ -47,7 +48,7 @@ public class Settings {
      * all properties registered here are masked and not printed during startup phase
      * always use lowercase when adding an entry to this set!
      */
-    private Set<String> secureProperties = new HashSet<String>();
+    private Set<String> secureProperties = new HashSet<>();
 
     /**
      * This property is a flush criterium with a default of 5mb.
@@ -175,13 +176,26 @@ public class Settings {
         properties.keySet().forEach(key -> list.add((String) key));
         Collections.sort(list);
         list.forEach((key) -> {
-            String toCheck = key.toLowerCase();
-            if (secureProperties.contains(toCheck)) {
-                logger.info("***      {} = {}", key, "****");
+            if (isSecuredKey(key)) {
+                logger.info("***      {} = ****", key);
             } else {
                 logger.info("***      {} = {}", key, properties.getProperty(key));
             }
         });
+    }
+
+    /**
+     * Returns <code>true</code> if the value for the given key is private and must be shown in the logs (e.g.,
+     * passwords, etc).
+     * @param key
+     * @return
+     */
+    public boolean isSecuredKey(final String key) {
+        if (StringUtils.isBlank(key)) {
+            return false;
+        }
+        final String lowerKey = key.toLowerCase();
+        return secureProperties.stream().anyMatch(s -> lowerKey.contains(s));
     }
 
     /**
