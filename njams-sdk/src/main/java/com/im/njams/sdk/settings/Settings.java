@@ -187,8 +187,8 @@ public class Settings {
     /**
      * Returns <code>true</code> if the value for the given key is private and must be shown in the logs (e.g.,
      * passwords, etc).
-     * @param key
-     * @return
+     * @param key The properties key to test.
+     * @return <code>true</code> if the value for the given key must not be shown.
      */
     public boolean isSecuredKey(final String key) {
         if (StringUtils.isBlank(key)) {
