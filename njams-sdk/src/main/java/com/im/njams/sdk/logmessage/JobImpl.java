@@ -50,6 +50,7 @@ import com.im.njams.sdk.model.ActivityModel;
 import com.im.njams.sdk.model.GroupModel;
 import com.im.njams.sdk.model.ProcessModel;
 import com.im.njams.sdk.model.SubProcessActivityModel;
+import com.im.njams.sdk.settings.Settings;
 import com.im.njams.sdk.utils.StringUtils;
 
 /**
@@ -150,14 +151,17 @@ public class JobImpl implements Job {
     private final Object errorLock = new Object();
     private ActivityImpl errorActivity = null;
     private ErrorEvent errorEvent = null;
-    /** Setting for enabling the logAllErrors feature. */
-    public static final String LOG_ALL_ERRORS = "njams.sdk.logAllErrors";
+    /** @deprecated Use {@link Settings#PROPERTY_LOG_ALL_ERRORS} instead */
+    @Deprecated
+    public static final String LOG_ALL_ERRORS = Settings.PROPERTY_LOG_ALL_ERRORS;
     private final boolean allErrors;
 
-    /** Setting for truncate limit (nJAMS strip-mode). Number of activities/events before messages are truncated.  */
-    public static final String TRUNCATE_LIMIT = "njams.sdk.truncateActivitiesLimit";
-    /** Setting for truncating successful jobs, provided that they were processed as single message.  */
-    public static final String TRUNCATE_ON_SUCCESS = "njams.sdk.truncateOnSuccess";
+    /** @deprecated Use {@link Settings#PROPERTY_TRUNCATE_LIMIT} instead */
+    @Deprecated
+    public static final String TRUNCATE_LIMIT = Settings.PROPERTY_TRUNCATE_LIMIT;
+    /** @deprecated Use {@link Settings#PROPERTY_TRUNCATE_ON_SUCCESS} instead */
+    @Deprecated
+    public static final String TRUNCATE_ON_SUCCESS = Settings.PROPERTY_TRUNCATE_ON_SUCCESS;
     private final int truncateLimit;
     private final boolean truncateOnSuccess;
     private boolean isTruncatingActivities = false;

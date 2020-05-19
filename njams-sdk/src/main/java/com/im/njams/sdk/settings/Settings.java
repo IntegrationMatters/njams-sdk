@@ -103,6 +103,13 @@ public class Settings {
     public static final String PROPERTY_USE_DEPRECATED_PATH_FIELD_FOR_SUBPROCESSES =
             "njams.client.sdk.deprecatedsubprocesspathfield";
 
+    /** Setting for enabling the logAllErrors feature. */
+    public static final String PROPERTY_LOG_ALL_ERRORS = "njams.sdk.logAllErrors";
+    /** Setting for truncate limit (nJAMS strip-mode). Number of activities/events before messages are truncated.  */
+    public static final String PROPERTY_TRUNCATE_LIMIT = "njams.sdk.truncateActivitiesLimit";
+    /** Setting for truncating successful jobs, provided that they were processed as single message.  */
+    public static final String PROPERTY_TRUNCATE_ON_SUCCESS = "njams.sdk.truncateOnSuccess";
+
     public Settings() {
         properties = new Properties();
         secureProperties.add("password");
@@ -216,10 +223,10 @@ public class Settings {
     public Properties filter(String prefix) {
         Properties response = new Properties();
         properties.entrySet()
-                .stream()
-                .filter(e -> String.class.isAssignableFrom(e.getKey().getClass()))
-                .filter(e -> ((String) e.getKey()).startsWith(prefix))
-                .forEach(e -> response.setProperty((String) e.getKey(), (String) e.getValue()));
+        .stream()
+        .filter(e -> String.class.isAssignableFrom(e.getKey().getClass()))
+        .filter(e -> ((String) e.getKey()).startsWith(prefix))
+        .forEach(e -> response.setProperty((String) e.getKey(), (String) e.getValue()));
         return Transformer.decode(properties);
     }
 
@@ -233,12 +240,12 @@ public class Settings {
     public Properties filterAndCut(String prefix) {
         Properties response = new Properties();
         properties.entrySet()
-                .stream()
-                .filter(e -> String.class.isAssignableFrom(e.getKey().getClass()))
-                .filter(e -> ((String) e.getKey()).startsWith(prefix))
-                .forEach(e -> response.setProperty(
-                        ((String) e.getKey()).substring(((String) e.getKey()).indexOf(prefix) + prefix.length()),
-                        (String) e.getValue()));
+        .stream()
+        .filter(e -> String.class.isAssignableFrom(e.getKey().getClass()))
+        .filter(e -> ((String) e.getKey()).startsWith(prefix))
+        .forEach(e -> response.setProperty(
+                ((String) e.getKey()).substring(((String) e.getKey()).indexOf(prefix) + prefix.length()),
+                (String) e.getValue()));
         return Transformer.decode(properties);
     }
 
