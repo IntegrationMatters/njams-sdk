@@ -108,8 +108,10 @@ public class CloudSender extends AbstractSender {
 
         endpointUrl = properties.getProperty(CloudConstants.ENDPOINT);
 
-        connectionId = CloudClientId.getInstance(instanceId).clientId;
-
+        // build connectionId String
+        CloudClientId cloudClientId = CloudClientId.getInstance(instanceId, false);
+        // sender always uses suffix = 0
+        connectionId = cloudClientId.clientId + "_0";
         LOG.debug("connectionId: {}", connectionId);
 
         try {

@@ -133,7 +133,10 @@ public class CloudReceiver extends AbstractReceiver {
         if (keyStorePasswordPair == null) {
             throw new IllegalStateException("Certificate or PrivateKey invalid");
         }
-        connectionId = CloudClientId.getInstance(instanceId).clientId;
+
+        // build connectionId String
+        CloudClientId cloudClientId = CloudClientId.getInstance(instanceId, isShared);
+        connectionId = cloudClientId.clientId + "_" + cloudClientId.suffix;
         LOG.debug("connectionId: {}", connectionId);
 
     }
