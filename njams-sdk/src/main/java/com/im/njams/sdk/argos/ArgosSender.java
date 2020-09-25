@@ -275,6 +275,11 @@ public class ArgosSender implements Closeable {
         }
         if (execService != null) {
             execService.shutdown();
+            try {
+                execService.awaitTermination(10, TimeUnit.SECONDS);
+            } catch (InterruptedException e) {
+                LOG.debug("Interrupted while waiting for termination.", e);
+            }
         }
         if (socket != null) {
             socket.close();
