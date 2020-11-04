@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.faizsiegeln</groupId>
     <artifactId>njams4-sdk-root</artifactId>
-    <version>4.1.5</version>
+    <version>4.1.6-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>njams4-sdk-root</name>
     <organization>
@@ -14,7 +14,7 @@
     <scm>
         <connection>scm:git:https://github.com/IntegrationMatters/njams-sdk</connection>
         <developerConnection>scm:git:https://github.com/IntegrationMatters/njams-sdk</developerConnection>
-        <tag>njams4-sdk-root-4.1.5</tag>
+        <tag>HEAD</tag>
     </scm>
 
     <properties>
