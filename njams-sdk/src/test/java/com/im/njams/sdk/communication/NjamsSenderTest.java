@@ -28,6 +28,7 @@ import java.util.*;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -62,19 +63,22 @@ public class NjamsSenderTest extends AbstractTest {
      * Test of close method, of class NjamsSender.
      */
     @Test
-    public void testClose() {
+    public void testClose() throws InterruptedException {
         NjamsSender sender = new NjamsSender(njams, SETTINGS);
         ThreadPoolExecutor executor = sender.getExecutor();
-        executor.execute(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    Thread.sleep(15000L);
-                } catch (InterruptedException ex) {
+        AtomicReference<Thread> t = new AtomicReference<>();
+        executor.execute(() -> {
+            try {
+                t.set(Thread.currentThread());
+                while(true) {
+                    Thread.sleep(15000);
                 }
+            } catch (InterruptedException ex) {
             }
         });
+        Thread.sleep(1000);
         sender.close();
+        assertEquals(Thread.State.TERMINATED, t.get().getState());
     }
 
     /**
