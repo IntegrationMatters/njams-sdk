@@ -68,7 +68,7 @@ public class NjamsSenderTest extends AbstractTest {
             try {
                 t.set(Thread.currentThread());
                 while(true) {
-                    Thread.sleep(10000);
+                    Thread.sleep(15000);
                 }
             } catch (InterruptedException ex) {
             }
