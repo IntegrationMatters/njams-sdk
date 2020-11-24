@@ -136,8 +136,26 @@ public class NjamsSender implements Sender {
         } catch (InterruptedException ex) {
             LOG.error("The shutdown of the sender's threadpool has been interrupted. {}", ex);
         } finally{
+            //This will call the interrupt() function of the threads
             executor.shutdownNow();
+            wait100MillisecondsForEachActiveSenderThreadToBeInterrupted();
             senderPool.expireAll();
+        }
+    }
+
+    private void wait100MillisecondsForEachActiveSenderThreadToBeInterrupted() {
+        int activeThreadsToWaitFor = executor.getActiveCount();
+        int waitingTimeInMilliseconds = 100;
+        try {
+            Thread.sleep(activeThreadsToWaitFor * waitingTimeInMilliseconds);
+        }catch(InterruptedException interruptedException){
+            LOG.error("Waiting for the interruption of the sender threads has been interrupted!");
+            LOG.error("Started with " + activeThreadsToWaitFor + " threads to wait for");
+            final int stillNeededToBeInterrupted = executor.getActiveCount();
+            LOG.error("Got interrupted while " + stillNeededToBeInterrupted + " threads still need to be stopped.");
+            LOG.error("Approximated waited time until interruption (ms): " +
+                      (activeThreadsToWaitFor - stillNeededToBeInterrupted) * waitingTimeInMilliseconds);
+            LOG.error("Would have actually waited for (ms): " + activeThreadsToWaitFor * waitingTimeInMilliseconds);
         }
     }
 

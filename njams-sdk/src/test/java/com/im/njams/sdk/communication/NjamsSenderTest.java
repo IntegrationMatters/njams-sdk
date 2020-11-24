@@ -23,6 +23,7 @@ import com.faizsiegeln.njams.messageformat.v4.tracemessage.TraceMessage;
 import com.im.njams.sdk.AbstractTest;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.settings.Settings;
+import static org.junit.Assert.assertEquals;
 
 import java.util.*;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -32,8 +33,6 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import org.junit.BeforeClass;
 import org.junit.Test;
-
-import static org.junit.Assert.*;
 
 /**
  * Tests the NjamsSender
@@ -70,12 +69,12 @@ public class NjamsSenderTest extends AbstractTest {
         executor.execute(() -> {
             try {
                 t.set(Thread.currentThread());
-                while(true) {
-                    Thread.sleep(15000);
-                }
-            } catch (InterruptedException ex) {
+                Thread.sleep(15000);
+            } catch (InterruptedException e) {
+                t.get().interrupt();
             }
         });
+        //Wait for a second so the executor actually called execute before sender.close is called.
         Thread.sleep(1000);
         sender.close();
         assertEquals(Thread.State.TERMINATED, t.get().getState());
