@@ -33,6 +33,7 @@ import java.util.Properties;
  * steps.
  *
  * @author pnientiedt
+ * @author sfaiz (added getKafkaProperties)
  */
 public class SimpleClient {
 
@@ -137,6 +138,46 @@ public class SimpleClient {
         communicationProperties.put(JmsConstants.DESTINATION, "njams.endurance");
         //optional: if you want to use a topic for commands not following the name of the other destinations, specify it here
         communicationProperties.put(JmsConstants.COMMANDS_DESTINATION, "njams4.dev.phillip.commands");
+        return communicationProperties;
+    }
+    
+        private static Settings getKafkaProperties() {
+	    Settings communicationProperties = new Settings();
+	
+		//nJAMS properties
+        communicationProperties.put(CommunicationFactory.COMMUNICATION, "Kafka");
+        communicationProperties.put("idleCommandsResponseProducerTimeout", "300000"); //in ms
+        communicationProperties.put("destination", "njams");
+        
+        //Kafka properties
+        String consumeGroup = "njams-consumer-" + UUID.randomUUID().toString();
+        communicationProperties.put("group.id", consumeGroup);
+        communicationProperties.put("bootstrap.servers", "10.30.0.219:9091");
+        communicationProperties.put("key.serializer", "org.apache.kafka.common.serialization.StringSerializer");
+        communicationProperties.put("value.serializer", "org.apache.kafka.common.serialization.StringSerializer");
+        communicationProperties.put("key.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
+        communicationProperties.put("value.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
+        
+        //SASL_PLAIN
+/*        communicationProperties.put("sasl.mechanism", "PLAIN");
+        communicationProperties.put("sasl.jaas.config", "org.apache.kafka.common.security.plain.PlainLoginModule required username=\"njams\" password=\"njams-secret\";");
+*/
+
+        //SSL
+        communicationProperties.put("security.protocol", "SSL");
+        communicationProperties.put("ssl.truststore.location", "C:\\tmp\\certificates\\kafka.truststore");
+        communicationProperties.put("ssl.truststore.password", "Aa123456!");
+        communicationProperties.put("ssl.keystore.location", "C:\\tmp\\certificates\\kafka.keystore");
+        communicationProperties.put("ssl.keystore.password", "Aa123456!");
+        communicationProperties.put("ssl.key.password", "Aa123456!");
+        
+        //SASL_SSL
+/*        communicationProperties.put("sasl.mechanism", "PLAIN");
+        communicationProperties.put("security.protocol", "SASL_SSL");
+        communicationProperties.put("ssl.truststore.location", "C:\\tmp\\certificates\\kafka.truststore");
+        communicationProperties.put("ssl.truststore.password", "Aa123456!");
+        communicationProperties.put("sasl.jaas.config", "org.apache.kafka.common.security.plain.PlainLoginModule required username=\"njams\" password=\"njams-secret\";");
+*/
         return communicationProperties;
     }
 }
