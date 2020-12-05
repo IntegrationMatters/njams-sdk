@@ -142,7 +142,7 @@ public class SimpleClient {
     }
     
         private static Settings getKafkaProperties() {
-	    Settings communicationProperties = new Settings();
+	Settings communicationProperties = new Settings();
 	
 		//nJAMS properties
         communicationProperties.put(CommunicationFactory.COMMUNICATION, "Kafka");
