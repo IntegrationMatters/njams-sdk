@@ -150,9 +150,8 @@ public class SimpleClient {
         communicationProperties.put("destination", "njams");
         
         //Kafka properties
-        String consumeGroup = "njams-consumer-" + UUID.randomUUID().toString();
-        communicationProperties.put("group.id", consumeGroup);
-        communicationProperties.put("bootstrap.servers", "10.30.0.219:9091");
+        communicationProperties.put("group.id", "njams-test-consumer");
+        communicationProperties.put("bootstrap.servers", "10.10.0.2:9091");
         communicationProperties.put("key.serializer", "org.apache.kafka.common.serialization.StringSerializer");
         communicationProperties.put("value.serializer", "org.apache.kafka.common.serialization.StringSerializer");
         communicationProperties.put("key.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
