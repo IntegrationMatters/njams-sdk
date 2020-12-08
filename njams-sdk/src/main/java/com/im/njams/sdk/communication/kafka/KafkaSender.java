@@ -67,10 +67,9 @@ public class KafkaSender extends AbstractSender {
      * <p>
      * Valid properties are:
      * <ul>
-     * <li>{@value com.im.njams.sdk.communication.kafka.KafkaConstants#GROUP_ID}
-     * <li>{@value com.im.njams.sdk.communication.kafka.KafkaConstants#SERVERS}
-     * <li>{@value com.im.njams.sdk.communication.kafka.KafkaConstants#EVENT_DESTINATION}
-     * <li>{@value com.im.njams.sdk.communication.kafka.KafkaConstants#SECURITY_PROTOCOL}
+     * <li>{@value com.im.njams.sdk.communication.kafka.KafkaConstants#COMMUNICATION_NAME}
+     * <li>{@value com.im.njams.sdk.communication.kafka.KafkaConstants#DESTINATION}
+     * <li>{@value com.im.njams.sdk.communication.kafka.KafkaConstants#COMMANDS_DESTINATION}
      * </ul>
      * See all valid properties in KafkaConstants
      *
