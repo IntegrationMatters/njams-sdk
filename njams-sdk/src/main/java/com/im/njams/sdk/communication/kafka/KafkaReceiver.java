@@ -63,13 +63,13 @@ public class KafkaReceiver extends AbstractReceiver {
      * <li>{@value com.im.njams.sdk.communication.kafka.KafkaConstants#COMMANDS_DESTINATION}
      * </ul>
      *
-     * @param properties the properties needed to initialize
+     * @param props the properties needed to initialize
      */
 	@Override
-	public void init(Properties properties) {
+	public void init(Properties props) {
 		connectionStatus = ConnectionStatus.DISCONNECTED;
 		mapper = JsonSerializerFactory.getDefaultMapper();
-		properties = properties;
+		properties = props;
 		if (props.containsKey(KafkaConstants.COMMANDS_DESTINATION)) {
 			topicName = props.getProperty(KafkaConstants.COMMANDS_DESTINATION);
 		} else {
