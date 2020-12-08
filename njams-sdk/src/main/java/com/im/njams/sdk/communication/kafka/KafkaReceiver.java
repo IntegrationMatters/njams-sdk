@@ -58,10 +58,9 @@ public class KafkaReceiver extends AbstractReceiver {
      * <p>
      * Valid properties are:
      * <ul>
-     * <li>{@value com.im.njams.sdk.communication.kafka.KafkaConstants#GROUP_ID}
-     * <li>{@value com.im.njams.sdk.communication.kafka.KafkaConstants#SERVERS}
-     * <li>{@value com.im.njams.sdk.communication.kafka.KafkaConstants#EVENT_DESTINATION}
-     * <li>{@value com.im.njams.sdk.communication.kafka.KafkaConstants#SECURITY_PROTOCOL}
+     * <li>{@value com.im.njams.sdk.communication.kafka.KafkaConstants#COMMUNICATION_NAME}
+     * <li>{@value com.im.njams.sdk.communication.kafka.KafkaConstants#DESTINATION}
+     * <li>{@value com.im.njams.sdk.communication.kafka.KafkaConstants#COMMANDS_DESTINATION}
      * </ul>
      *
      * @param properties the properties needed to initialize
