@@ -179,11 +179,11 @@
                 <artifactId>jms-api</artifactId>
                 <version>${jms-api.version}</version>
             </dependency>
-           	<dependency>
-			    <groupId>org.apache.kafka</groupId>
-			    <artifactId>kafka-clients</artifactId>
-		    	<version>${kafka-version}</version>
-		    </dependency>
+            <dependency>
+                <groupId>org.apache.kafka</groupId>
+                <artifactId>kafka-clients</artifactId>
+                <version>${kafka-version}</version>
+            </dependency>
             <dependency>
                 <groupId>uk.com.robust-it</groupId>
                 <artifactId>cloning</artifactId>
