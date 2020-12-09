@@ -54,7 +54,7 @@ public class KafkaConstants {
      * KafkaProducer, who is responsible for responding to Commands.
      */
     public static final String IDLE_COMMANDS_RESPONSE_PRODUCER_TIMEOUT = PROPERTY_PREFIX
-            + "idleCommandsResponseProducerTimeout";
+            + ".idleCommandsResponseProducerTimeout";
 
     /**
      * You can find all possible Kafka properties under -
