@@ -28,10 +28,10 @@ public class KafkaConstants {
         //constants
     }
     
-    
     /**
-     * nJAMS specific Constants.
+     * 	Prefix for the Kafka communication
      */
+    public static final String PROPERTY_PREFIX = "njams.sdk.communication.kafka";
     
     /**
      * Name of the Kafka Communication Component.
@@ -41,18 +41,18 @@ public class KafkaConstants {
     /**
      * Property key for the communication properties. Specifies the destination.
      */
-    public static final String DESTINATION = "destination";
+    public static final String DESTINATION = PROPERTY_PREFIX + ".destination";
     
     /**
      * Property key for the communication properties. Specifies the commands destination.
      */
-	public static final String COMMANDS_DESTINATION = "destination.commands";
+    public static final String COMMANDS_DESTINATION = PROPERTY_PREFIX + ".destination.commands";
     
     /**
      * Property key for the communication properties. Timeout after last use of the KafkaProducer, 
      * who is responsible for responding to Commands.
      */
-    public static final String IDLE_COMMANDS_RESPONSE_PRODUCER_TIMEOUT= "idleCommandsResponseProducerTimeout";
+    public static final String IDLE_COMMANDS_RESPONSE_PRODUCER_TIMEOUT = PROPERTY_PREFIX + "idleCommandsResponseProducerTimeout";
     
     
     /**
