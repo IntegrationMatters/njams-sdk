@@ -21,6 +21,7 @@ import com.im.njams.sdk.common.Path;
 import com.im.njams.sdk.communication.CommunicationFactory;
 import com.im.njams.sdk.communication.cloud.CloudConstants;
 import com.im.njams.sdk.communication.jms.JmsConstants;
+import com.im.njams.sdk.communication.kafka.KafkaConstants;
 import com.im.njams.sdk.logmessage.Activity;
 import com.im.njams.sdk.logmessage.Job;
 import com.im.njams.sdk.model.ActivityModel;
@@ -146,8 +147,8 @@ public class SimpleClient {
 	
 		//nJAMS properties
         communicationProperties.put(CommunicationFactory.COMMUNICATION, "Kafka");
-        communicationProperties.put("idleCommandsResponseProducerTimeout", "300000"); //in ms
-        communicationProperties.put("destination", "njams");
+        communicationProperties.put(KafkaConstants.IDLE_COMMANDS_RESPONSE_PRODUCER_TIMEOUT, "300000"); //in ms
+        communicationProperties.put(KafkaConstants.DESTINATION, "njams");
         
         //Kafka properties
         communicationProperties.put("group.id", "njams-test-consumer");
