@@ -58,9 +58,9 @@ import com.im.njams.sdk.utils.JsonUtils;
 public class KafkaSender extends AbstractSender {
 
     private static final Logger LOG = LoggerFactory.getLogger(KafkaSender.class);
-    
-	private KafkaProducer<String, String> producer;
-	private String destination;
+
+    private KafkaProducer<String, String> producer;
+    private String destination;
 
     /**
      * Initializes this Sender via the given Properties.
@@ -79,10 +79,10 @@ public class KafkaSender extends AbstractSender {
     public void init(Properties properties) {
         super.init(properties);
         if (properties.containsKey("destination"))
-        	destination = properties.getProperty("destination") + ".event";
+            destination = properties.getProperty("destination") + ".event";
         else {
-        	LOG.info("No destination provided. Using default: njams");
-        	destination = "njams.event";
+            LOG.info("No destination provided. Using default: njams");
+            destination = "njams.event";
         }
         try {
             connect();
@@ -95,7 +95,7 @@ public class KafkaSender extends AbstractSender {
     /**
      * Create the KafkaProducer for Events.
      */
-	@Override
+    @Override
     public synchronized void connect() throws NjamsSdkRuntimeException {
         if (isConnected()) {
             return;
@@ -110,7 +110,7 @@ public class KafkaSender extends AbstractSender {
 
             throw new NjamsSdkRuntimeException("Unable to connect", e);
         }
-     }
+    }
 
     /**
      * Send the given LogMessage to the specified Kafka.
@@ -171,33 +171,33 @@ public class KafkaSender extends AbstractSender {
             throw new NjamsSdkRuntimeException("Unable to send TraceMessage", e);
         }
     }
-    
+
     /**
      * Builds Headers and creates the ProducerRecord.
-     * 
+     *
      * @param msg
      * @param messageType
      * @param data
      * @throws InterruptedException
      */
-	protected void sendMessage(CommonMessage msg, String messageType, String data) throws InterruptedException {
-		List<Header> headers = new LinkedList<Header>();
+    protected void sendMessage(CommonMessage msg, String messageType, String data) throws InterruptedException {
+        List<Header> headers = new LinkedList<Header>();
         if (msg instanceof LogMessage)
             headers.add(new RecordHeader(Sender.NJAMS_LOGID, ((LogMessage) msg).getLogId().getBytes()));
-		headers.add(new RecordHeader(Sender.NJAMS_MESSAGEVERSION, MessageVersion.V4.toString().getBytes()));
-		headers.add(new RecordHeader(Sender.NJAMS_MESSAGETYPE, messageType.getBytes()));
-		headers.add(new RecordHeader(Sender.NJAMS_PATH, msg.getPath().getBytes()));
-    	
-        tryToSend(new ProducerRecord<String, String>(destination,0 , "", data, headers));
+        headers.add(new RecordHeader(Sender.NJAMS_MESSAGEVERSION, MessageVersion.V4.toString().getBytes()));
+        headers.add(new RecordHeader(Sender.NJAMS_MESSAGETYPE, messageType.getBytes()));
+        headers.add(new RecordHeader(Sender.NJAMS_PATH, msg.getPath().getBytes()));
+
+        tryToSend(new ProducerRecord<String, String>(destination, 0, "", data, headers));
     }
-    
-	/**
-	 * Try to send and catches Errors
-	 * 
-	 * @param message
-	 * @throws InterruptedException
-	 */
-	private void tryToSend(ProducerRecord<String, String> message) throws InterruptedException {
+
+    /**
+     * Try to send and catches Errors
+     *
+     * @param message
+     * @throws InterruptedException
+     */
+    private void tryToSend(ProducerRecord<String, String> message) throws InterruptedException {
         boolean sended = false;
         final int EXCEPTION_IDLE_TIME = 50;
         final int MAX_TRIES = 100;
@@ -209,8 +209,7 @@ public class KafkaSender extends AbstractSender {
                 sended = true;
             } catch (KafkaException | IllegalStateException e) {
                 if (discardPolicy == DiscardPolicy.ON_CONNECTION_LOSS) {
-                    LOG.debug("Applying discard policy [{}]. Message discarded.",
-                            discardPolicy);
+                    LOG.debug("Applying discard policy [{}]. Message discarded.", discardPolicy);
                     DiscardMonitor.discard();
                     break;
                 }
@@ -245,12 +244,11 @@ public class KafkaSender extends AbstractSender {
             }
         }
     }
-    
-	
-	/**
-	 * @return the name of this Sender. (Kafka)
-	 */
-	@Override
+
+    /**
+     * @return the name of this Sender. (Kafka)
+     */
+    @Override
     public String getName() {
         return KafkaConstants.COMMUNICATION_NAME;
     }
