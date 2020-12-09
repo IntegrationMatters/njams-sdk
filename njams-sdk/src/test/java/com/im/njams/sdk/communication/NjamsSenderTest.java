@@ -17,10 +17,7 @@
 package com.im.njams.sdk.communication;
 
 import static org.junit.Assert.assertEquals;
-<<<<<<< Updated upstream
-=======
 import static org.junit.Assert.assertTrue;
->>>>>>> Stashed changes
 
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -86,6 +83,7 @@ public class NjamsSenderTest extends AbstractTest {
         // after some time, the thread has definitely terminated
         assertEquals(Thread.State.TERMINATED, t.get().getState());
     }
+
     /**
      * Test of initialize, of class NjamsSender.
      */

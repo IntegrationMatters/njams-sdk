@@ -16,7 +16,6 @@
  */
 package com.im.njams.sdk.communication;
 
-import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ThreadFactory;
@@ -190,7 +189,8 @@ public class NjamsSender implements Sender {
             }
         } catch (InterruptedException ex) {
             LOG.error("The shutdown of the sender's threadpool has been interrupted. {}", ex);
-        } finally{
+        } finally {
+            //This will call the interrupt() function of the threads
             executor.shutdownNow();
             senderPool.expireAll();
         }
