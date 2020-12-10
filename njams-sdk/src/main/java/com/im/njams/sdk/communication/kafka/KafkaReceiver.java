@@ -41,7 +41,7 @@ import com.im.njams.sdk.communication.ConnectionStatus;
  * Kafka implementation for a Receiver.
  *
  * @author sfaiz
- * @version 4.1.5
+ * @version 4.2.0-SNAPSHOT
  */
 public class KafkaReceiver extends AbstractReceiver {
 
