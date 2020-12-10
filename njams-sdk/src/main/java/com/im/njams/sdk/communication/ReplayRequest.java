@@ -30,7 +30,7 @@ public class ReplayRequest {
 
     private static final String PARAM_START_ACTIVITY = "StartActivity";
     private static final String PARAM_TEST = "Test";
-    private static final String PARAM_DEEPTRACE = "DeepTrace";
+    private static final String PARAM_DEEPTRACE = "Deeptrace";
     private static final String PARAM_PAYLOAD = "Payload";
     private static final String PARAM_PROCESS = "Process";
 
