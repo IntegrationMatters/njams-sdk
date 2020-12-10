@@ -58,7 +58,7 @@ public class CommandsListener extends Thread {
 		this.receiver = receiver;
 
 		try {
-			consumer = new KafkaConsumer<String, String>(properties);
+			consumer = new KafkaConsumer<String, String>(receiver.getKafkaProperties(properties));
 			consumer.subscribe(topics);
 		} catch (Exception e) {
 			consumer.close();

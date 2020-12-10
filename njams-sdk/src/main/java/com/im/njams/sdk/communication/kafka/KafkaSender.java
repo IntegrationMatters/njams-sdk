@@ -24,6 +24,7 @@
 
 package com.im.njams.sdk.communication.kafka;
 
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Properties;
@@ -78,8 +79,8 @@ public class KafkaSender extends AbstractSender {
 	@Override
 	public void init(Properties properties) {
 		super.init(properties);
-		if (properties.containsKey("destination"))
-			destination = properties.getProperty("destination") + ".event";
+		if (properties.containsKey(KafkaConstants.DESTINATION))
+			destination = properties.getProperty(KafkaConstants.DESTINATION) + ".event";
 		else {
 			LOG.info("No destination provided. Using default: njams");
 			destination = "njams.event";
@@ -102,7 +103,7 @@ public class KafkaSender extends AbstractSender {
 		}
 		try {
 			connectionStatus = ConnectionStatus.CONNECTING;
-			producer = new KafkaProducer<String, String>(properties);
+			producer = new KafkaProducer<String, String>(getKafkaProperties(properties));
 			connectionStatus = ConnectionStatus.CONNECTED;
 		} catch (Exception e) {
 			connectionStatus = ConnectionStatus.DISCONNECTED;
@@ -223,6 +224,17 @@ public class KafkaSender extends AbstractSender {
 				}
 			}
 		} while (!sended);
+	}
+	
+	private Properties getKafkaProperties(Properties njamsProperties) {
+		Properties kafkaProperties = new Properties();
+		Iterator<Object> keys = properties.keySet().iterator();
+		while (keys.hasNext()) {
+			String key = (String) keys.next();
+			if (key.contains(KafkaConstants.PROPERTY_PREFIX))
+				kafkaProperties.put(key.substring(KafkaConstants.PROPERTY_PREFIX.length()), properties.getProperty(key));
+		}
+		return kafkaProperties;
 	}
 
 	/**
