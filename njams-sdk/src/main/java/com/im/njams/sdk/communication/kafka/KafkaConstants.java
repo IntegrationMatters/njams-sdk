@@ -20,7 +20,7 @@ package com.im.njams.sdk.communication.kafka;
 /**
  *
  * @author sfaiz
- *
+ * @version 4.2.0-SNAPSHOT
  */
 public class KafkaConstants {
 
