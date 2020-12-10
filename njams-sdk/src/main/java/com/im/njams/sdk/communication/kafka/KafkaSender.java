@@ -53,7 +53,7 @@ import com.im.njams.sdk.utils.JsonUtils;
  * Kafka implementation for a Sender.
  *
  * @author sfaiz
- * @version 4.1.5
+ * @version 4.2.0-SNAPSHOT
  */
 public class KafkaSender extends AbstractSender {
 
