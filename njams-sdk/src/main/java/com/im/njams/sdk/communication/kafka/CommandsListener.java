@@ -32,7 +32,7 @@ import org.slf4j.LoggerFactory;
  * Commands in its Kafka topic
  *
  * @author sfaiz
- *
+ * @version 4.2.0-SNAPSHOT
  */
 public class CommandsListener extends Thread {
 
