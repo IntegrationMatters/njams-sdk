@@ -24,42 +24,42 @@ package com.im.njams.sdk.communication.kafka;
  */
 public class KafkaConstants {
 
-    private KafkaConstants() {
-        // constants
-    }
+	private KafkaConstants() {
+		// constants
+	}
 
-    /**
-     * Prefix for the Kafka communication
-     */
-    public static final String PROPERTY_PREFIX = "njams.sdk.communication.kafka";
+	/**
+	 * Prefix for the Kafka communication
+	 */
+	public static final String PROPERTY_PREFIX = "njams.sdk.communication.kafka.";
 
-    /**
-     * Name of the Kafka Communication Component.
-     */
-    public static final String COMMUNICATION_NAME = "Kafka";
+	/**
+	 * Name of the Kafka Communication Component.
+	 */
+	public static final String COMMUNICATION_NAME = "Kafka";
 
-    /**
-     * Property key for the communication properties. Specifies the destination.
-     */
-    public static final String DESTINATION = PROPERTY_PREFIX + ".destination";
+	/**
+	 * Property key for the communication properties. Specifies the destination.
+	 */
+	public static final String DESTINATION = PROPERTY_PREFIX + "destination";
 
-    /**
-     * Property key for the communication properties. Specifies the commands
-     * destination.
-     */
-    public static final String COMMANDS_DESTINATION = PROPERTY_PREFIX + ".destination.commands";
+	/**
+	 * Property key for the communication properties. Specifies the commands
+	 * destination.
+	 */
+	public static final String COMMANDS_DESTINATION = PROPERTY_PREFIX + "destination.commands";
 
-    /**
-     * Property key for the communication properties. Timeout after last use of the
-     * KafkaProducer, who is responsible for responding to Commands.
-     */
-    public static final String IDLE_COMMANDS_RESPONSE_PRODUCER_TIMEOUT = PROPERTY_PREFIX
-            + ".idleCommandsResponseProducerTimeout";
+	/**
+	 * Property key for the communication properties. Timeout after last use of the
+	 * KafkaProducer, who is responsible for responding to Commands.
+	 */
+	public static final String IDLE_COMMANDS_RESPONSE_PRODUCER_TIMEOUT = PROPERTY_PREFIX
+			+ "idleCommandsResponseProducerTimeout";
 
-    /**
-     * You can find all possible Kafka properties under -
-     * https://kafka.apache.org/10/javadoc/org/apache/kafka/clients/consumer/ConsumerConfig.html
-     * -
-     * https://kafka.apache.org/10/javadoc/org/apache/kafka/clients/producer/ProducerConfig.html
-     */
+	/**
+	 * You can find all possible Kafka properties under -
+	 * https://kafka.apache.org/10/javadoc/org/apache/kafka/clients/consumer/ConsumerConfig.html
+	 * -
+	 * https://kafka.apache.org/10/javadoc/org/apache/kafka/clients/producer/ProducerConfig.html
+	 */
 }

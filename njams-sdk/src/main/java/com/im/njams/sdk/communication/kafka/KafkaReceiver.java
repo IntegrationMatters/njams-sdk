@@ -223,7 +223,7 @@ public class KafkaReceiver extends AbstractReceiver {
 	 * Returns if the Commands-Response-Producer of this KafkaReceiver is running.
 	 */
 	protected boolean hasRunningProducer() {
-		return (producer != null);
+		return producer != null;
 	}
 
 	/**

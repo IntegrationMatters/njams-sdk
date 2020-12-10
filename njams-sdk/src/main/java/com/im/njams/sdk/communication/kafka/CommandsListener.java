@@ -61,7 +61,8 @@ public class CommandsListener extends Thread {
 			consumer = new KafkaConsumer<String, String>(properties);
 			consumer.subscribe(topics);
 		} catch (Exception e) {
-			LOG.info("Consumer failed :" + e);
+			consumer.close();
+			LOG.info("Consumer failed", e);
 		}
 	}
 
