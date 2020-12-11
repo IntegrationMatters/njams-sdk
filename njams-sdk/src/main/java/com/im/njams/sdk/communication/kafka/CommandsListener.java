@@ -32,7 +32,7 @@ import org.slf4j.LoggerFactory;
  * Commands in its Kafka topic
  *
  * @author sfaiz
- *
+ * @version 4.2.0-SNAPSHOT
  */
 public class CommandsListener extends Thread {
 
@@ -58,10 +58,11 @@ public class CommandsListener extends Thread {
 		this.receiver = receiver;
 
 		try {
-			consumer = new KafkaConsumer<String, String>(properties);
+			consumer = new KafkaConsumer<String, String>(receiver.getKafkaProperties(properties));
 			consumer.subscribe(topics);
 		} catch (Exception e) {
-			LOG.info("Consumer failed :" + e);
+			consumer.close();
+			LOG.info("Consumer failed", e);
 		}
 	}
 

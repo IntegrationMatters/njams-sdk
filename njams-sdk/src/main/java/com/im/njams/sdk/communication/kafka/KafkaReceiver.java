@@ -18,6 +18,7 @@
 package com.im.njams.sdk.communication.kafka;
 
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Properties;
@@ -41,7 +42,7 @@ import com.im.njams.sdk.communication.ConnectionStatus;
  * Kafka implementation for a Receiver.
  *
  * @author sfaiz
- * @version 4.1.5
+ * @version 4.2.0-SNAPSHOT
  */
 public class KafkaReceiver extends AbstractReceiver {
 
@@ -63,20 +64,20 @@ public class KafkaReceiver extends AbstractReceiver {
 	 * <li>{@value com.im.njams.sdk.communication.kafka.KafkaConstants#COMMANDS_DESTINATION}
 	 * </ul>
 	 *
-	 * @param props the properties needed to initialize
+	 * @param properties the properties needed to initialize
 	 */
 	@Override
-	public void init(Properties props) {
+	public void init(Properties properties) {
 		connectionStatus = ConnectionStatus.DISCONNECTED;
 		mapper = JsonSerializerFactory.getDefaultMapper();
-		properties = props;
-		if (props.containsKey(KafkaConstants.COMMANDS_DESTINATION)) {
-			topicName = props.getProperty(KafkaConstants.COMMANDS_DESTINATION);
+		this.properties = properties;
+		if (properties.containsKey(KafkaConstants.COMMANDS_DESTINATION)) {
+			topicName = properties.getProperty(KafkaConstants.COMMANDS_DESTINATION);
 		} else {
-			topicName = props.getProperty(KafkaConstants.DESTINATION) + ".commands";
+			topicName = properties.getProperty(KafkaConstants.DESTINATION) + ".commands";
 		}
 
-		String path = props.getProperty("clientPath").replace(">", ".");
+		String path = properties.getProperty("clientPath").replace(">", ".");
 		topicName = topicName + path.substring(0, path.length() - 1);
 	}
 
@@ -89,7 +90,7 @@ public class KafkaReceiver extends AbstractReceiver {
 		if (!isConnected()) {
 			connectionStatus = ConnectionStatus.CONNECTING;
 
-			tryToConnect(properties);
+			tryToConnect();
 
 			connectionStatus = ConnectionStatus.CONNECTED;
 		}
@@ -102,7 +103,7 @@ public class KafkaReceiver extends AbstractReceiver {
 	 *
 	 * @param props the Properties that are used for connecting.
 	 */
-	private void tryToConnect(Properties props) {
+	private void tryToConnect() {
 		try {
 			listener = new CommandsListener(properties, Collections.singletonList(topicName), this);
 			listener.start();
@@ -194,7 +195,7 @@ public class KafkaReceiver extends AbstractReceiver {
 	protected void reply(ConsumerRecord<String, String> message, Instruction instruction) {
 		String responseTopic = topicName + ".response";
 		if (producer == null)
-			producer = new KafkaProducer<String, String>(properties);
+			producer = new KafkaProducer<String, String>(getKafkaProperties(properties));
 		try {
 			String response = mapper.writeValueAsString(instruction);
 
@@ -210,6 +211,17 @@ public class KafkaReceiver extends AbstractReceiver {
 			LOG.error("Error while sending reply for {}", topicName, e);
 		}
 	}
+	
+	protected Properties getKafkaProperties(Properties njamsProperties) {
+		Properties kafkaProperties = new Properties();
+		Iterator<Object> keys = properties.keySet().iterator();
+		while (keys.hasNext()) {
+			String key = (String) keys.next();
+			if (key.contains(KafkaConstants.PROPERTY_PREFIX))
+				kafkaProperties.put(key.substring(KafkaConstants.PROPERTY_PREFIX.length()), properties.getProperty(key));
+		}
+		return kafkaProperties;
+	}
 
 	/**
 	 * @return the name of this Receiver. (Kafka)
@@ -223,7 +235,7 @@ public class KafkaReceiver extends AbstractReceiver {
 	 * Returns if the Commands-Response-Producer of this KafkaReceiver is running.
 	 */
 	protected boolean hasRunningProducer() {
-		return (producer != null);
+		return producer != null;
 	}
 
 	/**
