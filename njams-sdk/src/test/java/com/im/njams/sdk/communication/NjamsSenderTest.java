@@ -17,7 +17,6 @@
 package com.im.njams.sdk.communication;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -66,8 +65,8 @@ public class NjamsSenderTest extends AbstractTest {
         ThreadPoolExecutor executor = sender.getExecutor();
         AtomicReference<Thread> t = new AtomicReference<>();
         executor.execute(() -> {
+            t.set(Thread.currentThread());
             try {
-                t.set(Thread.currentThread());
                 Thread.sleep(15000);
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
@@ -76,11 +75,12 @@ public class NjamsSenderTest extends AbstractTest {
         //Wait for a second so the executor actually called execute before sender.close is called.
         Thread.sleep(1000);
         sender.close();
-        // the thread has been interrupted, or it has already terminated after interruption
-        // however, it will not proceed with its normal processing
-        assertTrue(t.get().isInterrupted() || Thread.State.TERMINATED == t.get().getState());
+        // The thread has been interrupted, or it has already terminated after interruption.
+        // However, it will not proceed with its normal processing.
+        // But there still is a small window when the exception is being processed where the thread is neither interrupted
+        // nor terminated.
         Thread.sleep(500);
-        // after some time, the thread has definitely terminated
+        // Finally, after some time, the thread has definitely terminated
         assertEquals(Thread.State.TERMINATED, t.get().getState());
     }
 
