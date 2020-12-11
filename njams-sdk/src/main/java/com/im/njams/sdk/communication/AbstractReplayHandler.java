@@ -111,9 +111,9 @@ public abstract class AbstractReplayHandler implements ReplayHandler {
      * @deprecated See deprecated parameter which will be removed in a future release.
      *
      * @param processName The name of the process that shall be replayed.
+     * @param startData Optional input data for executing the process. May be <code>null</code>.
      * @param startActivity <b>Deprecated.</b> <i>This value is not very reliable and is being removed in future.</i>
      *        Optional name of the starter activity. May be <code>null</code>.
-     * @param startActivity Optional name of the starter activity. May be <code>null</code>.
      * @throws Exception Any error indicating that the test failed.
      */
     @Deprecated
