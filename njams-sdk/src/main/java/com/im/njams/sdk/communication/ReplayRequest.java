@@ -16,10 +16,10 @@
  */
 package com.im.njams.sdk.communication;
 
+import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
+
 import java.util.HashMap;
 import java.util.Map;
-
-import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
 
 /**
  * Request for the replay command
@@ -73,15 +73,19 @@ public class ReplayRequest {
     }
 
     /**
+     * @deprecated This value is not very reliable and is being removed in future.
      * @return the activity
      */
+    @Deprecated
     public String getActivity() {
         return activity;
     }
 
     /**
+     * @deprecated This value is not very reliable and is being removed in future.
      * @param activity the activity to set
      */
+    @Deprecated
     public void setActivity(String activity) {
         this.activity = activity;
     }
