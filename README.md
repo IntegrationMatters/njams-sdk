@@ -1,5 +1,6 @@
 # nJAMS SDK
 ![GitHub all releases](https://img.shields.io/github/downloads/IntegrationMatters/njams-sdk/total)
+![GitHub release (latest by date)](https://img.shields.io/github/v/release/Integrationmatters/njams-sdk)
 
 The nJAMS Client SDK provides implementations to connect to nJAMS Server and create messages via Java classes. It should be the underlying base when you try to create a nJAMS client.
 
