@@ -43,8 +43,8 @@ public class NamespaceResolver implements NamespaceContext {
     private static final Logger LOG = LoggerFactory.getLogger(NamespaceResolver.class);
 
     private static final String DEFAULT_NS = "DEFAULT";
-    private final Map<String, String> prefix2Uri = new HashMap<String, String>();
-    private final Map<String, String> uri2Prefix = new HashMap<String, String>();
+    private final Map<String, String> prefix2Uri = new HashMap<>();
+    private final Map<String, String> uri2Prefix = new HashMap<>();
     private boolean namespacesLoaded = false;
     private String strXML = null;
     private Boolean toplevelOnly = false;
@@ -191,7 +191,7 @@ public class NamespaceResolver implements NamespaceContext {
     }
 
     @Override
-    public Iterator<?> getPrefixes(String namespaceURI) {
+    public Iterator<String> getPrefixes(String namespaceURI) {
         // Not implemented
         return null;
     }

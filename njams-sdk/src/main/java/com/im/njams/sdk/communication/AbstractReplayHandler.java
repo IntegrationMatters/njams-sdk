@@ -89,26 +89,34 @@ public abstract class AbstractReplayHandler implements ReplayHandler {
 
     /**
      * Execute a replay according to the given arguments.
+     * @deprecated See deprecated parameters which will be removed in a future release.
      *
      * @param processName The name of the process that shall be replayed.
      * @param startData Optional input data for executing the process. May be <code>null</code>.
-     * @param startActivity Optional name of the starter activity. May be <code>null</code>.
-     * @param deepTrace Whether or not the job shall be executed with deep-trace enabled.
+     * @param startActivity <b>Deprecated.</b> <i>This value is not very reliable and is being removed in future.</i>
+     *        Optional name of the starter activity. May be <code>null</code>.
+     * @param deepTrace <b>Deprecated.</b> <i>This flag is handled internally by the SDK.</i>
+     *        Whether or not the job shall be executed with deep-trace enabled.
      * @return The nJAMS log-ID of the replayed job instance needs to be returned for indicating that the according
      * job has been started or has been scheduled for start.
      * @throws Exception Any error that occurred when trying to start the replayed process.
      */
-    public abstract String executeReplay(String processName, String startData, String startActivity, boolean deepTrace)
-            throws Exception;
+    @Deprecated
+    public abstract String executeReplay(String processName, String startData, @Deprecated String startActivity,
+            @Deprecated boolean deepTrace) throws Exception;
 
     /**
      * Test whether or not the given process can be replayed using the given arguments. Throwing any exception indicates
      * that the test failed while completing normal indicates test success.
+     * @deprecated See deprecated parameter which will be removed in a future release.
      *
      * @param processName The name of the process that shall be replayed.
      * @param startData Optional input data for executing the process. May be <code>null</code>.
-     * @param startActivity Optional name of the starter activity. May be <code>null</code>.
+     * @param startActivity <b>Deprecated.</b> <i>This value is not very reliable and is being removed in future.</i>
+     *        Optional name of the starter activity. May be <code>null</code>.
      * @throws Exception Any error indicating that the test failed.
      */
-    public abstract void testReplay(String processName, String startData, String startActivity) throws Exception;
+    @Deprecated
+    public abstract void testReplay(String processName, String startData, @Deprecated String startActivity)
+            throws Exception;
 }
