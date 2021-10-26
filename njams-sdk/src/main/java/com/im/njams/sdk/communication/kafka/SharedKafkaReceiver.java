@@ -59,7 +59,7 @@ public class SharedKafkaReceiver extends KafkaReceiver implements ShareableRecei
     }
 
     @Override
-    public Path getReceiverPath(ConsumerRecord<?, ?> requestMessage) {
+    public Path getReceiverPath(ConsumerRecord<?, ?> requestMessage, Instruction instruction) {
         return new Path(getHeader(requestMessage, NJAMS_RECEIVER));
     }
 

@@ -16,9 +16,10 @@
  */
 package com.im.njams.sdk.communication.cloud;
 
+import org.slf4j.LoggerFactory;
+
 import com.amazonaws.services.iot.client.AWSIotMessage;
 import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
-import org.slf4j.LoggerFactory;
 
 public class SharedCloudTopic extends CloudTopic {
 
@@ -37,15 +38,7 @@ public class SharedCloudTopic extends CloudTopic {
             LOG.info("Received message on topic {}:\n{}", message.getTopic(), message.getStringPayload());
             Instruction instruction = getInstruction(message);
             if (instruction != null) {
-                String uuid = getUUID(instruction);
-                if (uuid != null) {
-                    String processPath = instruction.getRequestParameterByName("processPath");
-                    
-                    receiver.onInstruction(instruction, receiver.getNjamsInstanceByPath(processPath));
-                    reply(instruction, uuid);
-                } else {
-                    LOG.error("Received message on topic {} does not contain a valid mqttUuid. Ignore!");
-                }
+                receiver.onInstruction(message, instruction);
             } else {
                 LOG.warn("Received message on topic {} is not a valid instruction. Ignore!", message.getTopic());
             }

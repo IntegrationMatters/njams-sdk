@@ -53,9 +53,10 @@ public interface ShareableReceiver<M> extends Receiver {
      * {@link Njams} instance's {@link Njams#getClientPath()}.
      *
      * @param requestMessage
+     * @param instruction
      * @return
      */
-    public Path getReceiverPath(M requestMessage);
+    public Path getReceiverPath(M requestMessage, Instruction instruction);
 
     /**
      * Sends the given reply message as response to the given request message.

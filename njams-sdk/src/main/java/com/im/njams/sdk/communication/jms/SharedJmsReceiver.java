@@ -126,7 +126,7 @@ public class SharedJmsReceiver extends JmsReceiver implements ShareableReceiver<
     }
 
     @Override
-    public Path getReceiverPath(Message requestMessage) {
+    public Path getReceiverPath(Message requestMessage, Instruction instruction) {
         try {
             return new Path(requestMessage.getStringProperty("NJAMS_RECEIVER"));
         } catch (JMSException e) {

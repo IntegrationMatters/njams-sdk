@@ -89,7 +89,7 @@ public class SharedReceiverSupport<R extends AbstractReceiver & ShareableReceive
      * instance was found. Otherwise, the request is simply ignored.
      */
     public void onInstruction(M message, Instruction instruction, boolean failOnMissingInstance) {
-        final Path receiverPath = receiver.getReceiverPath(message);
+        final Path receiverPath = receiver.getReceiverPath(message, instruction);
         LOG.debug("Received instruction {} with target {}", instruction.getCommand(), receiverPath);
         if (receiverPath == null) {
             return;
@@ -173,7 +173,7 @@ public class SharedReceiverSupport<R extends AbstractReceiver & ShareableReceive
                     .stream()
                     .filter(n -> size < n.getClientPath().getParts().size()
                             && receiverPath.getParts().equals(n.getClientPath().getParts().subList(0, size)))
-                    .collect(Collectors.toList());
+                            .collect(Collectors.toList());
         } catch (Exception e) {
             LOG.error("Failed to resolve instruction receiver.", e);
         }
