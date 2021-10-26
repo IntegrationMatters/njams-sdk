@@ -37,173 +37,164 @@ import com.im.njams.sdk.settings.Settings;
  */
 public class SimpleClient {
 
-	public static void main(String[] args) throws InterruptedException {
+    public static void main(String[] args) throws InterruptedException {
 
-		String technology = "sdk4";
+        String technology = "sdk4";
 
-		// Specify a client path. This path specifies where your client instance will be
-		// visible in the object tree.
-		Path clientPath = new Path("SDK4", "Client", "Simple");
+        // Specify a client path. This path specifies where your client instance will be
+        // visible in the object tree.
+        Path clientPath = new Path("SDK4", "Client", "Simple");
 
-		// Create communicationProperties, which specify how your client will
-		// communicate with the server
-		Settings settings = getJmsProperties();
-		// Settings settings = getCloudProperties();
+        // Create communicationProperties, which specify how your client will
+        // communicate with the server
+        Settings settings = getJmsProperties();
+        // Settings settings = getCloudProperties();
 
-		// Instantiate client for first application
-		Njams njams = new Njams(clientPath, "1.0.0", technology, settings);
+        // Instantiate client for first application
+        Njams njams = new Njams(clientPath, "1.0.0", technology, settings);
 
-		// add custom image for your technology
-		njams.addImage(technology, "images/njams_java_sdk_process_step.png");
+        // add custom image for your technology
+        njams.addImage(technology, "images/njams_java_sdk_process_step.png");
 
-		// add custom images for your activites
-		njams.addImage("startType", "images/njams_java_sdk_process_start.png");
-		njams.addImage("stepType", "images/njams_java_sdk_process_step.png");
-		njams.addImage("endType", "images/njams_java_sdk_process_end.png");
+        // add custom images for your activites
+        njams.addImage("startType", "images/njams_java_sdk_process_start.png");
+        njams.addImage("stepType", "images/njams_java_sdk_process_step.png");
+        njams.addImage("endType", "images/njams_java_sdk_process_end.png");
 
-		/**
-		 * Creating a process by adding a ProcessModel
-		 */
-		// Specify a process path, which is relative to the client path
-		Path processPath = new Path("Processes", "SimpleProcess");
+        /**
+         * Creating a process by adding a ProcessModel
+         */
+        // Specify a process path, which is relative to the client path
+        Path processPath = new Path("Processes", "SimpleProcess");
 
-		// Create an new empty process model
-		ProcessModel process = njams.createProcess(processPath);
+        // Create an new empty process model
+        ProcessModel process = njams.createProcess(processPath);
 
-		// start the model with a start activity by id, name and type, where type should
-		// match one of your previously registered images
-		ActivityModel startModel = process.createActivity("start", "Start", "startType");
-		startModel.setStarter(true);
-		// step to the next activity
-		ActivityModel logModel = startModel.transitionTo("log", "Log", "stepType");
-		// step to the end activity
-		ActivityModel endModel = logModel.transitionTo("end", "End", "endType");
+        // start the model with a start activity by id, name and type, where type should
+        // match one of your previously registered images
+        ActivityModel startModel = process.createActivity("start", "Start", "startType");
+        startModel.setStarter(true);
+        // step to the next activity
+        ActivityModel logModel = startModel.transitionTo("log", "Log", "stepType");
+        // step to the end activity
+        ActivityModel endModel = logModel.transitionTo("end", "End", "endType");
 
-		// Start client and flush resources, which will create a projectmessage to send
-		// all resources to the server
-		njams.start();
+        // Start client and flush resources, which will create a projectmessage to send
+        // all resources to the server
+        njams.start();
 
-		/**
-		 * Running a process by creating a job
-		 */
-		// Create a job from a previously created ProcessModel
-		Job job = process.createJob();
+        /**
+         * Running a process by creating a job
+         */
+        // Create a job from a previously created ProcessModel
+        Job job = process.createJob();
 
-		// Starts the job, i.e., sets the according status, job start date if not set
-		// before, and flags the job to begin flushing.
-		job.start();
+        // Starts the job, i.e., sets the according status, job start date if not set
+        // before, and flags the job to begin flushing.
+        job.start();
 
-		// Create the start activity from the previously creates startModel
-		Activity start = job.createActivity(startModel).build();
-		// add input and output data to the activity
-		start.processInput("startInput");
-		start.processOutput("startOutput");
+        // Create the start activity from the previously creates startModel
+        Activity start = job.createActivity(startModel).build();
+        // add input and output data to the activity
+        start.processInput("startInput");
+        start.processOutput("startOutput");
 
-		// step to the next activity from the previous one.
-		Activity log = start.stepTo(logModel).build();
-		log.processInput("logInput");
-		log.processOutput("logOutput");
+        // step to the next activity from the previous one.
+        Activity log = start.stepTo(logModel).build();
+        log.processInput("logInput");
+        log.processOutput("logOutput");
 
-		// step to the end
-		Activity end = log.stepTo(endModel).build();
-		end.processInput("endInput");
-		end.processOutput("endOutput");
+        // step to the end
+        Activity end = log.stepTo(endModel).build();
+        end.processInput("endInput");
+        end.processOutput("endOutput");
 
-		// End the job, which will flush all previous steps into a logmessage wich will
-		// be send to the server
-		job.end();
+        // End the job, which will flush all previous steps into a logmessage wich will
+        // be send to the server
+        job.end();
 
-		Thread.sleep(1000);
+        Thread.sleep(1000);
 
-		// If you are finished with processing or the application goes down, stop the
-		// client...
-		njams.stop();
-	}
+        // If you are finished with processing or the application goes down, stop the
+        // client...
+        njams.stop();
+    }
 
-	private static Settings getCloudProperties() {
-		Settings communicationProperties = new Settings();
-		communicationProperties.put(CommunicationFactory.COMMUNICATION, CloudConstants.NAME);
-		communicationProperties.put(CloudConstants.ENDPOINT, "<cloud url>");
-		communicationProperties.put(CloudConstants.APIKEY, "<cloud apikey>");
-		communicationProperties.put(CloudConstants.CLIENT_INSTANCEID, "<cloud client instance>");
-		communicationProperties.put(CloudConstants.CLIENT_CERTIFICATE, "<cloud client certificate>");
-		communicationProperties.put(CloudConstants.CLIENT_PRIVATEKEY, "<cloud client privatekey>");
-		return communicationProperties;
-	}
+    private static Settings getCloudProperties() {
+        Settings communicationProperties = new Settings();
+        communicationProperties.put(CommunicationFactory.COMMUNICATION, CloudConstants.NAME);
+        communicationProperties.put(CloudConstants.ENDPOINT, "<cloud url>");
+        communicationProperties.put(CloudConstants.APIKEY, "<cloud apikey>");
+        communicationProperties.put(CloudConstants.CLIENT_INSTANCEID, "<cloud client instance>");
+        communicationProperties.put(CloudConstants.CLIENT_CERTIFICATE, "<cloud client certificate>");
+        communicationProperties.put(CloudConstants.CLIENT_PRIVATEKEY, "<cloud client privatekey>");
+        return communicationProperties;
+    }
 
-	private static Settings getJmsProperties() {
-		Settings communicationProperties = new Settings();
-		communicationProperties.put(CommunicationFactory.COMMUNICATION, "JMS");
-		communicationProperties.put(JmsConstants.INITIAL_CONTEXT_FACTORY,
-				"com.tibco.tibjms.naming.TibjmsInitialContextFactory");
-		communicationProperties.put(JmsConstants.SECURITY_PRINCIPAL, "njams");
-		communicationProperties.put(JmsConstants.SECURITY_CREDENTIALS, "njams");
-		communicationProperties.put(JmsConstants.PROVIDER_URL, "tibjmsnaming://vslems01:7222");
-		communicationProperties.put(JmsConstants.CONNECTION_FACTORY, "ConnectionFactory");
-		communicationProperties.put(JmsConstants.USERNAME, "njams");
-		communicationProperties.put(JmsConstants.PASSWORD, "njams");
-		communicationProperties.put(JmsConstants.DESTINATION, "njams.endurance");
-		// optional: if you want to use a topic for commands not following the name of
-		// the other destinations, specify it here
-		communicationProperties.put(JmsConstants.COMMANDS_DESTINATION, "njams4.dev.phillip.commands");
-		return communicationProperties;
-	}
+    private static Settings getJmsProperties() {
+        Settings communicationProperties = new Settings();
+        communicationProperties.put(CommunicationFactory.COMMUNICATION, "JMS");
+        communicationProperties.put(JmsConstants.INITIAL_CONTEXT_FACTORY,
+                "com.tibco.tibjms.naming.TibjmsInitialContextFactory");
+        communicationProperties.put(JmsConstants.SECURITY_PRINCIPAL, "njams");
+        communicationProperties.put(JmsConstants.SECURITY_CREDENTIALS, "njams");
+        communicationProperties.put(JmsConstants.PROVIDER_URL, "tibjmsnaming://vslems01:7222");
+        communicationProperties.put(JmsConstants.CONNECTION_FACTORY, "ConnectionFactory");
+        communicationProperties.put(JmsConstants.USERNAME, "njams");
+        communicationProperties.put(JmsConstants.PASSWORD, "njams");
+        communicationProperties.put(JmsConstants.DESTINATION, "njams.endurance");
+        // optional: if you want to use a topic for commands not following the name of
+        // the other destinations, specify it here
+        communicationProperties.put(JmsConstants.COMMANDS_DESTINATION, "njams4.dev.phillip.commands");
+        return communicationProperties;
+    }
 
-	private static Settings getKafkaProperties() {
-		Settings communicationProperties = new Settings();
+    private static Settings getKafkaProperties() {
+        Settings communicationProperties = new Settings();
 
-		// nJAMS properties
-		communicationProperties.put(CommunicationFactory.COMMUNICATION, "Kafka");
-		communicationProperties.put(KafkaConstants.IDLE_COMMANDS_RESPONSE_PRODUCER_TIMEOUT, "300000"); // in ms
-		communicationProperties.put(KafkaConstants.DESTINATION, "njams");
+        // nJAMS properties
+        communicationProperties.put(CommunicationFactory.COMMUNICATION, "Kafka");
+        communicationProperties.put(KafkaConstants.REPLY_PRODUCER_IDLE_TIME, "300000"); // in ms
+        communicationProperties.put(KafkaConstants.TOPIC_PREFIX, "njams");
 
-		// Kafka properties
-		communicationProperties.put(KafkaConstants.PROPERTY_PREFIX + "group.id", "njams-test-consumer");
-		communicationProperties.put(KafkaConstants.PROPERTY_PREFIX + "bootstrap.servers", "10.10.0.2:9091");
-		communicationProperties.put(KafkaConstants.PROPERTY_PREFIX + "key.serializer",
-				"org.apache.kafka.common.serialization.StringSerializer");
-		communicationProperties.put(KafkaConstants.PROPERTY_PREFIX + "value.serializer",
-				"org.apache.kafka.common.serialization.StringSerializer");
-		communicationProperties.put(KafkaConstants.PROPERTY_PREFIX + "key.deserializer",
-				"org.apache.kafka.common.serialization.StringDeserializer");
-		communicationProperties.put(KafkaConstants.PROPERTY_PREFIX + "value.deserializer",
-				"org.apache.kafka.common.serialization.StringDeserializer");
+        // Kafka properties
+        communicationProperties.put(KafkaConstants.PROPERTY_PREFIX + "bootstrap.servers", "10.10.0.2:9091");
 
-		// SASL_PLAIN
-		/*
-		 * communicationProperties.put(KafkaConstants.PROPERTY_PREFIX +
-		 * "sasl.mechanism", "PLAIN");
-		 * communicationProperties.put(KafkaConstants.PROPERTY_PREFIX +
-		 * "sasl.jaas.config",
-		 * "org.apache.kafka.common.security.plain.PlainLoginModule required username=\"njams\" password=\"njams-secret\";"
-		 * );
-		 */
+        // SASL_PLAIN
+        /*
+         * communicationProperties.put(KafkaConstants.PROPERTY_PREFIX +
+         * "sasl.mechanism", "PLAIN");
+         * communicationProperties.put(KafkaConstants.PROPERTY_PREFIX +
+         * "sasl.jaas.config",
+         * "org.apache.kafka.common.security.plain.PlainLoginModule required username=\"njams\" password=\"njams-secret\";"
+         * );
+         */
 
-		// SSL
-		communicationProperties.put(KafkaConstants.PROPERTY_PREFIX + "security.protocol", "SSL");
-		communicationProperties.put(KafkaConstants.PROPERTY_PREFIX + "ssl.truststore.location",
-				"C:\\tmp\\certificates\\kafka.truststore");
-		communicationProperties.put(KafkaConstants.PROPERTY_PREFIX + "ssl.truststore.password", "Aa123456!");
-		communicationProperties.put(KafkaConstants.PROPERTY_PREFIX + "ssl.keystore.location",
-				"C:\\tmp\\certificates\\kafka.keystore");
-		communicationProperties.put(KafkaConstants.PROPERTY_PREFIX + "ssl.keystore.password", "Aa123456!");
-		communicationProperties.put(KafkaConstants.PROPERTY_PREFIX + "ssl.key.password", "Aa123456!");
+        // SSL
+        communicationProperties.put(KafkaConstants.PROPERTY_PREFIX + "security.protocol", "SSL");
+        communicationProperties.put(KafkaConstants.PROPERTY_PREFIX + "ssl.truststore.location",
+                "C:\\tmp\\certificates\\kafka.truststore");
+        communicationProperties.put(KafkaConstants.PROPERTY_PREFIX + "ssl.truststore.password", "Aa123456!");
+        communicationProperties.put(KafkaConstants.PROPERTY_PREFIX + "ssl.keystore.location",
+                "C:\\tmp\\certificates\\kafka.keystore");
+        communicationProperties.put(KafkaConstants.PROPERTY_PREFIX + "ssl.keystore.password", "Aa123456!");
+        communicationProperties.put(KafkaConstants.PROPERTY_PREFIX + "ssl.key.password", "Aa123456!");
 
-		// SASL_SSL
-		/*
-		 * communicationProperties.put(KafkaConstants.PROPERTY_PREFIX +
-		 * "sasl.mechanism", "PLAIN");
-		 * communicationProperties.put(KafkaConstants.PROPERTY_PREFIX +
-		 * "security.protocol", "SASL_SSL");
-		 * communicationProperties.put(KafkaConstants.PROPERTY_PREFIX +
-		 * "ssl.truststore.location", "C:\\tmp\\certificates\\kafka.truststore");
-		 * communicationProperties.put(KafkaConstants.PROPERTY_PREFIX +
-		 * "ssl.truststore.password", "Aa123456!");
-		 * communicationProperties.put(KafkaConstants.PROPERTY_PREFIX +
-		 * "sasl.jaas.config",
-		 * "org.apache.kafka.common.security.plain.PlainLoginModule required username=\"njams\" password=\"njams-secret\";"
-		 * );
-		 */
-		return communicationProperties;
-	}
+        // SASL_SSL
+        /*
+         * communicationProperties.put(KafkaConstants.PROPERTY_PREFIX +
+         * "sasl.mechanism", "PLAIN");
+         * communicationProperties.put(KafkaConstants.PROPERTY_PREFIX +
+         * "security.protocol", "SASL_SSL");
+         * communicationProperties.put(KafkaConstants.PROPERTY_PREFIX +
+         * "ssl.truststore.location", "C:\\tmp\\certificates\\kafka.truststore");
+         * communicationProperties.put(KafkaConstants.PROPERTY_PREFIX +
+         * "ssl.truststore.password", "Aa123456!");
+         * communicationProperties.put(KafkaConstants.PROPERTY_PREFIX +
+         * "sasl.jaas.config",
+         * "org.apache.kafka.common.security.plain.PlainLoginModule required username=\"njams\" password=\"njams-secret\";"
+         * );
+         */
+        return communicationProperties;
+    }
 }
