@@ -17,10 +17,6 @@
 package com.im.njams.sdk.communication.jms;
 
 import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 import javax.jms.JMSException;
@@ -30,11 +26,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
-import com.faizsiegeln.njams.messageformat.v4.command.Response;
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.common.Path;
-import com.im.njams.sdk.communication.InstructionListener;
 import com.im.njams.sdk.communication.ShareableReceiver;
+import com.im.njams.sdk.communication.SharedReceiverSupport;
 
 /**
  * Overrides the common {@link JmsReceiver} for supporting receiving messages for multiple {@link Njams} instances.
@@ -42,11 +37,12 @@ import com.im.njams.sdk.communication.ShareableReceiver;
  * @author cwinkler
  *
  */
-public class SharedJmsReceiver extends JmsReceiver implements ShareableReceiver {
+public class SharedJmsReceiver extends JmsReceiver implements ShareableReceiver<Message> {
 
     private static final Logger LOG = LoggerFactory.getLogger(SharedJmsReceiver.class);
 
-    private final Map<Path, Njams> njamsInstances = new ConcurrentHashMap<>();
+    private final SharedReceiverSupport<SharedJmsReceiver, Message> sharingSupport =
+            new SharedReceiverSupport<>(this);
 
     /**
      * This method creates a String that is used as a message selector.
@@ -55,10 +51,11 @@ public class SharedJmsReceiver extends JmsReceiver implements ShareableReceiver 
      */
     @Override
     protected String createMessageSelector() {
+        final Collection<Njams> njamsInstances = sharingSupport.getAllNjamsInstances();
         if (njamsInstances.isEmpty()) {
             return null;
         }
-        final String selector = njamsInstances.values().stream().map(Njams::getClientPath).map(Path::getAllPaths)
+        final String selector = njamsInstances.stream().map(Njams::getClientPath).map(Path::getAllPaths)
                 .flatMap(Collection::stream).collect(Collectors.toSet()).stream().map(Object::toString).sorted()
                 .collect(Collectors.joining("' OR NJAMS_RECEIVER = '", "NJAMS_RECEIVER = '", "'"));
         LOG.debug("Updated message selector: {}", selector);
@@ -73,31 +70,20 @@ public class SharedJmsReceiver extends JmsReceiver implements ShareableReceiver 
     @Override
     public void setNjams(Njams njamsInstance) {
         super.setNjams(null);
-        synchronized (njamsInstances) {
-            njamsInstances.put(njamsInstance.getClientPath(), njamsInstance);
+        sharingSupport.addNjams(njamsInstance);
+        synchronized (this) {
             messageSelector = createMessageSelector();
             updateConsumer();
         }
-        LOG.debug("Added client {} to shared receiver; {} attached receivers.", njamsInstance.getClientPath(),
-                njamsInstances.size());
     }
 
     @Override
     public void removeNjams(Njams njamsInstance) {
-
-        boolean callStop;
-        synchronized (njamsInstances) {
-            njamsInstances.remove(njamsInstance.getClientPath());
-            callStop = njamsInstances.isEmpty();
-            messageSelector = createMessageSelector();
-            if (!callStop) {
+        if (sharingSupport.removeNjams(njamsInstance)) {
+            synchronized (this) {
+                messageSelector = createMessageSelector();
                 updateConsumer();
             }
-        }
-        LOG.debug("Removed client {} from shared receiver; {} remaining receivers.", njamsInstance.getClientPath(),
-                njamsInstances.size());
-        if (callStop) {
-            super.stop();
         }
     }
 
@@ -117,8 +103,7 @@ public class SharedJmsReceiver extends JmsReceiver implements ShareableReceiver 
     }
 
     /**
-     * This method is the MessageListener implementation. It receives JMS
-     * Messages automatically.
+     * This method is the MessageListener implementation. It receives JMS messages automatically.
      *
      * @param msg the newly arrived JMS message.
      */
@@ -134,95 +119,25 @@ public class SharedJmsReceiver extends JmsReceiver implements ShareableReceiver 
             if (instruction == null) {
                 return;
             }
-            final List<Njams> instances = getNjamsTargets(msg);
-            if (!instances.isEmpty()) {
-                if (LOG.isDebugEnabled()) {
-                    LOG.debug(
-                            "Received instruction {} for {}",
-                            instruction.getCommand(),
-                            instances.stream().map(n -> n.getClientPath().toString()).collect(Collectors.toList()));
-                }
-                if (instances.size() > 1) {
-                    instances.parallelStream().forEach(i -> onInstruction(instruction, i));
-                } else {
-                    onInstruction(instruction, instances.get(0));
-                }
-            } else {
-                LOG.error("No client found for: {}", msg.getStringProperty("NJAMS_RECEIVER"));
-                instruction.setResponseResultCode(99);
-                instruction.setResponseResultMessage("Client instance not found.");
-            }
-            reply(msg, instruction);
+            sharingSupport.onInstruction(msg, instruction, true);
         } catch (Exception e) {
             LOG.error("Error in onMessage", e);
         }
     }
 
-    /**
-     * Returns the {@link Njams} instance(s) that shall receive the given message.
-     * @param msg
-     * @return
-     */
-    private List<Njams> getNjamsTargets(Message msg) {
+    @Override
+    public Path getReceiverPath(Message requestMessage) {
         try {
-            final Path p = new Path(msg.getStringProperty("NJAMS_RECEIVER"));
-            final Njams found = njamsInstances.get(p);
-            if (found != null) {
-                return Collections.singletonList(found);
-            }
-            final int size = p.getParts().size();
-            return njamsInstances
-                    .values()
-                    .stream()
-                    .filter(n -> size < n.getClientPath().getParts().size()
-                            && p.getParts().equals(n.getClientPath().getParts().subList(0, size)))
-                            .collect(Collectors.toList());
+            return new Path(requestMessage.getStringProperty("NJAMS_RECEIVER"));
         } catch (JMSException e) {
-            LOG.error("Error reading JMS message", e);
+            LOG.error("Error reading JMS property", e);
         }
         return null;
     }
 
     @Override
-    public void onInstruction(Instruction instruction, Njams njams) {
-        LOG.debug("OnInstruction: {} for {}", instruction == null ? "null" : instruction.getCommand(),
-                njams.getClientPath());
-        if (instruction == null) {
-            LOG.error("Instruction should not be null");
-            return;
-        }
-        if (instruction.getRequest() == null || instruction.getRequest().getCommand() == null) {
-            LOG.error("Instruction should have a valid request with a command");
-            Response response = new Response();
-            response.setResultCode(1);
-            response.setResultMessage("Instruction should have a valid request with a command");
-            instruction.setResponse(response);
-            return;
-        }
-        //Extend your request here. If something doesn't work as expected,
-        //you can return a response that will be sent back to the server without further processing.
-        Response exceptionResponse = extendRequest(instruction.getRequest());
-        if (exceptionResponse != null) {
-            //Set the exception response
-            instruction.setResponse(exceptionResponse);
-        } else {
-            for (InstructionListener listener : njams.getInstructionListeners()) {
-                try {
-                    listener.onInstruction(instruction);
-                } catch (Exception e) {
-                    LOG.error("Error in InstructionListener {}", listener.getClass().getSimpleName(), e);
-                }
-            }
-            //If response is empty, no InstructionListener found. Set default Response indicating this.
-            if (instruction.getResponse() == null) {
-                LOG.warn("No InstructionListener for {} found", instruction.getRequest().getCommand());
-                Response response = new Response();
-                response.setResultCode(1);
-                response.setResultMessage(
-                        "No InstructionListener for " + instruction.getRequest().getCommand() + " found");
-                instruction.setResponse(response);
-            }
-        }
+    public void sendReply(Message requestMessage, Instruction reply) {
+        reply(requestMessage, reply);
     }
 
 }

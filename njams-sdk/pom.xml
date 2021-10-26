@@ -202,6 +202,11 @@
             <version>0.2.0</version>
         </dependency>
 
+        <dependency>
+            <groupId>org.apache.kafka</groupId>
+            <artifactId>kafka-clients</artifactId>
+        </dependency>
+
         <!-- provided - not shaded -->
         <dependency>
             <groupId>javax.jms</groupId>
@@ -247,11 +252,6 @@
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-log4j12</artifactId>
             <scope>test</scope>
-        </dependency>
-	    
-        <dependency>
-            <groupId>org.apache.kafka</groupId>
-            <artifactId>kafka-clients</artifactId>
         </dependency>
 
     </dependencies>

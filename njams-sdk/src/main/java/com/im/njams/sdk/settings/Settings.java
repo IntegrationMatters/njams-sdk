@@ -110,6 +110,8 @@ public class Settings {
     /** Setting for truncating successful jobs, provided that they were processed as single message.  */
     public static final String PROPERTY_TRUNCATE_ON_SUCCESS = "njams.sdk.truncateOnSuccess";
 
+    public static final String INTERNAL_PROPERTY_CLIENTPATH = "njams.$clientPath";
+
     public Settings() {
         properties = new Properties();
         secureProperties.add("password");
@@ -223,10 +225,10 @@ public class Settings {
     public Properties filter(String prefix) {
         Properties response = new Properties();
         properties.entrySet()
-        .stream()
-        .filter(e -> String.class.isAssignableFrom(e.getKey().getClass()))
-        .filter(e -> ((String) e.getKey()).startsWith(prefix))
-        .forEach(e -> response.setProperty((String) e.getKey(), (String) e.getValue()));
+                .stream()
+                .filter(e -> String.class.isAssignableFrom(e.getKey().getClass()))
+                .filter(e -> ((String) e.getKey()).startsWith(prefix))
+                .forEach(e -> response.setProperty((String) e.getKey(), (String) e.getValue()));
         return Transformer.decode(properties);
     }
 
@@ -240,12 +242,12 @@ public class Settings {
     public Properties filterAndCut(String prefix) {
         Properties response = new Properties();
         properties.entrySet()
-        .stream()
-        .filter(e -> String.class.isAssignableFrom(e.getKey().getClass()))
-        .filter(e -> ((String) e.getKey()).startsWith(prefix))
-        .forEach(e -> response.setProperty(
-                ((String) e.getKey()).substring(((String) e.getKey()).indexOf(prefix) + prefix.length()),
-                (String) e.getValue()));
+                .stream()
+                .filter(e -> String.class.isAssignableFrom(e.getKey().getClass()))
+                .filter(e -> ((String) e.getKey()).startsWith(prefix))
+                .forEach(e -> response.setProperty(
+                        ((String) e.getKey()).substring(((String) e.getKey()).indexOf(prefix) + prefix.length()),
+                        (String) e.getValue()));
         return Transformer.decode(properties);
     }
 

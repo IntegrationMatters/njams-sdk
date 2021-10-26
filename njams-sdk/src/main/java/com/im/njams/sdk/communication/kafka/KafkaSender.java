@@ -24,16 +24,16 @@
 
 package com.im.njams.sdk.communication.kafka;
 
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
+import static com.im.njams.sdk.communication.kafka.KafkaHeadersUtil.headersUpdater;
+
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Properties;
 
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.KafkaException;
-import org.apache.kafka.common.header.Header;
-import org.apache.kafka.common.header.internals.RecordHeader;
+import org.apache.kafka.common.serialization.StringSerializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -49,6 +49,7 @@ import com.im.njams.sdk.communication.DiscardMonitor;
 import com.im.njams.sdk.communication.DiscardPolicy;
 import com.im.njams.sdk.communication.Sender;
 import com.im.njams.sdk.utils.JsonUtils;
+import com.im.njams.sdk.utils.StringUtils;
 
 /**
  * Kafka implementation for a Sender.
@@ -58,211 +59,229 @@ import com.im.njams.sdk.utils.JsonUtils;
  */
 public class KafkaSender extends AbstractSender {
 
-	private static final Logger LOG = LoggerFactory.getLogger(KafkaSender.class);
+    private static final Logger LOG = LoggerFactory.getLogger(KafkaSender.class);
+    private static final String PROJECT_SUFFIX = ".project";
+    private static final String EVENT_SUFFIX = ".event";
+    private static final int EXCEPTION_IDLE_TIME = 50;
+    private static final int MAX_TRIES = 100;
 
-	private KafkaProducer<String, String> producer;
-	private String destination;
+    private KafkaProducer<String, String> producer;
+    private String topicPrefix;
+    private Properties kafkaProperties;
 
-	/**
-	 * Initializes this Sender via the given Properties.
-	 * <p>
-	 * Valid properties are:
-	 * <ul>
-	 * <li>{@value com.im.njams.sdk.communication.kafka.KafkaConstants#COMMUNICATION_NAME}
-	 * <li>{@value com.im.njams.sdk.communication.kafka.KafkaConstants#DESTINATION}
-	 * <li>{@value com.im.njams.sdk.communication.kafka.KafkaConstants#COMMANDS_DESTINATION}
-	 * </ul>
-	 * See all valid properties in KafkaConstants
-	 *
-	 * @param properties the properties needed to initialize
-	 */
-	@Override
-	public void init(Properties properties) {
-		super.init(properties);
-		if (properties.containsKey(KafkaConstants.DESTINATION))
-			destination = properties.getProperty(KafkaConstants.DESTINATION) + ".event";
-		else {
-			LOG.info("No destination provided. Using default: njams");
-			destination = "njams.event";
-		}
-		try {
-			connect();
-			LOG.debug("Initialized sender {}", KafkaConstants.COMMUNICATION_NAME);
-		} catch (NjamsSdkRuntimeException e) {
-			LOG.error("Could not initialize sender {}\n", KafkaConstants.COMMUNICATION_NAME, e);
-		}
-	}
+    /**
+     * Initializes this Sender via the given Properties.
+     * <p>
+     * Valid properties are:
+     * <ul>
+     * <li>{@value com.im.njams.sdk.communication.kafka.KafkaConstants#COMMUNICATION_NAME}
+     * <li>{@value com.im.njams.sdk.communication.kafka.KafkaConstants#TOPIC_PREFIX}
+     * <li>{@value com.im.njams.sdk.communication.kafka.KafkaConstants#COMMANDS_TOPIC}
+     * </ul>
+     * See all valid properties in KafkaConstants
+     *
+     * @param properties the properties needed to initialize
+     */
+    @Override
+    public void init(Properties properties) {
+        super.init(properties);
+        kafkaProperties = KafkaConstants.filterKafkaProperties(properties);
+        if (properties.containsKey(KafkaConstants.TOPIC_PREFIX)) {
+            topicPrefix = properties.getProperty(KafkaConstants.TOPIC_PREFIX);
+        } else {
+            LOG.info("No topic provided. Using default: njams");
+            topicPrefix = "njams";
+        }
+        try {
+            connect();
+            LOG.debug("Initialized sender {}", KafkaConstants.COMMUNICATION_NAME);
+        } catch (NjamsSdkRuntimeException e) {
+            LOG.error("Could not initialize sender {}\n", KafkaConstants.COMMUNICATION_NAME, e);
+        }
+    }
 
-	/**
-	 * Create the KafkaProducer for Events.
-	 */
-	@Override
-	public synchronized void connect() throws NjamsSdkRuntimeException {
-		if (isConnected()) {
-			return;
-		}
-		try {
-			connectionStatus = ConnectionStatus.CONNECTING;
-			producer = new KafkaProducer<String, String>(getKafkaProperties(properties));
-			connectionStatus = ConnectionStatus.CONNECTED;
-		} catch (Exception e) {
-			connectionStatus = ConnectionStatus.DISCONNECTED;
-			producer.close();
+    /**
+     * Create the KafkaProducer for Events.
+     */
+    @Override
+    public synchronized void connect() throws NjamsSdkRuntimeException {
+        if (isConnected()) {
+            return;
+        }
+        try {
+            validateTopics();
+            connectionStatus = ConnectionStatus.CONNECTING;
+            producer =
+                    new KafkaProducer<String, String>(kafkaProperties, new StringSerializer(), new StringSerializer());
+            connectionStatus = ConnectionStatus.CONNECTED;
+        } catch (Exception e) {
+            connectionStatus = ConnectionStatus.DISCONNECTED;
+            if (producer != null) {
+                producer.close();
+                producer = null;
+            }
 
-			throw new NjamsSdkRuntimeException("Unable to connect", e);
-		}
-	}
+            throw new NjamsSdkRuntimeException("Unable to connect", e);
+        }
+    }
 
-	/**
-	 * Send the given LogMessage to the specified Kafka.
-	 *
-	 * @param msg the Logmessage to send
-	 */
-	@Override
-	protected void send(LogMessage msg) throws NjamsSdkRuntimeException {
-		try {
-			String data = JsonUtils.serialize(msg);
-			sendMessage(msg, Sender.NJAMS_MESSAGETYPE_EVENT, data);
-			if (LOG.isTraceEnabled()) {
-				LOG.trace("Send LogMessage {} to {}:\n{}", msg.getPath(), destination, data);
-			} else {
-				LOG.debug("Send Logmessage for {} to {}", msg.getPath(), destination);
-			}
-		} catch (Exception e) {
-			throw new NjamsSdkRuntimeException("Unable to send LogMessage", e);
-		}
-	}
+    private void validateTopics() {
+        final String[] topics = new String[] { topicPrefix + EVENT_SUFFIX, topicPrefix + PROJECT_SUFFIX };
+        final Collection<String> foundTopics = KafkaUtil.testTopics(kafkaProperties, topics);
+        LOG.debug("Found topics: {}", foundTopics);
+        if (foundTopics.size() < topics.length) {
+            final Collection<String> missing = Arrays.asList(topics);
+            missing.removeAll(foundTopics);
+            throw new NjamsSdkRuntimeException("The following required Kafka topics have not been found: " + missing);
+        }
+    }
 
-	/**
-	 * Send the given ProjectMessage to the specified Kafka.
-	 *
-	 * @param msg the Projectmessage to send
-	 */
-	@Override
-	protected void send(ProjectMessage msg) throws NjamsSdkRuntimeException {
-		try {
-			String data = JsonUtils.serialize(msg);
-			sendMessage(msg, Sender.NJAMS_MESSAGETYPE_PROJECT, data);
-			if (LOG.isTraceEnabled()) {
-				LOG.trace("Send ProjectMessage {} to {}:\n{}", msg.getPath(), destination, data);
-			} else {
-				LOG.debug("Send ProjectMessage for {} to {}", msg.getPath(), destination);
-			}
-		} catch (Exception e) {
-			throw new NjamsSdkRuntimeException("Unable to send ProjectMessage", e);
-		}
-	}
+    /**
+     * Send the given LogMessage to the specified Kafka.
+     *
+     * @param msg the Logmessage to send
+     */
+    @Override
+    protected void send(LogMessage msg) throws NjamsSdkRuntimeException {
+        try {
+            String data = JsonUtils.serialize(msg);
+            sendMessage(msg, topicPrefix + EVENT_SUFFIX, Sender.NJAMS_MESSAGETYPE_EVENT, data);
+            if (LOG.isTraceEnabled()) {
+                LOG.trace("Send LogMessage {} to {}:\n{}", msg.getPath(), topicPrefix, data);
+            } else {
+                LOG.debug("Send Logmessage for {} to {}", msg.getPath(), topicPrefix);
+            }
+        } catch (Exception e) {
+            throw new NjamsSdkRuntimeException("Unable to send LogMessage", e);
+        }
+    }
 
-	/**
-	 * Send the given Tracemessage to the specified Kafka.
-	 *
-	 * @param msg the Tracemessage to send
-	 */
-	@Override
-	protected void send(TraceMessage msg) throws NjamsSdkRuntimeException {
-		try {
-			String data = JsonUtils.serialize(msg);
-			sendMessage(msg, Sender.NJAMS_MESSAGETYPE_TRACE, data);
-			if (LOG.isTraceEnabled()) {
-				LOG.trace("Send TraceMessage {} to {}:\n{}", msg.getPath(), destination, data);
-			} else {
-				LOG.debug("Send TraceMessage for {} to {}", msg.getPath(), destination);
-			}
-		} catch (Exception e) {
-			throw new NjamsSdkRuntimeException("Unable to send TraceMessage", e);
-		}
-	}
+    /**
+     * Send the given ProjectMessage to the specified Kafka.
+     *
+     * @param msg the Projectmessage to send
+     */
+    @Override
+    protected void send(ProjectMessage msg) throws NjamsSdkRuntimeException {
+        try {
+            String data = JsonUtils.serialize(msg);
+            sendMessage(msg, topicPrefix + PROJECT_SUFFIX, Sender.NJAMS_MESSAGETYPE_PROJECT, data);
+            if (LOG.isTraceEnabled()) {
+                LOG.trace("Send ProjectMessage {} to {}:\n{}", msg.getPath(), topicPrefix, data);
+            } else {
+                LOG.debug("Send ProjectMessage for {} to {}", msg.getPath(), topicPrefix);
+            }
+        } catch (Exception e) {
+            throw new NjamsSdkRuntimeException("Unable to send ProjectMessage", e);
+        }
+    }
 
-	/**
-	 * Builds Headers and creates the ProducerRecord.
-	 *
-	 * @param msg
-	 * @param messageType
-	 * @param data
-	 * @throws InterruptedException
-	 */
-	protected void sendMessage(CommonMessage msg, String messageType, String data) throws InterruptedException {
-		List<Header> headers = new LinkedList<Header>();
-		if (msg instanceof LogMessage) {
-			headers.add(new RecordHeader(Sender.NJAMS_LOGID, ((LogMessage) msg).getLogId().getBytes()));
-		}
-		headers.add(new RecordHeader(Sender.NJAMS_MESSAGEVERSION, MessageVersion.V4.toString().getBytes()));
-		headers.add(new RecordHeader(Sender.NJAMS_MESSAGETYPE, messageType.getBytes()));
-		headers.add(new RecordHeader(Sender.NJAMS_PATH, msg.getPath().getBytes()));
+    /**
+     * Send the given Tracemessage to the specified Kafka.
+     *
+     * @param msg the Tracemessage to send
+     */
+    @Override
+    protected void send(TraceMessage msg) throws NjamsSdkRuntimeException {
+        try {
+            String data = JsonUtils.serialize(msg);
+            sendMessage(msg, topicPrefix + EVENT_SUFFIX, Sender.NJAMS_MESSAGETYPE_TRACE, data);
+            if (LOG.isTraceEnabled()) {
+                LOG.trace("Send TraceMessage {} to {}:\n{}", msg.getPath(), topicPrefix, data);
+            } else {
+                LOG.debug("Send TraceMessage for {} to {}", msg.getPath(), topicPrefix);
+            }
+        } catch (Exception e) {
+            throw new NjamsSdkRuntimeException("Unable to send TraceMessage", e);
+        }
+    }
 
-		tryToSend(new ProducerRecord<String, String>(destination, 0, "", data, headers));
-	}
+    /**
+     * Builds Headers and creates the ProducerRecord.
+     *
+     * @param msg
+     * @param messageType
+     * @param data
+     * @throws InterruptedException
+     */
+    private void sendMessage(CommonMessage msg, String topic, String messageType, String data)
+            throws InterruptedException {
+        final ProducerRecord<String, String> record;
+        final String id;
+        if (msg instanceof LogMessage) {
+            id = ((LogMessage) msg).getLogId();
+            record = new ProducerRecord<String, String>(topic, id, data);
+        } else {
+            id = null;
+            record = new ProducerRecord<String, String>(topic, data);
+        }
+        headersUpdater(record).
+                addHeader(Sender.NJAMS_MESSAGEVERSION, MessageVersion.V4.toString()).
+                addHeader(Sender.NJAMS_MESSAGETYPE, messageType).
+                addHeader(Sender.NJAMS_LOGID, id, (k, v) -> StringUtils.isNotBlank(v)).
+                addHeader(Sender.NJAMS_PATH, msg.getPath(), (k, v) -> StringUtils.isNotBlank(v));
 
-	/**
-	 * Try to send and catches Errors
-	 *
-	 * @param message
-	 * @throws InterruptedException
-	 */
-	private void tryToSend(ProducerRecord<String, String> message) throws InterruptedException {
-		boolean sended = false;
-		final int EXCEPTION_IDLE_TIME = 50;
-		final int MAX_TRIES = 100;
-		int tries = 0;
+        tryToSend(record);
+    }
 
-		do {
-			try {
-				producer.send(message);
-				sended = true;
-			} catch (KafkaException | IllegalStateException e) {
-				if (discardPolicy == DiscardPolicy.ON_CONNECTION_LOSS) {
-					LOG.debug("Applying discard policy [{}]. Message discarded.", discardPolicy);
-					DiscardMonitor.discard();
-					break;
-				}
-				if (++tries >= MAX_TRIES) {
-					LOG.warn("Try to reconnect, because the Topic couldn't be reached after {} seconds.",
-							MAX_TRIES * EXCEPTION_IDLE_TIME);
-					throw e;
-				} else {
-					Thread.sleep(EXCEPTION_IDLE_TIME);
-				}
-			}
-		} while (!sended);
-	}
-	
-	private Properties getKafkaProperties(Properties njamsProperties) {
-		Properties kafkaProperties = new Properties();
-		Iterator<Object> keys = properties.keySet().iterator();
-		while (keys.hasNext()) {
-			String key = (String) keys.next();
-			if (key.contains(KafkaConstants.PROPERTY_PREFIX))
-				kafkaProperties.put(key.substring(KafkaConstants.PROPERTY_PREFIX.length()), properties.getProperty(key));
-		}
-		return kafkaProperties;
-	}
+    /**
+     * Try to send and catches Errors
+     *
+     * @param message
+     * @throws InterruptedException
+     */
+    private void tryToSend(ProducerRecord<String, String> message) throws InterruptedException {
+        boolean sent = false;
 
-	/**
-	 * Close this Sender.
-	 */
-	@Override
-	public synchronized void close() {
-		if (!isConnected()) {
-			return;
-		}
-		connectionStatus = ConnectionStatus.DISCONNECTED;
-		if (producer != null) {
-			try {
-				producer.close();
-				producer = null;
-			} catch (KafkaException ex) {
-				LOG.warn("Unable to close connection", ex);
-			} catch (IllegalArgumentException ex) {
-				LOG.warn("Unable to close connection", ex);
-			}
-		}
-	}
+        int tries = 0;
 
-	/**
-	 * @return the name of this Sender. (Kafka)
-	 */
-	@Override
-	public String getName() {
-		return KafkaConstants.COMMUNICATION_NAME;
-	}
+        do {
+            try {
+                producer.send(message);
+                sent = true;
+            } catch (KafkaException | IllegalStateException e) {
+                if (discardPolicy == DiscardPolicy.ON_CONNECTION_LOSS) {
+                    LOG.debug("Applying discard policy [{}]. Message discarded.", discardPolicy);
+                    DiscardMonitor.discard();
+                    break;
+                }
+                if (++tries >= MAX_TRIES) {
+                    LOG.warn("Try to reconnect, because the topic couldn't be reached after {} seconds.",
+                            MAX_TRIES * EXCEPTION_IDLE_TIME);
+                    throw e;
+                } else {
+                    Thread.sleep(EXCEPTION_IDLE_TIME);
+                }
+            }
+        } while (!sent);
+    }
+
+    /**
+     * Close this Sender.
+     */
+    @Override
+    public synchronized void close() {
+        if (!isConnected()) {
+            return;
+        }
+        connectionStatus = ConnectionStatus.DISCONNECTED;
+        if (producer != null) {
+            try {
+                producer.close();
+                producer = null;
+            } catch (KafkaException ex) {
+                LOG.warn("Unable to close connection", ex);
+            } catch (IllegalArgumentException ex) {
+                LOG.warn("Unable to close connection", ex);
+            }
+        }
+    }
+
+    /**
+     * @return the name of this Sender. (Kafka)
+     */
+    @Override
+    public String getName() {
+        return KafkaConstants.COMMUNICATION_NAME;
+    }
 }

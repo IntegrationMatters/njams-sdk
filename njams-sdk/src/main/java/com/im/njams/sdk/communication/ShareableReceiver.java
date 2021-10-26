@@ -18,13 +18,14 @@ package com.im.njams.sdk.communication;
 
 import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
 import com.im.njams.sdk.Njams;
+import com.im.njams.sdk.common.Path;
 
 /**
  * Interface to be implemented by {@link Receiver}s that support receiving messages for multiple {@link Njams} instances.
  * @author cwinkler
  *
  */
-public interface ShareableReceiver extends Receiver {
+public interface ShareableReceiver<M> extends Receiver {
 
     /**
      * Stops the given {@link Njams} instance from receiving messages from this receiver instance.
@@ -32,25 +33,36 @@ public interface ShareableReceiver extends Receiver {
      */
     public void removeNjams(Njams njams);
 
+    @Override
+    public void setNjams(Njams njams);
+
     /**
      * Passes the instruction to the according {@link Njams} instance.
+     * @deprecated No longer used.
      * @param instruction The instruction to process.
      * @param njams The {@link Njams} instance to receive the instruction.
      * @see Receiver#onInstruction(Instruction)
      */
-    public void onInstruction(Instruction instruction, Njams njams);
+    @Deprecated
+    public default void onInstruction(Instruction instruction, Njams njams) {
+        // nothing
+    }
 
     /**
-     * Always throws an {@link UnsupportedOperationException}. Use {@link #removeNjams(Njams)} for stopping an
-     * {@link Njams} instance from receiving instructions from this receiver.
+     * Has to extract the receiver instance (client) path, i.e., the path that matches a certain
+     * {@link Njams} instance's {@link Njams#getClientPath()}.
      *
-     * @see com.im.njams.sdk.communication.jms.JmsReceiver#stop()
-     * @throws UnsupportedOperationException always
+     * @param requestMessage
+     * @return
      */
-    @Override
-    public default void stop() {
-        throw new UnsupportedOperationException("Use removeNjams to stop an instance from receiving messages.");
-    }
+    public Path getReceiverPath(M requestMessage);
+
+    /**
+     * Sends the given reply message as response to the given request message.
+     * @param requestMessage
+     * @param reply
+     */
+    public void sendReply(M requestMessage, Instruction reply);
 
     /**
      * Always throws an {@link UnsupportedOperationException}. This method is replaced by
