@@ -39,7 +39,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Properties;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.stream.Stream;
@@ -250,7 +249,8 @@ public class Njams implements InstructionListener {
     private static final String NOT_STARTED_EXCEPTION_MESSAGE = "The instance needs to be started first!";
 
     private ReplayHandler replayHandler = null;
-    private final Set<String> replayedLogIds = new HashSet<>();
+    // logId of replayed job -> deep-trace flag from the replay request
+    private final Map<String, Boolean> replayedLogIds = new HashMap<>();
 
     private ArgosSender argosSender = null;
     private final Collection<ArgosMultiCollector<?>> argosCollectors = new ArrayList<>();
@@ -842,8 +842,12 @@ public class Njams implements InstructionListener {
     public void addJob(Job job) {
         if (isStarted()) {
             synchronized (replayedLogIds) {
-                if (replayedLogIds.remove(job.getLogId())) {
+                final Boolean deepTrace = replayedLogIds.remove(job.getLogId());
+                if (deepTrace != null) {
                     job.addAttribute(ReplayHandler.NJAMS_REPLAYED_ATTRIBUTE, "true");
+                    if (deepTrace) {
+                        job.setDeepTrace(true);
+                    }
                 }
             }
             jobs.put(job.getJobId(), job);
@@ -960,7 +964,7 @@ public class Njams implements InstructionListener {
                     final ReplayResponse replayResponse = replayHandler.replay(replayRequest);
                     replayResponse.addParametersToInstruction(instruction);
                     if (!replayRequest.getTest()) {
-                        setReplayMarker(replayResponse.getMainLogId());
+                        setReplayMarker(replayResponse.getMainLogId(), replayRequest.getDeepTrace());
                     }
                 } catch (final Exception ex) {
                     response.setResultCode(2);
@@ -980,7 +984,7 @@ public class Njams implements InstructionListener {
      * SDK-197
      * @param logId
      */
-    private void setReplayMarker(final String logId) {
+    private void setReplayMarker(final String logId, boolean deepTrace) {
         if (StringUtils.isBlank(logId)) {
             return;
         }
@@ -988,10 +992,13 @@ public class Njams implements InstructionListener {
         if (job != null) {
             // if the job is already known, set the marker
             job.addAttribute(ReplayHandler.NJAMS_REPLAYED_ATTRIBUTE, "true");
+            if (deepTrace) {
+                job.setDeepTrace(true);
+            }
         } else {
             // remember the log ID for when the job is added later -> consumed by addJob(...)
             synchronized (replayedLogIds) {
-                replayedLogIds.add(logId);
+                replayedLogIds.put(logId, deepTrace);
             }
         }
     }

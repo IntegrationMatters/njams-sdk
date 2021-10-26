@@ -21,3 +21,4 @@ njams-sdk-sample-app/.settings/org.eclipse.wst.jsdt.ui.superType.name
 njams-sdk-sample-app/.settings/org.eclipse.wst.jsdt.ui.superType.container
 njams-sdk-sample-app/.settings/org.eclipse.wst.validation.prefs
 njams-sdk-sample-client/configuration.json
+build.cmd
