@@ -71,16 +71,31 @@ node ('master') {
             archiveArtifacts 'target/*.jar'
         }
    }
-   stage('Javadoc') {
-       echo "Build Javadoc"
+   stage('Checkstyle') {
+       echo "Build Checkstyle"
        dir ('njams-sdk') {
 	      try {
-             sh "'${mvnHome}/bin/mvn' validate -Pcheckstyle "
+             sh "'${mvnHome}/bin/mvn' site"
           } finally {
              archiveArtifacts '**/checkstyle-result.xml'
-             step([$class: 'hudson.plugins.checkstyle.CheckStylePublisher', pattern: '**/checkstyle-result.xml', unstableTotalAll:'0'])
           }
 
+          publishHTML([allowMissing: false,
+              alwaysLinkToLastBuild: false,
+              keepAll: false,
+              reportDir: 'target/site/',
+              reportFiles: 'checkstyle.html',
+              reportName: 'Checkstyle results',
+              reportTitles: ''])
+
+          // run again to fail on error
+          sh "'${mvnHome}/bin/mvn' validate -Pcheckstyle "
+
+       }
+   }
+ 	stage('Javadoc') {
+       echo "Build Javadoc"
+       dir ('njams-sdk') {
           sh "'${mvnHome}/bin/mvn' javadoc:javadoc"
 
           publishHTML([allowMissing: false,
@@ -91,5 +106,5 @@ node ('master') {
               reportName: 'Javadoc',
               reportTitles: ''])
        }
-   }
+   }   
 }
