@@ -42,6 +42,7 @@ public class SharedReceiverSupport<R extends AbstractReceiver & ShareableReceive
     /**
      * Adds the given instance to this receiver for receiving instructions.
      *
+     * @param njamsInstance The instance to add.
      * @see com.im.njams.sdk.communication.jms.JmsReceiver#setNjams(com.im.njams.sdk.Njams)
      */
     public void addNjams(Njams njamsInstance) {
@@ -55,7 +56,7 @@ public class SharedReceiverSupport<R extends AbstractReceiver & ShareableReceive
     /**
      * Removes an instance from this receiver.
      *
-     * @param njamsInstance
+     * @param njamsInstance The instance to remove.
      * @return <code>true</code> if the actual receiver has been stopped, i.e., when there are no more instances
      * registered with this shared receiver.
      */
@@ -75,7 +76,7 @@ public class SharedReceiverSupport<R extends AbstractReceiver & ShareableReceive
 
     /**
      * Returns all currently registered {@link Njams} instances.
-     * @return
+     * @return All currently registered {@link Njams} instances.
      */
     public Collection<Njams> getAllNjamsInstances() {
         return njamsInstances.values();
@@ -173,7 +174,7 @@ public class SharedReceiverSupport<R extends AbstractReceiver & ShareableReceive
                     .stream()
                     .filter(n -> size < n.getClientPath().getParts().size()
                             && receiverPath.getParts().equals(n.getClientPath().getParts().subList(0, size)))
-                            .collect(Collectors.toList());
+                    .collect(Collectors.toList());
         } catch (Exception e) {
             LOG.error("Failed to resolve instruction receiver.", e);
         }

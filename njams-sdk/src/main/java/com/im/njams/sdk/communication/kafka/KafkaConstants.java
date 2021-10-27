@@ -76,8 +76,8 @@ public class KafkaConstants {
      * Filters properties starting with {@value #PROPERTY_PREFIX} and cuts the prefix for using them as configuration
      * for the Kafka client.
      *
-     * @param properties
-     * @return
+     * @param properties The original client properties.
+     * @return Properties instance prepared to be used as Kafka client configuration.
      */
     public static Properties filterKafkaProperties(Properties properties) {
         return filterKafkaProperties(properties, null);
@@ -87,16 +87,16 @@ public class KafkaConstants {
      * Filters properties starting with {@value #PROPERTY_PREFIX} and cuts the prefix for using them as configuration
      * for the Kafka client.
      *
-     * @param properties
+     * @param properties The original client properties.
      * @param clientId If the resulting properties do not contain <code>client.id</code> or <code>group.id</code>,
      * this values is used for the according setting.
-     * @return
+     * @return Properties instance prepared to be used as Kafka client configuration.
      */
     public static Properties filterKafkaProperties(Properties properties, String clientId) {
         final Properties kafkaProperties = new Properties();
         properties.stringPropertyNames().stream().filter(k -> k.startsWith(KafkaConstants.PROPERTY_PREFIX))
-                .forEach(k -> kafkaProperties.setProperty(k.substring(KafkaConstants.PROPERTY_PREFIX.length()),
-                        properties.getProperty(k)));
+        .forEach(k -> kafkaProperties.setProperty(k.substring(KafkaConstants.PROPERTY_PREFIX.length()),
+                properties.getProperty(k)));
         if (StringUtils.isNotBlank(clientId)) {
             if (!kafkaProperties.containsKey(ConsumerConfig.CLIENT_ID_CONFIG)) {
                 kafkaProperties.setProperty(ConsumerConfig.CLIENT_ID_CONFIG, clientId);

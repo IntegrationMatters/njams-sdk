@@ -53,13 +53,20 @@ public class KafkaReceiver extends AbstractReceiver {
 
     private final Logger LOG = LoggerFactory.getLogger(KafkaReceiver.class);
 
+    /** Name of the Kafka header storing the message's content type. Expected value is {@value #CONTENT_TYPE_JSON} */
     public static final String NJAMS_CONTENT = "NJAMS_CONTENT";
+    /** Name of the Kafka header storing the request type */
     public static final String NJAMS_TYPE = "NJAMS_TYPE";
+    /** Name of the Kafka header storing the receiver (client) path */
     public static final String NJAMS_RECEIVER = "NJAMS_RECEIVER";
+    /** Name of the Kafka header storing a unique message ID */
     public static final String NJAMS_MESSAGE_ID = "NJAMS_MESSAGE_ID";
+    /** Name of the Kafka header storing the ID of the request message to that a reply message belongs */
     public static final String NJAMS_REPLY_FOR = "NJAMS_REPLY_FOR";
 
-    public static final String MESSAGE_TYPE_REPLY = "Reply";
+    /** The value used with header {@value #NJAMS_TYPE} for reply messages */
+    private static final String MESSAGE_TYPE_REPLY = "Reply";
+    /** The value used with header {@value #NJAMS_CONTENT} for JSON content type (the only supported one) */
     public static final String CONTENT_TYPE_JSON = "json";
 
     private static final String COMMANDS_SUFFIX = ".commands";
@@ -266,10 +273,10 @@ public class KafkaReceiver extends AbstractReceiver {
             ProducerRecord<String, String> response =
                     new ProducerRecord<String, String>(topicName, responseId, mapper.writeValueAsString(instruction));
             headersUpdater(response).
-                    addHeader(NJAMS_MESSAGE_ID, responseId).
-                    addHeader(NJAMS_REPLY_FOR, requestId).
-                    addHeader(NJAMS_TYPE, MESSAGE_TYPE_REPLY).
-                    addHeader(NJAMS_CONTENT, CONTENT_TYPE_JSON);
+            addHeader(NJAMS_MESSAGE_ID, responseId).
+            addHeader(NJAMS_REPLY_FOR, requestId).
+            addHeader(NJAMS_TYPE, MESSAGE_TYPE_REPLY).
+            addHeader(NJAMS_CONTENT, CONTENT_TYPE_JSON);
 
             synchronized (this) {
                 if (producer == null) {

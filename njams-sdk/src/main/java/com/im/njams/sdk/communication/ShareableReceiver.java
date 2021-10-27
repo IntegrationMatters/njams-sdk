@@ -24,6 +24,8 @@ import com.im.njams.sdk.common.Path;
  * Interface to be implemented by {@link Receiver}s that support receiving messages for multiple {@link Njams} instances.
  * @author cwinkler
  *
+ * @param <M> The raw message type that is received from the transport API
+ *
  */
 public interface ShareableReceiver<M> extends Receiver {
 
@@ -52,16 +54,16 @@ public interface ShareableReceiver<M> extends Receiver {
      * Has to extract the receiver instance (client) path, i.e., the path that matches a certain
      * {@link Njams} instance's {@link Njams#getClientPath()}.
      *
-     * @param requestMessage
-     * @param instruction
-     * @return
+     * @param requestMessage The raw message read from the transport API
+     * @param instruction The instruction parsed from the received message
+     * @return {@link Path} of the receiver client instance.
      */
     public Path getReceiverPath(M requestMessage, Instruction instruction);
 
     /**
      * Sends the given reply message as response to the given request message.
-     * @param requestMessage
-     * @param reply
+     * @param requestMessage The raw message read from the transport API
+     * @param reply The instruction parsed from the received message
      */
     public void sendReply(M requestMessage, Instruction reply);
 

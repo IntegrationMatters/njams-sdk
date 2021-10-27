@@ -13,6 +13,12 @@ import org.apache.kafka.common.serialization.StringDeserializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * Supports some utilities related to Kafka communication.
+ *
+ * @author cwinkler
+ *
+ */
 public class KafkaUtil {
 
     private static final Logger LOG = LoggerFactory.getLogger(KafkaUtil.class);
