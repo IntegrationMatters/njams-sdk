@@ -104,15 +104,14 @@ public class KafkaSender extends AbstractSender {
      * Create the KafkaProducer for Events.
      */
     @Override
-    public synchronized void connect() throws NjamsSdkRuntimeException {
+    public synchronized void connect() {
         if (isConnected()) {
             return;
         }
         try {
             validateTopics();
             connectionStatus = ConnectionStatus.CONNECTING;
-            producer =
-                    new KafkaProducer<String, String>(kafkaProperties, new StringSerializer(), new StringSerializer());
+            producer = new KafkaProducer<>(kafkaProperties, new StringSerializer(), new StringSerializer());
             connectionStatus = ConnectionStatus.CONNECTED;
         } catch (Exception e) {
             connectionStatus = ConnectionStatus.DISCONNECTED;
@@ -142,7 +141,7 @@ public class KafkaSender extends AbstractSender {
      * @param msg the Logmessage to send
      */
     @Override
-    protected void send(LogMessage msg) throws NjamsSdkRuntimeException {
+    protected void send(LogMessage msg) {
         try {
             String data = JsonUtils.serialize(msg);
             sendMessage(msg, topicPrefix + EVENT_SUFFIX, Sender.NJAMS_MESSAGETYPE_EVENT, data);
@@ -162,7 +161,7 @@ public class KafkaSender extends AbstractSender {
      * @param msg the Projectmessage to send
      */
     @Override
-    protected void send(ProjectMessage msg) throws NjamsSdkRuntimeException {
+    protected void send(ProjectMessage msg) {
         try {
             String data = JsonUtils.serialize(msg);
             sendMessage(msg, topicPrefix + PROJECT_SUFFIX, Sender.NJAMS_MESSAGETYPE_PROJECT, data);
@@ -182,7 +181,7 @@ public class KafkaSender extends AbstractSender {
      * @param msg the Tracemessage to send
      */
     @Override
-    protected void send(TraceMessage msg) throws NjamsSdkRuntimeException {
+    protected void send(TraceMessage msg) {
         try {
             String data = JsonUtils.serialize(msg);
             sendMessage(msg, topicPrefix + EVENT_SUFFIX, Sender.NJAMS_MESSAGETYPE_TRACE, data);
@@ -210,10 +209,10 @@ public class KafkaSender extends AbstractSender {
         final String id;
         if (msg instanceof LogMessage) {
             id = ((LogMessage) msg).getLogId();
-            record = new ProducerRecord<String, String>(topic, id, data);
+            record = new ProducerRecord<>(topic, id, data);
         } else {
             id = null;
-            record = new ProducerRecord<String, String>(topic, data);
+            record = new ProducerRecord<>(topic, data);
         }
         headersUpdater(record).
                 addHeader(Sender.NJAMS_MESSAGEVERSION, MessageVersion.V4.toString()).
@@ -269,9 +268,7 @@ public class KafkaSender extends AbstractSender {
             try {
                 producer.close();
                 producer = null;
-            } catch (KafkaException ex) {
-                LOG.warn("Unable to close connection", ex);
-            } catch (IllegalArgumentException ex) {
+            } catch (KafkaException | IllegalArgumentException ex) {
                 LOG.warn("Unable to close connection", ex);
             }
         }

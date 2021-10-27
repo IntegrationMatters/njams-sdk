@@ -97,7 +97,7 @@ public class SharedReceiverSupport<R extends AbstractReceiver & ShareableReceive
         }
 
         final List<Njams> instances = getNjamsTargets(receiverPath);
-        if (!instances.isEmpty()) {
+        if (instances != null && !instances.isEmpty()) {
             if (LOG.isDebugEnabled()) {
                 LOG.debug(
                         "Handling instruction {} with client(s) {}",
@@ -174,7 +174,7 @@ public class SharedReceiverSupport<R extends AbstractReceiver & ShareableReceive
                     .stream()
                     .filter(n -> size < n.getClientPath().getParts().size()
                             && receiverPath.getParts().equals(n.getClientPath().getParts().subList(0, size)))
-                    .collect(Collectors.toList());
+                            .collect(Collectors.toList());
         } catch (Exception e) {
             LOG.error("Failed to resolve instruction receiver.", e);
         }

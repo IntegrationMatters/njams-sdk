@@ -93,7 +93,8 @@ public class SharedKafkaReceiver extends KafkaReceiver implements ShareableRecei
         }
     }
 
-    private boolean isValidMessage(ConsumerRecord<?, ?> msg) {
+    @Override
+    protected boolean isValidMessage(ConsumerRecord<?, ?> msg) {
         if (msg == null) {
             return false;
         }

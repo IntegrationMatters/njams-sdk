@@ -225,7 +225,7 @@ public class KafkaReceiver extends AbstractReceiver {
         }
     }
 
-    private boolean isValidMessage(ConsumerRecord<?, ?> msg) {
+    protected boolean isValidMessage(ConsumerRecord<?, ?> msg) {
         if (msg == null) {
             return false;
         }
@@ -271,18 +271,17 @@ public class KafkaReceiver extends AbstractReceiver {
         try {
             final String responseId = UUID.randomUUID().toString();
             ProducerRecord<String, String> response =
-                    new ProducerRecord<String, String>(topicName, responseId, mapper.writeValueAsString(instruction));
+                    new ProducerRecord<>(topicName, responseId, mapper.writeValueAsString(instruction));
             headersUpdater(response).
-            addHeader(NJAMS_MESSAGE_ID, responseId).
-            addHeader(NJAMS_REPLY_FOR, requestId).
-            addHeader(NJAMS_TYPE, MESSAGE_TYPE_REPLY).
-            addHeader(NJAMS_CONTENT, CONTENT_TYPE_JSON);
+                    addHeader(NJAMS_MESSAGE_ID, responseId).
+                    addHeader(NJAMS_REPLY_FOR, requestId).
+                    addHeader(NJAMS_TYPE, MESSAGE_TYPE_REPLY).
+                    addHeader(NJAMS_CONTENT, CONTENT_TYPE_JSON);
 
             synchronized (this) {
                 if (producer == null) {
                     LOG.debug("Creating new Kafka producer.");
-                    producer = new KafkaProducer<String, String>(properties, new StringSerializer(),
-                            new StringSerializer());
+                    producer = new KafkaProducer<>(properties, new StringSerializer(), new StringSerializer());
                 }
                 LOG.debug("Sending reply for request {}: {}", requestId, response);
                 producer.send(response);

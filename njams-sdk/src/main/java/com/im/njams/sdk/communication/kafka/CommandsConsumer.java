@@ -58,7 +58,7 @@ public class CommandsConsumer extends Thread {
 
         try {
             consumer =
-                    new KafkaConsumer<String, String>(properties, new StringDeserializer(), new StringDeserializer());
+                    new KafkaConsumer<>(properties, new StringDeserializer(), new StringDeserializer());
             consumer.subscribe(Collections.singleton(topic));
             LOG.debug("Commands consumer subscribed on {}", topic);
         } catch (Exception e) {
@@ -103,7 +103,6 @@ public class CommandsConsumer extends Thread {
     }
 
     /**
-     * TODO: do we need this????
      * If no messages
      * arrive and a producer is running longer than the given timeout, it will be
      * closed.
