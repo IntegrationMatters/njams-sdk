@@ -40,6 +40,7 @@ import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.common.Path;
 import com.im.njams.sdk.communication.AbstractReceiver;
 import com.im.njams.sdk.communication.ConnectionStatus;
+import com.im.njams.sdk.communication.kafka.KafkaUtil.ClientType;
 import com.im.njams.sdk.settings.Settings;
 import com.im.njams.sdk.utils.StringUtils;
 
@@ -74,9 +75,9 @@ public class KafkaReceiver extends AbstractReceiver {
 
     private KafkaProducer<String, String> producer;
     private CommandsConsumer commandConsumer;
-    private Properties properties;
+    private Properties njamsProperties;
     private ObjectMapper mapper;
-    private String topicName;
+    private String topicName = null;
     private String clientId;
 
     /**
@@ -93,15 +94,22 @@ public class KafkaReceiver extends AbstractReceiver {
      */
     @Override
     public void init(Properties properties) {
+        njamsProperties = properties;
         connectionStatus = ConnectionStatus.DISCONNECTED;
         mapper = JsonSerializerFactory.getDefaultMapper();
         final String clientPath = properties.getProperty(Settings.INTERNAL_PROPERTY_CLIENTPATH);
         clientId = getClientId(clientPath.substring(1, clientPath.length() - 1).replace('>', '_'));
-        this.properties = filterKafkaProperties(properties, clientId);
         if (properties.containsKey(KafkaConstants.COMMANDS_TOPIC)) {
             topicName = properties.getProperty(KafkaConstants.COMMANDS_TOPIC);
-        } else {
-            topicName = properties.getProperty(KafkaConstants.TOPIC_PREFIX) + COMMANDS_SUFFIX;
+        }
+        if (StringUtils.isBlank(topicName)) {
+            String prefix = properties.getProperty(KafkaConstants.TOPIC_PREFIX);
+            if (StringUtils.isBlank(prefix)) {
+                LOG.warn("Property {} is not set. Using '{}' as default.", KafkaConstants.TOPIC_PREFIX,
+                        KafkaConstants.DEFAULT_TOPIC_PREFIX);
+                prefix = KafkaConstants.DEFAULT_TOPIC_PREFIX;
+            }
+            topicName = prefix + COMMANDS_SUFFIX;
         }
     }
 
@@ -140,7 +148,7 @@ public class KafkaReceiver extends AbstractReceiver {
      */
     private void tryToConnect() {
         try {
-            commandConsumer = new CommandsConsumer(properties, topicName, this);
+            commandConsumer = new CommandsConsumer(njamsProperties, topicName, clientId, this);
             commandConsumer.start();
         } catch (Exception e) {
             closeAll();
@@ -175,7 +183,7 @@ public class KafkaReceiver extends AbstractReceiver {
     }
 
     private boolean validateTopics() {
-        final Collection<String> foundTopics = KafkaUtil.testTopics(properties, topicName);
+        final Collection<String> foundTopics = KafkaUtil.testTopics(njamsProperties, topicName);
         LOG.debug("Found topics: {}", foundTopics);
         if (foundTopics.isEmpty()) {
             LOG.error("Commands topic [{}] not found. "
@@ -281,7 +289,9 @@ public class KafkaReceiver extends AbstractReceiver {
             synchronized (this) {
                 if (producer == null) {
                     LOG.debug("Creating new Kafka producer.");
-                    producer = new KafkaProducer<>(properties, new StringSerializer(), new StringSerializer());
+                    producer =
+                            new KafkaProducer<>(filterKafkaProperties(njamsProperties, ClientType.PRODUCER, clientId),
+                                    new StringSerializer(), new StringSerializer());
                 }
                 LOG.debug("Sending reply for request {}: {}", requestId, response);
                 producer.send(response);
@@ -293,14 +303,12 @@ public class KafkaReceiver extends AbstractReceiver {
         }
     }
 
-    private Properties filterKafkaProperties(Properties properties, String client) {
-        final Properties p = KafkaConstants.filterKafkaProperties(properties, client);
+    private Properties filterKafkaProperties(Properties properties, ClientType clientType, String client) {
+        final Properties p = KafkaUtil.filterKafkaProperties(properties, clientType, client);
         if (!clientId.equals(p.getProperty(ConsumerConfig.CLIENT_ID_CONFIG))
                 || !clientId.equals(p.getProperty(ConsumerConfig.GROUP_ID_CONFIG))) {
             LOG.warn("Default client- or group-ID is overridden by configuration.");
         }
-        LOG.info("Kafka client.id={}, group.id={}", p.getProperty(ConsumerConfig.CLIENT_ID_CONFIG),
-                p.getProperty(ConsumerConfig.GROUP_ID_CONFIG));
         return p;
     }
 

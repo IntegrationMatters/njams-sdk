@@ -48,6 +48,7 @@ import com.im.njams.sdk.communication.ConnectionStatus;
 import com.im.njams.sdk.communication.DiscardMonitor;
 import com.im.njams.sdk.communication.DiscardPolicy;
 import com.im.njams.sdk.communication.Sender;
+import com.im.njams.sdk.communication.kafka.KafkaUtil.ClientType;
 import com.im.njams.sdk.utils.JsonUtils;
 import com.im.njams.sdk.utils.StringUtils;
 
@@ -66,7 +67,8 @@ public class KafkaSender extends AbstractSender {
     private static final int MAX_TRIES = 100;
 
     private KafkaProducer<String, String> producer;
-    private String topicPrefix;
+    private String topicEvent;
+    private String topicProject;
     private Properties kafkaProperties;
 
     /**
@@ -85,13 +87,15 @@ public class KafkaSender extends AbstractSender {
     @Override
     public void init(Properties properties) {
         super.init(properties);
-        kafkaProperties = KafkaConstants.filterKafkaProperties(properties);
-        if (properties.containsKey(KafkaConstants.TOPIC_PREFIX)) {
-            topicPrefix = properties.getProperty(KafkaConstants.TOPIC_PREFIX);
-        } else {
-            LOG.info("No topic provided. Using default: njams");
-            topicPrefix = "njams";
+        kafkaProperties = KafkaUtil.filterKafkaProperties(properties, ClientType.PRODUCER);
+        String topicPrefix = properties.getProperty(KafkaConstants.TOPIC_PREFIX);
+        if (StringUtils.isBlank(topicPrefix)) {
+            LOG.warn("Property {} is not set. Using '{}' as default.", KafkaConstants.TOPIC_PREFIX,
+                    KafkaConstants.DEFAULT_TOPIC_PREFIX);
+            topicPrefix = KafkaConstants.DEFAULT_TOPIC_PREFIX;
         }
+        topicEvent = topicPrefix + EVENT_SUFFIX;
+        topicProject = topicPrefix + PROJECT_SUFFIX;
         try {
             connect();
             LOG.debug("Initialized sender {}", KafkaConstants.COMMUNICATION_NAME);
@@ -125,8 +129,8 @@ public class KafkaSender extends AbstractSender {
     }
 
     private void validateTopics() {
-        final String[] topics = new String[] { topicPrefix + EVENT_SUFFIX, topicPrefix + PROJECT_SUFFIX };
-        final Collection<String> foundTopics = KafkaUtil.testTopics(kafkaProperties, topics);
+        final String[] topics = new String[] { topicEvent, topicProject };
+        final Collection<String> foundTopics = KafkaUtil.testTopics(properties, topics);
         LOG.debug("Found topics: {}", foundTopics);
         if (foundTopics.size() < topics.length) {
             final Collection<String> missing = Arrays.asList(topics);
@@ -144,11 +148,11 @@ public class KafkaSender extends AbstractSender {
     protected void send(LogMessage msg) {
         try {
             String data = JsonUtils.serialize(msg);
-            sendMessage(msg, topicPrefix + EVENT_SUFFIX, Sender.NJAMS_MESSAGETYPE_EVENT, data);
+            sendMessage(msg, topicEvent, Sender.NJAMS_MESSAGETYPE_EVENT, data);
             if (LOG.isTraceEnabled()) {
-                LOG.trace("Send LogMessage {} to {}:\n{}", msg.getPath(), topicPrefix, data);
+                LOG.trace("Send LogMessage {} to {}:\n{}", msg.getPath(), topicEvent, data);
             } else {
-                LOG.debug("Send Logmessage for {} to {}", msg.getPath(), topicPrefix);
+                LOG.debug("Send Logmessage for {} to {}", msg.getPath(), topicEvent);
             }
         } catch (Exception e) {
             throw new NjamsSdkRuntimeException("Unable to send LogMessage", e);
@@ -164,11 +168,11 @@ public class KafkaSender extends AbstractSender {
     protected void send(ProjectMessage msg) {
         try {
             String data = JsonUtils.serialize(msg);
-            sendMessage(msg, topicPrefix + PROJECT_SUFFIX, Sender.NJAMS_MESSAGETYPE_PROJECT, data);
+            sendMessage(msg, topicProject, Sender.NJAMS_MESSAGETYPE_PROJECT, data);
             if (LOG.isTraceEnabled()) {
-                LOG.trace("Send ProjectMessage {} to {}:\n{}", msg.getPath(), topicPrefix, data);
+                LOG.trace("Send ProjectMessage {} to {}:\n{}", msg.getPath(), topicProject, data);
             } else {
-                LOG.debug("Send ProjectMessage for {} to {}", msg.getPath(), topicPrefix);
+                LOG.debug("Send ProjectMessage for {} to {}", msg.getPath(), topicProject);
             }
         } catch (Exception e) {
             throw new NjamsSdkRuntimeException("Unable to send ProjectMessage", e);
@@ -184,11 +188,11 @@ public class KafkaSender extends AbstractSender {
     protected void send(TraceMessage msg) {
         try {
             String data = JsonUtils.serialize(msg);
-            sendMessage(msg, topicPrefix + EVENT_SUFFIX, Sender.NJAMS_MESSAGETYPE_TRACE, data);
+            sendMessage(msg, topicEvent, Sender.NJAMS_MESSAGETYPE_TRACE, data);
             if (LOG.isTraceEnabled()) {
-                LOG.trace("Send TraceMessage {} to {}:\n{}", msg.getPath(), topicPrefix, data);
+                LOG.trace("Send TraceMessage {} to {}:\n{}", msg.getPath(), topicEvent, data);
             } else {
-                LOG.debug("Send TraceMessage for {} to {}", msg.getPath(), topicPrefix);
+                LOG.debug("Send TraceMessage for {} to {}", msg.getPath(), topicEvent);
             }
         } catch (Exception e) {
             throw new NjamsSdkRuntimeException("Unable to send TraceMessage", e);
@@ -215,12 +219,17 @@ public class KafkaSender extends AbstractSender {
             record = new ProducerRecord<>(topic, data);
         }
         headersUpdater(record).
-                addHeader(Sender.NJAMS_MESSAGEVERSION, MessageVersion.V4.toString()).
-                addHeader(Sender.NJAMS_MESSAGETYPE, messageType).
-                addHeader(Sender.NJAMS_LOGID, id, (k, v) -> StringUtils.isNotBlank(v)).
-                addHeader(Sender.NJAMS_PATH, msg.getPath(), (k, v) -> StringUtils.isNotBlank(v));
-
-        tryToSend(record);
+        addHeader(Sender.NJAMS_MESSAGEVERSION, MessageVersion.V4.toString()).
+        addHeader(Sender.NJAMS_MESSAGETYPE, messageType).
+        addHeader(Sender.NJAMS_LOGID, id, (k, v) -> StringUtils.isNotBlank(v)).
+        addHeader(Sender.NJAMS_PATH, msg.getPath(), (k, v) -> StringUtils.isNotBlank(v));
+        try {
+            tryToSend(record);
+        } catch (Exception e) {
+            // TODO
+            LOG.error("Failed to send.", e);
+            throw e;
+        }
     }
 
     /**
@@ -237,6 +246,7 @@ public class KafkaSender extends AbstractSender {
         do {
             try {
                 producer.send(message);
+                LOG.trace("Sent message {}", message);
                 sent = true;
             } catch (KafkaException | IllegalStateException e) {
                 if (discardPolicy == DiscardPolicy.ON_CONNECTION_LOSS) {

@@ -28,6 +28,8 @@ import org.apache.kafka.common.serialization.StringDeserializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.im.njams.sdk.communication.kafka.KafkaUtil.ClientType;
+
 /**
  * A thread for a KafkaConsumer, that constantly needs to check if there are new commands in its Kafka topic
  *
@@ -35,6 +37,8 @@ import org.slf4j.LoggerFactory;
  * @version 4.2.0-SNAPSHOT
  */
 public class CommandsConsumer extends Thread {
+
+    private static final int DEFAULT_PRODUCER_IDLE_TIME_MS = 30000;
 
     private static final Logger LOG = LoggerFactory.getLogger(CommandsConsumer.class);
 
@@ -47,19 +51,24 @@ public class CommandsConsumer extends Thread {
     /**
      * This constructor saves the given properties and creates a KafkaConsumer
      *
-     * @param properties the Properties that are used for connecting
-     * @param topic      topic s to subscribe to
-     * @param receiver   the KafkaReceiver from where this method has been called
+     * @param properties the nJAMS properties that are used for connecting
+     * @param topic      topic to subscribe to
+     * @param clientId   The client id to be used for the consumer
+     * @param receiver   the {@link KafkaReceiver} that uses this consumer instance
      */
-    protected CommandsConsumer(Properties properties, String topic, KafkaReceiver receiver) {
+    protected CommandsConsumer(Properties properties, String topic, String clientId, KafkaReceiver receiver) {
         super("kafka_commands_consumer");
-        idleProducerTimeout = getTimeout(properties);
+        idleProducerTimeout = getProducerIdleTime(properties);
         this.receiver = receiver;
 
         try {
             consumer =
-                    new KafkaConsumer<>(properties, new StringDeserializer(), new StringDeserializer());
+                    new KafkaConsumer<>(
+                            KafkaUtil.filterKafkaProperties(properties, ClientType.CONSUMER, clientId),
+                            new StringDeserializer(), new StringDeserializer());
             consumer.subscribe(Collections.singleton(topic));
+            // skip all old messages on the commands topic
+            consumer.seekToEnd(Collections.emptyList());
             LOG.debug("Commands consumer subscribed on {}", topic);
         } catch (Exception e) {
             LOG.error("Failed to create consumer", e);
@@ -70,7 +79,7 @@ public class CommandsConsumer extends Thread {
         }
     }
 
-    private long getTimeout(Properties properties) {
+    private long getProducerIdleTime(Properties properties) {
         if (properties.containsKey(KafkaConstants.REPLY_PRODUCER_IDLE_TIME)) {
             try {
                 return Long.valueOf(properties.getProperty(KafkaConstants.REPLY_PRODUCER_IDLE_TIME));
@@ -78,7 +87,7 @@ public class CommandsConsumer extends Thread {
                 LOG.error("Faileds to parse timeout from properties", e);
             }
         }
-        return 30000;
+        return DEFAULT_PRODUCER_IDLE_TIME_MS;
     }
 
     /**

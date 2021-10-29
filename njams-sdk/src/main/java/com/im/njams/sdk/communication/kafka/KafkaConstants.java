@@ -17,14 +17,6 @@
 
 package com.im.njams.sdk.communication.kafka;
 
-import java.util.Properties;
-
-import org.apache.kafka.clients.consumer.ConsumerConfig;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.im.njams.sdk.utils.StringUtils;
-
 /**
  *
  * @author sfaiz
@@ -32,81 +24,49 @@ import com.im.njams.sdk.utils.StringUtils;
  */
 public class KafkaConstants {
 
-    private static final Logger LOG = LoggerFactory.getLogger(KafkaConstants.class);
-
-    private KafkaConstants() {
-        // constants
-    }
-
-    /**
-     * Prefix for the Kafka communication
-     */
-    public static final String PROPERTY_PREFIX = "njams.sdk.communication.kafka.";
-
-    /**
-     * Name of the Kafka Communication Component.
-     */
+    /** Name of the Kafka Communication Component. */
     public static final String COMMUNICATION_NAME = "Kafka";
 
-    /**
-     * Property key for the communication properties. Specifies the destination.
-     */
-    public static final String TOPIC_PREFIX = PROPERTY_PREFIX + "topic";
+    // ********** General nJAMS properties
 
-    /**
-     * Property key for the communication properties. Specifies the commands
-     * destination.
-     */
-    public static final String COMMANDS_TOPIC = TOPIC_PREFIX + ".commands";
+    /** Prefix for the all communication settings including those that are nJAMS specific. */
+    public static final String PROPERTY_PREFIX = "njams.sdk.communication.kafka.";
+    /** Prefix only for the Kafka specific communication settings that are directly passed to the client. */
+
+    /** Property key for the communication properties. Specifies a prefix for resolving the actual topic names. */
+    public static final String TOPIC_PREFIX = PROPERTY_PREFIX + "topicPrefix";
+
+    /** Property key for the communication properties. Overrides the default commands topic. */
+    public static final String COMMANDS_TOPIC = PROPERTY_PREFIX + "commandsTopic";
 
     /**
      * Property key for the communication properties. Timeout after last use of the
      * KafkaProducer, who is responsible for responding to Commands.
      */
     public static final String REPLY_PRODUCER_IDLE_TIME = PROPERTY_PREFIX + "replyProducerIdleTime";
+    /** The default topic prefix to be used if {@link #TOPIC_PREFIX} is not set. */
+    public static final String DEFAULT_TOPIC_PREFIX = "njams";
 
     /*
+     * ********** Kafka client related prefixes
+     *
      * You can find all possible Kafka properties under -
      * https://kafka.apache.org/10/javadoc/org/apache/kafka/clients/consumer/ConsumerConfig.html
-     * -
      * https://kafka.apache.org/10/javadoc/org/apache/kafka/clients/producer/ProducerConfig.html
+     * https://kafka.apache.org/10/javadoc/org/apache/kafka/clients/admin/AdminClientConfig.html
      */
 
-    /**
-     * Filters properties starting with {@value #PROPERTY_PREFIX} and cuts the prefix for using them as configuration
-     * for the Kafka client.
-     *
-     * @param properties The original client properties.
-     * @return Properties instance prepared to be used as Kafka client configuration.
-     */
-    public static Properties filterKafkaProperties(Properties properties) {
-        return filterKafkaProperties(properties, null);
-    }
+    /** Prefix for properties that shall be applied to all types of Kafka clients */
+    public static final String CLIENT_PREFIX = PROPERTY_PREFIX + "client.";
+    /** Prefix for properties that shall be applied to Kafka consumers */
+    public static final String CONSUMER_PREFIX = CLIENT_PREFIX + "consumer.";
+    /** Prefix for properties that shall be applied to Kafka producers */
+    public static final String PRODUCER_PREFIX = CLIENT_PREFIX + "producer.";
+    /** Prefix for properties that shall be applied to the Kafka admin client */
+    public static final String ADMIN_PREFIX = CLIENT_PREFIX + "admin.";
 
-    /**
-     * Filters properties starting with {@value #PROPERTY_PREFIX} and cuts the prefix for using them as configuration
-     * for the Kafka client.
-     *
-     * @param properties The original client properties.
-     * @param clientId If the resulting properties do not contain <code>client.id</code> or <code>group.id</code>,
-     * this values is used for the according setting.
-     * @return Properties instance prepared to be used as Kafka client configuration.
-     */
-    public static Properties filterKafkaProperties(Properties properties, String clientId) {
-        final Properties kafkaProperties = new Properties();
-        properties.stringPropertyNames().stream().filter(k -> k.startsWith(KafkaConstants.PROPERTY_PREFIX))
-        .forEach(k -> kafkaProperties.setProperty(k.substring(KafkaConstants.PROPERTY_PREFIX.length()),
-                properties.getProperty(k)));
-        if (StringUtils.isNotBlank(clientId)) {
-            if (!kafkaProperties.containsKey(ConsumerConfig.CLIENT_ID_CONFIG)) {
-                kafkaProperties.setProperty(ConsumerConfig.CLIENT_ID_CONFIG, clientId);
-            }
-            if (!kafkaProperties.containsKey(ConsumerConfig.GROUP_ID_CONFIG)) {
-                kafkaProperties.setProperty(ConsumerConfig.GROUP_ID_CONFIG, clientId);
-            }
-        }
-        LOG.debug("Filtered Kafka properties: {}", kafkaProperties);
-        return kafkaProperties;
+    private KafkaConstants() {
+        // constants
     }
 
 }

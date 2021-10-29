@@ -25,6 +25,7 @@ import org.slf4j.LoggerFactory;
 import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.common.Path;
+import com.im.njams.sdk.communication.ConnectionStatus;
 import com.im.njams.sdk.communication.ShareableReceiver;
 import com.im.njams.sdk.communication.SharedReceiverSupport;
 import com.im.njams.sdk.utils.StringUtils;
@@ -67,6 +68,13 @@ public class SharedKafkaReceiver extends KafkaReceiver implements ShareableRecei
     public void sendReply(ConsumerRecord<?, ?> requestMessage, Instruction reply) {
         sendReply(getHeader(requestMessage, NJAMS_MESSAGE_ID), reply);
 
+    }
+
+    @Override
+    public synchronized void start() {
+        if (connectionStatus == ConnectionStatus.DISCONNECTED) {
+            super.start();
+        }
     }
 
     /**
