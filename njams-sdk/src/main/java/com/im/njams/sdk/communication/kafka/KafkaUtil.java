@@ -76,8 +76,8 @@ public class KafkaUtil {
     }
 
     /**
-     * Filters properties starting with {@value #PROPERTY_PREFIX} and cuts the prefix for using them as configuration
-     * for the Kafka client.
+     * Filters properties starting with {@link KafkaConstants#CLIENT_PREFIX} and cuts the prefix for using them as
+     * configuration for the Kafka client.
      *
      * @param properties The original client properties.
      * @param clientType Indicates the Kafka client type for that the resulting properties shall be applicable.
@@ -88,8 +88,8 @@ public class KafkaUtil {
     }
 
     /**
-     * Filters properties starting with {@value #PROPERTY_PREFIX} and cuts the prefix for using them as configuration
-     * for the Kafka client.
+     * Filters properties starting with {@link KafkaConstants#CLIENT_PREFIX} and cuts the prefix for using them as
+     * configuration for the Kafka client.
      *
      * @param properties The original client properties.
      * @param clientType Indicates the Kafka client type for that the resulting properties shall be applicable.
@@ -104,12 +104,12 @@ public class KafkaUtil {
         final Entry<String, Collection<String>> filter = getPropertiesFilter(clientType);
         // add keys from CLIENT_PREFIX
         properties.stringPropertyNames().stream()
-                .map(k -> getKafkaKey(k, KafkaConstants.CLIENT_PREFIX, filter.getValue())).filter(Objects::nonNull)
-                .forEach(e -> kafkaProperties.setProperty(e.getValue(), properties.getProperty(e.getKey())));
+        .map(k -> getKafkaKey(k, KafkaConstants.CLIENT_PREFIX, filter.getValue())).filter(Objects::nonNull)
+        .forEach(e -> kafkaProperties.setProperty(e.getValue(), properties.getProperty(e.getKey())));
         // override with keys from type specific prefix
         properties.stringPropertyNames().stream().map(k -> getKafkaKey(k, filter.getKey(), filter.getValue()))
-                .filter(Objects::nonNull)
-                .forEach(e -> kafkaProperties.setProperty(e.getValue(), properties.getProperty(e.getKey())));
+        .filter(Objects::nonNull)
+        .forEach(e -> kafkaProperties.setProperty(e.getValue(), properties.getProperty(e.getKey())));
 
         if (StringUtils.isNotBlank(clientId)) {
             if (!kafkaProperties.containsKey(ConsumerConfig.CLIENT_ID_CONFIG)) {
