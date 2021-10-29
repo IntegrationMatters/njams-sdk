@@ -57,7 +57,7 @@ public class KafkaUtil {
      * @param topics Topics to test.
      * @return The set of topics that have been found, i.e., topics that are not returned have not been found.
      */
-    public static Collection<String> testTopics(Properties njamsProperties, String... topics) {
+    public static Collection<String> testTopics(final Properties njamsProperties, final String... topics) {
         final Collection<String> found = new ArrayList<>();
         final Properties p = filterKafkaProperties(njamsProperties, ClientType.CONSUMER);
         p.remove(ConsumerConfig.CLIENT_ID_CONFIG);
@@ -65,7 +65,7 @@ public class KafkaUtil {
                 new KafkaConsumer<>(p, new StringDeserializer(), new StringDeserializer())) {
             final Map<String, List<PartitionInfo>> topicMap = consumer.listTopics(Duration.ofSeconds(5));
             if (topics != null && topics.length > 0) {
-                for (String topic : topics) {
+                for (final String topic : topics) {
                     if (topicMap.containsKey(topic)) {
                         found.add(topic);
                     }
@@ -83,7 +83,7 @@ public class KafkaUtil {
      * @param clientType Indicates the Kafka client type for that the resulting properties shall be applicable.
      * @return Properties instance prepared to be used as Kafka client configuration.
      */
-    public static Properties filterKafkaProperties(Properties properties, ClientType clientType) {
+    public static Properties filterKafkaProperties(final Properties properties, final ClientType clientType) {
         return filterKafkaProperties(properties, clientType, null);
     }
 
@@ -97,18 +97,19 @@ public class KafkaUtil {
      * this values is used for the according setting.
      * @return Properties instance prepared to be used as Kafka client configuration.
      */
-    public static Properties filterKafkaProperties(Properties properties, ClientType clientType, String clientId) {
+    public static Properties filterKafkaProperties(final Properties properties, final ClientType clientType,
+            final String clientId) {
         final Properties kafkaProperties = new Properties();
 
         final Entry<String, Collection<String>> filter = getPropertiesFilter(clientType);
         // add keys from CLIENT_PREFIX
         properties.stringPropertyNames().stream()
-        .map(k -> getKafkaKey(k, KafkaConstants.CLIENT_PREFIX, filter.getValue())).filter(Objects::nonNull)
-        .forEach(e -> kafkaProperties.setProperty(e.getValue(), properties.getProperty(e.getKey())));
+                .map(k -> getKafkaKey(k, KafkaConstants.CLIENT_PREFIX, filter.getValue())).filter(Objects::nonNull)
+                .forEach(e -> kafkaProperties.setProperty(e.getValue(), properties.getProperty(e.getKey())));
         // override with keys from type specific prefix
         properties.stringPropertyNames().stream().map(k -> getKafkaKey(k, filter.getKey(), filter.getValue()))
-        .filter(Objects::nonNull)
-        .forEach(e -> kafkaProperties.setProperty(e.getValue(), properties.getProperty(e.getKey())));
+                .filter(Objects::nonNull)
+                .forEach(e -> kafkaProperties.setProperty(e.getValue(), properties.getProperty(e.getKey())));
 
         if (StringUtils.isNotBlank(clientId)) {
             if (!kafkaProperties.containsKey(ConsumerConfig.CLIENT_ID_CONFIG)) {
@@ -126,7 +127,7 @@ public class KafkaUtil {
      * @param clientType The intended Kafka usage type.
      * @return A filter containing the property prefix to use and the set of supported Kafka config keys.
      */
-    private static Entry<String, Collection<String>> getPropertiesFilter(ClientType clientType) {
+    private static Entry<String, Collection<String>> getPropertiesFilter(final ClientType clientType) {
         final String prefix;
         final Collection<String> kafkaKeys;
 
@@ -163,7 +164,8 @@ public class KafkaUtil {
      * @return Entry containing the original key as key and the truncated Kafka key as value, or <code>null</code>
      * if the resulting key is not a valid Kafka config key.
      */
-    private static Entry<String, String> getKafkaKey(String njamsKey, String prefix, Collection<String> kafkaKeys) {
+    private static Entry<String, String> getKafkaKey(final String njamsKey, final String prefix,
+            final Collection<String> kafkaKeys) {
         if (!njamsKey.regionMatches(true, 0, prefix, 0, prefix.length())) {
             return null;
         }

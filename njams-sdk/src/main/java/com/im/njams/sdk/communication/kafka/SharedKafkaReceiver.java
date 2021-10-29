@@ -49,23 +49,23 @@ public class SharedKafkaReceiver extends KafkaReceiver implements ShareableRecei
      * @see com.im.njams.sdk.communication.jms.JmsReceiver#setNjams(com.im.njams.sdk.Njams)
      */
     @Override
-    public void setNjams(Njams njamsInstance) {
+    public void setNjams(final Njams njamsInstance) {
         super.setNjams(null);
         sharingSupport.addNjams(njamsInstance);
     }
 
     @Override
-    public void removeNjams(Njams njamsInstance) {
+    public void removeNjams(final Njams njamsInstance) {
         sharingSupport.removeNjams(njamsInstance);
     }
 
     @Override
-    public Path getReceiverPath(ConsumerRecord<?, ?> requestMessage, Instruction instruction) {
+    public Path getReceiverPath(final ConsumerRecord<?, ?> requestMessage, final Instruction instruction) {
         return new Path(getHeader(requestMessage, NJAMS_RECEIVER));
     }
 
     @Override
-    public void sendReply(ConsumerRecord<?, ?> requestMessage, Instruction reply) {
+    public void sendReply(final ConsumerRecord<?, ?> requestMessage, final Instruction reply) {
         sendReply(getHeader(requestMessage, NJAMS_MESSAGE_ID), reply);
 
     }
@@ -84,7 +84,7 @@ public class SharedKafkaReceiver extends KafkaReceiver implements ShareableRecei
      * @param msg the newly arrived JMS message.
      */
     @Override
-    public void onMessage(ConsumerRecord<String, String> msg) {
+    public void onMessage(final ConsumerRecord<String, String> msg) {
         try {
 
             if (!isValidMessage(msg)) {
@@ -96,13 +96,13 @@ public class SharedKafkaReceiver extends KafkaReceiver implements ShareableRecei
                 return;
             }
             sharingSupport.onInstruction(msg, instruction, false);
-        } catch (Exception e) {
+        } catch (final Exception e) {
             LOG.error("Error in onMessage", e);
         }
     }
 
     @Override
-    protected boolean isValidMessage(ConsumerRecord<?, ?> msg) {
+    protected boolean isValidMessage(final ConsumerRecord<?, ?> msg) {
         if (msg == null) {
             return false;
         }

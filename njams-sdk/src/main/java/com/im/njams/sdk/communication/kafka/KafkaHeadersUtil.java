@@ -25,7 +25,7 @@ public class KafkaHeadersUtil {
     public static class HeadersUpdater {
         private final Headers headers;
 
-        private HeadersUpdater(Headers headers) {
+        private HeadersUpdater(final Headers headers) {
             this.headers = Objects.requireNonNull(headers);
         }
 
@@ -36,7 +36,8 @@ public class KafkaHeadersUtil {
          * @param condition Condition function getting the key and value as input arguments.
          * @return This instance for chaining updates.
          */
-        public HeadersUpdater addHeader(String name, String value, BiFunction<String, String, Boolean> condition) {
+        public HeadersUpdater addHeader(final String name, final String value,
+                final BiFunction<String, String, Boolean> condition) {
             if (condition.apply(name, value)) {
                 return addHeader(name, value);
             }
@@ -49,7 +50,7 @@ public class KafkaHeadersUtil {
          * @param value The value of the header.
          * @return This instance for chaining updates.
          */
-        public HeadersUpdater addHeader(String name, String value) {
+        public HeadersUpdater addHeader(final String name, final String value) {
             headers.add(name, String.valueOf(value).getBytes(StandardCharsets.UTF_8));
             return this;
         }
@@ -61,7 +62,7 @@ public class KafkaHeadersUtil {
          * as input arguments.
          * @return This instance for chaining updates.
          */
-        public HeadersUpdater removeHeader(String name, BiFunction<String, String, Boolean> condition) {
+        public HeadersUpdater removeHeader(final String name, final BiFunction<String, String, Boolean> condition) {
             if (condition.apply(name, getHeader(headers, name))) {
                 return removeHeader(name);
             }
@@ -73,7 +74,7 @@ public class KafkaHeadersUtil {
          * @param name The name of the header to be removed.
          * @return This instance for chaining updates.
          */
-        public HeadersUpdater removeHeader(String name) {
+        public HeadersUpdater removeHeader(final String name) {
             headers.remove(name);
             return this;
         }
@@ -89,7 +90,7 @@ public class KafkaHeadersUtil {
      * @param record The Kafka record from that headers are extracted and converted.
      * @return A map containing headers extracted from the given record.
      */
-    public static Map<String, String> convertHeaders(ConsumerRecord<?, ?> record) {
+    public static Map<String, String> convertHeaders(final ConsumerRecord<?, ?> record) {
         return convertHeaders(record.headers());
     }
 
@@ -99,7 +100,7 @@ public class KafkaHeadersUtil {
      * @param headers The Kafka headers to be converted.
      * @return A map containing entries extracted from the given headers.
      */
-    public static Map<String, String> convertHeaders(Headers headers) {
+    public static Map<String, String> convertHeaders(final Headers headers) {
         return StreamSupport.stream(headers.spliterator(), false)
                 .collect(Collectors.toMap(Header::key, h -> new String(h.value(), StandardCharsets.UTF_8), (a, b) -> b,
                         TreeMap::new));
@@ -113,7 +114,7 @@ public class KafkaHeadersUtil {
      * @return The value stored with the header with the given name. If multiple headers are stored with the same name,
      * only the last value is returned.
      */
-    public static String getHeader(ConsumerRecord<?, ?> record, String name) {
+    public static String getHeader(final ConsumerRecord<?, ?> record, final String name) {
         return getHeader(record.headers(), name);
     }
 
@@ -125,7 +126,7 @@ public class KafkaHeadersUtil {
      * @return The value stored with the header with the given name. If multiple headers are stored with the same name,
      * only the last value is returned.
      */
-    public static String getHeader(Headers headers, String name) {
+    public static String getHeader(final Headers headers, final String name) {
         final Header header = headers.lastHeader(name);
         if (header == null) {
             return null;
@@ -139,7 +140,7 @@ public class KafkaHeadersUtil {
      * @return An updater that can be used for chaining updates on the same headers.
      * @see HeadersUpdater
      */
-    public static HeadersUpdater headersUpdater(ProducerRecord<?, ?> record) {
+    public static HeadersUpdater headersUpdater(final ProducerRecord<?, ?> record) {
         return headersUpdater(record.headers());
     }
 
@@ -149,7 +150,7 @@ public class KafkaHeadersUtil {
      * @return An updater that can be used for chaining updates on the same headers.
      * @see HeadersUpdater
      */
-    public static HeadersUpdater headersUpdater(Headers headers) {
+    public static HeadersUpdater headersUpdater(final Headers headers) {
         return new HeadersUpdater(headers);
     }
 }

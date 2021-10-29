@@ -56,7 +56,8 @@ public class CommandsConsumer extends Thread {
      * @param clientId   The client id to be used for the consumer
      * @param receiver   the {@link KafkaReceiver} that uses this consumer instance
      */
-    protected CommandsConsumer(Properties properties, String topic, String clientId, KafkaReceiver receiver) {
+    protected CommandsConsumer(final Properties properties, final String topic, final String clientId,
+            final KafkaReceiver receiver) {
         super("kafka_commands_consumer");
         idleProducerTimeout = getProducerIdleTime(properties);
         this.receiver = receiver;
@@ -70,7 +71,7 @@ public class CommandsConsumer extends Thread {
             // skip all old messages on the commands topic
             consumer.seekToEnd(Collections.emptyList());
             LOG.debug("Commands consumer subscribed on {}", topic);
-        } catch (Exception e) {
+        } catch (final Exception e) {
             LOG.error("Failed to create consumer", e);
             if (consumer != null) {
                 consumer.close();
@@ -79,11 +80,11 @@ public class CommandsConsumer extends Thread {
         }
     }
 
-    private long getProducerIdleTime(Properties properties) {
+    private long getProducerIdleTime(final Properties properties) {
         if (properties.containsKey(KafkaConstants.REPLY_PRODUCER_IDLE_TIME)) {
             try {
                 return Long.valueOf(properties.getProperty(KafkaConstants.REPLY_PRODUCER_IDLE_TIME));
-            } catch (Exception e) {
+            } catch (final Exception e) {
                 LOG.error("Faileds to parse timeout from properties", e);
             }
         }
@@ -98,10 +99,10 @@ public class CommandsConsumer extends Thread {
     @Override
     public void run() {
         while (!doStop) {
-            ConsumerRecords<String, String> records = consumer.poll(Duration.ofMillis(1000));
+            final ConsumerRecords<String, String> records = consumer.poll(Duration.ofMillis(1000));
             if (!records.isEmpty()) {
                 lastMessageProcessingTimestamp = System.currentTimeMillis();
-                for (ConsumerRecord<String, String> record : records) {
+                for (final ConsumerRecord<String, String> record : records) {
                     receiver.onMessage(record);
                 }
             } else {

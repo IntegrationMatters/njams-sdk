@@ -85,7 +85,7 @@ public class KafkaSender extends AbstractSender {
      * @param properties the properties needed to initialize
      */
     @Override
-    public void init(Properties properties) {
+    public void init(final Properties properties) {
         super.init(properties);
         kafkaProperties = KafkaUtil.filterKafkaProperties(properties, ClientType.PRODUCER);
         String topicPrefix = properties.getProperty(KafkaConstants.TOPIC_PREFIX);
@@ -99,7 +99,7 @@ public class KafkaSender extends AbstractSender {
         try {
             connect();
             LOG.debug("Initialized sender {}", KafkaConstants.COMMUNICATION_NAME);
-        } catch (NjamsSdkRuntimeException e) {
+        } catch (final NjamsSdkRuntimeException e) {
             LOG.error("Could not initialize sender {}\n", KafkaConstants.COMMUNICATION_NAME, e);
         }
     }
@@ -117,7 +117,7 @@ public class KafkaSender extends AbstractSender {
             connectionStatus = ConnectionStatus.CONNECTING;
             producer = new KafkaProducer<>(kafkaProperties, new StringSerializer(), new StringSerializer());
             connectionStatus = ConnectionStatus.CONNECTED;
-        } catch (Exception e) {
+        } catch (final Exception e) {
             connectionStatus = ConnectionStatus.DISCONNECTED;
             if (producer != null) {
                 producer.close();
@@ -145,16 +145,16 @@ public class KafkaSender extends AbstractSender {
      * @param msg the Logmessage to send
      */
     @Override
-    protected void send(LogMessage msg) {
+    protected void send(final LogMessage msg) {
         try {
-            String data = JsonUtils.serialize(msg);
+            final String data = JsonUtils.serialize(msg);
             sendMessage(msg, topicEvent, Sender.NJAMS_MESSAGETYPE_EVENT, data);
             if (LOG.isTraceEnabled()) {
                 LOG.trace("Send LogMessage {} to {}:\n{}", msg.getPath(), topicEvent, data);
             } else {
                 LOG.debug("Send Logmessage for {} to {}", msg.getPath(), topicEvent);
             }
-        } catch (Exception e) {
+        } catch (final Exception e) {
             throw new NjamsSdkRuntimeException("Unable to send LogMessage", e);
         }
     }
@@ -165,16 +165,16 @@ public class KafkaSender extends AbstractSender {
      * @param msg the Projectmessage to send
      */
     @Override
-    protected void send(ProjectMessage msg) {
+    protected void send(final ProjectMessage msg) {
         try {
-            String data = JsonUtils.serialize(msg);
+            final String data = JsonUtils.serialize(msg);
             sendMessage(msg, topicProject, Sender.NJAMS_MESSAGETYPE_PROJECT, data);
             if (LOG.isTraceEnabled()) {
                 LOG.trace("Send ProjectMessage {} to {}:\n{}", msg.getPath(), topicProject, data);
             } else {
                 LOG.debug("Send ProjectMessage for {} to {}", msg.getPath(), topicProject);
             }
-        } catch (Exception e) {
+        } catch (final Exception e) {
             throw new NjamsSdkRuntimeException("Unable to send ProjectMessage", e);
         }
     }
@@ -185,16 +185,16 @@ public class KafkaSender extends AbstractSender {
      * @param msg the Tracemessage to send
      */
     @Override
-    protected void send(TraceMessage msg) {
+    protected void send(final TraceMessage msg) {
         try {
-            String data = JsonUtils.serialize(msg);
+            final String data = JsonUtils.serialize(msg);
             sendMessage(msg, topicEvent, Sender.NJAMS_MESSAGETYPE_TRACE, data);
             if (LOG.isTraceEnabled()) {
                 LOG.trace("Send TraceMessage {} to {}:\n{}", msg.getPath(), topicEvent, data);
             } else {
                 LOG.debug("Send TraceMessage for {} to {}", msg.getPath(), topicEvent);
             }
-        } catch (Exception e) {
+        } catch (final Exception e) {
             throw new NjamsSdkRuntimeException("Unable to send TraceMessage", e);
         }
     }
@@ -207,7 +207,7 @@ public class KafkaSender extends AbstractSender {
      * @param data
      * @throws InterruptedException
      */
-    private void sendMessage(CommonMessage msg, String topic, String messageType, String data)
+    private void sendMessage(final CommonMessage msg, final String topic, final String messageType, final String data)
             throws InterruptedException {
         final ProducerRecord<String, String> record;
         final String id;
@@ -219,13 +219,13 @@ public class KafkaSender extends AbstractSender {
             record = new ProducerRecord<>(topic, data);
         }
         headersUpdater(record).
-        addHeader(Sender.NJAMS_MESSAGEVERSION, MessageVersion.V4.toString()).
-        addHeader(Sender.NJAMS_MESSAGETYPE, messageType).
-        addHeader(Sender.NJAMS_LOGID, id, (k, v) -> StringUtils.isNotBlank(v)).
-        addHeader(Sender.NJAMS_PATH, msg.getPath(), (k, v) -> StringUtils.isNotBlank(v));
+                addHeader(Sender.NJAMS_MESSAGEVERSION, MessageVersion.V4.toString()).
+                addHeader(Sender.NJAMS_MESSAGETYPE, messageType).
+                addHeader(Sender.NJAMS_LOGID, id, (k, v) -> StringUtils.isNotBlank(v)).
+                addHeader(Sender.NJAMS_PATH, msg.getPath(), (k, v) -> StringUtils.isNotBlank(v));
         try {
             tryToSend(record);
-        } catch (Exception e) {
+        } catch (final Exception e) {
             // TODO
             LOG.error("Failed to send.", e);
             throw e;
@@ -238,7 +238,7 @@ public class KafkaSender extends AbstractSender {
      * @param message
      * @throws InterruptedException
      */
-    private void tryToSend(ProducerRecord<String, String> message) throws InterruptedException {
+    private void tryToSend(final ProducerRecord<String, String> message) throws InterruptedException {
         boolean sent = false;
 
         int tries = 0;

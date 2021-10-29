@@ -93,7 +93,7 @@ public class KafkaReceiver extends AbstractReceiver {
      * @param properties the properties needed to initialize
      */
     @Override
-    public void init(Properties properties) {
+    public void init(final Properties properties) {
         njamsProperties = properties;
         connectionStatus = ConnectionStatus.DISCONNECTED;
         mapper = JsonSerializerFactory.getDefaultMapper();
@@ -113,9 +113,9 @@ public class KafkaReceiver extends AbstractReceiver {
         }
     }
 
-    private static String getClientId(String path) {
+    private static String getClientId(final String path) {
         String id = "NJSDK_";
-        int max = 255 - id.length();
+        final int max = 255 - id.length();
         if (path.length() > max) {
             id += path.substring(0, max - 9) + "_" + Integer.toHexString(path.hashCode());
         } else {
@@ -150,7 +150,7 @@ public class KafkaReceiver extends AbstractReceiver {
         try {
             commandConsumer = new CommandsConsumer(njamsProperties, topicName, clientId, this);
             commandConsumer.start();
-        } catch (Exception e) {
+        } catch (final Exception e) {
             closeAll();
             throw new NjamsSdkRuntimeException("Unable to start the Commands-Consumer-Thread", e);
         }
@@ -210,7 +210,7 @@ public class KafkaReceiver extends AbstractReceiver {
      *
      * @param msg the newly arrived Kafka message.
      */
-    public void onMessage(ConsumerRecord<String, String> msg) {
+    public void onMessage(final ConsumerRecord<String, String> msg) {
         LOG.debug("Received message {}", msg);
         try {
             if (!isValidMessage(msg)) {
@@ -228,12 +228,12 @@ public class KafkaReceiver extends AbstractReceiver {
             LOG.debug("Handle message (id={}) {}", messageId, msg);
             onInstruction(instruction);
             sendReply(messageId, instruction);
-        } catch (Exception e) {
+        } catch (final Exception e) {
             LOG.error("Failed to process instruction: {}", msg, e);
         }
     }
 
-    protected boolean isValidMessage(ConsumerRecord<?, ?> msg) {
+    protected boolean isValidMessage(final ConsumerRecord<?, ?> msg) {
         if (msg == null) {
             return false;
         }
@@ -263,7 +263,7 @@ public class KafkaReceiver extends AbstractReceiver {
      *         instruction was found or it could be parsed to an instruction object.
      * @throws IOException
      */
-    protected Instruction getInstruction(ConsumerRecord<String, String> message) throws IOException {
+    protected Instruction getInstruction(final ConsumerRecord<String, String> message) throws IOException {
         return mapper.readValue(message.value(), Instruction.class);
     }
 
@@ -275,10 +275,10 @@ public class KafkaReceiver extends AbstractReceiver {
      * @param requestId The ID of the request to that this reply belongs
      * @param instruction the instruction that holds the response.
      */
-    protected void sendReply(final String requestId, Instruction instruction) {
+    protected void sendReply(final String requestId, final Instruction instruction) {
         try {
             final String responseId = UUID.randomUUID().toString();
-            ProducerRecord<String, String> response =
+            final ProducerRecord<String, String> response =
                     new ProducerRecord<>(topicName, responseId, mapper.writeValueAsString(instruction));
             headersUpdater(response).
                     addHeader(NJAMS_MESSAGE_ID, responseId).
@@ -298,12 +298,13 @@ public class KafkaReceiver extends AbstractReceiver {
                 producer.flush();
             }
 
-        } catch (Exception e) {
+        } catch (final Exception e) {
             LOG.error("Error while sending reply for {}", requestId, e);
         }
     }
 
-    private Properties filterKafkaProperties(Properties properties, ClientType clientType, String client) {
+    private Properties filterKafkaProperties(final Properties properties, final ClientType clientType,
+            final String client) {
         final Properties p = KafkaUtil.filterKafkaProperties(properties, clientType, client);
         if (!clientId.equals(p.getProperty(ConsumerConfig.CLIENT_ID_CONFIG))
                 || !clientId.equals(p.getProperty(ConsumerConfig.GROUP_ID_CONFIG))) {
