@@ -162,10 +162,6 @@
 									<pattern>oshi</pattern>
 									<shadedPattern>com.im.oshi</shadedPattern>
 								</relocation>
-								<relocation>
-									<pattern>com.sun.jna</pattern>
-									<shadedPattern>com.im.jna</shadedPattern>
-								</relocation>
 								<!-- Kafka -->
 								<relocation>
 									<pattern>org.apache.kafka</pattern>
@@ -187,31 +183,6 @@
 									<pattern>net.jpountz</pattern>
 									<!-- LZ4 -->
 									<shadedPattern>com.im.jpountz</shadedPattern>
-								</relocation>
-								<relocation>
-									<pattern>com.github.luben.zstd</pattern>
-									<!-- zstd.jni -->
-									<shadedPattern>com.im.zstd</shadedPattern>
-								</relocation>
-								<relocation>
-									<pattern>darwin</pattern>
-									<!-- zstd.jni -->
-									<shadedPattern>com.im.zstd.darwin</shadedPattern>
-								</relocation>
-								<relocation>
-									<pattern>freebsd</pattern>
-									<!-- zstd.jni -->
-									<shadedPattern>com.im.zstd.freebsd</shadedPattern>
-								</relocation>
-								<relocation>
-									<pattern>linux</pattern>
-									<!-- zstd.jni -->
-									<shadedPattern>com.im.zstd.linux</shadedPattern>
-								</relocation>
-								<relocation>
-									<pattern>win</pattern>
-									<!-- zstd.jni -->
-									<shadedPattern>com.im.zstd.win</shadedPattern>
 								</relocation>
 							</relocations>
 							<filters>
