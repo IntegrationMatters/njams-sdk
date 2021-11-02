@@ -1,6 +1,7 @@
 package com.im.njams.sdk.communication.kafka;
 
 import static com.im.njams.sdk.communication.kafka.KafkaConstants.ADMIN_PREFIX;
+import static com.im.njams.sdk.communication.kafka.KafkaConstants.CLIENT_PREFIX;
 import static com.im.njams.sdk.communication.kafka.KafkaConstants.CONSUMER_PREFIX;
 import static com.im.njams.sdk.communication.kafka.KafkaConstants.PRODUCER_PREFIX;
 
@@ -8,6 +9,7 @@ import java.time.Duration;
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -33,6 +35,17 @@ import com.im.njams.sdk.utils.StringUtils;
  */
 public class KafkaUtil {
 
+    private static class PropertyFilter {
+        private final String prefix;
+        private final Collection<String> supportedKeys;
+
+        private PropertyFilter(final String prefix, final Collection<String> supportedKeys) {
+            this.prefix = prefix;
+            this.supportedKeys = Collections.unmodifiableCollection(supportedKeys);
+        }
+
+    }
+
     private static final Logger LOG = LoggerFactory.getLogger(KafkaUtil.class);
 
     /**
@@ -40,12 +53,20 @@ public class KafkaUtil {
      */
     public enum ClientType {
         /** Admin client connection */
-        ADMIN,
+        ADMIN(ADMIN_PREFIX, AdminClientConfig.configNames()),
         /** Consumer connection */
-        CONSUMER,
+        CONSUMER(CONSUMER_PREFIX, ConsumerConfig.configNames()),
         /** Producer connection */
-        PRODUCER
-    };
+        PRODUCER(PRODUCER_PREFIX, ProducerConfig.configNames());
+
+        private final PropertyFilter clientFilter;
+        private final PropertyFilter typeFilter;
+
+        private ClientType(final String pfx, final Collection<String> keys) {
+            clientFilter = new PropertyFilter(CLIENT_PREFIX, keys);
+            typeFilter = new PropertyFilter(pfx, keys);
+        }
+    }
 
     private KafkaUtil() {
         // static
@@ -100,14 +121,14 @@ public class KafkaUtil {
     public static Properties filterKafkaProperties(final Properties properties, final ClientType clientType,
             final String clientId) {
         final Properties kafkaProperties = new Properties();
+        final ClientType type = clientType == null ? ClientType.CONSUMER : clientType;
 
-        final Entry<String, Collection<String>> filter = getPropertiesFilter(clientType);
         // add keys from CLIENT_PREFIX
         properties.stringPropertyNames().stream()
-        .map(k -> getKafkaKey(k, KafkaConstants.CLIENT_PREFIX, filter.getValue())).filter(Objects::nonNull)
+        .map(k -> getKafkaKey(k, type.clientFilter)).filter(Objects::nonNull)
         .forEach(e -> kafkaProperties.setProperty(e.getValue(), properties.getProperty(e.getKey())));
         // override with keys from type specific prefix
-        properties.stringPropertyNames().stream().map(k -> getKafkaKey(k, filter.getKey(), filter.getValue()))
+        properties.stringPropertyNames().stream().map(k -> getKafkaKey(k, type.typeFilter))
         .filter(Objects::nonNull)
         .forEach(e -> kafkaProperties.setProperty(e.getValue(), properties.getProperty(e.getKey())));
 
@@ -124,54 +145,19 @@ public class KafkaUtil {
     }
 
     /**
-     * @param clientType The intended Kafka usage type.
-     * @return A filter containing the property prefix to use and the set of supported Kafka config keys.
-     */
-    private static Entry<String, Collection<String>> getPropertiesFilter(final ClientType clientType) {
-        final String prefix;
-        final Collection<String> kafkaKeys;
-
-        if (clientType == null) {
-            prefix = CONSUMER_PREFIX;
-            kafkaKeys = ConsumerConfig.configNames();
-
-        } else {
-            switch (clientType) {
-            case ADMIN:
-                prefix = ADMIN_PREFIX;
-                kafkaKeys = AdminClientConfig.configNames();
-                break;
-            case PRODUCER:
-                prefix = PRODUCER_PREFIX;
-                kafkaKeys = ProducerConfig.configNames();
-                break;
-            case CONSUMER:
-                // intentional fall-through
-            default:
-                prefix = CONSUMER_PREFIX;
-                kafkaKeys = ConsumerConfig.configNames();
-                break;
-            }
-        }
-        return new AbstractMap.SimpleImmutableEntry<>(prefix, kafkaKeys);
-    }
-
-    /**
      * Maps the given nJAMS setting key to a Kafka config key if applicable.
      * @param njamsKey The original type.
-     * @param prefix The prefix for extracting the Kafka key
-     * @param kafkaKeys The set of supported keys
+     * @param filter Property filter object
      * @return Entry containing the original key as key and the truncated Kafka key as value, or <code>null</code>
      * if the resulting key is not a valid Kafka config key.
      */
-    private static Entry<String, String> getKafkaKey(final String njamsKey, final String prefix,
-            final Collection<String> kafkaKeys) {
-        if (!njamsKey.regionMatches(true, 0, prefix, 0, prefix.length())) {
+    private static Entry<String, String> getKafkaKey(final String njamsKey, PropertyFilter filter) {
+        if (!njamsKey.regionMatches(true, 0, filter.prefix, 0, filter.prefix.length())) {
             return null;
         }
 
-        final String key = njamsKey.substring(prefix.length());
-        if (kafkaKeys.contains(key)) {
+        final String key = njamsKey.substring(filter.prefix.length());
+        if (filter.supportedKeys.contains(key)) {
             return new AbstractMap.SimpleImmutableEntry<>(njamsKey, key);
         }
         return null;
