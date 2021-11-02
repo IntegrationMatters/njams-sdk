@@ -145,12 +145,73 @@
 									<shadedPattern>com.im.fasterxml</shadedPattern>
 								</relocation>
 								<relocation>
+									<!-- woodstox -->
+									<pattern>com.ctc.wstx</pattern>
+									<shadedPattern>com.im.wstx</shadedPattern>
+								</relocation>
+								<relocation>
 									<pattern>org.codehaus</pattern>
 									<shadedPattern>com.im.codehaus</shadedPattern>
 								</relocation>
 								<relocation>
+									<pattern>io.burt.jmespath</pattern>
+									<shadedPattern>com.im.jmespath</shadedPattern>
+								</relocation>
+								<!-- Oshi -->
+								<relocation>
 									<pattern>oshi</pattern>
 									<shadedPattern>com.im.oshi</shadedPattern>
+								</relocation>
+								<relocation>
+									<pattern>com.sun.jna</pattern>
+									<shadedPattern>com.im.jna</shadedPattern>
+								</relocation>
+								<!-- Kafka -->
+								<relocation>
+									<pattern>org.apache.kafka</pattern>
+									<shadedPattern>com.im.kafka</shadedPattern>
+								</relocation>
+								<relocation>
+									<pattern>common.message</pattern>
+									<shadedPattern>com.im.kafka.message</shadedPattern>
+								</relocation>
+								<relocation>
+									<pattern>kafka</pattern>
+									<shadedPattern>com.im.kafka</shadedPattern>
+								</relocation>
+								<relocation>
+									<pattern>org.xerial.snappy</pattern>
+									<shadedPattern>com.im.snappy</shadedPattern>
+								</relocation>
+								<relocation>
+									<pattern>net.jpountz</pattern>
+									<!-- LZ4 -->
+									<shadedPattern>com.im.jpountz</shadedPattern>
+								</relocation>
+								<relocation>
+									<pattern>com.github.luben.zstd</pattern>
+									<!-- zstd.jni -->
+									<shadedPattern>com.im.zstd</shadedPattern>
+								</relocation>
+								<relocation>
+									<pattern>darwin</pattern>
+									<!-- zstd.jni -->
+									<shadedPattern>com.im.zstd.darwin</shadedPattern>
+								</relocation>
+								<relocation>
+									<pattern>freebsd</pattern>
+									<!-- zstd.jni -->
+									<shadedPattern>com.im.zstd.freebsd</shadedPattern>
+								</relocation>
+								<relocation>
+									<pattern>linux</pattern>
+									<!-- zstd.jni -->
+									<shadedPattern>com.im.zstd.linux</shadedPattern>
+								</relocation>
+								<relocation>
+									<pattern>win</pattern>
+									<!-- zstd.jni -->
+									<shadedPattern>com.im.zstd.win</shadedPattern>
 								</relocation>
 							</relocations>
 							<filters>
@@ -231,6 +292,7 @@
 		<dependency>
 			<groupId>org.apache.kafka</groupId>
 			<artifactId>kafka-clients</artifactId>
+			<scope>compile</scope>
 		</dependency>
 
 		<!-- provided - not shaded -->
