@@ -125,18 +125,18 @@ public class KafkaUtil {
 
         // add keys from CLIENT_PREFIX
         properties.stringPropertyNames().stream()
-        .map(k -> getKafkaKey(k, type.clientFilter)).filter(Objects::nonNull)
-        .forEach(e -> kafkaProperties.setProperty(e.getValue(), properties.getProperty(e.getKey())));
+                .map(k -> getKafkaKey(k, type.clientFilter)).filter(Objects::nonNull)
+                .forEach(e -> kafkaProperties.setProperty(e.getValue(), properties.getProperty(e.getKey())));
         // override with keys from type specific prefix
         properties.stringPropertyNames().stream().map(k -> getKafkaKey(k, type.typeFilter))
-        .filter(Objects::nonNull)
-        .forEach(e -> kafkaProperties.setProperty(e.getValue(), properties.getProperty(e.getKey())));
+                .filter(Objects::nonNull)
+                .forEach(e -> kafkaProperties.setProperty(e.getValue(), properties.getProperty(e.getKey())));
 
         if (StringUtils.isNotBlank(clientId)) {
             if (!kafkaProperties.containsKey(ConsumerConfig.CLIENT_ID_CONFIG)) {
                 kafkaProperties.setProperty(ConsumerConfig.CLIENT_ID_CONFIG, clientId);
             }
-            if (!kafkaProperties.containsKey(ConsumerConfig.GROUP_ID_CONFIG)) {
+            if (clientType == ClientType.CONSUMER && !kafkaProperties.containsKey(ConsumerConfig.GROUP_ID_CONFIG)) {
                 kafkaProperties.setProperty(ConsumerConfig.GROUP_ID_CONFIG, clientId);
             }
         }

@@ -1004,17 +1004,17 @@ public class Njams implements InstructionListener {
     }
 
     /**
-     * Adds a {@link Serializer} for a given class. <br>
-     * User {@link #serialize(java.lang.Object) } to serialize instance of this
+     * Adds a {@link Serializer} for serializing a given class. <br>
+     * Uses {@link #serialize(java.lang.Object) } to serialize instances of this
      * class with the registered serializer. If a serializer is already
      * registered, it will be replaced with the new serializer.
      *
-     * @param <T>        Type of the serializer
+     * @param <T>        Type that the given instance serializes
      * @param key        Class for which the serializer should be registered
      * @param serializer A serializer that can serialize instances of class key
      *                   to strings.
-     * @return The given serializer, or if one was already registered before,
-     * the former registered serializer.
+     * @return If a serializer for the same type was already registered before,
+     * the former registered serializer is returned. Otherwise <code>null</code> is returned.
      */
     public <T> Serializer<T> addSerializer(final Class<T> key, final Serializer<? super T> serializer) {
         synchronized (cachedSerializers) {
