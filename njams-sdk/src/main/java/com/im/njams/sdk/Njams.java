@@ -304,7 +304,7 @@ public class Njams implements InstructionListener {
             settings.put(ConfigurationProviderFactory.CONFIGURATION_PROVIDER, DEFAULT_CACHE_PROVIDER);
         }
         ConfigurationProvider configurationProvider = new ConfigurationProviderFactory(settings, this)
-                .getConfigurationProvider();
+        .getConfigurationProvider();
         configuration = new Configuration();
         configuration.setConfigurationProvider(configurationProvider);
         settings.addSecureProperties(configurationProvider.getSecureProperties());
@@ -647,7 +647,7 @@ public class Njams implements InstructionListener {
         msg.setLogMode(configuration.getLogMode());
         synchronized (processModels) {
             processModels.values().stream().map(pm -> pm.getSerializableProcessModel())
-                    .forEach(ipm -> msg.getProcesses().add(ipm));
+            .forEach(ipm -> msg.getProcesses().add(ipm));
             images.forEach(i -> msg.getImages().put(i.getName(), i.getBase64Image()));
             msg.getGlobalVariables().putAll(globalVariables);
             LOG.debug("Sending project message with {} process-models, {} images, {} global-variables.",
@@ -747,7 +747,7 @@ public class Njams implements InstructionListener {
      */
     private void setStarters() {
         treeElements.stream().filter(te -> te.getTreeElementType() == TreeElementType.PROCESS)
-                .filter(te -> processModels.get(te.getPath()).isStarter()).forEach(te -> te.setStarter(true));
+        .filter(te -> processModels.get(te.getPath()).isStarter()).forEach(te -> te.setStarter(true));
     }
 
     /**
@@ -793,7 +793,7 @@ public class Njams implements InstructionListener {
             }
         }
         treeElements.stream().filter(te -> te.getTreeElementType() == TreeElementType.PROCESS)
-                .forEach(te -> te.setStarter(isStarter));
+        .forEach(te -> te.setStarter(isStarter));
         return treeElements;
     }
 
@@ -898,8 +898,8 @@ public class Njams implements InstructionListener {
         LOG.info("*** ");
         LOG.info("***      Version Info:");
         versions.entrySet().stream().filter(e -> !CURRENT_YEAR.equals(e.getKey()))
-                .sorted(Comparator.comparing(Entry::getKey))
-                .forEach(e -> LOG.info("***      " + e.getKey() + ": " + e.getValue()));
+        .sorted(Comparator.comparing(Entry::getKey))
+        .forEach(e -> LOG.info("***      " + e.getKey() + ": " + e.getValue()));
         LOG.info("*** ");
         LOG.info("***      Settings:");
 
@@ -953,7 +953,7 @@ public class Njams implements InstructionListener {
             sendProjectMessage();
             Response response = new Response();
             response.setResultCode(0);
-            response.setResultMessage("Successfully send ProjectMessage via NjamsClient");
+            response.setResultMessage("Successfully sent ProjectMessage via NjamsClient");
             instruction.setResponse(response);
             LOG.debug("Sent ProjectMessage requested via Instruction via Njams");
         } else if (instruction.getRequest().getCommand().equalsIgnoreCase(Command.REPLAY.commandString())) {

@@ -223,13 +223,8 @@ public class KafkaSender extends AbstractSender {
                 addHeader(Sender.NJAMS_MESSAGETYPE, messageType).
                 addHeader(Sender.NJAMS_LOGID, id, (k, v) -> StringUtils.isNotBlank(v)).
                 addHeader(Sender.NJAMS_PATH, msg.getPath(), (k, v) -> StringUtils.isNotBlank(v));
-        try {
-            tryToSend(record);
-        } catch (final Exception e) {
-            // TODO
-            LOG.error("Failed to send.", e);
-            throw e;
-        }
+
+        tryToSend(record);
     }
 
     /**
