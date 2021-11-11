@@ -25,26 +25,6 @@ package com.im.njams.sdk;
 
 import static java.util.stream.Collectors.toList;
 
-import java.net.URL;
-import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.Enumeration;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Objects;
-import java.util.Properties;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.stream.Stream;
-
-import org.slf4j.LoggerFactory;
-
 import com.faizsiegeln.njams.messageformat.v4.command.Command;
 import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
 import com.faizsiegeln.njams.messageformat.v4.command.Response;
@@ -89,6 +69,28 @@ import com.im.njams.sdk.serializer.StringSerializer;
 import com.im.njams.sdk.settings.Settings;
 import com.im.njams.sdk.utils.StringUtils;
 
+import java.net.URL;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.Enumeration;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Objects;
+import java.util.Properties;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+import org.slf4j.LoggerFactory;
+
 /**
  * This is an instance of nJAMS. It cares about lifecycle and initializations
  * and holds references to the process models and global variables.
@@ -125,7 +127,11 @@ public class Njams implements InstructionListener {
         /**
          * Value indicating that this instance implements expression test functionality.
          */
-        EXPRESSION_TEST("expressionTest");
+        EXPRESSION_TEST("expressionTest"),
+        /**
+         * Value indicating that this instance implements replying to a "ping" request sent from nJAMS server.
+         */
+        PING("ping");
 
         private final String key;
 
@@ -238,7 +244,8 @@ public class Njams implements InstructionListener {
 
     // features
     private final List<String> features = Collections
-            .synchronizedList(new ArrayList<>(Collections.singleton(Feature.EXPRESSION_TEST.toString())));
+            .synchronizedList(
+                    new ArrayList<>(Arrays.asList(Feature.EXPRESSION_TEST.toString(), Feature.PING.toString())));
 
     private NjamsSender sender;
     private Receiver receiver;
@@ -304,7 +311,7 @@ public class Njams implements InstructionListener {
             settings.put(ConfigurationProviderFactory.CONFIGURATION_PROVIDER, DEFAULT_CACHE_PROVIDER);
         }
         ConfigurationProvider configurationProvider = new ConfigurationProviderFactory(settings, this)
-        .getConfigurationProvider();
+                .getConfigurationProvider();
         configuration = new Configuration();
         configuration.setConfigurationProvider(configurationProvider);
         settings.addSecureProperties(configurationProvider.getSecureProperties());
@@ -646,8 +653,8 @@ public class Njams implements InstructionListener {
         msg.setFeatures(features);
         msg.setLogMode(configuration.getLogMode());
         synchronized (processModels) {
-            processModels.values().stream().map(pm -> pm.getSerializableProcessModel())
-            .forEach(ipm -> msg.getProcesses().add(ipm));
+            processModels.values().stream().map(ProcessModel::getSerializableProcessModel)
+                    .forEach(ipm -> msg.getProcesses().add(ipm));
             images.forEach(i -> msg.getImages().put(i.getName(), i.getBase64Image()));
             msg.getGlobalVariables().putAll(globalVariables);
             LOG.debug("Sending project message with {} process-models, {} images, {} global-variables.",
@@ -747,7 +754,7 @@ public class Njams implements InstructionListener {
      */
     private void setStarters() {
         treeElements.stream().filter(te -> te.getTreeElementType() == TreeElementType.PROCESS)
-        .filter(te -> processModels.get(te.getPath()).isStarter()).forEach(te -> te.setStarter(true));
+                .filter(te -> processModels.get(te.getPath()).isStarter()).forEach(te -> te.setStarter(true));
     }
 
     /**
@@ -793,7 +800,7 @@ public class Njams implements InstructionListener {
             }
         }
         treeElements.stream().filter(te -> te.getTreeElementType() == TreeElementType.PROCESS)
-        .forEach(te -> te.setStarter(isStarter));
+                .forEach(te -> te.setStarter(isStarter));
         return treeElements;
     }
 
@@ -898,8 +905,8 @@ public class Njams implements InstructionListener {
         LOG.info("*** ");
         LOG.info("***      Version Info:");
         versions.entrySet().stream().filter(e -> !CURRENT_YEAR.equals(e.getKey()))
-        .sorted(Comparator.comparing(Entry::getKey))
-        .forEach(e -> LOG.info("***      " + e.getKey() + ": " + e.getValue()));
+                .sorted(Comparator.comparing(Entry::getKey))
+                .forEach(e -> LOG.info("***      " + e.getKey() + ": " + e.getValue()));
         LOG.info("*** ");
         LOG.info("***      Settings:");
 
@@ -949,14 +956,16 @@ public class Njams implements InstructionListener {
      */
     @Override
     public void onInstruction(Instruction instruction) {
-        if (instruction.getRequest().getCommand().equals(Command.SEND_PROJECTMESSAGE.commandString())) {
+        if (Command.SEND_PROJECTMESSAGE.commandString().equalsIgnoreCase(instruction.getCommand())) {
             sendProjectMessage();
-            Response response = new Response();
+            final Response response = new Response();
             response.setResultCode(0);
             response.setResultMessage("Successfully sent ProjectMessage via NjamsClient");
             instruction.setResponse(response);
             LOG.debug("Sent ProjectMessage requested via Instruction via Njams");
-        } else if (instruction.getRequest().getCommand().equalsIgnoreCase(Command.REPLAY.commandString())) {
+        } else if (Command.PING.commandString().equalsIgnoreCase(instruction.getCommand())) {
+            instruction.setResponse(createPingResponse());
+        } else if (Command.REPLAY.commandString().equalsIgnoreCase(instruction.getCommand())) {
             final Response response = new Response();
             if (replayHandler != null) {
                 try {
@@ -978,6 +987,20 @@ public class Njams implements InstructionListener {
                 instruction.setResponse(response);
             }
         }
+    }
+
+    private Response createPingResponse() {
+        final Response response = new Response();
+        response.setResultCode(0);
+        response.setResultMessage("Pong");
+        final Map<String, String> params = response.getParameters();
+        params.put("clientPath", clientPath.toString());
+        params.put("clientVersion", getClientVersion());
+        params.put("sdkVersion", getSdkVersion());
+        params.put("category", getCategory());
+        params.put("machine", getMachine());
+        params.put("features", features.stream().collect(Collectors.joining(",")));
+        return response;
     }
 
     /**
