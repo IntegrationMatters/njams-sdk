@@ -110,6 +110,9 @@ public class Settings {
     /** Setting for truncating successful jobs, provided that they were processed as single message.  */
     public static final String PROPERTY_TRUNCATE_ON_SUCCESS = "njams.sdk.truncateOnSuccess";
 
+    /** Property added internally for passing the an instance's client path to the communication layer. */
+    public static final String INTERNAL_PROPERTY_CLIENTPATH = "njams.$clientPath";
+
     public Settings() {
         properties = new Properties();
         secureProperties.add("password");

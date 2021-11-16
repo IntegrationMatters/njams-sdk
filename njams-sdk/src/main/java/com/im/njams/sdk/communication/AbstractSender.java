@@ -215,8 +215,7 @@ public abstract class AbstractSender implements Sender {
 
     @Override
     public void close() {
-        // TODO Auto-generated method stub
-
+        // nothing by default
     }
 
     /**

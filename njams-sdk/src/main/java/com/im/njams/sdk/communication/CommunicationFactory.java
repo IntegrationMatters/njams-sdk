@@ -19,6 +19,7 @@ package com.im.njams.sdk.communication;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Properties;
 import java.util.ServiceLoader;
 import java.util.Spliterator;
 import java.util.Spliterators;
@@ -29,6 +30,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.im.njams.sdk.Njams;
+import com.im.njams.sdk.common.Path;
 import com.im.njams.sdk.settings.Settings;
 
 /**
@@ -74,7 +76,7 @@ public class CommunicationFactory {
                     "true".equalsIgnoreCase(settings.getProperty(Settings.PROPERTY_SHARED_COMMUNICATIONS));
             Class<? extends Receiver> type = findReceiverType(requiredReceiverName, shared);
             if (type != null) {
-                final Receiver newInstance = createReceiver(type, shared, requiredReceiverName);
+                final Receiver newInstance = createReceiver(type, njams.getClientPath(), shared, requiredReceiverName);
                 newInstance.setNjams(njams);
                 return newInstance;
 
@@ -97,7 +99,7 @@ public class CommunicationFactory {
         Receiver found = null;
         while (iterator.hasNext()) {
             final Receiver receiver = iterator.next();
-            if (receiver.getName().equals(name)) {
+            if (receiver.getName().equalsIgnoreCase(name)) {
                 final boolean implementsSharable = ShareableReceiver.class.isAssignableFrom(receiver.getClass());
                 if (sharable && implementsSharable || !sharable && !implementsSharable) {
                     return receiver.getClass();
@@ -113,8 +115,10 @@ public class CommunicationFactory {
         return found == null ? null : found.getClass();
     }
 
-    private Receiver createReceiver(Class<? extends Receiver> clazz, boolean shared, String name) {
+    private Receiver createReceiver(Class<? extends Receiver> clazz, Path clientPath, boolean shared, String name) {
         try {
+            Properties properties = settings.getAllProperties();
+            properties.setProperty(Settings.INTERNAL_PROPERTY_CLIENTPATH, clientPath.toString());
             Receiver receiver;
             if (shared && ShareableReceiver.class.isAssignableFrom(clazz)) {
                 synchronized (sharedReceivers) {
@@ -126,16 +130,15 @@ public class CommunicationFactory {
                     LOG.debug("Creating shared receiver {}", clazz);
                     receiver = clazz.newInstance();
                     receiver.validate();
-                    sharedReceivers.put(clazz, (ShareableReceiver) receiver);
-                    receiver.init(settings.getAllProperties());
+                    sharedReceivers.put(clazz, (ShareableReceiver<?>) receiver);
+                    receiver.init(properties);
                     return receiver;
                 }
             }
             LOG.debug("Creating dedicated receiver {}", clazz);
             receiver = clazz.newInstance();
             receiver.validate();
-
-            receiver.init(settings.getAllProperties());
+            receiver.init(properties);
             return receiver;
         } catch (Exception e) {
             throw new IllegalStateException("Unable to create new receiver " + name + " instance.", e);
@@ -154,7 +157,7 @@ public class CommunicationFactory {
             final String requiredSenderName = settings.getProperty(COMMUNICATION);
             while (iterator.hasNext()) {
                 final Sender sender = iterator.next();
-                if (sender.getName().equals(requiredSenderName)) {
+                if (sender.getName().equalsIgnoreCase(requiredSenderName)) {
                     try {
                         // create a new instance
                         LOG.info("Create sender {}", sender.getName());

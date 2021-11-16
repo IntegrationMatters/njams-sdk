@@ -25,26 +25,6 @@ package com.im.njams.sdk;
 
 import static java.util.stream.Collectors.toList;
 
-import java.net.URL;
-import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.Enumeration;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Objects;
-import java.util.Properties;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.stream.Stream;
-
-import org.slf4j.LoggerFactory;
-
 import com.faizsiegeln.njams.messageformat.v4.command.Command;
 import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
 import com.faizsiegeln.njams.messageformat.v4.command.Response;
@@ -89,6 +69,28 @@ import com.im.njams.sdk.serializer.StringSerializer;
 import com.im.njams.sdk.settings.Settings;
 import com.im.njams.sdk.utils.StringUtils;
 
+import java.net.URL;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.Enumeration;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Objects;
+import java.util.Properties;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+import org.slf4j.LoggerFactory;
+
 /**
  * This is an instance of nJAMS. It cares about lifecycle and initializations
  * and holds references to the process models and global variables.
@@ -125,7 +127,11 @@ public class Njams implements InstructionListener {
         /**
          * Value indicating that this instance implements expression test functionality.
          */
-        EXPRESSION_TEST("expressionTest");
+        EXPRESSION_TEST("expressionTest"),
+        /**
+         * Value indicating that this instance implements replying to a "ping" request sent from nJAMS server.
+         */
+        PING("ping");
 
         private final String key;
 
@@ -238,7 +244,8 @@ public class Njams implements InstructionListener {
 
     // features
     private final List<String> features = Collections
-            .synchronizedList(new ArrayList<>(Collections.singleton(Feature.EXPRESSION_TEST.toString())));
+            .synchronizedList(
+                    new ArrayList<>(Arrays.asList(Feature.EXPRESSION_TEST.toString(), Feature.PING.toString())));
 
     private NjamsSender sender;
     private Receiver receiver;
@@ -646,7 +653,7 @@ public class Njams implements InstructionListener {
         msg.setFeatures(features);
         msg.setLogMode(configuration.getLogMode());
         synchronized (processModels) {
-            processModels.values().stream().map(pm -> pm.getSerializableProcessModel())
+            processModels.values().stream().map(ProcessModel::getSerializableProcessModel)
                     .forEach(ipm -> msg.getProcesses().add(ipm));
             images.forEach(i -> msg.getImages().put(i.getName(), i.getBase64Image()));
             msg.getGlobalVariables().putAll(globalVariables);
@@ -949,14 +956,16 @@ public class Njams implements InstructionListener {
      */
     @Override
     public void onInstruction(Instruction instruction) {
-        if (instruction.getRequest().getCommand().equals(Command.SEND_PROJECTMESSAGE.commandString())) {
+        if (Command.SEND_PROJECTMESSAGE.commandString().equalsIgnoreCase(instruction.getCommand())) {
             sendProjectMessage();
-            Response response = new Response();
+            final Response response = new Response();
             response.setResultCode(0);
-            response.setResultMessage("Successfully send ProjectMessage via NjamsClient");
+            response.setResultMessage("Successfully sent ProjectMessage via NjamsClient");
             instruction.setResponse(response);
             LOG.debug("Sent ProjectMessage requested via Instruction via Njams");
-        } else if (instruction.getRequest().getCommand().equalsIgnoreCase(Command.REPLAY.commandString())) {
+        } else if (Command.PING.commandString().equalsIgnoreCase(instruction.getCommand())) {
+            instruction.setResponse(createPingResponse());
+        } else if (Command.REPLAY.commandString().equalsIgnoreCase(instruction.getCommand())) {
             final Response response = new Response();
             if (replayHandler != null) {
                 try {
@@ -978,6 +987,20 @@ public class Njams implements InstructionListener {
                 instruction.setResponse(response);
             }
         }
+    }
+
+    private Response createPingResponse() {
+        final Response response = new Response();
+        response.setResultCode(0);
+        response.setResultMessage("Pong");
+        final Map<String, String> params = response.getParameters();
+        params.put("clientPath", clientPath.toString());
+        params.put("clientVersion", getClientVersion());
+        params.put("sdkVersion", getSdkVersion());
+        params.put("category", getCategory());
+        params.put("machine", getMachine());
+        params.put("features", features.stream().collect(Collectors.joining(",")));
+        return response;
     }
 
     /**
@@ -1004,17 +1027,17 @@ public class Njams implements InstructionListener {
     }
 
     /**
-     * Adds a {@link Serializer} for a given class. <br>
-     * User {@link #serialize(java.lang.Object) } to serialize instance of this
+     * Adds a {@link Serializer} for serializing a given class. <br>
+     * Uses {@link #serialize(java.lang.Object) } to serialize instances of this
      * class with the registered serializer. If a serializer is already
      * registered, it will be replaced with the new serializer.
      *
-     * @param <T>        Type of the serializer
+     * @param <T>        Type that the given instance serializes
      * @param key        Class for which the serializer should be registered
      * @param serializer A serializer that can serialize instances of class key
      *                   to strings.
-     * @return The given serializer, or if one was already registered before,
-     * the former registered serializer.
+     * @return If a serializer for the same type was already registered before,
+     * the former registered serializer is returned. Otherwise <code>null</code> is returned.
      */
     public <T> Serializer<T> addSerializer(final Class<T> key, final Serializer<? super T> serializer) {
         synchronized (cachedSerializers) {
