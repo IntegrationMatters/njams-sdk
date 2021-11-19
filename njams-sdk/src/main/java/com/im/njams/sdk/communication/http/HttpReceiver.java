@@ -27,11 +27,11 @@ import com.im.njams.sdk.settings.encoding.Transformer;
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
 
+
 /**
- * Http Receiver
- *
- * @author stkniep
+ * Old impl with HttpServer class from sun package
  */
+@Deprecated
 public class HttpReceiver extends AbstractReceiver {
 
     private static final String PROPERTY_PREFIX = "njams.sdk.communication.http";

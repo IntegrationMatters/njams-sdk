@@ -69,7 +69,7 @@ public class HttpsSender extends AbstractSender {
     /**
      * http sender urlport
      */
-    public static final String SENDER_URL = PROPERTY_PREFIX + ".sender.urlport";
+    public static final String SENDER_URL = PROPERTY_PREFIX + ".sender.url";
     /**
      * http sender username
      */

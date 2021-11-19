@@ -31,6 +31,8 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 
+import com.im.njams.sdk.common.JsonSerializerFactory;
+import com.im.njams.sdk.utils.JsonUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -43,10 +45,14 @@ import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.communication.AbstractSender;
 import com.im.njams.sdk.communication.Sender;
 
+import javax.ws.rs.client.Client;
+import javax.ws.rs.client.ClientBuilder;
+import javax.ws.rs.client.Entity;
+import javax.ws.rs.client.WebTarget;
+import javax.ws.rs.core.Response;
+
 /**
- * HttpSender
- *
- * @author stkniep
+ * Sends Messages via HTTP to nJAMS
  */
 public class HttpSender extends AbstractSender {
 
@@ -62,7 +68,7 @@ public class HttpSender extends AbstractSender {
     /**
      * http sender urlport
      */
-    public static final String SENDER_URL = PROPERTY_PREFIX + ".sender.urlport";
+    public static final String SENDER_URL = PROPERTY_PREFIX + ".sender.url";
     /**
      * http sender username
      */
@@ -90,6 +96,7 @@ public class HttpSender extends AbstractSender {
     @Override
     public void init(Properties properties) {
         this.properties = properties;
+        mapper = JsonSerializerFactory.getDefaultMapper();
         try {
             url = new URL(properties.getProperty(SENDER_URL));
         } catch (final MalformedURLException ex) {
@@ -108,9 +115,9 @@ public class HttpSender extends AbstractSender {
         properties.put(Sender.NJAMS_LOGID, msg.getLogId());
         try {
             LOG.debug("Sending log message");
-            final String response = send(msg, properties);
+            final String response = sendWithHttpClient(msg, properties);
             LOG.debug("Response: " + response);
-        } catch (final IOException ex) {
+        } catch (final Exception ex) {
             LOG.error("Error sending LogMessage", ex);
         }
     }
@@ -124,10 +131,10 @@ public class HttpSender extends AbstractSender {
 
         try {
             LOG.debug("Sending project message");
-            final String response = send(msg, properties);
+            final String response = sendWithHttpClient(msg, properties);
             LOG.debug(response);
-        } catch (final IOException ex) {
-            LOG.error("Error sending LogMessage", ex);
+        } catch (final Exception ex) {
+            LOG.error("Error sending ProjectMessage", ex);
         }
     }
 
@@ -140,9 +147,9 @@ public class HttpSender extends AbstractSender {
 
         try {
             LOG.debug("Sending TraceMessage");
-            final String response = send(msg, properties);
+            final String response = sendWithHttpClient(msg, properties);
             LOG.debug(response);
-        } catch (final IOException ex) {
+        } catch (final Exception ex) {
             LOG.error("Error sending TraceMessage", ex);
         }
     }
@@ -153,65 +160,19 @@ public class HttpSender extends AbstractSender {
                 entry -> connection.setRequestProperty(entry.getKey().toString(), entry.getValue().toString()));
     }
 
-    private String send(final Object msg, final Properties properties) throws IOException {
-        HttpURLConnection connection = null;
-
-        try {
-            //Create connection
-            connection = (HttpURLConnection) url.openConnection();
-            connection.setRequestMethod("POST");
-            connection.setRequestProperty("Content-Type", "application/json");
-            connection.setRequestProperty("Accept", "text/plain");
-
-            if (user != null) {
-                final Base64.Encoder encoder = Base64.getEncoder();
-                final String userpassword = user + ":" + password;
-                final byte[] encodedAuthorization = encoder.encode(userpassword.getBytes(defaultCharset()));
-                connection.setRequestProperty("Authorization",
-                        "Basic " + new String(encodedAuthorization, defaultCharset()));
-            }
-
-            final String body = mapper.writeValueAsString(msg);
-            connection.setRequestProperty("Content-Length",
-                    Integer.toString(body.getBytes().length));
-            connection.setRequestProperty("Content-Language", "en-US");
-
-            connection.setUseCaches(false);
-            connection.setDoOutput(true);
-
-            connection.setRequestProperty(Sender.NJAMS_MESSAGEVERSION, MessageVersion.V4.toString());
-            addAddtionalProperties(properties, connection);
-
-            //Send request
-            try (final DataOutputStream wr = new DataOutputStream(connection.getOutputStream())) {
-                wr.writeBytes(body);
-            }
-
-            //Get Response
-            final InputStream is = connection.getInputStream();
-            final StringBuilder response;
-            try (final BufferedReader rd = new BufferedReader(new InputStreamReader(is, defaultCharset()))) {
-                response = new StringBuilder();
-                String line;
-                while ((line = rd.readLine()) != null) {
-                    response.append(line);
-                    response.append('\r');
-                }
-            }
-            final int responseCode = connection.getResponseCode();
-            final String toString = new StringBuilder("rc = ")
-                    .append(responseCode)
-                    .append(", logId=")
-                    .append('"')
-                    .append(response)
-                    .append('"')
-                    .toString();
-            return toString;
-        } finally {
-            if (connection != null) {
-                connection.disconnect();
-            }
-        }
+    private String sendWithHttpClient(final Object msg, final Properties properties) {
+        Client client = ClientBuilder.newClient();
+        WebTarget target = client.target(String.valueOf(url));
+        Response response = target.request()
+                .header("Content-Type", "application/json")
+                .header("Accept", "text/plain")
+                .header(Sender.NJAMS_MESSAGEVERSION, MessageVersion.V4.toString())
+                .header(Sender.NJAMS_MESSAGETYPE, properties.getProperty(Sender.NJAMS_MESSAGETYPE))
+                .header(Sender.NJAMS_PATH, properties.getProperty(Sender.NJAMS_PATH))
+                .header(Sender.NJAMS_LOGID, properties.getProperty(Sender.NJAMS_LOGID))
+                .post(Entity.json(JsonUtils.serialize(msg)));
+        LOG.info("Response status:" + response.getStatus());
+        return String.valueOf(response.getStatus());
     }
 
     @Override
