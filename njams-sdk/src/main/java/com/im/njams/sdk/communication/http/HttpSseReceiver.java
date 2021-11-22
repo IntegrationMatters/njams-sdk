@@ -1,14 +1,10 @@
 package com.im.njams.sdk.communication.http;
 
 import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
-import com.faizsiegeln.njams.messageformat.v4.common.MessageVersion;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.im.njams.sdk.common.JsonSerializerFactory;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.communication.AbstractReceiver;
-import com.im.njams.sdk.communication.CommunicationFactory;
-import com.im.njams.sdk.communication.Sender;
-import com.im.njams.sdk.settings.encoding.Transformer;
 import com.im.njams.sdk.utils.JsonUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,8 +34,8 @@ public class HttpSseReceiver extends AbstractReceiver {
     private static final String RECEIVER_URL = PROPERTY_PREFIX + ".receiver.url";
 
     private Client client;
-    private WebTarget target;
-    private SseEventSource source;
+    protected WebTarget target;
+    protected SseEventSource source;
     protected ObjectMapper mapper;
     private URL url;
 
@@ -99,7 +95,7 @@ public class HttpSseReceiver extends AbstractReceiver {
         source.close();
     }
 
-    private void sendReply(final String requestId, final Instruction instruction) {
+    protected void sendReply(final String requestId, final Instruction instruction) {
         final String responseId = UUID.randomUUID().toString();
         Client client = ClientBuilder.newClient();
         WebTarget target = client.target(url.toString() + "/reply");
