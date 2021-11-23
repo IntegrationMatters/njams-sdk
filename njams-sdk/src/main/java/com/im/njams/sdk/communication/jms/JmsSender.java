@@ -38,6 +38,7 @@ import javax.naming.InitialContext;
 import javax.naming.NameNotFoundException;
 import javax.naming.NamingException;
 
+import com.im.njams.sdk.communication.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -47,11 +48,6 @@ import com.faizsiegeln.njams.messageformat.v4.logmessage.LogMessage;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.ProjectMessage;
 import com.faizsiegeln.njams.messageformat.v4.tracemessage.TraceMessage;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
-import com.im.njams.sdk.communication.AbstractSender;
-import com.im.njams.sdk.communication.ConnectionStatus;
-import com.im.njams.sdk.communication.DiscardMonitor;
-import com.im.njams.sdk.communication.DiscardPolicy;
-import com.im.njams.sdk.communication.Sender;
 import com.im.njams.sdk.settings.PropertyUtil;
 import com.im.njams.sdk.utils.JsonUtils;
 
@@ -103,8 +99,7 @@ public class JmsSender extends AbstractSender implements ExceptionListener {
         try {
             connectionStatus = ConnectionStatus.CONNECTING;
             context = new InitialContext(PropertyUtil.filterAndCut(properties, JmsConstants.PROPERTY_PREFIX + "."));
-            ConnectionFactory factory = (ConnectionFactory) context
-                    .lookup(properties.getProperty(JmsConstants.CONNECTION_FACTORY));
+            ConnectionFactory factory = NjamsConnectionFactory.getFactory(context, properties);
             if (properties.containsKey(JmsConstants.USERNAME) && properties.containsKey(JmsConstants.PASSWORD)) {
                 connection = factory.createConnection(properties.getProperty(JmsConstants.USERNAME),
                         properties.getProperty(JmsConstants.PASSWORD));

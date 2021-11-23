@@ -35,6 +35,7 @@ import javax.naming.InitialContext;
 import javax.naming.NameNotFoundException;
 import javax.naming.NamingException;
 
+import com.im.njams.sdk.communication.NjamsConnectionFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -203,8 +204,8 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
      * @return the ConnectionFactory, if found.
      * @throws NamingException is thrown if something with the name is wrong.
      */
-    private ConnectionFactory getConnectionFactory(Properties props, InitialContext context) throws NamingException {
-        return (ConnectionFactory) context.lookup(props.getProperty(JmsConstants.CONNECTION_FACTORY));
+    private ConnectionFactory getConnectionFactory(Properties props, InitialContext context) throws Exception {
+        return NjamsConnectionFactory.getFactory(context, props);
     }
 
     /**
