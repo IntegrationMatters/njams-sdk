@@ -316,6 +316,7 @@
             <groupId>org.apache.activemq</groupId>
             <artifactId>activemq-client</artifactId>
             <version>5.16.3</version>
+            <scope>compile</scope>
         </dependency>
     </dependencies>
 </project>
