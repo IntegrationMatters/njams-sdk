@@ -86,7 +86,6 @@ public class NjamsConnectionFactory {
             factory = (ConnectionFactory) context
                     .lookup(properties.getProperty(JmsConstants.CONNECTION_FACTORY));
         }
-        LOG.debug("Factory creation successful");
         return factory;
     }
 }
