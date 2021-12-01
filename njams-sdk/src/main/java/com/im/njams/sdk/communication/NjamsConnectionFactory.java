@@ -60,7 +60,6 @@ public class NjamsConnectionFactory {
      */
     public static ConnectionFactory getFactory(Context context, Properties properties) throws Exception {
         ConnectionFactory factory;
-        LOG.debug("Creating Factory{}", properties.getProperty(JmsConstants.CONNECTION_FACTORY));
         if(properties.getProperty(JmsConstants.CONNECTION_FACTORY).equalsIgnoreCase("ActiveMQSslConnectionFactory")) {
             ActiveMQSslConnectionFactory sslFactory = new ActiveMQSslConnectionFactory();
             if (properties.containsKey(JmsConstants.KEYSTORE))
