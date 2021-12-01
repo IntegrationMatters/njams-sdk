@@ -81,7 +81,7 @@ node ('master') {
           }
 
           publishHTML([allowMissing: false,
-              alwaysLinkToLastBuild: false,
+              alwaysLinkToLastBuild: true,
               keepAll: false,
               reportDir: 'target/site/',
               reportFiles: 'checkstyle.html',
