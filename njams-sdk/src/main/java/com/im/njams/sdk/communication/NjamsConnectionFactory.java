@@ -57,6 +57,9 @@ public class NjamsConnectionFactory {
      *
      * @param context the context needed to intialize
      * @param properties the properties needed to initialize
+     *
+     * @return the ConnectionFactory
+     * @throws Exception is an error occured
      */
     public static ConnectionFactory getFactory(Context context, Properties properties) throws Exception {
         ConnectionFactory factory;
