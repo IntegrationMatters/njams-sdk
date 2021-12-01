@@ -99,7 +99,7 @@ node ('master') {
           sh "'${mvnHome}/bin/mvn' javadoc:javadoc"
 
           publishHTML([allowMissing: false,
-              alwaysLinkToLastBuild: false,
+              alwaysLinkToLastBuild: true,
               keepAll: false,
               reportDir: 'target/site/apidocs/',
               reportFiles: 'index.html',
