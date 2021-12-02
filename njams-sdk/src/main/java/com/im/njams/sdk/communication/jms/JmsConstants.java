@@ -83,4 +83,33 @@ public class JmsConstants {
      * provider url.
      */
     public static final String PROVIDER_URL = PROPERTY_PREFIX + "." + Context.PROVIDER_URL;
+
+    /**
+     * Prefix for the ssl communication properties
+     */
+    public static final String SSLPREFIX = PROPERTY_PREFIX + ".javax.net.ssl";
+    /**
+     * Property key for the ssl communication properties. Specifies the keyStore.
+     */
+    public static final String KEYSTORE = SSLPREFIX + ".keyStore";
+    /**
+     * Property key for the ssl communication properties. Specifies the keyStore password.
+     */
+    public static final String KEYSTOREPASSWORD = SSLPREFIX + ".keyStorePassword";
+    /**
+     * Property key for the ssl communication properties. Specifies the keyStore Type.
+     */
+    public static final String KEYSTORETYPE = SSLPREFIX + ".keyStoreType";
+    /**
+     * Property key for the ssl communication properties. Specifies the trustStore.
+     */
+    public static final String TRUSTSTORE = SSLPREFIX + ".trustStore";
+    /**
+     * Property key for the ssl communication properties. Specifies the trustStore password.
+     */
+    public static final String TRUSTSTOREPASSWORD = SSLPREFIX + ".trustStorePassword";
+    /**
+     * Property key for the ssl communication properties. Specifies the trustStore Type.
+     */
+    public static final String TRUSTSTORETYPE = SSLPREFIX + ".trustStoreType";
 }

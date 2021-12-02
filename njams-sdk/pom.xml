@@ -126,6 +126,10 @@
                                     <pattern>oshi</pattern>
                                     <shadedPattern>com.im.oshi</shadedPattern>
                                 </relocation>
+                                <relocation>
+                                    <pattern>org.apache.activemq</pattern>
+                                    <shadedPattern>com.im.activemq</shadedPattern>
+                                </relocation>
                             </relocations>
                             <filters>
                                 <filter>
@@ -200,6 +204,11 @@
             <groupId>io.burt</groupId>
             <artifactId>jmespath-jackson</artifactId>
             <version>0.2.0</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.activemq</groupId>
+            <artifactId>activemq-client</artifactId>
+            <scope>compile</scope>
         </dependency>
 
         <!-- provided - not shaded -->
