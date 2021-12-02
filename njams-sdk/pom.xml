@@ -178,6 +178,11 @@
                                     <!-- LZ4 -->
                                     <shadedPattern>com.im.jpountz</shadedPattern>
                                 </relocation>
+                                <!--ActiveMQ-->
+                                <relocation>
+                                    <pattern>org.apache.activemq</pattern>
+                                    <shadedPattern>com.im.activemq</shadedPattern>
+                                </relocation>
                             </relocations>
                             <filters>
                                 <filter>
@@ -265,6 +270,11 @@
             <artifactId>kafka-clients</artifactId>
             <scope>compile</scope>
         </dependency>
+        <dependency>
+            <groupId>org.apache.activemq</groupId>
+            <artifactId>activemq-client</artifactId>
+            <scope>compile</scope>
+        </dependency>
 
         <!-- provided - not shaded -->
         <dependency>
@@ -311,12 +321,6 @@
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-log4j12</artifactId>
             <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.activemq</groupId>
-            <artifactId>activemq-client</artifactId>
-            <version>5.16.3</version>
-            <scope>compile</scope>
         </dependency>
     </dependencies>
 </project>

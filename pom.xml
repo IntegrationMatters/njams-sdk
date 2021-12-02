@@ -42,6 +42,7 @@
         <tibjms.version>5.1.0</tibjms.version>
         <jms-api.version>1.1-rev-1</jms-api.version>
         <kafka-version>3.0.0</kafka-version>
+        <activemq-version>5.16.3</activemq-version>
         <cloning.version>1.9.0</cloning.version>
         <objenesis.version>1.2</objenesis.version>
         <commons-lang.version>2.6</commons-lang.version>
@@ -279,8 +280,13 @@
 		    <dependency>
 				<groupId>org.apache.kafka</groupId>
 				<artifactId>kafka-clients</artifactId>
-            <version>${kafka-version}</version>
-        </dependency>
+                <version>${kafka-version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.activemq</groupId>
+                <artifactId>activemq-client</artifactId>
+                <version>${activemq-version}</version>
+            </dependency>
 
         </dependencies>
     </dependencyManagement>
