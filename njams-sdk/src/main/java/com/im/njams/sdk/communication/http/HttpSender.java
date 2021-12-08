@@ -172,7 +172,7 @@ public class HttpSender extends AbstractSender {
                 .header(Sender.NJAMS_PATH, properties.getProperty(Sender.NJAMS_PATH))
                 .header(Sender.NJAMS_LOGID, properties.getProperty(Sender.NJAMS_LOGID))
                 .post(Entity.json(JsonUtils.serialize(msg)));
-        LOG.info("Response status:" + response.getStatus());
+        LOG.debug("Response status:" + response.getStatus());
         return String.valueOf(response.getStatus());
     }
 

@@ -89,13 +89,9 @@ public class HttpSseReceiver extends AbstractReceiver {
     }
 
     void onMessage(InboundSseEvent event) {
-        LOG.info("OnMessage called.");
         String id = event.getId();
-        String name = event.getName();
         String payload = event.readData();
-        String comment = event.getComment();
-        LOG.info("id:" + id);
-        LOG.info("payload:" + payload);
+        LOG.debug("OnMessage called, id=" + id + " payload=" + payload);
         Instruction instruction = null;
         try {
             instruction = mapper.readValue(payload, Instruction.class);
@@ -123,6 +119,6 @@ public class HttpSseReceiver extends AbstractReceiver {
                 .header("NJAMS_MESSAGE_ID", responseId)
                 .header("NJAMS_REPLY_FOR", requestId)
                 .post(Entity.json(JsonUtils.serialize(instruction)));
-        LOG.info("Reply response status:" + response.getStatus());
+        LOG.debug("Reply response status:" + response.getStatus());
     }
 }
