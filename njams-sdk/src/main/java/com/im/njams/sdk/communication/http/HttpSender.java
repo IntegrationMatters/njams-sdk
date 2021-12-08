@@ -67,9 +67,12 @@ public class HttpSender extends AbstractSender {
      * http sender password
      */
     public static final String SENDER_PASSWORD = PROPERTY_PREFIX + ".sender.password";
+
     private String user;
     private String password;
     private URL url;
+    private Client client;
+    private WebTarget target;
 
     /**
      * Initializes this Sender via the given Properties.
@@ -94,6 +97,16 @@ public class HttpSender extends AbstractSender {
         }
         user = properties.getProperty(SENDER_USERNAME);
         password = properties.getProperty(SENDER_PASSWORD);
+        client = ClientBuilder.newClient();
+        target = client.target(String.valueOf(url));
+    }
+
+    /**
+     * Close the HTTP Client
+     */
+    @Override
+    public void close() {
+        client.close();
     }
 
     @Override
@@ -151,8 +164,6 @@ public class HttpSender extends AbstractSender {
     }
 
     private String sendWithHttpClient(final Object msg, final Properties properties) {
-        Client client = ClientBuilder.newClient();
-        WebTarget target = client.target(String.valueOf(url));
         Response response = target.request()
                 .header("Content-Type", "application/json")
                 .header("Accept", "text/plain")
