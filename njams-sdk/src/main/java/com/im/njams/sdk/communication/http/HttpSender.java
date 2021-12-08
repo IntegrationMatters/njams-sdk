@@ -106,7 +106,8 @@ public class HttpSender extends AbstractSender {
      */
     @Override
     public void close() {
-        client.close();
+        // Close is called to early so that error is thrown. See SDK-
+        //client.close();
     }
 
     @Override
