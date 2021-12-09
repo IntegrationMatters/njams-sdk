@@ -47,7 +47,8 @@ public class HttpSseReceiver extends AbstractReceiver {
     private static final Logger LOG = LoggerFactory.getLogger(HttpSseReceiver.class);
     private static final String NAME = "HTTP";
     private static final String PROPERTY_PREFIX = "njams.sdk.communication.http";
-    private static final String RECEIVER_URL = PROPERTY_PREFIX + ".receiver.url";
+    private static final String BASE_URL = PROPERTY_PREFIX + ".base.url";
+    private static final String SSE_API_PATH = "api/httpcommunication";
 
     private Client client;
     protected WebTarget target;
@@ -58,7 +59,7 @@ public class HttpSseReceiver extends AbstractReceiver {
     @Override
     public void init(Properties properties) {
         try {
-            url = new URL(properties.getProperty(RECEIVER_URL));
+            url = new URL(properties.getProperty(BASE_URL) + SSE_API_PATH);
         } catch (final MalformedURLException ex) {
             throw new NjamsSdkRuntimeException("unable to init http sender", ex);
         }

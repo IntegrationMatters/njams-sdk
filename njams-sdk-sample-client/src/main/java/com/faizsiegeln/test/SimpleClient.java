@@ -47,9 +47,9 @@ public class SimpleClient {
 
         // Create communicationProperties, which specify how your client will
         // communicate with the server
-        Settings settings = getJmsProperties();
-        // Settings settings = getCloudProperties();
-        //Settings settings = getHttpProperties();
+        //Settings settings = getJmsProperties();
+        //Settings settings = getCloudProperties();
+        Settings settings = getHttpProperties();
 
         // Instantiate client for first application
         Njams njams = new Njams(clientPath, "1.0.0", technology, settings);
@@ -202,8 +202,8 @@ public class SimpleClient {
     private static Settings getHttpProperties() {
         Settings communicationProperties = new Settings();
         communicationProperties.put(CommunicationFactory.COMMUNICATION, "HTTP");
-        communicationProperties.put("njams.sdk.communication.http.sender.url", "http://localhost:8080/njams/api/processing/ingest/bw");
-        communicationProperties.put("njams.sdk.communication.http.receiver.url", "http://localhost:8080/njams/api/httpcommunication");
+        communicationProperties.put("njams.sdk.communication.http.base.url", "http://localhost:8080/njams/");
+        communicationProperties.put("njams.sdk.communication.http.dataprovider.prefix", "bw");
 
         communicationProperties.put("njams.client.sdk.sharedcommunications", "true");
         return communicationProperties;

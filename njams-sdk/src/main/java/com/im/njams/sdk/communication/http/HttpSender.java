@@ -34,12 +34,9 @@ import javax.ws.rs.client.ClientBuilder;
 import javax.ws.rs.client.Entity;
 import javax.ws.rs.client.WebTarget;
 import javax.ws.rs.core.Response;
-import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.util.Map;
 import java.util.Properties;
-import java.util.Set;
 
 /**
  * Sends Messages via HTTP to nJAMS
@@ -56,9 +53,14 @@ public class HttpSender extends AbstractSender {
     public static final String NAME = "HTTP";
 
     /**
-     * http sender urlport
+     * http base url of njams
      */
-    public static final String SENDER_URL = PROPERTY_PREFIX + ".sender.url";
+    public static final String BASE_URL = PROPERTY_PREFIX + ".base.url";
+    /**
+     * http dataprovider prefix
+     */
+    public static final String INGEST_ENDPOINT = PROPERTY_PREFIX + ".dataprovider.prefix";
+
     /**
      * http sender username
      */
@@ -67,6 +69,11 @@ public class HttpSender extends AbstractSender {
      * http sender password
      */
     public static final String SENDER_PASSWORD = PROPERTY_PREFIX + ".sender.password";
+
+    /**
+     * this is the API path to the ingest
+     */
+    private static final String INGEST_API_PATH = "/api/processing/ingest/";
 
     private String user;
     private String password;
@@ -79,7 +86,8 @@ public class HttpSender extends AbstractSender {
      * <p>
      * Valid properties are:
      * <ul>
-     * <li>{@value com.im.njams.sdk.communication.http.HttpSender#SENDER_URL}
+     * <li>{@value com.im.njams.sdk.communication.http.HttpSender#BASE_URL}
+     * <li>{@value com.im.njams.sdk.communication.http.HttpSender#INGEST_ENDPOINT}
      * <li>{@value com.im.njams.sdk.communication.http.HttpSender#SENDER_USERNAME}
      * <li>{@value com.im.njams.sdk.communication.http.HttpSender#SENDER_PASSWORD}
      * </ul>
@@ -91,7 +99,7 @@ public class HttpSender extends AbstractSender {
         this.properties = properties;
         mapper = JsonSerializerFactory.getDefaultMapper();
         try {
-            url = new URL(properties.getProperty(SENDER_URL));
+            url = new URL(properties.getProperty(BASE_URL) + INGEST_API_PATH + properties.getProperty(INGEST_ENDPOINT));
         } catch (final MalformedURLException ex) {
             throw new NjamsSdkRuntimeException("unable to init http sender", ex);
         }
@@ -156,12 +164,6 @@ public class HttpSender extends AbstractSender {
         } catch (final Exception ex) {
             LOG.error("Error sending TraceMessage", ex);
         }
-    }
-
-    private void addAddtionalProperties(final Properties properties, final HttpURLConnection connection) {
-        final Set<Map.Entry<Object, Object>> entrySet = properties.entrySet();
-        entrySet.forEach(
-                entry -> connection.setRequestProperty(entry.getKey().toString(), entry.getValue().toString()));
     }
 
     private String sendWithHttpClient(final Object msg, final Properties properties) {
