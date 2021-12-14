@@ -23,9 +23,7 @@ import com.faizsiegeln.njams.messageformat.v4.tracemessage.TraceMessage;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.im.njams.sdk.common.JsonSerializerFactory;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
-import com.im.njams.sdk.communication.AbstractSender;
-import com.im.njams.sdk.communication.ConnectionStatus;
-import com.im.njams.sdk.communication.Sender;
+import com.im.njams.sdk.communication.*;
 import com.im.njams.sdk.utils.JsonUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -75,6 +73,8 @@ public class HttpSender extends AbstractSender {
      * this is the API path to the ingest
      */
     private static final String INGEST_API_PATH = "/api/processing/ingest/";
+    private static final int EXCEPTION_IDLE_TIME = 50;
+    private static final int MAX_TRIES = 100;
 
     private String user;
     private String password;
@@ -165,8 +165,7 @@ public class HttpSender extends AbstractSender {
         properties.put(Sender.NJAMS_LOGID, msg.getLogId());
         try {
             LOG.debug("Sending log message");
-            final String response = sendWithHttpClient(msg, properties);
-            LOG.debug("Response: " + response);
+            tryToSend(msg, properties);
         } catch (final Exception ex) {
             LOG.error("Error sending LogMessage", ex);
         }
@@ -181,8 +180,7 @@ public class HttpSender extends AbstractSender {
 
         try {
             LOG.debug("Sending project message");
-            final String response = sendWithHttpClient(msg, properties);
-            LOG.debug(response);
+            tryToSend(msg, properties);
         } catch (final Exception ex) {
             LOG.error("Error sending ProjectMessage", ex);
         }
@@ -197,24 +195,60 @@ public class HttpSender extends AbstractSender {
 
         try {
             LOG.debug("Sending TraceMessage");
-            final String response = sendWithHttpClient(msg, properties);
-            LOG.debug(response);
+            tryToSend(msg, properties);
         } catch (final Exception ex) {
             LOG.error("Error sending TraceMessage", ex);
         }
     }
 
-    private String sendWithHttpClient(final Object msg, final Properties properties) {
-        Response response = target.request()
-                .header("Content-Type", "application/json")
-                .header("Accept", "text/plain")
-                .header(Sender.NJAMS_MESSAGEVERSION, MessageVersion.V4.toString())
-                .header(Sender.NJAMS_MESSAGETYPE, properties.getProperty(Sender.NJAMS_MESSAGETYPE))
-                .header(Sender.NJAMS_PATH, properties.getProperty(Sender.NJAMS_PATH))
-                .header(Sender.NJAMS_LOGID, properties.getProperty(Sender.NJAMS_LOGID))
-                .post(Entity.json(JsonUtils.serialize(msg)));
-        LOG.debug("Response status:" + response.getStatus());
-        return String.valueOf(response.getStatus());
+    private void tryToSend(final Object msg, final Properties properties) throws InterruptedException {
+        boolean sent = false;
+        int responseStatus = -1;
+        int tries = 0;
+        Exception exception = null;
+        do {
+            try {
+                Response response = target.request()
+                        .header("Content-Type", "application/json")
+                        .header("Accept", "text/plain")
+                        .header(Sender.NJAMS_MESSAGEVERSION, MessageVersion.V4.toString())
+                        .header(Sender.NJAMS_MESSAGETYPE, properties.getProperty(Sender.NJAMS_MESSAGETYPE))
+                        .header(Sender.NJAMS_PATH, properties.getProperty(Sender.NJAMS_PATH))
+                        .header(Sender.NJAMS_LOGID, properties.getProperty(Sender.NJAMS_LOGID))
+                        .post(Entity.json(JsonUtils.serialize(msg)));
+                LOG.debug("Response status:" + response.getStatus()
+                        + ", Message: " + response.getStatusInfo().getReasonPhrase());
+                responseStatus = response.getStatus();
+                if (response.getStatus() == 200) {
+                    sent = true;
+                }
+            } catch (Exception ex) {
+                exception = ex;
+            }
+            if (exception != null || !sent) {
+                if (discardPolicy == DiscardPolicy.ON_CONNECTION_LOSS) {
+                    LOG.debug("Applying discard policy [{}]. Message discarded.", discardPolicy);
+                    DiscardMonitor.discard();
+                    break;
+                }
+                if (++tries >= MAX_TRIES) {
+                    LOG.warn("Try to reconnect, because the Server HTTP Endpoint could not be reached for {} seconds.",
+                            MAX_TRIES * EXCEPTION_IDLE_TIME / 1000);
+                    if (exception != null) {
+                        throw new NjamsSdkRuntimeException("Eror sending Message with HTTP Client URI "
+                                + target.getUri().toString(), exception);
+                    } else {
+                        throw new NjamsSdkRuntimeException("Eror sending Message with HTTP Client URI "
+                                + target.getUri().toString() + " Response Status is: " + responseStatus);
+                    }
+                } else {
+                    Thread.sleep(EXCEPTION_IDLE_TIME);
+                }
+            }
+            exception = null;
+            responseStatus = -1;
+
+        } while (!sent);
     }
 
     @Override
