@@ -24,6 +24,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.im.njams.sdk.common.JsonSerializerFactory;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.communication.AbstractSender;
+import com.im.njams.sdk.communication.ConnectionStatus;
 import com.im.njams.sdk.communication.Sender;
 import com.im.njams.sdk.utils.JsonUtils;
 import org.slf4j.Logger;
@@ -105,8 +106,36 @@ public class HttpSender extends AbstractSender {
         }
         user = properties.getProperty(SENDER_USERNAME);
         password = properties.getProperty(SENDER_PASSWORD);
-        client = ClientBuilder.newClient();
-        target = client.target(String.valueOf(url));
+        try {
+            connect();
+            LOG.debug("Initialized http sender with url {}", url);
+        } catch (final NjamsSdkRuntimeException e) {
+            LOG.error("Could not initialize sender with url {}\n", url, e);
+        }
+    }
+
+    /**
+     * Create the HTTP Client for Events.
+     */
+    @Override
+    public synchronized void connect() {
+        if (isConnected()) {
+            return;
+        }
+        try {
+            connectionStatus = ConnectionStatus.CONNECTING;
+            client = ClientBuilder.newClient();
+            target = client.target(String.valueOf(url));
+            connectionStatus = ConnectionStatus.CONNECTED;
+        } catch (final Exception e) {
+            connectionStatus = ConnectionStatus.DISCONNECTED;
+            if (client != null) {
+                client.close();
+                client = null;
+                target = null;
+            }
+            throw new NjamsSdkRuntimeException("Unable to connect", e);
+        }
     }
 
     /**
@@ -114,8 +143,17 @@ public class HttpSender extends AbstractSender {
      */
     @Override
     public void close() {
-        // Close is called to early so that error is thrown. See SDK-
-        //client.close();
+        LOG.info("Called close on HTTP Sender.");
+        connectionStatus = ConnectionStatus.DISCONNECTED;
+        if (client != null) {
+            try {
+                client.close();
+                client = null;
+                target = null;
+            } catch (Exception ex) {
+                LOG.error("Error closing HTTP connection.", ex);
+            }
+        }
     }
 
     @Override
