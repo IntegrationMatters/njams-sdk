@@ -71,6 +71,7 @@ public class KafkaReceiver extends AbstractReceiver {
     public static final String CONTENT_TYPE_JSON = "json";
     private static final String RECEIVER_SERVER = "server";
 
+    private static final String GROUP_PREFIX = "njsdk_";
     private static final String COMMANDS_SUFFIX = ".commands";
     private static final String ID_REPLACE_PATTERN = "[^A-Za-z0-9_\\-\\.]";
 
@@ -115,7 +116,7 @@ public class KafkaReceiver extends AbstractReceiver {
     }
 
     private static String getClientId(final String path) {
-        String id = "NJSDK_";
+        String id = GROUP_PREFIX;
         final int max = 255 - id.length();
         if (path.length() > max) {
             id += path.substring(0, max - 9) + "_" + Integer.toHexString(path.hashCode());
@@ -281,12 +282,9 @@ public class KafkaReceiver extends AbstractReceiver {
             final String responseId = UUID.randomUUID().toString();
             final ProducerRecord<String, String> response =
                     new ProducerRecord<>(topicName, responseId, mapper.writeValueAsString(instruction));
-            headersUpdater(response).
-            addHeader(NJAMS_MESSAGE_ID, responseId).
-            addHeader(NJAMS_REPLY_FOR, requestId).
-            addHeader(NJAMS_RECEIVER, RECEIVER_SERVER).
-            addHeader(NJAMS_TYPE, MESSAGE_TYPE_REPLY).
-            addHeader(NJAMS_CONTENT, CONTENT_TYPE_JSON);
+            headersUpdater(response).addHeader(NJAMS_MESSAGE_ID, responseId).addHeader(NJAMS_REPLY_FOR, requestId)
+                    .addHeader(NJAMS_RECEIVER, RECEIVER_SERVER).addHeader(NJAMS_TYPE, MESSAGE_TYPE_REPLY)
+                    .addHeader(NJAMS_CONTENT, CONTENT_TYPE_JSON);
 
             synchronized (this) {
                 if (producer == null) {
