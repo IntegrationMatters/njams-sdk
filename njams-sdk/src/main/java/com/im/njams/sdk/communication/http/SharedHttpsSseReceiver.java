@@ -18,6 +18,11 @@ import java.io.IOException;
 import java.net.URL;
 import java.util.Properties;
 
+/**
+ * Receiver, which shares a connection and has to pick the right messages from it.
+ *
+ * @author bwand
+ */
 public class SharedHttpsSseReceiver extends HttpsSseReceiver implements ShareableReceiver<InboundSseEvent> {
     private static final Logger LOG = LoggerFactory.getLogger(SharedHttpsSseReceiver.class);
 

@@ -10,15 +10,10 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManagerFactory;
 import javax.ws.rs.client.ClientBuilder;
 import java.io.FileInputStream;
-import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
-import java.security.KeyManagementException;
 import java.security.KeyStore;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
 import java.security.cert.Certificate;
-import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.util.Properties;
 
@@ -96,30 +91,30 @@ public class HttpsSender extends HttpSender {
     /**
      * This Method gets a certificate and uses it to initalize a SSLContext with it.
      *
-     * @return the SSLContext
-     * @throws CertificateException
-     * @throws KeyStoreException
-     * @throws NoSuchAlgorithmException
-     * @throws KeyManagementException
-     * @throws IOException
+     * @param certificateFile the certificate to connect to nJAMS
+     * @return the ssl context
      */
-    public static SSLContext initializeSSLContext(String certificateFile) throws CertificateException, KeyStoreException, NoSuchAlgorithmException, KeyManagementException, IOException {
-        InputStream fis = new FileInputStream(certificateFile);
-        if (fis == null) {
-            throw new RuntimeException("Certificate File not found: " + certificateFile);
+    public static SSLContext initializeSSLContext(String certificateFile) {
+        try {
+            InputStream fis = new FileInputStream(certificateFile);
+            if (fis == null) {
+                throw new RuntimeException("Certificate File not found: " + certificateFile);
+            }
+
+            CertificateFactory cf = CertificateFactory.getInstance("X.509");
+            Certificate cert = cf.generateCertificate(fis);
+            // load the keystore that includes self-signed cert as a "trusted" entry
+            KeyStore keyStore = KeyStore.getInstance(KeyStore.getDefaultType());
+            keyStore.load(null, null);
+            TrustManagerFactory tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+            keyStore.setCertificateEntry("cert-alias", cert);
+            tmf.init(keyStore);
+            SSLContext sslContext = SSLContext.getInstance("TLS");
+            sslContext.init(null, tmf.getTrustManagers(), null);
+            return sslContext;
+        } catch (Exception e) {
+            throw new NjamsSdkRuntimeException("Could not initialize SSLContext.", e);
         }
 
-        CertificateFactory cf = CertificateFactory.getInstance("X.509");
-        Certificate cert = cf.generateCertificate(fis);
-
-        // load the keystore that includes self-signed cert as a "trusted" entry
-        KeyStore keyStore = KeyStore.getInstance(KeyStore.getDefaultType());
-        keyStore.load(null, null);
-        TrustManagerFactory tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
-        keyStore.setCertificateEntry("cert-alias", cert);
-        tmf.init(keyStore);
-        SSLContext sslContext = SSLContext.getInstance("TLS");
-        sslContext.init(null, tmf.getTrustManagers(), null);
-        return sslContext;
     }
 }

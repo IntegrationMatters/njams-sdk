@@ -11,6 +11,11 @@ import javax.ws.rs.sse.SseEventSource;
 import java.net.URL;
 import java.util.Properties;
 
+/**
+ * Receives SSE (server sent events) from nJAMS as HTTPS Client Communication
+ *
+ * @author bwand
+ */
 public class HttpsSseReceiver extends HttpSseReceiver {
     private static final Logger LOG = LoggerFactory.getLogger(HttpsSender.class);
 
