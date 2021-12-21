@@ -47,9 +47,9 @@ public class SimpleClient {
 
         // Create communicationProperties, which specify how your client will
         // communicate with the server
-        //Settings settings = getJmsProperties();
+        Settings settings = getJmsProperties();
         //Settings settings = getCloudProperties();
-        Settings settings = getHttpProperties();
+        //Settings settings = getHttpProperties();
 
         // Instantiate client for first application
         Njams njams = new Njams(clientPath, "1.0.0", technology, settings);
@@ -114,11 +114,13 @@ public class SimpleClient {
         // be send to the server
         job.end();
 
-        Thread.sleep(1000);
+        //Thread.sleep(30000);
 
         // If you are finished with processing or the application goes down, stop the
         // client...
         njams.stop();
+
+        Thread.sleep(1000);
     }
 
     private static Settings getCloudProperties() {
@@ -201,9 +203,10 @@ public class SimpleClient {
 
     private static Settings getHttpProperties() {
         Settings communicationProperties = new Settings();
-        communicationProperties.put(CommunicationFactory.COMMUNICATION, "HTTP");
-        communicationProperties.put("njams.sdk.communication.http.base.url", "http://localhost:8080/njams/");
+        communicationProperties.put(CommunicationFactory.COMMUNICATION, "HTTPS");
+        communicationProperties.put("njams.sdk.communication.http.base.url", "https://os0100.integrationmatters.com:8443/njams/");
         communicationProperties.put("njams.sdk.communication.http.dataprovider.prefix", "bw");
+        communicationProperties.put("njams.sdk.communication.http.ssl.certificate.file", "/Users/bwand/Development/SSLKeystore/cert.wildcard.integrationmatters.com/ca-root-integrationmatters.com.pem");
 
         communicationProperties.put("njams.client.sdk.sharedcommunications", "true");
         return communicationProperties;
