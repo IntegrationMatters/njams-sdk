@@ -1,3 +1,4 @@
 com.im.njams.sdk.communication.jms.JmsSender
 com.im.njams.sdk.communication.http.HttpSender
+com.im.njams.sdk.communication.http.HttpsSender
 com.im.njams.sdk.communication.kafka.KafkaSender

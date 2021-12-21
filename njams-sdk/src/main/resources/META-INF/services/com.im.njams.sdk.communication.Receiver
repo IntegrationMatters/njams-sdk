@@ -1,6 +1,8 @@
 com.im.njams.sdk.communication.jms.JmsReceiver
 com.im.njams.sdk.communication.jms.SharedJmsReceiver
 com.im.njams.sdk.communication.http.HttpSseReceiver
+com.im.njams.sdk.communication.http.HttpsSseReceiver
 com.im.njams.sdk.communication.http.SharedHttpSseReceiver
+com.im.njams.sdk.communication.http.SharedHttpsSseReceiver
 com.im.njams.sdk.communication.kafka.KafkaReceiver
 com.im.njams.sdk.communication.kafka.SharedKafkaReceiver

@@ -39,12 +39,14 @@ import java.util.Properties;
 
 /**
  * Sends Messages via HTTP to nJAMS
+ *
+ * @author bwand
  */
 public class HttpSender extends AbstractSender {
 
     private static final Logger LOG = LoggerFactory.getLogger(HttpSender.class);
 
-    private static final String PROPERTY_PREFIX = "njams.sdk.communication.http";
+    protected static final String PROPERTY_PREFIX = "njams.sdk.communication.http";
     protected ObjectMapper mapper;
     /**
      * Name of the HTTP component
@@ -61,26 +63,15 @@ public class HttpSender extends AbstractSender {
     public static final String INGEST_ENDPOINT = PROPERTY_PREFIX + ".dataprovider.prefix";
 
     /**
-     * http sender username
-     */
-    public static final String SENDER_USERNAME = PROPERTY_PREFIX + ".sender.username";
-    /**
-     * http sender password
-     */
-    public static final String SENDER_PASSWORD = PROPERTY_PREFIX + ".sender.password";
-
-    /**
      * this is the API path to the ingest
      */
-    private static final String INGEST_API_PATH = "/api/processing/ingest/";
+    protected static final String INGEST_API_PATH = "/api/processing/ingest/";
     private static final int EXCEPTION_IDLE_TIME = 50;
     private static final int MAX_TRIES = 100;
 
-    private String user;
-    private String password;
-    private URL url;
-    private Client client;
-    private WebTarget target;
+    protected URL url;
+    protected Client client;
+    protected WebTarget target;
 
     /**
      * Initializes this Sender via the given Properties.
@@ -89,8 +80,6 @@ public class HttpSender extends AbstractSender {
      * <ul>
      * <li>{@value com.im.njams.sdk.communication.http.HttpSender#BASE_URL}
      * <li>{@value com.im.njams.sdk.communication.http.HttpSender#INGEST_ENDPOINT}
-     * <li>{@value com.im.njams.sdk.communication.http.HttpSender#SENDER_USERNAME}
-     * <li>{@value com.im.njams.sdk.communication.http.HttpSender#SENDER_PASSWORD}
      * </ul>
      *
      * @param properties the properties needed to initialize
@@ -104,8 +93,6 @@ public class HttpSender extends AbstractSender {
         } catch (final MalformedURLException ex) {
             throw new NjamsSdkRuntimeException("unable to init http sender", ex);
         }
-        user = properties.getProperty(SENDER_USERNAME);
-        password = properties.getProperty(SENDER_PASSWORD);
         try {
             connect();
             LOG.debug("Initialized http sender with url {}", url);

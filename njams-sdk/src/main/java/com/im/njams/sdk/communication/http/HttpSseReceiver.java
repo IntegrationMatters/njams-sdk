@@ -46,25 +46,23 @@ import java.util.UUID;
 public class HttpSseReceiver extends AbstractReceiver {
     private static final Logger LOG = LoggerFactory.getLogger(HttpSseReceiver.class);
     private static final String NAME = "HTTP";
-    private static final String PROPERTY_PREFIX = "njams.sdk.communication.http";
-    private static final String BASE_URL = PROPERTY_PREFIX + ".base.url";
-    private static final String SSE_API_PATH = "api/httpcommunication";
+    protected static final String PROPERTY_PREFIX = "njams.sdk.communication.http";
+    protected static final String BASE_URL = PROPERTY_PREFIX + ".base.url";
+    protected static final String SSE_API_PATH = "api/httpcommunication";
 
-    private Client client;
+    protected Client client;
     protected WebTarget target;
     protected SseEventSource source;
     protected ObjectMapper mapper;
-    private URL url;
+    protected URL url;
 
     @Override
     public void init(Properties properties) {
         try {
             url = new URL(properties.getProperty(BASE_URL) + SSE_API_PATH);
         } catch (final MalformedURLException ex) {
-            throw new NjamsSdkRuntimeException("unable to init http sender", ex);
+            throw new NjamsSdkRuntimeException("Unable to init HTTP Receiver", ex);
         }
-        client = ClientBuilder.newClient();
-        target = client.target(url.toString() + "/subscribe");
         mapper = JsonSerializerFactory.getDefaultMapper();
     }
 
@@ -81,11 +79,13 @@ public class HttpSseReceiver extends AbstractReceiver {
     @Override
     public void connect() {
         try {
+            client = ClientBuilder.newClient();
+            target = client.target(url.toString() + "/subscribe");
             source = SseEventSource.target(target).build();
             source.register(this::onMessage);
             source.open();
         } catch (Exception e) {
-            LOG.error("Exception during registering SSE.", e);
+            LOG.error("Exception during registering Server Sent Event Endpoint.", e);
         }
     }
 
