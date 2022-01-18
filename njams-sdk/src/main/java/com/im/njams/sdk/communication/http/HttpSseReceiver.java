@@ -16,14 +16,11 @@
  */
 package com.im.njams.sdk.communication.http;
 
-import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.im.njams.sdk.common.JsonSerializerFactory;
-import com.im.njams.sdk.common.NjamsSdkRuntimeException;
-import com.im.njams.sdk.communication.AbstractReceiver;
-import com.im.njams.sdk.utils.JsonUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import java.io.IOException;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.util.Properties;
+import java.util.UUID;
 
 import javax.ws.rs.client.Client;
 import javax.ws.rs.client.ClientBuilder;
@@ -32,11 +29,16 @@ import javax.ws.rs.client.WebTarget;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.sse.InboundSseEvent;
 import javax.ws.rs.sse.SseEventSource;
-import java.io.IOException;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.util.Properties;
-import java.util.UUID;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.im.njams.sdk.common.JsonSerializerFactory;
+import com.im.njams.sdk.common.NjamsSdkRuntimeException;
+import com.im.njams.sdk.communication.AbstractReceiver;
+import com.im.njams.sdk.utils.JsonUtils;
 
 /**
  * Receives SSE (server sent events) from nJAMS as HTTP Client Communication
@@ -59,11 +61,19 @@ public class HttpSseReceiver extends AbstractReceiver {
     @Override
     public void init(Properties properties) {
         try {
-            url = new URL(properties.getProperty(BASE_URL) + SSE_API_PATH);
+            url = createUrl(properties);
         } catch (final MalformedURLException ex) {
             throw new NjamsSdkRuntimeException("Unable to init HTTP Receiver", ex);
         }
         mapper = JsonSerializerFactory.getDefaultMapper();
+    }
+
+    protected URL createUrl(Properties properties) throws MalformedURLException {
+        String base = properties.getProperty(BASE_URL);
+        if (base.charAt(base.length() - 1) != '/') {
+            base += "/";
+        }
+        return new URL(base + SSE_API_PATH);
     }
 
     @Override
@@ -84,6 +94,8 @@ public class HttpSseReceiver extends AbstractReceiver {
             source = SseEventSource.target(target).build();
             source.register(this::onMessage);
             source.open();
+            LOG.debug("Subscribed SSE receiver to {}", target.getUri());
+
         } catch (Exception e) {
             LOG.error("Exception during registering Server Sent Event Endpoint.", e);
         }

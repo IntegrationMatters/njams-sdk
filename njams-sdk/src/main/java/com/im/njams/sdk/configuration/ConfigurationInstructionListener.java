@@ -16,16 +16,6 @@
  */
 package com.im.njams.sdk.configuration;
 
-import java.time.LocalDateTime;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Map.Entry;
-import java.util.function.Function;
-import java.util.stream.Collectors;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.faizsiegeln.njams.messageformat.v4.command.Command;
 import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
 import com.faizsiegeln.njams.messageformat.v4.command.Response;
@@ -40,6 +30,16 @@ import com.im.njams.sdk.communication.InstructionListener;
 import com.im.njams.sdk.logmessage.ExtractHandler;
 import com.im.njams.sdk.utils.JsonUtils;
 import com.im.njams.sdk.utils.StringUtils;
+
+import java.time.LocalDateTime;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Map.Entry;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * InstructionListener implementation for all instructions which will modify
@@ -318,6 +318,7 @@ public class ConfigurationInstructionListener implements InstructionListener {
 
         case SEND_PROJECTMESSAGE:
         case REPLAY:
+        case PING:
             // not handled here.
             LOG.debug("Ignoring command: {}", command);
             return;

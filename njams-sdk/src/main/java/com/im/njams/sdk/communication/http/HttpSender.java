@@ -16,6 +16,19 @@
  */
 package com.im.njams.sdk.communication.http;
 
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.util.Properties;
+
+import javax.ws.rs.client.Client;
+import javax.ws.rs.client.ClientBuilder;
+import javax.ws.rs.client.Entity;
+import javax.ws.rs.client.WebTarget;
+import javax.ws.rs.core.Response;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.faizsiegeln.njams.messageformat.v4.common.MessageVersion;
 import com.faizsiegeln.njams.messageformat.v4.logmessage.LogMessage;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.ProjectMessage;
@@ -23,19 +36,12 @@ import com.faizsiegeln.njams.messageformat.v4.tracemessage.TraceMessage;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.im.njams.sdk.common.JsonSerializerFactory;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
-import com.im.njams.sdk.communication.*;
+import com.im.njams.sdk.communication.AbstractSender;
+import com.im.njams.sdk.communication.ConnectionStatus;
+import com.im.njams.sdk.communication.DiscardMonitor;
+import com.im.njams.sdk.communication.DiscardPolicy;
+import com.im.njams.sdk.communication.Sender;
 import com.im.njams.sdk.utils.JsonUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.ws.rs.client.Client;
-import javax.ws.rs.client.ClientBuilder;
-import javax.ws.rs.client.Entity;
-import javax.ws.rs.client.WebTarget;
-import javax.ws.rs.core.Response;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.util.Properties;
 
 /**
  * Sends Messages via HTTP to nJAMS
@@ -65,7 +71,7 @@ public class HttpSender extends AbstractSender {
     /**
      * this is the API path to the ingest
      */
-    protected static final String INGEST_API_PATH = "/api/processing/ingest/";
+    protected static final String INGEST_API_PATH = "api/processing/ingest/";
     private static final int EXCEPTION_IDLE_TIME = 50;
     private static final int MAX_TRIES = 100;
 
@@ -89,7 +95,7 @@ public class HttpSender extends AbstractSender {
         this.properties = properties;
         mapper = JsonSerializerFactory.getDefaultMapper();
         try {
-            url = new URL(properties.getProperty(BASE_URL) + INGEST_API_PATH + properties.getProperty(INGEST_ENDPOINT));
+            url = createUrl(properties);
         } catch (final MalformedURLException ex) {
             throw new NjamsSdkRuntimeException("unable to init http sender", ex);
         }
@@ -99,6 +105,14 @@ public class HttpSender extends AbstractSender {
         } catch (final NjamsSdkRuntimeException e) {
             LOG.error("Could not initialize sender with url {}\n", url, e);
         }
+    }
+
+    protected URL createUrl(Properties properties) throws MalformedURLException {
+        String base = properties.getProperty(BASE_URL);
+        if (base.charAt(base.length() - 1) != '/') {
+            base += "/";
+        }
+        return new URL(base + INGEST_API_PATH + properties.getProperty(INGEST_ENDPOINT));
     }
 
     /**
