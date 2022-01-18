@@ -122,16 +122,23 @@ public class HttpSseReceiver extends AbstractReceiver {
 
     protected void sendReply(final String requestId, final Instruction instruction) {
         final String responseId = UUID.randomUUID().toString();
-        Client client = ClientBuilder.newClient();
-        WebTarget target = client.target(url.toString() + "/reply");
-        Response response = target.request()
-                .header("Content-Type", "application/json")
-                .header("Accept", "text/plain")
-                .header("NJAMS_RECEIVER", "server")
-                .header("NJAMS_MESSAGETYPE", "reply")
-                .header("NJAMS_MESSAGE_ID", responseId)
-                .header("NJAMS_REPLY_FOR", requestId)
-                .post(Entity.json(JsonUtils.serialize(instruction)));
-        LOG.debug("Reply response status:" + response.getStatus());
+        Client client = null;
+        try {
+            client = ClientBuilder.newClient();
+            WebTarget target = client.target(url.toString() + "/reply");
+            Response response = target.request()
+                    .header("Content-Type", "application/json")
+                    .header("Accept", "text/plain")
+                    .header("NJAMS_RECEIVER", "server")
+                    .header("NJAMS_MESSAGETYPE", "reply")
+                    .header("NJAMS_MESSAGE_ID", responseId)
+                    .header("NJAMS_REPLY_FOR", requestId)
+                    .post(Entity.json(JsonUtils.serialize(instruction)));
+            LOG.debug("Reply response status:" + response.getStatus());
+        } finally {
+            if (client != null) {
+                client.close();
+            }
+        }
     }
 }
