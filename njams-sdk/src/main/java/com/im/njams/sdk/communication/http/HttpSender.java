@@ -165,7 +165,7 @@ public class HttpSender extends AbstractSender {
         properties.put(Sender.NJAMS_PATH, msg.getPath());
         properties.put(Sender.NJAMS_LOGID, msg.getLogId());
         try {
-            LOG.debug("Sending log message");
+            LOG.debug("Sending log message {}", msg.getLogId());
             tryToSend(msg, properties);
         } catch (final Exception ex) {
             LOG.error("Error sending LogMessage", ex);
@@ -180,7 +180,7 @@ public class HttpSender extends AbstractSender {
         properties.put(Sender.NJAMS_PATH, msg.getPath());
 
         try {
-            LOG.debug("Sending project message");
+            LOG.debug("Sending project message for {}", msg.getPath());
             tryToSend(msg, properties);
         } catch (final Exception ex) {
             LOG.error("Error sending ProjectMessage", ex);
@@ -195,7 +195,7 @@ public class HttpSender extends AbstractSender {
         properties.put(Sender.NJAMS_PATH, msg.getPath());
 
         try {
-            LOG.debug("Sending TraceMessage");
+            LOG.debug("Sending TraceMessage for {}", msg.getPath());
             tryToSend(msg, properties);
         } catch (final Exception ex) {
             LOG.error("Error sending TraceMessage", ex);
