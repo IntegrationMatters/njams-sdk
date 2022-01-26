@@ -156,7 +156,7 @@ public abstract class AbstractReceiver implements Receiver {
     public synchronized void reconnect(NjamsSdkRuntimeException ex) {
         int got = verifyingCounter.incrementAndGet();
         boolean doReconnect = true;
-        if (isConnected()) {
+        if (isConnecting() || isConnected()) {
             doReconnect = false;
         } else {
             synchronized (hasConnected) {
@@ -212,6 +212,7 @@ public abstract class AbstractReceiver implements Receiver {
                 LOG.debug("Started receiver {}", getName());
             }
         } catch (NjamsSdkRuntimeException e) {
+            connectionStatus = ConnectionStatus.DISCONNECTED;
             LOG.error("Could not initialize receiver {}. Pushing reconnect task to background.", getName(), e);
             // trigger reconnect
             onException(e);
