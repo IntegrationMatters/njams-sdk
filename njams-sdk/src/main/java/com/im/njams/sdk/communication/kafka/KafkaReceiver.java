@@ -133,8 +133,9 @@ public class KafkaReceiver extends AbstractReceiver {
     @Override
     public synchronized void connect() {
         if (!isConnected()) {
+            LOG.debug("Connect: Subscribe KafkaReceiver to topic {}", topicName);
             connectionStatus = ConnectionStatus.CONNECTING;
-
+            validateTopics();
             tryToConnect();
 
             connectionStatus = ConnectionStatus.CONNECTED;
@@ -149,11 +150,13 @@ public class KafkaReceiver extends AbstractReceiver {
      * @param props the Properties that are used for connecting.
      */
     private void tryToConnect() {
+        LOG.debug("Try subscribing KafkaReceiver to topic {}", topicName);
         try {
             commandConsumer = new CommandsConsumer(njamsProperties, topicName, clientId, this);
             commandConsumer.start();
         } catch (final Exception e) {
             closeAll();
+            LOG.debug("Try subscribing KafkaReceiver to topic {} failed: {}", topicName, e.toString());
             throw new NjamsSdkRuntimeException("Unable to start the Commands-Consumer-Thread", e);
         }
     }
@@ -177,22 +180,12 @@ public class KafkaReceiver extends AbstractReceiver {
         }
     }
 
-    @Override
-    public void start() {
-        if (validateTopics()) {
-            super.start();
-        }
-    }
-
-    private boolean validateTopics() {
+    private void validateTopics() {
         final Collection<String> foundTopics = KafkaUtil.testTopics(njamsProperties, topicName);
         LOG.debug("Found topics: {}", foundTopics);
         if (foundTopics.isEmpty()) {
-            LOG.error("Commands topic [{}] not found. "
-                    + "The client will not be able to process commands from nJAMS sever!", topicName);
-            return false;
+            throw new NjamsSdkRuntimeException("Commands topic [" + topicName + "] not found.");
         }
-        return true;
     }
 
     /**
@@ -283,8 +276,8 @@ public class KafkaReceiver extends AbstractReceiver {
             final ProducerRecord<String, String> response =
                     new ProducerRecord<>(topicName, responseId, mapper.writeValueAsString(instruction));
             headersUpdater(response).addHeader(NJAMS_MESSAGE_ID, responseId).addHeader(NJAMS_REPLY_FOR, requestId)
-                    .addHeader(NJAMS_RECEIVER, RECEIVER_SERVER).addHeader(NJAMS_TYPE, MESSAGE_TYPE_REPLY)
-                    .addHeader(NJAMS_CONTENT, CONTENT_TYPE_JSON);
+            .addHeader(NJAMS_RECEIVER, RECEIVER_SERVER).addHeader(NJAMS_TYPE, MESSAGE_TYPE_REPLY)
+            .addHeader(NJAMS_CONTENT, CONTENT_TYPE_JSON);
 
             synchronized (this) {
                 if (producer == null) {
