@@ -212,17 +212,17 @@ public abstract class AbstractReceiver implements Receiver {
                 LOG.debug("Started receiver {}", getName());
             }
         } catch (NjamsSdkRuntimeException e) {
-            LOG.error("Could not initialize receiver {}\n. Pushing reconnect task to background.",
-                    getName(), e);
+            connectionStatus = ConnectionStatus.DISCONNECTED;
+            LOG.error("Could not initialize receiver {}. Pushing reconnect task to background.", getName(), e);
             // trigger reconnect
-            onException(new NjamsSdkRuntimeException("Initial Connect."));
+            onException(e);
         }
     }
 
     /**
-     * This method is used to start a reconnector thread.
+     * This method is used to start a reconnect thread.
      *
-     * @param exception the exception that caused this method invokation.
+     * @param exception the exception that caused this method invocation.
      */
     public void onException(NjamsSdkRuntimeException exception) {
         stop();
@@ -234,7 +234,7 @@ public abstract class AbstractReceiver implements Receiver {
     }
 
     /**
-     * This method returns wether the Receiver is connected or not.
+     * This method returns whether the receiver is connected or not.
      *
      * @return true, if Receiver is connected, otherwise false
      */
@@ -243,7 +243,7 @@ public abstract class AbstractReceiver implements Receiver {
     }
 
     /**
-     * This method returns wether the Receiver is disconnected or not.
+     * This method returns whether the receiver is disconnected or not.
      *
      * @return true, if Receiver is disconnected, otherwise false
      */
@@ -252,7 +252,7 @@ public abstract class AbstractReceiver implements Receiver {
     }
 
     /**
-     * This method returns wether the Receiver is connecting or not.
+     * This method returns whether the receiver is connecting or not.
      *
      * @return true, if Receiver is connecting, otherwise false
      */

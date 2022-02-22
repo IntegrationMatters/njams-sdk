@@ -1,15 +1,16 @@
 package com.im.njams.sdk.communication.http;
 
-import com.im.njams.sdk.common.JsonSerializerFactory;
-import com.im.njams.sdk.common.NjamsSdkRuntimeException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import java.util.Properties;
 
 import javax.net.ssl.SSLContext;
 import javax.ws.rs.client.ClientBuilder;
 import javax.ws.rs.sse.SseEventSource;
-import java.net.URL;
-import java.util.Properties;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.im.njams.sdk.common.JsonSerializerFactory;
+import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 
 /**
  * Receives SSE (server sent events) from nJAMS as HTTPS Client Communication
@@ -31,8 +32,9 @@ public class HttpsSseReceiver extends HttpSseReceiver {
     @Override
     public void init(Properties properties) {
         try {
-            sslContext = HttpsSender.initializeSSLContext(properties.getProperty(PROPERTY_PREFIX + SSL_CERTIFIACTE_FILE));
-            url = new URL(properties.getProperty(BASE_URL) + SSE_API_PATH);
+            sslContext =
+                    HttpsSender.initializeSSLContext(properties.getProperty(PROPERTY_PREFIX + SSL_CERTIFIACTE_FILE));
+            url = createUrl(properties);
         } catch (final Exception ex) {
             throw new NjamsSdkRuntimeException("Unable to init HTTPS Receiver", ex);
         }
@@ -52,6 +54,7 @@ public class HttpsSseReceiver extends HttpSseReceiver {
             source = SseEventSource.target(target).build();
             source.register(this::onMessage);
             source.open();
+            LOG.debug("Subscribed SSE receiver to {}", target.getUri());
         } catch (Exception e) {
             LOG.error("Exception during registering Server Sent Event Endpoint.", e);
         }

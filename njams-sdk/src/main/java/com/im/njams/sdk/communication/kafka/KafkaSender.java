@@ -26,6 +26,7 @@ package com.im.njams.sdk.communication.kafka;
 
 import static com.im.njams.sdk.communication.kafka.KafkaHeadersUtil.headersUpdater;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Properties;
@@ -129,13 +130,13 @@ public class KafkaSender extends AbstractSender {
     }
 
     private void validateTopics() {
-        final String[] topics = new String[] { topicEvent, topicProject };
-        final Collection<String> foundTopics = KafkaUtil.testTopics(properties, topics);
+        final Collection<String> requiredTopics = new ArrayList<>(Arrays.asList(topicEvent, topicProject));
+        final Collection<String> foundTopics =
+                KafkaUtil.testTopics(properties, requiredTopics.toArray(new String[requiredTopics.size()]));
         LOG.debug("Found topics: {}", foundTopics);
-        if (foundTopics.size() < topics.length) {
-            final Collection<String> missing = Arrays.asList(topics);
-            missing.removeAll(foundTopics);
-            throw new NjamsSdkRuntimeException("The following required Kafka topics have not been found: " + missing);
+        requiredTopics.removeAll(foundTopics);
+        if (!requiredTopics.isEmpty()) {
+            throw new NjamsSdkRuntimeException("The following required Kafka topics have not been found: " + requiredTopics);
         }
     }
 
@@ -219,10 +220,10 @@ public class KafkaSender extends AbstractSender {
             record = new ProducerRecord<>(topic, data);
         }
         headersUpdater(record).
-                addHeader(Sender.NJAMS_MESSAGEVERSION, MessageVersion.V4.toString()).
-                addHeader(Sender.NJAMS_MESSAGETYPE, messageType).
-                addHeader(Sender.NJAMS_LOGID, id, (k, v) -> StringUtils.isNotBlank(v)).
-                addHeader(Sender.NJAMS_PATH, msg.getPath(), (k, v) -> StringUtils.isNotBlank(v));
+        addHeader(Sender.NJAMS_MESSAGEVERSION, MessageVersion.V4.toString()).
+        addHeader(Sender.NJAMS_MESSAGETYPE, messageType).
+        addHeader(Sender.NJAMS_LOGID, id, (k, v) -> StringUtils.isNotBlank(v)).
+        addHeader(Sender.NJAMS_PATH, msg.getPath(), (k, v) -> StringUtils.isNotBlank(v));
 
         tryToSend(record);
     }
