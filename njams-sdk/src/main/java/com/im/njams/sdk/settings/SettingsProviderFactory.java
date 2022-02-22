@@ -16,22 +16,19 @@
  */
 package com.im.njams.sdk.settings;
 
-import java.util.Iterator;
-import java.util.Properties;
-import java.util.ServiceLoader;
-import java.util.Spliterator;
-import java.util.Spliterators;
-import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
+
 /**
- * Factory for creating a SettingsProvider.
- *
- * @author pnientiedt
+ * This factory is not used anywhere in SDK or in one of the big clients.
+ * <p>
+ * Deprecate it in version 4.2.0 and it will be removed in next minor.
  */
+@Deprecated
 public class SettingsProviderFactory {
 
     private static final Logger LOG = LoggerFactory.getLogger(SettingsProviderFactory.class);
@@ -44,8 +41,7 @@ public class SettingsProviderFactory {
     /**
      * Returns the SettingsProvider, which name matches the name given via the Properties into the constructor.
      *
-     * @param properties
-     *            * the properties to find the settings provider
+     * @param properties * the properties to find the settings provider
      * @return the {@link SettingsProvider} or a {@link UnsupportedOperationException}
      */
     public static SettingsProvider getSettingsProvider(final Properties properties) {
