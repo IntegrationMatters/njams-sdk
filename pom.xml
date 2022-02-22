@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.faizsiegeln</groupId>
     <artifactId>njams4-sdk-root</artifactId>
@@ -20,7 +21,9 @@
     <properties>
         <sonar.java.coveragePlugin>jacoco</sonar.java.coveragePlugin>
         <sonar.dynamicAnalysis>reuseReports</sonar.dynamicAnalysis>
-        <sonar.jacoco.reportPaths>${project.basedir}/target/coverage-reports/jacoco-ut.exec,${project.basedir}/target/coverage-reports/jacoco-it.exec</sonar.jacoco.reportPaths>
+        <sonar.jacoco.reportPaths>
+            ${project.basedir}/target/coverage-reports/jacoco-ut.exec,${project.basedir}/target/coverage-reports/jacoco-it.exec
+        </sonar.jacoco.reportPaths>
         <sonar.language>java</sonar.language>
 
         <javaSourceLevel>1.8</javaSourceLevel>
@@ -53,7 +56,7 @@
 
         <saxon.version>9.1.0.8</saxon.version>
         <slf4j.version>1.7.7</slf4j.version>
-        <log4j.version>1.2.17</log4j.version>
+        <log4j.version>2.17.1</log4j.version>
 
         <junit.version>4.13.1</junit.version>
         <mockito.version>1.10.19</mockito.version>
@@ -261,8 +264,8 @@
                 <version>${slf4j.version}</version>
             </dependency>
             <dependency>
-                <groupId>log4j</groupId>
-                <artifactId>log4j</artifactId>
+                <groupId>org.apache.logging.log4j</groupId>
+                <artifactId>log4j-core</artifactId>
                 <version>${log4j.version}</version>
             </dependency>
 
@@ -276,11 +279,11 @@
                 <artifactId>mockito-all</artifactId>
                 <version>${mockito.version}</version>
             </dependency>
-		    <dependency>
-				<groupId>org.apache.kafka</groupId>
-				<artifactId>kafka-clients</artifactId>
-            <version>${kafka-version}</version>
-        </dependency>
+            <dependency>
+                <groupId>org.apache.kafka</groupId>
+                <artifactId>kafka-clients</artifactId>
+                <version>${kafka-version}</version>
+            </dependency>
 
         </dependencies>
     </dependencyManagement>
@@ -295,7 +298,7 @@
                         <artifactId>jacoco-maven-plugin</artifactId>
                         <version>${jacoco-maven-plugin.version}</version>
                         <configuration>
-                            <excludes />
+                            <excludes/>
                         </configuration>
                         <executions>
                             <!--
