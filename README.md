@@ -24,6 +24,8 @@ SDK uses the [Messageformat](https://github.com/IntegrationMatters/njams-message
 ## FAQ
 * [FAQ](https://github.com/IntegrationMatters/njams-sdk/wiki/FAQ) - Questions on how to use SDK Features
 
+## Third Party Libs Licenses
+* [Libs](https://github.com/IntegrationMatters/njams-sdk/src/license/THIRD-PARTY.txt) - Licenses of third party libs
 ## License
 
 Copyright (c) 2022 Faiz & Siegeln Software GmbH
