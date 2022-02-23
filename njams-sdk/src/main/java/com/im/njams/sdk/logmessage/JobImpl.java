@@ -18,6 +18,7 @@ package com.im.njams.sdk.logmessage;
 
 import static java.util.Collections.unmodifiableCollection;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -28,6 +29,9 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -61,6 +65,16 @@ import com.im.njams.sdk.utils.StringUtils;
 public class JobImpl implements Job {
 
     private static final org.slf4j.Logger LOG = LoggerFactory.getLogger(JobImpl.class);
+
+    /**
+     * Default flush size: 5MB
+     */
+    public static final String DEFAULT_FLUSH_SIZE = "5242880";
+    /**
+     * Default flush interval: 30s
+     */
+    public static final String DEFAULT_FLUSH_INTERVAL = "30";
+
     /** Maximum length for string values for size restricted fields. */
     public static final int MAX_VALUE_LIMIT = 2000;
 
@@ -92,6 +106,7 @@ public class JobImpl implements Job {
      * job level attributes
      */
     private final Map<String, String> attributes = new ConcurrentHashMap<>();
+    private final Map<String, String> flushedAttributes = new ConcurrentHashMap<>();
 
     /*
      * Plugin data items
@@ -169,6 +184,8 @@ public class JobImpl implements Job {
     // access to truncate fields is synchronized on activities!
     // activity-instance-ID --> hasEvent(activity)
     private final Map<String, Boolean> activityIds = new HashMap<>();
+    // IDs of activities that have been flushed but are not complete yet; for checking timer-flush
+    private Set<String> flushedActivities = ConcurrentHashMap.newKeySet();
 
     /**
      * Create a job with a givenModelId, a jobId and a logId
@@ -425,11 +442,37 @@ public class JobImpl implements Job {
     }
 
     /**
-     * This method is called by the LogMessageFlushTask in irregular intervals
-     * and when the method end() is called. It flushes a logMessage to the
+     * This method is called by a periodic timer to flush this instance if it's due.
+     * @param sentBefore Send if the last flush was before this timestamp
+     * @param flushSize Send if message size is greater than this size
+     */
+    public void timerFlush(LocalDateTime sentBefore, long flushSize) {
+        if (!hasStarted()) {
+            LOG.trace("Skip timer flush. Job {} is not started.", this);
+            return;
+        }
+        // only send updates automatically, if a change has been
+        // made to the job between individual send events.
+        LOG.trace("Job {}: lastPush: {}, age: {}, size: {}", this, getLastFlush(),
+                Duration.between(getLastFlush(), DateTimeUtility.now()), getEstimatedSize());
+        if ((getLastFlush().isBefore(sentBefore) || getEstimatedSize() > flushSize)
+                && (!attributes.isEmpty() || getEndTime() != null || hasUnsentActivity())) {
+            LOG.debug("Flush by timer: {}", this);
+            flush();
+        }
+    }
+
+    private boolean hasUnsentActivity() {
+        return activities.keySet().stream().anyMatch(i -> !flushedActivities.contains(i));
+    }
+
+    /**
+     * This method is called by {@link #timerFlush(LocalDateTime, long)}
+     * and when {@link #end(boolean)} is called. It flushes a logMessage to the
      * server if all the preconditions are fulfilled.
      */
     public void flush() {
+
         synchronized (activities) {
             boolean suppressed = mustBeSuppressed();
             boolean started = hasStarted();
@@ -538,15 +581,18 @@ public class JobImpl implements Job {
         logMessage.setClientVersion(njams.getClientVersion());
         logMessage.setSdkVersion(njams.getSdkVersion());
 
-        //attribute
-        synchronized (attributes) {
-            attributes.entrySet().forEach(e -> logMessage.addAtribute(e.getKey(), e.getValue()));
-        }
         pluginDataItems.forEach(i -> logMessage.addPluginDataItem(i));
         return logMessage;
     }
 
     private void addToLogMessageAndCleanup(LogMessage logMessage) {
+        synchronized (attributes) {
+            for (Entry<String, String> e : attributes.entrySet()) {
+                logMessage.addAtribute(e.getKey(), e.getValue());
+                flushedAttributes.put(e.getKey(), e.getValue());
+                attributes.remove(e.getKey());
+            }
+        }
         synchronized (activities) {
             // If this is the final message being sent, and truncate-on-success is selected and this job was
             // successful, truncate all activities w/o events.
@@ -554,15 +600,24 @@ public class JobImpl implements Job {
 
             //add all to logMessage
             for (Activity activity : activities.values()) {
-                if (checkTruncating(activity, finishedWithSuccess)) {
-                    logMessage.addActivity(activity);
-                } else {
-                    logMessage.setTruncated(true);
+                if (shouldFlush(activity)) {
+                    if (checkTruncating(activity, finishedWithSuccess)) {
+                        logMessage.addActivity(activity);
+                    } else {
+                        logMessage.setTruncated(true);
+                    }
                 }
             }
             //remove finished
             removeNotRunningActivities();
         }
+    }
+
+    private boolean shouldFlush(Activity activity) {
+        if (!flushedActivities.contains(activity.getInstanceId())) {
+            return true;
+        }
+        return activity.getActivityStatus() != ActivityStatus.RUNNING;
     }
 
     /**
@@ -996,17 +1051,24 @@ public class JobImpl implements Job {
      */
     @Override
     public String getAttribute(final String name) {
-        return attributes.get(name);
+        String val = attributes.get(name);
+        if (val != null) {
+            return val;
+        }
+        return flushedAttributes.get(name);
     }
 
     /**
-     * Return all attributes for this job
+     * Returns a detached copy of all attributes for this job. I.e., any modification on the returned map has no effect
+     * on this job instance!
      *
-     * @return unmodifiable list of attributes
+     * @return list of attributes
      */
     @Override
     public Map<String, String> getAttributes() {
-        return Collections.unmodifiableMap(attributes);
+        final Map<String, String> attr = new TreeMap<>(flushedAttributes);
+        attr.putAll(attributes);
+        return attr;
     }
 
     /**
@@ -1017,7 +1079,7 @@ public class JobImpl implements Job {
      */
     @Override
     public boolean hasAttribute(final String name) {
-        return attributes.containsKey(name);
+        return attributes.containsKey(name) || flushedAttributes.containsKey(name);
     }
 
     /**
@@ -1133,6 +1195,7 @@ public class JobImpl implements Job {
             while (iterator.hasNext()) {
                 Activity a = iterator.next();
                 if (a.getActivityStatus() != ActivityStatus.RUNNING) {
+                    flushedActivities.remove(a.getInstanceId());
                     loggingSum++;
                     iterator.remove();
                     GroupImpl parent = (GroupImpl) a.getParent();
@@ -1142,6 +1205,8 @@ public class JobImpl implements Job {
                     if (a == startActivity) {
                         startActivity = null;
                     }
+                } else {
+                    flushedActivities.add(a.getInstanceId());
                 }
 
             }
