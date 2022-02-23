@@ -136,7 +136,8 @@ public class KafkaSender extends AbstractSender {
         LOG.debug("Found topics: {}", foundTopics);
         requiredTopics.removeAll(foundTopics);
         if (!requiredTopics.isEmpty()) {
-            throw new NjamsSdkRuntimeException("The following required Kafka topics have not been found: " + requiredTopics);
+            throw new NjamsSdkRuntimeException("The following required Kafka topics have not been found: "
+                    + requiredTopics);
         }
     }
 
@@ -220,10 +221,10 @@ public class KafkaSender extends AbstractSender {
             record = new ProducerRecord<>(topic, data);
         }
         headersUpdater(record).
-        addHeader(Sender.NJAMS_MESSAGEVERSION, MessageVersion.V4.toString()).
-        addHeader(Sender.NJAMS_MESSAGETYPE, messageType).
-        addHeader(Sender.NJAMS_LOGID, id, (k, v) -> StringUtils.isNotBlank(v)).
-        addHeader(Sender.NJAMS_PATH, msg.getPath(), (k, v) -> StringUtils.isNotBlank(v));
+                addHeader(Sender.NJAMS_MESSAGEVERSION, MessageVersion.V4.toString()).
+                addHeader(Sender.NJAMS_MESSAGETYPE, messageType).
+                addHeader(Sender.NJAMS_LOGID, id, (k, v) -> StringUtils.isNotBlank(v)).
+                addHeader(Sender.NJAMS_PATH, msg.getPath(), (k, v) -> StringUtils.isNotBlank(v));
 
         tryToSend(record);
     }
@@ -231,18 +232,18 @@ public class KafkaSender extends AbstractSender {
     /**
      * Try to send and catches Errors
      *
-     * @param message
+     * @param record
      * @throws InterruptedException
      */
-    private void tryToSend(final ProducerRecord<String, String> message) throws InterruptedException {
+    private void tryToSend(final ProducerRecord<String, String> record) throws InterruptedException {
         boolean sent = false;
 
         int tries = 0;
 
         do {
             try {
-                producer.send(message);
-                LOG.trace("Sent message {}", message);
+                producer.send(record);
+                LOG.trace("Sent record {}", record);
                 sent = true;
             } catch (KafkaException | IllegalStateException e) {
                 if (discardPolicy == DiscardPolicy.ON_CONNECTION_LOSS) {

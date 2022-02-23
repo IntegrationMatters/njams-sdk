@@ -30,7 +30,7 @@ public class KafkaHeadersUtil {
         }
 
         /**
-         * Conditionally add a header.
+         * Conditionally add a header if the given condition evaluates to <code>true</code> only.
          * @param name The name of the header.
          * @param value The value of the header.
          * @param condition Condition function getting the key and value as input arguments.
@@ -56,7 +56,7 @@ public class KafkaHeadersUtil {
         }
 
         /**
-         * Conditionally remove a header.
+         * Conditionally remove a header if the given condition evaluates to <code>true</code> only.
          * @param name The name of the header to be removed.
          * @param condition Condition function getting the key and the currently stored value (or <code>null</code>)
          * as input arguments.
