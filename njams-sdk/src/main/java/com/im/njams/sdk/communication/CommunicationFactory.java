@@ -50,16 +50,12 @@ public class CommunicationFactory {
      * @param settings Settings to add
      */
     public CommunicationFactory(Settings settings) {
-        this(
-            settings,
-            new CommunicationServiceLoader<>(Receiver.class),
-            new CommunicationServiceLoader<>(Sender.class)
-        );
+        this(settings, new CommunicationServiceLoader<>(Receiver.class),
+            new CommunicationServiceLoader<>(Sender.class));
     }
 
-    CommunicationFactory(Settings settings,
-                         CommunicationServiceLoader<Receiver> receivers,
-                         CommunicationServiceLoader<Sender> senders) {
+    CommunicationFactory(Settings settings, CommunicationServiceLoader<Receiver> receivers,
+        CommunicationServiceLoader<Sender> senders) {
         this.settings = settings;
         this.receivers = receivers;
         this.senders = senders;
@@ -73,28 +69,23 @@ public class CommunicationFactory {
      * @return new initialized Receiver
      */
     public Receiver getReceiver(Njams njams) {
-        if(settings.containsKey(COMMUNICATION)) {
+        if (settings.containsKey(COMMUNICATION)) {
             final String requiredReceiverName = settings.getProperty(COMMUNICATION);
             final boolean shared =
                 "true".equalsIgnoreCase(settings.getProperty(Settings.PROPERTY_SHARED_COMMUNICATIONS));
             Class<? extends Receiver> type = findReceiverType(requiredReceiverName, shared);
-            if(type != null) {
+            if (type != null) {
                 final Receiver newInstance = createReceiver(type, shared, requiredReceiverName);
                 newInstance.setNjams(njams);
 
                 return newInstance;
             } else {
-                String available = StreamSupport
-                    .stream(
-                        Spliterators.spliteratorUnknownSize(
-                            receivers.iterator(),
-                            Spliterator.ORDERED
-                        ), false)
-                    .map(cp -> cp.getName())
-                    .collect(Collectors.joining(", "));
-                throw new UnsupportedOperationException("Unable to find receiver implementation for "
-                    + requiredReceiverName
-                    + ", available are: " + available);
+                String available =
+                    StreamSupport.stream(Spliterators.spliteratorUnknownSize(receivers.iterator(), Spliterator.ORDERED),
+                        false).map(cp -> cp.getName()).collect(Collectors.joining(", "));
+                throw new UnsupportedOperationException(
+                    "Unable to find receiver implementation for " + requiredReceiverName + ", available are: "
+                        + available);
             }
         } else {
             throw new UnsupportedOperationException("Unable to find " + COMMUNICATION + " in settings properties");
@@ -104,22 +95,22 @@ public class CommunicationFactory {
     private Class<? extends Receiver> findReceiverType(String name, boolean sharable) {
         final Iterator<Receiver> iterator = receivers.iterator();
         Receiver found = null;
-        while(iterator.hasNext()) {
+        while (iterator.hasNext()) {
             try {
                 final Receiver receiver = iterator.next();
-                if(receiver.getName().equals(name)) {
+                if (receiver.getName().equals(name)) {
                     final boolean implementsSharable = ShareableReceiver.class.isAssignableFrom(receiver.getClass());
-                    if(sharable && implementsSharable || !sharable && !implementsSharable) {
+                    if (sharable && implementsSharable || !sharable && !implementsSharable) {
                         return receiver.getClass();
                     }
                     // keep this as last resort, but maybe we find a better one
                     found = receiver;
                 }
-            } catch(ServiceConfigurationError error) {
+            } catch (ServiceConfigurationError error) {
                 LOG.warn("Error while trying to lazy load receiver: ", error);
             }
         }
-        if(sharable && found != null) {
+        if (sharable && found != null) {
             LOG.info("The requested communication type '{}' does not support sharing the receiver instance. "
                 + "Creating a dedicated instance instead.", found.getName());
         }
@@ -129,10 +120,10 @@ public class CommunicationFactory {
     private Receiver createReceiver(Class<? extends Receiver> clazz, boolean shared, String name) {
         try {
             Receiver receiver;
-            if(shared && ShareableReceiver.class.isAssignableFrom(clazz)) {
-                synchronized(sharedReceivers) {
+            if (shared && ShareableReceiver.class.isAssignableFrom(clazz)) {
+                synchronized (sharedReceivers) {
                     receiver = sharedReceivers.get(clazz);
-                    if(receiver != null) {
+                    if (receiver != null) {
                         LOG.debug("Reusing shared receiver {}", clazz);
                         return receiver;
                     }
@@ -150,7 +141,7 @@ public class CommunicationFactory {
 
             receiver.init(settings.getAllProperties());
             return receiver;
-        } catch(Exception e) {
+        } catch (Exception e) {
             throw new IllegalStateException("Unable to create new receiver " + name + " instance.", e);
         }
     }
@@ -162,12 +153,12 @@ public class CommunicationFactory {
      * @return new initialized Sender
      */
     public Sender getSender() {
-        if(settings.containsKey(COMMUNICATION)) {
+        if (settings.containsKey(COMMUNICATION)) {
             final Iterator<Sender> iterator = senders.iterator();
             final String requiredSenderName = settings.getProperty(COMMUNICATION);
-            while(iterator.hasNext()) {
+            while (iterator.hasNext()) {
                 final Sender sender = iterator.next();
-                if(sender.getName().equals(requiredSenderName)) {
+                if (sender.getName().equals(requiredSenderName)) {
                     try {
                         // create a new instance
                         LOG.info("Create sender {}", sender.getName());
@@ -175,17 +166,15 @@ public class CommunicationFactory {
                         newInstance.validate();
                         newInstance.init(settings.getAllProperties());
                         return newInstance;
-                    } catch(Exception e) {
+                    } catch (Exception e) {
                         throw new UnsupportedOperationException(
                             "Unable to create new " + requiredSenderName + " instance", e);
                     }
                 }
             }
-            String available = StreamSupport
-                .stream(Spliterators.spliteratorUnknownSize(
-                    ServiceLoader.load(Sender.class).iterator(),
-                    Spliterator.ORDERED), false)
-                .map(cp -> cp.getName()).collect(Collectors.joining(", "));
+            String available = StreamSupport.stream(
+                Spliterators.spliteratorUnknownSize(ServiceLoader.load(Sender.class).iterator(), Spliterator.ORDERED),
+                false).map(cp -> cp.getName()).collect(Collectors.joining(", "));
             throw new UnsupportedOperationException(
                 "Unable to find sender implementation for " + requiredSenderName + ", available are: " + available);
         } else {
