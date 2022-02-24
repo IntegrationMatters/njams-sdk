@@ -116,7 +116,7 @@ public class CommunicationFactory {
                     found = receiver;
                 }
             } catch(ServiceConfigurationError error) {
-                LOG.warn("Error while trying to lazy load receiver: " + error.getMessage());
+                LOG.warn("Error while trying to lazy load receiver: ", error);
             }
         }
         if(sharable && found != null) {
