@@ -68,29 +68,6 @@ node('master') {
             archiveArtifacts 'target/*.jar'
         }
     }
-
-    stage('Checkstyle') {
-        echo "Build Checkstyle"
-        dir('njams-sdk') {
-            try {
-                sh "'${mvnHome}/bin/mvn' site"
-            } finally {
-                archiveArtifacts '**/checkstyle-result.xml'
-            }
-
-            publishHTML([allowMissing         : false,
-                         alwaysLinkToLastBuild: true,
-                         keepAll              : false,
-                         reportDir            : 'target/site/',
-                         reportFiles          : 'checkstyle.html',
-                         reportName           : 'Checkstyle results',
-                         reportTitles         : ''])
-
-            // run again to fail on error
-            sh "'${mvnHome}/bin/mvn' validate -Pcheckstyle "
-
-        }
-    }
     stage('Javadoc') {
         echo "Build Javadoc"
         dir('njams-sdk') {
