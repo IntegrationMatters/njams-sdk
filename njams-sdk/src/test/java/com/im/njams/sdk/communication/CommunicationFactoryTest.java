@@ -9,47 +9,55 @@ import java.util.Iterator;
 import java.util.ServiceConfigurationError;
 
 import static org.junit.Assert.assertNotNull;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 public class CommunicationFactoryTest {
 
-    CommunicationFactory communicationFactory;
-    Settings settings;
-    Iterator iterator;
-    CommunicationServiceLoader serviceLoader;
+    private final CommunicationServiceLoader<Sender> SENDERS_NOT_NEEDED = null;
+    private CommunicationFactory communicationFactory;
+    private CommunicationServiceLoader<Receiver> receivers;
 
     @Before
     public void setUp() {
-        iterator = mock(Iterator.class);
-        serviceLoader = mock(CommunicationServiceLoader.class);
-        when(serviceLoader.iterator()).thenReturn(iterator);
+        receivers = createServiceLoaderMock();
+        communicationFactory = createCommunicationFactory(receivers, SENDERS_NOT_NEEDED);
+    }
 
-        settings = new Settings();
+    private CommunicationServiceLoader<Receiver> createServiceLoaderMock() {
+        Iterator<Receiver> iterator = mock(Iterator.class);
+        CommunicationServiceLoader<Receiver> receivers = mock(CommunicationServiceLoader.class);
+        when(receivers.iterator()).thenReturn(iterator);
+
+        return receivers;
+    }
+
+    private CommunicationFactory createCommunicationFactory(
+        CommunicationServiceLoader<Receiver> receivers,
+        CommunicationServiceLoader<Sender> senders) {
+
+        Settings settings = new Settings();
         settings.put(CommunicationFactory.COMMUNICATION, TestReceiver.NAME);
-        communicationFactory = new CommunicationFactory(
-            settings,
-            serviceLoader,
-            serviceLoader
-        );
+
+        return new CommunicationFactory(settings, receivers, senders);
     }
 
     @Test
-    public void returnsReceiverEvenIfServiceLoaderCantLoadThePreviousService() {
-        firstReceiverIsFaultySecondReceiverIsOk();
-        Njams NOT_NEEDED = null;
+    public void returnsReceiver_evenIfServiceLoaderCantLoadThePreviousService() {
+        firstReceiverIsFaulty_secondReceiverIsOk();
+        Njams NJAMS_NOT_NEEDED = null;
 
-        Receiver receiver = communicationFactory.getReceiver(NOT_NEEDED);
+        Receiver receiver = communicationFactory.getReceiver(NJAMS_NOT_NEEDED);
 
+        verify(receivers.iterator(), times(2)).next();
         assertNotNull(receiver);
     }
 
-    private void firstReceiverIsFaultySecondReceiverIsOk() {
-        when(iterator.hasNext())
+    private void firstReceiverIsFaulty_secondReceiverIsOk() {
+        when(receivers.iterator().hasNext())
             .thenReturn(true)
             .thenReturn(true)
             .thenReturn(false);
-        when(iterator.next())
+        when(receivers.iterator().next())
             .thenThrow(ServiceConfigurationError.class)
             .thenReturn(new TestReceiver());
     }
