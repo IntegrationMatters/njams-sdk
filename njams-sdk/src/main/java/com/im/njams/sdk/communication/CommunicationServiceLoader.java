@@ -12,8 +12,6 @@ class CommunicationServiceLoader<S> {
     }
 
     public Iterator<S> iterator() {
-        serviceLoader.reload();
-
         return serviceLoader.iterator();
     }
 
