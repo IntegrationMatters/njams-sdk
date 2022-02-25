@@ -246,6 +246,8 @@ public abstract class AbstractSender implements Sender {
 
     /**
      * Set this value to true during shutdown to stop the reconnecting thread
+     *
+     * @param shutdown if the Sender is in shutodown state
      */
     public void setShouldShutdown(boolean shutdown) {
         shouldShutdown.set(shutdown);

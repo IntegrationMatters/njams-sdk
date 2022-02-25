@@ -14,11 +14,12 @@ import static org.mockito.Mockito.*;
 
 public class CommunicationFactoryTest {
 
-    private final CommunicationServiceLoader<Sender> SENDERS_NOT_NEEDED = null;
+    private final CommunicationServiceLoader<AbstractSender> SENDERS_NOT_NEEDED = null;
     private CommunicationFactory communicationFactory;
     private CommunicationServiceLoader<Receiver> receivers;
 
-    @Before public void setUp() {
+    @Before
+    public void setUp() {
         receivers = createServiceLoaderMock();
         communicationFactory = createCommunicationFactory(receivers, SENDERS_NOT_NEEDED);
     }
@@ -32,7 +33,7 @@ public class CommunicationFactoryTest {
     }
 
     private CommunicationFactory createCommunicationFactory(CommunicationServiceLoader<Receiver> receivers,
-        CommunicationServiceLoader<Sender> senders) {
+                                                            CommunicationServiceLoader<AbstractSender> senders) {
 
         Settings settings = new Settings();
         settings.put(CommunicationFactory.COMMUNICATION, TestReceiver.NAME);
@@ -40,7 +41,8 @@ public class CommunicationFactoryTest {
         return new CommunicationFactory(settings, receivers, senders);
     }
 
-    @Test public void returnsReceiver_evenIfServiceLoaderCantLoadThePreviousService() {
+    @Test
+    public void returnsReceiver_evenIfServiceLoaderCantLoadThePreviousService() {
         firstReceiverIsFaulty_secondReceiverIsOk();
         Njams njams = mock(Njams.class);
         when(njams.getClientPath()).thenReturn(new Path("CLIENT_PATH"));
