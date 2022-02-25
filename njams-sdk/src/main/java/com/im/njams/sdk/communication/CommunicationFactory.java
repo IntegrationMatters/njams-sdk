@@ -41,8 +41,8 @@ public class CommunicationFactory {
     private static final Logger LOG = LoggerFactory.getLogger(CommunicationFactory.class);
 
     private final Settings settings;
-    private ServiceLoader<Receiver> receiverList;
-    private ServiceLoader<AbstractSender> senderList;
+    private final CommunicationServiceLoader<Receiver> receivers;
+    private final CommunicationServiceLoader<AbstractSender> senders;
     private static final Map<Class<? extends Receiver>, ShareableReceiver> sharedReceivers = new HashMap<>();
 
     /**
@@ -51,9 +51,15 @@ public class CommunicationFactory {
      * @param settings Settings to add
      */
     public CommunicationFactory(Settings settings) {
+        this(settings, new CommunicationServiceLoader<>(Receiver.class),
+            new CommunicationServiceLoader<>(Sender.class));
+    }
+
+    CommunicationFactory(Settings settings, CommunicationServiceLoader<Receiver> receivers,
+        CommunicationServiceLoader<Sender> senders) {
         this.settings = settings;
-        receiverList = ServiceLoader.load(Receiver.class);
-        senderList = ServiceLoader.load(AbstractSender.class);
+        this.receivers = receivers;
+        this.senders = senders;
     }
 
     /**
@@ -67,44 +73,47 @@ public class CommunicationFactory {
         if (settings.containsKey(COMMUNICATION)) {
             final String requiredReceiverName = settings.getProperty(COMMUNICATION);
             final boolean shared =
-                    "true".equalsIgnoreCase(settings.getProperty(Settings.PROPERTY_SHARED_COMMUNICATIONS));
+                "true".equalsIgnoreCase(settings.getProperty(Settings.PROPERTY_SHARED_COMMUNICATIONS));
             Class<? extends Receiver> type = findReceiverType(requiredReceiverName, shared);
             if (type != null) {
                 final Receiver newInstance = createReceiver(type, njams.getClientPath(), shared, requiredReceiverName);
                 newInstance.setNjams(njams);
-                return newInstance;
 
+                return newInstance;
+            } else {
+                String available =
+                    StreamSupport.stream(Spliterators.spliteratorUnknownSize(receivers.iterator(), Spliterator.ORDERED),
+                        false).map(cp -> cp.getName()).collect(Collectors.joining(", "));
+                throw new UnsupportedOperationException(
+                    "Unable to find receiver implementation for " + requiredReceiverName + ", available are: "
+                        + available);
             }
-            String available = StreamSupport
-                    .stream(Spliterators.spliteratorUnknownSize(
-                            ServiceLoader.load(Receiver.class).iterator(),
-                            Spliterator.ORDERED), false)
-                    .map(cp -> cp.getName()).collect(Collectors.joining(", "));
-            throw new UnsupportedOperationException("Unable to find receiver implementation for "
-                    + requiredReceiverName
-                    + ", available are: " + available);
         } else {
             throw new UnsupportedOperationException("Unable to find " + COMMUNICATION + " in settings properties");
         }
     }
 
     private Class<? extends Receiver> findReceiverType(String name, boolean sharable) {
-        final Iterator<Receiver> iterator = receiverList.iterator();
+        final Iterator<Receiver> iterator = receivers.iterator();
         Receiver found = null;
         while (iterator.hasNext()) {
-            final Receiver receiver = iterator.next();
-            if (receiver.getName().equalsIgnoreCase(name)) {
-                final boolean implementsSharable = ShareableReceiver.class.isAssignableFrom(receiver.getClass());
-                if (sharable && implementsSharable || !sharable && !implementsSharable) {
-                    return receiver.getClass();
+            try {
+                final Receiver receiver = iterator.next();
+                if (receiver.getName().equalsIgnoreCase(name)) {
+                    final boolean implementsSharable = ShareableReceiver.class.isAssignableFrom(receiver.getClass());
+                    if (sharable && implementsSharable || !sharable && !implementsSharable) {
+                        return receiver.getClass();
+                    }
+                    // keep this as last resort, but maybe we find a better one
+                    found = receiver;
                 }
-                // keep this as last resort, but maybe we find a better one
-                found = receiver;
+            } catch (ServiceConfigurationError error) {
+                LOG.warn("Error while trying to lazy load receiver: ", error);
             }
         }
         if (sharable && found != null) {
             LOG.info("The requested communication type '{}' does not support sharing the receiver instance. "
-                    + "Creating a dedicated instance instead.", found.getName());
+                + "Creating a dedicated instance instead.", found.getName());
         }
         return found == null ? null : found.getClass();
     }
@@ -161,7 +170,7 @@ public class CommunicationFactory {
                         return newInstance;
                     } catch (Exception e) {
                         throw new UnsupportedOperationException(
-                                "Unable to create new " + requiredSenderName + " instance", e);
+                            "Unable to create new " + requiredSenderName + " instance", e);
                     }
                 }
             }
@@ -171,7 +180,7 @@ public class CommunicationFactory {
                             Spliterator.ORDERED), false)
                     .map(cp -> cp.getName()).collect(Collectors.joining(", "));
             throw new UnsupportedOperationException(
-                    "Unable to find sender implementation for " + requiredSenderName + ", available are: " + available);
+                "Unable to find sender implementation for " + requiredSenderName + ", available are: " + available);
         } else {
             throw new UnsupportedOperationException("Unable to find " + COMMUNICATION + " in settings properties");
         }
