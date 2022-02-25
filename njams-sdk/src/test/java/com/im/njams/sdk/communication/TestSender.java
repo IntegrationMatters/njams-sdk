@@ -16,8 +16,6 @@
  */
 package com.im.njams.sdk.communication;
 
-import java.util.Properties;
-
 import com.faizsiegeln.njams.messageformat.v4.common.CommonMessage;
 import com.faizsiegeln.njams.messageformat.v4.logmessage.LogMessage;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.ProjectMessage;
@@ -26,13 +24,14 @@ import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.configuration.ConfigurationProviderFactory;
 import com.im.njams.sdk.settings.Settings;
 
+import java.util.Properties;
+
 /**
  * Dummy implementation for testing.<br>
  * <b>Note:</b> For using this instance, the test environment needs to have a the full qualified class name of this
- * {@link TestSender} in the <code>META_INF/services/com.im.njams.sdk.communication.Sender</code> file.
+ * {@link TestSender} in the <code>META_INF/services/com.im.njams.sdk.communication.AbstractSender</code> file.
  *
  * @author cwinkler
- *
  */
 public class TestSender extends AbstractSender {
 
@@ -42,6 +41,7 @@ public class TestSender extends AbstractSender {
     /**
      * Delegates all request to the given sender.<br>
      * <b>Note:</b> {@link #getName()} is invoked on the given sender but the value returned is always {@link #NAME}.
+     *
      * @param sender
      */
     public static void setSenderMock(Sender sender) {
@@ -50,6 +50,7 @@ public class TestSender extends AbstractSender {
 
     /**
      * Returns a settings prepared for using this sender implementation.
+     *
      * @return
      */
     public static Settings getSettings() {
@@ -58,7 +59,7 @@ public class TestSender extends AbstractSender {
         config.put(ConfigurationProviderFactory.CONFIGURATION_PROVIDER, "memory");
         return config;
     }
-    
+
     @Override
     public void init(Properties properties) {
         if (sender != null) {

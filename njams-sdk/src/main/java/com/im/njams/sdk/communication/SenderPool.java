@@ -16,41 +16,115 @@
  */
 package com.im.njams.sdk.communication;
 
-import com.im.njams.sdk.pools.ObjectPool;
+import org.slf4j.LoggerFactory;
+
+import java.util.Enumeration;
+import java.util.Hashtable;
 
 /**
  * pool for Sender sub-classes
  *
  * @author hsiegeln
- *
  */
-public class SenderPool extends ObjectPool<Sender> {
+public class SenderPool {
+    private static final org.slf4j.Logger LOG = LoggerFactory.getLogger(SenderPool.class);
 
     private final CommunicationFactory factory;
+    private final Hashtable<AbstractSender, Long> unlocked, locked;
 
     public SenderPool(CommunicationFactory factory) {
         super();
         this.factory = factory;
+        unlocked = new Hashtable<>();
+        locked = new Hashtable<>();
     }
 
-    @Override
-    protected Sender create() {
+    protected AbstractSender create() {
         return factory.getSender();
     }
 
-    @Override
-    public boolean validate(Sender sender) {
+    public boolean validate(AbstractSender sender) {
         // TODO: there must be a better solution!
         return true;
     }
 
-    @Override
-    public void expire(Sender sender) {
+    public void expire(AbstractSender sender) {
         sender.close();
     }
 
-    //    public void setSenderFactory(CommunicationFactory senderFactory) {
-    //        factory = senderFactory;
-    //    }
+    public void shutdown() {
+        expireAll();
+    }
 
+    public synchronized AbstractSender get() {
+        return get(-1);
+    }
+
+    /**
+     * get an object from the pool. Timeout controls for how long to wait for an object becoming available.
+     * a timeout is less than 0 results in an endless wait
+     * a timeout equals 0 results in a singly try; if no object is available, null is returned
+     *
+     * @param timeout timeout in milliseconds
+     * @return T T
+     */
+    private synchronized AbstractSender get(long timeout) {
+        LOG.trace("Get locked={}, unlocked={}", locked.size(), unlocked.size());
+        AbstractSender sender = null;
+        long now = System.currentTimeMillis();
+        // try to get an object, until timeout expires
+        do {
+            if (unlocked.size() > 0) {
+                Enumeration<AbstractSender> e = unlocked.keys();
+                while (e.hasMoreElements()) {
+                    sender = e.nextElement();
+                    if (validate(sender)) {
+                        unlocked.remove(sender);
+                        locked.put(sender, now);
+                        LOG.trace("Got Sender: " + sender);
+                        return sender;
+                    } else {
+                        // object failed validation
+                        LOG.debug("Object failed validation!");
+                        unlocked.remove(sender);
+                        expire(sender);
+                        sender = null;
+                    }
+
+                }
+            }
+            // no objects available, create a new one
+            sender = create();
+            locked.put(sender, now);
+        } while (sender == null && (timeout < 0 || System.currentTimeMillis() - now < timeout));
+        LOG.trace("Created Sender: " + sender);
+        return sender;
+    }
+
+    public synchronized void close(AbstractSender t) {
+        locked.remove(t);
+        unlocked.put(t, System.currentTimeMillis());
+        LOG.trace("Close locked={}, unlocked={}", locked.size(), unlocked.size());
+    }
+
+    public synchronized void expireAll() {
+        for (AbstractSender sender : locked.keySet()) {
+            try {
+                sender.setShouldShutdown(true);
+                sender.close();
+            } catch (Exception e) {
+                LOG.error("Couldn't close {}", sender.getClass().getSimpleName());
+            }
+        }
+        locked.clear();
+        for (AbstractSender sender : unlocked.keySet()) {
+            try {
+                sender.setShouldShutdown(true);
+                sender.close();
+            } catch (Exception e) {
+                LOG.error("Couldn't close {}", sender.getClass().getSimpleName());
+            }
+        }
+        unlocked.clear();
+    }
 }

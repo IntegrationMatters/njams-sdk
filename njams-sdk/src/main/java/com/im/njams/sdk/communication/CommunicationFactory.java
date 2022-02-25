@@ -16,22 +16,15 @@
  */
 package com.im.njams.sdk.communication;
 
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Properties;
-import java.util.ServiceLoader;
-import java.util.Spliterator;
-import java.util.Spliterators;
-import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.common.Path;
 import com.im.njams.sdk.settings.Settings;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 /**
  * Factory for creating Sender and Receiver
@@ -49,7 +42,7 @@ public class CommunicationFactory {
 
     private final Settings settings;
     private ServiceLoader<Receiver> receiverList;
-    private ServiceLoader<Sender> senderList;
+    private ServiceLoader<AbstractSender> senderList;
     private static final Map<Class<? extends Receiver>, ShareableReceiver> sharedReceivers = new HashMap<>();
 
     /**
@@ -60,12 +53,13 @@ public class CommunicationFactory {
     public CommunicationFactory(Settings settings) {
         this.settings = settings;
         receiverList = ServiceLoader.load(Receiver.class);
-        senderList = ServiceLoader.load(Sender.class);
+        senderList = ServiceLoader.load(AbstractSender.class);
     }
 
     /**
      * Returns the Receiver specified by the value of {@value #COMMUNICATION}
      * specified in the CommunicationProperties in the Settings
+     *
      * @param njams The {@link Njams} client instance for that messages shall be received.
      * @return new initialized Receiver
      */
@@ -151,17 +145,17 @@ public class CommunicationFactory {
      *
      * @return new initialized Sender
      */
-    public Sender getSender() {
+    public AbstractSender getSender() {
         if (settings.containsKey(COMMUNICATION)) {
-            final Iterator<Sender> iterator = senderList.iterator();
+            final Iterator<AbstractSender> iterator = senderList.iterator();
             final String requiredSenderName = settings.getProperty(COMMUNICATION);
             while (iterator.hasNext()) {
-                final Sender sender = iterator.next();
+                final AbstractSender sender = iterator.next();
                 if (sender.getName().equalsIgnoreCase(requiredSenderName)) {
                     try {
                         // create a new instance
                         LOG.info("Create sender {}", sender.getName());
-                        Sender newInstance = sender.getClass().newInstance();
+                        AbstractSender newInstance = sender.getClass().newInstance();
                         newInstance.validate();
                         newInstance.init(settings.getAllProperties());
                         return newInstance;
@@ -173,7 +167,7 @@ public class CommunicationFactory {
             }
             String available = StreamSupport
                     .stream(Spliterators.spliteratorUnknownSize(
-                            ServiceLoader.load(Sender.class).iterator(),
+                            ServiceLoader.load(AbstractSender.class).iterator(),
                             Spliterator.ORDERED), false)
                     .map(cp -> cp.getName()).collect(Collectors.joining(", "));
             throw new UnsupportedOperationException(

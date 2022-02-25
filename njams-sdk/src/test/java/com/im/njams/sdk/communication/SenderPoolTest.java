@@ -1,35 +1,37 @@
-package com.im.njams.sdk.pools;
+package com.im.njams.sdk.communication;
 
 import org.junit.Test;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.*;
 
-public class ObjectPoolTest {
+public class SenderPoolTest {
 
     @Test
     public void expireAll() throws Exception {
-        AutoCloseable mockedAC = mock(AutoCloseable.class);
-        AutoCloseable mockedAC2 = mock(AutoCloseable.class);
-        ObjectPool<AutoCloseable> op = new ObjectPool<AutoCloseable>() {
+        CommunicationFactory mockedCF = mock(CommunicationFactory.class);
+        AbstractSender mockedAC = mock(AbstractSender.class);
+        AbstractSender mockedAC2 = mock(AbstractSender.class);
+        SenderPool op = new SenderPool(mockedCF) {
             public boolean first = true;
+
             @Override
-            protected AutoCloseable create() {
-                if(first){
+            protected AbstractSender create() {
+                if (first) {
                     first = false;
                     return mockedAC;
-                }else{
+                } else {
                     return mockedAC2;
                 }
             }
 
             @Override
-            public boolean validate(AutoCloseable o) {
+            public boolean validate(AbstractSender o) {
                 return true;
             }
 
             @Override
-            public void expire(AutoCloseable o) {
+            public void expire(AbstractSender o) {
                 try {
                     o.close();
                 } catch (Exception e) {
@@ -38,13 +40,13 @@ public class ObjectPoolTest {
             }
         };
         //To fill the locked map
-        AutoCloseable get1 = op.get();
+        AbstractSender get1 = op.get();
         assertEquals(mockedAC, get1);
         //To clear the locked map
         op.expireAll();
         verify(get1, times(1)).close();
 
-        AutoCloseable get2 = op.get();
+        AbstractSender get2 = op.get();
         assertEquals(mockedAC2, get2);
         op.close(get2);
         op.expireAll();
