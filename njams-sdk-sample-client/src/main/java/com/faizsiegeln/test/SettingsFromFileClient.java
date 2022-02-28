@@ -44,13 +44,13 @@ public class SettingsFromFileClient {
         // Use Properties File Settings Provider
         Properties settingsProviderProperties = new Properties();
         settingsProviderProperties.setProperty(SettingsProviderFactory.SETTINGS_PROVIDER,
-                PropertiesFileSettingsProvider.NAME);
+            PropertiesFileSettingsProvider.NAME);
         SettingsProvider provider = SettingsProviderFactory.getSettingsProvider(settingsProviderProperties);
 
         // Specifiy location of properties file to load
         Properties fileConfig = new Properties();
         if (args.length < 1) {
-            fileConfig.setProperty(PropertiesFileSettingsProvider.FILE_CONFIGURATION, "/Users/bwand/Development/njams-sdk/njams-sdk-sample-client/target/classes/settings.properties");
+            fileConfig.setProperty(PropertiesFileSettingsProvider.FILE_CONFIGURATION, "target/classes/settings.properties");
         } else {
             fileConfig.setProperty(PropertiesFileSettingsProvider.FILE_CONFIGURATION, args[0]);
         }
