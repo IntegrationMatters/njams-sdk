@@ -114,7 +114,7 @@ public class SimpleClient {
         // be send to the server
         job.end();
 
-        Thread.sleep(30000);
+        //Thread.sleep(30000);
 
         // If you are finished with processing or the application goes down, stop the
         // client...
@@ -143,9 +143,9 @@ public class SimpleClient {
         communicationProperties.put(JmsConstants.SECURITY_CREDENTIALS, "njams");
         communicationProperties.put(JmsConstants.PROVIDER_URL, "tibjmsnaming://vslems01:7222");
         communicationProperties.put(JmsConstants.CONNECTION_FACTORY, "ConnectionFactory");
-        communicationProperties.put(JmsConstants.USERNAME, "njams_bw6_endurance");
-        communicationProperties.put(JmsConstants.PASSWORD, "njams_bw6_endurance");
-        communicationProperties.put(JmsConstants.DESTINATION, "njams.blablub");
+        communicationProperties.put(JmsConstants.USERNAME, "njams");
+        communicationProperties.put(JmsConstants.PASSWORD, "njams");
+        communicationProperties.put(JmsConstants.DESTINATION, "njams.endurance");
         // optional: if you want to use a topic for commands not following the name of
         // the other destinations, specify it here
         communicationProperties.put(JmsConstants.COMMANDS_DESTINATION, "njams4.blablub.commands");
