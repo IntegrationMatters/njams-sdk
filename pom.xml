@@ -55,7 +55,8 @@
         <oshi.version>6.1.4</oshi.version>
 
         <!-- Older versions -->
-        <resteasy.version>4.5.7.Final</resteasy.version>
+        <!-- Resteasy client matches Wildfly 26.0.1 version -->
+        <resteasy.version>4.7.4.Final</resteasy.version>
         <jmespath.version>0.2.0</jmespath.version>
 
         <!-- Test -->
