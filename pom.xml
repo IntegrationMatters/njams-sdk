@@ -48,7 +48,6 @@
         <commons-lang.version>2.6</commons-lang.version>
         <jug.version>2.0.0</jug.version>
         <jaxb-api.version>2.3.1</jaxb-api.version>
-        <xalan.version>2.7.1</xalan.version>
         <jackson.version>2.9.7</jackson.version>
         <saxon.version>9.1.0.8</saxon.version>
         <slf4j.version>1.7.36</slf4j.version>
@@ -187,11 +186,6 @@
                 <artifactId>jug</artifactId>
                 <version>${jug.version}</version>
                 <classifier>asl</classifier>
-            </dependency>
-            <dependency>
-                <groupId>xalan</groupId>
-                <artifactId>xalan</artifactId>
-                <version>${xalan.version}</version>
             </dependency>
             <dependency>
                 <groupId>javax.xml.bind</groupId>
