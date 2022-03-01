@@ -53,10 +53,8 @@
         <jaxb-impl.version>2.2.5</jaxb-impl.version>
         <xalan.version>2.7.1</xalan.version>
         <jackson.version>2.9.7</jackson.version>
-
         <saxon.version>9.1.0.8</saxon.version>
-        <slf4j.version>1.7.7</slf4j.version>
-        <log4j.version>2.17.1</log4j.version>
+        <slf4j.version>1.7.36</slf4j.version>
 
         <junit.version>4.13.1</junit.version>
         <mockito.version>1.10.19</mockito.version>
@@ -255,18 +253,13 @@
             </dependency>
             <dependency>
                 <groupId>org.slf4j</groupId>
-                <artifactId>slf4j-log4j12</artifactId>
+                <artifactId>slf4j-reload4j</artifactId>
                 <version>${slf4j.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.slf4j</groupId>
                 <artifactId>slf4j-jdk14</artifactId>
                 <version>${slf4j.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.logging.log4j</groupId>
-                <artifactId>log4j-core</artifactId>
-                <version>${log4j.version}</version>
             </dependency>
 
             <dependency>
@@ -284,7 +277,6 @@
                 <artifactId>kafka-clients</artifactId>
                 <version>${kafka-version}</version>
             </dependency>
-
         </dependencies>
     </dependencyManagement>
 
