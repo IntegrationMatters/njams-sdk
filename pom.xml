@@ -54,6 +54,8 @@
         <saxon.version>9.1.0.8</saxon.version>
         <slf4j.version>1.7.36</slf4j.version>
         <resteasy.version>4.5.7.Final</resteasy.version>
+        <oshi.version>3.8.2</oshi.version>
+        <jmespath.version>0.2.0</jmespath.version>
 
         <junit.version>4.13.2</junit.version>
         <mockito.version>1.10.19</mockito.version>
@@ -255,6 +257,16 @@
                 <groupId>org.jboss.resteasy</groupId>
                 <artifactId>resteasy-client</artifactId>
                 <version>${resteasy.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.github.oshi</groupId>
+                <artifactId>oshi-core</artifactId>
+                <version>${oshi.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.burt</groupId>
+                <artifactId>jmespath-jackson</artifactId>
+                <version>${jmespath.version}</version>
             </dependency>
 
             <dependency>

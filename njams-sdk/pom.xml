@@ -355,7 +355,6 @@
         <dependency>
             <groupId>com.github.oshi</groupId>
             <artifactId>oshi-core</artifactId>
-            <version>3.8.2</version>
             <scope>compile</scope>
         </dependency>
         <dependency>
@@ -377,7 +376,6 @@
         <dependency>
             <groupId>io.burt</groupId>
             <artifactId>jmespath-jackson</artifactId>
-            <version>0.2.0</version>
         </dependency>
 
         <dependency>
