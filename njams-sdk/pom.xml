@@ -330,17 +330,14 @@
 
         <!-- default scope - shaded -->
         <dependency>
-            <groupId>org.jboss.resteasy</groupId>
-            <artifactId>resteasy-client</artifactId>
-            <version>4.5.7.Final</version>
+            <groupId>com.faizsiegeln</groupId>
+            <artifactId>njams-messageformat</artifactId>
         </dependency>
 
         <dependency>
-            <groupId>com.faizsiegeln</groupId>
-            <artifactId>njams-messageformat</artifactId>
-            <version>4.1.3-SNAPSHOT</version>
+            <groupId>org.jboss.resteasy</groupId>
+            <artifactId>resteasy-client</artifactId>
         </dependency>
-
         <dependency>
             <groupId>net.sourceforge.saxon</groupId>
             <artifactId>saxon</artifactId>
@@ -351,19 +348,16 @@
             <classifier>xpath</classifier>
         </dependency>
         <dependency>
+            <groupId>net.sourceforge.saxon</groupId>
+            <artifactId>saxon</artifactId>
+            <classifier>dom</classifier>
+        </dependency>
+        <dependency>
             <groupId>com.github.oshi</groupId>
             <artifactId>oshi-core</artifactId>
             <version>3.8.2</version>
             <scope>compile</scope>
         </dependency>
-
-        <dependency>
-            <groupId>net.sourceforge.saxon</groupId>
-            <artifactId>saxon</artifactId>
-            <version>9.1.0.8</version>
-            <classifier>dom</classifier>
-        </dependency>
-
         <dependency>
             <groupId>com.fasterxml.jackson.module</groupId>
             <artifactId>jackson-module-jaxb-annotations</artifactId>
