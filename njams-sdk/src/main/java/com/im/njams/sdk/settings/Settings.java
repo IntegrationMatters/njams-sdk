@@ -118,6 +118,7 @@ public class Settings {
         secureProperties.add("password");
         secureProperties.add("credentials");
         secureProperties.add("secret");
+        secureProperties.add("keystore.key");
     }
 
     /**
@@ -226,10 +227,10 @@ public class Settings {
     public Properties filter(String prefix) {
         Properties response = new Properties();
         properties.entrySet()
-        .stream()
-        .filter(e -> String.class.isAssignableFrom(e.getKey().getClass()))
-        .filter(e -> ((String) e.getKey()).startsWith(prefix))
-        .forEach(e -> response.setProperty((String) e.getKey(), (String) e.getValue()));
+                .stream()
+                .filter(e -> String.class.isAssignableFrom(e.getKey().getClass()))
+                .filter(e -> ((String) e.getKey()).startsWith(prefix))
+                .forEach(e -> response.setProperty((String) e.getKey(), (String) e.getValue()));
         return Transformer.decode(properties);
     }
 
@@ -243,12 +244,12 @@ public class Settings {
     public Properties filterAndCut(String prefix) {
         Properties response = new Properties();
         properties.entrySet()
-        .stream()
-        .filter(e -> String.class.isAssignableFrom(e.getKey().getClass()))
-        .filter(e -> ((String) e.getKey()).startsWith(prefix))
-        .forEach(e -> response.setProperty(
-                ((String) e.getKey()).substring(((String) e.getKey()).indexOf(prefix) + prefix.length()),
-                (String) e.getValue()));
+                .stream()
+                .filter(e -> String.class.isAssignableFrom(e.getKey().getClass()))
+                .filter(e -> ((String) e.getKey()).startsWith(prefix))
+                .forEach(e -> response.setProperty(
+                        ((String) e.getKey()).substring(((String) e.getKey()).indexOf(prefix) + prefix.length()),
+                        (String) e.getValue()));
         return Transformer.decode(properties);
     }
 
