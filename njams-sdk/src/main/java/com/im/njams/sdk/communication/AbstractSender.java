@@ -25,6 +25,8 @@ import com.im.njams.sdk.settings.Settings;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -44,6 +46,7 @@ public abstract class AbstractSender implements Sender {
     protected ConnectionStatus connectionStatus;
     protected DiscardPolicy discardPolicy = DiscardPolicy.DEFAULT;
     protected Properties properties;
+    private List<SenderExceptionListener> exceptionListeners = new ArrayList<>();
 
     private static final AtomicBoolean hasConnected = new AtomicBoolean(false);
 
@@ -68,6 +71,15 @@ public abstract class AbstractSender implements Sender {
     }
 
     /**
+     * Set Exception listener with special handling on exceptions.
+     *
+     * @param exceptionListener the exception listener to add to list
+     */
+    public void addExceptionListener(SenderExceptionListener exceptionListener) {
+        exceptionListeners.add(exceptionListener);
+    }
+
+    /**
      * override this method to implement your own connection initialization
      *
      * @throws NjamsSdkRuntimeException NjamsSdkRuntimeException
@@ -77,7 +89,8 @@ public abstract class AbstractSender implements Sender {
             return;
         }
         try {
-            //connectionStatus = ConnectionStatus.CONNECTING;
+            connectionStatus = ConnectionStatus.CONNECTING;
+            LOG.debug("Connecting...");
             connectionStatus = ConnectionStatus.CONNECTED;
         } catch (Exception e) {
             connectionStatus = ConnectionStatus.DISCONNECTED;
@@ -154,6 +167,9 @@ public abstract class AbstractSender implements Sender {
                     isSent = true;
                     break;
                 } catch (NjamsSdkRuntimeException e) {
+                    for (SenderExceptionListener listener : exceptionListeners) {
+                        listener.onException(e, msg);
+                    }
                     onException(e);
                 }
             }

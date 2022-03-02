@@ -90,10 +90,10 @@ public class JmsSender extends AbstractSender implements ExceptionListener {
             connectionStatus = ConnectionStatus.CONNECTING;
             context = new InitialContext(PropertyUtil.filterAndCut(properties, JmsConstants.PROPERTY_PREFIX + "."));
             ConnectionFactory factory = (ConnectionFactory) context
-                    .lookup(properties.getProperty(JmsConstants.CONNECTION_FACTORY));
+                .lookup(properties.getProperty(JmsConstants.CONNECTION_FACTORY));
             if (properties.containsKey(JmsConstants.USERNAME) && properties.containsKey(JmsConstants.PASSWORD)) {
                 connection = factory.createConnection(properties.getProperty(JmsConstants.USERNAME),
-                        properties.getProperty(JmsConstants.PASSWORD));
+                    properties.getProperty(JmsConstants.PASSWORD));
             } else {
                 connection = factory.createConnection();
             }
@@ -204,7 +204,7 @@ public class JmsSender extends AbstractSender implements ExceptionListener {
     }
 
     protected void sendMessage(CommonMessage msg, String messageType, String data)
-            throws JMSException, InterruptedException {
+        throws JMSException, InterruptedException {
         TextMessage textMessage = session.createTextMessage(data);
         if (msg instanceof LogMessage) {
             textMessage.setStringProperty(Sender.NJAMS_LOGID, ((LogMessage) msg).getLogId());
@@ -228,14 +228,14 @@ public class JmsSender extends AbstractSender implements ExceptionListener {
             } catch (ResourceAllocationException ex) {
                 if (discardPolicy == DiscardPolicy.ON_CONNECTION_LOSS) {
                     LOG.debug("JMS Queue limit exceeded. Applying discard policy [{}]. Message discarded.",
-                            discardPolicy);
+                        discardPolicy);
                     DiscardMonitor.discard();
                     break;
                 }
                 //Queue limit exceeded
                 if (++tries >= MAX_TRIES) {
                     LOG.warn("Try to reconnect, because the MessageQueue hasn't got enough space after {} seconds.",
-                            MAX_TRIES * EXCEPTION_IDLE_TIME);
+                        MAX_TRIES * EXCEPTION_IDLE_TIME);
                     throw ex;
                 } else {
                     Thread.sleep(EXCEPTION_IDLE_TIME);
@@ -310,11 +310,11 @@ public class JmsSender extends AbstractSender implements ExceptionListener {
     @Override
     public String[] librariesToCheck() {
         return new String[]{"javax.jms.Connection", "javax.jms.ConnectionFactory", "javax.jms.Destination",
-                "javax" + ".jms" +
-                        ".ExceptionListener",
-                "javax.jms.Session", "javax.jms.JMSException",
-                "javax.jms.MessageProducer",
-                "javax.jms.Session", "javax.jms.TextMessage", "javax.naming.InitialContext",
-                "javax.naming" + ".NameNotFoundException", "javax.naming.NamingException"};
+            "javax" + ".jms" +
+                ".ExceptionListener",
+            "javax.jms.Session", "javax.jms.JMSException",
+            "javax.jms.MessageProducer",
+            "javax.jms.Session", "javax.jms.TextMessage", "javax.naming.InitialContext",
+            "javax.naming" + ".NameNotFoundException", "javax.naming.NamingException"};
     }
 }
