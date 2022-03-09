@@ -304,6 +304,18 @@
                                     <!-- LZ4 -->
                                     <shadedPattern>com.im.jpountz</shadedPattern>
                                 </relocation>
+                                <relocation>
+                                    <pattern>org.jboss</pattern>
+                                    <shadedPattern>com.im.jboss</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>io.smallrye</pattern>
+                                    <shadedPattern>com.im.smallrye</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>org.apache.http</pattern>
+                                    <shadedPattern>com.im.http</shadedPattern>
+                                </relocation>
                             </relocations>
                             <filters>
                                 <filter>
