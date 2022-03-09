@@ -25,7 +25,7 @@ package com.im.njams.sdk.communication.kafka;
 public class KafkaConstants {
 
     /** Name of the Kafka Communication Component. */
-    public static final String COMMUNICATION_NAME = "Kafka";
+    public static final String COMMUNICATION_NAME = "KAFKA";
 
     // ********** General nJAMS properties
 
