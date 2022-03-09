@@ -190,11 +190,11 @@ public class KafkaSender extends AbstractSender {
     protected void send(final TraceMessage msg) {
         try {
             final String data = JsonUtils.serialize(msg);
-            sendMessage(msg, topicEvent, Sender.NJAMS_MESSAGETYPE_TRACE, data);
+            sendMessage(msg, topicProject, Sender.NJAMS_MESSAGETYPE_TRACE, data);
             if (LOG.isTraceEnabled()) {
-                LOG.trace("Send TraceMessage {} to {}:\n{}", msg.getPath(), topicEvent, data);
+                LOG.trace("Send TraceMessage {} to {}:\n{}", msg.getPath(), topicProject, data);
             } else {
-                LOG.debug("Send TraceMessage for {} to {}", msg.getPath(), topicEvent);
+                LOG.debug("Send TraceMessage for {} to {}", msg.getPath(), topicProject);
             }
         } catch (final Exception e) {
             throw new NjamsSdkRuntimeException("Unable to send TraceMessage", e);
@@ -221,10 +221,10 @@ public class KafkaSender extends AbstractSender {
             record = new ProducerRecord<>(topic, data);
         }
         headersUpdater(record).
-                addHeader(Sender.NJAMS_MESSAGEVERSION, MessageVersion.V4.toString()).
-                addHeader(Sender.NJAMS_MESSAGETYPE, messageType).
-                addHeader(Sender.NJAMS_LOGID, id, (k, v) -> StringUtils.isNotBlank(v)).
-                addHeader(Sender.NJAMS_PATH, msg.getPath(), (k, v) -> StringUtils.isNotBlank(v));
+        addHeader(Sender.NJAMS_MESSAGEVERSION, MessageVersion.V4.toString()).
+        addHeader(Sender.NJAMS_MESSAGETYPE, messageType).
+        addHeader(Sender.NJAMS_LOGID, id, (k, v) -> StringUtils.isNotBlank(v)).
+        addHeader(Sender.NJAMS_PATH, msg.getPath(), (k, v) -> StringUtils.isNotBlank(v));
 
         tryToSend(record);
     }
