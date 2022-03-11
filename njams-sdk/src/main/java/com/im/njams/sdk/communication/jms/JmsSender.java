@@ -106,6 +106,11 @@ public class JmsSender extends AbstractSender implements ExceptionListener {
                 destination = session.createQueue(destinationName);
             }
             producer = session.createProducer(destination);
+            String deliveryMode = properties.getProperty(JmsConstants.DELIVERY_MODE);
+            if ("NON_PERSISTENT".equalsIgnoreCase(deliveryMode)) {
+                LOG.debug("Set JMS delivery mode to NON_PERSISTENT.");
+                producer.setDeliveryMode(DeliveryMode.NON_PERSISTENT);
+            }
             connection.setExceptionListener(this);
             connectionStatus = ConnectionStatus.CONNECTED;
         } catch (Exception e) {
