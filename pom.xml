@@ -11,7 +11,12 @@
         <name>Faiz und Siegeln Software GmbH</name>
         <url>http://www.integrationmatters.com</url>
     </organization>
-
+    <licenses>
+        <license>
+            <name>nJAMS SDK License</name>
+            <url>https://github.com/IntegrationMatters/njams-sdk#license</url>
+        </license>
+    </licenses>
     <scm>
         <connection>scm:git:https://github.com/IntegrationMatters/njams-sdk</connection>
         <developerConnection>scm:git:https://github.com/IntegrationMatters/njams-sdk</developerConnection>
