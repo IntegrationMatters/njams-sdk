@@ -83,14 +83,7 @@ public class KafkaReceiver extends AbstractReceiver {
     private String clientId;
 
     /**
-     * Initializes this Receiver via the given Properties.
-     * <p>
-     * Valid properties are:
-     * <ul>
-     * <li>{@value com.im.njams.sdk.communication.kafka.KafkaConstants#COMMUNICATION_NAME}
-     * <li>{@value com.im.njams.sdk.communication.kafka.KafkaConstants#TOPIC_PREFIX}
-     * <li>{@value com.im.njams.sdk.communication.kafka.KafkaConstants#COMMANDS_TOPIC}
-     * </ul>
+     * Initializes this receiver via the given properties.
      *
      * @param properties the properties needed to initialize
      */
@@ -143,11 +136,11 @@ public class KafkaReceiver extends AbstractReceiver {
     }
 
     /**
-     * This method tries to create a CommandsListener, which is a separate Thread
-     * for a Consumer, constantly polling. It throws an NjamsSdkRuntimeException if
-     * any of the resources throws any exception.
+     * This method tries to create a {@link CommandsConsumer}, which is a separate thread
+     * for a consumer, constantly polling.
      *
      * @param props the Properties that are used for connecting.
+     * @throws NjamsSdkRuntimeException if any of the resources throws any exception.
      */
     private void tryToConnect() {
         LOG.debug("Try subscribing KafkaReceiver to topic {}", topicName);
@@ -162,7 +155,7 @@ public class KafkaReceiver extends AbstractReceiver {
     }
 
     /**
-     * This method sets the connectionStatus to DISCONNECTED and closes all
+     * This method sets the connectionStatus to {@link ConnectionStatus#DISCONNECTED} and closes all
      * resources
      */
     private synchronized void closeAll() {
@@ -189,7 +182,7 @@ public class KafkaReceiver extends AbstractReceiver {
     }
 
     /**
-     * This method stops the Kafka receiver, if its status is CONNECTED.
+     * This method stops the Kafka receiver, if its status is {@link ConnectionStatus#CONNECTED}
      */
     @Override
     public void stop() {
@@ -201,7 +194,7 @@ public class KafkaReceiver extends AbstractReceiver {
     }
 
     /**
-     * This method is called by the CommandsListener if a message arrives.
+     * This method is called by the {@link CommandsConsumer} if a message arrives.
      *
      * @param msg the newly arrived Kafka message.
      */
@@ -250,8 +243,8 @@ public class KafkaReceiver extends AbstractReceiver {
     }
 
     /**
-     * This method tries to extract the Instruction out of the provided message. It
-     * maps the Json string to an Instruction object.
+     * This method tries to extract the {@link Instruction} out of the provided message. It
+     * maps the Json string to an {@link Instruction} object.
      *
      * @param message the Json Message
      * @return the Instruction object that was extracted or null, if no valid
@@ -263,9 +256,7 @@ public class KafkaReceiver extends AbstractReceiver {
     }
 
     /**
-     * This method tries to reply the instructions response back to the sender. Send
-     * a message to the Sender that is mentioned in the message. If a UUID is set in
-     * the message, it will be forwarded as well.
+     * This method tries to reply the instructions response back to nJAMS server.
      *
      * @param requestId The ID of the request to that this reply belongs
      * @param instruction the instruction that holds the response.
@@ -276,8 +267,8 @@ public class KafkaReceiver extends AbstractReceiver {
             final ProducerRecord<String, String> response =
                     new ProducerRecord<>(topicName, responseId, mapper.writeValueAsString(instruction));
             headersUpdater(response).addHeader(NJAMS_MESSAGE_ID, responseId).addHeader(NJAMS_REPLY_FOR, requestId)
-            .addHeader(NJAMS_RECEIVER, RECEIVER_SERVER).addHeader(NJAMS_TYPE, MESSAGE_TYPE_REPLY)
-            .addHeader(NJAMS_CONTENT, CONTENT_TYPE_JSON);
+                    .addHeader(NJAMS_RECEIVER, RECEIVER_SERVER).addHeader(NJAMS_TYPE, MESSAGE_TYPE_REPLY)
+                    .addHeader(NJAMS_CONTENT, CONTENT_TYPE_JSON);
 
             synchronized (this) {
                 if (producer == null) {
@@ -307,7 +298,7 @@ public class KafkaReceiver extends AbstractReceiver {
     }
 
     /**
-     * @return the name of this Receiver. (Kafka)
+     * @return the name of this Receiver: {@value KafkaConstants#COMMUNICATION_NAME}
      */
     @Override
     public String getName() {
@@ -315,14 +306,14 @@ public class KafkaReceiver extends AbstractReceiver {
     }
 
     /**
-     * Returns if the Commands-Response-Producer of this KafkaReceiver is running.
+     * Returns whether this instance currently has an active reply producer.
      */
     synchronized boolean hasRunningProducer() {
         return producer != null;
     }
 
     /**
-     * Closes the Producer and sets it to null
+     * Closes the producer and sets it to null
      */
     synchronized void closeProducer() {
         if (producer != null) {
