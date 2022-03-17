@@ -282,23 +282,7 @@
                                     <pattern>oshi</pattern>
                                     <shadedPattern>com.im.oshi</shadedPattern>
                                 </relocation>
-                                <!-- Kafka -->
-                                <relocation>
-                                    <pattern>org.apache.kafka</pattern>
-                                    <shadedPattern>com.im.kafka</shadedPattern>
-                                </relocation>
-                                <relocation>
-                                    <pattern>common.message</pattern>
-                                    <shadedPattern>com.im.kafka.message</shadedPattern>
-                                </relocation>
-                                <relocation>
-                                    <pattern>kafka</pattern>
-                                    <shadedPattern>com.im.kafka</shadedPattern>
-                                </relocation>
-                                <relocation>
-                                    <pattern>org.xerial.snappy</pattern>
-                                    <shadedPattern>com.im.snappy</shadedPattern>
-                                </relocation>
+                                <!-- SDK-270: Kafka must not be relocated -->
                                 <relocation>
                                     <pattern>net.jpountz</pattern>
                                     <!-- LZ4 -->
