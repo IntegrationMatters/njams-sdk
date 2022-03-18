@@ -1,14 +1,14 @@
-/* 
+/*
  * Copyright (c) 2018 Faiz & Siegeln Software GmbH
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"),
  * to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
  * and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
- * 
+ *
  * The Software shall be used for Good, not Evil.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
@@ -16,11 +16,13 @@
  */
 package com.im.njams.sdk.model.svg;
 
+import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.model.ActivityModel;
 import com.im.njams.sdk.model.GroupModel;
 import com.im.njams.sdk.model.ProcessModel;
 import com.im.njams.sdk.model.TransitionModel;
+import com.im.njams.sdk.settings.Settings;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.w3c.dom.DOMImplementation;
@@ -78,7 +80,35 @@ public class NjamsProcessDiagramFactory implements ProcessDiagramFactory {
      */
     protected static final int DEFAULT_MARKER_SIZE = 10;
 
+    /**
+     * default secure processing
+     */
+    protected static final String DEFAULT_DISABLE_SECURE_PROCESSING = "false";
+
     private static final Logger LOG = LoggerFactory.getLogger(NjamsProcessDiagramFactory.class);
+
+    private Njams njams;
+    protected boolean disableSecureProcessing = false;
+
+
+    /**
+     * Creates the objects by using the settings values of the Njams
+     * instance, or the defaults.
+     *
+     * @param njams Initialize this entry with this Njams
+     */
+    public NjamsProcessDiagramFactory(Njams njams) {
+        this.njams = njams;
+        disableSecureProcessing =
+            "true".equalsIgnoreCase(njams.getSettings().getProperty(
+                Settings.PROPERTY_DISABLE_SECURE_PROCESSING,
+                DEFAULT_DISABLE_SECURE_PROCESSING));
+        if (disableSecureProcessing) {
+            LOG.debug("Disabled secure XML processing by configuration switch.");
+        } else {
+            LOG.debug("Enabled secure XML processing.");
+        }
+    }
 
     /**
      * This function converts a ProcessModel to a SVG.
@@ -89,10 +119,11 @@ public class NjamsProcessDiagramFactory implements ProcessDiagramFactory {
     @Override
     public String getProcessDiagram(ProcessModel processModel) {
         try {
-
             // create a new DocumentBuilderFactory
             DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
-            factory.setAttribute(XMLConstants.FEATURE_SECURE_PROCESSING, true);
+            if (!disableSecureProcessing) {
+                factory.setAttribute(XMLConstants.FEATURE_SECURE_PROCESSING, true);
+            }
 
             // use the factory to create a documentbuilder
             DocumentBuilder builder = factory.newDocumentBuilder();
@@ -119,7 +150,7 @@ public class NjamsProcessDiagramFactory implements ProcessDiagramFactory {
     /**
      * Create the SVG
      *
-     * @param context of the NjamsProcessDiagramFactory
+     * @param context      of the NjamsProcessDiagramFactory
      * @param processModel to draw
      */
     public void createSvg(NjamsProcessDiagramContext context, ProcessModel processModel) {
@@ -144,18 +175,18 @@ public class NjamsProcessDiagramFactory implements ProcessDiagramFactory {
 
         // draw root activities
         List<ActivityModel> rootActivities
-                = processModel.getActivityModels().stream().filter(a -> a.getParent() == null)
-                        .filter(a -> !(a instanceof GroupModel)).collect(Collectors.toList());
+            = processModel.getActivityModels().stream().filter(a -> a.getParent() == null)
+            .filter(a -> !(a instanceof GroupModel)).collect(Collectors.toList());
         rootActivities.forEach(a -> drawActivity(context, a));
 
         // draw root transitions
         List<TransitionModel> rootTransition = processModel.getTransitionModels().stream()
-                .filter(a -> a.getParent() == null).collect(Collectors.toList());
+            .filter(a -> a.getParent() == null).collect(Collectors.toList());
         rootTransition.forEach(t -> drawTransition(context, t));
 
         // draw root groups
         List<GroupModel> rootGroups = processModel.getActivityModels().stream().filter(a -> a.getParent() == null)
-                .filter(a -> a instanceof GroupModel).map(GroupModel.class::cast).collect(Collectors.toList());
+            .filter(a -> a instanceof GroupModel).map(GroupModel.class::cast).collect(Collectors.toList());
         rootGroups.forEach(a -> drawGroup(context, a));
 
         drawExtraElements(context);
@@ -164,7 +195,7 @@ public class NjamsProcessDiagramFactory implements ProcessDiagramFactory {
     /**
      * Calculate the total SVG size, based on every elements min and max X/Y
      *
-     * @param context of the NjamsProcessDiagramFactory
+     * @param context      of the NjamsProcessDiagramFactory
      * @param processModel to draw
      */
     private void getSvgSize(NjamsProcessDiagramContext context, ProcessModel processModel) {
@@ -212,7 +243,7 @@ public class NjamsProcessDiagramFactory implements ProcessDiagramFactory {
      * This function draws a activity. A activity is a composition of the
      * activity image, and two texts below that image. See the example below
      *
-     * @param context of the NjamsProcessDiagramFactory
+     * @param context       of the NjamsProcessDiagramFactory
      * @param activityModel to draw
      */
     protected void drawActivity(NjamsProcessDiagramContext context, ActivityModel activityModel) {
@@ -259,7 +290,7 @@ public class NjamsProcessDiagramFactory implements ProcessDiagramFactory {
     /**
      * Draw Group
      *
-     * @param context of the NjamsProcessDiagramFactory
+     * @param context    of the NjamsProcessDiagramFactory
      * @param groupModel to draw
      */
     protected void drawGroup(NjamsProcessDiagramContext context, GroupModel groupModel) {
@@ -334,7 +365,7 @@ public class NjamsProcessDiagramFactory implements ProcessDiagramFactory {
 
         // draw root activities
         List<ActivityModel> groupActivities = groupModel.getChildActivities().stream()
-                .filter(a -> !(a instanceof GroupModel)).collect(Collectors.toList());
+            .filter(a -> !(a instanceof GroupModel)).collect(Collectors.toList());
         groupActivities.forEach(a -> drawActivity(context, a));
 
         // draw root transitions
@@ -343,7 +374,7 @@ public class NjamsProcessDiagramFactory implements ProcessDiagramFactory {
 
         // draw root groups
         List<GroupModel> groupGroups = groupModel.getChildActivities().stream().filter(a -> a instanceof GroupModel)
-                .map(GroupModel.class::cast).collect(Collectors.toList());
+            .map(GroupModel.class::cast).collect(Collectors.toList());
         groupGroups.forEach(a -> drawGroup(context, a));
 
         // after drawing my childs, set back to the previous parent
@@ -355,7 +386,7 @@ public class NjamsProcessDiagramFactory implements ProcessDiagramFactory {
      * line, a marker which is the arrow head, and a text for that transition.
      * See the example below
      *
-     * @param context of the NjamsProcessDiagramFactory
+     * @param context         of the NjamsProcessDiagramFactory
      * @param transitionModel to draw
      */
     protected void drawTransition(NjamsProcessDiagramContext context, TransitionModel transitionModel) {

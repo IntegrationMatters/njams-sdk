@@ -16,23 +16,10 @@
  */
 package com.im.njams.sdk.configuration;
 
-import java.time.LocalDateTime;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Map.Entry;
-import java.util.function.Function;
-import java.util.stream.Collectors;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.faizsiegeln.njams.messageformat.v4.command.Command;
 import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
 import com.faizsiegeln.njams.messageformat.v4.command.Response;
-import com.faizsiegeln.njams.messageformat.v4.projectmessage.Extract;
-import com.faizsiegeln.njams.messageformat.v4.projectmessage.LogLevel;
-import com.faizsiegeln.njams.messageformat.v4.projectmessage.LogMode;
-import com.faizsiegeln.njams.messageformat.v4.projectmessage.RuleType;
+import com.faizsiegeln.njams.messageformat.v4.projectmessage.*;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.im.njams.sdk.common.DateTimeUtility;
 import com.im.njams.sdk.common.JsonSerializerFactory;
@@ -40,6 +27,17 @@ import com.im.njams.sdk.communication.InstructionListener;
 import com.im.njams.sdk.logmessage.ExtractHandler;
 import com.im.njams.sdk.utils.JsonUtils;
 import com.im.njams.sdk.utils.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.time.LocalDateTime;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map.Entry;
+import java.util.function.Function;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 /**
  * InstructionListener implementation for all instructions which will modify
@@ -48,6 +46,8 @@ import com.im.njams.sdk.utils.StringUtils;
  * @author pnientiedt
  */
 public class ConfigurationInstructionListener implements InstructionListener {
+
+    private static final Pattern ATTRIBUTE_NAME_PATTERN = Pattern.compile("^[^\\.\\s]([^\\.]*[^\\.\\s])*$");
 
     private static class InstructionSupport {
         private final Response response;
@@ -72,6 +72,7 @@ public class ConfigurationInstructionListener implements InstructionListener {
         /**
          * Returns <code>true</code>, only if all given parameters exist and have none-blank values.
          * Sets according {@link #error(String)} response.
+         *
          * @param names
          * @return
          */
@@ -90,6 +91,7 @@ public class ConfigurationInstructionListener implements InstructionListener {
          * Returns <code>true</code> only if the given parameter's value can be parsed to an instance of the given
          * enumeration type.
          * Sets according {@link #error(String)} response.
+         *
          * @param name
          * @param enumeration
          * @return
@@ -104,6 +106,7 @@ public class ConfigurationInstructionListener implements InstructionListener {
 
         /**
          * Creates an error response with the given message.
+         *
          * @param message
          */
         private void error(final String message) {
@@ -112,6 +115,7 @@ public class ConfigurationInstructionListener implements InstructionListener {
 
         /**
          * Creates an error response with the given message and exception.
+         *
          * @param message
          * @param e
          */
@@ -125,6 +129,7 @@ public class ConfigurationInstructionListener implements InstructionListener {
 
         /**
          * Whether or not the response is flagged as error.
+         *
          * @return
          */
         private boolean isError() {
@@ -133,7 +138,8 @@ public class ConfigurationInstructionListener implements InstructionListener {
 
         /**
          * Sets a response parameter.
-         * @param name The name of the parameter to set into the response.
+         *
+         * @param name  The name of the parameter to set into the response.
          * @param value The value to set for the given parameter.
          * @return
          */
@@ -148,6 +154,7 @@ public class ConfigurationInstructionListener implements InstructionListener {
 
         /**
          * Returns the process path from the request, if set.
+         *
          * @return
          */
         private String getProcessPath() {
@@ -156,6 +163,7 @@ public class ConfigurationInstructionListener implements InstructionListener {
 
         /**
          * Returns the activity ID from the request, if any.
+         *
          * @return
          */
         private String getActivityId() {
@@ -164,6 +172,7 @@ public class ConfigurationInstructionListener implements InstructionListener {
 
         /**
          * Whether or not the request has a parameter with the given name.
+         *
          * @param name The parameter name to test.
          * @return
          */
@@ -173,6 +182,7 @@ public class ConfigurationInstructionListener implements InstructionListener {
 
         /**
          * Returns a request parameter.
+         *
          * @param name The name of the parameter to return.
          * @return
          */
@@ -184,6 +194,7 @@ public class ConfigurationInstructionListener implements InstructionListener {
 
         /**
          * Returns a request parameter as integer.
+         *
          * @param name The name of the parameter to return.
          * @return
          */
@@ -199,6 +210,7 @@ public class ConfigurationInstructionListener implements InstructionListener {
 
         /**
          * Returns a request parameter as boolean.
+         *
          * @param name The name of the parameter to return.
          * @return
          */
@@ -208,8 +220,9 @@ public class ConfigurationInstructionListener implements InstructionListener {
 
         /**
          * Returns a request parameter as enum value.
-         * @param <T> The type of the enum.
-         * @param name The name of the parameter to return.
+         *
+         * @param <T>         The type of the enum.
+         * @param name        The name of the parameter to return.
          * @param enumeration The enum type.
          * @return
          */
@@ -225,8 +238,9 @@ public class ConfigurationInstructionListener implements InstructionListener {
         /**
          * Returns a request parameter build by invoking the given producer method, passing in the value read from
          * the request.
-         * @param <T> The target type to produce.
-         * @param name The name of the parameter to return.
+         *
+         * @param <T>      The target type to produce.
+         * @param name     The name of the parameter to return.
          * @param producer The producer method accepting the raw string parameter value from the request.
          * @return
          */
@@ -282,58 +296,59 @@ public class ConfigurationInstructionListener implements InstructionListener {
         }
         LOG.debug("Received command: {}", command);
         switch (command) {
-        case CONFIGURE_EXTRACT:
-            configureExtract(instructionSupport);
-            break;
-        case DELETE_EXTRACT:
-            deleteExtract(instructionSupport);
-            break;
-        case GET_EXTRACT:
-            getExtract(instructionSupport);
-            break;
-        case GET_LOG_LEVEL:
-            getLogLevel(instructionSupport);
-            break;
-        case GET_LOG_MODE:
-            getLogMode(instructionSupport);
-            break;
-        case GET_TRACING:
-            getTracing(instructionSupport);
-            break;
-        case RECORD:
-            record(instructionSupport);
-            break;
-        case SET_LOG_LEVEL:
-            setLogLevel(instructionSupport);
-            break;
-        case SET_LOG_MODE:
-            setLogMode(instructionSupport);
-            break;
-        case SET_TRACING:
-            setTracing(instructionSupport);
-            break;
-        case TEST_EXPRESSION:
-            testExpression(instructionSupport);
-            break;
+            case CONFIGURE_EXTRACT:
+                configureExtract(instructionSupport);
+                break;
+            case DELETE_EXTRACT:
+                deleteExtract(instructionSupport);
+                break;
+            case GET_EXTRACT:
+                getExtract(instructionSupport);
+                break;
+            case GET_LOG_LEVEL:
+                getLogLevel(instructionSupport);
+                break;
+            case GET_LOG_MODE:
+                getLogMode(instructionSupport);
+                break;
+            case GET_TRACING:
+                getTracing(instructionSupport);
+                break;
+            case RECORD:
+                record(instructionSupport);
+                break;
+            case SET_LOG_LEVEL:
+                setLogLevel(instructionSupport);
+                break;
+            case SET_LOG_MODE:
+                setLogMode(instructionSupport);
+                break;
+            case SET_TRACING:
+                setTracing(instructionSupport);
+                break;
+            case TEST_EXPRESSION:
+                testExpression(instructionSupport);
+                break;
 
-        case SEND_PROJECTMESSAGE:
-        case REPLAY:
-            // not handled here.
-            LOG.debug("Ignoring command: {}", command);
-            return;
+            case SEND_PROJECTMESSAGE:
+            case REPLAY:
+            case PING:
+                // not handled here.
+                LOG.debug("Ignoring command: {}", command);
+                return;
 
-        default:
-            LOG.debug("Unknown command: {}", command);
-            return;
+            default:
+                LOG.debug("Unknown command: {}", command);
+                return;
         }
 
         // set response into instruction
         instructionSupport.applyResponse();
         LOG.debug("Handled command: {} (result={}) on process: {}{}", command, instructionSupport.isError() ? "error"
-                : "ok", instructionSupport.getProcessPath(),
+                        : "ok", instructionSupport.getProcessPath(),
                 instructionSupport.getActivityId() == null ? ""
                         : "#"
-                                + instructionSupport.getActivityId());
+                        + instructionSupport.getActivityId());
     }
 
     private void getLogLevel(final InstructionSupport instructionSupport) {
@@ -518,6 +533,16 @@ public class ConfigurationInstructionListener implements InstructionListener {
             instructionSupport.error("Unable to deserialize extract", e);
             return;
         }
+        final List<String> invalidAttributes =
+                extract.getExtractRules().stream().map(ExtractRule::getAttribute)
+                        .filter(this::isAttributeNameInvalid).collect(Collectors.toList());
+        if (!invalidAttributes.isEmpty()) {
+            final String errorMessage =
+                    "Invalid attribute names " + invalidAttributes + " in extract for " + extract.getName();
+            instructionSupport.error(errorMessage);
+            return;
+        }
+
         activity.setExtract(extract);
         saveConfiguration(instructionSupport);
         LOG.debug("Configure extract for {}", processPath);
@@ -676,5 +701,18 @@ public class ConfigurationInstructionListener implements InstructionListener {
         } catch (final Exception e) {
             instructionSupport.error("Unable to save configuration", e);
         }
+    }
+
+    /**
+     * Must not be <code>null</code> and no dot allowed at all and must not start or end with blanks.
+     *
+     * @param attrName
+     * @return <code>true</code> if the given name is <code>null</code> or invalid.
+     */
+    private boolean isAttributeNameInvalid(String attrName) {
+        if (StringUtils.isBlank(attrName)) {
+            return true;
+        }
+        return !ATTRIBUTE_NAME_PATTERN.matcher(attrName).matches();
     }
 }

@@ -85,7 +85,6 @@ public class JmsConstants {
      */
     public static final String PROVIDER_URL = PROPERTY_PREFIX + "." + Context.PROVIDER_URL;
 
-
     /**
      * Prefix for the ssl communication properties
      */
@@ -114,4 +113,9 @@ public class JmsConstants {
      * Property key for the ssl communication properties. Specifies the trustStore Type.
      */
     public static final String TRUSTSTORETYPE = SSLPREFIX + ".trustStoreType";
+
+    /**
+     * Delivery mode for JMS Sender. Attention: NonPersistent might lead to data loss.
+     */
+    public static final String DELIVERY_MODE = PROPERTY_PREFIX + ".delivery.mode";
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Faiz & Siegeln Software GmbH
+ * Copyright (c) 2022 Faiz & Siegeln Software GmbH
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"),
  * to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
@@ -19,13 +19,13 @@ package com.im.njams.sdk.communication.kafka;
 
 import static com.im.njams.sdk.communication.kafka.KafkaHeadersUtil.getHeader;
 import static com.im.njams.sdk.communication.kafka.KafkaHeadersUtil.headersUpdater;
+import static com.im.njams.sdk.communication.kafka.KafkaUtil.filterKafkaProperties;
 
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Properties;
 import java.util.UUID;
 
-import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
@@ -71,6 +71,7 @@ public class KafkaReceiver extends AbstractReceiver {
     public static final String CONTENT_TYPE_JSON = "json";
     private static final String RECEIVER_SERVER = "server";
 
+    private static final String GROUP_PREFIX = "njsdk_";
     private static final String COMMANDS_SUFFIX = ".commands";
     private static final String ID_REPLACE_PATTERN = "[^A-Za-z0-9_\\-\\.]";
 
@@ -82,14 +83,7 @@ public class KafkaReceiver extends AbstractReceiver {
     private String clientId;
 
     /**
-     * Initializes this Receiver via the given Properties.
-     * <p>
-     * Valid properties are:
-     * <ul>
-     * <li>{@value com.im.njams.sdk.communication.kafka.KafkaConstants#COMMUNICATION_NAME}
-     * <li>{@value com.im.njams.sdk.communication.kafka.KafkaConstants#TOPIC_PREFIX}
-     * <li>{@value com.im.njams.sdk.communication.kafka.KafkaConstants#COMMANDS_TOPIC}
-     * </ul>
+     * Initializes this receiver via the given properties.
      *
      * @param properties the properties needed to initialize
      */
@@ -115,7 +109,7 @@ public class KafkaReceiver extends AbstractReceiver {
     }
 
     private static String getClientId(final String path) {
-        String id = "NJSDK_";
+        String id = GROUP_PREFIX;
         final int max = 255 - id.length();
         if (path.length() > max) {
             id += path.substring(0, max - 9) + "_" + Integer.toHexString(path.hashCode());
@@ -132,8 +126,9 @@ public class KafkaReceiver extends AbstractReceiver {
     @Override
     public synchronized void connect() {
         if (!isConnected()) {
+            LOG.debug("Connect: Subscribe KafkaReceiver to topic {}", topicName);
             connectionStatus = ConnectionStatus.CONNECTING;
-
+            validateTopics();
             tryToConnect();
 
             connectionStatus = ConnectionStatus.CONNECTED;
@@ -141,24 +136,26 @@ public class KafkaReceiver extends AbstractReceiver {
     }
 
     /**
-     * This method tries to create a CommandsListener, which is a separate Thread
-     * for a Consumer, constantly polling. It throws an NjamsSdkRuntimeException if
-     * any of the resources throws any exception.
+     * This method tries to create a {@link CommandsConsumer}, which is a separate thread
+     * for a consumer, constantly polling.
      *
      * @param props the Properties that are used for connecting.
+     * @throws NjamsSdkRuntimeException if any of the resources throws any exception.
      */
     private void tryToConnect() {
+        LOG.debug("Try subscribing KafkaReceiver to topic {}", topicName);
         try {
             commandConsumer = new CommandsConsumer(njamsProperties, topicName, clientId, this);
             commandConsumer.start();
         } catch (final Exception e) {
             closeAll();
+            LOG.debug("Try subscribing KafkaReceiver to topic {} failed: {}", topicName, e.toString());
             throw new NjamsSdkRuntimeException("Unable to start the Commands-Consumer-Thread", e);
         }
     }
 
     /**
-     * This method sets the connectionStatus to DISCONNECTED and closes all
+     * This method sets the connectionStatus to {@link ConnectionStatus#DISCONNECTED} and closes all
      * resources
      */
     private synchronized void closeAll() {
@@ -176,26 +173,16 @@ public class KafkaReceiver extends AbstractReceiver {
         }
     }
 
-    @Override
-    public void start() {
-        if (validateTopics()) {
-            super.start();
-        }
-    }
-
-    private boolean validateTopics() {
+    private void validateTopics() {
         final Collection<String> foundTopics = KafkaUtil.testTopics(njamsProperties, topicName);
         LOG.debug("Found topics: {}", foundTopics);
         if (foundTopics.isEmpty()) {
-            LOG.error("Commands topic [{}] not found. "
-                    + "The client will not be able to process commands from nJAMS sever!", topicName);
-            return false;
+            throw new NjamsSdkRuntimeException("Commands topic [" + topicName + "] not found.");
         }
-        return true;
     }
 
     /**
-     * This method stops the Kafka receiver, if its status is CONNECTED.
+     * This method stops the Kafka receiver, if its status is {@link ConnectionStatus#CONNECTED}
      */
     @Override
     public void stop() {
@@ -207,7 +194,7 @@ public class KafkaReceiver extends AbstractReceiver {
     }
 
     /**
-     * This method is called by the CommandsListener if a message arrives.
+     * This method is called by the {@link CommandsConsumer} if a message arrives.
      *
      * @param msg the newly arrived Kafka message.
      */
@@ -251,13 +238,12 @@ public class KafkaReceiver extends AbstractReceiver {
             LOG.debug("Received non json instruction -> ignore");
             return false;
         }
-
         return true;
     }
 
     /**
-     * This method tries to extract the Instruction out of the provided message. It
-     * maps the Json string to an Instruction object.
+     * This method tries to extract the {@link Instruction} out of the provided message. It
+     * maps the Json string to an {@link Instruction} object.
      *
      * @param message the Json Message
      * @return the Instruction object that was extracted or null, if no valid
@@ -269,9 +255,7 @@ public class KafkaReceiver extends AbstractReceiver {
     }
 
     /**
-     * This method tries to reply the instructions response back to the sender. Send
-     * a message to the Sender that is mentioned in the message. If a UUID is set in
-     * the message, it will be forwarded as well.
+     * This method tries to reply the instructions response back to nJAMS server.
      *
      * @param requestId The ID of the request to that this reply belongs
      * @param instruction the instruction that holds the response.
@@ -281,12 +265,9 @@ public class KafkaReceiver extends AbstractReceiver {
             final String responseId = UUID.randomUUID().toString();
             final ProducerRecord<String, String> response =
                     new ProducerRecord<>(topicName, responseId, mapper.writeValueAsString(instruction));
-            headersUpdater(response).
-            addHeader(NJAMS_MESSAGE_ID, responseId).
-            addHeader(NJAMS_REPLY_FOR, requestId).
-            addHeader(NJAMS_RECEIVER, RECEIVER_SERVER).
-            addHeader(NJAMS_TYPE, MESSAGE_TYPE_REPLY).
-            addHeader(NJAMS_CONTENT, CONTENT_TYPE_JSON);
+            headersUpdater(response).addHeader(NJAMS_MESSAGE_ID, responseId).addHeader(NJAMS_REPLY_FOR, requestId)
+                    .addHeader(NJAMS_RECEIVER, RECEIVER_SERVER).addHeader(NJAMS_TYPE, MESSAGE_TYPE_REPLY)
+                    .addHeader(NJAMS_CONTENT, CONTENT_TYPE_JSON);
 
             synchronized (this) {
                 if (producer == null) {
@@ -305,18 +286,8 @@ public class KafkaReceiver extends AbstractReceiver {
         }
     }
 
-    private Properties filterKafkaProperties(final Properties properties, final ClientType clientType,
-            final String client) {
-        final Properties p = KafkaUtil.filterKafkaProperties(properties, clientType, client);
-        if (!clientId.equals(p.getProperty(ConsumerConfig.CLIENT_ID_CONFIG))
-                || !clientId.equals(p.getProperty(ConsumerConfig.GROUP_ID_CONFIG))) {
-            LOG.warn("Default client- or group-ID is overridden by configuration.");
-        }
-        return p;
-    }
-
     /**
-     * @return the name of this Receiver. (Kafka)
+     * @return the name of this Receiver: {@value KafkaConstants#COMMUNICATION_NAME}
      */
     @Override
     public String getName() {
@@ -324,14 +295,14 @@ public class KafkaReceiver extends AbstractReceiver {
     }
 
     /**
-     * Returns if the Commands-Response-Producer of this KafkaReceiver is running.
+     * Returns whether this instance currently has an active reply producer.
      */
     synchronized boolean hasRunningProducer() {
         return producer != null;
     }
 
     /**
-     * Closes the Producer and sets it to null
+     * Closes the producer and sets it to null
      */
     synchronized void closeProducer() {
         if (producer != null) {

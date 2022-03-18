@@ -48,7 +48,7 @@ public class SimpleClient {
         // Create communicationProperties, which specify how your client will
         // communicate with the server
         Settings settings = getJmsProperties();
-        // Settings settings = getCloudProperties();
+        //Settings settings = getCloudProperties();
         //Settings settings = getHttpProperties();
 
         // Instantiate client for first application
@@ -114,11 +114,13 @@ public class SimpleClient {
         // be send to the server
         job.end();
 
-        Thread.sleep(1000);
+        //Thread.sleep(30000);
 
         // If you are finished with processing or the application goes down, stop the
         // client...
         njams.stop();
+
+        Thread.sleep(1000);
     }
 
     private static Settings getCloudProperties() {
@@ -136,7 +138,7 @@ public class SimpleClient {
         Settings communicationProperties = new Settings();
         communicationProperties.put(CommunicationFactory.COMMUNICATION, "JMS");
         communicationProperties.put(JmsConstants.INITIAL_CONTEXT_FACTORY,
-                "com.tibco.tibjms.naming.TibjmsInitialContextFactory");
+            "com.tibco.tibjms.naming.TibjmsInitialContextFactory");
         communicationProperties.put(JmsConstants.SECURITY_PRINCIPAL, "njams");
         communicationProperties.put(JmsConstants.SECURITY_CREDENTIALS, "njams");
         communicationProperties.put(JmsConstants.PROVIDER_URL, "tibjmsnaming://vslems01:7222");
@@ -146,7 +148,7 @@ public class SimpleClient {
         communicationProperties.put(JmsConstants.DESTINATION, "njams.endurance");
         // optional: if you want to use a topic for commands not following the name of
         // the other destinations, specify it here
-        communicationProperties.put(JmsConstants.COMMANDS_DESTINATION, "njams4.dev.phillip.commands");
+        communicationProperties.put(JmsConstants.COMMANDS_DESTINATION, "njams4.blablub.commands");
         return communicationProperties;
     }
 
@@ -174,10 +176,10 @@ public class SimpleClient {
         // SSL
         communicationProperties.put(KafkaConstants.PROPERTY_PREFIX + "security.protocol", "SSL");
         communicationProperties.put(KafkaConstants.PROPERTY_PREFIX + "ssl.truststore.location",
-                "C:\\tmp\\certificates\\kafka.truststore");
+            "C:\\tmp\\certificates\\kafka.truststore");
         communicationProperties.put(KafkaConstants.PROPERTY_PREFIX + "ssl.truststore.password", "Aa123456!");
         communicationProperties.put(KafkaConstants.PROPERTY_PREFIX + "ssl.keystore.location",
-                "C:\\tmp\\certificates\\kafka.keystore");
+            "C:\\tmp\\certificates\\kafka.keystore");
         communicationProperties.put(KafkaConstants.PROPERTY_PREFIX + "ssl.keystore.password", "Aa123456!");
         communicationProperties.put(KafkaConstants.PROPERTY_PREFIX + "ssl.key.password", "Aa123456!");
 
@@ -201,9 +203,10 @@ public class SimpleClient {
 
     private static Settings getHttpProperties() {
         Settings communicationProperties = new Settings();
-        communicationProperties.put(CommunicationFactory.COMMUNICATION, "HTTP");
-        communicationProperties.put("njams.sdk.communication.http.sender.url", "http://localhost:8080/njams/api/processing/ingest/bw");
-        communicationProperties.put("njams.sdk.communication.http.receiver.url", "http://localhost:8080/njams/api/httpcommunication");
+        communicationProperties.put(CommunicationFactory.COMMUNICATION, "HTTPS");
+        communicationProperties.put("njams.sdk.communication.http.base.url", "https://os0100.integrationmatters.com:8443/njams/");
+        communicationProperties.put("njams.sdk.communication.http.dataprovider.prefix", "bw");
+        communicationProperties.put("njams.sdk.communication.http.ssl.certificate.file", "/Users/bwand/Development/SSLKeystore/cert.wildcard.integrationmatters.com/ca-root-integrationmatters.com.pem");
 
         communicationProperties.put("njams.client.sdk.sharedcommunications", "true");
         return communicationProperties;

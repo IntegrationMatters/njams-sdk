@@ -19,11 +19,18 @@ package com.im.njams.sdk.communication.kafka;
 
 import java.time.Duration;
 import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
+import java.util.stream.Collectors;
 
+import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
+import org.apache.kafka.common.PartitionInfo;
+import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -62,15 +69,18 @@ public class CommandsConsumer extends Thread {
         idleProducerTimeout = getProducerIdleTime(properties);
         this.receiver = receiver;
 
+        final Properties kafkaProperties = KafkaUtil.filterKafkaProperties(properties, ClientType.CONSUMER, clientId);
+        // transient group; we are only interested in new messages
+        kafkaProperties.remove(ConsumerConfig.GROUP_ID_CONFIG);
         try {
-            consumer =
-                    new KafkaConsumer<>(
-                            KafkaUtil.filterKafkaProperties(properties, ClientType.CONSUMER, clientId),
-                            new StringDeserializer(), new StringDeserializer());
-            consumer.subscribe(Collections.singleton(topic));
+            consumer = new KafkaConsumer<>(kafkaProperties, new StringDeserializer(), new StringDeserializer());
+            final Set<String> assigned = assignTopic(topic);
+            if (assigned == null || assigned.isEmpty()) {
+                throw new IllegalStateException("No partitions assigned to command consumer (topic=" + topic + ")");
+            }
             // skip all old messages on the commands topic
             consumer.seekToEnd(Collections.emptyList());
-            LOG.debug("Commands consumer subscribed on {}", topic);
+            LOG.debug("Commands consumer assigned to topic {}", topic);
         } catch (final Exception e) {
             LOG.error("Failed to create consumer", e);
             if (consumer != null) {
@@ -80,10 +90,35 @@ public class CommandsConsumer extends Thread {
         }
     }
 
+    /**
+     * Assign all partitions of the given topic to given consumer.
+     * This is non-incremental. I.e., the current assignment is replaced with the new one.
+     * @param consumer The consumer that should process the given topic
+     * @param topic The topic to assign to the given consumer;
+     * @return The resulting assigned topics, i.e., actually the one given, or none at all.
+     */
+    private Set<String> assignTopic(final String topic) {
+        LOG.debug("Assign topic {}", topic);
+        final Map<String, List<PartitionInfo>> topicPartitions = consumer.listTopics();
+        if (topicPartitions != null) {
+            final List<PartitionInfo> partitions = topicPartitions.get(topic);
+            if (partitions != null && !partitions.isEmpty()) {
+                consumer.assign(partitions.stream().map(i -> new TopicPartition(i.topic(), i.partition()))
+                        .collect(Collectors.toSet()));
+            }
+        } else {
+            LOG.debug("No partitions found for topic {}", topic);
+        }
+        final Set<TopicPartition> assignedPartitions = consumer.assignment();
+        LOG.debug("Assigned partition set {}", assignedPartitions);
+        return assignedPartitions.stream().map(TopicPartition::topic).collect(Collectors.toSet());
+
+    }
+
     private long getProducerIdleTime(final Properties properties) {
         if (properties.containsKey(KafkaConstants.REPLY_PRODUCER_IDLE_TIME)) {
             try {
-                return Long.valueOf(properties.getProperty(KafkaConstants.REPLY_PRODUCER_IDLE_TIME));
+                return Long.parseLong(properties.getProperty(KafkaConstants.REPLY_PRODUCER_IDLE_TIME));
             } catch (final Exception e) {
                 LOG.error("Faileds to parse timeout from properties", e);
             }
@@ -113,10 +148,7 @@ public class CommandsConsumer extends Thread {
     }
 
     /**
-     * If no messages
-     * arrive and a producer is running longer than the given timeout, it will be
-     * closed.
-     *
+     * If no messages arrive and a producer is running longer than the given timeout, it will be closed.
      */
     private void checkIdleProducer() {
         if (receiver.hasRunningProducer()

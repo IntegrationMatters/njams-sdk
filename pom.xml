@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.faizsiegeln</groupId>
     <artifactId>njams4-sdk-root</artifactId>
@@ -10,7 +11,12 @@
         <name>Faiz und Siegeln Software GmbH</name>
         <url>http://www.integrationmatters.com</url>
     </organization>
-
+    <licenses>
+        <license>
+            <name>nJAMS SDK License</name>
+            <url>https://github.com/IntegrationMatters/njams-sdk#license</url>
+        </license>
+    </licenses>
     <scm>
         <connection>scm:git:https://github.com/IntegrationMatters/njams-sdk</connection>
         <developerConnection>scm:git:https://github.com/IntegrationMatters/njams-sdk</developerConnection>
@@ -20,7 +26,9 @@
     <properties>
         <sonar.java.coveragePlugin>jacoco</sonar.java.coveragePlugin>
         <sonar.dynamicAnalysis>reuseReports</sonar.dynamicAnalysis>
-        <sonar.jacoco.reportPaths>${project.basedir}/target/coverage-reports/jacoco-ut.exec,${project.basedir}/target/coverage-reports/jacoco-it.exec</sonar.jacoco.reportPaths>
+        <sonar.jacoco.reportPaths>
+            ${project.basedir}/target/coverage-reports/jacoco-ut.exec,${project.basedir}/target/coverage-reports/jacoco-it.exec
+        </sonar.jacoco.reportPaths>
         <sonar.language>java</sonar.language>
 
         <javaSourceLevel>1.8</javaSourceLevel>
@@ -37,9 +45,10 @@
         <svn-revision-number-maven-plugin.version>1.13</svn-revision-number-maven-plugin.version>
         <jacoco-maven-plugin.version>0.8.3</jacoco-maven-plugin.version>
 
+        <!--- Dependency versions -->
+        <njams-messageformat.version>4.1.3-SNAPSHOT</njams-messageformat.version>
+
         <aspectj.version>1.6.10</aspectj.version>
-        <tibcrypt.version>5.1.0</tibcrypt.version>
-        <tibjms.version>5.1.0</tibjms.version>
         <jms-api.version>1.1-rev-1</jms-api.version>
         <kafka-version>3.0.0</kafka-version>
         <activemq-version>5.16.3</activemq-version>
@@ -47,17 +56,22 @@
         <objenesis.version>1.2</objenesis.version>
         <commons-lang.version>2.6</commons-lang.version>
         <jug.version>2.0.0</jug.version>
-        <jaxb-api.version>2.2.5</jaxb-api.version>
-        <jaxb-impl.version>2.2.5</jaxb-impl.version>
-        <xalan.version>2.7.1</xalan.version>
+        <jaxb-api.version>2.3.1</jaxb-api.version>
         <jackson.version>2.9.7</jackson.version>
-
         <saxon.version>9.1.0.8</saxon.version>
-        <slf4j.version>1.7.7</slf4j.version>
-        <log4j.version>1.2.17</log4j.version>
+        <slf4j.version>1.7.36</slf4j.version>
+        <oshi.version>6.1.4</oshi.version>
 
-        <junit.version>4.13.1</junit.version>
+        <!-- Older versions -->
+        <!-- Resteasy client matches Wildfly 26.0.1 version -->
+        <resteasy.version>4.7.4.Final</resteasy.version>
+        <jmespath.version>0.2.0</jmespath.version>
+
+        <!-- Test -->
+        <junit.version>4.13.2</junit.version>
         <mockito.version>1.10.19</mockito.version>
+        <tibcrypt.version>5.1.0</tibcrypt.version>
+        <tibjms.version>5.1.0</tibjms.version>
     </properties>
 
     <build>
@@ -166,6 +180,11 @@
     <dependencyManagement>
         <dependencies>
             <dependency>
+                <groupId>com.faizsiegeln</groupId>
+                <artifactId>njams-messageformat</artifactId>
+                <version>${njams-messageformat.version}</version>
+            </dependency>
+            <dependency>
                 <groupId>tibco</groupId>
                 <artifactId>tibcrypt</artifactId>
                 <version>${tibcrypt.version}</version>
@@ -181,11 +200,6 @@
                 <version>${jms-api.version}</version>
             </dependency>
             <dependency>
-                <groupId>uk.com.robust-it</groupId>
-                <artifactId>cloning</artifactId>
-                <version>${cloning.version}</version>
-            </dependency>
-            <dependency>
                 <groupId>commons-lang</groupId>
                 <artifactId>commons-lang</artifactId>
                 <version>${commons-lang.version}</version>
@@ -197,24 +211,9 @@
                 <classifier>asl</classifier>
             </dependency>
             <dependency>
-                <groupId>org.objenesis</groupId>
-                <artifactId>objenesis</artifactId>
-                <version>${objenesis.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>xalan</groupId>
-                <artifactId>xalan</artifactId>
-                <version>${xalan.version}</version>
-            </dependency>
-            <dependency>
                 <groupId>javax.xml.bind</groupId>
                 <artifactId>jaxb-api</artifactId>
                 <version>${jaxb-api.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.sun.xml.bind</groupId>
-                <artifactId>jaxb-impl</artifactId>
-                <version>${jaxb-impl.version}</version>
             </dependency>
             <dependency>
                 <groupId>com.fasterxml.jackson.module</groupId>
@@ -247,13 +246,19 @@
                 <version>${saxon.version}</version>
             </dependency>
             <dependency>
+                <groupId>net.sourceforge.saxon</groupId>
+                <artifactId>saxon</artifactId>
+                <classifier>dom</classifier>
+                <version>${saxon.version}</version>
+            </dependency>
+            <dependency>
                 <groupId>org.slf4j</groupId>
                 <artifactId>slf4j-api</artifactId>
                 <version>${slf4j.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.slf4j</groupId>
-                <artifactId>slf4j-log4j12</artifactId>
+                <artifactId>slf4j-reload4j</artifactId>
                 <version>${slf4j.version}</version>
             </dependency>
             <dependency>
@@ -262,9 +267,19 @@
                 <version>${slf4j.version}</version>
             </dependency>
             <dependency>
-                <groupId>log4j</groupId>
-                <artifactId>log4j</artifactId>
-                <version>${log4j.version}</version>
+                <groupId>org.jboss.resteasy</groupId>
+                <artifactId>resteasy-client</artifactId>
+                <version>${resteasy.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.github.oshi</groupId>
+                <artifactId>oshi-core</artifactId>
+                <version>${oshi.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.burt</groupId>
+                <artifactId>jmespath-jackson</artifactId>
+                <version>${jmespath.version}</version>
             </dependency>
 
             <dependency>
@@ -287,7 +302,11 @@
                 <artifactId>activemq-client</artifactId>
                 <version>${activemq-version}</version>
             </dependency>
-
+            <dependency>
+                <groupId>org.apache.kafka</groupId>
+                <artifactId>kafka-clients</artifactId>
+                <version>${kafka-version}</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 
@@ -301,7 +320,7 @@
                         <artifactId>jacoco-maven-plugin</artifactId>
                         <version>${jacoco-maven-plugin.version}</version>
                         <configuration>
-                            <excludes />
+                            <excludes/>
                         </configuration>
                         <executions>
                             <!--

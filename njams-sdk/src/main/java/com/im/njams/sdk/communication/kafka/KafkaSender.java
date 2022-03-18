@@ -26,6 +26,7 @@ package com.im.njams.sdk.communication.kafka;
 
 import static com.im.njams.sdk.communication.kafka.KafkaHeadersUtil.headersUpdater;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Properties;
@@ -129,13 +130,14 @@ public class KafkaSender extends AbstractSender {
     }
 
     private void validateTopics() {
-        final String[] topics = new String[] { topicEvent, topicProject };
-        final Collection<String> foundTopics = KafkaUtil.testTopics(properties, topics);
+        final Collection<String> requiredTopics = new ArrayList<>(Arrays.asList(topicEvent, topicProject));
+        final Collection<String> foundTopics =
+                KafkaUtil.testTopics(properties, requiredTopics.toArray(new String[requiredTopics.size()]));
         LOG.debug("Found topics: {}", foundTopics);
-        if (foundTopics.size() < topics.length) {
-            final Collection<String> missing = Arrays.asList(topics);
-            missing.removeAll(foundTopics);
-            throw new NjamsSdkRuntimeException("The following required Kafka topics have not been found: " + missing);
+        requiredTopics.removeAll(foundTopics);
+        if (!requiredTopics.isEmpty()) {
+            throw new NjamsSdkRuntimeException("The following required Kafka topics have not been found: "
+                    + requiredTopics);
         }
     }
 
@@ -188,11 +190,11 @@ public class KafkaSender extends AbstractSender {
     protected void send(final TraceMessage msg) {
         try {
             final String data = JsonUtils.serialize(msg);
-            sendMessage(msg, topicEvent, Sender.NJAMS_MESSAGETYPE_TRACE, data);
+            sendMessage(msg, topicProject, Sender.NJAMS_MESSAGETYPE_TRACE, data);
             if (LOG.isTraceEnabled()) {
-                LOG.trace("Send TraceMessage {} to {}:\n{}", msg.getPath(), topicEvent, data);
+                LOG.trace("Send TraceMessage {} to {}:\n{}", msg.getPath(), topicProject, data);
             } else {
-                LOG.debug("Send TraceMessage for {} to {}", msg.getPath(), topicEvent);
+                LOG.debug("Send TraceMessage for {} to {}", msg.getPath(), topicProject);
             }
         } catch (final Exception e) {
             throw new NjamsSdkRuntimeException("Unable to send TraceMessage", e);
@@ -219,10 +221,10 @@ public class KafkaSender extends AbstractSender {
             record = new ProducerRecord<>(topic, data);
         }
         headersUpdater(record).
-                addHeader(Sender.NJAMS_MESSAGEVERSION, MessageVersion.V4.toString()).
-                addHeader(Sender.NJAMS_MESSAGETYPE, messageType).
-                addHeader(Sender.NJAMS_LOGID, id, (k, v) -> StringUtils.isNotBlank(v)).
-                addHeader(Sender.NJAMS_PATH, msg.getPath(), (k, v) -> StringUtils.isNotBlank(v));
+        addHeader(Sender.NJAMS_MESSAGEVERSION, MessageVersion.V4.toString()).
+        addHeader(Sender.NJAMS_MESSAGETYPE, messageType).
+        addHeader(Sender.NJAMS_LOGID, id, (k, v) -> StringUtils.isNotBlank(v)).
+        addHeader(Sender.NJAMS_PATH, msg.getPath(), (k, v) -> StringUtils.isNotBlank(v));
 
         tryToSend(record);
     }
@@ -230,18 +232,18 @@ public class KafkaSender extends AbstractSender {
     /**
      * Try to send and catches Errors
      *
-     * @param message
+     * @param record
      * @throws InterruptedException
      */
-    private void tryToSend(final ProducerRecord<String, String> message) throws InterruptedException {
+    private void tryToSend(final ProducerRecord<String, String> record) throws InterruptedException {
         boolean sent = false;
 
         int tries = 0;
 
         do {
             try {
-                producer.send(message);
-                LOG.trace("Sent message {}", message);
+                producer.send(record);
+                LOG.trace("Sent record {}", record);
                 sent = true;
             } catch (KafkaException | IllegalStateException e) {
                 if (discardPolicy == DiscardPolicy.ON_CONNECTION_LOSS) {

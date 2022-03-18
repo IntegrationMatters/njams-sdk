@@ -16,19 +16,20 @@
  */
 package com.im.njams.sdk.communication;
 
-import java.util.Properties;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.faizsiegeln.njams.messageformat.v4.common.CommonMessage;
 import com.faizsiegeln.njams.messageformat.v4.logmessage.LogMessage;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.ProjectMessage;
 import com.faizsiegeln.njams.messageformat.v4.tracemessage.TraceMessage;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.settings.Settings;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Properties;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Superclass for all Senders. When writing your own Sender, extend this class
@@ -45,10 +46,16 @@ public abstract class AbstractSender implements Sender {
     protected ConnectionStatus connectionStatus;
     protected DiscardPolicy discardPolicy = DiscardPolicy.DEFAULT;
     protected Properties properties;
+    private List<SenderExceptionListener> exceptionListeners = new ArrayList<>();
 
     private static final AtomicBoolean hasConnected = new AtomicBoolean(false);
 
     private static final AtomicInteger connecting = new AtomicInteger(0);
+
+    /**
+     * Should be set to true during shutdown
+     */
+    private final AtomicBoolean shouldShutdown = new AtomicBoolean(false);
 
     /**
      * returns a new AbstractSender
@@ -64,6 +71,15 @@ public abstract class AbstractSender implements Sender {
     }
 
     /**
+     * Set Exception listener with special handling on exceptions.
+     *
+     * @param exceptionListener the exception listener to add to list
+     */
+    public void addExceptionListener(SenderExceptionListener exceptionListener) {
+        exceptionListeners.add(exceptionListener);
+    }
+
+    /**
      * override this method to implement your own connection initialization
      *
      * @throws NjamsSdkRuntimeException NjamsSdkRuntimeException
@@ -74,6 +90,7 @@ public abstract class AbstractSender implements Sender {
         }
         try {
             connectionStatus = ConnectionStatus.CONNECTING;
+            LOG.debug("Connecting...");
             connectionStatus = ConnectionStatus.CONNECTED;
         } catch (Exception e) {
             connectionStatus = ConnectionStatus.DISCONNECTED;
@@ -106,7 +123,7 @@ public abstract class AbstractSender implements Sender {
             }
         }
 
-        while (!isConnected()) {
+        while (!isConnected() && !shouldShutdown.get()) {
             try {
                 connect();
                 synchronized (hasConnected) {
@@ -150,6 +167,9 @@ public abstract class AbstractSender implements Sender {
                     isSent = true;
                     break;
                 } catch (NjamsSdkRuntimeException e) {
+                    for (SenderExceptionListener listener : exceptionListeners) {
+                        listener.onException(e, msg);
+                    }
                     onException(e);
                 }
             }
@@ -216,6 +236,7 @@ public abstract class AbstractSender implements Sender {
     @Override
     public void close() {
         // nothing by default
+        LOG.debug("Called close on AbstractSender.");
     }
 
     /**
@@ -239,4 +260,12 @@ public abstract class AbstractSender implements Sender {
         return connectionStatus == ConnectionStatus.CONNECTING;
     }
 
+    /**
+     * Set this value to true during shutdown to stop the reconnecting thread
+     *
+     * @param shutdown if the Sender is in shutodown state
+     */
+    public void setShouldShutdown(boolean shutdown) {
+        shouldShutdown.set(shutdown);
+    }
 }

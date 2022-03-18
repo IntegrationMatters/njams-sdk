@@ -1,31 +1,23 @@
 package com.im.njams.sdk.configuration;
 
-import static com.faizsiegeln.njams.messageformat.v4.command.Command.*;
-import static org.junit.Assert.*;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
+import com.faizsiegeln.njams.messageformat.v4.command.Command;
+import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
+import com.faizsiegeln.njams.messageformat.v4.command.Request;
+import com.faizsiegeln.njams.messageformat.v4.command.Response;
+import com.faizsiegeln.njams.messageformat.v4.projectmessage.*;
+import com.im.njams.sdk.common.DateTimeUtility;
+import com.im.njams.sdk.configuration.provider.MemoryConfigurationProvider;
+import com.im.njams.sdk.utils.JsonUtils;
+import org.junit.Before;
+import org.junit.Test;
 
 import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.TreeMap;
 
-import org.junit.Before;
-import org.junit.Test;
-
-import com.faizsiegeln.njams.messageformat.v4.command.Command;
-import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
-import com.faizsiegeln.njams.messageformat.v4.command.Request;
-import com.faizsiegeln.njams.messageformat.v4.command.Response;
-import com.faizsiegeln.njams.messageformat.v4.projectmessage.Extract;
-import com.faizsiegeln.njams.messageformat.v4.projectmessage.ExtractRule;
-import com.faizsiegeln.njams.messageformat.v4.projectmessage.LogLevel;
-import com.faizsiegeln.njams.messageformat.v4.projectmessage.LogMode;
-import com.faizsiegeln.njams.messageformat.v4.projectmessage.RuleType;
-import com.im.njams.sdk.common.DateTimeUtility;
-import com.im.njams.sdk.configuration.provider.MemoryConfigurationProvider;
-import com.im.njams.sdk.utils.JsonUtils;
+import static com.faizsiegeln.njams.messageformat.v4.command.Command.*;
+import static org.junit.Assert.*;
+import static org.mockito.Mockito.*;
 
 public class ConfigurationInstructionListenerTest {
 
@@ -372,6 +364,8 @@ public class ConfigurationInstructionListenerTest {
         Extract ex = new Extract();
         ex.setName("ex_1");
         ExtractRule rule = new ExtractRule();
+        rule.setAttribute("Attr1");
+        rule.setAttributeType(AttributeType.ATTRIBUTE);
         rule.setRuleType(RuleType.VALUE);
         rule.setRule("Hello");
         rule.setInout("IN");
@@ -409,6 +403,25 @@ public class ConfigurationInstructionListenerTest {
         assertTrue(response.getResultMessage().contains("extract"));
         Map<String, String> parameters = response.getParameters();
         assertTrue(parameters.isEmpty());
+    }
+
+    @Test
+    public void testExtractWithBlanks() {
+        Extract ex = new Extract();
+        ex.setName("ex_1");
+        ExtractRule rule = new ExtractRule();
+        rule.setAttribute(" Attr1 ");
+        rule.setAttributeType(AttributeType.ATTRIBUTE);
+        rule.setRuleType(RuleType.VALUE);
+        rule.setRule("Hello");
+        rule.setInout("IN");
+        ex.getExtractRules().add(rule);
+        String extract = JsonUtils.serialize(ex);
+        prepareInstruction(CONFIGURE_EXTRACT).addPath(PATH).addActivityId(ACT).addParameter("extract", extract);
+        listener.onInstruction(instruction);
+        Response resp = instruction.getResponse();
+        assertEquals(1, resp.getResultCode());
+        assertEquals("Invalid attribute names [ Attr1 ] in extract for ex_1", resp.getResultMessage());
     }
 
     @Test

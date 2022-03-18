@@ -16,26 +16,19 @@
  */
 package com.im.njams.sdk.settings;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Properties;
-import java.util.Set;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.settings.encoding.Transformer;
 import com.im.njams.sdk.utils.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.*;
 
 /**
  * The settings contains settings needed for
  * {@link com.im.njams.sdk.Njams}
  *
  * @author bwand
- *
  */
 public class Settings {
 
@@ -101,16 +94,33 @@ public class Settings {
      * because he uses an older Messageformat version.
      */
     public static final String PROPERTY_USE_DEPRECATED_PATH_FIELD_FOR_SUBPROCESSES =
-            "njams.client.sdk.deprecatedsubprocesspathfield";
+        "njams.client.sdk.deprecatedsubprocesspathfield";
 
-    /** Setting for enabling the logAllErrors feature. */
+    /**
+     * If set to <code>true</code> secure XML processing feature will NOT be inititalzied:
+     * <p>
+     * factory.setAttribute(XMLConstants.FEATURE_SECURE_PROCESSING, false);
+     * <p>
+     * This can be helpful for an environment containing an old XML lib, which does not support this.
+     */
+    public static final String PROPERTY_DISABLE_SECURE_PROCESSING = "njams.client.sdk.disable.secure.processing";
+
+    /**
+     * Setting for enabling the logAllErrors feature.
+     */
     public static final String PROPERTY_LOG_ALL_ERRORS = "njams.sdk.logAllErrors";
-    /** Setting for truncate limit (nJAMS strip-mode). Number of activities/events before messages are truncated.  */
+    /**
+     * Setting for truncate limit (nJAMS strip-mode). Number of activities/events before messages are truncated.
+     */
     public static final String PROPERTY_TRUNCATE_LIMIT = "njams.sdk.truncateActivitiesLimit";
-    /** Setting for truncating successful jobs, provided that they were processed as single message.  */
+    /**
+     * Setting for truncating successful jobs, provided that they were processed as single message.
+     */
     public static final String PROPERTY_TRUNCATE_ON_SUCCESS = "njams.sdk.truncateOnSuccess";
 
-    /** Property added internally for passing the an instance's client path to the communication layer. */
+    /**
+     * Property added internally for passing the an instance's client path to the communication layer.
+     */
     public static final String INTERNAL_PROPERTY_CLIENTPATH = "njams.$clientPath";
 
     public Settings() {
@@ -118,6 +128,7 @@ public class Settings {
         secureProperties.add("password");
         secureProperties.add("credentials");
         secureProperties.add("secret");
+        secureProperties.add("keystore.key");
     }
 
     /**
@@ -133,7 +144,7 @@ public class Settings {
     /**
      * * Return decoded property or default value if not found
      *
-     * @param key to look for
+     * @param key          to look for
      * @param defaultValue which is returned if not found
      * @return the value.
      */
@@ -154,7 +165,7 @@ public class Settings {
     /**
      * Put a key/value pair to settings.
      *
-     * @param key the key
+     * @param key   the key
      * @param value the value
      */
     public void put(String key, String value) {
@@ -179,6 +190,7 @@ public class Settings {
     /**
      * This method prints all properties to the given logger, but the values of all keys that contain
      * "password" or "credentials" are changed to "****".
+     *
      * @param logger The logger used for printing properties.
      */
     public void printPropertiesWithoutPasswords(Logger logger) {
@@ -197,6 +209,7 @@ public class Settings {
     /**
      * Returns <code>true</code> if the value for the given key is private and must be shown in the logs (e.g.,
      * passwords, etc).
+     *
      * @param key The properties key to test.
      * @return <code>true</code> if the value for the given key must not be shown.
      */
@@ -226,10 +239,10 @@ public class Settings {
     public Properties filter(String prefix) {
         Properties response = new Properties();
         properties.entrySet()
-        .stream()
-        .filter(e -> String.class.isAssignableFrom(e.getKey().getClass()))
-        .filter(e -> ((String) e.getKey()).startsWith(prefix))
-        .forEach(e -> response.setProperty((String) e.getKey(), (String) e.getValue()));
+            .stream()
+            .filter(e -> String.class.isAssignableFrom(e.getKey().getClass()))
+            .filter(e -> ((String) e.getKey()).startsWith(prefix))
+            .forEach(e -> response.setProperty((String) e.getKey(), (String) e.getValue()));
         return Transformer.decode(properties);
     }
 
@@ -243,10 +256,10 @@ public class Settings {
     public Properties filterAndCut(String prefix) {
         Properties response = new Properties();
         properties.entrySet()
-        .stream()
-        .filter(e -> String.class.isAssignableFrom(e.getKey().getClass()))
-        .filter(e -> ((String) e.getKey()).startsWith(prefix))
-        .forEach(e -> response.setProperty(
+            .stream()
+            .filter(e -> String.class.isAssignableFrom(e.getKey().getClass()))
+            .filter(e -> ((String) e.getKey()).startsWith(prefix))
+            .forEach(e -> response.setProperty(
                 ((String) e.getKey()).substring(((String) e.getKey()).indexOf(prefix) + prefix.length()),
                 (String) e.getValue()));
         return Transformer.decode(properties);

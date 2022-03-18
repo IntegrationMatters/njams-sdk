@@ -16,18 +16,17 @@
  */
 package com.im.njams.sdk.communication;
 
+import com.faizsiegeln.njams.messageformat.v4.common.CommonMessage;
+import com.im.njams.sdk.factories.ThreadFactoryBuilder;
+import com.im.njams.sdk.settings.Settings;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.Properties;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.faizsiegeln.njams.messageformat.v4.common.CommonMessage;
-import com.im.njams.sdk.factories.ThreadFactoryBuilder;
-import com.im.njams.sdk.settings.Settings;
 
 /**
  * This class enforces the maxQueueLength setting. It uses the
@@ -130,7 +129,7 @@ public class NjamsSender implements Sender {
      * a SenderPool.
      *
      * @param properties the properties for MIN_QUEUE_LENGTH, MAX_QUEUE_LENGTH
-     * and IDLE_TIME for the sender threads.
+     *                   and IDLE_TIME for the sender threads.
      */
     @Override
     public void init(Properties properties) {
@@ -156,7 +155,7 @@ public class NjamsSender implements Sender {
     @Override
     public void send(CommonMessage msg) {
         executor.execute(() -> {
-            Sender sender = null;
+            AbstractSender sender = null;
             try {
                 sender = senderPool.get();
                 if (sender != null) {
@@ -191,8 +190,11 @@ public class NjamsSender implements Sender {
             LOG.error("The shutdown of the sender's threadpool has been interrupted. {}", ex);
         } finally {
             //This will call the interrupt() function of the threads
+            LOG.info("Shutdown now the sender's threadpool executor.");
             executor.shutdownNow();
+            LOG.debug("Shutdown of the sender's threadpool executor finished.");
             senderPool.expireAll();
+            LOG.debug("Expire all sender pools finished.");
         }
     }
 

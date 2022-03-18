@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>com.faizsiegeln.njams</groupId>
@@ -32,6 +33,127 @@
                             <failsOnError>true</failsOnError>
                             <configLocation>src/main/resources/checkstyle.xml</configLocation>
                         </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+        <profile>
+            <id>generateLicenseInfo</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>license-maven-plugin</artifactId>
+                        <version>2.0.0</version>
+                        <executions>
+                            <execution>
+                                <id>default-cli</id>
+                                <phase>generate-resources</phase>
+                                <goals>
+                                    <goal>add-third-party</goal>
+                                </goals>
+                                <configuration>
+                                    <excludedScopes>
+                                        test
+                                    </excludedScopes>
+                                    <excludedGroups>
+                                        com.faizsiegeln|tibco
+                                    </excludedGroups>
+                                    <outputDirectory>
+                                        ${project.build.directory}/../src/license
+                                    </outputDirectory>
+                                    <useMissingFile>true</useMissingFile>
+                                    <licenseMerges>
+                                        <licenseMerge>
+                                            The Apache Software License, Version 2.0|
+                                            Apache License, Version 2.0|
+                                            Apache Public License 2.0|
+                                            Apache 2|
+                                            Apache 2.0|
+                                            Apache License v2.0|
+                                            Apache License 2.0|
+                                            Apache License, 2.0|
+                                            Apache License, version 2.0|
+                                            Apache License Version 2.0|
+                                            AL 2.0|
+                                            The Apache License, Version 2.0
+                                        </licenseMerge>
+                                        <licenseMerge>
+                                            Eclipse Distribution License v. 1.0|
+                                            EDL 1.0
+                                        </licenseMerge>
+                                        <licenseMerge>
+                                            Eclipse Public License (EPL), Version 1.0|
+                                            Eclipse Public License - v 1.0|
+                                            Eclipse Public License, Version 1.0|
+                                            Eclipse Public License v1.0|
+                                            Eclipse Public License
+                                        </licenseMerge>
+                                        <licenseMerge>
+                                            BSD|
+                                            The BSD License|
+                                            BSD License|
+                                            BSD licence
+                                        </licenseMerge>
+                                        <licenseMerge>
+                                            New BSD License|
+                                            The New BSD License|
+                                            New BSD license|
+                                            BSD 3-clause New License|
+                                            BSD 3-Clause|
+                                            Modified BSD
+                                        </licenseMerge>
+                                        <licenseMerge>
+                                            CDDL + GPLv2 with classpath exception|
+                                            CDDL/GPLv2+CE
+                                        </licenseMerge>
+                                        <licenseMerge>
+                                            GNU General Public License, Version 2 with the Classpath
+                                            Exception|
+                                            GPLv2 with classpath exception|
+                                            GPL2 w/ CPE|
+                                            GPLv2+CE
+                                        </licenseMerge>
+                                        <licenseMerge>
+                                            GNU Lesser General Public License|
+                                            GNU LESSER GENERAL PUBLIC LICENSE|
+                                            GNU Lesser Public License
+                                        </licenseMerge>
+                                        <licenseMerge>
+                                            GNU Lesser General Public License, Version 2.1|
+                                            LGPL 2.1|
+                                            LGPL, version 2.1|
+                                            lgpl
+                                        </licenseMerge>
+                                        <licenseMerge>
+                                            Common Development and Distribution License|
+                                            Common Development and Distribution License 1.0|
+                                            CDDL|
+                                            CDDL License|
+                                            COMMON DEVELOPMENT AND DISTRIBUTION LICENSE (CDDL) Version 1.0|
+                                            Common Development and Distribution License (CDDL) v1.0
+                                        </licenseMerge>
+                                        <licenseMerge>
+                                            MIT License|
+                                            MIT license|
+                                            The MIT License
+                                        </licenseMerge>
+                                        <licenseMerge>
+                                            GNU General Public License, Version 2 with the Classpath
+                                            Exception|
+                                            GNU General Public License, version 2 (GPL2), with the classpath
+                                            exception|
+                                            The GNU General Public License (GPL), Version 2, With Classpath
+                                            Exception
+                                        </licenseMerge>
+                                        <licenseMerge>
+                                            Indiana University Extreme! Lab Software License 1.1.1|
+                                            Indiana University Extreme! Lab Software License, vesion 1.1.1
+                                        </licenseMerge>
+                                    </licenseMerges>
+                                </configuration>
+                            </execution>
+                        </executions>
                     </plugin>
                 </plugins>
             </build>
@@ -119,12 +241,16 @@
                             <createDependencyReducedPom>true</createDependencyReducedPom>
                             <createSourcesJar>true</createSourcesJar>
                             <transformers>
-                                <transformer implementation="org.apache.maven.plugins.shade.resource.ApacheLicenseResourceTransformer" />
-                                <transformer implementation="org.apache.maven.plugins.shade.resource.ApacheNoticeResourceTransformer">
+                                <transformer
+                                    implementation="org.apache.maven.plugins.shade.resource.ApacheLicenseResourceTransformer"/>
+                                <transformer
+                                    implementation="org.apache.maven.plugins.shade.resource.ApacheNoticeResourceTransformer">
                                     <addHeader>false</addHeader>
                                 </transformer>
-                                <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer" />
-                                <transformer implementation="org.apache.maven.plugins.shade.resource.IncludeResourceTransformer">
+                                <transformer
+                                    implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
+                                <transformer
+                                    implementation="org.apache.maven.plugins.shade.resource.IncludeResourceTransformer">
                                     <resource>META-INF/maven/com.faizsiegeln.njams/njams-sdk/pom.xml</resource>
                                     <file>dependency-reduced-pom.xml</file>
                                 </transformer>
@@ -156,27 +282,23 @@
                                     <pattern>oshi</pattern>
                                     <shadedPattern>com.im.oshi</shadedPattern>
                                 </relocation>
-                                <!-- Kafka -->
-                                <relocation>
-                                    <pattern>org.apache.kafka</pattern>
-                                    <shadedPattern>com.im.kafka</shadedPattern>
-                                </relocation>
-                                <relocation>
-                                    <pattern>common.message</pattern>
-                                    <shadedPattern>com.im.kafka.message</shadedPattern>
-                                </relocation>
-                                <relocation>
-                                    <pattern>kafka</pattern>
-                                    <shadedPattern>com.im.kafka</shadedPattern>
-                                </relocation>
-                                <relocation>
-                                    <pattern>org.xerial.snappy</pattern>
-                                    <shadedPattern>com.im.snappy</shadedPattern>
-                                </relocation>
+                                <!-- SDK-270: Kafka must not be relocated -->
                                 <relocation>
                                     <pattern>net.jpountz</pattern>
                                     <!-- LZ4 -->
                                     <shadedPattern>com.im.jpountz</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>org.jboss</pattern>
+                                    <shadedPattern>com.im.jboss</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>io.smallrye</pattern>
+                                    <shadedPattern>com.im.smallrye</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>org.apache.http</pattern>
+                                    <shadedPattern>com.im.http</shadedPattern>
                                 </relocation>
                                 <!--ActiveMQ-->
                                 <relocation>
@@ -194,7 +316,7 @@
                                 <filter>
                                     <artifact>net.sourceforge.saxon:saxon:jar:*</artifact>
                                     <excludes>
-										<exclude>META-INF/services/javax.xml.transform.TransformerFactory</exclude>
+                                        <exclude>META-INF/services/javax.xml.transform.TransformerFactory</exclude>
                                     </excludes>
                                 </filter>
                             </filters>
@@ -209,17 +331,14 @@
 
         <!-- default scope - shaded -->
         <dependency>
-            <groupId>org.jboss.resteasy</groupId>
-            <artifactId>resteasy-client</artifactId>
-            <version>4.5.7.Final</version>
+            <groupId>com.faizsiegeln</groupId>
+            <artifactId>njams-messageformat</artifactId>
         </dependency>
 
         <dependency>
-            <groupId>com.faizsiegeln</groupId>
-            <artifactId>njams-messageformat</artifactId>
-            <version>4.1.3-SNAPSHOT</version>
+            <groupId>org.jboss.resteasy</groupId>
+            <artifactId>resteasy-client</artifactId>
         </dependency>
-
         <dependency>
             <groupId>net.sourceforge.saxon</groupId>
             <artifactId>saxon</artifactId>
@@ -230,19 +349,15 @@
             <classifier>xpath</classifier>
         </dependency>
         <dependency>
-            <groupId>com.github.oshi</groupId>
-            <artifactId>oshi-core</artifactId>
-            <version>3.8.2</version>
-            <scope>compile</scope>
-        </dependency>
-
-        <dependency>
             <groupId>net.sourceforge.saxon</groupId>
             <artifactId>saxon</artifactId>
-            <version>9.1.0.8</version>
             <classifier>dom</classifier>
         </dependency>
-
+        <dependency>
+            <groupId>com.github.oshi</groupId>
+            <artifactId>oshi-core</artifactId>
+            <scope>compile</scope>
+        </dependency>
         <dependency>
             <groupId>com.fasterxml.jackson.module</groupId>
             <artifactId>jackson-module-jaxb-annotations</artifactId>
@@ -258,11 +373,10 @@
             <artifactId>jackson-dataformat-xml</artifactId>
             <scope>compile</scope>
         </dependency>
-        
+
         <dependency>
             <groupId>io.burt</groupId>
             <artifactId>jmespath-jackson</artifactId>
-            <version>0.2.0</version>
         </dependency>
 
         <dependency>
@@ -292,7 +406,6 @@
         <dependency>
             <groupId>javax.xml.bind</groupId>
             <artifactId>jaxb-api</artifactId>
-            <version>2.3.1</version>
             <scope>provided</scope>
         </dependency>
 
@@ -313,13 +426,8 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>log4j</groupId>
-            <artifactId>log4j</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
             <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-log4j12</artifactId>
+            <artifactId>slf4j-reload4j</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>

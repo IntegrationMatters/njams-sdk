@@ -16,7 +16,6 @@
  */
 package com.im.njams.sdk.client;
 
-import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
@@ -30,7 +29,6 @@ import org.slf4j.LoggerFactory;
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.common.DateTimeUtility;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
-import com.im.njams.sdk.logmessage.Job;
 import com.im.njams.sdk.logmessage.JobImpl;
 
 /**
@@ -125,25 +123,7 @@ public class LogMessageFlushTask extends TimerTask {
 
     private void processNjams(LMFTEntry entry) {
         LocalDateTime boundary = DateTimeUtility.now().minusSeconds(entry.getFlushInterval());
-        entry.getNjams().getJobs().forEach(job -> processJob(entry, job, boundary));
-    }
-
-    private void processJob(LMFTEntry entry, final Job jobParam, LocalDateTime boundary) {
-        JobImpl job = (JobImpl) jobParam;
-        if (!job.hasStarted()) {
-            LOG.trace("Job {} not started.", job);
-            return;
-        }
-        // only send updates automatically, if a change has been
-        // made to the job between individual send events.
-        LOG.trace("Job {}: lastPush: {}, age: {}, size: {}", job, job.getLastFlush(),
-                Duration.between(job.getLastFlush(), DateTimeUtility.now()), job.getEstimatedSize());
-        if ((job.getLastFlush().isBefore(boundary) || job.getEstimatedSize() > entry.getFlushSize())
-                && (!job.getActivities().isEmpty() || !job.getAttributes().isEmpty() || job.getEndTime() != null)) {
-            job.flush();
-            LOG.debug("Flush job {}", job);
-        }
-
+        entry.getNjams().getJobs().forEach(job -> ((JobImpl) job).timerFlush(boundary, entry.getFlushSize()));
     }
 
 }

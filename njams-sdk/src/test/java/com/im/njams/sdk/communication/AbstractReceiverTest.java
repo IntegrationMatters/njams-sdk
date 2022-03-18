@@ -19,20 +19,17 @@ package com.im.njams.sdk.communication;
 import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
 import com.faizsiegeln.njams.messageformat.v4.command.Request;
 import com.faizsiegeln.njams.messageformat.v4.command.Response;
-
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
+import org.junit.Test;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
 
-import org.junit.AfterClass;
-import org.junit.Ignore;
-import org.junit.Test;
-
 import static org.junit.Assert.*;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 /**
  * This class tests the AbstractReceiver methods.
@@ -468,21 +465,6 @@ public class AbstractReceiverTest {
         impl.onException(null);
         Thread.sleep(100);
         assertTrue(impl.isConnected());
-    }
-
-    @Test
-    public void testOnExceptionOverflow() throws InterruptedException {
-        AbstractReceiverImpl impl = new AbstractReceiverImpl();
-        impl.throwManyExceptions = true;
-        for (int i = 0; i < 10; i++) {
-            impl.onException(null);
-        }
-        assertTrue(impl.verifyingCounter.get() <= 1);
-        long offset = 1000;
-        //Exception will be thrown #THROWINGMAXCOUNTER times, and each throw indicates a thread sleep of RECONNECT_INTERVAL time in ms.
-        Thread.sleep(AbstractReceiverImpl.RECONNECT_INTERVAL*AbstractReceiverImpl.THROWINGMAXCOUNTER + offset);
-        assertTrue(impl.verifyingCounter.get() == 0);
-
     }
 
     //isConnected test

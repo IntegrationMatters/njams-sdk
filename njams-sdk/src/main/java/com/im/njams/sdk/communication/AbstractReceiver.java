@@ -16,17 +16,16 @@
  */
 package com.im.njams.sdk.communication;
 
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
 import com.faizsiegeln.njams.messageformat.v4.command.Request;
 import com.faizsiegeln.njams.messageformat.v4.command.Response;
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * This class should be extended when implementing an new Receiver for a new
@@ -40,7 +39,7 @@ public abstract class AbstractReceiver implements Receiver {
     //The Logger
     private static final Logger LOG = LoggerFactory.getLogger(AbstractReceiver.class);
     //The time it needs before a new reconnection is tried after an exception throw.
-    protected static final long RECONNECT_INTERVAL = 1000;
+    protected static final int RECONNECT_INTERVAL = 1000;
 
     //This AtomicInteger is for debugging.
     final AtomicInteger verifyingCounter = new AtomicInteger();
@@ -51,6 +50,8 @@ public abstract class AbstractReceiver implements Receiver {
     private static final AtomicBoolean hasConnected = new AtomicBoolean(false);
 
     private static final AtomicInteger connecting = new AtomicInteger(0);
+
+    private AtomicInteger reconnectIntervalIncreasing = new AtomicInteger(RECONNECT_INTERVAL);
 
     /**
      * Njams to hold
@@ -114,7 +115,7 @@ public abstract class AbstractReceiver implements Receiver {
                 Response response = new Response();
                 response.setResultCode(1);
                 response.setResultMessage(
-                        "No InstructionListener for " + instruction.getRequest().getCommand() + " found");
+                    "No InstructionListener for " + instruction.getRequest().getCommand() + " found");
                 instruction.setResponse(response);
             }
         }
@@ -152,7 +153,7 @@ public abstract class AbstractReceiver implements Receiver {
      *
      * @param ex the exception that initiated the reconnect
      */
-    @SuppressWarnings({ "squid:S2276", "squid:S2142" })
+    @SuppressWarnings({"squid:S2276", "squid:S2142"})
     public synchronized void reconnect(NjamsSdkRuntimeException ex) {
         int got = verifyingCounter.incrementAndGet();
         boolean doReconnect = true;
@@ -183,13 +184,18 @@ public abstract class AbstractReceiver implements Receiver {
                         LOG.info("Connection can be established again!");
                         LOG.info("Reconnected receiver {}", getName());
                         hasConnected.set(true);
+                        reconnectIntervalIncreasing.set(RECONNECT_INTERVAL);
                     }
                     LOG.debug("{} receivers still need to reconnect.", connecting.decrementAndGet());
                 }
             } catch (NjamsSdkRuntimeException e) {
                 try {
                     //Using Thread.sleep because this.wait would release the lock for this object, Thread.sleep doesn't.
-                    Thread.sleep(RECONNECT_INTERVAL);
+
+                    Thread.sleep(reconnectIntervalIncreasing.getAndAdd(
+                        (reconnectIntervalIncreasing.get() > 600000
+                            ? 600000
+                            : reconnectIntervalIncreasing.get() * 2)));
                 } catch (InterruptedException e1) {
                     LOG.error("The reconnecting thread was interrupted!", e1);
                     doReconnect = false;
@@ -212,17 +218,17 @@ public abstract class AbstractReceiver implements Receiver {
                 LOG.debug("Started receiver {}", getName());
             }
         } catch (NjamsSdkRuntimeException e) {
-            LOG.error("Could not initialize receiver {}\n. Pushing reconnect task to background.",
-                    getName(), e);
+            connectionStatus = ConnectionStatus.DISCONNECTED;
+            LOG.error("Could not initialize receiver {}. Pushing reconnect task to background.", getName(), e);
             // trigger reconnect
-            onException(new NjamsSdkRuntimeException("Initial Connect."));
+            onException(e);
         }
     }
 
     /**
-     * This method is used to start a reconnector thread.
+     * This method is used to start a reconnect thread.
      *
-     * @param exception the exception that caused this method invokation.
+     * @param exception the exception that caused this method invocation.
      */
     public void onException(NjamsSdkRuntimeException exception) {
         stop();
@@ -234,7 +240,7 @@ public abstract class AbstractReceiver implements Receiver {
     }
 
     /**
-     * This method returns wether the Receiver is connected or not.
+     * This method returns whether the receiver is connected or not.
      *
      * @return true, if Receiver is connected, otherwise false
      */
@@ -243,7 +249,7 @@ public abstract class AbstractReceiver implements Receiver {
     }
 
     /**
-     * This method returns wether the Receiver is disconnected or not.
+     * This method returns whether the receiver is disconnected or not.
      *
      * @return true, if Receiver is disconnected, otherwise false
      */
@@ -252,7 +258,7 @@ public abstract class AbstractReceiver implements Receiver {
     }
 
     /**
-     * This method returns wether the Receiver is connecting or not.
+     * This method returns whether the receiver is connecting or not.
      *
      * @return true, if Receiver is connecting, otherwise false
      */

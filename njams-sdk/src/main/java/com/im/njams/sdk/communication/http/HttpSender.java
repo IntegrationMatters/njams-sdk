@@ -16,6 +16,19 @@
  */
 package com.im.njams.sdk.communication.http;
 
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.util.Properties;
+
+import javax.ws.rs.client.Client;
+import javax.ws.rs.client.ClientBuilder;
+import javax.ws.rs.client.Entity;
+import javax.ws.rs.client.WebTarget;
+import javax.ws.rs.core.Response;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.faizsiegeln.njams.messageformat.v4.common.MessageVersion;
 import com.faizsiegeln.njams.messageformat.v4.logmessage.LogMessage;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.ProjectMessage;
@@ -24,31 +37,22 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.im.njams.sdk.common.JsonSerializerFactory;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.communication.AbstractSender;
+import com.im.njams.sdk.communication.ConnectionStatus;
+import com.im.njams.sdk.communication.DiscardMonitor;
+import com.im.njams.sdk.communication.DiscardPolicy;
 import com.im.njams.sdk.communication.Sender;
 import com.im.njams.sdk.utils.JsonUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.ws.rs.client.Client;
-import javax.ws.rs.client.ClientBuilder;
-import javax.ws.rs.client.Entity;
-import javax.ws.rs.client.WebTarget;
-import javax.ws.rs.core.Response;
-import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Set;
 
 /**
  * Sends Messages via HTTP to nJAMS
+ *
+ * @author bwand
  */
 public class HttpSender extends AbstractSender {
 
     private static final Logger LOG = LoggerFactory.getLogger(HttpSender.class);
 
-    private static final String PROPERTY_PREFIX = "njams.sdk.communication.http";
+    protected static final String PROPERTY_PREFIX = "njams.sdk.communication.http";
     protected ObjectMapper mapper;
     /**
      * Name of the HTTP component
@@ -56,29 +60,32 @@ public class HttpSender extends AbstractSender {
     public static final String NAME = "HTTP";
 
     /**
-     * http sender urlport
+     * http base url of njams
      */
-    public static final String SENDER_URL = PROPERTY_PREFIX + ".sender.url";
+    public static final String BASE_URL = PROPERTY_PREFIX + ".base.url";
     /**
-     * http sender username
+     * http dataprovider prefix
      */
-    public static final String SENDER_USERNAME = PROPERTY_PREFIX + ".sender.username";
+    public static final String INGEST_ENDPOINT = PROPERTY_PREFIX + ".dataprovider.prefix";
+
     /**
-     * http sender password
+     * this is the API path to the ingest
      */
-    public static final String SENDER_PASSWORD = PROPERTY_PREFIX + ".sender.password";
-    private String user;
-    private String password;
-    private URL url;
+    protected static final String INGEST_API_PATH = "api/processing/ingest/";
+    private static final int EXCEPTION_IDLE_TIME = 50;
+    private static final int MAX_TRIES = 100;
+
+    protected URL url;
+    protected Client client;
+    protected WebTarget target;
 
     /**
      * Initializes this Sender via the given Properties.
      * <p>
      * Valid properties are:
      * <ul>
-     * <li>{@value com.im.njams.sdk.communication.http.HttpSender#SENDER_URL}
-     * <li>{@value com.im.njams.sdk.communication.http.HttpSender#SENDER_USERNAME}
-     * <li>{@value com.im.njams.sdk.communication.http.HttpSender#SENDER_PASSWORD}
+     * <li>{@value com.im.njams.sdk.communication.http.HttpSender#BASE_URL}
+     * <li>{@value com.im.njams.sdk.communication.http.HttpSender#INGEST_ENDPOINT}
      * </ul>
      *
      * @param properties the properties needed to initialize
@@ -88,12 +95,66 @@ public class HttpSender extends AbstractSender {
         this.properties = properties;
         mapper = JsonSerializerFactory.getDefaultMapper();
         try {
-            url = new URL(properties.getProperty(SENDER_URL));
+            url = createUrl(properties);
         } catch (final MalformedURLException ex) {
             throw new NjamsSdkRuntimeException("unable to init http sender", ex);
         }
-        user = properties.getProperty(SENDER_USERNAME);
-        password = properties.getProperty(SENDER_PASSWORD);
+        try {
+            connect();
+            LOG.debug("Initialized http sender with url {}", url);
+        } catch (final NjamsSdkRuntimeException e) {
+            LOG.error("Could not initialize sender with url {}\n", url, e);
+        }
+    }
+
+    protected URL createUrl(Properties properties) throws MalformedURLException {
+        String base = properties.getProperty(BASE_URL);
+        if (base.charAt(base.length() - 1) != '/') {
+            base += "/";
+        }
+        return new URL(base + INGEST_API_PATH + properties.getProperty(INGEST_ENDPOINT));
+    }
+
+    /**
+     * Create the HTTP Client for Events.
+     */
+    @Override
+    public synchronized void connect() {
+        if (isConnected()) {
+            return;
+        }
+        try {
+            connectionStatus = ConnectionStatus.CONNECTING;
+            client = ClientBuilder.newClient();
+            target = client.target(String.valueOf(url));
+            connectionStatus = ConnectionStatus.CONNECTED;
+        } catch (final Exception e) {
+            connectionStatus = ConnectionStatus.DISCONNECTED;
+            if (client != null) {
+                client.close();
+                client = null;
+                target = null;
+            }
+            throw new NjamsSdkRuntimeException("Unable to connect", e);
+        }
+    }
+
+    /**
+     * Close the HTTP Client
+     */
+    @Override
+    public void close() {
+        LOG.info("Called close on HTTP Sender.");
+        connectionStatus = ConnectionStatus.DISCONNECTED;
+        if (client != null) {
+            try {
+                client.close();
+                client = null;
+                target = null;
+            } catch (Exception ex) {
+                LOG.error("Error closing HTTP connection.", ex);
+            }
+        }
     }
 
     @Override
@@ -104,9 +165,8 @@ public class HttpSender extends AbstractSender {
         properties.put(Sender.NJAMS_PATH, msg.getPath());
         properties.put(Sender.NJAMS_LOGID, msg.getLogId());
         try {
-            LOG.debug("Sending log message");
-            final String response = sendWithHttpClient(msg, properties);
-            LOG.debug("Response: " + response);
+            LOG.debug("Sending log message {}", msg.getLogId());
+            tryToSend(msg, properties);
         } catch (final Exception ex) {
             LOG.error("Error sending LogMessage", ex);
         }
@@ -120,9 +180,8 @@ public class HttpSender extends AbstractSender {
         properties.put(Sender.NJAMS_PATH, msg.getPath());
 
         try {
-            LOG.debug("Sending project message");
-            final String response = sendWithHttpClient(msg, properties);
-            LOG.debug(response);
+            LOG.debug("Sending project message for {}", msg.getPath());
+            tryToSend(msg, properties);
         } catch (final Exception ex) {
             LOG.error("Error sending ProjectMessage", ex);
         }
@@ -136,33 +195,61 @@ public class HttpSender extends AbstractSender {
         properties.put(Sender.NJAMS_PATH, msg.getPath());
 
         try {
-            LOG.debug("Sending TraceMessage");
-            final String response = sendWithHttpClient(msg, properties);
-            LOG.debug(response);
+            LOG.debug("Sending TraceMessage for {}", msg.getPath());
+            tryToSend(msg, properties);
         } catch (final Exception ex) {
             LOG.error("Error sending TraceMessage", ex);
         }
     }
 
-    private void addAddtionalProperties(final Properties properties, final HttpURLConnection connection) {
-        final Set<Map.Entry<Object, Object>> entrySet = properties.entrySet();
-        entrySet.forEach(
-                entry -> connection.setRequestProperty(entry.getKey().toString(), entry.getValue().toString()));
-    }
+    private void tryToSend(final Object msg, final Properties properties) throws InterruptedException {
+        boolean sent = false;
+        int responseStatus = -1;
+        int tries = 0;
+        Exception exception = null;
+        do {
+            try {
+                Response response = target.request()
+                        .header("Content-Type", "application/json")
+                        .header("Accept", "text/plain")
+                        .header(Sender.NJAMS_MESSAGEVERSION, MessageVersion.V4.toString())
+                        .header(Sender.NJAMS_MESSAGETYPE, properties.getProperty(Sender.NJAMS_MESSAGETYPE))
+                        .header(Sender.NJAMS_PATH, properties.getProperty(Sender.NJAMS_PATH))
+                        .header(Sender.NJAMS_LOGID, properties.getProperty(Sender.NJAMS_LOGID))
+                        .post(Entity.json(JsonUtils.serialize(msg)));
+                LOG.debug("Response status:" + response.getStatus()
+                        + ", Message: " + response.getStatusInfo().getReasonPhrase());
+                responseStatus = response.getStatus();
+                if (response.getStatus() == 200) {
+                    sent = true;
+                }
+            } catch (Exception ex) {
+                exception = ex;
+            }
+            if (exception != null || !sent) {
+                if (discardPolicy == DiscardPolicy.ON_CONNECTION_LOSS) {
+                    LOG.debug("Applying discard policy [{}]. Message discarded.", discardPolicy);
+                    DiscardMonitor.discard();
+                    break;
+                }
+                if (++tries >= MAX_TRIES) {
+                    LOG.warn("Try to reconnect, because the Server HTTP Endpoint could not be reached for {} seconds.",
+                            MAX_TRIES * EXCEPTION_IDLE_TIME / 1000);
+                    if (exception != null) {
+                        throw new NjamsSdkRuntimeException("Eror sending Message with HTTP Client URI "
+                                + target.getUri().toString(), exception);
+                    } else {
+                        throw new NjamsSdkRuntimeException("Eror sending Message with HTTP Client URI "
+                                + target.getUri().toString() + " Response Status is: " + responseStatus);
+                    }
+                } else {
+                    Thread.sleep(EXCEPTION_IDLE_TIME);
+                }
+            }
+            exception = null;
+            responseStatus = -1;
 
-    private String sendWithHttpClient(final Object msg, final Properties properties) {
-        Client client = ClientBuilder.newClient();
-        WebTarget target = client.target(String.valueOf(url));
-        Response response = target.request()
-                .header("Content-Type", "application/json")
-                .header("Accept", "text/plain")
-                .header(Sender.NJAMS_MESSAGEVERSION, MessageVersion.V4.toString())
-                .header(Sender.NJAMS_MESSAGETYPE, properties.getProperty(Sender.NJAMS_MESSAGETYPE))
-                .header(Sender.NJAMS_PATH, properties.getProperty(Sender.NJAMS_PATH))
-                .header(Sender.NJAMS_LOGID, properties.getProperty(Sender.NJAMS_LOGID))
-                .post(Entity.json(JsonUtils.serialize(msg)));
-        LOG.info("Response status:" + response.getStatus());
-        return String.valueOf(response.getStatus());
+        } while (!sent);
     }
 
     @Override
