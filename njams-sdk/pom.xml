@@ -300,6 +300,11 @@
                                     <pattern>org.apache.http</pattern>
                                     <shadedPattern>com.im.http</shadedPattern>
                                 </relocation>
+                                <!--ActiveMQ-->
+                                <relocation>
+                                    <pattern>org.apache.activemq</pattern>
+                                    <shadedPattern>com.im.activemq</shadedPattern>
+                                </relocation>
                             </relocations>
                             <filters>
                                 <filter>
@@ -379,6 +384,11 @@
             <artifactId>kafka-clients</artifactId>
             <scope>compile</scope>
         </dependency>
+        <dependency>
+            <groupId>org.apache.activemq</groupId>
+            <artifactId>activemq-client</artifactId>
+            <scope>compile</scope>
+        </dependency>
 
         <!-- provided - not shaded -->
         <dependency>
@@ -420,6 +430,5 @@
             <artifactId>slf4j-reload4j</artifactId>
             <scope>test</scope>
         </dependency>
-
     </dependencies>
 </project>
