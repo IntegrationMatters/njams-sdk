@@ -23,6 +23,17 @@
  */
 package com.im.njams.sdk.communication;
 
+import static com.im.njams.sdk.communication.jms.JmsConstants.CONNECTION_FACTORY;
+import static com.im.njams.sdk.communication.jms.JmsConstants.KEYSTORE;
+import static com.im.njams.sdk.communication.jms.JmsConstants.KEYSTOREPASSWORD;
+import static com.im.njams.sdk.communication.jms.JmsConstants.KEYSTORETYPE;
+import static com.im.njams.sdk.communication.jms.JmsConstants.PASSWORD;
+import static com.im.njams.sdk.communication.jms.JmsConstants.PROVIDER_URL;
+import static com.im.njams.sdk.communication.jms.JmsConstants.TRUSTSTORE;
+import static com.im.njams.sdk.communication.jms.JmsConstants.TRUSTSTOREPASSWORD;
+import static com.im.njams.sdk.communication.jms.JmsConstants.TRUSTSTORETYPE;
+import static com.im.njams.sdk.communication.jms.JmsConstants.USERNAME;
+
 import java.lang.reflect.Method;
 import java.util.Properties;
 
@@ -32,10 +43,8 @@ import javax.naming.Context;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.im.njams.sdk.communication.jms.JmsConstants;
-
 /**
- * nJAMS ConnectionFactory provider
+ * nJAMS ConnectionFactory provider mainly used for configuring SSL connection for ActiveMQ.
  *
  * @author sfaiz
  * @version 4.1.7
@@ -45,30 +54,20 @@ public class NjamsConnectionFactory {
     private static final Logger LOG = LoggerFactory.getLogger(NjamsConnectionFactory.class);
 
     /**
-     * Creates the Factory via the given Properties or Context.
-     * <p>
-     * Valid properties are:
-     * <ul>
-     * <li>{@value com.im.njams.sdk.communication.jms.JmsConstants#CONNECTION_FACTORY}
-     * <li>{@value com.im.njams.sdk.communication.jms.JmsConstants#KEYSTORE}
-     * <li>{@value com.im.njams.sdk.communication.jms.JmsConstants#KEYSTOREPASSWORD}
-     * <li>{@value com.im.njams.sdk.communication.jms.JmsConstants#USERNAME}
-     * <li>{@value com.im.njams.sdk.communication.jms.JmsConstants#PASSWORD}
-     * <li>{@value com.im.njams.sdk.communication.jms.JmsConstants#DESTINATION}
-     * </ul>
+     * Creates the Factory via the given {@link Properties} and {@link Context}.
      *
-     * @param context the context needed to intialize
+     * @param context the context needed to initialize
      * @param properties the properties needed to initialize
      *
-     * @return the ConnectionFactory
-     * @throws Exception is an error occured
+     * @return the ConnectionFactory to use
+     * @throws Exception if an error occurred
      */
     public static ConnectionFactory getFactory(Context context, Properties properties) throws Exception {
         ConnectionFactory factory;
-        if (properties.getProperty(JmsConstants.CONNECTION_FACTORY).equalsIgnoreCase("ActiveMQSslConnectionFactory")) {
+        if (properties.getProperty(CONNECTION_FACTORY).equalsIgnoreCase("ActiveMQSslConnectionFactory")) {
             factory = createActiveMQSslConnectionFactory(properties);
         } else {
-            factory = (ConnectionFactory) context.lookup(properties.getProperty(JmsConstants.CONNECTION_FACTORY));
+            factory = (ConnectionFactory) context.lookup(properties.getProperty(CONNECTION_FACTORY));
         }
         return factory;
     }
@@ -79,15 +78,15 @@ public class NjamsConnectionFactory {
             final Class<ConnectionFactory> clazz =
                     (Class<ConnectionFactory>) Class.forName("org.apache.activemq.ActiveMQSslConnectionFactory");
             final ConnectionFactory amqSsl = clazz.getDeclaredConstructor().newInstance();
-            setProperty(amqSsl, properties, "setKeyStore", JmsConstants.KEYSTORE);
-            setProperty(amqSsl, properties, "setKeyStorePassword", JmsConstants.KEYSTOREPASSWORD);
-            setProperty(amqSsl, properties, "setKeyStoreType", JmsConstants.KEYSTORETYPE);
-            setProperty(amqSsl, properties, "setTrustStore", JmsConstants.TRUSTSTORE);
-            setProperty(amqSsl, properties, "setTrustStorePassword", JmsConstants.TRUSTSTOREPASSWORD);
-            setProperty(amqSsl, properties, "setTrustStoreType", JmsConstants.TRUSTSTORETYPE);
-            setProperty(amqSsl, properties, "setPassword", JmsConstants.PASSWORD);
-            setProperty(amqSsl, properties, "setUserName", JmsConstants.USERNAME);
-            setProperty(amqSsl, properties, "setBrokerURL", JmsConstants.PROVIDER_URL);
+            setProperty(amqSsl, properties, "setKeyStore", KEYSTORE);
+            setProperty(amqSsl, properties, "setKeyStorePassword", KEYSTOREPASSWORD);
+            setProperty(amqSsl, properties, "setKeyStoreType", KEYSTORETYPE);
+            setProperty(amqSsl, properties, "setTrustStore", TRUSTSTORE);
+            setProperty(amqSsl, properties, "setTrustStorePassword", TRUSTSTOREPASSWORD);
+            setProperty(amqSsl, properties, "setTrustStoreType", TRUSTSTORETYPE);
+            setProperty(amqSsl, properties, "setPassword", PASSWORD);
+            setProperty(amqSsl, properties, "setUserName", USERNAME);
+            setProperty(amqSsl, properties, "setBrokerURL", PROVIDER_URL);
             LOG.debug("Created ActiveMQSslConnectionFactory");
             return amqSsl;
         } catch (Exception e) {
