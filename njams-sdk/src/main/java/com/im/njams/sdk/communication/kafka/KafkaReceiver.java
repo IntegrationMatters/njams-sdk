@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Faiz & Siegeln Software GmbH
+ * Copyright (c) 2022 Faiz & Siegeln Software GmbH
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"),
  * to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
@@ -19,13 +19,13 @@ package com.im.njams.sdk.communication.kafka;
 
 import static com.im.njams.sdk.communication.kafka.KafkaHeadersUtil.getHeader;
 import static com.im.njams.sdk.communication.kafka.KafkaHeadersUtil.headersUpdater;
+import static com.im.njams.sdk.communication.kafka.KafkaUtil.filterKafkaProperties;
 
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Properties;
 import java.util.UUID;
 
-import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
@@ -238,7 +238,6 @@ public class KafkaReceiver extends AbstractReceiver {
             LOG.debug("Received non json instruction -> ignore");
             return false;
         }
-
         return true;
     }
 
@@ -285,16 +284,6 @@ public class KafkaReceiver extends AbstractReceiver {
         } catch (final Exception e) {
             LOG.error("Error while sending reply for {}", requestId, e);
         }
-    }
-
-    private Properties filterKafkaProperties(final Properties properties, final ClientType clientType,
-            final String client) {
-        final Properties p = KafkaUtil.filterKafkaProperties(properties, clientType, client);
-        if (!clientId.equals(p.getProperty(ConsumerConfig.CLIENT_ID_CONFIG))
-                || !clientId.equals(p.getProperty(ConsumerConfig.GROUP_ID_CONFIG))) {
-            LOG.warn("Default client- or group-ID is overridden by configuration.");
-        }
-        return p;
     }
 
     /**
