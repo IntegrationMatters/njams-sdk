@@ -101,8 +101,8 @@ public class NjamsConnectionFactory {
                 final Method setMethod = target.getClass().getMethod(setter, String.class);
                 setMethod.invoke(target, source.getProperty(property));
             } catch (Exception e) {
-                LOG.error("Failed to invoke {}(String) on {} with configured property {}", setter, target.getClass(),
-                        property, e);
+                LOG.error("Failed to invoke {}(String) on {} with property {}={}", setter, target.getClass(),
+                        property, source.getProperty(property), e);
             }
         }
     }
