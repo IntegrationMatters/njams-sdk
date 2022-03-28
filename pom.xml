@@ -45,7 +45,7 @@
         <svn-revision-number-maven-plugin.version>1.13</svn-revision-number-maven-plugin.version>
         <jacoco-maven-plugin.version>0.8.3</jacoco-maven-plugin.version>
 
-        <!--- Dependency versions -->
+        <!-- Dependency versions -->
         <njams-messageformat.version>4.1.3</njams-messageformat.version>
 
         <aspectj.version>1.6.10</aspectj.version>
