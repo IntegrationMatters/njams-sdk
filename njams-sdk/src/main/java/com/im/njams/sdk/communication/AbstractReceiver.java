@@ -177,6 +177,7 @@ public abstract class AbstractReceiver implements Receiver {
             LOG.debug("There are to many reconnections at the same time! There are {} method invocations.", got);
         }
         while (!isConnected() && doReconnect) {
+            LOG.debug("Next try to reconnect receivers.");
             try {
                 connect();
                 synchronized (hasConnected) {
@@ -202,6 +203,7 @@ public abstract class AbstractReceiver implements Receiver {
                 }
             }
         }
+        LOG.debug("Receiver reconnect loop ended!");
         verifyingCounter.decrementAndGet();
     }
 

@@ -24,11 +24,10 @@ import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
 /**
- * This factory is not used anywhere in SDK or in one of the big clients.
+ * This factory is for getting a Provider for setting of client.
  * <p>
- * Deprecate it in version 4.2.0 and it will be removed in next minor.
+ * It is used in ADR3 Client for example.
  */
-@Deprecated
 public class SettingsProviderFactory {
 
     private static final Logger LOG = LoggerFactory.getLogger(SettingsProviderFactory.class);
@@ -57,15 +56,15 @@ public class SettingsProviderFactory {
                 }
             }
             String available = StreamSupport
-                    .stream(Spliterators.spliteratorUnknownSize(ServiceLoader.load(SettingsProvider.class).iterator(),
-                            Spliterator.ORDERED), false)
-                    .map(cp -> cp.getName()).collect(Collectors.joining(", "));
+                .stream(Spliterators.spliteratorUnknownSize(ServiceLoader.load(SettingsProvider.class).iterator(),
+                    Spliterator.ORDERED), false)
+                .map(cp -> cp.getName()).collect(Collectors.joining(", "));
             throw new UnsupportedOperationException(
-                    "Unable to find SettingsProvider implementation with name " + name + ", available are: "
-                            + available);
+                "Unable to find SettingsProvider implementation with name " + name + ", available are: "
+                    + available);
         } else {
             throw new UnsupportedOperationException(
-                    "Unable to find " + SETTINGS_PROVIDER + " in settings properties");
+                "Unable to find " + SETTINGS_PROVIDER + " in settings properties");
         }
     }
 }
