@@ -74,6 +74,7 @@ public class KafkaSender extends AbstractSender {
 
     /**
      * Initializes this Sender via the given Properties.
+     *
      * See all valid properties in KafkaConstants
      *
      * @param properties the properties needed to initialize
