@@ -140,8 +140,8 @@ public abstract class AbstractReceiver implements Receiver {
     /**
      * This method should be used to create a connection, and if the startup
      * fails, close all resources. It will be called by the
-     * {@link #reconnect(NjamsSdkRuntimeException) reconnect} method. It should throw an
-     * NjamsSdkRuntimeException if anything unexpected or unwanted happens.
+     * {@link #reconnect(Exception) reconnect} method. It should throw an
+     * Exception if anything unexpected or unwanted happens.
      */
     public abstract void connect();
 
