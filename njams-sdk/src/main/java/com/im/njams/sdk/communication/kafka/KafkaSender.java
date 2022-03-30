@@ -74,13 +74,6 @@ public class KafkaSender extends AbstractSender {
 
     /**
      * Initializes this Sender via the given Properties.
-     * <p>
-     * Valid properties are:
-     * <ul>
-     * <li>{@value com.im.njams.sdk.communication.kafka.KafkaConstants#COMMUNICATION_NAME}
-     * <li>{@value com.im.njams.sdk.communication.kafka.KafkaConstants#TOPIC_PREFIX}
-     * <li>{@value com.im.njams.sdk.communication.kafka.KafkaConstants#COMMANDS_TOPIC}
-     * </ul>
      * See all valid properties in KafkaConstants
      *
      * @param properties the properties needed to initialize
@@ -220,11 +213,10 @@ public class KafkaSender extends AbstractSender {
             id = null;
             record = new ProducerRecord<>(topic, data);
         }
-        headersUpdater(record).
-        addHeader(Sender.NJAMS_MESSAGEVERSION, MessageVersion.V4.toString()).
-        addHeader(Sender.NJAMS_MESSAGETYPE, messageType).
-        addHeader(Sender.NJAMS_LOGID, id, (k, v) -> StringUtils.isNotBlank(v)).
-        addHeader(Sender.NJAMS_PATH, msg.getPath(), (k, v) -> StringUtils.isNotBlank(v));
+        headersUpdater(record).addHeader(Sender.NJAMS_MESSAGEVERSION, MessageVersion.V4.toString())
+                .addHeader(Sender.NJAMS_MESSAGETYPE, messageType)
+                .addHeader(Sender.NJAMS_LOGID, id, (k, v) -> StringUtils.isNotBlank(v))
+                .addHeader(Sender.NJAMS_PATH, msg.getPath(), (k, v) -> StringUtils.isNotBlank(v));
 
         tryToSend(record);
     }
