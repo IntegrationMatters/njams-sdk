@@ -34,7 +34,6 @@ import org.slf4j.LoggerFactory;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.im.njams.sdk.Njams;
-import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.common.Path;
 import com.im.njams.sdk.communication.ConnectionStatus;
 
@@ -167,7 +166,7 @@ class JmsReceiverMock extends JmsReceiver {
      * doesn't exist.
      */
     @Override
-    public void reconnect(NjamsSdkRuntimeException ex) {
+    public void reconnect(Exception ex) {
         LOG.info("reconnected");
         connectionStatus = ConnectionStatus.CONNECTED;
     }

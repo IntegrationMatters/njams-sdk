@@ -26,11 +26,11 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
-import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.PartitionInfo;
 import org.apache.kafka.common.TopicPartition;
+import org.apache.kafka.common.errors.WakeupException;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -120,31 +120,38 @@ public class CommandsConsumer extends Thread {
             try {
                 return Long.parseLong(properties.getProperty(KafkaConstants.REPLY_PRODUCER_IDLE_TIME));
             } catch (final Exception e) {
-                LOG.error("Faileds to parse timeout from properties", e);
+                LOG.error("Failed to parse timeout from properties", e);
             }
         }
         return DEFAULT_PRODUCER_IDLE_TIME_MS;
     }
 
     /**
-     * The main Execution of this Thread, is called by super.start(). This method
-     * continuously checks for new messages and makes sure there is no unused
-     * producer running.
+     * This method continuously checks for new messages and makes sure there is no unused producer running.
      */
     @Override
     public void run() {
         while (!doStop) {
-            final ConsumerRecords<String, String> records = consumer.poll(Duration.ofMillis(1000));
-            if (!records.isEmpty()) {
+            ConsumerRecords<String, String> records = null;
+            try {
+                records = consumer.poll(Duration.ofSeconds(1));
+            } catch (WakeupException e) {
+                // ignore
+            } catch (Exception e) {
+                LOG.error("Error during polling for commands.", e);
+                // trigger reconnecting
+                receiver.onException(e);
+                break;
+            }
+            if (records != null && !records.isEmpty()) {
                 lastMessageProcessingTimestamp = System.currentTimeMillis();
-                for (final ConsumerRecord<String, String> record : records) {
-                    receiver.onMessage(record);
-                }
+                records.forEach(receiver::onMessage);
             } else {
                 checkIdleProducer();
             }
         }
         consumer.close();
+        LOG.debug("Consumer closed. Poll thread finished.");
     }
 
     /**
@@ -162,5 +169,6 @@ public class CommandsConsumer extends Thread {
      */
     protected synchronized void doStop() {
         doStop = true;
+        consumer.wakeup();
     }
 }

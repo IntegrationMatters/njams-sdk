@@ -283,6 +283,7 @@ public class KafkaReceiver extends AbstractReceiver {
 
         } catch (final Exception e) {
             LOG.error("Error while sending reply for {}", requestId, e);
+            closeProducer();
         }
     }
 

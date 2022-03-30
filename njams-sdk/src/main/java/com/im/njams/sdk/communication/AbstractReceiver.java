@@ -16,16 +16,17 @@
  */
 package com.im.njams.sdk.communication;
 
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
 import com.faizsiegeln.njams.messageformat.v4.command.Request;
 import com.faizsiegeln.njams.messageformat.v4.command.Response;
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * This class should be extended when implementing an new Receiver for a new
@@ -115,7 +116,7 @@ public abstract class AbstractReceiver implements Receiver {
                 Response response = new Response();
                 response.setResultCode(1);
                 response.setResultMessage(
-                    "No InstructionListener for " + instruction.getRequest().getCommand() + " found");
+                        "No InstructionListener for " + instruction.getRequest().getCommand() + " found");
                 instruction.setResponse(response);
             }
         }
@@ -153,8 +154,8 @@ public abstract class AbstractReceiver implements Receiver {
      *
      * @param ex the exception that initiated the reconnect
      */
-    @SuppressWarnings({"squid:S2276", "squid:S2142"})
-    public synchronized void reconnect(NjamsSdkRuntimeException ex) {
+    @SuppressWarnings({ "squid:S2276", "squid:S2142" })
+    public synchronized void reconnect(Exception ex) {
         int got = verifyingCounter.incrementAndGet();
         boolean doReconnect = true;
         if (isConnecting() || isConnected()) {
@@ -193,10 +194,10 @@ public abstract class AbstractReceiver implements Receiver {
                 try {
                     //Using Thread.sleep because this.wait would release the lock for this object, Thread.sleep doesn't.
 
-                    Thread.sleep(reconnectIntervalIncreasing.getAndAdd(
-                        (reconnectIntervalIncreasing.get() > 600000
-                            ? 600000
-                            : reconnectIntervalIncreasing.get() * 2)));
+                    Thread.sleep(reconnectIntervalIncreasing.getAndSet(
+                            reconnectIntervalIncreasing.get() >= 600000
+                                    ? 600000
+                                    : reconnectIntervalIncreasing.get() * 2));
                 } catch (InterruptedException e1) {
                     LOG.error("The reconnecting thread was interrupted!", e1);
                     doReconnect = false;
@@ -210,7 +211,7 @@ public abstract class AbstractReceiver implements Receiver {
     /**
      * This method starts the Receiver. It tries to establish the connection,
      * and if it fails, calls the method
-     * {@link #onException(NjamsSdkRuntimeException) onException}.
+     * {@link #onException(Exception) onException}.
      */
     @Override
     public void start() {
@@ -219,7 +220,7 @@ public abstract class AbstractReceiver implements Receiver {
             if (LOG.isDebugEnabled()) {
                 LOG.debug("Started receiver {}", getName());
             }
-        } catch (NjamsSdkRuntimeException e) {
+        } catch (Exception e) {
             connectionStatus = ConnectionStatus.DISCONNECTED;
             LOG.error("Could not initialize receiver {}. Pushing reconnect task to background.", getName(), e);
             // trigger reconnect
@@ -232,7 +233,7 @@ public abstract class AbstractReceiver implements Receiver {
      *
      * @param exception the exception that caused this method invocation.
      */
-    public void onException(NjamsSdkRuntimeException exception) {
+    public void onException(Exception exception) {
         stop();
         // reconnect
         Thread reconnector = new Thread(() -> reconnect(exception));
