@@ -16,6 +16,9 @@
  */
 package com.im.njams.sdk.communication;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -54,6 +57,8 @@ public abstract class AbstractReceiver implements Receiver {
 
     private AtomicInteger reconnectIntervalIncreasing = new AtomicInteger(RECONNECT_INTERVAL);
 
+    private final List<InstructionListener> instructionListeners = new ArrayList<>();
+
     /**
      * Njams to hold
      */
@@ -68,6 +73,26 @@ public abstract class AbstractReceiver implements Receiver {
     @Override
     public void setNjams(Njams njams) {
         this.njams = njams;
+    }
+
+    @Override
+    public void addInstructionListener(InstructionListener instructionListener){
+        instructionListeners.add(instructionListener);
+    }
+
+    @Override
+    public List<InstructionListener> getInstructionListeners(){
+        return Collections.unmodifiableList(instructionListeners);
+    }
+
+    @Override
+    public void removeInstructionListener(InstructionListener listener){
+        instructionListeners.remove(listener);
+    }
+
+    @Override
+    public void removeAllInstructionListeners(){
+        instructionListeners.clear();
     }
 
     /**

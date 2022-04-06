@@ -16,6 +16,7 @@
  */
 package com.im.njams.sdk.communication;
 
+import java.util.List;
 import java.util.Properties;
 
 import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
@@ -72,4 +73,11 @@ public interface Receiver extends ClasspathValidator {
      */
     void stop();
 
+    void addInstructionListener(InstructionListener instructionListener);
+
+    List<InstructionListener> getInstructionListeners();
+
+    void removeInstructionListener(InstructionListener listener);
+
+    void removeAllInstructionListeners();
 }

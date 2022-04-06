@@ -209,8 +209,6 @@ public class Njams implements InstructionListener {
 
     private final ConcurrentMap<String, Job> jobs = new ConcurrentHashMap<>();
 
-    private final List<InstructionListener> instructionListeners = new ArrayList<>();
-
     // serializers
     private final HashMap<Class<?>, Serializer<?>> serializers = new HashMap<>();
 
@@ -434,6 +432,8 @@ public class Njams implements InstructionListener {
     private void startReceiver() {
         try {
             receiver = new CommunicationFactory(settings).getReceiver(this);
+            receiver.addInstructionListener(this);
+            receiver.addInstructionListener(new ConfigurationInstructionListener(getConfiguration()));
             receiver.start();
         } catch (Exception e) {
             LOG.error("Error starting Receiver", e);
@@ -458,8 +458,6 @@ public class Njams implements InstructionListener {
             }
             loadConfiguration();
             initializeDataMasking();
-            instructionListeners.add(this);
-            instructionListeners.add(new ConfigurationInstructionListener(getConfiguration()));
             startReceiver();
             LogMessageFlushTask.start(this);
             CleanTracepointsTask.start(this);
@@ -487,13 +485,13 @@ public class Njams implements InstructionListener {
                 sender.close();
             }
             if (receiver != null) {
+                receiver.removeAllInstructionListeners();
                 if (receiver instanceof ShareableReceiver) {
                     ((ShareableReceiver) receiver).removeNjams(this);
                 } else {
                     receiver.stop();
                 }
             }
-            instructionListeners.clear();
             started = false;
         } else {
             throw new NjamsSdkRuntimeException(NOT_STARTED_EXCEPTION_MESSAGE);
@@ -894,7 +892,7 @@ public class Njams implements InstructionListener {
      * @return the instructionListeners
      */
     public List<InstructionListener> getInstructionListeners() {
-        return Collections.unmodifiableList(instructionListeners);
+        return receiver.getInstructionListeners();
     }
 
     /**
@@ -904,7 +902,7 @@ public class Njams implements InstructionListener {
      * @param listener the new listener to be called
      */
     public void addInstructionListener(InstructionListener listener) {
-        instructionListeners.add(listener);
+        receiver.addInstructionListener(listener);
     }
 
     /**
@@ -913,7 +911,7 @@ public class Njams implements InstructionListener {
      * @param listener the listener to remove
      */
     public void removeInstructionListener(InstructionListener listener) {
-        instructionListeners.remove(listener);
+        receiver.removeInstructionListener(listener);
     }
 
     /**
