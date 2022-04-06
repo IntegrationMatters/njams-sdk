@@ -131,7 +131,7 @@ public class CommunicationFactory {
                     }
                     LOG.debug("Creating shared receiver {}", clazz);
                     receiver = clazz.newInstance();
-                    receiver.setInstanceName(clientPath.toString());
+                    receiver.setInstancePath(clientPath);
                     receiver.validate();
                     sharedReceivers.put(clazz, (ShareableReceiver<?>) receiver);
                     receiver.init(properties);

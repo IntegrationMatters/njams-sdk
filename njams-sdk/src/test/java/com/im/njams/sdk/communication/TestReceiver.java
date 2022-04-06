@@ -21,6 +21,7 @@ import java.util.Properties;
 
 import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
 import com.im.njams.sdk.Njams;
+import com.im.njams.sdk.common.Path;
 import com.im.njams.sdk.settings.Settings;
 
 /**
@@ -117,7 +118,7 @@ public class TestReceiver implements Receiver {
     }
 
     @Override
-    public void setInstanceName(String instanceName) {
+    public void setInstancePath(Path instancePath) {
 
     }
 

@@ -75,5 +75,5 @@ public interface Receiver extends ClasspathValidator {
 
     void removeAllInstructionListeners();
 
-    void setInstanceName(String instanceName);
+    void setInstancePath(Path instancePath);
 }

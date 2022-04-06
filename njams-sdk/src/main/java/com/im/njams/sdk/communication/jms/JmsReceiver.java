@@ -103,7 +103,12 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
         } else {
             topicName = props.getProperty(JmsConstants.DESTINATION) + ".commands";
         }
+    }
 
+    @Override
+    public void setInstancePath(Path path){
+        super.setInstancePath(path);
+        messageSelector = createMessageSelector();
     }
 
     /**
@@ -113,7 +118,7 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
      */
     protected String createMessageSelector() {
 
-        Path fullPath = new Path(njams.getClientPath().toString());
+        Path fullPath = new Path(instancePath.toString());
         Path path = null;
         StringBuilder selector = new StringBuilder();
         for (String part : fullPath.getParts()) {
@@ -287,12 +292,6 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
         MessageConsumer cons = sess.createConsumer(topic, messageSelector);
         cons.setMessageListener(this);
         return cons;
-    }
-
-    @Override
-    public void setNjams(Njams njams) {
-        super.setNjams(njams);
-        messageSelector = createMessageSelector();
     }
 
     /**

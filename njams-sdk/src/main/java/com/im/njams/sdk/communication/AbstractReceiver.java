@@ -22,13 +22,13 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import com.im.njams.sdk.common.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
 import com.faizsiegeln.njams.messageformat.v4.command.Request;
 import com.faizsiegeln.njams.messageformat.v4.command.Response;
-import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 
 /**
@@ -54,29 +54,14 @@ public abstract class AbstractReceiver implements Receiver {
     private static final AtomicBoolean hasConnected = new AtomicBoolean(false);
 
     private static final AtomicInteger connecting = new AtomicInteger(0);
-    private String instanceName;
+    protected Path instancePath;
 
     private AtomicInteger reconnectIntervalIncreasing = new AtomicInteger(RECONNECT_INTERVAL);
 
     private final List<InstructionListener> instructionListeners = new ArrayList<>();
 
-    /**
-     * Njams to hold
-     */
-    protected Njams njams;
-
-    /**
-     * This constructor sets the njams instance for getting the instruction
-     * listeners.
-     *
-     * @param njams the instance that holds the instructionListeners.
-     */
-    public void setNjams(Njams njams) {
-        this.njams = njams;
-    }
-
-    public void setInstanceName(String instanceName){
-        this.instanceName = instanceName;
+    public void setInstancePath(Path instancePath){
+        this.instancePath = instancePath;
     }
 
     @Override
@@ -109,10 +94,6 @@ public abstract class AbstractReceiver implements Receiver {
     @Override
     public void onInstruction(Instruction instruction) {
         LOG.debug("Received instruction: {}", instruction == null ? "null" : instruction.getCommand());
-        if (njams == null) {
-            LOG.error("Njams should not be null");
-            return;
-        }
         if (instruction == null) {
             LOG.error("Instruction should not be null");
             return;
@@ -132,7 +113,7 @@ public abstract class AbstractReceiver implements Receiver {
             //Set the exception response
             instruction.setResponse(exceptionResponse);
         } else {
-            for (InstructionListener listener : njams.getInstructionListeners()) {
+            for (InstructionListener listener : getInstructionListeners()) {
                 try {
                     listener.onInstruction(instruction);
                 } catch (Exception e) {

@@ -47,9 +47,7 @@ public class SharedHttpSseReceiver extends HttpSseReceiver implements ShareableR
      *
      * @see com.im.njams.sdk.communication.jms.JmsReceiver#setNjams(com.im.njams.sdk.Njams)
      */
-    @Override
     public void setNjams(final Njams njams) {
-        super.setNjams(null);
         sharingSupport.addNjams(njams);
     }
 

@@ -67,9 +67,7 @@ public class SharedJmsReceiver extends JmsReceiver implements ShareableReceiver<
      *
      * @see com.im.njams.sdk.communication.jms.JmsReceiver#setNjams(com.im.njams.sdk.Njams)
      */
-    @Override
     public void setNjams(Njams njamsInstance) {
-        super.setNjams(null);
         sharingSupport.addNjams(njamsInstance);
         synchronized (this) {
             messageSelector = createMessageSelector();

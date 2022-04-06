@@ -52,7 +52,6 @@ public class SharedHttpsSseReceiver extends HttpsSseReceiver implements Shareabl
      */
     @Override
     public void setNjams(final Njams njams) {
-        super.setNjams(null);
         sharingSupport.addNjams(njams);
     }
 

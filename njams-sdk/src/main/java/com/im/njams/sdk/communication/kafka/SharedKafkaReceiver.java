@@ -50,7 +50,6 @@ public class SharedKafkaReceiver extends KafkaReceiver implements ShareableRecei
      */
     @Override
     public void setNjams(final Njams njamsInstance) {
-        super.setNjams(null);
         sharingSupport.addNjams(njamsInstance);
     }
 

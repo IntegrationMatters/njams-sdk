@@ -50,11 +50,9 @@ class JmsReceiverMock extends JmsReceiver {
     private static final String MESSAGESELECTORSTRING = "NJAMS_RECEIVER = '>SDK4>' OR NJAMS_RECEIVER = '>SDK4>TEST>'";
 
     public JmsReceiverMock() {
-        Njams njamsImpl = mock(Njams.class);
         Path path = mock(Path.class);
-        when(njamsImpl.getClientPath()).thenReturn(path);
         when(path.toString()).thenReturn("SDK4>TEST");
-        super.setNjams(njamsImpl);
+        setInstancePath(path);
     }
 
     //Getter

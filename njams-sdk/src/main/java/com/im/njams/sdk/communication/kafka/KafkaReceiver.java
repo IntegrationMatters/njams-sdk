@@ -230,7 +230,7 @@ public class KafkaReceiver extends AbstractReceiver {
             return false;
         }
         final String receiver = getHeader(msg, NJAMS_RECEIVER);
-        if (StringUtils.isBlank(receiver) || !njams.getClientPath().equals(new Path(receiver))) {
+        if (StringUtils.isBlank(receiver) || instancePath.equals(new Path(receiver))) {
             LOG.debug("Message is not for me!");
             return false;
         }

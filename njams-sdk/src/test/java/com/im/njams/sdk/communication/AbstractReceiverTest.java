@@ -19,7 +19,6 @@ package com.im.njams.sdk.communication;
 import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
 import com.faizsiegeln.njams.messageformat.v4.command.Request;
 import com.faizsiegeln.njams.messageformat.v4.command.Response;
-import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import org.junit.Test;
 
@@ -28,7 +27,6 @@ import java.util.List;
 import java.util.Properties;
 
 import static org.junit.Assert.*;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 /**
@@ -40,44 +38,7 @@ import static org.mockito.Mockito.when;
 public class AbstractReceiverTest {
 
     private static final String TESTCOMMAND = "testCommand";
-
-    //setNjams tests
-
-    /**
-     * This method tests if the setNjams method works.
-     */
-    @Test
-    public void testSetNjams() {
-        AbstractReceiverImpl impl = new AbstractReceiverImpl();
-        Njams njams = mock(Njams.class);
-        impl.setNjams(njams);
-        assertEquals(njams, impl.njams);
-    }
-
-    /**
-     * This method tests if the setNjams method works with a null as parameter
-     */
-    @Test
-    public void testSetNullNjams() {
-        AbstractReceiverImpl impl = new AbstractReceiverImpl();
-        impl.setNjams(null);
-        assertEquals(null, impl.njams);
-    }
-
     //onInstruction tests
-
-    /**
-     * This method tests if the onInstruction method works without an Njams
-     * object.
-     */
-    @Test
-    public void testOnInstructionWithNullNjams() {
-        AbstractReceiverImpl impl = new AbstractReceiverImpl();
-        Instruction inst = new Instruction();
-        impl.onInstruction(inst);
-        assertEquals(null, inst.getResponse());
-        assertEquals(null, impl.njams);
-    }
 
     /**
      * This method tests if the onInstruction method works with an Njams object,
@@ -86,8 +47,6 @@ public class AbstractReceiverTest {
     @Test
     public void testOnInstructionWithNullInstruction() {
         AbstractReceiverImpl impl = new AbstractReceiverImpl();
-        Njams njams = mock(Njams.class);
-        impl.setNjams(njams);
         Instruction inst = null;
         impl.onInstruction(inst);
         assertEquals(null, inst);
@@ -100,8 +59,6 @@ public class AbstractReceiverTest {
     @Test
     public void testOnInstructionWithNullRequest() {
         AbstractReceiverImpl impl = new AbstractReceiverImpl();
-        Njams njams = mock(Njams.class);
-        impl.setNjams(njams);
         Instruction inst = new Instruction();
         impl.onInstruction(inst);
         assertNull(inst.getRequest());
@@ -116,8 +73,6 @@ public class AbstractReceiverTest {
     @Test
     public void testOnInstructionWithNullCommand() {
         AbstractReceiverImpl impl = new AbstractReceiverImpl();
-        Njams njams = mock(Njams.class);
-        impl.setNjams(njams);
         Instruction inst = new Instruction();
         Request req = new Request();
         inst.setRequest(req);
@@ -160,9 +115,7 @@ public class AbstractReceiverTest {
 
     private Instruction mockUp(List<InstructionListener> list) {
         AbstractReceiverImpl impl = new AbstractReceiverImpl();
-        Njams njams = mock(Njams.class);
-        impl.setNjams(njams);
-        when(njams.getInstructionListeners()).thenReturn(list);
+        impl.setInstructionListeners(list);
         Instruction inst = new Instruction();
         Request req = new Request();
         req.setCommand(TESTCOMMAND);
@@ -273,9 +226,7 @@ public class AbstractReceiverTest {
     @Test
     public void testOnInstructionExtendedRequestException() {
         AbstractReceiverImpl impl = new AbstractReceiverImpl();
-        Njams njams = mock(Njams.class);
-        impl.setNjams(njams);
-        when(njams.getInstructionListeners()).thenReturn(new ArrayList<>());
+        impl.setInstructionListeners(new ArrayList<>());
         Instruction inst = new Instruction();
         Request req = new Request();
         req.setCommand(TESTCOMMAND);
@@ -534,6 +485,7 @@ public class AbstractReceiverTest {
         public static final int THROWINGMAXCOUNTER = 10;
 
         public static final long RECONNECT_INTERVAL = AbstractReceiver.RECONNECT_INTERVAL;
+        private List<InstructionListener> testInstructionListeners;
 
         //This method should be tested by the real subclass of the AbstractReceiver
         @Override
@@ -586,6 +538,15 @@ public class AbstractReceiverTest {
          */
         private void setConnectionStatus(ConnectionStatus con) {
             connectionStatus = con;
+        }
+
+        @Override
+        public List<InstructionListener> getInstructionListeners() {
+            return testInstructionListeners;
+        }
+
+        public void setInstructionListeners(List<InstructionListener> testInstructionListeners) {
+            this.testInstructionListeners = testInstructionListeners;
         }
     }
 
