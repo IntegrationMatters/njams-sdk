@@ -22,17 +22,17 @@ import javax.ws.rs.client.ClientBuilder;
 import javax.ws.rs.sse.InboundSseEvent;
 import javax.ws.rs.sse.SseEventSource;
 
+import com.im.njams.sdk.communication.Receiver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
-import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.common.Path;
 import com.im.njams.sdk.communication.ShareableReceiver;
 import com.im.njams.sdk.communication.SharedReceiverSupport;
 
 /**
- * Overrides the common {@link HttpSseReceiver} for supporting receiving messages for multiple {@link Njams} instances.
+ * Overrides the common {@link HttpSseReceiver} for supporting receiving messages for multiple {@link Receiver} instances.
  *
  * @author bwand
  */
@@ -42,18 +42,14 @@ public class SharedHttpSseReceiver extends HttpSseReceiver implements ShareableR
     private final SharedReceiverSupport<SharedHttpSseReceiver, InboundSseEvent> sharingSupport =
             new SharedReceiverSupport<>(this);
 
-    /**
-     * Adds the given instance to this receiver for receiving instructions.
-     *
-     * @see com.im.njams.sdk.communication.jms.JmsReceiver#setNjams(com.im.njams.sdk.Njams)
-     */
-    public void setNjams(final Njams njams) {
-        sharingSupport.addNjams(njams);
+    @Override
+    public void removeReceiver(Path clientPath) {
+        sharingSupport.removeReceiver(clientPath);
     }
 
     @Override
-    public void removeNjams(Njams njams) {
-        sharingSupport.removeNjams(njams);
+    public void addReceiver(Path clientPath, Receiver receiver) {
+        sharingSupport.addReceiver(clientPath, receiver);
     }
 
     @Override

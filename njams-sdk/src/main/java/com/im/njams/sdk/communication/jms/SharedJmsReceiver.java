@@ -22,17 +22,17 @@ import java.util.stream.Collectors;
 import javax.jms.JMSException;
 import javax.jms.Message;
 
+import com.im.njams.sdk.communication.Receiver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
-import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.common.Path;
 import com.im.njams.sdk.communication.ShareableReceiver;
 import com.im.njams.sdk.communication.SharedReceiverSupport;
 
 /**
- * Overrides the common {@link JmsReceiver} for supporting receiving messages for multiple {@link Njams} instances.
+ * Overrides the common {@link JmsReceiver} for supporting receiving messages for multiple {@link Receiver} instances.
  *
  * @author cwinkler
  *
@@ -51,37 +51,33 @@ public class SharedJmsReceiver extends JmsReceiver implements ShareableReceiver<
      */
     @Override
     protected String createMessageSelector() {
-        final Collection<Njams> njamsInstances = sharingSupport.getAllNjamsInstances();
-        if (njamsInstances.isEmpty()) {
+        final Collection<Receiver> receiverInstances = sharingSupport.getAllReceiverInstances();
+        if (receiverInstances.isEmpty()) {
             return null;
         }
-        final String selector = njamsInstances.stream().map(Njams::getClientPath).map(Path::getAllPaths)
+        final String selector = receiverInstances.stream().map(Receiver::getInstancePath).map(Path::getAllPaths)
                 .flatMap(Collection::stream).collect(Collectors.toSet()).stream().map(Object::toString).sorted()
                 .collect(Collectors.joining("' OR NJAMS_RECEIVER = '", "NJAMS_RECEIVER = '", "'"));
         LOG.debug("Updated message selector: {}", selector);
         return selector;
     }
 
-    /**
-     * Adds the given instance to this receiver for receiving instructions.
-     *
-     * @see com.im.njams.sdk.communication.jms.JmsReceiver#setNjams(com.im.njams.sdk.Njams)
-     */
-    public void setNjams(Njams njamsInstance) {
-        sharingSupport.addNjams(njamsInstance);
-        synchronized (this) {
-            messageSelector = createMessageSelector();
-            updateConsumer();
-        }
-    }
-
     @Override
-    public void removeNjams(Njams njamsInstance) {
-        if (sharingSupport.removeNjams(njamsInstance)) {
+    public void removeReceiver(Path clientPath) {
+        if (sharingSupport.removeReceiver(clientPath)) {
             synchronized (this) {
                 messageSelector = createMessageSelector();
                 updateConsumer();
             }
+        }
+    }
+
+    @Override
+    public void addReceiver(Path clientPath, Receiver receiver) {
+        sharingSupport.addReceiver(clientPath, receiver);
+        synchronized (this) {
+            messageSelector = createMessageSelector();
+            updateConsumer();
         }
     }
 

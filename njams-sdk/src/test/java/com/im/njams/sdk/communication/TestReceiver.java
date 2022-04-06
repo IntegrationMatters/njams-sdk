@@ -122,4 +122,9 @@ public class TestReceiver implements Receiver {
 
     }
 
+    @Override
+    public Path getInstancePath() {
+        return null;
+    }
+
 }

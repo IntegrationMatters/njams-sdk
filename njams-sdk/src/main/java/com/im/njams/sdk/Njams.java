@@ -431,7 +431,7 @@ public class Njams implements InstructionListener {
      */
     private void startReceiver() {
         try {
-            receiver = new CommunicationFactory(settings).getReceiver(this);
+            receiver = new CommunicationFactory(settings).getReceiver(clientPath);
             receiver.addInstructionListener(this);
             receiver.addInstructionListener(new ConfigurationInstructionListener(getConfiguration()));
             receiver.start();
@@ -487,7 +487,7 @@ public class Njams implements InstructionListener {
             if (receiver != null) {
                 receiver.removeAllInstructionListeners();
                 if (receiver instanceof ShareableReceiver) {
-                    ((ShareableReceiver) receiver).removeNjams(this);
+                    ((ShareableReceiver) receiver).removeReceiver(clientPath);
                 } else {
                     receiver.stop();
                 }

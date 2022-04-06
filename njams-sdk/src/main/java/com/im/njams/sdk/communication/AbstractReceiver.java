@@ -60,8 +60,14 @@ public abstract class AbstractReceiver implements Receiver {
 
     private final List<InstructionListener> instructionListeners = new ArrayList<>();
 
+    @Override
     public void setInstancePath(Path instancePath){
         this.instancePath = instancePath;
+    }
+
+    @Override
+    public Path getInstancePath(){
+        return instancePath;
     }
 
     @Override

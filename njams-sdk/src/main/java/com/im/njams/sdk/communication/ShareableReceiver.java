@@ -17,11 +17,10 @@
 package com.im.njams.sdk.communication;
 
 import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
-import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.common.Path;
 
 /**
- * Interface to be implemented by {@link Receiver}s that support receiving messages for multiple {@link Njams} instances.
+ * Interface to be implemented by {@link Receiver}s that support receiving messages for multiple {@link Receiver} instances.
  * @author cwinkler
  *
  * @param <M> The raw message type that is received from the transport API
@@ -29,29 +28,12 @@ import com.im.njams.sdk.common.Path;
  */
 public interface ShareableReceiver<M> extends Receiver {
 
-    /**
-     * Stops the given {@link Njams} instance from receiving messages from this receiver instance.
-     * @param njams The {@link Njams} instance to be removed.
-     */
-    public void removeNjams(Njams njams);
+    public void removeReceiver(Path clientPath);
 
-    public void setNjams(Njams njams);
-
-    /**
-     * Passes the instruction to the according {@link Njams} instance.
-     * @deprecated No longer used.
-     * @param instruction The instruction to process.
-     * @param njams The {@link Njams} instance to receive the instruction.
-     * @see Receiver#onInstruction(Instruction)
-     */
-    @Deprecated
-    public default void onInstruction(Instruction instruction, Njams njams) {
-        // nothing
-    }
+    public void addReceiver(Path clientPath, Receiver receiver);
 
     /**
      * Has to extract the receiver instance (client) path, i.e., the path that matches a certain
-     * {@link Njams} instance's {@link Njams#getClientPath()}.
      *
      * @param requestMessage The raw message read from the transport API
      * @param instruction The instruction parsed from the received message
@@ -68,7 +50,6 @@ public interface ShareableReceiver<M> extends Receiver {
 
     /**
      * Always throws an {@link UnsupportedOperationException}. This method is replaced by
-     * {@link #onInstruction(Instruction, Njams)} for passing instructions to the according {@link Njams} instance.
      *
      * @see com.im.njams.sdk.communication.AbstractReceiver#onInstruction(com.faizsiegeln.njams.messageformat.v4.command.Instruction)
      * @throws UnsupportedOperationException always

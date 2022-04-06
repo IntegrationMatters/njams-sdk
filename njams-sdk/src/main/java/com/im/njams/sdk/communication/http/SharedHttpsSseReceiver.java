@@ -9,11 +9,11 @@ import javax.ws.rs.client.ClientBuilder;
 import javax.ws.rs.sse.InboundSseEvent;
 import javax.ws.rs.sse.SseEventSource;
 
+import com.im.njams.sdk.communication.Receiver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
-import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.common.JsonSerializerFactory;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.common.Path;
@@ -45,19 +45,14 @@ public class SharedHttpsSseReceiver extends HttpsSseReceiver implements Shareabl
         mapper = JsonSerializerFactory.getDefaultMapper();
     }
 
-    /**
-     * Adds the given instance to this receiver for receiving instructions.
-     *
-     * @see com.im.njams.sdk.communication.jms.JmsReceiver#setNjams(com.im.njams.sdk.Njams)
-     */
     @Override
-    public void setNjams(final Njams njams) {
-        sharingSupport.addNjams(njams);
+    public void removeReceiver(Path clientPath) {
+        sharingSupport.removeReceiver(clientPath);
     }
 
     @Override
-    public void removeNjams(Njams njams) {
-        sharingSupport.removeNjams(njams);
+    public void addReceiver(Path clientPath, Receiver receiver) {
+        sharingSupport.addReceiver(clientPath, receiver);
     }
 
     @Override

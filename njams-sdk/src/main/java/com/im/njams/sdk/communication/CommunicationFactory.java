@@ -16,7 +16,6 @@
  */
 package com.im.njams.sdk.communication;
 
-import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.common.Path;
 import com.im.njams.sdk.settings.Settings;
 import org.slf4j.Logger;
@@ -66,17 +65,17 @@ public class CommunicationFactory {
      * Returns the Receiver specified by the value of {@value #COMMUNICATION}
      * specified in the CommunicationProperties in the Settings
      *
-     * @param njams The {@link Njams} client instance for that messages shall be received.
+     * @param clientPath The path of the client instance for that messages shall be received.
      * @return new initialized Receiver
      */
-    public Receiver getReceiver(Njams njams) {
+    public Receiver getReceiver(Path clientPath) {
         if (settings.containsKey(COMMUNICATION)) {
             final String requiredReceiverName = settings.getProperty(COMMUNICATION);
             final boolean shared =
                     "true".equalsIgnoreCase(settings.getProperty(Settings.PROPERTY_SHARED_COMMUNICATIONS));
             Class<? extends Receiver> type = findReceiverType(requiredReceiverName, shared);
             if (type != null) {
-                final Receiver newInstance = createReceiver(type, njams.getClientPath(), shared, requiredReceiverName);
+                final Receiver newInstance = createReceiver(type, clientPath, shared, requiredReceiverName);
 
                 return newInstance;
             } else {

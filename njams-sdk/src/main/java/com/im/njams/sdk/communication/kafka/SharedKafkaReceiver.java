@@ -18,12 +18,12 @@ package com.im.njams.sdk.communication.kafka;
 
 import static com.im.njams.sdk.communication.kafka.KafkaHeadersUtil.getHeader;
 
+import com.im.njams.sdk.communication.Receiver;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
-import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.common.Path;
 import com.im.njams.sdk.communication.ConnectionStatus;
 import com.im.njams.sdk.communication.ShareableReceiver;
@@ -31,7 +31,7 @@ import com.im.njams.sdk.communication.SharedReceiverSupport;
 import com.im.njams.sdk.utils.StringUtils;
 
 /**
- * Overrides the common {@link KafkaReceiver} for supporting receiving messages for multiple {@link Njams} instances.
+ * Overrides the common {@link KafkaReceiver} for supporting receiving messages for multiple {@link Receiver} instances.
  *
  * @author cwinkler
  *
@@ -43,19 +43,14 @@ public class SharedKafkaReceiver extends KafkaReceiver implements ShareableRecei
     private final SharedReceiverSupport<SharedKafkaReceiver, ConsumerRecord<?, ?>> sharingSupport =
             new SharedReceiverSupport<>(this);
 
-    /**
-     * Adds the given instance to this receiver for receiving instructions.
-     *
-     * @see com.im.njams.sdk.communication.jms.JmsReceiver#setNjams(com.im.njams.sdk.Njams)
-     */
     @Override
-    public void setNjams(final Njams njamsInstance) {
-        sharingSupport.addNjams(njamsInstance);
+    public void removeReceiver(Path clientPath) {
+        sharingSupport.removeReceiver(clientPath);
     }
 
     @Override
-    public void removeNjams(final Njams njamsInstance) {
-        sharingSupport.removeNjams(njamsInstance);
+    public void addReceiver(Path clientPath, Receiver receiver) {
+        sharingSupport.addReceiver(clientPath, receiver);
     }
 
     @Override

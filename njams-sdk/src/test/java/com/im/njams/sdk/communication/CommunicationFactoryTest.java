@@ -1,6 +1,5 @@
 package com.im.njams.sdk.communication;
 
-import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.common.Path;
 import com.im.njams.sdk.settings.Settings;
 import org.junit.Before;
@@ -44,10 +43,8 @@ public class CommunicationFactoryTest {
     @Test
     public void returnsReceiver_evenIfServiceLoaderCantLoadThePreviousService() {
         firstReceiverIsFaulty_secondReceiverIsOk();
-        Njams njams = mock(Njams.class);
-        when(njams.getClientPath()).thenReturn(new Path("CLIENT_PATH"));
 
-        Receiver receiver = communicationFactory.getReceiver(njams);
+        Receiver receiver = communicationFactory.getReceiver(new Path("CLIENT_PATH"));
 
         verify(receivers.iterator(), times(2)).next();
         assertNotNull(receiver);
