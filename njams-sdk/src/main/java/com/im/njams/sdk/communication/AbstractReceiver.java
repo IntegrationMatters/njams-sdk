@@ -54,7 +54,8 @@ public abstract class AbstractReceiver implements Receiver {
     private static final AtomicBoolean hasConnected = new AtomicBoolean(false);
 
     private static final AtomicInteger connecting = new AtomicInteger(0);
-    protected Path instancePath;
+
+    private Path instancePath;
 
     private AtomicInteger reconnectIntervalIncreasing = new AtomicInteger(RECONNECT_INTERVAL);
 

@@ -485,12 +485,12 @@ public class Njams implements InstructionListener {
                 sender.close();
             }
             if (receiver != null) {
-                receiver.removeAllInstructionListeners();
                 if (receiver instanceof ShareableReceiver) {
                     ((ShareableReceiver) receiver).removeReceiver(clientPath);
                 } else {
                     receiver.stop();
                 }
+                receiver.removeAllInstructionListeners();
             }
             started = false;
         } else {

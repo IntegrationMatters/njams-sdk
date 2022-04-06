@@ -139,7 +139,6 @@ public class KafkaReceiver extends AbstractReceiver {
      * This method tries to create a {@link CommandsConsumer}, which is a separate thread
      * for a consumer, constantly polling.
      *
-     * @param props the Properties that are used for connecting.
      * @throws NjamsSdkRuntimeException if any of the resources throws any exception.
      */
     private void tryToConnect() {
@@ -230,7 +229,7 @@ public class KafkaReceiver extends AbstractReceiver {
             return false;
         }
         final String receiver = getHeader(msg, NJAMS_RECEIVER);
-        if (StringUtils.isBlank(receiver) || instancePath.equals(new Path(receiver))) {
+        if (StringUtils.isBlank(receiver) || getInstancePath().equals(new Path(receiver))) {
             LOG.debug("Message is not for me!");
             return false;
         }

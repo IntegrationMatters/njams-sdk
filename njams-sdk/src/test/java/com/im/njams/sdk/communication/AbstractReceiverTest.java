@@ -27,7 +27,6 @@ import java.util.List;
 import java.util.Properties;
 
 import static org.junit.Assert.*;
-import static org.mockito.Mockito.when;
 
 /**
  * This class tests the AbstractReceiver methods.

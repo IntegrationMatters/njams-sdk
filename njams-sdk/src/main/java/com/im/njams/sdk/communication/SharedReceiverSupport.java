@@ -38,6 +38,12 @@ public class SharedReceiverSupport<R extends AbstractReceiver & ShareableReceive
         this.receiver = Objects.requireNonNull(receiver);
     }
 
+    /**
+     * Adds the given instance to this receiver for receiving instructions.
+     *
+     * @param clientPath The key for the instance to add
+     * @param receiver The receiver to add.
+     */
     public void addReceiver(Path clientPath, Receiver receiver) {
         synchronized (receiverInstances) {
             receiverInstances.put(clientPath, receiver);
@@ -87,7 +93,7 @@ public class SharedReceiverSupport<R extends AbstractReceiver & ShareableReceive
                 LOG.debug(
                         "Handling instruction {} with client(s) {}",
                         instruction.getCommand(),
-                        instances.stream().map(n -> n.getInstancePath().toString()).collect(Collectors.toList()));
+                        instances.stream().map(receiver -> receiver.getInstancePath().toString()).collect(Collectors.toList()));
             }
             if (instances.size() > 1) {
                 instances.parallelStream().forEach(i -> onInstruction(instruction, i));
@@ -157,8 +163,8 @@ public class SharedReceiverSupport<R extends AbstractReceiver & ShareableReceive
             return receiverInstances
                     .values()
                     .stream()
-                    .filter(n -> size < n.getInstancePath().getParts().size()
-                            && receiverPath.getParts().equals(n.getInstancePath().getParts().subList(0, size)))
+                    .filter(receiver -> size < receiver.getInstancePath().getParts().size()
+                            && receiverPath.getParts().equals(receiver.getInstancePath().getParts().subList(0, size)))
                             .collect(Collectors.toList());
         } catch (Exception e) {
             LOG.error("Failed to resolve instruction receiver.", e);

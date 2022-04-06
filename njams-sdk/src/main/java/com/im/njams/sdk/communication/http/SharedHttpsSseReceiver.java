@@ -45,14 +45,17 @@ public class SharedHttpsSseReceiver extends HttpsSseReceiver implements Shareabl
         mapper = JsonSerializerFactory.getDefaultMapper();
     }
 
-    @Override
-    public void removeReceiver(Path clientPath) {
-        sharingSupport.removeReceiver(clientPath);
-    }
-
+    /**
+     * Adds the given instance to this receiver for receiving instructions.
+     */
     @Override
     public void addReceiver(Path clientPath, Receiver receiver) {
         sharingSupport.addReceiver(clientPath, receiver);
+    }
+
+    @Override
+    public void removeReceiver(Path clientPath) {
+        sharingSupport.removeReceiver(clientPath);
     }
 
     @Override

@@ -43,14 +43,17 @@ public class SharedKafkaReceiver extends KafkaReceiver implements ShareableRecei
     private final SharedReceiverSupport<SharedKafkaReceiver, ConsumerRecord<?, ?>> sharingSupport =
             new SharedReceiverSupport<>(this);
 
-    @Override
-    public void removeReceiver(Path clientPath) {
-        sharingSupport.removeReceiver(clientPath);
-    }
-
+    /**
+     * Adds the given instance to this receiver for receiving instructions.
+     */
     @Override
     public void addReceiver(Path clientPath, Receiver receiver) {
         sharingSupport.addReceiver(clientPath, receiver);
+    }
+
+    @Override
+    public void removeReceiver(Path clientPath) {
+        sharingSupport.removeReceiver(clientPath);
     }
 
     @Override

@@ -62,6 +62,18 @@ public class SharedJmsReceiver extends JmsReceiver implements ShareableReceiver<
         return selector;
     }
 
+    /**
+     * Adds the given instance to this receiver for receiving instructions.
+     */
+    @Override
+    public void addReceiver(Path clientPath, Receiver receiver) {
+        sharingSupport.addReceiver(clientPath, receiver);
+        synchronized (this) {
+            messageSelector = createMessageSelector();
+            updateConsumer();
+        }
+    }
+
     @Override
     public void removeReceiver(Path clientPath) {
         if (sharingSupport.removeReceiver(clientPath)) {
@@ -69,15 +81,6 @@ public class SharedJmsReceiver extends JmsReceiver implements ShareableReceiver<
                 messageSelector = createMessageSelector();
                 updateConsumer();
             }
-        }
-    }
-
-    @Override
-    public void addReceiver(Path clientPath, Receiver receiver) {
-        sharingSupport.addReceiver(clientPath, receiver);
-        synchronized (this) {
-            messageSelector = createMessageSelector();
-            updateConsumer();
         }
     }
 

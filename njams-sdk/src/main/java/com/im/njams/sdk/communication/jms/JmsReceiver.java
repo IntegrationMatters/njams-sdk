@@ -104,12 +104,6 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
         }
     }
 
-    @Override
-    public void setInstancePath(Path path){
-        super.setInstancePath(path);
-        messageSelector = createMessageSelector();
-    }
-
     /**
      * This method creates a String that is used as a message selector.
      *
@@ -117,7 +111,7 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
      */
     protected String createMessageSelector() {
 
-        Path fullPath = new Path(instancePath.toString());
+        Path fullPath = new Path(getInstancePath().toString());
         Path path = null;
         StringBuilder selector = new StringBuilder();
         for (String part : fullPath.getParts()) {
@@ -291,6 +285,12 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
         MessageConsumer cons = sess.createConsumer(topic, messageSelector);
         cons.setMessageListener(this);
         return cons;
+    }
+
+    @Override
+    public void setInstancePath(Path path){
+        super.setInstancePath(path);
+        messageSelector = createMessageSelector();
     }
 
     /**

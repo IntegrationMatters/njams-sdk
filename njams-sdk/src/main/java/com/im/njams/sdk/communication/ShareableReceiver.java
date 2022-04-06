@@ -17,6 +17,7 @@
 package com.im.njams.sdk.communication;
 
 import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
+import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.common.Path;
 
 /**
@@ -28,9 +29,13 @@ import com.im.njams.sdk.common.Path;
  */
 public interface ShareableReceiver<M> extends Receiver {
 
-    public void removeReceiver(Path clientPath);
+    /**
+     * Stops the given {@link Receiver} instance from receiving messages from this receiver instance.
+     * @param clientPath The key for the {@link Receiver} instance to be removed.
+     */
+    void removeReceiver(Path clientPath);
 
-    public void addReceiver(Path clientPath, Receiver receiver);
+    void addReceiver(Path clientPath, Receiver receiver);
 
     /**
      * Has to extract the receiver instance (client) path, i.e., the path that matches a certain
@@ -39,14 +44,14 @@ public interface ShareableReceiver<M> extends Receiver {
      * @param instruction The instruction parsed from the received message
      * @return {@link Path} of the receiver client instance.
      */
-    public Path getReceiverPath(M requestMessage, Instruction instruction);
+    Path getReceiverPath(M requestMessage, Instruction instruction);
 
     /**
      * Sends the given reply message as response to the given request message.
      * @param requestMessage The raw message read from the transport API
      * @param reply The instruction parsed from the received message
      */
-    public void sendReply(M requestMessage, Instruction reply);
+    void sendReply(M requestMessage, Instruction reply);
 
     /**
      * Always throws an {@link UnsupportedOperationException}. This method is replaced by
@@ -55,7 +60,7 @@ public interface ShareableReceiver<M> extends Receiver {
      * @throws UnsupportedOperationException always
      */
     @Override
-    public default void onInstruction(Instruction instruction) {
+    default void onInstruction(Instruction instruction) {
         throw new UnsupportedOperationException();
     }
 }
