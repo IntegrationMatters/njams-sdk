@@ -21,6 +21,7 @@ import java.util.Properties;
 
 import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
 import com.im.njams.sdk.Njams;
+import com.im.njams.sdk.common.Path;
 import com.im.njams.sdk.utils.ClasspathValidator;
 
 /**
@@ -30,13 +31,6 @@ import com.im.njams.sdk.utils.ClasspathValidator;
  * @author pnientiedt
  */
 public interface Receiver extends ClasspathValidator {
-
-    /**
-     * Set njams instance
-     *
-     * @param njams instance
-     */
-    void setNjams(Njams njams);
 
     /**
      * The implementation should return its name here, by which it can be
@@ -80,4 +74,6 @@ public interface Receiver extends ClasspathValidator {
     void removeInstructionListener(InstructionListener listener);
 
     void removeAllInstructionListeners();
+
+    void setInstanceName(String instanceName);
 }

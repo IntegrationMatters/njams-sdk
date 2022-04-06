@@ -54,6 +54,7 @@ public abstract class AbstractReceiver implements Receiver {
     private static final AtomicBoolean hasConnected = new AtomicBoolean(false);
 
     private static final AtomicInteger connecting = new AtomicInteger(0);
+    private String instanceName;
 
     private AtomicInteger reconnectIntervalIncreasing = new AtomicInteger(RECONNECT_INTERVAL);
 
@@ -70,9 +71,12 @@ public abstract class AbstractReceiver implements Receiver {
      *
      * @param njams the instance that holds the instructionListeners.
      */
-    @Override
     public void setNjams(Njams njams) {
         this.njams = njams;
+    }
+
+    public void setInstanceName(String instanceName){
+        this.instanceName = instanceName;
     }
 
     @Override

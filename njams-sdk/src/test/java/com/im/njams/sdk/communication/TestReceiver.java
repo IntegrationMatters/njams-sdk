@@ -53,12 +53,7 @@ public class TestReceiver implements Receiver {
         return TestSender.getSettings();
     }
 
-    @Override
     public void setNjams(Njams njams) {
-        if (receiver != null) {
-            receiver.setNjams(njams);
-        }
-
     }
 
     @Override
@@ -118,6 +113,11 @@ public class TestReceiver implements Receiver {
 
     @Override
     public void removeAllInstructionListeners() {
+
+    }
+
+    @Override
+    public void setInstanceName(String instanceName) {
 
     }
 

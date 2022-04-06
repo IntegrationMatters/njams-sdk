@@ -77,7 +77,6 @@ public class CommunicationFactory {
             Class<? extends Receiver> type = findReceiverType(requiredReceiverName, shared);
             if (type != null) {
                 final Receiver newInstance = createReceiver(type, njams.getClientPath(), shared, requiredReceiverName);
-                newInstance.setNjams(njams);
 
                 return newInstance;
             } else {
@@ -132,6 +131,7 @@ public class CommunicationFactory {
                     }
                     LOG.debug("Creating shared receiver {}", clazz);
                     receiver = clazz.newInstance();
+                    receiver.setInstanceName(clientPath.toString());
                     receiver.validate();
                     sharedReceivers.put(clazz, (ShareableReceiver<?>) receiver);
                     receiver.init(properties);

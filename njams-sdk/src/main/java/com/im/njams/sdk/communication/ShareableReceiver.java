@@ -35,7 +35,6 @@ public interface ShareableReceiver<M> extends Receiver {
      */
     public void removeNjams(Njams njams);
 
-    @Override
     public void setNjams(Njams njams);
 
     /**
