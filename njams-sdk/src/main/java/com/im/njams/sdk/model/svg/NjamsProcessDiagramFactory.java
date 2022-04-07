@@ -83,7 +83,6 @@ public class NjamsProcessDiagramFactory implements ProcessDiagramFactory {
 
     boolean disableSecureProcessing = false;
 
-
     /**
      * Creates the objects securely.
      */

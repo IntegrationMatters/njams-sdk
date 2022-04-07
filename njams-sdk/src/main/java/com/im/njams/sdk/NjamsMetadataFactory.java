@@ -27,30 +27,11 @@ public class NjamsMetadataFactory {
 
     private static final org.slf4j.Logger LOG = LoggerFactory.getLogger(NjamsMetadataFactory.class);
 
-    private final Path clientPath;
-    private final String category;
-    private final String clientVersion;
-    private final String sdkVersion;
-    private final String machine;
-
     public static NjamsMetadata createMetadataFor(Path clientPath, String clientVersion, String sdkVersion, String category) {
-        NjamsMetadataFactory factory = new NjamsMetadataFactory(clientPath, clientVersion, sdkVersion, category);
-        return factory.create();
+        return new NjamsMetadata(clientPath, clientVersion, sdkVersion, readMachine(), category);
     }
 
-    private NjamsMetadataFactory(Path clientPath, String clientVersion, String sdkVersion, String category) {
-        this.clientPath = clientPath;
-        this.clientVersion = clientVersion;
-        this.sdkVersion = sdkVersion;
-        this.category = category == null ? null : category.toUpperCase();
-        this.machine = readMachine();
-    }
-
-    private NjamsMetadata create() {
-        return new NjamsMetadata(clientPath, clientVersion, sdkVersion, machine, category);
-    }
-
-    private String readMachine() {
+    private static String readMachine() {
         String machine = "unknown";
         try {
             machine = java.net.InetAddress.getLocalHost().getHostName();
