@@ -16,7 +16,7 @@
  */
 package com.im.njams.sdk.settings;
 
-import com.im.njams.sdk.Njams;
+import com.im.njams.sdk.communication.Receiver;
 import com.im.njams.sdk.settings.encoding.Transformer;
 import com.im.njams.sdk.utils.StringUtils;
 import org.slf4j.Logger;
@@ -82,9 +82,9 @@ public class Settings {
      */
     public static final String PROPERTY_DISCARD_POLICY = "njams.client.sdk.discardpolicy";
     /**
-     * If set to <code>true</code> communications (senders and receivers) will be shared accross multiple {@link Njams}
+     * If set to <code>true</code> communications (senders and receivers) will be shared accross multiple {@link Receiver}
      * instances if supported by the configured implementations. By default (or if set to <code>false</code>) each
-     * {@link Njams} instance uses a dedicated instance of sender and receiver pools.
+     * {@link Receiver} instance uses a dedicated instance of sender and receiver pools.
      */
     public static final String PROPERTY_SHARED_COMMUNICATIONS = "njams.client.sdk.sharedcommunications";
     /**
