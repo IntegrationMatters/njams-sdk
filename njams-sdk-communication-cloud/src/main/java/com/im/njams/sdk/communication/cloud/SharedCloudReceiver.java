@@ -21,7 +21,6 @@ import com.amazonaws.services.iot.client.AWSIotMessage;
 import com.amazonaws.services.iot.client.AWSIotQos;
 import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.common.Path;
 import com.im.njams.sdk.communication.ConnectionStatus;
@@ -35,7 +34,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Overrides the common {@link CloudReceiver} for supporting receiving messages for multiple {@link Njams} instances.
+ * Overrides the common {@link CloudReceiver} for supporting receiving messages for multiple {@link Receiver} instances.
  *
  *
  */
