@@ -47,7 +47,7 @@ public class CommunicationFactoryTest {
         firstReceiverIsFaulty_secondReceiverIsOk();
 
         final String NOT_NEEDED = null;
-        NjamsMetadata metadata = NjamsMetadataFactory.createMetaDataFor(new Path("CLIENT_PATH"), NOT_NEEDED, NOT_NEEDED, NOT_NEEDED);
+        NjamsMetadata metadata = NjamsMetadataFactory.createMetadataFor(new Path("CLIENT_PATH"), NOT_NEEDED, NOT_NEEDED, NOT_NEEDED);
         Receiver receiver = communicationFactory.getReceiver(metadata);
 
         verify(receivers.iterator(), times(2)).next();

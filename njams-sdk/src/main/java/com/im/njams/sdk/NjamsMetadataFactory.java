@@ -33,7 +33,7 @@ public class NjamsMetadataFactory {
     private final String sdkVersion;
     private final String machine;
 
-    public static NjamsMetadata createMetaDataFor(Path clientPath, String clientVersion, String sdkVersion, String category) {
+    public static NjamsMetadata createMetadataFor(Path clientPath, String clientVersion, String sdkVersion, String category) {
         NjamsMetadataFactory factory = new NjamsMetadataFactory(clientPath, clientVersion, sdkVersion, category);
         return factory.create();
     }

@@ -55,7 +55,7 @@ class JmsReceiverMock extends JmsReceiver {
         when(path.toString()).thenReturn("SDK4>TEST");
 
         final String NOT_NEEDED = null;
-        NjamsMetadata metadata = NjamsMetadataFactory.createMetaDataFor(path, NOT_NEEDED, NOT_NEEDED, NOT_NEEDED);
+        NjamsMetadata metadata = NjamsMetadataFactory.createMetadataFor(path, NOT_NEEDED, NOT_NEEDED, NOT_NEEDED);
         setInstanceMetadata(metadata);
     }
 

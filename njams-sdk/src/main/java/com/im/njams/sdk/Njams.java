@@ -274,7 +274,7 @@ public class Njams implements InstructionListener {
         loadConfigurationProvider();
         createTreeElements(path, TreeElementType.CLIENT);
         readVersions(version);
-        this.instanceMetadata = NjamsMetadataFactory.createMetaDataFor(path, versions.get(CLIENT_VERSION_KEY), versions.get(SDK_VERSION_KEY), category);
+        this.instanceMetadata = NjamsMetadataFactory.createMetadataFor(path, versions.get(CLIENT_VERSION_KEY), versions.get(SDK_VERSION_KEY), category);
         printStartupBanner();
     }
 
