@@ -26,6 +26,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
+import com.im.njams.sdk.NjamsMetadata;
+import com.im.njams.sdk.NjamsMetadataFactory;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -62,7 +64,7 @@ public class CleanTracepointsTaskTest extends AbstractTest {
         TestSender.setSenderMock(new SenderMock());
         njams.start();
         createDefaultActivity(createDefaultStartedJob());
-        FULLPROCESSPATHNAME = njams.getClientPath().add(PROCESSPATHNAME).toString();
+        FULLPROCESSPATHNAME = njams.getNjamsMetadata().clientPath.add(PROCESSPATHNAME).toString();
     }
 
     @BeforeClass
@@ -73,7 +75,8 @@ public class CleanTracepointsTaskTest extends AbstractTest {
     @Before
     public void testStopAll() {
         CleanTracepointsTask.getNjamsInstances().forEach(njams -> CleanTracepointsTask.stop(njams));
-        when(njamsMock.getClientPath()).thenReturn(new Path("A"));
+        NjamsMetadata metadata = NjamsMetadataFactory.createMetadataFor(new Path("A"), null, null, null);
+        when(njamsMock.getNjamsMetadata()).thenReturn(metadata);
     }
 
     @Test(expected = NjamsSdkRuntimeException.class)
@@ -87,7 +90,10 @@ public class CleanTracepointsTaskTest extends AbstractTest {
     public void testStartWithNullClientPathNjams() {
         assertTrue(CleanTracepointsTask.getNjamsInstances().isEmpty());
         assertNull(CleanTracepointsTask.getTimer());
-        when(njamsMock.getClientPath()).thenReturn(null);
+
+        NjamsMetadata metadata = NjamsMetadataFactory.createMetadataFor(null, null, null, null);
+        when(njamsMock.getNjamsMetadata()).thenReturn(metadata);
+
         CleanTracepointsTask.start(njamsMock);
     }
 
@@ -142,7 +148,9 @@ public class CleanTracepointsTaskTest extends AbstractTest {
     public void testStopWithNullClientPath() {
         assertTrue(CleanTracepointsTask.getNjamsInstances().isEmpty());
         assertNull(CleanTracepointsTask.getTimer());
-        when(njamsMock.getClientPath()).thenReturn(null);
+
+        NjamsMetadata metadata = NjamsMetadataFactory.createMetadataFor(null, null, null, null);
+        when(njamsMock.getNjamsMetadata()).thenReturn(metadata);
         CleanTracepointsTask.stop(njamsMock);
     }
 
@@ -242,9 +250,9 @@ public class CleanTracepointsTaskTest extends AbstractTest {
 
     private void checkTraceMessage(LocalDateTime ldt1, LocalDateTime ldt2) {
         assertEquals(message.getClientVersion(), CLIENTVERSION);
-        assertEquals(message.getSdkVersion(), njams.getSdkVersion());
+        assertEquals(message.getSdkVersion(), njams.getNjamsMetadata().sdkVersion);
         assertEquals(message.getCategory(), CATEGORY);
-        assertEquals(message.getPath(), njams.getClientPath().toString());
+        assertEquals(message.getPath(), njams.getNjamsMetadata().clientPath.toString());
 
         List<ProcessModel> processes = message.getProcesses();
         assertNotNull(processes);

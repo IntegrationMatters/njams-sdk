@@ -66,7 +66,7 @@ public class CleanTracepointsTask extends TimerTask {
         if (njams == null) {
             throw new NjamsSdkRuntimeException("Start: Njams is null");
         }
-        if (njams.getClientPath() == null) {
+        if (njams.getNjamsMetadata().clientPath == null) {
             throw new NjamsSdkRuntimeException("Start: Njams clientPath is null");
         }
         if (timer == null) {
@@ -74,7 +74,7 @@ public class CleanTracepointsTask extends TimerTask {
             timer.scheduleAtFixedRate(new CleanTracepointsTask(), DELAY, INTERVAL);
         }
 
-        njamsInstances.put(njams.getClientPath().toString(), njams);
+        njamsInstances.put(njams.getNjamsMetadata().clientPath.toString(), njams);
     }
 
     /**
@@ -105,10 +105,10 @@ public class CleanTracepointsTask extends TimerTask {
         if (njams == null) {
             throw new NjamsSdkRuntimeException("Stop: Njams is null");
         }
-        if (njams.getClientPath() == null) {
+        if (njams.getNjamsMetadata().clientPath == null) {
             throw new NjamsSdkRuntimeException("Stop: Njams clientPath is null");
         }
-        njamsInstances.remove(njams.getClientPath().toString());
+        njamsInstances.remove(njams.getNjamsMetadata().clientPath.toString());
         if (njamsInstances.size() <= 0 && timer != null) {
             timer.cancel();
             timer = null;

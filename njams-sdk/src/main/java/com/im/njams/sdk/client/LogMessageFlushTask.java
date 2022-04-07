@@ -56,7 +56,7 @@ public class LogMessageFlushTask extends TimerTask {
         if (njams == null) {
             throw new NjamsSdkRuntimeException("Start: Njams is null");
         }
-        if (njams.getClientPath() == null) {
+        if (njams.getNjamsMetadata().clientPath == null) {
             throw new NjamsSdkRuntimeException("Start: Njams clientPath is null");
         }
 
@@ -65,7 +65,7 @@ public class LogMessageFlushTask extends TimerTask {
             timer.scheduleAtFixedRate(new LogMessageFlushTask(), 1000, 1000);
         }
 
-        NJAMS_INSTANCES.put(njams.getClientPath().toString(), new LMFTEntry(njams));
+        NJAMS_INSTANCES.put(njams.getNjamsMetadata().clientPath.toString(), new LMFTEntry(njams));
     }
 
     /**
@@ -79,10 +79,10 @@ public class LogMessageFlushTask extends TimerTask {
         if (njams == null) {
             throw new NjamsSdkRuntimeException("Stop: Njams is null");
         }
-        if (njams.getClientPath() == null) {
+        if (njams.getNjamsMetadata().clientPath == null) {
             throw new NjamsSdkRuntimeException("Stop: Njams clientPath is null");
         }
-        LMFTEntry entry = NJAMS_INSTANCES.remove(njams.getClientPath().toString());
+        LMFTEntry entry = NJAMS_INSTANCES.remove(njams.getNjamsMetadata().clientPath.toString());
         if (entry != null) {
             Njams stoppingNjams = entry.getNjams();
             stoppingNjams.getJobs().forEach(job -> ((JobImpl) job).flush());

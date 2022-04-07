@@ -44,7 +44,7 @@ public class TraceMessageBuilderTest extends AbstractTest {
     private String FULLPROCESSPATHNAME;
 
     public TraceMessageBuilderTest(){
-        FULLPROCESSPATHNAME = njams.getClientPath().add(PROCESSPATHNAME).toString();
+        FULLPROCESSPATHNAME = njams.getNjamsMetadata().clientPath.add(PROCESSPATHNAME).toString();
     }
 
     @Test
@@ -83,9 +83,9 @@ public class TraceMessageBuilderTest extends AbstractTest {
 
     private void checkTraceMessage(TraceMessage message, LocalDateTime ldt1, LocalDateTime ldt2) {
         assertEquals(message.getClientVersion(), CLIENTVERSION);
-        assertEquals(message.getSdkVersion(), njams.getSdkVersion());
+        assertEquals(message.getSdkVersion(), njams.getNjamsMetadata().sdkVersion);
         assertEquals(message.getCategory(), CATEGORY);
-        assertEquals(message.getPath(), njams.getClientPath().toString());
+        assertEquals(message.getPath(), njams.getNjamsMetadata().clientPath.toString());
 
         List<ProcessModel> processes = message.getProcesses();
         assertNotNull(processes);

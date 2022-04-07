@@ -562,14 +562,14 @@ public class JobImpl implements Job {
         LogMessage logMessage = new LogMessage();
         logMessage.setBusinessEnd(businessEnd);
         logMessage.setBusinessStart(businessStart);
-        logMessage.setCategory(processModel.getNjams().getCategory());
+        logMessage.setCategory(processModel.getNjams().getNjamsMetadata().category);
         logMessage.setCorrelationLogId(correlationLogId);
         logMessage.setExternalLogId(externalLogId);
         logMessage.setJobEnd(endTime);
         logMessage.setJobId(jobId);
         logMessage.setJobStart(startTime);
         logMessage.setLogId(logId);
-        logMessage.setMachineName(processModel.getNjams().getMachine());
+        logMessage.setMachineName(processModel.getNjams().getNjamsMetadata().machine);
         logMessage.setMaxSeverity(maxSeverity.getValue());
         logMessage.setMessageNo(flushCounter.get());
         logMessage.setObjectName(businessObject);
@@ -578,8 +578,8 @@ public class JobImpl implements Job {
         logMessage.setProcessName(processModel.getName());
         logMessage.setStatus(getStatus().getValue());
         logMessage.setServiceName(businessService);
-        logMessage.setClientVersion(njams.getClientVersion());
-        logMessage.setSdkVersion(njams.getSdkVersion());
+        logMessage.setClientVersion(njams.getNjamsMetadata().clientVersion);
+        logMessage.setSdkVersion(njams.getNjamsMetadata().sdkVersion);
 
         pluginDataItems.forEach(i -> logMessage.addPluginDataItem(i));
         return logMessage;
