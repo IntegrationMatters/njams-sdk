@@ -272,11 +272,7 @@ public class Njams implements InstructionListener {
         treeElements = new ArrayList<>();
         startTime = DateTimeUtility.now();
         this.settings = settings;
-        if(shouldProcessDiagramsBeSecure()){
-            processDiagramFactory = NjamsProcessDiagramFactory.createSecureDiagramFactory();
-        }else{
-            processDiagramFactory = NjamsProcessDiagramFactory.createNotSecureDiagramFactory();
-        }
+        this.processDiagramFactory = createProcessDiagramFactory();
         processModelLayouter = new SimpleProcessModelLayouter();
         argosSender = ArgosSender.getInstance();
         argosSender.init(settings);
@@ -285,6 +281,16 @@ public class Njams implements InstructionListener {
         readVersions(version);
         this.instanceMetadata = NjamsMetadataFactory.createMetadataFor(path, versions.get(CLIENT_VERSION_KEY), versions.get(SDK_VERSION_KEY), category);
         printStartupBanner();
+    }
+
+    private ProcessDiagramFactory createProcessDiagramFactory() {
+        ProcessDiagramFactory factory;
+        if(shouldProcessDiagramsBeSecure()){
+            factory = NjamsProcessDiagramFactory.createSecureDiagramFactory();
+        }else{
+            factory = NjamsProcessDiagramFactory.createNotSecureDiagramFactory();
+        }
+        return factory;
     }
 
     private boolean shouldProcessDiagramsBeSecure(){
