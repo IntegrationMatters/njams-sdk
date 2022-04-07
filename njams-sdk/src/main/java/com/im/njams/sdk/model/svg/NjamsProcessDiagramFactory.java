@@ -16,13 +16,11 @@
  */
 package com.im.njams.sdk.model.svg;
 
-import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.model.ActivityModel;
 import com.im.njams.sdk.model.GroupModel;
 import com.im.njams.sdk.model.ProcessModel;
 import com.im.njams.sdk.model.TransitionModel;
-import com.im.njams.sdk.settings.Settings;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.w3c.dom.DOMImplementation;
@@ -80,29 +78,28 @@ public class NjamsProcessDiagramFactory implements ProcessDiagramFactory {
      */
     protected static final int DEFAULT_MARKER_SIZE = 10;
 
-    /**
-     * default secure processing
-     */
-    protected static final String DEFAULT_DISABLE_SECURE_PROCESSING = "false";
 
     private static final Logger LOG = LoggerFactory.getLogger(NjamsProcessDiagramFactory.class);
 
-    private Njams njams;
-    protected boolean disableSecureProcessing = false;
+    boolean disableSecureProcessing = false;
 
 
     /**
-     * Creates the objects by using the settings values of the Njams
-     * instance, or the defaults.
-     *
-     * @param njams Initialize this entry with this Njams
+     * Creates the objects securely.
      */
-    public NjamsProcessDiagramFactory(Njams njams) {
-        this.njams = njams;
-        disableSecureProcessing =
-            "true".equalsIgnoreCase(njams.getSettings().getProperty(
-                Settings.PROPERTY_DISABLE_SECURE_PROCESSING,
-                DEFAULT_DISABLE_SECURE_PROCESSING));
+    public static NjamsProcessDiagramFactory createSecureDiagramFactory(){
+        return new NjamsProcessDiagramFactory(false);
+    }
+
+    /**
+     * Creates the objects not securely.
+     */
+    public static NjamsProcessDiagramFactory createNotSecureDiagramFactory(){
+        return new NjamsProcessDiagramFactory(true);
+    }
+
+    private NjamsProcessDiagramFactory(boolean disableSecureProcessing) {
+        this.disableSecureProcessing = disableSecureProcessing;
         if (disableSecureProcessing) {
             LOG.debug("Disabled secure XML processing by configuration switch.");
         } else {
@@ -135,7 +132,7 @@ public class NjamsProcessDiagramFactory implements ProcessDiagramFactory {
             NjamsProcessDiagramContext context = new NjamsProcessDiagramContext();
             context.setSvgNS(svgNS);
             context.setDoc(doc);
-            context.setCategory(processModel.getNjams().getCategory());
+            context.setCategory(processModel.getNjams().getNjamsMetadata().category);
 
             createSvg(context, processModel);
 

@@ -255,6 +255,11 @@ public class Njams implements InstructionListener {
     private final Collection<ArgosMultiCollector<?>> argosCollectors = new ArrayList<>();
 
     /**
+     * default secure processing
+     */
+    private static final String DEFAULT_DISABLE_SECURE_PROCESSING = "false";
+
+    /**
      * Create a nJAMS client.
      *
      * @param path     the path in the tree
@@ -267,7 +272,11 @@ public class Njams implements InstructionListener {
         treeElements = new ArrayList<>();
         startTime = DateTimeUtility.now();
         this.settings = settings;
-        processDiagramFactory = new NjamsProcessDiagramFactory(this);
+        if(shouldProcessDiagramsBeSecure()){
+            processDiagramFactory = NjamsProcessDiagramFactory.createSecureDiagramFactory();
+        }else{
+            processDiagramFactory = NjamsProcessDiagramFactory.createNotSecureDiagramFactory();
+        }
         processModelLayouter = new SimpleProcessModelLayouter();
         argosSender = ArgosSender.getInstance();
         argosSender.init(settings);
@@ -276,6 +285,12 @@ public class Njams implements InstructionListener {
         readVersions(version);
         this.instanceMetadata = NjamsMetadataFactory.createMetadataFor(path, versions.get(CLIENT_VERSION_KEY), versions.get(SDK_VERSION_KEY), category);
         printStartupBanner();
+    }
+
+    private boolean shouldProcessDiagramsBeSecure(){
+        return !("true".equalsIgnoreCase(getSettings().getProperty(
+            Settings.PROPERTY_DISABLE_SECURE_PROCESSING,
+            DEFAULT_DISABLE_SECURE_PROCESSING)));
     }
 
     /**
