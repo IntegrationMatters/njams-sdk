@@ -16,12 +16,6 @@
  */
 package com.im.njams.sdk.communication.cloud;
 
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.amazonaws.services.iot.client.AWSIotException;
 import com.amazonaws.services.iot.client.AWSIotMessage;
 import com.amazonaws.services.iot.client.AWSIotQos;
@@ -31,8 +25,14 @@ import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.common.Path;
 import com.im.njams.sdk.communication.ConnectionStatus;
+import com.im.njams.sdk.communication.Receiver;
 import com.im.njams.sdk.communication.ShareableReceiver;
 import com.im.njams.sdk.communication.SharedReceiverSupport;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Overrides the common {@link CloudReceiver} for supporting receiving messages for multiple {@link Njams} instances.
@@ -50,18 +50,17 @@ public class SharedCloudReceiver extends CloudReceiver implements ShareableRecei
 
     /**
      * Adds the given instance to this receiver for receiving instructions.
-     *
      */
     @Override
-    public void setNjams(Njams njamsInstance) {
-        super.setNjams(null);
-        sharingSupport.addNjams(njamsInstance);
-        updateReceiver(njamsInstance);
+    public void addReceiver(Receiver receiver) {
+
+        sharingSupport.addReceiver(receiver);
+        updateReceiver(receiver);
     }
 
     @Override
-    public void removeNjams(Njams njamsInstance) {
-        sharingSupport.removeNjams(njamsInstance);
+    public void removeReceiver(Receiver receiver) {
+        sharingSupport.removeReceiver(receiver);
     }
 
     @Override
@@ -117,14 +116,14 @@ public class SharedCloudReceiver extends CloudReceiver implements ShareableRecei
         }
     }
 
-    private void updateReceiver(Njams njamsInstance) {
+    private void updateReceiver(Receiver receiver) {
 
         if (!isConnected()) {
             return;
         }
 
         try {
-            sendOnConnect(njamsInstance);
+            sendOnConnect(receiver);
         } catch (Exception e) {
             LOG.error("Failed to update receiver", e);
         }
@@ -132,14 +131,13 @@ public class SharedCloudReceiver extends CloudReceiver implements ShareableRecei
 
     @Override
     public void resendOnConnect() throws JsonProcessingException, AWSIotException {
-        for (Njams njams : sharingSupport.getAllNjamsInstances()) {
-            sendOnConnect(njams);
+        for (Receiver receiver : sharingSupport.getAllReceiverInstances()) {
+            sendOnConnect(receiver);
         }
     }
 
-    private void sendOnConnect(Njams njams) throws JsonProcessingException, AWSIotException {
-        sendOnConnectMessage(IS_SHARED, connectionId, instanceId, njams.getClientPath().toString(),
-                njams.getClientVersion(), njams.getSdkVersion(), njams.getMachine(), njams.getCategory());
+    private void sendOnConnect(Receiver receiver) throws JsonProcessingException, AWSIotException {
+        sendOnConnectMessage(IS_SHARED, connectionId, instanceId, receiver.getInstanceMetadata());
     }
 
     public void onInstruction(AWSIotMessage message, Instruction instruction) {
