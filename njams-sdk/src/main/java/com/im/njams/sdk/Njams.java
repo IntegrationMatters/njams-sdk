@@ -490,8 +490,8 @@ public class Njams implements InstructionListener {
                 } else {
                     receiver.stop();
                 }
-                receiver.removeAllInstructionListeners();
             }
+            receiver.removeAllInstructionListeners();
             started = false;
         } else {
             throw new NjamsSdkRuntimeException(NOT_STARTED_EXCEPTION_MESSAGE);

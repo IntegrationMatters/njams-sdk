@@ -27,6 +27,7 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 
+import com.im.njams.sdk.communication.TestReceiver;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -57,7 +58,9 @@ public class NjamsTest {
 
     @Before
     public void createNewInstance() {
-        instance = new Njams(new Path(), "", "", new Settings());
+        final Settings settings = new Settings();
+        settings.put(CommunicationFactory.COMMUNICATION, TestReceiver.NAME);
+        instance = new Njams(new Path(), "", "", settings);
     }
 
     @Test
