@@ -1,5 +1,7 @@
 package com.im.njams.sdk.communication;
 
+import com.im.njams.sdk.NjamsMetadata;
+import com.im.njams.sdk.NjamsMetadataFactory;
 import com.im.njams.sdk.common.Path;
 import com.im.njams.sdk.settings.Settings;
 import org.junit.Before;
@@ -44,7 +46,9 @@ public class CommunicationFactoryTest {
     public void returnsReceiver_evenIfServiceLoaderCantLoadThePreviousService() {
         firstReceiverIsFaulty_secondReceiverIsOk();
 
-        Receiver receiver = communicationFactory.getReceiver(new Path("CLIENT_PATH"));
+        final String NOT_NEEDED = null;
+        NjamsMetadata metadata = NjamsMetadataFactory.createMetaDataFor(new Path("CLIENT_PATH"), NOT_NEEDED, NOT_NEEDED, NOT_NEEDED);
+        Receiver receiver = communicationFactory.getReceiver(metadata);
 
         verify(receivers.iterator(), times(2)).next();
         assertNotNull(receiver);

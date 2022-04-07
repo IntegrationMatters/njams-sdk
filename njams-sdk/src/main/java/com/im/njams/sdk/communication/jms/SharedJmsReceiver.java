@@ -55,7 +55,8 @@ public class SharedJmsReceiver extends JmsReceiver implements ShareableReceiver<
         if (receiverInstances.isEmpty()) {
             return null;
         }
-        final String selector = receiverInstances.stream().map(Receiver::getInstancePath).map(Path::getAllPaths)
+        final String selector = receiverInstances.stream()
+                .map(receiver -> receiver.getInstanceMetadata().clientPath).map(Path::getAllPaths)
                 .flatMap(Collection::stream).collect(Collectors.toSet()).stream().map(Object::toString).sorted()
                 .collect(Collectors.joining("' OR NJAMS_RECEIVER = '", "NJAMS_RECEIVER = '", "'"));
         LOG.debug("Updated message selector: {}", selector);
@@ -66,8 +67,8 @@ public class SharedJmsReceiver extends JmsReceiver implements ShareableReceiver<
      * Adds the given instance to this receiver for receiving instructions.
      */
     @Override
-    public void addReceiver(Path clientPath, Receiver receiver) {
-        sharingSupport.addReceiver(clientPath, receiver);
+    public void addReceiver(Receiver receiver) {
+        sharingSupport.addReceiver(receiver);
         synchronized (this) {
             messageSelector = createMessageSelector();
             updateConsumer();
@@ -75,8 +76,8 @@ public class SharedJmsReceiver extends JmsReceiver implements ShareableReceiver<
     }
 
     @Override
-    public void removeReceiver(Path clientPath) {
-        if (sharingSupport.removeReceiver(clientPath)) {
+    public void removeReceiver(Receiver receiver) {
+        if (sharingSupport.removeReceiver(receiver)) {
             synchronized (this) {
                 messageSelector = createMessageSelector();
                 updateConsumer();

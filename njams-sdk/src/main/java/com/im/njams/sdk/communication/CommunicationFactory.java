@@ -16,7 +16,7 @@
  */
 package com.im.njams.sdk.communication;
 
-import com.im.njams.sdk.common.Path;
+import com.im.njams.sdk.NjamsMetadata;
 import com.im.njams.sdk.settings.Settings;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -65,17 +65,17 @@ public class CommunicationFactory {
      * Returns the Receiver specified by the value of {@value #COMMUNICATION}
      * specified in the CommunicationProperties in the Settings
      *
-     * @param clientPath The path of the client instance for that messages shall be received.
+     * @param metadata The metadata of the client instance for that messages shall be received.
      * @return new initialized Receiver
      */
-    public Receiver getReceiver(Path clientPath) {
+    public Receiver getReceiver(NjamsMetadata metadata) {
         if (settings.containsKey(COMMUNICATION)) {
             final String requiredReceiverName = settings.getProperty(COMMUNICATION);
             final boolean shared =
                     "true".equalsIgnoreCase(settings.getProperty(Settings.PROPERTY_SHARED_COMMUNICATIONS));
             Class<? extends Receiver> type = findReceiverType(requiredReceiverName, shared);
             if (type != null) {
-                final Receiver newInstance = createReceiver(type, clientPath, shared, requiredReceiverName);
+                final Receiver newInstance = createReceiver(type, metadata, shared, requiredReceiverName);
 
                 return newInstance;
             } else {
@@ -116,10 +116,10 @@ public class CommunicationFactory {
         return found == null ? null : found.getClass();
     }
 
-    private Receiver createReceiver(Class<? extends Receiver> clazz, Path clientPath, boolean shared, String name) {
+    private Receiver createReceiver(Class<? extends Receiver> clazz, NjamsMetadata metadata, boolean shared, String name) {
         try {
             Properties properties = settings.getAllProperties();
-            properties.setProperty(Settings.INTERNAL_PROPERTY_CLIENTPATH, clientPath.toString());
+            properties.setProperty(Settings.INTERNAL_PROPERTY_CLIENTPATH, metadata.clientPath.toString());
             Receiver receiver;
             if (shared && ShareableReceiver.class.isAssignableFrom(clazz)) {
                 synchronized (sharedReceivers) {
@@ -130,7 +130,7 @@ public class CommunicationFactory {
                     }
                     LOG.debug("Creating shared receiver {}", clazz);
                     receiver = clazz.newInstance();
-                    receiver.setInstancePath(clientPath);
+                    receiver.setInstanceMetadata(metadata);
                     receiver.validate();
                     sharedReceivers.put(clazz, (ShareableReceiver<?>) receiver);
                     receiver.init(properties);

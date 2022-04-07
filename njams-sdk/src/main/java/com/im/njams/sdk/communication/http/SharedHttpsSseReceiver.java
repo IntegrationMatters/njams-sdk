@@ -49,13 +49,13 @@ public class SharedHttpsSseReceiver extends HttpsSseReceiver implements Shareabl
      * Adds the given instance to this receiver for receiving instructions.
      */
     @Override
-    public void addReceiver(Path clientPath, Receiver receiver) {
-        sharingSupport.addReceiver(clientPath, receiver);
+    public void addReceiver(Receiver receiver) {
+        sharingSupport.addReceiver(receiver);
     }
 
     @Override
-    public void removeReceiver(Path clientPath) {
-        sharingSupport.removeReceiver(clientPath);
+    public void removeReceiver(Receiver receiver) {
+        sharingSupport.removeReceiver(receiver);
     }
 
     @Override

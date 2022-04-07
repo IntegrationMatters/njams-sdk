@@ -30,11 +30,11 @@ public interface ShareableReceiver<M> extends Receiver {
 
     /**
      * Stops the given {@link Receiver} instance from receiving messages from this receiver instance.
-     * @param clientPath The key for the {@link Receiver} instance to be removed.
+     * @param receiver The receiver instance to be removed.
      */
-    void removeReceiver(Path clientPath);
+    void removeReceiver(Receiver receiver);
 
-    void addReceiver(Path clientPath, Receiver receiver);
+    void addReceiver(Receiver receiver);
 
     /**
      * Has to extract the receiver instance (client) path, i.e., the path that matches a certain

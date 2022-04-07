@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.Properties;
 
 import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
+import com.im.njams.sdk.NjamsMetadata;
 import com.im.njams.sdk.common.Path;
 import com.im.njams.sdk.utils.ClasspathValidator;
 
@@ -74,7 +75,7 @@ public interface Receiver extends ClasspathValidator {
 
     void removeAllInstructionListeners();
 
-    void setInstancePath(Path instancePath);
+    void setInstanceMetadata(NjamsMetadata metadata);
 
-    Path getInstancePath();
+    NjamsMetadata getInstanceMetadata();
 }

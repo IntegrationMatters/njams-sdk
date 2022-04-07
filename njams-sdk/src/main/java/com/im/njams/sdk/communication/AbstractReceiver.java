@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import com.im.njams.sdk.NjamsMetadata;
 import com.im.njams.sdk.common.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -55,20 +56,20 @@ public abstract class AbstractReceiver implements Receiver {
 
     private static final AtomicInteger connecting = new AtomicInteger(0);
 
-    private Path instancePath;
-
     private AtomicInteger reconnectIntervalIncreasing = new AtomicInteger(RECONNECT_INTERVAL);
 
     private final List<InstructionListener> instructionListeners = new ArrayList<>();
 
+    private NjamsMetadata instanceMetaData;
+
     @Override
-    public void setInstancePath(Path instancePath){
-        this.instancePath = instancePath;
+    public void setInstanceMetadata(NjamsMetadata metadata){
+        this.instanceMetaData = metadata;
     }
 
     @Override
-    public Path getInstancePath(){
-        return instancePath;
+    public NjamsMetadata getInstanceMetadata(){
+        return this.instanceMetaData;
     }
 
     @Override

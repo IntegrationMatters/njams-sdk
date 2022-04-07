@@ -30,6 +30,8 @@ import javax.jms.Connection;
 import javax.jms.MessageConsumer;
 import javax.jms.Session;
 
+import com.im.njams.sdk.NjamsMetadata;
+import com.im.njams.sdk.NjamsMetadataFactory;
 import org.slf4j.LoggerFactory;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -51,7 +53,10 @@ class JmsReceiverMock extends JmsReceiver {
     public JmsReceiverMock() {
         Path path = mock(Path.class);
         when(path.toString()).thenReturn("SDK4>TEST");
-        setInstancePath(path);
+
+        final String NOT_NEEDED = null;
+        NjamsMetadata metadata = NjamsMetadataFactory.createMetaDataFor(path, NOT_NEEDED, NOT_NEEDED, NOT_NEEDED);
+        setInstanceMetadata(metadata);
     }
 
     //Getter

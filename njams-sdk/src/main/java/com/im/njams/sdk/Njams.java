@@ -37,8 +37,21 @@ import com.im.njams.sdk.client.LogMessageFlushTask;
 import com.im.njams.sdk.common.DateTimeUtility;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.common.Path;
-import com.im.njams.sdk.communication.*;
-import com.im.njams.sdk.configuration.*;
+import com.im.njams.sdk.communication.AbstractReplayHandler;
+import com.im.njams.sdk.communication.CommunicationFactory;
+import com.im.njams.sdk.communication.InstructionListener;
+import com.im.njams.sdk.communication.NjamsSender;
+import com.im.njams.sdk.communication.Receiver;
+import com.im.njams.sdk.communication.ReplayHandler;
+import com.im.njams.sdk.communication.ReplayRequest;
+import com.im.njams.sdk.communication.ReplayResponse;
+import com.im.njams.sdk.communication.Sender;
+import com.im.njams.sdk.communication.ShareableReceiver;
+import com.im.njams.sdk.configuration.Configuration;
+import com.im.njams.sdk.configuration.ConfigurationInstructionListener;
+import com.im.njams.sdk.configuration.ConfigurationProvider;
+import com.im.njams.sdk.configuration.ConfigurationProviderFactory;
+import com.im.njams.sdk.configuration.ProcessConfiguration;
 import com.im.njams.sdk.configuration.provider.FileConfigurationProvider;
 import com.im.njams.sdk.logmessage.DataMasking;
 import com.im.njams.sdk.logmessage.Job;
@@ -57,8 +70,19 @@ import org.slf4j.LoggerFactory;
 
 import java.net.URL;
 import java.time.LocalDateTime;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.Enumeration;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
+import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.stream.Collectors;
@@ -86,6 +110,7 @@ public class Njams implements InstructionListener {
     private static final String DEFAULT_TAXONOMY_PROCESS_ICON = "images/process.png";
 
     private static final String DEFAULT_CACHE_PROVIDER = FileConfigurationProvider.NAME;
+    private final NjamsMetadata instanceMetadata;
 
     /**
      * Defines the standard set of optional features that an nJAMS client may support.
@@ -176,8 +201,6 @@ public class Njams implements InstructionListener {
     private static final Serializer<Object> DEFAULT_SERIALIZER = new StringSerializer<>();
     private static final Serializer<Object> NO_SERIALIZER = o -> null;
 
-    private final String category;
-
     // Also used for synchronizing access to the project message resources:
     // process-models, images, global-variables, tree-elements
     // Path -> ProcessModel
@@ -190,9 +213,6 @@ public class Njams implements InstructionListener {
     private final Map<String, String> globalVariables = new HashMap<>();
 
     private final Map<String, String> versions = new HashMap<>();
-
-    // The path of the client
-    private final Path clientPath;
 
     // The settings of the client
     private final Settings settings;
@@ -224,7 +244,6 @@ public class Njams implements InstructionListener {
     private Receiver receiver;
 
     private Configuration configuration;
-    private String machine;
     private boolean started = false;
     private static final String NOT_STARTED_EXCEPTION_MESSAGE = "The instance needs to be started first!";
 
@@ -246,8 +265,6 @@ public class Njams implements InstructionListener {
      */
     public Njams(Path path, String version, String category, Settings settings) {
         treeElements = new ArrayList<>();
-        clientPath = path;
-        this.category = category == null ? null : category.toUpperCase();
         startTime = DateTimeUtility.now();
         this.settings = settings;
         processDiagramFactory = new NjamsProcessDiagramFactory(this);
@@ -257,8 +274,8 @@ public class Njams implements InstructionListener {
         loadConfigurationProvider();
         createTreeElements(path, TreeElementType.CLIENT);
         readVersions(version);
+        this.instanceMetadata = NjamsMetadataFactory.createMetaDataFor(path, versions.get(CLIENT_VERSION_KEY), versions.get(SDK_VERSION_KEY), category);
         printStartupBanner();
-        setMachine();
     }
 
     /**
@@ -304,9 +321,11 @@ public class Njams implements InstructionListener {
     /**
      * @return the category of the nJAMS client, which should describe the
      * technology
+     * @See getNjamsMetadata().category
      */
+    @Deprecated
     public String getCategory() {
-        return category;
+        return getNjamsMetadata().category;
     }
 
     /**
@@ -318,23 +337,33 @@ public class Njams implements InstructionListener {
 
     /**
      * @return the clientPath
+     * @See getNjamsMetadata().clientPath
      */
+    @Deprecated
     public Path getClientPath() {
-        return clientPath;
+        return getNjamsMetadata().clientPath;
+    }
+
+    public NjamsMetadata getNjamsMetadata(){
+        return instanceMetadata;
     }
 
     /**
      * @return the clientVersion
+     * @See getNjamsMetadata().clientVersion
      */
+    @Deprecated
     public String getClientVersion() {
-        return versions.get(CLIENT_VERSION_KEY);
+        return getNjamsMetadata().clientVersion;
     }
 
     /**
      * @return the sdkVersion
+     * @See getNjamsMetadata().sdkVersion
      */
+    @Deprecated
     public String getSdkVersion() {
-        return versions.get(SDK_VERSION_KEY);
+        return getNjamsMetadata().sdkVersion;
     }
 
     /**
@@ -416,10 +445,10 @@ public class Njams implements InstructionListener {
     public Sender getSender() {
         if (sender == null) {
             if ("true".equalsIgnoreCase(settings.getProperty(Settings.PROPERTY_SHARED_COMMUNICATIONS))) {
-                LOG.debug("Using shared sender pool for {}", getClientPath());
+                LOG.debug("Using shared sender pool for {}", getNjamsMetadata().clientPath);
                 sender = NjamsSender.takeSharedSender(settings);
             } else {
-                LOG.debug("Creating individual sender pool for {}", getClientPath());
+                LOG.debug("Creating individual sender pool for {}", getNjamsMetadata().clientPath);
                 sender = new NjamsSender(settings);
             }
         }
@@ -431,7 +460,7 @@ public class Njams implements InstructionListener {
      */
     private void startReceiver() {
         try {
-            receiver = new CommunicationFactory(settings).getReceiver(clientPath);
+            receiver = new CommunicationFactory(settings).getReceiver(getNjamsMetadata());
             receiver.addInstructionListener(this);
             receiver.addInstructionListener(new ConfigurationInstructionListener(getConfiguration()));
             receiver.start();
@@ -486,7 +515,7 @@ public class Njams implements InstructionListener {
             }
             if (receiver != null) {
                 if (receiver instanceof ShareableReceiver) {
-                    ((ShareableReceiver) receiver).removeReceiver(clientPath);
+                    ((ShareableReceiver) receiver).removeReceiver(receiver);
                 } else {
                     receiver.stop();
                 }
@@ -510,7 +539,7 @@ public class Njams implements InstructionListener {
             throw new NjamsSdkRuntimeException("ProcessModel not found for path " + path);
         }
 
-        final List<String> parts = Stream.of(getClientPath(), path).map(Path::getParts).flatMap(List::stream)
+        final List<String> parts = Stream.of(getNjamsMetadata().clientPath, path).map(Path::getParts).flatMap(List::stream)
             .collect(toList());
         synchronized (processModels) {
             final ProcessModel processModel = processModels.get(new Path(parts).toString());
@@ -528,7 +557,7 @@ public class Njams implements InstructionListener {
         if (path == null) {
             return false;
         }
-        final List<String> parts = Stream.of(getClientPath(), path).map(Path::getParts).flatMap(List::stream)
+        final List<String> parts = Stream.of(getNjamsMetadata().clientPath, path).map(Path::getParts).flatMap(List::stream)
             .collect(toList());
         synchronized (processModels) {
             final ProcessModel processModel = processModels.get(new Path(parts).toString());
@@ -575,7 +604,7 @@ public class Njams implements InstructionListener {
      * @return the new ProcessModel or a {@link NjamsSdkRuntimeException}
      */
     public ProcessModel createProcess(final Path path) {
-        final Path fullClientPath = path.addBase(clientPath);
+        final Path fullClientPath = path.addBase(getNjamsMetadata().clientPath);
         final ProcessModel model = new ProcessModel(fullClientPath, this);
         synchronized (processModels) {
             createTreeElements(fullClientPath, TreeElementType.PROCESS);
@@ -597,7 +626,7 @@ public class Njams implements InstructionListener {
         if (processModel.getNjams() != this) {
             throw new NjamsSdkRuntimeException("Process model has been created for a different nJAMS instance.");
         }
-        final List<String> clientParts = clientPath.getParts();
+        final List<String> clientParts = getNjamsMetadata().clientPath.getParts();
         final List<String> prefix = processModel.getPath().getParts().subList(0, clientParts.size());
         if (!clientParts.equals(prefix)) {
             throw new NjamsSdkRuntimeException("Process model path does not match this nJAMS instance.");
@@ -617,12 +646,12 @@ public class Njams implements InstructionListener {
         final ProjectMessage msg = new ProjectMessage();
         setStarters();
         msg.getTreeElements().addAll(treeElements);
-        msg.setPath(clientPath.toString());
-        msg.setClientVersion(versions.get(CLIENT_VERSION_KEY));
-        msg.setSdkVersion(versions.get(SDK_VERSION_KEY));
-        msg.setCategory(getCategory());
+        msg.setPath(getNjamsMetadata().clientPath.toString());
+        msg.setClientVersion(getNjamsMetadata().clientVersion);
+        msg.setSdkVersion(getNjamsMetadata().sdkVersion);
+        msg.setCategory(getNjamsMetadata().category);
         msg.setStartTime(startTime);
-        msg.setMachine(getMachine());
+        msg.setMachine(getNjamsMetadata().machine);
         msg.setFeatures(features);
         msg.setLogMode(configuration.getLogMode());
         synchronized (processModels) {
@@ -741,16 +770,16 @@ public class Njams implements InstructionListener {
             throw new NjamsSdkRuntimeException("Njams is not started. Please use createProcess Method instead");
         }
         final ProjectMessage msg = new ProjectMessage();
-        msg.setPath(clientPath.toString());
-        msg.setClientVersion(versions.get(CLIENT_VERSION_KEY));
-        msg.setSdkVersion(versions.get(SDK_VERSION_KEY));
-        msg.setCategory(getCategory());
+        msg.setPath(getNjamsMetadata().clientPath.toString());
+        msg.setClientVersion(getNjamsMetadata().clientVersion);
+        msg.setSdkVersion(getNjamsMetadata().sdkVersion);
+        msg.setCategory(getNjamsMetadata().category);
         msg.setStartTime(startTime);
-        msg.setMachine(getMachine());
+        msg.setMachine(getNjamsMetadata().machine);
         msg.setFeatures(features);
         msg.setLogMode(configuration.getLogMode());
 
-        addTreeElements(msg.getTreeElements(), getClientPath(), TreeElementType.CLIENT, false);
+        addTreeElements(msg.getTreeElements(), getNjamsMetadata().clientPath, TreeElementType.CLIENT, false);
         addTreeElements(msg.getTreeElements(), model.getPath(), TreeElementType.PROCESS, model.isStarter());
 
         msg.getProcesses().add(model.getSerializableProcessModel());
@@ -794,7 +823,7 @@ public class Njams implements InstructionListener {
     @Override
     public int hashCode() {
         int hash = 5;
-        hash = 83 * hash + Objects.hashCode(clientPath);
+        hash = 83 * hash + Objects.hashCode(getNjamsMetadata().clientPath);
         return hash;
     }
 
@@ -810,7 +839,7 @@ public class Njams implements InstructionListener {
             return false;
         }
         final Njams other = (Njams) obj;
-        return Objects.equals(clientPath, other.clientPath);
+        return Objects.equals(getNjamsMetadata().clientPath, other.getNjamsMetadata().clientPath);
     }
 
     /**
@@ -967,11 +996,11 @@ public class Njams implements InstructionListener {
         response.setResultCode(0);
         response.setResultMessage("Pong");
         final Map<String, String> params = response.getParameters();
-        params.put("clientPath", clientPath.toString());
-        params.put("clientVersion", getClientVersion());
-        params.put("sdkVersion", getSdkVersion());
-        params.put("category", getCategory());
-        params.put("machine", getMachine());
+        params.put("clientPath", getNjamsMetadata().clientPath.toString());
+        params.put("clientVersion", getNjamsMetadata().clientVersion);
+        params.put("sdkVersion", getNjamsMetadata().sdkVersion);
+        params.put("category", getNjamsMetadata().category);
+        params.put("machine", getNjamsMetadata().machine);
         params.put("features", features.stream().collect(Collectors.joining(",")));
         return response;
     }
@@ -1133,18 +1162,6 @@ public class Njams implements InstructionListener {
     }
 
     /**
-     * Set the machine name
-     */
-    private void setMachine() {
-        try {
-            machine = java.net.InetAddress.getLocalHost().getHostName();
-        } catch (Exception e) {
-            LOG.debug("Error getting machine name", e);
-            machine = "unknown";
-        }
-    }
-
-    /**
      * @return LogMode of this client
      */
     public LogMode getLogMode() {
@@ -1160,9 +1177,11 @@ public class Njams implements InstructionListener {
 
     /**
      * @return the machine name
+     * @See getNjamsMetadata().machine
      */
+    @Deprecated
     public String getMachine() {
-        return machine;
+        return getNjamsMetadata().machine;
     }
 
     /**
