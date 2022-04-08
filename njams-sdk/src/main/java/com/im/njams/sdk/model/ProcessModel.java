@@ -24,6 +24,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.im.njams.sdk.NjamsMetadata;
 import com.im.njams.sdk.logmessage.JobUtils;
 import com.im.njams.sdk.settings.Settings;
 import org.slf4j.Logger;
@@ -506,5 +507,9 @@ public class ProcessModel {
         final String useDeprecatedPathFieldForSubprocesses = processModelUtils.settings
             .getProperty(Settings.PROPERTY_USE_DEPRECATED_PATH_FIELD_FOR_SUBPROCESSES);
         return useDeprecatedPathFieldForSubprocesses != null && "true".equalsIgnoreCase(useDeprecatedPathFieldForSubprocesses);
+    }
+
+    public NjamsMetadata getNjamsMetadata() {
+        return processModelUtils.instanceMetaData;
     }
 }

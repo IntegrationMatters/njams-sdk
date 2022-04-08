@@ -241,7 +241,7 @@ public class Njams implements InstructionListener{
         if (!settings.containsKey(ConfigurationProviderFactory.CONFIGURATION_PROVIDER)) {
             settings.put(ConfigurationProviderFactory.CONFIGURATION_PROVIDER, DEFAULT_CACHE_PROVIDER);
         }
-        ConfigurationProvider configurationProvider = new ConfigurationProviderFactory(settings, this)
+        ConfigurationProvider configurationProvider = new ConfigurationProviderFactory(settings)
             .getConfigurationProvider();
         configuration = new Configuration();
         configuration.setConfigurationProvider(configurationProvider);
@@ -553,7 +553,7 @@ public class Njams implements InstructionListener{
         if (processModel == null) {
             return;
         }
-        if (processModel.getNjams() != this) {
+        if (processModel.getNjamsMetadata().equals(instanceMetadata)) {
             throw new NjamsSdkRuntimeException("Process model has been created for a different nJAMS instance.");
         }
         final List<String> clientParts = getNjamsMetadata().clientPath.getParts();
