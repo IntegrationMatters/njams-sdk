@@ -24,15 +24,11 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import com.im.njams.sdk.NjamsMetadata;
-import com.im.njams.sdk.configuration.Configuration;
 import com.im.njams.sdk.logmessage.JobUtils;
-import com.im.njams.sdk.model.layout.ProcessModelLayouter;
 import com.im.njams.sdk.settings.Settings;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.common.IdUtil;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.common.Path;
@@ -129,15 +125,6 @@ public class ProcessModel {
 
         return internalProcessModel;
     }
-
-    /**
-     *
-     * @return Njams
-     */
-    public Njams getNjams() {
-        return null;
-    }
-
 
     public String getCategory(){
         return processModelUtils.instanceMetaData.category;

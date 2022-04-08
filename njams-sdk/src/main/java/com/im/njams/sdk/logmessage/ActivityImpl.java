@@ -25,7 +25,6 @@ import java.util.Objects;
 
 import javax.xml.bind.annotation.XmlTransient;
 
-import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.NjamsSerializers;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

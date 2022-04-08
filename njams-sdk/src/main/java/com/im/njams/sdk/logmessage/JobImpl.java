@@ -35,8 +35,6 @@ import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import com.im.njams.sdk.NjamsMetadata;
-import com.im.njams.sdk.communication.Sender;
 import org.slf4j.LoggerFactory;
 
 import com.faizsiegeln.njams.messageformat.v4.logmessage.ActivityStatus;
@@ -44,12 +42,10 @@ import com.faizsiegeln.njams.messageformat.v4.logmessage.LogMessage;
 import com.faizsiegeln.njams.messageformat.v4.logmessage.PluginDataItem;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.LogLevel;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.LogMode;
-import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.common.DateTimeUtility;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.common.Path;
 import com.im.njams.sdk.configuration.ActivityConfiguration;
-import com.im.njams.sdk.configuration.Configuration;
 import com.im.njams.sdk.configuration.ProcessConfiguration;
 import com.im.njams.sdk.configuration.TracepointExt;
 import com.im.njams.sdk.model.ActivityModel;
