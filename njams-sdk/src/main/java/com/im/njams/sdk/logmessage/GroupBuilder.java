@@ -19,6 +19,7 @@ package com.im.njams.sdk.logmessage;
 import java.time.LocalDateTime;
 
 import com.faizsiegeln.njams.messageformat.v4.logmessage.ActivityStatus;
+import com.im.njams.sdk.NjamsSerializers;
 import com.im.njams.sdk.model.GroupModel;
 import com.im.njams.sdk.model.TransitionModel;
 
@@ -31,8 +32,8 @@ import com.im.njams.sdk.model.TransitionModel;
  */
 public class GroupBuilder extends ActivityBuilder {
 
-    GroupBuilder(JobImpl job, GroupModel model) {
-        super(new GroupImpl(job, model));
+    GroupBuilder(JobImpl job, GroupModel model, NjamsSerializers njamsSerializers) {
+        super(new GroupImpl(job, model, njamsSerializers));
         getActivity().setSequence(job.getNextSequence());
     }
 

@@ -28,6 +28,7 @@ import java.util.LinkedList;
 import java.util.List;
 
 import com.im.njams.sdk.communication.TestReceiver;
+import com.im.njams.sdk.model.ProcessModelUtils;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -38,9 +39,6 @@ import com.faizsiegeln.njams.messageformat.v4.command.Response;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.common.Path;
 import com.im.njams.sdk.communication.CommunicationFactory;
-import com.im.njams.sdk.communication.ReplayHandler;
-import com.im.njams.sdk.communication.ReplayRequest;
-import com.im.njams.sdk.communication.ReplayResponse;
 import com.im.njams.sdk.communication.TestSender;
 import com.im.njams.sdk.logmessage.DataMasking;
 import com.im.njams.sdk.logmessage.Job;
@@ -68,30 +66,41 @@ public class NjamsTest {
         System.out.println("addSerializer");
         final Serializer<List> expResult = l -> "list";
 
-        instance.getSerializers().add(ArrayList.class, a -> a.getClass().getSimpleName());
-        instance.getSerializers().add(List.class, expResult);
+        instance.getNjamsSerializers().add(ArrayList.class, a -> a.getClass().getSimpleName());
+        instance.getNjamsSerializers().add(List.class, expResult);
 
         String serialized;
 
         // found ArrayList serializer
-        serialized = instance.getSerializers().serialize(new ArrayList<>());
+        serialized = instance.getNjamsSerializers().serialize(new ArrayList<>());
         assertNotNull(serialized);
         assertEquals("ArrayList", serialized);
 
         // found default string serializer
-        serialized = instance.getSerializers().serialize(new HashMap<>());
+        serialized = instance.getNjamsSerializers().serialize(new HashMap<>());
         assertNotNull(serialized);
         assertEquals("{}", serialized);
 
         // found list serializer
-        serialized = instance.getSerializers().serialize(new LinkedList<>());
+        serialized = instance.getNjamsSerializers().serialize(new LinkedList<>());
         assertNotNull(serialized);
         assertEquals("list", serialized);
     }
 
     @Test(expected = NjamsSdkRuntimeException.class)
-    public void testAddJobWithoutStart() {
-        ProcessModel model = new ProcessModel(new Path("PROCESSES"), instance);
+    public void testCreateJobWithoutStart_throwsAnError() {
+        ProcessModelUtils utils = new ProcessModelUtils(new NjamsJobs(new NjamsState(), new NjamsFeatures()), null, null, null, new Settings(), null, null, null);
+        ProcessModel model = new ProcessModel(new Path("PROCESSES"), utils);
+        //This should throw an NjamsSdkRuntimeException
+        Job job = model.createJob();
+    }
+
+    @Test
+    public void testAddJobAfterStart() {
+        final NjamsState njamsState = new NjamsState();
+        njamsState.start();
+        ProcessModelUtils utils = new ProcessModelUtils(new NjamsJobs(njamsState, new NjamsFeatures()), null, null, null, new Settings(), null, null, null);
+        ProcessModel model = new ProcessModel(new Path("PROCESSES"), utils);
         //This should throw an NjamsSdkRuntimeException
         Job job = model.createJob();
     }

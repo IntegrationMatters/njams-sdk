@@ -161,6 +161,10 @@ public class JobImplTest extends AbstractTest {
         final Settings settings = new Settings();
         settings.put(CommunicationFactory.COMMUNICATION, TestReceiver.NAME);
         Njams mockedNjams = spy(new Njams(clientPath, "1.0.0", "sdk4", settings));
+
+        NjamsSender sender = mock(NjamsSender.class);
+        when(mockedNjams.getSender()).thenReturn(sender);
+
         Path processPath = new Path("PROCESSES");
         mockedNjams.createProcess(processPath);
         mockedNjams.start();
@@ -171,8 +175,6 @@ public class JobImplTest extends AbstractTest {
         process.createActivity("id", "name", null);
 
         //Inject or own sender.send() method to get the masked logmessage
-        NjamsSender sender = mock(NjamsSender.class);
-        when(mockedNjams.getSender()).thenReturn(sender);
         doAnswer((Answer<Object>) (InvocationOnMock invocation) -> {
             msg = (LogMessage) invocation.getArguments()[0];
             return null;

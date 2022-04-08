@@ -23,16 +23,13 @@ import static org.junit.Assert.assertThat;
 import static org.mockito.Matchers.anyObject;
 import static org.mockito.Mockito.doAnswer;
 
-import com.fasterxml.jackson.databind.ser.Serializers;
 import com.im.njams.sdk.NjamsSerializers;
 import org.junit.After;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mockito.Mockito;
 
-import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.model.ActivityModel;
-import com.im.njams.sdk.model.ProcessModel;
 
 import java.util.Properties;
 
@@ -43,19 +40,14 @@ import java.util.Properties;
 public class DataMaskingTest {
 
     private static JobImpl JOB = Mockito.mock(JobImpl.class);
-    private static ProcessModel MODEL = Mockito.mock(ProcessModel.class);
-    private static Njams NJAMS = Mockito.mock(Njams.class);
     private static NjamsSerializers SERIALIZERS = Mockito.mock(NjamsSerializers.class);
     private static ActivityImpl IMPL = null;
 
     @BeforeClass
     public static void mockFields() {
         doAnswer(invocation -> true).when(JOB).isDeepTrace();
-        doAnswer(invocation -> NJAMS).when(MODEL).getNjams();
-        doAnswer(invocation -> NJAMS).when(JOB).getNjams();
-        doAnswer(invocation -> SERIALIZERS).when(NJAMS).getSerializers();
         doAnswer(invocation -> invocation.getArguments()[0]).when(SERIALIZERS).serialize(anyObject());
-        IMPL = new ActivityImpl(JOB, Mockito.mock(ActivityModel.class));
+        IMPL = new ActivityImpl(JOB, Mockito.mock(ActivityModel.class), SERIALIZERS);
         IMPL.start();
     }
 
@@ -65,7 +57,7 @@ public class DataMaskingTest {
     }
 
     @Test
-    public void testString() throws Exception {
+    public void testString() {
         DataMasking.addPattern("test");
 
         IMPL.processInput("this is a test");
@@ -76,7 +68,7 @@ public class DataMaskingTest {
     }
 
     @Test
-    public void testRegExWithMaskingEverything() throws Exception {
+    public void testRegExWithMaskingEverything() {
         DataMasking.addPattern(".*");
 
         IMPL.processInput("This is a test");
@@ -84,7 +76,7 @@ public class DataMaskingTest {
     }
 
     @Test
-    public void testRegExWithMaskingIBAN() throws Exception {
+    public void testRegExWithMaskingIBAN() {
         DataMasking.addPattern("IBAN: \\p{Alpha}\\p{Alpha}\\p{Digit}+");
 
         IMPL.processInput("IBAN: DE1542346541531");
@@ -102,7 +94,7 @@ public class DataMaskingTest {
     }
 
     @Test
-    public void testXmlField() throws Exception {
+    public void testXmlField() {
         DataMasking.addPattern("<requesturi>(\\p{Alpha}|/|\\p{Digit})*</requesturi>");
         IMPL.processInput("<requesturi>/DateServlet/DateServlet</requesturi>");
         assertThat(IMPL.getInput(), not("<requesturi>/DateServlet/DateServlet</requesturi>"));

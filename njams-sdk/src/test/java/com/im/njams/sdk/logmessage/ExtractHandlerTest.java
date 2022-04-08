@@ -26,8 +26,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.im.njams.sdk.NjamsSerializers;
 import org.junit.After;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -61,6 +63,7 @@ public class ExtractHandlerTest {
     private Extract extract = mock(Extract.class);
 
     private static Njams njams;
+    private NjamsSerializers serializers;
 
     /**
      * This configures an Njams object to work on.
@@ -107,6 +110,11 @@ public class ExtractHandlerTest {
         DataMasking.removePatterns();
     }
 
+    @Before
+    public void setUp() throws Exception {
+        this.serializers = new NjamsSerializers();
+    }
+
     /**
      * This method tests if the ExtractHandler handles extracts even if there is
      * no sourcedata but a custom attribute.
@@ -119,7 +127,7 @@ public class ExtractHandlerTest {
         ActivityImpl impl = testExtract(ACTIVITYNAME, RuleType.VALUE, TESTVALUE);
         JobImpl job = (JobImpl) impl.getJob();
 
-        ExtractHandler.handleExtract(job, extract, impl, ExtractSource.INPUT, null, null);
+        ExtractHandler.handleExtract(job, extract, impl, ExtractSource.INPUT, null, null, null);
         Assert.assertNotNull(impl.getAttributes().get(TESTKEY));
         Assert.assertEquals(TESTVALUE, impl.getAttributes().get(TESTKEY));
     }
@@ -183,7 +191,7 @@ public class ExtractHandlerTest {
         ActivityImpl impl = testExtract(ACTIVITYNAME, RuleType.VALUE, TESTVALUE);
         JobImpl job = (JobImpl) impl.getJob();
 
-        ExtractHandler.handleExtract(job, extract, impl, ExtractSource.INPUT, null, null);
+        ExtractHandler.handleExtract(job, extract, impl, ExtractSource.INPUT, null, null, null);
         Assert.assertNotNull(impl.getAttributes().get(TESTKEY));
         Assert.assertEquals("********", impl.getAttributes().get(TESTKEY));
     }
@@ -199,7 +207,7 @@ public class ExtractHandlerTest {
         ActivityImpl impl = testExtract(ACTIVITYNAME, RuleType.REGEXP, EXTRACTPATTERN);
         JobImpl job = (JobImpl) impl.getJob();
 
-        ExtractHandler.handleExtract(job, extract, impl, ExtractSource.INPUT, "ABC" + TESTVALUE, null);
+        ExtractHandler.handleExtract(job, extract, impl, ExtractSource.INPUT, "ABC" + TESTVALUE, null, serializers);
         Assert.assertNotNull(impl.getAttributes().get(TESTKEY));
         Assert.assertEquals("ABCTest", impl.getAttributes().get(TESTKEY));
     }
@@ -219,7 +227,7 @@ public class ExtractHandlerTest {
         ActivityImpl impl = testExtract(ACTIVITYNAME, RuleType.REGEXP, EXTRACTPATTERN);
         JobImpl job = (JobImpl) impl.getJob();
 
-        ExtractHandler.handleExtract(job, extract, impl, ExtractSource.INPUT, "ABC" + TESTVALUE, null);
+        ExtractHandler.handleExtract(job, extract, impl, ExtractSource.INPUT, "ABC" + TESTVALUE, null, serializers);
         Assert.assertNotNull(impl.getAttributes().get(TESTKEY));
         Assert.assertEquals("ABC****Rule", impl.getAttributes().get(TESTKEY));
     }

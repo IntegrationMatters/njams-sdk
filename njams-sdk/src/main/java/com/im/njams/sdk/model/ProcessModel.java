@@ -26,6 +26,7 @@ import java.util.Map;
 
 import com.im.njams.sdk.NjamsMetadata;
 import com.im.njams.sdk.configuration.Configuration;
+import com.im.njams.sdk.logmessage.JobUtils;
 import com.im.njams.sdk.model.layout.ProcessModelLayouter;
 import com.im.njams.sdk.settings.Settings;
 import org.slf4j.Logger;
@@ -54,15 +55,10 @@ public class ProcessModel {
     // Currently known ActivityModels mapped by modelId
     private final Map<String, ActivityModel> activities = new LinkedHashMap<>();
     private final Map<String, ActivityModel> startActivities = new LinkedHashMap<>();
-    private final Njams njams;
 
     // Currently known TransitionModels mapped by modelId
     private final Map<String, TransitionModel> transitions = new LinkedHashMap<>();
-    private final Configuration configuration;
-    private final ProcessModelLayouter processModelLayouter;
-    private final ProcessDiagramFactory processDiagramFactory;
-    private final NjamsMetadata instanceMetaData;
-    private final Settings settings;
+    private final ProcessModelUtils processModelUtils;
 
     private boolean starter;
 
@@ -77,16 +73,11 @@ public class ProcessModel {
      * Create a new ProcessModel to Path and connect it to the given Njams
      *
      * @param path Path for this ProcessModel
-     * @param njams Njams for this ProcessModel
+     * @param processModelUtils ProcessModelUtilities for layouting, creating svgs etc.
      */
-    public ProcessModel(final Path path, final Njams njams) {
+    public ProcessModel(final Path path, ProcessModelUtils processModelUtils) {
         this.path = path;
-        this.njams = njams;
-        this.configuration = njams.getConfiguration();
-        this.processModelLayouter = njams.getProcessModelLayouter();
-        this.processDiagramFactory = njams.getProcessDiagramFactory();
-        this.instanceMetaData = njams.getNjamsMetadata();
-        this.settings = njams.getSettings();
+        this.processModelUtils = processModelUtils;
     }
 
     /**
@@ -104,7 +95,7 @@ public class ProcessModel {
         internalProcessModel.setName(path.getObjectName());
 
         // set configuration data
-        ProcessConfiguration processConfiguration = configuration.getProcess(path.toString());
+        ProcessConfiguration processConfiguration = processModelUtils.configuration.getProcess(path.toString());
         if (processConfiguration != null) {
             internalProcessModel.setLogLevel(processConfiguration.getLogLevel());
             internalProcessModel.setExclude(processConfiguration.isExclude());
@@ -124,9 +115,9 @@ public class ProcessModel {
             // process SVG
             if (svg == null) {
                 // create process layout
-                processModelLayouter.layout(this);
+                processModelUtils.processModelLayouter.layout(this);
                 // build SVG
-                svg = processDiagramFactory.getProcessDiagram(this);
+                svg = processModelUtils.processDiagramFactory.getProcessDiagram(this);
             }
             internalProcessModel.setSvg(svg);
             internalProcessModel.setSvgStatus(ProcessDiagramFactory.SUCCESS_STATUS);
@@ -144,12 +135,12 @@ public class ProcessModel {
      * @return Njams
      */
     public Njams getNjams() {
-        return njams;
+        return null;
     }
 
 
     public String getCategory(){
-        return instanceMetaData.category;
+        return processModelUtils.instanceMetaData.category;
     }
 
     /**
@@ -427,8 +418,10 @@ public class ProcessModel {
      * @return the {@link Job}
      */
     public Job createJobWithExplicitLogId(String jobId, String logId){
-        Job job = new JobImpl(this, jobId, logId);
-        njams.addJob(job);
+        JobUtils jobUtils = new JobUtils(processModelUtils.njamsJobs, processModelUtils.instanceMetaData, processModelUtils.njamsSerializers,
+            processModelUtils.configuration, processModelUtils.settings, processModelUtils.sender);
+        Job job = new JobImpl(this, jobId, logId, jobUtils);
+        processModelUtils.njamsJobs.add(job);
         return job;
     }
 
@@ -523,7 +516,7 @@ public class ProcessModel {
     }
 
     public boolean shouldDeprecatedPathFieldForSubprocessesBeUsed() {
-        final String useDeprecatedPathFieldForSubprocesses = settings
+        final String useDeprecatedPathFieldForSubprocesses = processModelUtils.settings
             .getProperty(Settings.PROPERTY_USE_DEPRECATED_PATH_FIELD_FOR_SUBPROCESSES);
         return useDeprecatedPathFieldForSubprocesses != null && "true".equalsIgnoreCase(useDeprecatedPathFieldForSubprocesses);
     }

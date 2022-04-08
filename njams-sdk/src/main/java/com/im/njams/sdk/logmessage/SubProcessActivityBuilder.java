@@ -19,6 +19,7 @@ package com.im.njams.sdk.logmessage;
 import java.time.LocalDateTime;
 
 import com.faizsiegeln.njams.messageformat.v4.logmessage.ActivityStatus;
+import com.im.njams.sdk.NjamsSerializers;
 import com.im.njams.sdk.model.ProcessModel;
 import com.im.njams.sdk.model.SubProcessActivityModel;
 import com.im.njams.sdk.model.TransitionModel;
@@ -30,8 +31,8 @@ import com.im.njams.sdk.model.TransitionModel;
  */
 public class SubProcessActivityBuilder extends GroupBuilder {
 
-    SubProcessActivityBuilder(JobImpl job, SubProcessActivityModel model) {
-        super(new SubProcessActivityImpl(job, model));
+    SubProcessActivityBuilder(JobImpl job, SubProcessActivityModel model, NjamsSerializers njamsSerializers) {
+        super(new SubProcessActivityImpl(job, model, njamsSerializers));
         getActivity().setSequence(job.getNextSequence());
     }
 

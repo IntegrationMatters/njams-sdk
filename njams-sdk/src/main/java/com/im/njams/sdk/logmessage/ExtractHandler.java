@@ -22,7 +22,7 @@ import com.faizsiegeln.njams.messageformat.v4.projectmessage.ExtractRule;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.RuleType;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.im.njams.sdk.Njams;
+import com.im.njams.sdk.NjamsSerializers;
 import com.im.njams.sdk.configuration.ActivityConfiguration;
 import com.im.njams.sdk.model.ActivityModel;
 import com.im.njams.sdk.utils.StringUtils;
@@ -104,7 +104,7 @@ public class ExtractHandler {
      * @param data            The serialized data object on that the extract is being evaluated.
      */
     public static void handleExtract(JobImpl job, ActivityImpl activity, ExtractSource sourceDirection,
-                                     Object sourceData, String data) {
+                                     Object sourceData, String data, NjamsSerializers serializers) {
         ActivityConfiguration config = null;
         ActivityModel model = activity.getActivityModel();
         config = job.getActivityConfiguration(model);
@@ -112,7 +112,7 @@ public class ExtractHandler {
         if (config == null) {
             return;
         }
-        handleExtract(job, config.getExtract(), activity, sourceDirection, sourceData, data);
+        handleExtract(job, config.getExtract(), activity, sourceDirection, sourceData, data, serializers);
     }
 
     /**
@@ -128,7 +128,7 @@ public class ExtractHandler {
      * @param data            The serialized data object on that the extract is being evaluated.
      */
     public static void handleExtract(JobImpl job, Extract extract, ActivityImpl activity,
-                                     ExtractSource sourceDirection, Object sourceData, String data) {
+                                     ExtractSource sourceDirection, Object sourceData, String data, NjamsSerializers serializers) {
         if (extract == null) {
             return;
         }
@@ -144,11 +144,9 @@ public class ExtractHandler {
                 LOG.debug("nJAMS: after execution - rule: " + er.getRule());
             }
 
-            Njams njams = job.getNjams();
-
             switch (er.getRuleType()) {
                 case REGEXP:
-                    doRegexp(job, activity, er, sourceData, data, njams);
+                    doRegexp(job, activity, er, sourceData, data, serializers);
                     break;
                 case EVENT:
                     doEvent(job, activity, er);
@@ -157,10 +155,10 @@ public class ExtractHandler {
                     doValue(job, activity, er);
                     break;
                 case XPATH:
-                    doXpath(job, activity, er, sourceData, data, njams);
+                    doXpath(job, activity, er, sourceData, data, serializers);
                     break;
                 case JMESPATH:
-                    doJmespath(job, activity, er, sourceData, data, njams);
+                    doJmespath(job, activity, er, sourceData, data, serializers);
                     break;
                 default:
                     break;
@@ -169,10 +167,10 @@ public class ExtractHandler {
     }
 
     private static void
-    doRegexp(JobImpl job, ActivityImpl activity, ExtractRule er, Object sourceData, String paramData, Njams njams) {
+    doRegexp(JobImpl job, ActivityImpl activity, ExtractRule er, Object sourceData, String paramData, NjamsSerializers serializers) {
         String data = paramData;
         if (paramData == null || paramData.length() == 0) {
-            data = njams.getSerializers().serialize(sourceData);
+            data = serializers.serialize(sourceData);
             if (data == null || data.length() == 0) {
                 return;
             }
@@ -324,10 +322,10 @@ public class ExtractHandler {
     }
 
     private static void doJmespath(JobImpl job, ActivityImpl activity, ExtractRule er, Object sourceData,
-                                   String paramData, Njams njams) {
+                                   String paramData, NjamsSerializers serializers) {
         String data = paramData;
         if (paramData == null || paramData.length() == 0) {
-            data = njams.getSerializers().serialize(sourceData);
+            data = serializers.serialize(sourceData);
             if (data == null || data.length() == 0) {
                 return;
             }
@@ -352,10 +350,10 @@ public class ExtractHandler {
     }
 
     private static void doXpath(JobImpl job, ActivityImpl activity, ExtractRule er, Object sourceData,
-                                String paramData, Njams njams) {
+                                String paramData, NjamsSerializers serializers) {
         String data = paramData;
         if (paramData == null || paramData.length() == 0) {
-            data = njams.getSerializers().serialize(sourceData);
+            data = serializers.serialize(sourceData);
             if (data == null || data.length() == 0) {
                 return;
             }

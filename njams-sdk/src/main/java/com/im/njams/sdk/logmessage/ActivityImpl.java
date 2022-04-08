@@ -26,6 +26,7 @@ import java.util.Objects;
 import javax.xml.bind.annotation.XmlTransient;
 
 import com.im.njams.sdk.Njams;
+import com.im.njams.sdk.NjamsSerializers;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -62,7 +63,7 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
     private final JobImpl job;
     private final ActivityModel activityModel;
     private final Extract extract;
-    private final Njams njams;
+    protected final NjamsSerializers njamsSerializers;
     private boolean starter = false;
     private GroupImpl parent = null;
     private final boolean traceEnabled;
@@ -74,9 +75,9 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
     private boolean inputProcessecd = false;
     private boolean outputProcessed = false;
 
-    public ActivityImpl(JobImpl job, ActivityModel model) {
+    public ActivityImpl(JobImpl job, ActivityModel model, NjamsSerializers njamsSerializers) {
         this.job = job;
-        this.njams = job.getNjams();
+        this.njamsSerializers = njamsSerializers;
         activityModel = Objects.requireNonNull(model);
         setModelId(model.getId());
         ActivityConfiguration activityConfig = job.getActivityConfiguration(activityModel);
@@ -137,7 +138,7 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
         final ActivityBuilder builder;
         if (toActivity == null || !Objects.equals(toActivity.getIteration(), getIteration())
                 || toActivity.getParent() != getParent()) {
-            builder = new ActivityBuilder(job, toActivityModel);
+            builder = new ActivityBuilder(job, toActivityModel, njamsSerializers);
         } else {
             builder = new ActivityBuilder(toActivity);
         }
@@ -191,7 +192,7 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
         final GroupBuilder builder;
         if (toGroup == null || !Objects.equals(toGroup.getIteration(), getIteration())
                 || toGroup.getParent() != getParent()) {
-            builder = new GroupBuilder(job, toGroupModel);
+            builder = new GroupBuilder(job, toGroupModel, njamsSerializers);
         } else {
             builder = new GroupBuilder(toGroup);
         }
@@ -238,7 +239,7 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
         }
 
         if (extract != null) {
-            ExtractHandler.handleExtract(job, extract, this, ExtractSource.INPUT, input, getInput());
+            ExtractHandler.handleExtract(job, extract, this, ExtractSource.INPUT, input, getInput(), njamsSerializers);
         }
 
         inputProcessecd = true;
@@ -289,7 +290,7 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
             }
         }
         if (extract != null) {
-            ExtractHandler.handleExtract(job, extract, this, ExtractSource.OUTPUT, output, getOutput());
+            ExtractHandler.handleExtract(job, extract, this, ExtractSource.OUTPUT, output, getOutput(), njamsSerializers);
         }
 
         outputProcessed = true;
@@ -305,9 +306,9 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
         if (data != null && isTracing()) {
             // if there is any data to handle add trace data
             if (input) {
-                setInput(njams.getSerializers().serialize(data));
+                setInput(njamsSerializers.serialize(data));
             } else {
-                setOutput(njams.getSerializers().serialize(data));
+                setOutput(njamsSerializers.serialize(data));
             }
             setExecutionIfNotSet();
             job.setTraces(true);
@@ -363,7 +364,7 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
         final SubProcessActivityBuilder builder;
         if (toSubProcess == null || !Objects.equals(toSubProcess.getIteration(), getIteration())
                 || toSubProcess.getParent() != getParent()) {
-            builder = new SubProcessActivityBuilder(job, toSubProcessModel);
+            builder = new SubProcessActivityBuilder(job, toSubProcessModel, njamsSerializers);
         } else {
             builder = new SubProcessActivityBuilder(toSubProcess);
         }
@@ -474,7 +475,7 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
     @Override
     public void processStartData(Object startData) {
         if (job.isRecording()) {
-            setStartData(njams.getSerializers().serialize(startData));
+            setStartData(njamsSerializers.serialize(startData));
         }
     }
 

@@ -20,6 +20,7 @@ import java.time.LocalDateTime;
 
 import com.faizsiegeln.njams.messageformat.v4.logmessage.ActivityStatus;
 import com.faizsiegeln.njams.messageformat.v4.logmessage.Predecessor;
+import com.im.njams.sdk.NjamsSerializers;
 import com.im.njams.sdk.common.IdUtil;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.model.ActivityModel;
@@ -37,8 +38,8 @@ public class ActivityBuilder {
     //The activity which will be build by this builder
     private final ActivityImpl activity;
 
-    ActivityBuilder(JobImpl job, ActivityModel model) {
-        activity = new ActivityImpl(job, model);
+    ActivityBuilder(JobImpl job, ActivityModel model, NjamsSerializers njamsSerializers) {
+        activity = new ActivityImpl(job, model, njamsSerializers);
         activity.setSequence(job.getNextSequence());
     }
 

@@ -2,7 +2,6 @@ package com.im.njams.sdk.logmessage;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -11,34 +10,27 @@ import java.util.Random;
 import org.junit.Before;
 import org.junit.Test;
 
-import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.model.ProcessModel;
 import com.im.njams.sdk.settings.Settings;
 
 public class TruncatingTest {
 
-    private JobImpl job = null;
     private final Random random = new Random();
     private ProcessModel processModel = null;
-    private int limit = 10;
-    private boolean truncateOnSuccess = false;
+    private Settings settings;
 
     @Before
     public void setup() {
         processModel = mock(ProcessModel.class);
-        Njams njams = mock(Njams.class);
-        when(processModel.getNjams()).thenReturn(njams);
-        Settings settings = mock(Settings.class);
-        when(njams.getSettings()).thenReturn(settings);
-        when(settings.getProperty(eq(JobImpl.TRUNCATE_LIMIT))).then(i -> String.valueOf(limit));
-        when(settings.getProperty(eq(JobImpl.TRUNCATE_ON_SUCCESS))).then(i -> String.valueOf(truncateOnSuccess));
-        job = null;
+        settings = new Settings();
     }
 
-    private void init(int limit, boolean onSuccess) {
-        this.limit = limit;
-        truncateOnSuccess = onSuccess;
-        job = new JobImpl(processModel, "4711", "4812");
+    private JobImpl buildJobImpl(int limit, boolean onSuccess) {
+        settings.put(JobImpl.TRUNCATE_LIMIT, String.valueOf(limit));
+        settings.put(JobImpl.TRUNCATE_ON_SUCCESS, String.valueOf(onSuccess));
+
+        JobUtils jobUtils = new JobUtils(null, null, null, null, settings, null);
+        return new JobImpl(processModel, "4711", "4812", jobUtils);
     }
 
     private Activity activity() {
@@ -56,7 +48,7 @@ public class TruncatingTest {
 
     @Test
     public void testLimit10() {
-        init(10, false);
+        JobImpl job = buildJobImpl(10, false);
         assertTrue(job.checkTruncating(activity(), false));
         assertTrue(job.checkTruncating(activity(), false));
         assertTrue(job.checkTruncating(activity(), false));
@@ -85,7 +77,7 @@ public class TruncatingTest {
 
     @Test
     public void testLimit10_2() {
-        init(10, false);
+        JobImpl job = buildJobImpl(10, false);
         assertTrue(job.checkTruncating(activity(), false));
         assertTrue(job.checkTruncating(activity(), false));
         assertTrue(job.checkTruncating(activity(), false));
@@ -129,7 +121,7 @@ public class TruncatingTest {
 
     @Test
     public void testAllEvents() {
-        init(5, false);
+        JobImpl job = buildJobImpl(5, false);
         assertTrue(job.checkTruncating(event(), false));
         assertTrue(job.checkTruncating(event(), false));
         assertTrue(job.checkTruncating(event(), false));
@@ -142,7 +134,7 @@ public class TruncatingTest {
 
     @Test
     public void testDisabled() {
-        init(0, false);
+        JobImpl job = buildJobImpl(0, false);
         assertTrue(job.checkTruncating(activity(), false));
         assertTrue(job.checkTruncating(activity(), false));
         assertTrue(job.checkTruncating(activity(), false));
@@ -177,7 +169,7 @@ public class TruncatingTest {
 
     @Test
     public void testOnSuccess() {
-        init(10, true);
+        JobImpl job = buildJobImpl(10, true);
         assertTrue(job.checkTruncating(activity(), false));
         assertTrue(job.checkTruncating(activity(), false));
         assertTrue(job.checkTruncating(activity(), false));
@@ -199,7 +191,7 @@ public class TruncatingTest {
 
     @Test
     public void testOnSuccess2() {
-        init(10, true);
+        JobImpl job = buildJobImpl(10, true);
         assertTrue(job.checkTruncating(activity(), false));
         assertTrue(job.checkTruncating(activity(), false));
         assertTrue(job.checkTruncating(activity(), false));

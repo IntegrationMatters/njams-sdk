@@ -16,6 +16,7 @@
  */
 package com.im.njams.sdk.logmessage;
 
+import com.im.njams.sdk.NjamsSerializers;
 import com.im.njams.sdk.model.ProcessModel;
 import com.im.njams.sdk.model.SubProcessActivityModel;
 
@@ -26,8 +27,8 @@ import com.im.njams.sdk.model.SubProcessActivityModel;
  */
 public class SubProcessActivityImpl extends GroupImpl implements SubProcessActivity {
 
-    public SubProcessActivityImpl(JobImpl job, SubProcessActivityModel model) {
-        super(job, model);
+    public SubProcessActivityImpl(JobImpl job, SubProcessActivityModel model, NjamsSerializers njamsSerializers) {
+        super(job, model, njamsSerializers);
     }
 
     /**
@@ -37,8 +38,8 @@ public class SubProcessActivityImpl extends GroupImpl implements SubProcessActiv
      * @param job Job which contains this SubProcessActivityImpl
      * @param model The activity model for this instance.
      */
-    public SubProcessActivityImpl(ProcessModel subProcess, JobImpl job, SubProcessActivityModel model) {
-        super(job, model);
+    public SubProcessActivityImpl(ProcessModel subProcess, JobImpl job, SubProcessActivityModel model, NjamsSerializers njamsSerializers) {
+        super(job, model, njamsSerializers);
         setSubProcess(new com.faizsiegeln.njams.messageformat.v4.common.SubProcess(subProcess.getName(), subProcess
                 .getPath().toString(), null));
     }

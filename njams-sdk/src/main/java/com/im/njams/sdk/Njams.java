@@ -53,6 +53,7 @@ import com.im.njams.sdk.configuration.provider.FileConfigurationProvider;
 import com.im.njams.sdk.logmessage.DataMasking;
 import com.im.njams.sdk.logmessage.Job;
 import com.im.njams.sdk.model.ProcessModel;
+import com.im.njams.sdk.model.ProcessModelUtils;
 import com.im.njams.sdk.model.image.ImageSupplier;
 import com.im.njams.sdk.model.image.ResourceImageSupplier;
 import com.im.njams.sdk.model.layout.ProcessModelLayouter;
@@ -191,6 +192,7 @@ public class Njams implements InstructionListener{
         argosSender = ArgosSender.getInstance();
         argosSender.init(settings);
         loadConfigurationProvider();
+        loadConfiguration();
         createTreeElements(path, TreeElementType.CLIENT);
         readVersions(version);
         this.instanceMetadata = NjamsMetadataFactory.createMetadataFor(path, versions.get(CLIENT_VERSION_KEY), versions.get(SDK_VERSION_KEY), category);
@@ -417,7 +419,6 @@ public class Njams implements InstructionListener{
             if (settings == null) {
                 throw new NjamsSdkRuntimeException("Settings not set");
             }
-            loadConfiguration();
             initializeDataMasking();
             startReceiver();
             LogMessageFlushTask.start(this);
@@ -533,7 +534,8 @@ public class Njams implements InstructionListener{
      */
     public ProcessModel createProcess(final Path path) {
         final Path fullClientPath = path.addBase(getNjamsMetadata().clientPath);
-        final ProcessModel model = new ProcessModel(fullClientPath, this);
+        ProcessModelUtils processModelUtils = new ProcessModelUtils(getNjamsJobs(), getNjamsMetadata(), getNjamsSerializers(), getConfiguration(), getSettings(), getProcessDiagramFactory(), getProcessModelLayouter(), getSender());
+        final ProcessModel model = new ProcessModel(fullClientPath, processModelUtils);
         synchronized (processModels) {
             createTreeElements(fullClientPath, TreeElementType.PROCESS);
             processModels.put(fullClientPath.toString(), model);
@@ -900,12 +902,12 @@ public class Njams implements InstructionListener{
         return response;
     }
 
-    public NjamsSerializers getSerializers(){
+    public NjamsSerializers getNjamsSerializers(){
         return serializers;
     }
 
     /**
-     * @See getSerializers().addSerializer(...)
+     * @See getNjamsSerializers().addSerializer(...)
      */
     @Deprecated
     public <T> Serializer<T> addSerializer(final Class<T> key, final Serializer<? super T> serializer) {
@@ -913,7 +915,7 @@ public class Njams implements InstructionListener{
     }
 
     /**
-     * @See getSerializers().removeSerializer(...)
+     * @See getNjamsSerializers().removeSerializer(...)
      */
     @Deprecated
     public <T> Serializer<T> removeSerializer(final Class<T> key) {
@@ -921,7 +923,7 @@ public class Njams implements InstructionListener{
     }
 
     /**
-     * @See getSerializers().getSerializer(...)
+     * @See getNjamsSerializers().getSerializer(...)
      */
     @Deprecated
     public <T> Serializer<T> getSerializer(final Class<T> key) {
@@ -929,7 +931,7 @@ public class Njams implements InstructionListener{
     }
 
     /**
-     * @See getSerializers().serialize(...)
+     * @See getNjamsSerializers().serialize(...)
      */
     @Deprecated
     public <T> String serialize(final T t) {
@@ -937,7 +939,7 @@ public class Njams implements InstructionListener{
     }
 
     /**
-     * @See getSerializers().findSerializer(...)
+     * @See getNjamsSerializers().findSerializer(...)
      */
     @Deprecated
     public <T> Serializer<? super T> findSerializer(final Class<T> clazz) {

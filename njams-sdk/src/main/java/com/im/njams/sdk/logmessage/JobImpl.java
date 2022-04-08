@@ -86,11 +86,7 @@ public class JobImpl implements Job {
 
     private final String logId;
 
-    private final Njams njams;
-    private final Settings settings;
-    private final NjamsMetadata instanceMetaData;
-    private final Configuration configuration;
-    private final Sender sender;
+    private final JobUtils jobUtils;
     /*
      * the latest status of the job, set by any event
      */
@@ -201,12 +197,8 @@ public class JobImpl implements Job {
      * @param jobId of Job to create
      * @param logId of Job to create
      */
-    public JobImpl(ProcessModel processModel, String jobId, String logId) {
-        njams = processModel.getNjams();
-        settings = njams.getSettings();
-        instanceMetaData = njams.getNjamsMetadata();
-        configuration = njams.getConfiguration();
-        sender = njams.getSender();
+    public JobImpl(ProcessModel processModel, String jobId, String logId, JobUtils jobUtils) {
+        this.jobUtils = jobUtils;
         this.jobId = jobId;
         this.logId = logId;
         correlationLogId = logId;
@@ -222,8 +214,8 @@ public class JobImpl implements Job {
         //will be set to true.
         startTime = DateTimeUtility.now();
         startTimeExplicitlySet = false;
-        allErrors = "true".equalsIgnoreCase(settings.getProperty(LOG_ALL_ERRORS));
-        truncateOnSuccess = "true".equalsIgnoreCase(settings.getProperty(TRUNCATE_ON_SUCCESS));
+        allErrors = "true".equalsIgnoreCase(jobUtils.settings.getProperty(LOG_ALL_ERRORS));
+        truncateOnSuccess = "true".equalsIgnoreCase(jobUtils.settings.getProperty(TRUNCATE_ON_SUCCESS));
         truncateLimit = getTruncateLimit();
 
     }
@@ -231,7 +223,7 @@ public class JobImpl implements Job {
     private int getTruncateLimit() {
         String s = null;
         try {
-            s = settings.getProperty(TRUNCATE_LIMIT);
+            s = jobUtils.settings.getProperty(TRUNCATE_LIMIT);
             if (StringUtils.isBlank(s)) {
                 return Integer.MAX_VALUE;
             }
@@ -248,18 +240,18 @@ public class JobImpl implements Job {
      * activityConfigurations.
      */
     private void initFromConfiguration(ProcessModel processModel) {
-        if (configuration == null) {
+        if (jobUtils.configuration == null) {
             LOG.error("Unable to set LogMode, LogLevel and Exclude for {}, configuration is null",
                     processModel.getPath());
             return;
         }
-        logMode = configuration.getLogMode();
+        logMode = jobUtils.configuration.getLogMode();
         LOG.debug("Set LogMode for {} to {}", processModel.getPath(), logMode);
 
-        recording = configuration.isRecording();
+        recording = jobUtils.configuration.isRecording();
         LOG.debug("Set recording for {} to {} based on client settings", processModel.getPath(), recording);
 
-        ProcessConfiguration process = configuration.getProcess(processModel.getPath().toString());
+        ProcessConfiguration process = jobUtils.configuration.getProcess(processModel.getPath().toString());
         if (process != null) {
             logLevel = process.getLogLevel();
             LOG.debug("Set LogLevel for {} to {}", processModel.getPath(), logLevel);
@@ -267,7 +259,7 @@ public class JobImpl implements Job {
             LOG.debug("Set Exclude for {} to {}", processModel.getPath(), exclude);
             recording = process.isRecording();
             LOG.debug("Set recording for {} to {} based on process settings {} and client setting {}",
-                    processModel.getPath(), recording, process.isRecording(), configuration.isRecording());
+                    processModel.getPath(), recording, process.isRecording(), jobUtils.configuration.isRecording());
         }
         if (recording) {
             addAttribute("$njams_recorded", "true");
@@ -288,7 +280,7 @@ public class JobImpl implements Job {
         if (activityModel instanceof SubProcessActivityModel) {
             return createSubProcess((SubProcessActivityModel) activityModel);
         }
-        return new ActivityBuilder(this, activityModel);
+        return new ActivityBuilder(this, activityModel, jobUtils.njamsSerializers);
     }
 
     /**
@@ -299,7 +291,7 @@ public class JobImpl implements Job {
      */
     @Override
     public GroupBuilder createGroup(GroupModel groupModel) {
-        return new GroupBuilder(this, groupModel);
+        return new GroupBuilder(this, groupModel, jobUtils.njamsSerializers);
     }
 
     /**
@@ -310,7 +302,7 @@ public class JobImpl implements Job {
      */
     @Override
     public SubProcessActivityBuilder createSubProcess(SubProcessActivityModel groupModel) {
-        return new SubProcessActivityBuilder(this, groupModel);
+        return new SubProcessActivityBuilder(this, groupModel, jobUtils.njamsSerializers);
     }
 
     /**
@@ -496,7 +488,7 @@ public class JobImpl implements Job {
                 LogMessage logMessage = createLogMessage();
                 addToLogMessageAndCleanup(logMessage);
                 logMessage.setSentAt(lastFlush);
-                sender.send(logMessage);
+                jobUtils.sender.send(logMessage);
                 // clean up jobImpl
                 pluginDataItems.clear();
                 calculateEstimatedSize();
@@ -573,14 +565,14 @@ public class JobImpl implements Job {
         LogMessage logMessage = new LogMessage();
         logMessage.setBusinessEnd(businessEnd);
         logMessage.setBusinessStart(businessStart);
-        logMessage.setCategory(instanceMetaData.category);
+        logMessage.setCategory(jobUtils.instanceMetaData.category);
         logMessage.setCorrelationLogId(correlationLogId);
         logMessage.setExternalLogId(externalLogId);
         logMessage.setJobEnd(endTime);
         logMessage.setJobId(jobId);
         logMessage.setJobStart(startTime);
         logMessage.setLogId(logId);
-        logMessage.setMachineName(instanceMetaData.machine);
+        logMessage.setMachineName(jobUtils.instanceMetaData.machine);
         logMessage.setMaxSeverity(maxSeverity.getValue());
         logMessage.setMessageNo(flushCounter.get());
         logMessage.setObjectName(businessObject);
@@ -589,8 +581,8 @@ public class JobImpl implements Job {
         logMessage.setProcessName(processModel.getName());
         logMessage.setStatus(getStatus().getValue());
         logMessage.setServiceName(businessService);
-        logMessage.setClientVersion(instanceMetaData.clientVersion);
-        logMessage.setSdkVersion(instanceMetaData.sdkVersion);
+        logMessage.setClientVersion(jobUtils.instanceMetaData.clientVersion);
+        logMessage.setSdkVersion(jobUtils.instanceMetaData.sdkVersion);
 
         pluginDataItems.forEach(i -> logMessage.addPluginDataItem(i));
         return logMessage;
@@ -725,7 +717,7 @@ public class JobImpl implements Job {
                 LOG.warn("Job has been finished before it started.");
             }
             finished = true;
-            njams.removeJob(getJobId());
+            jobUtils.njamsJobs.remove(getJobId());
             flush();
         }
     }
@@ -1283,10 +1275,10 @@ public class JobImpl implements Job {
         if (processModel == null) {
             return null;
         }
-        if (configuration == null) {
+        if (jobUtils.configuration == null) {
             return null;
         }
-        ProcessConfiguration processConfig = configuration.getProcess(processModel.getPath().toString());
+        ProcessConfiguration processConfig = jobUtils.configuration.getProcess(processModel.getPath().toString());
         if (processConfig == null) {
             return null;
         }
@@ -1364,10 +1356,6 @@ public class JobImpl implements Job {
         synchronized (attributes) {
             attributes.put(limitKey, value);
         }
-    }
-
-    public Njams getNjams() {
-        return njams;
     }
 
     @Override
