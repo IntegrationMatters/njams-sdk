@@ -25,9 +25,9 @@ import java.util.List;
 import java.util.Map;
 
 import com.im.njams.sdk.NjamsMetadata;
-import com.im.njams.sdk.communication.ReplayHandler;
 import com.im.njams.sdk.configuration.Configuration;
 import com.im.njams.sdk.model.layout.ProcessModelLayouter;
+import com.im.njams.sdk.settings.Settings;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -62,6 +62,7 @@ public class ProcessModel {
     private final ProcessModelLayouter processModelLayouter;
     private final ProcessDiagramFactory processDiagramFactory;
     private final NjamsMetadata instanceMetaData;
+    private final Settings settings;
 
     private boolean starter;
 
@@ -85,6 +86,7 @@ public class ProcessModel {
         this.processModelLayouter = njams.getProcessModelLayouter();
         this.processDiagramFactory = njams.getProcessDiagramFactory();
         this.instanceMetaData = njams.getNjamsMetadata();
+        this.settings = njams.getSettings();
     }
 
     /**
@@ -518,5 +520,11 @@ public class ProcessModel {
      */
     public void setProperty(final String key, final Object value) {
         properties.put(key, value);
+    }
+
+    public boolean shouldDeprecatedPathFieldForSubprocessesBeUsed() {
+        final String useDeprecatedPathFieldForSubprocesses = settings
+            .getProperty(Settings.PROPERTY_USE_DEPRECATED_PATH_FIELD_FOR_SUBPROCESSES);
+        return useDeprecatedPathFieldForSubprocesses != null && "true".equalsIgnoreCase(useDeprecatedPathFieldForSubprocesses);
     }
 }

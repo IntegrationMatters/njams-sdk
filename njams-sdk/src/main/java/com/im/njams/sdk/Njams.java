@@ -37,14 +37,11 @@ import com.im.njams.sdk.client.LogMessageFlushTask;
 import com.im.njams.sdk.common.DateTimeUtility;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.common.Path;
-import com.im.njams.sdk.communication.AbstractReplayHandler;
 import com.im.njams.sdk.communication.CommunicationFactory;
 import com.im.njams.sdk.communication.InstructionListener;
 import com.im.njams.sdk.communication.NjamsSender;
 import com.im.njams.sdk.communication.Receiver;
 import com.im.njams.sdk.communication.ReplayHandler;
-import com.im.njams.sdk.communication.ReplayRequest;
-import com.im.njams.sdk.communication.ReplayResponse;
 import com.im.njams.sdk.communication.Sender;
 import com.im.njams.sdk.communication.ShareableReceiver;
 import com.im.njams.sdk.configuration.Configuration;
@@ -64,13 +61,11 @@ import com.im.njams.sdk.model.svg.NjamsProcessDiagramFactory;
 import com.im.njams.sdk.model.svg.ProcessDiagramFactory;
 import com.im.njams.sdk.serializer.Serializer;
 import com.im.njams.sdk.settings.Settings;
-import com.im.njams.sdk.utils.StringUtils;
 import org.slf4j.LoggerFactory;
 
 import java.net.URL;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
@@ -82,11 +77,10 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Properties;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static com.im.njams.sdk.NjamsState.NOT_STARTED_EXCEPTION_MESSAGE;
 import static java.util.stream.Collectors.toList;
 
 /**
@@ -111,6 +105,9 @@ public class Njams implements InstructionListener{
     private static final String DEFAULT_CACHE_PROVIDER = FileConfigurationProvider.NAME;
     private final NjamsMetadata instanceMetadata;
     private final NjamsSerializers serializers;
+    private final NjamsJobs njamsJobs;
+    private final NjamsState njamsState;
+    private final NjamsFeatures njamsFeatures;
 
 
     /**
@@ -169,14 +166,6 @@ public class Njams implements InstructionListener{
             return null;
         }
     }
-
-    /**
-     * Static value for feature replay
-     *
-     * @deprecated Use {@link Feature#key()} on instance {@link Feature#REPLAY} instead.
-     */
-    @Deprecated
-    public static final String FEATURE_REPLAY = "replay";
     /**
      * Static value for feature inject
      *
@@ -226,23 +215,12 @@ public class Njams implements InstructionListener{
 
     private ProcessModelLayouter processModelLayouter;
 
-    private final ConcurrentMap<String, Job> jobs = new ConcurrentHashMap<>();
-
-    // features
-    private final List<String> features = Collections
-        .synchronizedList(
-            new ArrayList<>(Arrays.asList(Feature.EXPRESSION_TEST.toString(), Feature.PING.toString())));
 
     private NjamsSender sender;
     private Receiver receiver;
 
     private Configuration configuration;
-    private boolean started = false;
-    private static final String NOT_STARTED_EXCEPTION_MESSAGE = "The instance needs to be started first!";
 
-    private ReplayHandler replayHandler = null;
-    // logId of replayed job -> deep-trace flag from the replay request
-    private final Map<String, Boolean> replayedLogIds = new HashMap<>();
 
     private ArgosSender argosSender = null;
     private final Collection<ArgosMultiCollector<?>> argosCollectors = new ArrayList<>();
@@ -275,6 +253,9 @@ public class Njams implements InstructionListener{
         this.instanceMetadata = NjamsMetadataFactory.createMetadataFor(path, versions.get(CLIENT_VERSION_KEY), versions.get(SDK_VERSION_KEY), category);
         printStartupBanner();
         serializers = new NjamsSerializers();
+        njamsState = new NjamsState();
+        njamsFeatures = new NjamsFeatures();
+        njamsJobs = new NjamsJobs(njamsState, njamsFeatures);
     }
 
     private ProcessDiagramFactory createProcessDiagramFactory() {
@@ -400,27 +381,19 @@ public class Njams implements InstructionListener{
     }
 
     /**
-     * Gets the current replay handler if present.
-     *
-     * @return Current replay handler if present or null otherwise.
+     * @See getJobs().getReplayHandler()
      */
+    @Deprecated
     public ReplayHandler getReplayHandler() {
-        return replayHandler;
+        return njamsJobs.getReplayHandler();
     }
 
     /**
-     * Sets a replay handler.
-     *
-     * @param replayHandler Replay handler to be set.
-     * @see AbstractReplayHandler
+     * @See getJobs().setReplayHandler(...)
      */
+    @Deprecated
     public void setReplayHandler(final ReplayHandler replayHandler) {
-        this.replayHandler = replayHandler;
-        if (replayHandler == null) {
-            removeFeature(FEATURE_REPLAY);
-        } else {
-            addFeature(FEATURE_REPLAY);
-        }
+        njamsJobs.setReplayHandler(replayHandler);
     }
 
     /**
@@ -477,6 +450,7 @@ public class Njams implements InstructionListener{
         try {
             receiver = new CommunicationFactory(settings).getReceiver(getNjamsMetadata());
             receiver.addInstructionListener(this);
+            receiver.addInstructionListener(njamsJobs);
             receiver.addInstructionListener(new ConfigurationInstructionListener(getConfiguration()));
             receiver.start();
         } catch (Exception e) {
@@ -505,7 +479,7 @@ public class Njams implements InstructionListener{
             startReceiver();
             LogMessageFlushTask.start(this);
             CleanTracepointsTask.start(this);
-            started = true;
+            njamsState.start();
             sendProjectMessage();
         }
         return isStarted();
@@ -536,7 +510,7 @@ public class Njams implements InstructionListener{
                 }
             }
             receiver.removeAllInstructionListeners();
-            started = false;
+            njamsState.stop();
         } else {
             throw new NjamsSdkRuntimeException(NOT_STARTED_EXCEPTION_MESSAGE);
         }
@@ -592,23 +566,19 @@ public class Njams implements InstructionListener{
     }
 
     /**
-     * Returns the job instance for given jobId.
-     *
-     * @param jobId the jobId to search for
-     * @return the Job or null if not found
+     * @See getJobs().get(...)
      */
+    @Deprecated
     public Job getJobById(final String jobId) {
-        return jobs.get(jobId);
+        return njamsJobs.get(jobId);
     }
 
     /**
-     * Returns a collection of all current jobs. This collection must not be
-     * changed.
-     *
-     * @return Unmodifiable collection of jobs.
+     * @See getJobs().get()
      */
+    @Deprecated
     public Collection<Job> getJobs() {
-        return Collections.unmodifiableCollection(jobs.values());
+        return njamsJobs.get();
     }
 
     /**
@@ -667,7 +637,7 @@ public class Njams implements InstructionListener{
         msg.setCategory(getNjamsMetadata().category);
         msg.setStartTime(startTime);
         msg.setMachine(getNjamsMetadata().machine);
-        msg.setFeatures(features);
+        msg.setFeatures(njamsFeatures.get());
         msg.setLogMode(configuration.getLogMode());
         synchronized (processModels) {
             processModels.values().stream().map(ProcessModel::getSerializableProcessModel)
@@ -791,7 +761,7 @@ public class Njams implements InstructionListener{
         msg.setCategory(getNjamsMetadata().category);
         msg.setStartTime(startTime);
         msg.setMachine(getNjamsMetadata().machine);
-        msg.setFeatures(features);
+        msg.setFeatures(njamsFeatures.get());
         msg.setLogMode(configuration.getLogMode());
 
         addTreeElements(msg.getTreeElements(), getNjamsMetadata().clientPath, TreeElementType.CLIENT, false);
@@ -858,35 +828,23 @@ public class Njams implements InstructionListener{
     }
 
     /**
-     * Adds a job to the joblist. If njams hasn't started before, it can't be
-     * added to the list.
-     *
-     * @param job to add to the instances job list.
+     * @See getNjamsJobs().add(...)
      */
+    @Deprecated
     public void addJob(Job job) {
-        if (isStarted()) {
-            synchronized (replayedLogIds) {
-                final Boolean deepTrace = replayedLogIds.remove(job.getLogId());
-                if (deepTrace != null) {
-                    job.addAttribute(ReplayHandler.NJAMS_REPLAYED_ATTRIBUTE, "true");
-                    if (deepTrace) {
-                        job.setDeepTrace(true);
-                    }
-                }
-            }
-            jobs.put(job.getJobId(), job);
-        } else {
-            throw new NjamsSdkRuntimeException(NOT_STARTED_EXCEPTION_MESSAGE);
-        }
+        njamsJobs.add(job);
     }
 
     /**
-     * Remove a job from the joblist
-     *
-     * @param jobId of the Job to be removed
+     * @See getNjamsJobs().remove(...)
      */
+    @Deprecated
     public void removeJob(String jobId) {
-        jobs.remove(jobId);
+        njamsJobs.remove(jobId);
+    }
+
+    public NjamsJobs getNjamsJobs(){
+        return njamsJobs;
     }
 
     /**
@@ -982,27 +940,6 @@ public class Njams implements InstructionListener{
             LOG.debug("Sent ProjectMessage requested via Instruction via Njams");
         } else if (Command.PING.commandString().equalsIgnoreCase(instruction.getCommand())) {
             instruction.setResponse(createPingResponse());
-        } else if (Command.REPLAY.commandString().equalsIgnoreCase(instruction.getCommand())) {
-            final Response response = new Response();
-            if (replayHandler != null) {
-                try {
-                    final ReplayRequest replayRequest = new ReplayRequest(instruction);
-                    final ReplayResponse replayResponse = replayHandler.replay(replayRequest);
-                    replayResponse.addParametersToInstruction(instruction);
-                    if (!replayRequest.getTest()) {
-                        setReplayMarker(replayResponse.getMainLogId(), replayRequest.getDeepTrace());
-                    }
-                } catch (final Exception ex) {
-                    response.setResultCode(2);
-                    response.setResultMessage("Error while executing replay: " + ex.getMessage());
-                    instruction.setResponse(response);
-                    instruction.setResponseParameter("Exception", String.valueOf(ex));
-                }
-            } else {
-                response.setResultCode(1);
-                response.setResultMessage("Client cannot replay processes. No replay handler is present.");
-                instruction.setResponse(response);
-            }
         }
     }
 
@@ -1016,32 +953,8 @@ public class Njams implements InstructionListener{
         params.put("sdkVersion", getNjamsMetadata().sdkVersion);
         params.put("category", getNjamsMetadata().category);
         params.put("machine", getNjamsMetadata().machine);
-        params.put("features", features.stream().collect(Collectors.joining(",")));
+        params.put("features", njamsFeatures.get().stream().collect(Collectors.joining(",")));
         return response;
-    }
-
-    /**
-     * SDK-197
-     *
-     * @param logId
-     */
-    private void setReplayMarker(final String logId, boolean deepTrace) {
-        if (StringUtils.isBlank(logId)) {
-            return;
-        }
-        final Job job = getJobs().stream().filter(j -> j.getLogId().equals(logId)).findAny().orElse(null);
-        if (job != null) {
-            // if the job is already known, set the marker
-            job.addAttribute(ReplayHandler.NJAMS_REPLAYED_ATTRIBUTE, "true");
-            if (deepTrace) {
-                job.setDeepTrace(true);
-            }
-        } else {
-            // remember the log ID for when the job is added later -> consumed by addJob(...)
-            synchronized (replayedLogIds) {
-                replayedLogIds.put(logId, deepTrace);
-            }
-        }
     }
 
     public NjamsSerializers getSerializers(){
@@ -1113,55 +1026,55 @@ public class Njams implements InstructionListener{
     }
 
     /**
-     * @return the list of features this client has
+     * @See getNjamsFeatures().get()
      */
+    @Deprecated
     public List<String> getFeatures() {
-        return Collections.unmodifiableList(features);
+        return njamsFeatures.get();
     }
 
     /**
-     * Adds a new feature to the feature list
-     *
-     * @param feature to set
+     * @See getNjamsFeatures().add()
      */
+    @Deprecated
     public void addFeature(String feature) {
-        if (!features.contains(feature)) {
-            features.add(feature);
-        }
+        njamsFeatures.add(feature);
     }
 
     /**
-     * Adds a new feature to the feature list
-     *
-     * @param feature to set
+     * @See getNjamsFeatures().add()
      */
+    @Deprecated
     public void addFeature(Feature feature) {
-        addFeature(feature.key());
+        njamsFeatures.add(feature);
     }
 
     /**
-     * Remove a feature from the feature list
-     *
-     * @param feature to remove
+     * @See getNjamsFeatures().remove()
      */
+    @Deprecated
     public void removeFeature(final String feature) {
-        features.remove(feature);
+        njamsFeatures.remove(feature);
     }
 
     /**
-     * Remove a feature from the feature list
-     *
-     * @param feature to remove
+     * @See getNjamsFeatures().remove()
      */
+    @Deprecated
     public void removeFeature(final Feature feature) {
-        removeFeature(feature.key());
+        njamsFeatures.remove(feature);
     }
 
     /**
-     * @return if this client instance is started
+     * @See getNjamsState().isStarted()
      */
+    @Deprecated
     public boolean isStarted() {
-        return started;
+        return njamsState.isStarted();
+    }
+
+    public NjamsState getNjamsState(){
+        return njamsState;
     }
 
     /**

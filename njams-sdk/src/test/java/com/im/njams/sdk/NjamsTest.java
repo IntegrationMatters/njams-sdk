@@ -123,60 +123,6 @@ public class NjamsTest {
     }
 
     @Test
-    public void testOnNoReplyHandlerFoundReplayMessageInstruction() {
-        Instruction inst = new Instruction();
-        Request req = new Request();
-        req.setCommand(Command.REPLAY.commandString());
-        inst.setRequest(req);
-        assertNull(inst.getResponse());
-        instance.onInstruction(inst);
-
-        Response resp = inst.getResponse();
-        assertTrue(resp.getResultCode() == 1);
-        assertEquals("Client cannot replay processes. No replay handler is present.", resp.getResultMessage());
-    }
-
-    @Test
-    public void testOnCorrectReplayMessageInstruction() {
-        ReplayHandler replayHandler = (ReplayRequest request) -> {
-            ReplayResponse resp = new ReplayResponse();
-            resp.setResultCode(0);
-            resp.setResultMessage("TestWorked");
-            return resp;
-        };
-        instance.setReplayHandler(replayHandler);
-        Instruction inst = new Instruction();
-        Request req = new Request();
-        req.setCommand(Command.REPLAY.commandString());
-        inst.setRequest(req);
-        assertNull(inst.getResponse());
-        instance.onInstruction(inst);
-
-        Response resp = inst.getResponse();
-        assertTrue(resp.getResultCode() == 0);
-        assertEquals("TestWorked", resp.getResultMessage());
-    }
-
-    @Test
-    public void testOnThrownExceptionReplayMessageInstruction() {
-        Instruction inst = new Instruction();
-        ReplayHandler replayHandler = (ReplayRequest request) -> {
-            throw new RuntimeException("TestException");
-        };
-        instance.setReplayHandler(replayHandler);
-        Request req = new Request();
-        req.setCommand(Command.REPLAY.commandString());
-        inst.setRequest(req);
-        assertNull(inst.getResponse());
-        instance.onInstruction(inst);
-
-        Response resp = inst.getResponse();
-        assertTrue(resp.getResultCode() == 2);
-        assertEquals("Error while executing replay: TestException", resp.getResultMessage());
-        assertEquals("java.lang.RuntimeException: TestException", inst.getResponseParameterByName("Exception"));
-    }
-
-    @Test
     public void testHasNoProcessModel() {
         assertFalse(instance.hasProcessModel(new Path("PROCESSES")));
     }

@@ -1,0 +1,174 @@
+package com.im.njams.sdk;
+
+import com.faizsiegeln.njams.messageformat.v4.command.Command;
+import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
+import com.faizsiegeln.njams.messageformat.v4.command.Response;
+import com.im.njams.sdk.common.NjamsSdkRuntimeException;
+import com.im.njams.sdk.communication.AbstractReplayHandler;
+import com.im.njams.sdk.communication.InstructionListener;
+import com.im.njams.sdk.communication.ReplayHandler;
+import com.im.njams.sdk.communication.ReplayRequest;
+import com.im.njams.sdk.communication.ReplayResponse;
+import com.im.njams.sdk.logmessage.Job;
+import com.im.njams.sdk.utils.StringUtils;
+
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+
+import static com.im.njams.sdk.NjamsState.NOT_STARTED_EXCEPTION_MESSAGE;
+
+public class NjamsJobs implements InstructionListener {
+
+    /**
+     * Static value for feature replay
+     *
+     * @deprecated Use {@link Njams.Feature#key()} on instance {@link Njams.Feature#REPLAY} instead.
+     */
+    @Deprecated
+    public static final String FEATURE_REPLAY = "replay";
+
+
+    private final ConcurrentMap<String, Job> temp_jobs = new ConcurrentHashMap<>();
+
+    // logId of replayed job -> deep-trace flag from the replay request
+    private final Map<String, Boolean> replayedLogIds = new HashMap<>();
+    private final NjamsState njamsState;
+    private final NjamsFeatures njamsFeatures;
+
+    private ReplayHandler replayHandler = null;
+
+    public NjamsJobs(NjamsState njamsState, NjamsFeatures njamsFeatures) {
+        this.njamsState = njamsState;
+        this.njamsFeatures = njamsFeatures;
+    }
+
+    /**
+     * Remove a job from the joblist
+     *
+     * @param jobId of the Job to be removed
+     */
+    public void remove(String jobId) {
+        temp_jobs.remove(jobId);
+    }
+
+    /**
+     * Adds a job to the joblist. If njams hasn't started before, it can't be
+     * added to the list.
+     *
+     * @param job to add to the instances job list.
+     */
+    public void add(Job job) {
+        if (njamsState.isStarted()) {
+            synchronized (replayedLogIds) {
+                final Boolean deepTrace = replayedLogIds.remove(job.getLogId());
+                if (deepTrace != null) {
+                    job.addAttribute(ReplayHandler.NJAMS_REPLAYED_ATTRIBUTE, "true");
+                    if (deepTrace) {
+                        job.setDeepTrace(true);
+                    }
+                }
+            }
+            temp_jobs.put(job.getJobId(), job);
+        } else {
+            throw new NjamsSdkRuntimeException(NOT_STARTED_EXCEPTION_MESSAGE);
+        }
+    }
+
+    /**
+     * Returns the job instance for given jobId.
+     *
+     * @param jobId the jobId to search for
+     * @return the Job or null if not found
+     */
+    public Job get(String jobId) {
+        return temp_jobs.get(jobId);
+    }
+
+    /**
+     * Returns a collection of all current jobs. This collection must not be
+     * changed.
+     *
+     * @return Unmodifiable collection of jobs.
+     */
+    public Collection<Job> get() {
+        return Collections.unmodifiableCollection(temp_jobs.values());
+    }
+
+    /**
+     * SDK-197
+     *
+     * @param logId
+     */
+    private void setReplayMarker(final String logId, boolean deepTrace) {
+        if (StringUtils.isBlank(logId)) {
+            return;
+        }
+        final Job job = get().stream().filter(j -> j.getLogId().equals(logId)).findAny().orElse(null);
+        if (job != null) {
+            // if the job is already known, set the marker
+            job.addAttribute(ReplayHandler.NJAMS_REPLAYED_ATTRIBUTE, "true");
+            if (deepTrace) {
+                job.setDeepTrace(true);
+            }
+        } else {
+            // remember the log ID for when the job is added later -> consumed by addJob(...)
+            synchronized (replayedLogIds) {
+                replayedLogIds.put(logId, deepTrace);
+            }
+        }
+    }
+
+    @Override
+    public void onInstruction(Instruction instruction) {
+        if (Command.REPLAY.commandString().equalsIgnoreCase(instruction.getCommand())) {
+            final Response response = new Response();
+            if (replayHandler != null) {
+                try {
+                    final ReplayRequest replayRequest = new ReplayRequest(instruction);
+                    final ReplayResponse replayResponse = replayHandler.replay(replayRequest);
+                    replayResponse.addParametersToInstruction(instruction);
+                    if (!replayRequest.getTest()) {
+                        setReplayMarker(replayResponse.getMainLogId(), replayRequest.getDeepTrace());
+                    }
+                } catch (final Exception ex) {
+                    response.setResultCode(2);
+                    response.setResultMessage("Error while executing replay: " + ex.getMessage());
+                    instruction.setResponse(response);
+                    instruction.setResponseParameter("Exception", String.valueOf(ex));
+                }
+            } else {
+                response.setResultCode(1);
+                response.setResultMessage("Client cannot replay processes. No replay handler is present.");
+                instruction.setResponse(response);
+            }
+        }
+    }
+
+    /**
+     * Sets a replay handler.
+     *
+     * @param replayHandler Replay handler to be set.
+     * @see AbstractReplayHandler
+     */
+    public void setReplayHandler(ReplayHandler replayHandler) {
+        this.replayHandler = replayHandler;
+        if (replayHandler == null) {
+            njamsFeatures.remove(FEATURE_REPLAY);
+        } else {
+            njamsFeatures.add(FEATURE_REPLAY);
+        }
+    }
+
+    /**
+     * Gets the current replay handler if present.
+     *
+     * @return Current replay handler if present or null otherwise.
+     */
+    public ReplayHandler getReplayHandler() {
+        return replayHandler;
+    }
+}

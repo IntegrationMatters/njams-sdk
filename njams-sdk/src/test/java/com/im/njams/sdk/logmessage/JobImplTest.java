@@ -34,6 +34,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
 
+import com.im.njams.sdk.communication.CommunicationFactory;
+import com.im.njams.sdk.communication.TestReceiver;
 import org.junit.After;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -156,7 +158,9 @@ public class JobImplTest extends AbstractTest {
 
         Path clientPath = new Path("SDK4", "TEST");
 
-        Njams mockedNjams = spy(new Njams(clientPath, "1.0.0", "sdk4", new Settings()));
+        final Settings settings = new Settings();
+        settings.put(CommunicationFactory.COMMUNICATION, TestReceiver.NAME);
+        Njams mockedNjams = spy(new Njams(clientPath, "1.0.0", "sdk4", settings));
         Path processPath = new Path("PROCESSES");
         mockedNjams.createProcess(processPath);
         mockedNjams.start();
@@ -165,7 +169,6 @@ public class JobImplTest extends AbstractTest {
         //Create a job
         ProcessModel process = mockedNjams.getProcessModel(new Path(PROCESSPATHNAME));
         process.createActivity("id", "name", null);
-        JobImpl job = (JobImpl) process.createJob();
 
         //Inject or own sender.send() method to get the masked logmessage
         NjamsSender sender = mock(NjamsSender.class);
@@ -175,6 +178,7 @@ public class JobImplTest extends AbstractTest {
             return null;
         }).when(sender).send(any(CommonMessage.class));
 
+        JobImpl job = (JobImpl) process.createJob();
         job.start();
         createFullyFilledActivity(job);
         fillJob(job);
