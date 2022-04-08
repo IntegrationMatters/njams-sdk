@@ -23,10 +23,12 @@ import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import com.im.njams.sdk.NjamsJobs;
+import com.im.njams.sdk.NjamsMetadata;
+import com.im.njams.sdk.settings.Settings;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.common.DateTimeUtility;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.logmessage.JobImpl;
@@ -40,7 +42,7 @@ public class LogMessageFlushTask extends TimerTask {
 
     private static final Logger LOG = LoggerFactory.getLogger(LogMessageFlushTask.class);
 
-    private static final Map<String, LMFTEntry> NJAMS_INSTANCES = new HashMap<>();
+    private static final Map<String, LogMessageFlushTaskEntry> NJAMS_INSTANCES = new HashMap<>();
 
     private static Timer timer = null;
 
@@ -50,13 +52,13 @@ public class LogMessageFlushTask extends TimerTask {
      * Adds a new Njams instance to the LogMessageFlushTask, and start the task
      * if it is not started yet
      *
-     * @param njams Njams to add
+     * @param njamsMetadata Njams metadata for one instance
      */
-    public static synchronized void start(Njams njams) {
-        if (njams == null) {
-            throw new NjamsSdkRuntimeException("Start: Njams is null");
+    public static synchronized void start(NjamsMetadata njamsMetadata, NjamsJobs njamsJobs, Settings settings) {
+        if (njamsMetadata == null) {
+            throw new NjamsSdkRuntimeException("Start: Njams Metadata is null");
         }
-        if (njams.getNjamsMetadata().clientPath == null) {
+        if (njamsMetadata.clientPath == null) {
             throw new NjamsSdkRuntimeException("Start: Njams clientPath is null");
         }
 
@@ -65,7 +67,7 @@ public class LogMessageFlushTask extends TimerTask {
             timer.scheduleAtFixedRate(new LogMessageFlushTask(), 1000, 1000);
         }
 
-        NJAMS_INSTANCES.put(njams.getNjamsMetadata().clientPath.toString(), new LMFTEntry(njams));
+        NJAMS_INSTANCES.put(njamsMetadata.clientPath.toString(), new LogMessageFlushTaskEntry(njamsJobs, settings));
     }
 
     /**
@@ -73,24 +75,24 @@ public class LogMessageFlushTask extends TimerTask {
      * jobs of the instance, and stops it the timer if no Njams instance is left
      * to work on
      *
-     * @param njams Njams instance to remove
+     * @param njamsMetadata NjamsMetadata as identifier for the njams instance to remove
      */
-    public static synchronized void stop(Njams njams) {
-        if (njams == null) {
-            throw new NjamsSdkRuntimeException("Stop: Njams is null");
+    public static synchronized void stop(NjamsMetadata njamsMetadata) {
+        if (njamsMetadata == null) {
+            throw new NjamsSdkRuntimeException("Stop: Njams Metadata is null");
         }
-        if (njams.getNjamsMetadata().clientPath == null) {
+        if (njamsMetadata.clientPath == null) {
             throw new NjamsSdkRuntimeException("Stop: Njams clientPath is null");
         }
-        LMFTEntry entry = NJAMS_INSTANCES.remove(njams.getNjamsMetadata().clientPath.toString());
+        LogMessageFlushTaskEntry entry = NJAMS_INSTANCES.remove(njamsMetadata.clientPath.toString());
         if (entry != null) {
-            Njams stoppingNjams = entry.getNjams();
-            stoppingNjams.getJobs().forEach(job -> ((JobImpl) job).flush());
+            NjamsJobs njamsJobs = entry.getNjamsJobs();
+            njamsJobs.get().forEach(job -> ((JobImpl) job).flush());
 
         } else {
             LOG.warn(
                     "The LogMessageFlushTask hasn't been started before stopping for this instance: {}. Did not flush...",
-                    njams);
+                njamsMetadata.clientPath);
         }
         if (NJAMS_INSTANCES.size() <= 0 && timer != null) {
             timer.cancel();
@@ -121,9 +123,9 @@ public class LogMessageFlushTask extends TimerTask {
         }
     }
 
-    private void processNjams(LMFTEntry entry) {
+    private void processNjams(LogMessageFlushTaskEntry entry) {
         LocalDateTime boundary = DateTimeUtility.now().minusSeconds(entry.getFlushInterval());
-        entry.getNjams().getJobs().forEach(job -> ((JobImpl) job).timerFlush(boundary, entry.getFlushSize()));
+        entry.getNjamsJobs().get().forEach(job -> ((JobImpl) job).timerFlush(boundary, entry.getFlushSize()));
     }
 
 }

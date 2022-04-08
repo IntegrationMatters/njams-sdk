@@ -25,6 +25,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.stream.Collectors;
 
 import com.im.njams.sdk.NjamsMetadata;
 import com.im.njams.sdk.NjamsMetadataFactory;
@@ -67,118 +68,118 @@ public class CleanTracepointsTaskTest extends AbstractTest {
         FULLPROCESSPATHNAME = njams.getNjamsMetadata().clientPath.add(PROCESSPATHNAME).toString();
     }
 
-    @BeforeClass
-    public static void init() {
-        Njams njamsMock = mock(Njams.class);
-    }
-
     @Before
     public void testStopAll() {
-        CleanTracepointsTask.getNjamsInstances().forEach(njams -> CleanTracepointsTask.stop(njams));
+        CleanTracepointsTask.getCleanTracePointsTaskEntries().forEach(njams -> CleanTracepointsTask.stop(njams.instanceMetadata));
         NjamsMetadata metadata = NjamsMetadataFactory.createMetadataFor(new Path("A"), null, null, null);
         when(njamsMock.getNjamsMetadata()).thenReturn(metadata);
     }
 
     @Test(expected = NjamsSdkRuntimeException.class)
     public void testStartWithNullNjams() {
-        assertTrue(CleanTracepointsTask.getNjamsInstances().isEmpty());
+        assertTrue(CleanTracepointsTask.getCleanTracePointsTaskEntries().isEmpty());
         assertNull(CleanTracepointsTask.getTimer());
-        CleanTracepointsTask.start(null);
+        CleanTracepointsTask.start(null, null, null);
     }
 
     @Test(expected = NjamsSdkRuntimeException.class)
     public void testStartWithNullClientPathNjams() {
-        assertTrue(CleanTracepointsTask.getNjamsInstances().isEmpty());
+        assertTrue(CleanTracepointsTask.getCleanTracePointsTaskEntries().isEmpty());
         assertNull(CleanTracepointsTask.getTimer());
 
         NjamsMetadata metadata = NjamsMetadataFactory.createMetadataFor(null, null, null, null);
-        when(njamsMock.getNjamsMetadata()).thenReturn(metadata);
 
-        CleanTracepointsTask.start(njamsMock);
+        CleanTracepointsTask.start(metadata, null, null);
     }
 
     @Test
     public void testStartNormal() {
-        assertTrue(CleanTracepointsTask.getNjamsInstances().isEmpty());
+        assertTrue(CleanTracepointsTask.getCleanTracePointsTaskEntries().isEmpty());
         assertNull(CleanTracepointsTask.getTimer());
-        CleanTracepointsTask.start(njams);
-        assertFalse(CleanTracepointsTask.getNjamsInstances().isEmpty());
+        CleanTracepointsTask.start(njams.getNjamsMetadata(), njams.getConfiguration(), njams.getSender());
+        assertFalse(CleanTracepointsTask.getCleanTracePointsTaskEntries().isEmpty());
         assertNotNull(CleanTracepointsTask.getTimer());
-        assertTrue(CleanTracepointsTask.getNjamsInstances().contains(njams));
+        assertTrue(CleanTracepointsTask.getCleanTracePointsTaskEntries().stream().map((entry) -> entry.instanceMetadata).collect(
+            Collectors.toList()).contains(njams.getNjamsMetadata()));
     }
 
     @Test
     public void testStartNormalWithMultipleNjams() {
-        assertTrue(CleanTracepointsTask.getNjamsInstances().isEmpty());
+        assertTrue(CleanTracepointsTask.getCleanTracePointsTaskEntries().isEmpty());
         assertNull(CleanTracepointsTask.getTimer());
-        CleanTracepointsTask.start(njams);
-        assertFalse(CleanTracepointsTask.getNjamsInstances().isEmpty());
-        assertTrue(CleanTracepointsTask.getNjamsInstances().contains(njams));
+        CleanTracepointsTask.start(njams.getNjamsMetadata(), njams.getConfiguration(), njams.getSender());
+        assertFalse(CleanTracepointsTask.getCleanTracePointsTaskEntries().isEmpty());
+        assertTrue(CleanTracepointsTask.getCleanTracePointsTaskEntries().stream().map((entry) -> entry.instanceMetadata).collect(
+            Collectors.toList()).contains(njams.getNjamsMetadata()));
         assertNotNull(CleanTracepointsTask.getTimer());
-        CleanTracepointsTask.start(njamsMock);
-        assertFalse(CleanTracepointsTask.getNjamsInstances().isEmpty());
-        assertTrue(CleanTracepointsTask.getNjamsInstances().contains(njams));
-        assertTrue(CleanTracepointsTask.getNjamsInstances().contains(njamsMock));
+        CleanTracepointsTask.start(njamsMock.getNjamsMetadata(), njamsMock.getConfiguration(), njamsMock.getSender());
+        assertFalse(CleanTracepointsTask.getCleanTracePointsTaskEntries().isEmpty());
+        assertTrue(CleanTracepointsTask.getCleanTracePointsTaskEntries().stream().map((entry) -> entry.instanceMetadata).collect(
+            Collectors.toList()).contains(njams.getNjamsMetadata()));
+        assertTrue(CleanTracepointsTask.getCleanTracePointsTaskEntries().stream().map((entry) -> entry.instanceMetadata).collect(
+            Collectors.toList()).contains(njamsMock.getNjamsMetadata()));
         assertNotNull(CleanTracepointsTask.getTimer());
     }
 
     @Test
     public void testStartNormalSeveralTimesWithOneInstance() {
-        assertTrue(CleanTracepointsTask.getNjamsInstances().isEmpty());
+        assertTrue(CleanTracepointsTask.getCleanTracePointsTaskEntries().isEmpty());
         assertNull(CleanTracepointsTask.getTimer());
-        CleanTracepointsTask.start(njams);
-        assertFalse(CleanTracepointsTask.getNjamsInstances().isEmpty());
-        assertTrue(CleanTracepointsTask.getNjamsInstances().contains(njams));
+        CleanTracepointsTask.start(njams.getNjamsMetadata(), njams.getConfiguration(), njams.getSender());
+        assertFalse(CleanTracepointsTask.getCleanTracePointsTaskEntries().isEmpty());
+        assertTrue(CleanTracepointsTask.getCleanTracePointsTaskEntries().stream().map((entry) -> entry.instanceMetadata).collect(
+            Collectors.toList()).contains(njams.getNjamsMetadata()));
         assertNotNull(CleanTracepointsTask.getTimer());
-        CleanTracepointsTask.start(njams);
-        assertFalse(CleanTracepointsTask.getNjamsInstances().isEmpty());
-        assertTrue(CleanTracepointsTask.getNjamsInstances().contains(njams));
-        assertTrue(CleanTracepointsTask.getNjamsInstances().size() == 1);
+        CleanTracepointsTask.start(njams.getNjamsMetadata(), njams.getConfiguration(), njams.getSender());
+        assertFalse(CleanTracepointsTask.getCleanTracePointsTaskEntries().isEmpty());
+        assertTrue(CleanTracepointsTask.getCleanTracePointsTaskEntries().stream().map((entry) -> entry.instanceMetadata).collect(
+            Collectors.toList()).contains(njams.getNjamsMetadata()));
+        assertTrue(CleanTracepointsTask.getCleanTracePointsTaskEntries().size() == 1);
         assertNotNull(CleanTracepointsTask.getTimer());
     }
 
     @Test(expected = NjamsSdkRuntimeException.class)
     public void testStopWithNullNjams() {
-        assertTrue(CleanTracepointsTask.getNjamsInstances().isEmpty());
+        assertTrue(CleanTracepointsTask.getCleanTracePointsTaskEntries().isEmpty());
         assertNull(CleanTracepointsTask.getTimer());
         CleanTracepointsTask.stop(null);
     }
 
     @Test(expected = NjamsSdkRuntimeException.class)
     public void testStopWithNullClientPath() {
-        assertTrue(CleanTracepointsTask.getNjamsInstances().isEmpty());
+        assertTrue(CleanTracepointsTask.getCleanTracePointsTaskEntries().isEmpty());
         assertNull(CleanTracepointsTask.getTimer());
 
         NjamsMetadata metadata = NjamsMetadataFactory.createMetadataFor(null, null, null, null);
         when(njamsMock.getNjamsMetadata()).thenReturn(metadata);
-        CleanTracepointsTask.stop(njamsMock);
+        CleanTracepointsTask.stop(njamsMock.getNjamsMetadata());
     }
 
     @Test
     public void testStopNormal() {
         testStartNormal();
-        CleanTracepointsTask.stop(njams);
+        CleanTracepointsTask.stop(njams.getNjamsMetadata());
         assertNull(CleanTracepointsTask.getTimer());
-        assertTrue(CleanTracepointsTask.getNjamsInstances().isEmpty());
+        assertTrue(CleanTracepointsTask.getCleanTracePointsTaskEntries().isEmpty());
     }
 
     @Test
     public void testStopNormalWithoutStarting() {
-        assertTrue(CleanTracepointsTask.getNjamsInstances().isEmpty());
+        assertTrue(CleanTracepointsTask.getCleanTracePointsTaskEntries().isEmpty());
         assertNull(CleanTracepointsTask.getTimer());
-        CleanTracepointsTask.stop(njams);
-        assertTrue(CleanTracepointsTask.getNjamsInstances().isEmpty());
+        CleanTracepointsTask.stop(njams.getNjamsMetadata());
+        assertTrue(CleanTracepointsTask.getCleanTracePointsTaskEntries().isEmpty());
         assertNull(CleanTracepointsTask.getTimer());
     }
 
     @Test
     public void testStopNormalWithMultipleNjams() {
         testStartNormalWithMultipleNjams();
-        CleanTracepointsTask.stop(njams);
-        assertFalse(CleanTracepointsTask.getNjamsInstances().isEmpty());
+        CleanTracepointsTask.stop(njams.getNjamsMetadata());
+        assertFalse(CleanTracepointsTask.getCleanTracePointsTaskEntries().isEmpty());
         assertNotNull(CleanTracepointsTask.getTimer());
-        CleanTracepointsTask.stop(njamsMock);
-        assertTrue(CleanTracepointsTask.getNjamsInstances().isEmpty());
+        CleanTracepointsTask.stop(njamsMock.getNjamsMetadata());
+        assertTrue(CleanTracepointsTask.getCleanTracePointsTaskEntries().isEmpty());
         assertNull(CleanTracepointsTask.getTimer());
 
     }
@@ -186,8 +187,8 @@ public class CleanTracepointsTaskTest extends AbstractTest {
     @Test
     public void testStopNormalSeveralTimesWithOneInstance() {
         testStartNormalSeveralTimesWithOneInstance();
-        CleanTracepointsTask.stop(njams);
-        assertTrue(CleanTracepointsTask.getNjamsInstances().isEmpty());
+        CleanTracepointsTask.stop(njams.getNjamsMetadata());
+        assertTrue(CleanTracepointsTask.getCleanTracePointsTaskEntries().isEmpty());
         assertNull(CleanTracepointsTask.getTimer());
     }
 

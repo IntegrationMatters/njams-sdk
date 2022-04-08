@@ -26,11 +26,12 @@ import java.util.TimerTask;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
+import com.im.njams.sdk.NjamsMetadata;
+import com.im.njams.sdk.communication.Sender;
 import org.slf4j.LoggerFactory;
 
 import com.faizsiegeln.njams.messageformat.v4.tracemessage.Activity;
 import com.faizsiegeln.njams.messageformat.v4.tracemessage.TraceMessage;
-import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.common.DateTimeUtility;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.configuration.ActivityConfiguration;
@@ -48,7 +49,7 @@ public class CleanTracepointsTask extends TimerTask {
 
     private static final org.slf4j.Logger LOG = LoggerFactory.getLogger(CleanTracepointsTask.class);
 
-    private static Map<String, Njams> njamsInstances = new ConcurrentHashMap<>();
+    private static Map<String, CleanTracepointsTaskEntry> cleanTracePointsTaskEntries = new ConcurrentHashMap<>();
 
     private static Timer timer = null;
 
@@ -60,13 +61,15 @@ public class CleanTracepointsTask extends TimerTask {
      * Start the CleanTracepointsTask if it is not started yet, and add the
      * given Njams instance to the task.
      *
-     * @param njams to add
+     * @param instanceMetadata to distinguish between the different nJAMS instances
+     * @param configuration to see were the tracepoints are
+     * @param sender the sender to send the tracemessage with
      */
-    public static synchronized void start(Njams njams) {
-        if (njams == null) {
+    public static synchronized void start(NjamsMetadata instanceMetadata, Configuration configuration, Sender sender) {
+        if (instanceMetadata == null) {
             throw new NjamsSdkRuntimeException("Start: Njams is null");
         }
-        if (njams.getNjamsMetadata().clientPath == null) {
+        if (instanceMetadata.clientPath == null) {
             throw new NjamsSdkRuntimeException("Start: Njams clientPath is null");
         }
         if (timer == null) {
@@ -74,7 +77,7 @@ public class CleanTracepointsTask extends TimerTask {
             timer.scheduleAtFixedRate(new CleanTracepointsTask(), DELAY, INTERVAL);
         }
 
-        njamsInstances.put(njams.getNjamsMetadata().clientPath.toString(), njams);
+        cleanTracePointsTaskEntries.put(instanceMetadata.clientPath.toString(), new CleanTracepointsTaskEntry(instanceMetadata, configuration, sender));
     }
 
     /**
@@ -82,8 +85,8 @@ public class CleanTracepointsTask extends TimerTask {
      *
      * @return list of njams instances
      */
-    static List<Njams> getNjamsInstances() {
-        return njamsInstances.values().stream().collect(Collectors.toList());
+    static List<CleanTracepointsTaskEntry> getCleanTracePointsTaskEntries() {
+        return cleanTracePointsTaskEntries.values().stream().collect(Collectors.toList());
     }
 
     /**
@@ -99,17 +102,17 @@ public class CleanTracepointsTask extends TimerTask {
      * Removes the given Njams instance from the CleanTracepointsTask, and stops
      * it if not Njams instance is left.
      *
-     * @param njams to remove
+     * @param njamsMetadata to remove the correct instance of njams
      */
-    public static synchronized void stop(Njams njams) {
-        if (njams == null) {
+    public static synchronized void stop(NjamsMetadata njamsMetadata) {
+        if (njamsMetadata == null) {
             throw new NjamsSdkRuntimeException("Stop: Njams is null");
         }
-        if (njams.getNjamsMetadata().clientPath == null) {
+        if (njamsMetadata.clientPath == null) {
             throw new NjamsSdkRuntimeException("Stop: Njams clientPath is null");
         }
-        njamsInstances.remove(njams.getNjamsMetadata().clientPath.toString());
-        if (njamsInstances.size() <= 0 && timer != null) {
+        cleanTracePointsTaskEntries.remove(njamsMetadata.clientPath.toString());
+        if (cleanTracePointsTaskEntries.size() <= 0 && timer != null) {
             timer.cancel();
             timer = null;
         }
@@ -123,20 +126,23 @@ public class CleanTracepointsTask extends TimerTask {
     public void run() {
         try {
             LocalDateTime now = DateTimeUtility.now();
-            njamsInstances.values().forEach(njams -> checkNjams(njams, now));
+            cleanTracePointsTaskEntries.values().forEach(cleanTracepointsTaskEntry -> checkNjams(cleanTracepointsTaskEntry, now));
         } catch (Exception e) {
             LOG.error("Error in {}", this.getClass().getName(), e);
         }
     }
 
-    private void checkNjams(Njams njams, LocalDateTime now) {
-        Configuration configuration = njams.getConfiguration();
-        TraceMessageBuilder tmBuilder = new TraceMessageBuilder(njams);
+    private void checkNjams(CleanTracepointsTaskEntry cleanTracepointsTaskEntry, LocalDateTime now) {
+        checkNjams(cleanTracepointsTaskEntry.instanceMetadata, cleanTracepointsTaskEntry.configuration, cleanTracepointsTaskEntry.sender, now);
+    }
+
+    private void checkNjams(NjamsMetadata instanceMetadata, Configuration configuration, Sender sender, LocalDateTime now) {
+        TraceMessageBuilder tmBuilder = new TraceMessageBuilder(instanceMetadata);
         configuration.getProcesses().entrySet()
                 .forEach(processEntry -> checkProcess(configuration, processEntry, now, tmBuilder));
         TraceMessage msg = tmBuilder.build();
         if (msg != null) {
-            njams.getSender().send(msg);
+            sender.send(msg);
         }
     }
 

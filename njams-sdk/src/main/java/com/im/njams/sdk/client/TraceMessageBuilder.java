@@ -17,7 +17,7 @@
 package com.im.njams.sdk.client;
 
 import com.faizsiegeln.njams.messageformat.v4.tracemessage.*;
-import com.im.njams.sdk.Njams;
+import com.im.njams.sdk.NjamsMetadata;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -31,12 +31,11 @@ import java.util.Map;
  */
 public class TraceMessageBuilder {
 
+    private final NjamsMetadata njamsMetadata;
     private Map<String, List<Activity>> processes = new HashMap<>();
 
-    private Njams njams;
-
-    public TraceMessageBuilder(Njams njams){
-        this.njams = njams;
+    public TraceMessageBuilder(NjamsMetadata njamsMetadata){
+        this.njamsMetadata = njamsMetadata;
     }
 
     /**
@@ -50,10 +49,10 @@ public class TraceMessageBuilder {
         if(!processes.isEmpty()){
             msg = new TraceMessage();
             //Set CommonMessage fields
-            msg.setClientVersion(njams.getNjamsMetadata().clientVersion);
-            msg.setSdkVersion(njams.getNjamsMetadata().sdkVersion);
-            msg.setCategory(njams.getNjamsMetadata().category);
-            msg.setPath(njams.getNjamsMetadata().clientPath.toString());
+            msg.setClientVersion(njamsMetadata.clientVersion);
+            msg.setSdkVersion(njamsMetadata.sdkVersion);
+            msg.setCategory(njamsMetadata.category);
+            msg.setPath(njamsMetadata.clientPath.toString());
             for(String processPath : processes.keySet()){
                 ProcessModel processModel = new ProcessModel();
                 processModel.setProcessPath(processPath);

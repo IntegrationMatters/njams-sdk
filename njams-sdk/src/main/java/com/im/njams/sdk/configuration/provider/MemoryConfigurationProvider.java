@@ -16,7 +16,6 @@
  */
 package com.im.njams.sdk.configuration.provider;
 
-import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.configuration.Configuration;
 import java.util.Properties;
 import com.im.njams.sdk.configuration.ConfigurationProvider;

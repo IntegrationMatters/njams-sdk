@@ -16,9 +16,8 @@
  */
 package com.im.njams.sdk.client;
 
-import com.im.njams.sdk.Njams;
+import com.im.njams.sdk.NjamsJobs;
 import com.im.njams.sdk.settings.Settings;
-import com.im.njams.sdk.settings.encoding.Transformer;
 
 /**
  * Configuration Entry for the LogMessageFlushTask for every Njams instance.
@@ -26,7 +25,7 @@ import com.im.njams.sdk.settings.encoding.Transformer;
  *
  * @author pnientiedt
  */
-public class LMFTEntry {
+public class LogMessageFlushTaskEntry {
 
     /**
      * Default flush size: 5MB
@@ -37,36 +36,36 @@ public class LMFTEntry {
      */
     public static final String DEFAULT_FLUSH_INTERVAL = "30";
 
-    private Njams njams;
+    private NjamsJobs njamsJobs;
     private Long flushSize;
     private Long flushInterval;
 
     /**
-     * Creates the objects by using the settings values of the Njams
+     * Creates the objects by using the settings values of the NjamsJobs
      * instance, or the defaults.
      *
-     * @param njams Initialize this entry with this Njams
+     * @param njamsJobs Initialize this entry with this NjamsJobs
      */
-    public LMFTEntry(Njams njams) {
-        this.njams = njams;
+    public LogMessageFlushTaskEntry(NjamsJobs njamsJobs, Settings settings) {
+        this.njamsJobs = njamsJobs;
         this.flushSize = Long.parseLong(
-                njams.getSettings().getProperty(Settings.PROPERTY_FLUSH_SIZE, DEFAULT_FLUSH_SIZE));
-        this.flushInterval = Long.parseLong(njams.getSettings()
+            settings.getProperty(Settings.PROPERTY_FLUSH_SIZE, DEFAULT_FLUSH_SIZE));
+        this.flushInterval = Long.parseLong(settings
                 .getProperty(Settings.PROPERTY_FLUSH_INTERVAL, DEFAULT_FLUSH_INTERVAL));
     }
 
     /**
      * @return the njams
      */
-    public Njams getNjams() {
-        return njams;
+    public NjamsJobs getNjamsJobs() {
+        return njamsJobs;
     }
 
     /**
-     * @param njams the njams to set
+     * @param njamsJobs the njamsJobs to set
      */
-    public void setNjams(Njams njams) {
-        this.njams = njams;
+    public void setNjamsJobs(NjamsJobs njamsJobs) {
+        this.njamsJobs = njamsJobs;
     }
 
     /**

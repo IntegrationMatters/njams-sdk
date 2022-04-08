@@ -32,7 +32,7 @@ public class NjamsJobs implements InstructionListener {
     public static final String FEATURE_REPLAY = "replay";
 
 
-    private final ConcurrentMap<String, Job> temp_jobs = new ConcurrentHashMap<>();
+    private final ConcurrentMap<String, Job> jobs = new ConcurrentHashMap<>();
 
     // logId of replayed job -> deep-trace flag from the replay request
     private final Map<String, Boolean> replayedLogIds = new HashMap<>();
@@ -52,7 +52,7 @@ public class NjamsJobs implements InstructionListener {
      * @param jobId of the Job to be removed
      */
     public void remove(String jobId) {
-        temp_jobs.remove(jobId);
+        jobs.remove(jobId);
     }
 
     /**
@@ -72,7 +72,7 @@ public class NjamsJobs implements InstructionListener {
                     }
                 }
             }
-            temp_jobs.put(job.getJobId(), job);
+            jobs.put(job.getJobId(), job);
         } else {
             throw new NjamsSdkRuntimeException(NOT_STARTED_EXCEPTION_MESSAGE);
         }
@@ -85,7 +85,7 @@ public class NjamsJobs implements InstructionListener {
      * @return the Job or null if not found
      */
     public Job get(String jobId) {
-        return temp_jobs.get(jobId);
+        return jobs.get(jobId);
     }
 
     /**
@@ -95,7 +95,7 @@ public class NjamsJobs implements InstructionListener {
      * @return Unmodifiable collection of jobs.
      */
     public Collection<Job> get() {
-        return Collections.unmodifiableCollection(temp_jobs.values());
+        return Collections.unmodifiableCollection(jobs.values());
     }
 
     /**

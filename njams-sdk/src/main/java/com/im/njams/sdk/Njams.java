@@ -421,8 +421,8 @@ public class Njams implements InstructionListener{
             }
             initializeDataMasking();
             startReceiver();
-            LogMessageFlushTask.start(this);
-            CleanTracepointsTask.start(this);
+            LogMessageFlushTask.start(getNjamsMetadata(), getNjamsJobs(), getSettings());
+            CleanTracepointsTask.start(getNjamsMetadata(), getConfiguration(), getSender());
             njamsState.start();
             sendProjectMessage();
         }
@@ -437,8 +437,8 @@ public class Njams implements InstructionListener{
      */
     public boolean stop() {
         if (isStarted()) {
-            LogMessageFlushTask.stop(this);
-            CleanTracepointsTask.stop(this);
+            LogMessageFlushTask.stop(getNjamsMetadata());
+            CleanTracepointsTask.stop(getNjamsMetadata());
 
             argosCollectors.forEach(argosSender::removeArgosCollector);
             argosCollectors.clear();

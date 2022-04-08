@@ -39,7 +39,7 @@ import static org.junit.Assert.*;
  */
 public class TraceMessageBuilderTest extends AbstractTest {
 
-    private TraceMessageBuilder builder = new TraceMessageBuilder(njams);
+    private TraceMessageBuilder builder = new TraceMessageBuilder(njams.getNjamsMetadata());
 
     private String FULLPROCESSPATHNAME;
 
