@@ -109,67 +109,10 @@ public class Njams implements InstructionListener{
     private final NjamsState njamsState;
     private final NjamsFeatures njamsFeatures;
 
-
-    /**
-     * Defines the standard set of optional features that an nJAMS client may support.
-     */
-    public enum Feature {
-        /**
-         * Value indicating that this instance supports replay functionality.
-         */
-        REPLAY("replay"),
-        /**
-         * Value indicating that this instance supports the header injection feature.
-         */
-        INJECTION("injection"),
-        /**
-         * Value indicating that this instance implements expression test functionality.
-         */
-        EXPRESSION_TEST("expressionTest"),
-        /**
-         * Value indicating that this instance implements replying to a "ping" request sent from nJAMS server.
-         */
-        PING("ping");
-
-        private final String key;
-
-        private Feature(String key) {
-            this.key = key;
-        }
-
-        @Override
-        public String toString() {
-            return key;
-        }
-
-        /**
-         * Raw string value to be used when sending information to nJAMS.
-         *
-         * @return Raw string value.
-         */
-        public String key() {
-            return key;
-        }
-
-        /**
-         * Tries to find the instance according to the given name.
-         *
-         * @param name The name of the instance that shall be returned.
-         * @return The instance for the given name, or <code>null</code> if no matching instance was found.
-         */
-        public static Feature byName(String name) {
-            for (Feature f : values()) {
-                if (f.name().equalsIgnoreCase(name) || f.key.equalsIgnoreCase(name)) {
-                    return f;
-                }
-            }
-            return null;
-        }
-    }
     /**
      * Static value for feature inject
      *
-     * @deprecated Use {@link Feature#key()} on instance {@link Feature#INJECTION} instead.
+     * @deprecated Use {@link NjamsFeatures.Feature#key()} on instance {@link NjamsFeatures.Feature#INJECTION} instead.
      */
     @Deprecated
     public static final String FEATURE_INJECTION = "injection";
@@ -1045,7 +988,7 @@ public class Njams implements InstructionListener{
      * @See getNjamsFeatures().add()
      */
     @Deprecated
-    public void addFeature(Feature feature) {
+    public void addFeature(NjamsFeatures.Feature feature) {
         njamsFeatures.add(feature);
     }
 
@@ -1061,7 +1004,7 @@ public class Njams implements InstructionListener{
      * @See getNjamsFeatures().remove()
      */
     @Deprecated
-    public void removeFeature(final Feature feature) {
+    public void removeFeature(final NjamsFeatures.Feature feature) {
         njamsFeatures.remove(feature);
     }
 
