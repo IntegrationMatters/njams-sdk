@@ -63,7 +63,6 @@ import com.im.njams.sdk.model.layout.SimpleProcessModelLayouter;
 import com.im.njams.sdk.model.svg.NjamsProcessDiagramFactory;
 import com.im.njams.sdk.model.svg.ProcessDiagramFactory;
 import com.im.njams.sdk.serializer.Serializer;
-import com.im.njams.sdk.serializer.StringSerializer;
 import com.im.njams.sdk.settings.Settings;
 import com.im.njams.sdk.utils.StringUtils;
 import org.slf4j.LoggerFactory;
@@ -96,7 +95,7 @@ import static java.util.stream.Collectors.toList;
  *
  * @author bwand
  */
-public class Njams implements InstructionListener {
+public class Njams implements InstructionListener{
 
     private static final org.slf4j.Logger LOG = LoggerFactory.getLogger(Njams.class);
 
@@ -111,6 +110,8 @@ public class Njams implements InstructionListener {
 
     private static final String DEFAULT_CACHE_PROVIDER = FileConfigurationProvider.NAME;
     private final NjamsMetadata instanceMetadata;
+    private final NjamsSerializers serializers;
+
 
     /**
      * Defines the standard set of optional features that an nJAMS client may support.
@@ -198,8 +199,6 @@ public class Njams implements InstructionListener {
      */
     public static final String CURRENT_YEAR = "currentYear";
 
-    private static final Serializer<Object> DEFAULT_SERIALIZER = new StringSerializer<>();
-    private static final Serializer<Object> NO_SERIALIZER = o -> null;
 
     // Also used for synchronizing access to the project message resources:
     // process-models, images, global-variables, tree-elements
@@ -228,12 +227,6 @@ public class Njams implements InstructionListener {
     private ProcessModelLayouter processModelLayouter;
 
     private final ConcurrentMap<String, Job> jobs = new ConcurrentHashMap<>();
-
-    // serializers
-    private final HashMap<Class<?>, Serializer<?>> serializers = new HashMap<>();
-
-    // serializers
-    private final HashMap<Class<?>, Serializer<?>> cachedSerializers = new HashMap<>();
 
     // features
     private final List<String> features = Collections
@@ -281,6 +274,7 @@ public class Njams implements InstructionListener {
         readVersions(version);
         this.instanceMetadata = NjamsMetadataFactory.createMetadataFor(path, versions.get(CLIENT_VERSION_KEY), versions.get(SDK_VERSION_KEY), category);
         printStartupBanner();
+        serializers = new NjamsSerializers();
     }
 
     private ProcessDiagramFactory createProcessDiagramFactory() {
@@ -1050,141 +1044,54 @@ public class Njams implements InstructionListener {
         }
     }
 
+    public NjamsSerializers getSerializers(){
+        return serializers;
+    }
+
     /**
-     * Adds a {@link Serializer} for serializing a given class. <br>
-     * Uses {@link #serialize(java.lang.Object) } to serialize instances of this
-     * class with the registered serializer. If a serializer is already
-     * registered, it will be replaced with the new serializer.
-     *
-     * @param <T>        Type that the given instance serializes
-     * @param key        Class for which the serializer should be registered
-     * @param serializer A serializer that can serialize instances of class key
-     *                   to strings.
-     * @return If a serializer for the same type was already registered before,
-     * the former registered serializer is returned. Otherwise <code>null</code> is returned.
+     * @See getSerializers().addSerializer(...)
      */
+    @Deprecated
     public <T> Serializer<T> addSerializer(final Class<T> key, final Serializer<? super T> serializer) {
-        synchronized (cachedSerializers) {
-            if (key != null && serializer != null) {
-                cachedSerializers.clear();
-                return (Serializer) serializers.put(key, serializer);
-            }
-            return null;
-        }
+        return serializers.add(key, serializer);
     }
 
     /**
-     * Removes the serialier with the given class key. If not serializer is
-     * registered yet, <b>null</b> will be returned.
-     *
-     * @param <T> type of the class
-     * @param key a class
-     * @return Registered serializer or <b>null</b>
+     * @See getSerializers().removeSerializer(...)
      */
+    @Deprecated
     public <T> Serializer<T> removeSerializer(final Class<T> key) {
-        synchronized (cachedSerializers) {
-            if (key != null) {
-                cachedSerializers.clear();
-                return (Serializer) serializers.remove(key);
-            }
-            return null;
-        }
+        return serializers.remove(key);
     }
 
     /**
-     * Gets the serialier with the given class key. If not serializer is
-     * registered yet, <b>null</b> will be returned.
-     *
-     * @param <T> type of the class
-     * @param key a class
-     * @return Registered serializer or <b>null</b>
+     * @See getSerializers().getSerializer(...)
      */
+    @Deprecated
     public <T> Serializer<T> getSerializer(final Class<T> key) {
-        if (key != null) {
-            return (Serializer) serializers.get(key);
-        }
-        return null;
+        return serializers.get(key);
     }
 
     /**
-     * Serializes a given object using {@link #findSerializer(java.lang.Class) }
-     *
-     * @param <T> type of the class
-     * @param t   Object to be serialied.
-     * @return a string representation of the object.
+     * @See getSerializers().serialize(...)
      */
+    @Deprecated
     public <T> String serialize(final T t) {
-
-        if (t == null) {
-            return null;
-        }
-
-        final Class<? super T> clazz = (Class) t.getClass();
-        synchronized (cachedSerializers) {
-
-            // search serializer
-            Serializer<? super T> serializer = this.findSerializer(clazz);
-
-            // user default serializer
-            if (serializer == null) {
-                serializer = DEFAULT_SERIALIZER;
-                cachedSerializers.put(clazz, serializer);
-            }
-
-            try {
-                return serializer.serialize(t);
-            } catch (final Exception ex) {
-                LOG.error("could not serialize object " + t, ex);
-                return "";
-            }
-        }
+        return serializers.serialize(t);
     }
 
     /**
-     * Gets the serialier with the given class key. If not serializer is
-     * registered yet, the superclass hierarchy will be checked recursivly. If
-     * neither the class nor any superclass if registered, the interface
-     * hierarchy will be checked recursivly. if no (super) interface is
-     * registed, <b>null</b> will be returned.
-     *
-     * @param <T>   Type of the class
-     * @param clazz Class for which a serializer will be searched.
-     * @return Serizalier of <b>null</b>.
+     * @See getSerializers().findSerializer(...)
      */
+    @Deprecated
     public <T> Serializer<? super T> findSerializer(final Class<T> clazz) {
-        Serializer<? super T> serializer = getSerializer(clazz);
-        if (serializer == null) {
-            Serializer<?> cached = cachedSerializers.get(clazz);
-            if (cached == NO_SERIALIZER) {
-                return null;
-            } else if (cached != null) {
-                return (Serializer) cached;
-            }
-            final Class<? super T> superclass = clazz.getSuperclass();
-            if (superclass != null) {
-                serializer = findSerializer(superclass);
-            }
-        }
-        if (serializer == null) {
-            final Class<?>[] interfaces = clazz.getInterfaces();
-            for (int i = 0; i < interfaces.length && serializer == null; i++) {
-                final Class<? super T> anInterface = (Class) interfaces[i];
-                serializer = findSerializer(anInterface);
-            }
-        }
-        if (serializer != null) {
-            if (!cachedSerializers.containsKey(clazz)) {
-                cachedSerializers.put(clazz, serializer);
-            }
-        } else {
-            cachedSerializers.put(clazz, NO_SERIALIZER);
-        }
-        return serializer;
+        return serializers.find(clazz);
     }
 
     /**
      * @return LogMode of this client
      */
+    @Deprecated
     public LogMode getLogMode() {
         return getConfiguration().getLogMode();
     }

@@ -24,6 +24,10 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.im.njams.sdk.NjamsMetadata;
+import com.im.njams.sdk.communication.ReplayHandler;
+import com.im.njams.sdk.configuration.Configuration;
+import com.im.njams.sdk.model.layout.ProcessModelLayouter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -54,6 +58,10 @@ public class ProcessModel {
 
     // Currently known TransitionModels mapped by modelId
     private final Map<String, TransitionModel> transitions = new LinkedHashMap<>();
+    private final Configuration configuration;
+    private final ProcessModelLayouter processModelLayouter;
+    private final ProcessDiagramFactory processDiagramFactory;
+    private final NjamsMetadata instanceMetaData;
 
     private boolean starter;
 
@@ -73,6 +81,10 @@ public class ProcessModel {
     public ProcessModel(final Path path, final Njams njams) {
         this.path = path;
         this.njams = njams;
+        this.configuration = njams.getConfiguration();
+        this.processModelLayouter = njams.getProcessModelLayouter();
+        this.processDiagramFactory = njams.getProcessDiagramFactory();
+        this.instanceMetaData = njams.getNjamsMetadata();
     }
 
     /**
@@ -90,7 +102,7 @@ public class ProcessModel {
         internalProcessModel.setName(path.getObjectName());
 
         // set configuration data
-        ProcessConfiguration processConfiguration = njams.getConfiguration().getProcess(path.toString());
+        ProcessConfiguration processConfiguration = configuration.getProcess(path.toString());
         if (processConfiguration != null) {
             internalProcessModel.setLogLevel(processConfiguration.getLogLevel());
             internalProcessModel.setExclude(processConfiguration.isExclude());
@@ -110,9 +122,9 @@ public class ProcessModel {
             // process SVG
             if (svg == null) {
                 // create process layout
-                njams.getProcessModelLayouter().layout(this);
+                processModelLayouter.layout(this);
                 // build SVG
-                svg = njams.getProcessDiagramFactory().getProcessDiagram(this);
+                svg = processDiagramFactory.getProcessDiagram(this);
             }
             internalProcessModel.setSvg(svg);
             internalProcessModel.setSvgStatus(ProcessDiagramFactory.SUCCESS_STATUS);
@@ -131,6 +143,11 @@ public class ProcessModel {
      */
     public Njams getNjams() {
         return njams;
+    }
+
+
+    public String getCategory(){
+        return instanceMetaData.category;
     }
 
     /**

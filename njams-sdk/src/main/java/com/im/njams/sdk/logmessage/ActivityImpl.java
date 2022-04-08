@@ -25,6 +25,7 @@ import java.util.Objects;
 
 import javax.xml.bind.annotation.XmlTransient;
 
+import com.im.njams.sdk.Njams;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -61,6 +62,7 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
     private final JobImpl job;
     private final ActivityModel activityModel;
     private final Extract extract;
+    private final Njams njams;
     private boolean starter = false;
     private GroupImpl parent = null;
     private final boolean traceEnabled;
@@ -74,6 +76,7 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
 
     public ActivityImpl(JobImpl job, ActivityModel model) {
         this.job = job;
+        this.njams = job.getNjams();
         activityModel = Objects.requireNonNull(model);
         setModelId(model.getId());
         ActivityConfiguration activityConfig = job.getActivityConfiguration(activityModel);
@@ -302,9 +305,9 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
         if (data != null && isTracing()) {
             // if there is any data to handle add trace data
             if (input) {
-                setInput(job.getNjams().serialize(data));
+                setInput(njams.getSerializers().serialize(data));
             } else {
-                setOutput(job.getNjams().serialize(data));
+                setOutput(njams.getSerializers().serialize(data));
             }
             setExecutionIfNotSet();
             job.setTraces(true);
@@ -471,7 +474,7 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
     @Override
     public void processStartData(Object startData) {
         if (job.isRecording()) {
-            setStartData(job.getNjams().serialize(startData));
+            setStartData(njams.getSerializers().serialize(startData));
         }
     }
 

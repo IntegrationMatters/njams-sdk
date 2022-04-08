@@ -35,6 +35,7 @@ import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import com.im.njams.sdk.NjamsMetadata;
 import org.slf4j.LoggerFactory;
 
 import com.faizsiegeln.njams.messageformat.v4.logmessage.ActivityStatus;
@@ -84,6 +85,8 @@ public class JobImpl implements Job {
     private final String jobId;
 
     private final String logId;
+    private final Settings settings;
+    private final NjamsMetadata instanceMetaData;
     /*
      * the latest status of the job, set by any event
      */
@@ -211,15 +214,17 @@ public class JobImpl implements Job {
         //will be set to true.
         startTime = DateTimeUtility.now();
         startTimeExplicitlySet = false;
-        allErrors = "true".equalsIgnoreCase(njams.getSettings().getProperty(LOG_ALL_ERRORS));
-        truncateOnSuccess = "true".equalsIgnoreCase(njams.getSettings().getProperty(TRUNCATE_ON_SUCCESS));
+        settings = njams.getSettings();
+        instanceMetaData = njams.getNjamsMetadata();
+        allErrors = "true".equalsIgnoreCase(settings.getProperty(LOG_ALL_ERRORS));
+        truncateOnSuccess = "true".equalsIgnoreCase(settings.getProperty(TRUNCATE_ON_SUCCESS));
         truncateLimit = getTruncateLimit();
     }
 
     private int getTruncateLimit() {
         String s = null;
         try {
-            s = njams.getSettings().getProperty(TRUNCATE_LIMIT);
+            s = settings.getProperty(TRUNCATE_LIMIT);
             if (StringUtils.isBlank(s)) {
                 return Integer.MAX_VALUE;
             }
@@ -578,8 +583,8 @@ public class JobImpl implements Job {
         logMessage.setProcessName(processModel.getName());
         logMessage.setStatus(getStatus().getValue());
         logMessage.setServiceName(businessService);
-        logMessage.setClientVersion(njams.getNjamsMetadata().clientVersion);
-        logMessage.setSdkVersion(njams.getNjamsMetadata().sdkVersion);
+        logMessage.setClientVersion(instanceMetaData.clientVersion);
+        logMessage.setSdkVersion(instanceMetaData.sdkVersion);
 
         pluginDataItems.forEach(i -> logMessage.addPluginDataItem(i));
         return logMessage;

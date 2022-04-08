@@ -23,6 +23,8 @@ import static org.junit.Assert.assertThat;
 import static org.mockito.Matchers.anyObject;
 import static org.mockito.Mockito.doAnswer;
 
+import com.fasterxml.jackson.databind.ser.Serializers;
+import com.im.njams.sdk.NjamsSerializers;
 import org.junit.After;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -43,6 +45,7 @@ public class DataMaskingTest {
     private static JobImpl JOB = Mockito.mock(JobImpl.class);
     private static ProcessModel MODEL = Mockito.mock(ProcessModel.class);
     private static Njams NJAMS = Mockito.mock(Njams.class);
+    private static NjamsSerializers SERIALIZERS = Mockito.mock(NjamsSerializers.class);
     private static ActivityImpl IMPL = null;
 
     @BeforeClass
@@ -50,7 +53,8 @@ public class DataMaskingTest {
         doAnswer(invocation -> true).when(JOB).isDeepTrace();
         doAnswer(invocation -> NJAMS).when(MODEL).getNjams();
         doAnswer(invocation -> NJAMS).when(JOB).getNjams();
-        doAnswer(invocation -> invocation.getArguments()[0]).when(NJAMS).serialize(anyObject());
+        doAnswer(invocation -> SERIALIZERS).when(NJAMS).getSerializers();
+        doAnswer(invocation -> invocation.getArguments()[0]).when(SERIALIZERS).serialize(anyObject());
         IMPL = new ActivityImpl(JOB, Mockito.mock(ActivityModel.class));
         IMPL.start();
     }

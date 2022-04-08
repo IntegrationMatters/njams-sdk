@@ -131,7 +131,7 @@ public class NjamsProcessDiagramFactory implements ProcessDiagramFactory {
             NjamsProcessDiagramContext context = new NjamsProcessDiagramContext();
             context.setSvgNS(svgNS);
             context.setDoc(doc);
-            context.setCategory(processModel.getNjams().getNjamsMetadata().category);
+            context.setCategory(processModel.getCategory());
 
             createSvg(context, processModel);
 
@@ -142,6 +142,7 @@ public class NjamsProcessDiagramFactory implements ProcessDiagramFactory {
             throw new NjamsSdkRuntimeException("Error in NjamsProcessDiagramFactory", e);
         }
     }
+
 
     /**
      * Create the SVG

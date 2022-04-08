@@ -68,23 +68,23 @@ public class NjamsTest {
         System.out.println("addSerializer");
         final Serializer<List> expResult = l -> "list";
 
-        instance.addSerializer(ArrayList.class, a -> a.getClass().getSimpleName());
-        instance.addSerializer(List.class, expResult);
+        instance.getSerializers().add(ArrayList.class, a -> a.getClass().getSimpleName());
+        instance.getSerializers().add(List.class, expResult);
 
         String serialized;
 
         // found ArrayList serializer
-        serialized = instance.serialize(new ArrayList<>());
+        serialized = instance.getSerializers().serialize(new ArrayList<>());
         assertNotNull(serialized);
         assertEquals("ArrayList", serialized);
 
         // found default string serializer
-        serialized = instance.serialize(new HashMap<>());
+        serialized = instance.getSerializers().serialize(new HashMap<>());
         assertNotNull(serialized);
         assertEquals("{}", serialized);
 
         // found list serializer
-        serialized = instance.serialize(new LinkedList<>());
+        serialized = instance.getSerializers().serialize(new LinkedList<>());
         assertNotNull(serialized);
         assertEquals("list", serialized);
     }
