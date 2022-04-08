@@ -15,7 +15,7 @@ public class NjamsSerializers {
 
     // serializers
     private final HashMap<Class<?>, Serializer<?>> cachedSerializers = new HashMap<>();
-    private final HashMap<Class<?>, Serializer<?>> temp_serializers = new HashMap<>();
+    private final HashMap<Class<?>, Serializer<?>> serializers = new HashMap<>();
 
     /**
      * Adds a {@link Serializer} for serializing a given class. <br>
@@ -34,7 +34,7 @@ public class NjamsSerializers {
         synchronized (cachedSerializers) {
             if (key != null && serializer != null) {
                 cachedSerializers.clear();
-                return (Serializer) temp_serializers.put(key, serializer);
+                return (Serializer) serializers.put(key, serializer);
             }
             return null;
         }
@@ -52,7 +52,7 @@ public class NjamsSerializers {
         synchronized (cachedSerializers) {
             if (key != null) {
                 cachedSerializers.clear();
-                return (Serializer) temp_serializers.remove(key);
+                return (Serializer) serializers.remove(key);
             }
             return null;
         }
@@ -68,7 +68,7 @@ public class NjamsSerializers {
      */
     public <T> Serializer<T> get(Class<T> key) {
         if (key != null) {
-            return (Serializer) temp_serializers.get(key);
+            return (Serializer) serializers.get(key);
         }
         return null;
     }
