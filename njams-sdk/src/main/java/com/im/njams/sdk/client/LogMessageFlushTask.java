@@ -53,6 +53,8 @@ public class LogMessageFlushTask extends TimerTask {
      * if it is not started yet
      *
      * @param njamsMetadata Njams metadata for one instance
+     * @param njamsJobs Jobs for the njams instance to flush
+     * @param settings Settings to know if when to flush
      */
     public static synchronized void start(NjamsMetadata njamsMetadata, NjamsJobs njamsJobs, Settings settings) {
         if (njamsMetadata == null) {

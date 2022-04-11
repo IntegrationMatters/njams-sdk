@@ -102,6 +102,7 @@ public class ExtractHandler {
      * @param sourceDirection Whether the extract applies to the activity's input or output data.
      * @param sourceData      The data object on that the extract is being evaluated.
      * @param data            The serialized data object on that the extract is being evaluated.
+     * @param serializers     Serializers to serialize the message with
      */
     public static void handleExtract(JobImpl job, ActivityImpl activity, ExtractSource sourceDirection,
                                      Object sourceData, String data, NjamsSerializers serializers) {
@@ -126,6 +127,7 @@ public class ExtractHandler {
      * @param sourceDirection Whether the extract applies to the activity's input or output data.
      * @param sourceData      The data object on that the extract is being evaluated.
      * @param data            The serialized data object on that the extract is being evaluated.
+     * @param serializers     Serializers to serialize the message with
      */
     public static void handleExtract(JobImpl job, Extract extract, ActivityImpl activity,
                                      ExtractSource sourceDirection, Object sourceData, String data, NjamsSerializers serializers) {

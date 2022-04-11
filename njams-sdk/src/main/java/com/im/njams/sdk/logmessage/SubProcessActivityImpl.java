@@ -37,6 +37,7 @@ public class SubProcessActivityImpl extends GroupImpl implements SubProcessActiv
      * @param subProcess ProcessModel of the subprocess
      * @param job Job which contains this SubProcessActivityImpl
      * @param model The activity model for this instance.
+     * @param njamsSerializers Serializers to serialize the message with
      */
     public SubProcessActivityImpl(ProcessModel subProcess, JobImpl job, SubProcessActivityModel model, NjamsSerializers njamsSerializers) {
         super(job, model, njamsSerializers);

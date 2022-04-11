@@ -26,7 +26,7 @@ public class NjamsJobs implements InstructionListener {
     /**
      * Static value for feature replay
      *
-     * @deprecated Use {@link Njams.Feature#key()} on instance {@link Njams.Feature#REPLAY} instead.
+     * @deprecated Use {@link NjamsFeatures.Feature#key()} on instance {@link NjamsFeatures.Feature#REPLAY} instead.
      */
     @Deprecated
     public static final String FEATURE_REPLAY = "replay";

@@ -247,7 +247,7 @@ public class KafkaReceiver extends AbstractReceiver {
      * @param message the Json Message
      * @return the Instruction object that was extracted or null, if no valid
      *         instruction was found or it could be parsed to an instruction object.
-     * @throws IOException
+     * @throws IOException Is thrown if the mapper cannot read the message
      */
     protected Instruction getInstruction(final ConsumerRecord<String, String> message) throws IOException {
         return mapper.readValue(message.value(), Instruction.class);

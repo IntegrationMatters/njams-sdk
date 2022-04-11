@@ -262,7 +262,8 @@ public class Njams implements InstructionListener{
     /**
      * @return the category of the nJAMS client, which should describe the
      * technology
-     * @See getNjamsMetadata().category
+     * @see #getNjamsMetadata()
+     * @see NjamsMetadata#category
      */
     @Deprecated
     public String getCategory() {
@@ -278,7 +279,8 @@ public class Njams implements InstructionListener{
 
     /**
      * @return the clientPath
-     * @See getNjamsMetadata().clientPath
+     * @see #getNjamsMetadata()
+     * @see NjamsMetadata#clientPath
      */
     @Deprecated
     public Path getClientPath() {
@@ -291,7 +293,8 @@ public class Njams implements InstructionListener{
 
     /**
      * @return the clientVersion
-     * @See getNjamsMetadata().clientVersion
+     * @see #getNjamsMetadata()
+     * @see NjamsMetadata#clientVersion
      */
     @Deprecated
     public String getClientVersion() {
@@ -300,7 +303,8 @@ public class Njams implements InstructionListener{
 
     /**
      * @return the sdkVersion
-     * @See getNjamsMetadata().sdkVersion
+     * @see #getNjamsMetadata()
+     * @see NjamsMetadata#sdkVersion
      */
     @Deprecated
     public String getSdkVersion() {
@@ -326,7 +330,9 @@ public class Njams implements InstructionListener{
     }
 
     /**
-     * @See getJobs().getReplayHandler()
+     * @return The handler that handles the replay of a job
+     * @see #getNjamsJobs()
+     * @see NjamsJobs#getReplayHandler()
      */
     @Deprecated
     public ReplayHandler getReplayHandler() {
@@ -334,7 +340,10 @@ public class Njams implements InstructionListener{
     }
 
     /**
-     * @See getJobs().setReplayHandler(...)
+     * Sets the handler to handle the replay of a job
+     * @param replayHandler the handler to replay the job
+     * @see #getNjamsJobs()
+     * @see NjamsJobs#setReplayHandler(ReplayHandler)
      */
     @Deprecated
     public void setReplayHandler(final ReplayHandler replayHandler) {
@@ -510,7 +519,11 @@ public class Njams implements InstructionListener{
     }
 
     /**
-     * @See getJobs().get(...)
+     *
+     * @param jobId the key to the corresponding job
+     * @return the corresponding job
+     * @see #getNjamsJobs()
+     * @see NjamsJobs#get(String)
      */
     @Deprecated
     public Job getJobById(final String jobId) {
@@ -518,7 +531,9 @@ public class Njams implements InstructionListener{
     }
 
     /**
-     * @See getJobs().get()
+     * @see #getNjamsJobs()
+     * @see NjamsJobs#get()
+     * @return A collections of jobs
      */
     @Deprecated
     public Collection<Job> getJobs() {
@@ -773,7 +788,9 @@ public class Njams implements InstructionListener{
     }
 
     /**
-     * @See getNjamsJobs().add(...)
+     * @param job the job to add, it's jobId is the key
+     * @see #getNjamsJobs()
+     * @see NjamsJobs#add(Job)
      */
     @Deprecated
     public void addJob(Job job) {
@@ -781,7 +798,9 @@ public class Njams implements InstructionListener{
     }
 
     /**
-     * @See getNjamsJobs().remove(...)
+     * @param jobId Key to remove the job from the job collection.
+     * @see #getNjamsJobs()
+     * @see NjamsJobs#remove(String)
      */
     @Deprecated
     public void removeJob(String jobId) {
@@ -907,7 +926,16 @@ public class Njams implements InstructionListener{
     }
 
     /**
-     * @See getNjamsSerializers().addSerializer(...)
+     *
+     * @param <T>        Type that the given instance serializes
+     * @param key        Class for which the serializer should be registered
+     * @param serializer A serializer that can serialize instances of class key
+     *                   to strings.
+     * @return If a serializer for the same type was already registered before,
+     * the former registered serializer is returned. Otherwise <code>null</code> is returned.
+     *
+     * @see #getNjamsSerializers() ()
+     * @see NjamsSerializers#add(Class, Serializer)
      */
     @Deprecated
     public <T> Serializer<T> addSerializer(final Class<T> key, final Serializer<? super T> serializer) {
@@ -915,7 +943,12 @@ public class Njams implements InstructionListener{
     }
 
     /**
-     * @See getNjamsSerializers().removeSerializer(...)
+     * @param key a class
+     * @param <T> type of serializable
+     * @return Registered serializer or <b>null</b>
+     *
+     * @see #getNjamsSerializers() ()
+     * @see NjamsSerializers#remove(Class)
      */
     @Deprecated
     public <T> Serializer<T> removeSerializer(final Class<T> key) {
@@ -923,7 +956,12 @@ public class Njams implements InstructionListener{
     }
 
     /**
-     * @See getNjamsSerializers().getSerializer(...)
+     *
+     * @param <T> type of the class
+     * @param key a class
+     * @return Registered serializer or <b>null</b>
+     * @see #getNjamsSerializers() ()
+     * @see NjamsSerializers#get(Class)
      */
     @Deprecated
     public <T> Serializer<T> getSerializer(final Class<T> key) {
@@ -931,7 +969,11 @@ public class Njams implements InstructionListener{
     }
 
     /**
-     * @See getNjamsSerializers().serialize(...)
+     * @param <T> type of the class
+     * @param t   Object to be serialied.
+     * @return a string representation of the object.
+     * @see #getNjamsSerializers() ()
+     * @see NjamsSerializers#serialize(Object)
      */
     @Deprecated
     public <T> String serialize(final T t) {
@@ -939,7 +981,11 @@ public class Njams implements InstructionListener{
     }
 
     /**
-     * @See getNjamsSerializers().findSerializer(...)
+     * @param <T>   Type of the class
+     * @param clazz Class for which a serializer will be searched.
+     * @return Serizalier of <b>null</b>.
+     * @see #getNjamsSerializers() ()
+     * @see NjamsSerializers#find(Class)
      */
     @Deprecated
     public <T> Serializer<? super T> findSerializer(final Class<T> clazz) {
@@ -963,15 +1009,22 @@ public class Njams implements InstructionListener{
 
     /**
      * @return the machine name
-     * @See getNjamsMetadata().machine
+     * @see #getNjamsMetadata()
+     * @see NjamsMetadata#machine
      */
     @Deprecated
     public String getMachine() {
         return getNjamsMetadata().machine;
     }
 
+    public NjamsFeatures getNjamsFeatures(){
+        return njamsFeatures;
+    }
+
     /**
-     * @See getNjamsFeatures().get()
+     * @see #getNjamsFeatures()
+     * @see NjamsFeatures#get()
+     * @return the list of features this client has
      */
     @Deprecated
     public List<String> getFeatures() {
@@ -979,7 +1032,9 @@ public class Njams implements InstructionListener{
     }
 
     /**
-     * @See getNjamsFeatures().add()
+     * @param feature to set
+     * @see #getNjamsFeatures()
+     * @see NjamsFeatures#add(String)
      */
     @Deprecated
     public void addFeature(String feature) {
@@ -987,7 +1042,9 @@ public class Njams implements InstructionListener{
     }
 
     /**
-     * @See getNjamsFeatures().add()
+     * @param feature to set
+     * @see #getNjamsFeatures()
+     * @see NjamsFeatures#add(NjamsFeatures.Feature)
      */
     @Deprecated
     public void addFeature(NjamsFeatures.Feature feature) {
@@ -995,7 +1052,9 @@ public class Njams implements InstructionListener{
     }
 
     /**
-     * @See getNjamsFeatures().remove()
+     * @param feature to remove
+     * @see #getNjamsFeatures()
+     * @see NjamsFeatures#remove(String)
      */
     @Deprecated
     public void removeFeature(final String feature) {
@@ -1003,7 +1062,9 @@ public class Njams implements InstructionListener{
     }
 
     /**
-     * @See getNjamsFeatures().remove()
+     * @param feature to remove
+     * @see #getNjamsFeatures()
+     * @see NjamsFeatures#remove(NjamsFeatures.Feature)
      */
     @Deprecated
     public void removeFeature(final NjamsFeatures.Feature feature) {
@@ -1011,7 +1072,9 @@ public class Njams implements InstructionListener{
     }
 
     /**
-     * @See getNjamsState().isStarted()
+     * @return if this client instance is started
+     * @see #getNjamsState()
+     * @see NjamsState#isStarted()
      */
     @Deprecated
     public boolean isStarted() {

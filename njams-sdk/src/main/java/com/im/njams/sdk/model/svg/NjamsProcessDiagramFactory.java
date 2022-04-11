@@ -85,6 +85,7 @@ public class NjamsProcessDiagramFactory implements ProcessDiagramFactory {
 
     /**
      * Creates the objects securely.
+     * @return Creates a secure Njams process diagram factory
      */
     public static NjamsProcessDiagramFactory createSecureDiagramFactory(){
         return new NjamsProcessDiagramFactory(false);
@@ -92,6 +93,7 @@ public class NjamsProcessDiagramFactory implements ProcessDiagramFactory {
 
     /**
      * Creates the objects not securely.
+     * @return Creates a not secure Njams process diagram factory
      */
     public static NjamsProcessDiagramFactory createNotSecureDiagramFactory(){
         return new NjamsProcessDiagramFactory(true);

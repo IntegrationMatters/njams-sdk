@@ -192,6 +192,7 @@ public class JobImpl implements Job {
      * @param processModel for job to create
      * @param jobId of Job to create
      * @param logId of Job to create
+     * @param jobUtils needed utilities to work correctly
      */
     public JobImpl(ProcessModel processModel, String jobId, String logId, JobUtils jobUtils) {
         this.jobUtils = jobUtils;

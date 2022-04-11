@@ -45,6 +45,7 @@ public class LogMessageFlushTaskEntry {
      * instance, or the defaults.
      *
      * @param njamsJobs Initialize this entry with this NjamsJobs
+     * @param settings Settings for getting the flush size and flush interval
      */
     public LogMessageFlushTaskEntry(NjamsJobs njamsJobs, Settings settings) {
         this.njamsJobs = njamsJobs;
