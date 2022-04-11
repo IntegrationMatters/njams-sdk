@@ -23,7 +23,7 @@ import static org.junit.Assert.assertThat;
 import static org.mockito.Matchers.anyObject;
 import static org.mockito.Mockito.doAnswer;
 
-import com.im.njams.sdk.NjamsSerializers;
+import com.im.njams.sdk.serializer.NjamsSerializers;
 import org.junit.After;
 import org.junit.BeforeClass;
 import org.junit.Test;

@@ -24,7 +24,7 @@ import java.util.Objects;
 
 import javax.xml.bind.annotation.XmlTransient;
 
-import com.im.njams.sdk.NjamsSerializers;
+import com.im.njams.sdk.serializer.NjamsSerializers;
 import com.im.njams.sdk.model.ActivityModel;
 import com.im.njams.sdk.model.GroupModel;
 import com.im.njams.sdk.model.SubProcessActivityModel;

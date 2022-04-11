@@ -60,6 +60,7 @@ import com.im.njams.sdk.model.layout.ProcessModelLayouter;
 import com.im.njams.sdk.model.layout.SimpleProcessModelLayouter;
 import com.im.njams.sdk.model.svg.NjamsProcessDiagramFactory;
 import com.im.njams.sdk.model.svg.ProcessDiagramFactory;
+import com.im.njams.sdk.serializer.NjamsSerializers;
 import com.im.njams.sdk.serializer.Serializer;
 import com.im.njams.sdk.settings.Settings;
 import org.slf4j.LoggerFactory;

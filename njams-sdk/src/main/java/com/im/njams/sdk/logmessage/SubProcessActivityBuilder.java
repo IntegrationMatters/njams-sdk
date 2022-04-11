@@ -19,7 +19,7 @@ package com.im.njams.sdk.logmessage;
 import java.time.LocalDateTime;
 
 import com.faizsiegeln.njams.messageformat.v4.logmessage.ActivityStatus;
-import com.im.njams.sdk.NjamsSerializers;
+import com.im.njams.sdk.serializer.NjamsSerializers;
 import com.im.njams.sdk.model.ProcessModel;
 import com.im.njams.sdk.model.SubProcessActivityModel;
 import com.im.njams.sdk.model.TransitionModel;

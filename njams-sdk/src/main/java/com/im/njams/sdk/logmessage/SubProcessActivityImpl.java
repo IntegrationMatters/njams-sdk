@@ -16,7 +16,7 @@
  */
 package com.im.njams.sdk.logmessage;
 
-import com.im.njams.sdk.NjamsSerializers;
+import com.im.njams.sdk.serializer.NjamsSerializers;
 import com.im.njams.sdk.model.ProcessModel;
 import com.im.njams.sdk.model.SubProcessActivityModel;
 
