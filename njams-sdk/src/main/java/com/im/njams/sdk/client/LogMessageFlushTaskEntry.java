@@ -16,7 +16,7 @@
  */
 package com.im.njams.sdk.client;
 
-import com.im.njams.sdk.NjamsJobs;
+import com.im.njams.sdk.logmessage.NjamsJobs;
 import com.im.njams.sdk.settings.Settings;
 
 /**

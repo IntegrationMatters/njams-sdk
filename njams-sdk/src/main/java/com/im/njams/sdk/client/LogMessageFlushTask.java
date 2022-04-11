@@ -23,7 +23,7 @@ import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import com.im.njams.sdk.NjamsJobs;
+import com.im.njams.sdk.logmessage.NjamsJobs;
 import com.im.njams.sdk.NjamsMetadata;
 import com.im.njams.sdk.settings.Settings;
 import org.slf4j.Logger;

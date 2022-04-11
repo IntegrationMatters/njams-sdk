@@ -1,6 +1,6 @@
 package com.im.njams.sdk.model;
 
-import com.im.njams.sdk.NjamsJobs;
+import com.im.njams.sdk.logmessage.NjamsJobs;
 import com.im.njams.sdk.NjamsMetadata;
 import com.im.njams.sdk.serializer.NjamsSerializers;
 import com.im.njams.sdk.communication.Sender;

@@ -1,4 +1,4 @@
-package com.im.njams.sdk;
+package com.im.njams.sdk.logmessage;
 
 import java.util.ArrayList;
 import java.util.Arrays;

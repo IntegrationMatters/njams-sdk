@@ -52,6 +52,8 @@ import com.im.njams.sdk.configuration.ProcessConfiguration;
 import com.im.njams.sdk.configuration.provider.FileConfigurationProvider;
 import com.im.njams.sdk.logmessage.DataMasking;
 import com.im.njams.sdk.logmessage.Job;
+import com.im.njams.sdk.logmessage.NjamsFeatures;
+import com.im.njams.sdk.logmessage.NjamsJobs;
 import com.im.njams.sdk.model.ProcessModel;
 import com.im.njams.sdk.model.ProcessModelUtils;
 import com.im.njams.sdk.model.image.ImageSupplier;

@@ -1,15 +1,15 @@
-package com.im.njams.sdk;
+package com.im.njams.sdk.logmessage;
 
 import com.faizsiegeln.njams.messageformat.v4.command.Command;
 import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
 import com.faizsiegeln.njams.messageformat.v4.command.Response;
+import com.im.njams.sdk.NjamsState;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.communication.AbstractReplayHandler;
 import com.im.njams.sdk.communication.InstructionListener;
 import com.im.njams.sdk.communication.ReplayHandler;
 import com.im.njams.sdk.communication.ReplayRequest;
 import com.im.njams.sdk.communication.ReplayResponse;
-import com.im.njams.sdk.logmessage.Job;
 import com.im.njams.sdk.utils.StringUtils;
 
 import java.util.Collection;
