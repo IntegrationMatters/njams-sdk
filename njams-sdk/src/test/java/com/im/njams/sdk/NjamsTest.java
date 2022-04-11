@@ -27,6 +27,9 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 
+import com.im.njams.sdk.communication.ReplayHandler;
+import com.im.njams.sdk.communication.ReplayRequest;
+import com.im.njams.sdk.communication.ReplayResponse;
 import com.im.njams.sdk.communication.TestReceiver;
 import com.im.njams.sdk.logmessage.NjamsFeatures;
 import com.im.njams.sdk.logmessage.NjamsJobs;
@@ -119,19 +122,6 @@ public class NjamsTest {
         instance.start();
         instance.stop();
         instance.start();
-    }
-
-    @Test
-    public void testOnCorrectSendProjectMessageInstruction() {
-        Instruction inst = new Instruction();
-        Request req = new Request();
-        req.setCommand(Command.SEND_PROJECTMESSAGE.commandString());
-        inst.setRequest(req);
-        assertNull(inst.getResponse());
-        instance.onInstruction(inst);
-        Response resp = inst.getResponse();
-        assertTrue(resp.getResultCode() == 0);
-        assertEquals("Successfully sent ProjectMessage via NjamsClient", resp.getResultMessage());
     }
 
     @Test

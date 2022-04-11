@@ -32,10 +32,18 @@ import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.regex.Pattern;
 
+import com.im.njams.sdk.NjamsProjectMessage;
+import com.im.njams.sdk.client.NjamsMetadataFactory;
 import com.im.njams.sdk.communication.CommunicationFactory;
+import com.im.njams.sdk.communication.Sender;
 import com.im.njams.sdk.communication.TestReceiver;
+import com.im.njams.sdk.communication.TestSender;
+import com.im.njams.sdk.configuration.Configuration;
+import com.im.njams.sdk.model.layout.NoopLayouter;
+import com.im.njams.sdk.serializer.NjamsSerializers;
 import org.junit.After;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -160,25 +168,25 @@ public class JobImplTest extends AbstractTest {
 
         final Settings settings = new Settings();
         settings.put(CommunicationFactory.COMMUNICATION, TestReceiver.NAME);
-        Njams mockedNjams = spy(new Njams(clientPath, "1.0.0", "sdk4", settings));
 
-        NjamsSender sender = mock(NjamsSender.class);
-        when(mockedNjams.getSender()).thenReturn(sender);
+        final SenderMock savingMock = new SenderMock();
+        final NjamsState njamsState = new NjamsState();
+        njamsState.start();
+
+        NjamsProjectMessage projectMessage = new NjamsProjectMessage(
+            NjamsMetadataFactory.createMetadataFor(clientPath, "bla", "blub", "bla2"), new NjamsFeatures(),
+            new Configuration(), savingMock, new NjamsState(),
+            new NjamsJobs(njamsState, new NjamsFeatures()), new NjamsSerializers(), settings,
+            processModel -> null, new NoopLayouter());
 
         Path processPath = new Path("PROCESSES");
-        mockedNjams.createProcess(processPath);
-        mockedNjams.start();
+        projectMessage.createProcess(processPath);
+
         //add DataMasking
         DataMasking.addPattern(".*");
         //Create a job
-        ProcessModel process = mockedNjams.getProcessModel(new Path(PROCESSPATHNAME));
+        final ProcessModel process = projectMessage.getProcessModel(new Path(PROCESSPATHNAME));
         process.createActivity("id", "name", null);
-
-        //Inject or own sender.send() method to get the masked logmessage
-        doAnswer((Answer<Object>) (InvocationOnMock invocation) -> {
-            msg = (LogMessage) invocation.getArguments()[0];
-            return null;
-        }).when(sender).send(any(CommonMessage.class));
 
         JobImpl job = (JobImpl) process.createJob();
         job.start();
@@ -187,8 +195,9 @@ public class JobImplTest extends AbstractTest {
 
         //This sets the job end time and flushes
         job.end();
-        checkAllFields();
 
+        msg = (LogMessage) savingMock.getMessage();
+        checkAllFields();
     }
 
     /**
@@ -537,5 +546,33 @@ public class JobImplTest extends AbstractTest {
         assertTrue(job.hasOrHadStartActivity);
 
         getStartedActivityForJob(job);
+    }
+
+    private class SenderMock implements Sender {
+        private CommonMessage message;
+
+        @Override
+        public void init(Properties properties) {
+
+        }
+
+        @Override
+        public void send(CommonMessage msg) {
+            this.message = msg;
+        }
+
+        @Override
+        public void close() {
+
+        }
+
+        @Override
+        public String getName() {
+            return null;
+        }
+
+        public CommonMessage getMessage(){
+            return message;
+        }
     }
 }

@@ -26,17 +26,13 @@ package com.im.njams.sdk;
 import com.faizsiegeln.njams.messageformat.v4.command.Command;
 import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
 import com.faizsiegeln.njams.messageformat.v4.command.Response;
-import com.faizsiegeln.njams.messageformat.v4.common.TreeElement;
-import com.faizsiegeln.njams.messageformat.v4.common.TreeElementType;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.LogMode;
-import com.faizsiegeln.njams.messageformat.v4.projectmessage.ProjectMessage;
 import com.im.njams.sdk.argos.ArgosMultiCollector;
 import com.im.njams.sdk.argos.ArgosSender;
 import com.im.njams.sdk.client.CleanTracepointsTask;
 import com.im.njams.sdk.client.LogMessageFlushTask;
 import com.im.njams.sdk.client.NjamsMetadata;
 import com.im.njams.sdk.client.NjamsMetadataFactory;
-import com.im.njams.sdk.common.DateTimeUtility;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.common.Path;
 import com.im.njams.sdk.communication.CommunicationFactory;
@@ -58,7 +54,6 @@ import com.im.njams.sdk.logmessage.NjamsFeatures;
 import com.im.njams.sdk.logmessage.NjamsJobs;
 import com.im.njams.sdk.logmessage.NjamsState;
 import com.im.njams.sdk.model.ProcessModel;
-import com.im.njams.sdk.model.ProcessModelUtils;
 import com.im.njams.sdk.model.image.ImageSupplier;
 import com.im.njams.sdk.model.image.ResourceImageSupplier;
 import com.im.njams.sdk.model.layout.ProcessModelLayouter;
@@ -71,24 +66,19 @@ import com.im.njams.sdk.settings.Settings;
 import org.slf4j.LoggerFactory;
 
 import java.net.URL;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.Enumeration;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Properties;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import static com.im.njams.sdk.logmessage.NjamsState.NOT_STARTED_EXCEPTION_MESSAGE;
-import static java.util.stream.Collectors.toList;
 
 /**
  * This is an instance of nJAMS. It cares about lifecycle and initializations
@@ -99,15 +89,6 @@ import static java.util.stream.Collectors.toList;
 public class Njams implements InstructionListener{
 
     private static final org.slf4j.Logger LOG = LoggerFactory.getLogger(Njams.class);
-
-    private static final String DEFAULT_TAXONOMY_ROOT_TYPE = "njams.taxonomy.root";
-    private static final String DEFAULT_TAXONOMY_FOLDER_TYPE = "njams.taxonomy.folder";
-    private static final String DEFAULT_TAXONOMY_CLIENT_TYPE = "njams.taxonomy.client";
-    private static final String DEFAULT_TAXONOMY_PROCESS_TYPE = "njams.taxonomy.process";
-    private static final String DEFAULT_TAXONOMY_ROOT_ICON = "images/root.png";
-    private static final String DEFAULT_TAXONOMY_FOLDER_ICON = "images/folder.png";
-    private static final String DEFAULT_TAXONOMY_CLIENT_ICON = "images/client.png";
-    private static final String DEFAULT_TAXONOMY_PROCESS_ICON = "images/process.png";
 
     private static final String DEFAULT_CACHE_PROVIDER = FileConfigurationProvider.NAME;
     private final NjamsMetadata instanceMetadata;
@@ -138,28 +119,12 @@ public class Njams implements InstructionListener{
      */
     public static final String CURRENT_YEAR = "currentYear";
 
-
-    // Also used for synchronizing access to the project message resources:
-    // process-models, images, global-variables, tree-elements
-    // Path -> ProcessModel
-    private final Map<String, ProcessModel> processModels = new HashMap<>();
-
-    // Images
-    private final Collection<ImageSupplier> images = new HashSet<>();
-
-    // Name -> Value
-    private final Map<String, String> globalVariables = new HashMap<>();
-
     private final Map<String, String> versions = new HashMap<>();
 
     // The settings of the client
     private final Settings settings;
 
-    // The start time of the engine
-    private final LocalDateTime startTime;
-
-    // tree representation for the client
-    private final List<TreeElement> treeElements;
+    private final NjamsProjectMessage njamsProjectMessage;
 
     private ProcessDiagramFactory processDiagramFactory;
 
@@ -190,8 +155,6 @@ public class Njams implements InstructionListener{
      * @param settings needed settings for client eg. for communication
      */
     public Njams(Path path, String version, String category, Settings settings) {
-        treeElements = new ArrayList<>();
-        startTime = DateTimeUtility.now();
         this.settings = settings;
         this.processDiagramFactory = createProcessDiagramFactory();
         processModelLayouter = new SimpleProcessModelLayouter();
@@ -199,14 +162,17 @@ public class Njams implements InstructionListener{
         argosSender.init(settings);
         loadConfigurationProvider();
         loadConfiguration();
-        createTreeElements(path, TreeElementType.CLIENT);
         readVersions(version);
-        this.instanceMetadata = NjamsMetadataFactory.createMetadataFor(path, versions.get(CLIENT_VERSION_KEY), versions.get(SDK_VERSION_KEY), category);
-        printStartupBanner();
+        this.instanceMetadata = NjamsMetadataFactory.createMetadataFor(path, versions.get(CLIENT_VERSION_KEY),
+            versions.get(SDK_VERSION_KEY), category);
         serializers = new NjamsSerializers();
         njamsState = new NjamsState();
         njamsFeatures = new NjamsFeatures();
         njamsJobs = new NjamsJobs(njamsState, njamsFeatures);
+        this.njamsProjectMessage = new NjamsProjectMessage(getNjamsMetadata(), getNjamsFeatures(), getConfiguration(),
+            getSender(), getNjamsState(), getNjamsJobs(), getNjamsSerializers(), getSettings(),
+            getProcessDiagramFactory(), getProcessModelLayouter());
+        printStartupBanner();
     }
 
     private ProcessDiagramFactory createProcessDiagramFactory() {
@@ -320,8 +286,9 @@ public class Njams implements InstructionListener{
     /**
      * @return the globalVariables
      */
+    @Deprecated
     public Map<String, String> getGlobalVariables() {
-        return globalVariables;
+        return njamsProjectMessage.getGlobalVariables();
     }
 
     /**
@@ -329,10 +296,9 @@ public class Njams implements InstructionListener{
      *
      * @param globalVariables The global variables to be added to this instance.
      */
+    @Deprecated
     public void addGlobalVariables(Map<String, String> globalVariables) {
-        synchronized (processModels) {
-            this.globalVariables.putAll(globalVariables);
-        }
+        njamsProjectMessage.addGlobalVariables(globalVariables);
     }
 
     /**
@@ -362,8 +328,9 @@ public class Njams implements InstructionListener{
      * @param key          the key of the image
      * @param resourcePath the path where to find the image
      */
+    @Deprecated
     public void addImage(final String key, final String resourcePath) {
-        addImage(new ResourceImageSupplier(key, resourcePath));
+        njamsProjectMessage.addImage(new ResourceImageSupplier(key, resourcePath));
     }
 
     /**
@@ -371,10 +338,9 @@ public class Njams implements InstructionListener{
      *
      * @param imageSupplier the supplier used by SDK to find the image
      */
+    @Deprecated
     public void addImage(final ImageSupplier imageSupplier) {
-        synchronized (processModels) {
-            images.add(imageSupplier);
-        }
+        njamsProjectMessage.addImage(imageSupplier);
     }
 
     /**
@@ -410,6 +376,7 @@ public class Njams implements InstructionListener{
         try {
             receiver = new CommunicationFactory(settings).getReceiver(getNjamsMetadata());
             receiver.addInstructionListener(this);
+            receiver.addInstructionListener(njamsProjectMessage);
             receiver.addInstructionListener(njamsJobs);
             receiver.addInstructionListener(new ConfigurationInstructionListener(getConfiguration()));
             receiver.start();
@@ -439,7 +406,7 @@ public class Njams implements InstructionListener{
             LogMessageFlushTask.start(getNjamsMetadata(), getNjamsJobs(), getSettings());
             CleanTracepointsTask.start(getNjamsMetadata(), getConfiguration(), getSender());
             njamsState.start();
-            sendProjectMessage();
+            njamsProjectMessage.sendProjectMessage();
         }
         return isStarted();
     }
@@ -482,17 +449,9 @@ public class Njams implements InstructionListener{
      * @param path the path where to get the ProcessModel from
      * @return the ProcessModel or {@link NjamsSdkRuntimeException}
      */
+    @Deprecated
     public ProcessModel getProcessModel(final Path path) {
-        if (!hasProcessModel(path)) {
-            throw new NjamsSdkRuntimeException("ProcessModel not found for path " + path);
-        }
-
-        final List<String> parts = Stream.of(getNjamsMetadata().clientPath, path).map(Path::getParts).flatMap(List::stream)
-            .collect(toList());
-        synchronized (processModels) {
-            final ProcessModel processModel = processModels.get(new Path(parts).toString());
-            return processModel;
-        }
+        return njamsProjectMessage.getProcessModel(path);
     }
 
     /**
@@ -501,16 +460,9 @@ public class Njams implements InstructionListener{
      * @param path the path where to search for a {@link ProcessModel}.
      * @return true if found else false
      */
+    @Deprecated
     public boolean hasProcessModel(final Path path) {
-        if (path == null) {
-            return false;
-        }
-        final List<String> parts = Stream.of(getNjamsMetadata().clientPath, path).map(Path::getParts).flatMap(List::stream)
-            .collect(toList());
-        synchronized (processModels) {
-            final ProcessModel processModel = processModels.get(new Path(parts).toString());
-            return processModel != null;
-        }
+        return njamsProjectMessage.hasProcessModel(path);
     }
 
     /**
@@ -518,10 +470,9 @@ public class Njams implements InstructionListener{
      *
      * @return Collection of all process models
      */
+    @Deprecated
     public Collection<ProcessModel> getProcessModels() {
-        synchronized (processModels) {
-            return Collections.unmodifiableCollection(processModels.values());
-        }
+        return njamsProjectMessage.getProcessModels();
     }
 
     /**
@@ -553,15 +504,9 @@ public class Njams implements InstructionListener{
      *             created
      * @return the new ProcessModel or a {@link NjamsSdkRuntimeException}
      */
+    @Deprecated
     public ProcessModel createProcess(final Path path) {
-        final Path fullClientPath = path.addBase(getNjamsMetadata().clientPath);
-        ProcessModelUtils processModelUtils = new ProcessModelUtils(getNjamsJobs(), getNjamsMetadata(), getNjamsSerializers(), getConfiguration(), getSettings(), getProcessDiagramFactory(), getProcessModelLayouter(), getSender());
-        final ProcessModel model = new ProcessModel(fullClientPath, processModelUtils);
-        synchronized (processModels) {
-            createTreeElements(fullClientPath, TreeElementType.PROCESS);
-            processModels.put(fullClientPath.toString(), model);
-        }
-        return model;
+        return njamsProjectMessage.createProcess(path);
     }
 
     /**
@@ -570,144 +515,9 @@ public class Njams implements InstructionListener{
      * @param processModel The model to be added. A {@link NjamsSdkRuntimeException} is thrown if the given model was
      *                     created for another instance than this.
      */
+    @Deprecated
     public void addProcessModel(final ProcessModel processModel) {
-        if (processModel == null) {
-            return;
-        }
-        if (processModel.getNjamsMetadata().equals(instanceMetadata)) {
-            throw new NjamsSdkRuntimeException("Process model has been created for a different nJAMS instance.");
-        }
-        final List<String> clientParts = getNjamsMetadata().clientPath.getParts();
-        final List<String> prefix = processModel.getPath().getParts().subList(0, clientParts.size());
-        if (!clientParts.equals(prefix)) {
-            throw new NjamsSdkRuntimeException("Process model path does not match this nJAMS instance.");
-        }
-        synchronized (processModels) {
-            createTreeElements(processModel.getPath(), TreeElementType.PROCESS);
-            processModels.put(processModel.getPath().toString(), processModel);
-        }
-    }
-
-    /**
-     * Flush all Resources to the server by creating a new ProjectMessage. It
-     * can only be flushed when the instance was started.
-     */
-    public void sendProjectMessage() {
-        addDefaultImagesIfNeededAndAbsent();
-        final ProjectMessage msg = new ProjectMessage();
-        setStarters();
-        msg.getTreeElements().addAll(treeElements);
-        msg.setPath(getNjamsMetadata().clientPath.toString());
-        msg.setClientVersion(getNjamsMetadata().clientVersion);
-        msg.setSdkVersion(getNjamsMetadata().sdkVersion);
-        msg.setCategory(getNjamsMetadata().category);
-        msg.setStartTime(startTime);
-        msg.setMachine(getNjamsMetadata().machine);
-        msg.setFeatures(njamsFeatures.get());
-        msg.setLogMode(configuration.getLogMode());
-        synchronized (processModels) {
-            processModels.values().stream().map(ProcessModel::getSerializableProcessModel)
-                .forEach(ipm -> msg.getProcesses().add(ipm));
-            images.forEach(i -> msg.getImages().put(i.getName(), i.getBase64Image()));
-            msg.getGlobalVariables().putAll(globalVariables);
-            LOG.debug("Sending project message with {} process-models, {} images, {} global-variables.",
-                processModels.size(), images.size(), globalVariables.size());
-        }
-        getSender().send(msg);
-    }
-
-    /**
-     * Adds imgages for the default keys, if they are used and no image has benn
-     * added for them
-     */
-    private void addDefaultImagesIfNeededAndAbsent() {
-        addDefaultImagesIfNeededAndAbsent(DEFAULT_TAXONOMY_FOLDER_TYPE, DEFAULT_TAXONOMY_FOLDER_ICON);
-        addDefaultImagesIfNeededAndAbsent(DEFAULT_TAXONOMY_ROOT_TYPE, DEFAULT_TAXONOMY_ROOT_ICON);
-        addDefaultImagesIfNeededAndAbsent(DEFAULT_TAXONOMY_CLIENT_TYPE, DEFAULT_TAXONOMY_CLIENT_ICON);
-        addDefaultImagesIfNeededAndAbsent(DEFAULT_TAXONOMY_PROCESS_TYPE, DEFAULT_TAXONOMY_PROCESS_ICON);
-    }
-
-    /**
-     * Checks all tree elements if the given treeDefaultType has been used, and
-     * adds the treeDefaultIcon if not images has been added yet
-     *
-     * @param treeDefaultType type of the tree element
-     * @param treeDefaultIcon icon which should be added if needed
-     */
-    private void addDefaultImagesIfNeededAndAbsent(String treeDefaultType, String treeDefaultIcon) {
-        synchronized (processModels) {
-            boolean found = treeElements.stream().anyMatch(te -> te.getType().equals(treeDefaultType));
-            if (found && images.stream().noneMatch(i -> i.getName().equals(treeDefaultType))) {
-                addImage(treeDefaultType, treeDefaultIcon);
-            }
-        }
-    }
-
-    /**
-     * Create DomainObjectStructure which is the tree representation for the
-     * client
-     */
-    private void createTreeElements(Path path, TreeElementType targetDomainObjectType) {
-        synchronized (processModels) {
-            String currentPath = ">";
-            for (int i = 0; i < path.getParts().size(); i++) {
-                String part = path.getParts().get(i);
-                currentPath += part + ">";
-                final String finalPath = currentPath;
-                boolean found = treeElements.stream().filter(d -> d.getPath().equals(finalPath)).findAny().isPresent();
-                if (!found) {
-                    TreeElementType domainObjectType = i == path.getParts().size() - 1 ? targetDomainObjectType : null;
-                    String type = getTreeElementDefaultType(i == 0, domainObjectType);
-                    treeElements.add(new TreeElement(currentPath, part, type, domainObjectType));
-                }
-            }
-        }
-    }
-
-    /**
-     * Returns the default icon type for a TreeElement, based on the criterias
-     * first and TreeElementType
-     *
-     * @param first          Is this the root element
-     * @param treeElmentType The treeElementType
-     * @return the icon type
-     */
-    private String getTreeElementDefaultType(boolean first, TreeElementType treeElmentType) {
-        String type = DEFAULT_TAXONOMY_FOLDER_TYPE;
-        if (first) {
-            type = DEFAULT_TAXONOMY_ROOT_TYPE;
-        } else if (treeElmentType == TreeElementType.CLIENT) {
-            type = DEFAULT_TAXONOMY_CLIENT_TYPE;
-        } else if (treeElmentType == TreeElementType.PROCESS) {
-            type = DEFAULT_TAXONOMY_PROCESS_TYPE;
-        }
-        return type;
-    }
-
-    /**
-     * Set the type for a TreeElment given by a path.
-     *
-     * @param path the path of the tree icon
-     * @param type icon type of the tree element
-     */
-    public void setTreeElementType(Path path, String type) {
-        synchronized (processModels) {
-            TreeElement dos = treeElements.stream().filter(d -> d.getPath().equals(path.toString())).findAny()
-                .orElse(null);
-            if (dos == null) {
-                throw new NjamsSdkRuntimeException("Unable to find DomainObjectStructure for path " + path);
-            }
-            dos.setType(type);
-        }
-    }
-
-    /**
-     * Sets the TreeElements starter to true if the corresponding processModel
-     * is a starter
-     */
-    private void setStarters() {
-        treeElements.stream().filter(te -> te.getTreeElementType() == TreeElementType.PROCESS)
-            .filter(te -> processModels.get(te.getPath()).isStarter()).forEach(te -> te.setStarter(true));
+        njamsProjectMessage.addProcessModel(processModel);
     }
 
     /**
@@ -716,45 +526,20 @@ public class Njams implements InstructionListener{
      *
      * @param model the additional model to send
      */
+    @Deprecated
     public void sendAdditionalProcess(final ProcessModel model) {
-        if (!isStarted()) {
-            throw new NjamsSdkRuntimeException("Njams is not started. Please use createProcess Method instead");
-        }
-        final ProjectMessage msg = new ProjectMessage();
-        msg.setPath(getNjamsMetadata().clientPath.toString());
-        msg.setClientVersion(getNjamsMetadata().clientVersion);
-        msg.setSdkVersion(getNjamsMetadata().sdkVersion);
-        msg.setCategory(getNjamsMetadata().category);
-        msg.setStartTime(startTime);
-        msg.setMachine(getNjamsMetadata().machine);
-        msg.setFeatures(njamsFeatures.get());
-        msg.setLogMode(configuration.getLogMode());
-
-        addTreeElements(msg.getTreeElements(), getNjamsMetadata().clientPath, TreeElementType.CLIENT, false);
-        addTreeElements(msg.getTreeElements(), model.getPath(), TreeElementType.PROCESS, model.isStarter());
-
-        msg.getProcesses().add(model.getSerializableProcessModel());
-        getSender().send(msg);
+        njamsProjectMessage.sendAdditionalProcess(model);
     }
 
-    private List<TreeElement> addTreeElements(List<TreeElement> treeElements, Path processPath,
-                                              TreeElementType targetDomainObjectType, boolean isStarter) {
-        String currentPath = ">";
-        for (int i = 0; i < processPath.getParts().size(); i++) {
-            String part = processPath.getParts().get(i);
-            currentPath += part + ">";
-            final String finalPath = currentPath;
-            boolean found = treeElements.stream().filter(d -> d.getPath().equals(finalPath)).findAny().isPresent();
-            if (!found) {
-                TreeElementType domainObjectType =
-                    i == processPath.getParts().size() - 1 ? targetDomainObjectType : null;
-                String type = getTreeElementDefaultType(i == 0, domainObjectType);
-                treeElements.add(new TreeElement(currentPath, part, type, domainObjectType));
-            }
-        }
-        treeElements.stream().filter(te -> te.getTreeElementType() == TreeElementType.PROCESS)
-            .forEach(te -> te.setStarter(isStarter));
-        return treeElements;
+    /**
+     * Set the type for a TreeElment given by a path.
+     *
+     * @param path the path of the tree icon
+     * @param type icon type of the tree element
+     */
+    @Deprecated
+    public void setTreeElementType(Path path, String type) {
+        njamsProjectMessage.setTreeElementType(path, type);
     }
 
     /**
@@ -863,6 +648,7 @@ public class Njams implements InstructionListener{
     /**
      * @return the instructionListeners
      */
+    @Deprecated
     public List<InstructionListener> getInstructionListeners() {
         return receiver.getInstructionListeners();
     }
@@ -873,6 +659,7 @@ public class Njams implements InstructionListener{
      *
      * @param listener the new listener to be called
      */
+    @Deprecated
     public void addInstructionListener(InstructionListener listener) {
         receiver.addInstructionListener(listener);
     }
@@ -882,6 +669,7 @@ public class Njams implements InstructionListener{
      *
      * @param listener the listener to remove
      */
+    @Deprecated
     public void removeInstructionListener(InstructionListener listener) {
         receiver.removeInstructionListener(listener);
     }
@@ -901,14 +689,7 @@ public class Njams implements InstructionListener{
      */
     @Override
     public void onInstruction(Instruction instruction) {
-        if (Command.SEND_PROJECTMESSAGE.commandString().equalsIgnoreCase(instruction.getCommand())) {
-            sendProjectMessage();
-            final Response response = new Response();
-            response.setResultCode(0);
-            response.setResultMessage("Successfully sent ProjectMessage via NjamsClient");
-            instruction.setResponse(response);
-            LOG.debug("Sent ProjectMessage requested via Instruction via Njams");
-        } else if (Command.PING.commandString().equalsIgnoreCase(instruction.getCommand())) {
+        if (Command.PING.commandString().equalsIgnoreCase(instruction.getCommand())) {
             instruction.setResponse(createPingResponse());
         }
     }
