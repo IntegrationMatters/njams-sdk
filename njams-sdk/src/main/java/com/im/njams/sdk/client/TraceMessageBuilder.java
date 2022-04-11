@@ -17,7 +17,6 @@
 package com.im.njams.sdk.client;
 
 import com.faizsiegeln.njams.messageformat.v4.tracemessage.*;
-import com.im.njams.sdk.NjamsMetadata;
 
 import java.util.ArrayList;
 import java.util.HashMap;

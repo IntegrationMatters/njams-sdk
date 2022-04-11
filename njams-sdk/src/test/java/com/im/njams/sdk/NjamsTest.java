@@ -30,6 +30,7 @@ import java.util.List;
 import com.im.njams.sdk.communication.TestReceiver;
 import com.im.njams.sdk.logmessage.NjamsFeatures;
 import com.im.njams.sdk.logmessage.NjamsJobs;
+import com.im.njams.sdk.logmessage.NjamsState;
 import com.im.njams.sdk.model.ProcessModelUtils;
 import org.junit.Before;
 import org.junit.Test;

@@ -1,4 +1,4 @@
-package com.im.njams.sdk;
+package com.im.njams.sdk.logmessage;
 
 public class NjamsState {
 

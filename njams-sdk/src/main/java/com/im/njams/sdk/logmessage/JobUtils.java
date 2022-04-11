@@ -1,6 +1,6 @@
 package com.im.njams.sdk.logmessage;
 
-import com.im.njams.sdk.NjamsMetadata;
+import com.im.njams.sdk.client.NjamsMetadata;
 import com.im.njams.sdk.serializer.NjamsSerializers;
 import com.im.njams.sdk.communication.Sender;
 import com.im.njams.sdk.configuration.Configuration;

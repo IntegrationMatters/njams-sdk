@@ -20,7 +20,7 @@ import java.util.List;
 import java.util.Properties;
 
 import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
-import com.im.njams.sdk.NjamsMetadata;
+import com.im.njams.sdk.client.NjamsMetadata;
 import com.im.njams.sdk.settings.Settings;
 
 /**

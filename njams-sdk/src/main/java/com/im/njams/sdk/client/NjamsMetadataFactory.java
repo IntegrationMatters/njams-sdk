@@ -18,7 +18,7 @@
  * IN THE SOFTWARE.
  */
 
-package com.im.njams.sdk;
+package com.im.njams.sdk.client;
 
 import com.im.njams.sdk.common.Path;
 import org.slf4j.LoggerFactory;

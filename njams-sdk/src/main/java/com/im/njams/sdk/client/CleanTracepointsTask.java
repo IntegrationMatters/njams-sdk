@@ -26,7 +26,6 @@ import java.util.TimerTask;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
-import com.im.njams.sdk.NjamsMetadata;
 import com.im.njams.sdk.communication.Sender;
 import org.slf4j.LoggerFactory;
 

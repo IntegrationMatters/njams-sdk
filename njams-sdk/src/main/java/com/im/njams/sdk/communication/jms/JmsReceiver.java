@@ -35,7 +35,7 @@ import javax.naming.InitialContext;
 import javax.naming.NameNotFoundException;
 import javax.naming.NamingException;
 
-import com.im.njams.sdk.NjamsMetadata;
+import com.im.njams.sdk.client.NjamsMetadata;
 import com.im.njams.sdk.communication.NjamsConnectionFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

@@ -22,8 +22,7 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import com.im.njams.sdk.NjamsMetadata;
-import com.im.njams.sdk.common.Path;
+import com.im.njams.sdk.client.NjamsMetadata;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

@@ -1,7 +1,7 @@
 package com.im.njams.sdk.communication;
 
-import com.im.njams.sdk.NjamsMetadata;
-import com.im.njams.sdk.NjamsMetadataFactory;
+import com.im.njams.sdk.client.NjamsMetadata;
+import com.im.njams.sdk.client.NjamsMetadataFactory;
 import com.im.njams.sdk.common.Path;
 import com.im.njams.sdk.settings.Settings;
 import org.junit.Before;

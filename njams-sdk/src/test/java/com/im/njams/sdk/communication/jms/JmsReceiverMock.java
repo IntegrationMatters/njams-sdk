@@ -30,8 +30,8 @@ import javax.jms.Connection;
 import javax.jms.MessageConsumer;
 import javax.jms.Session;
 
-import com.im.njams.sdk.NjamsMetadata;
-import com.im.njams.sdk.NjamsMetadataFactory;
+import com.im.njams.sdk.client.NjamsMetadata;
+import com.im.njams.sdk.client.NjamsMetadataFactory;
 import org.slf4j.LoggerFactory;
 
 import com.fasterxml.jackson.databind.ObjectMapper;

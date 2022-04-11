@@ -34,6 +34,8 @@ import com.im.njams.sdk.argos.ArgosMultiCollector;
 import com.im.njams.sdk.argos.ArgosSender;
 import com.im.njams.sdk.client.CleanTracepointsTask;
 import com.im.njams.sdk.client.LogMessageFlushTask;
+import com.im.njams.sdk.client.NjamsMetadata;
+import com.im.njams.sdk.client.NjamsMetadataFactory;
 import com.im.njams.sdk.common.DateTimeUtility;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.common.Path;
@@ -54,6 +56,7 @@ import com.im.njams.sdk.logmessage.DataMasking;
 import com.im.njams.sdk.logmessage.Job;
 import com.im.njams.sdk.logmessage.NjamsFeatures;
 import com.im.njams.sdk.logmessage.NjamsJobs;
+import com.im.njams.sdk.logmessage.NjamsState;
 import com.im.njams.sdk.model.ProcessModel;
 import com.im.njams.sdk.model.ProcessModelUtils;
 import com.im.njams.sdk.model.image.ImageSupplier;
@@ -84,7 +87,7 @@ import java.util.Properties;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static com.im.njams.sdk.NjamsState.NOT_STARTED_EXCEPTION_MESSAGE;
+import static com.im.njams.sdk.logmessage.NjamsState.NOT_STARTED_EXCEPTION_MESSAGE;
 import static java.util.stream.Collectors.toList;
 
 /**
