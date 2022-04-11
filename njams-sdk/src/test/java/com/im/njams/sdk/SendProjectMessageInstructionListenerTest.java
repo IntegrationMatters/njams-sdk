@@ -25,7 +25,7 @@ public class SendProjectMessageInstructionListenerTest {
     @Test
     public void testOnCorrectSendProjectMessageInstruction() {
         NjamsProjectMessage projectMessage = new NjamsProjectMessage(NjamsMetadataFactory.createMetadataFor(new Path(), "bla", "blub", "bla2"), new NjamsFeatures(), new Configuration(), new TestSender(), new NjamsState(), new NjamsJobs(new NjamsState(), new NjamsFeatures()), new NjamsSerializers(),
-            new Settings(), processModel -> null, new NoopLayouter());
+            new Settings());
 
         Instruction inst = new Instruction();
         Request req = new Request();

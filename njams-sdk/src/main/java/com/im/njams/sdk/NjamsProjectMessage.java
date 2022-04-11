@@ -21,6 +21,8 @@ import com.im.njams.sdk.model.ProcessModelUtils;
 import com.im.njams.sdk.model.image.ImageSupplier;
 import com.im.njams.sdk.model.image.ResourceImageSupplier;
 import com.im.njams.sdk.model.layout.ProcessModelLayouter;
+import com.im.njams.sdk.model.layout.SimpleProcessModelLayouter;
+import com.im.njams.sdk.model.svg.NjamsProcessDiagramFactory;
 import com.im.njams.sdk.model.svg.ProcessDiagramFactory;
 import com.im.njams.sdk.serializer.NjamsSerializers;
 import com.im.njams.sdk.settings.Settings;
@@ -51,6 +53,11 @@ public class NjamsProjectMessage implements InstructionListener {
     private static final String DEFAULT_TAXONOMY_CLIENT_ICON = "images/client.png";
     private static final String DEFAULT_TAXONOMY_PROCESS_ICON = "images/process.png";
 
+    /**
+     * default secure processing
+     */
+    private static final String DEFAULT_DISABLE_SECURE_PROCESSING = "false";
+
     // Also used for synchronizing access to the project message resources:
     // process-models, images, global-variables, tree-elements
     // Path -> ProcessModel
@@ -79,9 +86,10 @@ public class NjamsProjectMessage implements InstructionListener {
     private ProcessModelLayouter processModelLayouter;
 
     public NjamsProjectMessage(NjamsMetadata njamsMetadata, NjamsFeatures features, Configuration configuration,
-        Sender sender, NjamsState state, NjamsJobs jobs, NjamsSerializers serializers, Settings settings,
-        ProcessDiagramFactory processDiagramFactory, ProcessModelLayouter processModelLayouter) {
-        startTime = DateTimeUtility.now();
+        Sender sender, NjamsState state, NjamsJobs jobs, NjamsSerializers serializers, Settings settings) {
+        this.startTime = DateTimeUtility.now();
+        this.processModelLayouter = new SimpleProcessModelLayouter();
+        this.processDiagramFactory = createProcessDiagramFactory();
         this.treeElements = new ArrayList<>();
         this.instanceMetadata = njamsMetadata;
         this.features = features;
@@ -91,10 +99,24 @@ public class NjamsProjectMessage implements InstructionListener {
         this.jobs = jobs;
         this.serializers = serializers;
         this.settings = settings;
-        this.processDiagramFactory = processDiagramFactory;
-        this.processModelLayouter = processModelLayouter;
 
         createTreeElements(instanceMetadata.clientPath, TreeElementType.CLIENT);
+    }
+
+    private ProcessDiagramFactory createProcessDiagramFactory() {
+        ProcessDiagramFactory factory;
+        if(shouldProcessDiagramsBeSecure()){
+            factory = NjamsProcessDiagramFactory.createSecureDiagramFactory();
+        }else{
+            factory = NjamsProcessDiagramFactory.createNotSecureDiagramFactory();
+        }
+        return factory;
+    }
+
+    private boolean shouldProcessDiagramsBeSecure(){
+        return !("true".equalsIgnoreCase(settings.getProperty(
+            Settings.PROPERTY_DISABLE_SECURE_PROCESSING,
+            DEFAULT_DISABLE_SECURE_PROCESSING)));
     }
 
     public Map<String, String> getGlobalVariables() {
@@ -384,5 +406,19 @@ public class NjamsProjectMessage implements InstructionListener {
             createTreeElements(processModel.getPath(), TreeElementType.PROCESS);
             processModels.put(processModel.getPath().toString(), processModel);
         }
+    }
+
+    /**
+     * @param processModelLayouter the processModelLayouter to set
+     */
+    public void setProcessModelLayouter(ProcessModelLayouter processModelLayouter) {
+        this.processModelLayouter = processModelLayouter;
+    }
+
+    /**
+     * @return the processModelLayouter
+     */
+    public ProcessModelLayouter getProcessModelLayouter() {
+        return processModelLayouter;
     }
 }

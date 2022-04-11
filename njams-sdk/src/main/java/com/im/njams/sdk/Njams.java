@@ -128,9 +128,6 @@ public class Njams implements InstructionListener{
 
     private ProcessDiagramFactory processDiagramFactory;
 
-    private ProcessModelLayouter processModelLayouter;
-
-
     private NjamsSender sender;
     private Receiver receiver;
 
@@ -140,10 +137,6 @@ public class Njams implements InstructionListener{
     private ArgosSender argosSender = null;
     private final Collection<ArgosMultiCollector<?>> argosCollectors = new ArrayList<>();
 
-    /**
-     * default secure processing
-     */
-    private static final String DEFAULT_DISABLE_SECURE_PROCESSING = "false";
 
     /**
      * Create a nJAMS client.
@@ -156,8 +149,6 @@ public class Njams implements InstructionListener{
      */
     public Njams(Path path, String version, String category, Settings settings) {
         this.settings = settings;
-        this.processDiagramFactory = createProcessDiagramFactory();
-        processModelLayouter = new SimpleProcessModelLayouter();
         argosSender = ArgosSender.getInstance();
         argosSender.init(settings);
         loadConfigurationProvider();
@@ -170,26 +161,11 @@ public class Njams implements InstructionListener{
         njamsFeatures = new NjamsFeatures();
         njamsJobs = new NjamsJobs(njamsState, njamsFeatures);
         this.njamsProjectMessage = new NjamsProjectMessage(getNjamsMetadata(), getNjamsFeatures(), getConfiguration(),
-            getSender(), getNjamsState(), getNjamsJobs(), getNjamsSerializers(), getSettings(),
-            getProcessDiagramFactory(), getProcessModelLayouter());
+            getSender(), getNjamsState(), getNjamsJobs(), getNjamsSerializers(), getSettings());
         printStartupBanner();
     }
 
-    private ProcessDiagramFactory createProcessDiagramFactory() {
-        ProcessDiagramFactory factory;
-        if(shouldProcessDiagramsBeSecure()){
-            factory = NjamsProcessDiagramFactory.createSecureDiagramFactory();
-        }else{
-            factory = NjamsProcessDiagramFactory.createNotSecureDiagramFactory();
-        }
-        return factory;
-    }
 
-    private boolean shouldProcessDiagramsBeSecure(){
-        return !("true".equalsIgnoreCase(getSettings().getProperty(
-            Settings.PROPERTY_DISABLE_SECURE_PROCESSING,
-            DEFAULT_DISABLE_SECURE_PROCESSING)));
-    }
 
     /**
      * Adds a collector that will create statistics.
@@ -545,15 +521,17 @@ public class Njams implements InstructionListener{
     /**
      * @return the processModelLayouter
      */
+    @Deprecated
     public ProcessModelLayouter getProcessModelLayouter() {
-        return processModelLayouter;
+        return njamsProjectMessage.getProcessModelLayouter();
     }
 
     /**
      * @param processModelLayouter the processModelLayouter to set
      */
+    @Deprecated
     public void setProcessModelLayouter(ProcessModelLayouter processModelLayouter) {
-        this.processModelLayouter = processModelLayouter;
+        njamsProjectMessage.setProcessModelLayouter(processModelLayouter);
     }
 
     @Override
