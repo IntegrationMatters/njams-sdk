@@ -67,7 +67,6 @@ import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Properties;
 
 import static com.im.njams.sdk.logmessage.NjamsState.NOT_STARTED_EXCEPTION_MESSAGE;
@@ -89,26 +88,13 @@ public class Njams{
     private final NjamsState njamsState;
     private final NjamsFeatures njamsFeatures;
 
-    /**
-     * Key for clientVersion
-     */
-    public static final String CLIENT_VERSION_KEY = "clientVersion";
-    /**
-     * Key for sdkVersion
-     */
-    public static final String SDK_VERSION_KEY = "sdkVersion";
-
-    /**
-     * Key for current year
-     */
-    public static final String CURRENT_YEAR = "currentYear";
-
-    private final Map<String, String> versions = new HashMap<>();
 
     // The settings of the client
-    private final Settings settings;
+    private final Settings njamsSettings;
 
     private final NjamsProjectMessage njamsProjectMessage;
+    private final NjamsVersions njamsVersions;
+    private final String currentYear;
 
     private NjamsSender sender;
     private Receiver njamsReceiver;
@@ -124,20 +110,26 @@ public class Njams{
      * Create a nJAMS client.
      *
      * @param path     the path in the tree
-     * @param version  the version of the nNJAMS client
+     * @param defaultClientVersion  the version of the nNJAMS client
      * @param category the category of the nJAMS client, should describe the
      *                 technology
      * @param settings needed settings for client eg. for communication
      */
-    public Njams(Path path, String version, String category, Settings settings) {
-        this.settings = settings;
+    public Njams(Path path, String defaultClientVersion, String category, Settings settings) {
+        this.njamsSettings = settings;
         argosSender = ArgosSender.getInstance();
         argosSender.init(settings);
         loadConfigurationProvider();
         loadConfiguration();
-        readVersions(version);
-        this.instanceMetadata = NjamsMetadataFactory.createMetadataFor(path, versions.get(CLIENT_VERSION_KEY),
-            versions.get(SDK_VERSION_KEY), category);
+
+        Map<String, String> classpathVersions = readVersions();
+
+        final String CURRENT_YEAR = "currentYear";
+        this.currentYear = classpathVersions.remove(CURRENT_YEAR);
+        this.njamsVersions = fillNjamsVersions(classpathVersions, defaultClientVersion);
+
+        this.instanceMetadata = NjamsMetadataFactory.createMetadataFor(path, njamsVersions.getClientVersion(),
+            njamsVersions.getSdkVersion(), category);
         njamsSerializers = new NjamsSerializers();
         njamsState = new NjamsState();
         njamsFeatures = new NjamsFeatures();
@@ -147,7 +139,31 @@ public class Njams{
         printStartupBanner();
     }
 
+    /**
+     * Read the versions from njams.version files. Set the SDK-Version and the
+     * Client-Version if found.
+     */
+    private Map<String, String> readVersions() {
+        Map<String, String> versions = new HashMap();
+        try {
+            final Enumeration<URL> urls = this.getClass().getClassLoader().getResources("njams.version");
+            while (urls.hasMoreElements()) {
+                final Properties prop = new Properties();
+                prop.load(urls.nextElement().openStream());
+                prop.entrySet().forEach(e -> versions.put(String.valueOf(e.getKey()), String.valueOf(e.getValue())));
+            }
+        } catch (Exception e) {
+            LOG.error("Unable to load versions from njams.version files", e);
+        }
+        return versions;
+    }
 
+    private NjamsVersions fillNjamsVersions(Map<String, String> classpathVersions, String defaultClientVersion) {
+        final String sdkDefaultVersion = "4.0.0.alpha";
+        return new NjamsVersions(classpathVersions).
+            setSdkVersionIfAbsent(sdkDefaultVersion).
+            setClientVersionIfAbsent(defaultClientVersion);
+    }
 
     /**
      * Adds a collector that will create statistics.
@@ -168,14 +184,14 @@ public class Njams{
      * Load the ConfigurationProvider via the provided Properties
      */
     private void loadConfigurationProvider() {
-        if (!settings.containsKey(ConfigurationProviderFactory.CONFIGURATION_PROVIDER)) {
-            settings.put(ConfigurationProviderFactory.CONFIGURATION_PROVIDER, DEFAULT_CACHE_PROVIDER);
+        if (!njamsSettings.containsKey(ConfigurationProviderFactory.CONFIGURATION_PROVIDER)) {
+            njamsSettings.put(ConfigurationProviderFactory.CONFIGURATION_PROVIDER, DEFAULT_CACHE_PROVIDER);
         }
-        ConfigurationProvider configurationProvider = new ConfigurationProviderFactory(settings)
+        ConfigurationProvider configurationProvider = new ConfigurationProviderFactory(njamsSettings)
             .getConfigurationProvider();
         njamsConfiguration = new Configuration();
         njamsConfiguration.setConfigurationProvider(configurationProvider);
-        settings.addSecureProperties(configurationProvider.getSecureProperties());
+        njamsSettings.addSecureProperties(configurationProvider.getSecureProperties());
 
     }
 
@@ -193,7 +209,7 @@ public class Njams{
      * @return the current nJAMS settings
      */
     public Settings getSettings() {
-        return settings;
+        return njamsSettings;
     }
 
 
@@ -205,12 +221,12 @@ public class Njams{
      */
     public Sender getSender() {
         if (sender == null) {
-            if ("true".equalsIgnoreCase(settings.getProperty(Settings.PROPERTY_SHARED_COMMUNICATIONS))) {
+            if ("true".equalsIgnoreCase(njamsSettings.getProperty(Settings.PROPERTY_SHARED_COMMUNICATIONS))) {
                 LOG.debug("Using shared sender pool for {}", getNjamsMetadata().clientPath);
-                sender = NjamsSender.takeSharedSender(settings);
+                sender = NjamsSender.takeSharedSender(njamsSettings);
             } else {
                 LOG.debug("Creating individual sender pool for {}", getNjamsMetadata().clientPath);
-                sender = new NjamsSender(settings);
+                sender = new NjamsSender(njamsSettings);
             }
         }
         return sender;
@@ -221,7 +237,7 @@ public class Njams{
      */
     private void startReceiver() {
         try {
-            njamsReceiver = new CommunicationFactory(settings).getReceiver(instanceMetadata);
+            njamsReceiver = new CommunicationFactory(njamsSettings).getReceiver(instanceMetadata);
             njamsReceiver.addInstructionListener(new PingInstructionListener(instanceMetadata, njamsFeatures));
             njamsReceiver.addInstructionListener(njamsProjectMessage);
             njamsReceiver.addInstructionListener(njamsJobs);
@@ -245,7 +261,7 @@ public class Njams{
      */
     public boolean start() {
         if (!isStarted()) {
-            if (settings == null) {
+            if (njamsSettings == null) {
                 throw new NjamsSdkRuntimeException("Settings not set");
             }
             initializeDataMasking();
@@ -263,7 +279,7 @@ public class Njams{
      */
     private void initializeDataMasking() {
 
-        Properties properties = settings.getAllProperties();
+        Properties properties = njamsSettings.getAllProperties();
         boolean dataMaskingEnabled = true;
         if (properties != null) {
             dataMaskingEnabled = Boolean.parseBoolean(properties.getProperty(DataMasking.DATA_MASKING_ENABLED, "true"));
@@ -314,49 +330,38 @@ public class Njams{
         return !isStarted();
     }
 
+    private void printStartupBanner() {
+        Map<String, String> versions = njamsVersions.getAllVersions();
+        Map<String, String> settings = njamsSettings.getAllPropertiesWithoutPasswords();
 
-
-    /**
-     * Read the versions from njams.version files. Set the SDK-Version and the
-     * Client-Version if found.
-     *
-     * @param version
-     */
-    private void readVersions(String version) {
-        try {
-            final Enumeration<URL> urls = this.getClass().getClassLoader().getResources("njams.version");
-            while (urls.hasMoreElements()) {
-                final Properties prop = new Properties();
-                prop.load(urls.nextElement().openStream());
-                prop.entrySet().forEach(e -> versions.put(String.valueOf(e.getKey()), String.valueOf(e.getValue())));
-            }
-        } catch (Exception e) {
-            LOG.error("Unable to load versions from njams.version files", e);
-        }
-        if (version != null && !versions.containsKey(CLIENT_VERSION_KEY)) {
-            LOG.debug("No njams.version file for {} found!", CLIENT_VERSION_KEY);
-            versions.put(CLIENT_VERSION_KEY, version);
-        }
-        if (!versions.containsKey(SDK_VERSION_KEY)) {
-            LOG.debug("No njams.version file for {} found!", SDK_VERSION_KEY);
-            versions.put(SDK_VERSION_KEY, "4.0.0.alpha");
-        }
+        print(versions, settings);
     }
 
-    private void printStartupBanner() {
-        LOG.info("************************************************************");
-        LOG.info("***      nJAMS SDK: Copyright (c) " + versions.get(CURRENT_YEAR) + " Faiz & Siegeln Software GmbH");
-        LOG.info("*** ");
-        LOG.info("***      Version Info:");
-        versions.entrySet().stream().filter(e -> !CURRENT_YEAR.equals(e.getKey()))
-            .sorted(Comparator.comparing(Entry::getKey))
-            .forEach(e -> LOG.info("***      " + e.getKey() + ": " + e.getValue()));
-        LOG.info("*** ");
-        LOG.info("***      Settings:");
+    private void print(Map<String, String> versions, Map<String, String> settings) {
+        String boundary = "************************************************************";
+        String prefix = "***      ";
+        LOG.info(boundary);
+        LOG.info(prefix + this);
+        LOG.info(prefix);
+        LOG.info(prefix + "Version Info:");
+        printPrefixed(prefix, versions);
+        LOG.info(prefix);
+        LOG.info(prefix + "Settings:");
+        printPrefixed(prefix, settings);
+        LOG.info(boundary);
+    }
 
-        settings.printPropertiesWithoutPasswords(LOG);
-        LOG.info("************************************************************");
+    @Override
+    public String toString(){
+        return "nJAMS SDK: Copyright (c) " + currentYear + " Faiz & Siegeln Software GmbH";
+    }
 
+    private void printPrefixed(String prefix, Map<String, String> map) {
+        map.
+            entrySet().
+            stream().
+            sorted(Comparator.comparing(Map.Entry::getKey)).
+            forEach(v -> LOG.info(prefix + v.getKey() + ": " + v.getValue()));
     }
 
 //################################### NjamsJobs

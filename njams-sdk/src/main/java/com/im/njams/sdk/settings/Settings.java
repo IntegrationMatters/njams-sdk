@@ -182,7 +182,9 @@ public class Settings {
     /**
      * This method prints all Properties, but the values of all keys that contains
      * "password" or "credentials" are changed to "****".
+     * @see #getAllPropertiesWithoutPasswords()
      */
+    @Deprecated
     public void printPropertiesWithoutPasswords() {
         printPropertiesWithoutPasswords(LOG);
     }
@@ -192,7 +194,9 @@ public class Settings {
      * "password" or "credentials" are changed to "****".
      *
      * @param logger The logger used for printing properties.
+     * @see #getAllPropertiesWithoutPasswords()
      */
+    @Deprecated
     public void printPropertiesWithoutPasswords(Logger logger) {
         List<String> list = new ArrayList<>();
         properties.keySet().forEach(key -> list.add((String) key));
@@ -269,5 +273,21 @@ public class Settings {
         secureProperties.forEach(property -> {
             this.secureProperties.add(property.toLowerCase());
         });
+    }
+
+    public Map<String, String> getAllPropertiesWithoutPasswords() {
+        Map<String, String> printableProperties = new HashMap<>();
+
+        List<String> keys = new ArrayList<>();
+        properties.keySet().forEach(key -> keys.add((String) key));
+
+        for(String key : keys){
+            if(isSecuredKey(key)){
+                printableProperties.put(key, "****");
+            }else{
+                printableProperties.put(key, (String) properties.get(key));
+            }
+        }
+        return printableProperties;
     }
 }
