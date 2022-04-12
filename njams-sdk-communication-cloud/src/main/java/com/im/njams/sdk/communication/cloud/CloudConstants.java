@@ -21,11 +21,6 @@ package com.im.njams.sdk.communication.cloud;
  * @author pnientiedt
  */
 public class CloudConstants {
-    
-    private CloudConstants() {
-        //utility
-    }
-
     public static final String PROPERTY_PREFIX = "njams.sdk.communication.cloud";
     public static final String NAME = "CLOUD";
     public static final String ENDPOINT = PROPERTY_PREFIX + ".endpoint";

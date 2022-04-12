@@ -29,7 +29,8 @@ import java.security.PrivateKey;
 import java.security.spec.KeySpec;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.RSAPrivateCrtKeySpec;
-import javax.xml.bind.DatatypeConverter;
+import java.util.Base64;
+
 
 /**
  *
@@ -112,7 +113,7 @@ public class PrivateKeyReader {
             }
         }
         KeySpec keySpec = null;
-        byte[] encoded = DatatypeConverter.parseBase64Binary(builder.toString());
+        byte[] encoded = Base64.getDecoder().decode(builder.toString());
         if (isRSAKey) {
             keySpec = getRSAKeySpec(encoded);
         } else {
