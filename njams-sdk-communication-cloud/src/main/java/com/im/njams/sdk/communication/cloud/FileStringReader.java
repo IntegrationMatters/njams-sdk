@@ -16,32 +16,49 @@
  */
 package com.im.njams.sdk.communication.cloud;
 
-import com.im.fasterxml.jackson.annotation.JsonCreator;
-import com.im.fasterxml.jackson.annotation.JsonProperty;
+import java.io.BufferedReader;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 
 /**
  *
  * @author lmusebrink
  */
-
-public class Endpoints {
+public class FileStringReader {
     
-    public String ingest;
-    public String client;
-    public boolean error;
-    public String errorMessage;
+    /**
+     * Get a Api Key from InputStream.
+     *
+     * @param fileName file name
+     * @return Api key
+     * @throws IOException IOException resulted from invalid file IO
+     */
+    public static String getStringFromFile(String fileName) throws IOException {
+        try (InputStream stream = new FileInputStream(fileName)) {
+            return getStringFromFile(stream);
+        }
+    }
     
-    public Endpoints(){
+    /**
+     * Get a Api Key for the file.
+     *
+     * @param stream InputStream object
+     * @return Api key
+     * @throws IOException IOException resulted from invalid file IO
+     */
+    public static String getStringFromFile(InputStream stream) throws IOException {
+       
+        BufferedReader br = new BufferedReader(new InputStreamReader(stream, "UTF-8"));
+        StringBuilder builder = new StringBuilder();
         
+        for (String line = br.readLine(); line != null; line = br.readLine()) {
+          builder.append(line);
+        }
+        
+        return builder.toString();
     }
-    
-    @JsonCreator
-    public Endpoints(@JsonProperty("ingest")String ingest, @JsonProperty("client")String client, @JsonProperty("error")boolean error, @JsonProperty("errorMessage")String errorMessage ) {
-        this.ingest = ingest;
-        this.client = client;
-        this.error = error;
-        this.errorMessage = errorMessage;
-    }
-    
+
     
 }

@@ -28,7 +28,6 @@ import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.communication.AbstractReceiver;
 import com.im.njams.sdk.communication.ConnectionStatus;
 import com.im.njams.sdk.communication.cloud.CertificateUtil.KeyStorePasswordPair;
-import com.im.njams.sdk.utils.JsonUtils;
 import com.im.njams.sdk.utils.StringUtils;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
@@ -52,7 +51,6 @@ public class CloudReceiver extends AbstractReceiver {
 
     private static final Boolean isShared = false;
 
-    private String mainEndpoint;
     protected String endpoint;
     protected String instanceId;
     protected String connectionId;
@@ -91,34 +89,32 @@ public class CloudReceiver extends AbstractReceiver {
         }
 
         try {
-            apikey = ApiKeyReader.getApiKey(apikeypath);
+            apikey = FileStringReader.getStringFromFile(apikeypath);
         } catch (Exception e) {
             LOG.error("Failed to load api key from file " + apikeypath, e);
             throw new IllegalStateException("Failed to load api key from file");
         }
 
         try {
-            instanceId = ApiKeyReader.getApiKey(instanceIdPath);
+            instanceId = FileStringReader.getStringFromFile(instanceIdPath);
         } catch (Exception e) {
             LOG.error("Failed to load instanceId from file " + instanceIdPath, e);
             throw new IllegalStateException("Failed to load instanceId from file");
         }
-
-        mainEndpoint = properties.getProperty(CloudConstants.ENDPOINT);
-
-        if (mainEndpoint == null) {
-            LOG.error("Please provide property {} for CloudSender", CloudConstants.ENDPOINT);
+        
+        String endpointUrlPath = properties.getProperty(CloudConstants.COMMANDENDPOINT);
+        
+        if (endpointUrlPath == null) {
+            LOG.error("Please provide property {} for CloudReceiver", CloudConstants.ENDPOINT);
         }
 
         try {
-            endpoint = getClientEndpoint(mainEndpoint);
-        } catch (final Exception ex) {
-            throw new NjamsSdkRuntimeException("Unable to init CloudReceiver", ex);
-        }
-
-        if (endpoint == null) {
-            LOG.error("Please provide property {} for CloudReceiver", CloudConstants.ENDPOINT);
-        }
+        	 endpoint = FileStringReader.getStringFromFile(endpointUrlPath);
+        } catch (Exception e) {
+            LOG.error("Failed to load commandendpointendpoint from file " + endpointUrlPath, e);
+            throw new IllegalStateException("Failed to load commandendpoint from file");
+        }  
+         
 
         certificateFile = properties.getProperty(CloudConstants.CLIENT_CERTIFICATE);
         if (certificateFile == null) {
@@ -143,7 +139,6 @@ public class CloudReceiver extends AbstractReceiver {
 
     protected void retryInit() {
         try {
-            this.endpoint = getClientEndpoint(mainEndpoint);
             connect();
         } catch (final Exception ex) {
             throw new NjamsSdkRuntimeException("unable to init CloudReceiver", ex);
@@ -163,46 +158,6 @@ public class CloudReceiver extends AbstractReceiver {
         }
     }
 
-    /**
-     * @return the client endpoint
-     */
-    protected String getClientEndpoint(String endpoint) throws Exception {
-        String endpointUrl = "https://" + endpoint.trim() + "/v1/endpoints";
-
-        URL url = new URL(endpointUrl);
-        HttpsURLConnection connection = (HttpsURLConnection) url.openConnection();
-        connection.setRequestMethod("GET");
-        connection.setRequestProperty("x-api-key", apikey);
-
-        int responseCode = connection.getResponseCode();
-        LOG.debug("Sending 'GET' request to URL : " + url);
-        LOG.debug("Response Code : " + responseCode);
-
-        BufferedReader in = new BufferedReader(new InputStreamReader(connection.getInputStream()));
-
-        String inputLine;
-        StringBuffer response = new StringBuffer();
-
-        while ((inputLine = in.readLine()) != null) {
-            response.append(inputLine);
-        }
-        in.close();
-
-        LOG.debug("Response Payload : " + response.toString());
-
-        Endpoints endpoints = JsonUtils.parse(response.toString(), Endpoints.class);
-
-        if (endpoints.error) {
-            LOG.error(endpoints.errorMessage);
-
-            LOG.info("Try to establish connection again in 10 min.");
-            retryConnection = true;
-
-            return "https://localhost";
-        }
-        retryConnection = false;
-        return endpoints.client;
-    }
 
     /**
      * @return the qos
