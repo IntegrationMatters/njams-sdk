@@ -23,9 +23,6 @@
  */
 package com.im.njams.sdk;
 
-import com.faizsiegeln.njams.messageformat.v4.command.Command;
-import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
-import com.faizsiegeln.njams.messageformat.v4.command.Response;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.LogMode;
 import com.im.njams.sdk.argos.ArgosMultiCollector;
 import com.im.njams.sdk.argos.ArgosSender;
@@ -46,7 +43,6 @@ import com.im.njams.sdk.configuration.Configuration;
 import com.im.njams.sdk.configuration.ConfigurationInstructionListener;
 import com.im.njams.sdk.configuration.ConfigurationProvider;
 import com.im.njams.sdk.configuration.ConfigurationProviderFactory;
-import com.im.njams.sdk.configuration.ProcessConfiguration;
 import com.im.njams.sdk.configuration.provider.FileConfigurationProvider;
 import com.im.njams.sdk.logmessage.DataMasking;
 import com.im.njams.sdk.logmessage.Job;
@@ -57,8 +53,6 @@ import com.im.njams.sdk.model.ProcessModel;
 import com.im.njams.sdk.model.image.ImageSupplier;
 import com.im.njams.sdk.model.image.ResourceImageSupplier;
 import com.im.njams.sdk.model.layout.ProcessModelLayouter;
-import com.im.njams.sdk.model.layout.SimpleProcessModelLayouter;
-import com.im.njams.sdk.model.svg.NjamsProcessDiagramFactory;
 import com.im.njams.sdk.model.svg.ProcessDiagramFactory;
 import com.im.njams.sdk.serializer.NjamsSerializers;
 import com.im.njams.sdk.serializer.Serializer;
@@ -74,9 +68,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Objects;
 import java.util.Properties;
-import java.util.stream.Collectors;
 
 import static com.im.njams.sdk.logmessage.NjamsState.NOT_STARTED_EXCEPTION_MESSAGE;
 
@@ -86,24 +78,16 @@ import static com.im.njams.sdk.logmessage.NjamsState.NOT_STARTED_EXCEPTION_MESSA
  *
  * @author bwand
  */
-public class Njams implements InstructionListener{
+public class Njams{
 
     private static final org.slf4j.Logger LOG = LoggerFactory.getLogger(Njams.class);
 
     private static final String DEFAULT_CACHE_PROVIDER = FileConfigurationProvider.NAME;
     private final NjamsMetadata instanceMetadata;
-    private final NjamsSerializers serializers;
+    private final NjamsSerializers njamsSerializers;
     private final NjamsJobs njamsJobs;
     private final NjamsState njamsState;
     private final NjamsFeatures njamsFeatures;
-
-    /**
-     * Static value for feature inject
-     *
-     * @deprecated Use {@link NjamsFeatures.Feature#key()} on instance {@link NjamsFeatures.Feature#INJECTION} instead.
-     */
-    @Deprecated
-    public static final String FEATURE_INJECTION = "injection";
 
     /**
      * Key for clientVersion
@@ -126,12 +110,10 @@ public class Njams implements InstructionListener{
 
     private final NjamsProjectMessage njamsProjectMessage;
 
-    private ProcessDiagramFactory processDiagramFactory;
-
     private NjamsSender sender;
-    private Receiver receiver;
+    private Receiver njamsReceiver;
 
-    private Configuration configuration;
+    private Configuration njamsConfiguration;
 
 
     private ArgosSender argosSender = null;
@@ -156,7 +138,7 @@ public class Njams implements InstructionListener{
         readVersions(version);
         this.instanceMetadata = NjamsMetadataFactory.createMetadataFor(path, versions.get(CLIENT_VERSION_KEY),
             versions.get(SDK_VERSION_KEY), category);
-        serializers = new NjamsSerializers();
+        njamsSerializers = new NjamsSerializers();
         njamsState = new NjamsState();
         njamsFeatures = new NjamsFeatures();
         njamsJobs = new NjamsJobs(njamsState, njamsFeatures);
@@ -191,8 +173,8 @@ public class Njams implements InstructionListener{
         }
         ConfigurationProvider configurationProvider = new ConfigurationProviderFactory(settings)
             .getConfigurationProvider();
-        configuration = new Configuration();
-        configuration.setConfigurationProvider(configurationProvider);
+        njamsConfiguration = new Configuration();
+        njamsConfiguration.setConfigurationProvider(configurationProvider);
         settings.addSecureProperties(configurationProvider.getSecureProperties());
 
     }
@@ -201,11 +183,378 @@ public class Njams implements InstructionListener{
      * load and apply configuration from configuration provider
      */
     private void loadConfiguration() {
-        ConfigurationProvider configurationProvider = configuration.getConfigurationProvider();
+        ConfigurationProvider configurationProvider = njamsConfiguration.getConfigurationProvider();
         if (configurationProvider != null) {
-            configuration = configurationProvider.loadConfiguration();
+            njamsConfiguration = configurationProvider.loadConfiguration();
         }
     }
+
+    /**
+     * @return the current nJAMS settings
+     */
+    public Settings getSettings() {
+        return settings;
+    }
+
+
+    /**
+     * Returns the a Sender implementation, which is configured as specified in
+     * the settings.
+     *
+     * @return the Sender
+     */
+    public Sender getSender() {
+        if (sender == null) {
+            if ("true".equalsIgnoreCase(settings.getProperty(Settings.PROPERTY_SHARED_COMMUNICATIONS))) {
+                LOG.debug("Using shared sender pool for {}", getNjamsMetadata().clientPath);
+                sender = NjamsSender.takeSharedSender(settings);
+            } else {
+                LOG.debug("Creating individual sender pool for {}", getNjamsMetadata().clientPath);
+                sender = new NjamsSender(settings);
+            }
+        }
+        return sender;
+    }
+
+    /**
+     * Start the receiver, which is used to retrieve instructions
+     */
+    private void startReceiver() {
+        try {
+            njamsReceiver = new CommunicationFactory(settings).getReceiver(instanceMetadata);
+            njamsReceiver.addInstructionListener(new PingInstructionListener(instanceMetadata, njamsFeatures));
+            njamsReceiver.addInstructionListener(njamsProjectMessage);
+            njamsReceiver.addInstructionListener(njamsJobs);
+            njamsReceiver.addInstructionListener(new ConfigurationInstructionListener(getConfiguration()));
+            njamsReceiver.start();
+        } catch (Exception e) {
+            LOG.error("Error starting Receiver", e);
+            try {
+                njamsReceiver.stop();
+            } catch (Exception ex) {
+                LOG.debug("Unable to stop receiver", ex);
+            }
+            njamsReceiver = null;
+        }
+    }
+
+    /**
+     * Start a client; it will initiate the connections and start processing.
+     *
+     * @return true if successful
+     */
+    public boolean start() {
+        if (!isStarted()) {
+            if (settings == null) {
+                throw new NjamsSdkRuntimeException("Settings not set");
+            }
+            initializeDataMasking();
+            startReceiver();
+            LogMessageFlushTask.start(getNjamsMetadata(), getNjamsJobs(), getSettings());
+            CleanTracepointsTask.start(getNjamsMetadata(), getConfiguration(), getSender());
+            njamsState.start();
+            njamsProjectMessage.sendProjectMessage();
+        }
+        return isStarted();
+    }
+
+    /**
+     * Initialize the datamasking feature
+     */
+    private void initializeDataMasking() {
+
+        Properties properties = settings.getAllProperties();
+        boolean dataMaskingEnabled = true;
+        if (properties != null) {
+            dataMaskingEnabled = Boolean.parseBoolean(properties.getProperty(DataMasking.DATA_MASKING_ENABLED, "true"));
+            if (dataMaskingEnabled) {
+                DataMasking.addPatterns(properties);
+            } else {
+                LOG.info("DataMasking is disabled.");
+            }
+        }
+        if (dataMaskingEnabled && !njamsConfiguration.getDataMasking().isEmpty()) {
+            LOG.warn("DataMasking via the configuration is deprecated but will be used as well. Use settings " +
+                     "with the properties \n{} = " +
+                     "\"true\" \nand multiple \n{}<YOUR-REGEX-NAME> = <YOUR-REGEX> \nfor this.",
+                DataMasking.DATA_MASKING_ENABLED, DataMasking.DATA_MASKING_REGEX_PREFIX);
+            DataMasking.addPatterns(njamsConfiguration.getDataMasking());
+        }
+    }
+
+    /**
+     * Stop a client; it stop processing and release the connections. It can't
+     * be stopped before it started. (NjamsSdkRuntimeException)
+     *
+     * @return true is stopping was successful.
+     */
+    public boolean stop() {
+        if (isStarted()) {
+            LogMessageFlushTask.stop(getNjamsMetadata());
+            CleanTracepointsTask.stop(getNjamsMetadata());
+
+            argosCollectors.forEach(argosSender::removeArgosCollector);
+            argosCollectors.clear();
+
+            if (sender != null) {
+                sender.close();
+            }
+            if (njamsReceiver != null) {
+                if (njamsReceiver instanceof ShareableReceiver) {
+                    ((ShareableReceiver) njamsReceiver).removeReceiver(njamsReceiver);
+                } else {
+                    njamsReceiver.stop();
+                }
+            }
+            njamsReceiver.removeAllInstructionListeners();
+            njamsState.stop();
+        } else {
+            throw new NjamsSdkRuntimeException(NOT_STARTED_EXCEPTION_MESSAGE);
+        }
+        return !isStarted();
+    }
+
+
+
+    /**
+     * Read the versions from njams.version files. Set the SDK-Version and the
+     * Client-Version if found.
+     *
+     * @param version
+     */
+    private void readVersions(String version) {
+        try {
+            final Enumeration<URL> urls = this.getClass().getClassLoader().getResources("njams.version");
+            while (urls.hasMoreElements()) {
+                final Properties prop = new Properties();
+                prop.load(urls.nextElement().openStream());
+                prop.entrySet().forEach(e -> versions.put(String.valueOf(e.getKey()), String.valueOf(e.getValue())));
+            }
+        } catch (Exception e) {
+            LOG.error("Unable to load versions from njams.version files", e);
+        }
+        if (version != null && !versions.containsKey(CLIENT_VERSION_KEY)) {
+            LOG.debug("No njams.version file for {} found!", CLIENT_VERSION_KEY);
+            versions.put(CLIENT_VERSION_KEY, version);
+        }
+        if (!versions.containsKey(SDK_VERSION_KEY)) {
+            LOG.debug("No njams.version file for {} found!", SDK_VERSION_KEY);
+            versions.put(SDK_VERSION_KEY, "4.0.0.alpha");
+        }
+    }
+
+    private void printStartupBanner() {
+        LOG.info("************************************************************");
+        LOG.info("***      nJAMS SDK: Copyright (c) " + versions.get(CURRENT_YEAR) + " Faiz & Siegeln Software GmbH");
+        LOG.info("*** ");
+        LOG.info("***      Version Info:");
+        versions.entrySet().stream().filter(e -> !CURRENT_YEAR.equals(e.getKey()))
+            .sorted(Comparator.comparing(Entry::getKey))
+            .forEach(e -> LOG.info("***      " + e.getKey() + ": " + e.getValue()));
+        LOG.info("*** ");
+        LOG.info("***      Settings:");
+
+        settings.printPropertiesWithoutPasswords(LOG);
+        LOG.info("************************************************************");
+
+    }
+
+//################################### NjamsJobs
+
+    /**
+     * @return The handler that handles the replay of a job
+     * @see #getNjamsJobs()
+     * @see NjamsJobs#getReplayHandler()
+     */
+    @Deprecated
+    public ReplayHandler getReplayHandler() {
+        return njamsJobs.getReplayHandler();
+    }
+
+    /**
+     * Sets the handler to handle the replay of a job
+     * @param replayHandler the handler to replay the job
+     * @see #getNjamsJobs()
+     * @see NjamsJobs#setReplayHandler(ReplayHandler)
+     */
+    @Deprecated
+    public void setReplayHandler(final ReplayHandler replayHandler) {
+        njamsJobs.setReplayHandler(replayHandler);
+    }
+
+    /**
+     *
+     * @param jobId the key to the corresponding job
+     * @return the corresponding job
+     * @see #getNjamsJobs()
+     * @see NjamsJobs#get(String)
+     */
+    @Deprecated
+    public Job getJobById(final String jobId) {
+        return njamsJobs.get(jobId);
+    }
+
+    /**
+     * @see #getNjamsJobs()
+     * @see NjamsJobs#get()
+     * @return A collections of jobs
+     */
+    @Deprecated
+    public Collection<Job> getJobs() {
+        return njamsJobs.get();
+    }
+
+    /**
+     * @param job the job to add, it's jobId is the key
+     * @see #getNjamsJobs()
+     * @see NjamsJobs#add(Job)
+     */
+    @Deprecated
+    public void addJob(Job job) {
+        njamsJobs.add(job);
+    }
+
+    /**
+     * @param jobId Key to remove the job from the job collection.
+     * @see #getNjamsJobs()
+     * @see NjamsJobs#remove(String)
+     */
+    @Deprecated
+    public void removeJob(String jobId) {
+        njamsJobs.remove(jobId);
+    }
+
+    public NjamsJobs getNjamsJobs(){
+        return njamsJobs;
+    }
+
+
+//################################### NjamsReceiver
+
+    /**
+     * @return the instructionListeners
+     */
+    @Deprecated
+    public List<InstructionListener> getInstructionListeners() {
+        return njamsReceiver.getInstructionListeners();
+    }
+
+    /**
+     * Adds a new InstructionListener which will be called if a new Instruction
+     * will be received.
+     *
+     * @param listener the new listener to be called
+     */
+    @Deprecated
+    public void addInstructionListener(InstructionListener listener) {
+        njamsReceiver.addInstructionListener(listener);
+    }
+
+    /**
+     * Removes a InstructionListener from the Receiver.
+     *
+     * @param listener the listener to remove
+     */
+    @Deprecated
+    public void removeInstructionListener(InstructionListener listener) {
+        njamsReceiver.removeInstructionListener(listener);
+    }
+
+
+
+
+
+//################################### NjamsSerializers
+
+    public NjamsSerializers getNjamsSerializers(){
+    return njamsSerializers;
+}
+
+    /**
+     *
+     * @param <T>        Type that the given instance serializes
+     * @param key        Class for which the serializer should be registered
+     * @param serializer A serializer that can serialize instances of class key
+     *                   to strings.
+     * @return If a serializer for the same type was already registered before,
+     * the former registered serializer is returned. Otherwise <code>null</code> is returned.
+     *
+     * @see #getNjamsSerializers() ()
+     * @see NjamsSerializers#add(Class, Serializer)
+     */
+    @Deprecated
+    public <T> Serializer<T> addSerializer(final Class<T> key, final Serializer<? super T> serializer) {
+        return njamsSerializers.add(key, serializer);
+    }
+
+    /**
+     * @param key a class
+     * @param <T> type of serializable
+     * @return Registered serializer or <b>null</b>
+     *
+     * @see #getNjamsSerializers() ()
+     * @see NjamsSerializers#remove(Class)
+     */
+    @Deprecated
+    public <T> Serializer<T> removeSerializer(final Class<T> key) {
+        return njamsSerializers.remove(key);
+    }
+
+    /**
+     *
+     * @param <T> type of the class
+     * @param key a class
+     * @return Registered serializer or <b>null</b>
+     * @see #getNjamsSerializers() ()
+     * @see NjamsSerializers#get(Class)
+     */
+    @Deprecated
+    public <T> Serializer<T> getSerializer(final Class<T> key) {
+        return njamsSerializers.get(key);
+    }
+
+    /**
+     * @param <T> type of the class
+     * @param t   Object to be serialied.
+     * @return a string representation of the object.
+     * @see #getNjamsSerializers() ()
+     * @see NjamsSerializers#serialize(Object)
+     */
+    @Deprecated
+    public <T> String serialize(final T t) {
+        return njamsSerializers.serialize(t);
+    }
+
+    /**
+     * @param <T>   Type of the class
+     * @param clazz Class for which a serializer will be searched.
+     * @return Serizalier of <b>null</b>.
+     * @see #getNjamsSerializers() ()
+     * @see NjamsSerializers#find(Class)
+     */
+    @Deprecated
+    public <T> Serializer<? super T> findSerializer(final Class<T> clazz) {
+        return njamsSerializers.find(clazz);
+    }
+
+//################################### Configuration
+
+    /**
+     * @return the configuration
+     */
+    public Configuration getConfiguration() {
+        return njamsConfiguration;
+    }
+
+    /**
+     * @return LogMode of this client
+     */
+    @Deprecated
+    public LogMode getLogMode() {
+        return njamsConfiguration.getLogMode();
+    }
+
+//################################### NjamsMetadata
 
     /**
      * @return the category of the nJAMS client, which should describe the
@@ -216,13 +565,6 @@ public class Njams implements InstructionListener{
     @Deprecated
     public String getCategory() {
         return getNjamsMetadata().category;
-    }
-
-    /**
-     * @return the current nJAMS settings
-     */
-    public Settings getSettings() {
-        return settings;
     }
 
     /**
@@ -260,6 +602,91 @@ public class Njams implements InstructionListener{
     }
 
     /**
+     * @return the machine name
+     * @see #getNjamsMetadata()
+     * @see NjamsMetadata#machine
+     */
+    @Deprecated
+    public String getMachine() {
+        return instanceMetadata.machine;
+    }
+
+
+//################################### NjamsFeatures
+
+    public NjamsFeatures getNjamsFeatures(){
+        return njamsFeatures;
+    }
+
+    /**
+     * @see #getNjamsFeatures()
+     * @see NjamsFeatures#get()
+     * @return the list of features this client has
+     */
+    @Deprecated
+    public List<String> getFeatures() {
+        return njamsFeatures.get();
+    }
+
+    /**
+     * @param feature to set
+     * @see #getNjamsFeatures()
+     * @see NjamsFeatures#add(String)
+     */
+    @Deprecated
+    public void addFeature(String feature) {
+        njamsFeatures.add(feature);
+    }
+
+    /**
+     * @param feature to set
+     * @see #getNjamsFeatures()
+     * @see NjamsFeatures#add(NjamsFeatures.Feature)
+     */
+    @Deprecated
+    public void addFeature(NjamsFeatures.Feature feature) {
+        njamsFeatures.add(feature);
+    }
+
+    /**
+     * @param feature to remove
+     * @see #getNjamsFeatures()
+     * @see NjamsFeatures#remove(String)
+     */
+    @Deprecated
+    public void removeFeature(final String feature) {
+        njamsFeatures.remove(feature);
+    }
+
+    /**
+     * @param feature to remove
+     * @see #getNjamsFeatures()
+     * @see NjamsFeatures#remove(NjamsFeatures.Feature)
+     */
+    @Deprecated
+    public void removeFeature(final NjamsFeatures.Feature feature) {
+        njamsFeatures.remove(feature);
+    }
+
+//################################### NjamsState
+
+    /**
+     * @return if this client instance is started
+     * @see #getNjamsState()
+     * @see NjamsState#isStarted()
+     */
+    @Deprecated
+    public boolean isStarted() {
+        return njamsState.isStarted();
+    }
+
+    public NjamsState getNjamsState(){
+        return njamsState;
+    }
+
+//################################### NjamsProjectMessage
+
+    /**
      * @return the globalVariables
      */
     @Deprecated
@@ -275,27 +702,6 @@ public class Njams implements InstructionListener{
     @Deprecated
     public void addGlobalVariables(Map<String, String> globalVariables) {
         njamsProjectMessage.addGlobalVariables(globalVariables);
-    }
-
-    /**
-     * @return The handler that handles the replay of a job
-     * @see #getNjamsJobs()
-     * @see NjamsJobs#getReplayHandler()
-     */
-    @Deprecated
-    public ReplayHandler getReplayHandler() {
-        return njamsJobs.getReplayHandler();
-    }
-
-    /**
-     * Sets the handler to handle the replay of a job
-     * @param replayHandler the handler to replay the job
-     * @see #getNjamsJobs()
-     * @see NjamsJobs#setReplayHandler(ReplayHandler)
-     */
-    @Deprecated
-    public void setReplayHandler(final ReplayHandler replayHandler) {
-        njamsJobs.setReplayHandler(replayHandler);
     }
 
     /**
@@ -317,106 +723,6 @@ public class Njams implements InstructionListener{
     @Deprecated
     public void addImage(final ImageSupplier imageSupplier) {
         njamsProjectMessage.addImage(imageSupplier);
-    }
-
-    /**
-     * @param processDiagramFactory the processDiagramFactory to set
-     */
-    public void setProcessDiagramFactory(ProcessDiagramFactory processDiagramFactory) {
-        this.processDiagramFactory = processDiagramFactory;
-    }
-
-    /**
-     * Returns the a Sender implementation, which is configured as specified in
-     * the settings.
-     *
-     * @return the Sender
-     */
-    public Sender getSender() {
-        if (sender == null) {
-            if ("true".equalsIgnoreCase(settings.getProperty(Settings.PROPERTY_SHARED_COMMUNICATIONS))) {
-                LOG.debug("Using shared sender pool for {}", getNjamsMetadata().clientPath);
-                sender = NjamsSender.takeSharedSender(settings);
-            } else {
-                LOG.debug("Creating individual sender pool for {}", getNjamsMetadata().clientPath);
-                sender = new NjamsSender(settings);
-            }
-        }
-        return sender;
-    }
-
-    /**
-     * Start the receiver, which is used to retrieve instructions
-     */
-    private void startReceiver() {
-        try {
-            receiver = new CommunicationFactory(settings).getReceiver(getNjamsMetadata());
-            receiver.addInstructionListener(this);
-            receiver.addInstructionListener(njamsProjectMessage);
-            receiver.addInstructionListener(njamsJobs);
-            receiver.addInstructionListener(new ConfigurationInstructionListener(getConfiguration()));
-            receiver.start();
-        } catch (Exception e) {
-            LOG.error("Error starting Receiver", e);
-            try {
-                receiver.stop();
-            } catch (Exception ex) {
-                LOG.debug("Unable to stop receiver", ex);
-            }
-            receiver = null;
-        }
-    }
-
-    /**
-     * Start a client; it will initiate the connections and start processing.
-     *
-     * @return true if successful
-     */
-    public boolean start() {
-        if (!isStarted()) {
-            if (settings == null) {
-                throw new NjamsSdkRuntimeException("Settings not set");
-            }
-            initializeDataMasking();
-            startReceiver();
-            LogMessageFlushTask.start(getNjamsMetadata(), getNjamsJobs(), getSettings());
-            CleanTracepointsTask.start(getNjamsMetadata(), getConfiguration(), getSender());
-            njamsState.start();
-            njamsProjectMessage.sendProjectMessage();
-        }
-        return isStarted();
-    }
-
-    /**
-     * Stop a client; it stop processing and release the connections. It can't
-     * be stopped before it started. (NjamsSdkRuntimeException)
-     *
-     * @return true is stopping was successful.
-     */
-    public boolean stop() {
-        if (isStarted()) {
-            LogMessageFlushTask.stop(getNjamsMetadata());
-            CleanTracepointsTask.stop(getNjamsMetadata());
-
-            argosCollectors.forEach(argosSender::removeArgosCollector);
-            argosCollectors.clear();
-
-            if (sender != null) {
-                sender.close();
-            }
-            if (receiver != null) {
-                if (receiver instanceof ShareableReceiver) {
-                    ((ShareableReceiver) receiver).removeReceiver(receiver);
-                } else {
-                    receiver.stop();
-                }
-            }
-            receiver.removeAllInstructionListeners();
-            njamsState.stop();
-        } else {
-            throw new NjamsSdkRuntimeException(NOT_STARTED_EXCEPTION_MESSAGE);
-        }
-        return !isStarted();
     }
 
     /**
@@ -449,28 +755,6 @@ public class Njams implements InstructionListener{
     @Deprecated
     public Collection<ProcessModel> getProcessModels() {
         return njamsProjectMessage.getProcessModels();
-    }
-
-    /**
-     *
-     * @param jobId the key to the corresponding job
-     * @return the corresponding job
-     * @see #getNjamsJobs()
-     * @see NjamsJobs#get(String)
-     */
-    @Deprecated
-    public Job getJobById(final String jobId) {
-        return njamsJobs.get(jobId);
-    }
-
-    /**
-     * @see #getNjamsJobs()
-     * @see NjamsJobs#get()
-     * @return A collections of jobs
-     */
-    @Deprecated
-    public Collection<Job> getJobs() {
-        return njamsJobs.get();
     }
 
     /**
@@ -534,322 +818,6 @@ public class Njams implements InstructionListener{
         njamsProjectMessage.setProcessModelLayouter(processModelLayouter);
     }
 
-    @Override
-    public int hashCode() {
-        int hash = 5;
-        hash = 83 * hash + Objects.hashCode(getNjamsMetadata().clientPath);
-        return hash;
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-        if (this == obj) {
-            return true;
-        }
-        if (obj == null) {
-            return false;
-        }
-        if (getClass() != obj.getClass()) {
-            return false;
-        }
-        final Njams other = (Njams) obj;
-        return Objects.equals(getNjamsMetadata().clientPath, other.getNjamsMetadata().clientPath);
-    }
-
-    /**
-     * @param job the job to add, it's jobId is the key
-     * @see #getNjamsJobs()
-     * @see NjamsJobs#add(Job)
-     */
-    @Deprecated
-    public void addJob(Job job) {
-        njamsJobs.add(job);
-    }
-
-    /**
-     * @param jobId Key to remove the job from the job collection.
-     * @see #getNjamsJobs()
-     * @see NjamsJobs#remove(String)
-     */
-    @Deprecated
-    public void removeJob(String jobId) {
-        njamsJobs.remove(jobId);
-    }
-
-    public NjamsJobs getNjamsJobs(){
-        return njamsJobs;
-    }
-
-    /**
-     * Read the versions from njams.version files. Set the SDK-Version and the
-     * Client-Version if found.
-     *
-     * @param version
-     */
-    private void readVersions(String version) {
-        try {
-            final Enumeration<URL> urls = this.getClass().getClassLoader().getResources("njams.version");
-            while (urls.hasMoreElements()) {
-                final Properties prop = new Properties();
-                prop.load(urls.nextElement().openStream());
-                prop.entrySet().forEach(e -> versions.put(String.valueOf(e.getKey()), String.valueOf(e.getValue())));
-            }
-        } catch (Exception e) {
-            LOG.error("Unable to load versions from njams.version files", e);
-        }
-        if (version != null && !versions.containsKey(CLIENT_VERSION_KEY)) {
-            LOG.debug("No njams.version file for {} found!", CLIENT_VERSION_KEY);
-            versions.put(CLIENT_VERSION_KEY, version);
-        }
-        if (!versions.containsKey(SDK_VERSION_KEY)) {
-            LOG.debug("No njams.version file for {} found!", SDK_VERSION_KEY);
-            versions.put(SDK_VERSION_KEY, "4.0.0.alpha");
-        }
-    }
-
-    private void printStartupBanner() {
-        LOG.info("************************************************************");
-        LOG.info("***      nJAMS SDK: Copyright (c) " + versions.get(CURRENT_YEAR) + " Faiz & Siegeln Software GmbH");
-        LOG.info("*** ");
-        LOG.info("***      Version Info:");
-        versions.entrySet().stream().filter(e -> !CURRENT_YEAR.equals(e.getKey()))
-            .sorted(Comparator.comparing(Entry::getKey))
-            .forEach(e -> LOG.info("***      " + e.getKey() + ": " + e.getValue()));
-        LOG.info("*** ");
-        LOG.info("***      Settings:");
-
-        settings.printPropertiesWithoutPasswords(LOG);
-        LOG.info("************************************************************");
-
-    }
-
-    /**
-     * @return the instructionListeners
-     */
-    @Deprecated
-    public List<InstructionListener> getInstructionListeners() {
-        return receiver.getInstructionListeners();
-    }
-
-    /**
-     * Adds a new InstructionListener which will be called if a new Instruction
-     * will be received.
-     *
-     * @param listener the new listener to be called
-     */
-    @Deprecated
-    public void addInstructionListener(InstructionListener listener) {
-        receiver.addInstructionListener(listener);
-    }
-
-    /**
-     * Removes a InstructionListener from the Receiver.
-     *
-     * @param listener the listener to remove
-     */
-    @Deprecated
-    public void removeInstructionListener(InstructionListener listener) {
-        receiver.removeInstructionListener(listener);
-    }
-
-    /**
-     * @return the ProcessDiagramFactory
-     */
-    public ProcessDiagramFactory getProcessDiagramFactory() {
-        return processDiagramFactory;
-    }
-
-    /**
-     * Implementation of the InstructionListener interface. Listens on
-     * sendProjectMessage and Replay.
-     *
-     * @param instruction The instruction which should be handled
-     */
-    @Override
-    public void onInstruction(Instruction instruction) {
-        if (Command.PING.commandString().equalsIgnoreCase(instruction.getCommand())) {
-            instruction.setResponse(createPingResponse());
-        }
-    }
-
-    private Response createPingResponse() {
-        final Response response = new Response();
-        response.setResultCode(0);
-        response.setResultMessage("Pong");
-        final Map<String, String> params = response.getParameters();
-        params.put("clientPath", getNjamsMetadata().clientPath.toString());
-        params.put("clientVersion", getNjamsMetadata().clientVersion);
-        params.put("sdkVersion", getNjamsMetadata().sdkVersion);
-        params.put("category", getNjamsMetadata().category);
-        params.put("machine", getNjamsMetadata().machine);
-        params.put("features", njamsFeatures.get().stream().collect(Collectors.joining(",")));
-        return response;
-    }
-
-    public NjamsSerializers getNjamsSerializers(){
-        return serializers;
-    }
-
-    /**
-     *
-     * @param <T>        Type that the given instance serializes
-     * @param key        Class for which the serializer should be registered
-     * @param serializer A serializer that can serialize instances of class key
-     *                   to strings.
-     * @return If a serializer for the same type was already registered before,
-     * the former registered serializer is returned. Otherwise <code>null</code> is returned.
-     *
-     * @see #getNjamsSerializers() ()
-     * @see NjamsSerializers#add(Class, Serializer)
-     */
-    @Deprecated
-    public <T> Serializer<T> addSerializer(final Class<T> key, final Serializer<? super T> serializer) {
-        return serializers.add(key, serializer);
-    }
-
-    /**
-     * @param key a class
-     * @param <T> type of serializable
-     * @return Registered serializer or <b>null</b>
-     *
-     * @see #getNjamsSerializers() ()
-     * @see NjamsSerializers#remove(Class)
-     */
-    @Deprecated
-    public <T> Serializer<T> removeSerializer(final Class<T> key) {
-        return serializers.remove(key);
-    }
-
-    /**
-     *
-     * @param <T> type of the class
-     * @param key a class
-     * @return Registered serializer or <b>null</b>
-     * @see #getNjamsSerializers() ()
-     * @see NjamsSerializers#get(Class)
-     */
-    @Deprecated
-    public <T> Serializer<T> getSerializer(final Class<T> key) {
-        return serializers.get(key);
-    }
-
-    /**
-     * @param <T> type of the class
-     * @param t   Object to be serialied.
-     * @return a string representation of the object.
-     * @see #getNjamsSerializers() ()
-     * @see NjamsSerializers#serialize(Object)
-     */
-    @Deprecated
-    public <T> String serialize(final T t) {
-        return serializers.serialize(t);
-    }
-
-    /**
-     * @param <T>   Type of the class
-     * @param clazz Class for which a serializer will be searched.
-     * @return Serizalier of <b>null</b>.
-     * @see #getNjamsSerializers() ()
-     * @see NjamsSerializers#find(Class)
-     */
-    @Deprecated
-    public <T> Serializer<? super T> findSerializer(final Class<T> clazz) {
-        return serializers.find(clazz);
-    }
-
-    /**
-     * @return LogMode of this client
-     */
-    @Deprecated
-    public LogMode getLogMode() {
-        return getConfiguration().getLogMode();
-    }
-
-    /**
-     * @return the configuration
-     */
-    public Configuration getConfiguration() {
-        return configuration;
-    }
-
-    /**
-     * @return the machine name
-     * @see #getNjamsMetadata()
-     * @see NjamsMetadata#machine
-     */
-    @Deprecated
-    public String getMachine() {
-        return getNjamsMetadata().machine;
-    }
-
-    public NjamsFeatures getNjamsFeatures(){
-        return njamsFeatures;
-    }
-
-    /**
-     * @see #getNjamsFeatures()
-     * @see NjamsFeatures#get()
-     * @return the list of features this client has
-     */
-    @Deprecated
-    public List<String> getFeatures() {
-        return njamsFeatures.get();
-    }
-
-    /**
-     * @param feature to set
-     * @see #getNjamsFeatures()
-     * @see NjamsFeatures#add(String)
-     */
-    @Deprecated
-    public void addFeature(String feature) {
-        njamsFeatures.add(feature);
-    }
-
-    /**
-     * @param feature to set
-     * @see #getNjamsFeatures()
-     * @see NjamsFeatures#add(NjamsFeatures.Feature)
-     */
-    @Deprecated
-    public void addFeature(NjamsFeatures.Feature feature) {
-        njamsFeatures.add(feature);
-    }
-
-    /**
-     * @param feature to remove
-     * @see #getNjamsFeatures()
-     * @see NjamsFeatures#remove(String)
-     */
-    @Deprecated
-    public void removeFeature(final String feature) {
-        njamsFeatures.remove(feature);
-    }
-
-    /**
-     * @param feature to remove
-     * @see #getNjamsFeatures()
-     * @see NjamsFeatures#remove(NjamsFeatures.Feature)
-     */
-    @Deprecated
-    public void removeFeature(final NjamsFeatures.Feature feature) {
-        njamsFeatures.remove(feature);
-    }
-
-    /**
-     * @return if this client instance is started
-     * @see #getNjamsState()
-     * @see NjamsState#isStarted()
-     */
-    @Deprecated
-    public boolean isStarted() {
-        return njamsState.isStarted();
-    }
-
-    public NjamsState getNjamsState(){
-        return njamsState;
-    }
-
     /**
      * Returns if the given process is excluded. This could be explicitly set on
      * the process, or if the Engine LogMode is set to none.
@@ -857,38 +825,24 @@ public class Njams implements InstructionListener{
      * @param processPath for the process which should be checked
      * @return true if the process is excluded, or false if not
      */
+    @Deprecated
     public boolean isExcluded(Path processPath) {
-        if (processPath == null) {
-            return false;
-        }
-        if (getConfiguration().getLogMode() == LogMode.NONE) {
-            return true;
-        }
-        ProcessConfiguration processConfiguration = getConfiguration().getProcess(processPath.toString());
-        return processConfiguration != null && processConfiguration.isExclude();
+        return njamsProjectMessage.isExcluded(processPath);
     }
 
     /**
-     * Initialize the datamasking feature
+     * @return the ProcessDiagramFactory
      */
-    private void initializeDataMasking() {
+    @Deprecated
+    public ProcessDiagramFactory getProcessDiagramFactory() {
+        return njamsProjectMessage.getProcessDiagramFactory();
+    }
 
-        Properties properties = settings.getAllProperties();
-        boolean dataMaskingEnabled = true;
-        if (properties != null) {
-            dataMaskingEnabled = Boolean.parseBoolean(properties.getProperty(DataMasking.DATA_MASKING_ENABLED, "true"));
-            if (dataMaskingEnabled) {
-                DataMasking.addPatterns(properties);
-            } else {
-                LOG.info("DataMasking is disabled.");
-            }
-        }
-        if (dataMaskingEnabled && !configuration.getDataMasking().isEmpty()) {
-            LOG.warn("DataMasking via the configuration is deprecated but will be used as well. Use settings " +
-                    "with the properties \n{} = " +
-                    "\"true\" \nand multiple \n{}<YOUR-REGEX-NAME> = <YOUR-REGEX> \nfor this.",
-                DataMasking.DATA_MASKING_ENABLED, DataMasking.DATA_MASKING_REGEX_PREFIX);
-            DataMasking.addPatterns(configuration.getDataMasking());
-        }
+    /**
+     * @param processDiagramFactory the processDiagramFactory to set
+     */
+    @Deprecated
+    public void setProcessDiagramFactory(ProcessDiagramFactory processDiagramFactory) {
+        njamsProjectMessage.setProcessDiagramFactory(processDiagramFactory);
     }
 }

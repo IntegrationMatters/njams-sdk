@@ -27,9 +27,6 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 
-import com.im.njams.sdk.communication.ReplayHandler;
-import com.im.njams.sdk.communication.ReplayRequest;
-import com.im.njams.sdk.communication.ReplayResponse;
 import com.im.njams.sdk.communication.TestReceiver;
 import com.im.njams.sdk.logmessage.NjamsFeatures;
 import com.im.njams.sdk.logmessage.NjamsJobs;
@@ -38,10 +35,6 @@ import com.im.njams.sdk.model.ProcessModelUtils;
 import org.junit.Before;
 import org.junit.Test;
 
-import com.faizsiegeln.njams.messageformat.v4.command.Command;
-import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
-import com.faizsiegeln.njams.messageformat.v4.command.Request;
-import com.faizsiegeln.njams.messageformat.v4.command.Response;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.common.Path;
 import com.im.njams.sdk.communication.CommunicationFactory;

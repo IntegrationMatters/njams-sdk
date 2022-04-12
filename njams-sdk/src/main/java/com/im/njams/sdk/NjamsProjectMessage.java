@@ -5,6 +5,7 @@ import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
 import com.faizsiegeln.njams.messageformat.v4.command.Response;
 import com.faizsiegeln.njams.messageformat.v4.common.TreeElement;
 import com.faizsiegeln.njams.messageformat.v4.common.TreeElementType;
+import com.faizsiegeln.njams.messageformat.v4.projectmessage.LogMode;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.ProjectMessage;
 import com.im.njams.sdk.client.NjamsMetadata;
 import com.im.njams.sdk.common.DateTimeUtility;
@@ -13,6 +14,7 @@ import com.im.njams.sdk.common.Path;
 import com.im.njams.sdk.communication.InstructionListener;
 import com.im.njams.sdk.communication.Sender;
 import com.im.njams.sdk.configuration.Configuration;
+import com.im.njams.sdk.configuration.ProcessConfiguration;
 import com.im.njams.sdk.logmessage.NjamsFeatures;
 import com.im.njams.sdk.logmessage.NjamsJobs;
 import com.im.njams.sdk.logmessage.NjamsState;
@@ -82,11 +84,12 @@ public class NjamsProjectMessage implements InstructionListener {
     private final NjamsJobs jobs;
     private final NjamsSerializers serializers;
     private final Settings settings;
-    private final ProcessDiagramFactory processDiagramFactory;
+    private ProcessDiagramFactory processDiagramFactory;
     private ProcessModelLayouter processModelLayouter;
 
     public NjamsProjectMessage(NjamsMetadata njamsMetadata, NjamsFeatures features, Configuration configuration,
         Sender sender, NjamsState state, NjamsJobs jobs, NjamsSerializers serializers, Settings settings) {
+        this.settings = settings;
         this.startTime = DateTimeUtility.now();
         this.processModelLayouter = new SimpleProcessModelLayouter();
         this.processDiagramFactory = createProcessDiagramFactory();
@@ -98,7 +101,6 @@ public class NjamsProjectMessage implements InstructionListener {
         this.state = state;
         this.jobs = jobs;
         this.serializers = serializers;
-        this.settings = settings;
 
         createTreeElements(instanceMetadata.clientPath, TreeElementType.CLIENT);
     }
@@ -420,5 +422,37 @@ public class NjamsProjectMessage implements InstructionListener {
      */
     public ProcessModelLayouter getProcessModelLayouter() {
         return processModelLayouter;
+    }
+
+    /**
+     * Returns if the given process is excluded. This could be explicitly set on
+     * the process, or if the Engine LogMode is set to none.
+     *
+     * @param processPath for the process which should be checked
+     * @return true if the process is excluded, or false if not
+     */
+    public boolean isExcluded(Path processPath) {
+        if (processPath == null) {
+            return false;
+        }
+        if (configuration.getLogMode() == LogMode.NONE) {
+            return true;
+        }
+        ProcessConfiguration processConfiguration = configuration.getProcess(processPath.toString());
+        return processConfiguration != null && processConfiguration.isExclude();
+    }
+
+    /**
+     * @return the ProcessDiagramFactory
+     */
+    public ProcessDiagramFactory getProcessDiagramFactory() {
+        return processDiagramFactory;
+    }
+
+    /**
+     * @param processDiagramFactory the processDiagramFactory to set
+     */
+    public void setProcessDiagramFactory(ProcessDiagramFactory processDiagramFactory) {
+        this.processDiagramFactory = processDiagramFactory;
     }
 }

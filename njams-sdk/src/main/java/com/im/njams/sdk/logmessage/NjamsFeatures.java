@@ -30,7 +30,7 @@ public class NjamsFeatures {
 
         private final String key;
 
-        private Feature(String key) {
+        Feature(String key) {
             this.key = key;
         }
 

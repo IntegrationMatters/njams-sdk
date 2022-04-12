@@ -14,6 +14,8 @@ package com.im.njams.sdk.client;
 
 import com.im.njams.sdk.common.Path;
 
+import java.util.Objects;
+
 public class NjamsMetadata {
     public final Path clientPath;
     public final String clientVersion;
@@ -27,5 +29,27 @@ public class NjamsMetadata {
         this.sdkVersion = sdkVersion;
         this.machine = machine;
         this.category = category;
+    }
+
+    @Override
+    public int hashCode() {
+        int hash = 5;
+        hash = 83 * hash + Objects.hashCode(clientPath);
+        return hash;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) {
+            return true;
+        }
+        if (obj == null) {
+            return false;
+        }
+        if (getClass() != obj.getClass()) {
+            return false;
+        }
+        final NjamsMetadata other = (NjamsMetadata) obj;
+        return Objects.equals(clientPath, other.clientPath);
     }
 }
