@@ -116,6 +116,7 @@ public class SimpleClient {
         Settings communicationProperties = new Settings();
         communicationProperties.put(CommunicationFactory.COMMUNICATION, CloudConstants.NAME);
         communicationProperties.put(CloudConstants.ENDPOINT, "<cloud url>");
+        communicationProperties.put(CloudConstants.COMMANDENDPOINT, "<command endpoint>");
         communicationProperties.put(CloudConstants.APIKEY, "<cloud apikey>");
         communicationProperties.put(CloudConstants.CLIENT_INSTANCEID, "<cloud client instance>");
         communicationProperties.put(CloudConstants.CLIENT_CERTIFICATE, "<cloud client certificate>");

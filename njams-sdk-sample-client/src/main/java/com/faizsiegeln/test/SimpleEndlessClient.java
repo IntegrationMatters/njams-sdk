@@ -119,13 +119,14 @@ public class SimpleEndlessClient {
         Settings communicationProperties = new Settings();
         communicationProperties.put(CommunicationFactory.COMMUNICATION, CloudConstants.NAME);
         communicationProperties.put(CloudConstants.ENDPOINT, "<cloud url>");
+        communicationProperties.put(CloudConstants.COMMANDENDPOINT, "<command endpoint>");
         communicationProperties.put(CloudConstants.APIKEY, "<cloud apikey>");
         communicationProperties.put(CloudConstants.CLIENT_INSTANCEID, "<cloud client instance>");
         communicationProperties.put(CloudConstants.CLIENT_CERTIFICATE, "<cloud client certificate>");
         communicationProperties.put(CloudConstants.CLIENT_PRIVATEKEY, "<cloud client privatekey>");
         return communicationProperties;
     }
-
+    
     private static Settings getJmsProperties() {
         Settings communicationProperties = new Settings();
         communicationProperties.put(CommunicationFactory.COMMUNICATION, "JMS");

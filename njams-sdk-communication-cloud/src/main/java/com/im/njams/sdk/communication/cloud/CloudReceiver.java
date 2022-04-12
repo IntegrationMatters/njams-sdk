@@ -125,6 +125,7 @@ public class CloudReceiver extends AbstractReceiver {
             LOG.error("Please provide property {} for CloudReceiver", CloudConstants.CLIENT_PRIVATEKEY);
         }
         LOG.info("Creating KeyStorePasswordPair from {} and {}", getCertificateFile(), getPrivateKeyFile());
+        
         keyStorePasswordPair = CertificateUtil.getKeyStorePasswordPair(getCertificateFile(), getPrivateKeyFile());
         if (keyStorePasswordPair == null) {
             throw new IllegalStateException("Certificate or PrivateKey invalid");

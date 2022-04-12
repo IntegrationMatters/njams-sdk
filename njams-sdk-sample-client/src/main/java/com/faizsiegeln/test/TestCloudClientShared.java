@@ -148,22 +148,15 @@ public class TestCloudClientShared {
         return sb.toString();
     }
 
-    public static Settings getCloudProperties() {
+    private static Settings getCloudProperties() {
         Settings communicationProperties = new Settings();
         communicationProperties.put(CommunicationFactory.COMMUNICATION, CloudConstants.NAME);
-        communicationProperties.put(CloudConstants.ENDPOINT, "ingest.integrationmatters.com");
-        communicationProperties.put(CloudConstants.APIKEY,
-                "/tmp/njams_hcpqjtw_certificate/661ab6fea1-api.key");
-        communicationProperties.put(CloudConstants.CLIENT_INSTANCEID,
-                "/tmp/njams_hcpqjtw_certificate/661ab6fea1-instanceId");
-        communicationProperties.put(CloudConstants.CLIENT_CERTIFICATE,
-                "/tmp/njams_hcpqjtw_certificate/661ab6fea1-certificate.pem");
-        communicationProperties.put(CloudConstants.CLIENT_PRIVATEKEY,
-                "/tmp/njams_hcpqjtw_certificate/661ab6fea1-private.pem.key");
-
-        communicationProperties.put(Settings.PROPERTY_USE_DEPRECATED_PATH_FIELD_FOR_SUBPROCESSES, "false");
-        communicationProperties.put("njams.client.sdk.sharedcommunications", "true");
-
+        communicationProperties.put(CloudConstants.ENDPOINT, "<cloud url>");
+        communicationProperties.put(CloudConstants.COMMANDENDPOINT, "<command endpoint>");
+        communicationProperties.put(CloudConstants.APIKEY, "<cloud apikey>");
+        communicationProperties.put(CloudConstants.CLIENT_INSTANCEID, "<cloud client instance>");
+        communicationProperties.put(CloudConstants.CLIENT_CERTIFICATE, "<cloud client certificate>");
+        communicationProperties.put(CloudConstants.CLIENT_PRIVATEKEY, "<cloud client privatekey>");
         return communicationProperties;
     }
 
