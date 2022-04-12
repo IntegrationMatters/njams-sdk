@@ -33,4 +33,5 @@ public class CloudConstants {
     public static final String CLIENT_INSTANCEID = PROPERTY_PREFIX + ".instanceid";
     public static final String CLIENT_CERTIFICATE = PROPERTY_PREFIX + ".certificate";
     public static final String CLIENT_PRIVATEKEY = PROPERTY_PREFIX + ".privatekey";
+    public static final String COMMANDENDPOINT = PROPERTY_PREFIX + ".commandendpoint";
 }

@@ -75,8 +75,6 @@ public class CloudSender extends AbstractSender {
     private String endpointUrl;
     private String connectionId;
 
-    private static final int retryInterval = 600000;
-
     @Override
     public void init(Properties properties) {
 
@@ -93,20 +91,27 @@ public class CloudSender extends AbstractSender {
         }
 
         try {
-            apikey = ApiKeyReader.getApiKey(apikeypath);
+            apikey = FileStringReader.getStringFromFile(apikeypath);
         } catch (Exception e) {
             LOG.error("Failed to load api key from file " + apikeypath, e);
             throw new IllegalStateException("Failed to load api key from file");
         }
 
         try {
-            instanceId = ApiKeyReader.getApiKey(instanceIdPath);
+            instanceId = FileStringReader.getStringFromFile(instanceIdPath);
         } catch (Exception e) {
             LOG.error("Failed to load instanceId from file " + instanceIdPath, e);
             throw new IllegalStateException("Failed to load instanceId from file");
         }
+        
+        String endpointUrlPath = properties.getProperty(CloudConstants.ENDPOINT);
 
-        endpointUrl = properties.getProperty(CloudConstants.ENDPOINT);
+        try {
+        	 endpointUrl = FileStringReader.getStringFromFile(endpointUrlPath);
+        } catch (Exception e) {
+            LOG.error("Failed to load endpoint from file " + endpointUrlPath, e);
+            throw new IllegalStateException("Failed to load endpoint from file");
+        }      
 
         // build connectionId String
         CloudClientId cloudClientId = CloudClientId.getInstance(instanceId, false);
@@ -115,7 +120,7 @@ public class CloudSender extends AbstractSender {
         LOG.debug("connectionId: {}", connectionId);
 
         try {
-            url = new URL(getIngestEndpoint(endpointUrl));
+            url = new URL(endpointUrl);
             this.connectionStatus = ConnectionStatus.CONNECTED;
         } catch (final Exception ex) {
             this.connectionStatus = ConnectionStatus.DISCONNECTED;
@@ -130,7 +135,7 @@ public class CloudSender extends AbstractSender {
 
     protected void retryInit() {
         try {
-            url = new URL(getIngestEndpoint(endpointUrl));
+            url = new URL(endpointUrl);
             this.connectionStatus = ConnectionStatus.CONNECTED;
         } catch (final Exception ex) {
             this.connectionStatus = ConnectionStatus.DISCONNECTED;
@@ -238,49 +243,6 @@ public class CloudSender extends AbstractSender {
         sendMessage(msg, properties);
     }
 
-    /**
-     * @return the ingest endpoint
-     */
-    protected String getIngestEndpoint(String endpoint) throws Exception {
-        String endpointUrl = "https://" + endpoint.trim() + "/v1/endpoints";
-
-        URL url = new URL(endpointUrl);
-        HttpsURLConnection connection = (HttpsURLConnection) url.openConnection();
-        connection.setRequestMethod("GET");
-        connection.setRequestProperty("x-api-key", apikey);
-        connection.setRequestProperty("x-connection-id", connectionId);
-
-        int responseCode = connection.getResponseCode();
-        LOG.debug("\nSending 'GET' request to URL : " + url);
-        LOG.debug("Response Code : " + responseCode);
-
-        BufferedReader in = new BufferedReader(new InputStreamReader(connection.getInputStream()));
-
-        String inputLine;
-        StringBuffer response = new StringBuffer();
-
-        while ((inputLine = in.readLine()) != null) {
-            response.append(inputLine);
-        }
-        in.close();
-
-        Endpoints endpoints = JsonUtils.parse(response.toString(), Endpoints.class);
-
-        if (endpoints.error) {
-            LOG.error(endpoints.errorMessage);
-            endpointError = true;
-            endpointErrorMessage = endpoints.errorMessage;
-
-            reconnectTime = System.currentTimeMillis() + retryInterval;
-            LOG.info("Try to establish connection again in 10 min.");
-
-            return "https://localhost";
-        }
-
-        endpointError = false;
-
-        return endpoints.ingest.startsWith("https://") ? endpoints.ingest : "https://" + endpoints.ingest;
-    }
 
     private void addAddtionalProperties(final Properties properties, final HttpsURLConnection connection) {
         final Set<Map.Entry<Object, Object>> entrySet = properties.entrySet();
@@ -301,6 +263,7 @@ public class CloudSender extends AbstractSender {
             connection.setRequestProperty("Accept", "text/plain");
             connection.setRequestProperty("Connection", "keep-alive");
             connection.setRequestProperty("x-api-key", apikey);
+            connection.setRequestProperty("x-instance-id", instanceId);
 
             connection.setRequestProperty("Content-Length", Integer.toString(bodyCompressed.length));
             connection.setRequestProperty("Content-Language", "en-US");
