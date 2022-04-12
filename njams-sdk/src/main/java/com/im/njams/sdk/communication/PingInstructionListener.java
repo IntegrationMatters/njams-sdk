@@ -1,10 +1,9 @@
-package com.im.njams.sdk;
+package com.im.njams.sdk.communication;
 
 import com.faizsiegeln.njams.messageformat.v4.command.Command;
 import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
 import com.faizsiegeln.njams.messageformat.v4.command.Response;
 import com.im.njams.sdk.client.NjamsMetadata;
-import com.im.njams.sdk.communication.InstructionListener;
 import com.im.njams.sdk.logmessage.NjamsFeatures;
 
 import java.util.Map;

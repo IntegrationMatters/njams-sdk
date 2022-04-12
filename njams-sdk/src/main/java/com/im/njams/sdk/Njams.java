@@ -35,6 +35,7 @@ import com.im.njams.sdk.common.Path;
 import com.im.njams.sdk.communication.CommunicationFactory;
 import com.im.njams.sdk.communication.InstructionListener;
 import com.im.njams.sdk.communication.NjamsSender;
+import com.im.njams.sdk.communication.PingInstructionListener;
 import com.im.njams.sdk.communication.Receiver;
 import com.im.njams.sdk.communication.ReplayHandler;
 import com.im.njams.sdk.communication.Sender;

@@ -5,7 +5,7 @@ import org.slf4j.LoggerFactory;
 import java.util.Collections;
 import java.util.Map;
 
-public class NjamsVersions {
+class NjamsVersions {
 
     private static final org.slf4j.Logger LOG = LoggerFactory.getLogger(NjamsVersions.class);
 
@@ -20,15 +20,15 @@ public class NjamsVersions {
 
     private final Map<String, String> versions;
 
-    public NjamsVersions(Map<String, String> versions) {
+    NjamsVersions(Map<String, String> versions) {
         this.versions = versions;
     }
 
-    public NjamsVersions setSdkVersionIfAbsent(String sdkDefaultVersion) {
+    NjamsVersions setSdkVersionIfAbsent(String sdkDefaultVersion) {
         return setDefaultVersionFor(sdkDefaultVersion, SDK_VERSION_KEY);
     }
 
-    public NjamsVersions setClientVersionIfAbsent(String clientDefaultVersion) {
+    NjamsVersions setClientVersionIfAbsent(String clientDefaultVersion) {
         return setDefaultVersionFor(clientDefaultVersion, CLIENT_VERSION_KEY);
     }
 
@@ -40,15 +40,15 @@ public class NjamsVersions {
         return this;
     }
 
-    public String getClientVersion() {
+    String getClientVersion() {
         return versions.get(CLIENT_VERSION_KEY);
     }
 
-    public String getSdkVersion() {
+    String getSdkVersion() {
         return versions.get(SDK_VERSION_KEY);
     }
 
-    public Map<String, String> getAllVersions() {
+    Map<String, String> getAllVersions() {
         return Collections.unmodifiableMap(versions);
     }
 }

@@ -7,6 +7,7 @@ import com.faizsiegeln.njams.messageformat.v4.command.Response;
 import com.im.njams.sdk.client.NjamsMetadata;
 import com.im.njams.sdk.client.NjamsMetadataFactory;
 import com.im.njams.sdk.common.Path;
+import com.im.njams.sdk.communication.PingInstructionListener;
 import com.im.njams.sdk.logmessage.NjamsFeatures;
 import org.junit.Test;
 
