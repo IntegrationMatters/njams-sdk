@@ -10,6 +10,7 @@ import com.im.njams.sdk.communication.TestSender;
 import com.im.njams.sdk.configuration.Configuration;
 import com.im.njams.sdk.logmessage.NjamsFeatures;
 import com.im.njams.sdk.logmessage.NjamsJobs;
+import com.im.njams.sdk.logmessage.NjamsProjectMessage;
 import com.im.njams.sdk.logmessage.NjamsState;
 import com.im.njams.sdk.serializer.NjamsSerializers;
 import com.im.njams.sdk.settings.Settings;

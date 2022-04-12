@@ -1,4 +1,4 @@
-package com.im.njams.sdk;
+package com.im.njams.sdk.logmessage;
 
 import com.faizsiegeln.njams.messageformat.v4.command.Command;
 import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
@@ -15,9 +15,6 @@ import com.im.njams.sdk.communication.InstructionListener;
 import com.im.njams.sdk.communication.Sender;
 import com.im.njams.sdk.configuration.Configuration;
 import com.im.njams.sdk.configuration.ProcessConfiguration;
-import com.im.njams.sdk.logmessage.NjamsFeatures;
-import com.im.njams.sdk.logmessage.NjamsJobs;
-import com.im.njams.sdk.logmessage.NjamsState;
 import com.im.njams.sdk.model.ProcessModel;
 import com.im.njams.sdk.model.ProcessModelUtils;
 import com.im.njams.sdk.model.image.ImageSupplier;

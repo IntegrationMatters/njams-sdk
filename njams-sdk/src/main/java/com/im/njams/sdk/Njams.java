@@ -48,6 +48,7 @@ import com.im.njams.sdk.logmessage.DataMasking;
 import com.im.njams.sdk.logmessage.Job;
 import com.im.njams.sdk.logmessage.NjamsFeatures;
 import com.im.njams.sdk.logmessage.NjamsJobs;
+import com.im.njams.sdk.logmessage.NjamsProjectMessage;
 import com.im.njams.sdk.logmessage.NjamsState;
 import com.im.njams.sdk.model.ProcessModel;
 import com.im.njams.sdk.model.image.ImageSupplier;
