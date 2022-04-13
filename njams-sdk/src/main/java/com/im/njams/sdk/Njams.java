@@ -92,12 +92,9 @@ public class Njams{
     private final NjamsArgos njamsArgos;
     private final NjamsReceiver njamsReceiver;
 
-    private NjamsSender sender;
+    private final Sender sender;
 
     private Configuration njamsConfiguration;
-
-
-
 
     /**
      * Create a nJAMS client.
@@ -131,9 +128,9 @@ public class Njams{
         njamsFeatures = new NjamsFeatures();
 
         njamsJobs = new NjamsJobs(njamsState, njamsFeatures);
-
+        sender = NjamsSenderFactory.getSender(njamsSettings, njamsMetadata);
         njamsProjectMessage = new NjamsProjectMessage(njamsMetadata, njamsFeatures, njamsConfiguration,
-            getSender(), njamsState, getNjamsJobs(), getNjamsSerializers(), getSettings());
+            sender, njamsState, getNjamsJobs(), getNjamsSerializers(), getSettings());
         printStartupBanner();
 
         njamsReceiver = new NjamsReceiver(njamsSettings, njamsMetadata, njamsFeatures, njamsProjectMessage, njamsJobs, njamsConfiguration);
@@ -207,15 +204,6 @@ public class Njams{
      * @return the Sender
      */
     public Sender getSender() {
-        if (sender == null) {
-            if ("true".equalsIgnoreCase(njamsSettings.getProperty(Settings.PROPERTY_SHARED_COMMUNICATIONS))) {
-                LOG.debug("Using shared sender pool for {}", njamsMetadata.clientPath);
-                sender = NjamsSender.takeSharedSender(njamsSettings);
-            } else {
-                LOG.debug("Creating individual sender pool for {}", njamsMetadata.clientPath);
-                sender = new NjamsSender(njamsSettings);
-            }
-        }
         return sender;
     }
 
@@ -275,10 +263,7 @@ public class Njams{
             CleanTracepointsTask.stop(njamsMetadata);
 
             njamsArgos.stop();
-
-            if (sender != null) {
-                sender.close();
-            }
+            sender.close();
             njamsReceiver.stop();
             njamsState.stop();
         } else {
