@@ -33,7 +33,6 @@ import com.im.njams.sdk.client.NjamsMetadataFactory;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.common.Path;
 import com.im.njams.sdk.communication.InstructionListener;
-import com.im.njams.sdk.communication.NjamsSender;
 import com.im.njams.sdk.communication.ReplayHandler;
 import com.im.njams.sdk.communication.Sender;
 import com.im.njams.sdk.configuration.Configuration;
@@ -113,7 +112,7 @@ public class Njams{
         loadConfigurationProvider();
         loadConfiguration();
 
-        Map<String, String> classpathVersions = readVersions();
+        Map<String, String> classpathVersions = readNjamsVersionsFile();
         final String CURRENT_YEAR = "currentYear";
         currentYear = classpathVersions.remove(CURRENT_YEAR);
         njamsVersions = fillNjamsVersions(classpathVersions, defaultClientVersion);
@@ -140,7 +139,7 @@ public class Njams{
      * Read the versions from njams.version files. Set the SDK-Version and the
      * Client-Version if found.
      */
-    private Map<String, String> readVersions() {
+    private Map<String, String> readNjamsVersionsFile() {
         Map<String, String> versions = new HashMap();
         try {
             final Enumeration<URL> urls = this.getClass().getClassLoader().getResources("njams.version");
