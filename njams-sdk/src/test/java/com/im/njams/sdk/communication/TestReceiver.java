@@ -20,6 +20,8 @@ import java.util.List;
 import java.util.Properties;
 
 import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
+import com.im.njams.sdk.NjamsInstructionListeners;
+import com.im.njams.sdk.NjamsReceiver;
 import com.im.njams.sdk.client.NjamsMetadata;
 import com.im.njams.sdk.settings.Settings;
 
@@ -94,24 +96,15 @@ public class TestReceiver implements Receiver {
     }
 
     @Override
-    public void addInstructionListener(InstructionListener instructionListener) {
+    public void setNjamsInstructionListeners(NjamsInstructionListeners njamsInstructionListeners) {
 
     }
 
     @Override
-    public List<InstructionListener> getInstructionListeners() {
+    public NjamsInstructionListeners getNjamsInstructionListeners() {
         return null;
     }
 
-    @Override
-    public void removeInstructionListener(InstructionListener listener) {
-
-    }
-
-    @Override
-    public void removeAllInstructionListeners() {
-
-    }
 
     @Override
     public void setInstanceMetadata(NjamsMetadata metadata) {

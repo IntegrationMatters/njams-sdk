@@ -19,6 +19,7 @@ package com.im.njams.sdk.communication;
 import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
 import com.faizsiegeln.njams.messageformat.v4.command.Request;
 import com.faizsiegeln.njams.messageformat.v4.command.Response;
+import com.im.njams.sdk.NjamsInstructionListeners;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import org.junit.Test;
 
@@ -114,7 +115,11 @@ public class AbstractReceiverTest {
 
     private Instruction mockUp(List<InstructionListener> list) {
         AbstractReceiverImpl impl = new AbstractReceiverImpl();
-        impl.setInstructionListeners(list);
+        final NjamsInstructionListeners njamsInstructionListeners = new NjamsInstructionListeners();
+        for (InstructionListener listener : list) {
+            njamsInstructionListeners.add(listener);
+        }
+        impl.setNjamsInstructionListeners(njamsInstructionListeners);
         Instruction inst = new Instruction();
         Request req = new Request();
         req.setCommand(TESTCOMMAND);
@@ -225,7 +230,7 @@ public class AbstractReceiverTest {
     @Test
     public void testOnInstructionExtendedRequestException() {
         AbstractReceiverImpl impl = new AbstractReceiverImpl();
-        impl.setInstructionListeners(new ArrayList<>());
+        impl.setNjamsInstructionListeners(new NjamsInstructionListeners());
         Instruction inst = new Instruction();
         Request req = new Request();
         req.setCommand(TESTCOMMAND);
@@ -537,15 +542,6 @@ public class AbstractReceiverTest {
          */
         private void setConnectionStatus(ConnectionStatus con) {
             connectionStatus = con;
-        }
-
-        @Override
-        public List<InstructionListener> getInstructionListeners() {
-            return testInstructionListeners;
-        }
-
-        public void setInstructionListeners(List<InstructionListener> testInstructionListeners) {
-            this.testInstructionListeners = testInstructionListeners;
         }
     }
 

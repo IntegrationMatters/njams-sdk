@@ -16,12 +16,10 @@
  */
 package com.im.njams.sdk.communication;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import com.im.njams.sdk.NjamsInstructionListeners;
 import com.im.njams.sdk.client.NjamsMetadata;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -57,9 +55,19 @@ public abstract class AbstractReceiver implements Receiver {
 
     private AtomicInteger reconnectIntervalIncreasing = new AtomicInteger(RECONNECT_INTERVAL);
 
-    private final List<InstructionListener> instructionListeners = new ArrayList<>();
 
     private NjamsMetadata instanceMetaData;
+    private NjamsInstructionListeners njamsInstructionListeners;
+
+    @Override
+    public void setNjamsInstructionListeners(NjamsInstructionListeners njamsInstructionListeners){
+        this.njamsInstructionListeners = njamsInstructionListeners;
+    }
+
+    @Override
+    public NjamsInstructionListeners getNjamsInstructionListeners(){
+        return njamsInstructionListeners;
+    }
 
     @Override
     public void setInstanceMetadata(NjamsMetadata metadata){
@@ -69,26 +77,6 @@ public abstract class AbstractReceiver implements Receiver {
     @Override
     public NjamsMetadata getInstanceMetadata(){
         return this.instanceMetaData;
-    }
-
-    @Override
-    public void addInstructionListener(InstructionListener instructionListener){
-        instructionListeners.add(instructionListener);
-    }
-
-    @Override
-    public List<InstructionListener> getInstructionListeners(){
-        return Collections.unmodifiableList(instructionListeners);
-    }
-
-    @Override
-    public void removeInstructionListener(InstructionListener listener){
-        instructionListeners.remove(listener);
-    }
-
-    @Override
-    public void removeAllInstructionListeners(){
-        instructionListeners.clear();
     }
 
     /**
@@ -120,13 +108,7 @@ public abstract class AbstractReceiver implements Receiver {
             //Set the exception response
             instruction.setResponse(exceptionResponse);
         } else {
-            for (InstructionListener listener : getInstructionListeners()) {
-                try {
-                    listener.onInstruction(instruction);
-                } catch (Exception e) {
-                    LOG.error("Error in InstructionListener {}", listener.getClass().getSimpleName(), e);
-                }
-            }
+            njamsInstructionListeners.distribute(instruction);
             //If response is empty, no InstructionListener found. Set default Response indicating this.
             if (instruction.getResponse() == null) {
                 LOG.warn("No InstructionListener for {} found", instruction.getRequest().getCommand());

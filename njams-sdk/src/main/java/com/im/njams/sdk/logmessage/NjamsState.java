@@ -13,6 +13,10 @@ public class NjamsState {
         return started;
     }
 
+    public boolean isStopped() {
+        return !started;
+    }
+
     public void start() {
         started = true;
     }

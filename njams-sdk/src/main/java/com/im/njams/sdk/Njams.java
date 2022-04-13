@@ -32,16 +32,11 @@ import com.im.njams.sdk.client.NjamsMetadata;
 import com.im.njams.sdk.client.NjamsMetadataFactory;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.common.Path;
-import com.im.njams.sdk.communication.CommunicationFactory;
 import com.im.njams.sdk.communication.InstructionListener;
 import com.im.njams.sdk.communication.NjamsSender;
-import com.im.njams.sdk.communication.PingInstructionListener;
-import com.im.njams.sdk.communication.Receiver;
 import com.im.njams.sdk.communication.ReplayHandler;
 import com.im.njams.sdk.communication.Sender;
-import com.im.njams.sdk.communication.ShareableReceiver;
 import com.im.njams.sdk.configuration.Configuration;
-import com.im.njams.sdk.configuration.ConfigurationInstructionListener;
 import com.im.njams.sdk.configuration.ConfigurationProvider;
 import com.im.njams.sdk.configuration.ConfigurationProviderFactory;
 import com.im.njams.sdk.configuration.provider.FileConfigurationProvider;
@@ -81,7 +76,7 @@ public class Njams{
     private static final org.slf4j.Logger LOG = LoggerFactory.getLogger(Njams.class);
 
     private static final String DEFAULT_CACHE_PROVIDER = FileConfigurationProvider.NAME;
-    private final NjamsMetadata instanceMetadata;
+    private final NjamsMetadata njamsMetadata;
     private final NjamsSerializers njamsSerializers;
     private final NjamsJobs njamsJobs;
     private final NjamsState njamsState;
@@ -95,9 +90,9 @@ public class Njams{
     private final NjamsVersions njamsVersions;
     private final String currentYear;
     private final NjamsArgos njamsArgos;
+    private final NjamsReceiver njamsReceiver;
 
     private NjamsSender sender;
-    private Receiver njamsReceiver;
 
     private Configuration njamsConfiguration;
 
@@ -126,7 +121,7 @@ public class Njams{
         currentYear = classpathVersions.remove(CURRENT_YEAR);
         njamsVersions = fillNjamsVersions(classpathVersions, defaultClientVersion);
 
-        instanceMetadata = NjamsMetadataFactory.createMetadataFor(path, njamsVersions.getClientVersion(),
+        njamsMetadata = NjamsMetadataFactory.createMetadataFor(path, njamsVersions.getClientVersion(),
             njamsVersions.getSdkVersion(), category);
 
         njamsSerializers = new NjamsSerializers();
@@ -137,9 +132,11 @@ public class Njams{
 
         njamsJobs = new NjamsJobs(njamsState, njamsFeatures);
 
-        njamsProjectMessage = new NjamsProjectMessage(getNjamsMetadata(), getNjamsFeatures(), getConfiguration(),
-            getSender(), getNjamsState(), getNjamsJobs(), getNjamsSerializers(), getSettings());
+        njamsProjectMessage = new NjamsProjectMessage(njamsMetadata, njamsFeatures, njamsConfiguration,
+            getSender(), njamsState, getNjamsJobs(), getNjamsSerializers(), getSettings());
         printStartupBanner();
+
+        njamsReceiver = new NjamsReceiver(njamsSettings, njamsMetadata, njamsFeatures, njamsProjectMessage, njamsJobs, njamsConfiguration);
     }
 
     /**
@@ -212,36 +209,14 @@ public class Njams{
     public Sender getSender() {
         if (sender == null) {
             if ("true".equalsIgnoreCase(njamsSettings.getProperty(Settings.PROPERTY_SHARED_COMMUNICATIONS))) {
-                LOG.debug("Using shared sender pool for {}", getNjamsMetadata().clientPath);
+                LOG.debug("Using shared sender pool for {}", njamsMetadata.clientPath);
                 sender = NjamsSender.takeSharedSender(njamsSettings);
             } else {
-                LOG.debug("Creating individual sender pool for {}", getNjamsMetadata().clientPath);
+                LOG.debug("Creating individual sender pool for {}", njamsMetadata.clientPath);
                 sender = new NjamsSender(njamsSettings);
             }
         }
         return sender;
-    }
-
-    /**
-     * Start the receiver, which is used to retrieve instructions
-     */
-    private void startReceiver() {
-        try {
-            njamsReceiver = new CommunicationFactory(njamsSettings).getReceiver(instanceMetadata);
-            njamsReceiver.addInstructionListener(new PingInstructionListener(instanceMetadata, njamsFeatures));
-            njamsReceiver.addInstructionListener(njamsProjectMessage);
-            njamsReceiver.addInstructionListener(njamsJobs);
-            njamsReceiver.addInstructionListener(new ConfigurationInstructionListener(getConfiguration()));
-            njamsReceiver.start();
-        } catch (Exception e) {
-            LOG.error("Error starting Receiver", e);
-            try {
-                njamsReceiver.stop();
-            } catch (Exception ex) {
-                LOG.debug("Unable to stop receiver", ex);
-            }
-            njamsReceiver = null;
-        }
     }
 
     /**
@@ -250,18 +225,18 @@ public class Njams{
      * @return true if successful
      */
     public boolean start() {
-        if (!isStarted()) {
+        if (!njamsState.isStarted()) {
             if (njamsSettings == null) {
                 throw new NjamsSdkRuntimeException("Settings not set");
             }
             initializeDataMasking();
-            startReceiver();
-            LogMessageFlushTask.start(getNjamsMetadata(), getNjamsJobs(), getSettings());
-            CleanTracepointsTask.start(getNjamsMetadata(), getConfiguration(), getSender());
+            njamsReceiver.start();
+            LogMessageFlushTask.start(njamsMetadata, njamsJobs, njamsSettings);
+            CleanTracepointsTask.start(njamsMetadata, njamsConfiguration, getSender());
             njamsState.start();
             njamsProjectMessage.sendProjectMessage();
         }
-        return isStarted();
+        return njamsState.isStarted();
     }
 
     /**
@@ -295,28 +270,21 @@ public class Njams{
      * @return true is stopping was successful.
      */
     public boolean stop() {
-        if (isStarted()) {
-            LogMessageFlushTask.stop(getNjamsMetadata());
-            CleanTracepointsTask.stop(getNjamsMetadata());
+        if (njamsState.isStarted()) {
+            LogMessageFlushTask.stop(njamsMetadata);
+            CleanTracepointsTask.stop(njamsMetadata);
 
             njamsArgos.stop();
 
             if (sender != null) {
                 sender.close();
             }
-            if (njamsReceiver != null) {
-                if (njamsReceiver instanceof ShareableReceiver) {
-                    ((ShareableReceiver) njamsReceiver).removeReceiver(njamsReceiver);
-                } else {
-                    njamsReceiver.stop();
-                }
-            }
-            njamsReceiver.removeAllInstructionListeners();
+            njamsReceiver.stop();
             njamsState.stop();
         } else {
             throw new NjamsSdkRuntimeException(NOT_STARTED_EXCEPTION_MESSAGE);
         }
-        return !isStarted();
+        return njamsState.isStopped();
     }
 
     private void printStartupBanner() {
@@ -447,7 +415,7 @@ public class Njams{
      */
     @Deprecated
     public List<InstructionListener> getInstructionListeners() {
-        return njamsReceiver.getInstructionListeners();
+        return njamsReceiver.getNjamsInstructionListeners().get();
     }
 
     /**
@@ -458,7 +426,7 @@ public class Njams{
      */
     @Deprecated
     public void addInstructionListener(InstructionListener listener) {
-        njamsReceiver.addInstructionListener(listener);
+        njamsReceiver.getNjamsInstructionListeners().add(listener);
     }
 
     /**
@@ -468,11 +436,8 @@ public class Njams{
      */
     @Deprecated
     public void removeInstructionListener(InstructionListener listener) {
-        njamsReceiver.removeInstructionListener(listener);
+        njamsReceiver.getNjamsInstructionListeners().remove(listener);
     }
-
-
-
 
 
 //################################### NjamsSerializers
@@ -567,6 +532,10 @@ public class Njams{
 
 //################################### NjamsMetadata
 
+    public NjamsMetadata getNjamsMetadata(){
+        return njamsMetadata;
+    }
+
     /**
      * @return the category of the nJAMS client, which should describe the
      * technology
@@ -575,7 +544,7 @@ public class Njams{
      */
     @Deprecated
     public String getCategory() {
-        return getNjamsMetadata().category;
+        return njamsMetadata.category;
     }
 
     /**
@@ -585,11 +554,7 @@ public class Njams{
      */
     @Deprecated
     public Path getClientPath() {
-        return getNjamsMetadata().clientPath;
-    }
-
-    public NjamsMetadata getNjamsMetadata(){
-        return instanceMetadata;
+        return njamsMetadata.clientPath;
     }
 
     /**
@@ -599,7 +564,7 @@ public class Njams{
      */
     @Deprecated
     public String getClientVersion() {
-        return getNjamsMetadata().clientVersion;
+        return njamsMetadata.clientVersion;
     }
 
     /**
@@ -609,7 +574,7 @@ public class Njams{
      */
     @Deprecated
     public String getSdkVersion() {
-        return getNjamsMetadata().sdkVersion;
+        return njamsMetadata.sdkVersion;
     }
 
     /**
@@ -619,7 +584,7 @@ public class Njams{
      */
     @Deprecated
     public String getMachine() {
-        return instanceMetadata.machine;
+        return njamsMetadata.machine;
     }
 
 
@@ -681,6 +646,10 @@ public class Njams{
 
 //################################### NjamsState
 
+    public NjamsState getNjamsState(){
+        return njamsState;
+    }
+
     /**
      * @return if this client instance is started
      * @see #getNjamsState()
@@ -691,11 +660,11 @@ public class Njams{
         return njamsState.isStarted();
     }
 
-    public NjamsState getNjamsState(){
-        return njamsState;
-    }
-
 //################################### NjamsProjectMessage
+
+    public NjamsProjectMessage getNjamsProjectMessage(){
+        return njamsProjectMessage;
+    }
 
     /**
      * @return the globalVariables

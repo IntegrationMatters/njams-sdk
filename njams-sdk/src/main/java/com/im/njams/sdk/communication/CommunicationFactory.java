@@ -16,6 +16,8 @@
  */
 package com.im.njams.sdk.communication;
 
+import com.im.njams.sdk.NjamsInstructionListeners;
+import com.im.njams.sdk.NjamsReceiver;
 import com.im.njams.sdk.client.NjamsMetadata;
 import com.im.njams.sdk.settings.Settings;
 import org.slf4j.Logger;
@@ -68,14 +70,14 @@ public class CommunicationFactory {
      * @param metadata The metadata of the client instance for that messages shall be received.
      * @return new initialized Receiver
      */
-    public Receiver getReceiver(NjamsMetadata metadata) {
+    public Receiver getReceiver(NjamsMetadata metadata, NjamsInstructionListeners njamsInstructionListeners) {
         if (settings.containsKey(COMMUNICATION)) {
             final String requiredReceiverName = settings.getProperty(COMMUNICATION);
             final boolean shared =
                     "true".equalsIgnoreCase(settings.getProperty(Settings.PROPERTY_SHARED_COMMUNICATIONS));
             Class<? extends Receiver> type = findReceiverType(requiredReceiverName, shared);
             if (type != null) {
-                final Receiver newInstance = createReceiver(type, metadata, shared, requiredReceiverName);
+                final Receiver newInstance = createReceiver(type, metadata, njamsInstructionListeners, shared, requiredReceiverName);
 
                 return newInstance;
             } else {
@@ -116,7 +118,7 @@ public class CommunicationFactory {
         return found == null ? null : found.getClass();
     }
 
-    private Receiver createReceiver(Class<? extends Receiver> clazz, NjamsMetadata metadata, boolean shared, String name) {
+    private Receiver createReceiver(Class<? extends Receiver> clazz, NjamsMetadata metadata, NjamsInstructionListeners njamsInstructionListeners, boolean shared, String name) {
         try {
             Properties properties = settings.getAllProperties();
             properties.setProperty(Settings.INTERNAL_PROPERTY_CLIENTPATH, metadata.clientPath.toString());
@@ -131,6 +133,7 @@ public class CommunicationFactory {
                     LOG.debug("Creating shared receiver {}", clazz);
                     receiver = clazz.newInstance();
                     receiver.setInstanceMetadata(metadata);
+                    receiver.setNjamsInstructionListeners(njamsInstructionListeners);
                     receiver.validate();
                     sharedReceivers.put(clazz, (ShareableReceiver<?>) receiver);
                     receiver.init(properties);
