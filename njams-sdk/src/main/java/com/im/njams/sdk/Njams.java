@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Faiz & Siegeln Software GmbH
+ * Copyright (c) 2022 Faiz & Siegeln Software GmbH
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
  * documentation files (the "Software"),
@@ -25,7 +25,7 @@ package com.im.njams.sdk;
 
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.LogMode;
 import com.im.njams.sdk.argos.ArgosMultiCollector;
-import com.im.njams.sdk.argos.ArgosSender;
+import com.im.njams.sdk.argos.NjamsArgos;
 import com.im.njams.sdk.client.CleanTracepointsTask;
 import com.im.njams.sdk.client.LogMessageFlushTask;
 import com.im.njams.sdk.client.NjamsMetadata;
@@ -62,7 +62,6 @@ import com.im.njams.sdk.settings.Settings;
 import org.slf4j.LoggerFactory;
 
 import java.net.URL;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.Enumeration;
@@ -76,8 +75,6 @@ import static com.im.njams.sdk.logmessage.NjamsState.NOT_STARTED_EXCEPTION_MESSA
 /**
  * This is an instance of nJAMS. It cares about lifecycle and initializations
  * and holds references to the process models and global variables.
- *
- * @author bwand
  */
 public class Njams{
 
@@ -97,6 +94,7 @@ public class Njams{
     private final NjamsProjectMessage njamsProjectMessage;
     private final NjamsVersions njamsVersions;
     private final String currentYear;
+    private final NjamsArgos njamsArgos;
 
     private NjamsSender sender;
     private Receiver njamsReceiver;
@@ -104,8 +102,6 @@ public class Njams{
     private Configuration njamsConfiguration;
 
 
-    private ArgosSender argosSender = null;
-    private final Collection<ArgosMultiCollector<?>> argosCollectors = new ArrayList<>();
 
 
     /**
@@ -118,25 +114,30 @@ public class Njams{
      * @param settings needed settings for client eg. for communication
      */
     public Njams(Path path, String defaultClientVersion, String category, Settings settings) {
-        this.njamsSettings = settings;
-        argosSender = ArgosSender.getInstance();
-        argosSender.init(settings);
+        njamsSettings = settings;
+
+        njamsArgos = new NjamsArgos(settings);
+
         loadConfigurationProvider();
         loadConfiguration();
 
         Map<String, String> classpathVersions = readVersions();
-
         final String CURRENT_YEAR = "currentYear";
-        this.currentYear = classpathVersions.remove(CURRENT_YEAR);
-        this.njamsVersions = fillNjamsVersions(classpathVersions, defaultClientVersion);
+        currentYear = classpathVersions.remove(CURRENT_YEAR);
+        njamsVersions = fillNjamsVersions(classpathVersions, defaultClientVersion);
 
-        this.instanceMetadata = NjamsMetadataFactory.createMetadataFor(path, njamsVersions.getClientVersion(),
+        instanceMetadata = NjamsMetadataFactory.createMetadataFor(path, njamsVersions.getClientVersion(),
             njamsVersions.getSdkVersion(), category);
+
         njamsSerializers = new NjamsSerializers();
+
         njamsState = new NjamsState();
+
         njamsFeatures = new NjamsFeatures();
+
         njamsJobs = new NjamsJobs(njamsState, njamsFeatures);
-        this.njamsProjectMessage = new NjamsProjectMessage(getNjamsMetadata(), getNjamsFeatures(), getConfiguration(),
+
+        njamsProjectMessage = new NjamsProjectMessage(getNjamsMetadata(), getNjamsFeatures(), getConfiguration(),
             getSender(), getNjamsState(), getNjamsJobs(), getNjamsSerializers(), getSettings());
         printStartupBanner();
     }
@@ -167,20 +168,7 @@ public class Njams{
             setClientVersionIfAbsent(defaultClientVersion);
     }
 
-    /**
-     * Adds a collector that will create statistics.
-     *
-     * @param collector The collector that collects statistics
-     */
-    public void addArgosCollector(ArgosMultiCollector collector) {
-        argosCollectors.add(collector);
-        argosSender.addArgosCollector(collector);
-    }
 
-    public void removeArgosCollector(ArgosMultiCollector collector) {
-        argosCollectors.remove(collector);
-        argosSender.removeArgosCollector(collector);
-    }
 
     /**
      * Load the ConfigurationProvider via the provided Properties
@@ -311,8 +299,7 @@ public class Njams{
             LogMessageFlushTask.stop(getNjamsMetadata());
             CleanTracepointsTask.stop(getNjamsMetadata());
 
-            argosCollectors.forEach(argosSender::removeArgosCollector);
-            argosCollectors.clear();
+            njamsArgos.stop();
 
             if (sender != null) {
                 sender.close();
@@ -364,6 +351,23 @@ public class Njams{
             stream().
             sorted(Comparator.comparing(Map.Entry::getKey)).
             forEach(v -> LOG.info(prefix + v.getKey() + ": " + v.getValue()));
+    }
+
+//################################### NjamsArgos
+
+    /**
+     * Adds a collector that will create statistics.
+     *
+     * @param collector The collector that collects statistics
+     */
+    @Deprecated
+    public void addArgosCollector(ArgosMultiCollector collector) {
+        njamsArgos.addCollector(collector);
+    }
+
+    @Deprecated
+    public void removeArgosCollector(ArgosMultiCollector collector) {
+        njamsArgos.remove(collector);
     }
 
 //################################### NjamsJobs
