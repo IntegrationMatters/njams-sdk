@@ -165,7 +165,7 @@ public class Njams{
         String boundary = "************************************************************";
         String prefix = "***      ";
         LOG.info(boundary);
-        LOG.info(prefix + this);
+        printPrefixedCopyrightForCurrentYear(prefix);
         LOG.info(prefix);
         LOG.info(prefix + "Version Info:");
         printPrefixed(prefix, versions);
@@ -175,9 +175,8 @@ public class Njams{
         LOG.info(boundary);
     }
 
-    @Override
-    public String toString(){
-        return "nJAMS SDK: Copyright (c) " + currentYear + " Faiz & Siegeln Software GmbH";
+    private void printPrefixedCopyrightForCurrentYear(String prefix) {
+        LOG.info(prefix + ("nJAMS SDK: Copyright (c) " + currentYear + " Faiz & Siegeln Software GmbH"));
     }
 
     private void printPrefixed(String prefix, Map<String, String> map) {
