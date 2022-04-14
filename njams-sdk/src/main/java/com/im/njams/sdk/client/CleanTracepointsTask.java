@@ -26,7 +26,7 @@ import java.util.TimerTask;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
-import com.im.njams.sdk.communication.Sender;
+import com.im.njams.sdk.NjamsSender;
 import org.slf4j.LoggerFactory;
 
 import com.faizsiegeln.njams.messageformat.v4.tracemessage.Activity;
@@ -59,12 +59,11 @@ public class CleanTracepointsTask extends TimerTask {
     /**
      * Start the CleanTracepointsTask if it is not started yet, and add the
      * given Njams instance to the task.
-     *
-     * @param instanceMetadata to distinguish between the different nJAMS instances
+     *  @param instanceMetadata to distinguish between the different nJAMS instances
      * @param configuration to see were the tracepoints are
-     * @param sender the sender to send the tracemessage with
+     * @param njamsSender the njamsSender to send the tracemessage with
      */
-    public static synchronized void start(NjamsMetadata instanceMetadata, Configuration configuration, Sender sender) {
+    public static synchronized void start(NjamsMetadata instanceMetadata, Configuration configuration, NjamsSender njamsSender) {
         if (instanceMetadata == null) {
             throw new NjamsSdkRuntimeException("Start: Njams is null");
         }
@@ -76,7 +75,7 @@ public class CleanTracepointsTask extends TimerTask {
             timer.scheduleAtFixedRate(new CleanTracepointsTask(), DELAY, INTERVAL);
         }
 
-        cleanTracePointsTaskEntries.put(instanceMetadata.clientPath.toString(), new CleanTracepointsTaskEntry(instanceMetadata, configuration, sender));
+        cleanTracePointsTaskEntries.put(instanceMetadata.clientPath.toString(), new CleanTracepointsTaskEntry(instanceMetadata, configuration, njamsSender));
     }
 
     /**
@@ -132,16 +131,16 @@ public class CleanTracepointsTask extends TimerTask {
     }
 
     private void checkNjams(CleanTracepointsTaskEntry cleanTracepointsTaskEntry, LocalDateTime now) {
-        checkNjams(cleanTracepointsTaskEntry.instanceMetadata, cleanTracepointsTaskEntry.configuration, cleanTracepointsTaskEntry.sender, now);
+        checkNjams(cleanTracepointsTaskEntry.instanceMetadata, cleanTracepointsTaskEntry.configuration, cleanTracepointsTaskEntry.njamsSender, now);
     }
 
-    private void checkNjams(NjamsMetadata instanceMetadata, Configuration configuration, Sender sender, LocalDateTime now) {
+    private void checkNjams(NjamsMetadata instanceMetadata, Configuration configuration, NjamsSender njamsSender, LocalDateTime now) {
         TraceMessageBuilder tmBuilder = new TraceMessageBuilder(instanceMetadata);
         configuration.getProcesses().entrySet()
                 .forEach(processEntry -> checkProcess(configuration, processEntry, now, tmBuilder));
         TraceMessage msg = tmBuilder.build();
         if (msg != null) {
-            sender.send(msg);
+            njamsSender.send(msg);
         }
     }
 

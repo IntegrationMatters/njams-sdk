@@ -22,13 +22,13 @@ public class NjamsReceiver {
     private final NjamsFeatures njamsFeatures;
     private final NjamsProjectMessage njamsProjectMessage;
     private final NjamsJobs njamsJobs;
-    private final Configuration njamsConfiguration;
+    private final NjamsConfiguration njamsConfiguration;
     private final NjamsInstructionListeners njamsInstructionListeners;
 
     private Receiver receiver;
 
     public NjamsReceiver(Settings njamsSettings, NjamsMetadata njamsMetadata, NjamsFeatures njamsFeatures,
-        NjamsProjectMessage njamsProjectMessage, NjamsJobs njamsJobs, Configuration configuration) {
+        NjamsProjectMessage njamsProjectMessage, NjamsJobs njamsJobs, NjamsConfiguration configuration) {
         this.njamsSettings = njamsSettings;
         this.njamsMetadata = njamsMetadata;
         this.njamsFeatures = njamsFeatures;

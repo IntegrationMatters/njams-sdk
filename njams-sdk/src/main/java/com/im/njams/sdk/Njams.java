@@ -26,8 +26,6 @@ package com.im.njams.sdk;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.LogMode;
 import com.im.njams.sdk.argos.ArgosMultiCollector;
 import com.im.njams.sdk.argos.NjamsArgos;
-import com.im.njams.sdk.client.CleanTracepointsTask;
-import com.im.njams.sdk.client.LogMessageFlushTask;
 import com.im.njams.sdk.client.NjamsMetadata;
 import com.im.njams.sdk.client.NjamsMetadataFactory;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
@@ -36,9 +34,6 @@ import com.im.njams.sdk.communication.InstructionListener;
 import com.im.njams.sdk.communication.ReplayHandler;
 import com.im.njams.sdk.communication.Sender;
 import com.im.njams.sdk.configuration.Configuration;
-import com.im.njams.sdk.configuration.ConfigurationProvider;
-import com.im.njams.sdk.configuration.ConfigurationProviderFactory;
-import com.im.njams.sdk.configuration.provider.FileConfigurationProvider;
 import com.im.njams.sdk.logmessage.Job;
 import com.im.njams.sdk.logmessage.NjamsFeatures;
 import com.im.njams.sdk.logmessage.NjamsJobs;
@@ -78,7 +73,6 @@ public class Njams{
     private final NjamsState njamsState;
     private final NjamsFeatures njamsFeatures;
 
-
     // The settings of the client
     private final Settings njamsSettings;
 
@@ -88,8 +82,8 @@ public class Njams{
     private final NjamsArgos njamsArgos;
     private final NjamsReceiver njamsReceiver;
 
-    private final Sender sender;
     private final NjamsConfiguration njamsConfiguration;
+    private final com.im.njams.sdk.NjamsSender njamsSender;
 
     /**
      * Create a nJAMS client.
@@ -120,16 +114,18 @@ public class Njams{
         njamsFeatures = new NjamsFeatures();
 
         njamsJobs = new NjamsJobs(njamsMetadata, njamsState, njamsFeatures, settings);
-        sender = NjamsSenderFactory.getSender(njamsSettings, njamsMetadata);
 
-        njamsConfiguration = new NjamsConfiguration(njamsMetadata, sender, settings);
+        njamsSender = NjamsSenderFactory.getNjamsSender(njamsSettings, njamsMetadata);
 
-        njamsProjectMessage = new NjamsProjectMessage(njamsMetadata, njamsFeatures, njamsConfiguration.getConfiguration(),
-            sender, njamsState, getNjamsJobs(), getNjamsSerializers(), getSettings());
-        printStartupBanner();
+        njamsConfiguration = NjamsConfigurationFactory.getNjamsConfiguration(njamsMetadata, njamsSender, settings);
+
+        njamsProjectMessage = new NjamsProjectMessage(njamsMetadata, njamsFeatures, njamsConfiguration,
+            njamsSender, njamsState, njamsJobs, njamsSerializers, njamsSettings);
 
         njamsReceiver = new NjamsReceiver(njamsSettings, njamsMetadata, njamsFeatures, njamsProjectMessage, njamsJobs,
-            njamsConfiguration.getConfiguration());
+            njamsConfiguration);
+
+        printStartupBanner();
     }
 
     /**
@@ -156,69 +152,6 @@ public class Njams{
         return new NjamsVersions(classpathVersions).
             setSdkVersionIfAbsent(sdkDefaultVersion).
             setClientVersionIfAbsent(defaultClientVersion);
-    }
-
-    /**
-     * @return the current nJAMS settings
-     */
-    public Settings getSettings() {
-        return njamsSettings;
-    }
-
-
-    /**
-     * Returns the a Sender implementation, which is configured as specified in
-     * the settings.
-     *
-     * @return the Sender
-     */
-    public Sender getSender() {
-        return sender;
-    }
-
-    /**
-     * Start a client; it will initiate the connections and start processing.
-     *
-     * @return true if successful
-     */
-    public boolean start() {
-        if (!njamsState.isStarted()) {
-            if (njamsSettings == null) {
-                throw new NjamsSdkRuntimeException("Settings not set");
-            }
-            njamsReceiver.start();
-            njamsJobs.start();
-            njamsConfiguration.start();
-            njamsState.start();
-            njamsProjectMessage.sendProjectMessage();
-        }
-        return njamsState.isStarted();
-    }
-
-
-
-    /**
-     * Stop a client; it stop processing and release the connections. It can't
-     * be stopped before it started. (NjamsSdkRuntimeException)
-     *
-     * @return true is stopping was successful.
-     */
-    public boolean stop() {
-        if (njamsState.isStarted()) {
-            njamsJobs.stop();
-            njamsConfiguration.stop();
-            njamsArgos.stop();
-            sender.close();
-            njamsReceiver.stop();
-            njamsState.stop();
-        } else {
-            throw new NjamsSdkRuntimeException(NOT_STARTED_EXCEPTION_MESSAGE);
-        }
-        return wasStoppingSucessful();
-    }
-
-    private boolean wasStoppingSucessful() {
-        return njamsState.isStopped();
     }
 
     private void printStartupBanner() {
@@ -253,6 +186,76 @@ public class Njams{
             stream().
             sorted(Comparator.comparing(Map.Entry::getKey)).
             forEach(v -> LOG.info(prefix + v.getKey() + ": " + v.getValue()));
+    }
+
+    /**
+     * @return the current nJAMS settings
+     */
+    public Settings getSettings() {
+        return njamsSettings;
+    }
+
+
+    /**
+     * Start a client; it will initiate the connections and start processing.
+     *
+     * @return true if successful
+     */
+    public boolean start() {
+        if (!njamsState.isStarted()) {
+            if (njamsSettings == null) {
+                throw new NjamsSdkRuntimeException("Settings not set");
+            }
+            njamsReceiver.start();
+            njamsJobs.start();
+            njamsConfiguration.start();
+            njamsState.start();
+            njamsProjectMessage.sendProjectMessage();
+        }
+        return njamsState.isStarted();
+    }
+
+
+
+    /**
+     * Stop a client; it stop processing and release the connections. It can't
+     * be stopped before it started. (NjamsSdkRuntimeException)
+     *
+     * @return true is stopping was successful.
+     */
+    public boolean stop() {
+        if (njamsState.isStarted()) {
+            njamsJobs.stop();
+            njamsConfiguration.stop();
+            njamsArgos.stop();
+            njamsSender.stop();
+            njamsReceiver.stop();
+            njamsState.stop();
+        } else {
+            throw new NjamsSdkRuntimeException(NOT_STARTED_EXCEPTION_MESSAGE);
+        }
+        return wasStoppingSucessful();
+    }
+
+    private boolean wasStoppingSucessful() {
+        return njamsState.isStopped();
+    }
+
+//################################### NjamsSender
+
+    public com.im.njams.sdk.NjamsSender getNjamsSender() {
+        return njamsSender;
+    }
+
+    /**
+     * Returns the a Sender implementation, which is configured as specified in
+     * the settings.
+     *
+     * @return the Sender
+     */
+    @Deprecated
+    public Sender getSender() {
+        return njamsSender.getSender();
     }
 
 //################################### NjamsArgos

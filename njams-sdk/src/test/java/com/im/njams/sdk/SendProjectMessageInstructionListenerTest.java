@@ -24,7 +24,7 @@ public class SendProjectMessageInstructionListenerTest {
 
     @Test
     public void testOnCorrectSendProjectMessageInstruction() {
-        NjamsProjectMessage projectMessage = new NjamsProjectMessage(NjamsMetadataFactory.createMetadataFor(new Path(), "bla", "blub", "bla2"), new NjamsFeatures(), new Configuration(), new TestSender(), new NjamsState(), new NjamsJobs(null, new NjamsState(), new NjamsFeatures(), null), new NjamsSerializers(),
+        NjamsProjectMessage projectMessage = new NjamsProjectMessage(NjamsMetadataFactory.createMetadataFor(new Path(), "bla", "blub", "bla2"), new NjamsFeatures(), new NjamsConfiguration(new Configuration(), null, null, null), new NjamsSender(new TestSender()), new NjamsState(), new NjamsJobs(null, new NjamsState(), new NjamsFeatures(), null), new NjamsSerializers(),
             new Settings());
 
         Instruction inst = new Instruction();

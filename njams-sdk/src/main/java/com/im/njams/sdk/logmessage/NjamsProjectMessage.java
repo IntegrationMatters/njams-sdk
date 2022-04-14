@@ -7,13 +7,13 @@ import com.faizsiegeln.njams.messageformat.v4.common.TreeElement;
 import com.faizsiegeln.njams.messageformat.v4.common.TreeElementType;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.LogMode;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.ProjectMessage;
+import com.im.njams.sdk.NjamsConfiguration;
+import com.im.njams.sdk.NjamsSender;
 import com.im.njams.sdk.client.NjamsMetadata;
 import com.im.njams.sdk.common.DateTimeUtility;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.common.Path;
 import com.im.njams.sdk.communication.InstructionListener;
-import com.im.njams.sdk.communication.Sender;
-import com.im.njams.sdk.configuration.Configuration;
 import com.im.njams.sdk.configuration.ProcessConfiguration;
 import com.im.njams.sdk.model.ProcessModel;
 import com.im.njams.sdk.model.ProcessModelUtils;
@@ -75,8 +75,8 @@ public class NjamsProjectMessage implements InstructionListener {
     private final List<TreeElement> treeElements;
     private final NjamsMetadata instanceMetadata;
     private final NjamsFeatures features;
-    private final Configuration configuration;
-    private final Sender sender;
+    private final NjamsConfiguration njamsConfiguration;
+    private final NjamsSender njamsSender;
     private final NjamsState state;
     private final NjamsJobs jobs;
     private final NjamsSerializers serializers;
@@ -84,8 +84,8 @@ public class NjamsProjectMessage implements InstructionListener {
     private ProcessDiagramFactory processDiagramFactory;
     private ProcessModelLayouter processModelLayouter;
 
-    public NjamsProjectMessage(NjamsMetadata njamsMetadata, NjamsFeatures features, Configuration configuration,
-        Sender sender, NjamsState state, NjamsJobs jobs, NjamsSerializers serializers, Settings settings) {
+    public NjamsProjectMessage(NjamsMetadata njamsMetadata, NjamsFeatures features, NjamsConfiguration njamsConfiguration,
+        NjamsSender njamsSender, NjamsState state, NjamsJobs jobs, NjamsSerializers serializers, Settings settings) {
         this.settings = settings;
         this.startTime = DateTimeUtility.now();
         this.processModelLayouter = new SimpleProcessModelLayouter();
@@ -93,8 +93,8 @@ public class NjamsProjectMessage implements InstructionListener {
         this.treeElements = new ArrayList<>();
         this.instanceMetadata = njamsMetadata;
         this.features = features;
-        this.configuration = configuration;
-        this.sender = sender;
+        this.njamsConfiguration = njamsConfiguration;
+        this.njamsSender = njamsSender;
         this.state = state;
         this.jobs = jobs;
         this.serializers = serializers;
@@ -138,7 +138,7 @@ public class NjamsProjectMessage implements InstructionListener {
         msg.setStartTime(startTime);
         msg.setMachine(instanceMetadata.machine);
         msg.setFeatures(features.get());
-        msg.setLogMode(configuration.getLogMode());
+        msg.setLogMode(njamsConfiguration.getLogMode());
         synchronized (processModels) {
             processModels.values().stream().map(ProcessModel::getSerializableProcessModel)
                 .forEach(ipm -> msg.getProcesses().add(ipm));
@@ -147,7 +147,7 @@ public class NjamsProjectMessage implements InstructionListener {
             LOG.debug("Sending project message with {} process-models, {} images, {} global-variables.",
                 processModels.size(), images.size(), globalVariables.size());
         }
-        sender.send(msg);
+        njamsSender.send(msg);
     }
 
     /**
@@ -262,13 +262,13 @@ public class NjamsProjectMessage implements InstructionListener {
         msg.setStartTime(startTime);
         msg.setMachine(instanceMetadata.machine);
         msg.setFeatures(features.get());
-        msg.setLogMode(configuration.getLogMode());
+        msg.setLogMode(njamsConfiguration.getLogMode());
 
         addTreeElements(msg.getTreeElements(), instanceMetadata.clientPath, TreeElementType.CLIENT, false);
         addTreeElements(msg.getTreeElements(), model.getPath(), TreeElementType.PROCESS, model.isStarter());
 
         msg.getProcesses().add(model.getSerializableProcessModel());
-        sender.send(msg);
+        njamsSender.send(msg);
     }
 
     private List<TreeElement> addTreeElements(List<TreeElement> treeElements, Path processPath,
@@ -373,8 +373,9 @@ public class NjamsProjectMessage implements InstructionListener {
      */
     public ProcessModel createProcess(final Path path) {
         final Path fullClientPath = path.addBase(instanceMetadata.clientPath);
-        ProcessModelUtils processModelUtils = new ProcessModelUtils(jobs, instanceMetadata, serializers, configuration,
-            settings, processDiagramFactory, processModelLayouter, sender);
+        ProcessModelUtils processModelUtils = new ProcessModelUtils(jobs, instanceMetadata, serializers,
+            njamsConfiguration,
+            settings, processDiagramFactory, processModelLayouter, njamsSender);
         final ProcessModel model = new ProcessModel(fullClientPath, processModelUtils);
         synchronized (processModels) {
             createTreeElements(fullClientPath, TreeElementType.PROCESS);
@@ -432,10 +433,10 @@ public class NjamsProjectMessage implements InstructionListener {
         if (processPath == null) {
             return false;
         }
-        if (configuration.getLogMode() == LogMode.NONE) {
+        if (njamsConfiguration.getLogMode() == LogMode.NONE) {
             return true;
         }
-        ProcessConfiguration processConfiguration = configuration.getProcess(processPath.toString());
+        ProcessConfiguration processConfiguration = njamsConfiguration.getProcess(processPath.toString());
         return processConfiguration != null && processConfiguration.isExclude();
     }
 

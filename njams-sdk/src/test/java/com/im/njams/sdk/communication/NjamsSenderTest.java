@@ -60,7 +60,7 @@ public class NjamsSenderTest extends AbstractTest {
      */
     @Test
     public void testClose() throws InterruptedException {
-        NjamsSender sender = new NjamsSender(SETTINGS);
+        CompositeSender sender = new CompositeSender(SETTINGS);
         ThreadPoolExecutor executor = sender.getExecutor();
         AtomicReference<Thread> t = new AtomicReference<>();
         executor.execute(() -> {
@@ -91,7 +91,7 @@ public class NjamsSenderTest extends AbstractTest {
         Settings settings = new Settings();
         settings.put(CommunicationFactory.COMMUNICATION, TestSender.NAME);
         settings.put(Settings.PROPERTY_MAX_SENDER_THREADS, "-1");
-        NjamsSender njamsSender = new NjamsSender(settings);
+        CompositeSender njamsSender = new CompositeSender(settings);
     }
 
     /**
@@ -102,7 +102,7 @@ public class NjamsSenderTest extends AbstractTest {
         Settings settings = new Settings();
         settings.put(CommunicationFactory.COMMUNICATION, TestSender.NAME);
         settings.put(Settings.PROPERTY_SENDER_THREAD_IDLE_TIME, "-1");
-        NjamsSender njamsSender = new NjamsSender(settings);
+        CompositeSender njamsSender = new CompositeSender(settings);
     }
 
     /**
@@ -114,7 +114,7 @@ public class NjamsSenderTest extends AbstractTest {
         settings.put(CommunicationFactory.COMMUNICATION, TestSender.NAME);
         settings.put(Settings.PROPERTY_MIN_SENDER_THREADS, "5");
         settings.put(Settings.PROPERTY_MAX_SENDER_THREADS, "4");
-        NjamsSender njamsSender = new NjamsSender(settings);
+        CompositeSender njamsSender = new CompositeSender(settings);
     }
 
     /**
@@ -125,7 +125,7 @@ public class NjamsSenderTest extends AbstractTest {
         Settings settings = new Settings();
         settings.put(CommunicationFactory.COMMUNICATION, TestSender.NAME);
         settings.put(Settings.PROPERTY_MIN_SENDER_THREADS, "-1");
-        NjamsSender njamsSender = new NjamsSender(settings);
+        CompositeSender njamsSender = new CompositeSender(settings);
     }
 
     @Test
@@ -136,7 +136,7 @@ public class NjamsSenderTest extends AbstractTest {
         settings.put(Settings.PROPERTY_MAX_SENDER_THREADS, "10");
         settings.put(Settings.PROPERTY_SENDER_THREAD_IDLE_TIME, "5000");
 
-        NjamsSender sender = new NjamsSender(settings);
+        CompositeSender sender = new CompositeSender(settings);
         ThreadPoolExecutor executor = sender.getExecutor();
         assertEquals(0, executor.getActiveCount());
         assertEquals(3, executor.getCorePoolSize());
@@ -160,7 +160,7 @@ public class NjamsSenderTest extends AbstractTest {
     public void testReconnectingSenders() throws InterruptedException {
         //Set static ExceptionSender to redirect calls to the TestSender
         TestSender.setSenderMock(new ExceptionSender());
-        NjamsSender sender = new NjamsSender(SETTINGS);
+        CompositeSender sender = new CompositeSender(SETTINGS);
         int messagesToSend = 1000;
         for (int i = 0; i < messagesToSend; i++) {
             Thread t = new Thread(() -> sender.send(null));

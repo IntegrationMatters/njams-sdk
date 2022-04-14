@@ -237,18 +237,18 @@ public class JobImpl implements Job {
      * activityConfigurations.
      */
     private void initFromConfiguration(ProcessModel processModel) {
-        if (jobUtils.configuration == null) {
+        if (jobUtils.njamsConfiguration == null) {
             LOG.error("Unable to set LogMode, LogLevel and Exclude for {}, configuration is null",
                     processModel.getPath());
             return;
         }
-        logMode = jobUtils.configuration.getLogMode();
+        logMode = jobUtils.njamsConfiguration.getLogMode();
         LOG.debug("Set LogMode for {} to {}", processModel.getPath(), logMode);
 
-        recording = jobUtils.configuration.isRecording();
+        recording = jobUtils.njamsConfiguration.isRecording();
         LOG.debug("Set recording for {} to {} based on client settings", processModel.getPath(), recording);
 
-        ProcessConfiguration process = jobUtils.configuration.getProcess(processModel.getPath().toString());
+        ProcessConfiguration process = jobUtils.njamsConfiguration.getProcess(processModel.getPath().toString());
         if (process != null) {
             logLevel = process.getLogLevel();
             LOG.debug("Set LogLevel for {} to {}", processModel.getPath(), logLevel);
@@ -256,7 +256,7 @@ public class JobImpl implements Job {
             LOG.debug("Set Exclude for {} to {}", processModel.getPath(), exclude);
             recording = process.isRecording();
             LOG.debug("Set recording for {} to {} based on process settings {} and client setting {}",
-                    processModel.getPath(), recording, process.isRecording(), jobUtils.configuration.isRecording());
+                    processModel.getPath(), recording, process.isRecording(), jobUtils.njamsConfiguration.isRecording());
         }
         if (recording) {
             addAttribute("$njams_recorded", "true");
@@ -485,7 +485,7 @@ public class JobImpl implements Job {
                 LogMessage logMessage = createLogMessage();
                 addToLogMessageAndCleanup(logMessage);
                 logMessage.setSentAt(lastFlush);
-                jobUtils.sender.send(logMessage);
+                jobUtils.njamsSender.send(logMessage);
                 // clean up jobImpl
                 pluginDataItems.clear();
                 calculateEstimatedSize();
@@ -1272,10 +1272,10 @@ public class JobImpl implements Job {
         if (processModel == null) {
             return null;
         }
-        if (jobUtils.configuration == null) {
+        if (jobUtils.njamsConfiguration == null) {
             return null;
         }
-        ProcessConfiguration processConfig = jobUtils.configuration.getProcess(processModel.getPath().toString());
+        ProcessConfiguration processConfig = jobUtils.njamsConfiguration.getProcess(processModel.getPath().toString());
         if (processConfig == null) {
             return null;
         }

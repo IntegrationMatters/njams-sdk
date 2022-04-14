@@ -3,56 +3,29 @@ package com.im.njams.sdk;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.LogMode;
 import com.im.njams.sdk.client.CleanTracepointsTask;
 import com.im.njams.sdk.client.NjamsMetadata;
-import com.im.njams.sdk.communication.Sender;
 import com.im.njams.sdk.configuration.Configuration;
-import com.im.njams.sdk.configuration.ConfigurationProvider;
-import com.im.njams.sdk.configuration.ConfigurationProviderFactory;
-import com.im.njams.sdk.configuration.provider.FileConfigurationProvider;
+import com.im.njams.sdk.configuration.ProcessConfiguration;
 import com.im.njams.sdk.settings.Settings;
+
+import java.util.Map;
 
 public class NjamsConfiguration {
 
-    private static final String DEFAULT_CACHE_PROVIDER = FileConfigurationProvider.NAME;
-
     private final NjamsMetadata njamsMetadata;
-    private final Sender sender;
+    private final NjamsSender njamsSender;
     private final Settings njamsSettings;
     private final Configuration configuration;
 
-    public NjamsConfiguration(NjamsMetadata njamsMetadata, Sender sender, Settings njamsSettings) {
+    public NjamsConfiguration(Configuration configuration, NjamsMetadata njamsMetadata, NjamsSender njamsSender, Settings njamsSettings) {
         this.njamsMetadata = njamsMetadata;
-        this.sender = sender;
+        this.njamsSender = njamsSender;
         this.njamsSettings = njamsSettings;
-        ConfigurationProvider provider = loadConfigurationProvider();
-        this.configuration = getConfigurationFrom(provider);
-    }
-
-    /**
-     * Load the ConfigurationProvider via the provided Properties
-     */
-    private ConfigurationProvider loadConfigurationProvider() {
-        if (!njamsSettings.containsKey(ConfigurationProviderFactory.CONFIGURATION_PROVIDER)) {
-            njamsSettings.put(ConfigurationProviderFactory.CONFIGURATION_PROVIDER, DEFAULT_CACHE_PROVIDER);
-        }
-        return new ConfigurationProviderFactory(njamsSettings).getConfigurationProvider();
-
-    }
-
-    /**
-     * load and apply configuration from configuration provider
-     * @param configurationProvider
-     * @return
-     */
-    private Configuration getConfigurationFrom(ConfigurationProvider configurationProvider) {
-        Configuration configuration = new Configuration();
-        configuration.setConfigurationProvider(configurationProvider);
-        njamsSettings.addSecureProperties(configurationProvider.getSecureProperties());
-        return configurationProvider.loadConfiguration();
+        this.configuration = configuration;
     }
 
     public void start() {
         NjamsDatamasking.initialize(njamsSettings, configuration);
-        CleanTracepointsTask.start(njamsMetadata, configuration, sender);
+        CleanTracepointsTask.start(njamsMetadata, configuration, njamsSender);
     }
 
     public void stop() {
@@ -65,5 +38,29 @@ public class NjamsConfiguration {
 
     public Configuration getConfiguration() {
         return configuration;
+    }
+
+    public ProcessConfiguration getProcess(String processPath) {
+        return configuration.getProcess(processPath);
+    }
+
+    public Map<String, ProcessConfiguration> getProcesses() {
+        return configuration.getProcesses();
+    }
+
+    public void setLogMode(LogMode logMode) {
+        configuration.setLogMode(logMode);
+    }
+
+    public void setEngineWideRecording(boolean engineWideRecording) {
+        configuration.setRecording(engineWideRecording);
+    }
+
+    public void save() {
+        configuration.save();
+    }
+
+    public boolean isRecording() {
+        return configuration.isRecording();
     }
 }

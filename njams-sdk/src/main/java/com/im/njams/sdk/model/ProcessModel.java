@@ -92,7 +92,7 @@ public class ProcessModel {
         internalProcessModel.setName(path.getObjectName());
 
         // set configuration data
-        ProcessConfiguration processConfiguration = processModelUtils.configuration.getProcess(path.toString());
+        ProcessConfiguration processConfiguration = processModelUtils.njamsConfiguration.getProcess(path.toString());
         if (processConfiguration != null) {
             internalProcessModel.setLogLevel(processConfiguration.getLogLevel());
             internalProcessModel.setExclude(processConfiguration.isExclude());
@@ -407,7 +407,7 @@ public class ProcessModel {
      */
     public Job createJobWithExplicitLogId(String jobId, String logId){
         JobUtils jobUtils = new JobUtils(processModelUtils.njamsJobs, processModelUtils.instanceMetaData, processModelUtils.njamsSerializers,
-            processModelUtils.configuration, processModelUtils.settings, processModelUtils.sender);
+            processModelUtils.njamsConfiguration, processModelUtils.settings, processModelUtils.njamsSender);
         Job job = new JobImpl(this, jobId, logId, jobUtils);
         processModelUtils.njamsJobs.add(job);
         return job;

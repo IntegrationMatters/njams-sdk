@@ -5,6 +5,7 @@ import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
 import com.faizsiegeln.njams.messageformat.v4.command.Request;
 import com.faizsiegeln.njams.messageformat.v4.command.Response;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.*;
+import com.im.njams.sdk.NjamsConfiguration;
 import com.im.njams.sdk.common.DateTimeUtility;
 import com.im.njams.sdk.configuration.provider.MemoryConfigurationProvider;
 import com.im.njams.sdk.utils.JsonUtils;
@@ -32,7 +33,7 @@ public class ConfigurationInstructionListenerTest {
     public void setUp() throws Exception {
         configuration = spy(new Configuration());
         configuration.setConfigurationProvider(new MemoryConfigurationProvider());
-        listener = new ConfigurationInstructionListener(configuration);
+        listener = new ConfigurationInstructionListener(new NjamsConfiguration(configuration, null, null, null));
     }
 
     private ConfigurationInstructionListenerTest prepareInstruction(Command command) {
