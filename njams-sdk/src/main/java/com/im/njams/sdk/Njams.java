@@ -49,8 +49,10 @@ import com.im.njams.sdk.serializer.Serializer;
 import com.im.njams.sdk.settings.Settings;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
 import java.net.URL;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.Enumeration;
 import java.util.HashMap;
@@ -99,7 +101,7 @@ public class Njams{
 
         njamsArgos = new NjamsArgos(settings);
 
-        Map<String, String> classpathVersions = readNjamsVersionsFile();
+        Map<String, String> classpathVersions = readNjamsVersionsFiles();
         final String CURRENT_YEAR = "currentYear";
         currentYear = classpathVersions.remove(CURRENT_YEAR);
         njamsVersions = fillNjamsVersions(classpathVersions, defaultClientVersion);
@@ -132,19 +134,40 @@ public class Njams{
      * Read the versions from njams.version files. Set the SDK-Version and the
      * Client-Version if found.
      */
-    private Map<String, String> readNjamsVersionsFile() {
-        Map<String, String> versions = new HashMap();
+    private Map<String, String> readNjamsVersionsFiles() {
         try {
-            final Enumeration<URL> urls = this.getClass().getClassLoader().getResources("njams.version");
-            while (urls.hasMoreElements()) {
-                final Properties prop = new Properties();
-                prop.load(urls.nextElement().openStream());
-                prop.entrySet().forEach(e -> versions.put(String.valueOf(e.getKey()), String.valueOf(e.getValue())));
-            }
+            return readVersionsFromFilesWithName("njams.version");
         } catch (Exception e) {
-            LOG.error("Unable to load versions from njams.version files", e);
+            return handleFileError(e);
+        }
+    }
+
+    private Map<String, String> readVersionsFromFilesWithName(String fileName) throws IOException {
+        Map<String, String> versions = new HashMap();
+        final Enumeration<URL> urls = getAllUrlsForFileWithName(fileName);
+        while (urls.hasMoreElements()) {
+            final URL url = urls.nextElement();
+            Map<String, String> propertiesOfOneFile = readAllPropertiesFromFileWithURL(url);
+            versions.putAll(propertiesOfOneFile);
         }
         return versions;
+    }
+
+    private Map<String, String> readAllPropertiesFromFileWithURL(URL url) throws IOException {
+        Map<String, String> keyValuePairs = new HashMap<>();
+        final Properties prop = new Properties();
+        prop.load(url.openStream());
+        prop.entrySet().forEach(e -> keyValuePairs.put(String.valueOf(e.getKey()), String.valueOf(e.getValue())));
+        return keyValuePairs;
+    }
+
+    private Enumeration<URL> getAllUrlsForFileWithName(String fileName) throws IOException {
+        return this.getClass().getClassLoader().getResources(fileName);
+    }
+
+    private Map handleFileError(Exception e) {
+        LOG.error("Unable to load versions from njams.version files", e);
+        return Collections.EMPTY_MAP;
     }
 
     private NjamsVersions fillNjamsVersions(Map<String, String> classpathVersions, String defaultClientVersion) {
