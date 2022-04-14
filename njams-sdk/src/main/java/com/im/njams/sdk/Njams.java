@@ -52,8 +52,6 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.net.URL;
 import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.List;
@@ -143,7 +141,7 @@ public class Njams{
     }
 
     private Map<String, String> readVersionsFromFilesWithName(String fileName) throws IOException {
-        Map<String, String> versions = new HashMap();
+        Map<String, String> versions = new HashMap<>();
         final Enumeration<URL> urls = getAllUrlsForFileWithName(fileName);
         while (urls.hasMoreElements()) {
             final URL url = urls.nextElement();
@@ -157,7 +155,7 @@ public class Njams{
         Map<String, String> keyValuePairs = new HashMap<>();
         final Properties prop = new Properties();
         prop.load(url.openStream());
-        prop.entrySet().forEach(e -> keyValuePairs.put(String.valueOf(e.getKey()), String.valueOf(e.getValue())));
+        prop.forEach((key, value) -> keyValuePairs.put(String.valueOf(key), String.valueOf(value)));
         return keyValuePairs;
     }
 
@@ -165,9 +163,9 @@ public class Njams{
         return this.getClass().getClassLoader().getResources(fileName);
     }
 
-    private Map handleFileError(Exception e) {
+    private Map<String, String> handleFileError(Exception e) {
         LOG.error("Unable to load versions from njams.version files", e);
-        return Collections.EMPTY_MAP;
+        return new HashMap<>();
     }
 
     private NjamsVersions fillNjamsVersions(Map<String, String> classpathVersions, String defaultClientVersion) {
@@ -206,7 +204,7 @@ public class Njams{
         map.
             entrySet().
             stream().
-            sorted(Comparator.comparing(Map.Entry::getKey)).
+            sorted(Map.Entry.comparingByKey()).
             forEach(v -> LOG.info(prefix + v.getKey() + ": " + v.getValue()));
     }
 
@@ -240,7 +238,7 @@ public class Njams{
 
 
     /**
-     * Stop a client; it stop processing and release the connections. It can't
+     * Stop a client; it stops processing and release the connections. It can't
      * be stopped before it started. (NjamsSdkRuntimeException)
      *
      * @return true is stopping was successful.
@@ -256,10 +254,10 @@ public class Njams{
         } else {
             throw new NjamsSdkRuntimeException(NOT_STARTED_EXCEPTION_MESSAGE);
         }
-        return wasStoppingSucessful();
+        return wasStoppingSuccessful();
     }
 
-    private boolean wasStoppingSucessful() {
+    private boolean wasStoppingSuccessful() {
         return njamsState.isStopped();
     }
 
@@ -270,7 +268,7 @@ public class Njams{
     }
 
     /**
-     * Returns the a Sender implementation, which is configured as specified in
+     * Returns a Sender implementation, which is configured as specified in
      * the settings.
      *
      * @return the Sender
@@ -410,7 +408,7 @@ public class Njams{
      * @param <T>        Type that the given instance serializes
      * @param key        Class for which the serializer should be registered
      * @param serializer A serializer that can serialize instances of class key
-     *                   to strings.
+     *                   to Strings.
      * @return If a serializer for the same type was already registered before,
      * the former registered serializer is returned. Otherwise <code>null</code> is returned.
      *
@@ -450,7 +448,7 @@ public class Njams{
 
     /**
      * @param <T> type of the class
-     * @param t   Object to be serialied.
+     * @param t   Object to be serialized.
      * @return a string representation of the object.
      * @see #getNjamsSerializers() ()
      * @see NjamsSerializers#serialize(Object)
@@ -463,7 +461,7 @@ public class Njams{
     /**
      * @param <T>   Type of the class
      * @param clazz Class for which a serializer will be searched.
-     * @return Serizalier of <b>null</b>.
+     * @return Serizalizer of <b>null</b>.
      * @see #getNjamsSerializers() ()
      * @see NjamsSerializers#find(Class)
      */
@@ -649,7 +647,7 @@ public class Njams{
     }
 
     /**
-     * Adds a image for a given resource path.
+     * Adds an image for a given resource path.
      *
      * @param key          the key of the image
      * @param resourcePath the path where to find the image
