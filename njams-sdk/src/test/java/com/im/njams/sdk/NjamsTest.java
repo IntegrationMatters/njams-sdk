@@ -88,7 +88,7 @@ public class NjamsTest {
 
     @Test(expected = NjamsSdkRuntimeException.class)
     public void testCreateJobWithoutStart_throwsAnError() {
-        ProcessModelUtils utils = new ProcessModelUtils(new NjamsJobs(new NjamsState(), new NjamsFeatures()), null, null, null, new Settings(), null, null, null);
+        ProcessModelUtils utils = new ProcessModelUtils(new NjamsJobs(null, new NjamsState(), new NjamsFeatures(), null), null, null, null, new Settings(), null, null, null);
         ProcessModel model = new ProcessModel(new Path("PROCESSES"), utils);
         //This should throw an NjamsSdkRuntimeException
         Job job = model.createJob();
@@ -98,7 +98,7 @@ public class NjamsTest {
     public void testAddJobAfterStart() {
         final NjamsState njamsState = new NjamsState();
         njamsState.start();
-        ProcessModelUtils utils = new ProcessModelUtils(new NjamsJobs(njamsState, new NjamsFeatures()), null, null, null, new Settings(), null, null, null);
+        ProcessModelUtils utils = new ProcessModelUtils(new NjamsJobs(null, njamsState, new NjamsFeatures(), null), null, null, null, new Settings(), null, null, null);
         ProcessModel model = new ProcessModel(new Path("PROCESSES"), utils);
         //This should throw an NjamsSdkRuntimeException
         Job job = model.createJob();

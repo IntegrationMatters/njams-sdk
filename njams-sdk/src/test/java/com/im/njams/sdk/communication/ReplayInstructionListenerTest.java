@@ -18,7 +18,7 @@ public class ReplayInstructionListenerTest {
     @Before
     public void setUp(){
         NjamsFeatures features = new NjamsFeatures();
-        njamsJobs = new NjamsJobs(null, features);
+        njamsJobs = new NjamsJobs(null, null, features, null);
     }
 
     @Test

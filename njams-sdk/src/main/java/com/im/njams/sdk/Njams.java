@@ -39,7 +39,6 @@ import com.im.njams.sdk.configuration.Configuration;
 import com.im.njams.sdk.configuration.ConfigurationProvider;
 import com.im.njams.sdk.configuration.ConfigurationProviderFactory;
 import com.im.njams.sdk.configuration.provider.FileConfigurationProvider;
-import com.im.njams.sdk.logmessage.DataMasking;
 import com.im.njams.sdk.logmessage.Job;
 import com.im.njams.sdk.logmessage.NjamsFeatures;
 import com.im.njams.sdk.logmessage.NjamsJobs;
@@ -73,8 +72,6 @@ import static com.im.njams.sdk.logmessage.NjamsState.NOT_STARTED_EXCEPTION_MESSA
 public class Njams{
 
     private static final org.slf4j.Logger LOG = LoggerFactory.getLogger(Njams.class);
-
-    private static final String DEFAULT_CACHE_PROVIDER = FileConfigurationProvider.NAME;
     private final NjamsMetadata njamsMetadata;
     private final NjamsSerializers njamsSerializers;
     private final NjamsJobs njamsJobs;
@@ -92,8 +89,7 @@ public class Njams{
     private final NjamsReceiver njamsReceiver;
 
     private final Sender sender;
-
-    private Configuration njamsConfiguration;
+    private final NjamsConfiguration njamsConfiguration;
 
     /**
      * Create a nJAMS client.
@@ -109,9 +105,6 @@ public class Njams{
 
         njamsArgos = new NjamsArgos(settings);
 
-        loadConfigurationProvider();
-        loadConfiguration();
-
         Map<String, String> classpathVersions = readNjamsVersionsFile();
         final String CURRENT_YEAR = "currentYear";
         currentYear = classpathVersions.remove(CURRENT_YEAR);
@@ -126,13 +119,17 @@ public class Njams{
 
         njamsFeatures = new NjamsFeatures();
 
-        njamsJobs = new NjamsJobs(njamsState, njamsFeatures);
+        njamsJobs = new NjamsJobs(njamsMetadata, njamsState, njamsFeatures, settings);
         sender = NjamsSenderFactory.getSender(njamsSettings, njamsMetadata);
-        njamsProjectMessage = new NjamsProjectMessage(njamsMetadata, njamsFeatures, njamsConfiguration,
+
+        njamsConfiguration = new NjamsConfiguration(njamsMetadata, sender, settings);
+
+        njamsProjectMessage = new NjamsProjectMessage(njamsMetadata, njamsFeatures, njamsConfiguration.getConfiguration(),
             sender, njamsState, getNjamsJobs(), getNjamsSerializers(), getSettings());
         printStartupBanner();
 
-        njamsReceiver = new NjamsReceiver(njamsSettings, njamsMetadata, njamsFeatures, njamsProjectMessage, njamsJobs, njamsConfiguration);
+        njamsReceiver = new NjamsReceiver(njamsSettings, njamsMetadata, njamsFeatures, njamsProjectMessage, njamsJobs,
+            njamsConfiguration.getConfiguration());
     }
 
     /**
@@ -159,33 +156,6 @@ public class Njams{
         return new NjamsVersions(classpathVersions).
             setSdkVersionIfAbsent(sdkDefaultVersion).
             setClientVersionIfAbsent(defaultClientVersion);
-    }
-
-
-
-    /**
-     * Load the ConfigurationProvider via the provided Properties
-     */
-    private void loadConfigurationProvider() {
-        if (!njamsSettings.containsKey(ConfigurationProviderFactory.CONFIGURATION_PROVIDER)) {
-            njamsSettings.put(ConfigurationProviderFactory.CONFIGURATION_PROVIDER, DEFAULT_CACHE_PROVIDER);
-        }
-        ConfigurationProvider configurationProvider = new ConfigurationProviderFactory(njamsSettings)
-            .getConfigurationProvider();
-        njamsConfiguration = new Configuration();
-        njamsConfiguration.setConfigurationProvider(configurationProvider);
-        njamsSettings.addSecureProperties(configurationProvider.getSecureProperties());
-
-    }
-
-    /**
-     * load and apply configuration from configuration provider
-     */
-    private void loadConfiguration() {
-        ConfigurationProvider configurationProvider = njamsConfiguration.getConfigurationProvider();
-        if (configurationProvider != null) {
-            njamsConfiguration = configurationProvider.loadConfiguration();
-        }
     }
 
     /**
@@ -216,39 +186,16 @@ public class Njams{
             if (njamsSettings == null) {
                 throw new NjamsSdkRuntimeException("Settings not set");
             }
-            initializeDataMasking();
             njamsReceiver.start();
-            LogMessageFlushTask.start(njamsMetadata, njamsJobs, njamsSettings);
-            CleanTracepointsTask.start(njamsMetadata, njamsConfiguration, getSender());
+            njamsJobs.start();
+            njamsConfiguration.start();
             njamsState.start();
             njamsProjectMessage.sendProjectMessage();
         }
         return njamsState.isStarted();
     }
 
-    /**
-     * Initialize the datamasking feature
-     */
-    private void initializeDataMasking() {
 
-        Properties properties = njamsSettings.getAllProperties();
-        boolean dataMaskingEnabled = true;
-        if (properties != null) {
-            dataMaskingEnabled = Boolean.parseBoolean(properties.getProperty(DataMasking.DATA_MASKING_ENABLED, "true"));
-            if (dataMaskingEnabled) {
-                DataMasking.addPatterns(properties);
-            } else {
-                LOG.info("DataMasking is disabled.");
-            }
-        }
-        if (dataMaskingEnabled && !njamsConfiguration.getDataMasking().isEmpty()) {
-            LOG.warn("DataMasking via the configuration is deprecated but will be used as well. Use settings " +
-                     "with the properties \n{} = " +
-                     "\"true\" \nand multiple \n{}<YOUR-REGEX-NAME> = <YOUR-REGEX> \nfor this.",
-                DataMasking.DATA_MASKING_ENABLED, DataMasking.DATA_MASKING_REGEX_PREFIX);
-            DataMasking.addPatterns(njamsConfiguration.getDataMasking());
-        }
-    }
 
     /**
      * Stop a client; it stop processing and release the connections. It can't
@@ -258,9 +205,8 @@ public class Njams{
      */
     public boolean stop() {
         if (njamsState.isStarted()) {
-            LogMessageFlushTask.stop(njamsMetadata);
-            CleanTracepointsTask.stop(njamsMetadata);
-
+            njamsJobs.stop();
+            njamsConfiguration.stop();
             njamsArgos.stop();
             sender.close();
             njamsReceiver.stop();
@@ -268,6 +214,10 @@ public class Njams{
         } else {
             throw new NjamsSdkRuntimeException(NOT_STARTED_EXCEPTION_MESSAGE);
         }
+        return wasStoppingSucessful();
+    }
+
+    private boolean wasStoppingSucessful() {
         return njamsState.isStopped();
     }
 
@@ -499,11 +449,16 @@ public class Njams{
 
 //################################### Configuration
 
+    public NjamsConfiguration getNjamsConfiguration() {
+        return njamsConfiguration;
+    }
+
     /**
      * @return the configuration
      */
+    @Deprecated
     public Configuration getConfiguration() {
-        return njamsConfiguration;
+        return njamsConfiguration.getConfiguration();
     }
 
     /**

@@ -168,7 +168,7 @@ public class JobImplTest extends AbstractTest {
         NjamsProjectMessage projectMessage = new NjamsProjectMessage(
             NjamsMetadataFactory.createMetadataFor(clientPath, "bla", "blub", "bla2"), new NjamsFeatures(),
             new Configuration(), savingMock, new NjamsState(),
-            new NjamsJobs(njamsState, new NjamsFeatures()), new NjamsSerializers(), settings);
+            new NjamsJobs(njams.getNjamsMetadata(), njamsState, new NjamsFeatures(), null), new NjamsSerializers(), settings);
 
         Path processPath = new Path("PROCESSES");
         projectMessage.createProcess(processPath);

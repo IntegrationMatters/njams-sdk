@@ -3,12 +3,15 @@ package com.im.njams.sdk.logmessage;
 import com.faizsiegeln.njams.messageformat.v4.command.Command;
 import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
 import com.faizsiegeln.njams.messageformat.v4.command.Response;
+import com.im.njams.sdk.client.LogMessageFlushTask;
+import com.im.njams.sdk.client.NjamsMetadata;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.communication.AbstractReplayHandler;
 import com.im.njams.sdk.communication.InstructionListener;
 import com.im.njams.sdk.communication.ReplayHandler;
 import com.im.njams.sdk.communication.ReplayRequest;
 import com.im.njams.sdk.communication.ReplayResponse;
+import com.im.njams.sdk.settings.Settings;
 import com.im.njams.sdk.utils.StringUtils;
 
 import java.util.Collection;
@@ -35,14 +38,18 @@ public class NjamsJobs implements InstructionListener {
 
     // logId of replayed job -> deep-trace flag from the replay request
     private final Map<String, Boolean> replayedLogIds = new HashMap<>();
+    private final NjamsMetadata njamsMetadata;
     private final NjamsState njamsState;
     private final NjamsFeatures njamsFeatures;
+    private final Settings settings;
 
     private ReplayHandler replayHandler = null;
 
-    public NjamsJobs(NjamsState njamsState, NjamsFeatures njamsFeatures) {
+    public NjamsJobs(NjamsMetadata njamsMetadata, NjamsState njamsState, NjamsFeatures njamsFeatures, Settings settings) {
+        this.njamsMetadata = njamsMetadata;
         this.njamsState = njamsState;
         this.njamsFeatures = njamsFeatures;
+        this.settings = settings;
     }
 
     /**
@@ -169,5 +176,13 @@ public class NjamsJobs implements InstructionListener {
      */
     public ReplayHandler getReplayHandler() {
         return replayHandler;
+    }
+
+    public void start() {
+        LogMessageFlushTask.start(njamsMetadata, this, settings);
+    }
+
+    public void stop() {
+        LogMessageFlushTask.stop(njamsMetadata);
     }
 }
