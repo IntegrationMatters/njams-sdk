@@ -60,32 +60,6 @@ public class NjamsTest {
         instance = new Njams(new Path(), "", "", settings);
     }
 
-    @Test
-    public void testSerializer() {
-        System.out.println("addSerializer");
-        final Serializer<List> expResult = l -> "list";
-
-        instance.getNjamsSerializers().add(ArrayList.class, a -> a.getClass().getSimpleName());
-        instance.getNjamsSerializers().add(List.class, expResult);
-
-        String serialized;
-
-        // found ArrayList serializer
-        serialized = instance.getNjamsSerializers().serialize(new ArrayList<>());
-        assertNotNull(serialized);
-        assertEquals("ArrayList", serialized);
-
-        // found default string serializer
-        serialized = instance.getNjamsSerializers().serialize(new HashMap<>());
-        assertNotNull(serialized);
-        assertEquals("{}", serialized);
-
-        // found list serializer
-        serialized = instance.getNjamsSerializers().serialize(new LinkedList<>());
-        assertNotNull(serialized);
-        assertEquals("list", serialized);
-    }
-
     @Test(expected = NjamsSdkRuntimeException.class)
     public void testCreateJobWithoutStart_throwsAnError() {
         ProcessModelUtils utils = new ProcessModelUtils(new NjamsJobs(null, new NjamsState(), new NjamsFeatures(), null), null, null, null, new Settings(), null, null, null);
