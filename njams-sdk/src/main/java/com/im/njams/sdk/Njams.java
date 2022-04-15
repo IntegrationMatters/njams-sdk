@@ -24,39 +24,23 @@
 package com.im.njams.sdk;
 
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.LogMode;
-import com.im.njams.sdk.argos.ArgosMultiCollector;
-import com.im.njams.sdk.argos.NjamsArgos;
-import com.im.njams.sdk.client.NjamsMetadata;
-import com.im.njams.sdk.client.NjamsMetadataFactory;
-import com.im.njams.sdk.common.NjamsSdkRuntimeException;
-import com.im.njams.sdk.common.Path;
-import com.im.njams.sdk.communication.InstructionListener;
-import com.im.njams.sdk.communication.ReplayHandler;
-import com.im.njams.sdk.communication.Sender;
+import com.im.njams.sdk.argos.*;
+import com.im.njams.sdk.client.*;
+import com.im.njams.sdk.common.*;
+import com.im.njams.sdk.communication.*;
 import com.im.njams.sdk.configuration.Configuration;
-import com.im.njams.sdk.logmessage.Job;
-import com.im.njams.sdk.logmessage.NjamsFeatures;
-import com.im.njams.sdk.logmessage.NjamsJobs;
-import com.im.njams.sdk.logmessage.NjamsProjectMessage;
-import com.im.njams.sdk.logmessage.NjamsState;
+import com.im.njams.sdk.logmessage.*;
 import com.im.njams.sdk.model.ProcessModel;
-import com.im.njams.sdk.model.image.ImageSupplier;
-import com.im.njams.sdk.model.image.ResourceImageSupplier;
+import com.im.njams.sdk.model.image.*;
 import com.im.njams.sdk.model.layout.ProcessModelLayouter;
 import com.im.njams.sdk.model.svg.ProcessDiagramFactory;
-import com.im.njams.sdk.serializer.NjamsSerializers;
-import com.im.njams.sdk.serializer.Serializer;
+import com.im.njams.sdk.serializer.*;
 import com.im.njams.sdk.settings.Settings;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.net.URL;
-import java.util.Collection;
-import java.util.Enumeration;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
+import java.util.*;
 
 import static com.im.njams.sdk.logmessage.NjamsState.NOT_STARTED_EXCEPTION_MESSAGE;
 
@@ -67,35 +51,36 @@ import static com.im.njams.sdk.logmessage.NjamsState.NOT_STARTED_EXCEPTION_MESSA
 public class Njams{
 
     private static final org.slf4j.Logger LOG = LoggerFactory.getLogger(Njams.class);
+
+    private final Settings settings;
+    private final String currentYear;
+
+    private final NjamsArgos njamsArgos;
+    private final NjamsVersions njamsVersions;
     private final NjamsMetadata njamsMetadata;
     private final NjamsSerializers njamsSerializers;
-    private final NjamsJobs njamsJobs;
     private final NjamsState njamsState;
     private final NjamsFeatures njamsFeatures;
-
-    // The settings of the client
-    private final Settings njamsSettings;
-
+    private final NjamsJobs njamsJobs;
+    private final NjamsSender njamsSender;
+    private final NjamsConfiguration njamsConfiguration;
     private final NjamsProjectMessage njamsProjectMessage;
-    private final NjamsVersions njamsVersions;
-    private final String currentYear;
-    private final NjamsArgos njamsArgos;
     private final NjamsReceiver njamsReceiver;
 
-    private final NjamsConfiguration njamsConfiguration;
-    private final com.im.njams.sdk.NjamsSender njamsSender;
-
     /**
-     * Create a nJAMS client.
+     * Create a nJAMS instance. It's initializing everything that is needed to communicate with the nJAMS Server
+     * or the Argos agent and to produce appropriate messages.
      *
-     * @param path     the path in the tree
-     * @param defaultClientVersion  the version of the nNJAMS client
-     * @param category the category of the nJAMS client, should describe the
-     *                 technology
-     * @param settings needed settings for client eg. for communication
+     * @param clientPath unique path per nJAMS instance.
+     * @param defaultClientVersion  the default version of the nJAMS client instance if no client version can be found otherwise.
+     * @param category should describe the technology for the client that is used, e.g. BW5, BW6, MULE4EE
+     * @param settings needed for client initialization of communication, sending intervals and sizes, etc.
      */
-    public Njams(Path path, String defaultClientVersion, String category, Settings settings) {
-        njamsSettings = settings;
+    public Njams(Path clientPath, String defaultClientVersion, String category, Settings settings) {
+        if (settings == null) {
+            throw new NjamsSdkRuntimeException("Settings not set");
+        }
+        this.settings = settings;
 
         njamsArgos = new NjamsArgos(settings);
 
@@ -104,7 +89,7 @@ public class Njams{
         currentYear = classpathVersions.remove(CURRENT_YEAR);
         njamsVersions = fillNjamsVersions(classpathVersions, defaultClientVersion);
 
-        njamsMetadata = NjamsMetadataFactory.createMetadataFor(path, njamsVersions.getClientVersion(),
+        njamsMetadata = NjamsMetadataFactory.createMetadataFor(clientPath, njamsVersions.getClientVersion(),
             njamsVersions.getSdkVersion(), category);
 
         njamsSerializers = new NjamsSerializers();
@@ -115,23 +100,19 @@ public class Njams{
 
         njamsJobs = new NjamsJobs(njamsMetadata, njamsState, njamsFeatures, settings);
 
-        njamsSender = NjamsSenderFactory.getNjamsSender(njamsSettings, njamsMetadata);
+        njamsSender = NjamsSenderFactory.getNjamsSender(this.settings, njamsMetadata);
 
         njamsConfiguration = NjamsConfigurationFactory.getNjamsConfiguration(njamsMetadata, njamsSender, settings);
 
         njamsProjectMessage = new NjamsProjectMessage(njamsMetadata, njamsFeatures, njamsConfiguration,
-            njamsSender, njamsState, njamsJobs, njamsSerializers, njamsSettings);
+            njamsSender, njamsState, njamsJobs, njamsSerializers, this.settings);
 
-        njamsReceiver = new NjamsReceiver(njamsSettings, njamsMetadata, njamsFeatures, njamsProjectMessage, njamsJobs,
+        njamsReceiver = new NjamsReceiver(this.settings, njamsMetadata, njamsFeatures, njamsProjectMessage, njamsJobs,
             njamsConfiguration);
 
         printStartupBanner();
     }
 
-    /**
-     * Read the versions from njams.version files. Set the SDK-Version and the
-     * Client-Version if found.
-     */
     private Map<String, String> readNjamsVersionsFiles() {
         try {
             return readVersionsFromFilesWithName("njams.version");
@@ -177,7 +158,7 @@ public class Njams{
 
     private void printStartupBanner() {
         Map<String, String> versions = njamsVersions.getAllVersions();
-        Map<String, String> settings = njamsSettings.getAllPropertiesWithoutPasswords();
+        Map<String, String> settings = this.settings.getAllPropertiesWithoutPasswords();
 
         print(versions, settings);
     }
@@ -209,33 +190,20 @@ public class Njams{
     }
 
     /**
-     * @return the current nJAMS settings
-     */
-    public Settings getSettings() {
-        return njamsSettings;
-    }
-
-
-    /**
-     * Start a client; it will initiate the connections and start processing.
+     * Starts everything that is needed for communicating with the nJAMS server and processing messages.
      *
      * @return true if successful
      */
     public boolean start() {
         if (!njamsState.isStarted()) {
-            if (njamsSettings == null) {
-                throw new NjamsSdkRuntimeException("Settings not set");
-            }
             njamsReceiver.start();
             njamsJobs.start();
             njamsConfiguration.start();
             njamsState.start();
-            njamsProjectMessage.sendProjectMessage();
+            njamsProjectMessage.start();
         }
         return njamsState.isStarted();
     }
-
-
 
     /**
      * Stop a client; it stops processing and release the connections. It can't
@@ -254,16 +222,21 @@ public class Njams{
         } else {
             throw new NjamsSdkRuntimeException(NOT_STARTED_EXCEPTION_MESSAGE);
         }
-        return wasStoppingSuccessful();
+        return njamsState.isStopped();
     }
 
-    private boolean wasStoppingSuccessful() {
-        return njamsState.isStopped();
+//################################### Settings
+
+    /**
+     * @return the current nJAMS settings
+     */
+    public Settings getSettings() {
+        return settings;
     }
 
 //################################### NjamsSender
 
-    public com.im.njams.sdk.NjamsSender getNjamsSender() {
+    public NjamsSender getNjamsSender() {
         return njamsSender;
     }
 
@@ -279,6 +252,10 @@ public class Njams{
     }
 
 //################################### NjamsArgos
+
+    public NjamsArgos getNjamsArgos(){
+        return njamsArgos;
+    }
 
     /**
      * Adds a collector that will create statistics.
@@ -296,6 +273,10 @@ public class Njams{
     }
 
 //################################### NjamsJobs
+
+    public NjamsJobs getNjamsJobs(){
+        return njamsJobs;
+    }
 
     /**
      * @return The handler that handles the replay of a job
@@ -360,12 +341,12 @@ public class Njams{
         njamsJobs.remove(jobId);
     }
 
-    public NjamsJobs getNjamsJobs(){
-        return njamsJobs;
-    }
-
 
 //################################### NjamsReceiver
+
+    public NjamsInstructionListeners getNjamsInstructionListeners(){
+        return njamsReceiver.getNjamsInstructionListeners();
+    }
 
     /**
      * @return the instructionListeners

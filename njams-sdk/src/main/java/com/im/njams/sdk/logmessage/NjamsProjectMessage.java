@@ -126,7 +126,11 @@ public class NjamsProjectMessage implements InstructionListener {
      * Flush all Resources to the server by creating a new ProjectMessage. It
      * can only be flushed when the instance was started.
      */
-    public void sendProjectMessage() {
+    public void start() {
+        sendProjectMessage();
+    }
+
+    private void sendProjectMessage(){
         addDefaultImagesIfNeededAndAbsent();
         final ProjectMessage msg = new ProjectMessage();
         setStarters();
