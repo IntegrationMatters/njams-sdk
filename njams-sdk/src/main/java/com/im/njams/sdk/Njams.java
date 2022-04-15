@@ -132,16 +132,16 @@ public class Njams{
         return versions;
     }
 
+    private Enumeration<URL> getAllUrlsForFileWithName(String fileName) throws IOException {
+        return this.getClass().getClassLoader().getResources(fileName);
+    }
+
     private Map<String, String> readAllPropertiesFromFileWithURL(URL url) throws IOException {
         Map<String, String> keyValuePairs = new HashMap<>();
         final Properties prop = new Properties();
         prop.load(url.openStream());
         prop.forEach((key, value) -> keyValuePairs.put(String.valueOf(key), String.valueOf(value)));
         return keyValuePairs;
-    }
-
-    private Enumeration<URL> getAllUrlsForFileWithName(String fileName) throws IOException {
-        return this.getClass().getClassLoader().getResources(fileName);
     }
 
     private Map<String, String> handleFileError(Exception e) {
@@ -192,7 +192,7 @@ public class Njams{
     /**
      * Starts everything that is needed for communicating with the nJAMS server and processing messages.
      *
-     * @return true if successful
+     * @return true if starting successful or it was already started
      */
     public boolean start() {
         if (!njamsState.isStarted()) {
@@ -206,8 +206,8 @@ public class Njams{
     }
 
     /**
-     * Stop a client; it stops processing and release the connections. It can't
-     * be stopped before it started. (NjamsSdkRuntimeException)
+     * Stops the instance with all its processing and releases the connections. It can't
+     * be stopped before it started, otherwise it will throw a NjamsSdkRuntimeException
      *
      * @return true is stopping was successful.
      */
@@ -263,12 +263,12 @@ public class Njams{
      * @param collector The collector that collects statistics
      */
     @Deprecated
-    public void addArgosCollector(ArgosMultiCollector collector) {
+    public <T extends ArgosMetric> void addArgosCollector(ArgosMultiCollector<T> collector) {
         njamsArgos.addCollector(collector);
     }
 
     @Deprecated
-    public void removeArgosCollector(ArgosMultiCollector collector) {
+    public <T extends ArgosMetric> void removeArgosCollector(ArgosMultiCollector<T> collector) {
         njamsArgos.remove(collector);
     }
 

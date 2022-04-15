@@ -20,12 +20,12 @@ public class NjamsArgos {
      *
      * @param collector The collector that collects statistics
      */
-    public void addCollector(ArgosMultiCollector collector) {
+    public <T extends ArgosMetric> void addCollector(ArgosMultiCollector<T> collector) {
         argosCollectors.add(collector);
         argosSender.addArgosCollector(collector);
     }
 
-    public void remove(ArgosMultiCollector collector) {
+    public <T extends ArgosMetric> void remove(ArgosMultiCollector<T> collector) {
         argosCollectors.remove(collector);
         argosSender.removeArgosCollector(collector);
     }
