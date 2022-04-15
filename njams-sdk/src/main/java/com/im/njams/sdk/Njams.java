@@ -442,7 +442,7 @@ public class Njams{
     /**
      * @param <T>   Type of the class
      * @param clazz Class for which a serializer will be searched.
-     * @return Serizalizer of <b>null</b>.
+     * @return Serializer of <b>null</b>.
      * @see #getNjamsSerializers() ()
      * @see NjamsSerializers#find(Class)
      */
@@ -715,7 +715,7 @@ public class Njams{
     }
 
     /**
-     * Set the type for a TreeElment given by a path.
+     * Set the type for a TreeElement given by a path.
      *
      * @param path the path of the tree icon
      * @param type icon type of the tree element
