@@ -16,15 +16,15 @@ public class NjamsConfiguration {
     private final Settings njamsSettings;
     private final Configuration configuration;
 
-    public NjamsConfiguration(Configuration configuration, NjamsMetadata njamsMetadata, NjamsSender njamsSender, Settings njamsSettings) {
+    public NjamsConfiguration(Configuration configuration, NjamsMetadata njamsMetadata, NjamsSender njamsSender, Settings settings) {
         this.njamsMetadata = njamsMetadata;
         this.njamsSender = njamsSender;
-        this.njamsSettings = njamsSettings;
+        this.njamsSettings = settings;
         this.configuration = configuration;
     }
 
     public void start() {
-        NjamsDatamasking.initialize(njamsSettings, configuration);
+        NjamsDataMasking.start(njamsSettings, configuration);
         CleanTracepointsTask.start(njamsMetadata, configuration, njamsSender);
     }
 

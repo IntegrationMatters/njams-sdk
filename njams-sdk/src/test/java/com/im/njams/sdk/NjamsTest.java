@@ -16,32 +16,16 @@
  */
 package com.im.njams.sdk;
 
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-
 import com.im.njams.sdk.communication.TestReceiver;
-import com.im.njams.sdk.logmessage.NjamsFeatures;
-import com.im.njams.sdk.logmessage.NjamsJobs;
-import com.im.njams.sdk.logmessage.NjamsState;
-import com.im.njams.sdk.model.ProcessModelUtils;
 import org.junit.Before;
 import org.junit.Test;
 
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.common.Path;
 import com.im.njams.sdk.communication.CommunicationFactory;
-import com.im.njams.sdk.communication.TestSender;
-import com.im.njams.sdk.logmessage.DataMasking;
-import com.im.njams.sdk.logmessage.Job;
-import com.im.njams.sdk.model.ProcessModel;
 import com.im.njams.sdk.settings.Settings;
 
 /**
@@ -58,10 +42,6 @@ public class NjamsTest {
         settings.put(CommunicationFactory.COMMUNICATION, TestReceiver.NAME);
         instance = new Njams(new Path(), "", "", settings);
     }
-
-
-
-
 
     @Test(expected = NjamsSdkRuntimeException.class)
     public void testStopBeforeStart() {
@@ -90,67 +70,5 @@ public class NjamsTest {
     public void testHasProcessModel() {
         instance.createProcess(new Path("PROCESSES"));
         assertTrue(instance.hasProcessModel(new Path("PROCESSES")));
-    }
-
-    @Test
-    public void setDataMaskingViaSettings() {
-        DataMasking.removePatterns();
-
-        Settings settings = new Settings();
-        settings.put(DataMasking.DATA_MASKING_ENABLED, "true");
-        settings.put(DataMasking.DATA_MASKING_REGEX_PREFIX + "MaskAll", ".*");
-        settings.put(CommunicationFactory.COMMUNICATION, TestSender.NAME);
-
-        Njams njams = new Njams(new Path("TestPath"), "1.0.0", "SDK", settings);
-        njams.start();
-
-        assertEquals("*****", DataMasking.maskString("Hello"));
-    }
-
-    @Test
-    public void disableDataMaskingViaSettings() {
-        DataMasking.removePatterns();
-        Settings settings = new Settings();
-        settings.put(DataMasking.DATA_MASKING_ENABLED, "false");
-        settings.put(DataMasking.DATA_MASKING_REGEX_PREFIX, ".*");
-        settings.put(CommunicationFactory.COMMUNICATION, TestSender.NAME);
-
-        Njams njams = new Njams(new Path("TestPath"), "1.0.0", "SDK", settings);
-        njams.start();
-
-        assertEquals("Hello", DataMasking.maskString("Hello"));
-    }
-
-    @Test
-    public void disableDataMaskingDisablesAllDataMasking() {
-        DataMasking.removePatterns();
-
-        Settings settings = new Settings();
-        settings.put(DataMasking.DATA_MASKING_ENABLED, "false");
-        settings.put(DataMasking.DATA_MASKING_REGEX_PREFIX, ".*");
-        settings.put(CommunicationFactory.COMMUNICATION, TestSender.NAME);
-
-        Njams njams = new Njams(new Path("TestPath"), "1.0.0", "SDK", settings);
-
-        List<String> dataMaskingStrings = new ArrayList<>();
-        dataMaskingStrings.add("Hello");
-        njams.getConfiguration().setDataMasking(dataMaskingStrings);
-        njams.start();
-
-        assertEquals("Hello", DataMasking.maskString("Hello"));
-    }
-
-    @Test
-    public void enableDataMaskingWithoutRegex() {
-        DataMasking.removePatterns();
-        Settings settings = new Settings();
-        settings.put(DataMasking.DATA_MASKING_ENABLED, "true");
-        settings.put(CommunicationFactory.COMMUNICATION, TestSender.NAME);
-
-        Njams njams = new Njams(new Path("TestPath"), "1.0.0", "SDK", settings);
-
-        njams.start();
-
-        assertEquals("Hello", DataMasking.maskString("Hello"));
     }
 }

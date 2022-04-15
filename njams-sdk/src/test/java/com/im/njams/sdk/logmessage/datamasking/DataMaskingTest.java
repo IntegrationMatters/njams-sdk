@@ -14,7 +14,7 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
  */
-package com.im.njams.sdk.logmessage;
+package com.im.njams.sdk.logmessage.datamasking;
 
 import static junit.framework.TestCase.assertEquals;
 import static org.hamcrest.CoreMatchers.is;
@@ -23,6 +23,9 @@ import static org.junit.Assert.assertThat;
 import static org.mockito.Matchers.anyObject;
 import static org.mockito.Mockito.doAnswer;
 
+import com.im.njams.sdk.logmessage.ActivityImpl;
+import com.im.njams.sdk.logmessage.DataMasking;
+import com.im.njams.sdk.logmessage.JobImpl;
 import com.im.njams.sdk.serializer.NjamsSerializers;
 import org.junit.After;
 import org.junit.BeforeClass;
