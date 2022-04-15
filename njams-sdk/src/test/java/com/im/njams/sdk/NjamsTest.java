@@ -42,7 +42,6 @@ import com.im.njams.sdk.communication.TestSender;
 import com.im.njams.sdk.logmessage.DataMasking;
 import com.im.njams.sdk.logmessage.Job;
 import com.im.njams.sdk.model.ProcessModel;
-import com.im.njams.sdk.serializer.Serializer;
 import com.im.njams.sdk.settings.Settings;
 
 /**
@@ -60,23 +59,9 @@ public class NjamsTest {
         instance = new Njams(new Path(), "", "", settings);
     }
 
-    @Test(expected = NjamsSdkRuntimeException.class)
-    public void testCreateJobWithoutStart_throwsAnError() {
-        ProcessModelUtils utils = new ProcessModelUtils(new NjamsJobs(null, new NjamsState(), new NjamsFeatures(), null), null, null, null, new Settings(), null, null, null);
-        ProcessModel model = new ProcessModel(new Path("PROCESSES"), utils);
-        //This should throw an NjamsSdkRuntimeException
-        Job job = model.createJob();
-    }
 
-    @Test
-    public void testAddJobAfterStart() {
-        final NjamsState njamsState = new NjamsState();
-        njamsState.start();
-        ProcessModelUtils utils = new ProcessModelUtils(new NjamsJobs(null, njamsState, new NjamsFeatures(), null), null, null, null, new Settings(), null, null, null);
-        ProcessModel model = new ProcessModel(new Path("PROCESSES"), utils);
-        //This should throw an NjamsSdkRuntimeException
-        Job job = model.createJob();
-    }
+
+
 
     @Test(expected = NjamsSdkRuntimeException.class)
     public void testStopBeforeStart() {
