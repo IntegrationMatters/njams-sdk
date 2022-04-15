@@ -19,49 +19,49 @@ public class NjamsDataMaskingTest {
 
     @Test
     public void withDataMasking_enabled_perDefault_andMaskEverythingPattern_masksString() {
-        njamsDatamasking.put("MaskAll", ".*");
+        njamsDatamasking.add("MaskAll", ".*");
 
-        assertEquals("*****", njamsDatamasking.maskString("Hello"));
+        assertEquals("*****", njamsDatamasking.mask("Hello"));
     }
 
     @Test
     public void withDataMasking_enabled_andMaskEverythingPattern_masksString() {
-        njamsDatamasking.enableMasking();
-        njamsDatamasking.put("MaskAll", ".*");
+        njamsDatamasking.enable();
+        njamsDatamasking.add("MaskAll", ".*");
 
-        assertEquals("*****", njamsDatamasking.maskString("Hello"));
+        assertEquals("*****", njamsDatamasking.mask("Hello"));
     }
 
     @Test
     public void withDataMasking_disabled_andMaskEverythingPattern_doesNotAffectTheString() {
-        njamsDatamasking.disableMasking();
-        njamsDatamasking.put("MaskAll", ".*");
+        njamsDatamasking.disable();
+        njamsDatamasking.add("MaskAll", ".*");
 
-        assertEquals("Hello", njamsDatamasking.maskString("Hello"));
+        assertEquals("Hello", njamsDatamasking.mask("Hello"));
     }
 
     @Test
     public void withDataMasking_disabled_patternsCanStillBeAdded_andUsedAfterEnabling() {
-        njamsDatamasking.disableMasking();
-        njamsDatamasking.put("MaskAll", ".*");
-        njamsDatamasking.enableMasking();
+        njamsDatamasking.disable();
+        njamsDatamasking.add("MaskAll", ".*");
+        njamsDatamasking.enable();
 
-        assertEquals("*****", njamsDatamasking.maskString("Hello"));
+        assertEquals("*****", njamsDatamasking.mask("Hello"));
     }
 
     @Test
     public void withDataMasking_enabled_withoutAnyMaskingPattern_doesNotAffectTheString() {
-        assertEquals("Hello", njamsDatamasking.maskString("Hello"));
+        assertEquals("Hello", njamsDatamasking.mask("Hello"));
     }
 
     //This should probably not happen
     @Test
     public void anotherDataMasking_hasTheSameMaskingPatterns() {
 
-        njamsDatamasking.put("MaskHello", "Hello");
-        assertEquals("*****", njamsDatamasking.maskString("Hello"));
+        njamsDatamasking.add("MaskHello", "Hello");
+        assertEquals("*****", njamsDatamasking.mask("Hello"));
 
-        assertEquals("*****", new NjamsDataMasking().maskString("Hello"));
+        assertEquals("*****", new NjamsDataMasking().mask("Hello"));
 //        assertEquals("hello", new NjamsDataMasking().maskString("HelloAloneShouldNotBeAffectedHere")); This should probably happen instead
     }
 
@@ -70,11 +70,23 @@ public class NjamsDataMaskingTest {
     public void anotherDataMasking_withTheSameValue_isEffectedByTheEarlierDataMasking() {
         final NjamsDataMasking overwrittenMasking = new NjamsDataMasking();
 
-        njamsDatamasking.put("MaskHello", "Hello");
-        assertEquals("*****", njamsDatamasking.maskString("Hello"));
+        njamsDatamasking.add("MaskHello", "Hello");
+        assertEquals("*****", njamsDatamasking.mask("Hello"));
 
-        overwrittenMasking.put("AnotherHelloMask", "HelloAloneShouldNotBeAffectedHere");
-        assertEquals("*****AloneShouldNotBeAffectedHere", overwrittenMasking.maskString("HelloAloneShouldNotBeAffectedHere"));
+        overwrittenMasking.add("AnotherHelloMask", "HelloAloneShouldNotBeAffectedHere");
+        assertEquals("*****AloneShouldNotBeAffectedHere", overwrittenMasking.mask("HelloAloneShouldNotBeAffectedHere"));
 //        assertEquals("*********************************", overwrittenMasking.maskString("HelloAloneShouldNotBeAffectedHere")); This should probably happen instead
     }
+
+    //This should not happen
+    @Test
+    public void withDataMasking_disabled_andAddedPattern_shouldNotBeUsableFromDataMaskingClass() {
+        njamsDatamasking.disable();
+        njamsDatamasking.add("MaskHello", "Hello");
+
+        DataMasking.maskString("Hello");
+
+        assertEquals("Hello", DataMasking.maskString("Hello"));
+    }
+
 }

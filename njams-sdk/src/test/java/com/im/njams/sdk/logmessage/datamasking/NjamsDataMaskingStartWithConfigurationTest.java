@@ -50,6 +50,14 @@ public class NjamsDataMaskingStartWithConfigurationTest {
     }
 
     @Test
+    public void withoutSettings_configurationWillAlwaysUseDataMasking() {
+        configurationDataMasking.add(".*");
+        NjamsDataMasking.start(null, configuration);
+
+        assertEquals("*****", DataMasking.maskString("Hello"));
+    }
+
+    @Test
     public void withDataMasking_disabled_andMaskEverythingPattern_doesNotAffectTheString() {
         settings.put(DataMasking.DATA_MASKING_ENABLED, "false");
         configurationDataMasking.add(".*");
