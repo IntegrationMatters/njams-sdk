@@ -12,7 +12,6 @@ import com.im.njams.sdk.logmessage.NjamsJobs;
 import com.im.njams.sdk.logmessage.NjamsProjectMessage;
 import com.im.njams.sdk.logmessage.NjamsState;
 import com.im.njams.sdk.metadata.NjamsMetadataFactory;
-import com.im.njams.sdk.serializer.NjamsSerializers;
 import com.im.njams.sdk.settings.Settings;
 import org.junit.Test;
 
@@ -25,8 +24,9 @@ public class SendProjectMessageInstructionListenerTest {
     @Test
     public void testOnCorrectSendProjectMessageInstruction() {
         NjamsProjectMessage projectMessage = new NjamsProjectMessage(
-            NjamsMetadataFactory.createMetadataWith(new Path(), "blub", "bla2"), new NjamsFeatures(), new NjamsConfiguration(new Configuration(), null, null, null), new NjamsSender(new TestSender()), new NjamsState(), new NjamsJobs(null, new NjamsState(), new NjamsFeatures(), null), new NjamsSerializers(),
-            new Settings());
+            NjamsMetadataFactory.createMetadataWith(new Path(), "blub", "bla2"), new NjamsFeatures(),
+            new NjamsConfiguration(new Configuration(), null, null, null), new NjamsSender(new TestSender()),
+            new NjamsState(), new NjamsJobs(null, new NjamsState(), new NjamsFeatures(), null), new Settings());
 
         Instruction inst = new Instruction();
         Request req = new Request();

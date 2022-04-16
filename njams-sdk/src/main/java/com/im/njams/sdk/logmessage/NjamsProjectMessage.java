@@ -79,13 +79,13 @@ public class NjamsProjectMessage implements InstructionListener {
     private final NjamsSender njamsSender;
     private final NjamsState state;
     private final NjamsJobs jobs;
-    private final NjamsSerializers serializers;
+    private final NjamsSerializers njamsSerializers;
     private final Settings settings;
     private ProcessDiagramFactory processDiagramFactory;
     private ProcessModelLayouter processModelLayouter;
 
     public NjamsProjectMessage(NjamsMetadata njamsMetadata, NjamsFeatures features, NjamsConfiguration njamsConfiguration,
-        NjamsSender njamsSender, NjamsState state, NjamsJobs jobs, NjamsSerializers serializers, Settings settings) {
+        NjamsSender njamsSender, NjamsState state, NjamsJobs jobs, Settings settings) {
         this.settings = settings;
         this.startTime = DateTimeUtility.now();
         this.processModelLayouter = new SimpleProcessModelLayouter();
@@ -97,7 +97,7 @@ public class NjamsProjectMessage implements InstructionListener {
         this.njamsSender = njamsSender;
         this.state = state;
         this.jobs = jobs;
-        this.serializers = serializers;
+        this.njamsSerializers = new NjamsSerializers();
 
         createTreeElements(instanceMetadata.getClientPath(), TreeElementType.CLIENT);
     }
@@ -377,7 +377,7 @@ public class NjamsProjectMessage implements InstructionListener {
      */
     public ProcessModel createProcess(final Path path) {
         final Path fullClientPath = path.addBase(instanceMetadata.getClientPath());
-        ProcessModelUtils processModelUtils = new ProcessModelUtils(jobs, instanceMetadata, serializers,
+        ProcessModelUtils processModelUtils = new ProcessModelUtils(jobs, instanceMetadata, njamsSerializers,
             njamsConfiguration,
             settings, processDiagramFactory, processModelLayouter, njamsSender);
         final ProcessModel model = new ProcessModel(fullClientPath, processModelUtils);
@@ -456,5 +456,9 @@ public class NjamsProjectMessage implements InstructionListener {
      */
     public void setProcessDiagramFactory(ProcessDiagramFactory processDiagramFactory) {
         this.processDiagramFactory = processDiagramFactory;
+    }
+
+    public NjamsSerializers getNjamsSerializers() {
+        return njamsSerializers;
     }
 }

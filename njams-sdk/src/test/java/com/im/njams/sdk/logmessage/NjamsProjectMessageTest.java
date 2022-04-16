@@ -18,7 +18,7 @@ public class NjamsProjectMessageTest {
         final Settings settings = new Settings();
         final Path clientPath = new Path();
         final NjamsMetadata njamsMetadata = NjamsMetadataFactory.createMetadataWith(clientPath, null, null);
-        njamsProjectMessage = new NjamsProjectMessage(njamsMetadata, null, null, null, null, null, null, settings);
+        njamsProjectMessage = new NjamsProjectMessage(njamsMetadata, null, null, null, null, null, settings);
     }
 
     @Test

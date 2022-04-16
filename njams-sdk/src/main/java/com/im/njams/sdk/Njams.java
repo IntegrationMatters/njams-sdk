@@ -55,7 +55,6 @@ public class Njams{
 
     private final NjamsArgos njamsArgos;
     private final NjamsMetadata njamsMetadata;
-    private final NjamsSerializers njamsSerializers;
     private final NjamsState njamsState;
     private final NjamsFeatures njamsFeatures;
     private final NjamsJobs njamsJobs;
@@ -79,14 +78,13 @@ public class Njams{
 
         njamsMetadata = NjamsMetadataFactory.createMetadataWith(clientPath, defaultClientVersion, category);
         njamsArgos = new NjamsArgos(settings);
-        njamsSerializers = new NjamsSerializers();
         njamsState = new NjamsState();
         njamsFeatures = new NjamsFeatures();
         njamsJobs = new NjamsJobs(njamsMetadata, njamsState, njamsFeatures, settings);
         njamsSender = NjamsSenderFactory.getNjamsSender(settings, njamsMetadata);
         njamsConfiguration = NjamsConfigurationFactory.getNjamsConfiguration(njamsMetadata, njamsSender, settings);
         njamsProjectMessage = new NjamsProjectMessage(njamsMetadata, njamsFeatures, njamsConfiguration,
-            njamsSender, njamsState, njamsJobs, njamsSerializers, settings);
+            njamsSender, njamsState, njamsJobs, settings);
         njamsReceiver = new NjamsReceiver(settings, njamsMetadata, njamsFeatures, njamsProjectMessage, njamsJobs,
             njamsConfiguration);
 
@@ -327,9 +325,9 @@ public class Njams{
 
 //################################### NjamsSerializers
 
-    public NjamsSerializers getNjamsSerializers(){
-    return njamsSerializers;
-}
+    private NjamsSerializers getNjamsSerializers(){
+        return njamsProjectMessage.getNjamsSerializers();
+    }
 
     /**
      *
@@ -345,7 +343,7 @@ public class Njams{
      */
     @Deprecated
     public <T> Serializer<T> addSerializer(final Class<T> key, final Serializer<? super T> serializer) {
-        return njamsSerializers.add(key, serializer);
+        return getNjamsSerializers().add(key, serializer);
     }
 
     /**
@@ -358,7 +356,7 @@ public class Njams{
      */
     @Deprecated
     public <T> Serializer<T> removeSerializer(final Class<T> key) {
-        return njamsSerializers.remove(key);
+        return getNjamsSerializers().remove(key);
     }
 
     /**
@@ -371,7 +369,7 @@ public class Njams{
      */
     @Deprecated
     public <T> Serializer<T> getSerializer(final Class<T> key) {
-        return njamsSerializers.get(key);
+        return getNjamsSerializers().get(key);
     }
 
     /**
@@ -383,7 +381,7 @@ public class Njams{
      */
     @Deprecated
     public <T> String serialize(final T t) {
-        return njamsSerializers.serialize(t);
+        return getNjamsSerializers().serialize(t);
     }
 
     /**
@@ -395,7 +393,7 @@ public class Njams{
      */
     @Deprecated
     public <T> Serializer<? super T> findSerializer(final Class<T> clazz) {
-        return njamsSerializers.find(clazz);
+        return getNjamsSerializers().find(clazz);
     }
 
 //################################### Configuration
