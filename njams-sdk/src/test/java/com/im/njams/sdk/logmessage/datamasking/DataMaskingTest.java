@@ -109,7 +109,7 @@ public class DataMaskingTest {
         properties.put(DataMasking.DATA_MASKING_REGEX_PREFIX + "creditcard", "Creditcard Number : \\p{Digit}+");
         properties.put("SomeOtherString", ".*");
         DataMasking.addPatterns(properties);
-        final String maskedString1 = DataMasking.maskString("Creditcard Number : 1234");
+        final String maskedString1 = DataMasking.getGlobalNjamsDataMasking().mask("Creditcard Number : 1234");
         final String maskedString2 = DataMasking.maskString("Anything else");
         assertEquals("************************", maskedString1);
         assertEquals("Anything else", maskedString2);

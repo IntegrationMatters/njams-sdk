@@ -485,7 +485,7 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
      */
     @Override
     public void setInput(String input) {
-        super.setInput(DataMasking.maskString(input));
+        super.setInput(DataMasking.getGlobalNjamsDataMasking().mask(input));
     }
 
     /**
@@ -495,7 +495,7 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
      */
     @Override
     public void setOutput(String output) {
-        super.setOutput(DataMasking.maskString(output));
+        super.setOutput(DataMasking.getGlobalNjamsDataMasking().mask(output));
     }
 
     /**
@@ -573,7 +573,7 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
      */
     @Override
     public void setStartData(String startData) {
-        String maskedStartData = DataMasking.maskString(startData);
+        String maskedStartData = DataMasking.getGlobalNjamsDataMasking().mask(startData);
         super.setStartData(maskedStartData);
         if (maskedStartData != null) {
             int startDataSize = maskedStartData.length();

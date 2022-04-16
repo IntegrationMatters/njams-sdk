@@ -395,7 +395,7 @@ public class ExtractHandler {
     }
 
     private static void setAttributes(Job job, ActivityImpl activity, String setting, String uncheckedvalue) {
-        String value = DataMasking.maskString(uncheckedvalue);
+        String value = DataMasking.getGlobalNjamsDataMasking().mask(uncheckedvalue);
         LOG.debug("nJAMS: setAttributes: {}/{}", setting, value);
 
         String settingLowerCase = setting.toLowerCase();

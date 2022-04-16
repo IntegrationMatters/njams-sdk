@@ -59,7 +59,7 @@ public class NjamsDataMaskingStartWithConfigurationTest {
 
     @Test
     public void withDataMasking_disabled_andMaskEverythingPattern_doesNotAffectTheString() {
-        settings.put(DataMasking.DATA_MASKING_ENABLED, "false");
+        settings.put(NjamsDataMasking.DATA_MASKING_ENABLED, "false");
         configurationDataMasking.add(".*");
 
         NjamsDataMasking.start(settings, configuration);
@@ -69,7 +69,7 @@ public class NjamsDataMaskingStartWithConfigurationTest {
 
     @Test
     public void withDataMasking_enabled_withoutAnyMaskingPattern_doesNotAffectTheString() {
-        settings.put(DataMasking.DATA_MASKING_ENABLED, "true");
+        settings.put(NjamsDataMasking.DATA_MASKING_ENABLED, "true");
 
         NjamsDataMasking.start(settings, configuration);
         assertEquals("Hello", DataMasking.maskString("Hello"));

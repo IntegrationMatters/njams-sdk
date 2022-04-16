@@ -30,8 +30,8 @@ public class NjamsDataMaskingStartWithSettingsAndConfigurationTest {
 
     @Test
     public void withDataMasking_disabled_configurationAndSettingsPatterns_areDisabled() {
-        settings.put(DataMasking.DATA_MASKING_ENABLED, "false");
-        settings.put(DataMasking.DATA_MASKING_REGEX_PREFIX + "MaskAll", ".*");
+        settings.put(NjamsDataMasking.DATA_MASKING_ENABLED, "false");
+        settings.put(NjamsDataMasking.DATA_MASKING_REGEX_PREFIX + "MaskAll", ".*");
         configurationDataMasking.add(".*");
 
         NjamsDataMasking.start(settings, configuration);
@@ -41,8 +41,8 @@ public class NjamsDataMaskingStartWithSettingsAndConfigurationTest {
 
     @Test
     public void withDataMasking_enabled_configurationAndSettingsPatterns_areBothUsed(){
-        settings.put(DataMasking.DATA_MASKING_ENABLED, "true");
-        settings.put(DataMasking.DATA_MASKING_REGEX_PREFIX + "MaskOnlyForSettings", "Settings");
+        settings.put(NjamsDataMasking.DATA_MASKING_ENABLED, "true");
+        settings.put(NjamsDataMasking.DATA_MASKING_REGEX_PREFIX + "MaskOnlyForSettings", "Settings");
         configurationDataMasking.add("configuration");
 
         NjamsDataMasking.start(settings, configuration);

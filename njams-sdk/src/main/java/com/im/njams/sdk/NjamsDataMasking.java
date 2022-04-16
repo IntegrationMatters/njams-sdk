@@ -14,11 +14,9 @@ import java.util.regex.Matcher;
 
 public class NjamsDataMasking {
 
-    private static final String MASK_CHAR = "*";
-
     private static final org.slf4j.Logger LOG = LoggerFactory.getLogger(NjamsDataMasking.class);
 
-
+    private static final String MASK_CHAR = "*";
 
     /**
      * Property njams.sdk.datamasking.enabled
@@ -29,7 +27,6 @@ public class NjamsDataMasking {
      * Property njams.sdk.datamasking.regex.
      */
     public static final String DATA_MASKING_REGEX_PREFIX = "njams.sdk.datamasking.regex.";
-
 
     private final List<DataMaskingType> dataMaskingTypes = new ArrayList<>();
 
@@ -43,7 +40,7 @@ public class NjamsDataMasking {
      */
     @Deprecated
     public static void start(Settings settings, Configuration configuration) {
-        DataMasking.setNjamsDataMaskingIfAbsent(createFrom(settings, configuration));
+        DataMasking.setNjamsDataMaskingIfAbsentOrMerge(createFrom(settings, configuration));
     }
 
     /**
@@ -68,7 +65,7 @@ public class NjamsDataMasking {
     private static boolean isDataMaskingEnabled(Settings settings) {
         boolean dataMaskingEnabled = true;
         if (settings != null) {
-            dataMaskingEnabled = Boolean.parseBoolean(settings.getProperty(DataMasking.DATA_MASKING_ENABLED, "true"));
+            dataMaskingEnabled = Boolean.parseBoolean(settings.getProperty(DATA_MASKING_ENABLED, "true"));
         }
         return dataMaskingEnabled;
     }
@@ -123,7 +120,7 @@ public class NjamsDataMasking {
         LOG.warn("DataMasking via the configuration is deprecated but will be used as well. Use settings " +
                  "with the properties \n{} = " +
                  "\"true\" \nand multiple \n{}<YOUR-REGEX-NAME> = <YOUR-REGEX> \nfor this.",
-            DataMasking.DATA_MASKING_ENABLED, DataMasking.DATA_MASKING_REGEX_PREFIX);
+            DATA_MASKING_ENABLED, DATA_MASKING_REGEX_PREFIX);
     }
 
     /**

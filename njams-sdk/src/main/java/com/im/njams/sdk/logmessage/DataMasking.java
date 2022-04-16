@@ -36,7 +36,6 @@ import com.im.njams.sdk.NjamsDataMasking;
 @Deprecated
 public class DataMasking {
 
-
     /**
      * Property njams.sdk.datamasking.enabled
      */
@@ -48,16 +47,19 @@ public class DataMasking {
      */
     @Deprecated
     public static final String DATA_MASKING_REGEX_PREFIX = NjamsDataMasking.DATA_MASKING_REGEX_PREFIX;
-    @Deprecated
+
     private static NjamsDataMasking globalDataMaskingInstance;
 
-    @Deprecated
-    public static void setNjamsDataMaskingIfAbsent(NjamsDataMasking globalDataMaskingInstance) {
+    public static void setNjamsDataMaskingIfAbsentOrMerge(NjamsDataMasking globalDataMaskingInstance) {
         if(DataMasking.globalDataMaskingInstance == null){
             DataMasking.globalDataMaskingInstance = globalDataMaskingInstance;
         }else if(globalDataMaskingInstance != null){
             DataMasking.globalDataMaskingInstance.mergeWith(globalDataMaskingInstance);
         }
+    }
+
+    public static NjamsDataMasking getGlobalNjamsDataMasking(){
+        return globalDataMaskingInstance;
     }
 
     /**
