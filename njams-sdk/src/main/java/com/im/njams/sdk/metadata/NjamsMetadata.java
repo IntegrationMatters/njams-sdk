@@ -54,6 +54,10 @@ public class NjamsMetadata {
         return Objects.equals(getClientPath(), other.getClientPath());
     }
 
+    public Map<String, String> getAllVersions(){
+        return njamsVersion.getAllVersions();
+    }
+
     public String getClientVersion(){
         return njamsVersion.getClientVersion();
     }
@@ -74,15 +78,7 @@ public class NjamsMetadata {
         return category;
     }
 
-    public NjamsVersions getNjamsVersion() {
-        return njamsVersion;
-    }
-
     public String getCurrentYear() {
         return currentYear;
-    }
-
-    public Map<String, String> getAllVersions(){
-        return njamsVersion.getAllVersions();
     }
 }

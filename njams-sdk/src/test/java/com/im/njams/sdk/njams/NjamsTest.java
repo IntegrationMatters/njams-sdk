@@ -24,7 +24,6 @@ import static org.junit.Assert.assertThrows;
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.communication.TestReceiver;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
@@ -51,7 +50,6 @@ public class NjamsTest {
 
     }
 
-    @Ignore
     @Test
     public void testStartStopStart() {
         njams.start();

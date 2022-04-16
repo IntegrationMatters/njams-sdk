@@ -74,16 +74,10 @@ public class Njams{
      * @param settings needed for client initialization of communication, sending intervals and sizes, etc.
      */
     public Njams(Path clientPath, String defaultClientVersion, String category, Settings settings) {
-        if(clientPath == null)
-            throw new NjamsSdkRuntimeException("Client path need to be provided!");
-        else
-            njamsMetadata = NjamsMetadataFactory.createMetadataWith(clientPath, defaultClientVersion, category);
+        validate(settings);
+        this.settings = settings;
 
-        if (settings == null)
-            throw new NjamsSdkRuntimeException("Settings need to be provided!");
-        else
-            this.settings = settings;
-
+        njamsMetadata = NjamsMetadataFactory.createMetadataWith(clientPath, defaultClientVersion, category);
         njamsArgos = new NjamsArgos(settings);
         njamsSerializers = new NjamsSerializers();
         njamsState = new NjamsState();
@@ -97,6 +91,15 @@ public class Njams{
             njamsConfiguration);
 
         printStartupBanner();
+    }
+
+    private void validate(Settings settings) {
+        if (settings == null)
+            throw new NjamsSdkRuntimeException("Settings need to be provided!");
+    }
+
+    public Njams(Path clientPath, Settings settings) {
+        this(clientPath, null, "SDK", settings);
     }
 
     private void printStartupBanner() {

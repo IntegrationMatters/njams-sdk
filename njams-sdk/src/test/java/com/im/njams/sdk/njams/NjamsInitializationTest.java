@@ -12,18 +12,17 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertThrows;
 
 public class NjamsInitializationTest {
+    @Test
+    public void withoutPath_throwsAnNjamsSdkRuntimeException(){
+        NjamsSdkRuntimeException njamsSdkRuntimeException = assertThrows(NjamsSdkRuntimeException.class,
+            () -> new Njams(null, new Settings()));
+        assertThat(njamsSdkRuntimeException.getMessage(), is(equalTo("Client path need to be provided!")));
+    }
 
     @Test
     public void withoutSettings_throwsAnNjamsSdkRuntimeException(){
         NjamsSdkRuntimeException njamsSdkRuntimeException = assertThrows(NjamsSdkRuntimeException.class,
-            () -> new Njams(new Path(), "", "", null));
+            () -> new Njams(new Path(), null));
         assertThat(njamsSdkRuntimeException.getMessage(), is(equalTo("Settings need to be provided!")));
-    }
-
-    @Test
-    public void withoutPath_throwsAnNjamsSdkRuntimeException(){
-        NjamsSdkRuntimeException njamsSdkRuntimeException = assertThrows(NjamsSdkRuntimeException.class,
-            () -> new Njams(null, "", "", new Settings()));
-        assertThat(njamsSdkRuntimeException.getMessage(), is(equalTo("Client path need to be provided!")));
     }
 }

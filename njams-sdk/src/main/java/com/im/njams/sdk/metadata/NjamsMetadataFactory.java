@@ -20,6 +20,7 @@
 
 package com.im.njams.sdk.metadata;
 
+import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.common.Path;
 import org.slf4j.LoggerFactory;
 
@@ -45,6 +46,7 @@ public class NjamsMetadataFactory {
     }
 
     public static NjamsMetadata createMetadataWith(Path clientPath, String defaultClientVersion, String category) {
+        validate(clientPath);
         Map<String, String> classpathVersions = readNjamsVersionsFiles();
         final String CURRENT_YEAR = "currentYear";
         String currentYear = classpathVersions.remove(CURRENT_YEAR);
@@ -52,6 +54,12 @@ public class NjamsMetadataFactory {
 
         return new NjamsMetadata(clientPath, njamsVersions, currentYear, readMachine(), category);
     }
+
+    private static void validate(Path clientPath) {
+        if(clientPath == null)
+            throw new NjamsSdkRuntimeException("Client path need to be provided!");
+    }
+
 
     private static Map<String, String> readNjamsVersionsFiles() {
         try {
