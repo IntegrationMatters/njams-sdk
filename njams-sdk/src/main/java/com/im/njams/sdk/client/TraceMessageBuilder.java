@@ -17,6 +17,7 @@
 package com.im.njams.sdk.client;
 
 import com.faizsiegeln.njams.messageformat.v4.tracemessage.*;
+import com.im.njams.sdk.metadata.NjamsMetadata;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -48,10 +49,10 @@ public class TraceMessageBuilder {
         if(!processes.isEmpty()){
             msg = new TraceMessage();
             //Set CommonMessage fields
-            msg.setClientVersion(njamsMetadata.clientVersion);
-            msg.setSdkVersion(njamsMetadata.sdkVersion);
-            msg.setCategory(njamsMetadata.category);
-            msg.setPath(njamsMetadata.clientPath.toString());
+            msg.setClientVersion(njamsMetadata.getClientVersion());
+            msg.setSdkVersion(njamsMetadata.getSdkVersion());
+            msg.setCategory(njamsMetadata.getCategory());
+            msg.setPath(njamsMetadata.getClientPath().toString());
             for(String processPath : processes.keySet()){
                 ProcessModel processModel = new ProcessModel();
                 processModel.setProcessPath(processPath);

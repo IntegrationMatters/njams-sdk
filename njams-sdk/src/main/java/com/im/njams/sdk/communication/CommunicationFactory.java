@@ -17,8 +17,7 @@
 package com.im.njams.sdk.communication;
 
 import com.im.njams.sdk.NjamsInstructionListeners;
-import com.im.njams.sdk.NjamsReceiver;
-import com.im.njams.sdk.client.NjamsMetadata;
+import com.im.njams.sdk.metadata.NjamsMetadata;
 import com.im.njams.sdk.settings.Settings;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -121,7 +120,7 @@ public class CommunicationFactory {
     private Receiver createReceiver(Class<? extends Receiver> clazz, NjamsMetadata metadata, NjamsInstructionListeners njamsInstructionListeners, boolean shared, String name) {
         try {
             Properties properties = settings.getAllProperties();
-            properties.setProperty(Settings.INTERNAL_PROPERTY_CLIENTPATH, metadata.clientPath.toString());
+            properties.setProperty(Settings.INTERNAL_PROPERTY_CLIENTPATH, metadata.getClientPath().toString());
             Receiver receiver;
             if (shared && ShareableReceiver.class.isAssignableFrom(clazz)) {
                 synchronized (sharedReceivers) {

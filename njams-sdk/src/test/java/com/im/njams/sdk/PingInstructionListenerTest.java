@@ -4,11 +4,11 @@ import com.faizsiegeln.njams.messageformat.v4.command.Command;
 import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
 import com.faizsiegeln.njams.messageformat.v4.command.Request;
 import com.faizsiegeln.njams.messageformat.v4.command.Response;
-import com.im.njams.sdk.client.NjamsMetadata;
-import com.im.njams.sdk.client.NjamsMetadataFactory;
 import com.im.njams.sdk.common.Path;
 import com.im.njams.sdk.communication.PingInstructionListener;
 import com.im.njams.sdk.logmessage.NjamsFeatures;
+import com.im.njams.sdk.metadata.NjamsMetadata;
+import com.im.njams.sdk.metadata.NjamsMetadataFactory;
 import org.junit.Test;
 
 import java.util.Map;
@@ -29,10 +29,9 @@ public class PingInstructionListenerTest {
 
     private NjamsMetadata createTestMetadata() {
         final Path clientPath = new Path("Test", "Path", "for", "ping");
-        final String clientVersion = "1.0.0";
-        final String sdkVersion = "5.0.0";
+        final String defaultClientVersion = "1.0.0";
         final String category = "SDK";
-        final NjamsMetadata testMetadata = NjamsMetadataFactory.createMetadataFor(clientPath, clientVersion, sdkVersion,
+        final NjamsMetadata testMetadata = NjamsMetadataFactory.createMetadataWith(clientPath, defaultClientVersion,
             category);
         return testMetadata;
     }
@@ -64,7 +63,7 @@ public class PingInstructionListenerTest {
         final Map<String, String> responseParameters = resp.getParameters();
         assertEquals(">Test>Path>for>ping>", responseParameters.get("clientPath"));
         assertEquals("1.0.0", responseParameters.get("clientVersion"));
-        assertEquals("5.0.0", responseParameters.get("sdkVersion"));
+        assertNotNull(responseParameters.get("sdkVersion"));
         assertEquals("SDK", responseParameters.get("category"));
         assertEquals("expressionTest,ping,replay,injection", responseParameters.get("features"));
 

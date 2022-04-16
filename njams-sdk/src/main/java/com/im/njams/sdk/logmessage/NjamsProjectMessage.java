@@ -9,7 +9,7 @@ import com.faizsiegeln.njams.messageformat.v4.projectmessage.LogMode;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.ProjectMessage;
 import com.im.njams.sdk.NjamsConfiguration;
 import com.im.njams.sdk.NjamsSender;
-import com.im.njams.sdk.client.NjamsMetadata;
+import com.im.njams.sdk.metadata.NjamsMetadata;
 import com.im.njams.sdk.common.DateTimeUtility;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.common.Path;
@@ -99,7 +99,7 @@ public class NjamsProjectMessage implements InstructionListener {
         this.jobs = jobs;
         this.serializers = serializers;
 
-        createTreeElements(instanceMetadata.clientPath, TreeElementType.CLIENT);
+        createTreeElements(instanceMetadata.getClientPath(), TreeElementType.CLIENT);
     }
 
     private ProcessDiagramFactory createProcessDiagramFactory() {
@@ -135,12 +135,12 @@ public class NjamsProjectMessage implements InstructionListener {
         final ProjectMessage msg = new ProjectMessage();
         setStarters();
         msg.getTreeElements().addAll(treeElements);
-        msg.setPath(instanceMetadata.clientPath.toString());
-        msg.setClientVersion(instanceMetadata.clientVersion);
-        msg.setSdkVersion(instanceMetadata.sdkVersion);
-        msg.setCategory(instanceMetadata.category);
+        msg.setPath(instanceMetadata.getClientPath().toString());
+        msg.setClientVersion(instanceMetadata.getClientVersion());
+        msg.setSdkVersion(instanceMetadata.getSdkVersion());
+        msg.setCategory(instanceMetadata.getCategory());
         msg.setStartTime(startTime);
-        msg.setMachine(instanceMetadata.machine);
+        msg.setMachine(instanceMetadata.getMachine());
         msg.setFeatures(features.get());
         msg.setLogMode(njamsConfiguration.getLogMode());
         synchronized (processModels) {
@@ -259,16 +259,16 @@ public class NjamsProjectMessage implements InstructionListener {
             throw new NjamsSdkRuntimeException("Njams is not started. Please use createProcess Method instead");
         }
         final ProjectMessage msg = new ProjectMessage();
-        msg.setPath(instanceMetadata.clientPath.toString());
-        msg.setClientVersion(instanceMetadata.clientVersion);
-        msg.setSdkVersion(instanceMetadata.sdkVersion);
-        msg.setCategory(instanceMetadata.category);
+        msg.setPath(instanceMetadata.getClientPath().toString());
+        msg.setClientVersion(instanceMetadata.getClientVersion());
+        msg.setSdkVersion(instanceMetadata.getSdkVersion());
+        msg.setCategory(instanceMetadata.getCategory());
         msg.setStartTime(startTime);
-        msg.setMachine(instanceMetadata.machine);
+        msg.setMachine(instanceMetadata.getMachine());
         msg.setFeatures(features.get());
         msg.setLogMode(njamsConfiguration.getLogMode());
 
-        addTreeElements(msg.getTreeElements(), instanceMetadata.clientPath, TreeElementType.CLIENT, false);
+        addTreeElements(msg.getTreeElements(), instanceMetadata.getClientPath(), TreeElementType.CLIENT, false);
         addTreeElements(msg.getTreeElements(), model.getPath(), TreeElementType.PROCESS, model.isStarter());
 
         msg.getProcesses().add(model.getSerializableProcessModel());
@@ -318,7 +318,7 @@ public class NjamsProjectMessage implements InstructionListener {
             throw new NjamsSdkRuntimeException("ProcessModel not found for path " + path);
         }
 
-        final List<String> parts = Stream.of(instanceMetadata.clientPath, path).map(Path::getParts)
+        final List<String> parts = Stream.of(instanceMetadata.getClientPath(), path).map(Path::getParts)
             .flatMap(List::stream).collect(toList());
         synchronized (processModels) {
             final ProcessModel processModel = processModels.get(new Path(parts).toString());
@@ -337,7 +337,7 @@ public class NjamsProjectMessage implements InstructionListener {
         if (path == null) {
             return false;
         }
-        final List<String> parts = Stream.of(instanceMetadata.clientPath, path).map(Path::getParts)
+        final List<String> parts = Stream.of(instanceMetadata.getClientPath(), path).map(Path::getParts)
             .flatMap(List::stream).collect(toList());
         synchronized (processModels) {
             final ProcessModel processModel = processModels.get(new Path(parts).toString());
@@ -376,7 +376,7 @@ public class NjamsProjectMessage implements InstructionListener {
      * @return the new ProcessModel or a {@link NjamsSdkRuntimeException}
      */
     public ProcessModel createProcess(final Path path) {
-        final Path fullClientPath = path.addBase(instanceMetadata.clientPath);
+        final Path fullClientPath = path.addBase(instanceMetadata.getClientPath());
         ProcessModelUtils processModelUtils = new ProcessModelUtils(jobs, instanceMetadata, serializers,
             njamsConfiguration,
             settings, processDiagramFactory, processModelLayouter, njamsSender);
@@ -401,7 +401,7 @@ public class NjamsProjectMessage implements InstructionListener {
         if (processModel.getNjamsMetadata().equals(instanceMetadata)) {
             throw new NjamsSdkRuntimeException("Process model has been created for a different nJAMS instance.");
         }
-        final List<String> clientParts = instanceMetadata.clientPath.getParts();
+        final List<String> clientParts = instanceMetadata.getClientPath().getParts();
         final List<String> prefix = processModel.getPath().getParts().subList(0, clientParts.size());
         if (!clientParts.equals(prefix)) {
             throw new NjamsSdkRuntimeException("Process model path does not match this nJAMS instance.");

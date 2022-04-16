@@ -23,6 +23,7 @@ import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import com.im.njams.sdk.metadata.NjamsMetadata;
 import com.im.njams.sdk.logmessage.NjamsJobs;
 import com.im.njams.sdk.settings.Settings;
 import org.slf4j.Logger;
@@ -59,7 +60,7 @@ public class LogMessageFlushTask extends TimerTask {
         if (njamsMetadata == null) {
             throw new NjamsSdkRuntimeException("Start: Njams Metadata is null");
         }
-        if (njamsMetadata.clientPath == null) {
+        if (njamsMetadata.getClientPath() == null) {
             throw new NjamsSdkRuntimeException("Start: Njams clientPath is null");
         }
 
@@ -68,7 +69,7 @@ public class LogMessageFlushTask extends TimerTask {
             timer.scheduleAtFixedRate(new LogMessageFlushTask(), 1000, 1000);
         }
 
-        NJAMS_INSTANCES.put(njamsMetadata.clientPath.toString(), new LogMessageFlushTaskEntry(njamsJobs, settings));
+        NJAMS_INSTANCES.put(njamsMetadata.getClientPath().toString(), new LogMessageFlushTaskEntry(njamsJobs, settings));
     }
 
     /**
@@ -82,10 +83,10 @@ public class LogMessageFlushTask extends TimerTask {
         if (njamsMetadata == null) {
             throw new NjamsSdkRuntimeException("Stop: Njams Metadata is null");
         }
-        if (njamsMetadata.clientPath == null) {
+        if (njamsMetadata.getClientPath() == null) {
             throw new NjamsSdkRuntimeException("Stop: Njams clientPath is null");
         }
-        LogMessageFlushTaskEntry entry = NJAMS_INSTANCES.remove(njamsMetadata.clientPath.toString());
+        LogMessageFlushTaskEntry entry = NJAMS_INSTANCES.remove(njamsMetadata.getClientPath().toString());
         if (entry != null) {
             NjamsJobs njamsJobs = entry.getNjamsJobs();
             njamsJobs.get().forEach(job -> ((JobImpl) job).flush());
@@ -93,7 +94,7 @@ public class LogMessageFlushTask extends TimerTask {
         } else {
             LOG.warn(
                     "The LogMessageFlushTask hasn't been started before stopping for this instance: {}. Did not flush...",
-                njamsMetadata.clientPath);
+                njamsMetadata.getClientPath());
         }
         if (NJAMS_INSTANCES.size() <= 0 && timer != null) {
             timer.cancel();

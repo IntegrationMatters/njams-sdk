@@ -2,7 +2,7 @@ package com.im.njams.sdk.logmessage;
 
 import com.im.njams.sdk.NjamsConfiguration;
 import com.im.njams.sdk.NjamsSender;
-import com.im.njams.sdk.client.NjamsMetadata;
+import com.im.njams.sdk.metadata.NjamsMetadata;
 import com.im.njams.sdk.serializer.NjamsSerializers;
 import com.im.njams.sdk.settings.Settings;
 

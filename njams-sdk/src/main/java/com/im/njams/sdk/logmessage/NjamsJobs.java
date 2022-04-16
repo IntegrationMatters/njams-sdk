@@ -4,7 +4,7 @@ import com.faizsiegeln.njams.messageformat.v4.command.Command;
 import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
 import com.faizsiegeln.njams.messageformat.v4.command.Response;
 import com.im.njams.sdk.client.LogMessageFlushTask;
-import com.im.njams.sdk.client.NjamsMetadata;
+import com.im.njams.sdk.metadata.NjamsMetadata;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.communication.AbstractReplayHandler;
 import com.im.njams.sdk.communication.InstructionListener;

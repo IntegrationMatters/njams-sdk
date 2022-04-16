@@ -23,7 +23,6 @@ import com.faizsiegeln.njams.messageformat.v4.tracemessage.ProcessModel;
 import com.faizsiegeln.njams.messageformat.v4.tracemessage.TraceMessage;
 import com.im.njams.sdk.AbstractTest;
 import com.im.njams.sdk.configuration.TracepointExt;
-import org.junit.Before;
 import org.junit.Test;
 
 import java.time.LocalDateTime;
@@ -44,7 +43,7 @@ public class TraceMessageBuilderTest extends AbstractTest {
     private String FULLPROCESSPATHNAME;
 
     public TraceMessageBuilderTest(){
-        FULLPROCESSPATHNAME = njams.getNjamsMetadata().clientPath.add(PROCESSPATHNAME).toString();
+        FULLPROCESSPATHNAME = njams.getNjamsMetadata().getClientPath().add(PROCESSPATHNAME).toString();
     }
 
     @Test
@@ -83,9 +82,9 @@ public class TraceMessageBuilderTest extends AbstractTest {
 
     private void checkTraceMessage(TraceMessage message, LocalDateTime ldt1, LocalDateTime ldt2) {
         assertEquals(message.getClientVersion(), CLIENTVERSION);
-        assertEquals(message.getSdkVersion(), njams.getNjamsMetadata().sdkVersion);
+        assertEquals(message.getSdkVersion(), njams.getNjamsMetadata().getSdkVersion());
         assertEquals(message.getCategory(), CATEGORY);
-        assertEquals(message.getPath(), njams.getNjamsMetadata().clientPath.toString());
+        assertEquals(message.getPath(), njams.getNjamsMetadata().getClientPath().toString());
 
         List<ProcessModel> processes = message.getProcesses();
         assertNotNull(processes);

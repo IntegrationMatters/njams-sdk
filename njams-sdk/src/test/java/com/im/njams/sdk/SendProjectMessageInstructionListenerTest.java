@@ -4,7 +4,6 @@ import com.faizsiegeln.njams.messageformat.v4.command.Command;
 import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
 import com.faizsiegeln.njams.messageformat.v4.command.Request;
 import com.faizsiegeln.njams.messageformat.v4.command.Response;
-import com.im.njams.sdk.client.NjamsMetadataFactory;
 import com.im.njams.sdk.common.Path;
 import com.im.njams.sdk.communication.TestSender;
 import com.im.njams.sdk.configuration.Configuration;
@@ -12,6 +11,7 @@ import com.im.njams.sdk.logmessage.NjamsFeatures;
 import com.im.njams.sdk.logmessage.NjamsJobs;
 import com.im.njams.sdk.logmessage.NjamsProjectMessage;
 import com.im.njams.sdk.logmessage.NjamsState;
+import com.im.njams.sdk.metadata.NjamsMetadataFactory;
 import com.im.njams.sdk.serializer.NjamsSerializers;
 import com.im.njams.sdk.settings.Settings;
 import org.junit.Test;
@@ -24,7 +24,8 @@ public class SendProjectMessageInstructionListenerTest {
 
     @Test
     public void testOnCorrectSendProjectMessageInstruction() {
-        NjamsProjectMessage projectMessage = new NjamsProjectMessage(NjamsMetadataFactory.createMetadataFor(new Path(), "bla", "blub", "bla2"), new NjamsFeatures(), new NjamsConfiguration(new Configuration(), null, null, null), new NjamsSender(new TestSender()), new NjamsState(), new NjamsJobs(null, new NjamsState(), new NjamsFeatures(), null), new NjamsSerializers(),
+        NjamsProjectMessage projectMessage = new NjamsProjectMessage(
+            NjamsMetadataFactory.createMetadataWith(new Path(), "blub", "bla2"), new NjamsFeatures(), new NjamsConfiguration(new Configuration(), null, null, null), new NjamsSender(new TestSender()), new NjamsState(), new NjamsJobs(null, new NjamsState(), new NjamsFeatures(), null), new NjamsSerializers(),
             new Settings());
 
         Instruction inst = new Instruction();

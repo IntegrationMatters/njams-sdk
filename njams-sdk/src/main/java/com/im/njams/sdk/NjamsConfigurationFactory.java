@@ -1,10 +1,10 @@
 package com.im.njams.sdk;
 
-import com.im.njams.sdk.client.NjamsMetadata;
 import com.im.njams.sdk.configuration.Configuration;
 import com.im.njams.sdk.configuration.ConfigurationProvider;
 import com.im.njams.sdk.configuration.ConfigurationProviderFactory;
 import com.im.njams.sdk.configuration.provider.FileConfigurationProvider;
+import com.im.njams.sdk.metadata.NjamsMetadata;
 import com.im.njams.sdk.settings.Settings;
 
 public class NjamsConfigurationFactory {

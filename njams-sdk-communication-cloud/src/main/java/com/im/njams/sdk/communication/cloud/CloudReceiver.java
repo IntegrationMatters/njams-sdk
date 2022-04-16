@@ -24,7 +24,7 @@ import com.faizsiegeln.njams.messageformat.v4.command.Request;
 import com.faizsiegeln.njams.messageformat.v4.command.Response;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.im.njams.sdk.client.NjamsMetadata;
+import com.im.njams.sdk.metadata.NjamsMetadata;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.communication.AbstractReceiver;
 import com.im.njams.sdk.communication.ConnectionStatus;
@@ -356,8 +356,8 @@ public class CloudReceiver extends AbstractReceiver {
             throws JsonProcessingException, AWSIotException {
         String topicName = "/onConnect/";
         OnConnectMessage onConnectMessage =
-                new OnConnectMessage(isShared, connectionId, instanceId, metadata.clientPath.toString(), metadata.clientVersion, metadata.sdkVersion, metadata.machine,
-                        metadata.category);
+                new OnConnectMessage(isShared, connectionId, instanceId, metadata.getClientPath().toString(), metadata.getClientVersion(), metadata.getSdkVersion(),
+                    metadata.getMachine(), metadata.getCategory());
 
         ObjectMapper objectMapper = new ObjectMapper();
 

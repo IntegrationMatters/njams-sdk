@@ -36,7 +36,7 @@ import java.util.regex.Pattern;
 
 import com.im.njams.sdk.NjamsConfiguration;
 import com.im.njams.sdk.NjamsSender;
-import com.im.njams.sdk.client.NjamsMetadataFactory;
+import com.im.njams.sdk.metadata.NjamsMetadataFactory;
 import com.im.njams.sdk.communication.CommunicationFactory;
 import com.im.njams.sdk.communication.Sender;
 import com.im.njams.sdk.communication.TestReceiver;
@@ -168,7 +168,7 @@ public class JobImplTest extends AbstractTest {
         njamsState.start();
 
         NjamsProjectMessage projectMessage = new NjamsProjectMessage(
-            NjamsMetadataFactory.createMetadataFor(clientPath, "bla", "blub", "bla2"), new NjamsFeatures(),
+            NjamsMetadataFactory.createMetadataWith(clientPath, "bla", "bla2"), new NjamsFeatures(),
             new NjamsConfiguration(new Configuration(), null, null, null), new NjamsSender(savingMock), new NjamsState(),
             new NjamsJobs(njams.getNjamsMetadata(), njamsState, new NjamsFeatures(), null), new NjamsSerializers(), settings);
 

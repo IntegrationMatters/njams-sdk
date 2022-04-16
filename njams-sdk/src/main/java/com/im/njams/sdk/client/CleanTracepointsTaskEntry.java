@@ -1,5 +1,6 @@
 package com.im.njams.sdk.client;
 
+import com.im.njams.sdk.metadata.NjamsMetadata;
 import com.im.njams.sdk.NjamsSender;
 import com.im.njams.sdk.configuration.Configuration;
 

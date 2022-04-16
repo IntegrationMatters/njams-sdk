@@ -1,15 +1,14 @@
 package com.im.njams.sdk;
 
-import com.im.njams.sdk.client.NjamsMetadata;
 import com.im.njams.sdk.communication.CommunicationFactory;
 import com.im.njams.sdk.communication.PingInstructionListener;
 import com.im.njams.sdk.communication.Receiver;
 import com.im.njams.sdk.communication.ShareableReceiver;
-import com.im.njams.sdk.configuration.Configuration;
 import com.im.njams.sdk.configuration.ConfigurationInstructionListener;
 import com.im.njams.sdk.logmessage.NjamsFeatures;
 import com.im.njams.sdk.logmessage.NjamsJobs;
 import com.im.njams.sdk.logmessage.NjamsProjectMessage;
+import com.im.njams.sdk.metadata.NjamsMetadata;
 import com.im.njams.sdk.settings.Settings;
 import org.slf4j.LoggerFactory;
 

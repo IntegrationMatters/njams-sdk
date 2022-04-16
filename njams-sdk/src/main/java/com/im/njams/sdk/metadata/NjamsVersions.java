@@ -1,4 +1,4 @@
-package com.im.njams.sdk;
+package com.im.njams.sdk.metadata;
 
 import org.slf4j.LoggerFactory;
 
@@ -9,14 +9,9 @@ class NjamsVersions {
 
     private static final org.slf4j.Logger LOG = LoggerFactory.getLogger(NjamsVersions.class);
 
-    /**
-     * Key for clientVersion
-     */
-    private static final String CLIENT_VERSION_KEY = "clientVersion";
-    /**
-     * Key for sdkVersion
-     */
-    private static final String SDK_VERSION_KEY = "sdkVersion";
+    static final String CLIENT_VERSION_KEY = "clientVersion";
+
+    static final String SDK_VERSION_KEY = "sdkVersion";
 
     private final Map<String, String> versions;
 

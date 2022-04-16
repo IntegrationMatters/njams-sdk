@@ -1,9 +1,8 @@
 package com.im.njams.sdk.communication;
 
 import com.im.njams.sdk.NjamsInstructionListeners;
-import com.im.njams.sdk.NjamsReceiver;
-import com.im.njams.sdk.client.NjamsMetadata;
-import com.im.njams.sdk.client.NjamsMetadataFactory;
+import com.im.njams.sdk.metadata.NjamsMetadata;
+import com.im.njams.sdk.metadata.NjamsMetadataFactory;
 import com.im.njams.sdk.common.Path;
 import com.im.njams.sdk.settings.Settings;
 import org.junit.Before;
@@ -49,7 +48,7 @@ public class CommunicationFactoryTest {
         firstReceiverIsFaulty_secondReceiverIsOk();
 
         final String NOT_NEEDED = null;
-        NjamsMetadata metadata = NjamsMetadataFactory.createMetadataFor(new Path("CLIENT_PATH"), NOT_NEEDED, NOT_NEEDED, NOT_NEEDED);
+        NjamsMetadata metadata = NjamsMetadataFactory.createMetadataWith(new Path("CLIENT_PATH"), NOT_NEEDED, NOT_NEEDED);
         NjamsInstructionListeners njamsInstructionListeners = new NjamsInstructionListeners();
         Receiver receiver = communicationFactory.getReceiver(metadata, njamsInstructionListeners);
 

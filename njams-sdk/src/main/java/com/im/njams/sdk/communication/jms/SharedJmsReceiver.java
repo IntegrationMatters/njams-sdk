@@ -56,7 +56,7 @@ public class SharedJmsReceiver extends JmsReceiver implements ShareableReceiver<
             return null;
         }
         final String selector = receiverInstances.stream()
-                .map(receiver -> receiver.getInstanceMetadata().clientPath).map(Path::getAllPaths)
+                .map(receiver -> receiver.getInstanceMetadata().getClientPath()).map(Path::getAllPaths)
                 .flatMap(Collection::stream).collect(Collectors.toSet()).stream().map(Object::toString).sorted()
                 .collect(Collectors.joining("' OR NJAMS_RECEIVER = '", "NJAMS_RECEIVER = '", "'"));
         LOG.debug("Updated message selector: {}", selector);

@@ -554,7 +554,6 @@ public class JobImpl implements Job {
      * This method creates the LogMessage that will be send to the server and
      * fills it with the attributes of the job.
      *
-     * @param job the job whose fields will be send
      * @return the created and with the job's information filled logMessage
      */
     private LogMessage createLogMessage() {
@@ -562,14 +561,14 @@ public class JobImpl implements Job {
         LogMessage logMessage = new LogMessage();
         logMessage.setBusinessEnd(businessEnd);
         logMessage.setBusinessStart(businessStart);
-        logMessage.setCategory(jobUtils.instanceMetaData.category);
+        logMessage.setCategory(jobUtils.instanceMetaData.getCategory());
         logMessage.setCorrelationLogId(correlationLogId);
         logMessage.setExternalLogId(externalLogId);
         logMessage.setJobEnd(endTime);
         logMessage.setJobId(jobId);
         logMessage.setJobStart(startTime);
         logMessage.setLogId(logId);
-        logMessage.setMachineName(jobUtils.instanceMetaData.machine);
+        logMessage.setMachineName(jobUtils.instanceMetaData.getMachine());
         logMessage.setMaxSeverity(maxSeverity.getValue());
         logMessage.setMessageNo(flushCounter.get());
         logMessage.setObjectName(businessObject);
@@ -578,8 +577,8 @@ public class JobImpl implements Job {
         logMessage.setProcessName(processModel.getName());
         logMessage.setStatus(getStatus().getValue());
         logMessage.setServiceName(businessService);
-        logMessage.setClientVersion(jobUtils.instanceMetaData.clientVersion);
-        logMessage.setSdkVersion(jobUtils.instanceMetaData.sdkVersion);
+        logMessage.setClientVersion(jobUtils.instanceMetaData.getClientVersion());
+        logMessage.setSdkVersion(jobUtils.instanceMetaData.getSdkVersion());
 
         pluginDataItems.forEach(i -> logMessage.addPluginDataItem(i));
         return logMessage;

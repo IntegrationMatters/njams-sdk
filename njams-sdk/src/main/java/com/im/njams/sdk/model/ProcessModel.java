@@ -24,7 +24,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import com.im.njams.sdk.client.NjamsMetadata;
+import com.im.njams.sdk.metadata.NjamsMetadata;
 import com.im.njams.sdk.logmessage.JobUtils;
 import com.im.njams.sdk.settings.Settings;
 import org.slf4j.Logger;
@@ -128,7 +128,7 @@ public class ProcessModel {
     }
 
     public String getCategory(){
-        return processModelUtils.instanceMetaData.category;
+        return processModelUtils.instanceMetaData.getCategory();
     }
 
     /**

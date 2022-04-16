@@ -2,9 +2,9 @@ package com.im.njams.sdk;
 
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.LogMode;
 import com.im.njams.sdk.client.CleanTracepointsTask;
-import com.im.njams.sdk.client.NjamsMetadata;
 import com.im.njams.sdk.configuration.Configuration;
 import com.im.njams.sdk.configuration.ProcessConfiguration;
+import com.im.njams.sdk.metadata.NjamsMetadata;
 import com.im.njams.sdk.settings.Settings;
 
 import java.util.Map;

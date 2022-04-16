@@ -25,11 +25,12 @@ package com.im.njams.sdk;
 
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.LogMode;
 import com.im.njams.sdk.argos.*;
-import com.im.njams.sdk.client.*;
 import com.im.njams.sdk.common.*;
 import com.im.njams.sdk.communication.*;
 import com.im.njams.sdk.configuration.Configuration;
 import com.im.njams.sdk.logmessage.*;
+import com.im.njams.sdk.metadata.NjamsMetadata;
+import com.im.njams.sdk.metadata.NjamsMetadataFactory;
 import com.im.njams.sdk.model.ProcessModel;
 import com.im.njams.sdk.model.image.*;
 import com.im.njams.sdk.model.layout.ProcessModelLayouter;
@@ -38,8 +39,6 @@ import com.im.njams.sdk.serializer.*;
 import com.im.njams.sdk.settings.Settings;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
-import java.net.URL;
 import java.util.*;
 
 import static com.im.njams.sdk.logmessage.NjamsState.NOT_STARTED_EXCEPTION_MESSAGE;
@@ -53,10 +52,8 @@ public class Njams{
     private static final org.slf4j.Logger LOG = LoggerFactory.getLogger(Njams.class);
 
     private final Settings settings;
-    private final String currentYear;
 
     private final NjamsArgos njamsArgos;
-    private final NjamsVersions njamsVersions;
     private final NjamsMetadata njamsMetadata;
     private final NjamsSerializers njamsSerializers;
     private final NjamsState njamsState;
@@ -77,100 +74,44 @@ public class Njams{
      * @param settings needed for client initialization of communication, sending intervals and sizes, etc.
      */
     public Njams(Path clientPath, String defaultClientVersion, String category, Settings settings) {
+        if(clientPath == null)
+            throw new NjamsSdkRuntimeException("Client path need to be provided!");
+        else
+            njamsMetadata = NjamsMetadataFactory.createMetadataWith(clientPath, defaultClientVersion, category);
+
         if (settings == null)
             throw new NjamsSdkRuntimeException("Settings need to be provided!");
         else
             this.settings = settings;
 
-        if(clientPath == null)
-            throw new NjamsSdkRuntimeException("Client path need to be provided!");
-
         njamsArgos = new NjamsArgos(settings);
-
-        Map<String, String> classpathVersions = readNjamsVersionsFiles();
-        final String CURRENT_YEAR = "currentYear";
-        currentYear = classpathVersions.remove(CURRENT_YEAR);
-        njamsVersions = fillNjamsVersions(classpathVersions, defaultClientVersion);
-
-        njamsMetadata = NjamsMetadataFactory.createMetadataFor(clientPath, njamsVersions.getClientVersion(),
-            njamsVersions.getSdkVersion(), category);
-
         njamsSerializers = new NjamsSerializers();
-
         njamsState = new NjamsState();
-
         njamsFeatures = new NjamsFeatures();
-
         njamsJobs = new NjamsJobs(njamsMetadata, njamsState, njamsFeatures, settings);
-
-        njamsSender = NjamsSenderFactory.getNjamsSender(this.settings, njamsMetadata);
-
+        njamsSender = NjamsSenderFactory.getNjamsSender(settings, njamsMetadata);
         njamsConfiguration = NjamsConfigurationFactory.getNjamsConfiguration(njamsMetadata, njamsSender, settings);
-
         njamsProjectMessage = new NjamsProjectMessage(njamsMetadata, njamsFeatures, njamsConfiguration,
-            njamsSender, njamsState, njamsJobs, njamsSerializers, this.settings);
-
-        njamsReceiver = new NjamsReceiver(this.settings, njamsMetadata, njamsFeatures, njamsProjectMessage, njamsJobs,
+            njamsSender, njamsState, njamsJobs, njamsSerializers, settings);
+        njamsReceiver = new NjamsReceiver(settings, njamsMetadata, njamsFeatures, njamsProjectMessage, njamsJobs,
             njamsConfiguration);
 
         printStartupBanner();
     }
 
-    private Map<String, String> readNjamsVersionsFiles() {
-        try {
-            return readVersionsFromFilesWithName("njams.version");
-        } catch (Exception e) {
-            return handleFileError(e);
-        }
-    }
-
-    private Map<String, String> readVersionsFromFilesWithName(String fileName) throws IOException {
-        Map<String, String> versions = new HashMap<>();
-        final Enumeration<URL> urls = getAllUrlsForFileWithName(fileName);
-        while (urls.hasMoreElements()) {
-            final URL url = urls.nextElement();
-            Map<String, String> propertiesOfOneFile = readAllPropertiesFromFileWithURL(url);
-            versions.putAll(propertiesOfOneFile);
-        }
-        return versions;
-    }
-
-    private Enumeration<URL> getAllUrlsForFileWithName(String fileName) throws IOException {
-        return this.getClass().getClassLoader().getResources(fileName);
-    }
-
-    private Map<String, String> readAllPropertiesFromFileWithURL(URL url) throws IOException {
-        Map<String, String> keyValuePairs = new HashMap<>();
-        final Properties prop = new Properties();
-        prop.load(url.openStream());
-        prop.forEach((key, value) -> keyValuePairs.put(String.valueOf(key), String.valueOf(value)));
-        return keyValuePairs;
-    }
-
-    private Map<String, String> handleFileError(Exception e) {
-        LOG.error("Unable to load versions from njams.version files", e);
-        return new HashMap<>();
-    }
-
-    private NjamsVersions fillNjamsVersions(Map<String, String> classpathVersions, String defaultClientVersion) {
-        final String sdkDefaultVersion = "4.0.0.alpha";
-        return new NjamsVersions(classpathVersions).
-            setSdkVersionIfAbsent(sdkDefaultVersion).
-            setClientVersionIfAbsent(defaultClientVersion);
-    }
-
     private void printStartupBanner() {
-        Map<String, String> versions = njamsVersions.getAllVersions();
+        Map<String, String> versions = njamsMetadata.getAllVersions();
         Map<String, String> settings = this.settings.getAllPropertiesWithoutPasswords();
+        String currentYear = njamsMetadata.getCurrentYear();
 
-        print(versions, settings);
+        print(versions, settings, currentYear);
     }
 
-    private void print(Map<String, String> versions, Map<String, String> settings) {
+    private void print(Map<String, String> versions, Map<String, String> settings, String currentYear) {
         String boundary = "************************************************************";
         String prefix = "***      ";
         LOG.info(boundary);
-        printPrefixedCopyrightForCurrentYear(prefix);
+        printPrefixedCopyrightForCurrentYear(prefix, currentYear);
         LOG.info(prefix);
         LOG.info(prefix + "Version Info:");
         printPrefixed(prefix, versions);
@@ -180,7 +121,7 @@ public class Njams{
         LOG.info(boundary);
     }
 
-    private void printPrefixedCopyrightForCurrentYear(String prefix) {
+    private void printPrefixedCopyrightForCurrentYear(String prefix, String currentYear) {
         LOG.info(prefix + ("nJAMS SDK: Copyright (c) " + currentYear + " Faiz & Siegeln Software GmbH"));
     }
 
@@ -486,51 +427,51 @@ public class Njams{
      * @return the category of the nJAMS client, which should describe the
      * technology
      * @see #getNjamsMetadata()
-     * @see NjamsMetadata#category
+     * @see NjamsMetadata#getCategory()
      */
     @Deprecated
     public String getCategory() {
-        return njamsMetadata.category;
+        return njamsMetadata.getCategory();
     }
 
     /**
      * @return the clientPath
      * @see #getNjamsMetadata()
-     * @see NjamsMetadata#clientPath
+     * @see NjamsMetadata#getClientPath()
      */
     @Deprecated
     public Path getClientPath() {
-        return njamsMetadata.clientPath;
+        return njamsMetadata.getClientPath();
     }
 
     /**
      * @return the clientVersion
      * @see #getNjamsMetadata()
-     * @see NjamsMetadata#clientVersion
+     * @see NjamsMetadata#getClientVersion()
      */
     @Deprecated
     public String getClientVersion() {
-        return njamsMetadata.clientVersion;
+        return njamsMetadata.getClientVersion();
     }
 
     /**
      * @return the sdkVersion
      * @see #getNjamsMetadata()
-     * @see NjamsMetadata#sdkVersion
+     * @see NjamsMetadata#getSdkVersion()
      */
     @Deprecated
     public String getSdkVersion() {
-        return njamsMetadata.sdkVersion;
+        return njamsMetadata.getSdkVersion();
     }
 
     /**
      * @return the machine name
      * @see #getNjamsMetadata()
-     * @see NjamsMetadata#machine
+     * @see NjamsMetadata#getMachine()
      */
     @Deprecated
     public String getMachine() {
-        return njamsMetadata.machine;
+        return njamsMetadata.getMachine();
     }
 
 

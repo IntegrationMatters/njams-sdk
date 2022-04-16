@@ -3,7 +3,7 @@ package com.im.njams.sdk.model;
 import com.im.njams.sdk.NjamsConfiguration;
 import com.im.njams.sdk.NjamsSender;
 import com.im.njams.sdk.logmessage.NjamsJobs;
-import com.im.njams.sdk.client.NjamsMetadata;
+import com.im.njams.sdk.metadata.NjamsMetadata;
 import com.im.njams.sdk.serializer.NjamsSerializers;
 import com.im.njams.sdk.model.layout.ProcessModelLayouter;
 import com.im.njams.sdk.model.svg.ProcessDiagramFactory;

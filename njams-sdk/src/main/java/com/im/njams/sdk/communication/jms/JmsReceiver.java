@@ -35,7 +35,7 @@ import javax.naming.InitialContext;
 import javax.naming.NameNotFoundException;
 import javax.naming.NamingException;
 
-import com.im.njams.sdk.client.NjamsMetadata;
+import com.im.njams.sdk.metadata.NjamsMetadata;
 import com.im.njams.sdk.communication.NjamsConnectionFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -112,7 +112,7 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
      */
     protected String createMessageSelector() {
 
-        Path fullPath = new Path(getInstanceMetadata().clientPath.toString());
+        Path fullPath = new Path(getInstanceMetadata().getClientPath().toString());
         Path path = null;
         StringBuilder selector = new StringBuilder();
         for (String part : fullPath.getParts()) {

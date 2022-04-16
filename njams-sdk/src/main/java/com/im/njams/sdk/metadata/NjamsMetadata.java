@@ -10,23 +10,24 @@
  *  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package com.im.njams.sdk.client;
+package com.im.njams.sdk.metadata;
 
 import com.im.njams.sdk.common.Path;
 
+import java.util.Map;
 import java.util.Objects;
 
 public class NjamsMetadata {
-    public final Path clientPath;
-    public final String clientVersion;
-    public final String sdkVersion;
-    public final String machine;
-    public final String category;
+    private final Path clientPath;
+    private final String machine;
+    private final String category;
+    private final NjamsVersions njamsVersion;
+    private final String currentYear;
 
-    NjamsMetadata(Path clientPath, String clientVersion, String sdkVersion, String machine, String category) {
+    NjamsMetadata(Path clientPath, NjamsVersions njamsVersions, String currentYear, String machine, String category) {
         this.clientPath = clientPath;
-        this.clientVersion = clientVersion;
-        this.sdkVersion = sdkVersion;
+        this.njamsVersion = njamsVersions;
+        this.currentYear = currentYear;
         this.machine = machine;
         this.category = category;
     }
@@ -34,7 +35,7 @@ public class NjamsMetadata {
     @Override
     public int hashCode() {
         int hash = 5;
-        hash = 83 * hash + Objects.hashCode(clientPath);
+        hash = 83 * hash + Objects.hashCode(getClientPath());
         return hash;
     }
 
@@ -50,6 +51,38 @@ public class NjamsMetadata {
             return false;
         }
         final NjamsMetadata other = (NjamsMetadata) obj;
-        return Objects.equals(clientPath, other.clientPath);
+        return Objects.equals(getClientPath(), other.getClientPath());
+    }
+
+    public String getClientVersion(){
+        return njamsVersion.getClientVersion();
+    }
+
+    public String getSdkVersion(){
+        return njamsVersion.getSdkVersion();
+    }
+
+    public Path getClientPath() {
+        return clientPath;
+    }
+
+    public String getMachine() {
+        return machine;
+    }
+
+    public String getCategory() {
+        return category;
+    }
+
+    public NjamsVersions getNjamsVersion() {
+        return njamsVersion;
+    }
+
+    public String getCurrentYear() {
+        return currentYear;
+    }
+
+    public Map<String, String> getAllVersions(){
+        return njamsVersion.getAllVersions();
     }
 }

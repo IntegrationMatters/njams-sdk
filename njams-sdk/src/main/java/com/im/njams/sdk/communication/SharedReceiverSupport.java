@@ -45,16 +45,18 @@ public class SharedReceiverSupport<R extends AbstractReceiver & ShareableReceive
      */
     public void addReceiver(Receiver receiver) {
         synchronized (receiverInstances) {
-            receiverInstances.put(receiver.getInstanceMetadata().clientPath, receiver);
+            receiverInstances.put(receiver.getInstanceMetadata().getClientPath(), receiver);
         }
-        LOG.debug("Added client {} to shared receiver; {} attached receivers.", receiver.getInstanceMetadata().clientPath,
+        LOG.debug("Added client {} to shared receiver; {} attached receivers.",
+            receiver.getInstanceMetadata().getClientPath(),
             receiverInstances.size());
     }
 
     public boolean removeReceiver(Receiver receiver) {
         synchronized (receiverInstances) {
-            receiverInstances.remove(receiver.getInstanceMetadata().clientPath);
-            LOG.debug("Removed client {} from shared receiver; {} remaining receivers.", receiver.getInstanceMetadata().clientPath,
+            receiverInstances.remove(receiver.getInstanceMetadata().getClientPath());
+            LOG.debug("Removed client {} from shared receiver; {} remaining receivers.",
+                receiver.getInstanceMetadata().getClientPath(),
                 receiverInstances.size());
             if (receiverInstances.isEmpty()) {
                 receiver.stop();
@@ -92,7 +94,7 @@ public class SharedReceiverSupport<R extends AbstractReceiver & ShareableReceive
                 LOG.debug(
                         "Handling instruction {} with client(s) {}",
                         instruction.getCommand(),
-                        instances.stream().map(receiver -> receiver.getInstanceMetadata().clientPath.toString()).collect(Collectors.toList()));
+                        instances.stream().map(receiver -> receiver.getInstanceMetadata().getClientPath().toString()).collect(Collectors.toList()));
             }
             if (instances.size() > 1) {
                 instances.parallelStream().forEach(i -> onInstruction(instruction, i));
@@ -117,7 +119,7 @@ public class SharedReceiverSupport<R extends AbstractReceiver & ShareableReceive
             LOG.error("Instruction must not be null");
             return;
         }
-        LOG.debug("OnInstruction: {} for {}", instruction.getCommand(), receiver.getInstanceMetadata().clientPath);
+        LOG.debug("OnInstruction: {} for {}", instruction.getCommand(), receiver.getInstanceMetadata().getClientPath());
         if (instruction.getRequest() == null || instruction.getRequest().getCommand() == null) {
             LOG.error("Instruction must have a valid request with a command");
             Response response = new Response();
@@ -156,8 +158,9 @@ public class SharedReceiverSupport<R extends AbstractReceiver & ShareableReceive
             return receiverInstances
                     .values()
                     .stream()
-                    .filter(receiver -> size < receiver.getInstanceMetadata().clientPath.getParts().size()
-                            && receiverPath.getParts().equals(receiver.getInstanceMetadata().clientPath.getParts().subList(0, size)))
+                    .filter(receiver -> size < receiver.getInstanceMetadata().getClientPath().getParts().size()
+                            && receiverPath.getParts().equals(
+                        receiver.getInstanceMetadata().getClientPath().getParts().subList(0, size)))
                             .collect(Collectors.toList());
         } catch (Exception e) {
             LOG.error("Failed to resolve instruction receiver.", e);
