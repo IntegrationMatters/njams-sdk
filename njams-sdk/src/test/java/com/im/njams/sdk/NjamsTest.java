@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Faiz & Siegeln Software GmbH
+ * Copyright (c) 2022 Faiz & Siegeln Software GmbH
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"),
  * to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
@@ -16,8 +16,10 @@
  */
 package com.im.njams.sdk;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertThrows;
 
 import com.im.njams.sdk.communication.TestReceiver;
 import org.junit.Before;
@@ -28,47 +30,29 @@ import com.im.njams.sdk.common.Path;
 import com.im.njams.sdk.communication.CommunicationFactory;
 import com.im.njams.sdk.settings.Settings;
 
-/**
- *
- * @author stkniep
- */
 public class NjamsTest {
 
-    private Njams instance;
+    private Njams njams;
 
     @Before
     public void createNewInstance() {
         final Settings settings = new Settings();
         settings.put(CommunicationFactory.COMMUNICATION, TestReceiver.NAME);
-        instance = new Njams(new Path(), "", "", settings);
+        njams = new Njams(new Path(), null, null, settings);
     }
 
-    @Test(expected = NjamsSdkRuntimeException.class)
+    @Test
     public void testStopBeforeStart() {
-        //This should throw an NjamsSdkRuntimeException
-        instance.stop();
+        NjamsSdkRuntimeException njamsSdkRuntimeException = assertThrows(NjamsSdkRuntimeException.class,
+            njams::stop);
+        assertThat(njamsSdkRuntimeException.getMessage(), is(equalTo("The instance needs to be started first!")));
+
     }
 
     @Test
     public void testStartStopStart() {
-        instance.start();
-        instance.stop();
-        instance.start();
-    }
-
-    @Test
-    public void testHasNoProcessModel() {
-        assertFalse(instance.hasProcessModel(new Path("PROCESSES")));
-    }
-
-    @Test
-    public void testNoProcessModelForNullPath() {
-        assertFalse(instance.hasProcessModel(null));
-    }
-
-    @Test
-    public void testHasProcessModel() {
-        instance.createProcess(new Path("PROCESSES"));
-        assertTrue(instance.hasProcessModel(new Path("PROCESSES")));
+        njams.start();
+        njams.stop();
+        njams.start();
     }
 }
