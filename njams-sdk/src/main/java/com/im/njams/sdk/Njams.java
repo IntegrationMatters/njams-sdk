@@ -77,10 +77,13 @@ public class Njams{
      * @param settings needed for client initialization of communication, sending intervals and sizes, etc.
      */
     public Njams(Path clientPath, String defaultClientVersion, String category, Settings settings) {
-        if (settings == null) {
-            throw new NjamsSdkRuntimeException("Settings not set");
-        }
-        this.settings = settings;
+        if (settings == null)
+            throw new NjamsSdkRuntimeException("Settings need to be provided!");
+        else
+            this.settings = settings;
+
+        if(clientPath == null)
+            throw new NjamsSdkRuntimeException("Client path need to be provided!");
 
         njamsArgos = new NjamsArgos(settings);
 
