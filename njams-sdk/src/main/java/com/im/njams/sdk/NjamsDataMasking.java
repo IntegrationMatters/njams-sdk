@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
 
 public class NjamsDataMasking {
 
@@ -174,17 +175,17 @@ public class NjamsDataMasking {
     }
 
     private String maskString(String stringToMask) {
-        StringMatch stringMatch = new StringMatch(stringToMask);
+        StringMatcher stringMatcher = new StringMatcher(stringToMask);
         for (DataMaskingType dataMaskingType : dataMaskingTypes) {
-            stringMatch.tryToMatchWith(dataMaskingType);
+            stringMatcher.tryToMatchWith(dataMaskingType);
         }
-        logResultingString(stringMatch);
-        return stringMatch.getMaskedString();
+        logResultingString(stringMatcher);
+        return stringMatcher.getMaskedString();
     }
 
-    private void logResultingString(StringMatch match) {
-        if (match.hasMatchedAtLeastOnce() && LOG.isTraceEnabled()) {
-            LOG.trace("Masked String: {}", match.getMaskedString());
+    private void logResultingString(StringMatcher matcher) {
+        if (matcher.hasMatchedAtLeastOnce() && LOG.isTraceEnabled()) {
+            LOG.trace("Masked String: {}", matcher.getMaskedString());
         }
     }
 
@@ -202,5 +203,59 @@ public class NjamsDataMasking {
      */
     public void mergeWith(NjamsDataMasking njamsDataMasking) {
         this.dataMaskingTypes.addAll(njamsDataMasking.dataMaskingTypes);
+    }
+
+    private static class StringMatcher {
+
+        private static final org.slf4j.Logger LOG = LoggerFactory.getLogger(StringMatcher.class);
+
+        private static final String MASK_CHAR = "*";
+
+        private final String original;
+        private boolean hasBeenChanged;
+        private String masked;
+
+        private StringMatcher(String stringToMatch) {
+            this.original = stringToMatch;
+            this.hasBeenChanged = false;
+            this.masked = stringToMatch;
+        }
+
+        private void tryToMatchWith(DataMaskingType dataMaskingType) {
+            Matcher m = dataMaskingType.getPattern().matcher(original);
+            while (m.find()) {
+                int startIdx = m.start();
+                int endIdx = m.end();
+
+                String patternMatch = original.substring(startIdx, endIdx);
+                String partToBeMasked = patternMatch;
+                String mask = "";
+                for (int i = 0; i < partToBeMasked.length(); i++) {
+                    mask = mask + MASK_CHAR;
+                }
+
+                String maskedNumber = mask + patternMatch.substring(patternMatch.length());
+                masked = masked.replace(patternMatch, maskedNumber);
+                hasBeenChanged = true;
+            }
+            logUsedDataMaskingType(dataMaskingType);
+        }
+
+        private void logUsedDataMaskingType(DataMaskingType dataMaskingType) {
+            if (hasBeenChanged) {
+                if (LOG.isDebugEnabled()) {
+                    LOG.debug("\nApplied masking of pattern: \"{}\". \nThe regex is: \"{}\"",
+                        dataMaskingType.getNameOfPattern(), dataMaskingType.getRegex());
+                }
+            }
+        }
+
+        private boolean hasMatchedAtLeastOnce() {
+            return hasBeenChanged;
+        }
+
+        private String getMaskedString() {
+            return masked;
+        }
     }
 }
