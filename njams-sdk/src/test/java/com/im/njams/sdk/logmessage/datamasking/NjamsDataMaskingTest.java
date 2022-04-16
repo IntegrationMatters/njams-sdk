@@ -54,31 +54,25 @@ public class NjamsDataMaskingTest {
         assertEquals("Hello", njamsDatamasking.mask("Hello"));
     }
 
-    //This should probably not happen
     @Test
-    public void anotherDataMasking_hasTheSameMaskingPatterns() {
-
+    public void njamsDataMasking_shouldNotBeAffectedByOtherInstancesOfNjamsDataMasking() {
         njamsDatamasking.add("MaskHello", "Hello");
         assertEquals("*****", njamsDatamasking.mask("Hello"));
 
-        assertEquals("*****", new NjamsDataMasking().mask("Hello"));
-//        assertEquals("hello", new NjamsDataMasking().maskString("HelloAloneShouldNotBeAffectedHere")); This should probably happen instead
+        final NjamsDataMasking anotherNjamsDataMasking = new NjamsDataMasking();
+        assertEquals("HelloAloneShouldNotBeAffectedHere", anotherNjamsDataMasking.mask("HelloAloneShouldNotBeAffectedHere"));
     }
 
-    //This should probably not happen
     @Test
-    public void anotherDataMasking_withTheSameValue_isEffectedByTheEarlierDataMasking() {
-        final NjamsDataMasking overwrittenMasking = new NjamsDataMasking();
-
+    public void anotherDataMasking_withTheSameValue_isNotAffectedByOtherInstanceOfNjamsDataMasking() {
         njamsDatamasking.add("MaskHello", "Hello");
         assertEquals("*****", njamsDatamasking.mask("Hello"));
 
-        overwrittenMasking.add("AnotherHelloMask", "HelloAloneShouldNotBeAffectedHere");
-        assertEquals("*****AloneShouldNotBeAffectedHere", overwrittenMasking.mask("HelloAloneShouldNotBeAffectedHere"));
-//        assertEquals("*********************************", overwrittenMasking.maskString("HelloAloneShouldNotBeAffectedHere")); This should probably happen instead
+        final NjamsDataMasking anotherMasking = new NjamsDataMasking();
+        anotherMasking.add("AnotherHelloMask", "ThisHelloShouldBeOverwrittenCompletelyInsteadOfOnlyHello");
+        assertEquals("********************************************************", anotherMasking.mask("ThisHelloShouldBeOverwrittenCompletelyInsteadOfOnlyHello"));
     }
 
-    //This should not happen
     @Test
     public void withDataMasking_disabled_andAddedPattern_shouldNotBeUsableFromDataMaskingClass() {
         njamsDatamasking.disable();

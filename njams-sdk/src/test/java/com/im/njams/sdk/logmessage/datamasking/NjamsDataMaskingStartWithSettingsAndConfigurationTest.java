@@ -51,16 +51,4 @@ public class NjamsDataMaskingStartWithSettingsAndConfigurationTest {
         String actual = "Settings work perfectly for data masking, but configuration also works.";
         assertEquals(expected, DataMasking.maskString(actual));
     }
-
-    @Test
-    public void settingsAndConfigurationsWithTheSameName_bothPatternAreUsed(){
-        settings.put("1", "Settings"); //After setting this property, configuration would get the default name "1"
-        configurationDataMasking.add("configuration");
-
-        NjamsDataMasking.start(settings, configuration);
-
-        String expected = "******** work perfectly for data masking, but ************* also works.";
-        String actual = "Settings work perfectly for data masking, but configuration also works.";
-        assertEquals(expected, DataMasking.maskString(actual));
-    }
 }

@@ -42,7 +42,7 @@ public class NjamsDataMaskingStartWithConfigurationTest {
 
     @Test
     public void withDataMasking_enabled_perSettings_andMaskEverythingPattern_masksString() {
-        settings.put(DataMasking.DATA_MASKING_ENABLED, "true");
+        settings.put(NjamsDataMasking.DATA_MASKING_ENABLED, "true");
         configurationDataMasking.add(".*");
         NjamsDataMasking.start(settings, configuration);
 

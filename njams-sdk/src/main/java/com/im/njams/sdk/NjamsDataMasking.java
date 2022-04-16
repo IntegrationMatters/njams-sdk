@@ -2,27 +2,48 @@ package com.im.njams.sdk;
 
 import com.im.njams.sdk.configuration.Configuration;
 import com.im.njams.sdk.logmessage.DataMasking;
+import com.im.njams.sdk.logmessage.DataMaskingType;
 import com.im.njams.sdk.settings.Settings;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
 
 public class NjamsDataMasking {
 
+    private static final String MASK_CHAR = "*";
+
     private static final org.slf4j.Logger LOG = LoggerFactory.getLogger(NjamsDataMasking.class);
+
+
+
+    /**
+     * Property njams.sdk.datamasking.enabled
+     */
+    public static final String DATA_MASKING_ENABLED = "njams.sdk.datamasking.enabled";
+
+    /**
+     * Property njams.sdk.datamasking.regex.
+     */
+    public static final String DATA_MASKING_REGEX_PREFIX = "njams.sdk.datamasking.regex.";
+
+
+    private final List<DataMaskingType> dataMaskingTypes = new ArrayList<>();
 
     private boolean isDataMaskingEnabled;
 
     /**
      * Initializes the data masking feature, but it will overwrite the dataMasking of other nJAMS instances that use
-     * this method. Instead, you should use {@link NjamsDataMasking#createFor(Settings, Configuration))
+     * this method. Instead, you should use {@link NjamsDataMasking#createFrom(Settings, Configuration))
      * @param settings The settings to read from if datamasking is enabled or not and to add pattern if there are any.
      * @param configuration The deprecated configuration where the patterns were saved before.
      */
     @Deprecated
     public static void start(Settings settings, Configuration configuration) {
-        createFor(settings, configuration);
+        DataMasking.setNjamsDataMaskingIfAbsent(createFrom(settings, configuration));
     }
 
     /**
@@ -32,7 +53,7 @@ public class NjamsDataMasking {
      * @param configuration The deprecated configuration where the patterns were saved before.
      * @return a NjamsDataMasking instance with patterns and en- or disabled masking.
      */
-    public static NjamsDataMasking createFor(Settings settings, Configuration configuration) {
+    public static NjamsDataMasking createFrom(Settings settings, Configuration configuration) {
         NjamsDataMasking njamsDatamasking = new NjamsDataMasking();
         if (isDataMaskingEnabled(settings)) {
             njamsDatamasking.enable();
@@ -71,7 +92,14 @@ public class NjamsDataMasking {
     private void addPatternsFrom(Settings settings) {
         if(settings != null){
             Map<String, String> maskings = new HashMap<>();
-            settings.getAllProperties().forEach((key, value) -> maskings.put((String) key, (String) value));
+            settings.getAllProperties().
+                    keySet().
+                    stream().
+                    filter((key) -> ((String) key).startsWith(DATA_MASKING_REGEX_PREFIX))
+                    .forEach((key) -> {
+                        String name = ((String) key).substring(DATA_MASKING_REGEX_PREFIX.length());
+                        maskings.put(name, settings.getProperty((String) key));
+                    });
             putAll(maskings);
         }
     }
@@ -87,9 +115,7 @@ public class NjamsDataMasking {
     }
 
     private void putAll(Map<String, String> maskings) {
-        for (Map.Entry<String, String> entry : maskings.entrySet()) {
-            this.add(entry.getKey(), entry.getValue());
-        }
+        maskings.forEach(this::add);
     }
 
     @Deprecated
@@ -116,7 +142,16 @@ public class NjamsDataMasking {
      * @param pattern the actual pattern to mask the strings with
      */
     public void add(String nameOfPattern, String pattern) {
-        DataMasking.addPattern(nameOfPattern, pattern);
+        try {
+            String nameToAdd = (nameOfPattern != null && !nameOfPattern.isEmpty()) ? nameOfPattern :
+                "" + dataMaskingTypes.size();
+            DataMaskingType dataMaskingTypeToAdd = new DataMaskingType(nameToAdd, pattern);
+            dataMaskingTypes.add(dataMaskingTypeToAdd);
+            LOG.info("Added masking pattern \"{}\" with regex: \"{}\"", dataMaskingTypeToAdd.getNameOfPattern(),
+                dataMaskingTypeToAdd.getRegex());
+        } catch (Exception e) {
+            LOG.error("Could not add pattern " + pattern, e);
+        }
     }
 
     /**
@@ -129,8 +164,54 @@ public class NjamsDataMasking {
      */
     public String mask(String stringToMask) {
         if(isDataMaskingEnabled)
-            return DataMasking.maskString(stringToMask);
+            return maskString(stringToMask);
         else
             return stringToMask;
+    }
+
+    private String maskString(String stringToMask) {
+        if (stringToMask == null || stringToMask.isEmpty() || dataMaskingTypes.isEmpty()) {
+            return stringToMask;
+        }
+
+        String maskedString = stringToMask;
+        boolean foundAtleastOneMatch = false;
+        for (DataMaskingType dataMaskingType : dataMaskingTypes) {
+            Matcher m = dataMaskingType.getPattern().matcher(stringToMask);
+            while (m.find()) {
+                int startIdx = m.start();
+                int endIdx = m.end();
+
+                String patternMatch = stringToMask.substring(startIdx, endIdx);
+                String partToBeMasked = patternMatch.substring(0, patternMatch.length());
+                String mask = "";
+                for (int i = 0; i < partToBeMasked.length(); i++) {
+                    mask = mask + MASK_CHAR;
+                }
+
+                String maskedNumber = mask + patternMatch.substring(patternMatch.length());
+                maskedString = maskedString.replace(patternMatch, maskedNumber);
+                foundAtleastOneMatch = true;
+            }
+            if (foundAtleastOneMatch && LOG.isDebugEnabled()) {
+                LOG.debug("\nApplied masking of pattern: \"{}\". \nThe regex is: \"{}\"",
+                    dataMaskingType.getNameOfPattern(), dataMaskingType.getRegex());
+            }
+        }
+        if (foundAtleastOneMatch && LOG.isTraceEnabled()) {
+            LOG.trace("Masked String: {}", maskedString);
+        }
+        return maskedString;
+    }
+
+    /**
+     * Removes all the data masking patterns.
+     */
+    public void clear(){
+        dataMaskingTypes.clear();
+    }
+
+    public void mergeWith(NjamsDataMasking njamsDataMasking) {
+        this.dataMaskingTypes.addAll(njamsDataMasking.dataMaskingTypes);
     }
 }

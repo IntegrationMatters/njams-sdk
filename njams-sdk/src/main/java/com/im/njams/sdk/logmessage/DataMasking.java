@@ -23,36 +23,42 @@
  */
 package com.im.njams.sdk.logmessage;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
-import java.util.regex.Matcher;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.im.njams.sdk.NjamsDataMasking;
 
 /**
  * DataMasking implementation
  *
  * @author pnientiedt
  */
+@Deprecated
 public class DataMasking {
+
 
     /**
      * Property njams.sdk.datamasking.enabled
      */
-    public static final String DATA_MASKING_ENABLED = "njams.sdk.datamasking.enabled";
+    @Deprecated
+    public static final String DATA_MASKING_ENABLED = NjamsDataMasking.DATA_MASKING_ENABLED;
 
     /**
      * Property njams.sdk.datamasking.regex.
      */
-    public static final String DATA_MASKING_REGEX_PREFIX = "njams.sdk.datamasking.regex.";
+    @Deprecated
+    public static final String DATA_MASKING_REGEX_PREFIX = NjamsDataMasking.DATA_MASKING_REGEX_PREFIX;
+    @Deprecated
+    private static NjamsDataMasking globalDataMaskingInstance;
 
-    private static final Logger LOG = LoggerFactory.getLogger(DataMasking.class);
-
-    private static final String MASK_CHAR = "*";
-
-    private static final List<DataMaskingType> DATA_MASKING_TYPES = new ArrayList<>();
+    @Deprecated
+    public static void setNjamsDataMaskingIfAbsent(NjamsDataMasking globalDataMaskingInstance) {
+        if(DataMasking.globalDataMaskingInstance == null){
+            DataMasking.globalDataMaskingInstance = globalDataMaskingInstance;
+        }else if(globalDataMaskingInstance != null){
+            DataMasking.globalDataMaskingInstance.mergeWith(globalDataMaskingInstance);
+        }
+    }
 
     /**
      * Mask a string by patterns given to this class
@@ -60,39 +66,12 @@ public class DataMasking {
      * @param inString String to apply datamasking to
      * @return String with applied datamasking
      */
+    @Deprecated
     public static String maskString(String inString) {
-        if (inString == null || inString.isEmpty() || DATA_MASKING_TYPES.isEmpty()) {
+        if(DataMasking.globalDataMaskingInstance != null)
+            return globalDataMaskingInstance.mask(inString);
+        else
             return inString;
-        }
-
-        String maskedString = inString;
-        boolean foundAtleastOneMatch = false;
-        for (DataMaskingType dataMaskingType : DATA_MASKING_TYPES) {
-            Matcher m = dataMaskingType.getPattern().matcher(inString);
-            while (m.find()) {
-                int startIdx = m.start();
-                int endIdx = m.end();
-
-                String patternMatch = inString.substring(startIdx, endIdx);
-                String partToBeMasked = patternMatch.substring(0, patternMatch.length());
-                String mask = "";
-                for (int i = 0; i < partToBeMasked.length(); i++) {
-                    mask = mask + MASK_CHAR;
-                }
-
-                String maskedNumber = mask + patternMatch.substring(patternMatch.length());
-                maskedString = maskedString.replace(patternMatch, maskedNumber);
-                foundAtleastOneMatch = true;
-            }
-            if (foundAtleastOneMatch && LOG.isDebugEnabled()) {
-                LOG.debug("\nApplied masking of pattern: \"{}\". \nThe regex is: \"{}\"",
-                        dataMaskingType.getNameOfPattern(), dataMaskingType.getRegex());
-            }
-        }
-        if (foundAtleastOneMatch && LOG.isTraceEnabled()) {
-            LOG.trace("Masked String: {}", maskedString);
-        }
-        return maskedString;
     }
 
     /**
@@ -100,6 +79,7 @@ public class DataMasking {
      *
      * @param patterns the patterns to add
      */
+    @Deprecated
     public static void addPatterns(List<String> patterns) {
         patterns.forEach(DataMasking::addPattern);
     }
@@ -109,6 +89,7 @@ public class DataMasking {
      *
      * @param pattern the pattern to add
      */
+    @Deprecated
     public static void addPattern(String pattern) {
         addPattern(null, pattern);
     }
@@ -119,6 +100,7 @@ public class DataMasking {
      *
      * @param properties the properties to provide
      */
+    @Deprecated
     public static void addPatterns(Properties properties) {
         properties.keySet().stream().filter((key) -> ((String) key).startsWith(DATA_MASKING_REGEX_PREFIX))
                 .forEach((key) -> {
@@ -134,24 +116,19 @@ public class DataMasking {
      * @param nameOfPattern the name of the pattern
      * @param regexAsString the pattern to add
      */
+    @Deprecated
     public static void addPattern(String nameOfPattern, String regexAsString) {
-        try {
-            String nameToAdd = (nameOfPattern != null && !nameOfPattern.isEmpty()) ? nameOfPattern :
-                    "" + DATA_MASKING_TYPES.size();
-            DataMaskingType dataMaskingTypeToAdd = new DataMaskingType(nameToAdd, regexAsString);
-            DATA_MASKING_TYPES.add(dataMaskingTypeToAdd);
-            LOG.info("Added masking pattern \"{}\" with regex: \"{}\"", dataMaskingTypeToAdd.getNameOfPattern(),
-                    dataMaskingTypeToAdd.getRegex());
-        } catch (Exception e) {
-            LOG.error("Could not add pattern " + regexAsString, e);
-        }
+        if(DataMasking.globalDataMaskingInstance != null)
+            globalDataMaskingInstance.add(nameOfPattern, regexAsString);
     }
 
     /**
      * Removes all patterns
      */
+    @Deprecated
     public static void removePatterns() {
-        DATA_MASKING_TYPES.clear();
+        if(DataMasking.globalDataMaskingInstance != null){
+            globalDataMaskingInstance.clear();
+        }
     }
-
 }

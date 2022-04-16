@@ -65,25 +65,21 @@ public class NjamsDataMaskingStartWithSettingsTest {
         assertEquals("true", DataMasking.maskString("true"));
     }
 
-    //This should probably not happen
     @Test
-    public void withDataMasking_enabled_theDataMaskingEnabledSetting_isUsedAsAPatternAsWell(){
+    public void withDataMasking_enabled_theDataMaskingEnabledSetting_shouldNotBeUsedAsAPattern(){
         settings.put(DataMasking.DATA_MASKING_ENABLED, "true");
 
         NjamsDataMasking.start(settings, configuration);
 
-        assertEquals("****", DataMasking.maskString("true"));
-//        assertEquals("true", DataMasking.maskString("true")); This should happen instead
+        assertEquals("true", DataMasking.maskString("true"));
     }
 
-    //This should probably not happen
     @Test
-    public void withDataMasking_enabled_otherSettingsAreUsedAsPatternsAsWell(){
+    public void withDataMasking_enabled_otherSettingsShouldNotBeUsedAsPatterns(){
         settings.put("This_should_not_be_a_pattern", "Not_changed");
 
         NjamsDataMasking.start(settings, configuration);
 
-        assertEquals("***********", DataMasking.maskString("Not_changed"));
-//        assertEquals("Not_changed", DataMasking.maskString("Not_changed")); //This should happen instead
+        assertEquals("Not_changed", DataMasking.maskString("Not_changed"));
     }
 }
