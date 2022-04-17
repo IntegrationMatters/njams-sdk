@@ -1,7 +1,5 @@
 package com.im.njams.sdk;
 
-import com.faizsiegeln.njams.messageformat.command.Instruction;
-import com.faizsiegeln.njams.messageformat.v4.command.Response;
 import com.im.njams.sdk.common.Path;
 import com.im.njams.sdk.communication.InstructionListener;
 import com.im.njams.sdk.settings.Settings;

@@ -308,7 +308,6 @@ public class Njams{
 
 //################################### NjamsReceiver
 
-
     public NjamsReceiver getNjamsReceiver(){
         return njamsReceiver;
     }
@@ -345,7 +344,6 @@ public class Njams{
     public void removeInstructionListener(InstructionListener listener) {
         njamsReceiver.removeInstructionListener(listener);
     }
-
 
 //################################### NjamsSerializers
 
