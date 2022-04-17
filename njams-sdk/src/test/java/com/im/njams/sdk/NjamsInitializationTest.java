@@ -1,4 +1,4 @@
-package com.im.njams.sdk.njams;
+package com.im.njams.sdk;
 
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;

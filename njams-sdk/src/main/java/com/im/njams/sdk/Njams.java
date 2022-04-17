@@ -61,7 +61,7 @@ public class Njams{
     private final NjamsSender njamsSender;
     private final NjamsConfiguration njamsConfiguration;
     private final NjamsProjectMessage njamsProjectMessage;
-    private final NjamsReceiver njamsReceiver;
+    private NjamsReceiver njamsReceiver;
 
     /**
      * Create a nJAMS instance without a default client version.
@@ -721,5 +721,9 @@ public class Njams{
     @Deprecated
     public void setProcessDiagramFactory(ProcessDiagramFactory processDiagramFactory) {
         njamsProjectMessage.setProcessDiagramFactory(processDiagramFactory);
+    }
+
+    void setNjamsReceiver(NjamsReceiver njamsReceiver) {
+        this.njamsReceiver = njamsReceiver;
     }
 }
