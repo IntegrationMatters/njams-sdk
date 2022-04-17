@@ -17,6 +17,8 @@ public class NjamsInstructionListenerIT {
     private Njams njams;
     private Instruction instruction;
     private InstructionListener acceptingListener;
+    private InstructionListener rejectingListener;
+    private InstructionListener increasingListener;
 
     @Before
     public void setUp() throws Exception {
@@ -28,6 +30,23 @@ public class NjamsInstructionListenerIT {
             response.setResultMessage("Accepted");
             i.setResponse(response);
         };
+
+        rejectingListener = (i) -> {
+            Response response = new Response();
+            response.setResultMessage("Rejected");
+            i.setResponse(response);
+        };
+
+        increasingListener = (i) -> {
+            Response response = i.getResponse();
+            if(response == null) {
+                response = new Response();
+                response.setResultCode(1);
+                i.setResponse(response);
+            }else{
+                response.setResultCode(response.getResultCode() + 1);
+            }
+        };
     }
 
     @Test
@@ -38,13 +57,64 @@ public class NjamsInstructionListenerIT {
     @Test
     public void onInstruction_afterNoListenerHasBeenAdded_doesNotDoAnything(){
         njams.getNjamsReceiver().distribute(instruction);
+
         assertThat(instruction.getResponse(), is(nullValue()));
     }
 
     @Test
     public void onInstruction_afterAcceptingListenerHasBeenAdded_instructionWasAccepted(){
         njams.addInstructionListener(acceptingListener);
+
         njams.getNjamsReceiver().distribute(instruction);
+
         assertThat(instruction.getResponse().getResultMessage(), is("Accepted"));
+    }
+
+    @Test
+    public void onInstruction_afterRejectingListenerHasBeenAdded_instructionWasRejected(){
+        njams.addInstructionListener(rejectingListener);
+
+        njams.getNjamsReceiver().distribute(instruction);
+
+        assertThat(instruction.getResponse().getResultMessage(), is("Rejected"));
+    }
+
+    @Test
+    public void onInstruction_acceptingAndRejectingListenerAdded_theLaterListenerSetsTheResponse(){
+        njams.addInstructionListener(acceptingListener);
+        njams.addInstructionListener(rejectingListener);
+
+        njams.getNjamsReceiver().distribute(instruction);
+
+        assertThat(instruction.getResponse().getResultMessage(), is("Rejected"));
+    }
+
+    @Test
+    public void onInstruction_increasingInstructionListener_increasesResultCode(){
+        njams.addInstructionListener(increasingListener);
+
+        njams.getNjamsReceiver().distribute(instruction);
+
+        assertThat(instruction.getResponse().getResultCode(), is(1));
+    }
+
+    @Test
+    public void onInstruction_increasingInstructionListener_increasesResultCodeWithEachCall(){
+        njams.addInstructionListener(increasingListener);
+
+        njams.getNjamsReceiver().distribute(instruction);
+        njams.getNjamsReceiver().distribute(instruction);
+
+        assertThat(instruction.getResponse().getResultCode(), is(2));
+    }
+
+    @Test
+    public void onInstruction_increasingInstructionListener_canBeAddedMultipleTimes_andWillThereforeBeCalledMultipleTimes(){
+        njams.addInstructionListener(increasingListener);
+        njams.addInstructionListener(increasingListener);
+
+        njams.getNjamsReceiver().distribute(instruction);
+
+        assertThat(instruction.getResponse().getResultCode(), is(2));
     }
 }
