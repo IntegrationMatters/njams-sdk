@@ -178,6 +178,42 @@ public class NjamsInstructionListenerAddedBeforeReceiverStartIT {
     }
 
     @Test
+    public void instructionListenerFor_setLogMode_none_isAddedBeforeRealReceiver_isStarted(){
+        requestParameters.put("logMode", "none");
+
+        expectedResponse.setResultCode(0);
+        expectedResponse.setResultMessage("Success");
+
+        instructionListeningReceiverMock.commandToCheck(Command.SET_LOG_MODE);
+
+        njams.start();
+    }
+
+    @Test
+    public void instructionListenerFor_setLogMode_exclusive_isAddedBeforeRealReceiver_isStarted(){
+        requestParameters.put("logMode", "exclusive");
+
+        expectedResponse.setResultCode(0);
+        expectedResponse.setResultMessage("Success");
+
+        instructionListeningReceiverMock.commandToCheck(Command.SET_LOG_MODE);
+
+        njams.start();
+    }
+
+    @Test
+    public void instructionListenerFor_setLogMode_complete_isAddedBeforeRealReceiver_isStarted(){
+        requestParameters.put("logMode", "complete");
+
+        expectedResponse.setResultCode(0);
+        expectedResponse.setResultMessage("Success");
+
+        instructionListeningReceiverMock.commandToCheck(Command.SET_LOG_MODE);
+
+        njams.start();
+    }
+
+    @Test
     public void instructionListenerFor_ping_isAddedBeforeRealReceiver_isStarted(){
         expectedResponse.setResultCode(0);
         expectedResponse.setResultMessage("Pong");
