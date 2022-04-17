@@ -95,7 +95,9 @@ public class TestReceiver implements Receiver {
 
     @Override
     public void setNjamsReceiver(NjamsReceiver njamsReceiver) {
-
+        if (receiver != null){
+            receiver.setNjamsReceiver(njamsReceiver);
+        }
     }
 
     @Override
