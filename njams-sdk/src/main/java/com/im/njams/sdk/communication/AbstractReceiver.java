@@ -19,8 +19,8 @@ package com.im.njams.sdk.communication;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import com.im.njams.sdk.NjamsInstructionListeners;
-import com.im.njams.sdk.metadata.NjamsMetadata;
+import com.im.njams.sdk.njams.NjamsInstructionListeners;
+import com.im.njams.sdk.njams.metadata.NjamsMetadata;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

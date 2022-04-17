@@ -6,9 +6,9 @@ import com.faizsiegeln.njams.messageformat.v4.command.Request;
 import com.faizsiegeln.njams.messageformat.v4.command.Response;
 import com.im.njams.sdk.common.Path;
 import com.im.njams.sdk.communication.PingInstructionListener;
-import com.im.njams.sdk.logmessage.NjamsFeatures;
-import com.im.njams.sdk.metadata.NjamsMetadata;
-import com.im.njams.sdk.metadata.NjamsMetadataFactory;
+import com.im.njams.sdk.njams.NjamsFeatures;
+import com.im.njams.sdk.njams.metadata.NjamsMetadata;
+import com.im.njams.sdk.njams.metadata.NjamsMetadataFactory;
 import org.junit.Test;
 
 import java.util.Map;

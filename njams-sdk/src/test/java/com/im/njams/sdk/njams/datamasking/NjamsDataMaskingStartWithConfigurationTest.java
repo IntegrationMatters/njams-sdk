@@ -1,6 +1,6 @@
-package com.im.njams.sdk.logmessage.datamasking;
+package com.im.njams.sdk.njams.datamasking;
 
-import com.im.njams.sdk.NjamsDataMasking;
+import com.im.njams.sdk.njams.NjamsDataMasking;
 import com.im.njams.sdk.configuration.Configuration;
 import com.im.njams.sdk.logmessage.DataMasking;
 import com.im.njams.sdk.settings.Settings;

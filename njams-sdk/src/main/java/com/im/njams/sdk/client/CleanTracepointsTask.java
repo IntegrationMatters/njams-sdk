@@ -26,8 +26,8 @@ import java.util.TimerTask;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
-import com.im.njams.sdk.metadata.NjamsMetadata;
-import com.im.njams.sdk.NjamsSender;
+import com.im.njams.sdk.njams.metadata.NjamsMetadata;
+import com.im.njams.sdk.njams.NjamsSender;
 import org.slf4j.LoggerFactory;
 
 import com.faizsiegeln.njams.messageformat.v4.tracemessage.Activity;

@@ -26,7 +26,7 @@ package com.im.njams.sdk.logmessage;
 import java.util.List;
 import java.util.Properties;
 
-import com.im.njams.sdk.NjamsDataMasking;
+import com.im.njams.sdk.njams.NjamsDataMasking;
 
 /**
  * DataMasking implementation

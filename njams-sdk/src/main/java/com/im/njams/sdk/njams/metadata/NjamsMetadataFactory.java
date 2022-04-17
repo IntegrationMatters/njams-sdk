@@ -18,7 +18,7 @@
  * IN THE SOFTWARE.
  */
 
-package com.im.njams.sdk.metadata;
+package com.im.njams.sdk.njams.metadata;
 
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.common.Path;

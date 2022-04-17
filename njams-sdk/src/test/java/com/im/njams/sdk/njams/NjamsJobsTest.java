@@ -1,8 +1,11 @@
-package com.im.njams.sdk.logmessage;
+package com.im.njams.sdk.njams;
 
-import com.im.njams.sdk.NjamsConfiguration;
-import com.im.njams.sdk.NjamsSender;
-import com.im.njams.sdk.metadata.NjamsMetadata;
+import com.im.njams.sdk.njams.NjamsConfiguration;
+import com.im.njams.sdk.njams.NjamsFeatures;
+import com.im.njams.sdk.njams.NjamsJobs;
+import com.im.njams.sdk.njams.NjamsSender;
+import com.im.njams.sdk.njams.NjamsState;
+import com.im.njams.sdk.njams.metadata.NjamsMetadata;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.common.Path;
 import com.im.njams.sdk.model.ProcessModel;

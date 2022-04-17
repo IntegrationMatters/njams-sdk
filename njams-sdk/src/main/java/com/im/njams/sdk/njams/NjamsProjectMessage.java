@@ -1,4 +1,4 @@
-package com.im.njams.sdk.logmessage;
+package com.im.njams.sdk.njams;
 
 import com.faizsiegeln.njams.messageformat.v4.command.Command;
 import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
@@ -7,9 +7,7 @@ import com.faizsiegeln.njams.messageformat.v4.common.TreeElement;
 import com.faizsiegeln.njams.messageformat.v4.common.TreeElementType;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.LogMode;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.ProjectMessage;
-import com.im.njams.sdk.NjamsConfiguration;
-import com.im.njams.sdk.NjamsSender;
-import com.im.njams.sdk.metadata.NjamsMetadata;
+import com.im.njams.sdk.njams.metadata.NjamsMetadata;
 import com.im.njams.sdk.common.DateTimeUtility;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.common.Path;

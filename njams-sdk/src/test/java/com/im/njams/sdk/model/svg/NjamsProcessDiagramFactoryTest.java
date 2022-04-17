@@ -18,7 +18,7 @@ public class NjamsProcessDiagramFactoryTest {
 
     @Test
     public void secureProcessingIsEnabledPerDefault(){
-        Njams njams = new Njams(new Path(), null, null, config);
+        Njams njams = new Njams(new Path(), "SDK", config);
         NjamsProcessDiagramFactory factory = (NjamsProcessDiagramFactory) njams.getProcessDiagramFactory();
 
         isProcessingWith(factory).secure();
@@ -28,7 +28,7 @@ public class NjamsProcessDiagramFactoryTest {
     public void testSecureProcessingEnabled() {
         config.put(Settings.PROPERTY_DISABLE_SECURE_PROCESSING, "false");
 
-        Njams njams = new Njams(new Path(), null, null, config);
+        Njams njams = new Njams(new Path(), "SDK", config);
         NjamsProcessDiagramFactory factory = (NjamsProcessDiagramFactory) njams.getProcessDiagramFactory();
 
         isProcessingWith(factory).secure();
@@ -38,7 +38,7 @@ public class NjamsProcessDiagramFactoryTest {
     public void testSecureProcessingDisabled() {
         config.put(Settings.PROPERTY_DISABLE_SECURE_PROCESSING, "true");
 
-        Njams njams = new Njams(new Path(), null, null, config);
+        Njams njams = new Njams(new Path(), "SDK", config);
         NjamsProcessDiagramFactory factory = (NjamsProcessDiagramFactory) njams.getProcessDiagramFactory();
 
         isProcessingWith(factory).notSecure();

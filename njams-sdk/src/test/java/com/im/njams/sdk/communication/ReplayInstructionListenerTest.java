@@ -4,8 +4,8 @@ import com.faizsiegeln.njams.messageformat.v4.command.Command;
 import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
 import com.faizsiegeln.njams.messageformat.v4.command.Request;
 import com.faizsiegeln.njams.messageformat.v4.command.Response;
-import com.im.njams.sdk.logmessage.NjamsFeatures;
-import com.im.njams.sdk.logmessage.NjamsJobs;
+import com.im.njams.sdk.njams.NjamsFeatures;
+import com.im.njams.sdk.njams.NjamsJobs;
 import org.junit.Before;
 import org.junit.Test;
 

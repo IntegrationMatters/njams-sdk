@@ -19,7 +19,7 @@ package com.im.njams.sdk.communication;
 import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
 import com.faizsiegeln.njams.messageformat.v4.command.Request;
 import com.faizsiegeln.njams.messageformat.v4.command.Response;
-import com.im.njams.sdk.NjamsInstructionListeners;
+import com.im.njams.sdk.njams.NjamsInstructionListeners;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import org.junit.Test;
 

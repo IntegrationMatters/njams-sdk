@@ -1,5 +1,8 @@
-package com.im.njams.sdk.argos;
+package com.im.njams.sdk.njams;
 
+import com.im.njams.sdk.argos.ArgosMetric;
+import com.im.njams.sdk.argos.ArgosMultiCollector;
+import com.im.njams.sdk.argos.ArgosSender;
 import com.im.njams.sdk.settings.Settings;
 
 import java.util.ArrayList;

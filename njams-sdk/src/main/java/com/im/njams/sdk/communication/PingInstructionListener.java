@@ -3,8 +3,8 @@ package com.im.njams.sdk.communication;
 import com.faizsiegeln.njams.messageformat.v4.command.Command;
 import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
 import com.faizsiegeln.njams.messageformat.v4.command.Response;
-import com.im.njams.sdk.metadata.NjamsMetadata;
-import com.im.njams.sdk.logmessage.NjamsFeatures;
+import com.im.njams.sdk.njams.metadata.NjamsMetadata;
+import com.im.njams.sdk.njams.NjamsFeatures;
 
 import java.util.Map;
 import java.util.stream.Collectors;

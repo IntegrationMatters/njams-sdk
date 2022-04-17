@@ -29,19 +29,29 @@ import com.im.njams.sdk.common.*;
 import com.im.njams.sdk.communication.*;
 import com.im.njams.sdk.configuration.Configuration;
 import com.im.njams.sdk.logmessage.*;
-import com.im.njams.sdk.metadata.NjamsMetadata;
-import com.im.njams.sdk.metadata.NjamsMetadataFactory;
+import com.im.njams.sdk.njams.NjamsFeatures;
+import com.im.njams.sdk.njams.NjamsJobs;
+import com.im.njams.sdk.njams.NjamsProjectMessage;
+import com.im.njams.sdk.njams.NjamsState;
+import com.im.njams.sdk.njams.metadata.NjamsMetadata;
+import com.im.njams.sdk.njams.metadata.NjamsMetadataFactory;
 import com.im.njams.sdk.model.ProcessModel;
 import com.im.njams.sdk.model.image.*;
 import com.im.njams.sdk.model.layout.ProcessModelLayouter;
 import com.im.njams.sdk.model.svg.ProcessDiagramFactory;
+import com.im.njams.sdk.njams.NjamsArgos;
+import com.im.njams.sdk.njams.NjamsConfiguration;
+import com.im.njams.sdk.njams.NjamsConfigurationFactory;
+import com.im.njams.sdk.njams.NjamsReceiver;
+import com.im.njams.sdk.njams.NjamsSender;
+import com.im.njams.sdk.njams.NjamsSenderFactory;
 import com.im.njams.sdk.serializer.*;
 import com.im.njams.sdk.settings.Settings;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
 
-import static com.im.njams.sdk.logmessage.NjamsState.NOT_STARTED_EXCEPTION_MESSAGE;
+import static com.im.njams.sdk.njams.NjamsState.NOT_STARTED_EXCEPTION_MESSAGE;
 
 /**
  * This is an instance of nJAMS. It cares about lifecycle and initializations
@@ -298,8 +308,13 @@ public class Njams{
 
 //################################### NjamsReceiver
 
-    public NjamsInstructionListeners getNjamsInstructionListeners(){
-        return njamsReceiver.getNjamsInstructionListeners();
+
+    public NjamsReceiver getNjamsReceiver(){
+        return njamsReceiver;
+    }
+
+    void setNjamsReceiver(NjamsReceiver njamsReceiver) {
+        this.njamsReceiver = njamsReceiver;
     }
 
     /**
@@ -721,9 +736,5 @@ public class Njams{
     @Deprecated
     public void setProcessDiagramFactory(ProcessDiagramFactory processDiagramFactory) {
         njamsProjectMessage.setProcessDiagramFactory(processDiagramFactory);
-    }
-
-    void setNjamsReceiver(NjamsReceiver njamsReceiver) {
-        this.njamsReceiver = njamsReceiver;
     }
 }

@@ -1,4 +1,4 @@
-package com.im.njams.sdk;
+package com.im.njams.sdk.njams;
 
 import com.im.njams.sdk.configuration.Configuration;
 import com.im.njams.sdk.logmessage.DataMasking;

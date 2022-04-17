@@ -1,7 +1,8 @@
-package com.im.njams.sdk.logmessage;
+package com.im.njams.sdk.njams;
 
-import com.im.njams.sdk.metadata.NjamsMetadata;
-import com.im.njams.sdk.metadata.NjamsMetadataFactory;
+import com.im.njams.sdk.njams.NjamsProjectMessage;
+import com.im.njams.sdk.njams.metadata.NjamsMetadata;
+import com.im.njams.sdk.njams.metadata.NjamsMetadataFactory;
 import com.im.njams.sdk.common.Path;
 import com.im.njams.sdk.settings.Settings;
 import org.junit.Before;
@@ -17,7 +18,7 @@ public class NjamsProjectMessageTest {
     public void setUp() {
         final Settings settings = new Settings();
         final Path clientPath = new Path();
-        final NjamsMetadata njamsMetadata = NjamsMetadataFactory.createMetadataWith(clientPath, null, null);
+        final NjamsMetadata njamsMetadata = NjamsMetadataFactory.createMetadataWith(clientPath, null, "SDK");
         njamsProjectMessage = new NjamsProjectMessage(njamsMetadata, null, null, null, null, null, settings);
     }
 

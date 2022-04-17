@@ -1,4 +1,4 @@
-package com.im.njams.sdk.metadata;
+package com.im.njams.sdk.njams.metadata;
 
 import org.slf4j.LoggerFactory;
 

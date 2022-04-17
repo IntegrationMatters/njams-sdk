@@ -1,8 +1,8 @@
-package com.im.njams.sdk;
+package com.im.njams.sdk.njams;
 
 import com.im.njams.sdk.communication.CompositeSender;
 import com.im.njams.sdk.communication.Sender;
-import com.im.njams.sdk.metadata.NjamsMetadata;
+import com.im.njams.sdk.njams.metadata.NjamsMetadata;
 import com.im.njams.sdk.settings.Settings;
 import org.slf4j.LoggerFactory;
 

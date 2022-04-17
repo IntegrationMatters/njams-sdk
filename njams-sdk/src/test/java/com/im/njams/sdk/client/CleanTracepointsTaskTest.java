@@ -27,8 +27,8 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.stream.Collectors;
 
-import com.im.njams.sdk.metadata.NjamsMetadata;
-import com.im.njams.sdk.metadata.NjamsMetadataFactory;
+import com.im.njams.sdk.njams.metadata.NjamsMetadata;
+import com.im.njams.sdk.njams.metadata.NjamsMetadataFactory;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -70,7 +70,7 @@ public class CleanTracepointsTaskTest extends AbstractTest {
     @Before
     public void testStopAll() {
         CleanTracepointsTask.getCleanTracePointsTaskEntries().forEach(njams -> CleanTracepointsTask.stop(njams.instanceMetadata));
-        NjamsMetadata metadata = NjamsMetadataFactory.createMetadataWith(new Path("A"), null, null);
+        NjamsMetadata metadata = NjamsMetadataFactory.createMetadataWith(new Path("A"), null, "SDK");
         when(njamsMock.getNjamsMetadata()).thenReturn(metadata);
     }
 
@@ -86,7 +86,7 @@ public class CleanTracepointsTaskTest extends AbstractTest {
         assertTrue(CleanTracepointsTask.getCleanTracePointsTaskEntries().isEmpty());
         assertNull(CleanTracepointsTask.getTimer());
 
-        NjamsMetadata metadata = NjamsMetadataFactory.createMetadataWith(null, null, null);
+        NjamsMetadata metadata = NjamsMetadataFactory.createMetadataWith(null, null, "SDK");
 
         CleanTracepointsTask.start(metadata, null, null);
     }

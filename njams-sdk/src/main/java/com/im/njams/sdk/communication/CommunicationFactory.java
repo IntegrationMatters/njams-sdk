@@ -16,8 +16,8 @@
  */
 package com.im.njams.sdk.communication;
 
-import com.im.njams.sdk.NjamsInstructionListeners;
-import com.im.njams.sdk.metadata.NjamsMetadata;
+import com.im.njams.sdk.njams.NjamsInstructionListeners;
+import com.im.njams.sdk.njams.metadata.NjamsMetadata;
 import com.im.njams.sdk.settings.Settings;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

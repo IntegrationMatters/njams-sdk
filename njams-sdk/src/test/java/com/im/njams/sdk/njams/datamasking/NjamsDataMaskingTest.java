@@ -1,6 +1,6 @@
-package com.im.njams.sdk.logmessage.datamasking;
+package com.im.njams.sdk.njams.datamasking;
 
-import com.im.njams.sdk.NjamsDataMasking;
+import com.im.njams.sdk.njams.NjamsDataMasking;
 import com.im.njams.sdk.logmessage.DataMasking;
 import org.junit.Before;
 import org.junit.Test;

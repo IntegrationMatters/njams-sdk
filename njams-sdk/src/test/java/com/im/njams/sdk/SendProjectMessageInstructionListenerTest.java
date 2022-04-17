@@ -7,11 +7,13 @@ import com.faizsiegeln.njams.messageformat.v4.command.Response;
 import com.im.njams.sdk.common.Path;
 import com.im.njams.sdk.communication.TestSender;
 import com.im.njams.sdk.configuration.Configuration;
-import com.im.njams.sdk.logmessage.NjamsFeatures;
-import com.im.njams.sdk.logmessage.NjamsJobs;
-import com.im.njams.sdk.logmessage.NjamsProjectMessage;
-import com.im.njams.sdk.logmessage.NjamsState;
-import com.im.njams.sdk.metadata.NjamsMetadataFactory;
+import com.im.njams.sdk.njams.NjamsFeatures;
+import com.im.njams.sdk.njams.NjamsJobs;
+import com.im.njams.sdk.njams.NjamsProjectMessage;
+import com.im.njams.sdk.njams.NjamsState;
+import com.im.njams.sdk.njams.metadata.NjamsMetadataFactory;
+import com.im.njams.sdk.njams.NjamsConfiguration;
+import com.im.njams.sdk.njams.NjamsSender;
 import com.im.njams.sdk.settings.Settings;
 import org.junit.Test;
 

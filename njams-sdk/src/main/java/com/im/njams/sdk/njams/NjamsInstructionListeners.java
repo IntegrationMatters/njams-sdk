@@ -1,4 +1,4 @@
-package com.im.njams.sdk;
+package com.im.njams.sdk.njams;
 
 import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
 import com.im.njams.sdk.communication.InstructionListener;
