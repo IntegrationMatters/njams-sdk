@@ -318,7 +318,10 @@ public class Njams{
     }
 
     /**
-     * @return the instructionListeners
+     * Returns the instructions listeners that are used when a command of the njams server is sent to this client.
+     * The instruction will be sent to each listener which can then decide to do with that instruction.
+     *
+     * @return the instructionListeners that are used for instruction handling.
      */
     @Deprecated
     public List<InstructionListener> getInstructionListeners() {
@@ -337,7 +340,7 @@ public class Njams{
     }
 
     /**
-     * Removes a InstructionListener from the Receiver.
+     * Removes a InstructionListener. No new instructions from the server will be processed by this listener.
      *
      * @param listener the listener to remove
      */

@@ -19,8 +19,8 @@ package com.im.njams.sdk.communication;
 import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
 import com.faizsiegeln.njams.messageformat.v4.command.Request;
 import com.faizsiegeln.njams.messageformat.v4.command.Response;
-import com.im.njams.sdk.njams.NjamsInstructionListeners;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
+import com.im.njams.sdk.njams.NjamsReceiver;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -115,11 +115,11 @@ public class AbstractReceiverTest {
 
     private Instruction mockUp(List<InstructionListener> list) {
         AbstractReceiverImpl impl = new AbstractReceiverImpl();
-        final NjamsInstructionListeners njamsInstructionListeners = new NjamsInstructionListeners();
+        final NjamsReceiver njamsReceiver = new NjamsReceiver(null, null, null, null, null, null);
         for (InstructionListener listener : list) {
-            njamsInstructionListeners.add(listener);
+            njamsReceiver.addInstructionListener(listener);
         }
-        impl.setNjamsInstructionListeners(njamsInstructionListeners);
+        impl.setNjamsReceiver(njamsReceiver);
         Instruction inst = new Instruction();
         Request req = new Request();
         req.setCommand(TESTCOMMAND);
@@ -230,7 +230,7 @@ public class AbstractReceiverTest {
     @Test
     public void testOnInstructionExtendedRequestException() {
         AbstractReceiverImpl impl = new AbstractReceiverImpl();
-        impl.setNjamsInstructionListeners(new NjamsInstructionListeners());
+        impl.setNjamsReceiver(new NjamsReceiver(null, null, null, null, null, null));
         Instruction inst = new Instruction();
         Request req = new Request();
         req.setCommand(TESTCOMMAND);

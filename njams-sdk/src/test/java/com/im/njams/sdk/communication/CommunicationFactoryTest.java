@@ -1,6 +1,6 @@
 package com.im.njams.sdk.communication;
 
-import com.im.njams.sdk.njams.NjamsInstructionListeners;
+import com.im.njams.sdk.njams.NjamsReceiver;
 import com.im.njams.sdk.njams.metadata.NjamsMetadata;
 import com.im.njams.sdk.njams.metadata.NjamsMetadataFactory;
 import com.im.njams.sdk.common.Path;
@@ -49,8 +49,8 @@ public class CommunicationFactoryTest {
 
         final String NOT_NEEDED = null;
         NjamsMetadata metadata = NjamsMetadataFactory.createMetadataWith(new Path("CLIENT_PATH"), NOT_NEEDED, "SDK");
-        NjamsInstructionListeners njamsInstructionListeners = new NjamsInstructionListeners();
-        Receiver receiver = communicationFactory.getReceiver(metadata, njamsInstructionListeners);
+        NjamsReceiver njamsReceiver = new NjamsReceiver(null, null, null, null, null, null);
+        Receiver receiver = communicationFactory.getReceiver(metadata, njamsReceiver);
 
         verify(receivers.iterator(), times(2)).next();
         assertNotNull(receiver);

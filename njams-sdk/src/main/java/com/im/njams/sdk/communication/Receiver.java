@@ -19,7 +19,7 @@ package com.im.njams.sdk.communication;
 import java.util.Properties;
 
 import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
-import com.im.njams.sdk.njams.NjamsInstructionListeners;
+import com.im.njams.sdk.njams.NjamsReceiver;
 import com.im.njams.sdk.njams.metadata.NjamsMetadata;
 import com.im.njams.sdk.utils.ClasspathValidator;
 
@@ -66,9 +66,9 @@ public interface Receiver extends ClasspathValidator {
      */
     void stop();
 
-    void setNjamsInstructionListeners(NjamsInstructionListeners njamsInstructionListeners);
+    void setNjamsReceiver(NjamsReceiver njamsReceiver);
 
-    NjamsInstructionListeners getNjamsInstructionListeners();
+    NjamsReceiver getNjamsReceiver();
 
     void setInstanceMetadata(NjamsMetadata metadata);
 

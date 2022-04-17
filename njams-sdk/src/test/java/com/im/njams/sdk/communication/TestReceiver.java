@@ -19,7 +19,7 @@ package com.im.njams.sdk.communication;
 import java.util.Properties;
 
 import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
-import com.im.njams.sdk.njams.NjamsInstructionListeners;
+import com.im.njams.sdk.njams.NjamsReceiver;
 import com.im.njams.sdk.njams.metadata.NjamsMetadata;
 import com.im.njams.sdk.settings.Settings;
 
@@ -94,12 +94,12 @@ public class TestReceiver implements Receiver {
     }
 
     @Override
-    public void setNjamsInstructionListeners(NjamsInstructionListeners njamsInstructionListeners) {
+    public void setNjamsReceiver(NjamsReceiver njamsReceiver) {
 
     }
 
     @Override
-    public NjamsInstructionListeners getNjamsInstructionListeners() {
+    public NjamsReceiver getNjamsReceiver() {
         return null;
     }
 

@@ -135,7 +135,7 @@ public class SharedReceiverSupport<R extends AbstractReceiver & ShareableReceive
             //Set the exception response
             instruction.setResponse(exceptionResponse);
         } else {
-            receiver.getNjamsInstructionListeners().distribute(instruction);
+            receiver.getNjamsReceiver().distribute(instruction);
             //If response is empty, no InstructionListener found. Set default Response indicating this.
             if (instruction.getResponse() == null) {
                 LOG.warn("No InstructionListener for {} found", instruction.getRequest().getCommand());

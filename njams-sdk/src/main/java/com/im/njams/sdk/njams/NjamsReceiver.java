@@ -1,5 +1,6 @@
 package com.im.njams.sdk.njams;
 
+import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
 import com.im.njams.sdk.communication.CommunicationFactory;
 import com.im.njams.sdk.communication.InstructionListener;
 import com.im.njams.sdk.communication.PingInstructionListener;
@@ -42,7 +43,7 @@ public class NjamsReceiver {
      */
     public void start() {
         try {
-            receiver = new CommunicationFactory(njamsSettings).getReceiver(njamsMetadata, njamsInstructionListeners);
+            receiver = new CommunicationFactory(njamsSettings).getReceiver(njamsMetadata, this);
             njamsInstructionListeners.add(new PingInstructionListener(njamsMetadata, njamsFeatures));
             njamsInstructionListeners.add(njamsProjectMessage);
             njamsInstructionListeners.add(njamsJobs);
@@ -80,5 +81,15 @@ public class NjamsReceiver {
 
     public void removeInstructionListener(InstructionListener listener) {
         njamsInstructionListeners.remove(listener);
+    }
+
+    public void distribute(Instruction instruction) {
+        for (InstructionListener listener : njamsInstructionListeners.get()) {
+            try {
+                listener.onInstruction(instruction);
+            } catch (Exception e) {
+                LOG.error("Error in InstructionListener {}", listener.getClass().getSimpleName(), e);
+            }
+        }
     }
 }

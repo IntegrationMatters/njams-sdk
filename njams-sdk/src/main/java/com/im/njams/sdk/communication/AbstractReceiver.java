@@ -19,7 +19,7 @@ package com.im.njams.sdk.communication;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import com.im.njams.sdk.njams.NjamsInstructionListeners;
+import com.im.njams.sdk.njams.NjamsReceiver;
 import com.im.njams.sdk.njams.metadata.NjamsMetadata;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -55,18 +55,17 @@ public abstract class AbstractReceiver implements Receiver {
 
     private AtomicInteger reconnectIntervalIncreasing = new AtomicInteger(RECONNECT_INTERVAL);
 
-
     private NjamsMetadata instanceMetaData;
-    private NjamsInstructionListeners njamsInstructionListeners;
+    private NjamsReceiver njamsReceiver;
 
     @Override
-    public void setNjamsInstructionListeners(NjamsInstructionListeners njamsInstructionListeners){
-        this.njamsInstructionListeners = njamsInstructionListeners;
+    public void setNjamsReceiver(NjamsReceiver njamsReceiver){
+        this.njamsReceiver = njamsReceiver;
     }
 
     @Override
-    public NjamsInstructionListeners getNjamsInstructionListeners(){
-        return njamsInstructionListeners;
+    public NjamsReceiver getNjamsReceiver(){
+        return njamsReceiver;
     }
 
     @Override
@@ -108,7 +107,7 @@ public abstract class AbstractReceiver implements Receiver {
             //Set the exception response
             instruction.setResponse(exceptionResponse);
         } else {
-            njamsInstructionListeners.distribute(instruction);
+            njamsReceiver.distribute(instruction);
             //If response is empty, no InstructionListener found. Set default Response indicating this.
             if (instruction.getResponse() == null) {
                 LOG.warn("No InstructionListener for {} found", instruction.getRequest().getCommand());

@@ -1,6 +1,6 @@
 package com.im.njams.sdk;
 
-import com.faizsiegeln.njams.messageformat.command.Instruction;
+import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
 import com.faizsiegeln.njams.messageformat.v4.command.Response;
 import com.im.njams.sdk.common.Path;
 import com.im.njams.sdk.communication.InstructionListener;
@@ -35,4 +35,16 @@ public class NjamsInstructionListenerIT {
         assertThat(instruction.getResponse(), is(nullValue()));
     }
 
+    @Test
+    public void onInstruction_afterNoListenerHasBeenAdded_doesNotDoAnything(){
+        njams.getNjamsReceiver().distribute(instruction);
+        assertThat(instruction.getResponse(), is(nullValue()));
+    }
+
+    @Test
+    public void onInstruction_afterAcceptingListenerHasBeenAdded_instructionWasAccepted(){
+        njams.addInstructionListener(acceptingListener);
+        njams.getNjamsReceiver().distribute(instruction);
+        assertThat(instruction.getResponse().getResultMessage(), is("Accepted"));
+    }
 }
