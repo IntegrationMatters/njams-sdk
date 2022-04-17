@@ -168,6 +168,16 @@ public class NjamsInstructionListenerAddedBeforeReceiverStartIT {
     }
 
     @Test
+    public void instructionListenerFor_getLogMode_isAddedBeforeRealReceiver_isStarted(){
+        expectedResponse.setResultCode(0);
+        expectedResponse.setResultMessage("Success");
+
+        instructionListeningReceiverMock.commandToCheck(Command.GET_LOG_MODE);
+
+        njams.start();
+    }
+
+    @Test
     public void instructionListenerFor_ping_isAddedBeforeRealReceiver_isStarted(){
         expectedResponse.setResultCode(0);
         expectedResponse.setResultMessage("Pong");
