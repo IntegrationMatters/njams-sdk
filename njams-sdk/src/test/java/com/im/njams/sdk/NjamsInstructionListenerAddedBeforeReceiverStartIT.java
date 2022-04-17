@@ -37,23 +37,132 @@ public class NjamsInstructionListenerAddedBeforeReceiverStartIT {
         settings = new Settings();
         settings.put(CommunicationFactory.COMMUNICATION, TestReceiver.NAME);
 
-        njams = new Njams(new Path("NjamsInstructionListenerAddedBeforeReceiverStartIT"), "SDK", settings);
+        njams = new Njams(new Path(), "SDK", settings);
 
         instructionListeningReceiverMock = new InstructionListeningReceiverMock();
         instructionListeningReceiverMock.addRequestParameters(requestParameters);
         instructionListeningReceiverMock.setNjamsReceiver(njams.getNjamsReceiver());
-
+        instructionListeningReceiverMock.setExpectedResponse(expectedResponse);
         TestReceiver.setReceiverMock(instructionListeningReceiverMock);
     }
 
     @Test
-    public void instructionListenerFor_getLogLeve_isAddedBeforeRealReceiver_isStarted(){
+    public void instructionListenerFor_getLogLevel_isAddedBeforeRealReceiver_isStarted(){
         requestParameters.put("processPath", "Test");
 
         expectedResponse.setResultCode(0);
         expectedResponse.setResultMessage("Success");
 
-        instructionListeningReceiverMock.forCommand(Command.GET_LOG_LEVEL).checkResponse(expectedResponse);
+        instructionListeningReceiverMock.commandToCheck(Command.GET_LOG_LEVEL);
+
+        njams.start();
+    }
+
+    @Test
+    public void instructionListenerFor_getLogLevel_withoutProcessPath_isAddedBeforeRealReceiver_isStarted(){
+        expectedResponse.setResultCode(1);
+        expectedResponse.setResultMessage("missing parameter(s) [processPath]");
+
+        instructionListeningReceiverMock.commandToCheck(Command.GET_LOG_LEVEL);
+
+        njams.start();
+    }
+
+    @Test
+    public void instructionListenerFor_setLogLevel_withoutProcessPathAndLogLevel_isAddedBeforeRealReceiver_isStarted(){
+        expectedResponse.setResultCode(1);
+        expectedResponse.setResultMessage("missing parameter(s) [processPath, logLevel]");
+
+        instructionListeningReceiverMock.commandToCheck(Command.SET_LOG_LEVEL);
+
+        njams.start();
+    }
+
+    @Test
+    public void instructionListenerFor_setLogLevel_withoutProcessPath_isAddedBeforeRealReceiver_isStarted(){
+        requestParameters.put("logLevel", "info");
+
+        expectedResponse.setResultCode(1);
+        expectedResponse.setResultMessage("missing parameter(s) [processPath]");
+
+        instructionListeningReceiverMock.commandToCheck(Command.SET_LOG_LEVEL);
+
+        njams.start();
+    }
+
+    @Test
+    public void instructionListenerFor_setLogLevel_withoutLogLevel_isAddedBeforeRealReceiver_isStarted(){
+        requestParameters.put("processPath", "Test");
+
+        expectedResponse.setResultCode(1);
+        expectedResponse.setResultMessage("missing parameter(s) [logLevel]");
+
+        instructionListeningReceiverMock.commandToCheck(Command.SET_LOG_LEVEL);
+
+        njams.start();
+    }
+
+    @Test
+    public void instructionListenerFor_setLogLevel_withoutWrongLogLevel_isAddedBeforeRealReceiver_isStarted(){
+        requestParameters.put("processPath", "Test");
+        requestParameters.put("logLevel", "WrongLogLevel");
+
+        expectedResponse.setResultCode(1);
+        expectedResponse.setResultMessage("could not parse value of parameter [logLevel] value=WrongLogLevel");
+
+        instructionListeningReceiverMock.commandToCheck(Command.SET_LOG_LEVEL);
+
+        njams.start();
+    }
+
+    @Test
+    public void instructionListenerFor_setLogLevel_info_isAddedBeforeRealReceiver_isStarted(){
+        requestParameters.put("processPath", "Test");
+        requestParameters.put("logLevel", "info");
+
+        expectedResponse.setResultCode(0);
+        expectedResponse.setResultMessage("Success");
+
+        instructionListeningReceiverMock.commandToCheck(Command.SET_LOG_LEVEL);
+
+        njams.start();
+    }
+
+    @Test
+    public void instructionListenerFor_setLogLevel_success_isAddedBeforeRealReceiver_isStarted(){
+        requestParameters.put("processPath", "Test");
+        requestParameters.put("logLevel", "success");
+
+        expectedResponse.setResultCode(0);
+        expectedResponse.setResultMessage("Success");
+
+        instructionListeningReceiverMock.commandToCheck(Command.SET_LOG_LEVEL);
+
+        njams.start();
+    }
+
+    @Test
+    public void instructionListenerFor_setLogLevel_warn_isAddedBeforeRealReceiver_isStarted(){
+        requestParameters.put("processPath", "Test");
+        requestParameters.put("logLevel", "warning");
+
+        expectedResponse.setResultCode(0);
+        expectedResponse.setResultMessage("Success");
+
+        instructionListeningReceiverMock.commandToCheck(Command.SET_LOG_LEVEL);
+
+        njams.start();
+    }
+
+    @Test
+    public void instructionListenerFor_setLogLevel_error_isAddedBeforeRealReceiver_isStarted(){
+        requestParameters.put("processPath", "Test");
+        requestParameters.put("logLevel", "error");
+
+        expectedResponse.setResultCode(0);
+        expectedResponse.setResultMessage("Success");
+
+        instructionListeningReceiverMock.commandToCheck(Command.SET_LOG_LEVEL);
 
         njams.start();
     }
@@ -63,7 +172,7 @@ public class NjamsInstructionListenerAddedBeforeReceiverStartIT {
         expectedResponse.setResultCode(0);
         expectedResponse.setResultMessage("Pong");
 
-        instructionListeningReceiverMock.forCommand(Command.PING).checkResponse(expectedResponse);
+        instructionListeningReceiverMock.commandToCheck(Command.PING);
 
         njams.start();
     }
@@ -73,7 +182,7 @@ public class NjamsInstructionListenerAddedBeforeReceiverStartIT {
         expectedResponse.setResultCode(0);
         expectedResponse.setResultMessage("Successfully sent ProjectMessage via NjamsClient");
 
-        instructionListeningReceiverMock.forCommand(Command.SEND_PROJECTMESSAGE).checkResponse(expectedResponse);
+        instructionListeningReceiverMock.commandToCheck(Command.SEND_PROJECTMESSAGE);
 
         njams.start();
     }
@@ -125,12 +234,11 @@ public class NjamsInstructionListenerAddedBeforeReceiverStartIT {
             assertThat(actualResponse.getResultMessage(), is(equalTo(expectedResponse.getResultMessage())));
         }
 
-        public InstructionListeningReceiverMock forCommand(Command command) {
+        public void commandToCheck(Command command) {
             this.commandToListenFor = command;
-            return this;
         }
 
-        public void checkResponse(Response expectedResponse) {
+        public void setExpectedResponse(Response expectedResponse) {
             this.expectedResponse = expectedResponse;
         }
 
