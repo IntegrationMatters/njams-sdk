@@ -1,6 +1,7 @@
 package com.im.njams.sdk.njams;
 
 import com.im.njams.sdk.communication.CommunicationFactory;
+import com.im.njams.sdk.communication.InstructionListener;
 import com.im.njams.sdk.communication.PingInstructionListener;
 import com.im.njams.sdk.communication.Receiver;
 import com.im.njams.sdk.communication.ShareableReceiver;
@@ -8,6 +9,8 @@ import com.im.njams.sdk.configuration.ConfigurationInstructionListener;
 import com.im.njams.sdk.njams.metadata.NjamsMetadata;
 import com.im.njams.sdk.settings.Settings;
 import org.slf4j.LoggerFactory;
+
+import java.util.List;
 
 public class NjamsReceiver {
 
@@ -32,10 +35,6 @@ public class NjamsReceiver {
         this.njamsJobs = njamsJobs;
         this.njamsConfiguration = configuration;
         this.njamsInstructionListeners = new NjamsInstructionListeners();
-    }
-
-    public NjamsInstructionListeners getNjamsInstructionListeners(){
-        return njamsInstructionListeners;
     }
 
     /**
@@ -69,5 +68,17 @@ public class NjamsReceiver {
             }
         }
         njamsInstructionListeners.removeAll();
+    }
+
+    public List<InstructionListener> getInstructionListeners() {
+        return njamsInstructionListeners.get();
+    }
+
+    public void addInstructionListener(InstructionListener instructionListener) {
+        njamsInstructionListeners.add(instructionListener);
+    }
+
+    public void removeInstructionListener(InstructionListener listener) {
+        njamsInstructionListeners.remove(listener);
     }
 }

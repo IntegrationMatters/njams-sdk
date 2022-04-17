@@ -322,7 +322,7 @@ public class Njams{
      */
     @Deprecated
     public List<InstructionListener> getInstructionListeners() {
-        return njamsReceiver.getNjamsInstructionListeners().get();
+        return njamsReceiver.getInstructionListeners();
     }
 
     /**
@@ -333,7 +333,7 @@ public class Njams{
      */
     @Deprecated
     public void addInstructionListener(InstructionListener listener) {
-        njamsReceiver.getNjamsInstructionListeners().add(listener);
+        njamsReceiver.addInstructionListener(listener);
     }
 
     /**
@@ -343,7 +343,7 @@ public class Njams{
      */
     @Deprecated
     public void removeInstructionListener(InstructionListener listener) {
-        njamsReceiver.getNjamsInstructionListeners().remove(listener);
+        njamsReceiver.removeInstructionListener(listener);
     }
 
 

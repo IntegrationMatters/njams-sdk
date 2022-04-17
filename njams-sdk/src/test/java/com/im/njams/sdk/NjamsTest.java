@@ -56,4 +56,5 @@ public class NjamsTest {
         njams.stop();
         njams.start();
     }
+
 }
