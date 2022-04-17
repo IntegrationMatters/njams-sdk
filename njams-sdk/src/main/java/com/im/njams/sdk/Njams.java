@@ -323,7 +323,6 @@ public class Njams{
      *
      * @return the instructionListeners that are used for instruction handling.
      */
-    @Deprecated
     public List<InstructionListener> getInstructionListeners() {
         return njamsReceiver.getInstructionListeners();
     }
@@ -334,7 +333,6 @@ public class Njams{
      *
      * @param listener the new listener to be called
      */
-    @Deprecated
     public void addInstructionListener(InstructionListener listener) {
         njamsReceiver.addInstructionListener(listener);
     }
@@ -344,7 +342,6 @@ public class Njams{
      *
      * @param listener the listener to remove
      */
-    @Deprecated
     public void removeInstructionListener(InstructionListener listener) {
         njamsReceiver.removeInstructionListener(listener);
     }
