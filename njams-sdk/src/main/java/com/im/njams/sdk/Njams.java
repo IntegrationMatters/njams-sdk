@@ -64,6 +64,19 @@ public class Njams{
     private final NjamsReceiver njamsReceiver;
 
     /**
+     * Create a nJAMS instance without a default client version.
+     * It's initializing everything that is needed to communicate with the nJAMS Server
+     * or the Argos agent and to produce appropriate messages.
+     *
+     * @param clientPath unique path per nJAMS instance.
+     * @param category should describe the technology for the client that is used, e.g. BW5, BW6, MULE4EE
+     * @param settings needed for client initialization of communication, sending intervals and sizes, etc.
+     */
+    public Njams(Path clientPath, String category, Settings settings) {
+        this(clientPath, null, category, settings);
+    }
+
+    /**
      * Create a nJAMS instance. It's initializing everything that is needed to communicate with the nJAMS Server
      * or the Argos agent and to produce appropriate messages.
      *
@@ -94,10 +107,6 @@ public class Njams{
     private void validate(Settings settings) {
         if (settings == null)
             throw new NjamsSdkRuntimeException("Settings need to be provided!");
-    }
-
-    public Njams(Path clientPath, Settings settings) {
-        this(clientPath, null, "SDK", settings);
     }
 
     private void printStartupBanner() {

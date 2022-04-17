@@ -47,6 +47,7 @@ public class NjamsMetadataFactory {
 
     public static NjamsMetadata createMetadataWith(Path clientPath, String defaultClientVersion, String category) {
         validate(clientPath);
+        validateCategory(category);
         Map<String, String> classpathVersions = readNjamsVersionsFiles();
         final String CURRENT_YEAR = "currentYear";
         String currentYear = classpathVersions.remove(CURRENT_YEAR);
@@ -58,6 +59,12 @@ public class NjamsMetadataFactory {
     private static void validate(Path clientPath) {
         if(clientPath == null)
             throw new NjamsSdkRuntimeException("Client path need to be provided!");
+    }
+
+    private static void validateCategory(String category) {
+        if(category == null)
+            throw new NjamsSdkRuntimeException("Category need to be provided!");
+
     }
 
 

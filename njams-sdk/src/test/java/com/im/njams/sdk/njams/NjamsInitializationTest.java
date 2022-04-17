@@ -15,14 +15,24 @@ public class NjamsInitializationTest {
     @Test
     public void withoutPath_throwsAnNjamsSdkRuntimeException(){
         NjamsSdkRuntimeException njamsSdkRuntimeException = assertThrows(NjamsSdkRuntimeException.class,
-            () -> new Njams(null, new Settings()));
+            () -> new Njams(null, "SDK", new Settings()));
         assertThat(njamsSdkRuntimeException.getMessage(), is(equalTo("Client path need to be provided!")));
+    }
+
+    /**
+     * Is this correct? Shouldn't it be optional to set a category?
+     */
+    @Test
+    public void withoutCategory_throwsAnNjamsSdkRuntimeException(){
+        NjamsSdkRuntimeException njamsSdkRuntimeException = assertThrows(NjamsSdkRuntimeException.class,
+            () -> new Njams(new Path(), null, new Settings()));
+        assertThat(njamsSdkRuntimeException.getMessage(), is(equalTo("Category need to be provided!")));
     }
 
     @Test
     public void withoutSettings_throwsAnNjamsSdkRuntimeException(){
         NjamsSdkRuntimeException njamsSdkRuntimeException = assertThrows(NjamsSdkRuntimeException.class,
-            () -> new Njams(new Path(), null));
+            () -> new Njams(new Path(), "SDK", null));
         assertThat(njamsSdkRuntimeException.getMessage(), is(equalTo("Settings need to be provided!")));
     }
 }
