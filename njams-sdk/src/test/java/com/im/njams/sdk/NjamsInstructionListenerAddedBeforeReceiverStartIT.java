@@ -103,7 +103,7 @@ public class NjamsInstructionListenerAddedBeforeReceiverStartIT {
     }
 
     @Test
-    public void instructionListenerFor_setLogLevel_withoutWrongLogLevel_isAddedBeforeRealReceiver_isStarted(){
+    public void instructionListenerFor_setLogLevel_withInvalidLogLevel_isAddedBeforeRealReceiver_isStarted(){
         requestParameters.put("processPath", "Test");
         requestParameters.put("logLevel", "WrongLogLevel");
 
@@ -173,6 +173,18 @@ public class NjamsInstructionListenerAddedBeforeReceiverStartIT {
         expectedResponse.setResultMessage("Success");
 
         instructionListeningReceiverMock.commandToCheck(Command.GET_LOG_MODE);
+
+        njams.start();
+    }
+
+    @Test
+    public void instructionListenerFor_setLogMode_withInvalidLogMode_isAddedBeforeRealReceiver_isStarted(){
+        requestParameters.put("logMode", "Wrong LogMode");
+
+        expectedResponse.setResultCode(1);
+        expectedResponse.setResultMessage("could not parse value of parameter [logMode] value=Wrong LogMode");
+
+        instructionListeningReceiverMock.commandToCheck(Command.SET_LOG_MODE);
 
         njams.start();
     }
