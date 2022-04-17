@@ -12,6 +12,8 @@ import com.im.njams.sdk.settings.Settings;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Properties;
 
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -25,20 +27,35 @@ public class NjamsInstructionListenerAddedBeforeReceiverStartIT {
     private Settings settings;
     private InstructionListeningReceiverMock instructionListeningReceiverMock;
     private Njams njams;
+    private Map<String, String> requestParameters;
 
     @Before
     public void setUp() throws Exception {
+        requestParameters = new HashMap<>();
         expectedResponse = new Response();
 
         settings = new Settings();
         settings.put(CommunicationFactory.COMMUNICATION, TestReceiver.NAME);
 
-        njams = new Njams(new Path(), "SDK", settings);
+        njams = new Njams(new Path("NjamsInstructionListenerAddedBeforeReceiverStartIT"), "SDK", settings);
 
         instructionListeningReceiverMock = new InstructionListeningReceiverMock();
+        instructionListeningReceiverMock.addRequestParameters(requestParameters);
         instructionListeningReceiverMock.setNjamsReceiver(njams.getNjamsReceiver());
 
         TestReceiver.setReceiverMock(instructionListeningReceiverMock);
+    }
+
+    @Test
+    public void instructionListenerFor_getLogLeve_isAddedBeforeRealReceiver_isStarted(){
+        requestParameters.put("processPath", "Test");
+
+        expectedResponse.setResultCode(0);
+        expectedResponse.setResultMessage("Success");
+
+        instructionListeningReceiverMock.forCommand(Command.GET_LOG_LEVEL).checkResponse(expectedResponse);
+
+        njams.start();
     }
 
     @Test
@@ -65,6 +82,7 @@ public class NjamsInstructionListenerAddedBeforeReceiverStartIT {
         private Command commandToListenFor;
         private Response expectedResponse;
         private Response actualResponse;
+        private Map<String, String> requestParameters;
 
         @Override
         public void connect() {
@@ -85,6 +103,8 @@ public class NjamsInstructionListenerAddedBeforeReceiverStartIT {
         public void start() {
             Request request = new Request();
             request.setCommand(commandToListenFor.commandString());
+
+            request.setParameters(requestParameters);
 
             Instruction instruction = new Instruction();
             instruction.setRequest(request);
@@ -112,6 +132,10 @@ public class NjamsInstructionListenerAddedBeforeReceiverStartIT {
 
         public void checkResponse(Response expectedResponse) {
             this.expectedResponse = expectedResponse;
+        }
+
+        public void addRequestParameters(Map<String, String> requestParameters) {
+            this.requestParameters = requestParameters;
         }
     }
 }
