@@ -39,6 +39,9 @@ import java.util.concurrent.TimeUnit;
  */
 public class CompositeSender implements Sender {
 
+    private int waitTime;
+    private TimeUnit waitTimeUnit;
+
     private static class NjamsSharedSender extends CompositeSender {
         private final Object lock = new Object();
         private int usage = 0;
@@ -101,6 +104,12 @@ public class CompositeSender implements Sender {
         this.settings = settings;
         name = settings.getProperty(CommunicationFactory.COMMUNICATION);
         init(settings.getAllProperties());
+        setClosingTimeout(10, TimeUnit.SECONDS);
+    }
+
+    void setClosingTimeout(int waitTime, TimeUnit unit){
+        this.waitTime = waitTime;
+        this.waitTimeUnit = unit;
     }
 
     /**
@@ -170,7 +179,6 @@ public class CompositeSender implements Sender {
             }
         });
     }
-
     /**
      * This method closes the ThreadPoolExecutor safely. It awaits the
      * termination for 10 seconds, after that, an InterruptedException will be
@@ -179,12 +187,10 @@ public class CompositeSender implements Sender {
     @Override
     public void close() {
         try {
-            int waitTime = 10;
-            TimeUnit unit = TimeUnit.SECONDS;
             executor.shutdown();
-            boolean awaitTermination = executor.awaitTermination(waitTime, unit);
+            boolean awaitTermination = executor.awaitTermination(waitTime, waitTimeUnit);
             if (!awaitTermination) {
-                LOG.error("The termination time of the executor has been exceeded ({} {}).", waitTime, unit);
+                handleExecutorTerminationExceeded();
             }
         } catch (InterruptedException ex) {
             LOG.error("The shutdown of the sender's threadpool has been interrupted. {}", ex);
@@ -196,6 +202,14 @@ public class CompositeSender implements Sender {
             senderPool.expireAll();
             LOG.debug("Expire all sender pools finished.");
         }
+    }
+
+    private void handleExecutorTerminationExceeded() {
+        logExecutorTerminationExceeded("The termination time of the executor has been exceeded ({} {}).", waitTime, waitTimeUnit);
+    }
+
+    protected void logExecutorTerminationExceeded(String message, int waitTime, TimeUnit waitTimeUnit) {
+        LOG.error(message, waitTime, waitTimeUnit);
     }
 
     /**

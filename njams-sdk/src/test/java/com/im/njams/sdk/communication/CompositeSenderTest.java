@@ -31,6 +31,9 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 
 /**
@@ -55,32 +58,77 @@ public class CompositeSenderTest extends AbstractTest {
         super(SETTINGS);
     }
 
-    /**
-     * Test of close method, of class NjamsSender.
-     */
     @Test
-    public void testClose() throws InterruptedException {
-        CompositeSender sender = new CompositeSender(SETTINGS);
-        ThreadPoolExecutor executor = sender.getExecutor();
-        AtomicReference<Thread> t = new AtomicReference<>();
-        executor.execute(() -> {
-            t.set(Thread.currentThread());
-            try {
-                Thread.sleep(15000);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
+    public void longRunningThread_forcesExecutorToShutDown_beforeThreadHasFinishedItsTask() throws InterruptedException {
+        int timeToWaitForClose = 100;
+        LongRunningExecutionCompositeSenderFake longRunningExecutionCompositeSender =
+            new LongRunningExecutionCompositeSenderFake(SETTINGS, timeToWaitForClose);
+
+        final int executingTimeThatIsLongerThanTheWaitingTime = timeToWaitForClose * 2;
+
+        longRunningExecutionCompositeSender.startLongRunningProcessFor(executingTimeThatIsLongerThanTheWaitingTime);
+
+        longRunningExecutionCompositeSender.closeAfterLongRunningThreadStarted();
+
+        longRunningExecutionCompositeSender.checkThatTheThreadIsClosedBecauseItWasInterrupted();
+    }
+
+    private static class LongRunningExecutionCompositeSenderFake extends CompositeSender{
+
+        private boolean startedToSleep;
+        private AtomicReference<Thread> longRunningThread;
+
+        private final String expectedExceptionMessage;
+        private final TimeUnit expectedWaitTimeUnit;
+        private final int expectedWaitTime;
+
+        private String actualExceptionMesage;
+        private int actualWaitTime;
+        private TimeUnit actualWaitTimeUnit;
+
+        public LongRunningExecutionCompositeSenderFake(Settings settings, int timeToWaitForClose) {
+            super(settings);
+            this.expectedExceptionMessage = "The termination time of the executor has been exceeded ({} {}).";
+            this.expectedWaitTime = timeToWaitForClose;
+            this.expectedWaitTimeUnit = TimeUnit.MILLISECONDS; //Needs to be Milliseconds, because Thread.Sleep only can use Milliseconds
+            setClosingTimeout(expectedWaitTime, expectedWaitTimeUnit);
+        }
+
+        public void startLongRunningProcessFor(int timeToWaitForClose) {
+            longRunningThread = new AtomicReference<>();
+            getExecutor().execute(() -> {
+                longRunningThread.set(Thread.currentThread());
+                try {
+                    startedToSleep = true;
+                    Thread.sleep(timeToWaitForClose*2);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+            });
+        }
+
+        public void closeAfterLongRunningThreadStarted() throws InterruptedException {
+            while(!startedToSleep){
+                Thread.sleep(1);
             }
-        });
-        //Wait for a second so the executor actually called execute before sender.close is called.
-        Thread.sleep(1000);
-        sender.close();
-        // The thread has been interrupted, or it has already terminated after interruption.
-        // However, it will not proceed with its normal processing.
-        // But there still is a small window when the exception is being processed where the thread is neither interrupted
-        // nor terminated.
-        Thread.sleep(500);
-        // Finally, after some time, the thread has definitely terminated
-        assertEquals(Thread.State.TERMINATED, t.get().getState());
+            this.close();
+        }
+
+        @Override
+        protected void logExecutorTerminationExceeded(String message, int waitTime, TimeUnit waitTimeUnit){
+            this.actualExceptionMesage = message;
+            this.actualWaitTime = waitTime;
+            this.actualWaitTimeUnit = waitTimeUnit;
+            super.logExecutorTerminationExceeded(message, waitTime, waitTimeUnit);
+        }
+
+        public void checkThatTheThreadIsClosedBecauseItWasInterrupted() {
+            assertThat(longRunningThread.get().getState(), is(equalTo(Thread.State.TERMINATED)));
+            assertThat(actualExceptionMesage, is(equalTo(expectedExceptionMessage)));
+            assertThat(actualWaitTime, is(expectedWaitTime));
+            assertThat(actualWaitTimeUnit, is(expectedWaitTimeUnit));
+        }
+
     }
 
     /**
