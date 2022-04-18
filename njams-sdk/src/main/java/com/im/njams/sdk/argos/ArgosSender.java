@@ -33,6 +33,7 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
@@ -217,7 +218,15 @@ public class ArgosSender implements Closeable {
         }
 
         execService = Executors.newSingleThreadScheduledExecutor();
-        execService.scheduleAtFixedRate(this::run, INITIAL_DELAY, INTERVAL, TimeUnit.SECONDS);
+        setSendingScheduleTo(INITIAL_DELAY, INTERVAL, TimeUnit.SECONDS);
+    }
+
+    boolean isExecutorSet(){
+        return execService != null;
+    }
+
+    ScheduledFuture<?> setSendingScheduleTo(long initialDelay, long interval, TimeUnit seconds) {
+        return execService.scheduleAtFixedRate(this::run, initialDelay, interval, seconds);
     }
 
     /**

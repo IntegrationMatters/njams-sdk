@@ -31,6 +31,8 @@ import org.junit.Test;
 
 import com.im.njams.sdk.settings.Settings;
 
+import java.util.concurrent.TimeUnit;
+
 public class ArgosSenderTest {
 
     private static final String ADDRESS = "127.0.0.1";
@@ -67,7 +69,13 @@ public class ArgosSenderTest {
 
         argosSender.addArgosCollector(collector);
 
-        Thread.sleep(15000);
+        while(!argosSender.isExecutorSet()){
+            Thread.sleep(1);
+        }
+
+        argosSender.setSendingScheduleTo(10, 10, TimeUnit.MILLISECONDS);
+
+        Thread.sleep(15);
 
         verify(collector).collectAll();
     }
