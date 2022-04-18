@@ -1,14 +1,14 @@
 /*
  * Copyright (c) 2018 Faiz & Siegeln Software GmbH
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"),
  * to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
  * and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
- * 
+ *
  * The Software shall be used for Good, not Evil.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
@@ -36,7 +36,7 @@ import static org.mockito.Mockito.*;
 
 /**
  * This class tests if the JmsSender works correctly.
- * 
+ *
  * @author krautenberg@integrationmatters.com
  * @version 4.0.5
  */
@@ -64,7 +64,7 @@ public class JmsSenderTest {
         message.setBusinessEnd(BUSINESSEND);
         message.setJobEnd(JOBEND);
         message.setSentAt(SENTAT);
-        
+
         try {
             String data = mapper.writeValueAsString(message);
             assertTrue(data.contains("\"sentAt\" : \"2018-11-20T15:00:01.213\""));
@@ -97,6 +97,9 @@ public class JmsSenderTest {
     public void queueIsFullMaxTriesTest() throws JMSException, InterruptedException {
         final String ERROR_MESSAGE = "Queue limit exceeded";
         final JmsSender sender = spy(new JmsSender());
+        final int maxTries = 1;
+        sender.setMaxTries(maxTries);
+        sender.setExceptionIdleTimeInMilliseconds(1);
         final MessageProducer producer = sender.producer = mock(MessageProducer.class);
         final Session session = sender.session = mock(Session.class);
         when(session.createTextMessage(any())).thenReturn(mock(TextMessage.class));
@@ -109,7 +112,7 @@ public class JmsSenderTest {
         }catch(ResourceAllocationException ex){
             throw ex;
         }finally{
-            verify(producer, times(100)).send(any());
+            verify(producer, times(maxTries)).send(any());
         }
     }
 }
