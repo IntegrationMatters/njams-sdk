@@ -60,7 +60,7 @@ public class CompositeSenderTest extends AbstractTest {
 
     @Test
     public void longRunningThread_forcesExecutorToShutDown_beforeThreadHasFinishedItsTask() throws InterruptedException {
-        int timeToWaitForClose = 1;
+        int timeToWaitForClose = 10;
         LongRunningExecutionCompositeSenderFake longRunningExecutionCompositeSender =
             new LongRunningExecutionCompositeSenderFake(SETTINGS, timeToWaitForClose);
 
