@@ -67,6 +67,7 @@ public class NjamsInstructionListenerAddedBeforeReceiverStartIT {
         njams.start();
     }
 
+
     @Test
     public void instructionListenerFor_getLogLevel_withoutProcessPath_isAddedBeforeRealReceiver_isStarted(){
         expectedResponse.setResultCode(1);
@@ -98,6 +99,16 @@ public class NjamsInstructionListenerAddedBeforeReceiverStartIT {
     }
 
     @Test
+    public void instructionListenerFor_setLogMode_isAddedBeforeRealReceiver_isStarted(){
+        expectedResponse.setResultCode(1);
+        expectedResponse.setResultMessage("missing parameter(s) [logMode]");
+
+        instructionListeningReceiverMock.commandToCheck(Command.SET_LOG_MODE);
+
+        njams.start();
+    }
+
+    @Test
     public void instructionListenerFor_setTracing_isAddedBeforeRealReceiver_isStarted(){
         expectedResponse.setResultCode(1);
         expectedResponse.setResultMessage("missing parameter(s) [processPath, activityId]");
@@ -108,11 +119,41 @@ public class NjamsInstructionListenerAddedBeforeReceiverStartIT {
     }
 
     @Test
-    public void instructionListenerFor_ping_isAddedBeforeRealReceiver_isStarted(){
-        expectedResponse.setResultCode(0);
-        expectedResponse.setResultMessage("Pong");
+    public void instructionListenerFor_getTracing_isAddedBeforeRealReceiver_isStarted(){
+        expectedResponse.setResultCode(1);
+        expectedResponse.setResultMessage("missing parameter(s) [processPath, activityId]");
 
-        instructionListeningReceiverMock.commandToCheck(Command.PING);
+        instructionListeningReceiverMock.commandToCheck(Command.GET_TRACING);
+
+        njams.start();
+    }
+
+    @Test
+    public void instructionListenerFor_configureExtract_isAddedBeforeRealReceiver_isStarted(){
+        expectedResponse.setResultCode(1);
+        expectedResponse.setResultMessage("missing parameter(s) [processPath, activityId, extract]");
+
+        instructionListeningReceiverMock.commandToCheck(Command.CONFIGURE_EXTRACT);
+
+        njams.start();
+    }
+
+    @Test
+    public void instructionListenerFor_deleteExtract_isAddedBeforeRealReceiver_isStarted(){
+        expectedResponse.setResultCode(1);
+        expectedResponse.setResultMessage("missing parameter(s) [processPath, activityId]");
+
+        instructionListeningReceiverMock.commandToCheck(Command.DELETE_EXTRACT);
+
+        njams.start();
+    }
+
+    @Test
+    public void instructionListenerFor_getExtract_isAddedBeforeRealReceiver_isStarted(){
+        expectedResponse.setResultCode(1);
+        expectedResponse.setResultMessage("missing parameter(s) [processPath, activityId]");
+
+        instructionListeningReceiverMock.commandToCheck(Command.GET_EXTRACT);
 
         njams.start();
     }
@@ -123,6 +164,46 @@ public class NjamsInstructionListenerAddedBeforeReceiverStartIT {
         expectedResponse.setResultMessage("Successfully sent ProjectMessage via NjamsClient");
 
         instructionListeningReceiverMock.commandToCheck(Command.SEND_PROJECTMESSAGE);
+
+        njams.start();
+    }
+
+    @Test
+    public void instructionListenerFor_replay_isAddedBeforeRealReceiver_isStarted(){
+        expectedResponse.setResultCode(1);
+        expectedResponse.setResultMessage("Client cannot replay processes. No replay handler is present.");
+
+        instructionListeningReceiverMock.commandToCheck(Command.REPLAY);
+
+        njams.start();
+    }
+
+    @Test
+    public void instructionListenerFor_record_isAddedBeforeRealReceiver_isStarted(){
+        expectedResponse.setResultCode(0);
+        expectedResponse.setResultMessage("Success");
+
+        instructionListeningReceiverMock.commandToCheck(Command.RECORD);
+
+        njams.start();
+    }
+
+    @Test
+    public void instructionListenerFor_testExpression_isAddedBeforeRealReceiver_isStarted(){
+        expectedResponse.setResultCode(1);
+        expectedResponse.setResultMessage("missing parameter(s) [ruleType, expression, data]");
+
+        instructionListeningReceiverMock.commandToCheck(Command.TEST_EXPRESSION);
+
+        njams.start();
+    }
+
+    @Test
+    public void instructionListenerFor_ping_isAddedBeforeRealReceiver_isStarted(){
+        expectedResponse.setResultCode(0);
+        expectedResponse.setResultMessage("Pong");
+
+        instructionListeningReceiverMock.commandToCheck(Command.PING);
 
         njams.start();
     }
