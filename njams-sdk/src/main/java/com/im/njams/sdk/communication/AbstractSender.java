@@ -42,6 +42,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 public abstract class AbstractSender implements Sender {
 
     private static final Logger LOG = LoggerFactory.getLogger(AbstractSender.class);
+    private int waitTimeToReconnect;
 
     protected ConnectionStatus connectionStatus;
     protected DiscardPolicy discardPolicy = DiscardPolicy.DEFAULT;
@@ -62,6 +63,11 @@ public abstract class AbstractSender implements Sender {
      */
     public AbstractSender() {
         connectionStatus = ConnectionStatus.DISCONNECTED;
+        waitTimeToReconnect = 1000;
+    }
+
+    void setWaitTimeToReconnect(int waitTimeToReconnect){
+        this.waitTimeToReconnect = waitTimeToReconnect;
     }
 
     @Override
@@ -136,9 +142,8 @@ public abstract class AbstractSender implements Sender {
                 }
             } catch (NjamsSdkRuntimeException e) {
                 try {
-                    Thread.sleep(1000);
+                    Thread.sleep(waitTimeToReconnect);
                 } catch (InterruptedException e1) {
-                    return;
                 }
             }
         }
@@ -186,8 +191,7 @@ public abstract class AbstractSender implements Sender {
             if (isConnecting()) {
                 try {
                     Thread.sleep(1000);
-                } catch (InterruptedException e) {
-                    break;
+                } catch (InterruptedException e1) {
                 }
             } else {
                 // trigger reconnect

@@ -210,15 +210,14 @@ public class CompositeSenderTest extends AbstractTest {
         //Set static ExceptionSender to redirect calls to the TestSender
         TestSender.setSenderMock(new ExceptionSender());
         CompositeSender sender = new CompositeSender(SETTINGS);
-        int messagesToSend = 1000;
+        int messagesToSend = 10;
         for (int i = 0; i < messagesToSend; i++) {
             Thread t = new Thread(() -> sender.send(null));
             t.start();
         }
         while (counter.get() < ExceptionSender.TRIES) {
-            Thread.sleep(100);
+            Thread.sleep(10);
         }
-        Thread.sleep(1000);
         //+1 for the succeeded connection
         assertEquals(counter.get(), ExceptionSender.TRIES + 1);
         TestSender.setSenderMock(null);
@@ -228,6 +227,10 @@ public class CompositeSenderTest extends AbstractTest {
     private class ExceptionSender extends AbstractSender {
 
         public static final int TRIES = 5;
+
+        private ExceptionSender() {
+            setWaitTimeToReconnect(1);
+        }
 
         @Override
         public void connect() throws NjamsSdkRuntimeException {
