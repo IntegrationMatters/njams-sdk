@@ -7,12 +7,19 @@ import com.faizsiegeln.njams.messageformat.v4.command.Response;
 import com.im.njams.sdk.common.Path;
 import com.im.njams.sdk.communication.AbstractReceiver;
 import com.im.njams.sdk.communication.CommunicationFactory;
+import com.im.njams.sdk.communication.InstructionListener;
+import com.im.njams.sdk.communication.PingInstructionListener;
 import com.im.njams.sdk.communication.TestReceiver;
+import com.im.njams.sdk.configuration.ConfigurationInstructionListener;
+import com.im.njams.sdk.njams.NjamsJobs;
+import com.im.njams.sdk.njams.NjamsProjectMessage;
+import com.im.njams.sdk.njams.metadata.NjamsMetadataFactory;
 import com.im.njams.sdk.settings.Settings;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
@@ -27,11 +34,9 @@ public class NjamsInstructionListenerAddedBeforeReceiverStartIT {
     private Settings settings;
     private InstructionListeningReceiverMock instructionListeningReceiverMock;
     private Njams njams;
-    private Map<String, String> requestParameters;
 
     @Before
     public void setUp() throws Exception {
-        requestParameters = new HashMap<>();
         expectedResponse = new Response();
 
         settings = new Settings();
@@ -40,21 +45,25 @@ public class NjamsInstructionListenerAddedBeforeReceiverStartIT {
         njams = new Njams(new Path(), "SDK", settings);
 
         instructionListeningReceiverMock = new InstructionListeningReceiverMock();
-        instructionListeningReceiverMock.addRequestParameters(requestParameters);
         instructionListeningReceiverMock.setNjamsReceiver(njams.getNjamsReceiver());
         instructionListeningReceiverMock.setExpectedResponse(expectedResponse);
         TestReceiver.setReceiverMock(instructionListeningReceiverMock);
     }
 
     @Test
-    public void instructionListenerFor_getLogLevel_isAddedBeforeRealReceiver_isStarted(){
-        requestParameters.put("processPath", "Test");
+    public void instructionListeners_defaultsAreAllSet_beforeRealReceiver_isStarted(){
+        InstructionListenerSizeCheckerMock instructionListenerSizeCheckerMock = new InstructionListenerSizeCheckerMock();
+        instructionListenerSizeCheckerMock.setNjamsReceiver(njams.getNjamsReceiver());
+        TestReceiver.setReceiverMock(instructionListenerSizeCheckerMock);
 
-        expectedResponse.setResultCode(0);
-        expectedResponse.setResultMessage("Success");
+        Map<String, Object> neededInstructionListeners = new HashMap<>();
+        neededInstructionListeners.put("Listening for Ping", new PingInstructionListener(null, null));
+        neededInstructionListeners.put("Listening for SendProjectMessage", new NjamsProjectMessageStub());
+        neededInstructionListeners.put("Listening for Replay", new NjamsJobsStub());
+        neededInstructionListeners.put("Listening for all configuration related command", new ConfigurationInstructionListener(null));
 
-        instructionListeningReceiverMock.commandToCheck(Command.GET_LOG_LEVEL);
-
+        int numberOfInstructionListeners = neededInstructionListeners.size();
+        instructionListenerSizeCheckerMock.checkForSize(numberOfInstructionListeners);
         njams.start();
     }
 
@@ -79,95 +88,6 @@ public class NjamsInstructionListenerAddedBeforeReceiverStartIT {
     }
 
     @Test
-    public void instructionListenerFor_setLogLevel_withoutProcessPath_isAddedBeforeRealReceiver_isStarted(){
-        requestParameters.put("logLevel", "info");
-
-        expectedResponse.setResultCode(1);
-        expectedResponse.setResultMessage("missing parameter(s) [processPath]");
-
-        instructionListeningReceiverMock.commandToCheck(Command.SET_LOG_LEVEL);
-
-        njams.start();
-    }
-
-    @Test
-    public void instructionListenerFor_setLogLevel_withoutLogLevel_isAddedBeforeRealReceiver_isStarted(){
-        requestParameters.put("processPath", "Test");
-
-        expectedResponse.setResultCode(1);
-        expectedResponse.setResultMessage("missing parameter(s) [logLevel]");
-
-        instructionListeningReceiverMock.commandToCheck(Command.SET_LOG_LEVEL);
-
-        njams.start();
-    }
-
-    @Test
-    public void instructionListenerFor_setLogLevel_withInvalidLogLevel_isAddedBeforeRealReceiver_isStarted(){
-        requestParameters.put("processPath", "Test");
-        requestParameters.put("logLevel", "WrongLogLevel");
-
-        expectedResponse.setResultCode(1);
-        expectedResponse.setResultMessage("could not parse value of parameter [logLevel] value=WrongLogLevel");
-
-        instructionListeningReceiverMock.commandToCheck(Command.SET_LOG_LEVEL);
-
-        njams.start();
-    }
-
-    @Test
-    public void instructionListenerFor_setLogLevel_info_isAddedBeforeRealReceiver_isStarted(){
-        requestParameters.put("processPath", "Test");
-        requestParameters.put("logLevel", "info");
-
-        expectedResponse.setResultCode(0);
-        expectedResponse.setResultMessage("Success");
-
-        instructionListeningReceiverMock.commandToCheck(Command.SET_LOG_LEVEL);
-
-        njams.start();
-    }
-
-    @Test
-    public void instructionListenerFor_setLogLevel_success_isAddedBeforeRealReceiver_isStarted(){
-        requestParameters.put("processPath", "Test");
-        requestParameters.put("logLevel", "success");
-
-        expectedResponse.setResultCode(0);
-        expectedResponse.setResultMessage("Success");
-
-        instructionListeningReceiverMock.commandToCheck(Command.SET_LOG_LEVEL);
-
-        njams.start();
-    }
-
-    @Test
-    public void instructionListenerFor_setLogLevel_warn_isAddedBeforeRealReceiver_isStarted(){
-        requestParameters.put("processPath", "Test");
-        requestParameters.put("logLevel", "warning");
-
-        expectedResponse.setResultCode(0);
-        expectedResponse.setResultMessage("Success");
-
-        instructionListeningReceiverMock.commandToCheck(Command.SET_LOG_LEVEL);
-
-        njams.start();
-    }
-
-    @Test
-    public void instructionListenerFor_setLogLevel_error_isAddedBeforeRealReceiver_isStarted(){
-        requestParameters.put("processPath", "Test");
-        requestParameters.put("logLevel", "error");
-
-        expectedResponse.setResultCode(0);
-        expectedResponse.setResultMessage("Success");
-
-        instructionListeningReceiverMock.commandToCheck(Command.SET_LOG_LEVEL);
-
-        njams.start();
-    }
-
-    @Test
     public void instructionListenerFor_getLogMode_isAddedBeforeRealReceiver_isStarted(){
         expectedResponse.setResultCode(0);
         expectedResponse.setResultMessage("Success");
@@ -178,49 +98,11 @@ public class NjamsInstructionListenerAddedBeforeReceiverStartIT {
     }
 
     @Test
-    public void instructionListenerFor_setLogMode_withInvalidLogMode_isAddedBeforeRealReceiver_isStarted(){
-        requestParameters.put("logMode", "Wrong LogMode");
-
+    public void instructionListenerFor_setTracing_isAddedBeforeRealReceiver_isStarted(){
         expectedResponse.setResultCode(1);
-        expectedResponse.setResultMessage("could not parse value of parameter [logMode] value=Wrong LogMode");
+        expectedResponse.setResultMessage("missing parameter(s) [processPath, activityId]");
 
-        instructionListeningReceiverMock.commandToCheck(Command.SET_LOG_MODE);
-
-        njams.start();
-    }
-
-    @Test
-    public void instructionListenerFor_setLogMode_none_isAddedBeforeRealReceiver_isStarted(){
-        requestParameters.put("logMode", "none");
-
-        expectedResponse.setResultCode(0);
-        expectedResponse.setResultMessage("Success");
-
-        instructionListeningReceiverMock.commandToCheck(Command.SET_LOG_MODE);
-
-        njams.start();
-    }
-
-    @Test
-    public void instructionListenerFor_setLogMode_exclusive_isAddedBeforeRealReceiver_isStarted(){
-        requestParameters.put("logMode", "exclusive");
-
-        expectedResponse.setResultCode(0);
-        expectedResponse.setResultMessage("Success");
-
-        instructionListeningReceiverMock.commandToCheck(Command.SET_LOG_MODE);
-
-        njams.start();
-    }
-
-    @Test
-    public void instructionListenerFor_setLogMode_complete_isAddedBeforeRealReceiver_isStarted(){
-        requestParameters.put("logMode", "complete");
-
-        expectedResponse.setResultCode(0);
-        expectedResponse.setResultMessage("Success");
-
-        instructionListeningReceiverMock.commandToCheck(Command.SET_LOG_MODE);
+        instructionListeningReceiverMock.commandToCheck(Command.SET_TRACING);
 
         njams.start();
     }
@@ -249,7 +131,6 @@ public class NjamsInstructionListenerAddedBeforeReceiverStartIT {
         private Command commandToListenFor;
         private Response expectedResponse;
         private Response actualResponse;
-        private Map<String, String> requestParameters;
 
         @Override
         public void connect() {
@@ -270,8 +151,6 @@ public class NjamsInstructionListenerAddedBeforeReceiverStartIT {
         public void start() {
             Request request = new Request();
             request.setCommand(commandToListenFor.commandString());
-
-            request.setParameters(requestParameters);
 
             Instruction instruction = new Instruction();
             instruction.setRequest(request);
@@ -299,9 +178,52 @@ public class NjamsInstructionListenerAddedBeforeReceiverStartIT {
         public void setExpectedResponse(Response expectedResponse) {
             this.expectedResponse = expectedResponse;
         }
+    }
 
-        public void addRequestParameters(Map<String, String> requestParameters) {
-            this.requestParameters = requestParameters;
+    private static class InstructionListenerSizeCheckerMock extends AbstractReceiver{
+
+        private int sizeCheck;
+
+        @Override
+        public void connect() {
+
+        }
+
+        @Override
+        public String getName() {
+            return "InstructionListeningCounterMock";
+        }
+
+        @Override
+        public void init(Properties properties) {
+
+        }
+
+        @Override
+        public void stop() {
+
+        }
+
+        @Override
+        public void start() {
+            final List<InstructionListener> availableInstructionListeners = getNjamsReceiver().getInstructionListeners();
+            assertThat(availableInstructionListeners.size(), is(equalTo(sizeCheck)));
+        }
+
+        public void checkForSize(int numberOfInstructionListeners) {
+            sizeCheck = numberOfInstructionListeners;
+        }
+    }
+
+    private class NjamsProjectMessageStub extends NjamsProjectMessage{
+        public NjamsProjectMessageStub() {
+            super(NjamsMetadataFactory.createMetadataWith(new Path(), "client", "SDK"), null, null, null, null, null, new Settings());
+        }
+    }
+
+    private static class NjamsJobsStub extends NjamsJobs {
+        public NjamsJobsStub() {
+            super(null, null, null, null);
         }
     }
 }
