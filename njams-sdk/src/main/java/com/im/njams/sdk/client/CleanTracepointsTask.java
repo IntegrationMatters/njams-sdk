@@ -53,9 +53,36 @@ public class CleanTracepointsTask extends TimerTask {
 
     private static Timer timer = null;
 
-    static final int DELAY = 1000;
+    static final int DEFAULT_DELAY = 1000;
+    static final int DEFAULT_INTERVAL = 1000;
 
-    static final int INTERVAL = 1000;
+    private static int DELAY = DEFAULT_DELAY;
+
+    private static int INTERVAL = DEFAULT_INTERVAL;
+
+    static void resetDelay(){
+        DELAY = DEFAULT_DELAY;
+    }
+
+    static void resetInterval(){
+        INTERVAL = DEFAULT_INTERVAL;
+    }
+
+    static int getDelay(){
+        return DELAY;
+    }
+
+    static int getInterval(){
+        return INTERVAL;
+    }
+
+    static void setDelay(int delay){
+        DELAY = delay;
+    }
+
+    static void setInterval(int interval){
+        INTERVAL = interval;
+    }
 
     /**
      * Start the CleanTracepointsTask if it is not started yet, and add the

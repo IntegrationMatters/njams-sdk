@@ -60,8 +60,7 @@ public class CompositeSenderTest extends AbstractTest {
 
     @Test
     public void longRunningThread_forcesExecutorToShutDown_beforeThreadHasFinishedItsTask() throws InterruptedException {
-        //Increase this if the test fails and try again
-        int timeToWaitForClose = 200;
+        int timeToWaitForClose = 1;
         LongRunningExecutionCompositeSenderFake longRunningExecutionCompositeSender =
             new LongRunningExecutionCompositeSenderFake(SETTINGS, timeToWaitForClose);
 
@@ -71,13 +70,12 @@ public class CompositeSenderTest extends AbstractTest {
 
         longRunningExecutionCompositeSender.closeAfterLongRunningThreadStarted();
 
-        longRunningExecutionCompositeSender.checkThatTheThreadIsClosedBecauseItWasInterrupted();
+        longRunningExecutionCompositeSender.checkThatTheExecutorIsTerminatedAndTheThreadWasInterrupted();
     }
 
     private static class LongRunningExecutionCompositeSenderFake extends CompositeSender{
 
         private boolean startedToSleep;
-        private AtomicReference<Thread> longRunningThread;
 
         private final String expectedExceptionMessage;
         private final TimeUnit expectedWaitTimeUnit;
@@ -86,23 +84,24 @@ public class CompositeSenderTest extends AbstractTest {
         private String actualExceptionMesage;
         private int actualWaitTime;
         private TimeUnit actualWaitTimeUnit;
+        private boolean interruptWasCalled;
 
         public LongRunningExecutionCompositeSenderFake(Settings settings, int timeToWaitForClose) {
             super(settings);
             this.expectedExceptionMessage = "The termination time of the executor has been exceeded ({} {}).";
             this.expectedWaitTime = timeToWaitForClose;
             this.expectedWaitTimeUnit = TimeUnit.MILLISECONDS; //Needs to be Milliseconds, because Thread.Sleep only can use Milliseconds
+            this.interruptWasCalled = false;
             setClosingTimeout(expectedWaitTime, expectedWaitTimeUnit);
         }
 
         public void startLongRunningProcessFor(int timeToWaitForClose) {
-            longRunningThread = new AtomicReference<>();
             getExecutor().execute(() -> {
-                longRunningThread.set(Thread.currentThread());
                 try {
                     startedToSleep = true;
                     Thread.sleep(timeToWaitForClose*2);
                 } catch (InterruptedException e) {
+                    interruptWasCalled = true;
                     Thread.currentThread().interrupt();
                 }
             });
@@ -123,11 +122,12 @@ public class CompositeSenderTest extends AbstractTest {
             super.logExecutorTerminationExceeded(message, waitTime, waitTimeUnit);
         }
 
-        public void checkThatTheThreadIsClosedBecauseItWasInterrupted() {
-            assertThat(longRunningThread.get().getState(), is(equalTo(Thread.State.TERMINATED)));
+        public void checkThatTheExecutorIsTerminatedAndTheThreadWasInterrupted() {
             assertThat(actualExceptionMesage, is(equalTo(expectedExceptionMessage)));
             assertThat(actualWaitTime, is(expectedWaitTime));
             assertThat(actualWaitTimeUnit, is(expectedWaitTimeUnit));
+            assertThat(interruptWasCalled, is(true));
+            assertThat(getExecutor().isShutdown(), is(true));
         }
 
     }

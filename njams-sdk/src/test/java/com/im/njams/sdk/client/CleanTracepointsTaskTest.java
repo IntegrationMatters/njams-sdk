@@ -29,7 +29,10 @@ import java.util.stream.Collectors;
 
 import com.im.njams.sdk.njams.metadata.NjamsMetadata;
 import com.im.njams.sdk.njams.metadata.NjamsMetadataFactory;
+import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 import com.faizsiegeln.njams.messageformat.v4.common.CommonMessage;
@@ -50,6 +53,7 @@ import com.im.njams.sdk.configuration.ActivityConfiguration;
 import com.im.njams.sdk.configuration.ProcessConfiguration;
 import com.im.njams.sdk.configuration.TracepointExt;
 import com.im.njams.sdk.utils.JsonUtils;
+import org.mockito.internal.verification.Only;
 
 public class CleanTracepointsTaskTest extends AbstractTest {
 
@@ -67,11 +71,23 @@ public class CleanTracepointsTaskTest extends AbstractTest {
         FULLPROCESSPATHNAME = njams.getNjamsMetadata().getClientPath().add(PROCESSPATHNAME).toString();
     }
 
+    @BeforeClass
+    public static void decreaseDelayAndInterval(){
+        CleanTracepointsTask.setDelay(0);
+        CleanTracepointsTask.setInterval(10);
+    }
+
     @Before
     public void testStopAll() {
         CleanTracepointsTask.getCleanTracePointsTaskEntries().forEach(njams -> CleanTracepointsTask.stop(njams.instanceMetadata));
         NjamsMetadata metadata = NjamsMetadataFactory.createMetadataWith(new Path("A"), null, "SDK");
         when(njamsMock.getNjamsMetadata()).thenReturn(metadata);
+    }
+
+    @AfterClass
+    public static void cleanUp(){
+        CleanTracepointsTask.resetDelay();
+        CleanTracepointsTask.resetInterval();
     }
 
     @Test(expected = NjamsSdkRuntimeException.class)
@@ -209,7 +225,8 @@ public class CleanTracepointsTaskTest extends AbstractTest {
                 .getTracepoint());
         assertNull(message);
         testStartNormal();
-        Thread.sleep(CleanTracepointsTask.DELAY + CleanTracepointsTask.INTERVAL);
+
+        Thread.sleep(CleanTracepointsTask.getDelay() + CleanTracepointsTask.getInterval());
         assertNotNull(message);
         assertNull(njams.getConfiguration().getProcess(FULLPROCESSPATHNAME).getActivity(ACTIVITYMODELID)
                 .getTracepoint());

@@ -188,8 +188,8 @@ public class CompositeSender implements Sender {
     public void close() {
         try {
             executor.shutdown();
-            boolean awaitTermination = executor.awaitTermination(waitTime, waitTimeUnit);
-            if (!awaitTermination) {
+            boolean terminationSucceededInTime = executor.awaitTermination(waitTime, waitTimeUnit);
+            if (!terminationSucceededInTime) {
                 handleExecutorTerminationExceeded();
             }
         } catch (InterruptedException ex) {
