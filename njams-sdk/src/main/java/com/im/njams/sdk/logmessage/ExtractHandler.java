@@ -22,7 +22,7 @@ import com.faizsiegeln.njams.messageformat.v4.projectmessage.ExtractRule;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.RuleType;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.im.njams.sdk.serializer.NjamsSerializers;
+import com.im.njams.sdk.njams.NjamsSerializers;
 import com.im.njams.sdk.configuration.ActivityConfiguration;
 import com.im.njams.sdk.model.ActivityModel;
 import com.im.njams.sdk.utils.StringUtils;

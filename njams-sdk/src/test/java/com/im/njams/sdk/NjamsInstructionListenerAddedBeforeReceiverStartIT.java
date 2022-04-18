@@ -8,7 +8,7 @@ import com.im.njams.sdk.common.Path;
 import com.im.njams.sdk.communication.AbstractReceiver;
 import com.im.njams.sdk.communication.CommunicationFactory;
 import com.im.njams.sdk.communication.InstructionListener;
-import com.im.njams.sdk.communication.PingInstructionListener;
+import com.im.njams.sdk.communication.instructionListener.PingInstructionListener;
 import com.im.njams.sdk.communication.TestReceiver;
 import com.im.njams.sdk.configuration.ConfigurationInstructionListener;
 import com.im.njams.sdk.njams.NjamsJobs;
@@ -31,7 +31,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 public class NjamsInstructionListenerAddedBeforeReceiverStartIT {
 
     private Response expectedResponse;
-    private Settings settings;
     private InstructionListeningReceiverMock instructionListeningReceiverMock;
     private Njams njams;
 
@@ -39,7 +38,7 @@ public class NjamsInstructionListenerAddedBeforeReceiverStartIT {
     public void setUp() throws Exception {
         expectedResponse = new Response();
 
-        settings = new Settings();
+        Settings settings = new Settings();
         settings.put(CommunicationFactory.COMMUNICATION, TestReceiver.NAME);
 
         njams = new Njams(new Path(), "SDK", settings);

@@ -1,10 +1,5 @@
 package com.im.njams.sdk.njams;
 
-import com.im.njams.sdk.njams.NjamsConfiguration;
-import com.im.njams.sdk.njams.NjamsFeatures;
-import com.im.njams.sdk.njams.NjamsJobs;
-import com.im.njams.sdk.njams.NjamsSender;
-import com.im.njams.sdk.njams.NjamsState;
 import com.im.njams.sdk.njams.metadata.NjamsMetadata;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.common.Path;
@@ -12,7 +7,6 @@ import com.im.njams.sdk.model.ProcessModel;
 import com.im.njams.sdk.model.ProcessModelUtils;
 import com.im.njams.sdk.model.layout.ProcessModelLayouter;
 import com.im.njams.sdk.model.svg.ProcessDiagramFactory;
-import com.im.njams.sdk.serializer.NjamsSerializers;
 import com.im.njams.sdk.settings.Settings;
 import org.junit.Before;
 import org.junit.Test;

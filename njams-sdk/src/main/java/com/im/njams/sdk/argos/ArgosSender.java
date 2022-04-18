@@ -225,8 +225,8 @@ public class ArgosSender implements Closeable {
         return execService != null;
     }
 
-    ScheduledFuture<?> setSendingScheduleTo(long initialDelay, long interval, TimeUnit seconds) {
-        return execService.scheduleAtFixedRate(this::run, initialDelay, interval, seconds);
+    void setSendingScheduleTo(long initialDelay, long interval, TimeUnit seconds) {
+        execService.scheduleAtFixedRate(this::run, initialDelay, interval, seconds);
     }
 
     /**

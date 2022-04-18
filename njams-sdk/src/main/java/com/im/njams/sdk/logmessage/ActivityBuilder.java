@@ -20,7 +20,7 @@ import java.time.LocalDateTime;
 
 import com.faizsiegeln.njams.messageformat.v4.logmessage.ActivityStatus;
 import com.faizsiegeln.njams.messageformat.v4.logmessage.Predecessor;
-import com.im.njams.sdk.serializer.NjamsSerializers;
+import com.im.njams.sdk.njams.NjamsSerializers;
 import com.im.njams.sdk.common.IdUtil;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.model.ActivityModel;

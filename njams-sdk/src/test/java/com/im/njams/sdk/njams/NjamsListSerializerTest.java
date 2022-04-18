@@ -1,6 +1,5 @@
 package com.im.njams.sdk.njams;
 
-import com.im.njams.sdk.serializer.NjamsSerializers;
 import org.junit.Before;
 import org.junit.Test;
 

@@ -1,5 +1,7 @@
-package com.im.njams.sdk.serializer;
+package com.im.njams.sdk.njams;
 
+import com.im.njams.sdk.serializer.Serializer;
+import com.im.njams.sdk.serializer.StringSerializer;
 import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;

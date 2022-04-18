@@ -107,7 +107,7 @@ public class TestReceiver implements Receiver {
 
 
     @Override
-    public void setInstanceMetadata(NjamsMetadata metadata) {
+    public void setInstanceMetadata(NjamsMetadata njamsMetadata) {
 
     }
 

@@ -26,7 +26,7 @@ import static org.mockito.Mockito.doAnswer;
 import com.im.njams.sdk.logmessage.ActivityImpl;
 import com.im.njams.sdk.logmessage.DataMasking;
 import com.im.njams.sdk.logmessage.JobImpl;
-import com.im.njams.sdk.serializer.NjamsSerializers;
+import com.im.njams.sdk.njams.NjamsSerializers;
 import org.junit.After;
 import org.junit.BeforeClass;
 import org.junit.Test;

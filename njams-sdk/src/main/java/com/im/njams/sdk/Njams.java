@@ -32,6 +32,7 @@ import com.im.njams.sdk.logmessage.*;
 import com.im.njams.sdk.njams.NjamsFeatures;
 import com.im.njams.sdk.njams.NjamsJobs;
 import com.im.njams.sdk.njams.NjamsProjectMessage;
+import com.im.njams.sdk.njams.NjamsSerializers;
 import com.im.njams.sdk.njams.NjamsState;
 import com.im.njams.sdk.njams.metadata.NjamsMetadata;
 import com.im.njams.sdk.njams.metadata.NjamsMetadataFactory;

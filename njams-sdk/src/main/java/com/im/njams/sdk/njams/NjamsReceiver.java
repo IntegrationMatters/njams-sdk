@@ -3,7 +3,7 @@ package com.im.njams.sdk.njams;
 import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
 import com.im.njams.sdk.communication.CommunicationFactory;
 import com.im.njams.sdk.communication.InstructionListener;
-import com.im.njams.sdk.communication.PingInstructionListener;
+import com.im.njams.sdk.communication.instructionListener.PingInstructionListener;
 import com.im.njams.sdk.communication.Receiver;
 import com.im.njams.sdk.communication.ShareableReceiver;
 import com.im.njams.sdk.configuration.ConfigurationInstructionListener;

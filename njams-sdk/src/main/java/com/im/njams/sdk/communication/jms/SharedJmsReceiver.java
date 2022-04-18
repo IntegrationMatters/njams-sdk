@@ -1,17 +1,24 @@
 /*
- * Copyright (c) 2020 Faiz & Siegeln Software GmbH
+ * Copyright (c) 2022 Faiz & Siegeln Software GmbH
  *
- * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"),
- * to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
- * and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
+ * documentation files (the "Software"),
+ * to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge,
+ * publish, distribute, sublicense,
+ * and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to
+ * the following conditions:
  *
- * The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+ * The above copyright notice and this permission notice shall be included in all copies or substantial portions of
+ * the Software.
  *
  * The Software shall be used for Good, not Evil.
  *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
+ * THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE
+ *  FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+ * SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
  */
 package com.im.njams.sdk.communication.jms;
@@ -33,9 +40,6 @@ import com.im.njams.sdk.communication.SharedReceiverSupport;
 
 /**
  * Overrides the common {@link JmsReceiver} for supporting receiving messages for multiple {@link Receiver} instances.
- *
- * @author cwinkler
- *
  */
 public class SharedJmsReceiver extends JmsReceiver implements ShareableReceiver<Message> {
 
@@ -55,10 +59,16 @@ public class SharedJmsReceiver extends JmsReceiver implements ShareableReceiver<
         if (receiverInstances.isEmpty()) {
             return null;
         }
-        final String selector = receiverInstances.stream()
-                .map(receiver -> receiver.getInstanceMetadata().getClientPath()).map(Path::getAllPaths)
-                .flatMap(Collection::stream).collect(Collectors.toSet()).stream().map(Object::toString).sorted()
-                .collect(Collectors.joining("' OR NJAMS_RECEIVER = '", "NJAMS_RECEIVER = '", "'"));
+        final String selector = receiverInstances
+            .stream()
+            .map(receiver -> receiver.getInstanceMetadata().getClientPath())
+            .map(Path::getAllPaths)
+            .flatMap(Collection::stream)
+            .collect(Collectors.toSet())
+            .stream()
+            .map(Object::toString)
+            .sorted()
+            .collect(Collectors.joining("' OR NJAMS_RECEIVER = '", "NJAMS_RECEIVER = '", "'"));
         LOG.debug("Updated message selector: {}", selector);
         return selector;
     }

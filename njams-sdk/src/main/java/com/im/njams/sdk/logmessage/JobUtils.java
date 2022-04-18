@@ -4,7 +4,7 @@ import com.im.njams.sdk.njams.NjamsConfiguration;
 import com.im.njams.sdk.njams.NjamsJobs;
 import com.im.njams.sdk.njams.NjamsSender;
 import com.im.njams.sdk.njams.metadata.NjamsMetadata;
-import com.im.njams.sdk.serializer.NjamsSerializers;
+import com.im.njams.sdk.njams.NjamsSerializers;
 import com.im.njams.sdk.settings.Settings;
 
 public class JobUtils {

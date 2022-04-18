@@ -5,7 +5,7 @@ import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
 import com.faizsiegeln.njams.messageformat.v4.command.Request;
 import com.faizsiegeln.njams.messageformat.v4.command.Response;
 import com.im.njams.sdk.common.Path;
-import com.im.njams.sdk.communication.PingInstructionListener;
+import com.im.njams.sdk.communication.instructionListener.PingInstructionListener;
 import com.im.njams.sdk.njams.NjamsFeatures;
 import com.im.njams.sdk.njams.metadata.NjamsMetadata;
 import com.im.njams.sdk.njams.metadata.NjamsMetadataFactory;
