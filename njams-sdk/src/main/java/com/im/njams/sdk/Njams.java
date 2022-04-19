@@ -68,7 +68,7 @@ public class Njams{
     private final NjamsMetadata njamsMetadata;
     private final NjamsState njamsState;
     private final NjamsFeatures njamsFeatures;
-    private final NjamsJobs njamsJobs;
+    private NjamsJobs njamsJobs;
     private final NjamsSender njamsSender;
     private final NjamsConfiguration njamsConfiguration;
     private final NjamsProjectMessage njamsProjectMessage;
@@ -241,6 +241,10 @@ public class Njams{
 
     public NjamsJobs getNjamsJobs(){
         return njamsJobs;
+    }
+
+    void setNjamsJobs(NjamsJobs njamsJobs) {
+        this.njamsJobs = njamsJobs;
     }
 
     /**
