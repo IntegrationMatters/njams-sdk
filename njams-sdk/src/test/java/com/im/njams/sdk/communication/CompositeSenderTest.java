@@ -60,7 +60,7 @@ public class CompositeSenderTest extends AbstractTest {
 
     @Test
     public void longRunningThread_forcesExecutorToShutDown_beforeThreadHasFinishedItsTask() throws InterruptedException {
-        int timeToWaitForClose = 10;
+        int timeToWaitForClose = 100;
         LongRunningExecutionCompositeSenderFake longRunningExecutionCompositeSender =
             new LongRunningExecutionCompositeSenderFake(SETTINGS, timeToWaitForClose);
 
@@ -216,7 +216,7 @@ public class CompositeSenderTest extends AbstractTest {
             t.start();
         }
         while (counter.get() < ExceptionSender.TRIES) {
-            Thread.sleep(10);
+            Thread.sleep(100);
         }
         //+1 for the succeeded connection
         assertEquals(counter.get(), ExceptionSender.TRIES + 1);

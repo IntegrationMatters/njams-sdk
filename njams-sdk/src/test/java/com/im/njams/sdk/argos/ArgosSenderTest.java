@@ -20,6 +20,7 @@
 
 package com.im.njams.sdk.argos;
 
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -75,8 +76,8 @@ public class ArgosSenderTest {
 
         argosSender.setSendingScheduleTo(10, 10, TimeUnit.MILLISECONDS);
 
-        Thread.sleep(15);
+        Thread.sleep(20);
 
-        verify(collector).collectAll();
+        verify(collector, atLeastOnce()).collectAll();
     }
 }
