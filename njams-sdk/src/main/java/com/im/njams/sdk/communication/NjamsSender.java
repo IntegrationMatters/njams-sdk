@@ -79,16 +79,16 @@ public class NjamsSender implements Sender {
     private static final Logger LOG = LoggerFactory.getLogger(NjamsSender.class);
     private static NjamsSharedSender sharedInstance = null;
     //The senderPool where the senders will be saved.
-    private SenderPool senderPool = null;
+    protected SenderPool senderPool = null;
 
     //The executor Threadpool that send the messages to the right senders.
-    private ThreadPoolExecutor executor = null;
+    protected ThreadPoolExecutor executor = null;
 
     //The settings will be used for the name and max-queue-length
-    private final Settings settings;
+    protected final Settings settings;
 
     //The name for the executor threads.
-    private final String name;
+    protected final String name;
 
     /**
      * This constructor initializes a NjamsSender. It saves
@@ -138,10 +138,10 @@ public class NjamsSender implements Sender {
         int maxQueueLength = Integer.parseInt(properties.getProperty(Settings.PROPERTY_MAX_QUEUE_LENGTH, "8"));
         long idleTime = Long.parseLong(properties.getProperty(Settings.PROPERTY_SENDER_THREAD_IDLE_TIME, "10000"));
         ThreadFactory threadFactory = new ThreadFactoryBuilder()
-                .setNamePrefix(getName() + "-Sender-Thread").setDaemon(true).build();
+            .setNamePrefix(getName() + "-Sender-Thread").setDaemon(true).build();
         executor = new ThreadPoolExecutor(minSenderThreads, maxSenderThreads, idleTime, TimeUnit.MILLISECONDS,
-                new ArrayBlockingQueue<>(maxQueueLength), threadFactory,
-                new MaxQueueLengthHandler(properties));
+            new ArrayBlockingQueue<>(maxQueueLength), threadFactory,
+            new MaxQueueLengthHandler(properties));
         final CommunicationFactory communicationFactory = new CommunicationFactory(settings);
         senderPool = new SenderPool(communicationFactory);
     }
