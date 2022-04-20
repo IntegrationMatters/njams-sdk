@@ -29,23 +29,12 @@ import com.im.njams.sdk.common.*;
 import com.im.njams.sdk.communication.*;
 import com.im.njams.sdk.configuration.Configuration;
 import com.im.njams.sdk.logmessage.*;
-import com.im.njams.sdk.njams.NjamsFeatures;
-import com.im.njams.sdk.njams.NjamsJobs;
-import com.im.njams.sdk.njams.NjamsProjectMessage;
-import com.im.njams.sdk.njams.NjamsSerializers;
-import com.im.njams.sdk.njams.NjamsState;
+import com.im.njams.sdk.njams.*;
 import com.im.njams.sdk.njams.metadata.NjamsMetadata;
-import com.im.njams.sdk.njams.metadata.NjamsMetadataFactory;
 import com.im.njams.sdk.model.ProcessModel;
 import com.im.njams.sdk.model.image.*;
 import com.im.njams.sdk.model.layout.ProcessModelLayouter;
 import com.im.njams.sdk.model.svg.ProcessDiagramFactory;
-import com.im.njams.sdk.njams.NjamsArgos;
-import com.im.njams.sdk.njams.NjamsConfiguration;
-import com.im.njams.sdk.njams.NjamsConfigurationFactory;
-import com.im.njams.sdk.njams.NjamsReceiver;
-import com.im.njams.sdk.njams.NjamsSender;
-import com.im.njams.sdk.njams.NjamsSenderFactory;
 import com.im.njams.sdk.serializer.*;
 import com.im.njams.sdk.settings.Settings;
 import org.slf4j.LoggerFactory;
@@ -62,8 +51,7 @@ public class Njams{
 
     private static final org.slf4j.Logger LOG = LoggerFactory.getLogger(Njams.class);
 
-    private final Settings settings;
-
+    private final NjamsSettings njamsSettings;
     private final NjamsArgos njamsArgos;
     private final NjamsMetadata njamsMetadata;
     private final NjamsState njamsState;
@@ -97,32 +85,25 @@ public class Njams{
      * @param settings needed for client initialization of communication, sending intervals and sizes, etc.
      */
     public Njams(Path clientPath, String defaultClientVersion, String category, Settings settings) {
-        validate(settings);
-        this.settings = settings;
+        NjamsFactory njamsFactory = new NjamsFactory(clientPath, category, settings, defaultClientVersion);
 
-        njamsMetadata = NjamsMetadataFactory.createMetadataWith(clientPath, defaultClientVersion, category);
-        njamsArgos = new NjamsArgos(settings);
-        njamsState = new NjamsState();
-        njamsFeatures = new NjamsFeatures();
-        njamsJobs = new NjamsJobs(njamsMetadata, njamsState, njamsFeatures, settings);
-        njamsSender = NjamsSenderFactory.getNjamsSender(settings, njamsMetadata);
-        njamsConfiguration = NjamsConfigurationFactory.getNjamsConfiguration(njamsMetadata, njamsSender, settings);
-        njamsProjectMessage = new NjamsProjectMessage(njamsMetadata, njamsFeatures, njamsConfiguration,
-            njamsSender, njamsState, njamsJobs, settings);
-        njamsReceiver = new NjamsReceiver(settings, njamsMetadata, njamsFeatures, njamsProjectMessage, njamsJobs,
-            njamsConfiguration);
+        njamsSettings = njamsFactory.getNjamsSettings();
+        njamsMetadata = njamsFactory.getNjamsMetadata();
+        njamsArgos = njamsFactory.getNjamsArgos();
+        njamsState = njamsFactory.getNjamsState();
+        njamsFeatures = njamsFactory.getNjamsFeatures();
+        njamsJobs = njamsFactory.getNjamsJobs();
+        njamsSender = njamsFactory.getNjamsSender();
+        njamsConfiguration = njamsFactory.getNjamsConfiguration();
+        njamsProjectMessage = njamsFactory.getNjamsProjectMessage();
+        njamsReceiver = njamsFactory.getNjamsReceiver();
 
         printStartupBanner();
     }
 
-    private void validate(Settings settings) {
-        if (settings == null)
-            throw new NjamsSdkRuntimeException("Settings need to be provided!");
-    }
-
     private void printStartupBanner() {
         Map<String, String> versions = njamsMetadata.getAllVersions();
-        Map<String, String> settings = this.settings.getAllPropertiesWithoutPasswords();
+        Map<String, String> settings = njamsSettings.getAllPropertiesWithoutPasswords();
         String currentYear = njamsMetadata.getCurrentYear();
 
         print(versions, settings, currentYear);
@@ -193,10 +174,12 @@ public class Njams{
 //################################### Settings
 
     /**
-     * @return the current nJAMS settings
+     * The settings are the used for setting different parameters like flush size, connection parameters etc.
+     *
+     * @return the settings for this njams instance.
      */
     public Settings getSettings() {
-        return settings;
+        return njamsSettings.getSettings();
     }
 
 //################################### NjamsSender
@@ -209,7 +192,7 @@ public class Njams{
      * Returns a Sender implementation, which is configured as specified in
      * the settings.
      *
-     * @return the Sender
+     * @return the Sender that is used to send messages to the nJAMS server
      */
     @Deprecated
     public Sender getSender() {
@@ -249,8 +232,6 @@ public class Njams{
 
     /**
      * @return The handler that handles the replay of a job
-     * @see #getNjamsJobs()
-     * @see NjamsJobs#getReplayHandler()
      */
     @Deprecated
     public ReplayHandler getReplayHandler() {
@@ -260,8 +241,6 @@ public class Njams{
     /**
      * Sets the handler to handle the replay of a job
      * @param replayHandler the handler to replay the job
-     * @see #getNjamsJobs()
-     * @see NjamsJobs#setReplayHandler(ReplayHandler)
      */
     @Deprecated
     public void setReplayHandler(final ReplayHandler replayHandler) {
@@ -272,8 +251,6 @@ public class Njams{
      *
      * @param jobId the key to the corresponding job
      * @return the corresponding job
-     * @see #getNjamsJobs()
-     * @see NjamsJobs#get(String)
      */
     @Deprecated
     public Job getJobById(final String jobId) {
@@ -281,8 +258,6 @@ public class Njams{
     }
 
     /**
-     * @see #getNjamsJobs()
-     * @see NjamsJobs#get()
      * @return A collections of jobs
      */
     @Deprecated
@@ -292,8 +267,6 @@ public class Njams{
 
     /**
      * @param job the job to add, it's jobId is the key
-     * @see #getNjamsJobs()
-     * @see NjamsJobs#add(Job)
      */
     @Deprecated
     public void addJob(Job job) {
@@ -302,8 +275,6 @@ public class Njams{
 
     /**
      * @param jobId Key to remove the job from the job collection.
-     * @see #getNjamsJobs()
-     * @see NjamsJobs#remove(String)
      */
     @Deprecated
     public void removeJob(String jobId) {
@@ -365,8 +336,6 @@ public class Njams{
      * @return If a serializer for the same type was already registered before,
      * the former registered serializer is returned. Otherwise <code>null</code> is returned.
      *
-     * @see #getNjamsSerializers() ()
-     * @see NjamsSerializers#add(Class, Serializer)
      */
     @Deprecated
     public <T> Serializer<T> addSerializer(final Class<T> key, final Serializer<? super T> serializer) {
@@ -378,8 +347,6 @@ public class Njams{
      * @param <T> type of serializable
      * @return Registered serializer or <b>null</b>
      *
-     * @see #getNjamsSerializers() ()
-     * @see NjamsSerializers#remove(Class)
      */
     @Deprecated
     public <T> Serializer<T> removeSerializer(final Class<T> key) {
@@ -391,8 +358,6 @@ public class Njams{
      * @param <T> type of the class
      * @param key a class
      * @return Registered serializer or <b>null</b>
-     * @see #getNjamsSerializers() ()
-     * @see NjamsSerializers#get(Class)
      */
     @Deprecated
     public <T> Serializer<T> getSerializer(final Class<T> key) {
@@ -403,8 +368,6 @@ public class Njams{
      * @param <T> type of the class
      * @param t   Object to be serialized.
      * @return a string representation of the object.
-     * @see #getNjamsSerializers() ()
-     * @see NjamsSerializers#serialize(Object)
      */
     @Deprecated
     public <T> String serialize(final T t) {
@@ -415,8 +378,6 @@ public class Njams{
      * @param <T>   Type of the class
      * @param clazz Class for which a serializer will be searched.
      * @return Serializer of <b>null</b>.
-     * @see #getNjamsSerializers() ()
-     * @see NjamsSerializers#find(Class)
      */
     @Deprecated
     public <T> Serializer<? super T> findSerializer(final Class<T> clazz) {
@@ -454,8 +415,6 @@ public class Njams{
     /**
      * @return the category of the nJAMS client, which should describe the
      * technology
-     * @see #getNjamsMetadata()
-     * @see NjamsMetadata#getCategory()
      */
     @Deprecated
     public String getCategory() {
@@ -464,8 +423,6 @@ public class Njams{
 
     /**
      * @return the clientPath
-     * @see #getNjamsMetadata()
-     * @see NjamsMetadata#getClientPath()
      */
     @Deprecated
     public Path getClientPath() {
@@ -474,8 +431,6 @@ public class Njams{
 
     /**
      * @return the clientVersion
-     * @see #getNjamsMetadata()
-     * @see NjamsMetadata#getClientVersion()
      */
     @Deprecated
     public String getClientVersion() {
@@ -484,8 +439,6 @@ public class Njams{
 
     /**
      * @return the sdkVersion
-     * @see #getNjamsMetadata()
-     * @see NjamsMetadata#getSdkVersion()
      */
     @Deprecated
     public String getSdkVersion() {
@@ -494,8 +447,6 @@ public class Njams{
 
     /**
      * @return the machine name
-     * @see #getNjamsMetadata()
-     * @see NjamsMetadata#getMachine()
      */
     @Deprecated
     public String getMachine() {
@@ -510,8 +461,6 @@ public class Njams{
     }
 
     /**
-     * @see #getNjamsFeatures()
-     * @see NjamsFeatures#get()
      * @return the list of features this client has
      */
     @Deprecated
@@ -521,8 +470,6 @@ public class Njams{
 
     /**
      * @param feature to set
-     * @see #getNjamsFeatures()
-     * @see NjamsFeatures#add(String)
      */
     @Deprecated
     public void addFeature(String feature) {
@@ -531,8 +478,6 @@ public class Njams{
 
     /**
      * @param feature to set
-     * @see #getNjamsFeatures()
-     * @see NjamsFeatures#add(NjamsFeatures.Feature)
      */
     @Deprecated
     public void addFeature(NjamsFeatures.Feature feature) {
@@ -541,8 +486,6 @@ public class Njams{
 
     /**
      * @param feature to remove
-     * @see #getNjamsFeatures()
-     * @see NjamsFeatures#remove(String)
      */
     @Deprecated
     public void removeFeature(final String feature) {
@@ -551,8 +494,6 @@ public class Njams{
 
     /**
      * @param feature to remove
-     * @see #getNjamsFeatures()
-     * @see NjamsFeatures#remove(NjamsFeatures.Feature)
      */
     @Deprecated
     public void removeFeature(final NjamsFeatures.Feature feature) {
@@ -567,8 +508,6 @@ public class Njams{
 
     /**
      * @return if this client instance is started
-     * @see #getNjamsState()
-     * @see NjamsState#isStarted()
      */
     @Deprecated
     public boolean isStarted() {
