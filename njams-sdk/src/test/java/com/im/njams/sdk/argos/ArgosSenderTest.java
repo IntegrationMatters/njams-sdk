@@ -71,7 +71,7 @@ public class ArgosSenderTest {
         argosSender.addArgosCollector(collector);
 
         while(!argosSender.isExecutorSet()){
-            Thread.sleep(1);
+            Thread.sleep(10);
         }
 
         argosSender.setSendingScheduleTo(10, 10, TimeUnit.MILLISECONDS);

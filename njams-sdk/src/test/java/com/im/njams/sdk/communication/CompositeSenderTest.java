@@ -60,11 +60,11 @@ public class CompositeSenderTest extends AbstractTest {
 
     @Test
     public void longRunningThread_forcesExecutorToShutDown_beforeThreadHasFinishedItsTask() throws InterruptedException {
-        int timeToWaitForClose = 100;
+        int timeToWaitForClose = 20;
         LongRunningExecutionCompositeSenderFake longRunningExecutionCompositeSender =
             new LongRunningExecutionCompositeSenderFake(SETTINGS, timeToWaitForClose);
 
-        final int executingTimeThatIsLongerThanTheWaitingTime = timeToWaitForClose * 2;
+        final int executingTimeThatIsLongerThanTheWaitingTime = timeToWaitForClose * 5;
 
         longRunningExecutionCompositeSender.startLongRunningProcessFor(executingTimeThatIsLongerThanTheWaitingTime);
 
@@ -99,7 +99,7 @@ public class CompositeSenderTest extends AbstractTest {
             getExecutor().execute(() -> {
                 try {
                     startedToSleep = true;
-                    Thread.sleep(timeToWaitForClose*2);
+                    Thread.sleep(timeToWaitForClose);
                 } catch (InterruptedException e) {
                     interruptWasCalled = true;
                     Thread.currentThread().interrupt();
@@ -109,7 +109,7 @@ public class CompositeSenderTest extends AbstractTest {
 
         public void closeAfterLongRunningThreadStarted() throws InterruptedException {
             while(!startedToSleep){
-                Thread.sleep(1);
+                Thread.sleep(10);
             }
             this.close();
         }
