@@ -25,7 +25,7 @@ import com.im.njams.sdk.njams.util.mock.NjamsJobsMock;
 import org.junit.Before;
 import org.junit.Test;
 
-public class NjamsWithNjamsJobsStopTest {
+public class NjamsJobsTest {
 
     private Njams njams;
     private NjamsJobsMock njamsJobsMock;
@@ -39,7 +39,7 @@ public class NjamsWithNjamsJobsStopTest {
     }
 
     @Test
-    public void callsStop_njamsJobsIsNotStoppedBeforeStarting(){
+    public void stopIsNotCalled_ifNjamsTriesToStopBeforeStarting(){
         try {
             njams.stop();
         }catch(Exception someException){
@@ -49,7 +49,7 @@ public class NjamsWithNjamsJobsStopTest {
     }
 
     @Test
-    public void callsStop_afterAStart_njamsJobsStopIsCalled(){
+    public void stopIsCalled_ifNjamsStopsAfterAStart(){
         njams.start();
         njams.stop();
 
@@ -57,7 +57,7 @@ public class NjamsWithNjamsJobsStopTest {
     }
 
     @Test
-    public void callsStopTwice_afterAStart_firstStopStopsNjamsJobs_secondOneIsNotExecuted(){
+    public void stopIs_onceCalled_evenIfNjamsStopsTwice(){
         njams.start();
         njams.stop();
         try {
@@ -69,7 +69,7 @@ public class NjamsWithNjamsJobsStopTest {
     }
 
     @Test
-    public void callsStart_andStop_alternating_afterEachStartAStopStopsNjamsJobs(){
+    public void stopIs_calledTwice_ifNjamsStartsAndStopsAlternating(){
         njams.start();
         njams.stop();
         njams.start();
@@ -79,7 +79,7 @@ public class NjamsWithNjamsJobsStopTest {
     }
 
     @Test
-    public void callsStartTwice_stopStillOnlyCallsOneStopOnNjamsJobs(){
+    public void stopIs_calledOnce_evenIfStartWasCalledTwiceBefore_ifItWasNotAlternating(){
         njams.start();
         njams.start();
         njams.stop();

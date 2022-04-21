@@ -32,7 +32,7 @@ import com.im.njams.sdk.njams.util.mock.NjamsConfigurationMock;
 import org.junit.Before;
 import org.junit.Test;
 
-public class NjamsWithNjamsConfigurationStartTest {
+public class NjamsConfigurationTest {
 
     private Njams njams;
     private NjamsConfigurationMock njamsConfigurationMock;
@@ -46,14 +46,14 @@ public class NjamsWithNjamsConfigurationStartTest {
     }
 
     @Test
-    public void callsStart_onNjamsConfiguration(){
+    public void startIsCalled_whenNjamsStartIsCalled(){
         njams.start();
 
         njamsConfigurationMock.assertThatStartWasCalledTimes(1);
     }
 
     @Test
-    public void callsStart_aSecondTime_butNjamsConfigurationStartIsStillOnlyCalledOnce(){
+    public void startIsCalled_onlyOnce_evenIfNjamsCallsStart_twice(){
         njams.start();
         njams.start();
 
@@ -61,7 +61,7 @@ public class NjamsWithNjamsConfigurationStartTest {
     }
 
     @Test
-    public void callsStart_aSecondTime_afterAStopInBetween_callsStartOnNjamsConfigurationASecondTime(){
+    public void startIsCalled_aSecondTime_ifNjamsDoesAStopInBetween(){
         njams.start();
         njams.stop();
         njams.start();

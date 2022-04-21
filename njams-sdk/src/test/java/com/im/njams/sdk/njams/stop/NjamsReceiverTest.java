@@ -16,50 +16,80 @@
  *
  */
 
-package com.im.njams.sdk.njams.start;
+package com.im.njams.sdk.njams.stop;
 
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.njams.util.NjamsFactoryUtils;
 import com.im.njams.sdk.njams.util.mock.MockingNjamsFactory;
-import com.im.njams.sdk.njams.util.mock.NjamsJobsMock;
+import com.im.njams.sdk.njams.util.mock.NjamsReceiverMock;
 import org.junit.Before;
 import org.junit.Test;
 
-public class NjamsWithNjamsJobsStartTest {
+public class NjamsReceiverTest {
 
     private Njams njams;
-    private NjamsJobsMock njamsJobsMock;
+    private NjamsReceiverMock njamsReceiverMock;
 
     @Before
     public void setUp() {
         final MockingNjamsFactory mockingNjamsFactory = NjamsFactoryUtils.createMockedNjamsFactory();
         njams = new Njams(mockingNjamsFactory);
 
-        njamsJobsMock = mockingNjamsFactory.getNjamsJobs();
+        njamsReceiverMock = new NjamsReceiverMock();
+        njamsReceiverMock = mockingNjamsFactory.getNjamsReceiver();
     }
 
     @Test
-    public void callsStart_onNjamsJobs(){
-        njams.start();
-
-        njamsJobsMock.assertThatStartWasCalledTimes(1);
+    public void stopIsNotCalled_ifNjamsTriesToStopBeforeStarting(){
+        try {
+            njams.stop();
+        }catch(Exception someException){
+            //We don't care for the exception
+        }
+        njamsReceiverMock.assertThatStopWasCalledTimes(0);
     }
 
     @Test
-    public void callsStart_aSecondTime_butNjamsJobsStartIsStillOnlyCalledOnce(){
+    public void stopIsCalled_ifNjamsStopsAfterAStart(){
         njams.start();
-        njams.start();
+        njams.stop();
 
-        njamsJobsMock.assertThatStartWasCalledTimes(1);
+        njamsReceiverMock.assertThatStopWasCalledTimes(1);
     }
 
     @Test
-    public void callsStart_aSecondTime_afterAStopInBetween_callsStartOnNjamsJobsASecondTime(){
+    public void stopIs_onceCalled_evenIfNjamsStopsTwice(){
+        njams.start();
+        njams.stop();
+        try {
+            njams.stop();
+        }catch(Exception someException){
+            //We don't care for the exception
+        }
+        njamsReceiverMock.assertThatStopWasCalledTimes(1);
+    }
+
+    @Test
+    public void stopIs_calledTwice_ifNjamsStartsAndStopsAlternating(){
         njams.start();
         njams.stop();
         njams.start();
+        njams.stop();
 
-        njamsJobsMock.assertThatStartWasCalledTimes(2);
+        njamsReceiverMock.assertThatStopWasCalledTimes(2);
+    }
+
+    @Test
+    public void stopIs_calledOnce_evenIfStartWasCalledTwiceBefore_ifItWasNotAlternating(){
+        njams.start();
+        njams.start();
+        njams.stop();
+        try {
+            njams.stop();
+        }catch(Exception someException){
+            //We don't care for the exception
+        }
+        njamsReceiverMock.assertThatStopWasCalledTimes(1);
     }
 
 }

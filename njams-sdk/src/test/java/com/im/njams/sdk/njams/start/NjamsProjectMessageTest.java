@@ -25,7 +25,7 @@ import com.im.njams.sdk.njams.util.mock.NjamsProjectMessageMock;
 import org.junit.Before;
 import org.junit.Test;
 
-public class NjamsWithNjamsProjectMessageStartTest {
+public class NjamsProjectMessageTest {
 
     private Njams njams;
     private NjamsProjectMessageMock njamsProjectMessageMock;
@@ -39,14 +39,14 @@ public class NjamsWithNjamsProjectMessageStartTest {
     }
 
     @Test
-    public void callsStart_onNjamsProjectMessage(){
+    public void startIsCalled_whenNjamsStartIsCalled(){
         njams.start();
 
         njamsProjectMessageMock.assertThatStartWasCalledTimes(1);
     }
 
     @Test
-    public void callsStart_aSecondTime_butNjamsProjectMessageStartIsStillOnlyCalledOnce(){
+    public void startIsCalled_onlyOnce_evenIfNjamsCallsStart_twice(){
         njams.start();
         njams.start();
 
@@ -54,7 +54,7 @@ public class NjamsWithNjamsProjectMessageStartTest {
     }
 
     @Test
-    public void callsStart_aSecondTime_afterAStopInBetween_callsStartOnNjamsProjectMessageASecondTime(){
+    public void startIsCalled_aSecondTime_ifNjamsDoesAStopInBetween(){
         njams.start();
         njams.stop();
         njams.start();
