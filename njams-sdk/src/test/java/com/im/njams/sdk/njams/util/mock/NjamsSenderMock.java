@@ -18,16 +18,17 @@
 
 package com.im.njams.sdk.njams.util.mock;
 
-import com.im.njams.sdk.njams.NjamsArgos;
+import com.im.njams.sdk.njams.NjamsSender;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 
-public class NjamsArgosMock extends NjamsArgos {
+public class NjamsSenderMock extends NjamsSender {
+
     private int stopCounter;
 
-    public NjamsArgosMock() {
+    public NjamsSenderMock() {
         super(null);
     }
 

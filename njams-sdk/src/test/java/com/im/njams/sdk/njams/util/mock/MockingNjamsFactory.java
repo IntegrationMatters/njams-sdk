@@ -20,6 +20,7 @@ package com.im.njams.sdk.njams.util.mock;
 
 import com.im.njams.sdk.NjamsFactory;
 import com.im.njams.sdk.common.Path;
+import com.im.njams.sdk.njams.NjamsSender;
 import com.im.njams.sdk.settings.Settings;
 
 public class MockingNjamsFactory extends NjamsFactory {
@@ -29,6 +30,7 @@ public class MockingNjamsFactory extends NjamsFactory {
     private final NjamsConfigurationMock njamsConfigurationMock;
     private final NjamsProjectMessageMock njamsProjectMessageMock;
     private final NjamsArgosMock njamsArgosMock;
+    private final NjamsSenderMock njamsSenderMock;
 
     public MockingNjamsFactory() {
         super(new Path(), "SDK", new Settings());
@@ -37,6 +39,7 @@ public class MockingNjamsFactory extends NjamsFactory {
         njamsConfigurationMock = new NjamsConfigurationMock();
         njamsProjectMessageMock = new NjamsProjectMessageMock();
         njamsArgosMock = new NjamsArgosMock();
+        njamsSenderMock = new NjamsSenderMock();
     }
 
     @Override
@@ -62,6 +65,11 @@ public class MockingNjamsFactory extends NjamsFactory {
     @Override
     public NjamsArgosMock getNjamsArgos(){
         return njamsArgosMock;
+    }
+
+    @Override
+    public NjamsSenderMock getNjamsSender(){
+        return njamsSenderMock;
     }
 
 }
