@@ -38,12 +38,12 @@ import static org.junit.Assert.*;
  */
 public class TraceMessageBuilderTest extends AbstractTest {
 
-    private TraceMessageBuilder builder = new TraceMessageBuilder(njams.getNjamsMetadata());
+    private TraceMessageBuilder builder = new TraceMessageBuilder(njamsFactory.getNjamsMetadata());
 
     private String FULLPROCESSPATHNAME;
 
     public TraceMessageBuilderTest(){
-        FULLPROCESSPATHNAME = njams.getNjamsMetadata().getClientPath().add(PROCESSPATHNAME).toString();
+        FULLPROCESSPATHNAME = njamsFactory.getNjamsMetadata().getClientPath().add(PROCESSPATHNAME).toString();
     }
 
     @Test
@@ -82,9 +82,9 @@ public class TraceMessageBuilderTest extends AbstractTest {
 
     private void checkTraceMessage(TraceMessage message, LocalDateTime ldt1, LocalDateTime ldt2) {
         assertEquals(message.getClientVersion(), CLIENTVERSION);
-        assertEquals(message.getSdkVersion(), njams.getNjamsMetadata().getSdkVersion());
+        assertEquals(message.getSdkVersion(), njamsFactory.getNjamsMetadata().getSdkVersion());
         assertEquals(message.getCategory(), CATEGORY);
-        assertEquals(message.getPath(), njams.getNjamsMetadata().getClientPath().toString());
+        assertEquals(message.getPath(), njamsFactory.getNjamsMetadata().getClientPath().toString());
 
         List<ProcessModel> processes = message.getProcesses();
         assertNotNull(processes);

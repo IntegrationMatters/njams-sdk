@@ -37,9 +37,10 @@ public class NjamsWithNjamsJobsStopTest {
 
     @Before
     public void setUp() {
-        njams = new Njams(new MockingNjamsFactory());
+        final MockingNjamsFactory mockingNjamsFactory = new MockingNjamsFactory();
+        njams = new Njams(mockingNjamsFactory);
 
-        njamsJobsMock = (NjamsJobsMock) njams.getNjamsJobs();
+        njamsJobsMock = mockingNjamsFactory.getNjamsJobs();
     }
 
     @Test

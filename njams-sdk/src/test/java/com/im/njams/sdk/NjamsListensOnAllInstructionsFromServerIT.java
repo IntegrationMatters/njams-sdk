@@ -33,6 +33,7 @@ import com.im.njams.sdk.common.Path;
 import com.im.njams.sdk.communication.AbstractReceiver;
 import com.im.njams.sdk.communication.CommunicationFactory;
 import com.im.njams.sdk.communication.TestReceiver;
+import com.im.njams.sdk.njams.NjamsFactoryUtils;
 import com.im.njams.sdk.settings.Settings;
 import org.junit.Before;
 import org.junit.Test;
@@ -57,10 +58,11 @@ public class NjamsListensOnAllInstructionsFromServerIT {
         Settings settings = new Settings();
         settings.put(CommunicationFactory.COMMUNICATION, TestReceiver.NAME);
 
-        njams = new Njams(new Path(), "SDK", settings);
+        NjamsFactory njamsFactory = NjamsFactoryUtils.createMinimalNjamsFactory();
+        njams = new Njams(njamsFactory);
 
         instructionListeningReceiverMock = new InstructionListeningReceiverMock();
-        instructionListeningReceiverMock.setNjamsReceiver(njams.getNjamsReceiver());
+        instructionListeningReceiverMock.setNjamsReceiver(njamsFactory.getNjamsReceiver());
         instructionListeningReceiverMock.setExpectedResponse(expectedResponse);
         TestReceiver.setReceiverMock(instructionListeningReceiverMock);
     }

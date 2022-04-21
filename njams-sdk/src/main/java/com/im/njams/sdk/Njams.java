@@ -72,7 +72,7 @@ public class Njams{
      * @param settings needed for client initialization of communication, sending intervals and sizes, etc.
      */
     public Njams(Path clientPath, String category, Settings settings) {
-        this(clientPath, null, category, settings);
+        this(new NjamsFactory(clientPath, category, settings));
     }
     /**
      * Create a nJAMS instance. It's initializing everything that is needed to communicate with the nJAMS Server
@@ -92,7 +92,7 @@ public class Njams{
      *
      * @param njamsFactory the factory that is used to create all necessary tools
      */
-    Njams(NjamsFactory njamsFactory){
+    public Njams(NjamsFactory njamsFactory){
         njamsSettings = njamsFactory.getNjamsSettings();
         njamsMetadata = njamsFactory.getNjamsMetadata();
         njamsArgos = njamsFactory.getNjamsArgos();
@@ -190,10 +190,6 @@ public class Njams{
 
 //################################### NjamsSender
 
-    public NjamsSender getNjamsSender() {
-        return njamsSender;
-    }
-
     /**
      * Returns a Sender implementation, which is configured as specified in
      * the settings.
@@ -223,10 +219,6 @@ public class Njams{
     }
 
 //################################### NjamsJobs
-
-    public NjamsJobs getNjamsJobs(){
-        return njamsJobs;
-    }
 
     /**
      * @return The handler that handles the replay of a job
@@ -282,10 +274,6 @@ public class Njams{
 
 //################################### NjamsReceiver
 
-    public NjamsReceiver getNjamsReceiver(){
-        return njamsReceiver;
-    }
-
     /**
      * Returns the instructions listeners that are used when a command of the njams server is sent to this client.
      * The instruction will be sent to each listener which can then decide to do with that instruction.
@@ -317,10 +305,6 @@ public class Njams{
 
 //################################### NjamsSerializers
 
-    private NjamsSerializers getNjamsSerializers(){
-        return njamsProjectMessage.getNjamsSerializers();
-    }
-
     /**
      *
      * @param <T>        Type that the given instance serializes
@@ -333,7 +317,7 @@ public class Njams{
      */
     @Deprecated
     public <T> Serializer<T> addSerializer(final Class<T> key, final Serializer<? super T> serializer) {
-        return getNjamsSerializers().add(key, serializer);
+        return njamsProjectMessage.addSerializer(key, serializer);
     }
 
     /**
@@ -344,7 +328,7 @@ public class Njams{
      */
     @Deprecated
     public <T> Serializer<T> removeSerializer(final Class<T> key) {
-        return getNjamsSerializers().remove(key);
+        return njamsProjectMessage.removeSerializer(key);
     }
 
     /**
@@ -355,7 +339,7 @@ public class Njams{
      */
     @Deprecated
     public <T> Serializer<T> getSerializer(final Class<T> key) {
-        return getNjamsSerializers().get(key);
+        return njamsProjectMessage.getSerializer(key);
     }
 
     /**
@@ -365,7 +349,7 @@ public class Njams{
      */
     @Deprecated
     public <T> String serialize(final T t) {
-        return getNjamsSerializers().serialize(t);
+        return njamsProjectMessage.serialize(t);
     }
 
     /**
@@ -375,7 +359,7 @@ public class Njams{
      */
     @Deprecated
     public <T> Serializer<? super T> findSerializer(final Class<T> clazz) {
-        return getNjamsSerializers().find(clazz);
+        return njamsProjectMessage.findSerializer(clazz);
     }
 
 //################################### Configuration
@@ -397,10 +381,6 @@ public class Njams{
     }
 
 //################################### NjamsMetadata
-
-    public NjamsMetadata getNjamsMetadata(){
-        return njamsMetadata;
-    }
 
     /**
      * @return the category of the nJAMS client, which should describe the

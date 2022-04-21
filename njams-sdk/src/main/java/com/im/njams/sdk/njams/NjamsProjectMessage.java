@@ -21,6 +21,7 @@ import com.im.njams.sdk.model.layout.ProcessModelLayouter;
 import com.im.njams.sdk.model.layout.SimpleProcessModelLayouter;
 import com.im.njams.sdk.model.svg.NjamsProcessDiagramFactory;
 import com.im.njams.sdk.model.svg.ProcessDiagramFactory;
+import com.im.njams.sdk.serializer.Serializer;
 import com.im.njams.sdk.settings.Settings;
 import org.slf4j.LoggerFactory;
 
@@ -455,7 +456,24 @@ public class NjamsProjectMessage implements InstructionListener {
         this.processDiagramFactory = processDiagramFactory;
     }
 
-    public NjamsSerializers getNjamsSerializers() {
-        return njamsSerializers;
+    public <T> Serializer<T> addSerializer(final Class<T> key, final Serializer<? super T> serializer) {
+        return njamsSerializers.add(key, serializer);
+    }
+
+    public <T> Serializer<T> removeSerializer(final Class<T> key) {
+        return njamsSerializers.remove(key);
+    }
+
+    public <T> Serializer<T> getSerializer(final Class<T> key) {
+        return njamsSerializers.get(key);
+    }
+
+    public <T> String serialize(final T t) {
+        return njamsSerializers.serialize(t);
+    }
+
+
+    public <T> Serializer<? super T> findSerializer(final Class<T> clazz) {
+        return njamsSerializers.find(clazz);
     }
 }

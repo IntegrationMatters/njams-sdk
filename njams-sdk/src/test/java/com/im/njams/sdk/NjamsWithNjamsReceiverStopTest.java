@@ -12,10 +12,11 @@ public class NjamsWithNjamsReceiverStopTest {
 
     @Before
     public void setUp() {
-        njams = new Njams(new MockingNjamsFactory());
+        final MockingNjamsFactory mockingNjamsFactory = new MockingNjamsFactory();
+        njams = new Njams(mockingNjamsFactory);
 
         njamsReceiverMock = new NjamsReceiverMock();
-        njamsReceiverMock = (NjamsReceiverMock) njams.getNjamsReceiver();
+        njamsReceiverMock = mockingNjamsFactory.getNjamsReceiver();
     }
 
     @Test

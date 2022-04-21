@@ -46,6 +46,10 @@ public class NjamsFactory {
     private final NjamsProjectMessage njamsProjectMessage;
     private final NjamsReceiver njamsReceiver;
 
+    public NjamsFactory(Path clientPath, String category, Settings settings){
+        this(clientPath, category, settings, null);
+    }
+
     public NjamsFactory(Path clientPath, String category, Settings settings, String defaultClientVersion) {
         njamsSettings = new NjamsSettings(settings);
         njamsMetadata = NjamsMetadataFactory.createMetadataWith(clientPath, defaultClientVersion, category);

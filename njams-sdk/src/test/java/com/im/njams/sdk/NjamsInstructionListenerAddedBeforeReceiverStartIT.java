@@ -7,6 +7,7 @@ import com.im.njams.sdk.communication.InstructionListener;
 import com.im.njams.sdk.communication.instructionListener.PingInstructionListener;
 import com.im.njams.sdk.communication.TestReceiver;
 import com.im.njams.sdk.configuration.ConfigurationInstructionListener;
+import com.im.njams.sdk.njams.NjamsFactoryUtils;
 import com.im.njams.sdk.njams.NjamsJobs;
 import com.im.njams.sdk.njams.NjamsProjectMessage;
 import com.im.njams.sdk.njams.metadata.NjamsMetadataFactory;
@@ -30,10 +31,11 @@ public class NjamsInstructionListenerAddedBeforeReceiverStartIT {
         Settings settings = new Settings();
         settings.put(CommunicationFactory.COMMUNICATION, TestReceiver.NAME);
 
-        Njams njams = new Njams(new Path(), "SDK", settings);
+        NjamsFactory njamsFactory = NjamsFactoryUtils.createMinimalNjamsFactory();
+        Njams njams = new Njams(njamsFactory);
 
         InstructionListenerSizeCheckerMock instructionListenerSizeCheckerMock = new InstructionListenerSizeCheckerMock();
-        instructionListenerSizeCheckerMock.setNjamsReceiver(njams.getNjamsReceiver());
+        instructionListenerSizeCheckerMock.setNjamsReceiver(njamsFactory.getNjamsReceiver());
         TestReceiver.setReceiverMock(instructionListenerSizeCheckerMock);
 
         Map<String, Object> neededInstructionListeners = new HashMap<>();

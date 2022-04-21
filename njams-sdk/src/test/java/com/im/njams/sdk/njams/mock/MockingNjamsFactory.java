@@ -24,18 +24,23 @@ import com.im.njams.sdk.settings.Settings;
 
 public class MockingNjamsFactory extends NjamsFactory {
 
+    private final NjamsJobsMock njamsJobsMock;
+    private final NjamsReceiverMock njamsReceiverMock;
+
     public MockingNjamsFactory() {
-        super(new Path(), "SDK", new Settings(), null);
+        super(new Path(), "SDK", new Settings());
+        njamsJobsMock = new NjamsJobsMock();
+        njamsReceiverMock = new NjamsReceiverMock();
     }
 
     @Override
     public NjamsJobsMock getNjamsJobs() {
-        return new NjamsJobsMock();
+        return njamsJobsMock;
     }
 
     @Override
     public NjamsReceiverMock getNjamsReceiver(){
-        return new NjamsReceiverMock();
+        return njamsReceiverMock;
     }
 
 }

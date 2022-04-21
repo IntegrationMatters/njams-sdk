@@ -53,6 +53,7 @@ public abstract class AbstractTest {
 
     //The default processModel
     protected static ProcessModel process;
+    protected NjamsFactory njamsFactory;
 
     /**
      * This constructor creates the njams instance with path SDK4-TEST-PROCESSES.
@@ -70,8 +71,8 @@ public abstract class AbstractTest {
      */
     public AbstractTest(Settings settings) {
         Path clientPath = new Path("SDK4", "TEST");
-
-        njams = new Njams(clientPath, CLIENTVERSION, CATEGORY, settings);
+        njamsFactory = new NjamsFactory(clientPath, CATEGORY, settings, CLIENTVERSION);
+        njams = new Njams(njamsFactory);
         Path processPath = new Path("PROCESSES");
         process = njams.createProcess(processPath);
 

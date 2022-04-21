@@ -43,7 +43,7 @@ public class LogMessageFlushTaskTest extends AbstractTest{
      */
     @Test
     public void testStop(){
-        LogMessageFlushTask.start(njams.getNjamsMetadata(), njams.getNjamsJobs(), njams.getSettings());
+        LogMessageFlushTask.start(njamsFactory.getNjamsMetadata(), njamsFactory.getNjamsJobs(), njams.getSettings());
         JobImpl job = createDefaultJob();
         //A job is in the njams instance.
         assertFalse(njams.getJobs().isEmpty());
@@ -58,7 +58,7 @@ public class LogMessageFlushTaskTest extends AbstractTest{
         assertFalse(job.getActivities().isEmpty());
 
         //call stop for this njams instance
-        LogMessageFlushTask.stop(njams.getNjamsMetadata());
+        LogMessageFlushTask.stop(njamsFactory.getNjamsMetadata());
         //The job shouldn't be completly flushed, just the finished activity.
         assertTrue(job.getActivities().isEmpty());
         assertFalse(njams.getJobs().isEmpty());

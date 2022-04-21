@@ -112,6 +112,7 @@ public class CompositeSenderTest extends AbstractTest {
                 Thread.sleep(10);
             }
             this.close();
+            Thread.sleep(100);
         }
 
         @Override

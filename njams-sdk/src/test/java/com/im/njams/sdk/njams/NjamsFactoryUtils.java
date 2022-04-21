@@ -16,48 +16,15 @@
  *
  */
 
-package com.im.njams.sdk;
+package com.im.njams.sdk.njams;
 
-import com.im.njams.sdk.njams.mock.MockingNjamsFactory;
-import com.im.njams.sdk.njams.mock.NjamsJobsMock;
-import org.junit.Before;
-import org.junit.Test;
+import com.im.njams.sdk.NjamsFactory;
+import com.im.njams.sdk.common.Path;
+import com.im.njams.sdk.settings.Settings;
 
-public class NjamsWithNjamsJobsStartTest {
+public class NjamsFactoryUtils {
 
-    private Njams njams;
-    private NjamsJobsMock njamsJobsMock;
-
-    @Before
-    public void setUp() {
-        final MockingNjamsFactory mockingNjamsFactory = new MockingNjamsFactory();
-        njams = new Njams(mockingNjamsFactory);
-
-        njamsJobsMock = mockingNjamsFactory.getNjamsJobs();
+    public static NjamsFactory createMinimalNjamsFactory(){
+        return new NjamsFactory(new Path(), "SDK", new Settings());
     }
-
-    @Test
-    public void callsStart_onNjamsJobs(){
-        njams.start();
-
-        njamsJobsMock.assertThatStartWasCalledTimes(1);
-    }
-
-    @Test
-    public void callsStart_aSecondTime_butNjamsJobsStartIsStillOnlyCalledOnce(){
-        njams.start();
-        njams.start();
-
-        njamsJobsMock.assertThatStartWasCalledTimes(1);
-    }
-
-    @Test
-    public void callsStart_aSecondTime_afterAStopInBetween_callsStartOnNjamsJobsASecondTime(){
-        njams.start();
-        njams.stop();
-        njams.start();
-
-        njamsJobsMock.assertThatStartWasCalledTimes(2);
-    }
-
 }

@@ -4,6 +4,7 @@ import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
 import com.faizsiegeln.njams.messageformat.v4.command.Response;
 import com.im.njams.sdk.common.Path;
 import com.im.njams.sdk.communication.InstructionListener;
+import com.im.njams.sdk.njams.NjamsFactoryUtils;
 import com.im.njams.sdk.settings.Settings;
 import org.junit.Before;
 import org.junit.Test;
@@ -14,6 +15,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 
 public class NjamsInstructionListenerIT {
 
+    private NjamsFactory njamsFactory;
     private Njams njams;
     private Instruction instruction;
     private InstructionListener acceptingListener;
@@ -22,7 +24,8 @@ public class NjamsInstructionListenerIT {
 
     @Before
     public void setUp() throws Exception {
-        njams = new Njams(new Path(), "SDK", new Settings());
+        njamsFactory = NjamsFactoryUtils.createMinimalNjamsFactory();
+        njams = new Njams(njamsFactory);
 
         instruction = new Instruction();
         acceptingListener = (i) -> {
@@ -56,7 +59,7 @@ public class NjamsInstructionListenerIT {
 
     @Test
     public void onInstruction_afterNoListenerHasBeenAdded_doesNotDoAnything(){
-        njams.getNjamsReceiver().distribute(instruction);
+        njamsFactory.getNjamsReceiver().distribute(instruction);
 
         assertThat(instruction.getResponse(), is(nullValue()));
     }
@@ -65,7 +68,7 @@ public class NjamsInstructionListenerIT {
     public void onInstruction_afterAcceptingListenerHasBeenAdded_instructionWasAccepted(){
         njams.addInstructionListener(acceptingListener);
 
-        njams.getNjamsReceiver().distribute(instruction);
+        njamsFactory.getNjamsReceiver().distribute(instruction);
 
         assertThat(instruction.getResponse().getResultMessage(), is("Accepted"));
     }
@@ -74,7 +77,7 @@ public class NjamsInstructionListenerIT {
     public void onInstruction_afterRejectingListenerHasBeenAdded_instructionWasRejected(){
         njams.addInstructionListener(rejectingListener);
 
-        njams.getNjamsReceiver().distribute(instruction);
+        njamsFactory.getNjamsReceiver().distribute(instruction);
 
         assertThat(instruction.getResponse().getResultMessage(), is("Rejected"));
     }
@@ -84,7 +87,7 @@ public class NjamsInstructionListenerIT {
         njams.addInstructionListener(acceptingListener);
         njams.addInstructionListener(rejectingListener);
 
-        njams.getNjamsReceiver().distribute(instruction);
+        njamsFactory.getNjamsReceiver().distribute(instruction);
 
         assertThat(instruction.getResponse().getResultMessage(), is("Rejected"));
     }
@@ -93,7 +96,7 @@ public class NjamsInstructionListenerIT {
     public void onInstruction_increasingInstructionListener_increasesResultCode(){
         njams.addInstructionListener(increasingListener);
 
-        njams.getNjamsReceiver().distribute(instruction);
+        njamsFactory.getNjamsReceiver().distribute(instruction);
 
         assertThat(instruction.getResponse().getResultCode(), is(1));
     }
@@ -102,8 +105,8 @@ public class NjamsInstructionListenerIT {
     public void onInstruction_increasingInstructionListener_increasesResultCodeWithEachCall(){
         njams.addInstructionListener(increasingListener);
 
-        njams.getNjamsReceiver().distribute(instruction);
-        njams.getNjamsReceiver().distribute(instruction);
+        njamsFactory.getNjamsReceiver().distribute(instruction);
+        njamsFactory.getNjamsReceiver().distribute(instruction);
 
         assertThat(instruction.getResponse().getResultCode(), is(2));
     }
@@ -113,7 +116,7 @@ public class NjamsInstructionListenerIT {
         njams.addInstructionListener(increasingListener);
         njams.addInstructionListener(increasingListener);
 
-        njams.getNjamsReceiver().distribute(instruction);
+        njamsFactory.getNjamsReceiver().distribute(instruction);
 
         assertThat(instruction.getResponse().getResultCode(), is(2));
     }
