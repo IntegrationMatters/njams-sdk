@@ -18,36 +18,36 @@
 
 package com.im.njams.sdk.njams.util.mock;
 
-import com.im.njams.sdk.NjamsFactory;
-import com.im.njams.sdk.common.Path;
-import com.im.njams.sdk.settings.Settings;
+import com.im.njams.sdk.njams.NjamsConfiguration;
 
-public class MockingNjamsFactory extends NjamsFactory {
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.MatcherAssert.assertThat;
 
-    private final NjamsJobsMock njamsJobsMock;
-    private final NjamsReceiverMock njamsReceiverMock;
-    private final NjamsConfigurationMock njamsConfigurationMock;
+public class NjamsConfigurationMock extends NjamsConfiguration {
 
-    public MockingNjamsFactory() {
-        super(new Path(), "SDK", new Settings());
-        njamsJobsMock = new NjamsJobsMock();
-        njamsReceiverMock = new NjamsReceiverMock();
-        njamsConfigurationMock = new NjamsConfigurationMock();
+    private int startCounter;
+    private int stopCounter;
+
+    public NjamsConfigurationMock() {
+        super(null, null, null, null);
     }
 
     @Override
-    public NjamsJobsMock getNjamsJobs() {
-        return njamsJobsMock;
+    public void start() {
+        startCounter++;
     }
 
     @Override
-    public NjamsReceiverMock getNjamsReceiver(){
-        return njamsReceiverMock;
+    public void stop() {
+        stopCounter++;
     }
 
-    @Override
-    public NjamsConfigurationMock getNjamsConfiguration(){
-        return njamsConfigurationMock;
+    public void assertThatStartWasCalledTimes(int times) {
+        assertThat(startCounter, is(equalTo(times)));
     }
 
+    public void assertThatStopWasCalledTimes(int times) {
+        assertThat(stopCounter, is(equalTo(times)));
+    }
 }
