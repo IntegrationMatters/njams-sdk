@@ -50,17 +50,18 @@ import static com.im.njams.sdk.njams.NjamsState.NOT_STARTED_EXCEPTION_MESSAGE;
 public class Njams{
 
     private static final org.slf4j.Logger LOG = LoggerFactory.getLogger(Njams.class);
+    private static NjamsFactory GLOBAL_FACTORY;
 
     private final NjamsSettings njamsSettings;
     private final NjamsArgos njamsArgos;
     private final NjamsMetadata njamsMetadata;
     private final NjamsState njamsState;
     private final NjamsFeatures njamsFeatures;
-    private NjamsJobs njamsJobs;
+    private final NjamsJobs njamsJobs;
     private final NjamsSender njamsSender;
     private final NjamsConfiguration njamsConfiguration;
     private final NjamsProjectMessage njamsProjectMessage;
-    private NjamsReceiver njamsReceiver;
+    private final NjamsReceiver njamsReceiver;
 
     /**
      * Create a nJAMS instance without a default client version.
@@ -85,7 +86,7 @@ public class Njams{
      * @param settings needed for client initialization of communication, sending intervals and sizes, etc.
      */
     public Njams(Path clientPath, String defaultClientVersion, String category, Settings settings) {
-        NjamsFactory njamsFactory = new NjamsFactory(clientPath, category, settings, defaultClientVersion);
+        NjamsFactory njamsFactory = getNjamsFactory(clientPath, defaultClientVersion, category, settings);
 
         njamsSettings = njamsFactory.getNjamsSettings();
         njamsMetadata = njamsFactory.getNjamsMetadata();
@@ -99,6 +100,19 @@ public class Njams{
         njamsReceiver = njamsFactory.getNjamsReceiver();
 
         printStartupBanner();
+    }
+
+    private NjamsFactory getNjamsFactory(Path clientPath, String defaultClientVersion, String category,
+        Settings settings) {
+        if(GLOBAL_FACTORY != null){
+            return GLOBAL_FACTORY.createNewInstanceWith(clientPath, category, settings, defaultClientVersion);
+        }else{
+            return new DefaultNjamsFactory(clientPath, category, settings, defaultClientVersion);
+        }
+    }
+
+    static void setNjamsFactory(NjamsFactory njamsFactory) {
+        Njams.GLOBAL_FACTORY = njamsFactory;
     }
 
     private void printStartupBanner() {
@@ -226,10 +240,6 @@ public class Njams{
         return njamsJobs;
     }
 
-    void setNjamsJobs(NjamsJobs njamsJobs) {
-        this.njamsJobs = njamsJobs;
-    }
-
     /**
      * @return The handler that handles the replay of a job
      */
@@ -286,10 +296,6 @@ public class Njams{
 
     public NjamsReceiver getNjamsReceiver(){
         return njamsReceiver;
-    }
-
-    void setNjamsReceiver(NjamsReceiver njamsReceiver) {
-        this.njamsReceiver = njamsReceiver;
     }
 
     /**

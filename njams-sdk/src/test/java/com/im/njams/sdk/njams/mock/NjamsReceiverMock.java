@@ -16,20 +16,21 @@
  *
  */
 
-package com.im.njams.sdk;
+package com.im.njams.sdk.njams.mock;
 
-import com.im.njams.sdk.njams.NjamsJobs;
+import com.im.njams.sdk.njams.NjamsReceiver;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 
-class NjamsJobsMock extends NjamsJobs {
+public class NjamsReceiverMock extends NjamsReceiver {
+
     private int startCounter;
     private int stopCounter;
 
-    public NjamsJobsMock() {
-        super(null, null, null, null);
+    public NjamsReceiverMock() {
+        super(null, null, null, null, null, null);
     }
 
     @Override
@@ -42,7 +43,7 @@ class NjamsJobsMock extends NjamsJobs {
         stopCounter++;
     }
 
-    void assertThatStartWasCalledTimes(int times) {
+    public void assertThatStartWasCalledTimes(int times) {
         assertThat(startCounter, is(equalTo(times)));
     }
 

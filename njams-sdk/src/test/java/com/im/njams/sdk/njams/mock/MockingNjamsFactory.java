@@ -16,61 +16,38 @@
  *
  */
 
-package com.im.njams.sdk;
+package com.im.njams.sdk.njams.mock;
 
+import com.im.njams.sdk.DefaultNjamsFactory;
 import com.im.njams.sdk.common.Path;
-import com.im.njams.sdk.njams.mock.MockingNjamsFactory;
-import com.im.njams.sdk.njams.mock.NjamsJobsMock;
 import com.im.njams.sdk.settings.Settings;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
 
-public class NjamsWithNjamsJobsStartTest {
+public class MockingNjamsFactory extends DefaultNjamsFactory {
 
-    private Njams njams;
-    private NjamsJobsMock njamsJobsMock;
-
-    @BeforeClass
-    public static void setNjamsFactory(){
-        Njams.setNjamsFactory(new MockingNjamsFactory());
+    //This is only needed for easy instantiation. Njams itself uses the createNewInstanceWith method and gets
+    //an instance with correct arguments.
+    public MockingNjamsFactory() {
+        super(new Path(), "MOCKING", new Settings(), null);
     }
 
-    @AfterClass
-    public static void cleanUp(){
-        Njams.setNjamsFactory(null);
+    private MockingNjamsFactory(Path clientPath, String category, Settings settings, String defaultClientVersion) {
+        super(clientPath, category, settings, defaultClientVersion);
     }
 
-    @Before
-    public void setUp() {
-        njams = new Njams(new Path(), "SDK", new Settings());
-
-        njamsJobsMock = (NjamsJobsMock) njams.getNjamsJobs();
+    @Override
+    public MockingNjamsFactory createNewInstanceWith(Path clientPath, String category, Settings settings,
+        String defaultClientVersion) {
+        return new MockingNjamsFactory(clientPath, category, settings, defaultClientVersion);
     }
 
-    @Test
-    public void callsStart_onNjamsJobs(){
-        njams.start();
-
-        njamsJobsMock.assertThatStartWasCalledTimes(1);
+    @Override
+    public NjamsJobsMock getNjamsJobs() {
+        return new NjamsJobsMock();
     }
 
-    @Test
-    public void callsStart_aSecondTime_butNjamsJobsStartIsStillOnlyCalledOnce(){
-        njams.start();
-        njams.start();
-
-        njamsJobsMock.assertThatStartWasCalledTimes(1);
-    }
-
-    @Test
-    public void callsStart_aSecondTime_afterAStopInBetween_callsStartOnNjamsJobsASecondTime(){
-        njams.start();
-        njams.stop();
-        njams.start();
-
-        njamsJobsMock.assertThatStartWasCalledTimes(2);
+    @Override
+    public NjamsReceiverMock getNjamsReceiver(){
+        return new NjamsReceiverMock();
     }
 
 }
