@@ -19,6 +19,7 @@
 package com.im.njams.sdk.njams;
 
 import com.im.njams.sdk.Njams;
+import com.im.njams.sdk.NjamsFactory;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.common.Path;
 import com.im.njams.sdk.settings.Settings;
@@ -31,23 +32,44 @@ import static org.junit.Assert.assertThrows;
 
 public class NjamsInitializationTest {
     @Test
-    public void withoutPath_throwsAnNjamsSdkRuntimeException(){
+    public void njams_withoutPath_throwsAnNjamsSdkRuntimeException(){
         NjamsSdkRuntimeException njamsSdkRuntimeException = assertThrows(NjamsSdkRuntimeException.class,
             () -> new Njams(null, "SDK", new Settings()));
         assertThat(njamsSdkRuntimeException.getMessage(), is(equalTo("Client path need to be provided!")));
     }
 
     @Test
-    public void withoutCategory_throwsAnNjamsSdkRuntimeException(){
+    public void njams_withoutCategory_throwsAnNjamsSdkRuntimeException(){
         NjamsSdkRuntimeException njamsSdkRuntimeException = assertThrows(NjamsSdkRuntimeException.class,
             () -> new Njams(new Path(), null, new Settings()));
         assertThat(njamsSdkRuntimeException.getMessage(), is(equalTo("Category need to be provided!")));
     }
 
     @Test
-    public void withoutSettings_throwsAnNjamsSdkRuntimeException(){
+    public void njams_withoutSettings_throwsAnNjamsSdkRuntimeException(){
         NjamsSdkRuntimeException njamsSdkRuntimeException = assertThrows(NjamsSdkRuntimeException.class,
             () -> new Njams(new Path(), "SDK", null));
+        assertThat(njamsSdkRuntimeException.getMessage(), is(equalTo("Settings need to be provided!")));
+    }
+
+    @Test
+    public void njamsFactory_withoutPath_throwsAnNjamsSdkRuntimeException(){
+        NjamsSdkRuntimeException njamsSdkRuntimeException = assertThrows(NjamsSdkRuntimeException.class,
+            () -> new NjamsFactory(null, "SDK", new Settings()));
+        assertThat(njamsSdkRuntimeException.getMessage(), is(equalTo("Client path need to be provided!")));
+    }
+
+    @Test
+    public void njamsFactory_withoutCategory_throwsAnNjamsSdkRuntimeException(){
+        NjamsSdkRuntimeException njamsSdkRuntimeException = assertThrows(NjamsSdkRuntimeException.class,
+            () -> new NjamsFactory(new Path(), null, new Settings()));
+        assertThat(njamsSdkRuntimeException.getMessage(), is(equalTo("Category need to be provided!")));
+    }
+
+    @Test
+    public void njamsFactory_withoutSettings_throwsAnNjamsSdkRuntimeException(){
+        NjamsSdkRuntimeException njamsSdkRuntimeException = assertThrows(NjamsSdkRuntimeException.class,
+            () -> new NjamsFactory(new Path(), "SDK", null));
         assertThat(njamsSdkRuntimeException.getMessage(), is(equalTo("Settings need to be provided!")));
     }
 }
