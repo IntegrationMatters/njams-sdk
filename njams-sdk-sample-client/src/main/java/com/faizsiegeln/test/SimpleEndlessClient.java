@@ -1,14 +1,14 @@
-/* 
+/*
  * Copyright (c) 2018 Faiz & Siegeln Software GmbH
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"),
  * to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
  * and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
- * 
+ *
  * The Software shall be used for Good, not Evil.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
@@ -17,6 +17,7 @@
 package com.faizsiegeln.test;
 
 import com.im.njams.sdk.Njams;
+import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.common.Path;
 import com.im.njams.sdk.communication.CommunicationFactory;
 import com.im.njams.sdk.communication.cloud.CloudConstants;
@@ -26,7 +27,6 @@ import com.im.njams.sdk.logmessage.Job;
 import com.im.njams.sdk.model.ActivityModel;
 import com.im.njams.sdk.model.ProcessModel;
 import com.im.njams.sdk.settings.Settings;
-import java.util.Properties;
 
 /**
  * This is a simple sample client, which creates a simple process with three
@@ -45,8 +45,8 @@ public class SimpleEndlessClient {
 
         //Create communicationProperties, which specify how your client will communicate with the server
         Settings settings = getJmsProperties();
-        settings.put(Settings.PROPERTY_MAX_QUEUE_LENGTH, "2");
-        settings.put(Settings.PROPERTY_DISCARD_POLICY, "none");
+        settings.put(NjamsSettings.PROPERTY_MAX_QUEUE_LENGTH, "2");
+        settings.put(NjamsSettings.PROPERTY_DISCARD_POLICY, "none");
 
         //Instantiate client for first application
         Njams njams = new Njams(clientPath, "1.0.0", technology, settings);
@@ -87,10 +87,10 @@ public class SimpleEndlessClient {
         while (i++ < 1000) {
             //Create a job from a previously created ProcessModel
             Job job = process.createJob();
-            
+
             // Starts the job, i.e., sets the according status, job start date if not set before, and flags the job to begin flushing.
             job.start();
-            
+
             //Create the start activity from the previously creates startModel
             Activity start = job.createActivity(startModel).build();
             //add input and output data to the activity
@@ -130,7 +130,7 @@ public class SimpleEndlessClient {
         Settings communicationProperties = new Settings();
         communicationProperties.put(CommunicationFactory.COMMUNICATION, "JMS");
         communicationProperties.put(JmsConstants.INITIAL_CONTEXT_FACTORY,
-                "com.tibco.tibjms.naming.TibjmsInitialContextFactory");
+            "com.tibco.tibjms.naming.TibjmsInitialContextFactory");
         communicationProperties.put(JmsConstants.SECURITY_PRINCIPAL, "njams");
         communicationProperties.put(JmsConstants.SECURITY_CREDENTIALS, "njams");
         communicationProperties.put(JmsConstants.PROVIDER_URL, "tibjmsnaming://vslems01:7222");

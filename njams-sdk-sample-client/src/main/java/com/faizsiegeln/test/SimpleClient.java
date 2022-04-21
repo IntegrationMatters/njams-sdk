@@ -84,37 +84,40 @@ public class SimpleClient {
         // all resources to the server
         njams.start();
 
-        /**
-         * Running a process by creating a job
-         */
-        // Create a job from a previously created ProcessModel
-        Job job = process.createJob();
+        for (int i = 0; i < 100000; i++) {
+            /**
+             * Running a process by creating a job
+             */
+            // Create a job from a previously created ProcessModel
+            Job job = process.createJob();
 
-        // Starts the job, i.e., sets the according status, job start date if not set
-        // before, and flags the job to begin flushing.
-        job.start();
+            // Starts the job, i.e., sets the according status, job start date if not set
+            // before, and flags the job to begin flushing.
+            job.start();
 
-        // Create the start activity from the previously creates startModel
-        Activity start = job.createActivity(startModel).build();
-        // add input and output data to the activity
-        start.processInput("startInput");
-        start.processOutput("startOutput");
+            // Create the start activity from the previously creates startModel
+            Activity start = job.createActivity(startModel).build();
+            // add input and output data to the activity
+            start.processInput("startInput");
+            start.processOutput("startOutput");
 
-        // step to the next activity from the previous one.
-        Activity log = start.stepTo(logModel).build();
-        log.processInput("logInput");
-        log.processOutput("logOutput");
+            // step to the next activity from the previous one.
+            Activity log = start.stepTo(logModel).build();
+            log.processInput("logInput");
+            log.processOutput("logOutput");
 
-        // step to the end
-        Activity end = log.stepTo(endModel).build();
-        end.processInput("endInput");
-        end.processOutput("endOutput");
+            // step to the end
+            Activity end = log.stepTo(endModel).build();
+            end.processInput("endInput");
+            end.processOutput("endOutput");
 
-        // End the job, which will flush all previous steps into a logmessage wich will
-        // be send to the server
-        job.end();
+            // End the job, which will flush all previous steps into a logmessage wich will
+            // be send to the server
+            job.end();
+            Thread.sleep(10);
+        }
 
-        //Thread.sleep(30000);
+        Thread.sleep(240000);
 
         // If you are finished with processing or the application goes down, stop the
         // client...
@@ -141,7 +144,7 @@ public class SimpleClient {
             "com.tibco.tibjms.naming.TibjmsInitialContextFactory");
         communicationProperties.put(JmsConstants.SECURITY_PRINCIPAL, "njams");
         communicationProperties.put(JmsConstants.SECURITY_CREDENTIALS, "njams");
-        communicationProperties.put(JmsConstants.PROVIDER_URL, "tibjmsnaming://vslems01:7222");
+        communicationProperties.put(JmsConstants.PROVIDER_URL, "tibjmsnaming://os0155:7222");
         communicationProperties.put(JmsConstants.CONNECTION_FACTORY, "ConnectionFactory");
         communicationProperties.put(JmsConstants.USERNAME, "njams");
         communicationProperties.put(JmsConstants.PASSWORD, "njams");

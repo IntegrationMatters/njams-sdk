@@ -16,33 +16,13 @@
  */
 package com.im.njams.sdk.logmessage;
 
-import static java.util.Collections.unmodifiableCollection;
-
-import java.time.Duration;
-import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.ListIterator;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-import java.util.TreeMap;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicInteger;
-
-import org.slf4j.LoggerFactory;
-
 import com.faizsiegeln.njams.messageformat.v4.logmessage.ActivityStatus;
 import com.faizsiegeln.njams.messageformat.v4.logmessage.LogMessage;
 import com.faizsiegeln.njams.messageformat.v4.logmessage.PluginDataItem;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.LogLevel;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.LogMode;
 import com.im.njams.sdk.Njams;
+import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.common.DateTimeUtility;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.common.Path;
@@ -54,8 +34,17 @@ import com.im.njams.sdk.model.ActivityModel;
 import com.im.njams.sdk.model.GroupModel;
 import com.im.njams.sdk.model.ProcessModel;
 import com.im.njams.sdk.model.SubProcessActivityModel;
-import com.im.njams.sdk.settings.Settings;
 import com.im.njams.sdk.utils.StringUtils;
+import org.slf4j.LoggerFactory;
+
+import java.time.Duration;
+import java.time.LocalDateTime;
+import java.util.*;
+import java.util.Map.Entry;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
+
+import static java.util.Collections.unmodifiableCollection;
 
 /**
  * This represents an instance of a process/flow etc in engine to monitor.
@@ -75,7 +64,9 @@ public class JobImpl implements Job {
      */
     public static final String DEFAULT_FLUSH_INTERVAL = "30";
 
-    /** Maximum length for string values for size restricted fields. */
+    /**
+     * Maximum length for string values for size restricted fields.
+     */
     public static final int MAX_VALUE_LIMIT = 2000;
 
     private final ProcessModel processModel;
@@ -166,17 +157,23 @@ public class JobImpl implements Job {
     private final Object errorLock = new Object();
     private ActivityImpl errorActivity = null;
     private ErrorEvent errorEvent = null;
-    /** @deprecated Use {@link Settings#PROPERTY_LOG_ALL_ERRORS} instead */
+    /**
+     * @deprecated Use {@link com.im.njams.sdk.NjamsSettings#PROPERTY_LOG_ALL_ERRORS} instead
+     */
     @Deprecated
-    public static final String LOG_ALL_ERRORS = Settings.PROPERTY_LOG_ALL_ERRORS;
+    public static final String LOG_ALL_ERRORS = NjamsSettings.PROPERTY_LOG_ALL_ERRORS;
     private final boolean allErrors;
 
-    /** @deprecated Use {@link Settings#PROPERTY_TRUNCATE_LIMIT} instead */
+    /**
+     * @deprecated Use {@link com.im.njams.sdk.NjamsSettings#PROPERTY_TRUNCATE_LIMIT} instead
+     */
     @Deprecated
-    public static final String TRUNCATE_LIMIT = Settings.PROPERTY_TRUNCATE_LIMIT;
-    /** @deprecated Use {@link Settings#PROPERTY_TRUNCATE_ON_SUCCESS} instead */
+    public static final String TRUNCATE_LIMIT = NjamsSettings.PROPERTY_TRUNCATE_LIMIT;
+    /**
+     * @deprecated Use {@link com.im.njams.sdk.NjamsSettings#PROPERTY_TRUNCATE_ON_SUCCESS} instead
+     */
     @Deprecated
-    public static final String TRUNCATE_ON_SUCCESS = Settings.PROPERTY_TRUNCATE_ON_SUCCESS;
+    public static final String TRUNCATE_ON_SUCCESS = NjamsSettings.PROPERTY_TRUNCATE_ON_SUCCESS;
     private final int truncateLimit;
     private final boolean truncateOnSuccess;
     private boolean isTruncatingActivities = false;
@@ -191,8 +188,8 @@ public class JobImpl implements Job {
      * Create a job with a givenModelId, a jobId and a logId
      *
      * @param processModel for job to create
-     * @param jobId of Job to create
-     * @param logId of Job to create
+     * @param jobId        of Job to create
+     * @param logId        of Job to create
      */
     public JobImpl(ProcessModel processModel, String jobId, String logId) {
         this.jobId = jobId;
@@ -239,7 +236,7 @@ public class JobImpl implements Job {
         Configuration configuration = processModel.getNjams().getConfiguration();
         if (configuration == null) {
             LOG.error("Unable to set LogMode, LogLevel and Exclude for {}, configuration is null",
-                    processModel.getPath());
+                processModel.getPath());
             return;
         }
         logMode = configuration.getLogMode();
@@ -256,7 +253,7 @@ public class JobImpl implements Job {
             LOG.debug("Set Exclude for {} to {}", processModel.getPath(), exclude);
             recording = process.isRecording();
             LOG.debug("Set recording for {} to {} based on process settings {} and client setting {}",
-                    processModel.getPath(), recording, process.isRecording(), configuration.isRecording());
+                processModel.getPath(), recording, process.isRecording(), configuration.isRecording());
         }
         if (recording) {
             addAttribute("$njams_recorded", "true");
@@ -317,23 +314,23 @@ public class JobImpl implements Job {
                 if (activity.isStarter()) {
                     if (hasOrHadStartActivity) {
                         throw new NjamsSdkRuntimeException("A job must not have more than one start activity "
-                                + getJobId());
+                            + getJobId());
                     }
                     startActivity = activity;
                     hasOrHadStartActivity = true;
                 }
             } else {
                 throw new NjamsSdkRuntimeException(
-                        "The method start() must be called before activities can be added to the job!");
+                    "The method start() must be called before activities can be added to the job!");
             }
         }
     }
 
     private boolean hasEvent(final Activity activity) {
         return activity.getEventStatus() != null || StringUtils.isNotBlank(activity.getEventCode())
-                || StringUtils.isNotBlank(activity.getEventMessage())
-                || StringUtils.isNotBlank(activity.getEventPayload())
-                || StringUtils.isNotBlank(activity.getStackTrace());
+            || StringUtils.isNotBlank(activity.getEventMessage())
+            || StringUtils.isNotBlank(activity.getEventPayload())
+            || StringUtils.isNotBlank(activity.getStackTrace());
     }
 
     /**
@@ -382,7 +379,7 @@ public class JobImpl implements Job {
             while (iterator.hasPrevious()) {
                 Activity _activity = activities.get(iterator.previous());
                 if (_activity.getActivityStatus() == ActivityStatus.RUNNING
-                        && _activity.getModelId().equals(activityModelId)) {
+                    && _activity.getModelId().equals(activityModelId)) {
                     return _activity;
                 }
             }
@@ -404,7 +401,7 @@ public class JobImpl implements Job {
             while (iterator.hasPrevious()) {
                 Activity _activity = activities.get(iterator.previous());
                 if (_activity.getActivityStatus().ordinal() > ActivityStatus.RUNNING.ordinal()
-                        && _activity.getModelId().equals(activityModelId)) {
+                    && _activity.getModelId().equals(activityModelId)) {
                     return _activity;
                 }
             }
@@ -443,8 +440,9 @@ public class JobImpl implements Job {
 
     /**
      * This method is called by a periodic timer to flush this instance if it's due.
+     *
      * @param sentBefore Send if the last flush was before this timestamp
-     * @param flushSize Send if message size is greater than this size
+     * @param flushSize  Send if message size is greater than this size
      */
     public void timerFlush(LocalDateTime sentBefore, long flushSize) {
         if (!hasStarted()) {
@@ -454,9 +452,9 @@ public class JobImpl implements Job {
         // only send updates automatically, if a change has been
         // made to the job between individual send events.
         LOG.trace("Job {}: lastPush: {}, age: {}, size: {}", this, getLastFlush(),
-                Duration.between(getLastFlush(), DateTimeUtility.now()), getEstimatedSize());
+            Duration.between(getLastFlush(), DateTimeUtility.now()), getEstimatedSize());
         if ((getLastFlush().isBefore(sentBefore) || getEstimatedSize() > flushSize)
-                && (!attributes.isEmpty() || getEndTime() != null || hasUnsentActivity())) {
+            && (!attributes.isEmpty() || getEndTime() != null || hasUnsentActivity())) {
             LOG.debug("Flush by timer: {}", this);
             flush();
         }
@@ -497,10 +495,10 @@ public class JobImpl implements Job {
         synchronized (activities) {
             // Do not send if one of the conditions is true.
             if (isLogModeNone() || isLogModeExclusiveAndNotInstrumented() || isExcludedProcess()
-                    || isLogLevelHigherAsJobStateAndHasNoTraces()) {
+                || isLogLevelHigherAsJobStateAndHasNoTraces()) {
                 LOG.debug("Job not flushed: Engine Mode: {} // Job's log level: {}, "
                         + "configured level: {} // is excluded: {} // has traces: {}", logMode, getStatus(), logLevel,
-                        exclude, traces);
+                    exclude, traces);
                 //delete not running activities
                 removeNotRunningActivities();
                 calculateEstimatedSize();
@@ -545,7 +543,7 @@ public class JobImpl implements Job {
 
         if (LOG.isDebugEnabled()) {
             LOG.debug("hasStarted[{}] && maxSeverity[{}] < logLevel[{}] && !traces[{}] == {}", hasStarted(),
-                    maxSeverity.getValue(), logLevel.value(), traces, b);
+                maxSeverity.getValue(), logLevel.value(), traces, b);
         }
         return b;
     }
@@ -554,7 +552,6 @@ public class JobImpl implements Job {
      * This method creates the LogMessage that will be send to the server and
      * fills it with the attributes of the job.
      *
-     * @param job the job whose fields will be send
      * @return the created and with the job's information filled logMessage
      */
     private LogMessage createLogMessage() {
@@ -622,7 +619,8 @@ public class JobImpl implements Job {
 
     /**
      * Checks truncating limit and indicates whether or not the given activity shall be added to the next log message.
-     * @param activity The activity to test
+     *
+     * @param activity        The activity to test
      * @param finishedSuccess Whether this job has yet finished successfully.
      * @return <code>true</code> if the given activity shall be added, <code>false</code> if not.
      */
@@ -667,7 +665,7 @@ public class JobImpl implements Job {
     private void calculateEstimatedSize() {
         synchronized (activities) {
             estimatedSize =
-                    1000 + activities.values().stream().mapToLong(a -> ((ActivityImpl) a).getEstimatedSize()).sum();
+                1000 + activities.values().stream().mapToLong(a -> ((ActivityImpl) a).getEstimatedSize()).sum();
         }
     }
 
@@ -687,7 +685,7 @@ public class JobImpl implements Job {
 
     /**
      * @param normalCompletion Set to <code>true</code> if the engine reported the job to complete normally, or
-     * <code>false</code> if the engine reported that the job execution has failed.
+     *                         <code>false</code> if the engine reported that the job execution has failed.
      */
     @Override
     public void end(boolean normalCompletion) {
@@ -705,8 +703,8 @@ public class JobImpl implements Job {
             }
             //end all not ended activities
             activities.values().stream()
-                    .filter(a -> a.getActivityStatus() == null || a.getActivityStatus() == ActivityStatus.RUNNING)
-                    .forEach(a -> a.end());
+                .filter(a -> a.getActivityStatus() == null || a.getActivityStatus() == ActivityStatus.RUNNING)
+                .forEach(a -> a.end());
             if (getEndTime() == null) {
                 setEndTime(DateTimeUtility.now());
             }
@@ -749,8 +747,8 @@ public class JobImpl implements Job {
      * reported by the executing engine.
      *
      * @param errorActivity The activity instance on that the given error occurred.
-     * @param errorEvent Information about the error that occurred. This information is used for
-     * generating an according event if required.
+     * @param errorEvent    Information about the error that occurred. This information is used for
+     *                      generating an according event if required.
      */
     public void setActivityErrorEvent(Activity errorActivity, ErrorEvent errorEvent) {
         if (errorActivity != null && errorEvent != null) {
@@ -771,6 +769,7 @@ public class JobImpl implements Job {
 
     /**
      * Update the event information on the given activity, based on the given error information.
+     *
      * @param activity
      * @param errorEvent
      */
@@ -780,7 +779,7 @@ public class JobImpl implements Job {
         activity.setEventStatus(status);
         if (activity.getExecution() == null) {
             activity.setExecution(
-                    errorEvent.getEventTime() == null ? DateTimeUtility.now() : errorEvent.getEventTime());
+                errorEvent.getEventTime() == null ? DateTimeUtility.now() : errorEvent.getEventTime());
         }
         activity.setEventCode(errorEvent.getCode());
         activity.setEventMessage(errorEvent.getMessage());
@@ -792,6 +791,7 @@ public class JobImpl implements Job {
      * Set the logMessage status to success if the status is running. Then flush
      * it. If the job has been finished before or if the job hasn't been started
      * before it is finished, an NjamsSdkRuntimeException is thrown.
+     *
      * @deprecated Replaced by {@link #end(boolean)}
      */
     @Override
@@ -806,7 +806,7 @@ public class JobImpl implements Job {
      * lower than the status. It can only be set after the job has been started.
      *
      * @param status the new job status if it is not null and not
-     * JobStatus.CREATED.
+     *               JobStatus.CREATED.
      */
     @Override
     public void setStatus(JobStatus status) {
@@ -826,7 +826,7 @@ public class JobImpl implements Job {
                 LOG.trace("Setting the status of job with logId {} to {}", loggingLogId, loggingStatus);
             } else {
                 LOG.trace("The status of the job with logId {} hasn't been changed. The status is {}.", loggingLogId,
-                        loggingStatus);
+                    loggingStatus);
             }
         }
     }
@@ -1086,8 +1086,7 @@ public class JobImpl implements Job {
      * Marks that a job shall collect trace information for each activity
      * (including sub processes).
      *
-     * @param deepTrace
-     * <b>true</b> if deep trace shall be activated.
+     * @param deepTrace <b>true</b> if deep trace shall be activated.
      */
     @Override
     public void setDeepTrace(boolean deepTrace) {
@@ -1163,7 +1162,7 @@ public class JobImpl implements Job {
      * Sets a properties value. Properties will not be send within project
      * messages.
      *
-     * @param key name of the property
+     * @param key   name of the property
      * @param value value of the property
      */
     @Override
@@ -1211,7 +1210,7 @@ public class JobImpl implements Job {
 
             }
             LOG.trace("{} activities have been removed from {}. Still running: {}", loggingSum, getLogId(),
-                    activities.size());
+                activities.size());
         }
     }
 
@@ -1245,6 +1244,7 @@ public class JobImpl implements Job {
 
     /**
      * Returns <code>true</code> if the given tracepoint configuration is currently active.
+     *
      * @param tracepoint The tracepoint to check
      * @return <code>true</code> if the given tracepoint configuration is currently active.
      */
@@ -1254,13 +1254,14 @@ public class JobImpl implements Job {
             LocalDateTime now = DateTimeUtility.now();
             //timing is right, and iterations are less than configured
             return !now.isBefore(tracepoint.getStarttime()) && now.isBefore(tracepoint.getEndtime())
-                    && !tracepoint.iterationsExceeded();
+                && !tracepoint.iterationsExceeded();
         }
         return false;
     }
 
     /**
      * Returns the runtime configuration for a specific {@link ActivityModel} if any.
+     *
      * @param activityModel The model for that configuration shall be returned.
      * @return May be <code>null</code> if no configuration exists.
      */
@@ -1305,7 +1306,7 @@ public class JobImpl implements Job {
 
     @Override
     public void addPluginDataItem(
-            com.faizsiegeln.njams.messageformat.v4.logmessage.interfaces.IPluginDataItem pluginDataItem) {
+        com.faizsiegeln.njams.messageformat.v4.logmessage.interfaces.IPluginDataItem pluginDataItem) {
         pluginDataItems.add((PluginDataItem) pluginDataItem);
     }
 
@@ -1342,7 +1343,7 @@ public class JobImpl implements Job {
     /**
      * This method is used to put attributes in the attributes map.
      *
-     * @param key the key to set
+     * @param key   the key to set
      * @param value the value to set
      */
     @Override
@@ -1364,7 +1365,7 @@ public class JobImpl implements Job {
     public String toString() {
         StringBuilder sb = new StringBuilder();
         sb.append("JobImpl[process=").append(processModel.getName()).append("; logId=").append(getLogId())
-                .append("; jobId=").append(getJobId()).append(']');
+            .append("; jobId=").append(getJobId()).append(']');
         return sb.toString();
     }
 
@@ -1372,14 +1373,14 @@ public class JobImpl implements Job {
      * Returns the given input string and ensures that it is not longer than the given maximum length.
      *
      * @param fieldName Only used for logging
-     * @param value The input value that is returned but possibly truncated
+     * @param value     The input value that is returned but possibly truncated
      * @param maxLength Maximum length for the returned string
      * @return The given input but no longer than the given maximum length
      */
     public static String limitLength(String fieldName, String value, int maxLength) {
         if (value != null && value.length() > maxLength) {
             LOG.warn("Value of field '{}' exceeds max length of {} characters. Value will be truncated.", fieldName,
-                    maxLength);
+                maxLength);
             return value.substring(0, maxLength - 1);
         }
         return value;

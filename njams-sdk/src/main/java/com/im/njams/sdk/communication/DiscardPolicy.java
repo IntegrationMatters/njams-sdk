@@ -16,27 +16,34 @@
  */
 package com.im.njams.sdk.communication;
 
+import com.im.njams.sdk.NjamsSettings;
+
 import java.util.Arrays;
 
-import com.im.njams.sdk.settings.Settings;
-
 /**
- * Defines all implemented discard policies that can be set via {@link Settings#PROPERTY_DISCARD_POLICY}.
+ * Defines all implemented discard policies that can be set via {@link NjamsSettings#PROPERTY_DISCARD_POLICY}.
  *
  * @author cwinkler
- *
  */
 public enum DiscardPolicy {
     //none|onconnectionloss|discard
-    /** Default. Never discard. Processing blocks if messages cannot be sent. (property value=none)*/
+    /**
+     * Default. Never discard. Processing blocks if messages cannot be sent. (property value=none)
+     */
     NONE,
-    /** Discard only if connection is lost. In all other cases, processing blocks if messages cannot be sent.
-     * (property value=onconnectionloss)*/
+    /**
+     * Discard only if connection is lost. In all other cases, processing blocks if messages cannot be sent.
+     * (property value=onconnectionloss)
+     */
     ON_CONNECTION_LOSS("onconnectionloss"),
-    /** Discard messages always if they cannot be sent instantly. (property value=discard) */
+    /**
+     * Discard messages always if they cannot be sent instantly. (property value=discard)
+     */
     DISCARD;
 
-    /** The default policy, i.e. {@link DiscardPolicy#NONE}.  */
+    /**
+     * The default policy, i.e. {@link DiscardPolicy#NONE}.
+     */
     public static final DiscardPolicy DEFAULT = NONE;
 
     private final String value;
@@ -56,11 +63,12 @@ public enum DiscardPolicy {
 
     /**
      * Finds an instance by its string value.
+     *
      * @param value Value of the instance to find.
      * @return The instance according to given value or {@link #DEFAULT} if no matching instance was found.
      */
     public static DiscardPolicy byValue(String value) {
         return Arrays.stream(values()).filter(p -> p.value.equalsIgnoreCase(value) || p.name().equalsIgnoreCase(value))
-                .findAny().orElse(DEFAULT);
+            .findAny().orElse(DEFAULT);
     }
 }

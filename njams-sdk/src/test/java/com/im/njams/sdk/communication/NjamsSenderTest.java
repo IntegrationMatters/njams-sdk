@@ -21,6 +21,7 @@ import com.faizsiegeln.njams.messageformat.v4.logmessage.LogMessage;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.ProjectMessage;
 import com.faizsiegeln.njams.messageformat.v4.tracemessage.TraceMessage;
 import com.im.njams.sdk.AbstractTest;
+import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.settings.Settings;
 import org.junit.BeforeClass;
@@ -90,7 +91,7 @@ public class NjamsSenderTest extends AbstractTest {
     public void testIllegalArgumentMaxSenderThreads() {
         Settings settings = new Settings();
         settings.put(CommunicationFactory.COMMUNICATION, TestSender.NAME);
-        settings.put(Settings.PROPERTY_MAX_SENDER_THREADS, "-1");
+        settings.put(NjamsSettings.PROPERTY_MAX_SENDER_THREADS, "-1");
         NjamsSender njamsSender = new NjamsSender(settings);
     }
 
@@ -101,7 +102,7 @@ public class NjamsSenderTest extends AbstractTest {
     public void testIllegalArgument2SenderThreadIdleTime() {
         Settings settings = new Settings();
         settings.put(CommunicationFactory.COMMUNICATION, TestSender.NAME);
-        settings.put(Settings.PROPERTY_SENDER_THREAD_IDLE_TIME, "-1");
+        settings.put(NjamsSettings.PROPERTY_SENDER_THREAD_IDLE_TIME, "-1");
         NjamsSender njamsSender = new NjamsSender(settings);
     }
 
@@ -112,8 +113,8 @@ public class NjamsSenderTest extends AbstractTest {
     public void testIllegalArgumentMaxSenderThreadsLessThanMinSenderThreads() {
         Settings settings = new Settings();
         settings.put(CommunicationFactory.COMMUNICATION, TestSender.NAME);
-        settings.put(Settings.PROPERTY_MIN_SENDER_THREADS, "5");
-        settings.put(Settings.PROPERTY_MAX_SENDER_THREADS, "4");
+        settings.put(NjamsSettings.PROPERTY_MIN_SENDER_THREADS, "5");
+        settings.put(NjamsSettings.PROPERTY_MAX_SENDER_THREADS, "4");
         NjamsSender njamsSender = new NjamsSender(settings);
     }
 
@@ -124,7 +125,7 @@ public class NjamsSenderTest extends AbstractTest {
     public void testIllegalArgumentMinSenderThreads() {
         Settings settings = new Settings();
         settings.put(CommunicationFactory.COMMUNICATION, TestSender.NAME);
-        settings.put(Settings.PROPERTY_MIN_SENDER_THREADS, "-1");
+        settings.put(NjamsSettings.PROPERTY_MIN_SENDER_THREADS, "-1");
         NjamsSender njamsSender = new NjamsSender(settings);
     }
 
@@ -132,9 +133,9 @@ public class NjamsSenderTest extends AbstractTest {
     public void testConfiguredNjamsSender() {
         Settings settings = new Settings();
         settings.put(CommunicationFactory.COMMUNICATION, TestSender.NAME);
-        settings.put(Settings.PROPERTY_MIN_SENDER_THREADS, "3");
-        settings.put(Settings.PROPERTY_MAX_SENDER_THREADS, "10");
-        settings.put(Settings.PROPERTY_SENDER_THREAD_IDLE_TIME, "5000");
+        settings.put(NjamsSettings.PROPERTY_MIN_SENDER_THREADS, "3");
+        settings.put(NjamsSettings.PROPERTY_MAX_SENDER_THREADS, "10");
+        settings.put(NjamsSettings.PROPERTY_SENDER_THREAD_IDLE_TIME, "5000");
 
         NjamsSender sender = new NjamsSender(settings);
         ThreadPoolExecutor executor = sender.getExecutor();

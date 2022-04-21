@@ -17,6 +17,7 @@
 package com.im.njams.sdk.communication;
 
 import com.im.njams.sdk.Njams;
+import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.common.Path;
 import com.im.njams.sdk.settings.Settings;
 import org.slf4j.Logger;
@@ -52,7 +53,7 @@ public class CommunicationFactory {
      */
     public CommunicationFactory(Settings settings) {
         this(settings, new CommunicationServiceLoader<>(Receiver.class),
-                new CommunicationServiceLoader<>(AbstractSender.class));
+            new CommunicationServiceLoader<>(AbstractSender.class));
     }
 
     CommunicationFactory(Settings settings, CommunicationServiceLoader<Receiver> receivers,
@@ -73,7 +74,7 @@ public class CommunicationFactory {
         if (settings.containsKey(COMMUNICATION)) {
             final String requiredReceiverName = settings.getProperty(COMMUNICATION);
             final boolean shared =
-                    "true".equalsIgnoreCase(settings.getProperty(Settings.PROPERTY_SHARED_COMMUNICATIONS));
+                "true".equalsIgnoreCase(settings.getProperty(NjamsSettings.PROPERTY_SHARED_COMMUNICATIONS));
             Class<? extends Receiver> type = findReceiverType(requiredReceiverName, shared);
             if (type != null) {
                 final Receiver newInstance = createReceiver(type, njams.getClientPath(), shared, requiredReceiverName);
@@ -82,11 +83,11 @@ public class CommunicationFactory {
                 return newInstance;
             } else {
                 String available =
-                        StreamSupport.stream(Spliterators.spliteratorUnknownSize(receivers.iterator(), Spliterator.ORDERED),
-                                false).map(cp -> cp.getName()).collect(Collectors.joining(", "));
+                    StreamSupport.stream(Spliterators.spliteratorUnknownSize(receivers.iterator(), Spliterator.ORDERED),
+                        false).map(cp -> cp.getName()).collect(Collectors.joining(", "));
                 throw new UnsupportedOperationException(
-                        "Unable to find receiver implementation for " + requiredReceiverName + ", available are: "
-                                + available);
+                    "Unable to find receiver implementation for " + requiredReceiverName + ", available are: "
+                        + available);
             }
         } else {
             throw new UnsupportedOperationException("Unable to find " + COMMUNICATION + " in settings properties");
@@ -113,7 +114,7 @@ public class CommunicationFactory {
         }
         if (sharable && found != null) {
             LOG.info("The requested communication type '{}' does not support sharing the receiver instance. "
-                    + "Creating a dedicated instance instead.", found.getName());
+                + "Creating a dedicated instance instead.", found.getName());
         }
         return found == null ? null : found.getClass();
     }
@@ -170,17 +171,17 @@ public class CommunicationFactory {
                         return newInstance;
                     } catch (Exception e) {
                         throw new UnsupportedOperationException(
-                                "Unable to create new " + requiredSenderName + " instance", e);
+                            "Unable to create new " + requiredSenderName + " instance", e);
                     }
                 }
             }
             String available = StreamSupport
-                    .stream(Spliterators.spliteratorUnknownSize(
-                            ServiceLoader.load(AbstractSender.class).iterator(),
-                            Spliterator.ORDERED), false)
-                    .map(cp -> cp.getName()).collect(Collectors.joining(", "));
+                .stream(Spliterators.spliteratorUnknownSize(
+                    ServiceLoader.load(AbstractSender.class).iterator(),
+                    Spliterator.ORDERED), false)
+                .map(cp -> cp.getName()).collect(Collectors.joining(", "));
             throw new UnsupportedOperationException(
-                    "Unable to find sender implementation for " + requiredSenderName + ", available are: " + available);
+                "Unable to find sender implementation for " + requiredSenderName + ", available are: " + available);
         } else {
             throw new UnsupportedOperationException("Unable to find " + COMMUNICATION + " in settings properties");
         }
