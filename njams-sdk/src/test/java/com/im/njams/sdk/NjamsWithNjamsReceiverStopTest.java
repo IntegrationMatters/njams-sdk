@@ -1,12 +1,8 @@
 package com.im.njams.sdk;
 
-import com.im.njams.sdk.common.Path;
 import com.im.njams.sdk.njams.mock.MockingNjamsFactory;
 import com.im.njams.sdk.njams.mock.NjamsReceiverMock;
-import com.im.njams.sdk.settings.Settings;
-import org.junit.AfterClass;
 import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class NjamsWithNjamsReceiverStopTest {
@@ -14,19 +10,9 @@ public class NjamsWithNjamsReceiverStopTest {
     private Njams njams;
     private NjamsReceiverMock njamsReceiverMock;
 
-    @BeforeClass
-    public static void setNjamsFactory(){
-        Njams.setNjamsFactory(new MockingNjamsFactory());
-    }
-
-    @AfterClass
-    public static void cleanUp(){
-        Njams.setNjamsFactory(null);
-    }
-
     @Before
     public void setUp() {
-        njams = new Njams(new Path(), "SDK", new Settings());
+        njams = new Njams(new MockingNjamsFactory());
 
         njamsReceiverMock = new NjamsReceiverMock();
         njamsReceiverMock = (NjamsReceiverMock) njams.getNjamsReceiver();

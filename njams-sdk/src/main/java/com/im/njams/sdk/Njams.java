@@ -50,7 +50,6 @@ import static com.im.njams.sdk.njams.NjamsState.NOT_STARTED_EXCEPTION_MESSAGE;
 public class Njams{
 
     private static final org.slf4j.Logger LOG = LoggerFactory.getLogger(Njams.class);
-    private static NjamsFactory GLOBAL_FACTORY;
 
     private final NjamsSettings njamsSettings;
     private final NjamsArgos njamsArgos;
@@ -75,7 +74,6 @@ public class Njams{
     public Njams(Path clientPath, String category, Settings settings) {
         this(clientPath, null, category, settings);
     }
-
     /**
      * Create a nJAMS instance. It's initializing everything that is needed to communicate with the nJAMS Server
      * or the Argos agent and to produce appropriate messages.
@@ -86,8 +84,15 @@ public class Njams{
      * @param settings needed for client initialization of communication, sending intervals and sizes, etc.
      */
     public Njams(Path clientPath, String defaultClientVersion, String category, Settings settings) {
-        NjamsFactory njamsFactory = getNjamsFactory(clientPath, defaultClientVersion, category, settings);
+        this(new NjamsFactory(clientPath, category, settings, defaultClientVersion));
+    }
 
+    /**
+     * Creates a nJAMS instance that uses the given factory to create all its necessary tools.
+     *
+     * @param njamsFactory the factory that is used to create all necessary tools
+     */
+    Njams(NjamsFactory njamsFactory){
         njamsSettings = njamsFactory.getNjamsSettings();
         njamsMetadata = njamsFactory.getNjamsMetadata();
         njamsArgos = njamsFactory.getNjamsArgos();
@@ -100,19 +105,6 @@ public class Njams{
         njamsReceiver = njamsFactory.getNjamsReceiver();
 
         printStartupBanner();
-    }
-
-    private NjamsFactory getNjamsFactory(Path clientPath, String defaultClientVersion, String category,
-        Settings settings) {
-        if(GLOBAL_FACTORY != null){
-            return GLOBAL_FACTORY.createNewInstanceWith(clientPath, category, settings, defaultClientVersion);
-        }else{
-            return new DefaultNjamsFactory(clientPath, category, settings, defaultClientVersion);
-        }
-    }
-
-    static void setNjamsFactory(NjamsFactory njamsFactory) {
-        Njams.GLOBAL_FACTORY = njamsFactory;
     }
 
     private void printStartupBanner() {

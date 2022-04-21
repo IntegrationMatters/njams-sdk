@@ -18,26 +18,14 @@
 
 package com.im.njams.sdk.njams.mock;
 
-import com.im.njams.sdk.DefaultNjamsFactory;
+import com.im.njams.sdk.NjamsFactory;
 import com.im.njams.sdk.common.Path;
 import com.im.njams.sdk.settings.Settings;
 
-public class MockingNjamsFactory extends DefaultNjamsFactory {
+public class MockingNjamsFactory extends NjamsFactory {
 
-    //This is only needed for easy instantiation. Njams itself uses the createNewInstanceWith method and gets
-    //an instance with correct arguments.
     public MockingNjamsFactory() {
-        super(new Path(), "MOCKING", new Settings(), null);
-    }
-
-    private MockingNjamsFactory(Path clientPath, String category, Settings settings, String defaultClientVersion) {
-        super(clientPath, category, settings, defaultClientVersion);
-    }
-
-    @Override
-    public MockingNjamsFactory createNewInstanceWith(Path clientPath, String category, Settings settings,
-        String defaultClientVersion) {
-        return new MockingNjamsFactory(clientPath, category, settings, defaultClientVersion);
+        super(new Path(), "SDK", new Settings(), null);
     }
 
     @Override
