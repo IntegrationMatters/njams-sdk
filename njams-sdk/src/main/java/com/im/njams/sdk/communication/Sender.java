@@ -16,11 +16,10 @@
  */
 package com.im.njams.sdk.communication;
 
-import java.io.Closeable;
-import java.util.Properties;
-
 import com.faizsiegeln.njams.messageformat.v4.common.CommonMessage;
 import com.im.njams.sdk.utils.ClasspathValidator;
+
+import java.util.Properties;
 
 /**
  * This interface must be implemented to create a nJAMS Sender Inplementations
@@ -28,7 +27,7 @@ import com.im.njams.sdk.utils.ClasspathValidator;
  *
  * @author bwand
  */
-public interface Sender extends Closeable, ClasspathValidator {
+public interface Sender extends ClasspathValidator {
 
     /**
      * Property key for header properties which will specify the messageVersion
@@ -79,7 +78,6 @@ public interface Sender extends Closeable, ClasspathValidator {
     /**
      * Close this Sender.
      */
-    @Override
     public void close();
 
     public String getName();
