@@ -1,8 +1,8 @@
 package com.im.sdk.njams.sample;
 
 import com.im.njams.sdk.Njams;
+import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.common.Path;
-import com.im.njams.sdk.communication.CommunicationFactory;
 import com.im.njams.sdk.communication.jms.JmsConstants;
 import com.im.njams.sdk.model.ActivityModel;
 import com.im.njams.sdk.model.ProcessModel;
@@ -78,22 +78,22 @@ public class NjamsStartup {
 
     private Settings getFromFileWithClassloader(String filename) {
         Properties props = new Properties();
-        try (InputStream is = this.getClass().getResourceAsStream("/" + filename)){
+        try (InputStream is = this.getClass().getResourceAsStream("/" + filename)) {
             props.load(is);
         } catch (IOException e) {
             LOG.error(e.getMessage());
         }
 
         Settings settings = new Settings();
-        props.forEach((k, v) -> settings.put((String)k, (String)v));
+        props.forEach((k, v) -> settings.put((String) k, (String) v));
         return settings;
     }
 
     private Settings getEmsJmsProperties() {
         Settings communicationProperties = new Settings();
-        communicationProperties.put(CommunicationFactory.COMMUNICATION, "JMS");
+        communicationProperties.put(NjamsSettings.PROPERTY_COMMUNICATION, "JMS");
         communicationProperties.put(JmsConstants.INITIAL_CONTEXT_FACTORY,
-                "com.tibco.tibjms.naming.TibjmsInitialContextFactory");
+            "com.tibco.tibjms.naming.TibjmsInitialContextFactory");
         communicationProperties.put(JmsConstants.SECURITY_PRINCIPAL, "njams");
         communicationProperties.put(JmsConstants.SECURITY_CREDENTIALS, "njams");
         communicationProperties.put(JmsConstants.PROVIDER_URL, "tibjmsnaming://vslems01:7222");
@@ -109,9 +109,9 @@ public class NjamsStartup {
 
     private Settings getActiveMqJmsProperties() {
         Settings communicationProperties = new Settings();
-        communicationProperties.put(CommunicationFactory.COMMUNICATION, "JMS");
+        communicationProperties.put(NjamsSettings.PROPERTY_COMMUNICATION, "JMS");
         communicationProperties.put(JmsConstants.INITIAL_CONTEXT_FACTORY,
-                "org.apache.activemq.jndi.ActiveMQInitialContextFactory");
+            "org.apache.activemq.jndi.ActiveMQInitialContextFactory");
         communicationProperties.put(JmsConstants.SECURITY_PRINCIPAL, "admin");
         communicationProperties.put(JmsConstants.SECURITY_CREDENTIALS, "admin");
         communicationProperties.put(JmsConstants.PROVIDER_URL, "tcp://localhost:61616");

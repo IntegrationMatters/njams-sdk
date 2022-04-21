@@ -17,8 +17,8 @@
 package com.faizsiegeln.test;
 
 import com.im.njams.sdk.Njams;
+import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.common.Path;
-import com.im.njams.sdk.communication.CommunicationFactory;
 import com.im.njams.sdk.communication.cloud.CloudConstants;
 import com.im.njams.sdk.communication.jms.JmsConstants;
 import com.im.njams.sdk.communication.kafka.KafkaConstants;
@@ -128,7 +128,7 @@ public class SimpleClient {
 
     private static Settings getCloudProperties() {
         Settings communicationProperties = new Settings();
-        communicationProperties.put(CommunicationFactory.COMMUNICATION, CloudConstants.NAME);
+        communicationProperties.put(NjamsSettings.PROPERTY_COMMUNICATION, CloudConstants.NAME);
         communicationProperties.put(CloudConstants.ENDPOINT, "<cloud url>");
         communicationProperties.put(CloudConstants.APIKEY, "<cloud apikey>");
         communicationProperties.put(CloudConstants.CLIENT_INSTANCEID, "<cloud client instance>");
@@ -139,7 +139,7 @@ public class SimpleClient {
 
     private static Settings getJmsProperties() {
         Settings communicationProperties = new Settings();
-        communicationProperties.put(CommunicationFactory.COMMUNICATION, "JMS");
+        communicationProperties.put(NjamsSettings.PROPERTY_COMMUNICATION, "JMS");
         communicationProperties.put(JmsConstants.INITIAL_CONTEXT_FACTORY,
             "com.tibco.tibjms.naming.TibjmsInitialContextFactory");
         communicationProperties.put(JmsConstants.SECURITY_PRINCIPAL, "njams");
@@ -159,7 +159,7 @@ public class SimpleClient {
         Settings communicationProperties = new Settings();
 
         // nJAMS properties
-        communicationProperties.put(CommunicationFactory.COMMUNICATION, "Kafka");
+        communicationProperties.put(NjamsSettings.PROPERTY_COMMUNICATION, "Kafka");
         communicationProperties.put(KafkaConstants.REPLY_PRODUCER_IDLE_TIME, "300000"); // in ms
         communicationProperties.put(KafkaConstants.TOPIC_PREFIX, "njams");
 
@@ -206,7 +206,7 @@ public class SimpleClient {
 
     private static Settings getHttpProperties() {
         Settings communicationProperties = new Settings();
-        communicationProperties.put(CommunicationFactory.COMMUNICATION, "HTTPS");
+        communicationProperties.put(NjamsSettings.PROPERTY_COMMUNICATION, "HTTPS");
         communicationProperties.put("njams.sdk.communication.http.base.url", "https://os0100.integrationmatters.com:8443/njams/");
         communicationProperties.put("njams.sdk.communication.http.dataprovider.prefix", "bw");
         communicationProperties.put("njams.sdk.communication.http.ssl.certificate.file", "/Users/bwand/Development/SSLKeystore/cert.wildcard.integrationmatters.com/ca-root-integrationmatters.com.pem");

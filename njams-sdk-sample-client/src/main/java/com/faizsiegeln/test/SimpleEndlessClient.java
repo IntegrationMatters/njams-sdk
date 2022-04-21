@@ -19,7 +19,6 @@ package com.faizsiegeln.test;
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.common.Path;
-import com.im.njams.sdk.communication.CommunicationFactory;
 import com.im.njams.sdk.communication.cloud.CloudConstants;
 import com.im.njams.sdk.communication.jms.JmsConstants;
 import com.im.njams.sdk.logmessage.Activity;
@@ -117,7 +116,7 @@ public class SimpleEndlessClient {
 
     private static Settings getCloudProperties() {
         Settings communicationProperties = new Settings();
-        communicationProperties.put(CommunicationFactory.COMMUNICATION, CloudConstants.NAME);
+        communicationProperties.put(NjamsSettings.PROPERTY_COMMUNICATION, CloudConstants.NAME);
         communicationProperties.put(CloudConstants.ENDPOINT, "<cloud url>");
         communicationProperties.put(CloudConstants.APIKEY, "<cloud apikey>");
         communicationProperties.put(CloudConstants.CLIENT_INSTANCEID, "<cloud client instance>");
@@ -128,7 +127,7 @@ public class SimpleEndlessClient {
 
     private static Settings getJmsProperties() {
         Settings communicationProperties = new Settings();
-        communicationProperties.put(CommunicationFactory.COMMUNICATION, "JMS");
+        communicationProperties.put(NjamsSettings.PROPERTY_COMMUNICATION, "JMS");
         communicationProperties.put(JmsConstants.INITIAL_CONTEXT_FACTORY,
             "com.tibco.tibjms.naming.TibjmsInitialContextFactory");
         communicationProperties.put(JmsConstants.SECURITY_PRINCIPAL, "njams");

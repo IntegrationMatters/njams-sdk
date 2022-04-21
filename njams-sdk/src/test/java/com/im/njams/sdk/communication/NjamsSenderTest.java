@@ -49,7 +49,7 @@ public class NjamsSenderTest extends AbstractTest {
     @BeforeClass
     public static void createSettings() {
         SETTINGS = new Settings();
-        SETTINGS.put(CommunicationFactory.COMMUNICATION, TestSender.NAME);
+        SETTINGS.put(NjamsSettings.PROPERTY_COMMUNICATION, TestSender.NAME);
     }
 
     public NjamsSenderTest() {
@@ -90,7 +90,7 @@ public class NjamsSenderTest extends AbstractTest {
     @Test(expected = IllegalArgumentException.class)
     public void testIllegalArgumentMaxSenderThreads() {
         Settings settings = new Settings();
-        settings.put(CommunicationFactory.COMMUNICATION, TestSender.NAME);
+        settings.put(NjamsSettings.PROPERTY_COMMUNICATION, TestSender.NAME);
         settings.put(NjamsSettings.PROPERTY_MAX_SENDER_THREADS, "-1");
         NjamsSender njamsSender = new NjamsSender(settings);
     }
@@ -101,7 +101,7 @@ public class NjamsSenderTest extends AbstractTest {
     @Test(expected = IllegalArgumentException.class)
     public void testIllegalArgument2SenderThreadIdleTime() {
         Settings settings = new Settings();
-        settings.put(CommunicationFactory.COMMUNICATION, TestSender.NAME);
+        settings.put(NjamsSettings.PROPERTY_COMMUNICATION, TestSender.NAME);
         settings.put(NjamsSettings.PROPERTY_SENDER_THREAD_IDLE_TIME, "-1");
         NjamsSender njamsSender = new NjamsSender(settings);
     }
@@ -112,7 +112,7 @@ public class NjamsSenderTest extends AbstractTest {
     @Test(expected = IllegalArgumentException.class)
     public void testIllegalArgumentMaxSenderThreadsLessThanMinSenderThreads() {
         Settings settings = new Settings();
-        settings.put(CommunicationFactory.COMMUNICATION, TestSender.NAME);
+        settings.put(NjamsSettings.PROPERTY_COMMUNICATION, TestSender.NAME);
         settings.put(NjamsSettings.PROPERTY_MIN_SENDER_THREADS, "5");
         settings.put(NjamsSettings.PROPERTY_MAX_SENDER_THREADS, "4");
         NjamsSender njamsSender = new NjamsSender(settings);
@@ -124,7 +124,7 @@ public class NjamsSenderTest extends AbstractTest {
     @Test(expected = IllegalArgumentException.class)
     public void testIllegalArgumentMinSenderThreads() {
         Settings settings = new Settings();
-        settings.put(CommunicationFactory.COMMUNICATION, TestSender.NAME);
+        settings.put(NjamsSettings.PROPERTY_COMMUNICATION, TestSender.NAME);
         settings.put(NjamsSettings.PROPERTY_MIN_SENDER_THREADS, "-1");
         NjamsSender njamsSender = new NjamsSender(settings);
     }
@@ -132,7 +132,7 @@ public class NjamsSenderTest extends AbstractTest {
     @Test
     public void testConfiguredNjamsSender() {
         Settings settings = new Settings();
-        settings.put(CommunicationFactory.COMMUNICATION, TestSender.NAME);
+        settings.put(NjamsSettings.PROPERTY_COMMUNICATION, TestSender.NAME);
         settings.put(NjamsSettings.PROPERTY_MIN_SENDER_THREADS, "3");
         settings.put(NjamsSettings.PROPERTY_MAX_SENDER_THREADS, "10");
         settings.put(NjamsSettings.PROPERTY_SENDER_THREAD_IDLE_TIME, "5000");

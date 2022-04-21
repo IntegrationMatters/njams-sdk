@@ -1,3 +1,26 @@
+/*
+ * Copyright (c) 2022 Faiz & Siegeln Software GmbH
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
+ * documentation files (the "Software"),
+ * to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge,
+ * publish, distribute, sublicense,
+ * and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to
+ * the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all copies or substantial portions of
+ * the Software.
+ *
+ * The Software shall be used for Good, not Evil.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
+ * THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE
+ *  FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+ * SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
+ */
 package com.im.njams.sdk;
 
 /**
@@ -5,6 +28,41 @@ package com.im.njams.sdk;
  */
 public class NjamsSettings {
 
+    //     _____ _____  _  __
+    //    / ____|  __ \| |/ /
+    //   | (___ | |  | | ' /
+    //    \___ \| |  | |  <
+    //    ____) | |__| | . \
+    //   |_____/|_____/|_|\_\
+    //
+    /**
+     * Property key for communication properties which specifies which
+     * communication implementation will be used
+     */
+    public static final String PROPERTY_COMMUNICATION = "njams.sdk.communication";
+
+    /**
+     * Setting for enabling the logAllErrors feature.
+     */
+    public static final String PROPERTY_LOG_ALL_ERRORS = "njams.sdk.logAllErrors";
+
+    /**
+     * Setting for truncate limit (nJAMS strip-mode). Number of activities/events before messages are truncated.
+     */
+    public static final String PROPERTY_TRUNCATE_LIMIT = "njams.sdk.truncateActivitiesLimit";
+
+    /**
+     * Setting for truncating successful jobs, provided that they were processed as single message.
+     */
+    public static final String PROPERTY_TRUNCATE_ON_SUCCESS = "njams.sdk.truncateOnSuccess";
+
+
+    //     _____ _ _            _      _____ _____  _  __
+    //    / ____| (_)          | |    / ____|  __ \| |/ /
+    //   | |    | |_  ___ _ __ | |_  | (___ | |  | | ' /
+    //   | |    | | |/ _ \ '_ \| __|  \___ \| |  | |  <
+    //   | |____| | |  __/ | | | |_   ____) | |__| | . \
+    //    \_____|_|_|\___|_| |_|\__| |_____/|_____/|_|\_\
     /**
      * This property is a flush criteria with a default of 5mb.
      * If the flush size of the @{@link com.faizsiegeln.njams.messageformat.v4.logmessage.LogMessage}
@@ -77,19 +135,29 @@ public class NjamsSettings {
      */
     public static final String PROPERTY_DISABLE_SECURE_PROCESSING = "njams.client.sdk.disable.secure.processing";
 
+
+    //
+    //       /\
+    //      /  \   _ __ __ _  ___  ___
+    //     / /\ \ | '__/ _` |/ _ \/ __|
+    //    / ____ \| | | (_| | (_) \__ \
+    //   /_/    \_\_|  \__, |\___/|___/
+    //                  __/ |
+    //                 |___/
     /**
-     * Setting for enabling the logAllErrors feature.
+     * Name of the property flag to enable or disable collecting Argos Metrics.
      */
-    public static final String PROPERTY_LOG_ALL_ERRORS = "njams.sdk.logAllErrors";
+    public static final String NJAMS_SUBAGENT_ENABLED = "njams.sdk.subagent.enabled";
 
     /**
-     * Setting for truncate limit (nJAMS strip-mode). Number of activities/events before messages are truncated.
+     * Name of the property port where the nJAMS Agent runs and ArgosSender will send metrics
      */
-    public static final String PROPERTY_TRUNCATE_LIMIT = "njams.sdk.truncateActivitiesLimit";
+    public static final String NJAMS_SUBAGENT_PORT = "njams.sdk.subagent.port";
 
     /**
-     * Setting for truncating successful jobs, provided that they were processed as single message.
+     * Name of the property host where the nJAMS Agent runs and ArgosSender will send metrics
      */
-    public static final String PROPERTY_TRUNCATE_ON_SUCCESS = "njams.sdk.truncateOnSuccess";
-    
+    public static final String NJAMS_SUBAGENT_HOST = "njams.sdk.subagent.host";
+
+
 }

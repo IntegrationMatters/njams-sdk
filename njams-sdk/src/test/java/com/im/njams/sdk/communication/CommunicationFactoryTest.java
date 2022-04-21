@@ -1,6 +1,7 @@
 package com.im.njams.sdk.communication;
 
 import com.im.njams.sdk.Njams;
+import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.common.Path;
 import com.im.njams.sdk.settings.Settings;
 import org.junit.Before;
@@ -36,7 +37,7 @@ public class CommunicationFactoryTest {
                                                             CommunicationServiceLoader<AbstractSender> senders) {
 
         Settings settings = new Settings();
-        settings.put(CommunicationFactory.COMMUNICATION, TestReceiver.NAME);
+        settings.put(NjamsSettings.PROPERTY_COMMUNICATION, TestReceiver.NAME);
 
         return new CommunicationFactory(settings, receivers, senders);
     }

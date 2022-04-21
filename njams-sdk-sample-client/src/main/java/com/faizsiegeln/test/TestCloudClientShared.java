@@ -19,7 +19,6 @@ package com.faizsiegeln.test;
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.common.Path;
-import com.im.njams.sdk.communication.CommunicationFactory;
 import com.im.njams.sdk.communication.cloud.CloudConstants;
 import com.im.njams.sdk.logmessage.Activity;
 import com.im.njams.sdk.logmessage.Job;
@@ -150,7 +149,7 @@ public class TestCloudClientShared {
 
     public static Settings getCloudProperties() {
         Settings communicationProperties = new Settings();
-        communicationProperties.put(CommunicationFactory.COMMUNICATION, CloudConstants.NAME);
+        communicationProperties.put(NjamsSettings.PROPERTY_COMMUNICATION, CloudConstants.NAME);
         communicationProperties.put(CloudConstants.ENDPOINT, "ingest.integrationmatters.com");
         communicationProperties.put(CloudConstants.APIKEY,
             "/tmp/njams_hcpqjtw_certificate/661ab6fea1-api.key");

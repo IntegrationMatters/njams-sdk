@@ -1,14 +1,14 @@
 /*
  * Copyright (c) 2019 Faiz & Siegeln Software GmbH
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"),
  * to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
  * and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
- * 
+ *
  * The Software shall be used for Good, not Evil.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
@@ -20,8 +20,8 @@ import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
 import com.faizsiegeln.njams.messageformat.v4.command.Request;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
-import com.im.njams.sdk.communication.CommunicationFactory;
 import com.im.njams.sdk.communication.ConnectionStatus;
 import org.junit.After;
 import org.junit.Before;
@@ -57,9 +57,9 @@ public class JmsReceiverTest {
     }
 
     private static void fillProps(Properties props) {
-        props.put(CommunicationFactory.COMMUNICATION, "JMS");
+        props.put(NjamsSettings.PROPERTY_COMMUNICATION, "JMS");
         props.put(JmsConstants.INITIAL_CONTEXT_FACTORY,
-                "com.tibco.tibjms.naming.TibjmsInitialContextFactory");
+            "com.tibco.tibjms.naming.TibjmsInitialContextFactory");
         props.put(JmsConstants.SECURITY_PRINCIPAL, "njams");
         props.put(JmsConstants.SECURITY_CREDENTIALS, "njams");
         props.put(JmsConstants.PROVIDER_URL, "tibjmsnaming://blablub:7222");
@@ -80,6 +80,7 @@ public class JmsReceiverTest {
     }
 
     //getName tests
+
     /**
      * This method tests if getName() returns the
      * JmsConstants.COMMUNICATION_NAME.
@@ -90,6 +91,7 @@ public class JmsReceiverTest {
     }
 
     //init tests
+
     /**
      * This method tests if the init works with normal Properties, but without
      * JmsConstants.COMMAND_DESTINATION set.
@@ -102,8 +104,9 @@ public class JmsReceiverTest {
         JmsReceiverMock.testAfterInit(impl, FILLEDPROPS);
     }
 
-    //Delete this when SDK-111 has been resolved and uncomment the method with 
-    //the identical name. 
+    //Delete this when SDK-111 has been resolved and uncomment the method with
+    //the identical name.
+
     /**
      * This method tests if the init works with empty Properties.
      */
@@ -115,7 +118,7 @@ public class JmsReceiverTest {
         JmsReceiverMock.testAfterInit(impl, EMPTYPROPS);
     }
 
-    //Uncomment this when SDK-111 has been resolved and delete the method with 
+    //Uncomment this when SDK-111 has been resolved and delete the method with
     //the identical name. Maybe it is not expected NjamsSdkRuntimeException,
     //but an other exception.
     /**
@@ -123,8 +126,9 @@ public class JmsReceiverTest {
      * testInitWithEmptyProps(){ this.testBeforeInit(impl);
      * impl.init(EMPTYPROPS); }
      */
-    //Delete this when SDK-111 has been resolved and uncomment the method with 
-    //the identical name. 
+    //Delete this when SDK-111 has been resolved and uncomment the method with
+    //the identical name.
+
     /**
      * This method tests if the init works with null Properties. It should throw
      * a NullPointerException.
@@ -136,7 +140,7 @@ public class JmsReceiverTest {
         impl.init(null);
     }
 
-    //Uncomment this when SDK-111 has been resolved and delete the method with 
+    //Uncomment this when SDK-111 has been resolved and delete the method with
     //the identical name. Maybe it is not expected NjamsSdkRuntimeException,
     //but an other exception.
     /**
@@ -192,6 +196,7 @@ public class JmsReceiverTest {
     }
 
     //connect tests
+
     /**
      * This method checks if the method connect() throws an
      * NjamsSdkRuntimeException if the method init wasn't invoked beforehand.
@@ -214,9 +219,9 @@ public class JmsReceiverTest {
     @Test(expected = NjamsSdkRuntimeException.class)
     public void testConnectWithPropertiesWithRealDestinationButWithoutUsername() {
         Properties props = new Properties();
-        props.put(CommunicationFactory.COMMUNICATION, "JMS");
+        props.put(NjamsSettings.PROPERTY_COMMUNICATION, "JMS");
         props.put(JmsConstants.INITIAL_CONTEXT_FACTORY,
-                "com.tibco.tibjms.naming.TibjmsInitialContextFactory");
+            "com.tibco.tibjms.naming.TibjmsInitialContextFactory");
         props.put(JmsConstants.SECURITY_PRINCIPAL, "njams");
         props.put(JmsConstants.SECURITY_CREDENTIALS, "njams");
         props.put(JmsConstants.PROVIDER_URL, "tibjmsnaming://blablub:7222");
@@ -243,6 +248,7 @@ public class JmsReceiverTest {
     }
 
     //stop tests
+
     /**
      * This method tests if the stop method works while it is disconnected.
      */
@@ -281,6 +287,7 @@ public class JmsReceiverTest {
     }
 
     //onMessageTests
+
     /**
      * This method tests if onMessage ignores messages whose content is not
      * "json".
@@ -328,7 +335,7 @@ public class JmsReceiverTest {
      * established. (May occur if a message came in and the connection is lost
      * afterwards).
      *
-     * @throws JMSException isn't thrown
+     * @throws JMSException                                       isn't thrown
      * @throws com.fasterxml.jackson.core.JsonProcessingException isn't thrown
      */
     @Test
@@ -350,8 +357,10 @@ public class JmsReceiverTest {
     }
 
     //onExceptionTests
+
     /**
      * This method tests if the onException method triggers a reconnect.
+     *
      * @throws java.lang.InterruptedException isn't thrown
      */
     @Test

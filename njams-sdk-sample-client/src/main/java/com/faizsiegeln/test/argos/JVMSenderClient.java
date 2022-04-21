@@ -24,14 +24,12 @@
 package com.faizsiegeln.test.argos;
 
 import com.im.njams.sdk.Njams;
-import com.im.njams.sdk.common.Path;
-import com.im.njams.sdk.communication.CommunicationFactory;
-import com.im.njams.sdk.communication.jms.JmsConstants;
-import com.im.njams.sdk.settings.Settings;
+import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.argos.ArgosSender;
 import com.im.njams.sdk.argos.jvm.JVMCollector;
-
-import java.util.Properties;
+import com.im.njams.sdk.common.Path;
+import com.im.njams.sdk.communication.jms.JmsConstants;
+import com.im.njams.sdk.settings.Settings;
 
 /**
  * This is a sample client that sends JVM statistics.
@@ -58,7 +56,7 @@ public class JVMSenderClient {
         njams.stop();
     }
 
-    private static void createAndStartNjams(){
+    private static void createAndStartNjams() {
         String technology = "sdk4";
 
         //Specify a client path. This path specifies where your client instance will be visible in the object tree.
@@ -78,9 +76,9 @@ public class JVMSenderClient {
 
     private static Settings getProperties() {
         Settings communicationProperties = new Settings();
-        communicationProperties.put(CommunicationFactory.COMMUNICATION, "JMS");
+        communicationProperties.put(NjamsSettings.PROPERTY_COMMUNICATION, "JMS");
         communicationProperties.put(JmsConstants.INITIAL_CONTEXT_FACTORY,
-                "com.tibco.tibjms.naming.TibjmsInitialContextFactory");
+            "com.tibco.tibjms.naming.TibjmsInitialContextFactory");
         communicationProperties.put(JmsConstants.SECURITY_PRINCIPAL, "njams");
         communicationProperties.put(JmsConstants.SECURITY_CREDENTIALS, "njams");
         communicationProperties.put(JmsConstants.PROVIDER_URL, "tibjmsnaming://vslems01:7222");

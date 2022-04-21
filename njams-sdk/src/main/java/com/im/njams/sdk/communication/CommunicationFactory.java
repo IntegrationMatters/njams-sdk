@@ -33,13 +33,14 @@ import java.util.stream.StreamSupport;
  * @author pnientiedt
  */
 public class CommunicationFactory {
+    private static final Logger LOG = LoggerFactory.getLogger(CommunicationFactory.class);
 
     /**
      * Property key for communication properties which specifies which
-     * communication implementation will be used
+     * communication implementation will be used.
      */
+    @Deprecated
     public static final String COMMUNICATION = "njams.sdk.communication";
-    private static final Logger LOG = LoggerFactory.getLogger(CommunicationFactory.class);
 
     private final Settings settings;
     private final CommunicationServiceLoader<Receiver> receivers;
@@ -64,15 +65,15 @@ public class CommunicationFactory {
     }
 
     /**
-     * Returns the Receiver specified by the value of {@value #COMMUNICATION}
+     * Returns the Receiver specified by the value of {@value NjamsSettings#PROPERTY_COMMUNICATION}
      * specified in the CommunicationProperties in the Settings
      *
      * @param njams The {@link Njams} client instance for that messages shall be received.
      * @return new initialized Receiver
      */
     public Receiver getReceiver(Njams njams) {
-        if (settings.containsKey(COMMUNICATION)) {
-            final String requiredReceiverName = settings.getProperty(COMMUNICATION);
+        if (settings.containsKey(NjamsSettings.PROPERTY_COMMUNICATION)) {
+            final String requiredReceiverName = settings.getProperty(NjamsSettings.PROPERTY_COMMUNICATION);
             final boolean shared =
                 "true".equalsIgnoreCase(settings.getProperty(NjamsSettings.PROPERTY_SHARED_COMMUNICATIONS));
             Class<? extends Receiver> type = findReceiverType(requiredReceiverName, shared);
@@ -90,7 +91,7 @@ public class CommunicationFactory {
                         + available);
             }
         } else {
-            throw new UnsupportedOperationException("Unable to find " + COMMUNICATION + " in settings properties");
+            throw new UnsupportedOperationException("Unable to find " + NjamsSettings.PROPERTY_COMMUNICATION + " in settings properties");
         }
     }
 
@@ -150,15 +151,15 @@ public class CommunicationFactory {
     }
 
     /**
-     * Returns the Sender specified by the value of {@value #COMMUNICATION}
+     * Returns the Sender specified by the value of {@value NjamsSettings#PROPERTY_COMMUNICATION}
      * specified in the CommunicationProperties in the Settings
      *
      * @return new initialized Sender
      */
     public AbstractSender getSender() {
-        if (settings.containsKey(COMMUNICATION)) {
+        if (settings.containsKey(NjamsSettings.PROPERTY_COMMUNICATION)) {
             final Iterator<AbstractSender> iterator = senders.iterator();
-            final String requiredSenderName = settings.getProperty(COMMUNICATION);
+            final String requiredSenderName = settings.getProperty(NjamsSettings.PROPERTY_COMMUNICATION);
             while (iterator.hasNext()) {
                 final AbstractSender sender = iterator.next();
                 if (sender.getName().equalsIgnoreCase(requiredSenderName)) {
@@ -183,7 +184,7 @@ public class CommunicationFactory {
             throw new UnsupportedOperationException(
                 "Unable to find sender implementation for " + requiredSenderName + ", available are: " + available);
         } else {
-            throw new UnsupportedOperationException("Unable to find " + COMMUNICATION + " in settings properties");
+            throw new UnsupportedOperationException("Unable to find " + NjamsSettings.PROPERTY_COMMUNICATION + " in settings properties");
         }
     }
 }

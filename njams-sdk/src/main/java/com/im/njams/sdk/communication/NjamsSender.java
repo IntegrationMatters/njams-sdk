@@ -105,7 +105,7 @@ public class NjamsSender implements Sender {
      */
     public NjamsSender(Settings settings) {
         this.settings = settings;
-        name = settings.getProperty(CommunicationFactory.COMMUNICATION);
+        name = settings.getProperty(NjamsSettings.PROPERTY_COMMUNICATION);
         init(settings.getAllProperties());
     }
 

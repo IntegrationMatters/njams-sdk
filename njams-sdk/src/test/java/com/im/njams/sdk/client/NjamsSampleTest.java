@@ -16,38 +16,29 @@
  */
 package com.im.njams.sdk.client;
 
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.CoreMatchers.notNullValue;
-import static org.hamcrest.CoreMatchers.nullValue;
-import static org.junit.Assert.assertThat;
-
-import java.time.LocalDateTime;
-
-import org.junit.Test;
-
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.AttributeType;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.Extract;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.ExtractRule;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.RuleType;
 import com.im.njams.sdk.Njams;
+import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.common.Path;
-import com.im.njams.sdk.communication.CommunicationFactory;
 import com.im.njams.sdk.communication.TestSender;
 import com.im.njams.sdk.configuration.ActivityConfiguration;
 import com.im.njams.sdk.configuration.ProcessConfiguration;
-import com.im.njams.sdk.logmessage.Activity;
-import com.im.njams.sdk.logmessage.ActivityImpl;
-import com.im.njams.sdk.logmessage.Group;
-import com.im.njams.sdk.logmessage.GroupImpl;
-import com.im.njams.sdk.logmessage.Job;
-import com.im.njams.sdk.logmessage.JobImpl;
-import com.im.njams.sdk.logmessage.SubProcessActivity;
+import com.im.njams.sdk.logmessage.*;
 import com.im.njams.sdk.model.ActivityModel;
 import com.im.njams.sdk.model.GroupModel;
 import com.im.njams.sdk.model.ProcessModel;
 import com.im.njams.sdk.model.SubProcessActivityModel;
 import com.im.njams.sdk.settings.Settings;
 import com.im.njams.sdk.settings.encoding.Transformer;
+import org.junit.Test;
+
+import java.time.LocalDateTime;
+
+import static org.hamcrest.CoreMatchers.*;
+import static org.junit.Assert.assertThat;
 
 /**
  * @author bwand
@@ -56,7 +47,7 @@ public class NjamsSampleTest {
 
     private Settings getSettings() {
         Settings communicationProperties = new Settings();
-        communicationProperties.put(CommunicationFactory.COMMUNICATION, TestSender.NAME);
+        communicationProperties.put(NjamsSettings.PROPERTY_COMMUNICATION, TestSender.NAME);
         return communicationProperties;
     }
 
@@ -601,7 +592,7 @@ public class NjamsSampleTest {
 
         //step
         SubProcessActivityModel subProcessModel =
-                startModel.transitionToSubProcess("subProcess", "SubProcess", "stepType");
+            startModel.transitionToSubProcess("subProcess", "SubProcess", "stepType");
 
         //step
         ActivityModel endModel = subProcessModel.transitionTo("end", "End", "endType");
@@ -854,7 +845,7 @@ public class NjamsSampleTest {
         ActivityModel startModel = process.createActivity("start", "Start", "startType");
         startModel.setStarter(true);
         SubProcessActivityModel subProcessModel =
-                startModel.transitionToSubProcess("subProcess", "SubProcess", "stepType");
+            startModel.transitionToSubProcess("subProcess", "SubProcess", "stepType");
         ActivityModel endModel = subProcessModel.transitionTo("end", "End", "endType");
 
         //subprocess
@@ -928,7 +919,7 @@ public class NjamsSampleTest {
 
         // Create client config
         Settings communicationProperties = new Settings();
-        communicationProperties.put(CommunicationFactory.COMMUNICATION, Transformer.encode(TestSender.NAME));
+        communicationProperties.put(NjamsSettings.PROPERTY_COMMUNICATION, Transformer.encode(TestSender.NAME));
 
         Njams njams = new Njams(clientPath, "1.0.0", "sdk4", communicationProperties);
 
