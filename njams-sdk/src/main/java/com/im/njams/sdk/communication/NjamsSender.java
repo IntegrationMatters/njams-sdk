@@ -90,6 +90,11 @@ public class NjamsSender implements Sender {
     //The name for the executor threads.
     protected final String name;
 
+    public NjamsSender() {
+        this.settings = null;
+        name = "defaultSender";
+    }
+
     /**
      * This constructor initializes a NjamsSender. It saves
      * the settings and gets the name for the executor threads from the settings
