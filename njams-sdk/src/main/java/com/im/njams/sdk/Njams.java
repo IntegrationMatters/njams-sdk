@@ -207,10 +207,6 @@ public class Njams{
 
 //################################### NjamsArgos
 
-    public NjamsArgos getNjamsArgos(){
-        return njamsArgos;
-    }
-
     /**
      * Adds a collector that will create statistics.
      *
@@ -384,10 +380,6 @@ public class Njams{
 
 //################################### Configuration
 
-    public NjamsConfiguration getNjamsConfiguration() {
-        return njamsConfiguration;
-    }
-
     /**
      * @return the configuration
      */
@@ -454,10 +446,6 @@ public class Njams{
 
 //################################### NjamsFeatures
 
-    public NjamsFeatures getNjamsFeatures(){
-        return njamsFeatures;
-    }
-
     /**
      * @return the list of features this client has
      */
@@ -500,10 +488,6 @@ public class Njams{
 
 //################################### NjamsState
 
-    public NjamsState getNjamsState(){
-        return njamsState;
-    }
-
     /**
      * @return if this client instance is started
      */
@@ -513,10 +497,6 @@ public class Njams{
     }
 
 //################################### NjamsProjectMessage
-
-    public NjamsProjectMessage getNjamsProjectMessage(){
-        return njamsProjectMessage;
-    }
 
     /**
      * @return the globalVariables
