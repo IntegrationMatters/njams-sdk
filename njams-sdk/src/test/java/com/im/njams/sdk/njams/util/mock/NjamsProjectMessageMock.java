@@ -18,43 +18,28 @@
 
 package com.im.njams.sdk.njams.util.mock;
 
-import com.im.njams.sdk.NjamsFactory;
 import com.im.njams.sdk.common.Path;
+import com.im.njams.sdk.njams.NjamsProjectMessage;
+import com.im.njams.sdk.njams.metadata.NjamsMetadataFactory;
 import com.im.njams.sdk.settings.Settings;
 
-public class MockingNjamsFactory extends NjamsFactory {
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.MatcherAssert.assertThat;
 
-    private final NjamsJobsMock njamsJobsMock;
-    private final NjamsReceiverMock njamsReceiverMock;
-    private final NjamsConfigurationMock njamsConfigurationMock;
-    private final NjamsProjectMessageMock njamsProjectMessageMock;
+public class NjamsProjectMessageMock extends NjamsProjectMessage {
+    private int startCounter;
 
-    public MockingNjamsFactory() {
-        super(new Path(), "SDK", new Settings());
-        njamsJobsMock = new NjamsJobsMock();
-        njamsReceiverMock = new NjamsReceiverMock();
-        njamsConfigurationMock = new NjamsConfigurationMock();
-        njamsProjectMessageMock = new NjamsProjectMessageMock();
+    public NjamsProjectMessageMock() {
+        super(NjamsMetadataFactory.createMetadataWith(new Path(), null, "SDK"), null, null, null, null, null, new Settings());
     }
 
     @Override
-    public NjamsJobsMock getNjamsJobs() {
-        return njamsJobsMock;
+    public void start() {
+        startCounter++;
     }
 
-    @Override
-    public NjamsReceiverMock getNjamsReceiver(){
-        return njamsReceiverMock;
+    public void assertThatStartWasCalledTimes(int times) {
+        assertThat(startCounter, is(equalTo(times)));
     }
-
-    @Override
-    public NjamsConfigurationMock getNjamsConfiguration(){
-        return njamsConfigurationMock;
-    }
-
-    @Override
-    public NjamsProjectMessageMock getNjamsProjectMessage(){
-        return njamsProjectMessageMock;
-    }
-
 }

@@ -149,8 +149,8 @@ public class Njams{
             njamsReceiver.start();
             njamsJobs.start();
             njamsConfiguration.start();
-            njamsState.start();
             njamsProjectMessage.start();
+            njamsState.start();
         }
         return njamsState.isStarted();
     }
