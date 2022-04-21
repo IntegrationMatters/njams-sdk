@@ -160,4 +160,26 @@ public class NjamsSettings {
     public static final String NJAMS_SUBAGENT_HOST = "njams.sdk.subagent.host";
 
 
+    //    _    _ _______ _______ _____
+    //   | |  | |__   __|__   __|  __ \
+    //   | |__| |  | |     | |  | |__) |
+    //   |  __  |  | |     | |  |  ___/
+    //   | |  | |  | |     | |  | |
+    //   |_|  |_|  |_|     |_|  |_|
+
+    /**
+     * The URL, where the nJAMS Server is running and reachable (eg. http://localhost:8080/njams/)
+     */
+    public static final String PROPERTY_HTTP_BASE_URL = "njams.sdk.communication.http.base.url";
+
+    /**
+     * This is the prefix of the Dataprovider you want to send your Events to.
+     */
+    public static final String PROPERTY_HTTP_DATAPROVIDER_PREFIX = "njams.sdk.communication.http.dataprovider.prefix";
+
+    /**
+     * This is the full path to your certificate file to use for SSL
+     */
+    public static final String PROPERTY_HTTP_SSL_CERTIFICATE_FILE = "njams.sdk.communication.http.ssl.certificate.file";
+
 }
