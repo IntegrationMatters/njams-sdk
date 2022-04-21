@@ -79,7 +79,7 @@ public class NjamsJobsTest {
     }
 
     @Test
-    public void stopIs_calledOnce_evenIfStartWasCalledTwiceBefore_ifItWasNotAlternating(){
+    public void stopIs_calledOnce_evenIfStartWasCalledTwiceBefore_becauseItWasNotAlternating(){
         njams.start();
         njams.start();
         njams.stop();
