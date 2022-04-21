@@ -16,7 +16,7 @@
  *
  */
 
-package com.im.njams.sdk.njams.mock;
+package com.im.njams.sdk.njams.util.mock;
 
 import com.im.njams.sdk.NjamsFactory;
 import com.im.njams.sdk.common.Path;

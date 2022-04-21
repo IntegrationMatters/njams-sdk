@@ -16,15 +16,38 @@
  *
  */
 
-package com.im.njams.sdk.njams;
+package com.im.njams.sdk.njams.util.mock;
 
-import com.im.njams.sdk.NjamsFactory;
-import com.im.njams.sdk.common.Path;
-import com.im.njams.sdk.settings.Settings;
+import com.im.njams.sdk.njams.NjamsReceiver;
 
-public class NjamsFactoryUtils {
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.MatcherAssert.assertThat;
 
-    public static NjamsFactory createMinimalNjamsFactory(){
-        return new NjamsFactory(new Path(), "SDK", new Settings());
+public class NjamsReceiverMock extends NjamsReceiver {
+
+    private int startCounter;
+    private int stopCounter;
+
+    public NjamsReceiverMock() {
+        super(null, null, null, null, null, null);
+    }
+
+    @Override
+    public void start() {
+        startCounter++;
+    }
+
+    @Override
+    public void stop() {
+        stopCounter++;
+    }
+
+    public void assertThatStartWasCalledTimes(int times) {
+        assertThat(startCounter, is(equalTo(times)));
+    }
+
+    public void assertThatStopWasCalledTimes(int times) {
+        assertThat(stopCounter, is(equalTo(times)));
     }
 }

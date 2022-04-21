@@ -16,48 +16,37 @@
  *
  */
 
-package com.im.njams.sdk;
+package com.im.njams.sdk.njams.util.mock;
 
-import com.im.njams.sdk.njams.mock.MockingNjamsFactory;
-import com.im.njams.sdk.njams.mock.NjamsJobsMock;
-import org.junit.Before;
-import org.junit.Test;
+import com.im.njams.sdk.njams.NjamsJobs;
 
-public class NjamsWithNjamsJobsStartTest {
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.MatcherAssert.assertThat;
 
-    private Njams njams;
-    private NjamsJobsMock njamsJobsMock;
+public class NjamsJobsMock extends NjamsJobs {
+    private int startCounter;
+    private int stopCounter;
 
-    @Before
-    public void setUp() {
-        final MockingNjamsFactory mockingNjamsFactory = new MockingNjamsFactory();
-        njams = new Njams(mockingNjamsFactory);
-
-        njamsJobsMock = mockingNjamsFactory.getNjamsJobs();
+    public NjamsJobsMock() {
+        super(null, null, null, null);
     }
 
-    @Test
-    public void callsStart_onNjamsJobs(){
-        njams.start();
-
-        njamsJobsMock.assertThatStartWasCalledTimes(1);
+    @Override
+    public void start() {
+        startCounter++;
     }
 
-    @Test
-    public void callsStart_aSecondTime_butNjamsJobsStartIsStillOnlyCalledOnce(){
-        njams.start();
-        njams.start();
-
-        njamsJobsMock.assertThatStartWasCalledTimes(1);
+    @Override
+    public void stop() {
+        stopCounter++;
     }
 
-    @Test
-    public void callsStart_aSecondTime_afterAStopInBetween_callsStartOnNjamsJobsASecondTime(){
-        njams.start();
-        njams.stop();
-        njams.start();
-
-        njamsJobsMock.assertThatStartWasCalledTimes(2);
+    public void assertThatStartWasCalledTimes(int times) {
+        assertThat(startCounter, is(equalTo(times)));
     }
 
+    public void assertThatStopWasCalledTimes(int times) {
+        assertThat(stopCounter, is(equalTo(times)));
+    }
 }

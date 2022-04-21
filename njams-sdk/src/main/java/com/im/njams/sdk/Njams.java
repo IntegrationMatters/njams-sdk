@@ -41,8 +41,6 @@ import org.slf4j.LoggerFactory;
 
 import java.util.*;
 
-import static com.im.njams.sdk.njams.NjamsState.NOT_STARTED_EXCEPTION_MESSAGE;
-
 /**
  * This is an instance of nJAMS. It cares about lifecycle and initializations
  * and holds references to the process models and global variables.
@@ -172,7 +170,7 @@ public class Njams{
             njamsReceiver.stop();
             njamsState.stop();
         } else {
-            throw new NjamsSdkRuntimeException(NOT_STARTED_EXCEPTION_MESSAGE);
+            njamsState.handleStopBeforeStart();
         }
         return njamsState.isStopped();
     }

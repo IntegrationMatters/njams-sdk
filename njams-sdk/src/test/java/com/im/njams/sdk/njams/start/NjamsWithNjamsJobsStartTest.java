@@ -16,37 +16,50 @@
  *
  */
 
-package com.im.njams.sdk.njams.mock;
+package com.im.njams.sdk.njams.start;
 
-import com.im.njams.sdk.njams.NjamsJobs;
+import com.im.njams.sdk.Njams;
+import com.im.njams.sdk.njams.util.NjamsFactoryUtils;
+import com.im.njams.sdk.njams.util.mock.MockingNjamsFactory;
+import com.im.njams.sdk.njams.util.mock.NjamsJobsMock;
+import org.junit.Before;
+import org.junit.Test;
 
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.MatcherAssert.assertThat;
+public class NjamsWithNjamsJobsStartTest {
 
-public class NjamsJobsMock extends NjamsJobs {
-    private int startCounter;
-    private int stopCounter;
+    private Njams njams;
+    private NjamsJobsMock njamsJobsMock;
 
-    public NjamsJobsMock() {
-        super(null, null, null, null);
+    @Before
+    public void setUp() {
+        final MockingNjamsFactory mockingNjamsFactory = NjamsFactoryUtils.createMockedNjamsFactory();
+        njams = new Njams(mockingNjamsFactory);
+
+        njamsJobsMock = mockingNjamsFactory.getNjamsJobs();
     }
 
-    @Override
-    public void start() {
-        startCounter++;
+    @Test
+    public void callsStart_onNjamsJobs(){
+        njams.start();
+
+        njamsJobsMock.assertThatStartWasCalledTimes(1);
     }
 
-    @Override
-    public void stop() {
-        stopCounter++;
+    @Test
+    public void callsStart_aSecondTime_butNjamsJobsStartIsStillOnlyCalledOnce(){
+        njams.start();
+        njams.start();
+
+        njamsJobsMock.assertThatStartWasCalledTimes(1);
     }
 
-    public void assertThatStartWasCalledTimes(int times) {
-        assertThat(startCounter, is(equalTo(times)));
+    @Test
+    public void callsStart_aSecondTime_afterAStopInBetween_callsStartOnNjamsJobsASecondTime(){
+        njams.start();
+        njams.stop();
+        njams.start();
+
+        njamsJobsMock.assertThatStartWasCalledTimes(2);
     }
 
-    public void assertThatStopWasCalledTimes(int times) {
-        assertThat(stopCounter, is(equalTo(times)));
-    }
 }

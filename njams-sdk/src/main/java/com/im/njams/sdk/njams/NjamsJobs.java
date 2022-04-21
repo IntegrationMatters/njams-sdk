@@ -22,8 +22,6 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
-import static com.im.njams.sdk.njams.NjamsState.NOT_STARTED_EXCEPTION_MESSAGE;
-
 public class NjamsJobs implements InstructionListener {
 
     /**
@@ -81,7 +79,7 @@ public class NjamsJobs implements InstructionListener {
             }
             jobs.put(job.getJobId(), job);
         } else {
-            throw new NjamsSdkRuntimeException(NOT_STARTED_EXCEPTION_MESSAGE);
+            njamsState.handleStopBeforeStart();
         }
     }
 

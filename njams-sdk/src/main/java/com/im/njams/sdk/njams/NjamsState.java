@@ -1,8 +1,10 @@
 package com.im.njams.sdk.njams;
 
+import com.im.njams.sdk.common.NjamsSdkRuntimeException;
+
 public class NjamsState {
 
-    public static final String NOT_STARTED_EXCEPTION_MESSAGE = "The instance needs to be started first!";
+    private static final String NOT_STARTED_EXCEPTION_MESSAGE = "The instance needs to be started first!";
 
     private boolean started = false;
 
@@ -23,5 +25,9 @@ public class NjamsState {
 
     public void stop() {
         started = false;
+    }
+
+    public void handleStopBeforeStart() {
+        throw new NjamsSdkRuntimeException(NOT_STARTED_EXCEPTION_MESSAGE);
     }
 }

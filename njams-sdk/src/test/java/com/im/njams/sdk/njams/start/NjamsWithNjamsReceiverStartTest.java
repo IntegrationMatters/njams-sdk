@@ -13,48 +13,52 @@
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
+ *
  */
-package com.im.njams.sdk;
 
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertThrows;
+package com.im.njams.sdk.njams.start;
 
 import com.im.njams.sdk.Njams;
-import com.im.njams.sdk.communication.TestReceiver;
+import com.im.njams.sdk.njams.util.NjamsFactoryUtils;
+import com.im.njams.sdk.njams.util.mock.MockingNjamsFactory;
+import com.im.njams.sdk.njams.util.mock.NjamsReceiverMock;
 import org.junit.Before;
 import org.junit.Test;
 
-import com.im.njams.sdk.common.NjamsSdkRuntimeException;
-import com.im.njams.sdk.common.Path;
-import com.im.njams.sdk.communication.CommunicationFactory;
-import com.im.njams.sdk.settings.Settings;
-
-public class NjamsTest {
+public class NjamsWithNjamsReceiverStartTest {
 
     private Njams njams;
+    private NjamsReceiverMock njamsReceiverMock;
 
     @Before
-    public void createNewInstance() {
-        final Settings settings = new Settings();
-        settings.put(CommunicationFactory.COMMUNICATION, TestReceiver.NAME);
-        njams = new Njams(new Path(), "TestClientVersion", "TestCategory", settings);
+    public void setUp() {
+        final MockingNjamsFactory mockingNjamsFactory = NjamsFactoryUtils.createMockedNjamsFactory();
+        njams = new Njams(mockingNjamsFactory);
+
+        njamsReceiverMock = mockingNjamsFactory.getNjamsReceiver();
     }
 
     @Test
-    public void testStopBeforeStart() {
-        NjamsSdkRuntimeException njamsSdkRuntimeException = assertThrows(NjamsSdkRuntimeException.class,
-            njams::stop);
-        assertThat(njamsSdkRuntimeException.getMessage(), is(equalTo("The instance needs to be started first!")));
+    public void callsStart_onNjamsReceiver(){
+        njams.start();
 
+        njamsReceiverMock.assertThatStartWasCalledTimes(1);
     }
 
     @Test
-    public void testStartStopStart() {
+    public void callsStart_aSecondTime_butNjamsReceiverStartIsStillOnlyCalledOnce(){
+        njams.start();
+        njams.start();
+
+        njamsReceiverMock.assertThatStartWasCalledTimes(1);
+    }
+
+    @Test
+    public void callsStart_aSecondTime_afterAStopInBetween_callsStartOnNjamsReceiverASecondTime(){
         njams.start();
         njams.stop();
         njams.start();
-    }
 
+        njamsReceiverMock.assertThatStartWasCalledTimes(2);
+    }
 }
