@@ -168,7 +168,7 @@ public class NjamsSettings {
     //   |_|  |_|  |_|     |_|  |_|
 
     /**
-     * The URL, where the nJAMS Server is running and reachable (eg. http://localhost:8080/njams/)
+     * The URL, where the nJAMS Server is running and reachable (eg. <a href="http://localhost:8080/njams/">http://localhost:8080/njams/</a>)
      */
     public static final String PROPERTY_HTTP_BASE_URL = "njams.sdk.communication.http.base.url";
 
@@ -235,8 +235,11 @@ public class NjamsSettings {
      * Refer to the official Kafka client documentation for supported properties.
      */
     public static final String PROPERTY_KAFKA_CLIENT_PREFIX = "njams.sdk.communication.kafka.client.";
+    // Consumer properties
     public static final String PROPERTY_KAFKA_CONSUMER_PREFIX = "njams.sdk.communication.kafka.client.consumer.";
+    // Producer properties
     public static final String PROPERTY_KAFKA_PRODUCER_PREFIX = "njams.sdk.communication.kafka.client.producer.";
+    // Admin properties
     public static final String PROPERTY_KAFKA_ADMIN_PREFIX = "njams.sdk.communication.kafka.client.admin.";
 
     //         _ __  __  _____
