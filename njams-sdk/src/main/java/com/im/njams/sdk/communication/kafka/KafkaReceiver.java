@@ -19,6 +19,7 @@ package com.im.njams.sdk.communication.kafka;
 
 import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.common.JsonSerializerFactory;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.common.Path;
@@ -107,13 +108,13 @@ public class KafkaReceiver extends AbstractReceiver {
         mapper = JsonSerializerFactory.getDefaultMapper();
         final String clientPath = properties.getProperty(Settings.INTERNAL_PROPERTY_CLIENTPATH);
         clientId = getClientId(clientPath.substring(1, clientPath.length() - 1).replace('>', '_'));
-        if (properties.containsKey(KafkaConstants.COMMANDS_TOPIC)) {
-            topicName = properties.getProperty(KafkaConstants.COMMANDS_TOPIC);
+        if (properties.containsKey(NjamsSettings.PROPERTY_KAFKA_COMMANDS_TOPIC)) {
+            topicName = properties.getProperty(NjamsSettings.PROPERTY_KAFKA_COMMANDS_TOPIC);
         }
         if (StringUtils.isBlank(topicName)) {
-            String prefix = properties.getProperty(KafkaConstants.TOPIC_PREFIX);
+            String prefix = properties.getProperty(NjamsSettings.PROPERTY_KAFKA_TOPIC_PREFIX);
             if (StringUtils.isBlank(prefix)) {
-                LOG.warn("Property {} is not set. Using '{}' as default.", KafkaConstants.TOPIC_PREFIX,
+                LOG.warn("Property {} is not set. Using '{}' as default.", NjamsSettings.PROPERTY_KAFKA_TOPIC_PREFIX,
                     KafkaConstants.DEFAULT_TOPIC_PREFIX);
                 prefix = KafkaConstants.DEFAULT_TOPIC_PREFIX;
             }

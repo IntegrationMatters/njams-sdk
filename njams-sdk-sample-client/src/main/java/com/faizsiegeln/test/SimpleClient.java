@@ -21,7 +21,6 @@ import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.common.Path;
 import com.im.njams.sdk.communication.cloud.CloudConstants;
 import com.im.njams.sdk.communication.jms.JmsConstants;
-import com.im.njams.sdk.communication.kafka.KafkaConstants;
 import com.im.njams.sdk.logmessage.Activity;
 import com.im.njams.sdk.logmessage.Job;
 import com.im.njams.sdk.model.ActivityModel;
@@ -160,43 +159,43 @@ public class SimpleClient {
 
         // nJAMS properties
         communicationProperties.put(NjamsSettings.PROPERTY_COMMUNICATION, "Kafka");
-        communicationProperties.put(KafkaConstants.REPLY_PRODUCER_IDLE_TIME, "300000"); // in ms
-        communicationProperties.put(KafkaConstants.TOPIC_PREFIX, "njams");
+        communicationProperties.put(NjamsSettings.PROPERTY_KAFKA_REPLY_PRODUCER_IDLE_TIME, "300000"); // in ms
+        communicationProperties.put(NjamsSettings.PROPERTY_KAFKA_TOPIC_PREFIX, "njams");
 
         // Kafka properties
-        communicationProperties.put(KafkaConstants.PROPERTY_PREFIX + "bootstrap.servers", "10.10.0.2:9091");
+        communicationProperties.put(NjamsSettings.PROPERTY_KAFKA_BOOTSTRAP_SERVERS, "10.10.0.2:9091");
 
         // SASL_PLAIN
         /*
-         * communicationProperties.put(KafkaConstants.PROPERTY_PREFIX +
+         * communicationProperties.put(NjamsSettings.PROPERTY_KAFKA_PREFIX +
          * "sasl.mechanism", "PLAIN");
-         * communicationProperties.put(KafkaConstants.PROPERTY_PREFIX +
+         * communicationProperties.put(NjamsSettings.PROPERTY_KAFKA_PREFIX +
          * "sasl.jaas.config",
          * "org.apache.kafka.common.security.plain.PlainLoginModule required username=\"njams\" password=\"njams-secret\";"
          * );
          */
 
         // SSL
-        communicationProperties.put(KafkaConstants.PROPERTY_PREFIX + "security.protocol", "SSL");
-        communicationProperties.put(KafkaConstants.PROPERTY_PREFIX + "ssl.truststore.location",
+        communicationProperties.put(NjamsSettings.PROPERTY_KAFKA_PREFIX + "security.protocol", "SSL");
+        communicationProperties.put(NjamsSettings.PROPERTY_KAFKA_PREFIX + "ssl.truststore.location",
             "C:\\tmp\\certificates\\kafka.truststore");
-        communicationProperties.put(KafkaConstants.PROPERTY_PREFIX + "ssl.truststore.password", "Aa123456!");
-        communicationProperties.put(KafkaConstants.PROPERTY_PREFIX + "ssl.keystore.location",
+        communicationProperties.put(NjamsSettings.PROPERTY_KAFKA_PREFIX + "ssl.truststore.password", "Aa123456!");
+        communicationProperties.put(NjamsSettings.PROPERTY_KAFKA_PREFIX + "ssl.keystore.location",
             "C:\\tmp\\certificates\\kafka.keystore");
-        communicationProperties.put(KafkaConstants.PROPERTY_PREFIX + "ssl.keystore.password", "Aa123456!");
-        communicationProperties.put(KafkaConstants.PROPERTY_PREFIX + "ssl.key.password", "Aa123456!");
+        communicationProperties.put(NjamsSettings.PROPERTY_KAFKA_PREFIX + "ssl.keystore.password", "Aa123456!");
+        communicationProperties.put(NjamsSettings.PROPERTY_KAFKA_PREFIX + "ssl.key.password", "Aa123456!");
 
         // SASL_SSL
         /*
-         * communicationProperties.put(KafkaConstants.PROPERTY_PREFIX +
+         * communicationProperties.put(NjamsSettings.PROPERTY_KAFKA_PREFIX +
          * "sasl.mechanism", "PLAIN");
-         * communicationProperties.put(KafkaConstants.PROPERTY_PREFIX +
+         * communicationProperties.put(NjamsSettings.PROPERTY_KAFKA_PREFIX +
          * "security.protocol", "SASL_SSL");
-         * communicationProperties.put(KafkaConstants.PROPERTY_PREFIX +
+         * communicationProperties.put(NjamsSettings.PROPERTY_KAFKA_PREFIX +
          * "ssl.truststore.location", "C:\\tmp\\certificates\\kafka.truststore");
-         * communicationProperties.put(KafkaConstants.PROPERTY_PREFIX +
+         * communicationProperties.put(NjamsSettings.PROPERTY_KAFKA_PREFIX +
          * "ssl.truststore.password", "Aa123456!");
-         * communicationProperties.put(KafkaConstants.PROPERTY_PREFIX +
+         * communicationProperties.put(NjamsSettings.PROPERTY_KAFKA_PREFIX +
          * "sasl.jaas.config",
          * "org.apache.kafka.common.security.plain.PlainLoginModule required username=\"njams\" password=\"njams-secret\";"
          * );

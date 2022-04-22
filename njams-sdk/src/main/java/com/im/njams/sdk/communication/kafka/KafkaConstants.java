@@ -17,35 +17,52 @@
 
 package com.im.njams.sdk.communication.kafka;
 
+import com.im.njams.sdk.NjamsSettings;
+
 /**
- *
  * @author sfaiz
  * @version 4.2.0-SNAPSHOT
  */
 public class KafkaConstants {
 
-    /** Name of the Kafka Communication Component. */
+    /**
+     * Name of the Kafka Communication Component.
+     */
     public static final String COMMUNICATION_NAME = "KAFKA";
+
+    /**
+     * The default topic prefix to be used if {@link com.im.njams.sdk.NjamsSettings#PROPERTY_KAFKA_TOPIC_PREFIX} is not set.
+     */
+    public static final String DEFAULT_TOPIC_PREFIX = "njams";
+
 
     // ********** General nJAMS properties
 
-    /** Prefix for the all communication settings including those that are nJAMS specific. */
+    /**
+     * Prefix for the all communication settings including those that are nJAMS specific.
+     */
+    @Deprecated
     public static final String PROPERTY_PREFIX = "njams.sdk.communication.kafka.";
     /** Prefix only for the Kafka specific communication settings that are directly passed to the client. */
 
-    /** Property key for the communication properties. Specifies a prefix for resolving the actual topic names. */
-    public static final String TOPIC_PREFIX = PROPERTY_PREFIX + "topicPrefix";
+    /**
+     * Property key for the communication properties. Specifies a prefix for resolving the actual topic names.
+     */
+    @Deprecated
+    public static final String TOPIC_PREFIX = NjamsSettings.PROPERTY_KAFKA_PREFIX + "topicPrefix";
 
-    /** Property key for the communication properties. Overrides the default commands topic. */
-    public static final String COMMANDS_TOPIC = PROPERTY_PREFIX + "commandsTopic";
+    /**
+     * Property key for the communication properties. Overrides the default commands topic.
+     */
+    @Deprecated
+    public static final String COMMANDS_TOPIC = NjamsSettings.PROPERTY_KAFKA_PREFIX + "commandsTopic";
 
     /**
      * Property key for the communication properties. Timeout after last use of the
      * KafkaProducer, who is responsible for responding to Commands.
      */
-    public static final String REPLY_PRODUCER_IDLE_TIME = PROPERTY_PREFIX + "replyProducerIdleTime";
-    /** The default topic prefix to be used if {@link #TOPIC_PREFIX} is not set. */
-    public static final String DEFAULT_TOPIC_PREFIX = "njams";
+    @Deprecated
+    public static final String REPLY_PRODUCER_IDLE_TIME = NjamsSettings.PROPERTY_KAFKA_PREFIX + "replyProducerIdleTime";
 
     /*
      * ********** Kafka client related prefixes
@@ -56,14 +73,26 @@ public class KafkaConstants {
      * https://kafka.apache.org/10/javadoc/org/apache/kafka/clients/admin/AdminClientConfig.html
      */
 
-    /** Prefix for properties that shall be applied to all types of Kafka clients */
-    public static final String CLIENT_PREFIX = PROPERTY_PREFIX + "client.";
-    /** Prefix for properties that shall be applied to Kafka consumers */
-    public static final String CONSUMER_PREFIX = CLIENT_PREFIX + "consumer.";
-    /** Prefix for properties that shall be applied to Kafka producers */
-    public static final String PRODUCER_PREFIX = CLIENT_PREFIX + "producer.";
-    /** Prefix for properties that shall be applied to the Kafka admin client */
-    public static final String ADMIN_PREFIX = CLIENT_PREFIX + "admin.";
+    /**
+     * Prefix for properties that shall be applied to all types of Kafka clients
+     */
+    @Deprecated
+    public static final String CLIENT_PREFIX = NjamsSettings.PROPERTY_KAFKA_PREFIX + "client.";
+    /**
+     * Prefix for properties that shall be applied to Kafka consumers
+     */
+    @Deprecated
+    public static final String CONSUMER_PREFIX = NjamsSettings.PROPERTY_KAFKA_CLIENT_PREFIX + "consumer.";
+    /**
+     * Prefix for properties that shall be applied to Kafka producers
+     */
+    @Deprecated
+    public static final String PRODUCER_PREFIX = NjamsSettings.PROPERTY_KAFKA_CLIENT_PREFIX + "producer.";
+    /**
+     * Prefix for properties that shall be applied to the Kafka admin client
+     */
+    @Deprecated
+    public static final String ADMIN_PREFIX = NjamsSettings.PROPERTY_KAFKA_CLIENT_PREFIX + "admin.";
 
     private KafkaConstants() {
         // constants

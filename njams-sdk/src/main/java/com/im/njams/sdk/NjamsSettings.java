@@ -182,4 +182,69 @@ public class NjamsSettings {
      */
     public static final String PROPERTY_HTTP_SSL_CERTIFICATE_FILE = "njams.sdk.communication.http.ssl.certificate.file";
 
+
+    //    _  __          ______ _  __
+    //   | |/ /    /\   |  ____| |/ /    /\
+    //   | ' /    /  \  | |__  | ' /    /  \
+    //   |  <    / /\ \ |  __| |  <    / /\ \
+    //   | . \  / ____ \| |    | . \  / ____ \
+    //   |_|\_\/_/    \_\_|    |_|\_\/_/    \_\
+
+    /**
+     * This is just the prefix for all Kafka Properties
+     */
+    public static final String PROPERTY_KAFKA_PREFIX = "njams.sdk.communication.kafka.";
+
+    /**
+     * This is the only mandatory client property that is used to list bootstrap servers
+     * (comma separated) for connecting to a Kafka cluster.
+     */
+    public static final String PROPERTY_KAFKA_BOOTSTRAP_SERVERS = "njams.sdk.communication.kafka.bootstrap.servers";
+
+    /**
+     * This is the prefix of the event, project, commands, and optional error topics.
+     * The topics have to exist in the according Kafka cluster. Default is 'njams'.
+     */
+    public static final String PROPERTY_KAFKA_TOPIC_PREFIX = "njams.sdk.communication.kafka.topicPrefix";
+
+    /**
+     * The producer sending replies for processed commands will be closed if it has not been used for the specified time
+     * in milliseconds. The default is 30000.
+     */
+    public static final String PROPERTY_KAFKA_REPLY_PRODUCER_IDLE_TIME = "njams.sdk.communication.kafka.replyProducerIdleTime";
+
+    /**
+     * Allows specifying a specific commands topic, overriding the default that is resolved from the topicPrefix setting.
+     */
+    public static final String PROPERTY_KAFKA_COMMANDS_TOPIC = "njams.sdk.communication.kafka.commandsTopic";
+
+    /**
+     * All properties with these prefixes are directly passed to the Kafka clients used by the SDK:
+     * <p>
+     * njams.sdk.communication.kafka.client.*
+     * njams.sdk.communication.kafka.consumer.*
+     * njams.sdk.communication.kafka.producer.*
+     * njams.sdk.communication.kafka.admin.*
+     * <p>
+     * E.g., the only one mandatory setting is boostrap.servers (see above). pref.client.* is a shortcut for
+     * properties that shall be used for all client types, i.e., it includes the consumer, producer, and admin prefix.
+     * Properties using one of the other prefixes will only be used for the respective client type, e.g., any setting
+     * starting with pref.consumer.* will only be used when creating a Kafka consumer, while settings starting with
+     * pref.client.* will be used for all client types.
+     * <p>
+     * Refer to the official Kafka client documentation for supported properties.
+     */
+    public static final String PROPERTY_KAFKA_CLIENT_PREFIX = "njams.sdk.communication.kafka.client.";
+    public static final String PROPERTY_KAFKA_CONSUMER_PREFIX = "njams.sdk.communication.kafka.client.consumer.";
+    public static final String PROPERTY_KAFKA_PRODUCER_PREFIX = "njams.sdk.communication.kafka.client.producer.";
+    public static final String PROPERTY_KAFKA_ADMIN_PREFIX = "njams.sdk.communication.kafka.client.admin.";
+
+    //         _ __  __  _____
+    //        | |  \/  |/ ____|
+    //        | | \  / | (___
+    //    _   | | |\/| |\___ \
+    //   | |__| | |  | |____) |
+    //    \____/|_|  |_|_____/
+
+
 }
