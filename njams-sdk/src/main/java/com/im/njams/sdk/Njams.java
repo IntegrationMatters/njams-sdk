@@ -24,22 +24,37 @@
 package com.im.njams.sdk;
 
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.LogMode;
-import com.im.njams.sdk.argos.*;
-import com.im.njams.sdk.common.*;
-import com.im.njams.sdk.communication.*;
+import com.im.njams.sdk.argos.ArgosMetric;
+import com.im.njams.sdk.argos.ArgosMultiCollector;
+import com.im.njams.sdk.common.NjamsSdkRuntimeException;
+import com.im.njams.sdk.common.Path;
+import com.im.njams.sdk.communication.InstructionListener;
+import com.im.njams.sdk.communication.ReplayHandler;
+import com.im.njams.sdk.communication.Sender;
 import com.im.njams.sdk.configuration.Configuration;
-import com.im.njams.sdk.logmessage.*;
-import com.im.njams.sdk.njams.*;
-import com.im.njams.sdk.njams.metadata.NjamsMetadata;
+import com.im.njams.sdk.logmessage.Job;
 import com.im.njams.sdk.model.ProcessModel;
-import com.im.njams.sdk.model.image.*;
+import com.im.njams.sdk.model.image.ImageSupplier;
+import com.im.njams.sdk.model.image.ResourceImageSupplier;
 import com.im.njams.sdk.model.layout.ProcessModelLayouter;
 import com.im.njams.sdk.model.svg.ProcessDiagramFactory;
-import com.im.njams.sdk.serializer.*;
+import com.im.njams.sdk.njams.NjamsArgos;
+import com.im.njams.sdk.njams.NjamsConfiguration;
+import com.im.njams.sdk.njams.NjamsFeatures;
+import com.im.njams.sdk.njams.NjamsJobs;
+import com.im.njams.sdk.njams.NjamsProjectMessage;
+import com.im.njams.sdk.njams.NjamsReceiver;
+import com.im.njams.sdk.njams.NjamsSender;
+import com.im.njams.sdk.njams.NjamsSettings;
+import com.im.njams.sdk.njams.NjamsState;
+import com.im.njams.sdk.njams.metadata.NjamsMetadata;
+import com.im.njams.sdk.serializer.Serializer;
 import com.im.njams.sdk.settings.Settings;
 import org.slf4j.LoggerFactory;
 
-import java.util.*;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
 
 /**
  * This is an instance of nJAMS. It cares about lifecycle and initializations
