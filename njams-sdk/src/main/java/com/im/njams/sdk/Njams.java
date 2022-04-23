@@ -193,7 +193,7 @@ public class Njams{
 //################################### Settings
 
     /**
-     * The settings are the used for setting different parameters like flush size, connection parameters etc.
+     * The settings are used for different parameters like flush size, connection parameters etc.
      *
      * @return the settings for this njams instance.
      */
@@ -217,15 +217,24 @@ public class Njams{
 //################################### NjamsArgos
 
     /**
-     * Adds a collector that will create statistics.
+     * Adds an Argos Collector that is used to create statistics, which will be sent periodically to the
+     * njams agent that was specified in the settings.
      *
-     * @param collector The collector that collects statistics
+     * @param collector The collector that will collect statistics which will be sent to njams agent.
+     * @param <T> The type of metric that will be created by the collector
      */
     @Deprecated
     public <T extends ArgosMetric> void addArgosCollector(ArgosMultiCollector<T> collector) {
         njamsArgos.addCollector(collector);
     }
 
+    /**
+     * Removes a previously set Argos Collector. By that, no more statistics from this collector will be sent to njams
+     * agent.
+     *
+     * @param collector the Collector that will be removed
+     * @param <T> The type of metric that will no longer be created by the collector
+     */
     @Deprecated
     public <T extends ArgosMetric> void removeArgosCollector(ArgosMultiCollector<T> collector) {
         njamsArgos.remove(collector);
@@ -234,7 +243,9 @@ public class Njams{
 //################################### NjamsJobs
 
     /**
-     * @return The handler that handles the replay of a job
+     * The ReplayHandler is used to handle the replay command of the server.
+     *
+     * @return The handler that is used by this njams instance to handle replay command.
      */
     @Deprecated
     public ReplayHandler getReplayHandler() {
@@ -242,7 +253,8 @@ public class Njams{
     }
 
     /**
-     * Sets the handler to handle the replay of a job
+     * Sets the ReplayHandler to process the replay of a job, which is triggered by the nJAMS server.
+     *
      * @param replayHandler the handler to replay the job
      */
     @Deprecated
@@ -251,6 +263,7 @@ public class Njams{
     }
 
     /**
+     * Returns the job to the corresponding jobId.
      *
      * @param jobId the key to the corresponding job
      * @return the corresponding job
@@ -261,7 +274,9 @@ public class Njams{
     }
 
     /**
-     * @return A collections of jobs
+     * Returns all jobs that are currently handled by this instance.
+     *
+     * @return A collections of all currently handled jobs
      */
     @Deprecated
     public Collection<Job> getJobs() {
@@ -269,7 +284,9 @@ public class Njams{
     }
 
     /**
-     * @param job the job to add, it's jobId is the key
+     * Adds a job to the jobs that are handled by this instance.
+     *
+     * @param job the job to add
      */
     @Deprecated
     public void addJob(Job job) {
@@ -277,7 +294,9 @@ public class Njams{
     }
 
     /**
-     * @param jobId Key to remove the job from the job collection.
+     * Removes a job from this instance.
+     *
+     * @param jobId Key to remove the job from all the jobs.
      */
     @Deprecated
     public void removeJob(String jobId) {
@@ -319,14 +338,15 @@ public class Njams{
 //################################### NjamsSerializers
 
     /**
+     * Adds a serializer which is used for serializing different objects to Strings that can be transferred to the
+     * nJAMS server.
      *
-     * @param <T>        Type that the given instance serializes
-     * @param key        Class for which the serializer should be registered
-     * @param serializer A serializer that can serialize instances of class key
-     *                   to Strings.
+     * @param key Class for which the serializer should be registered.
+     * @param serializer A serializer that can serialize instances of class key.
+     * @param <T> Type that the given instance serializes to Strings.
+     *
      * @return If a serializer for the same type was already registered before,
      * the former registered serializer is returned. Otherwise <code>null</code> is returned.
-     *
      */
     @Deprecated
     public <T> Serializer<T> addSerializer(final Class<T> key, final Serializer<? super T> serializer) {
@@ -334,10 +354,13 @@ public class Njams{
     }
 
     /**
-     * @param key a class
-     * @param <T> type of serializable
-     * @return Registered serializer or <b>null</b>
+     * Removes a serializer. If an object of that class was serialized now, it would use a more generic serializer instead
+     * to be serialized.
      *
+     * @param key Class for which the serializer should be removed.
+     * @param <T> Type that the given instance serializes to String.
+     *
+     * @return Removed serializer or <b>null</b>
      */
     @Deprecated
     public <T> Serializer<T> removeSerializer(final Class<T> key) {
@@ -345,9 +368,11 @@ public class Njams{
     }
 
     /**
+     * Gets the matching serializer for the given key.
      *
-     * @param <T> type of the class
-     * @param key a class
+     * @param key Class of the serializer.
+     * @param <T> Type that the given instance serializes to String.
+     *
      * @return Registered serializer or <b>null</b>
      */
     @Deprecated
@@ -356,8 +381,11 @@ public class Njams{
     }
 
     /**
-     * @param <T> type of the class
-     * @param t   Object to be serialized.
+     * Serializes an object to a String with the best matching serializer.
+     *
+     * @param t Object to be serialized.
+     * @param <T> Type of the Object that needs to be serialized.
+     *
      * @return a string representation of the object.
      */
     @Deprecated
@@ -366,9 +394,16 @@ public class Njams{
     }
 
     /**
-     * @param <T>   Type of the class
-     * @param clazz Class for which a serializer will be searched.
-     * @return Serializer of <b>null</b>.
+     * Gets the serializer with the given class key.
+     * If not serializer is registered yet, the superclass hierarchy will be checked recursively.
+     * If neither the class nor any superclass if registered, the interface
+     * hierarchy will be checked recursively. if no (super) interface is
+     * register, <b>null</b> will be returned.
+     *
+     * @param clazz Class for which a serializer should be found.
+     * @param <T> Type that the given class serializes to String.
+     *
+     * @return The next best matching serializer or <b>null</b> if no serializer was found.
      */
     @Deprecated
     public <T> Serializer<? super T> findSerializer(final Class<T> clazz) {
@@ -378,7 +413,9 @@ public class Njams{
 //################################### Configuration
 
     /**
-     * @return the configuration
+     * Returns the configuration that is used by this instance to determine the log level, trace points, etc.
+     *
+     * @return the configuration of this instance.
      */
     @Deprecated
     public Configuration getConfiguration() {
@@ -386,7 +423,9 @@ public class Njams{
     }
 
     /**
-     * @return LogMode of this client
+     * Returns the log mode of this instance.
+     *
+     * @return LogMode of this instance
      */
     @Deprecated
     public LogMode getLogMode() {
@@ -396,8 +435,10 @@ public class Njams{
 //################################### NjamsMetadata
 
     /**
-     * @return the category of the nJAMS client, which should describe the
-     * technology
+     * The category/technology of the instance.
+     * It might be something like MULE4, BW5, etc.
+     *
+     * @return the category of the nJAMS client, which should describe the technology
      */
     @Deprecated
     public String getCategory() {
@@ -405,7 +446,9 @@ public class Njams{
     }
 
     /**
-     * @return the clientPath
+     * The unique path or the root of this client.
+     *
+     * @return the root for this instance
      */
     @Deprecated
     public Path getClientPath() {
@@ -413,7 +456,9 @@ public class Njams{
     }
 
     /**
-     * @return the clientVersion
+     * The client version that uses this sdk.
+     *
+     * @return the clientVersion that uses this sdk.
      */
     @Deprecated
     public String getClientVersion() {
@@ -421,7 +466,9 @@ public class Njams{
     }
 
     /**
-     * @return the sdkVersion
+     * The current sdk version.
+     *
+     * @return the current sdkVersion
      */
     @Deprecated
     public String getSdkVersion() {
@@ -429,7 +476,9 @@ public class Njams{
     }
 
     /**
-     * @return the machine name
+     * The name of the machine where the njams client is running on.
+     *
+     * @return the machine's name
      */
     @Deprecated
     public String getMachine() {
