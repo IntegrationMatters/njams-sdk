@@ -34,6 +34,12 @@ import com.im.njams.sdk.njams.metadata.NjamsMetadata;
 import com.im.njams.sdk.njams.metadata.NjamsMetadataFactory;
 import com.im.njams.sdk.settings.Settings;
 
+/**
+ * This class is used to create all the objects that are needed for {@link Njams} to work correctly.
+ * You can set an instance of this to the constructor of {@link Njams}.
+ *
+ * It creates all the needed objects once and returns them with every get call.
+ */
 public class NjamsFactory {
     private final NjamsSettings njamsSettings;
     private final NjamsMetadata njamsMetadata;
@@ -46,10 +52,27 @@ public class NjamsFactory {
     private final NjamsProjectMessage njamsProjectMessage;
     private final NjamsReceiver njamsReceiver;
 
+    /**
+     * Creates all the necessary fields with all the in between dependencies.
+     * They can be retrieved by using the corresponding get operation.
+     *
+     * @param clientPath unique path per nJAMS instance.
+     * @param category should describe the technology for the client that is used, e.g. BW5, BW6, MULE4EE
+     * @param settings needed for client initialization of communication, sending intervals and sizes, etc.
+     */
     public NjamsFactory(Path clientPath, String category, Settings settings){
         this(clientPath, category, settings, null);
     }
 
+    /**
+     * Creates all the necessary fields with all the in between dependencies.
+     * They can be retrieved by using the corresponding get operation.
+     *
+     * @param clientPath unique path per nJAMS instance.
+     * @param defaultClientVersion  the default version of the nJAMS client instance if no client version can be found otherwise.
+     * @param category should describe the technology for the client that is used, e.g. BW5, BW6, MULE4EE
+     * @param settings needed for client initialization of communication, sending intervals and sizes, etc.
+     */
     public NjamsFactory(Path clientPath, String category, Settings settings, String defaultClientVersion) {
         njamsSettings = new NjamsSettings(settings);
         njamsMetadata = NjamsMetadataFactory.createMetadataWith(clientPath, defaultClientVersion, category);
