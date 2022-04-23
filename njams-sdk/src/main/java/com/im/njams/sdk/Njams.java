@@ -489,7 +489,9 @@ public class Njams{
 //################################### NjamsFeatures
 
     /**
-     * @return the list of features this client has
+     * The features that this instance has.
+     *
+     * @return the list of features this instance has.
      */
     @Deprecated
     public List<String> getFeatures() {
@@ -497,15 +499,9 @@ public class Njams{
     }
 
     /**
-     * @param feature to set
-     */
-    @Deprecated
-    public void addFeature(String feature) {
-        njamsFeatures.add(feature);
-    }
-
-    /**
-     * @param feature to set
+     * Add a feature that this instance has.
+     *
+     * @param feature to add
      */
     @Deprecated
     public void addFeature(NjamsFeatures.Feature feature) {
@@ -513,14 +509,8 @@ public class Njams{
     }
 
     /**
-     * @param feature to remove
-     */
-    @Deprecated
-    public void removeFeature(final String feature) {
-        njamsFeatures.remove(feature);
-    }
-
-    /**
+     * Remove a feature that this instance doesn't have
+     *
      * @param feature to remove
      */
     @Deprecated
@@ -531,7 +521,10 @@ public class Njams{
 //################################### NjamsState
 
     /**
-     * @return if this client instance is started
+     * Returns if this instance is currently running.
+     *
+     * @return true if start was called and no stop after that. It is false, if stop was called after start or if
+     * start has never been called.
      */
     @Deprecated
     public boolean isStarted() {
@@ -541,7 +534,9 @@ public class Njams{
 //################################### NjamsProjectMessage
 
     /**
-     * @return the globalVariables
+     * Returns all the global variables for this instance.
+     *
+     * @return the globalVariables for this instance.
      */
     @Deprecated
     public Map<String, String> getGlobalVariables() {
@@ -561,7 +556,7 @@ public class Njams{
     /**
      * Adds an image for a given resource path.
      *
-     * @param key          the key of the image
+     * @param key the key of the image
      * @param resourcePath the path where to find the image
      */
     @Deprecated
@@ -583,6 +578,7 @@ public class Njams{
      * Return the ProcessModel to the path;
      *
      * @param path the path where to get the ProcessModel from
+     *
      * @return the ProcessModel or {@link NjamsSdkRuntimeException}
      */
     @Deprecated
@@ -594,6 +590,7 @@ public class Njams{
      * Check for a process model under that path
      *
      * @param path the path where to search for a {@link ProcessModel}.
+     *
      * @return true if found else false
      */
     @Deprecated
@@ -657,7 +654,8 @@ public class Njams{
     }
 
     /**
-     * @return the processModelLayouter
+     * Gets the ProcessModelLayouter that is used to create a visual graph for the nJAMS server from the ProcessModels.
+     * @return the processModelLayouter that is currently used for layouting.
      */
     @Deprecated
     public ProcessModelLayouter getProcessModelLayouter() {
@@ -665,7 +663,9 @@ public class Njams{
     }
 
     /**
-     * @param processModelLayouter the processModelLayouter to set
+     * Set the ProcessModelLayouter that is used to create a visual graph for the nJAMS server from the ProcessModels.
+     *
+     * @param processModelLayouter the processModelLayouter to use for layouting.
      */
     @Deprecated
     public void setProcessModelLayouter(ProcessModelLayouter processModelLayouter) {
@@ -685,7 +685,9 @@ public class Njams{
     }
 
     /**
-     * @return the ProcessDiagramFactory
+     * Gets the ProcessDiagramFactory that is used to create an image that can be sent to nJAMS server.
+     *
+     * @return the ProcessDiagramFactory that is used to create images.
      */
     @Deprecated
     public ProcessDiagramFactory getProcessDiagramFactory() {
@@ -693,7 +695,9 @@ public class Njams{
     }
 
     /**
-     * @param processDiagramFactory the processDiagramFactory to set
+     * Sets the ProcessDiagramFactory that is used to create an image that can be sent to nJAMS server.
+     *
+     * @param processDiagramFactory the processDiagramFactory that will be used to create images.
      */
     @Deprecated
     public void setProcessDiagramFactory(ProcessDiagramFactory processDiagramFactory) {
