@@ -148,6 +148,7 @@ public abstract class AbstractSender implements Sender {
                 try {
                     Thread.sleep(waitTimeToReconnect);
                 } catch (InterruptedException e1) {
+                    return;
                 }
             }
         }
@@ -195,7 +196,8 @@ public abstract class AbstractSender implements Sender {
             if (isConnecting()) {
                 try {
                     Thread.sleep(1000);
-                } catch (InterruptedException e1) {
+                } catch (InterruptedException e) {
+                    return;
                 }
             } else {
                 // trigger reconnect

@@ -61,7 +61,7 @@ public class LogMessageFlushTaskEntry {
     }
 
     /**
-     * @return the njams
+     * @return the njamsJobs
      */
     public NjamsJobs getNjamsJobs() {
         return njamsJobs;

@@ -28,13 +28,25 @@ import com.im.njams.sdk.njams.NjamsSender;
 import com.im.njams.sdk.configuration.Configuration;
 
 class CleanTracepointsTaskEntry {
-    final NjamsMetadata instanceMetadata;
-    final Configuration configuration;
-    final NjamsSender njamsSender;
+    private final NjamsMetadata instanceMetadata;
+    private final Configuration configuration;
+    private final NjamsSender njamsSender;
 
     CleanTracepointsTaskEntry(NjamsMetadata instanceMetadata, Configuration configuration, NjamsSender njamsSender) {
         this.instanceMetadata = instanceMetadata;
         this.configuration = configuration;
         this.njamsSender = njamsSender;
+    }
+
+    NjamsMetadata getInstanceMetadata() {
+        return instanceMetadata;
+    }
+
+    Configuration getConfiguration() {
+        return configuration;
+    }
+
+    NjamsSender getNjamsSender() {
+        return njamsSender;
     }
 }

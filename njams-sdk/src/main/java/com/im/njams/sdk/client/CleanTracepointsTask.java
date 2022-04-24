@@ -165,7 +165,8 @@ public class CleanTracepointsTask extends TimerTask {
     }
 
     private void checkNjams(CleanTracepointsTaskEntry cleanTracepointsTaskEntry, LocalDateTime now) {
-        checkNjams(cleanTracepointsTaskEntry.instanceMetadata, cleanTracepointsTaskEntry.configuration, cleanTracepointsTaskEntry.njamsSender, now);
+        checkNjams(cleanTracepointsTaskEntry.getInstanceMetadata(), cleanTracepointsTaskEntry.getConfiguration(),
+            cleanTracepointsTaskEntry.getNjamsSender(), now);
     }
 
     private void checkNjams(NjamsMetadata instanceMetadata, Configuration configuration, NjamsSender njamsSender, LocalDateTime now) {
