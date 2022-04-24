@@ -20,7 +20,7 @@ import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
 import com.faizsiegeln.njams.messageformat.v4.command.Request;
 import com.faizsiegeln.njams.messageformat.v4.command.Response;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
-import com.im.njams.sdk.njams.NjamsReceiver;
+import com.im.njams.sdk.njams.communication.receiver.NjamsReceiver;
 import org.junit.Test;
 
 import java.util.ArrayList;

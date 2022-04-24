@@ -21,7 +21,7 @@ import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
 import com.faizsiegeln.njams.messageformat.v4.command.Response;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.*;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.im.njams.sdk.njams.NjamsConfiguration;
+import com.im.njams.sdk.njams.configuration.NjamsConfiguration;
 import com.im.njams.sdk.common.DateTimeUtility;
 import com.im.njams.sdk.common.JsonSerializerFactory;
 import com.im.njams.sdk.communication.InstructionListener;

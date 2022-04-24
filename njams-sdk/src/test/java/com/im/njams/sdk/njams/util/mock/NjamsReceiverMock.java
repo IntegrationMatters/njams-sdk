@@ -18,7 +18,7 @@
 
 package com.im.njams.sdk.njams.util.mock;
 
-import com.im.njams.sdk.njams.NjamsReceiver;
+import com.im.njams.sdk.njams.communication.receiver.NjamsReceiver;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;

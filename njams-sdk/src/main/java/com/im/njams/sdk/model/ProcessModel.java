@@ -25,9 +25,9 @@ import java.util.List;
 import java.util.Map;
 
 import com.im.njams.sdk.model.layout.ProcessModelLayouter;
-import com.im.njams.sdk.njams.NjamsConfiguration;
+import com.im.njams.sdk.njams.configuration.NjamsConfiguration;
 import com.im.njams.sdk.njams.NjamsJobs;
-import com.im.njams.sdk.njams.NjamsSender;
+import com.im.njams.sdk.njams.communication.sender.NjamsSender;
 import com.im.njams.sdk.njams.NjamsSerializers;
 import com.im.njams.sdk.njams.metadata.NjamsMetadata;
 import com.im.njams.sdk.settings.Settings;

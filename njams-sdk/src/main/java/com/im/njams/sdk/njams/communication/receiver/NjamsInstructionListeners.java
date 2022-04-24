@@ -15,39 +15,31 @@
  * IN THE SOFTWARE.
  *
  */
+package com.im.njams.sdk.njams.communication.receiver;
 
-package com.im.njams.sdk.njams.util.mock;
+import com.im.njams.sdk.communication.InstructionListener;
 
-import com.im.njams.sdk.njams.configuration.NjamsConfiguration;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.MatcherAssert.assertThat;
+class NjamsInstructionListeners {
 
-public class NjamsConfigurationMock extends NjamsConfiguration {
+    private final List<InstructionListener> instructionListeners = new ArrayList<>();
 
-    private int startCounter;
-    private int stopCounter;
-
-    public NjamsConfigurationMock() {
-        super(null, null, null, null);
+    List<InstructionListener> get() {
+        return Collections.unmodifiableList(instructionListeners);
     }
 
-    @Override
-    public void start() {
-        startCounter++;
+    void add(InstructionListener instructionListener) {
+        instructionListeners.add(instructionListener);
     }
 
-    @Override
-    public void stop() {
-        stopCounter++;
+    void remove(InstructionListener listener) {
+        instructionListeners.remove(listener);
     }
 
-    public void assertThatStartWasCalledTimes(int times) {
-        assertThat(startCounter, is(equalTo(times)));
-    }
-
-    public void assertThatStopWasCalledTimes(int times) {
-        assertThat(stopCounter, is(equalTo(times)));
+    void removeAll() {
+        instructionListeners.clear();
     }
 }

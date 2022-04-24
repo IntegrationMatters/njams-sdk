@@ -34,11 +34,11 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.regex.Pattern;
 
-import com.im.njams.sdk.njams.NjamsConfiguration;
+import com.im.njams.sdk.njams.configuration.NjamsConfiguration;
 import com.im.njams.sdk.njams.NjamsFeatures;
 import com.im.njams.sdk.njams.NjamsJobs;
 import com.im.njams.sdk.njams.NjamsProjectMessage;
-import com.im.njams.sdk.njams.NjamsSender;
+import com.im.njams.sdk.njams.communication.sender.NjamsSender;
 import com.im.njams.sdk.njams.NjamsState;
 import com.im.njams.sdk.njams.metadata.NjamsMetadataFactory;
 import com.im.njams.sdk.communication.CommunicationFactory;

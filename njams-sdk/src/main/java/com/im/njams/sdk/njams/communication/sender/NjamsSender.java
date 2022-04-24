@@ -15,39 +15,34 @@
  * IN THE SOFTWARE.
  *
  */
+package com.im.njams.sdk.njams.communication.sender;
 
-package com.im.njams.sdk.njams.util.mock;
+import com.faizsiegeln.njams.messageformat.v4.common.CommonMessage;
+import com.im.njams.sdk.communication.Sender;
 
-import com.im.njams.sdk.njams.configuration.NjamsConfiguration;
+public class NjamsSender {
 
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.MatcherAssert.assertThat;
+    private Sender sender;
 
-public class NjamsConfigurationMock extends NjamsConfiguration {
-
-    private int startCounter;
-    private int stopCounter;
-
-    public NjamsConfigurationMock() {
-        super(null, null, null, null);
+    public NjamsSender(Sender sender){
+        this.sender = sender;
     }
 
-    @Override
-    public void start() {
-        startCounter++;
+    /**
+     * Returns the a Sender implementation, which is configured as specified in
+     * the settings.
+     *
+     * @return the Sender
+     */
+    public Sender getSender() {
+        return sender;
     }
 
-    @Override
     public void stop() {
-        stopCounter++;
+        sender.close();
     }
 
-    public void assertThatStartWasCalledTimes(int times) {
-        assertThat(startCounter, is(equalTo(times)));
-    }
-
-    public void assertThatStopWasCalledTimes(int times) {
-        assertThat(stopCounter, is(equalTo(times)));
+    public void send(CommonMessage message) {
+        sender.send(message);
     }
 }

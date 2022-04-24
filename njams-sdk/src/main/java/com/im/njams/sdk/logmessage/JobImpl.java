@@ -35,9 +35,9 @@ import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import com.im.njams.sdk.njams.NjamsConfiguration;
+import com.im.njams.sdk.njams.configuration.NjamsConfiguration;
 import com.im.njams.sdk.njams.NjamsJobs;
-import com.im.njams.sdk.njams.NjamsSender;
+import com.im.njams.sdk.njams.communication.sender.NjamsSender;
 import com.im.njams.sdk.njams.NjamsSerializers;
 import com.im.njams.sdk.njams.metadata.NjamsMetadata;
 import org.slf4j.LoggerFactory;

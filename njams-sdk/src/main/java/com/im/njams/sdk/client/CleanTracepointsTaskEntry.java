@@ -24,7 +24,7 @@
 package com.im.njams.sdk.client;
 
 import com.im.njams.sdk.njams.metadata.NjamsMetadata;
-import com.im.njams.sdk.njams.NjamsSender;
+import com.im.njams.sdk.njams.communication.sender.NjamsSender;
 import com.im.njams.sdk.configuration.Configuration;
 
 class CleanTracepointsTaskEntry {

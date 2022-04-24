@@ -20,7 +20,6 @@ package com.im.njams.sdk.njams.util.mock;
 
 import com.im.njams.sdk.NjamsFactory;
 import com.im.njams.sdk.common.Path;
-import com.im.njams.sdk.njams.NjamsSender;
 import com.im.njams.sdk.settings.Settings;
 
 public class MockingNjamsFactory extends NjamsFactory {
