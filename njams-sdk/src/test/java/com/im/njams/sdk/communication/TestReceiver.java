@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Faiz & Siegeln Software GmbH
+ * Copyright (c) 2022 Faiz & Siegeln Software GmbH
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"),
  * to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
@@ -27,8 +27,6 @@ import com.im.njams.sdk.settings.Settings;
  * Dummy implementation for testing.<br>
  * <b>Note:</b> For using this instance, the test environment needs to have a the full qualified class name of this
  * {@link TestReceiver} in the <code>META_INF/services/com.im.njams.sdk.communication.Receiver</code> file.
- *
- * @author cwinkler
  *
  */
 public class TestReceiver implements Receiver {

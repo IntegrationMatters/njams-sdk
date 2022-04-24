@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Faiz & Siegeln Software GmbH
+ * Copyright (c) 2022 Faiz & Siegeln Software GmbH
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"),
  * to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
@@ -13,8 +13,9 @@
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
+ *
  */
-package com.im.njams.sdk.logmessage.datamasking;
+package com.im.njams.sdk.logmessage;
 
 import static junit.framework.TestCase.assertEquals;
 import static org.hamcrest.CoreMatchers.is;
@@ -23,9 +24,6 @@ import static org.junit.Assert.assertThat;
 import static org.mockito.Matchers.anyObject;
 import static org.mockito.Mockito.doAnswer;
 
-import com.im.njams.sdk.logmessage.ActivityImpl;
-import com.im.njams.sdk.logmessage.DataMasking;
-import com.im.njams.sdk.logmessage.JobImpl;
 import com.im.njams.sdk.njams.NjamsSerializers;
 import org.junit.After;
 import org.junit.BeforeClass;
@@ -36,10 +34,6 @@ import com.im.njams.sdk.model.ActivityModel;
 
 import java.util.Properties;
 
-/**
- *
- * @author pnientiedt
- */
 public class DataMaskingTest {
 
     private static JobImpl JOB = Mockito.mock(JobImpl.class);
@@ -110,7 +104,7 @@ public class DataMaskingTest {
         properties.put("SomeOtherString", ".*");
         DataMasking.addPatterns(properties);
         final String maskedString1 = DataMasking.getGlobalNjamsDataMasking().mask("Creditcard Number : 1234");
-        final String maskedString2 = DataMasking.maskString("Anything else");
+        final String maskedString2 = DataMasking.getGlobalNjamsDataMasking().mask("Anything else");
         assertEquals("************************", maskedString1);
         assertEquals("Anything else", maskedString2);
 

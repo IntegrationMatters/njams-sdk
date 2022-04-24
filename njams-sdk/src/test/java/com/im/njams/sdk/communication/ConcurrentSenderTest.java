@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Faiz & Siegeln Software GmbH
+ * Copyright (c) 2022 Faiz & Siegeln Software GmbH
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"),
  * to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
@@ -36,10 +36,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 
 /**
- * Tests the NjamsSender
- *
- * @author krautenberg@integrationmatters.com
- * @version 4.0.6
+ * Tests the ConcurrentSender
  */
 public class ConcurrentSenderTest extends AbstractTest {
 
