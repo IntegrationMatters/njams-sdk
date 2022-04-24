@@ -1,6 +1,6 @@
 package com.im.njams.sdk.njams;
 
-import com.im.njams.sdk.communication.CompositeSender;
+import com.im.njams.sdk.communication.ConcurrentSender;
 import com.im.njams.sdk.communication.Sender;
 import com.im.njams.sdk.njams.metadata.NjamsMetadata;
 import com.im.njams.sdk.settings.Settings;
@@ -13,10 +13,10 @@ public class NjamsSenderFactory {
         Sender sender;
         if ("true".equalsIgnoreCase(njamsSettings.getProperty(Settings.PROPERTY_SHARED_COMMUNICATIONS))) {
             LOG.debug("Using shared sender pool for {}", njamsMetadata.getClientPath());
-            sender = CompositeSender.takeSharedSender(njamsSettings);
+            sender = ConcurrentSender.takeSharedSender(njamsSettings);
         } else {
             LOG.debug("Creating individual sender pool for {}", njamsMetadata.getClientPath());
-            sender = new CompositeSender(njamsSettings);
+            sender = new ConcurrentSender(njamsSettings);
         }
         return new NjamsSender(sender);
     }

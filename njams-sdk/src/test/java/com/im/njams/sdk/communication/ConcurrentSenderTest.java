@@ -29,7 +29,6 @@ import org.junit.Test;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
@@ -42,7 +41,7 @@ import static org.junit.Assert.assertEquals;
  * @author krautenberg@integrationmatters.com
  * @version 4.0.6
  */
-public class CompositeSenderTest extends AbstractTest {
+public class ConcurrentSenderTest extends AbstractTest {
 
     private static Settings SETTINGS;
 
@@ -54,7 +53,7 @@ public class CompositeSenderTest extends AbstractTest {
         SETTINGS.put(CommunicationFactory.COMMUNICATION, TestSender.NAME);
     }
 
-    public CompositeSenderTest() {
+    public ConcurrentSenderTest() {
         super(SETTINGS);
     }
 
@@ -73,7 +72,7 @@ public class CompositeSenderTest extends AbstractTest {
         longRunningExecutionCompositeSender.checkThatTheExecutorIsTerminatedAndTheThreadWasInterrupted();
     }
 
-    private static class LongRunningExecutionCompositeSenderFake extends CompositeSender{
+    private static class LongRunningExecutionCompositeSenderFake extends ConcurrentSender {
 
         private boolean startedToSleep;
 
@@ -141,7 +140,7 @@ public class CompositeSenderTest extends AbstractTest {
         Settings settings = new Settings();
         settings.put(CommunicationFactory.COMMUNICATION, TestSender.NAME);
         settings.put(Settings.PROPERTY_MAX_SENDER_THREADS, "-1");
-        CompositeSender njamsSender = new CompositeSender(settings);
+        ConcurrentSender concurrentSender = new ConcurrentSender(settings);
     }
 
     /**
@@ -152,7 +151,7 @@ public class CompositeSenderTest extends AbstractTest {
         Settings settings = new Settings();
         settings.put(CommunicationFactory.COMMUNICATION, TestSender.NAME);
         settings.put(Settings.PROPERTY_SENDER_THREAD_IDLE_TIME, "-1");
-        CompositeSender njamsSender = new CompositeSender(settings);
+        ConcurrentSender concurrentSender = new ConcurrentSender(settings);
     }
 
     /**
@@ -164,7 +163,7 @@ public class CompositeSenderTest extends AbstractTest {
         settings.put(CommunicationFactory.COMMUNICATION, TestSender.NAME);
         settings.put(Settings.PROPERTY_MIN_SENDER_THREADS, "5");
         settings.put(Settings.PROPERTY_MAX_SENDER_THREADS, "4");
-        CompositeSender njamsSender = new CompositeSender(settings);
+        ConcurrentSender concurrentSender = new ConcurrentSender(settings);
     }
 
     /**
@@ -175,7 +174,7 @@ public class CompositeSenderTest extends AbstractTest {
         Settings settings = new Settings();
         settings.put(CommunicationFactory.COMMUNICATION, TestSender.NAME);
         settings.put(Settings.PROPERTY_MIN_SENDER_THREADS, "-1");
-        CompositeSender njamsSender = new CompositeSender(settings);
+        ConcurrentSender concurrentSender = new ConcurrentSender(settings);
     }
 
     @Test
@@ -186,7 +185,7 @@ public class CompositeSenderTest extends AbstractTest {
         settings.put(Settings.PROPERTY_MAX_SENDER_THREADS, "10");
         settings.put(Settings.PROPERTY_SENDER_THREAD_IDLE_TIME, "5000");
 
-        CompositeSender sender = new CompositeSender(settings);
+        ConcurrentSender sender = new ConcurrentSender(settings);
         ThreadPoolExecutor executor = sender.getExecutor();
         assertEquals(0, executor.getActiveCount());
         assertEquals(3, executor.getCorePoolSize());
@@ -210,7 +209,7 @@ public class CompositeSenderTest extends AbstractTest {
     public void testReconnectingSenders() throws InterruptedException {
         //Set static ExceptionSender to redirect calls to the TestSender
         TestSender.setSenderMock(new ExceptionSender());
-        CompositeSender sender = new CompositeSender(SETTINGS);
+        ConcurrentSender sender = new ConcurrentSender(SETTINGS);
         int messagesToSend = 10;
         for (int i = 0; i < messagesToSend; i++) {
             Thread t = new Thread(() -> sender.send(null));

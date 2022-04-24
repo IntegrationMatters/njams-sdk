@@ -41,16 +41,16 @@ import java.util.concurrent.TimeUnit;
  * exceeded all message sending is funneled through this class, which creates
  * and uses a pool of senders to multi-thread message sending
  */
-public class CompositeSender implements Sender {
+public class ConcurrentSender implements Sender {
 
     private int waitTime;
     private TimeUnit waitTimeUnit;
 
-    private static class NjamsSharedSender extends CompositeSender {
+    private static class SharedConcurrentSender extends ConcurrentSender {
         private final Object lock = new Object();
         private int usage = 0;
 
-        private NjamsSharedSender(Settings settings) {
+        private SharedConcurrentSender(Settings settings) {
             super(settings);
         }
 
@@ -83,8 +83,8 @@ public class CompositeSender implements Sender {
     }
 
     //The logger to log messages.
-    private static final Logger LOG = LoggerFactory.getLogger(CompositeSender.class);
-    private static NjamsSharedSender sharedInstance = null;
+    private static final Logger LOG = LoggerFactory.getLogger(ConcurrentSender.class);
+    private static SharedConcurrentSender sharedInstance = null;
     //The senderPool where the senders will be saved.
     private SenderPool senderPool = null;
 
@@ -98,13 +98,13 @@ public class CompositeSender implements Sender {
     private final String name;
 
     /**
-     * This constructor initializes a NjamsSender. It saves
+     * This constructor initializes a ConcurrentSender. It saves
      * the settings and gets the name for the executor threads from the settings
      * with the key: njams.sdk.communication.
      *
      * @param settings the setting where some settings will be taken from.
      */
-    public CompositeSender(Settings settings) {
+    public ConcurrentSender(Settings settings) {
         this.settings = settings;
         name = settings.getProperty(CommunicationFactory.COMMUNICATION);
         init(settings.getAllProperties());
@@ -128,9 +128,9 @@ public class CompositeSender implements Sender {
      * @param settings Only used if a new instance needs to be created.
      * @return The shared sender instance as explained above.
      */
-    public static synchronized CompositeSender takeSharedSender(Settings settings) {
+    public static synchronized ConcurrentSender takeSharedSender(Settings settings) {
         if (sharedInstance == null || sharedInstance.isDestroyed()) {
-            sharedInstance = new NjamsSharedSender(settings);
+            sharedInstance = new SharedConcurrentSender(settings);
         }
         sharedInstance.take();
         LOG.debug("Providing shared sender instance (used {} times)", sharedInstance.usage);
