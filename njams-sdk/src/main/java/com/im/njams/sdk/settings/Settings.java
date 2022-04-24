@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Faiz & Siegeln Software GmbH
+ * Copyright (c) 2022 Faiz & Siegeln Software GmbH
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"),
  * to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
@@ -17,6 +17,7 @@
 package com.im.njams.sdk.settings;
 
 import com.im.njams.sdk.communication.Receiver;
+import com.im.njams.sdk.njams.NjamsSettings;
 import com.im.njams.sdk.settings.encoding.Transformer;
 import com.im.njams.sdk.utils.StringUtils;
 import org.slf4j.Logger;
@@ -27,8 +28,6 @@ import java.util.*;
 /**
  * The settings contains settings needed for
  * {@link com.im.njams.sdk.Njams}
- *
- * @author bwand
  */
 public class Settings {
 
@@ -182,7 +181,7 @@ public class Settings {
     /**
      * This method prints all Properties, but the values of all keys that contains
      * "password" or "credentials" are changed to "****".
-     * @see #getAllPropertiesWithoutPasswords()
+     * @see NjamsSettings#getAllPropertiesWithoutPasswords()
      */
     @Deprecated
     public void printPropertiesWithoutPasswords() {
@@ -194,7 +193,7 @@ public class Settings {
      * "password" or "credentials" are changed to "****".
      *
      * @param logger The logger used for printing properties.
-     * @see #getAllPropertiesWithoutPasswords()
+     * @see NjamsSettings#getAllPropertiesWithoutPasswords()
      */
     @Deprecated
     public void printPropertiesWithoutPasswords(Logger logger) {
@@ -275,19 +274,4 @@ public class Settings {
         });
     }
 
-    public Map<String, String> getAllPropertiesWithoutPasswords() {
-        Map<String, String> printableProperties = new HashMap<>();
-
-        List<String> keys = new ArrayList<>();
-        properties.keySet().forEach(key -> keys.add((String) key));
-
-        for(String key : keys){
-            if(isSecuredKey(key)){
-                printableProperties.put(key, "****");
-            }else{
-                printableProperties.put(key, (String) properties.get(key));
-            }
-        }
-        return printableProperties;
-    }
 }

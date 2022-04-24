@@ -27,6 +27,9 @@ package com.im.njams.sdk.njams;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.settings.Settings;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class NjamsSettings {
@@ -47,6 +50,18 @@ public class NjamsSettings {
     }
 
     public Map<String, String> getAllPropertiesWithoutPasswords() {
-        return settings.getAllPropertiesWithoutPasswords();
+        Map<String, String> printableProperties = new HashMap<>();
+
+        List<String> keys = new ArrayList<>();
+        settings.getAllProperties().keySet().forEach(key -> keys.add((String) key));
+
+        for(String key : keys){
+            if(settings.isSecuredKey(key)){
+                printableProperties.put(key, "****");
+            }else{
+                printableProperties.put(key, (String) settings.getAllProperties().get(key));
+            }
+        }
+        return printableProperties;
     }
 }
