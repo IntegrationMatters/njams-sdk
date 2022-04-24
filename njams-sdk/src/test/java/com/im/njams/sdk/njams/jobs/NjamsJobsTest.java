@@ -28,7 +28,6 @@ import com.im.njams.sdk.njams.metadata.NjamsMetadata;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.common.Path;
 import com.im.njams.sdk.model.ProcessModel;
-import com.im.njams.sdk.model.ProcessModelUtils;
 import com.im.njams.sdk.model.layout.ProcessModelLayouter;
 import com.im.njams.sdk.model.svg.ProcessDiagramFactory;
 import com.im.njams.sdk.settings.Settings;
@@ -65,12 +64,11 @@ public class NjamsJobsTest {
         final NjamsFeatures njamsFeatures = new NjamsFeatures();
         final Settings jobSettings = new Settings();
         final NjamsJobs njamsJobs = new NjamsJobs(NOT_USED_JOB_NJAMS_METADATA, njamsState, njamsFeatures, jobSettings);
-        final ProcessModelUtils processModelUtils = new ProcessModelUtils(njamsJobs, NOT_USED_PROCESS_NJAMS_METADATA,
-            NOT_USED_SERIALIZERS, NOT_USED_CONFIGURATION, new Settings(), NOT_USED_PROCESSDIAGRAM_FACTORY,
-            NOT_USED_PROCESS_MODEL_LAYOUTER, NOT_USED_NJAMS_SENDER);
 
         final Path processPath = new Path("PROCESSES");
-        return new ProcessModel(processPath, processModelUtils);
+        return new ProcessModel(processPath, njamsJobs, NOT_USED_PROCESS_NJAMS_METADATA,
+            NOT_USED_SERIALIZERS, NOT_USED_CONFIGURATION, new Settings(), NOT_USED_PROCESSDIAGRAM_FACTORY,
+            NOT_USED_PROCESS_MODEL_LAYOUTER, NOT_USED_NJAMS_SENDER);
     }
 
     @Test

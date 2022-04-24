@@ -14,7 +14,6 @@ import com.im.njams.sdk.common.Path;
 import com.im.njams.sdk.communication.InstructionListener;
 import com.im.njams.sdk.configuration.ProcessConfiguration;
 import com.im.njams.sdk.model.ProcessModel;
-import com.im.njams.sdk.model.ProcessModelUtils;
 import com.im.njams.sdk.model.image.ImageSupplier;
 import com.im.njams.sdk.model.image.ResourceImageSupplier;
 import com.im.njams.sdk.model.layout.ProcessModelLayouter;
@@ -375,10 +374,9 @@ public class NjamsProjectMessage implements InstructionListener {
      */
     public ProcessModel createProcess(final Path path) {
         final Path fullClientPath = path.addBase(instanceMetadata.getClientPath());
-        ProcessModelUtils processModelUtils = new ProcessModelUtils(jobs, instanceMetadata, njamsSerializers,
+        final ProcessModel model = new ProcessModel(fullClientPath, jobs, instanceMetadata, njamsSerializers,
             njamsConfiguration,
             settings, processDiagramFactory, processModelLayouter, njamsSender);
-        final ProcessModel model = new ProcessModel(fullClientPath, processModelUtils);
         synchronized (processModels) {
             createTreeElements(fullClientPath, TreeElementType.PROCESS);
             processModels.put(fullClientPath.toString(), model);

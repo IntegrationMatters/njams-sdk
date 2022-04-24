@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Faiz & Siegeln Software GmbH
+ * Copyright (c) 2022 Faiz & Siegeln Software GmbH
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
  * documentation files (the "Software"),
@@ -30,8 +30,6 @@ import com.im.njams.sdk.njams.NjamsDataMasking;
 
 /**
  * DataMasking implementation
- *
- * @author pnientiedt
  */
 @Deprecated
 public class DataMasking {

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Faiz & Siegeln Software GmbH
+ * Copyright (c) 2022 Faiz & Siegeln Software GmbH
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"),
  * to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
@@ -32,8 +32,6 @@ import com.im.njams.sdk.model.SubProcessActivityModel;
 /**
  * Activity which represents a group in a process. A group can have child
  * activities.
- *
- * @author pnientiedt
  */
 public class GroupImpl extends ActivityImpl implements Group {
 

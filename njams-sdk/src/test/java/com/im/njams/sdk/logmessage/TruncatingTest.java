@@ -29,8 +29,7 @@ public class TruncatingTest {
         settings.put(JobImpl.TRUNCATE_LIMIT, String.valueOf(limit));
         settings.put(JobImpl.TRUNCATE_ON_SUCCESS, String.valueOf(onSuccess));
 
-        JobUtils jobUtils = new JobUtils(null, null, null, null, settings, null);
-        return new JobImpl(processModel, "4711", "4812", jobUtils);
+        return new JobImpl(processModel, "4711", "4812", null, null, null, null, settings, null);
     }
 
     private Activity activity() {
