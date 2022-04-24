@@ -72,6 +72,7 @@ public class CommunicationFactory {
      * specified in the CommunicationProperties in the Settings
      *
      * @param metadata The metadata of the client instance for that messages shall be received.
+     * @param njamsReceiver The receiver of the client instance for that messages shall be received over.
      * @return new initialized Receiver
      */
     public Receiver getReceiver(NjamsMetadata metadata, NjamsReceiver njamsReceiver) {
@@ -81,8 +82,9 @@ public class CommunicationFactory {
                     "true".equalsIgnoreCase(settings.getProperty(Settings.PROPERTY_SHARED_COMMUNICATIONS));
             Class<? extends Receiver> type = findReceiverType(requiredReceiverName, shared);
             if (type != null) {
-                final Receiver newInstance = createReceiver(type, metadata, njamsReceiver, shared, requiredReceiverName);
-
+                final Receiver newInstance = createReceiver(type, metadata, shared, requiredReceiverName);
+                newInstance.setInstanceMetadata(metadata);
+                newInstance.setNjamsReceiver(njamsReceiver);
                 return newInstance;
             } else {
                 String available =
@@ -122,7 +124,7 @@ public class CommunicationFactory {
         return found == null ? null : found.getClass();
     }
 
-    private Receiver createReceiver(Class<? extends Receiver> clazz, NjamsMetadata metadata, NjamsReceiver njamsReceiver, boolean shared, String name) {
+    private Receiver createReceiver(Class<? extends Receiver> clazz, NjamsMetadata metadata, boolean shared, String name) {
         try {
             Properties properties = settings.getAllProperties();
             properties.setProperty(Settings.INTERNAL_PROPERTY_CLIENTPATH, metadata.getClientPath().toString());
@@ -136,8 +138,6 @@ public class CommunicationFactory {
                     }
                     LOG.debug("Creating shared receiver {}", clazz);
                     receiver = clazz.newInstance();
-                    receiver.setInstanceMetadata(metadata);
-                    receiver.setNjamsReceiver(njamsReceiver);
                     receiver.validate();
                     sharedReceivers.put(clazz, (ShareableReceiver<?>) receiver);
                     receiver.init(properties);

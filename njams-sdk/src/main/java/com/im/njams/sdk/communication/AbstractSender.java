@@ -197,7 +197,7 @@ public abstract class AbstractSender implements Sender {
                 try {
                     Thread.sleep(1000);
                 } catch (InterruptedException e) {
-                    return;
+                    break;
                 }
             } else {
                 // trigger reconnect
