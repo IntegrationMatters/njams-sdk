@@ -101,7 +101,7 @@ public class Njams{
     }
 
     /**
-     * Creates a nJAMS instance that uses the given factory to create all its necessary tools.
+     * Creates a nJAMS instance that uses the given factory to retrieve all its necessary tools.
      *
      * @param njamsFactory the factory that is used to create all necessary tools
      */
