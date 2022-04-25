@@ -237,11 +237,20 @@ public class NjamsSettings {
      * Refer to the official Kafka client documentation for supported properties.
      */
     public static final String PROPERTY_KAFKA_CLIENT_PREFIX = "njams.sdk.communication.kafka.client.";
-    // Consumer properties
+
+    /**
+     * Consumer properties
+     */
     public static final String PROPERTY_KAFKA_CONSUMER_PREFIX = "njams.sdk.communication.kafka.client.consumer.";
-    // Producer properties
+
+    /**
+     * Producer properties
+     */
     public static final String PROPERTY_KAFKA_PRODUCER_PREFIX = "njams.sdk.communication.kafka.client.producer.";
-    // Admin properties
+
+    /**
+     * Admin properties
+     */
     public static final String PROPERTY_KAFKA_ADMIN_PREFIX = "njams.sdk.communication.kafka.client.admin.";
 
     //         _ __  __  _____
