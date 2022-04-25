@@ -58,15 +58,15 @@ public class JmsReceiverTest {
 
     private static void fillProps(Properties props) {
         props.put(NjamsSettings.PROPERTY_COMMUNICATION, "JMS");
-        props.put(JmsConstants.INITIAL_CONTEXT_FACTORY,
+        props.put(NjamsSettings.PROPERTY_JMS_INITIAL_CONTEXT_FACTORY,
             "com.tibco.tibjms.naming.TibjmsInitialContextFactory");
-        props.put(JmsConstants.SECURITY_PRINCIPAL, "njams");
-        props.put(JmsConstants.SECURITY_CREDENTIALS, "njams");
-        props.put(JmsConstants.PROVIDER_URL, "tibjmsnaming://blablub:7222");
-        props.put(JmsConstants.CONNECTION_FACTORY, "ConnectionFactory");
-        props.put(JmsConstants.USERNAME, "njams");
-        props.put(JmsConstants.PASSWORD, "njams");
-        props.put(JmsConstants.DESTINATION, "njams4.sdk.test");
+        props.put(NjamsSettings.PROPERTY_JMS_SECURITY_PRINCIPAL, "njams");
+        props.put(NjamsSettings.PROPERTY_JMS_SECURITY_CREDENTIALS, "njams");
+        props.put(NjamsSettings.PROPERTY_JMS_PROVIDER_URL, "tibjmsnaming://blablub:7222");
+        props.put(NjamsSettings.PROPERTY_JMS_CONNECTION_FACTORY, "ConnectionFactory");
+        props.put(NjamsSettings.PROPERTY_JMS_USERNAME, "njams");
+        props.put(NjamsSettings.PROPERTY_JMS_PASSWORD, "njams");
+        props.put(NjamsSettings.PROPERTY_JMS_DESTINATION, "njams4.sdk.test");
     }
 
     @Before
@@ -152,13 +152,13 @@ public class JmsReceiverTest {
      */
     /**
      * This method tests if the init works with normal Properties where
-     * JmsConstants.COMMANDS_DESTINATION is set.
+     * JmsConstants.NjamsSettings.PROPERTY_JMS_COMMANDS_DESTINATION is set.
      */
     @Test
     public void testInitWithCustomProps() {
         JmsReceiverMock.testBeforeInit(impl);
         Properties props = new Properties();
-        props.put(JmsConstants.COMMANDS_DESTINATION, "njams4.sdk.test.custom.commands");
+        props.put(NjamsSettings.PROPERTY_JMS_COMMANDS_DESTINATION, "njams4.sdk.test.custom.commands");
         impl.init(props);
         //Initialized
         JmsReceiverMock.testAfterInit(impl, props);
@@ -172,7 +172,7 @@ public class JmsReceiverTest {
     public void testMultipleInitWithSameProps() {
         JmsReceiverMock.testBeforeInit(impl);
         Properties props = new Properties();
-        props.put(JmsConstants.COMMANDS_DESTINATION, "njams4.sdk.test.custom.commands");
+        props.put(NjamsSettings.PROPERTY_JMS_COMMANDS_DESTINATION, "njams4.sdk.test.custom.commands");
         //first initialize
         impl.init(props);
         JmsReceiverMock.testAfterInit(impl, props);
@@ -188,8 +188,8 @@ public class JmsReceiverTest {
     public void testDestinationAndCommandsSet() {
         JmsReceiverMock.testBeforeInit(impl);
         Properties props = new Properties();
-        props.put(JmsConstants.DESTINATION, "njams4.overwrite");
-        props.put(JmsConstants.COMMANDS_DESTINATION, "njams4.overwritten");
+        props.put(NjamsSettings.PROPERTY_JMS_DESTINATION, "njams4.overwrite");
+        props.put(NjamsSettings.PROPERTY_JMS_COMMANDS_DESTINATION, "njams4.overwritten");
         //first initialize
         impl.init(props);
         assertEquals("njams4.overwritten", impl.getTopicName());
@@ -220,13 +220,13 @@ public class JmsReceiverTest {
     public void testConnectWithPropertiesWithRealDestinationButWithoutUsername() {
         Properties props = new Properties();
         props.put(NjamsSettings.PROPERTY_COMMUNICATION, "JMS");
-        props.put(JmsConstants.INITIAL_CONTEXT_FACTORY,
+        props.put(NjamsSettings.PROPERTY_JMS_INITIAL_CONTEXT_FACTORY,
             "com.tibco.tibjms.naming.TibjmsInitialContextFactory");
-        props.put(JmsConstants.SECURITY_PRINCIPAL, "njams");
-        props.put(JmsConstants.SECURITY_CREDENTIALS, "njams");
-        props.put(JmsConstants.PROVIDER_URL, "tibjmsnaming://blablub:7222");
-        props.put(JmsConstants.CONNECTION_FACTORY, "ConnectionFactory");
-        props.put(JmsConstants.DESTINATION, "njams4.dev.kai");
+        props.put(NjamsSettings.PROPERTY_JMS_SECURITY_PRINCIPAL, "njams");
+        props.put(NjamsSettings.PROPERTY_JMS_SECURITY_CREDENTIALS, "njams");
+        props.put(NjamsSettings.PROPERTY_JMS_PROVIDER_URL, "tibjmsnaming://blablub:7222");
+        props.put(NjamsSettings.PROPERTY_JMS_CONNECTION_FACTORY, "ConnectionFactory");
+        props.put(NjamsSettings.PROPERTY_JMS_DESTINATION, "njams4.dev.kai");
 
         JmsReceiverMock.testBeforeInit(impl);
         impl.init(props);

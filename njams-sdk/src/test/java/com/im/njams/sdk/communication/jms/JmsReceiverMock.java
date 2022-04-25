@@ -16,26 +16,22 @@
  */
 package com.im.njams.sdk.communication.jms;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-
-import java.lang.reflect.Field;
-import java.util.Properties;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.im.njams.sdk.Njams;
+import com.im.njams.sdk.NjamsSettings;
+import com.im.njams.sdk.common.Path;
+import com.im.njams.sdk.communication.ConnectionStatus;
+import org.slf4j.LoggerFactory;
 
 import javax.jms.Connection;
 import javax.jms.MessageConsumer;
 import javax.jms.Session;
+import java.lang.reflect.Field;
+import java.util.Properties;
 
-import org.slf4j.LoggerFactory;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.im.njams.sdk.Njams;
-import com.im.njams.sdk.common.Path;
-import com.im.njams.sdk.communication.ConnectionStatus;
+import static org.junit.Assert.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 /**
  * This class is a extended version of the JmsReceiver to get its fields.
@@ -102,13 +98,14 @@ class JmsReceiverMock extends JmsReceiver {
             privateField.setAccessible(true);
             return privateField.get(this);
         } catch (NullPointerException | NoSuchFieldException | SecurityException | IllegalArgumentException
-                | IllegalAccessException ex) {
+                 | IllegalAccessException ex) {
             return null;
         }
     }
 
     /**
      * This method tests if the properties that are set in init are null.
+     *
      * @param impl the instance to look in
      */
     public static void testBeforeInit(JmsReceiverMock impl) {
@@ -123,7 +120,8 @@ class JmsReceiverMock extends JmsReceiver {
      * This method tests if the properties that are set in init are filled,
      * that the status is DISCONNECTED and that the properties that are set in
      * connect() are null.
-     * @param impl the instance to look in
+     *
+     * @param impl  the instance to look in
      * @param props the properties to compare with
      */
     public static void testAfterInit(JmsReceiverMock impl, Properties props) {
@@ -132,16 +130,17 @@ class JmsReceiverMock extends JmsReceiver {
         //Stays the same
         assertNotNull(impl.getMapper());
         assertEquals(props, impl.getProperties());
-        if (props.containsKey(JmsConstants.COMMANDS_DESTINATION)) {
-            assertEquals(props.getProperty(JmsConstants.COMMANDS_DESTINATION), impl.getTopicName());
+        if (props.containsKey(NjamsSettings.PROPERTY_JMS_COMMANDS_DESTINATION)) {
+            assertEquals(props.getProperty(NjamsSettings.PROPERTY_JMS_COMMANDS_DESTINATION), impl.getTopicName());
         } else {
-            assertEquals(props.getProperty(JmsConstants.DESTINATION) + ".commands", impl.getTopicName());
+            assertEquals(props.getProperty(NjamsSettings.PROPERTY_JMS_DESTINATION) + ".commands", impl.getTopicName());
         }
         assertEquals(MESSAGESELECTORSTRING, impl.getMessageSelector());
     }
 
     /**
      * This method tests if the properties that are set in connect() are null
+     *
      * @param impl the instance to look in
      */
     public static void testBeforeConnect(JmsReceiverMock impl) {
@@ -152,6 +151,7 @@ class JmsReceiverMock extends JmsReceiver {
 
     /**
      * This method tests if the properties that are set in connect() are set
+     *
      * @param impl the instance to look in
      */
     public static void testAfterConnect(JmsReceiverMock impl) {

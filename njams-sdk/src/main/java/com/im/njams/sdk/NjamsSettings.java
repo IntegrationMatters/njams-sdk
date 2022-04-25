@@ -23,6 +23,8 @@
  */
 package com.im.njams.sdk;
 
+import javax.naming.Context;
+
 /**
  * This class is a list and documentation for all settings, which can be used in SDK.
  */
@@ -249,5 +251,88 @@ public class NjamsSettings {
     //   | |__| | |  | |____) |
     //    \____/|_|  |_|_____/
 
+    /**
+     * Prefix for the jms communication properties
+     */
+    public static final String PROPERTY_JMS_PREFIX = "njams.sdk.communication.jms.";
+
+    /**
+     * Delivery mode for JMS Sender. Attention: NonPersistent might lead to data loss.
+     */
+    public static final String PROPERTY_JMS_DELIVERY_MODE = "njams.sdk.communication.jms.delivery.mode";
+
+    /**
+     * This is for determining which ConnectionFactory to use.
+     */
+    public static final String PROPERTY_JMS_CONNECTION_FACTORY = "njams.sdk.communication.jms.connectionFactory";
+
+    /**
+     * This is the username to connect to JMS provider.
+     */
+    public static final String PROPERTY_JMS_USERNAME = "njams.sdk.communication.jms.username";
+
+    /**
+     * This is the password to connect to the JMS provider
+     */
+    public static final String PROPERTY_JMS_PASSWORD = "njams.sdk.communication.jms.password";
+
+    /**
+     * This is the prefix of the event, command and error queue, and the commands topic.
+     */
+    public static final String PROPERTY_JMS_DESTINATION = "njams.sdk.communication.jms.destination";
+
+    /**
+     * This is the prefix of the commands topic, if it is different to the one that is set in destination.
+     */
+    public static final String PROPERTY_JMS_COMMANDS_DESTINATION = "njams.sdk.communication.jms.destination.commands";
+
+    /**
+     * Specifies the jndi initial context factory.
+     */
+    public static final String PROPERTY_JMS_INITIAL_CONTEXT_FACTORY = PROPERTY_JMS_PREFIX + Context.INITIAL_CONTEXT_FACTORY;
+
+    /**
+     * Specifies the jndi security principal.
+     */
+    public static final String PROPERTY_JMS_SECURITY_PRINCIPAL = PROPERTY_JMS_PREFIX + Context.SECURITY_PRINCIPAL;
+
+    /**
+     * Specifies the jndi security credentials.
+     */
+    public static final String PROPERTY_JMS_SECURITY_CREDENTIALS = PROPERTY_JMS_PREFIX + Context.SECURITY_CREDENTIALS;
+
+    /**
+     * Specifies the jndi provider url.
+     */
+    public static final String PROPERTY_JMS_PROVIDER_URL = PROPERTY_JMS_PREFIX + Context.PROVIDER_URL;
+
+    /**
+     * Prefix for the ssl communication properties
+     */
+    public static final String SSLPREFIX = PROPERTY_JMS_PREFIX + "javax.net.ssl.";
+    /**
+     * Specifies the keyStore.
+     */
+    public static final String PROPERTY_JMS_KEYSTORE = SSLPREFIX + "keyStore";
+    /**
+     * Specifies the keyStore password.
+     */
+    public static final String PROPERTY_JMS_KEYSTOREPASSWORD = SSLPREFIX + "keyStorePassword";
+    /**
+     * Specifies the keyStore Type.
+     */
+    public static final String PROPERTY_JMS_KEYSTORETYPE = SSLPREFIX + "keyStoreType";
+    /**
+     * Specifies the trustStore.
+     */
+    public static final String PROPERTY_JMS_TRUSTSTORE = SSLPREFIX + "trustStore";
+    /**
+     * Specifies the trustStore password.
+     */
+    public static final String PROPERTY_JMS_TRUSTSTOREPASSWORD = SSLPREFIX + "trustStorePassword";
+    /**
+     * Specifies the trustStore Type.
+     */
+    public static final String PROPERTY_JMS_TRUSTSTORETYPE = SSLPREFIX + "trustStoreType";
 
 }

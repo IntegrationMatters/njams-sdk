@@ -20,7 +20,6 @@ import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.common.Path;
 import com.im.njams.sdk.communication.cloud.CloudConstants;
-import com.im.njams.sdk.communication.jms.JmsConstants;
 import com.im.njams.sdk.logmessage.Activity;
 import com.im.njams.sdk.logmessage.Job;
 import com.im.njams.sdk.model.ActivityModel;
@@ -139,18 +138,18 @@ public class SimpleClient {
     private static Settings getJmsProperties() {
         Settings communicationProperties = new Settings();
         communicationProperties.put(NjamsSettings.PROPERTY_COMMUNICATION, "JMS");
-        communicationProperties.put(JmsConstants.INITIAL_CONTEXT_FACTORY,
+        communicationProperties.put(NjamsSettings.PROPERTY_JMS_INITIAL_CONTEXT_FACTORY,
             "com.tibco.tibjms.naming.TibjmsInitialContextFactory");
-        communicationProperties.put(JmsConstants.SECURITY_PRINCIPAL, "njams");
-        communicationProperties.put(JmsConstants.SECURITY_CREDENTIALS, "njams");
-        communicationProperties.put(JmsConstants.PROVIDER_URL, "tibjmsnaming://os0155:7222");
-        communicationProperties.put(JmsConstants.CONNECTION_FACTORY, "ConnectionFactory");
-        communicationProperties.put(JmsConstants.USERNAME, "njams");
-        communicationProperties.put(JmsConstants.PASSWORD, "njams");
-        communicationProperties.put(JmsConstants.DESTINATION, "njams.endurance");
+        communicationProperties.put(NjamsSettings.PROPERTY_JMS_SECURITY_PRINCIPAL, "njams");
+        communicationProperties.put(NjamsSettings.PROPERTY_JMS_SECURITY_CREDENTIALS, "njams");
+        communicationProperties.put(NjamsSettings.PROPERTY_JMS_PROVIDER_URL, "tibjmsnaming://os0155:7222");
+        communicationProperties.put(NjamsSettings.PROPERTY_JMS_CONNECTION_FACTORY, "ConnectionFactory");
+        communicationProperties.put(NjamsSettings.PROPERTY_JMS_USERNAME, "njams");
+        communicationProperties.put(NjamsSettings.PROPERTY_JMS_PASSWORD, "njams");
+        communicationProperties.put(NjamsSettings.PROPERTY_JMS_DESTINATION, "njams.endurance");
         // optional: if you want to use a topic for commands not following the name of
         // the other destinations, specify it here
-        communicationProperties.put(JmsConstants.COMMANDS_DESTINATION, "njams4.blablub.commands");
+        communicationProperties.put(NjamsSettings.PROPERTY_JMS_COMMANDS_DESTINATION, "njams4.blablub.commands");
         return communicationProperties;
     }
 
