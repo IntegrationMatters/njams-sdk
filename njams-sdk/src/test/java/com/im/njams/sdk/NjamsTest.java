@@ -187,8 +187,8 @@ public class NjamsTest {
         DataMasking.removePatterns();
 
         Settings settings = new Settings();
-        settings.put(DataMasking.DATA_MASKING_ENABLED, "true");
-        settings.put(DataMasking.DATA_MASKING_REGEX_PREFIX + "MaskAll", ".*");
+        settings.put(NjamsSettings.PROPERTY_DATA_MASKING_ENABLED, "true");
+        settings.put(NjamsSettings.PROPERTY_DATA_MASKING_REGEX_PREFIX + "MaskAll", ".*");
         settings.put(NjamsSettings.PROPERTY_COMMUNICATION, TestSender.NAME);
 
         Njams njams = new Njams(new Path("TestPath"), "1.0.0", "SDK", settings);
@@ -201,8 +201,8 @@ public class NjamsTest {
     public void disableDataMaskingViaSettings() {
         DataMasking.removePatterns();
         Settings settings = new Settings();
-        settings.put(DataMasking.DATA_MASKING_ENABLED, "false");
-        settings.put(DataMasking.DATA_MASKING_REGEX_PREFIX, ".*");
+        settings.put(NjamsSettings.PROPERTY_DATA_MASKING_ENABLED, "false");
+        settings.put(NjamsSettings.PROPERTY_DATA_MASKING_REGEX_PREFIX, ".*");
         settings.put(NjamsSettings.PROPERTY_COMMUNICATION, TestSender.NAME);
 
         Njams njams = new Njams(new Path("TestPath"), "1.0.0", "SDK", settings);
@@ -216,8 +216,8 @@ public class NjamsTest {
         DataMasking.removePatterns();
 
         Settings settings = new Settings();
-        settings.put(DataMasking.DATA_MASKING_ENABLED, "false");
-        settings.put(DataMasking.DATA_MASKING_REGEX_PREFIX, ".*");
+        settings.put(NjamsSettings.PROPERTY_DATA_MASKING_ENABLED, "false");
+        settings.put(NjamsSettings.PROPERTY_DATA_MASKING_REGEX_PREFIX, ".*");
         settings.put(NjamsSettings.PROPERTY_COMMUNICATION, TestSender.NAME);
 
         Njams njams = new Njams(new Path("TestPath"), "1.0.0", "SDK", settings);
@@ -234,7 +234,7 @@ public class NjamsTest {
     public void enableDataMaskingWithoutRegex() {
         DataMasking.removePatterns();
         Settings settings = new Settings();
-        settings.put(DataMasking.DATA_MASKING_ENABLED, "true");
+        settings.put(NjamsSettings.PROPERTY_DATA_MASKING_ENABLED, "true");
         settings.put(NjamsSettings.PROPERTY_COMMUNICATION, TestSender.NAME);
 
         Njams njams = new Njams(new Path("TestPath"), "1.0.0", "SDK", settings);

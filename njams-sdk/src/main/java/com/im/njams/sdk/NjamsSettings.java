@@ -39,22 +39,46 @@ public class NjamsSettings {
     //
     /**
      * Property key for communication properties which specifies which
-     * communication implementation will be used
+     * communication implementation will be used.
+     * <p>
+     * Possible values:
+     * <ul>
+     * <li>JMS
+     * <li>HTTP
+     * <li>HTTPS
+     * <li>CLOUD
+     * <li>KAFKA
+     * <li>YOUR-OWN-COMMUNICATION
+     * </ul>
      */
     public static final String PROPERTY_COMMUNICATION = "njams.sdk.communication";
 
     /**
-     * Setting for enabling the logAllErrors feature.
+     * When this settings is false (default) nJAMS creates error events only for error situations that are not
+     * handled by the execution engine. If set to true, nJAMS will also create error events for errors that are handled.
      */
     public static final String PROPERTY_LOG_ALL_ERRORS = "njams.sdk.logAllErrors";
 
     /**
-     * Setting for truncate limit (nJAMS strip-mode). Number of activities/events before messages are truncated.
+     * When setting this option to a positive number, the nJAMS client will stop sending detailed activity- and
+     * transition information to the server once that number of activities has been reached. The client will
+     * however continue sending job status- and event information. In nJAMS server you will not see transitions
+     * between activities for such job instances.
+     * <p>
+     * This option goes along with the according setting in nJAMS server. But when using different settings here
+     * and in the server, the smaller value (greater than 0) will take effect.
      */
     public static final String PROPERTY_TRUNCATE_LIMIT = "njams.sdk.truncateActivitiesLimit";
 
     /**
-     * Setting for truncating successful jobs, provided that they were processed as single message.
+     * When this setting is enabled (true), the nJAMS client will not send detailed activity- and transition information
+     * for job instances that completed successfully. The client will however send job status- and event information.
+     * Job instances completing with any other status than success are not affected by this setting.
+     * In nJAMS server you will not see transitions between activities for such job instances.
+     * This setting has only limited effect on job instances that send more than a single message because it only
+     * affects the last message being sent.
+     * This option goes along with the according setting in nJAMS server (compress successful transactions).
+     * It will be effective if it is either set here in the client, or in the server.
      */
     public static final String PROPERTY_TRUNCATE_ON_SUCCESS = "njams.sdk.truncateOnSuccess";
 
@@ -67,6 +91,7 @@ public class NjamsSettings {
     //    \_____|_|_|\___|_| |_|\__| |_____/|_____/|_|\_\
     /**
      * This property is a flush criteria with a default of 5mb.
+     * <p>
      * If the flush size of the @{@link com.faizsiegeln.njams.messageformat.v4.logmessage.LogMessage}
      * exceeds this threshold, the message will be flushed
      */
@@ -74,6 +99,7 @@ public class NjamsSettings {
 
     /**
      * This property is a flush criteria with a default of 30s.
+     * <p>
      * If no @{@link com.faizsiegeln.njams.messageformat.v4.logmessage.LogMessage}
      * has been sent in the last 30 seconds, it will be flushed
      */
@@ -108,7 +134,12 @@ public class NjamsSettings {
 
     /**
      * This property decides what to do with a logmessage that couldn't be delivered (because of connection loss, full queue, etc.)
-     * Possible values are: none|onconnectionloss|discard (Default is none)
+     * Possible values are:
+     * <ul>
+     * <li>none (Default)
+     * <li>onconnectionloss
+     * <li>discard
+     * </ul>
      */
     public static final String PROPERTY_DISCARD_POLICY = "njams.client.sdk.discardpolicy";
 
@@ -138,6 +169,47 @@ public class NjamsSettings {
     public static final String PROPERTY_DISABLE_SECURE_PROCESSING = "njams.client.sdk.disable.secure.processing";
 
 
+    //     _____      _   _   _
+    //    / ____|    | | | | (_)
+    //   | (___   ___| |_| |_ _ _ __   __ _ ___
+    //    \___ \ / _ \ __| __| | '_ \ / _` / __|
+    //    ____) |  __/ |_| |_| | | | | (_| \__ \
+    //   |_____/ \___|\__|\__|_|_| |_|\__, |___/
+    //                                 __/ |
+    //                                |___/
+    /**
+     * Property key for the settings properties. Specifies which implementation will be loaded.
+     * Possible values:
+     *
+     * <ul>
+     * <li>file
+     * <li>propertiesFile
+     * <li>memory
+     * <li>systemProperties
+     * </ul>
+     */
+    public static final String PROPERTY_SETTINGS_PROVIDER = "njams.sdk.settings.provider";
+
+    /**
+     * Specifies the path to the settings file for "file" settings provider.
+     */
+    public static final String PROPERTY_FILE_SETTINGS_FILE = "njams.sdk.settings.file";
+
+    /**
+     * Property key for the propertiesFile provider, specifying the path to the properties file to be used.
+     */
+    public static final String PROPERTY_PROPERTIES_FILE_SETTINGS_FILE = "njams.sdk.settings.properties.file";
+    /**
+     * Default property key for loading parent (default) configuration file for the propertiesFile provider.
+     * See {@link #PROPERTY_PROPERTIES_FILE_SETTINGS_PARENT_KEY} for using an alternative key.
+     */
+    public static final String PROPERTY_PROPERTIES_FILE_SETTINGS_PARENT_FILE = "njams.sdk.settings.properties.parent";
+    /**
+     * Allows to override the default parent file key for the propertiesFile provider.
+     * ({@value #PROPERTY_PROPERTIES_FILE_SETTINGS_PARENT_FILE}).
+     */
+    public static final String PROPERTY_PROPERTIES_FILE_SETTINGS_PARENT_KEY = "njams.sdk.settings.properties.parentKey";
+
     //
     //       /\
     //      /  \   _ __ __ _  ___  ___
@@ -149,17 +221,17 @@ public class NjamsSettings {
     /**
      * Name of the property flag to enable or disable collecting Argos Metrics.
      */
-    public static final String NJAMS_SUBAGENT_ENABLED = "njams.sdk.subagent.enabled";
+    public static final String PROPERTY_ARGOS_SUBAGENT_ENABLED = "njams.sdk.subagent.enabled";
 
     /**
      * Name of the property port where the nJAMS Agent runs and ArgosSender will send metrics
      */
-    public static final String NJAMS_SUBAGENT_PORT = "njams.sdk.subagent.port";
+    public static final String PROPERTY_ARGOS_SUBAGENT_PORT = "njams.sdk.subagent.port";
 
     /**
      * Name of the property host where the nJAMS Agent runs and ArgosSender will send metrics
      */
-    public static final String NJAMS_SUBAGENT_HOST = "njams.sdk.subagent.host";
+    public static final String PROPERTY_ARGOS_SUBAGENT_HOST = "njams.sdk.subagent.host";
 
 
     //    _    _ _______ _______ _____
@@ -170,7 +242,8 @@ public class NjamsSettings {
     //   |_|  |_|  |_|     |_|  |_|
 
     /**
-     * The URL, where the nJAMS Server is running and reachable (eg. <a href="http://localhost:8080/njams/">http://localhost:8080/njams/</a>)
+     * The URL, where the nJAMS Server is running and reachable
+     * (eg. <a href="http://localhost:8080/njams/">http://localhost:8080/njams/</a>)
      */
     public static final String PROPERTY_HTTP_BASE_URL = "njams.sdk.communication.http.base.url";
 
@@ -222,12 +295,12 @@ public class NjamsSettings {
 
     /**
      * All properties with these prefixes are directly passed to the Kafka clients used by the SDK:
-     * <p>
-     * njams.sdk.communication.kafka.client.*
-     * njams.sdk.communication.kafka.consumer.*
-     * njams.sdk.communication.kafka.producer.*
-     * njams.sdk.communication.kafka.admin.*
-     * <p>
+     * <ul>
+     * <li>njams.sdk.communication.kafka.client.*
+     * <li>njams.sdk.communication.kafka.consumer.*
+     * <li>njams.sdk.communication.kafka.producer.*
+     * <li>njams.sdk.communication.kafka.admin.*
+     * </ul>
      * E.g., the only one mandatory setting is boostrap.servers (see above). pref.client.* is a shortcut for
      * properties that shall be used for all client types, i.e., it includes the consumer, producer, and admin prefix.
      * Properties using one of the other prefixes will only be used for the respective client type, e.g., any setting
@@ -343,5 +416,69 @@ public class NjamsSettings {
      * Specifies the trustStore Type.
      */
     public static final String PROPERTY_JMS_TRUSTSTORETYPE = SSLPREFIX + "trustStoreType";
+
+
+    //    _____        _                            _    _
+    //   |  __ \      | |                          | |  (_)
+    //   | |  | | __ _| |_ __ _ _ __ ___   __ _ ___| | ___ _ __   __ _
+    //   | |  | |/ _` | __/ _` | '_ ` _ \ / _` / __| |/ / | '_ \ / _` |
+    //   | |__| | (_| | || (_| | | | | | | (_| \__ \   <| | | | | (_| |
+    //   |_____/ \__,_|\__\__,_|_| |_| |_|\__,_|___/_|\_\_|_| |_|\__, |
+    //                                                            __/ |
+    //                                                           |___/
+    /**
+     * When this setting is true (default) nJAMS enables dataMasking.
+     * When false, DataMasking is disabled for the regexes defined in the properties AND in the config.json.
+     */
+    public static final String PROPERTY_DATA_MASKING_ENABLED = "njams.sdk.datamasking.enabled";
+
+    /**
+     * You can define multiple datamasking regex key-value pairs. Always use the prefix
+     * for the regexes that should be used for pattern matching to find data that you want to be masked.
+     * <ul>
+     *     <li>njams.sdk.datamasking.regex.NAME_FOR_REGEX_1=THE_REGEX_1
+     *     <li>njams.sdk.datamasking.regex.NAME_FOR_REGEX_2=THE_REGEX_2
+     * </ul>
+     * <p>
+     * Examples:
+     * <p>
+     * "njams.sdk.datamasking.regex.maskAll = ."
+     * would mask all data.
+     * </p>
+     * <p>
+     * "njams.sdk.datamasking.regex.maskPasswords = password: ."
+     * would mask every occurrence of a string that looks like this:
+     * "password: <AnythingCanStandHere" and would result in a string that looks like this "*******************",
+     * </p>
+     */
+    public static final String PROPERTY_DATA_MASKING_REGEX_PREFIX = "njams.sdk.datamasking.regex.";
+
+
+    //     _____ _                 _
+    //    / ____| |               | |
+    //   | |    | | ___  _   _  __| |
+    //   | |    | |/ _ \| | | |/ _` |
+    //   | |____| | (_) | |_| | (_| |
+    //    \_____|_|\___/ \__,_|\__,_|;
+    /**
+     * This is the ingest point of the cloud instance.
+     */
+    public static final String PROPERTY_CLOUD_ENDPOINT = "njams.sdk.communication.cloud.endpoint";
+    /**
+     * This is the path to the api.key file.
+     */
+    public static final String PROPERTY_CLOUD_APIKEY = "njams.sdk.communication.cloud.apikey";
+    /**
+     * This is the name of the njams cloud instance.
+     */
+    public static final String PROPERTY_CLOUD_CLIENT_INSTANCEID = "njams.sdk.communication.cloud.instanceid";
+    /**
+     * This is the path to the certificate.pem file.
+     */
+    public static final String PROPERTY_CLOUD_CLIENT_CERTIFICATE = "njams.sdk.communication.cloud.certificate";
+    /**
+     * This is the path to the private.pem.key file.
+     */
+    public static final String PROPERTY_CLOUD_CLIENT_PRIVATEKEY = "njams.sdk.communication.cloud.privatekey";
 
 }

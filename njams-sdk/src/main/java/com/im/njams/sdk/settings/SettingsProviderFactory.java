@@ -16,6 +16,7 @@
  */
 package com.im.njams.sdk.settings;
 
+import com.im.njams.sdk.NjamsSettings;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -35,6 +36,7 @@ public class SettingsProviderFactory {
     /**
      * Property key for the settings properties. Specifies which implementation will be loaded.
      */
+    @Deprecated
     public static final String SETTINGS_PROVIDER = "njams.sdk.settings.provider";
 
     /**
@@ -44,8 +46,8 @@ public class SettingsProviderFactory {
      * @return the {@link SettingsProvider} or a {@link UnsupportedOperationException}
      */
     public static SettingsProvider getSettingsProvider(final Properties properties) {
-        if (properties.containsKey(SETTINGS_PROVIDER)) {
-            final String name = properties.getProperty(SETTINGS_PROVIDER);
+        if (properties.containsKey(NjamsSettings.PROPERTY_SETTINGS_PROVIDER)) {
+            final String name = properties.getProperty(NjamsSettings.PROPERTY_SETTINGS_PROVIDER);
             final ServiceLoader<SettingsProvider> receiverList = ServiceLoader.load(SettingsProvider.class);
             final Iterator<SettingsProvider> iterator = receiverList.iterator();
             while (iterator.hasNext()) {
@@ -64,7 +66,7 @@ public class SettingsProviderFactory {
                     + available);
         } else {
             throw new UnsupportedOperationException(
-                "Unable to find " + SETTINGS_PROVIDER + " in settings properties");
+                "Unable to find " + NjamsSettings.PROPERTY_SETTINGS_PROVIDER + " in settings properties");
         }
     }
 }

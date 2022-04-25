@@ -17,6 +17,7 @@
 package com.faizsiegeln.test;
 
 import com.im.njams.sdk.Njams;
+import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.common.Path;
 import com.im.njams.sdk.logmessage.Activity;
 import com.im.njams.sdk.logmessage.Job;
@@ -43,16 +44,16 @@ public class SettingsFromFileClient {
 
         // Use Properties File Settings Provider
         Properties settingsProviderProperties = new Properties();
-        settingsProviderProperties.setProperty(SettingsProviderFactory.SETTINGS_PROVIDER,
+        settingsProviderProperties.setProperty(NjamsSettings.PROPERTY_SETTINGS_PROVIDER,
             PropertiesFileSettingsProvider.NAME);
         SettingsProvider provider = SettingsProviderFactory.getSettingsProvider(settingsProviderProperties);
 
         // Specifiy location of properties file to load
         Properties fileConfig = new Properties();
         if (args.length < 1) {
-            fileConfig.setProperty(PropertiesFileSettingsProvider.FILE_CONFIGURATION, "target/classes/settings.properties");
+            fileConfig.setProperty(NjamsSettings.PROPERTY_PROPERTIES_FILE_SETTINGS_FILE, "target/classes/settings.properties");
         } else {
-            fileConfig.setProperty(PropertiesFileSettingsProvider.FILE_CONFIGURATION, args[0]);
+            fileConfig.setProperty(NjamsSettings.PROPERTY_PROPERTIES_FILE_SETTINGS_FILE, args[0]);
         }
         provider.configure(fileConfig);
         Settings settings = provider.loadSettings();

@@ -16,6 +16,17 @@
  */
 package com.im.njams.sdk.logmessage;
 
+import com.im.njams.sdk.Njams;
+import com.im.njams.sdk.NjamsSettings;
+import com.im.njams.sdk.model.ActivityModel;
+import com.im.njams.sdk.model.ProcessModel;
+import org.junit.After;
+import org.junit.BeforeClass;
+import org.junit.Test;
+import org.mockito.Mockito;
+
+import java.util.Properties;
+
 import static junit.framework.TestCase.assertEquals;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.not;
@@ -23,19 +34,7 @@ import static org.junit.Assert.assertThat;
 import static org.mockito.Matchers.anyObject;
 import static org.mockito.Mockito.doAnswer;
 
-import org.junit.After;
-import org.junit.BeforeClass;
-import org.junit.Test;
-import org.mockito.Mockito;
-
-import com.im.njams.sdk.Njams;
-import com.im.njams.sdk.model.ActivityModel;
-import com.im.njams.sdk.model.ProcessModel;
-
-import java.util.Properties;
-
 /**
- *
  * @author pnientiedt
  */
 public class DataMaskingTest {
@@ -105,9 +104,9 @@ public class DataMaskingTest {
     }
 
     @Test
-    public void addPatternsFromProperties(){
+    public void addPatternsFromProperties() {
         Properties properties = new Properties();
-        properties.put(DataMasking.DATA_MASKING_REGEX_PREFIX + "creditcard", "Creditcard Number : \\p{Digit}+");
+        properties.put(NjamsSettings.PROPERTY_DATA_MASKING_REGEX_PREFIX + "creditcard", "Creditcard Number : \\p{Digit}+");
         properties.put("SomeOtherString", ".*");
         DataMasking.addPatterns(properties);
         final String maskedString1 = DataMasking.maskString("Creditcard Number : 1234");

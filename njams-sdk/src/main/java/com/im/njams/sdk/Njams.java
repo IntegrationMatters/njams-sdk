@@ -1245,7 +1245,8 @@ public class Njams implements InstructionListener {
         Properties properties = settings.getAllProperties();
         boolean dataMaskingEnabled = true;
         if (properties != null) {
-            dataMaskingEnabled = Boolean.parseBoolean(properties.getProperty(DataMasking.DATA_MASKING_ENABLED, "true"));
+            dataMaskingEnabled = Boolean.parseBoolean(properties.getProperty(NjamsSettings.PROPERTY_DATA_MASKING_ENABLED,
+                "true"));
             if (dataMaskingEnabled) {
                 DataMasking.addPatterns(properties);
             } else {
@@ -1256,7 +1257,7 @@ public class Njams implements InstructionListener {
             LOG.warn("DataMasking via the configuration is deprecated but will be used as well. Use settings " +
                     "with the properties \n{} = " +
                     "\"true\" \nand multiple \n{}<YOUR-REGEX-NAME> = <YOUR-REGEX> \nfor this.",
-                DataMasking.DATA_MASKING_ENABLED, DataMasking.DATA_MASKING_REGEX_PREFIX);
+                NjamsSettings.PROPERTY_DATA_MASKING_ENABLED, NjamsSettings.PROPERTY_DATA_MASKING_REGEX_PREFIX);
             DataMasking.addPatterns(configuration.getDataMasking());
         }
     }

@@ -23,13 +23,14 @@
  */
 package com.im.njams.sdk.logmessage;
 
+import com.im.njams.sdk.NjamsSettings;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
 import java.util.regex.Matcher;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * DataMasking implementation
@@ -41,11 +42,13 @@ public class DataMasking {
     /**
      * Property njams.sdk.datamasking.enabled
      */
+    @Deprecated
     public static final String DATA_MASKING_ENABLED = "njams.sdk.datamasking.enabled";
 
     /**
      * Property njams.sdk.datamasking.regex.
      */
+    @Deprecated
     public static final String DATA_MASKING_REGEX_PREFIX = "njams.sdk.datamasking.regex.";
 
     private static final Logger LOG = LoggerFactory.getLogger(DataMasking.class);
@@ -86,7 +89,7 @@ public class DataMasking {
             }
             if (foundAtleastOneMatch && LOG.isDebugEnabled()) {
                 LOG.debug("\nApplied masking of pattern: \"{}\". \nThe regex is: \"{}\"",
-                        dataMaskingType.getNameOfPattern(), dataMaskingType.getRegex());
+                    dataMaskingType.getNameOfPattern(), dataMaskingType.getRegex());
             }
         }
         if (foundAtleastOneMatch && LOG.isTraceEnabled()) {
@@ -114,17 +117,18 @@ public class DataMasking {
     }
 
     /**
-     * This method takes a reads all key-value pairs where the key starts with {@link #DATA_MASKING_REGEX_PREFIX} and
+     * This method reads all key-value pairs where the key starts with
+     * {@link com.im.njams.sdk.NjamsSettings#PROPERTY_DATA_MASKING_REGEX_PREFIX} and
      * adds them to a data masking list.
      *
      * @param properties the properties to provide
      */
     public static void addPatterns(Properties properties) {
-        properties.keySet().stream().filter((key) -> ((String) key).startsWith(DATA_MASKING_REGEX_PREFIX))
-                .forEach((key) -> {
-                    String name = ((String) key).substring(DATA_MASKING_REGEX_PREFIX.length());
-                    addPattern(name, properties.getProperty((String) key));
-                });
+        properties.keySet().stream().filter((key) -> ((String) key).startsWith(NjamsSettings.PROPERTY_DATA_MASKING_REGEX_PREFIX))
+            .forEach((key) -> {
+                String name = ((String) key).substring(NjamsSettings.PROPERTY_DATA_MASKING_REGEX_PREFIX.length());
+                addPattern(name, properties.getProperty((String) key));
+            });
     }
 
     /**
@@ -137,11 +141,11 @@ public class DataMasking {
     public static void addPattern(String nameOfPattern, String regexAsString) {
         try {
             String nameToAdd = (nameOfPattern != null && !nameOfPattern.isEmpty()) ? nameOfPattern :
-                    "" + DATA_MASKING_TYPES.size();
+                "" + DATA_MASKING_TYPES.size();
             DataMaskingType dataMaskingTypeToAdd = new DataMaskingType(nameToAdd, regexAsString);
             DATA_MASKING_TYPES.add(dataMaskingTypeToAdd);
             LOG.info("Added masking pattern \"{}\" with regex: \"{}\"", dataMaskingTypeToAdd.getNameOfPattern(),
-                    dataMaskingTypeToAdd.getRegex());
+                dataMaskingTypeToAdd.getRegex());
         } catch (Exception e) {
             LOG.error("Could not add pattern " + regexAsString, e);
         }

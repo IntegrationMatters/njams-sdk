@@ -28,7 +28,6 @@ import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.argos.ArgosCollector;
 import com.im.njams.sdk.argos.ArgosComponent;
 import com.im.njams.sdk.argos.ArgosMetric;
-import com.im.njams.sdk.argos.ArgosSender;
 import com.im.njams.sdk.common.Path;
 import com.im.njams.sdk.settings.Settings;
 
@@ -88,9 +87,9 @@ public class RandomNumberSenderClient {
         communicationProperties.put(NjamsSettings.PROPERTY_JMS_COMMANDS_DESTINATION, "njams4.dev.phillip.commands");
 
         //Argos relevant properties
-        communicationProperties.put(ArgosSender.NJAMS_SUBAGENT_HOST, "os1113");
-        communicationProperties.put(ArgosSender.NJAMS_SUBAGENT_PORT, "6450");
-        communicationProperties.put(ArgosSender.NJAMS_SUBAGENT_ENABLED, "true");
+        communicationProperties.put(NjamsSettings.PROPERTY_ARGOS_SUBAGENT_HOST, "os1113");
+        communicationProperties.put(NjamsSettings.PROPERTY_ARGOS_SUBAGENT_PORT, "6450");
+        communicationProperties.put(NjamsSettings.PROPERTY_ARGOS_SUBAGENT_ENABLED, "true");
         return communicationProperties;
     }
 
