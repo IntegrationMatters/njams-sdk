@@ -441,15 +441,14 @@ public class NjamsSettings {
      * </ul>
      * <p>
      * Examples:
-     * <p>
+     * <pre>
      * "njams.sdk.datamasking.regex.maskAll = ."
      * would mask all data.
-     * </p>
-     * <p>
+     *
      * "njams.sdk.datamasking.regex.maskPasswords = password: ."
      * would mask every occurrence of a string that looks like this:
-     * "password: <AnythingCanStandHere" and would result in a string that looks like this "*******************",
-     * </p>
+     * "password: AnythingCanStandHere" and would result in a string that looks like this "*******************"
+     * </pre>
      */
     public static final String PROPERTY_DATA_MASKING_REGEX_PREFIX = "njams.sdk.datamasking.regex.";
 
