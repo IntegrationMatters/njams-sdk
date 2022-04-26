@@ -49,19 +49,19 @@ public class ArgosSender implements Closeable {
      * Name of the property flag to enable or disable collecting Argos Metrics.
      */
     @Deprecated
-    public static final String NJAMS_SUBAGENT_ENABLED = "njams.sdk.subagent.enabled";
+    public static final String NJAMS_SUBAGENT_ENABLED = NjamsSettings.PROPERTY_ARGOS_SUBAGENT_ENABLED;
 
     /**
      * Name of the property port where the nJAMS Agent runs and ArgosSender will send metrics
      */
     @Deprecated
-    public static final String NJAMS_SUBAGENT_PORT = "njams.sdk.subagent.port";
+    public static final String NJAMS_SUBAGENT_PORT = NjamsSettings.PROPERTY_ARGOS_SUBAGENT_PORT;
 
     /**
      * Name of the property host where the nJAMS Agent runs and ArgosSender will send metrics
      */
     @Deprecated
-    public static final String NJAMS_SUBAGENT_HOST = "njams.sdk.subagent.host";
+    public static final String NJAMS_SUBAGENT_HOST = NjamsSettings.PROPERTY_ARGOS_SUBAGENT_HOST;
 
     //Defaults
     private static final String DEFAULT_HOST = "localhost";

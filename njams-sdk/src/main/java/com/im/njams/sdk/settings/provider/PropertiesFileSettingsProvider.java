@@ -57,19 +57,19 @@ public class PropertiesFileSettingsProvider implements SettingsProvider {
      * settings.
      */
     @Deprecated
-    public static final String FILE_CONFIGURATION = "njams.sdk.settings.properties.file";
+    public static final String FILE_CONFIGURATION = NjamsSettings.PROPERTY_PROPERTIES_FILE_SETTINGS_FILE;
     /**
      * Default property key for loading parent (default) configuration file. See
      * {@link #PARENT_CONFIGURATION_KEY} for using an alternative key.
      */
     @Deprecated
-    public static final String PARENT_CONFIGURATION = "njams.sdk.settings.properties.parent";
+    public static final String PARENT_CONFIGURATION = NjamsSettings.PROPERTY_PROPERTIES_FILE_SETTINGS_PARENT_FILE;
     /**
      * Allows to override the default parent file key
      * ({@value #PARENT_CONFIGURATION}).
      */
     @Deprecated
-    public static final String PARENT_CONFIGURATION_KEY = "njams.sdk.settings.properties.parentKey";
+    public static final String PARENT_CONFIGURATION_KEY = NjamsSettings.PROPERTY_PROPERTIES_FILE_SETTINGS_PARENT_KEY;
 
     /**
      * The currently set properties file.

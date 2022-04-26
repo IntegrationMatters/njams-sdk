@@ -37,7 +37,7 @@ public class SettingsProviderFactory {
      * Property key for the settings properties. Specifies which implementation will be loaded.
      */
     @Deprecated
-    public static final String SETTINGS_PROVIDER = "njams.sdk.settings.provider";
+    public static final String SETTINGS_PROVIDER = NjamsSettings.PROPERTY_SETTINGS_PROVIDER;
 
     /**
      * Returns the SettingsProvider, which name matches the name given via the Properties into the constructor.

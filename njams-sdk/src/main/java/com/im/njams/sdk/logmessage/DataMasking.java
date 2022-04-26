@@ -43,13 +43,13 @@ public class DataMasking {
      * Property njams.sdk.datamasking.enabled
      */
     @Deprecated
-    public static final String DATA_MASKING_ENABLED = "njams.sdk.datamasking.enabled";
+    public static final String DATA_MASKING_ENABLED = NjamsSettings.PROPERTY_DATA_MASKING_ENABLED;
 
     /**
      * Property njams.sdk.datamasking.regex.
      */
     @Deprecated
-    public static final String DATA_MASKING_REGEX_PREFIX = "njams.sdk.datamasking.regex.";
+    public static final String DATA_MASKING_REGEX_PREFIX = NjamsSettings.PROPERTY_DATA_MASKING_REGEX_PREFIX;
 
     private static final Logger LOG = LoggerFactory.getLogger(DataMasking.class);
 

@@ -40,7 +40,7 @@ public class CommunicationFactory {
      * communication implementation will be used.
      */
     @Deprecated
-    public static final String COMMUNICATION = "njams.sdk.communication";
+    public static final String COMMUNICATION = NjamsSettings.PROPERTY_COMMUNICATION;
 
     private final Settings settings;
     private final CommunicationServiceLoader<Receiver> receivers;

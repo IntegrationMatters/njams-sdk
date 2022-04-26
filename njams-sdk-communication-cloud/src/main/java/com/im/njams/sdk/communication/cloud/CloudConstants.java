@@ -16,6 +16,8 @@
  */
 package com.im.njams.sdk.communication.cloud;
 
+import com.im.njams.sdk.NjamsSettings;
+
 /**
  * @author pnientiedt
  */
@@ -25,17 +27,16 @@ public class CloudConstants {
         //utility
     }
 
-    @Deprecated
-    public static final String PROPERTY_PREFIX = "njams.sdk.communication.cloud";
     public static final String NAME = "CLOUD";
+    
     @Deprecated
-    public static final String ENDPOINT = PROPERTY_PREFIX + ".endpoint";
+    public static final String ENDPOINT = NjamsSettings.PROPERTY_CLOUD_ENDPOINT;
     @Deprecated
-    public static final String APIKEY = PROPERTY_PREFIX + ".apikey";
+    public static final String APIKEY = NjamsSettings.PROPERTY_CLOUD_APIKEY;
     @Deprecated
-    public static final String CLIENT_INSTANCEID = PROPERTY_PREFIX + ".instanceid";
+    public static final String CLIENT_INSTANCEID = NjamsSettings.PROPERTY_CLOUD_CLIENT_INSTANCEID;
     @Deprecated
-    public static final String CLIENT_CERTIFICATE = PROPERTY_PREFIX + ".certificate";
+    public static final String CLIENT_CERTIFICATE = NjamsSettings.PROPERTY_CLOUD_CLIENT_CERTIFICATE;
     @Deprecated
-    public static final String CLIENT_PRIVATEKEY = PROPERTY_PREFIX + ".privatekey";
+    public static final String CLIENT_PRIVATEKEY = NjamsSettings.PROPERTY_CLOUD_CLIENT_PRIVATEKEY;
 }

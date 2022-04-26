@@ -42,7 +42,7 @@ public class FileSettingsProvider implements SettingsProvider {
      * settings file.
      */
     @Deprecated
-    public static final String FILE_CONFIGURATION = "njams.sdk.settings.file";
+    public static final String FILE_CONFIGURATION = NjamsSettings.PROPERTY_FILE_SETTINGS_FILE;
     /**
      * Name of the FileSettingsProvider
      */
