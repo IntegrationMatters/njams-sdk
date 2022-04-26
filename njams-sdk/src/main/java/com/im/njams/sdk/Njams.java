@@ -632,6 +632,14 @@ public class Njams{
     }
 
     /**
+     * Flush all Resources to the server by creating a new ProjectMessage.
+     */
+    @Deprecated
+    public void sendProjectMessage(){
+        njamsProjectMessage.sendProjectMessage();
+    }
+
+    /**
      * Send an additional process for an already started client.
      * This will create a small ProjectMessage only containing the new process.
      *

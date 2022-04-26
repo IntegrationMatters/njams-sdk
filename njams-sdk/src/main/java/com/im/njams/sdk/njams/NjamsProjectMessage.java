@@ -152,7 +152,7 @@ public class NjamsProjectMessage implements InstructionListener {
         sendProjectMessage();
     }
 
-    private void sendProjectMessage(){
+    public void sendProjectMessage(){
         addDefaultImagesIfNeededAndAbsent();
         final ProjectMessage msg = new ProjectMessage();
         setStarters();
