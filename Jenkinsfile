@@ -1,9 +1,9 @@
 #!/usr/bin/env groovy
 properties([
-        buildDiscarder(logRotator(artifactDaysToKeepStr: '', artifactNumToKeepStr: '', daysToKeepStr: '', numToKeepStr: '10')),
-        pipelineTriggers([
-                //pollSCM('')
-        ])
+    buildDiscarder(logRotator(artifactDaysToKeepStr: '', artifactNumToKeepStr: '', daysToKeepStr: '', numToKeepStr: '10')),
+    pipelineTriggers([
+        //pollSCM('')
+    ])
 ])
 
 node('master') {
@@ -67,42 +67,45 @@ node('master') {
             }
             archiveArtifacts 'target/*.jar'
         }
-   }
-   stage('Checkstyle') {
-       echo "Build Checkstyle"
-       dir ('njams-sdk') {
-	      try {
-             sh "'${mvnHome}/bin/mvn' site"
-          } finally {
-             archiveArtifacts '**/checkstyle-result.xml'
-          }
+    }
+    stage('Checkstyle') {
+        echo "Build Checkstyle"
+        dir('njams-sdk') {
+            try {
+                sh "'${mvnHome}/bin/mvn' site"
+            } finally {
+                archiveArtifacts '**/checkstyle-result.xml'
+            }
 
-          publishHTML([allowMissing: false,
-              alwaysLinkToLastBuild: true,
-              keepAll: false,
-              reportDir: 'target/site/',
-              reportFiles: 'checkstyle.html',
-              reportName: 'Checkstyle results',
-              reportTitles: ''])
+            publishHTML([allowMissing         : false,
+                         alwaysLinkToLastBuild: true,
+                         keepAll              : false,
+                         reportDir            : 'target/site/',
+                         reportFiles          : 'checkstyle.html',
+                         reportName           : 'Checkstyle results',
+                         reportTitles         : ''])
 
-          // run again to fail on error
-          sh "'${mvnHome}/bin/mvn' validate -Pcheckstyle "
+            // run again to fail on error
+            sh "'${mvnHome}/bin/mvn' validate -Pcheckstyle "
 
-       }
-   }
- 	stage('Javadoc') {
-       echo "Build Javadoc"
-       dir ('njams-sdk') {
-          sh "'${mvnHome}/bin/mvn' javadoc:javadoc"
+        }
+    }
+    stage('Javadoc') {
+        echo "Build Javadoc"
+        dir('njams-sdk') {
+            sh "'${mvnHome}/bin/mvn' javadoc:javadoc"
 
-          publishHTML([allowMissing: false,
-              alwaysLinkToLastBuild: true,
-              keepAll: false,
-              reportDir: 'target/site/apidocs/',
-              reportFiles: 'index.html',
-              reportName: 'Javadoc',
-              reportTitles: ''])
-       }
-   }   
+            publishHTML([allowMissing         : false,
+                         alwaysLinkToLastBuild: true,
+                         keepAll              : false,
+                         reportDir            : 'target/site/apidocs/',
+                         reportFiles          : 'index.html',
+                         reportName           : 'Javadoc',
+                         reportTitles         : ''])
+        }
+    }
 
+    stage('Trivy scan') {
+        sh "docker build --progress=plain . -t im/bw5trivy:latest"
+    }
 }
