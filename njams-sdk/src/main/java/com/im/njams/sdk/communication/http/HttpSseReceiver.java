@@ -16,11 +16,15 @@
  */
 package com.im.njams.sdk.communication.http;
 
-import java.io.IOException;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.util.Properties;
-import java.util.UUID;
+import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.im.njams.sdk.NjamsSettings;
+import com.im.njams.sdk.common.JsonSerializerFactory;
+import com.im.njams.sdk.common.NjamsSdkRuntimeException;
+import com.im.njams.sdk.communication.AbstractReceiver;
+import com.im.njams.sdk.utils.JsonUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.ws.rs.client.Client;
 import javax.ws.rs.client.ClientBuilder;
@@ -29,16 +33,11 @@ import javax.ws.rs.client.WebTarget;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.sse.InboundSseEvent;
 import javax.ws.rs.sse.SseEventSource;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.im.njams.sdk.common.JsonSerializerFactory;
-import com.im.njams.sdk.common.NjamsSdkRuntimeException;
-import com.im.njams.sdk.communication.AbstractReceiver;
-import com.im.njams.sdk.utils.JsonUtils;
+import java.io.IOException;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.util.Properties;
+import java.util.UUID;
 
 /**
  * Receives SSE (server sent events) from nJAMS as HTTP Client Communication
@@ -48,8 +47,7 @@ import com.im.njams.sdk.utils.JsonUtils;
 public class HttpSseReceiver extends AbstractReceiver {
     private static final Logger LOG = LoggerFactory.getLogger(HttpSseReceiver.class);
     private static final String NAME = "HTTP";
-    protected static final String PROPERTY_PREFIX = "njams.sdk.communication.http";
-    protected static final String BASE_URL = PROPERTY_PREFIX + ".base.url";
+    protected static final String BASE_URL = NjamsSettings.PROPERTY_HTTP_BASE_URL;
     protected static final String SSE_API_PATH = "api/httpcommunication";
 
     protected Client client;
@@ -127,13 +125,13 @@ public class HttpSseReceiver extends AbstractReceiver {
             client = ClientBuilder.newClient();
             WebTarget target = client.target(url.toString() + "/reply");
             Response response = target.request()
-                    .header("Content-Type", "application/json")
-                    .header("Accept", "text/plain")
-                    .header("NJAMS_RECEIVER", "server")
-                    .header("NJAMS_MESSAGETYPE", "reply")
-                    .header("NJAMS_MESSAGE_ID", responseId)
-                    .header("NJAMS_REPLY_FOR", requestId)
-                    .post(Entity.json(JsonUtils.serialize(instruction)));
+                .header("Content-Type", "application/json")
+                .header("Accept", "text/plain")
+                .header("NJAMS_RECEIVER", "server")
+                .header("NJAMS_MESSAGETYPE", "reply")
+                .header("NJAMS_MESSAGE_ID", responseId)
+                .header("NJAMS_REPLY_FOR", requestId)
+                .post(Entity.json(JsonUtils.serialize(instruction)));
             LOG.debug("Reply response status:" + response.getStatus());
         } finally {
             if (client != null) {

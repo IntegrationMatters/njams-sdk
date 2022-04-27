@@ -24,13 +24,17 @@
 
 package com.im.njams.sdk.communication.kafka;
 
-import static com.im.njams.sdk.communication.kafka.KafkaHeadersUtil.headersUpdater;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Properties;
-
+import com.faizsiegeln.njams.messageformat.v4.common.CommonMessage;
+import com.faizsiegeln.njams.messageformat.v4.common.MessageVersion;
+import com.faizsiegeln.njams.messageformat.v4.logmessage.LogMessage;
+import com.faizsiegeln.njams.messageformat.v4.projectmessage.ProjectMessage;
+import com.faizsiegeln.njams.messageformat.v4.tracemessage.TraceMessage;
+import com.im.njams.sdk.NjamsSettings;
+import com.im.njams.sdk.common.NjamsSdkRuntimeException;
+import com.im.njams.sdk.communication.*;
+import com.im.njams.sdk.communication.kafka.KafkaUtil.ClientType;
+import com.im.njams.sdk.utils.JsonUtils;
+import com.im.njams.sdk.utils.StringUtils;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.KafkaException;
@@ -38,20 +42,12 @@ import org.apache.kafka.common.serialization.StringSerializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.faizsiegeln.njams.messageformat.v4.common.CommonMessage;
-import com.faizsiegeln.njams.messageformat.v4.common.MessageVersion;
-import com.faizsiegeln.njams.messageformat.v4.logmessage.LogMessage;
-import com.faizsiegeln.njams.messageformat.v4.projectmessage.ProjectMessage;
-import com.faizsiegeln.njams.messageformat.v4.tracemessage.TraceMessage;
-import com.im.njams.sdk.common.NjamsSdkRuntimeException;
-import com.im.njams.sdk.communication.AbstractSender;
-import com.im.njams.sdk.communication.ConnectionStatus;
-import com.im.njams.sdk.communication.DiscardMonitor;
-import com.im.njams.sdk.communication.DiscardPolicy;
-import com.im.njams.sdk.communication.Sender;
-import com.im.njams.sdk.communication.kafka.KafkaUtil.ClientType;
-import com.im.njams.sdk.utils.JsonUtils;
-import com.im.njams.sdk.utils.StringUtils;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Properties;
+
+import static com.im.njams.sdk.communication.kafka.KafkaHeadersUtil.headersUpdater;
 
 /**
  * Kafka implementation for a Sender.
@@ -74,7 +70,7 @@ public class KafkaSender extends AbstractSender {
 
     /**
      * Initializes this Sender via the given Properties.
-     *
+     * <p>
      * See all valid properties in KafkaConstants
      *
      * @param properties the properties needed to initialize
@@ -83,10 +79,10 @@ public class KafkaSender extends AbstractSender {
     public void init(final Properties properties) {
         super.init(properties);
         kafkaProperties = KafkaUtil.filterKafkaProperties(properties, ClientType.PRODUCER);
-        String topicPrefix = properties.getProperty(KafkaConstants.TOPIC_PREFIX);
+        String topicPrefix = properties.getProperty(NjamsSettings.PROPERTY_KAFKA_TOPIC_PREFIX);
         if (StringUtils.isBlank(topicPrefix)) {
-            LOG.warn("Property {} is not set. Using '{}' as default.", KafkaConstants.TOPIC_PREFIX,
-                    KafkaConstants.DEFAULT_TOPIC_PREFIX);
+            LOG.warn("Property {} is not set. Using '{}' as default.", NjamsSettings.PROPERTY_KAFKA_TOPIC_PREFIX,
+                KafkaConstants.DEFAULT_TOPIC_PREFIX);
             topicPrefix = KafkaConstants.DEFAULT_TOPIC_PREFIX;
         }
         topicEvent = topicPrefix + EVENT_SUFFIX;
@@ -126,12 +122,12 @@ public class KafkaSender extends AbstractSender {
     private void validateTopics() {
         final Collection<String> requiredTopics = new ArrayList<>(Arrays.asList(topicEvent, topicProject));
         final Collection<String> foundTopics =
-                KafkaUtil.testTopics(properties, requiredTopics.toArray(new String[requiredTopics.size()]));
+            KafkaUtil.testTopics(properties, requiredTopics.toArray(new String[requiredTopics.size()]));
         LOG.debug("Found topics: {}", foundTopics);
         requiredTopics.removeAll(foundTopics);
         if (!requiredTopics.isEmpty()) {
             throw new NjamsSdkRuntimeException("The following required Kafka topics have not been found: "
-                    + requiredTopics);
+                + requiredTopics);
         }
     }
 
@@ -204,7 +200,7 @@ public class KafkaSender extends AbstractSender {
      * @throws InterruptedException
      */
     private void sendMessage(final CommonMessage msg, final String topic, final String messageType, final String data)
-            throws InterruptedException {
+        throws InterruptedException {
         final ProducerRecord<String, String> record;
         final String id;
         if (msg instanceof LogMessage) {
@@ -215,9 +211,9 @@ public class KafkaSender extends AbstractSender {
             record = new ProducerRecord<>(topic, data);
         }
         headersUpdater(record).addHeader(Sender.NJAMS_MESSAGEVERSION, MessageVersion.V4.toString())
-                .addHeader(Sender.NJAMS_MESSAGETYPE, messageType)
-                .addHeader(Sender.NJAMS_LOGID, id, (k, v) -> StringUtils.isNotBlank(v))
-                .addHeader(Sender.NJAMS_PATH, msg.getPath(), (k, v) -> StringUtils.isNotBlank(v));
+            .addHeader(Sender.NJAMS_MESSAGETYPE, messageType)
+            .addHeader(Sender.NJAMS_LOGID, id, (k, v) -> StringUtils.isNotBlank(v))
+            .addHeader(Sender.NJAMS_PATH, msg.getPath(), (k, v) -> StringUtils.isNotBlank(v));
 
         tryToSend(record);
     }
@@ -246,7 +242,7 @@ public class KafkaSender extends AbstractSender {
                 }
                 if (++tries >= MAX_TRIES) {
                     LOG.warn("Try to reconnect, because the topic couldn't be reached after {} seconds.",
-                            MAX_TRIES * EXCEPTION_IDLE_TIME);
+                        MAX_TRIES * EXCEPTION_IDLE_TIME);
                     throw e;
                 } else {
                     Thread.sleep(EXCEPTION_IDLE_TIME);

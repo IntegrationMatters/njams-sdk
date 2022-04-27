@@ -16,7 +16,7 @@
  */
 package com.im.njams.sdk.settings;
 
-import com.im.njams.sdk.communication.jms.JmsConstants;
+import com.im.njams.sdk.NjamsSettings;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -48,12 +48,12 @@ public class SettingsTest {
     @Test
     public void testPrintPropertiesWithoutChangingThem() {
         Properties properties = settings.getAllProperties();
-        properties.put(JmsConstants.SECURITY_CREDENTIALS, "njams");
-        properties.put(JmsConstants.PASSWORD, "njams");
+        properties.put(NjamsSettings.PROPERTY_JMS_SECURITY_CREDENTIALS, "njams");
+        properties.put(NjamsSettings.PROPERTY_JMS_PASSWORD, "njams");
         settings.printPropertiesWithoutPasswords();
-        String credentials = properties.getProperty(JmsConstants.SECURITY_CREDENTIALS);
+        String credentials = properties.getProperty(NjamsSettings.PROPERTY_JMS_SECURITY_CREDENTIALS);
         Assert.assertEquals("njams", credentials);
-        String jmsPassword = properties.getProperty(JmsConstants.PASSWORD);
+        String jmsPassword = properties.getProperty(NjamsSettings.PROPERTY_JMS_PASSWORD);
         Assert.assertEquals("njams", jmsPassword);
     }
 

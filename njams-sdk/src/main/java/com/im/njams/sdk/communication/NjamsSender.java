@@ -17,6 +17,7 @@
 package com.im.njams.sdk.communication;
 
 import com.faizsiegeln.njams.messageformat.v4.common.CommonMessage;
+import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.factories.ThreadFactoryBuilder;
 import com.im.njams.sdk.settings.Settings;
 import org.slf4j.Logger;
@@ -104,7 +105,7 @@ public class NjamsSender implements Sender {
      */
     public NjamsSender(Settings settings) {
         this.settings = settings;
-        name = settings.getProperty(CommunicationFactory.COMMUNICATION);
+        name = settings.getProperty(NjamsSettings.PROPERTY_COMMUNICATION);
         init(settings.getAllProperties());
     }
 
@@ -138,10 +139,10 @@ public class NjamsSender implements Sender {
      */
     @Override
     public void init(Properties properties) {
-        int minSenderThreads = Integer.parseInt(properties.getProperty(Settings.PROPERTY_MIN_SENDER_THREADS, "1"));
-        int maxSenderThreads = Integer.parseInt(properties.getProperty(Settings.PROPERTY_MAX_SENDER_THREADS, "8"));
-        int maxQueueLength = Integer.parseInt(properties.getProperty(Settings.PROPERTY_MAX_QUEUE_LENGTH, "8"));
-        long idleTime = Long.parseLong(properties.getProperty(Settings.PROPERTY_SENDER_THREAD_IDLE_TIME, "10000"));
+        int minSenderThreads = Integer.parseInt(properties.getProperty(NjamsSettings.PROPERTY_MIN_SENDER_THREADS, "1"));
+        int maxSenderThreads = Integer.parseInt(properties.getProperty(NjamsSettings.PROPERTY_MAX_SENDER_THREADS, "8"));
+        int maxQueueLength = Integer.parseInt(properties.getProperty(NjamsSettings.PROPERTY_MAX_QUEUE_LENGTH, "8"));
+        long idleTime = Long.parseLong(properties.getProperty(NjamsSettings.PROPERTY_SENDER_THREAD_IDLE_TIME, "10000"));
         ThreadFactory threadFactory = new ThreadFactoryBuilder()
             .setNamePrefix(getName() + "-Sender-Thread").setDaemon(true).build();
         executor = new ThreadPoolExecutor(minSenderThreads, maxSenderThreads, idleTime, TimeUnit.MILLISECONDS,

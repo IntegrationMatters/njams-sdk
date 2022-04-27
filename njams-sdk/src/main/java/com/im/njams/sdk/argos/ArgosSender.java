@@ -20,29 +20,21 @@
 
 package com.im.njams.sdk.argos;
 
-import java.io.Closeable;
-import java.net.DatagramPacket;
-import java.net.DatagramSocket;
-import java.net.InetAddress;
-import java.net.SocketException;
-import java.net.UnknownHostException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Properties;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectWriter;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.settings.Settings;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.Closeable;
+import java.net.*;
+import java.util.*;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 /**
  * This Singleton class cares about collecting and sending Argos Metrics via UPD to an nJAMS Agent.
@@ -56,17 +48,20 @@ public class ArgosSender implements Closeable {
     /**
      * Name of the property flag to enable or disable collecting Argos Metrics.
      */
-    public static final String NJAMS_SUBAGENT_ENABLED = "njams.sdk.subagent.enabled";
+    @Deprecated
+    public static final String NJAMS_SUBAGENT_ENABLED = NjamsSettings.PROPERTY_ARGOS_SUBAGENT_ENABLED;
 
     /**
      * Name of the property port where the nJAMS Agent runs and ArgosSender will send metrics
      */
-    public static final String NJAMS_SUBAGENT_PORT = "njams.sdk.subagent.port";
+    @Deprecated
+    public static final String NJAMS_SUBAGENT_PORT = NjamsSettings.PROPERTY_ARGOS_SUBAGENT_PORT;
 
     /**
      * Name of the property host where the nJAMS Agent runs and ArgosSender will send metrics
      */
-    public static final String NJAMS_SUBAGENT_HOST = "njams.sdk.subagent.host";
+    @Deprecated
+    public static final String NJAMS_SUBAGENT_HOST = NjamsSettings.PROPERTY_ARGOS_SUBAGENT_HOST;
 
     //Defaults
     private static final String DEFAULT_HOST = "localhost";
@@ -75,7 +70,7 @@ public class ArgosSender implements Closeable {
 
     //For serializing the metrics
     private final ObjectWriter writer = new ObjectMapper().configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false)
-            .writer().withDefaultPrettyPrinter();
+        .writer().withDefaultPrettyPrinter();
 
     private static final long INITIAL_DELAY = 10;
     private static final long INTERVAL = 10;
@@ -110,8 +105,11 @@ public class ArgosSender implements Closeable {
     }
 
     /**
-     * Reads the properties {@value NJAMS_SUBAGENT_HOST}, {@value NJAMS_SUBAGENT_PORT} and
-     * {@value NJAMS_SUBAGENT_ENABLED} from the given settings.
+     * Reads the properties
+     * {@value NjamsSettings#PROPERTY_ARGOS_SUBAGENT_HOST},
+     * {@value NjamsSettings#PROPERTY_ARGOS_SUBAGENT_PORT} and
+     * {@value NjamsSettings#PROPERTY_ARGOS_SUBAGENT_ENABLED}
+     * from the given settings.
      *
      * @param settings the settings for connection establishment
      */
@@ -122,15 +120,15 @@ public class ArgosSender implements Closeable {
         }
         LOG.debug("Initialize ArgosSender.");
         Properties properties = settings.getAllProperties();
-        enabled = Boolean.parseBoolean(getProperty(properties, NJAMS_SUBAGENT_ENABLED, DEFAULT_ENABLED));
-        host = getProperty(properties, NJAMS_SUBAGENT_HOST, DEFAULT_HOST);
+        enabled = Boolean.parseBoolean(getProperty(properties, NjamsSettings.PROPERTY_ARGOS_SUBAGENT_ENABLED, DEFAULT_ENABLED));
+        host = getProperty(properties, NjamsSettings.PROPERTY_ARGOS_SUBAGENT_HOST, DEFAULT_HOST);
         try {
             port =
-                    Integer.parseInt(getProperty(properties, NJAMS_SUBAGENT_PORT, String.valueOf(DEFAULT_PORT)));
+                Integer.parseInt(getProperty(properties, NjamsSettings.PROPERTY_ARGOS_SUBAGENT_PORT, String.valueOf(DEFAULT_PORT)));
         } catch (NumberFormatException e) {
             LOG.debug("Could not parse property: ", e);
-            LOG.warn("Could not parse property " + NJAMS_SUBAGENT_PORT + " to an Integer. " + "Using default Port " +
-                    DEFAULT_PORT + " instead");
+            LOG.warn("Could not parse property " + NjamsSettings.PROPERTY_ARGOS_SUBAGENT_PORT + " to an Integer. "
+                + "Using default Port " + DEFAULT_PORT + " instead");
             port = DEFAULT_PORT;
         }
         isInitialized = true;
@@ -154,7 +152,7 @@ public class ArgosSender implements Closeable {
             argosCollectors.put(collector.getArgosComponent(), collector);
         }
         LOG.debug("Added collector: {} ({})", collector.getArgosComponent().getId(), collector.getArgosComponent()
-                .getMeasurement());
+            .getMeasurement());
         start();
     }
 
@@ -170,6 +168,7 @@ public class ArgosSender implements Closeable {
 
     /**
      * Removes the given collector from the sender instance.
+     *
      * @param collector The collector instance to be removed from the sender.
      * @return <code>true</code> only if the given collector was registered with the sender.
      */

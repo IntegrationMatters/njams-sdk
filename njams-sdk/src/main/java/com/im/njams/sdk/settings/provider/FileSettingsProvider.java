@@ -16,19 +16,18 @@
  */
 package com.im.njams.sdk.settings.provider;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.util.Properties;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectWriter;
+import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.common.JsonSerializerFactory;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.settings.Settings;
 import com.im.njams.sdk.settings.SettingsProvider;
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.InputStream;
+import java.util.Properties;
 
 /**
  * Implements a simple FileSettingsProvider. It loads and saves a
@@ -42,7 +41,8 @@ public class FileSettingsProvider implements SettingsProvider {
      * Property key for settings properties. Specifies the path to the
      * settings file.
      */
-    public static final String FILE_CONFIGURATION = "njams.sdk.settings.file";
+    @Deprecated
+    public static final String FILE_CONFIGURATION = NjamsSettings.PROPERTY_FILE_SETTINGS_FILE;
     /**
      * Name of the FileSettingsProvider
      */
@@ -66,15 +66,15 @@ public class FileSettingsProvider implements SettingsProvider {
      * <p>
      * Valid properties are:
      * <ul>
-     * <li>{@value #FILE_CONFIGURATION}
+     * <li>{@value NjamsSettings#PROPERTY_FILE_SETTINGS_FILE}
      * </ul>
      *
      * @param properties to configure
      */
     @Override
     public void configure(Properties properties) {
-        if (properties.containsKey(FILE_CONFIGURATION)) {
-            file = new File(properties.getProperty(FILE_CONFIGURATION));
+        if (properties.containsKey(NjamsSettings.PROPERTY_FILE_SETTINGS_FILE)) {
+            file = new File(properties.getProperty(NjamsSettings.PROPERTY_FILE_SETTINGS_FILE));
         }
     }
 

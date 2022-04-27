@@ -1,16 +1,15 @@
 package com.im.njams.sdk.communication.http;
 
-import java.util.Properties;
+import com.im.njams.sdk.NjamsSettings;
+import com.im.njams.sdk.common.JsonSerializerFactory;
+import com.im.njams.sdk.common.NjamsSdkRuntimeException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.net.ssl.SSLContext;
 import javax.ws.rs.client.ClientBuilder;
 import javax.ws.rs.sse.SseEventSource;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.im.njams.sdk.common.JsonSerializerFactory;
-import com.im.njams.sdk.common.NjamsSdkRuntimeException;
+import java.util.Properties;
 
 /**
  * Receives SSE (server sent events) from nJAMS as HTTPS Client Communication
@@ -22,7 +21,7 @@ public class HttpsSseReceiver extends HttpSseReceiver {
 
     private SSLContext sslContext;
 
-    protected static final String SSL_CERTIFIACTE_FILE = ".ssl.certificate.file";
+    protected static final String SSL_CERTIFIACTE_FILE = NjamsSettings.PROPERTY_HTTP_SSL_CERTIFICATE_FILE;
 
     /**
      * Name of the HTTP component
@@ -33,7 +32,7 @@ public class HttpsSseReceiver extends HttpSseReceiver {
     public void init(Properties properties) {
         try {
             sslContext =
-                    HttpsSender.initializeSSLContext(properties.getProperty(PROPERTY_PREFIX + SSL_CERTIFIACTE_FILE));
+                HttpsSender.initializeSSLContext(properties.getProperty(SSL_CERTIFIACTE_FILE));
             url = createUrl(properties);
         } catch (final Exception ex) {
             throw new NjamsSdkRuntimeException("Unable to init HTTPS Receiver", ex);

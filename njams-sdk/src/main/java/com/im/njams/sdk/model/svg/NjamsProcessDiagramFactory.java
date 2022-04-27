@@ -17,12 +17,12 @@
 package com.im.njams.sdk.model.svg;
 
 import com.im.njams.sdk.Njams;
+import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.model.ActivityModel;
 import com.im.njams.sdk.model.GroupModel;
 import com.im.njams.sdk.model.ProcessModel;
 import com.im.njams.sdk.model.TransitionModel;
-import com.im.njams.sdk.settings.Settings;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.w3c.dom.DOMImplementation;
@@ -101,7 +101,7 @@ public class NjamsProcessDiagramFactory implements ProcessDiagramFactory {
         this.njams = njams;
         disableSecureProcessing =
             "true".equalsIgnoreCase(njams.getSettings().getProperty(
-                Settings.PROPERTY_DISABLE_SECURE_PROCESSING,
+                NjamsSettings.PROPERTY_DISABLE_SECURE_PROCESSING,
                 DEFAULT_DISABLE_SECURE_PROCESSING));
         if (disableSecureProcessing) {
             LOG.debug("Disabled secure XML processing by configuration switch.");

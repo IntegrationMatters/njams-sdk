@@ -24,12 +24,16 @@ import com.faizsiegeln.njams.messageformat.v4.command.Request;
 import com.faizsiegeln.njams.messageformat.v4.command.Response;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.communication.AbstractReceiver;
 import com.im.njams.sdk.communication.ConnectionStatus;
 import com.im.njams.sdk.communication.cloud.CertificateUtil.KeyStorePasswordPair;
 import com.im.njams.sdk.utils.JsonUtils;
 import com.im.njams.sdk.utils.StringUtils;
+import org.slf4j.LoggerFactory;
+
+import javax.net.ssl.HttpsURLConnection;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.net.URL;
@@ -38,12 +42,8 @@ import java.util.Properties;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-import javax.net.ssl.HttpsURLConnection;
-
-import org.slf4j.LoggerFactory;
 
 /**
- *
  * @author pnientiedt
  */
 public class CloudReceiver extends AbstractReceiver {
@@ -78,16 +78,16 @@ public class CloudReceiver extends AbstractReceiver {
     @Override
     public void init(Properties properties) {
 
-        String apikeypath = properties.getProperty(CloudConstants.APIKEY);
+        String apikeypath = properties.getProperty(NjamsSettings.PROPERTY_CLOUD_APIKEY);
 
         if (apikeypath == null) {
-            LOG.error("Please provide property {} for CloudSender", CloudConstants.APIKEY);
+            LOG.error("Please provide property {} for CloudSender", NjamsSettings.PROPERTY_CLOUD_APIKEY);
         }
 
-        String instanceIdPath = properties.getProperty(CloudConstants.CLIENT_INSTANCEID);
+        String instanceIdPath = properties.getProperty(NjamsSettings.PROPERTY_CLOUD_CLIENT_INSTANCEID);
 
         if (instanceIdPath == null) {
-            LOG.error("Please provide property {} for CloudSender", CloudConstants.CLIENT_INSTANCEID);
+            LOG.error("Please provide property {} for CloudSender", NjamsSettings.PROPERTY_CLOUD_CLIENT_INSTANCEID);
         }
 
         try {
@@ -104,10 +104,10 @@ public class CloudReceiver extends AbstractReceiver {
             throw new IllegalStateException("Failed to load instanceId from file");
         }
 
-        mainEndpoint = properties.getProperty(CloudConstants.ENDPOINT);
+        mainEndpoint = properties.getProperty(NjamsSettings.PROPERTY_CLOUD_ENDPOINT);
 
         if (mainEndpoint == null) {
-            LOG.error("Please provide property {} for CloudSender", CloudConstants.ENDPOINT);
+            LOG.error("Please provide property {} for CloudSender", NjamsSettings.PROPERTY_CLOUD_ENDPOINT);
         }
 
         try {
@@ -117,16 +117,16 @@ public class CloudReceiver extends AbstractReceiver {
         }
 
         if (endpoint == null) {
-            LOG.error("Please provide property {} for CloudReceiver", CloudConstants.ENDPOINT);
+            LOG.error("Please provide property {} for CloudReceiver", NjamsSettings.PROPERTY_CLOUD_ENDPOINT);
         }
 
-        certificateFile = properties.getProperty(CloudConstants.CLIENT_CERTIFICATE);
+        certificateFile = properties.getProperty(NjamsSettings.PROPERTY_CLOUD_CLIENT_CERTIFICATE);
         if (certificateFile == null) {
-            LOG.error("Please provide property {} for CloudReceiver", CloudConstants.CLIENT_CERTIFICATE);
+            LOG.error("Please provide property {} for CloudReceiver", NjamsSettings.PROPERTY_CLOUD_CLIENT_CERTIFICATE);
         }
-        privateKeyFile = properties.getProperty(CloudConstants.CLIENT_PRIVATEKEY);
+        privateKeyFile = properties.getProperty(NjamsSettings.PROPERTY_CLOUD_CLIENT_PRIVATEKEY);
         if (privateKeyFile == null) {
-            LOG.error("Please provide property {} for CloudReceiver", CloudConstants.CLIENT_PRIVATEKEY);
+            LOG.error("Please provide property {} for CloudReceiver", NjamsSettings.PROPERTY_CLOUD_CLIENT_PRIVATEKEY);
         }
         LOG.info("Creating KeyStorePasswordPair from {} and {}", getCertificateFile(), getPrivateKeyFile());
         keyStorePasswordPair = CertificateUtil.getKeyStorePasswordPair(getCertificateFile(), getPrivateKeyFile());
@@ -321,7 +321,7 @@ public class CloudReceiver extends AbstractReceiver {
             connectionStatus = ConnectionStatus.CONNECTING;
             LOG.debug("Connect to endpoint: {} with clientId: {}", endpoint, connectionId);
             mqttclient = new CustomAWSIotMqttClient(endpoint, connectionId, keyStorePasswordPair.keyStore,
-                    keyStorePasswordPair.keyPassword, this);
+                keyStorePasswordPair.keyPassword, this);
 
             // optional parameters can be set before connect()
 
@@ -349,16 +349,16 @@ public class CloudReceiver extends AbstractReceiver {
 
     public void resendOnConnect() throws JsonProcessingException, AWSIotException {
         sendOnConnectMessage(isShared, connectionId, instanceId, njams.getClientPath().toString(),
-                njams.getClientVersion(), njams.getSdkVersion(), njams.getMachine(), njams.getCategory());
+            njams.getClientVersion(), njams.getSdkVersion(), njams.getMachine(), njams.getCategory());
     }
 
     protected void sendOnConnectMessage(Boolean isShared, String connectionId, String instanceId, String path,
-            String clientVersion, String sdkVersion, String machine, String category)
-            throws JsonProcessingException, AWSIotException {
+                                        String clientVersion, String sdkVersion, String machine, String category)
+        throws JsonProcessingException, AWSIotException {
         String topicName = "/onConnect/";
         OnConnectMessage onConnectMessage =
-                new OnConnectMessage(isShared, connectionId, instanceId, path, clientVersion, sdkVersion, machine,
-                        category);
+            new OnConnectMessage(isShared, connectionId, instanceId, path, clientVersion, sdkVersion, machine,
+                category);
 
         ObjectMapper objectMapper = new ObjectMapper();
 
@@ -376,7 +376,7 @@ public class CloudReceiver extends AbstractReceiver {
      *
      * @param request the request that will be extended
      * @return an exception response if there was a problem while retrieving payload
-     *         from nJAMS Cloud. If everything worked fine, it returns null.
+     * from nJAMS Cloud. If everything worked fine, it returns null.
      */
     @Override
     protected Response extendRequest(Request request) {

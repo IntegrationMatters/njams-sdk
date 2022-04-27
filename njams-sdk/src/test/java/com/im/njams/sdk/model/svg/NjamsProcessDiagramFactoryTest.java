@@ -1,6 +1,7 @@
 package com.im.njams.sdk.model.svg;
 
 import com.im.njams.sdk.Njams;
+import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.settings.Settings;
 import org.junit.Assert;
 import org.junit.Test;
@@ -13,7 +14,7 @@ public class NjamsProcessDiagramFactoryTest {
     @Test
     public void testSecureProcessingEnabled() {
         Settings config = new Settings();
-        config.put(Settings.PROPERTY_DISABLE_SECURE_PROCESSING, "false");
+        config.put(NjamsSettings.PROPERTY_DISABLE_SECURE_PROCESSING, "false");
 
         Njams njams = Mockito.mock(Njams.class);
         when(njams.getSettings()).thenReturn(config);
@@ -25,7 +26,7 @@ public class NjamsProcessDiagramFactoryTest {
     @Test
     public void testSecureProcessingDisabled() {
         Settings config = new Settings();
-        config.put(Settings.PROPERTY_DISABLE_SECURE_PROCESSING, "true");
+        config.put(NjamsSettings.PROPERTY_DISABLE_SECURE_PROCESSING, "true");
 
         Njams njams = Mockito.mock(Njams.class);
         when(njams.getSettings()).thenReturn(config);

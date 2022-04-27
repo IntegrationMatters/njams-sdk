@@ -16,11 +16,12 @@
  */
 package com.im.njams.sdk.communication;
 
-import java.util.Properties;
-
 import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
 import com.im.njams.sdk.Njams;
+import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.utils.ClasspathValidator;
+
+import java.util.Properties;
 
 /**
  * This interface must be implenmented by a new Receiver for a given
@@ -40,8 +41,8 @@ public interface Receiver extends ClasspathValidator {
     /**
      * The implementation should return its name here, by which it can be
      * identified. This name will be used as value in the
-     * CommunicationConiguration via the Key
-     * {@value com.im.njams.sdk.communication.CommunicationFactory#COMMUNICATION}
+     * CommunicationConfiguration via the Key
+     * {@value NjamsSettings#PROPERTY_COMMUNICATION}
      *
      * @return the name of the receiver implementation
      */
