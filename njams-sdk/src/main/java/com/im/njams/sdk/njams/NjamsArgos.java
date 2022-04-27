@@ -45,12 +45,20 @@ public class NjamsArgos {
      * Adds a collector that will create statistics.
      *
      * @param collector The collector that collects statistics
+     * @param <T> The type of metric that will be created by the collector
      */
     public <T extends ArgosMetric> void addCollector(ArgosMultiCollector<T> collector) {
         argosCollectors.add(collector);
         argosSender.addArgosCollector(collector);
     }
 
+    /**
+     * Removes a previously set Argos Collector. By that, no more statistics from this collector will be sent to njams
+     * agent.
+     *
+     * @param collector the Collector that will be removed
+     * @param <T> The type of metric that will no longer be created by the collector
+     */
     public <T extends ArgosMetric> void remove(ArgosMultiCollector<T> collector) {
         argosCollectors.remove(collector);
         argosSender.removeArgosCollector(collector);

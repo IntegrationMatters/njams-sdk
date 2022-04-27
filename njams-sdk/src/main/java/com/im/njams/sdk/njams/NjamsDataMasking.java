@@ -55,7 +55,7 @@ public class NjamsDataMasking {
 
     /**
      * Initializes the data masking feature, but it will overwrite the dataMasking of other nJAMS instances that use
-     * this method. Instead, you should use {@link NjamsDataMasking#createFrom(Settings, Configuration))
+     * this method. Instead, you should use createFrom(Settings, Configuration)
      *
      * @param settings      The settings to read from if datamasking is enabled or not and to add pattern if there
      * are any.

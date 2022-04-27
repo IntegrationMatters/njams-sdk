@@ -79,6 +79,14 @@ public class ProcessModel {
      * Create a new ProcessModel to Path and connect it to the given Njams
      *
      * @param path Path for this ProcessModel
+     * @param njamsJobs njamsJobs to add new jobs to
+     * @param instanceMetadata metadata for this instance
+     * @param njamsSerializers serialize data for the server
+     * @param njamsConfiguration configuration for this instance
+     * @param settings settings for this instance
+     * @param processDiagramFactory for creating a svg for the server
+     * @param processModelLayouter for layouting the process model
+     * @param njamsSender for sending messages to njams server
      */
     public ProcessModel(Path path, NjamsJobs njamsJobs, NjamsMetadata instanceMetadata,
         NjamsSerializers njamsSerializers, NjamsConfiguration njamsConfiguration,

@@ -200,6 +200,12 @@ public class JobImpl implements Job {
      * @param processModel for job to create
      * @param jobId of Job to create
      * @param logId of Job to create
+     * @param njamsJobs to remove jobs from this instance
+     * @param instanceMetaData to send metadata information with log messages
+     * @param njamsSerializers to serialize data for log messages
+     * @param njamsConfiguration the configuration of this instance
+     * @param settings the settings of this instance
+     * @param njamsSender the sender to send the log message
      */
     public JobImpl(ProcessModel processModel, String jobId, String logId, NjamsJobs njamsJobs,
         NjamsMetadata instanceMetaData, NjamsSerializers njamsSerializers, NjamsConfiguration njamsConfiguration,
