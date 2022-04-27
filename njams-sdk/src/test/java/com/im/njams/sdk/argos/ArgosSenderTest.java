@@ -20,16 +20,13 @@
 
 package com.im.njams.sdk.argos;
 
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
+import com.im.njams.sdk.NjamsSettings;
+import com.im.njams.sdk.settings.Settings;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import com.im.njams.sdk.settings.Settings;
+import static org.mockito.Mockito.*;
 
 public class ArgosSenderTest {
 
@@ -42,9 +39,9 @@ public class ArgosSenderTest {
     public void init() {
         Settings settings = new Settings();
         //Argos relevant properties
-        settings.put(ArgosSender.NJAMS_SUBAGENT_HOST, ADDRESS);
-        settings.put(ArgosSender.NJAMS_SUBAGENT_PORT, Integer.toString(PORT));
-        settings.put(ArgosSender.NJAMS_SUBAGENT_ENABLED, "true");
+        settings.put(NjamsSettings.PROPERTY_ARGOS_SUBAGENT_HOST, ADDRESS);
+        settings.put(NjamsSettings.PROPERTY_ARGOS_SUBAGENT_PORT, Integer.toString(PORT));
+        settings.put(NjamsSettings.PROPERTY_ARGOS_SUBAGENT_ENABLED, "true");
 
         argosSender = ArgosSender.getInstance();
         argosSender.init(settings);

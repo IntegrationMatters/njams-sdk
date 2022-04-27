@@ -16,7 +16,7 @@
  */
 package com.im.njams.sdk.communication.jms;
 
-import javax.naming.Context;
+import com.im.njams.sdk.NjamsSettings;
 
 /**
  * Contains constants by which the JmsSender and the JmsReceiver could be
@@ -31,11 +31,6 @@ public class JmsConstants {
     }
 
     /**
-     * Prefix for the jms communication
-     */
-    public static final String PROPERTY_PREFIX = "njams.sdk.communication.jms";
-
-    /**
      * Name of the JMS Communication Component
      */
     public static final String COMMUNICATION_NAME = "JMS";
@@ -44,78 +39,89 @@ public class JmsConstants {
      * Property key for the communication properties. Specifies the
      * ConnectionFactory.
      */
-    public static final String CONNECTION_FACTORY = PROPERTY_PREFIX + ".connectionFactory";
+    @Deprecated
+    public static final String CONNECTION_FACTORY = NjamsSettings.PROPERTY_JMS_CONNECTION_FACTORY;
     /**
      * Property key for the communication properties. Specifies the username.
      */
-    public static final String USERNAME = PROPERTY_PREFIX + ".username";
+    @Deprecated
+    public static final String USERNAME = NjamsSettings.PROPERTY_JMS_USERNAME;
     /**
      * Property key for the communication properties. Specifies the password.
      */
-    public static final String PASSWORD = PROPERTY_PREFIX + ".password";
+    @Deprecated
+    public static final String PASSWORD = NjamsSettings.PROPERTY_JMS_PASSWORD;
     /**
      * Property key for the communication properties. Specifies the destination.
      */
-    public static final String DESTINATION = PROPERTY_PREFIX + ".destination";
+    @Deprecated
+    public static final String DESTINATION = NjamsSettings.PROPERTY_JMS_DESTINATION;
     /**
      * Property key for the communication properties. Specifies the commands
      * destination.
      */
-    public static final String COMMANDS_DESTINATION = PROPERTY_PREFIX + ".destination.commands";
-
+    @Deprecated
+    public static final String COMMANDS_DESTINATION = NjamsSettings.PROPERTY_JMS_COMMANDS_DESTINATION;
 
     /**
      * Property key for the communication properties. Specifies the jndi initial
      * context factory.
      */
-    public static final String INITIAL_CONTEXT_FACTORY = PROPERTY_PREFIX + "." + Context.INITIAL_CONTEXT_FACTORY;
+    @Deprecated
+    public static final String INITIAL_CONTEXT_FACTORY = NjamsSettings.PROPERTY_JMS_INITIAL_CONTEXT_FACTORY;
     /**
      * Property key for the communication properties. Specifies the jndi
      * security principal.
      */
-    public static final String SECURITY_PRINCIPAL = PROPERTY_PREFIX + "." + Context.SECURITY_PRINCIPAL;
+    @Deprecated
+    public static final String SECURITY_PRINCIPAL = NjamsSettings.PROPERTY_JMS_SECURITY_PRINCIPAL;
     /**
      * Property key for the communication properties. Specifies the jndi
      * security credentials.
      */
-    public static final String SECURITY_CREDENTIALS = PROPERTY_PREFIX + "." + Context.SECURITY_CREDENTIALS;
+    @Deprecated
+    public static final String SECURITY_CREDENTIALS = NjamsSettings.PROPERTY_JMS_SECURITY_CREDENTIALS;
     /**
      * Property key for the communication properties. Specifies the jndi
      * provider url.
      */
-    public static final String PROVIDER_URL = PROPERTY_PREFIX + "." + Context.PROVIDER_URL;
+    @Deprecated
+    public static final String PROVIDER_URL = NjamsSettings.PROPERTY_JMS_PROVIDER_URL;
 
-    /**
-     * Prefix for the ssl communication properties
-     */
-    public static final String SSLPREFIX = PROPERTY_PREFIX + ".javax.net.ssl";
     /**
      * Property key for the ssl communication properties. Specifies the keyStore.
      */
-    public static final String KEYSTORE = SSLPREFIX + ".keyStore";
+    @Deprecated
+    public static final String KEYSTORE = NjamsSettings.PROPERTY_JMS_KEYSTORE;
     /**
      * Property key for the ssl communication properties. Specifies the keyStore password.
      */
-    public static final String KEYSTOREPASSWORD = SSLPREFIX + ".keyStorePassword";
+    @Deprecated
+    public static final String KEYSTOREPASSWORD = NjamsSettings.PROPERTY_JMS_KEYSTOREPASSWORD;
     /**
      * Property key for the ssl communication properties. Specifies the keyStore Type.
      */
-    public static final String KEYSTORETYPE = SSLPREFIX + ".keyStoreType";
+    @Deprecated
+    public static final String KEYSTORETYPE = NjamsSettings.PROPERTY_JMS_KEYSTORETYPE;
     /**
      * Property key for the ssl communication properties. Specifies the trustStore.
      */
-    public static final String TRUSTSTORE = SSLPREFIX + ".trustStore";
+    @Deprecated
+    public static final String TRUSTSTORE = NjamsSettings.PROPERTY_JMS_TRUSTSTORE;
     /**
      * Property key for the ssl communication properties. Specifies the trustStore password.
      */
-    public static final String TRUSTSTOREPASSWORD = SSLPREFIX + ".trustStorePassword";
+    @Deprecated
+    public static final String TRUSTSTOREPASSWORD = NjamsSettings.PROPERTY_JMS_TRUSTSTOREPASSWORD;
     /**
      * Property key for the ssl communication properties. Specifies the trustStore Type.
      */
-    public static final String TRUSTSTORETYPE = SSLPREFIX + ".trustStoreType";
+    @Deprecated
+    public static final String TRUSTSTORETYPE = NjamsSettings.PROPERTY_JMS_TRUSTSTORETYPE;
 
     /**
      * Delivery mode for JMS Sender. Attention: NonPersistent might lead to data loss.
      */
-    public static final String DELIVERY_MODE = PROPERTY_PREFIX + ".delivery.mode";
+    @Deprecated
+    public static final String DELIVERY_MODE = NjamsSettings.PROPERTY_JMS_DELIVERY_MODE;
 }

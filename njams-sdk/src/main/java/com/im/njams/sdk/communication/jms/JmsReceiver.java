@@ -16,38 +16,27 @@
  */
 package com.im.njams.sdk.communication.jms;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Properties;
-
-import javax.jms.Connection;
-import javax.jms.ConnectionFactory;
-import javax.jms.ExceptionListener;
-import javax.jms.JMSException;
-import javax.jms.Message;
-import javax.jms.MessageConsumer;
-import javax.jms.MessageListener;
-import javax.jms.MessageProducer;
-import javax.jms.Session;
-import javax.jms.TextMessage;
-import javax.jms.Topic;
-import javax.naming.InitialContext;
-import javax.naming.NameNotFoundException;
-import javax.naming.NamingException;
-
-import com.im.njams.sdk.communication.NjamsConnectionFactory;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.im.njams.sdk.Njams;
+import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.common.JsonSerializerFactory;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.common.Path;
 import com.im.njams.sdk.communication.AbstractReceiver;
 import com.im.njams.sdk.communication.ConnectionStatus;
+import com.im.njams.sdk.communication.NjamsConnectionFactory;
 import com.im.njams.sdk.settings.PropertyUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import javax.jms.*;
+import javax.naming.InitialContext;
+import javax.naming.NameNotFoundException;
+import javax.naming.NamingException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Properties;
 
 /**
  * JMS implementation for a Receiver.
@@ -83,10 +72,10 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
      * <p>
      * Valid properties are:
      * <ul>
-     * <li>{@value com.im.njams.sdk.communication.jms.JmsConstants#CONNECTION_FACTORY}
-     * <li>{@value com.im.njams.sdk.communication.jms.JmsConstants#USERNAME}
-     * <li>{@value com.im.njams.sdk.communication.jms.JmsConstants#PASSWORD}
-     * <li>{@value com.im.njams.sdk.communication.jms.JmsConstants#DESTINATION}
+     * <li>{@value NjamsSettings#PROPERTY_JMS_CONNECTION_FACTORY}
+     * <li>{@value NjamsSettings#PROPERTY_JMS_USERNAME}
+     * <li>{@value NjamsSettings#PROPERTY_JMS_PASSWORD}
+     * <li>{@value NjamsSettings#PROPERTY_JMS_DESTINATION}
      * <li>...
      * </ul>
      * For more look in the github FAQ of this project.
@@ -98,10 +87,10 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
         connectionStatus = ConnectionStatus.DISCONNECTED;
         mapper = JsonSerializerFactory.getDefaultMapper();
         properties = props;
-        if (props.containsKey(JmsConstants.COMMANDS_DESTINATION)) {
-            topicName = props.getProperty(JmsConstants.COMMANDS_DESTINATION);
+        if (props.containsKey(NjamsSettings.PROPERTY_JMS_COMMANDS_DESTINATION)) {
+            topicName = props.getProperty(NjamsSettings.PROPERTY_JMS_COMMANDS_DESTINATION);
         } else {
-            topicName = props.getProperty(JmsConstants.DESTINATION) + ".commands";
+            topicName = props.getProperty(NjamsSettings.PROPERTY_JMS_DESTINATION) + ".commands";
         }
 
     }
@@ -185,12 +174,12 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
      * given as parameter.
      *
      * @param prop the Properties that will be used to create a new
-     * InitialContext
+     *             InitialContext
      * @return the InitialContext that has been created.
      * @throws NamingException is thrown if something with the name is wrong.
      */
     private InitialContext getInitialContext(Properties prop) throws NamingException {
-        return new InitialContext(PropertyUtil.filterAndCut(prop, JmsConstants.PROPERTY_PREFIX + "."));
+        return new InitialContext(PropertyUtil.filterAndCut(prop, NjamsSettings.PROPERTY_JMS_PREFIX));
     }
 
     /**
@@ -198,8 +187,8 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
      * JmsConstants.CONNECTION_FACTORY and the context that looks up for the
      * factory.
      *
-     * @param props the Properties where JmsConstants.CONNECTION_FACTORY as key
-     * should be provided.
+     * @param props   the Properties where JmsConstants.CONNECTION_FACTORY as key
+     *                should be provided.
      * @param context the context that is used to look up the connectionFactory.
      * @return the ConnectionFactory, if found.
      * @throws NamingException is thrown if something with the name is wrong.
@@ -211,20 +200,20 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
     /**
      * This method creates a connection out of the properties and the factory.
      * It established a secure connection with JmsConstants.USERNAME and
-     * JmsConstants.PASSWORD, or if they are not provided, creates a connection
+     * NjamsSettings.PROPERTY_JMS_PASSWORD, or if they are not provided, creates a connection
      * that uses the default username and password.
      *
-     * @param props the properties where username and password are safed
+     * @param props   the properties where username and password are safed
      * @param factory the factory where the connection will be created from.
      * @return the Connection if it can be created.
      * @throws JMSException is thrown if something is wrong with the username or
-     * password.
+     *                      password.
      */
     private Connection createConnection(Properties props, ConnectionFactory factory) throws JMSException {
         Connection con;
-        if (props.containsKey(JmsConstants.USERNAME) && props.containsKey(JmsConstants.PASSWORD)) {
-            con = factory.createConnection(props.getProperty(JmsConstants.USERNAME),
-                    props.getProperty(JmsConstants.PASSWORD));
+        if (props.containsKey(NjamsSettings.PROPERTY_JMS_USERNAME) && props.containsKey(NjamsSettings.PROPERTY_JMS_PASSWORD)) {
+            con = factory.createConnection(props.getProperty(NjamsSettings.PROPERTY_JMS_USERNAME),
+                props.getProperty(NjamsSettings.PROPERTY_JMS_PASSWORD));
         } else {
             con = factory.createConnection();
         }
@@ -249,12 +238,12 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
      * the properties beforehand.
      *
      * @param context the context to look up for the topic, if it exists
-     * already.
+     *                already.
      * @param session the session to create a new topic, if no topic can be
-     * found.
+     *                found.
      * @return the topic that was created or has been found before.
      * @throws NamingException is thrown if something with the name is wrong.
-     * @throws JMSException is thrown if the topic can't be created.
+     * @throws JMSException    is thrown if the topic can't be created.
      */
     private Topic getOrCreateTopic(InitialContext context, Session session) throws NamingException, JMSException {
         Topic topic;
@@ -273,8 +262,8 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
      * Topic topic, and listens only to the messages of
      * {@link #messageSelector messageSelector}.
      *
-     * @param sess the session that creates the MessageConsumer to the given
-     * topic, that listens to the messages that match the messageSelector.
+     * @param sess  the session that creates the MessageConsumer to the given
+     *              topic, that listens to the messages that match the messageSelector.
      * @param topic the topic to listen to
      * @return the MessageConsumer if it can be created. It listens on the given
      * topic for messages that match the
@@ -301,7 +290,7 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
      *
      * @param con the connection to start
      * @throws JMSException is thrown if either setting the exceptionListener
-     * didn't work or the connection didn't start.
+     *                      didn't work or the connection didn't start.
      */
     private void startConnection(Connection con) throws JMSException {
         con.setExceptionListener(this);
@@ -439,7 +428,7 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
         try {
             String instructionString = ((TextMessage) message).getText();
             Instruction instruction = mapper.readValue(instructionString, Instruction.class
-                    );
+            );
             if (instruction.getRequest() != null) {
                 return instruction;
             }
@@ -455,8 +444,8 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
      * Send a message to the sender that is metioned in the message. If a
      * JmsCorrelationId is set in the message, it will be forwarded aswell.
      *
-     * @param message the destination where the response will be sent to and the
-     * jmsCorrelationId are safed in here.
+     * @param message     the destination where the response will be sent to and the
+     *                    jmsCorrelationId are safed in here.
      * @param instruction the instruction that holds the response.
      */
     protected void reply(Message message, Instruction instruction) {
@@ -503,21 +492,21 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
      */
     @Override
     public String[] librariesToCheck() {
-        return new String[] {
-                "javax.jms.Connection",
-                "javax.jms.ConnectionFactory",
-                "javax.jms.ExceptionListener",
-                "javax.jms.JMSException",
-                "javax.jms.Message",
-                "javax.jms.MessageConsumer",
-                "javax.jms.MessageListener",
-                "javax.jms.Session",
-                "javax.jms.TextMessage",
-                "javax.jms.MessageProducer",
-                "javax.jms.Topic",
-                "javax.naming.InitialContext",
-                "javax.naming.NameNotFoundException",
-                "javax.naming.NamingException" };
+        return new String[]{
+            "javax.jms.Connection",
+            "javax.jms.ConnectionFactory",
+            "javax.jms.ExceptionListener",
+            "javax.jms.JMSException",
+            "javax.jms.Message",
+            "javax.jms.MessageConsumer",
+            "javax.jms.MessageListener",
+            "javax.jms.Session",
+            "javax.jms.TextMessage",
+            "javax.jms.MessageProducer",
+            "javax.jms.Topic",
+            "javax.naming.InitialContext",
+            "javax.naming.NameNotFoundException",
+            "javax.naming.NamingException"};
     }
 
 }

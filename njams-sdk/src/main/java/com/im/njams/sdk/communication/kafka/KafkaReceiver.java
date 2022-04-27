@@ -17,24 +17,9 @@
 
 package com.im.njams.sdk.communication.kafka;
 
-import static com.im.njams.sdk.communication.kafka.KafkaHeadersUtil.getHeader;
-import static com.im.njams.sdk.communication.kafka.KafkaHeadersUtil.headersUpdater;
-import static com.im.njams.sdk.communication.kafka.KafkaUtil.filterKafkaProperties;
-
-import java.io.IOException;
-import java.util.Collection;
-import java.util.Properties;
-import java.util.UUID;
-
-import org.apache.kafka.clients.consumer.ConsumerRecord;
-import org.apache.kafka.clients.producer.KafkaProducer;
-import org.apache.kafka.clients.producer.ProducerRecord;
-import org.apache.kafka.common.serialization.StringSerializer;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.common.JsonSerializerFactory;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.common.Path;
@@ -43,6 +28,21 @@ import com.im.njams.sdk.communication.ConnectionStatus;
 import com.im.njams.sdk.communication.kafka.KafkaUtil.ClientType;
 import com.im.njams.sdk.settings.Settings;
 import com.im.njams.sdk.utils.StringUtils;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.clients.producer.KafkaProducer;
+import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.common.serialization.StringSerializer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
+import java.util.Collection;
+import java.util.Properties;
+import java.util.UUID;
+
+import static com.im.njams.sdk.communication.kafka.KafkaHeadersUtil.getHeader;
+import static com.im.njams.sdk.communication.kafka.KafkaHeadersUtil.headersUpdater;
+import static com.im.njams.sdk.communication.kafka.KafkaUtil.filterKafkaProperties;
 
 /**
  * Kafka implementation for a Receiver.
@@ -54,20 +54,34 @@ public class KafkaReceiver extends AbstractReceiver {
 
     private final Logger LOG = LoggerFactory.getLogger(KafkaReceiver.class);
 
-    /** Name of the Kafka header storing the message's content type. Expected value is {@value #CONTENT_TYPE_JSON} */
+    /**
+     * Name of the Kafka header storing the message's content type. Expected value is {@value #CONTENT_TYPE_JSON}
+     */
     public static final String NJAMS_CONTENT = "NJAMS_CONTENT";
-    /** Name of the Kafka header storing the request type */
+    /**
+     * Name of the Kafka header storing the request type
+     */
     public static final String NJAMS_TYPE = "NJAMS_TYPE";
-    /** Name of the Kafka header storing the receiver (client) path */
+    /**
+     * Name of the Kafka header storing the receiver (client) path
+     */
     public static final String NJAMS_RECEIVER = "NJAMS_RECEIVER";
-    /** Name of the Kafka header storing a unique message ID */
+    /**
+     * Name of the Kafka header storing a unique message ID
+     */
     public static final String NJAMS_MESSAGE_ID = "NJAMS_MESSAGE_ID";
-    /** Name of the Kafka header storing the ID of the request message to that a reply message belongs */
+    /**
+     * Name of the Kafka header storing the ID of the request message to that a reply message belongs
+     */
     public static final String NJAMS_REPLY_FOR = "NJAMS_REPLY_FOR";
 
-    /** The value used with header {@value #NJAMS_TYPE} for reply messages */
+    /**
+     * The value used with header {@value #NJAMS_TYPE} for reply messages
+     */
     private static final String MESSAGE_TYPE_REPLY = "Reply";
-    /** The value used with header {@value #NJAMS_CONTENT} for JSON content type (the only supported one) */
+    /**
+     * The value used with header {@value #NJAMS_CONTENT} for JSON content type (the only supported one)
+     */
     public static final String CONTENT_TYPE_JSON = "json";
     private static final String RECEIVER_SERVER = "server";
 
@@ -94,14 +108,14 @@ public class KafkaReceiver extends AbstractReceiver {
         mapper = JsonSerializerFactory.getDefaultMapper();
         final String clientPath = properties.getProperty(Settings.INTERNAL_PROPERTY_CLIENTPATH);
         clientId = getClientId(clientPath.substring(1, clientPath.length() - 1).replace('>', '_'));
-        if (properties.containsKey(KafkaConstants.COMMANDS_TOPIC)) {
-            topicName = properties.getProperty(KafkaConstants.COMMANDS_TOPIC);
+        if (properties.containsKey(NjamsSettings.PROPERTY_KAFKA_COMMANDS_TOPIC)) {
+            topicName = properties.getProperty(NjamsSettings.PROPERTY_KAFKA_COMMANDS_TOPIC);
         }
         if (StringUtils.isBlank(topicName)) {
-            String prefix = properties.getProperty(KafkaConstants.TOPIC_PREFIX);
+            String prefix = properties.getProperty(NjamsSettings.PROPERTY_KAFKA_TOPIC_PREFIX);
             if (StringUtils.isBlank(prefix)) {
-                LOG.warn("Property {} is not set. Using '{}' as default.", KafkaConstants.TOPIC_PREFIX,
-                        KafkaConstants.DEFAULT_TOPIC_PREFIX);
+                LOG.warn("Property {} is not set. Using '{}' as default.", NjamsSettings.PROPERTY_KAFKA_TOPIC_PREFIX,
+                    KafkaConstants.DEFAULT_TOPIC_PREFIX);
                 prefix = KafkaConstants.DEFAULT_TOPIC_PREFIX;
             }
             topicName = prefix + COMMANDS_SUFFIX;
@@ -139,7 +153,6 @@ public class KafkaReceiver extends AbstractReceiver {
      * This method tries to create a {@link CommandsConsumer}, which is a separate thread
      * for a consumer, constantly polling.
      *
-     * @param props the Properties that are used for connecting.
      * @throws NjamsSdkRuntimeException if any of the resources throws any exception.
      */
     private void tryToConnect() {
@@ -247,8 +260,8 @@ public class KafkaReceiver extends AbstractReceiver {
      *
      * @param message the Json Message
      * @return the Instruction object that was extracted or null, if no valid
-     *         instruction was found or it could be parsed to an instruction object.
-     * @throws IOException
+     * instruction was found or it could be parsed to an instruction object.
+     * @throws IOException if the {@link Instruction} could not be extracted.
      */
     protected Instruction getInstruction(final ConsumerRecord<String, String> message) throws IOException {
         return mapper.readValue(message.value(), Instruction.class);
@@ -257,24 +270,24 @@ public class KafkaReceiver extends AbstractReceiver {
     /**
      * This method tries to reply the instructions response back to nJAMS server.
      *
-     * @param requestId The ID of the request to that this reply belongs
+     * @param requestId   The ID of the request to that this reply belongs
      * @param instruction the instruction that holds the response.
      */
     protected void sendReply(final String requestId, final Instruction instruction) {
         try {
             final String responseId = UUID.randomUUID().toString();
             final ProducerRecord<String, String> response =
-                    new ProducerRecord<>(topicName, responseId, mapper.writeValueAsString(instruction));
+                new ProducerRecord<>(topicName, responseId, mapper.writeValueAsString(instruction));
             headersUpdater(response).addHeader(NJAMS_MESSAGE_ID, responseId).addHeader(NJAMS_REPLY_FOR, requestId)
-                    .addHeader(NJAMS_RECEIVER, RECEIVER_SERVER).addHeader(NJAMS_TYPE, MESSAGE_TYPE_REPLY)
-                    .addHeader(NJAMS_CONTENT, CONTENT_TYPE_JSON);
+                .addHeader(NJAMS_RECEIVER, RECEIVER_SERVER).addHeader(NJAMS_TYPE, MESSAGE_TYPE_REPLY)
+                .addHeader(NJAMS_CONTENT, CONTENT_TYPE_JSON);
 
             synchronized (this) {
                 if (producer == null) {
                     LOG.debug("Creating new Kafka producer.");
                     producer =
-                            new KafkaProducer<>(filterKafkaProperties(njamsProperties, ClientType.PRODUCER, clientId),
-                                    new StringSerializer(), new StringSerializer());
+                        new KafkaProducer<>(filterKafkaProperties(njamsProperties, ClientType.PRODUCER, clientId),
+                            new StringSerializer(), new StringSerializer());
                 }
                 LOG.debug("Sending reply for request {}: {}", requestId, response);
                 producer.send(response);

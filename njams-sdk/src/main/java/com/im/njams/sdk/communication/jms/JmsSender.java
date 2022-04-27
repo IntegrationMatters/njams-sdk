@@ -23,30 +23,12 @@
  */
 package com.im.njams.sdk.communication.jms;
 
-import java.util.Properties;
-
-import javax.jms.Connection;
-import javax.jms.ConnectionFactory;
-import javax.jms.Destination;
-import javax.jms.ExceptionListener;
-import javax.jms.JMSException;
-import javax.jms.MessageProducer;
-import javax.jms.ResourceAllocationException;
-import javax.jms.Session;
-import javax.jms.TextMessage;
-import javax.naming.InitialContext;
-import javax.naming.NameNotFoundException;
-import javax.naming.NamingException;
-
-import com.im.njams.sdk.communication.*;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.faizsiegeln.njams.messageformat.v4.common.CommonMessage;
 import com.faizsiegeln.njams.messageformat.v4.common.MessageVersion;
 import com.faizsiegeln.njams.messageformat.v4.logmessage.LogMessage;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.ProjectMessage;
 import com.faizsiegeln.njams.messageformat.v4.tracemessage.TraceMessage;
+import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.communication.*;
 import com.im.njams.sdk.settings.PropertyUtil;
@@ -80,10 +62,10 @@ public class JmsSender extends AbstractSender implements ExceptionListener {
      * <p>
      * Valid properties are:
      * <ul>
-     * <li>{@value com.im.njams.sdk.communication.jms.JmsConstants#CONNECTION_FACTORY}
-     * <li>{@value com.im.njams.sdk.communication.jms.JmsConstants#USERNAME}
-     * <li>{@value com.im.njams.sdk.communication.jms.JmsConstants#PASSWORD}
-     * <li>{@value com.im.njams.sdk.communication.jms.JmsConstants#DESTINATION}
+     * <li>{@value NjamsSettings#PROPERTY_JMS_CONNECTION_FACTORY}
+     * <li>{@value NjamsSettings#PROPERTY_JMS_USERNAME}
+     * <li>{@value NjamsSettings#PROPERTY_JMS_PASSWORD}
+     * <li>{@value NjamsSettings#PROPERTY_JMS_DESTINATION}
      * </ul>
      *
      * @param properties the properties needed to initialize
@@ -107,24 +89,24 @@ public class JmsSender extends AbstractSender implements ExceptionListener {
         InitialContext context = null;
         try {
             connectionStatus = ConnectionStatus.CONNECTING;
-            context = new InitialContext(PropertyUtil.filterAndCut(properties, JmsConstants.PROPERTY_PREFIX + "."));
+            context = new InitialContext(PropertyUtil.filterAndCut(properties, NjamsSettings.PROPERTY_JMS_PREFIX));
             ConnectionFactory factory = NjamsConnectionFactory.getFactory(context, properties);
-            if (properties.containsKey(JmsConstants.USERNAME) && properties.containsKey(JmsConstants.PASSWORD)) {
-                connection = factory.createConnection(properties.getProperty(JmsConstants.USERNAME),
-                    properties.getProperty(JmsConstants.PASSWORD));
+            if (properties.containsKey(NjamsSettings.PROPERTY_JMS_USERNAME) && properties.containsKey(NjamsSettings.PROPERTY_JMS_PASSWORD)) {
+                connection = factory.createConnection(properties.getProperty(NjamsSettings.PROPERTY_JMS_USERNAME),
+                    properties.getProperty(NjamsSettings.PROPERTY_JMS_PASSWORD));
             } else {
                 connection = factory.createConnection();
             }
             session = connection.createSession(false, Session.CLIENT_ACKNOWLEDGE);
             Destination destination = null;
-            String destinationName = properties.getProperty(JmsConstants.DESTINATION) + ".event";
+            String destinationName = properties.getProperty(NjamsSettings.PROPERTY_JMS_DESTINATION) + ".event";
             try {
                 destination = (Destination) context.lookup(destinationName);
             } catch (NameNotFoundException e) {
                 destination = session.createQueue(destinationName);
             }
             producer = session.createProducer(destination);
-            String deliveryMode = properties.getProperty(JmsConstants.DELIVERY_MODE);
+            String deliveryMode = properties.getProperty(NjamsSettings.PROPERTY_JMS_DELIVERY_MODE);
             if ("NON_PERSISTENT".equalsIgnoreCase(deliveryMode)) {
                 LOG.debug("Set JMS delivery mode to NON_PERSISTENT.");
                 producer.setDeliveryMode(DeliveryMode.NON_PERSISTENT);

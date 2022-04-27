@@ -1,19 +1,19 @@
 package com.im.njams.sdk.settings;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
+import com.im.njams.sdk.NjamsSettings;
+import com.im.njams.sdk.settings.provider.PropertiesFileSettingsProvider;
+import org.junit.After;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Test;
 
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.Properties;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-
-import com.im.njams.sdk.settings.provider.PropertiesFileSettingsProvider;
-import org.junit.Assert;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 
 public class PropertiesFileSettingsProviderTest {
 
@@ -36,13 +36,13 @@ public class PropertiesFileSettingsProviderTest {
 
         testFile = getTmpFile("njams-test-config.properties");
         props = new Properties();
-        props.setProperty(PropertiesFileSettingsProvider.PARENT_CONFIGURATION, parentName);
+        props.setProperty(NjamsSettings.PROPERTY_PROPERTIES_FILE_SETTINGS_PARENT_FILE, parentName);
         props.setProperty("a", "1");
         props.setProperty("b", "2");
         saveProps(testFile, props);
 
         Properties providerProps = new Properties();
-        providerProps.setProperty(PropertiesFileSettingsProvider.FILE_CONFIGURATION, testFile.getAbsolutePath());
+        providerProps.setProperty(NjamsSettings.PROPERTY_PROPERTIES_FILE_SETTINGS_FILE, testFile.getAbsolutePath());
         provider = new PropertiesFileSettingsProvider();
         provider.configure(providerProps);
         properties = provider.loadSettings().getAllProperties();
@@ -106,7 +106,7 @@ public class PropertiesFileSettingsProviderTest {
         defaultFile.createNewFile();
 
         Properties providerProps = new Properties();
-        providerProps.setProperty(PropertiesFileSettingsProvider.FILE_CONFIGURATION, tmpdir.getAbsolutePath());
+        providerProps.setProperty(NjamsSettings.PROPERTY_PROPERTIES_FILE_SETTINGS_FILE, tmpdir.getAbsolutePath());
         provider = new PropertiesFileSettingsProvider();
         provider.configure(providerProps);
         assertEquals(new File(tmpdir, PropertiesFileSettingsProvider.DEFAULT_FILE), provider.getFile());
@@ -115,7 +115,7 @@ public class PropertiesFileSettingsProviderTest {
     @Test
     public void testFile() {
         Properties providerProps = new Properties();
-        providerProps.setProperty(PropertiesFileSettingsProvider.FILE_CONFIGURATION, testFile.getAbsolutePath());
+        providerProps.setProperty(NjamsSettings.PROPERTY_PROPERTIES_FILE_SETTINGS_FILE, testFile.getAbsolutePath());
         provider = new PropertiesFileSettingsProvider();
         provider.configure(providerProps);
         assertEquals(testFile, provider.getFile());
@@ -124,7 +124,7 @@ public class PropertiesFileSettingsProviderTest {
     @Test(expected = IllegalArgumentException.class)
     public void testFileNotExists() {
         Properties providerProps = new Properties();
-        providerProps.setProperty(PropertiesFileSettingsProvider.FILE_CONFIGURATION, "/testxy.properties");
+        providerProps.setProperty(NjamsSettings.PROPERTY_PROPERTIES_FILE_SETTINGS_FILE, "/testxy.properties");
         provider = new PropertiesFileSettingsProvider();
         provider.configure(providerProps);
     }
@@ -132,16 +132,16 @@ public class PropertiesFileSettingsProviderTest {
     @Test
     public void testModifiedParentKey() throws IOException {
         String parentKey = "parentFileKey";
-        String parent = (String) properties.remove(PropertiesFileSettingsProvider.PARENT_CONFIGURATION);
+        String parent = (String) properties.remove(NjamsSettings.PROPERTY_PROPERTIES_FILE_SETTINGS_PARENT_FILE);
         properties.setProperty(parentKey, parent);
         saveProps(testFile, properties);
 
         Properties providerProps = new Properties();
-        providerProps.setProperty(PropertiesFileSettingsProvider.FILE_CONFIGURATION, testFile.getAbsolutePath());
-        providerProps.setProperty(PropertiesFileSettingsProvider.PARENT_CONFIGURATION_KEY, parentKey);
+        providerProps.setProperty(NjamsSettings.PROPERTY_PROPERTIES_FILE_SETTINGS_FILE, testFile.getAbsolutePath());
+        providerProps.setProperty(NjamsSettings.PROPERTY_PROPERTIES_FILE_SETTINGS_PARENT_KEY, parentKey);
         provider = new PropertiesFileSettingsProvider();
         provider.configure(providerProps);
-        
+
         assertEquals("1", properties.getProperty("a"));
         assertEquals("2", properties.getProperty("b"));
         assertEquals("parentValue", properties.getProperty("parentKey"));
@@ -161,17 +161,17 @@ public class PropertiesFileSettingsProviderTest {
         String circle2 = "circle2";
         File circle2File = getTmpFile(circle2);
         File circle1File = getTmpFile(circle1);
-        try {          
+        try {
             Properties props = new Properties();
-            props.setProperty(PropertiesFileSettingsProvider.PARENT_CONFIGURATION, circle1);
+            props.setProperty(NjamsSettings.PROPERTY_PROPERTIES_FILE_SETTINGS_PARENT_FILE, circle1);
             saveProps(circle2File, props);
 
             props = new Properties();
-            props.setProperty(PropertiesFileSettingsProvider.PARENT_CONFIGURATION, circle2);
+            props.setProperty(NjamsSettings.PROPERTY_PROPERTIES_FILE_SETTINGS_PARENT_FILE, circle2);
             saveProps(circle1File, props);
 
             Properties providerProps = new Properties();
-            providerProps.setProperty(PropertiesFileSettingsProvider.FILE_CONFIGURATION, circle1File.getAbsolutePath());
+            providerProps.setProperty(NjamsSettings.PROPERTY_PROPERTIES_FILE_SETTINGS_FILE, circle1File.getAbsolutePath());
             provider = new PropertiesFileSettingsProvider();
             provider.configure(providerProps);
             provider.loadSettings();

@@ -20,6 +20,7 @@ import com.faizsiegeln.njams.messageformat.v4.common.CommonMessage;
 import com.faizsiegeln.njams.messageformat.v4.logmessage.LogMessage;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.ProjectMessage;
 import com.faizsiegeln.njams.messageformat.v4.tracemessage.TraceMessage;
+import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.configuration.ConfigurationProviderFactory;
 import com.im.njams.sdk.settings.Settings;
@@ -55,7 +56,7 @@ public class TestSender extends AbstractSender {
      */
     public static Settings getSettings() {
         Settings config = new Settings();
-        config.put(CommunicationFactory.COMMUNICATION, NAME);
+        config.put(NjamsSettings.PROPERTY_COMMUNICATION, NAME);
         config.put(ConfigurationProviderFactory.CONFIGURATION_PROVIDER, "memory");
         return config;
     }

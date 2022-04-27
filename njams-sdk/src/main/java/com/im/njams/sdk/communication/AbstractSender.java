@@ -20,8 +20,8 @@ import com.faizsiegeln.njams.messageformat.v4.common.CommonMessage;
 import com.faizsiegeln.njams.messageformat.v4.logmessage.LogMessage;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.ProjectMessage;
 import com.faizsiegeln.njams.messageformat.v4.tracemessage.TraceMessage;
+import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
-import com.im.njams.sdk.settings.Settings;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -67,7 +67,7 @@ public abstract class AbstractSender implements Sender {
     @Override
     public void init(Properties properties) {
         this.properties = properties;
-        discardPolicy = DiscardPolicy.byValue(properties.getProperty(Settings.PROPERTY_DISCARD_POLICY));
+        discardPolicy = DiscardPolicy.byValue(properties.getProperty(NjamsSettings.PROPERTY_DISCARD_POLICY));
     }
 
     /**

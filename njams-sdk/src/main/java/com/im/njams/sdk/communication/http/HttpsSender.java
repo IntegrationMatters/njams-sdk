@@ -1,5 +1,6 @@
 package com.im.njams.sdk.communication.http;
 
+import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.common.JsonSerializerFactory;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.communication.ConnectionStatus;
@@ -24,8 +25,6 @@ import java.util.Properties;
 public class HttpsSender extends HttpSender {
     private static final Logger LOG = LoggerFactory.getLogger(HttpsSender.class);
 
-    protected static final String SSL_CERTIFIACTE_FILE = ".ssl.certificate.file";
-
     /**
      * Name of the HTTP component
      */
@@ -38,8 +37,7 @@ public class HttpsSender extends HttpSender {
      * <p>
      * Valid properties are:
      * <ul>
-     * <li>{@value com.im.njams.sdk.communication.http.HttpSender#BASE_URL}
-     * <li>{@value com.im.njams.sdk.communication.http.HttpSender#INGEST_ENDPOINT}
+     * <li>{@value NjamsSettings#PROPERTY_HTTP_SSL_CERTIFICATE_FILE}
      * </ul>
      *
      * @param properties the properties needed to initialize
@@ -49,7 +47,7 @@ public class HttpsSender extends HttpSender {
         this.properties = properties;
         mapper = JsonSerializerFactory.getDefaultMapper();
         try {
-            sslContext = initializeSSLContext(properties.getProperty(PROPERTY_PREFIX + SSL_CERTIFIACTE_FILE));
+            sslContext = initializeSSLContext(properties.getProperty(NjamsSettings.PROPERTY_HTTP_SSL_CERTIFICATE_FILE));
             url = createUrl(properties);
             connect();
             LOG.debug("Initialized HTTPS Sender with url {}", url);

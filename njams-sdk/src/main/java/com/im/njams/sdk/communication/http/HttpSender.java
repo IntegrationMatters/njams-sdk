@@ -16,32 +16,27 @@
  */
 package com.im.njams.sdk.communication.http;
 
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.util.Properties;
+import com.faizsiegeln.njams.messageformat.v4.common.MessageVersion;
+import com.faizsiegeln.njams.messageformat.v4.logmessage.LogMessage;
+import com.faizsiegeln.njams.messageformat.v4.projectmessage.ProjectMessage;
+import com.faizsiegeln.njams.messageformat.v4.tracemessage.TraceMessage;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.im.njams.sdk.NjamsSettings;
+import com.im.njams.sdk.common.JsonSerializerFactory;
+import com.im.njams.sdk.common.NjamsSdkRuntimeException;
+import com.im.njams.sdk.communication.*;
+import com.im.njams.sdk.utils.JsonUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.ws.rs.client.Client;
 import javax.ws.rs.client.ClientBuilder;
 import javax.ws.rs.client.Entity;
 import javax.ws.rs.client.WebTarget;
 import javax.ws.rs.core.Response;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.faizsiegeln.njams.messageformat.v4.common.MessageVersion;
-import com.faizsiegeln.njams.messageformat.v4.logmessage.LogMessage;
-import com.faizsiegeln.njams.messageformat.v4.projectmessage.ProjectMessage;
-import com.faizsiegeln.njams.messageformat.v4.tracemessage.TraceMessage;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.im.njams.sdk.common.JsonSerializerFactory;
-import com.im.njams.sdk.common.NjamsSdkRuntimeException;
-import com.im.njams.sdk.communication.AbstractSender;
-import com.im.njams.sdk.communication.ConnectionStatus;
-import com.im.njams.sdk.communication.DiscardMonitor;
-import com.im.njams.sdk.communication.DiscardPolicy;
-import com.im.njams.sdk.communication.Sender;
-import com.im.njams.sdk.utils.JsonUtils;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.util.Properties;
 
 /**
  * Sends Messages via HTTP to nJAMS
@@ -52,7 +47,6 @@ public class HttpSender extends AbstractSender {
 
     private static final Logger LOG = LoggerFactory.getLogger(HttpSender.class);
 
-    protected static final String PROPERTY_PREFIX = "njams.sdk.communication.http";
     protected ObjectMapper mapper;
     /**
      * Name of the HTTP component
@@ -62,11 +56,11 @@ public class HttpSender extends AbstractSender {
     /**
      * http base url of njams
      */
-    public static final String BASE_URL = PROPERTY_PREFIX + ".base.url";
+    private static final String BASE_URL = NjamsSettings.PROPERTY_HTTP_BASE_URL;
     /**
      * http dataprovider prefix
      */
-    public static final String INGEST_ENDPOINT = PROPERTY_PREFIX + ".dataprovider.prefix";
+    private static final String INGEST_ENDPOINT = NjamsSettings.PROPERTY_HTTP_DATAPROVIDER_PREFIX;
 
     /**
      * this is the API path to the ingest
@@ -84,8 +78,8 @@ public class HttpSender extends AbstractSender {
      * <p>
      * Valid properties are:
      * <ul>
-     * <li>{@value com.im.njams.sdk.communication.http.HttpSender#BASE_URL}
-     * <li>{@value com.im.njams.sdk.communication.http.HttpSender#INGEST_ENDPOINT}
+     * <li>{@value NjamsSettings#PROPERTY_HTTP_BASE_URL}
+     * <li>{@value NjamsSettings#PROPERTY_HTTP_DATAPROVIDER_PREFIX}
      * </ul>
      *
      * @param properties the properties needed to initialize
@@ -210,15 +204,15 @@ public class HttpSender extends AbstractSender {
         do {
             try {
                 Response response = target.request()
-                        .header("Content-Type", "application/json")
-                        .header("Accept", "text/plain")
-                        .header(Sender.NJAMS_MESSAGEVERSION, MessageVersion.V4.toString())
-                        .header(Sender.NJAMS_MESSAGETYPE, properties.getProperty(Sender.NJAMS_MESSAGETYPE))
-                        .header(Sender.NJAMS_PATH, properties.getProperty(Sender.NJAMS_PATH))
-                        .header(Sender.NJAMS_LOGID, properties.getProperty(Sender.NJAMS_LOGID))
-                        .post(Entity.json(JsonUtils.serialize(msg)));
+                    .header("Content-Type", "application/json")
+                    .header("Accept", "text/plain")
+                    .header(Sender.NJAMS_MESSAGEVERSION, MessageVersion.V4.toString())
+                    .header(Sender.NJAMS_MESSAGETYPE, properties.getProperty(Sender.NJAMS_MESSAGETYPE))
+                    .header(Sender.NJAMS_PATH, properties.getProperty(Sender.NJAMS_PATH))
+                    .header(Sender.NJAMS_LOGID, properties.getProperty(Sender.NJAMS_LOGID))
+                    .post(Entity.json(JsonUtils.serialize(msg)));
                 LOG.debug("Response status:" + response.getStatus()
-                        + ", Message: " + response.getStatusInfo().getReasonPhrase());
+                    + ", Message: " + response.getStatusInfo().getReasonPhrase());
                 responseStatus = response.getStatus();
                 if (response.getStatus() == 200) {
                     sent = true;
@@ -234,13 +228,13 @@ public class HttpSender extends AbstractSender {
                 }
                 if (++tries >= MAX_TRIES) {
                     LOG.warn("Try to reconnect, because the Server HTTP Endpoint could not be reached for {} seconds.",
-                            MAX_TRIES * EXCEPTION_IDLE_TIME / 1000);
+                        MAX_TRIES * EXCEPTION_IDLE_TIME / 1000);
                     if (exception != null) {
                         throw new NjamsSdkRuntimeException("Eror sending Message with HTTP Client URI "
-                                + target.getUri().toString(), exception);
+                            + target.getUri().toString(), exception);
                     } else {
                         throw new NjamsSdkRuntimeException("Eror sending Message with HTTP Client URI "
-                                + target.getUri().toString() + " Response Status is: " + responseStatus);
+                            + target.getUri().toString() + " Response Status is: " + responseStatus);
                     }
                 } else {
                     Thread.sleep(EXCEPTION_IDLE_TIME);

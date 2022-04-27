@@ -23,17 +23,15 @@
  */
 package com.faizsiegeln.test.argos;
 
-import java.util.Random;
-
 import com.im.njams.sdk.Njams;
+import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.argos.ArgosCollector;
 import com.im.njams.sdk.argos.ArgosComponent;
 import com.im.njams.sdk.argos.ArgosMetric;
-import com.im.njams.sdk.argos.ArgosSender;
 import com.im.njams.sdk.common.Path;
-import com.im.njams.sdk.communication.CommunicationFactory;
-import com.im.njams.sdk.communication.jms.JmsConstants;
 import com.im.njams.sdk.settings.Settings;
+
+import java.util.Random;
 
 /**
  * This is a sample client that sends random numbers for my own random number collector.
@@ -75,23 +73,23 @@ public class RandomNumberSenderClient {
 
     private static Settings getProperties() {
         Settings communicationProperties = new Settings();
-        communicationProperties.put(CommunicationFactory.COMMUNICATION, "JMS");
-        communicationProperties.put(JmsConstants.INITIAL_CONTEXT_FACTORY,
-                "com.tibco.tibjms.naming.TibjmsInitialContextFactory");
-        communicationProperties.put(JmsConstants.SECURITY_PRINCIPAL, "njams");
-        communicationProperties.put(JmsConstants.SECURITY_CREDENTIALS, "njams");
-        communicationProperties.put(JmsConstants.PROVIDER_URL, "tibjmsnaming://vslems01:7222");
-        communicationProperties.put(JmsConstants.CONNECTION_FACTORY, "ConnectionFactory");
-        communicationProperties.put(JmsConstants.USERNAME, "njams");
-        communicationProperties.put(JmsConstants.PASSWORD, "njams");
-        communicationProperties.put(JmsConstants.DESTINATION, "njams.endurance");
+        communicationProperties.put(NjamsSettings.PROPERTY_COMMUNICATION, "JMS");
+        communicationProperties.put(NjamsSettings.PROPERTY_JMS_INITIAL_CONTEXT_FACTORY,
+            "com.tibco.tibjms.naming.TibjmsInitialContextFactory");
+        communicationProperties.put(NjamsSettings.PROPERTY_JMS_SECURITY_PRINCIPAL, "njams");
+        communicationProperties.put(NjamsSettings.PROPERTY_JMS_SECURITY_CREDENTIALS, "njams");
+        communicationProperties.put(NjamsSettings.PROPERTY_JMS_PROVIDER_URL, "tibjmsnaming://vslems01:7222");
+        communicationProperties.put(NjamsSettings.PROPERTY_JMS_CONNECTION_FACTORY, "ConnectionFactory");
+        communicationProperties.put(NjamsSettings.PROPERTY_JMS_USERNAME, "njams");
+        communicationProperties.put(NjamsSettings.PROPERTY_JMS_PASSWORD, "njams");
+        communicationProperties.put(NjamsSettings.PROPERTY_JMS_DESTINATION, "njams.endurance");
         //optional: if you want to use a topic for commands not following the name of the other destinations, specify it here
-        communicationProperties.put(JmsConstants.COMMANDS_DESTINATION, "njams4.dev.phillip.commands");
+        communicationProperties.put(NjamsSettings.PROPERTY_JMS_COMMANDS_DESTINATION, "njams4.dev.phillip.commands");
 
         //Argos relevant properties
-        communicationProperties.put(ArgosSender.NJAMS_SUBAGENT_HOST, "os1113");
-        communicationProperties.put(ArgosSender.NJAMS_SUBAGENT_PORT, "6450");
-        communicationProperties.put(ArgosSender.NJAMS_SUBAGENT_ENABLED, "true");
+        communicationProperties.put(NjamsSettings.PROPERTY_ARGOS_SUBAGENT_HOST, "os1113");
+        communicationProperties.put(NjamsSettings.PROPERTY_ARGOS_SUBAGENT_PORT, "6450");
+        communicationProperties.put(NjamsSettings.PROPERTY_ARGOS_SUBAGENT_ENABLED, "true");
         return communicationProperties;
     }
 
@@ -106,7 +104,7 @@ public class RandomNumberSenderClient {
 
         public RandomNumberCollector() {
             super(new ArgosComponent("testRandomNumberId", "testRandomNumberName", "testRandomNumberContainer",
-                    "testRandomNumberMeasurement", "testRandomNumberType"));
+                "testRandomNumberMeasurement", "testRandomNumberType"));
             randomGenerator = new Random();
         }
 
@@ -124,7 +122,7 @@ public class RandomNumberSenderClient {
 
         public RandomNumberMetric(ArgosComponent argosComponent) {
             super(argosComponent.getId(), argosComponent.getName(), argosComponent.getContainerId(),
-                    argosComponent.getMeasurement(), argosComponent.getType());
+                argosComponent.getMeasurement(), argosComponent.getType());
         }
 
         public int getRandomNumber() {

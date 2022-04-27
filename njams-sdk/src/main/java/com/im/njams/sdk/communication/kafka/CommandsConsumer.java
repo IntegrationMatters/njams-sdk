@@ -17,14 +17,8 @@
 
 package com.im.njams.sdk.communication.kafka;
 
-import java.time.Duration;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Set;
-import java.util.stream.Collectors;
-
+import com.im.njams.sdk.NjamsSettings;
+import com.im.njams.sdk.communication.kafka.KafkaUtil.ClientType;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
@@ -35,7 +29,9 @@ import org.apache.kafka.common.serialization.StringDeserializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.im.njams.sdk.communication.kafka.KafkaUtil.ClientType;
+import java.time.Duration;
+import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * A thread for a KafkaConsumer, that constantly needs to check if there are new commands in its Kafka topic
@@ -64,7 +60,7 @@ public class CommandsConsumer extends Thread {
      * @param receiver   the {@link KafkaReceiver} that uses this consumer instance
      */
     protected CommandsConsumer(final Properties properties, final String topic, final String clientId,
-            final KafkaReceiver receiver) {
+                               final KafkaReceiver receiver) {
         super("kafka_commands_consumer");
         idleProducerTimeout = getProducerIdleTime(properties);
         this.receiver = receiver;
@@ -93,7 +89,7 @@ public class CommandsConsumer extends Thread {
     /**
      * Assign all partitions of the given topic to given consumer.
      * This is non-incremental. I.e., the current assignment is replaced with the new one.
-     * @param consumer The consumer that should process the given topic
+     *
      * @param topic The topic to assign to the given consumer;
      * @return The resulting assigned topics, i.e., actually the one given, or none at all.
      */
@@ -104,7 +100,7 @@ public class CommandsConsumer extends Thread {
             final List<PartitionInfo> partitions = topicPartitions.get(topic);
             if (partitions != null && !partitions.isEmpty()) {
                 consumer.assign(partitions.stream().map(i -> new TopicPartition(i.topic(), i.partition()))
-                        .collect(Collectors.toSet()));
+                    .collect(Collectors.toSet()));
             }
         } else {
             LOG.debug("No partitions found for topic {}", topic);
@@ -116,9 +112,9 @@ public class CommandsConsumer extends Thread {
     }
 
     private long getProducerIdleTime(final Properties properties) {
-        if (properties.containsKey(KafkaConstants.REPLY_PRODUCER_IDLE_TIME)) {
+        if (properties.containsKey(NjamsSettings.PROPERTY_KAFKA_REPLY_PRODUCER_IDLE_TIME)) {
             try {
-                return Long.parseLong(properties.getProperty(KafkaConstants.REPLY_PRODUCER_IDLE_TIME));
+                return Long.parseLong(properties.getProperty(NjamsSettings.PROPERTY_KAFKA_REPLY_PRODUCER_IDLE_TIME));
             } catch (final Exception e) {
                 LOG.error("Failed to parse timeout from properties", e);
             }
@@ -159,7 +155,7 @@ public class CommandsConsumer extends Thread {
      */
     private void checkIdleProducer() {
         if (receiver.hasRunningProducer()
-                && System.currentTimeMillis() - lastMessageProcessingTimestamp > idleProducerTimeout) {
+            && System.currentTimeMillis() - lastMessageProcessingTimestamp > idleProducerTimeout) {
             receiver.closeProducer();
         }
     }
