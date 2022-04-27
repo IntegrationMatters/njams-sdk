@@ -106,6 +106,6 @@ node('master') {
     }
 
     stage('Trivy scan') {
-        sh "docker build --progress=plain . -t im/bw5trivy:latest"
+        sh "docker build --progress=plain . -t im/sdk_trivy:latest"
     }
 }
