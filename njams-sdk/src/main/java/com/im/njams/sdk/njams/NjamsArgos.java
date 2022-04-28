@@ -31,6 +31,9 @@ import com.im.njams.sdk.settings.Settings;
 import java.util.ArrayList;
 import java.util.Collection;
 
+/**
+ * NjamsArgos is the main class for everything that has something to do with Argos.
+ */
 public class NjamsArgos {
     private final ArgosSender argosSender;
     private final Collection<ArgosMultiCollector<?>> argosCollectors;

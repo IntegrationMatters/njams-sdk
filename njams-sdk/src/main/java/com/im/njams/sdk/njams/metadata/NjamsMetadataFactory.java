@@ -31,6 +31,9 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 
+/**
+ * NjamsMetadataFactory creates new instances of NjamsMetadata
+ */
 public class NjamsMetadataFactory {
 
     private static final org.slf4j.Logger LOG = LoggerFactory.getLogger(NjamsMetadataFactory.class);

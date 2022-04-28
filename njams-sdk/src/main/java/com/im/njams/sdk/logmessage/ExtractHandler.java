@@ -47,6 +47,9 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+/**
+ * ExtractHandler is used for handling the extracts that can be set from the server.
+ */
 public class ExtractHandler {
 
     private static final Logger LOG = LoggerFactory.getLogger(ExtractHandler.class);

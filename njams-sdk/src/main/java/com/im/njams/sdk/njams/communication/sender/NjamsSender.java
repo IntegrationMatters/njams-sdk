@@ -20,6 +20,9 @@ package com.im.njams.sdk.njams.communication.sender;
 import com.faizsiegeln.njams.messageformat.v4.common.CommonMessage;
 import com.im.njams.sdk.communication.Sender;
 
+/**
+ * NjamsSender is a wrapper class for the real sender that is used to send messages to nJAMS Server.
+ */
 public class NjamsSender {
 
     private Sender sender;

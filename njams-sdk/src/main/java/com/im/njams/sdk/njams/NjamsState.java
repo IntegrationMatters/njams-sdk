@@ -25,6 +25,9 @@ package com.im.njams.sdk.njams;
 
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 
+/**
+ * NjamsState hold the current state of the njams instance.
+ */
 public class NjamsState {
 
     private static final String NOT_STARTED_EXCEPTION_MESSAGE = "The instance needs to be started first!";

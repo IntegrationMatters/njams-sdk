@@ -44,6 +44,10 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
+/**
+ * NjamsJobs is a wrapper for all the jobs that are currently running in nJAMS.
+ * It handles replay as well.
+ */
 public class NjamsJobs implements InstructionListener {
 
     /**

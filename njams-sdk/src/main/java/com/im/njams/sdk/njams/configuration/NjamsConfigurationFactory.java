@@ -25,6 +25,9 @@ import com.im.njams.sdk.njams.communication.sender.NjamsSender;
 import com.im.njams.sdk.njams.metadata.NjamsMetadata;
 import com.im.njams.sdk.settings.Settings;
 
+/**
+ * NjamsConfigurationFactory loads a configuration based on the settings that are given in.
+ */
 public class NjamsConfigurationFactory {
 
     private static final String DEFAULT_CACHE_PROVIDER = FileConfigurationProvider.NAME;

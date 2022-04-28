@@ -61,6 +61,10 @@ import java.util.stream.Stream;
 
 import static java.util.stream.Collectors.toList;
 
+/**
+ * NjamsProjectMessage is a wrapper class for everything that uses process models and how to lay out those process models
+ * for the server.
+ */
 public class NjamsProjectMessage implements InstructionListener {
 
     private static final org.slf4j.Logger LOG = LoggerFactory.getLogger(NjamsProjectMessage.class);

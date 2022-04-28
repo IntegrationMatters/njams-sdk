@@ -32,6 +32,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * NjamsSettings is a wrapper for the settings.
+ */
 public class NjamsSettings {
     private final Settings settings;
 

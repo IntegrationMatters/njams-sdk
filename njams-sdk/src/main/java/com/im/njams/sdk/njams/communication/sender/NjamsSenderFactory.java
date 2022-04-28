@@ -23,6 +23,12 @@ import com.im.njams.sdk.njams.metadata.NjamsMetadata;
 import com.im.njams.sdk.settings.Settings;
 import org.slf4j.LoggerFactory;
 
+/**
+ * NjamsSenderFactory creates the sender that will be used to send messages to the server.
+ *
+ * It will either be a shared concurrent sender or a concurrent sender for each njams Instance based on the given
+ * settings.
+ */
 public class NjamsSenderFactory {
     private static final org.slf4j.Logger LOG = LoggerFactory.getLogger(NjamsSenderFactory.class);
 

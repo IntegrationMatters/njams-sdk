@@ -35,6 +35,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 
+/**
+ * NjamsDataMasking can hold patterns for strings that need to be masked.
+ */
 public class NjamsDataMasking {
 
     private static final org.slf4j.Logger LOG = LoggerFactory.getLogger(NjamsDataMasking.class);

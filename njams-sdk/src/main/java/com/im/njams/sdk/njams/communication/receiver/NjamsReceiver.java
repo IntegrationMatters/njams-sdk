@@ -34,6 +34,10 @@ import org.slf4j.LoggerFactory;
 
 import java.util.List;
 
+/**
+ * The NjamsReceiver is used to listen on different instructions of the nJAMS Server.
+ * It initializes the default InstructionListeners as well.
+ */
 public class NjamsReceiver {
 
     private static final org.slf4j.Logger LOG = LoggerFactory.getLogger(NjamsReceiver.class);

@@ -33,6 +33,9 @@ import com.im.njams.sdk.njams.NjamsFeatures;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+/**
+ * Listener for the PING instruction of the server.
+ */
 public class PingInstructionListener implements InstructionListener {
 
     private final NjamsMetadata instanceMetadata;

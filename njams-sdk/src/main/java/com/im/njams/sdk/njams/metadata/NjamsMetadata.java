@@ -29,6 +29,9 @@ import com.im.njams.sdk.common.Path;
 import java.util.Map;
 import java.util.Objects;
 
+/**
+ * NjamsMetadata is a record of the current metadata of the njams instance.
+ */
 public class NjamsMetadata {
     private final Path clientPath;
     private final String machine;

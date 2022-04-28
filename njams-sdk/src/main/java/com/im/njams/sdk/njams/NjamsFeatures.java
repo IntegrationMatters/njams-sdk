@@ -28,6 +28,9 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
+/**
+ * NjamsFeatures is a wrapper class for the features supported by the nJAMS client.
+ */
 public class NjamsFeatures {
 
     /**

@@ -28,6 +28,9 @@ import com.im.njams.sdk.settings.Settings;
 
 import java.util.Map;
 
+/**
+ * Wrapper for the real configuration.
+ */
 public class NjamsConfiguration {
 
     private final NjamsMetadata njamsMetadata;

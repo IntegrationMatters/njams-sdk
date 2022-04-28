@@ -29,6 +29,10 @@ import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
 
+/**
+ * NjamsSerializers is the data structure to manage serializers that are used before sending messages to the nJAMS
+ * Server.
+ */
 public class NjamsSerializers {
 
     private static final org.slf4j.Logger LOG = LoggerFactory.getLogger(NjamsSerializers.class);
