@@ -228,7 +228,12 @@ public class KafkaReceiver extends AbstractReceiver {
             }
             LOG.debug("Handle message (id={}) {}", messageId, msg);
             onInstruction(instruction);
-            sendReply(messageId, instruction);
+
+            // -777 is replay ignore code
+            if(instruction.getResponse().getResultCode() != -777){
+                sendReply(messageId, instruction);
+            }  
+           
         } catch (final Exception e) {
             LOG.error("Failed to process instruction: {}", msg, e);
         }

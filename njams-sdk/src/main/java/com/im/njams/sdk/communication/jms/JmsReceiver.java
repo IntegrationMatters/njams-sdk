@@ -410,7 +410,10 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
             }
 
             onInstruction(instruction);
-            reply(msg, instruction);
+            // -777 is replay ignore code
+            if(instruction.getResponse().getResultCode() != -777){
+                reply(msg, instruction);
+            }            
         } catch (Exception e) {
             LOG.error("Error in onMessage", e);
         }

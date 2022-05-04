@@ -110,7 +110,12 @@ public class HttpSseReceiver extends AbstractReceiver {
             LOG.error("Exception during receiving SSE Event.", e);
         }
         onInstruction(instruction);
-        sendReply(id, instruction);
+
+        // -777 is replay ignore code
+        if(instruction.getResponse().getResultCode() != -777){
+            sendReply(id, instruction);
+        }  
+        
     }
 
     @Override
