@@ -82,7 +82,6 @@ public class NjamsSettings {
      */
     public static final String PROPERTY_TRUNCATE_ON_SUCCESS = "njams.sdk.truncateOnSuccess";
 
-
     //     _____ _ _            _      _____ _____  _  __
     //    / ____| (_)          | |    / ____|  __ \| |/ /
     //   | |    | |_  ___ _ __ | |_  | (___ | |  | | ' /
@@ -157,7 +156,7 @@ public class NjamsSettings {
      * because he uses an older Messageformat version.
      */
     public static final String PROPERTY_USE_DEPRECATED_PATH_FIELD_FOR_SUBPROCESSES =
-        "njams.client.sdk.deprecatedsubprocesspathfield";
+            "njams.client.sdk.deprecatedsubprocesspathfield";
 
     /**
      * If set to <code>true</code> secure XML processing feature will NOT be inititalzied:
@@ -167,7 +166,6 @@ public class NjamsSettings {
      * This can be helpful for an environment containing an old XML lib, which does not support this.
      */
     public static final String PROPERTY_DISABLE_SECURE_PROCESSING = "njams.client.sdk.disable.secure.processing";
-
 
     //     _____      _   _   _
     //    / ____|    | | | | (_)
@@ -233,7 +231,6 @@ public class NjamsSettings {
      */
     public static final String PROPERTY_ARGOS_SUBAGENT_HOST = "njams.sdk.subagent.host";
 
-
     //    _    _ _______ _______ _____
     //   | |  | |__   __|__   __|  __ \
     //   | |__| |  | |     | |  | |__) |
@@ -257,7 +254,6 @@ public class NjamsSettings {
      */
     public static final String PROPERTY_HTTP_SSL_CERTIFICATE_FILE = "njams.sdk.communication.http.ssl.certificate.file";
 
-
     //    _  __          ______ _  __
     //   | |/ /    /\   |  ____| |/ /    /\
     //   | ' /    /  \  | |__  | ' /    /  \
@@ -274,7 +270,8 @@ public class NjamsSettings {
      * This is the only mandatory client property that is used to list bootstrap servers
      * (comma separated) for connecting to a Kafka cluster.
      */
-    public static final String PROPERTY_KAFKA_BOOTSTRAP_SERVERS = "njams.sdk.communication.kafka.bootstrap.servers";
+    public static final String PROPERTY_KAFKA_BOOTSTRAP_SERVERS =
+            "njams.sdk.communication.kafka.client.bootstrap.servers";
 
     /**
      * This is the prefix of the event, project, commands, and optional error topics.
@@ -286,9 +283,11 @@ public class NjamsSettings {
      * The producer sending replies for processed commands will be closed if it has not been used for the specified time
      * in milliseconds. The default is 30000.
      */
-    public static final String PROPERTY_KAFKA_REPLY_PRODUCER_IDLE_TIME = "njams.sdk.communication.kafka.replyProducerIdleTime";
+    public static final String PROPERTY_KAFKA_REPLY_PRODUCER_IDLE_TIME =
+            "njams.sdk.communication.kafka.replyProducerIdleTime";
 
     /**
+     * For testing only.
      * Allows specifying a specific commands topic, overriding the default that is resolved from the topicPrefix setting.
      */
     public static final String PROPERTY_KAFKA_COMMANDS_TOPIC = "njams.sdk.communication.kafka.commandsTopic";
@@ -314,17 +313,17 @@ public class NjamsSettings {
     /**
      * Consumer properties
      */
-    public static final String PROPERTY_KAFKA_CONSUMER_PREFIX = "njams.sdk.communication.kafka.client.consumer.";
+    public static final String PROPERTY_KAFKA_CONSUMER_PREFIX = "njams.sdk.communication.kafka.consumer.";
 
     /**
      * Producer properties
      */
-    public static final String PROPERTY_KAFKA_PRODUCER_PREFIX = "njams.sdk.communication.kafka.client.producer.";
+    public static final String PROPERTY_KAFKA_PRODUCER_PREFIX = "njams.sdk.communication.kafka.producer.";
 
     /**
-     * Admin properties
+     * Admin client properties
      */
-    public static final String PROPERTY_KAFKA_ADMIN_PREFIX = "njams.sdk.communication.kafka.client.admin.";
+    public static final String PROPERTY_KAFKA_ADMIN_PREFIX = "njams.sdk.communication.kafka.admin.";
 
     //         _ __  __  _____
     //        | |  \/  |/ ____|
@@ -371,7 +370,8 @@ public class NjamsSettings {
     /**
      * Specifies the jndi initial context factory.
      */
-    public static final String PROPERTY_JMS_INITIAL_CONTEXT_FACTORY = PROPERTY_JMS_PREFIX + Context.INITIAL_CONTEXT_FACTORY;
+    public static final String PROPERTY_JMS_INITIAL_CONTEXT_FACTORY = PROPERTY_JMS_PREFIX
+            + Context.INITIAL_CONTEXT_FACTORY;
 
     /**
      * Specifies the jndi security principal.
@@ -417,7 +417,6 @@ public class NjamsSettings {
      */
     public static final String PROPERTY_JMS_TRUSTSTORETYPE = SSLPREFIX + "trustStoreType";
 
-
     //    _____        _                            _    _
     //   |  __ \      | |                          | |  (_)
     //   | |  | | __ _| |_ __ _ _ __ ___   __ _ ___| | ___ _ __   __ _
@@ -451,7 +450,6 @@ public class NjamsSettings {
      * </pre>
      */
     public static final String PROPERTY_DATA_MASKING_REGEX_PREFIX = "njams.sdk.datamasking.regex.";
-
 
     //     _____ _                 _
     //    / ____| |               | |
