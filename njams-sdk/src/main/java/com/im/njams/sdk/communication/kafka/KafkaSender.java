@@ -24,6 +24,26 @@
 
 package com.im.njams.sdk.communication.kafka;
 
+import static com.im.njams.sdk.communication.kafka.KafkaHeadersUtil.headersUpdater;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Properties;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+
+import org.apache.kafka.clients.producer.KafkaProducer;
+import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.clients.producer.RecordMetadata;
+import org.apache.kafka.common.KafkaException;
+import org.apache.kafka.common.errors.RecordTooLargeException;
+import org.apache.kafka.common.serialization.StringSerializer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.faizsiegeln.njams.messageformat.v4.common.CommonMessage;
 import com.faizsiegeln.njams.messageformat.v4.common.MessageVersion;
 import com.faizsiegeln.njams.messageformat.v4.logmessage.LogMessage;
@@ -31,23 +51,14 @@ import com.faizsiegeln.njams.messageformat.v4.projectmessage.ProjectMessage;
 import com.faizsiegeln.njams.messageformat.v4.tracemessage.TraceMessage;
 import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
-import com.im.njams.sdk.communication.*;
+import com.im.njams.sdk.communication.AbstractSender;
+import com.im.njams.sdk.communication.ConnectionStatus;
+import com.im.njams.sdk.communication.DiscardMonitor;
+import com.im.njams.sdk.communication.DiscardPolicy;
+import com.im.njams.sdk.communication.Sender;
 import com.im.njams.sdk.communication.kafka.KafkaUtil.ClientType;
 import com.im.njams.sdk.utils.JsonUtils;
 import com.im.njams.sdk.utils.StringUtils;
-import org.apache.kafka.clients.producer.KafkaProducer;
-import org.apache.kafka.clients.producer.ProducerRecord;
-import org.apache.kafka.common.KafkaException;
-import org.apache.kafka.common.serialization.StringSerializer;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Properties;
-
-import static com.im.njams.sdk.communication.kafka.KafkaHeadersUtil.headersUpdater;
 
 /**
  * Kafka implementation for a Sender.
@@ -82,7 +93,7 @@ public class KafkaSender extends AbstractSender {
         String topicPrefix = properties.getProperty(NjamsSettings.PROPERTY_KAFKA_TOPIC_PREFIX);
         if (StringUtils.isBlank(topicPrefix)) {
             LOG.warn("Property {} is not set. Using '{}' as default.", NjamsSettings.PROPERTY_KAFKA_TOPIC_PREFIX,
-                KafkaConstants.DEFAULT_TOPIC_PREFIX);
+                    KafkaConstants.DEFAULT_TOPIC_PREFIX);
             topicPrefix = KafkaConstants.DEFAULT_TOPIC_PREFIX;
         }
         topicEvent = topicPrefix + EVENT_SUFFIX;
@@ -122,12 +133,12 @@ public class KafkaSender extends AbstractSender {
     private void validateTopics() {
         final Collection<String> requiredTopics = new ArrayList<>(Arrays.asList(topicEvent, topicProject));
         final Collection<String> foundTopics =
-            KafkaUtil.testTopics(properties, requiredTopics.toArray(new String[requiredTopics.size()]));
+                KafkaUtil.testTopics(properties, requiredTopics.toArray(new String[requiredTopics.size()]));
         LOG.debug("Found topics: {}", foundTopics);
         requiredTopics.removeAll(foundTopics);
         if (!requiredTopics.isEmpty()) {
             throw new NjamsSdkRuntimeException("The following required Kafka topics have not been found: "
-                + requiredTopics);
+                    + requiredTopics);
         }
     }
 
@@ -197,10 +208,10 @@ public class KafkaSender extends AbstractSender {
      * @param msg
      * @param messageType
      * @param data
-     * @throws InterruptedException
+     * @throws Exception
      */
     private void sendMessage(final CommonMessage msg, final String topic, final String messageType, final String data)
-        throws InterruptedException {
+            throws Exception {
         final ProducerRecord<String, String> record;
         final String id;
         if (msg instanceof LogMessage) {
@@ -211,9 +222,9 @@ public class KafkaSender extends AbstractSender {
             record = new ProducerRecord<>(topic, data);
         }
         headersUpdater(record).addHeader(Sender.NJAMS_MESSAGEVERSION, MessageVersion.V4.toString())
-            .addHeader(Sender.NJAMS_MESSAGETYPE, messageType)
-            .addHeader(Sender.NJAMS_LOGID, id, (k, v) -> StringUtils.isNotBlank(v))
-            .addHeader(Sender.NJAMS_PATH, msg.getPath(), (k, v) -> StringUtils.isNotBlank(v));
+                .addHeader(Sender.NJAMS_MESSAGETYPE, messageType)
+                .addHeader(Sender.NJAMS_LOGID, id, (k, v) -> StringUtils.isNotBlank(v))
+                .addHeader(Sender.NJAMS_PATH, msg.getPath(), (k, v) -> StringUtils.isNotBlank(v));
 
         tryToSend(record);
     }
@@ -222,33 +233,59 @@ public class KafkaSender extends AbstractSender {
      * Try to send and catches Errors
      *
      * @param record
-     * @throws InterruptedException
+     * @throws Exception
      */
-    private void tryToSend(final ProducerRecord<String, String> record) throws InterruptedException {
+    private void tryToSend(final ProducerRecord<String, String> record) throws Exception {
         boolean sent = false;
 
         int tries = 0;
 
         do {
             try {
-                producer.send(record);
-                LOG.trace("Sent record {}", record);
+                final Future<RecordMetadata> future = producer.send(record);
+                final RecordMetadata result = future.get(1, TimeUnit.SECONDS);
+                if (LOG.isTraceEnabled()) {
+                    LOG.trace("Send record result: {}\n{}", result, record);
+                } else {
+                    LOG.debug("Send record result: {}", result);
+                }
+
                 sent = true;
-            } catch (KafkaException | IllegalStateException e) {
+            } catch (KafkaException | IllegalStateException | ExecutionException | TimeoutException e) {
+                LOG.debug("Failed to send record", e);
+                Exception cause = getAsyncCause(e);
+                if (cause instanceof RecordTooLargeException) {
+                    LOG.warn("Discarding message that is too large: {}", cause.toString());
+                    DiscardMonitor.discard();
+                    break;
+                }
                 if (discardPolicy == DiscardPolicy.ON_CONNECTION_LOSS) {
                     LOG.debug("Applying discard policy [{}]. Message discarded.", discardPolicy);
                     DiscardMonitor.discard();
                     break;
                 }
                 if (++tries >= MAX_TRIES) {
-                    LOG.warn("Try to reconnect, because the topic couldn't be reached after {} seconds.",
-                        MAX_TRIES * EXCEPTION_IDLE_TIME);
-                    throw e;
+                    LOG.warn("Try to reconnect, because the topic couldn't be reached after {} milliseconds.",
+                            MAX_TRIES * EXCEPTION_IDLE_TIME);
+                    throw cause;
                 } else {
                     Thread.sleep(EXCEPTION_IDLE_TIME);
                 }
             }
         } while (!sent);
+    }
+
+    /**
+     * Exceptions from Kafka are wrapped into {@link ExecutionException} due to async behavior of the
+     * {@link KafkaProducer#send(ProducerRecord)} methods.
+     * @param e
+     * @return
+     */
+    private Exception getAsyncCause(Exception e) {
+        if (e instanceof ExecutionException && e.getCause() instanceof Exception) {
+            return (Exception) e.getCause();
+        }
+        return e;
     }
 
     /**
