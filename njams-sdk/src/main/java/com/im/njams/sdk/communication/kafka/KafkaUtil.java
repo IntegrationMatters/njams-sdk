@@ -19,6 +19,20 @@ package com.im.njams.sdk.communication.kafka;
 
 import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.utils.StringUtils;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.time.Duration;
+import java.util.AbstractMap;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Objects;
+import java.util.Properties;
+
 import org.apache.kafka.clients.admin.AdminClientConfig;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
@@ -27,10 +41,6 @@ import org.apache.kafka.common.PartitionInfo;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.time.Duration;
-import java.util.*;
-import java.util.Map.Entry;
 
 /**
  * Provides some utilities related to Kafka communication.
@@ -71,11 +81,14 @@ public class KafkaUtil {
 
         private final PropertyFilter clientFilter;
         private final PropertyFilter typeFilter;
+        private final String pathToDefaults;
 
         private ClientType(final String pfx, final Collection<String> keys) {
             clientFilter = new PropertyFilter(NjamsSettings.PROPERTY_KAFKA_CLIENT_PREFIX, keys);
             typeFilter = new PropertyFilter(pfx, keys);
+            pathToDefaults = "/kafka-defaults/" + name().toLowerCase() + ".properties";
         }
+
     }
 
     private KafkaUtil() {
@@ -94,7 +107,7 @@ public class KafkaUtil {
         final Properties p = filterKafkaProperties(njamsProperties, ClientType.CONSUMER);
         p.remove(ConsumerConfig.CLIENT_ID_CONFIG);
         try (KafkaConsumer<String, String> consumer =
-                 new KafkaConsumer<>(p, new StringDeserializer(), new StringDeserializer())) {
+                new KafkaConsumer<>(p, new StringDeserializer(), new StringDeserializer())) {
             final Map<String, List<PartitionInfo>> topicMap = consumer.listTopics(Duration.ofSeconds(5));
             if (topics != null && topics.length > 0) {
                 for (final String topic : topics) {
@@ -130,22 +143,23 @@ public class KafkaUtil {
      * @return Properties instance prepared to be used as Kafka client configuration.
      */
     public static Properties filterKafkaProperties(final Properties properties, final ClientType clientType,
-                                                   final String clientId) {
+            final String clientId) {
         final Properties kafkaProperties = new Properties();
         final ClientType type = clientType == null ? ClientType.CONSUMER : clientType;
 
         // add keys from CLIENT_PREFIX
         properties.stringPropertyNames().stream()
-            .map(k -> getKafkaKey(k, type.clientFilter)).filter(Objects::nonNull)
-            .forEach(e -> kafkaProperties.setProperty(e.getValue(), properties.getProperty(e.getKey())));
+                .map(k -> getKafkaKey(k, type.clientFilter)).filter(Objects::nonNull)
+                .forEach(e -> kafkaProperties.setProperty(e.getValue(), properties.getProperty(e.getKey())));
         // override with keys from type specific prefix
         properties.stringPropertyNames().stream().map(k -> getKafkaKey(k, type.typeFilter))
-            .filter(Objects::nonNull)
-            .forEach(e -> kafkaProperties.setProperty(e.getValue(), properties.getProperty(e.getKey())));
+                .filter(Objects::nonNull)
+                .forEach(e -> kafkaProperties.setProperty(e.getValue(), properties.getProperty(e.getKey())));
 
         if (StringUtils.isNotBlank(clientId) && !kafkaProperties.containsKey(ConsumerConfig.CLIENT_ID_CONFIG)) {
             kafkaProperties.setProperty(ConsumerConfig.CLIENT_ID_CONFIG, clientId);
         }
+        applyDefaults(kafkaProperties, clientType);
         LOG.debug("Filtered Kafka {} properties: {}", clientType, kafkaProperties);
         return kafkaProperties;
     }
@@ -168,6 +182,20 @@ public class KafkaUtil {
             return new AbstractMap.SimpleImmutableEntry<>(njamsKey, key);
         }
         return null;
+    }
+
+    private static void applyDefaults(Properties kafka, final ClientType clientType) {
+        final Properties defaults = new Properties();
+        try (InputStream is = KafkaSender.class.getResourceAsStream(clientType.pathToDefaults)) {
+            defaults.load(is);
+        } catch (IOException e) {
+            throw new IllegalStateException("Failed to load Kafka default settings.", e);
+        }
+        for (String key : defaults.stringPropertyNames()) {
+            if (!kafka.containsKey(key)) {
+                kafka.setProperty(key, defaults.getProperty(key));
+            }
+        }
     }
 
 }

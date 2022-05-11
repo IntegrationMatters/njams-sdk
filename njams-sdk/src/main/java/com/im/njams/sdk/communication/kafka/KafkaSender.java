@@ -26,24 +26,6 @@ package com.im.njams.sdk.communication.kafka;
 
 import static com.im.njams.sdk.communication.kafka.KafkaHeadersUtil.headersUpdater;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Properties;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
-
-import org.apache.kafka.clients.producer.KafkaProducer;
-import org.apache.kafka.clients.producer.ProducerRecord;
-import org.apache.kafka.clients.producer.RecordMetadata;
-import org.apache.kafka.common.KafkaException;
-import org.apache.kafka.common.errors.RecordTooLargeException;
-import org.apache.kafka.common.serialization.StringSerializer;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.faizsiegeln.njams.messageformat.v4.common.CommonMessage;
 import com.faizsiegeln.njams.messageformat.v4.common.MessageVersion;
 import com.faizsiegeln.njams.messageformat.v4.logmessage.LogMessage;
@@ -56,9 +38,38 @@ import com.im.njams.sdk.communication.ConnectionStatus;
 import com.im.njams.sdk.communication.DiscardMonitor;
 import com.im.njams.sdk.communication.DiscardPolicy;
 import com.im.njams.sdk.communication.Sender;
+import com.im.njams.sdk.communication.kafka.KafkaHeadersUtil.HeadersUpdater;
 import com.im.njams.sdk.communication.kafka.KafkaUtil.ClientType;
 import com.im.njams.sdk.utils.JsonUtils;
 import com.im.njams.sdk.utils.StringUtils;
+
+import java.nio.Buffer;
+import java.nio.ByteBuffer;
+import java.nio.CharBuffer;
+import java.nio.charset.CharsetEncoder;
+import java.nio.charset.CoderResult;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Properties;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+
+import org.apache.kafka.clients.producer.KafkaProducer;
+import org.apache.kafka.clients.producer.ProducerConfig;
+import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.clients.producer.RecordMetadata;
+import org.apache.kafka.common.KafkaException;
+import org.apache.kafka.common.Uuid;
+import org.apache.kafka.common.errors.RecordTooLargeException;
+import org.apache.kafka.common.serialization.StringSerializer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Kafka implementation for a Sender.
@@ -68,16 +79,26 @@ import com.im.njams.sdk.utils.StringUtils;
  */
 public class KafkaSender extends AbstractSender {
 
+    /** Header set for messages that are split into chunks. The number (sequence) of the chunk, starting with 1 */
+    public static final String NJAMS_CHUNK_NO = "NJAMS_CHUNK_NO";
+    /** Header set for messages that are split into chunks. The total number of chunks into that this message is split. */
+    public static final String NJAMS_CHUNKS = "NJAMS_CHUNKS";
+
     private static final Logger LOG = LoggerFactory.getLogger(KafkaSender.class);
     private static final String PROJECT_SUFFIX = ".project";
     private static final String EVENT_SUFFIX = ".event";
     private static final int EXCEPTION_IDLE_TIME = 50;
     private static final int MAX_TRIES = 100;
+    private static final CharsetEncoder UTF_8_ENCODER = StandardCharsets.UTF_8.newEncoder();
 
     private KafkaProducer<String, String> producer;
     private String topicEvent;
     private String topicProject;
     private Properties kafkaProperties;
+
+    private int maxMessageBytes = (int) (1024 * 1024 * 0.9d); // 90% of Kafka's default of 1MB
+    @Deprecated
+    private boolean splitLargeMessages = true;
 
     /**
      * Initializes this Sender via the given Properties.
@@ -89,6 +110,9 @@ public class KafkaSender extends AbstractSender {
     @Override
     public void init(final Properties properties) {
         super.init(properties);
+        splitLargeMessages =
+                !"discard".equalsIgnoreCase(properties.getProperty(NjamsSettings.PROPERTY_KAFKA_LARGE_MESSAGE_MODE,
+                        "split"));
         kafkaProperties = KafkaUtil.filterKafkaProperties(properties, ClientType.PRODUCER);
         String topicPrefix = properties.getProperty(NjamsSettings.PROPERTY_KAFKA_TOPIC_PREFIX);
         if (StringUtils.isBlank(topicPrefix)) {
@@ -98,12 +122,28 @@ public class KafkaSender extends AbstractSender {
         }
         topicEvent = topicPrefix + EVENT_SUFFIX;
         topicProject = topicPrefix + PROJECT_SUFFIX;
+        initMaxMessageSize();
         try {
             connect();
             LOG.debug("Initialized sender {}", KafkaConstants.COMMUNICATION_NAME);
         } catch (final NjamsSdkRuntimeException e) {
             LOG.error("Could not initialize sender {}\n", KafkaConstants.COMMUNICATION_NAME, e);
         }
+    }
+
+    private void initMaxMessageSize() {
+        final String s = kafkaProperties.getProperty(ProducerConfig.MAX_REQUEST_SIZE_CONFIG);
+        if (StringUtils.isNotBlank(s)) {
+            try {
+                final int l = (int) (Integer.parseInt(s) * 0.9d);
+                if (l > 0) {
+                    maxMessageBytes = l;
+                }
+            } catch (NumberFormatException e) {
+                // ignore
+            }
+        }
+        LOG.debug("Max message size {} bytes (split={})", maxMessageBytes, splitLargeMessages);
     }
 
     /**
@@ -118,6 +158,7 @@ public class KafkaSender extends AbstractSender {
             validateTopics();
             connectionStatus = ConnectionStatus.CONNECTING;
             producer = new KafkaProducer<>(kafkaProperties, new StringSerializer(), new StringSerializer());
+
             connectionStatus = ConnectionStatus.CONNECTED;
         } catch (final Exception e) {
             connectionStatus = ConnectionStatus.DISCONNECTED;
@@ -212,21 +253,107 @@ public class KafkaSender extends AbstractSender {
      */
     private void sendMessage(final CommonMessage msg, final String topic, final String messageType, final String data)
             throws Exception {
-        final ProducerRecord<String, String> record;
-        final String id;
-        if (msg instanceof LogMessage) {
-            id = ((LogMessage) msg).getLogId();
-            record = new ProducerRecord<>(topic, id, data);
-        } else {
-            id = null;
-            record = new ProducerRecord<>(topic, data);
-        }
-        headersUpdater(record).addHeader(Sender.NJAMS_MESSAGEVERSION, MessageVersion.V4.toString())
-                .addHeader(Sender.NJAMS_MESSAGETYPE, messageType)
-                .addHeader(Sender.NJAMS_LOGID, id, (k, v) -> StringUtils.isNotBlank(v))
-                .addHeader(Sender.NJAMS_PATH, msg.getPath(), (k, v) -> StringUtils.isNotBlank(v));
 
-        tryToSend(record);
+        try {
+            for (ProducerRecord<String, String> record : splitMessage(msg, topic, messageType, data)) {
+                tryToSend(record);
+            }
+        } catch (Throwable e) {
+            LOG.error("Failed to prepare '{}' message", messageType, e);
+            throw e;
+        }
+    }
+
+    List<ProducerRecord<String, String>> splitMessage(final CommonMessage msg, final String topic,
+            final String messageType, final String data) {
+
+        List<String> slices = splitData(data);
+        if (slices.isEmpty()) {
+            return Collections.emptyList();
+        }
+        final String recordKey;
+        final String logId;
+        if (msg instanceof LogMessage) {
+            logId = ((LogMessage) msg).getLogId();
+            recordKey = logId;
+        } else if (slices.size() > 1) {
+            // ensure same key for all chunks
+            recordKey = Uuid.randomUuid().toString();
+            logId = null;
+        } else {
+            recordKey = null;
+            logId = null;
+        }
+
+        List<ProducerRecord<String, String>> chunks = null;
+        for (int i = 0; i < slices.size(); i++) {
+            final ProducerRecord<String, String> record = new ProducerRecord<>(topic, recordKey, slices.get(i));
+            final HeadersUpdater headers = headersUpdater(record);
+            headers.addHeader(Sender.NJAMS_MESSAGEVERSION, MessageVersion.V4.toString())
+                    .addHeader(Sender.NJAMS_MESSAGETYPE, messageType);
+            if (StringUtils.isNotBlank(logId)) {
+                headers.addHeader(Sender.NJAMS_LOGID, logId);
+            }
+            if (StringUtils.isNotBlank(msg.getPath())) {
+                headers.addHeader(Sender.NJAMS_PATH, msg.getPath());
+            }
+            if (slices.size() > 1) {
+                headers.addHeader(NJAMS_CHUNKS, String.valueOf(slices.size()))
+                        .addHeader(NJAMS_CHUNK_NO, String.valueOf(i + 1));
+                if (chunks == null) {
+                    chunks = new ArrayList<>();
+                }
+                chunks.add(record);
+            } else {
+                return Collections.singletonList(record);
+            }
+        }
+        if (LOG.isDebugEnabled()) {
+            LOG.debug("{} for path {} split into {} chunks.", msg.getClass().getSimpleName(), msg.getPath(),
+                    chunks.size());
+        }
+        return chunks;
+    }
+
+    List<String> splitData(final String data) {
+        if (StringUtils.isBlank(data)) {
+            return Collections.emptyList();
+        }
+        final ByteBuffer out = ByteBuffer.allocate(maxMessageBytes);
+        final CharBuffer in = CharBuffer.wrap(data);
+
+        List<String> chunks = null;
+        int pos = 0;
+        boolean first = true;
+        while (true) {
+            final CoderResult cr = UTF_8_ENCODER.encode(in, out, true);
+            if (first) {
+                // short exit if splitting is not necessary or disabled
+                if (!cr.isOverflow()) {
+                    // data fits into one message
+                    return Collections.singletonList(data);
+                } else if (!splitLargeMessages) {
+                    // data is too large, but splitting is disabled
+                    LOG.warn("Discarding message that is too large (> {} bytes).", maxMessageBytes);
+                    DiscardMonitor.discard();
+                    return Collections.emptyList();
+                }
+                // create array for collecting chunks
+                chunks = new ArrayList<>();
+                first = false;
+            }
+            final int newpos = data.length() - in.length();
+            chunks.add(data.substring(pos, newpos));
+            if (!cr.isOverflow()) {
+                break;
+            }
+            pos = newpos;
+            // this weird cast is a workaround for a compatibility issue between Java-8 and 11.
+            // see approach 2 in the answer to this post:
+            // https://stackoverflow.com/questions/61267495/exception-in-thread-main-java-lang-nosuchmethoderror-java-nio-bytebuffer-flip
+            ((Buffer) out).rewind();
+        }
+        return chunks;
     }
 
     /**
@@ -255,6 +382,7 @@ public class KafkaSender extends AbstractSender {
                 LOG.debug("Failed to send record", e);
                 Exception cause = getAsyncCause(e);
                 if (cause instanceof RecordTooLargeException) {
+                    // if splitting is enabled, this can still be caused by misconfiguration!
                     LOG.warn("Discarding message that is too large: {}", cause.toString());
                     DiscardMonitor.discard();
                     break;
