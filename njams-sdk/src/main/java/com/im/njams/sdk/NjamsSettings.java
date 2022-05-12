@@ -268,8 +268,10 @@ public class NjamsSettings {
 
     /**
      * How to treat messages larger than the maximum size supported by Kafka.<br>
-     * <code>discard</code> - discard large messages; this option is deprecated and only for compatibility<br>
-     * <code>split</code> - split large messages into smaller pieces; will be the only option in future<br>
+     * <code>discard</code> - discard large messages; this option is deprecated and only for compatibility. Use
+     * this option only with nJAMS server 5.2.0 and 5.2.1 which does not support split messages.<br>
+     * <code>split</code> - split large messages into smaller chunks; this the default and will be the only option
+     * in future<br>
      *
      * @deprecated This is just for compatibility with nJAMS server 5.2.0 and 5.2.1 and will be removed in future.
      */
@@ -299,7 +301,9 @@ public class NjamsSettings {
     /**
      * For testing only.
      * Allows specifying a specific commands topic, overriding the default that is resolved from the topicPrefix setting.
+     * @deprecated This property is being removed in a future release.
      */
+    @Deprecated
     public static final String PROPERTY_KAFKA_COMMANDS_TOPIC = "njams.sdk.communication.kafka.commandsTopic";
 
     /**

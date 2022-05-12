@@ -26,23 +26,6 @@ package com.im.njams.sdk.communication.kafka;
 
 import static com.im.njams.sdk.communication.kafka.KafkaHeadersUtil.headersUpdater;
 
-import com.faizsiegeln.njams.messageformat.v4.common.CommonMessage;
-import com.faizsiegeln.njams.messageformat.v4.common.MessageVersion;
-import com.faizsiegeln.njams.messageformat.v4.logmessage.LogMessage;
-import com.faizsiegeln.njams.messageformat.v4.projectmessage.ProjectMessage;
-import com.faizsiegeln.njams.messageformat.v4.tracemessage.TraceMessage;
-import com.im.njams.sdk.NjamsSettings;
-import com.im.njams.sdk.common.NjamsSdkRuntimeException;
-import com.im.njams.sdk.communication.AbstractSender;
-import com.im.njams.sdk.communication.ConnectionStatus;
-import com.im.njams.sdk.communication.DiscardMonitor;
-import com.im.njams.sdk.communication.DiscardPolicy;
-import com.im.njams.sdk.communication.Sender;
-import com.im.njams.sdk.communication.kafka.KafkaHeadersUtil.HeadersUpdater;
-import com.im.njams.sdk.communication.kafka.KafkaUtil.ClientType;
-import com.im.njams.sdk.utils.JsonUtils;
-import com.im.njams.sdk.utils.StringUtils;
-
 import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
@@ -71,6 +54,23 @@ import org.apache.kafka.common.serialization.StringSerializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.faizsiegeln.njams.messageformat.v4.common.CommonMessage;
+import com.faizsiegeln.njams.messageformat.v4.common.MessageVersion;
+import com.faizsiegeln.njams.messageformat.v4.logmessage.LogMessage;
+import com.faizsiegeln.njams.messageformat.v4.projectmessage.ProjectMessage;
+import com.faizsiegeln.njams.messageformat.v4.tracemessage.TraceMessage;
+import com.im.njams.sdk.NjamsSettings;
+import com.im.njams.sdk.common.NjamsSdkRuntimeException;
+import com.im.njams.sdk.communication.AbstractSender;
+import com.im.njams.sdk.communication.ConnectionStatus;
+import com.im.njams.sdk.communication.DiscardMonitor;
+import com.im.njams.sdk.communication.DiscardPolicy;
+import com.im.njams.sdk.communication.Sender;
+import com.im.njams.sdk.communication.kafka.KafkaHeadersUtil.HeadersUpdater;
+import com.im.njams.sdk.communication.kafka.KafkaUtil.ClientType;
+import com.im.njams.sdk.utils.JsonUtils;
+import com.im.njams.sdk.utils.StringUtils;
+
 /**
  * Kafka implementation for a Sender.
  *
@@ -87,8 +87,8 @@ public class KafkaSender extends AbstractSender {
     private static final Logger LOG = LoggerFactory.getLogger(KafkaSender.class);
     private static final String PROJECT_SUFFIX = ".project";
     private static final String EVENT_SUFFIX = ".event";
-    private static final int EXCEPTION_IDLE_TIME = 50;
-    private static final int MAX_TRIES = 100;
+    //    private static final int EXCEPTION_IDLE_TIME = 50;
+    //    private static final int MAX_TRIES = 100;
     private static final CharsetEncoder UTF_8_ENCODER = StandardCharsets.UTF_8.newEncoder();
 
     private KafkaProducer<String, String> producer;
@@ -97,6 +97,8 @@ public class KafkaSender extends AbstractSender {
     private Properties kafkaProperties;
 
     private int maxMessageBytes = (int) (1024 * 1024 * 0.9d); // 90% of Kafka's default of 1MB
+    private int requestTimeoutMs = 6000;
+
     @Deprecated
     private boolean splitLargeMessages = true;
 
@@ -114,6 +116,11 @@ public class KafkaSender extends AbstractSender {
                 !"discard".equalsIgnoreCase(properties.getProperty(NjamsSettings.PROPERTY_KAFKA_LARGE_MESSAGE_MODE,
                         "split"));
         kafkaProperties = KafkaUtil.filterKafkaProperties(properties, ClientType.PRODUCER);
+        if (discardPolicy != DiscardPolicy.NONE && !kafkaProperties.containsKey(ProducerConfig.RETRIES_CONFIG)) {
+            // disable internal retries, if policy is set to discard, unless explicitly specified
+            kafkaProperties.setProperty(ProducerConfig.RETRIES_CONFIG, "0");
+        }
+
         String topicPrefix = properties.getProperty(NjamsSettings.PROPERTY_KAFKA_TOPIC_PREFIX);
         if (StringUtils.isBlank(topicPrefix)) {
             LOG.warn("Property {} is not set. Using '{}' as default.", NjamsSettings.PROPERTY_KAFKA_TOPIC_PREFIX,
@@ -122,7 +129,7 @@ public class KafkaSender extends AbstractSender {
         }
         topicEvent = topicPrefix + EVENT_SUFFIX;
         topicProject = topicPrefix + PROJECT_SUFFIX;
-        initMaxMessageSize();
+        initMaxMessageSizeAndTimeout();
         try {
             connect();
             LOG.debug("Initialized sender {}", KafkaConstants.COMMUNICATION_NAME);
@@ -131,19 +138,42 @@ public class KafkaSender extends AbstractSender {
         }
     }
 
-    private void initMaxMessageSize() {
-        final String s = kafkaProperties.getProperty(ProducerConfig.MAX_REQUEST_SIZE_CONFIG);
-        if (StringUtils.isNotBlank(s)) {
-            try {
-                final int l = (int) (Integer.parseInt(s) * 0.9d);
-                if (l > 0) {
-                    maxMessageBytes = l;
-                }
-            } catch (NumberFormatException e) {
-                // ignore
-            }
+    private void initMaxMessageSizeAndTimeout() {
+        // set max message size to 90% of the producer's max message size; that allows for some overhead, even if
+        // compression is disabled.
+        int i = getPropertyInt(kafkaProperties, ProducerConfig.MAX_REQUEST_SIZE_CONFIG, 1048576);
+        if (i > 0) {
+            maxMessageBytes = (int) (i * 0.9d);
         }
         LOG.debug("Max message size {} bytes (split={})", maxMessageBytes, splitLargeMessages);
+
+        // set request timeout according to producer config +1 second
+        i = getPropertyInt(kafkaProperties, ProducerConfig.DELIVERY_TIMEOUT_MS_CONFIG, 120000);
+        if (i > 0) {
+            requestTimeoutMs = i + 1000;
+        } else {
+            int r = getPropertyInt(kafkaProperties, ProducerConfig.RETRIES_CONFIG, 2147483647);
+            int b = getPropertyInt(kafkaProperties, ProducerConfig.RETRY_BACKOFF_MS_CONFIG, 100);
+            if (r > 0 && b > 0) {
+                requestTimeoutMs = r * b + 1000;
+            }
+        }
+        requestTimeoutMs = Math.min(6000, requestTimeoutMs);
+        LOG.debug("Request timeout {}ms", requestTimeoutMs);
+
+    }
+
+    private static int getPropertyInt(Properties properties, String key, int defaultValue) {
+        final String s = properties.getProperty(key);
+        if (StringUtils.isNotBlank(s)) {
+            try {
+                return Integer.parseInt(s);
+            } catch (Exception e) {
+                LOG.warn("Failed to parse value {} of property {} to int.", s, key);
+                return defaultValue;
+            }
+        }
+        return defaultValue;
     }
 
     /**
@@ -290,7 +320,7 @@ public class KafkaSender extends AbstractSender {
             final ProducerRecord<String, String> record = new ProducerRecord<>(topic, recordKey, slices.get(i));
             final HeadersUpdater headers = headersUpdater(record);
             headers.addHeader(Sender.NJAMS_MESSAGEVERSION, MessageVersion.V4.toString())
-                    .addHeader(Sender.NJAMS_MESSAGETYPE, messageType);
+            .addHeader(Sender.NJAMS_MESSAGETYPE, messageType);
             if (StringUtils.isNotBlank(logId)) {
                 headers.addHeader(Sender.NJAMS_LOGID, logId);
             }
@@ -299,7 +329,7 @@ public class KafkaSender extends AbstractSender {
             }
             if (slices.size() > 1) {
                 headers.addHeader(NJAMS_CHUNKS, String.valueOf(slices.size()))
-                        .addHeader(NJAMS_CHUNK_NO, String.valueOf(i + 1));
+                .addHeader(NJAMS_CHUNK_NO, String.valueOf(i + 1));
                 if (chunks == null) {
                     chunks = new ArrayList<>();
                 }
@@ -357,50 +387,39 @@ public class KafkaSender extends AbstractSender {
     }
 
     /**
-     * Try to send and catches Errors
+     * Relies on Kafka's internal retry which is controlled by according producer settings.
      *
      * @param record
      * @throws Exception
      */
     private void tryToSend(final ProducerRecord<String, String> record) throws Exception {
-        boolean sent = false;
-
-        int tries = 0;
-
-        do {
-            try {
-                final Future<RecordMetadata> future = producer.send(record);
-                final RecordMetadata result = future.get(1, TimeUnit.SECONDS);
-                if (LOG.isTraceEnabled()) {
-                    LOG.trace("Send record result: {}\n{}", result, record);
-                } else {
-                    LOG.debug("Send record result: {}", result);
-                }
-
-                sent = true;
-            } catch (KafkaException | IllegalStateException | ExecutionException | TimeoutException e) {
-                LOG.debug("Failed to send record", e);
-                Exception cause = getAsyncCause(e);
-                if (cause instanceof RecordTooLargeException) {
-                    // if splitting is enabled, this can still be caused by misconfiguration!
-                    LOG.warn("Discarding message that is too large: {}", cause.toString());
-                    DiscardMonitor.discard();
-                    break;
-                }
-                if (discardPolicy == DiscardPolicy.ON_CONNECTION_LOSS) {
-                    LOG.debug("Applying discard policy [{}]. Message discarded.", discardPolicy);
-                    DiscardMonitor.discard();
-                    break;
-                }
-                if (++tries >= MAX_TRIES) {
-                    LOG.warn("Try to reconnect, because the topic couldn't be reached after {} milliseconds.",
-                            MAX_TRIES * EXCEPTION_IDLE_TIME);
-                    throw cause;
-                } else {
-                    Thread.sleep(EXCEPTION_IDLE_TIME);
-                }
+        long start = System.currentTimeMillis();
+        try {
+            final Future<RecordMetadata> future = producer.send(record);
+            final RecordMetadata result = future.get(requestTimeoutMs, TimeUnit.MILLISECONDS);
+            if (LOG.isTraceEnabled()) {
+                LOG.trace("Send record result: {} after {}ms\n{}", result, System.currentTimeMillis() - start,
+                        record);
+            } else if (LOG.isDebugEnabled()) {
+                LOG.debug("Send record result: {} after {}ms", result, System.currentTimeMillis() - start);
             }
-        } while (!sent);
+
+        } catch (KafkaException | IllegalStateException | ExecutionException | TimeoutException e) {
+            LOG.debug("Failed to send record", e);
+            Exception cause = getAsyncCause(e);
+            if (cause instanceof RecordTooLargeException) {
+                // if splitting is enabled, this can still be caused by misconfiguration!
+                LOG.warn("Discarding message that is too large: {}", cause.toString());
+                DiscardMonitor.discard();
+            }
+            if (discardPolicy == DiscardPolicy.ON_CONNECTION_LOSS) {
+                LOG.debug("Applying discard policy [{}]. Message discarded.", discardPolicy);
+                DiscardMonitor.discard();
+            }
+            LOG.warn("Try to reconnect, because the topic couldn't be reached after {} milliseconds.",
+                    System.currentTimeMillis() - start);
+            throw cause;
+        }
     }
 
     /**
