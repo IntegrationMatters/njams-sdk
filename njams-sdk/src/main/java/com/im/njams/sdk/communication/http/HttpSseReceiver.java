@@ -22,6 +22,7 @@ import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.common.JsonSerializerFactory;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.communication.AbstractReceiver;
+import com.im.njams.sdk.utils.CommonUtils;
 import com.im.njams.sdk.utils.JsonUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -110,7 +111,11 @@ public class HttpSseReceiver extends AbstractReceiver {
             LOG.error("Exception during receiving SSE Event.", e);
         }
         onInstruction(instruction);
-        sendReply(id, instruction);
+
+        if(!CommonUtils.ignoreReplayResponseOnInstruction(instruction)) {
+            sendReply(id, instruction);
+        }  
+        
     }
 
     @Override
