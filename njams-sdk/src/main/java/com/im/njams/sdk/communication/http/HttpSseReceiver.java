@@ -22,6 +22,7 @@ import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.common.JsonSerializerFactory;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.communication.AbstractReceiver;
+import com.im.njams.sdk.utils.CommonUtils;
 import com.im.njams.sdk.utils.JsonUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -111,11 +112,10 @@ public class HttpSseReceiver extends AbstractReceiver {
         }
         onInstruction(instruction);
 
-        // -777 is replay ignore code
-        if(instruction.getResponse().getResultCode() != -777){
+        if(CommonUtils.ignoreReplayResponseOnInstruction(instruction)){
             sendReply(id, instruction);
-        }  
-        
+        }
+
     }
 
     @Override

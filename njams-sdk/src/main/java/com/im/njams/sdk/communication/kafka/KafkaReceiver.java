@@ -27,6 +27,7 @@ import com.im.njams.sdk.communication.AbstractReceiver;
 import com.im.njams.sdk.communication.ConnectionStatus;
 import com.im.njams.sdk.communication.kafka.KafkaUtil.ClientType;
 import com.im.njams.sdk.settings.Settings;
+import com.im.njams.sdk.utils.CommonUtils;
 import com.im.njams.sdk.utils.StringUtils;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.producer.KafkaProducer;
@@ -229,11 +230,9 @@ public class KafkaReceiver extends AbstractReceiver {
             LOG.debug("Handle message (id={}) {}", messageId, msg);
             onInstruction(instruction);
 
-            // -777 is replay ignore code
-            if(instruction.getResponse().getResultCode() != -777){
+            if(CommonUtils.ignoreReplayResponseOnInstruction(instruction)){
                 sendReply(messageId, instruction);
-            }  
-           
+            }
         } catch (final Exception e) {
             LOG.error("Failed to process instruction: {}", msg, e);
         }

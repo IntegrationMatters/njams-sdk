@@ -27,6 +27,7 @@ import com.im.njams.sdk.communication.AbstractReceiver;
 import com.im.njams.sdk.communication.ConnectionStatus;
 import com.im.njams.sdk.communication.NjamsConnectionFactory;
 import com.im.njams.sdk.settings.PropertyUtil;
+import com.im.njams.sdk.utils.CommonUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -410,10 +411,10 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
             }
 
             onInstruction(instruction);
-            // -777 is replay ignore code
-            if(instruction.getResponse().getResultCode() != -777){
+
+            if(CommonUtils.ignoreReplayResponseOnInstruction(instruction)){
                 reply(msg, instruction);
-            }            
+            }
         } catch (Exception e) {
             LOG.error("Error in onMessage", e);
         }
