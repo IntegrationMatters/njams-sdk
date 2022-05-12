@@ -230,9 +230,10 @@ public class KafkaReceiver extends AbstractReceiver {
             LOG.debug("Handle message (id={}) {}", messageId, msg);
             onInstruction(instruction);
 
-            if(CommonUtils.ignoreReplayResponseOnInstruction(instruction)){
+            if(!CommonUtils.ignoreReplayResponseOnInstruction(instruction)) {
                 sendReply(messageId, instruction);
-            }
+            }  
+           
         } catch (final Exception e) {
             LOG.error("Failed to process instruction: {}", msg, e);
         }

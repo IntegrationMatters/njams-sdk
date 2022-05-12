@@ -411,10 +411,10 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
             }
 
             onInstruction(instruction);
-
-            if(CommonUtils.ignoreReplayResponseOnInstruction(instruction)){
+            
+            if(!CommonUtils.ignoreReplayResponseOnInstruction(instruction)) {
                 reply(msg, instruction);
-            }
+            }            
         } catch (Exception e) {
             LOG.error("Error in onMessage", e);
         }

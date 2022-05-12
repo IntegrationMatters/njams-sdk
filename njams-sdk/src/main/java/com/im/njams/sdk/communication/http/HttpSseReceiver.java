@@ -112,10 +112,10 @@ public class HttpSseReceiver extends AbstractReceiver {
         }
         onInstruction(instruction);
 
-        if(CommonUtils.ignoreReplayResponseOnInstruction(instruction)){
+        if(!CommonUtils.ignoreReplayResponseOnInstruction(instruction)) {
             sendReply(id, instruction);
-        }
-
+        }  
+        
     }
 
     @Override

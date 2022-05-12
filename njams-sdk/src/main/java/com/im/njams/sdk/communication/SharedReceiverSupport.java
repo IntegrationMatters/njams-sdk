@@ -13,9 +13,9 @@ import org.slf4j.LoggerFactory;
 
 import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
 import com.faizsiegeln.njams.messageformat.v4.command.Response;
+import com.im.njams.sdk.utils.CommonUtils;
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.common.Path;
-import com.im.njams.sdk.utils.CommonUtils;
 
 /**
  * A helper class that implements sharing receiver instances.<br>
@@ -110,9 +110,9 @@ public class SharedReceiverSupport<R extends AbstractReceiver & ShareableReceive
             } else {
                 onInstruction(instruction, instances.get(0));
             }
-
-            if(CommonUtils.ignoreReplayResponseOnInstruction(instruction)){
-                receiver.sendReply(message, instruction);
+            
+            if(!CommonUtils.ignoreReplayResponseOnInstruction(instruction)) {
+            	receiver.sendReply(message, instruction);
             }
         } else {
             if (failOnMissingInstance) {
