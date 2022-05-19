@@ -1,20 +1,26 @@
 /*
  * Copyright (c) 2022 Faiz & Siegeln Software GmbH
  *
- * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"),
- * to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
- * and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
+ * documentation files (the "Software"),
+ * to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge,
+ * publish, distribute, sublicense,
+ * and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to
+ * the following conditions:
  *
- * The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+ * The above copyright notice and this permission notice shall be included in all copies or substantial portions of
+ * the Software.
  *
  * The Software shall be used for Good, not Evil.
  *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
+ * THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE
+ *  FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+ * SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
  */
-
 package com.im.njams.sdk.communication.kafka;
 
 import static com.im.njams.sdk.communication.kafka.KafkaHeadersUtil.getHeader;
@@ -46,9 +52,6 @@ import com.im.njams.sdk.utils.StringUtils;
 
 /**
  * Kafka implementation for a Receiver.
- *
- * @author sfaiz
- * @version 4.2.0-SNAPSHOT
  */
 public class KafkaReceiver extends AbstractReceiver {
 
@@ -139,7 +142,6 @@ public class KafkaReceiver extends AbstractReceiver {
      * This method tries to create a {@link CommandsConsumer}, which is a separate thread
      * for a consumer, constantly polling.
      *
-     * @param props the Properties that are used for connecting.
      * @throws NjamsSdkRuntimeException if any of the resources throws any exception.
      */
     private void tryToConnect() {
@@ -230,7 +232,7 @@ public class KafkaReceiver extends AbstractReceiver {
             return false;
         }
         final String receiver = getHeader(msg, NJAMS_RECEIVER);
-        if (StringUtils.isBlank(receiver) || !njams.getClientPath().equals(new Path(receiver))) {
+        if (StringUtils.isBlank(receiver) || getInstanceMetadata().getClientPath().equals(new Path(receiver))) {
             LOG.debug("Message is not for me!");
             return false;
         }
@@ -248,7 +250,7 @@ public class KafkaReceiver extends AbstractReceiver {
      * @param message the Json Message
      * @return the Instruction object that was extracted or null, if no valid
      *         instruction was found or it could be parsed to an instruction object.
-     * @throws IOException
+     * @throws IOException Is thrown if the mapper cannot read the message
      */
     protected Instruction getInstruction(final ConsumerRecord<String, String> message) throws IOException {
         return mapper.readValue(message.value(), Instruction.class);

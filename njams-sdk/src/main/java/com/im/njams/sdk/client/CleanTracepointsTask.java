@@ -1,17 +1,24 @@
 /*
- * Copyright (c) 2019 Faiz & Siegeln Software GmbH
+ * Copyright (c) 2022 Faiz & Siegeln Software GmbH
  *
- * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"),
- * to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
- * and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
+ * documentation files (the "Software"),
+ * to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge,
+ * publish, distribute, sublicense,
+ * and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to
+ * the following conditions:
  *
- * The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+ * The above copyright notice and this permission notice shall be included in all copies or substantial portions of
+ * the Software.
  *
  * The Software shall be used for Good, not Evil.
  *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
+ * THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE
+ *  FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+ * SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
  */
 package com.im.njams.sdk.client;
@@ -26,11 +33,12 @@ import java.util.TimerTask;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
+import com.im.njams.sdk.njams.metadata.NjamsMetadata;
+import com.im.njams.sdk.njams.communication.sender.NjamsSender;
 import org.slf4j.LoggerFactory;
 
 import com.faizsiegeln.njams.messageformat.v4.tracemessage.Activity;
 import com.faizsiegeln.njams.messageformat.v4.tracemessage.TraceMessage;
-import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.common.DateTimeUtility;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.configuration.ActivityConfiguration;
@@ -40,33 +48,59 @@ import com.im.njams.sdk.configuration.TracepointExt;
 
 /**
  * Task for iterating over every Njams instance and check for outdated
- * tracepoints
- *
- * @author pnientiedt
+ * trace points
  */
 public class CleanTracepointsTask extends TimerTask {
 
     private static final org.slf4j.Logger LOG = LoggerFactory.getLogger(CleanTracepointsTask.class);
 
-    private static Map<String, Njams> njamsInstances = new ConcurrentHashMap<>();
+    private static Map<String, CleanTracepointsTaskEntry> cleanTracePointsTaskEntries = new ConcurrentHashMap<>();
 
     private static Timer timer = null;
 
-    static final int DELAY = 1000;
+    static final int DEFAULT_DELAY = 1000;
+    static final int DEFAULT_INTERVAL = 1000;
 
-    static final int INTERVAL = 1000;
+    private static int DELAY = DEFAULT_DELAY;
+
+    private static int INTERVAL = DEFAULT_INTERVAL;
+
+    static void resetDelay(){
+        DELAY = DEFAULT_DELAY;
+    }
+
+    static void resetInterval(){
+        INTERVAL = DEFAULT_INTERVAL;
+    }
+
+    static int getDelay(){
+        return DELAY;
+    }
+
+    static int getInterval(){
+        return INTERVAL;
+    }
+
+    static void setDelay(int delay){
+        DELAY = delay;
+    }
+
+    static void setInterval(int interval){
+        INTERVAL = interval;
+    }
 
     /**
      * Start the CleanTracepointsTask if it is not started yet, and add the
      * given Njams instance to the task.
-     *
-     * @param njams to add
+     *  @param instanceMetadata to distinguish between the different nJAMS instances
+     * @param configuration to see were the tracepoints are
+     * @param njamsSender the njamsSender to send the tracemessage with
      */
-    public static synchronized void start(Njams njams) {
-        if (njams == null) {
+    public static synchronized void start(NjamsMetadata instanceMetadata, Configuration configuration, NjamsSender njamsSender) {
+        if (instanceMetadata == null) {
             throw new NjamsSdkRuntimeException("Start: Njams is null");
         }
-        if (njams.getClientPath() == null) {
+        if (instanceMetadata.getClientPath() == null) {
             throw new NjamsSdkRuntimeException("Start: Njams clientPath is null");
         }
         if (timer == null) {
@@ -74,7 +108,8 @@ public class CleanTracepointsTask extends TimerTask {
             timer.scheduleAtFixedRate(new CleanTracepointsTask(), DELAY, INTERVAL);
         }
 
-        njamsInstances.put(njams.getClientPath().toString(), njams);
+        cleanTracePointsTaskEntries.put(
+            instanceMetadata.getClientPath().toString(), new CleanTracepointsTaskEntry(instanceMetadata, configuration, njamsSender));
     }
 
     /**
@@ -82,8 +117,8 @@ public class CleanTracepointsTask extends TimerTask {
      *
      * @return list of njams instances
      */
-    static List<Njams> getNjamsInstances() {
-        return njamsInstances.values().stream().collect(Collectors.toList());
+    static List<CleanTracepointsTaskEntry> getCleanTracePointsTaskEntries() {
+        return cleanTracePointsTaskEntries.values().stream().collect(Collectors.toList());
     }
 
     /**
@@ -99,17 +134,17 @@ public class CleanTracepointsTask extends TimerTask {
      * Removes the given Njams instance from the CleanTracepointsTask, and stops
      * it if not Njams instance is left.
      *
-     * @param njams to remove
+     * @param njamsMetadata to remove the correct instance of njams
      */
-    public static synchronized void stop(Njams njams) {
-        if (njams == null) {
+    public static synchronized void stop(NjamsMetadata njamsMetadata) {
+        if (njamsMetadata == null) {
             throw new NjamsSdkRuntimeException("Stop: Njams is null");
         }
-        if (njams.getClientPath() == null) {
+        if (njamsMetadata.getClientPath() == null) {
             throw new NjamsSdkRuntimeException("Stop: Njams clientPath is null");
         }
-        njamsInstances.remove(njams.getClientPath().toString());
-        if (njamsInstances.size() <= 0 && timer != null) {
+        cleanTracePointsTaskEntries.remove(njamsMetadata.getClientPath().toString());
+        if (cleanTracePointsTaskEntries.size() <= 0 && timer != null) {
             timer.cancel();
             timer = null;
         }
@@ -123,20 +158,24 @@ public class CleanTracepointsTask extends TimerTask {
     public void run() {
         try {
             LocalDateTime now = DateTimeUtility.now();
-            njamsInstances.values().forEach(njams -> checkNjams(njams, now));
+            cleanTracePointsTaskEntries.values().forEach(cleanTracepointsTaskEntry -> checkNjams(cleanTracepointsTaskEntry, now));
         } catch (Exception e) {
             LOG.error("Error in {}", this.getClass().getName(), e);
         }
     }
 
-    private void checkNjams(Njams njams, LocalDateTime now) {
-        Configuration configuration = njams.getConfiguration();
-        TraceMessageBuilder tmBuilder = new TraceMessageBuilder(njams);
+    private void checkNjams(CleanTracepointsTaskEntry cleanTracepointsTaskEntry, LocalDateTime now) {
+        checkNjams(cleanTracepointsTaskEntry.getInstanceMetadata(), cleanTracepointsTaskEntry.getConfiguration(),
+            cleanTracepointsTaskEntry.getNjamsSender(), now);
+    }
+
+    private void checkNjams(NjamsMetadata instanceMetadata, Configuration configuration, NjamsSender njamsSender, LocalDateTime now) {
+        TraceMessageBuilder tmBuilder = new TraceMessageBuilder(instanceMetadata);
         configuration.getProcesses().entrySet()
                 .forEach(processEntry -> checkProcess(configuration, processEntry, now, tmBuilder));
         TraceMessage msg = tmBuilder.build();
         if (msg != null) {
-            njams.getSender().send(msg);
+            njamsSender.send(msg);
         }
     }
 

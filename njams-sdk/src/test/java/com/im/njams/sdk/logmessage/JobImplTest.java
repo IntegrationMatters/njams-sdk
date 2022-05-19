@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Faiz & Siegeln Software GmbH
+ * Copyright (c) 2022 Faiz & Siegeln Software GmbH
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"),
  * to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
@@ -22,33 +22,38 @@ import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Matchers.any;
-import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
 
 import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.regex.Pattern;
 
+import com.im.njams.sdk.njams.configuration.NjamsConfiguration;
+import com.im.njams.sdk.njams.NjamsFeatures;
+import com.im.njams.sdk.njams.NjamsJobs;
+import com.im.njams.sdk.njams.NjamsProjectMessage;
+import com.im.njams.sdk.njams.communication.sender.NjamsSender;
+import com.im.njams.sdk.njams.NjamsState;
+import com.im.njams.sdk.njams.metadata.NjamsMetadataFactory;
+import com.im.njams.sdk.communication.CommunicationFactory;
+import com.im.njams.sdk.communication.Sender;
+import com.im.njams.sdk.communication.TestReceiver;
+import com.im.njams.sdk.configuration.Configuration;
 import org.junit.After;
 import org.junit.Test;
 import org.mockito.Mockito;
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.stubbing.Answer;
 
 import com.faizsiegeln.njams.messageformat.v4.common.CommonMessage;
 import com.faizsiegeln.njams.messageformat.v4.logmessage.ActivityStatus;
 import com.faizsiegeln.njams.messageformat.v4.logmessage.LogMessage;
 import com.im.njams.sdk.AbstractTest;
-import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.common.DateTimeUtility;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.common.Path;
-import com.im.njams.sdk.communication.NjamsSender;
 import com.im.njams.sdk.model.ActivityModel;
 import com.im.njams.sdk.model.GroupModel;
 import com.im.njams.sdk.model.ProcessModel;
@@ -57,9 +62,6 @@ import com.im.njams.sdk.utils.StringUtils;
 
 /**
  * This class tests some methods of the JobImpl.
- *
- * @author krautenberg@integrationmatters.com
- * @version 4.0.4
  */
 public class JobImplTest extends AbstractTest {
 
@@ -156,33 +158,37 @@ public class JobImplTest extends AbstractTest {
 
         Path clientPath = new Path("SDK4", "TEST");
 
-        Njams mockedNjams = spy(new Njams(clientPath, "1.0.0", "sdk4", new Settings()));
+        final Settings settings = new Settings();
+        settings.put(CommunicationFactory.COMMUNICATION, TestReceiver.NAME);
+
+        final SenderMock savingMock = new SenderMock();
+        final NjamsState njamsState = new NjamsState();
+        njamsState.start();
+
+        NjamsProjectMessage projectMessage = new NjamsProjectMessage(
+            NjamsMetadataFactory.createMetadataWith(clientPath, "bla", "bla2"), new NjamsFeatures(),
+            new NjamsConfiguration(new Configuration(), null, null, null), new NjamsSender(savingMock), new NjamsState(),
+            new NjamsJobs(njamsFactory.getNjamsMetadata(), njamsState, new NjamsFeatures(), null), settings);
+
         Path processPath = new Path("PROCESSES");
-        mockedNjams.createProcess(processPath);
-        mockedNjams.start();
+        projectMessage.createProcess(processPath);
+
         //add DataMasking
         DataMasking.addPattern(".*");
         //Create a job
-        ProcessModel process = mockedNjams.getProcessModel(new Path(PROCESSPATHNAME));
+        final ProcessModel process = projectMessage.getProcessModel(new Path(PROCESSPATHNAME));
         process.createActivity("id", "name", null);
+
         JobImpl job = (JobImpl) process.createJob();
-
-        //Inject or own sender.send() method to get the masked logmessage
-        NjamsSender sender = mock(NjamsSender.class);
-        when(mockedNjams.getSender()).thenReturn(sender);
-        doAnswer((Answer<Object>) (InvocationOnMock invocation) -> {
-            msg = (LogMessage) invocation.getArguments()[0];
-            return null;
-        }).when(sender).send(any(CommonMessage.class));
-
         job.start();
         createFullyFilledActivity(job);
         fillJob(job);
 
         //This sets the job end time and flushes
         job.end();
-        checkAllFields();
 
+        msg = (LogMessage) savingMock.getMessage();
+        checkAllFields();
     }
 
     /**
@@ -531,5 +537,33 @@ public class JobImplTest extends AbstractTest {
         assertTrue(job.hasOrHadStartActivity);
 
         getStartedActivityForJob(job);
+    }
+
+    private class SenderMock implements Sender {
+        private CommonMessage message;
+
+        @Override
+        public void init(Properties properties) {
+
+        }
+
+        @Override
+        public void send(CommonMessage msg) {
+            this.message = msg;
+        }
+
+        @Override
+        public void close() {
+
+        }
+
+        @Override
+        public String getName() {
+            return null;
+        }
+
+        public CommonMessage getMessage(){
+            return message;
+        }
     }
 }

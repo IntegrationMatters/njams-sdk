@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Faiz & Siegeln Software GmbH
+ * Copyright (c) 2022 Faiz & Siegeln Software GmbH
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"),
  * to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
@@ -16,7 +16,8 @@
  */
 package com.im.njams.sdk.settings;
 
-import com.im.njams.sdk.Njams;
+import com.im.njams.sdk.communication.Receiver;
+import com.im.njams.sdk.njams.NjamsSettings;
 import com.im.njams.sdk.settings.encoding.Transformer;
 import com.im.njams.sdk.utils.StringUtils;
 import org.slf4j.Logger;
@@ -27,8 +28,6 @@ import java.util.*;
 /**
  * The settings contains settings needed for
  * {@link com.im.njams.sdk.Njams}
- *
- * @author bwand
  */
 public class Settings {
 
@@ -82,9 +81,9 @@ public class Settings {
      */
     public static final String PROPERTY_DISCARD_POLICY = "njams.client.sdk.discardpolicy";
     /**
-     * If set to <code>true</code> communications (senders and receivers) will be shared accross multiple {@link Njams}
+     * If set to <code>true</code> communications (senders and receivers) will be shared accross multiple {@link Receiver}
      * instances if supported by the configured implementations. By default (or if set to <code>false</code>) each
-     * {@link Njams} instance uses a dedicated instance of sender and receiver pools.
+     * {@link Receiver} instance uses a dedicated instance of sender and receiver pools.
      */
     public static final String PROPERTY_SHARED_COMMUNICATIONS = "njams.client.sdk.sharedcommunications";
     /**
@@ -182,7 +181,9 @@ public class Settings {
     /**
      * This method prints all Properties, but the values of all keys that contains
      * "password" or "credentials" are changed to "****".
+     * @see NjamsSettings#getAllPropertiesWithoutPasswords()
      */
+    @Deprecated
     public void printPropertiesWithoutPasswords() {
         printPropertiesWithoutPasswords(LOG);
     }
@@ -192,7 +193,9 @@ public class Settings {
      * "password" or "credentials" are changed to "****".
      *
      * @param logger The logger used for printing properties.
+     * @see NjamsSettings#getAllPropertiesWithoutPasswords()
      */
+    @Deprecated
     public void printPropertiesWithoutPasswords(Logger logger) {
         List<String> list = new ArrayList<>();
         properties.keySet().forEach(key -> list.add((String) key));
@@ -270,4 +273,5 @@ public class Settings {
             this.secureProperties.add(property.toLowerCase());
         });
     }
+
 }

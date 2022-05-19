@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Faiz & Siegeln Software GmbH
+ * Copyright (c) 2022 Faiz & Siegeln Software GmbH
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"),
  * to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
@@ -25,6 +25,7 @@ import java.util.Objects;
 
 import javax.xml.bind.annotation.XmlTransient;
 
+import com.im.njams.sdk.njams.NjamsSerializers;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -46,9 +47,6 @@ import com.im.njams.sdk.utils.StringUtils;
  * This is internal implementation of the Activity. It is a extension of the
  * MesasgeFormat activity, and provided functionality for easy chaining
  * activities.
- *
- * @author pnientiedt
- * @version 4.0.6
  */
 public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmessage.Activity implements Activity {
 
@@ -61,6 +59,7 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
     private final JobImpl job;
     private final ActivityModel activityModel;
     private final Extract extract;
+    protected final NjamsSerializers njamsSerializers;
     private boolean starter = false;
     private GroupImpl parent = null;
     private final boolean traceEnabled;
@@ -72,8 +71,9 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
     private boolean inputProcessecd = false;
     private boolean outputProcessed = false;
 
-    public ActivityImpl(JobImpl job, ActivityModel model) {
+    public ActivityImpl(JobImpl job, ActivityModel model, NjamsSerializers njamsSerializers) {
         this.job = job;
+        this.njamsSerializers = njamsSerializers;
         activityModel = Objects.requireNonNull(model);
         setModelId(model.getId());
         ActivityConfiguration activityConfig = job.getActivityConfiguration(activityModel);
@@ -134,7 +134,7 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
         final ActivityBuilder builder;
         if (toActivity == null || !Objects.equals(toActivity.getIteration(), getIteration())
                 || toActivity.getParent() != getParent()) {
-            builder = new ActivityBuilder(job, toActivityModel);
+            builder = new ActivityBuilder(job, toActivityModel, njamsSerializers);
         } else {
             builder = new ActivityBuilder(toActivity);
         }
@@ -188,7 +188,7 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
         final GroupBuilder builder;
         if (toGroup == null || !Objects.equals(toGroup.getIteration(), getIteration())
                 || toGroup.getParent() != getParent()) {
-            builder = new GroupBuilder(job, toGroupModel);
+            builder = new GroupBuilder(job, toGroupModel, njamsSerializers);
         } else {
             builder = new GroupBuilder(toGroup);
         }
@@ -235,7 +235,7 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
         }
 
         if (extract != null) {
-            ExtractHandler.handleExtract(job, extract, this, ExtractSource.INPUT, input, getInput());
+            ExtractHandler.handleExtract(job, extract, this, ExtractSource.INPUT, input, getInput(), njamsSerializers);
         }
 
         inputProcessecd = true;
@@ -286,7 +286,7 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
             }
         }
         if (extract != null) {
-            ExtractHandler.handleExtract(job, extract, this, ExtractSource.OUTPUT, output, getOutput());
+            ExtractHandler.handleExtract(job, extract, this, ExtractSource.OUTPUT, output, getOutput(), njamsSerializers);
         }
 
         outputProcessed = true;
@@ -302,9 +302,9 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
         if (data != null && isTracing()) {
             // if there is any data to handle add trace data
             if (input) {
-                setInput(job.getNjams().serialize(data));
+                setInput(njamsSerializers.serialize(data));
             } else {
-                setOutput(job.getNjams().serialize(data));
+                setOutput(njamsSerializers.serialize(data));
             }
             setExecutionIfNotSet();
             job.setTraces(true);
@@ -360,7 +360,7 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
         final SubProcessActivityBuilder builder;
         if (toSubProcess == null || !Objects.equals(toSubProcess.getIteration(), getIteration())
                 || toSubProcess.getParent() != getParent()) {
-            builder = new SubProcessActivityBuilder(job, toSubProcessModel);
+            builder = new SubProcessActivityBuilder(job, toSubProcessModel, njamsSerializers);
         } else {
             builder = new SubProcessActivityBuilder(toSubProcess);
         }
@@ -471,7 +471,7 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
     @Override
     public void processStartData(Object startData) {
         if (job.isRecording()) {
-            setStartData(job.getNjams().serialize(startData));
+            setStartData(njamsSerializers.serialize(startData));
         }
     }
 
@@ -482,7 +482,7 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
      */
     @Override
     public void setInput(String input) {
-        super.setInput(DataMasking.maskString(input));
+        super.setInput(DataMasking.getGlobalNjamsDataMasking().mask(input));
     }
 
     /**
@@ -492,7 +492,7 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
      */
     @Override
     public void setOutput(String output) {
-        super.setOutput(DataMasking.maskString(output));
+        super.setOutput(DataMasking.getGlobalNjamsDataMasking().mask(output));
     }
 
     /**
@@ -570,7 +570,7 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
      */
     @Override
     public void setStartData(String startData) {
-        String maskedStartData = DataMasking.maskString(startData);
+        String maskedStartData = DataMasking.getGlobalNjamsDataMasking().mask(startData);
         super.setStartData(maskedStartData);
         if (maskedStartData != null) {
             int startDataSize = maskedStartData.length();

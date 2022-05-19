@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Faiz & Siegeln Software GmbH
+ * Copyright (c) 2022 Faiz & Siegeln Software GmbH
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"),
  * to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
@@ -19,19 +19,18 @@ package com.im.njams.sdk.logmessage;
 import java.time.LocalDateTime;
 
 import com.faizsiegeln.njams.messageformat.v4.logmessage.ActivityStatus;
+import com.im.njams.sdk.njams.NjamsSerializers;
 import com.im.njams.sdk.model.ProcessModel;
 import com.im.njams.sdk.model.SubProcessActivityModel;
 import com.im.njams.sdk.model.TransitionModel;
 
 /**
  * ActivityBuilder used to build a SubProcessActivity
- *
- * @author pnientiedt
  */
 public class SubProcessActivityBuilder extends GroupBuilder {
 
-    SubProcessActivityBuilder(JobImpl job, SubProcessActivityModel model) {
-        super(new SubProcessActivityImpl(job, model));
+    SubProcessActivityBuilder(JobImpl job, SubProcessActivityModel model, NjamsSerializers njamsSerializers) {
+        super(new SubProcessActivityImpl(job, model, njamsSerializers));
         getActivity().setSequence(job.getNextSequence());
     }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Faiz & Siegeln Software GmbH
+ * Copyright (c) 2022 Faiz & Siegeln Software GmbH
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"),
  * to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
@@ -30,18 +30,16 @@ import javax.jms.Connection;
 import javax.jms.MessageConsumer;
 import javax.jms.Session;
 
+import com.im.njams.sdk.njams.metadata.NjamsMetadata;
+import com.im.njams.sdk.njams.metadata.NjamsMetadataFactory;
 import org.slf4j.LoggerFactory;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.common.Path;
 import com.im.njams.sdk.communication.ConnectionStatus;
 
 /**
  * This class is a extended version of the JmsReceiver to get its fields.
- *
- * @author krautenberg@integrationmatters.com
- * @version 4.0.5
  */
 class JmsReceiverMock extends JmsReceiver {
 
@@ -50,11 +48,12 @@ class JmsReceiverMock extends JmsReceiver {
     private static final String MESSAGESELECTORSTRING = "NJAMS_RECEIVER = '>SDK4>' OR NJAMS_RECEIVER = '>SDK4>TEST>'";
 
     public JmsReceiverMock() {
-        Njams njamsImpl = mock(Njams.class);
         Path path = mock(Path.class);
-        when(njamsImpl.getClientPath()).thenReturn(path);
         when(path.toString()).thenReturn("SDK4>TEST");
-        super.setNjams(njamsImpl);
+
+        final String NOT_NEEDED = null;
+        NjamsMetadata metadata = NjamsMetadataFactory.createMetadataWith(path, NOT_NEEDED, "SDK");
+        setInstanceMetadata(metadata);
     }
 
     //Getter

@@ -1,17 +1,24 @@
 /*
- * Copyright (c) 2019 Faiz & Siegeln Software GmbH
+ * Copyright (c) 2022 Faiz & Siegeln Software GmbH
  *
- * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"),
- * to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
- * and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
+ * documentation files (the "Software"),
+ * to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge,
+ * publish, distribute, sublicense,
+ * and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to
+ * the following conditions:
  *
- * The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+ * The above copyright notice and this permission notice shall be included in all copies or substantial portions of
+ * the Software.
  *
  * The Software shall be used for Good, not Evil.
  *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
+ * THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE
+ *  FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+ * SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
  */
 package com.im.njams.sdk.communication;
@@ -35,13 +42,11 @@ import java.util.concurrent.atomic.AtomicInteger;
  * Superclass for all Senders. When writing your own Sender, extend this class
  * and overwrite methods, when needed. All Sender will be automatically pooled
  * by the SDK; you must not implement your own connection pooling!
- *
- * @author hsiegeln
- * @version 4.0.6
  */
 public abstract class AbstractSender implements Sender {
 
     private static final Logger LOG = LoggerFactory.getLogger(AbstractSender.class);
+    private int waitTimeToReconnect;
 
     protected ConnectionStatus connectionStatus;
     protected DiscardPolicy discardPolicy = DiscardPolicy.DEFAULT;
@@ -62,6 +67,11 @@ public abstract class AbstractSender implements Sender {
      */
     public AbstractSender() {
         connectionStatus = ConnectionStatus.DISCONNECTED;
+        waitTimeToReconnect = 1000;
+    }
+
+    void setWaitTimeToReconnect(int waitTimeToReconnect){
+        this.waitTimeToReconnect = waitTimeToReconnect;
     }
 
     @Override
@@ -136,7 +146,7 @@ public abstract class AbstractSender implements Sender {
                 }
             } catch (NjamsSdkRuntimeException e) {
                 try {
-                    Thread.sleep(1000);
+                    Thread.sleep(waitTimeToReconnect);
                 } catch (InterruptedException e1) {
                     return;
                 }

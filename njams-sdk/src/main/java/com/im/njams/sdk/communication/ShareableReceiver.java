@@ -1,28 +1,34 @@
 /*
- * Copyright (c) 2020 Faiz & Siegeln Software GmbH
+ * Copyright (c) 2022 Faiz & Siegeln Software GmbH
  *
- * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"),
- * to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
- * and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
+ * documentation files (the "Software"),
+ * to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge,
+ * publish, distribute, sublicense,
+ * and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to
+ * the following conditions:
  *
- * The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+ * The above copyright notice and this permission notice shall be included in all copies or substantial portions of
+ * the Software.
  *
  * The Software shall be used for Good, not Evil.
  *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
+ * THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE
+ *  FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+ * SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
  */
 package com.im.njams.sdk.communication;
 
 import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
-import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.common.Path;
+import com.im.njams.sdk.njams.metadata.NjamsMetadata;
 
 /**
- * Interface to be implemented by {@link Receiver}s that support receiving messages for multiple {@link Njams} instances.
- * @author cwinkler
+ * Interface to be implemented by {@link Receiver}s that support receiving messages for multiple {@link Receiver} instances.
  *
  * @param <M> The raw message type that is received from the transport API
  *
@@ -30,52 +36,38 @@ import com.im.njams.sdk.common.Path;
 public interface ShareableReceiver<M> extends Receiver {
 
     /**
-     * Stops the given {@link Njams} instance from receiving messages from this receiver instance.
-     * @param njams The {@link Njams} instance to be removed.
+     * Stops the given {@link Receiver} instance from receiving messages from this receiver instance.
+     * @param receiver The receiver instance to be removed.
      */
-    public void removeNjams(Njams njams);
+    void removeReceiver(Receiver receiver);
 
-    @Override
-    public void setNjams(Njams njams);
-
-    /**
-     * Passes the instruction to the according {@link Njams} instance.
-     * @deprecated No longer used.
-     * @param instruction The instruction to process.
-     * @param njams The {@link Njams} instance to receive the instruction.
-     * @see Receiver#onInstruction(Instruction)
-     */
-    @Deprecated
-    public default void onInstruction(Instruction instruction, Njams njams) {
-        // nothing
-    }
+    void addReceiver(Receiver receiver);
 
     /**
      * Has to extract the receiver instance (client) path, i.e., the path that matches a certain
-     * {@link Njams} instance's {@link Njams#getClientPath()}.
+     * {@link Receiver#getInstanceMetadata()} instance's {@link NjamsMetadata#getClientPath()}.
      *
      * @param requestMessage The raw message read from the transport API
      * @param instruction The instruction parsed from the received message
      * @return {@link Path} of the receiver client instance.
      */
-    public Path getReceiverPath(M requestMessage, Instruction instruction);
+    Path getReceiverPath(M requestMessage, Instruction instruction);
 
     /**
      * Sends the given reply message as response to the given request message.
      * @param requestMessage The raw message read from the transport API
      * @param reply The instruction parsed from the received message
      */
-    public void sendReply(M requestMessage, Instruction reply);
+    void sendReply(M requestMessage, Instruction reply);
 
     /**
-     * Always throws an {@link UnsupportedOperationException}. This method is replaced by
-     * {@link #onInstruction(Instruction, Njams)} for passing instructions to the according {@link Njams} instance.
+     * Always throws an {@link UnsupportedOperationException}.
      *
-     * @see com.im.njams.sdk.communication.AbstractReceiver#onInstruction(com.faizsiegeln.njams.messageformat.v4.command.Instruction)
+     * @see AbstractReceiver#onInstruction(Instruction)
      * @throws UnsupportedOperationException always
      */
     @Override
-    public default void onInstruction(Instruction instruction) {
+    default void onInstruction(Instruction instruction) {
         throw new UnsupportedOperationException();
     }
 }

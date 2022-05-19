@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Faiz & Siegeln Software GmbH
+ * Copyright (c) 2022 Faiz & Siegeln Software GmbH
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"),
  * to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
@@ -24,12 +24,16 @@ import com.faizsiegeln.njams.messageformat.v4.command.Request;
 import com.faizsiegeln.njams.messageformat.v4.command.Response;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.im.njams.sdk.njams.metadata.NjamsMetadata;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.communication.AbstractReceiver;
 import com.im.njams.sdk.communication.ConnectionStatus;
 import com.im.njams.sdk.communication.cloud.CertificateUtil.KeyStorePasswordPair;
 import com.im.njams.sdk.utils.JsonUtils;
 import com.im.njams.sdk.utils.StringUtils;
+import org.slf4j.LoggerFactory;
+
+import javax.net.ssl.HttpsURLConnection;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.net.URL;
@@ -38,14 +42,6 @@ import java.util.Properties;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-import javax.net.ssl.HttpsURLConnection;
-
-import org.slf4j.LoggerFactory;
-
-/**
- *
- * @author pnientiedt
- */
 public class CloudReceiver extends AbstractReceiver {
 
     private static final org.slf4j.Logger LOG = LoggerFactory.getLogger(CloudReceiver.class);
@@ -348,17 +344,15 @@ public class CloudReceiver extends AbstractReceiver {
     }
 
     public void resendOnConnect() throws JsonProcessingException, AWSIotException {
-        sendOnConnectMessage(isShared, connectionId, instanceId, njams.getClientPath().toString(),
-                njams.getClientVersion(), njams.getSdkVersion(), njams.getMachine(), njams.getCategory());
+        sendOnConnectMessage(isShared, connectionId, instanceId, getInstanceMetadata());
     }
 
-    protected void sendOnConnectMessage(Boolean isShared, String connectionId, String instanceId, String path,
-            String clientVersion, String sdkVersion, String machine, String category)
+    protected void sendOnConnectMessage(Boolean isShared, String connectionId, String instanceId, NjamsMetadata metadata)
             throws JsonProcessingException, AWSIotException {
         String topicName = "/onConnect/";
         OnConnectMessage onConnectMessage =
-                new OnConnectMessage(isShared, connectionId, instanceId, path, clientVersion, sdkVersion, machine,
-                        category);
+                new OnConnectMessage(isShared, connectionId, instanceId, metadata.getClientPath().toString(), metadata.getClientVersion(), metadata.getSdkVersion(),
+                    metadata.getMachine(), metadata.getCategory());
 
         ObjectMapper objectMapper = new ObjectMapper();
 

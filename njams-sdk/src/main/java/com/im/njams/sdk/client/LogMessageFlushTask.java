@@ -1,17 +1,24 @@
 /*
- * Copyright (c) 2018 Faiz & Siegeln Software GmbH
+ * Copyright (c) 2022 Faiz & Siegeln Software GmbH
  *
- * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"),
- * to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
- * and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
+ * documentation files (the "Software"),
+ * to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge,
+ * publish, distribute, sublicense,
+ * and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to
+ * the following conditions:
  *
- * The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+ * The above copyright notice and this permission notice shall be included in all copies or substantial portions of
+ * the Software.
  *
  * The Software shall be used for Good, not Evil.
  *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
+ * THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE
+ *  FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+ * SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
  */
 package com.im.njams.sdk.client;
@@ -23,24 +30,24 @@ import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import com.im.njams.sdk.njams.metadata.NjamsMetadata;
+import com.im.njams.sdk.njams.NjamsJobs;
+import com.im.njams.sdk.settings.Settings;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.common.DateTimeUtility;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.logmessage.JobImpl;
 
 /**
  * LogMessageFlushTask flushes new content of jobs periodically into LogMessages
- *
- * @author stkniep
  */
 public class LogMessageFlushTask extends TimerTask {
 
     private static final Logger LOG = LoggerFactory.getLogger(LogMessageFlushTask.class);
 
-    private static final Map<String, LMFTEntry> NJAMS_INSTANCES = new HashMap<>();
+    private static final Map<String, LogMessageFlushTaskEntry> NJAMS_INSTANCES = new HashMap<>();
 
     private static Timer timer = null;
 
@@ -50,13 +57,15 @@ public class LogMessageFlushTask extends TimerTask {
      * Adds a new Njams instance to the LogMessageFlushTask, and start the task
      * if it is not started yet
      *
-     * @param njams Njams to add
+     * @param njamsMetadata Njams metadata for one instance
+     * @param njamsJobs Jobs for the njams instance to flush
+     * @param settings Settings to know if when to flush
      */
-    public static synchronized void start(Njams njams) {
-        if (njams == null) {
-            throw new NjamsSdkRuntimeException("Start: Njams is null");
+    public static synchronized void start(NjamsMetadata njamsMetadata, NjamsJobs njamsJobs, Settings settings) {
+        if (njamsMetadata == null) {
+            throw new NjamsSdkRuntimeException("Start: Njams Metadata is null");
         }
-        if (njams.getClientPath() == null) {
+        if (njamsMetadata.getClientPath() == null) {
             throw new NjamsSdkRuntimeException("Start: Njams clientPath is null");
         }
 
@@ -65,7 +74,7 @@ public class LogMessageFlushTask extends TimerTask {
             timer.scheduleAtFixedRate(new LogMessageFlushTask(), 1000, 1000);
         }
 
-        NJAMS_INSTANCES.put(njams.getClientPath().toString(), new LMFTEntry(njams));
+        NJAMS_INSTANCES.put(njamsMetadata.getClientPath().toString(), new LogMessageFlushTaskEntry(njamsJobs, settings));
     }
 
     /**
@@ -73,24 +82,24 @@ public class LogMessageFlushTask extends TimerTask {
      * jobs of the instance, and stops it the timer if no Njams instance is left
      * to work on
      *
-     * @param njams Njams instance to remove
+     * @param njamsMetadata NjamsMetadata as identifier for the njams instance to remove
      */
-    public static synchronized void stop(Njams njams) {
-        if (njams == null) {
-            throw new NjamsSdkRuntimeException("Stop: Njams is null");
+    public static synchronized void stop(NjamsMetadata njamsMetadata) {
+        if (njamsMetadata == null) {
+            throw new NjamsSdkRuntimeException("Stop: Njams Metadata is null");
         }
-        if (njams.getClientPath() == null) {
+        if (njamsMetadata.getClientPath() == null) {
             throw new NjamsSdkRuntimeException("Stop: Njams clientPath is null");
         }
-        LMFTEntry entry = NJAMS_INSTANCES.remove(njams.getClientPath().toString());
+        LogMessageFlushTaskEntry entry = NJAMS_INSTANCES.remove(njamsMetadata.getClientPath().toString());
         if (entry != null) {
-            Njams stoppingNjams = entry.getNjams();
-            stoppingNjams.getJobs().forEach(job -> ((JobImpl) job).flush());
+            NjamsJobs njamsJobs = entry.getNjamsJobs();
+            njamsJobs.get().forEach(job -> ((JobImpl) job).flush());
 
         } else {
             LOG.warn(
                     "The LogMessageFlushTask hasn't been started before stopping for this instance: {}. Did not flush...",
-                    njams);
+                njamsMetadata.getClientPath());
         }
         if (NJAMS_INSTANCES.size() <= 0 && timer != null) {
             timer.cancel();
@@ -121,9 +130,9 @@ public class LogMessageFlushTask extends TimerTask {
         }
     }
 
-    private void processNjams(LMFTEntry entry) {
+    private void processNjams(LogMessageFlushTaskEntry entry) {
         LocalDateTime boundary = DateTimeUtility.now().minusSeconds(entry.getFlushInterval());
-        entry.getNjams().getJobs().forEach(job -> ((JobImpl) job).timerFlush(boundary, entry.getFlushSize()));
+        entry.getNjamsJobs().get().forEach(job -> ((JobImpl) job).timerFlush(boundary, entry.getFlushSize()));
     }
 
 }

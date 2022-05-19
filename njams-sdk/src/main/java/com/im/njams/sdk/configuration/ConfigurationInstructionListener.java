@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Faiz & Siegeln Software GmbH
+ * Copyright (c) 2022 Faiz & Siegeln Software GmbH
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"),
  * to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
@@ -21,6 +21,7 @@ import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
 import com.faizsiegeln.njams.messageformat.v4.command.Response;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.*;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.im.njams.sdk.njams.configuration.NjamsConfiguration;
 import com.im.njams.sdk.common.DateTimeUtility;
 import com.im.njams.sdk.common.JsonSerializerFactory;
 import com.im.njams.sdk.communication.InstructionListener;
@@ -42,8 +43,6 @@ import java.util.stream.Collectors;
 /**
  * InstructionListener implementation for all instructions which will modify
  * configuration values.
- *
- * @author pnientiedt
  */
 public class ConfigurationInstructionListener implements InstructionListener {
 
@@ -268,15 +267,15 @@ public class ConfigurationInstructionListener implements InstructionListener {
     private static final String EXPRESSION = "expression";
     private static final String RULE_TYPE = "ruleType";
 
-    private final Configuration configuration;
+    private final NjamsConfiguration njamsConfiguration;
 
     /**
      * Initialize ConfigurationInstructionListener
      *
-     * @param configuration which should be managed
+     * @param njamsConfiguration which should be managed
      */
-    public ConfigurationInstructionListener(final Configuration configuration) {
-        this.configuration = configuration;
+    public ConfigurationInstructionListener(final NjamsConfiguration njamsConfiguration) {
+        this.njamsConfiguration = njamsConfiguration;
     }
 
     /**
@@ -364,14 +363,14 @@ public class ConfigurationInstructionListener implements InstructionListener {
         boolean exclude = false;
 
         // differing config stored?
-        final ProcessConfiguration process = configuration.getProcess(processPath);
+        final ProcessConfiguration process = njamsConfiguration.getProcess(processPath);
         if (process != null) {
             logLevel = process.getLogLevel();
             exclude = process.isExclude();
         }
 
         instructionSupport.setParameter(LOG_LEVEL, logLevel.name()).setParameter(EXCLUDE, exclude)
-                .setParameter(LOG_MODE, configuration.getLogMode());
+                .setParameter(LOG_MODE, njamsConfiguration.getLogMode());
 
         LOG.debug("Return LogLevel for {}", processPath);
     }
@@ -386,14 +385,14 @@ public class ConfigurationInstructionListener implements InstructionListener {
         final LogLevel loglevel = instructionSupport.getEnumParameter(LOG_LEVEL, LogLevel.class);
 
         //execute action
-        ProcessConfiguration process = configuration.getProcess(processPath);
+        ProcessConfiguration process = njamsConfiguration.getProcess(processPath);
         if (process == null) {
             process = new ProcessConfiguration();
-            configuration.getProcesses().put(processPath, process);
+            njamsConfiguration.getProcesses().put(processPath, process);
         }
         final LogMode logMode = instructionSupport.getEnumParameter(LOG_MODE, LogMode.class);
         if (logMode != null) {
-            configuration.setLogMode(logMode);
+            njamsConfiguration.setLogMode(logMode);
         }
         process.setLogLevel(loglevel);
         process.setExclude(instructionSupport.getBoolParameter(EXCLUDE));
@@ -401,8 +400,8 @@ public class ConfigurationInstructionListener implements InstructionListener {
     }
 
     private void getLogMode(final InstructionSupport instructionSupport) {
-        instructionSupport.setParameter(LOG_MODE, configuration.getLogMode());
-        LOG.debug("Return LogMode: {}", configuration.getLogMode());
+        instructionSupport.setParameter(LOG_MODE, njamsConfiguration.getLogMode());
+        LOG.debug("Return LogMode: {}", njamsConfiguration.getLogMode());
     }
 
     private void setLogMode(final InstructionSupport instructionSupport) {
@@ -411,7 +410,7 @@ public class ConfigurationInstructionListener implements InstructionListener {
         }
         //fetch parameters
         final LogMode logMode = instructionSupport.getEnumParameter(LOG_MODE, LogMode.class);
-        configuration.setLogMode(logMode);
+        njamsConfiguration.setLogMode(logMode);
         saveConfiguration(instructionSupport);
         LOG.debug("Set LogMode to {}", logMode);
     }
@@ -464,10 +463,10 @@ public class ConfigurationInstructionListener implements InstructionListener {
         final String activityId = instructionSupport.getActivityId();
 
         //execute action
-        ProcessConfiguration process = configuration.getProcess(processPath);
+        ProcessConfiguration process = njamsConfiguration.getProcess(processPath);
         if (process == null) {
             process = new ProcessConfiguration();
-            configuration.getProcesses().put(processPath, process);
+            njamsConfiguration.getProcesses().put(processPath, process);
         }
         ActivityConfiguration activity = process.getActivity(activityId);
         if (activity == null) {
@@ -489,7 +488,7 @@ public class ConfigurationInstructionListener implements InstructionListener {
         final String processPath = instructionSupport.getProcessPath();
         final String activityId = instructionSupport.getActivityId();
 
-        final ProcessConfiguration process = configuration.getProcess(processPath);
+        final ProcessConfiguration process = njamsConfiguration.getProcess(processPath);
         if (process == null) {
             LOG.debug("Delete tracepoint: no process configuration for: {}", processPath);
             return;
@@ -514,10 +513,10 @@ public class ConfigurationInstructionListener implements InstructionListener {
         final String extractString = instructionSupport.getParameter(EXTRACT);
 
         //execute action
-        ProcessConfiguration process = configuration.getProcess(processPath);
+        ProcessConfiguration process = njamsConfiguration.getProcess(processPath);
         if (process == null) {
             process = new ProcessConfiguration();
-            configuration.getProcesses().put(processPath, process);
+            njamsConfiguration.getProcesses().put(processPath, process);
         }
         ActivityConfiguration activity = null;
         activity = process.getActivity(activityId);
@@ -558,7 +557,7 @@ public class ConfigurationInstructionListener implements InstructionListener {
 
         //execute action
         ProcessConfiguration process = null;
-        process = configuration.getProcess(processPath);
+        process = njamsConfiguration.getProcess(processPath);
         if (process == null) {
             instructionSupport.error("Process configuration " + processPath + " not found");
             return;
@@ -582,7 +581,7 @@ public class ConfigurationInstructionListener implements InstructionListener {
         final String activityId = instructionSupport.getActivityId();
 
         //execute action
-        final ProcessConfiguration process = configuration.getProcess(processPath);
+        final ProcessConfiguration process = njamsConfiguration.getProcess(processPath);
         if (process == null) {
             instructionSupport.error("Process " + processPath + " not found");
             return;
@@ -616,7 +615,7 @@ public class ConfigurationInstructionListener implements InstructionListener {
         final String activityId = instructionSupport.getActivityId();
 
         //execute action
-        final ProcessConfiguration process = configuration.getProcess(processPath);
+        final ProcessConfiguration process = njamsConfiguration.getProcess(processPath);
         if (process == null) {
             instructionSupport.error("Process " + processPath + " not found");
             return;
@@ -647,9 +646,9 @@ public class ConfigurationInstructionListener implements InstructionListener {
         if (instructionSupport.hasParameter(ENGINE_WIDE_RECORDING)) {
             try {
                 final boolean engineWideRecording = instructionSupport.getBoolParameter(ENGINE_WIDE_RECORDING);
-                configuration.setRecording(engineWideRecording);
+                njamsConfiguration.setEngineWideRecording(engineWideRecording);
                 //reset to default after logic change
-                configuration.getProcesses().values().forEach(p -> p.setRecording(engineWideRecording));
+                njamsConfiguration.getProcesses().values().forEach(p -> p.setRecording(engineWideRecording));
             } catch (final Exception e) {
                 instructionSupport.error("Unable to set client recording", e);
                 return;
@@ -660,10 +659,10 @@ public class ConfigurationInstructionListener implements InstructionListener {
         if (processPath != null) {
             try {
                 ProcessConfiguration process = null;
-                process = configuration.getProcess(processPath);
+                process = njamsConfiguration.getProcess(processPath);
                 if (process == null) {
                     process = new ProcessConfiguration();
-                    configuration.getProcesses().put(processPath, process);
+                    njamsConfiguration.getProcesses().put(processPath, process);
                 }
                 final String doRecordParameter = instructionSupport.getParameter(RECORD);
                 final boolean doRecord = "all".equalsIgnoreCase(doRecordParameter);
@@ -697,7 +696,7 @@ public class ConfigurationInstructionListener implements InstructionListener {
 
     private void saveConfiguration(InstructionSupport instructionSupport) {
         try {
-            configuration.save();
+            njamsConfiguration.save();
         } catch (final Exception e) {
             instructionSupport.error("Unable to save configuration", e);
         }

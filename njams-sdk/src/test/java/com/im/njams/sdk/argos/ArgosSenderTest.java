@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Faiz & Siegeln Software GmbH
+ * Copyright (c) 2022 Faiz & Siegeln Software GmbH
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
  * documentation files (the "Software"), to deal in the Software without restriction, including without limitation
@@ -20,6 +20,7 @@
 
 package com.im.njams.sdk.argos;
 
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -30,6 +31,8 @@ import org.junit.Before;
 import org.junit.Test;
 
 import com.im.njams.sdk.settings.Settings;
+
+import java.util.concurrent.TimeUnit;
 
 public class ArgosSenderTest {
 
@@ -67,8 +70,14 @@ public class ArgosSenderTest {
 
         argosSender.addArgosCollector(collector);
 
-        Thread.sleep(15000);
+        while(!argosSender.isExecutorSet()){
+            Thread.sleep(10);
+        }
 
-        verify(collector).collectAll();
+        argosSender.setSendingScheduleTo(10, 10, TimeUnit.MILLISECONDS);
+
+        Thread.sleep(20);
+
+        verify(collector, atLeastOnce()).collectAll();
     }
 }

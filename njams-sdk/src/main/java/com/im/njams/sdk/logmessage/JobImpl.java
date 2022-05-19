@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Faiz & Siegeln Software GmbH
+ * Copyright (c) 2022 Faiz & Siegeln Software GmbH
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"),
  * to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
@@ -35,6 +35,11 @@ import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import com.im.njams.sdk.njams.configuration.NjamsConfiguration;
+import com.im.njams.sdk.njams.NjamsJobs;
+import com.im.njams.sdk.njams.communication.sender.NjamsSender;
+import com.im.njams.sdk.njams.NjamsSerializers;
+import com.im.njams.sdk.njams.metadata.NjamsMetadata;
 import org.slf4j.LoggerFactory;
 
 import com.faizsiegeln.njams.messageformat.v4.logmessage.ActivityStatus;
@@ -42,12 +47,10 @@ import com.faizsiegeln.njams.messageformat.v4.logmessage.LogMessage;
 import com.faizsiegeln.njams.messageformat.v4.logmessage.PluginDataItem;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.LogLevel;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.LogMode;
-import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.common.DateTimeUtility;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.common.Path;
 import com.im.njams.sdk.configuration.ActivityConfiguration;
-import com.im.njams.sdk.configuration.Configuration;
 import com.im.njams.sdk.configuration.ProcessConfiguration;
 import com.im.njams.sdk.configuration.TracepointExt;
 import com.im.njams.sdk.model.ActivityModel;
@@ -59,8 +62,6 @@ import com.im.njams.sdk.utils.StringUtils;
 
 /**
  * This represents an instance of a process/flow etc in engine to monitor.
- *
- * @author bwand
  */
 public class JobImpl implements Job {
 
@@ -79,11 +80,17 @@ public class JobImpl implements Job {
     public static final int MAX_VALUE_LIMIT = 2000;
 
     private final ProcessModel processModel;
-    private final Njams njams;
 
     private final String jobId;
 
     private final String logId;
+
+    private final NjamsJobs njamsJobs;
+    private final NjamsMetadata instanceMetaData;
+    private final NjamsSerializers njamsSerializers;
+    private final NjamsConfiguration njamsConfiguration;
+    private final Settings settings;
+    private final NjamsSender njamsSender;
     /*
      * the latest status of the job, set by any event
      */
@@ -193,14 +200,27 @@ public class JobImpl implements Job {
      * @param processModel for job to create
      * @param jobId of Job to create
      * @param logId of Job to create
+     * @param njamsJobs to remove jobs from this instance
+     * @param instanceMetaData to send metadata information with log messages
+     * @param njamsSerializers to serialize data for log messages
+     * @param njamsConfiguration the configuration of this instance
+     * @param settings the settings of this instance
+     * @param njamsSender the sender to send the log message
      */
-    public JobImpl(ProcessModel processModel, String jobId, String logId) {
+    public JobImpl(ProcessModel processModel, String jobId, String logId, NjamsJobs njamsJobs,
+        NjamsMetadata instanceMetaData, NjamsSerializers njamsSerializers, NjamsConfiguration njamsConfiguration,
+        Settings settings, NjamsSender njamsSender) {
+        this.njamsJobs = njamsJobs;
+        this.instanceMetaData = instanceMetaData;
+        this.njamsSerializers = njamsSerializers;
+        this.njamsConfiguration = njamsConfiguration;
+        this.settings = settings;
+        this.njamsSender = njamsSender;
         this.jobId = jobId;
         this.logId = logId;
         correlationLogId = logId;
         setStatusAndSeverity(JobStatus.CREATED);
         this.processModel = processModel;
-        njams = processModel.getNjams();
         sequenceCounter = new AtomicInteger();
         flushCounter = new AtomicInteger();
         lastFlush = DateTimeUtility.now();
@@ -211,15 +231,15 @@ public class JobImpl implements Job {
         //will be set to true.
         startTime = DateTimeUtility.now();
         startTimeExplicitlySet = false;
-        allErrors = "true".equalsIgnoreCase(njams.getSettings().getProperty(LOG_ALL_ERRORS));
-        truncateOnSuccess = "true".equalsIgnoreCase(njams.getSettings().getProperty(TRUNCATE_ON_SUCCESS));
+        allErrors = "true".equalsIgnoreCase(settings.getProperty(LOG_ALL_ERRORS));
+        truncateOnSuccess = "true".equalsIgnoreCase(settings.getProperty(TRUNCATE_ON_SUCCESS));
         truncateLimit = getTruncateLimit();
     }
 
     private int getTruncateLimit() {
         String s = null;
         try {
-            s = njams.getSettings().getProperty(TRUNCATE_LIMIT);
+            s = settings.getProperty(TRUNCATE_LIMIT);
             if (StringUtils.isBlank(s)) {
                 return Integer.MAX_VALUE;
             }
@@ -236,19 +256,18 @@ public class JobImpl implements Job {
      * activityConfigurations.
      */
     private void initFromConfiguration(ProcessModel processModel) {
-        Configuration configuration = processModel.getNjams().getConfiguration();
-        if (configuration == null) {
+        if (njamsConfiguration == null) {
             LOG.error("Unable to set LogMode, LogLevel and Exclude for {}, configuration is null",
                     processModel.getPath());
             return;
         }
-        logMode = configuration.getLogMode();
+        logMode = njamsConfiguration.getLogMode();
         LOG.debug("Set LogMode for {} to {}", processModel.getPath(), logMode);
 
-        recording = configuration.isRecording();
+        recording = njamsConfiguration.isRecording();
         LOG.debug("Set recording for {} to {} based on client settings", processModel.getPath(), recording);
 
-        ProcessConfiguration process = configuration.getProcess(processModel.getPath().toString());
+        ProcessConfiguration process = njamsConfiguration.getProcess(processModel.getPath().toString());
         if (process != null) {
             logLevel = process.getLogLevel();
             LOG.debug("Set LogLevel for {} to {}", processModel.getPath(), logLevel);
@@ -256,7 +275,7 @@ public class JobImpl implements Job {
             LOG.debug("Set Exclude for {} to {}", processModel.getPath(), exclude);
             recording = process.isRecording();
             LOG.debug("Set recording for {} to {} based on process settings {} and client setting {}",
-                    processModel.getPath(), recording, process.isRecording(), configuration.isRecording());
+                    processModel.getPath(), recording, process.isRecording(), njamsConfiguration.isRecording());
         }
         if (recording) {
             addAttribute("$njams_recorded", "true");
@@ -277,7 +296,7 @@ public class JobImpl implements Job {
         if (activityModel instanceof SubProcessActivityModel) {
             return createSubProcess((SubProcessActivityModel) activityModel);
         }
-        return new ActivityBuilder(this, activityModel);
+        return new ActivityBuilder(this, activityModel, njamsSerializers);
     }
 
     /**
@@ -288,7 +307,7 @@ public class JobImpl implements Job {
      */
     @Override
     public GroupBuilder createGroup(GroupModel groupModel) {
-        return new GroupBuilder(this, groupModel);
+        return new GroupBuilder(this, groupModel, njamsSerializers);
     }
 
     /**
@@ -299,7 +318,7 @@ public class JobImpl implements Job {
      */
     @Override
     public SubProcessActivityBuilder createSubProcess(SubProcessActivityModel groupModel) {
-        return new SubProcessActivityBuilder(this, groupModel);
+        return new SubProcessActivityBuilder(this, groupModel, njamsSerializers);
     }
 
     /**
@@ -485,7 +504,7 @@ public class JobImpl implements Job {
                 LogMessage logMessage = createLogMessage();
                 addToLogMessageAndCleanup(logMessage);
                 logMessage.setSentAt(lastFlush);
-                processModel.getNjams().getSender().send(logMessage);
+                njamsSender.send(logMessage);
                 // clean up jobImpl
                 pluginDataItems.clear();
                 calculateEstimatedSize();
@@ -554,7 +573,6 @@ public class JobImpl implements Job {
      * This method creates the LogMessage that will be send to the server and
      * fills it with the attributes of the job.
      *
-     * @param job the job whose fields will be send
      * @return the created and with the job's information filled logMessage
      */
     private LogMessage createLogMessage() {
@@ -562,14 +580,14 @@ public class JobImpl implements Job {
         LogMessage logMessage = new LogMessage();
         logMessage.setBusinessEnd(businessEnd);
         logMessage.setBusinessStart(businessStart);
-        logMessage.setCategory(processModel.getNjams().getCategory());
+        logMessage.setCategory(instanceMetaData.getCategory());
         logMessage.setCorrelationLogId(correlationLogId);
         logMessage.setExternalLogId(externalLogId);
         logMessage.setJobEnd(endTime);
         logMessage.setJobId(jobId);
         logMessage.setJobStart(startTime);
         logMessage.setLogId(logId);
-        logMessage.setMachineName(processModel.getNjams().getMachine());
+        logMessage.setMachineName(instanceMetaData.getMachine());
         logMessage.setMaxSeverity(maxSeverity.getValue());
         logMessage.setMessageNo(flushCounter.get());
         logMessage.setObjectName(businessObject);
@@ -578,8 +596,8 @@ public class JobImpl implements Job {
         logMessage.setProcessName(processModel.getName());
         logMessage.setStatus(getStatus().getValue());
         logMessage.setServiceName(businessService);
-        logMessage.setClientVersion(njams.getClientVersion());
-        logMessage.setSdkVersion(njams.getSdkVersion());
+        logMessage.setClientVersion(instanceMetaData.getClientVersion());
+        logMessage.setSdkVersion(instanceMetaData.getSdkVersion());
 
         pluginDataItems.forEach(i -> logMessage.addPluginDataItem(i));
         return logMessage;
@@ -714,7 +732,7 @@ public class JobImpl implements Job {
                 LOG.warn("Job has been finished before it started.");
             }
             finished = true;
-            processModel.getNjams().removeJob(getJobId());
+            njamsJobs.remove(getJobId());
             flush();
         }
     }
@@ -1272,11 +1290,10 @@ public class JobImpl implements Job {
         if (processModel == null) {
             return null;
         }
-        Configuration configuration = processModel.getNjams().getConfiguration();
-        if (configuration == null) {
+        if (njamsConfiguration == null) {
             return null;
         }
-        ProcessConfiguration processConfig = configuration.getProcess(processModel.getPath().toString());
+        ProcessConfiguration processConfig = njamsConfiguration.getProcess(processModel.getPath().toString());
         if (processConfig == null) {
             return null;
         }
@@ -1354,10 +1371,6 @@ public class JobImpl implements Job {
         synchronized (attributes) {
             attributes.put(limitKey, value);
         }
-    }
-
-    public Njams getNjams() {
-        return njams;
     }
 
     @Override

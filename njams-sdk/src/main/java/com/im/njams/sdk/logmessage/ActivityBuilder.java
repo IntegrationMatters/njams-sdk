@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Faiz & Siegeln Software GmbH
+ * Copyright (c) 2022 Faiz & Siegeln Software GmbH
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"),
  * to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
@@ -20,6 +20,7 @@ import java.time.LocalDateTime;
 
 import com.faizsiegeln.njams.messageformat.v4.logmessage.ActivityStatus;
 import com.faizsiegeln.njams.messageformat.v4.logmessage.Predecessor;
+import com.im.njams.sdk.njams.NjamsSerializers;
 import com.im.njams.sdk.common.IdUtil;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.model.ActivityModel;
@@ -29,16 +30,14 @@ import com.im.njams.sdk.model.TransitionModel;
  * This Builder will be used to create activities. To get this Builder, use the
  * start function on the Job Object or the stepTo function on the previously
  * created Activity.
- *
- * @author stkniep
  */
 public class ActivityBuilder {
 
     //The activity which will be build by this builder
     private final ActivityImpl activity;
 
-    ActivityBuilder(JobImpl job, ActivityModel model) {
-        activity = new ActivityImpl(job, model);
+    ActivityBuilder(JobImpl job, ActivityModel model, NjamsSerializers njamsSerializers) {
+        activity = new ActivityImpl(job, model, njamsSerializers);
         activity.setSequence(job.getNextSequence());
     }
 

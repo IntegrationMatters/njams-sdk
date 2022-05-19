@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Faiz & Siegeln Software GmbH
+ * Copyright (c) 2022 Faiz & Siegeln Software GmbH
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"),
  * to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
@@ -16,18 +16,17 @@
  */
 package com.im.njams.sdk.logmessage;
 
+import com.im.njams.sdk.njams.NjamsSerializers;
 import com.im.njams.sdk.model.ProcessModel;
 import com.im.njams.sdk.model.SubProcessActivityModel;
 
 /**
  * Implementation of the SubProcessActivity interface
- *
- * @author pnientiedt
  */
 public class SubProcessActivityImpl extends GroupImpl implements SubProcessActivity {
 
-    public SubProcessActivityImpl(JobImpl job, SubProcessActivityModel model) {
-        super(job, model);
+    public SubProcessActivityImpl(JobImpl job, SubProcessActivityModel model, NjamsSerializers njamsSerializers) {
+        super(job, model, njamsSerializers);
     }
 
     /**
@@ -36,9 +35,10 @@ public class SubProcessActivityImpl extends GroupImpl implements SubProcessActiv
      * @param subProcess ProcessModel of the subprocess
      * @param job Job which contains this SubProcessActivityImpl
      * @param model The activity model for this instance.
+     * @param njamsSerializers Serializers to serialize the message with
      */
-    public SubProcessActivityImpl(ProcessModel subProcess, JobImpl job, SubProcessActivityModel model) {
-        super(job, model);
+    public SubProcessActivityImpl(ProcessModel subProcess, JobImpl job, SubProcessActivityModel model, NjamsSerializers njamsSerializers) {
+        super(job, model, njamsSerializers);
         setSubProcess(new com.faizsiegeln.njams.messageformat.v4.common.SubProcess(subProcess.getName(), subProcess
                 .getPath().toString(), null));
     }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Faiz & Siegeln Software GmbH
+ * Copyright (c) 2022 Faiz & Siegeln Software GmbH
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"),
  * to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
@@ -23,7 +23,6 @@ import com.faizsiegeln.njams.messageformat.v4.tracemessage.ProcessModel;
 import com.faizsiegeln.njams.messageformat.v4.tracemessage.TraceMessage;
 import com.im.njams.sdk.AbstractTest;
 import com.im.njams.sdk.configuration.TracepointExt;
-import org.junit.Before;
 import org.junit.Test;
 
 import java.time.LocalDateTime;
@@ -33,18 +32,15 @@ import static org.junit.Assert.*;
 
 /**
  * This class tests the TraceMessageBuilder
- *
- * @author krautenberg
- * @version 4.0.6
  */
 public class TraceMessageBuilderTest extends AbstractTest {
 
-    private TraceMessageBuilder builder = new TraceMessageBuilder(njams);
+    private TraceMessageBuilder builder = new TraceMessageBuilder(njamsFactory.getNjamsMetadata());
 
     private String FULLPROCESSPATHNAME;
 
     public TraceMessageBuilderTest(){
-        FULLPROCESSPATHNAME = njams.getClientPath().add(PROCESSPATHNAME).toString();
+        FULLPROCESSPATHNAME = njamsFactory.getNjamsMetadata().getClientPath().add(PROCESSPATHNAME).toString();
     }
 
     @Test
@@ -83,9 +79,9 @@ public class TraceMessageBuilderTest extends AbstractTest {
 
     private void checkTraceMessage(TraceMessage message, LocalDateTime ldt1, LocalDateTime ldt2) {
         assertEquals(message.getClientVersion(), CLIENTVERSION);
-        assertEquals(message.getSdkVersion(), njams.getSdkVersion());
+        assertEquals(message.getSdkVersion(), njamsFactory.getNjamsMetadata().getSdkVersion());
         assertEquals(message.getCategory(), CATEGORY);
-        assertEquals(message.getPath(), njams.getClientPath().toString());
+        assertEquals(message.getPath(), njamsFactory.getNjamsMetadata().getClientPath().toString());
 
         List<ProcessModel> processes = message.getProcesses();
         assertNotNull(processes);

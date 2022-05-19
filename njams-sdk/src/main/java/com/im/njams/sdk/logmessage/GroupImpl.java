@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Faiz & Siegeln Software GmbH
+ * Copyright (c) 2022 Faiz & Siegeln Software GmbH
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"),
  * to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
@@ -24,6 +24,7 @@ import java.util.Objects;
 
 import javax.xml.bind.annotation.XmlTransient;
 
+import com.im.njams.sdk.njams.NjamsSerializers;
 import com.im.njams.sdk.model.ActivityModel;
 import com.im.njams.sdk.model.GroupModel;
 import com.im.njams.sdk.model.SubProcessActivityModel;
@@ -31,15 +32,13 @@ import com.im.njams.sdk.model.SubProcessActivityModel;
 /**
  * Activity which represents a group in a process. A group can have child
  * activities.
- *
- * @author pnientiedt
  */
 public class GroupImpl extends ActivityImpl implements Group {
 
     private final Map<String, ActivityImpl> childActivities = new LinkedHashMap<>();
 
-    public GroupImpl(JobImpl job, ActivityModel model) {
-        super(job, model);
+    public GroupImpl(JobImpl job, ActivityModel model, NjamsSerializers serializers) {
+        super(job, model, serializers);
         setMaxIterations(1L);
     }
 
@@ -77,7 +76,7 @@ public class GroupImpl extends ActivityImpl implements Group {
          */
         if (toActivity == null || !Objects.equals(toActivity.getIteration(), getIteration())
                 || toActivity.getParent() != getParent()) {
-            builder = new ActivityBuilder((JobImpl) getJob(), childActivityModel);
+            builder = new ActivityBuilder((JobImpl) getJob(), childActivityModel, njamsSerializers);
         } else {
             builder = new ActivityBuilder(toActivity);
         }
@@ -135,7 +134,7 @@ public class GroupImpl extends ActivityImpl implements Group {
         final GroupBuilder builder;
         if (toGroup == null || !Objects.equals(toGroup.getIteration(), getIteration())
                 || toGroup.getParent() != getParent()) {
-            builder = new GroupBuilder((JobImpl) getJob(), childGroupModel);
+            builder = new GroupBuilder((JobImpl) getJob(), childGroupModel, njamsSerializers);
         } else {
             builder = new GroupBuilder(toGroup);
         }
@@ -159,7 +158,7 @@ public class GroupImpl extends ActivityImpl implements Group {
         final SubProcessActivityBuilder builder;
         if (toSubProcess == null || !Objects.equals(toSubProcess.getIteration(), getIteration())
                 || toSubProcess.getParent() != getParent()) {
-            builder = new SubProcessActivityBuilder((JobImpl) getJob(), childSubProcessModel);
+            builder = new SubProcessActivityBuilder((JobImpl) getJob(), childSubProcessModel, njamsSerializers);
         } else {
             builder = new SubProcessActivityBuilder(toSubProcess);
         }
@@ -190,7 +189,7 @@ public class GroupImpl extends ActivityImpl implements Group {
             return newChildSubProcess((SubProcessActivityModel) childActivityModel);
         }
         final ActivityBuilder builder;
-        builder = new ActivityBuilder((JobImpl) getJob(), childActivityModel);
+        builder = new ActivityBuilder((JobImpl) getJob(), childActivityModel, njamsSerializers);
         builder.setParent(this);
         builder.setIteration(getMaxIterations());
         return builder;
@@ -198,7 +197,7 @@ public class GroupImpl extends ActivityImpl implements Group {
 
     private GroupBuilder newChildGroup(GroupModel childGroupModel) {
         // check if a activity with the same modelId and the same iteration already exists.
-        final GroupBuilder builder = new GroupBuilder((JobImpl) getJob(), childGroupModel);
+        final GroupBuilder builder = new GroupBuilder((JobImpl) getJob(), childGroupModel, njamsSerializers);
         builder.setParent(this);
         builder.setIteration(getMaxIterations());
         return builder;
@@ -207,7 +206,7 @@ public class GroupImpl extends ActivityImpl implements Group {
     private SubProcessActivityBuilder newChildSubProcess(SubProcessActivityModel childSubProcessModel) {
         // check if a activity with the same modelId and the same iteration already exists.
         final SubProcessActivityBuilder builder =
-                new SubProcessActivityBuilder((JobImpl) getJob(), childSubProcessModel);
+                new SubProcessActivityBuilder((JobImpl) getJob(), childSubProcessModel, njamsSerializers);
         builder.setParent(this);
         builder.setIteration(getMaxIterations());
         if (childSubProcessModel.getSubProcess() != null) {

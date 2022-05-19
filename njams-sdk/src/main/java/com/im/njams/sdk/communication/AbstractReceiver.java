@@ -1,17 +1,24 @@
 /*
- * Copyright (c) 2019 Faiz & Siegeln Software GmbH
+ * Copyright (c) 2022 Faiz & Siegeln Software GmbH
  *
- * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"),
- * to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
- * and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
+ * documentation files (the "Software"),
+ * to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge,
+ * publish, distribute, sublicense,
+ * and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to
+ * the following conditions:
  *
- * The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+ * The above copyright notice and this permission notice shall be included in all copies or substantial portions of
+ * the Software.
  *
  * The Software shall be used for Good, not Evil.
  *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
+ * THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE
+ *  FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+ * SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
  */
 package com.im.njams.sdk.communication;
@@ -19,21 +26,19 @@ package com.im.njams.sdk.communication;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import com.im.njams.sdk.njams.communication.receiver.NjamsReceiver;
+import com.im.njams.sdk.njams.metadata.NjamsMetadata;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
 import com.faizsiegeln.njams.messageformat.v4.command.Request;
 import com.faizsiegeln.njams.messageformat.v4.command.Response;
-import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 
 /**
  * This class should be extended when implementing an new Receiver for a new
  * communication type.
- *
- * @author pnientiedt/krautenberg
- * @version 4.0.6
  */
 public abstract class AbstractReceiver implements Receiver {
 
@@ -54,20 +59,27 @@ public abstract class AbstractReceiver implements Receiver {
 
     private AtomicInteger reconnectIntervalIncreasing = new AtomicInteger(RECONNECT_INTERVAL);
 
-    /**
-     * Njams to hold
-     */
-    protected Njams njams;
+    private NjamsMetadata instanceMetaData;
+    private NjamsReceiver njamsReceiver;
 
-    /**
-     * This constructor sets the njams instance for getting the instruction
-     * listeners.
-     *
-     * @param njams the instance that holds the instructionListeners.
-     */
     @Override
-    public void setNjams(Njams njams) {
-        this.njams = njams;
+    public void setNjamsReceiver(NjamsReceiver njamsReceiver){
+        this.njamsReceiver = njamsReceiver;
+    }
+
+    @Override
+    public NjamsReceiver getNjamsReceiver(){
+        return njamsReceiver;
+    }
+
+    @Override
+    public void setInstanceMetadata(NjamsMetadata njamsMetadata){
+        this.instanceMetaData = njamsMetadata;
+    }
+
+    @Override
+    public NjamsMetadata getInstanceMetadata(){
+        return this.instanceMetaData;
     }
 
     /**
@@ -80,10 +92,6 @@ public abstract class AbstractReceiver implements Receiver {
     @Override
     public void onInstruction(Instruction instruction) {
         LOG.debug("Received instruction: {}", instruction == null ? "null" : instruction.getCommand());
-        if (njams == null) {
-            LOG.error("Njams should not be null");
-            return;
-        }
         if (instruction == null) {
             LOG.error("Instruction should not be null");
             return;
@@ -103,13 +111,7 @@ public abstract class AbstractReceiver implements Receiver {
             //Set the exception response
             instruction.setResponse(exceptionResponse);
         } else {
-            for (InstructionListener listener : njams.getInstructionListeners()) {
-                try {
-                    listener.onInstruction(instruction);
-                } catch (Exception e) {
-                    LOG.error("Error in InstructionListener {}", listener.getClass().getSimpleName(), e);
-                }
-            }
+            njamsReceiver.distribute(instruction);
             //If response is empty, no InstructionListener found. Set default Response indicating this.
             if (instruction.getResponse() == null) {
                 LOG.warn("No InstructionListener for {} found", instruction.getRequest().getCommand());

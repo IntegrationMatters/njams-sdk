@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Faiz & Siegeln Software GmbH
+ * Copyright (c) 2022 Faiz & Siegeln Software GmbH
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
  * documentation files (the "Software"),
@@ -48,32 +48,37 @@ import com.faizsiegeln.njams.messageformat.v4.logmessage.LogMessage;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.ProjectMessage;
 import com.faizsiegeln.njams.messageformat.v4.tracemessage.TraceMessage;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
-import com.im.njams.sdk.communication.*;
 import com.im.njams.sdk.settings.PropertyUtil;
 import com.im.njams.sdk.utils.JsonUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import javax.jms.*;
-import javax.naming.InitialContext;
-import javax.naming.NameNotFoundException;
-import javax.naming.NamingException;
-import java.util.Properties;
 
 /**
  * JMS implementation for a Sender.
- *
- * @author hsiegeln
- * @version 4.0.6
  */
 public class JmsSender extends AbstractSender implements ExceptionListener {
 
     private static final Logger LOG = LoggerFactory.getLogger(JmsSender.class);
+    private int exceptionIdleTimeInMilliseconds;
+    private int maxTries;
 
     private Connection connection;
     protected Session session;
     protected MessageProducer producer;
     private Thread reconnector;
+
+    public JmsSender() {
+        exceptionIdleTimeInMilliseconds = 50;
+        maxTries = 100;
+    }
+
+    void setExceptionIdleTimeInMilliseconds(int exceptionIdleTimeInMilliseconds){
+        this.exceptionIdleTimeInMilliseconds = exceptionIdleTimeInMilliseconds;
+    }
+
+    void setMaxTries(int maxTries){
+        this.maxTries = maxTries;
+    }
 
     /**
      * Initializes this Sender via the given Properties.
@@ -240,8 +245,6 @@ public class JmsSender extends AbstractSender implements ExceptionListener {
 
     private void tryToSend(TextMessage textMessage) throws InterruptedException, JMSException {
         boolean sended = false;
-        final int EXCEPTION_IDLE_TIME = 50;
-        final int MAX_TRIES = 100;
         int tries = 0;
 
         do {
@@ -256,12 +259,12 @@ public class JmsSender extends AbstractSender implements ExceptionListener {
                     break;
                 }
                 //Queue limit exceeded
-                if (++tries >= MAX_TRIES) {
+                if (++tries >= maxTries) {
                     LOG.warn("Try to reconnect, because the MessageQueue hasn't got enough space after {} seconds.",
-                        MAX_TRIES * EXCEPTION_IDLE_TIME);
+                        (double)(maxTries * exceptionIdleTimeInMilliseconds) / 1000);
                     throw ex;
                 } else {
-                    Thread.sleep(EXCEPTION_IDLE_TIME);
+                    Thread.sleep(exceptionIdleTimeInMilliseconds);
                 }
             }
         } while (!sended);

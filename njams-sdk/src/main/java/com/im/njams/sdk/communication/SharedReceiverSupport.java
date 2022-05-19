@@ -1,3 +1,26 @@
+/*
+ * Copyright (c) 2022 Faiz & Siegeln Software GmbH
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
+ * documentation files (the "Software"),
+ * to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge,
+ * publish, distribute, sublicense,
+ * and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to
+ * the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all copies or substantial portions of
+ * the Software.
+ *
+ * The Software shall be used for Good, not Evil.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
+ * THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE
+ *  FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+ * SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
+ */
 package com.im.njams.sdk.communication;
 
 import java.util.Collection;
@@ -13,7 +36,6 @@ import org.slf4j.LoggerFactory;
 
 import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
 import com.faizsiegeln.njams.messageformat.v4.command.Response;
-import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.common.Path;
 
 /**
@@ -22,9 +44,6 @@ import com.im.njams.sdk.common.Path;
  * The actual implementations using this helper simply have to track adding and removing instances, and call
  * {@link #onInstruction(Object, Instruction, boolean)} for each received (and valid) instruction.
  *
- * @author cwinkler
- * @since 4.2.0
- *
  * @param <R> The actual receiver implementation
  * @param <M> The message type being processed by the receiver
  */
@@ -32,7 +51,7 @@ public class SharedReceiverSupport<R extends AbstractReceiver & ShareableReceive
 
     private static final Logger LOG = LoggerFactory.getLogger(SharedReceiverSupport.class);
 
-    private final Map<Path, Njams> njamsInstances = new ConcurrentHashMap<>();
+    private final Map<Path, Receiver> receiverInstances = new ConcurrentHashMap<>();
     private final R receiver;
 
     public SharedReceiverSupport(R receiver) {
@@ -42,31 +61,31 @@ public class SharedReceiverSupport<R extends AbstractReceiver & ShareableReceive
     /**
      * Adds the given instance to this receiver for receiving instructions.
      *
-     * @param njamsInstance The instance to add.
-     * @see com.im.njams.sdk.communication.jms.JmsReceiver#setNjams(com.im.njams.sdk.Njams)
+     * @param receiver The receiver to add.
      */
-    public void addNjams(Njams njamsInstance) {
-        synchronized (njamsInstances) {
-            njamsInstances.put(njamsInstance.getClientPath(), njamsInstance);
+    public void addReceiver(Receiver receiver) {
+        synchronized (receiverInstances) {
+            receiverInstances.put(receiver.getInstanceMetadata().getClientPath(), receiver);
         }
-        LOG.debug("Added client {} to shared receiver; {} attached receivers.", njamsInstance.getClientPath(),
-                njamsInstances.size());
+        LOG.debug("Added client {} to shared receiver; {} attached receivers.",
+            receiver.getInstanceMetadata().getClientPath(),
+            receiverInstances.size());
     }
 
     /**
      * Removes an instance from this receiver.
      *
-     * @param njamsInstance The instance to remove.
+     * @param receiver The instance to remove.
      * @return <code>true</code> if the actual receiver has been stopped, i.e., when there are no more instances
      * registered with this shared receiver.
      */
-    public boolean removeNjams(Njams njamsInstance) {
-
-        synchronized (njamsInstances) {
-            njamsInstances.remove(njamsInstance.getClientPath());
-            LOG.debug("Removed client {} from shared receiver; {} remaining receivers.", njamsInstance.getClientPath(),
-                    njamsInstances.size());
-            if (njamsInstances.isEmpty()) {
+    public boolean removeReceiver(Receiver receiver) {
+        synchronized (receiverInstances) {
+            receiverInstances.remove(receiver.getInstanceMetadata().getClientPath());
+            LOG.debug("Removed client {} from shared receiver; {} remaining receivers.",
+                receiver.getInstanceMetadata().getClientPath(),
+                receiverInstances.size());
+            if (receiverInstances.isEmpty()) {
                 receiver.stop();
                 return true;
             }
@@ -75,18 +94,18 @@ public class SharedReceiverSupport<R extends AbstractReceiver & ShareableReceive
     }
 
     /**
-     * Returns all currently registered {@link Njams} instances.
-     * @return All currently registered {@link Njams} instances.
+     * Returns all currently registered {@link Receiver} instances.
+     * @return All currently registered {@link Receiver} instances.
      */
-    public Collection<Njams> getAllNjamsInstances() {
-        return njamsInstances.values();
+    public Collection<Receiver> getAllReceiverInstances() {
+        return receiverInstances.values();
     }
 
     /**
      * To be called for each received (and valid) instruction.
      * @param message The original message received.
      * @param instruction The instruction parsed from the original message and to be completed with a reply.
-     * @param failOnMissingInstance If <code>true</code> and error is sent as reply when no matching target {@link Njams}
+     * @param failOnMissingInstance If <code>true</code> and error is sent as reply when no matching target {@link Receiver}
      * instance was found. Otherwise, the request is simply ignored.
      */
     public void onInstruction(M message, Instruction instruction, boolean failOnMissingInstance) {
@@ -96,13 +115,16 @@ public class SharedReceiverSupport<R extends AbstractReceiver & ShareableReceive
             return;
         }
 
-        final List<Njams> instances = getNjamsTargets(receiverPath);
+        final List<Receiver> instances = getReceiverTargets(receiverPath);
         if (instances != null && !instances.isEmpty()) {
             if (LOG.isDebugEnabled()) {
                 LOG.debug(
                         "Handling instruction {} with client(s) {}",
                         instruction.getCommand(),
-                        instances.stream().map(n -> n.getClientPath().toString()).collect(Collectors.toList()));
+                        instances
+                            .stream()
+                            .map(receiver -> receiver.getInstanceMetadata().getClientPath().toString())
+                            .collect(Collectors.toList()));
             }
             if (instances.size() > 1) {
                 instances.parallelStream().forEach(i -> onInstruction(instruction, i));
@@ -122,12 +144,12 @@ public class SharedReceiverSupport<R extends AbstractReceiver & ShareableReceive
         }
     }
 
-    private void onInstruction(Instruction instruction, Njams njams) {
+    private void onInstruction(Instruction instruction, Receiver receiver) {
         if (instruction == null) {
             LOG.error("Instruction must not be null");
             return;
         }
-        LOG.debug("OnInstruction: {} for {}", instruction.getCommand(), njams.getClientPath());
+        LOG.debug("OnInstruction: {} for {}", instruction.getCommand(), receiver.getInstanceMetadata().getClientPath());
         if (instruction.getRequest() == null || instruction.getRequest().getCommand() == null) {
             LOG.error("Instruction must have a valid request with a command");
             Response response = new Response();
@@ -138,18 +160,12 @@ public class SharedReceiverSupport<R extends AbstractReceiver & ShareableReceive
         }
         //Extend your request here. If something doesn't work as expected,
         //you can return a response that will be sent back to the server without further processing.
-        Response exceptionResponse = receiver.extendRequest(instruction.getRequest());
+        Response exceptionResponse = this.receiver.extendRequest(instruction.getRequest());
         if (exceptionResponse != null) {
             //Set the exception response
             instruction.setResponse(exceptionResponse);
         } else {
-            for (InstructionListener listener : njams.getInstructionListeners()) {
-                try {
-                    listener.onInstruction(instruction);
-                } catch (Exception e) {
-                    LOG.error("Error in InstructionListener {}", listener.getClass().getSimpleName(), e);
-                }
-            }
+            receiver.getNjamsReceiver().distribute(instruction);
             //If response is empty, no InstructionListener found. Set default Response indicating this.
             if (instruction.getResponse() == null) {
                 LOG.warn("No InstructionListener for {} found", instruction.getRequest().getCommand());
@@ -162,23 +178,23 @@ public class SharedReceiverSupport<R extends AbstractReceiver & ShareableReceive
         }
     }
 
-    private List<Njams> getNjamsTargets(Path receiverPath) {
+    private List<Receiver> getReceiverTargets(Path receiverPath) {
         try {
-            final Njams found = njamsInstances.get(receiverPath);
+            final Receiver found = receiverInstances.get(receiverPath);
             if (found != null) {
                 return Collections.singletonList(found);
             }
             final int size = receiverPath.getParts().size();
-            return njamsInstances
+            return receiverInstances
                     .values()
                     .stream()
-                    .filter(n -> size < n.getClientPath().getParts().size()
-                            && receiverPath.getParts().equals(n.getClientPath().getParts().subList(0, size)))
+                    .filter(receiver -> size < receiver.getInstanceMetadata().getClientPath().getParts().size()
+                            && receiverPath.getParts().equals(
+                        receiver.getInstanceMetadata().getClientPath().getParts().subList(0, size)))
                             .collect(Collectors.toList());
         } catch (Exception e) {
             LOG.error("Failed to resolve instruction receiver.", e);
         }
         return null;
     }
-
 }

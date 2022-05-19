@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Faiz & Siegeln Software GmbH
+ * Copyright (c) 2022 Faiz & Siegeln Software GmbH
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
  * documentation files (the "Software"), to deal in the Software without restriction, including without limitation
@@ -217,7 +217,15 @@ public class ArgosSender implements Closeable {
         }
 
         execService = Executors.newSingleThreadScheduledExecutor();
-        execService.scheduleAtFixedRate(this::run, INITIAL_DELAY, INTERVAL, TimeUnit.SECONDS);
+        setSendingScheduleTo(INITIAL_DELAY, INTERVAL, TimeUnit.SECONDS);
+    }
+
+    boolean isExecutorSet(){
+        return execService != null;
+    }
+
+    void setSendingScheduleTo(long initialDelay, long interval, TimeUnit seconds) {
+        execService.scheduleAtFixedRate(this::run, initialDelay, interval, seconds);
     }
 
     /**

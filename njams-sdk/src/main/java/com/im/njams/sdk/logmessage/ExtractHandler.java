@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Faiz & Siegeln Software GmbH
+ * Copyright (c) 2022 Faiz & Siegeln Software GmbH
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"),
  * to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
@@ -22,6 +22,7 @@ import com.faizsiegeln.njams.messageformat.v4.projectmessage.ExtractRule;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.RuleType;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.im.njams.sdk.njams.NjamsSerializers;
 import com.im.njams.sdk.configuration.ActivityConfiguration;
 import com.im.njams.sdk.model.ActivityModel;
 import com.im.njams.sdk.utils.StringUtils;
@@ -47,7 +48,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * @author pnientiedt
+ * ExtractHandler is used for handling the extracts that can be set from the server.
  */
 public class ExtractHandler {
 
@@ -101,9 +102,10 @@ public class ExtractHandler {
      * @param sourceDirection Whether the extract applies to the activity's input or output data.
      * @param sourceData      The data object on that the extract is being evaluated.
      * @param data            The serialized data object on that the extract is being evaluated.
+     * @param serializers     Serializers to serialize the message with
      */
     public static void handleExtract(JobImpl job, ActivityImpl activity, ExtractSource sourceDirection,
-                                     Object sourceData, String data) {
+                                     Object sourceData, String data, NjamsSerializers serializers) {
         ActivityConfiguration config = null;
         ActivityModel model = activity.getActivityModel();
         config = job.getActivityConfiguration(model);
@@ -111,7 +113,7 @@ public class ExtractHandler {
         if (config == null) {
             return;
         }
-        handleExtract(job, config.getExtract(), activity, sourceDirection, sourceData, data);
+        handleExtract(job, config.getExtract(), activity, sourceDirection, sourceData, data, serializers);
     }
 
     /**
@@ -125,9 +127,10 @@ public class ExtractHandler {
      * @param sourceDirection Whether the extract applies to the activity's input or output data.
      * @param sourceData      The data object on that the extract is being evaluated.
      * @param data            The serialized data object on that the extract is being evaluated.
+     * @param serializers     Serializers to serialize the message with
      */
     public static void handleExtract(JobImpl job, Extract extract, ActivityImpl activity,
-                                     ExtractSource sourceDirection, Object sourceData, String data) {
+                                     ExtractSource sourceDirection, Object sourceData, String data, NjamsSerializers serializers) {
         if (extract == null) {
             return;
         }
@@ -145,7 +148,7 @@ public class ExtractHandler {
 
             switch (er.getRuleType()) {
                 case REGEXP:
-                    doRegexp(job, activity, er, sourceData, data);
+                    doRegexp(job, activity, er, sourceData, data, serializers);
                     break;
                 case EVENT:
                     doEvent(job, activity, er);
@@ -154,10 +157,10 @@ public class ExtractHandler {
                     doValue(job, activity, er);
                     break;
                 case XPATH:
-                    doXpath(job, activity, er, sourceData, data);
+                    doXpath(job, activity, er, sourceData, data, serializers);
                     break;
                 case JMESPATH:
-                    doJmespath(job, activity, er, sourceData, data);
+                    doJmespath(job, activity, er, sourceData, data, serializers);
                     break;
                 default:
                     break;
@@ -166,10 +169,10 @@ public class ExtractHandler {
     }
 
     private static void
-    doRegexp(JobImpl job, ActivityImpl activity, ExtractRule er, Object sourceData, String paramData) {
+    doRegexp(JobImpl job, ActivityImpl activity, ExtractRule er, Object sourceData, String paramData, NjamsSerializers serializers) {
         String data = paramData;
         if (paramData == null || paramData.length() == 0) {
-            data = job.getNjams().serialize(sourceData);
+            data = serializers.serialize(sourceData);
             if (data == null || data.length() == 0) {
                 return;
             }
@@ -321,10 +324,10 @@ public class ExtractHandler {
     }
 
     private static void doJmespath(JobImpl job, ActivityImpl activity, ExtractRule er, Object sourceData,
-                                   String paramData) {
+                                   String paramData, NjamsSerializers serializers) {
         String data = paramData;
         if (paramData == null || paramData.length() == 0) {
-            data = job.getNjams().serialize(sourceData);
+            data = serializers.serialize(sourceData);
             if (data == null || data.length() == 0) {
                 return;
             }
@@ -349,10 +352,10 @@ public class ExtractHandler {
     }
 
     private static void doXpath(JobImpl job, ActivityImpl activity, ExtractRule er, Object sourceData,
-                                String paramData) {
+                                String paramData, NjamsSerializers serializers) {
         String data = paramData;
         if (paramData == null || paramData.length() == 0) {
-            data = job.getNjams().serialize(sourceData);
+            data = serializers.serialize(sourceData);
             if (data == null || data.length() == 0) {
                 return;
             }
@@ -392,7 +395,7 @@ public class ExtractHandler {
     }
 
     private static void setAttributes(Job job, ActivityImpl activity, String setting, String uncheckedvalue) {
-        String value = DataMasking.maskString(uncheckedvalue);
+        String value = DataMasking.getGlobalNjamsDataMasking().mask(uncheckedvalue);
         LOG.debug("nJAMS: setAttributes: {}/{}", setting, value);
 
         String settingLowerCase = setting.toLowerCase();

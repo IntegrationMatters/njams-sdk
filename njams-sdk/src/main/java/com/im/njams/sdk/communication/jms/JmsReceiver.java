@@ -1,17 +1,24 @@
 /*
- * Copyright (c) 2019 Faiz & Siegeln Software GmbH
+ * Copyright (c) 2022 Faiz & Siegeln Software GmbH
  *
- * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"),
- * to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
- * and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
+ * documentation files (the "Software"),
+ * to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge,
+ * publish, distribute, sublicense,
+ * and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to
+ * the following conditions:
  *
- * The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+ * The above copyright notice and this permission notice shall be included in all copies or substantial portions of
+ * the Software.
  *
  * The Software shall be used for Good, not Evil.
  *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
+ * THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE
+ *  FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+ * SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
  */
 package com.im.njams.sdk.communication.jms;
@@ -35,13 +42,13 @@ import javax.naming.InitialContext;
 import javax.naming.NameNotFoundException;
 import javax.naming.NamingException;
 
+import com.im.njams.sdk.njams.metadata.NjamsMetadata;
 import com.im.njams.sdk.communication.NjamsConnectionFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.common.JsonSerializerFactory;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.common.Path;
@@ -51,9 +58,6 @@ import com.im.njams.sdk.settings.PropertyUtil;
 
 /**
  * JMS implementation for a Receiver.
- *
- * @author pnientiedt, krautenberg@integrationmatters.ocm
- * @version 4.0.5
  */
 public class JmsReceiver extends AbstractReceiver implements MessageListener, ExceptionListener {
 
@@ -103,7 +107,6 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
         } else {
             topicName = props.getProperty(JmsConstants.DESTINATION) + ".commands";
         }
-
     }
 
     /**
@@ -113,7 +116,7 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
      */
     protected String createMessageSelector() {
 
-        Path fullPath = new Path(njams.getClientPath().toString());
+        Path fullPath = new Path(getInstanceMetadata().getClientPath().toString());
         Path path = null;
         StringBuilder selector = new StringBuilder();
         for (String part : fullPath.getParts()) {
@@ -290,8 +293,8 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
     }
 
     @Override
-    public void setNjams(Njams njams) {
-        super.setNjams(njams);
+    public void setInstanceMetadata(NjamsMetadata njamsMetadata){
+        super.setInstanceMetadata(njamsMetadata);
         messageSelector = createMessageSelector();
     }
 
