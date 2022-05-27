@@ -8,6 +8,7 @@ properties([
 
 node('master') {
     def version = '4.2.2-SNAPSHOT'
+    def branch
     def scmInfo
     def mvnHome
     env.JAVA_HOME = tool 'jdk-8u92'
@@ -22,10 +23,11 @@ node('master') {
         echo 'Getting source code...'
         scmInfo = checkout scm
         echo "scm: ${scmInfo}"
+        branch = "-${scmInfo.GIT_BRANCH}"
     }
     stage('Build Root Pom') {
         echo "Build the root pom"
-        sh "'${mvnHome}/bin/mvn' clean deploy -N -Pjenkins-cli -Drevision=${version} -Dchangelist=-${scmInfo.GIT_BRANCH}"
+        sh "'${mvnHome}/bin/mvn' clean deploy -N -Pjenkins-cli -Drevision=${version} -Dchangelist=${branch}"
     }
     stage('Build SDK') {
         echo "Build"
@@ -46,7 +48,7 @@ node('master') {
         echo "Build"
         dir('njams-sdk-communication-cloud') {
             try {
-                sh "'${mvnHome}/bin/mvn' clean deploy  -Psonar,jenkins-cli -Drevision=${version} -Dchangelist=-${scmInfo.GIT_BRANCH} -DrevisionNumberPlugin.revision=${env.BUILD_NUMBER} -DscmBranch=${scmInfo.GIT_BRANCH} -DscmCommit=${scmInfo.GIT_COMMIT}"
+                sh "'${mvnHome}/bin/mvn' clean deploy -U  -Psonar,jenkins-cli -Drevision=${version} -Dchangelist=-${scmInfo.GIT_BRANCH} -DrevisionNumberPlugin.revision=${env.BUILD_NUMBER} -DscmBranch=${scmInfo.GIT_BRANCH} -DscmCommit=${scmInfo.GIT_COMMIT}"
             } finally {
                 //junit 'target/surefire-reports/*.xml'
             }
