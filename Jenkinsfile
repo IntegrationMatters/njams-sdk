@@ -17,7 +17,7 @@ node('master') {
         // Get the Maven tool.
         // ** NOTE: This 'M3' Maven tool must be configured
         // **       in the global configuration.
-        mvnHome = tool 'Maven 3.2.1'
+        mvnHome = tool 'Maven 3.8.5'
         echo 'Getting source code...'
         scmInfo = checkout scm
         echo "scm: ${scmInfo}"
