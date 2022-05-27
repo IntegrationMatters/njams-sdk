@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>com.faizsiegeln.njams</groupId>
@@ -9,7 +10,7 @@
     <parent>
         <groupId>com.faizsiegeln</groupId>
         <artifactId>njams4-sdk-root</artifactId>
-        <version>4.2.2-SNAPSHOT</version>
+        <version>${revision}${changelist}</version>
     </parent>
 
     <profiles>
@@ -240,12 +241,16 @@
                             <createDependencyReducedPom>true</createDependencyReducedPom>
                             <createSourcesJar>true</createSourcesJar>
                             <transformers>
-                                <transformer implementation="org.apache.maven.plugins.shade.resource.ApacheLicenseResourceTransformer" />
-                                <transformer implementation="org.apache.maven.plugins.shade.resource.ApacheNoticeResourceTransformer">
+                                <transformer
+                                    implementation="org.apache.maven.plugins.shade.resource.ApacheLicenseResourceTransformer"/>
+                                <transformer
+                                    implementation="org.apache.maven.plugins.shade.resource.ApacheNoticeResourceTransformer">
                                     <addHeader>false</addHeader>
                                 </transformer>
-                                <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer" />
-                                <transformer implementation="org.apache.maven.plugins.shade.resource.IncludeResourceTransformer">
+                                <transformer
+                                    implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
+                                <transformer
+                                    implementation="org.apache.maven.plugins.shade.resource.IncludeResourceTransformer">
                                     <resource>META-INF/maven/com.faizsiegeln.njams/njams-sdk/pom.xml</resource>
                                     <file>dependency-reduced-pom.xml</file>
                                 </transformer>
@@ -420,6 +425,6 @@
             <artifactId>activemq-client</artifactId>
             <scope>test</scope>
         </dependency>
-        
+
     </dependencies>
 </project>

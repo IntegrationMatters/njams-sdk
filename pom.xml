@@ -4,7 +4,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.faizsiegeln</groupId>
     <artifactId>njams4-sdk-root</artifactId>
-    <version>4.2.2-SNAPSHOT</version>
+    <version>${revision}${changelist}</version>
     <packaging>pom</packaging>
     <name>njams4-sdk-root</name>
     <organization>
@@ -24,6 +24,9 @@
     </scm>
 
     <properties>
+        <!-- Sane default when no revision property is passed in from the commandline -->
+        <revision>0-SNAPSHOT</revision>
+        <changelist>-dev</changelist>
         <sonar.java.coveragePlugin>jacoco</sonar.java.coveragePlugin>
         <sonar.dynamicAnalysis>reuseReports</sonar.dynamicAnalysis>
         <sonar.jacoco.reportPaths>
@@ -129,15 +132,11 @@
                 <version>${maven-jar-plugin.version}</version>
             </plugin>
             <plugin>
-                <artifactId>maven-release-plugin</artifactId>
-                <version>2.4.2</version>
-                <dependencies>
-                    <dependency>
-                        <groupId>org.apache.maven.scm</groupId>
-                        <artifactId>maven-scm-provider-gitexe</artifactId>
-                        <version>1.8.1</version>
-                    </dependency>
-                </dependencies>
+                <artifactId>maven-scm-plugin</artifactId>
+                <version>2.0.0-M1</version>
+                <configuration>
+                    <tag>${project.artifactId}-${project.version}</tag>
+                </configuration>
             </plugin>
             <plugin>
                 <artifactId>maven-source-plugin</artifactId>
@@ -171,6 +170,31 @@
                             -->
                             <skipTests>${skip.integration.tests}</skipTests>
                         </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>flatten-maven-plugin</artifactId>
+                <version>1.2.7</version>
+                <configuration>
+                    <updatePomFile>true</updatePomFile>
+                    <flattenMode>resolveCiFriendliesOnly</flattenMode>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>flatten</id>
+                        <phase>process-resources</phase>
+                        <goals>
+                            <goal>flatten</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>flatten.clean</id>
+                        <phase>clean</phase>
+                        <goals>
+                            <goal>clean</goal>
+                        </goals>
                     </execution>
                 </executions>
             </plugin>

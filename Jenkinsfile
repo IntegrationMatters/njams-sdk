@@ -10,8 +10,6 @@ node('master') {
     def scmInfo
     def mvnHome
     env.JAVA_HOME = tool 'jdk-8u92'
-
-
     def nodeHome = tool name: 'NodeJS 6.9.1', type: 'jenkins.plugins.nodejs.tools.NodeJSInstallation'
     env.PATH = "${nodeHome}/bin:${env.PATH}"
 
@@ -26,13 +24,13 @@ node('master') {
     }
     stage('Build Root Pom') {
         echo "Build the root pom"
-        sh "'${mvnHome}/bin/mvn' clean deploy -N -Pjenkins-cli"
+        sh "'${mvnHome}/bin/mvn' clean deploy -N -Pjenkins-cli -Drevision=4.2.2-SNAPSHOT -Dchangelist=-${scmInfo.GIT_BRANCH}"
     }
     stage('Build SDK') {
         echo "Build"
         dir('njams-sdk') {
             try {
-                sh "'${mvnHome}/bin/mvn' clean deploy  -Psonar,jenkins-cli -DrevisionNumberPlugin.revision=${env.BUILD_NUMBER} -DscmBranch=${scmInfo.GIT_BRANCH} -DscmCommit=${scmInfo.GIT_COMMIT}"
+                sh "'${mvnHome}/bin/mvn' clean deploy  -Psonar,jenkins-cli -Drevision=4.2.2-SNAPSHOT -Dchangelist=-${scmInfo.GIT_BRANCH} -DrevisionNumberPlugin.revision=${env.BUILD_NUMBER} -DscmBranch=${scmInfo.GIT_BRANCH} -DscmCommit=${scmInfo.GIT_COMMIT}"
             } finally {
                 junit 'target/surefire-reports/*.xml'
                 junit allowEmptyResults: true, testResults: 'target/failsafe-reports/*.xml'
@@ -47,7 +45,7 @@ node('master') {
         echo "Build"
         dir('njams-sdk-communication-cloud') {
             try {
-                sh "'${mvnHome}/bin/mvn' clean deploy  -Psonar,jenkins-cli -DrevisionNumberPlugin.revision=${env.BUILD_NUMBER} -DscmBranch=${scmInfo.GIT_BRANCH} -DscmCommit=${scmInfo.GIT_COMMIT}"
+                sh "'${mvnHome}/bin/mvn' clean deploy  -Psonar,jenkins-cli -Dchangelist=-${scmInfo.GIT_BRANCH} -DrevisionNumberPlugin.revision=${env.BUILD_NUMBER} -DscmBranch=${scmInfo.GIT_BRANCH} -DscmCommit=${scmInfo.GIT_COMMIT}"
             } finally {
                 //junit 'target/surefire-reports/*.xml'
             }
@@ -61,7 +59,7 @@ node('master') {
         echo "Build"
         dir('njams-sdk-sample-client') {
             try {
-                sh "'${mvnHome}/bin/mvn' clean deploy  -Psonar,jenkins-cli"
+                sh "'${mvnHome}/bin/mvn' clean deploy  -Psonar,jenkins-cli -Drevision=4.2.2-SNAPSHOT -Dchangelist=-${scmInfo.GIT_BRANCH}"
             } finally {
                 //junit 'target/surefire-reports/*.xml'
             }
@@ -72,7 +70,7 @@ node('master') {
         echo "Build Checkstyle"
         dir('njams-sdk') {
             try {
-                sh "'${mvnHome}/bin/mvn' site"
+                sh "'${mvnHome}/bin/mvn' site -Drevision=4.2.2-SNAPSHOT -Dchangelist=-${scmInfo.GIT_BRANCH}"
             } finally {
                 archiveArtifacts '**/checkstyle-result.xml'
             }
@@ -93,7 +91,7 @@ node('master') {
     stage('Javadoc') {
         echo "Build Javadoc"
         dir('njams-sdk') {
-            sh "'${mvnHome}/bin/mvn' javadoc:javadoc"
+            sh "'${mvnHome}/bin/mvn' javadoc:javadoc -Drevision=4.2.2-SNAPSHOT -Dchangelist=-${scmInfo.GIT_BRANCH}"
 
             publishHTML([allowMissing         : false,
                          alwaysLinkToLastBuild: true,
