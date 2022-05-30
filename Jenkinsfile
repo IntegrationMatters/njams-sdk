@@ -1,9 +1,9 @@
 #!/usr/bin/env groovy
 properties([
-        buildDiscarder(logRotator(artifactDaysToKeepStr: '', artifactNumToKeepStr: '', daysToKeepStr: '', numToKeepStr: '10')),
-        pipelineTriggers([
-                //pollSCM('')
-        ])
+    buildDiscarder(logRotator(artifactDaysToKeepStr: '', artifactNumToKeepStr: '', daysToKeepStr: '', numToKeepStr: '10')),
+    pipelineTriggers([
+        //pollSCM('')
+    ])
 ])
 
 node('master') {
@@ -23,16 +23,23 @@ node('master') {
         echo 'Getting source code...'
         scmInfo = checkout scm
         echo "scm: ${scmInfo}"
+        if (scmInfo.GIT_BRANCH != 'master' && scmInfo.GIT_BRANCH != '4.0.X' && scmInfo.GIT_BRANCH != '4.1.X') {
+            echo "Only call install on feature branches"
+            buildGoal = "install"
+        } else {
+            echo "Call deploy on master and main version branches 4.0.X and 4.1.X"
+            buildGoal = "deploy"
+        }
     }
     stage('Build Root Pom') {
         echo "Build the root pom"
-        sh "'${mvnHome}/bin/mvn' clean deploy -N -Pjenkins-cli"
+        sh "'${mvnHome}/bin/mvn' clean ${buildGoal} -N -Pjenkins-cli"
     }
     stage('Build SDK') {
         echo "Build"
         dir('njams-sdk') {
             try {
-                sh "'${mvnHome}/bin/mvn' clean deploy  -Psonar,jenkins-cli -DrevisionNumberPlugin.revision=${env.BUILD_NUMBER} -DscmBranch=${scmInfo.GIT_BRANCH} -DscmCommit=${scmInfo.GIT_COMMIT}"
+                sh "'${mvnHome}/bin/mvn' clean ${buildGoal}  -Psonar,jenkins-cli -DrevisionNumberPlugin.revision=${env.BUILD_NUMBER} -DscmBranch=${scmInfo.GIT_BRANCH} -DscmCommit=${scmInfo.GIT_COMMIT}"
             } finally {
                 junit 'target/surefire-reports/*.xml'
                 junit allowEmptyResults: true, testResults: 'target/failsafe-reports/*.xml'
@@ -47,7 +54,7 @@ node('master') {
         echo "Build"
         dir('njams-sdk-communication-cloud') {
             try {
-                sh "'${mvnHome}/bin/mvn' clean deploy  -Psonar,jenkins-cli -DrevisionNumberPlugin.revision=${env.BUILD_NUMBER} -DscmBranch=${scmInfo.GIT_BRANCH} -DscmCommit=${scmInfo.GIT_COMMIT}"
+                sh "'${mvnHome}/bin/mvn' clean ${buildGoal}  -Psonar,jenkins-cli -DrevisionNumberPlugin.revision=${env.BUILD_NUMBER} -DscmBranch=${scmInfo.GIT_BRANCH} -DscmCommit=${scmInfo.GIT_COMMIT}"
             } finally {
                 //junit 'target/surefire-reports/*.xml'
             }
@@ -61,48 +68,48 @@ node('master') {
         echo "Build"
         dir('njams-sdk-sample-client') {
             try {
-                sh "'${mvnHome}/bin/mvn' clean deploy  -Psonar,jenkins-cli"
+                sh "'${mvnHome}/bin/mvn' clean ${buildGoal}  -Psonar,jenkins-cli"
             } finally {
                 //junit 'target/surefire-reports/*.xml'
             }
             archiveArtifacts 'target/*.jar'
         }
-   }
-   stage('Checkstyle') {
-       echo "Build Checkstyle"
-       dir ('njams-sdk') {
-	      try {
-             sh "'${mvnHome}/bin/mvn' site"
-          } finally {
-             archiveArtifacts '**/checkstyle-result.xml'
-          }
+    }
+    stage('Checkstyle') {
+        echo "Build Checkstyle"
+        dir('njams-sdk') {
+            try {
+                sh "'${mvnHome}/bin/mvn' site"
+            } finally {
+                archiveArtifacts '**/checkstyle-result.xml'
+            }
 
-          publishHTML([allowMissing: false,
-              alwaysLinkToLastBuild: true,
-              keepAll: false,
-              reportDir: 'target/site/',
-              reportFiles: 'checkstyle.html',
-              reportName: 'Checkstyle results',
-              reportTitles: ''])
+            publishHTML([allowMissing         : false,
+                         alwaysLinkToLastBuild: true,
+                         keepAll              : false,
+                         reportDir            : 'target/site/',
+                         reportFiles          : 'checkstyle.html',
+                         reportName           : 'Checkstyle results',
+                         reportTitles         : ''])
 
-          // run again to fail on error
-          sh "'${mvnHome}/bin/mvn' validate -Pcheckstyle "
+            // run again to fail on error
+            sh "'${mvnHome}/bin/mvn' validate -Pcheckstyle "
 
-       }
-   }
- 	stage('Javadoc') {
-       echo "Build Javadoc"
-       dir ('njams-sdk') {
-          sh "'${mvnHome}/bin/mvn' javadoc:javadoc"
+        }
+    }
+    stage('Javadoc') {
+        echo "Build Javadoc"
+        dir('njams-sdk') {
+            sh "'${mvnHome}/bin/mvn' javadoc:javadoc"
 
-          publishHTML([allowMissing: false,
-              alwaysLinkToLastBuild: true,
-              keepAll: false,
-              reportDir: 'target/site/apidocs/',
-              reportFiles: 'index.html',
-              reportName: 'Javadoc',
-              reportTitles: ''])
-       }
-   }   
+            publishHTML([allowMissing         : false,
+                         alwaysLinkToLastBuild: true,
+                         keepAll              : false,
+                         reportDir            : 'target/site/apidocs/',
+                         reportFiles          : 'index.html',
+                         reportName           : 'Javadoc',
+                         reportTitles         : ''])
+        }
+    }
 
 }
