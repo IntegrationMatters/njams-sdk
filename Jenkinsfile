@@ -25,8 +25,10 @@ node('master') {
         echo "scm: ${scmInfo}"
         if (scmInfo.GIT_BRANCH != 'master' && scmInfo.GIT_BRANCH != '4.0.X' && scmInfo.GIT_BRANCH != '4.1.X') {
             branch = "-${scmInfo.GIT_BRANCH}"
+        } else {
+            branch = ''
         }
-
+        echo "Branch for changelist: ${branch}"
     }
     stage('Build Root Pom') {
         echo "Build the root pom"
@@ -36,7 +38,7 @@ node('master') {
         echo "Build"
         dir('njams-sdk') {
             try {
-                sh "'${mvnHome}/bin/mvn' clean deploy  -Psonar,jenkins-cli -Drevision=${version} -Dchangelist=-${scmInfo.GIT_BRANCH} -DrevisionNumberPlugin.revision=${env.BUILD_NUMBER} -DscmBranch=${scmInfo.GIT_BRANCH} -DscmCommit=${scmInfo.GIT_COMMIT}"
+                sh "'${mvnHome}/bin/mvn' clean deploy  -Psonar,jenkins-cli -Drevision=${version} -Dchangelist=-${branch} -DrevisionNumberPlugin.revision=${env.BUILD_NUMBER} -DscmBranch=${scmInfo.GIT_BRANCH} -DscmCommit=${scmInfo.GIT_COMMIT}"
             } finally {
                 junit 'target/surefire-reports/*.xml'
                 junit allowEmptyResults: true, testResults: 'target/failsafe-reports/*.xml'
@@ -51,7 +53,7 @@ node('master') {
         echo "Build"
         dir('njams-sdk-communication-cloud') {
             try {
-                sh "'${mvnHome}/bin/mvn' clean deploy -U  -Psonar,jenkins-cli -Drevision=${version} -Dchangelist=-${scmInfo.GIT_BRANCH} -DrevisionNumberPlugin.revision=${env.BUILD_NUMBER} -DscmBranch=${scmInfo.GIT_BRANCH} -DscmCommit=${scmInfo.GIT_COMMIT}"
+                sh "'${mvnHome}/bin/mvn' clean deploy -U  -Psonar,jenkins-cli -Drevision=${version} -Dchangelist=${branch} -DrevisionNumberPlugin.revision=${env.BUILD_NUMBER} -DscmBranch=${scmInfo.GIT_BRANCH} -DscmCommit=${scmInfo.GIT_COMMIT}"
             } finally {
                 //junit 'target/surefire-reports/*.xml'
             }
@@ -65,7 +67,7 @@ node('master') {
         echo "Build"
         dir('njams-sdk-sample-client') {
             try {
-                sh "'${mvnHome}/bin/mvn' clean deploy  -Psonar,jenkins-cli -Drevision=${version} -Dchangelist=-${scmInfo.GIT_BRANCH}"
+                sh "'${mvnHome}/bin/mvn' clean deploy  -Psonar,jenkins-cli -Drevision=${version} -Dchangelist=-${branch}"
             } finally {
                 //junit 'target/surefire-reports/*.xml'
             }
@@ -76,7 +78,7 @@ node('master') {
         echo "Build Checkstyle"
         dir('njams-sdk') {
             try {
-                sh "'${mvnHome}/bin/mvn' site -Drevision=${version} -Dchangelist=-${scmInfo.GIT_BRANCH}"
+                sh "'${mvnHome}/bin/mvn' site -Drevision=${version} -Dchangelist=-${branch}"
             } finally {
                 archiveArtifacts '**/checkstyle-result.xml'
             }
@@ -97,7 +99,7 @@ node('master') {
     stage('Javadoc') {
         echo "Build Javadoc"
         dir('njams-sdk') {
-            sh "'${mvnHome}/bin/mvn' javadoc:javadoc -Drevision=${version} -Dchangelist=-${scmInfo.GIT_BRANCH}"
+            sh "'${mvnHome}/bin/mvn' javadoc:javadoc -Drevision=${version} -Dchangelist=-${branch}"
 
             publishHTML([allowMissing         : false,
                          alwaysLinkToLastBuild: true,
