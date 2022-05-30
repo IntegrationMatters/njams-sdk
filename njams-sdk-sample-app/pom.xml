@@ -4,12 +4,11 @@
     <groupId>com.im.sdk</groupId>
     <artifactId>njams-sdk-sample-app</artifactId>
     <packaging>war</packaging>
-    <version>${sdk.version}</version>
 
     <parent>
         <groupId>com.faizsiegeln</groupId>
         <artifactId>njams4-sdk-root</artifactId>
-        <version>dev</version>
+        <version>4.2.2-SNAPSHOT</version>
     </parent>
 
     <build>

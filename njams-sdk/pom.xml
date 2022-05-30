@@ -6,13 +6,12 @@
     <parent>
         <groupId>com.faizsiegeln</groupId>
         <artifactId>njams4-sdk-root</artifactId>
-        <version>dev</version>
+        <version>4.2.2-SNAPSHOT</version>
     </parent>
 
     <groupId>com.faizsiegeln.njams</groupId>
     <artifactId>njams4-sdk</artifactId>
     <name>njams4-sdk</name>
-    <version>${sdk.version}</version>
 
     <profiles>
         <profile>
@@ -317,31 +316,6 @@
                                 </filter>
                             </filters>
                         </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>flatten-maven-plugin</artifactId>
-                <version>1.2.7</version>
-                <configuration>
-                </configuration>
-                <executions>
-                    <!-- enable flattening -->
-                    <execution>
-                        <id>flatten</id>
-                        <phase>package</phase>
-                        <goals>
-                            <goal>flatten</goal>
-                        </goals>
-                    </execution>
-                    <!-- ensure proper cleanup -->
-                    <execution>
-                        <id>flatten.clean</id>
-                        <phase>clean</phase>
-                        <goals>
-                            <goal>clean</goal>
-                        </goals>
                     </execution>
                 </executions>
             </plugin>
