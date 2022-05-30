@@ -33,7 +33,7 @@ node('master') {
     }
     stage('Build Root Pom') {
         echo "Build the root pom"
-        sh "'${mvnHome}/bin/mvn' clean ${buildGoal} -N -Pjenkins-cli -Drevision=${version} -Dchangelist=${branch}"
+        sh "'${mvnHome}/bin/mvn' clean ${buildGoal} -N -Pjenkins-cli"
     }
     stage('Build SDK') {
         echo "Build"
