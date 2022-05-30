@@ -5,11 +5,12 @@
     <groupId>com.faizsiegeln</groupId>
     <artifactId>njams4-sdk-sample-client</artifactId>
     <packaging>jar</packaging>
+    <version>${sdk.version}</version>
 
     <parent>
         <groupId>com.faizsiegeln</groupId>
         <artifactId>njams4-sdk-root</artifactId>
-        <version>4.2.2-SNAPSHOT${changelist}</version>
+        <version>dev</version>
     </parent>
 
     <properties>

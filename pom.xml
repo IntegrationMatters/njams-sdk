@@ -4,7 +4,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.faizsiegeln</groupId>
     <artifactId>njams4-sdk-root</artifactId>
-    <version>4.2.2-SNAPSHOT${changelist}</version>
+    <version>dev</version>
 
     <packaging>pom</packaging>
     <name>njams4-sdk-root</name>
@@ -27,6 +27,7 @@
     <properties>
         <!-- Sane default when no revision property is passed in from the commandline -->
         <!--        <revision>0-SNAPSHOT</revision>-->
+        <sdk.version>4.2.2-SNAPSHOT${changelist}</sdk.version>
         <changelist></changelist>
         <sonar.java.coveragePlugin>jacoco</sonar.java.coveragePlugin>
         <sonar.dynamicAnalysis>reuseReports</sonar.dynamicAnalysis>
@@ -175,6 +176,31 @@
                             -->
                             <skipTests>${skip.integration.tests}</skipTests>
                         </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>flatten-maven-plugin</artifactId>
+                <version>1.2.7</version>
+                <configuration>
+                </configuration>
+                <executions>
+                    <!-- enable flattening -->
+                    <execution>
+                        <id>flatten</id>
+                        <phase>process-resources</phase>
+                        <goals>
+                            <goal>flatten</goal>
+                        </goals>
+                    </execution>
+                    <!-- ensure proper cleanup -->
+                    <execution>
+                        <id>flatten.clean</id>
+                        <phase>clean</phase>
+                        <goals>
+                            <goal>clean</goal>
+                        </goals>
                     </execution>
                 </executions>
             </plugin>

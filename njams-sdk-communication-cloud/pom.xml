@@ -6,11 +6,12 @@
     <groupId>com.faizsiegeln.njams</groupId>
     <artifactId>njams4-sdk-communication-cloud</artifactId>
     <name>njams4-sdk-communication-cloud</name>
+    <version>${sdk.version}</version>
 
     <parent>
         <groupId>com.faizsiegeln</groupId>
         <artifactId>njams4-sdk-root</artifactId>
-        <version>4.2.2-SNAPSHOT${changelist}</version>
+        <version>dev</version>
     </parent>
 
     <build>
@@ -57,6 +58,31 @@
                                 </filter>
                             </filters>
                         </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>flatten-maven-plugin</artifactId>
+                <version>1.2.7</version>
+                <configuration>
+                </configuration>
+                <executions>
+                    <!-- enable flattening -->
+                    <execution>
+                        <id>flatten</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>flatten</goal>
+                        </goals>
+                    </execution>
+                    <!-- ensure proper cleanup -->
+                    <execution>
+                        <id>flatten.clean</id>
+                        <phase>clean</phase>
+                        <goals>
+                            <goal>clean</goal>
+                        </goals>
                     </execution>
                 </executions>
             </plugin>
