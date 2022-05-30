@@ -4,7 +4,8 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.faizsiegeln</groupId>
     <artifactId>njams4-sdk-root</artifactId>
-    <version>4.2.2-SNAPSHOT</version>
+    <version>4.2.2-SNAPSHOT${changelist}</version>
+
     <packaging>pom</packaging>
     <name>njams4-sdk-root</name>
     <organization>
@@ -26,7 +27,7 @@
     <properties>
         <!-- Sane default when no revision property is passed in from the commandline -->
         <!--        <revision>0-SNAPSHOT</revision>-->
-        <!--        <changelist>-dev</changelist>-->
+        <changelist></changelist>
         <sonar.java.coveragePlugin>jacoco</sonar.java.coveragePlugin>
         <sonar.dynamicAnalysis>reuseReports</sonar.dynamicAnalysis>
         <sonar.jacoco.reportPaths>

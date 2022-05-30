@@ -23,7 +23,10 @@ node('master') {
         echo 'Getting source code...'
         scmInfo = checkout scm
         echo "scm: ${scmInfo}"
-        branch = "-${scmInfo.GIT_BRANCH}"
+        if (scmInfo.GIT_BRANCH != 'master' && scmInfo.GIT_BRANCH != '4.0.X' && scmInfo.GIT_BRANCH != '4.1.X') {
+            branch = "-${scmInfo.GIT_BRANCH}"
+        }
+
     }
     stage('Build Root Pom') {
         echo "Build the root pom"
