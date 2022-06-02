@@ -1,10 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.faizsiegeln</groupId>
     <artifactId>njams4-sdk-root</artifactId>
-    <version>4.2.2-SNAPSHOT</version>
+    <version>4.2.2</version>
     <packaging>pom</packaging>
     <name>njams4-sdk-root</name>
     <organization>
@@ -20,7 +19,7 @@
     <scm>
         <connection>scm:git:https://github.com/IntegrationMatters/njams-sdk</connection>
         <developerConnection>scm:git:https://github.com/IntegrationMatters/njams-sdk</developerConnection>
-        <tag>HEAD</tag>
+        <tag>njams4-sdk-root-4.2.2</tag>
     </scm>
 
     <properties>
@@ -315,7 +314,7 @@
                         <artifactId>jacoco-maven-plugin</artifactId>
                         <version>${jacoco-maven-plugin.version}</version>
                         <configuration>
-                            <excludes/>
+                            <excludes />
                         </configuration>
                         <executions>
                             <!--
