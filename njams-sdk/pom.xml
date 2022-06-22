@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
@@ -107,8 +108,7 @@
                                             CDDL/GPLv2+CE
                                         </licenseMerge>
                                         <licenseMerge>
-                                            GNU General Public License, Version 2 with the Classpath
-                                            Exception|
+                                            GNU General Public License, Version 2 with the Classpath Exception|
                                             GPLv2 with classpath exception|
                                             GPL2 w/ CPE|
                                             GPLv2+CE
@@ -138,12 +138,9 @@
                                             The MIT License
                                         </licenseMerge>
                                         <licenseMerge>
-                                            GNU General Public License, Version 2 with the Classpath
-                                            Exception|
-                                            GNU General Public License, version 2 (GPL2), with the classpath
-                                            exception|
-                                            The GNU General Public License (GPL), Version 2, With Classpath
-                                            Exception
+                                            GNU General Public License, Version 2 with the Classpath Exception|
+                                            GNU General Public License, version 2 (GPL2), with the classpath exception|
+                                            The GNU General Public License (GPL), Version 2, With Classpath Exception
                                         </licenseMerge>
                                         <licenseMerge>
                                             Indiana University Extreme! Lab Software License 1.1.1|
@@ -204,7 +201,7 @@
                 <configuration>
                     <forceCreation>true</forceCreation>
                     <archive>
-                        <addMavenDescriptor>false</addMavenDescriptor>
+                        <addMavenDescriptor>true</addMavenDescriptor>
                         <manifest>
                             <addClasspath>true</addClasspath>
                             <mainClass>com.im.njams.sdk.settings.encoding.CMDHandler</mainClass>
@@ -224,12 +221,10 @@
                 <artifactId>maven-javadoc-plugin</artifactId>
                 <version>3.0.1</version>
             </plugin>
-
-            <!-- Shading of saxon. Please decomment if decision is to shade it. -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-shade-plugin</artifactId>
-                <version>3.2.1</version>
+                <version>3.3.0</version>
                 <executions>
                     <execution>
                         <phase>package</phase>
@@ -237,17 +232,17 @@
                             <goal>shade</goal>
                         </goals>
                         <configuration>
+                            <shadedArtifactAttached>true</shadedArtifactAttached>
+                            <shadedClassifierName>full</shadedClassifierName>
                             <createDependencyReducedPom>true</createDependencyReducedPom>
+                            <useDependencyReducedPomInJar>true</useDependencyReducedPomInJar>
                             <createSourcesJar>true</createSourcesJar>
                             <transformers>
-                                <transformer implementation="org.apache.maven.plugins.shade.resource.ApacheLicenseResourceTransformer" />
-                                <transformer implementation="org.apache.maven.plugins.shade.resource.ApacheNoticeResourceTransformer">
+                                <transformer
+                                    implementation="org.apache.maven.plugins.shade.resource.ApacheLicenseResourceTransformer"/>
+                                <transformer
+                                    implementation="org.apache.maven.plugins.shade.resource.ApacheNoticeResourceTransformer">
                                     <addHeader>false</addHeader>
-                                </transformer>
-                                <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer" />
-                                <transformer implementation="org.apache.maven.plugins.shade.resource.IncludeResourceTransformer">
-                                    <resource>META-INF/maven/com.faizsiegeln.njams/njams-sdk/pom.xml</resource>
-                                    <file>dependency-reduced-pom.xml</file>
                                 </transformer>
                             </transformers>
                             <relocations>
@@ -272,7 +267,6 @@
                                     <pattern>io.burt.jmespath</pattern>
                                     <shadedPattern>com.im.jmespath</shadedPattern>
                                 </relocation>
-                                <!-- Oshi -->
                                 <relocation>
                                     <pattern>oshi</pattern>
                                     <shadedPattern>com.im.oshi</shadedPattern>
