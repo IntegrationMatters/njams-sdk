@@ -45,9 +45,11 @@ public class SimpleClient {
 
         // Create communicationProperties, which specify how your client will
         // communicate with the server
-        Settings settings = getJmsProperties();
+        //Settings settings = getJmsProperties();
         //Settings settings = getCloudProperties();
-        //Settings settings = getHttpProperties();
+        Settings settings = getHttpProperties();
+        //Settings settings = getHttpsProperties();
+        //Settings settings = getKafkaProperties();
 
         // Instantiate client for first application
         Njams njams = new Njams(clientPath, "1.0.0", technology, settings);
@@ -80,9 +82,12 @@ public class SimpleClient {
 
         // Start client and flush resources, which will create a projectmessage to send
         // all resources to the server
-        njams.start();
+        if (!njams.start()) {
+            System.err.println("Failed to start nJAMS");
+            System.exit(-1);
+        }
 
-        for (int i = 0; i < 100000; i++) {
+        for (int i = 0; i < 10; i++) {
             /**
              * Running a process by creating a job
              */
@@ -111,27 +116,27 @@ public class SimpleClient {
 
             // End the job, which will flush all previous steps into a logmessage wich will
             // be send to the server
-            job.end();
-            Thread.sleep(10);
+            job.end(true);
+            System.out.println("Sent job with logId: " + job.getLogId());
+            Thread.sleep(1000);
         }
-
-        Thread.sleep(240000);
 
         // If you are finished with processing or the application goes down, stop the
         // client...
         njams.stop();
 
         Thread.sleep(1000);
+        System.out.println("Finsihed " + SimpleClient.class.getSimpleName());
     }
 
     private static Settings getCloudProperties() {
         Settings communicationProperties = new Settings();
         communicationProperties.put(NjamsSettings.PROPERTY_COMMUNICATION, CloudConstants.NAME);
-        communicationProperties.put(CloudConstants.ENDPOINT, "<cloud url>");
-        communicationProperties.put(CloudConstants.APIKEY, "<cloud apikey>");
-        communicationProperties.put(CloudConstants.CLIENT_INSTANCEID, "<cloud client instance>");
-        communicationProperties.put(CloudConstants.CLIENT_CERTIFICATE, "<cloud client certificate>");
-        communicationProperties.put(CloudConstants.CLIENT_PRIVATEKEY, "<cloud client privatekey>");
+        communicationProperties.put(NjamsSettings.PROPERTY_CLOUD_ENDPOINT, "<cloud url>");
+        communicationProperties.put(NjamsSettings.PROPERTY_CLOUD_APIKEY, "<cloud apikey>");
+        communicationProperties.put(NjamsSettings.PROPERTY_CLOUD_CLIENT_INSTANCEID, "<cloud client instance>");
+        communicationProperties.put(NjamsSettings.PROPERTY_CLOUD_CLIENT_CERTIFICATE, "<cloud client certificate>");
+        communicationProperties.put(NjamsSettings.PROPERTY_CLOUD_CLIENT_PRIVATEKEY, "<cloud client privatekey>");
         return communicationProperties;
     }
 
@@ -139,7 +144,7 @@ public class SimpleClient {
         Settings communicationProperties = new Settings();
         communicationProperties.put(NjamsSettings.PROPERTY_COMMUNICATION, "JMS");
         communicationProperties.put(NjamsSettings.PROPERTY_JMS_INITIAL_CONTEXT_FACTORY,
-            "com.tibco.tibjms.naming.TibjmsInitialContextFactory");
+                "com.tibco.tibjms.naming.TibjmsInitialContextFactory");
         communicationProperties.put(NjamsSettings.PROPERTY_JMS_SECURITY_PRINCIPAL, "njams");
         communicationProperties.put(NjamsSettings.PROPERTY_JMS_SECURITY_CREDENTIALS, "njams");
         communicationProperties.put(NjamsSettings.PROPERTY_JMS_PROVIDER_URL, "tibjmsnaming://os0155:7222");
@@ -157,44 +162,45 @@ public class SimpleClient {
         Settings communicationProperties = new Settings();
 
         // nJAMS properties
-        communicationProperties.put(NjamsSettings.PROPERTY_COMMUNICATION, "Kafka");
-        communicationProperties.put(NjamsSettings.PROPERTY_KAFKA_REPLY_PRODUCER_IDLE_TIME, "300000"); // in ms
+        communicationProperties.put(NjamsSettings.PROPERTY_COMMUNICATION, "KAFKA");
+        // communicationProperties.put(NjamsSettings.PROPERTY_KAFKA_REPLY_PRODUCER_IDLE_TIME, "300000"); // in ms
         communicationProperties.put(NjamsSettings.PROPERTY_KAFKA_TOPIC_PREFIX, "njams");
 
         // Kafka properties
-        communicationProperties.put(NjamsSettings.PROPERTY_KAFKA_BOOTSTRAP_SERVERS, "10.10.0.2:9091");
+        communicationProperties.put(NjamsSettings.PROPERTY_KAFKA_BOOTSTRAP_SERVERS, "kafka01:9092");
 
         // SASL_PLAIN
         /*
-         * communicationProperties.put(NjamsSettings.PROPERTY_KAFKA_PREFIX +
+         * communicationProperties.put(NjamsSettings.PROPERTY_KAFKA_CLIENT_PREFIX +
          * "sasl.mechanism", "PLAIN");
-         * communicationProperties.put(NjamsSettings.PROPERTY_KAFKA_PREFIX +
+         * communicationProperties.put(NjamsSettings.PROPERTY_KAFKA_CLIENT_PREFIX +
          * "sasl.jaas.config",
          * "org.apache.kafka.common.security.plain.PlainLoginModule required username=\"njams\" password=\"njams-secret\";"
          * );
          */
 
         // SSL
-        communicationProperties.put(NjamsSettings.PROPERTY_KAFKA_PREFIX + "security.protocol", "SSL");
-        communicationProperties.put(NjamsSettings.PROPERTY_KAFKA_PREFIX + "ssl.truststore.location",
-            "C:\\tmp\\certificates\\kafka.truststore");
-        communicationProperties.put(NjamsSettings.PROPERTY_KAFKA_PREFIX + "ssl.truststore.password", "Aa123456!");
-        communicationProperties.put(NjamsSettings.PROPERTY_KAFKA_PREFIX + "ssl.keystore.location",
-            "C:\\tmp\\certificates\\kafka.keystore");
-        communicationProperties.put(NjamsSettings.PROPERTY_KAFKA_PREFIX + "ssl.keystore.password", "Aa123456!");
-        communicationProperties.put(NjamsSettings.PROPERTY_KAFKA_PREFIX + "ssl.key.password", "Aa123456!");
+        //        communicationProperties.put(NjamsSettings.PROPERTY_KAFKA_CLIENT_PREFIX + "security.protocol", "SSL");
+        //        communicationProperties.put(NjamsSettings.PROPERTY_KAFKA_CLIENT_PREFIX + "ssl.truststore.location",
+        //                "C:\\tmp\\certificates\\kafka.truststore");
+        //        communicationProperties
+        //                .put(NjamsSettings.PROPERTY_KAFKA_CLIENT_PREFIX + "ssl.truststore.password", "Aa123456!");
+        //        communicationProperties.put(NjamsSettings.PROPERTY_KAFKA_CLIENT_PREFIX + "ssl.keystore.location",
+        //                "C:\\tmp\\certificates\\kafka.keystore");
+        //        communicationProperties.put(NjamsSettings.PROPERTY_KAFKA_CLIENT_PREFIX + "ssl.keystore.password", "Aa123456!");
+        //        communicationProperties.put(NjamsSettings.PROPERTY_KAFKA_CLIENT_PREFIX + "ssl.key.password", "Aa123456!");
 
         // SASL_SSL
         /*
-         * communicationProperties.put(NjamsSettings.PROPERTY_KAFKA_PREFIX +
+         * communicationProperties.put(NjamsSettings.PROPERTY_KAFKA_CLIENT_PREFIX +
          * "sasl.mechanism", "PLAIN");
-         * communicationProperties.put(NjamsSettings.PROPERTY_KAFKA_PREFIX +
+         * communicationProperties.put(NjamsSettings.PROPERTY_KAFKA_CLIENT_PREFIX +
          * "security.protocol", "SASL_SSL");
-         * communicationProperties.put(NjamsSettings.PROPERTY_KAFKA_PREFIX +
+         * communicationProperties.put(NjamsSettings.PROPERTY_KAFKA_CLIENT_PREFIX +
          * "ssl.truststore.location", "C:\\tmp\\certificates\\kafka.truststore");
-         * communicationProperties.put(NjamsSettings.PROPERTY_KAFKA_PREFIX +
+         * communicationProperties.put(NjamsSettings.PROPERTY_KAFKA_CLIENT_PREFIX +
          * "ssl.truststore.password", "Aa123456!");
-         * communicationProperties.put(NjamsSettings.PROPERTY_KAFKA_PREFIX +
+         * communicationProperties.put(NjamsSettings.PROPERTY_KAFKA_CLIENT_PREFIX +
          * "sasl.jaas.config",
          * "org.apache.kafka.common.security.plain.PlainLoginModule required username=\"njams\" password=\"njams-secret\";"
          * );
@@ -204,10 +210,23 @@ public class SimpleClient {
 
     private static Settings getHttpProperties() {
         Settings communicationProperties = new Settings();
+        communicationProperties.put(NjamsSettings.PROPERTY_COMMUNICATION, "HTTP");
+        communicationProperties.put("njams.sdk.communication.http.base.url",
+                "http://localhost:8080/njams/");
+        communicationProperties.put("njams.sdk.communication.http.dataprovider.prefix", "sdk");
+        communicationProperties.put("njams.client.sdk.sharedcommunications", "true");
+        return communicationProperties;
+    }
+
+    private static Settings getHttpsProperties() {
+        Settings communicationProperties = new Settings();
         communicationProperties.put(NjamsSettings.PROPERTY_COMMUNICATION, "HTTPS");
-        communicationProperties.put("njams.sdk.communication.http.base.url", "https://os0100.integrationmatters.com:8443/njams/");
+        communicationProperties.put("njams.sdk.communication.http.base.url",
+                "https://os0100.integrationmatters.com:8443/njams/");
         communicationProperties.put("njams.sdk.communication.http.dataprovider.prefix", "bw");
-        communicationProperties.put("njams.sdk.communication.http.ssl.certificate.file", "/Users/bwand/Development/SSLKeystore/cert.wildcard.integrationmatters.com/ca-root-integrationmatters.com.pem");
+        communicationProperties
+        .put("njams.sdk.communication.http.ssl.certificate.file",
+                "/Users/bwand/Development/SSLKeystore/cert.wildcard.integrationmatters.com/ca-root-integrationmatters.com.pem");
 
         communicationProperties.put("njams.client.sdk.sharedcommunications", "true");
         return communicationProperties;

@@ -39,6 +39,7 @@ import com.faizsiegeln.njams.messageformat.v4.projectmessage.LogMode;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.RuleType;
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.common.Path;
+import com.im.njams.sdk.communication.TestReceiver;
 import com.im.njams.sdk.configuration.ActivityConfiguration;
 import com.im.njams.sdk.configuration.Configuration;
 import com.im.njams.sdk.configuration.ProcessConfiguration;
@@ -69,7 +70,7 @@ public class ExtractHandlerTest {
     public static void configureNjams() {
         Path clientPath = new Path("SDK4", "TEST");
 
-        Settings config = new Settings();
+        Settings config = TestReceiver.getSettings();
 
         njams = spy(new Njams(clientPath, "1.0.0", "sdk4", config));
 

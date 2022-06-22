@@ -16,16 +16,22 @@
  */
 package com.im.njams.sdk.communication;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Properties;
+import java.util.stream.Collectors;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.common.Path;
 import com.im.njams.sdk.settings.Settings;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.util.*;
-import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
 
 /**
  * Factory for creating Sender and Receiver
@@ -45,7 +51,7 @@ public class CommunicationFactory {
     private final Settings settings;
     private final CommunicationServiceLoader<Receiver> receivers;
     private final CommunicationServiceLoader<AbstractSender> senders;
-    private static final Map<Class<? extends Receiver>, ShareableReceiver> sharedReceivers = new HashMap<>();
+    private static final Map<Class<? extends Receiver>, ShareableReceiver<?>> sharedReceivers = new HashMap<>();
 
     /**
      * Create a new CommunicationFactory
@@ -54,11 +60,11 @@ public class CommunicationFactory {
      */
     public CommunicationFactory(Settings settings) {
         this(settings, new CommunicationServiceLoader<>(Receiver.class),
-            new CommunicationServiceLoader<>(AbstractSender.class));
+                new CommunicationServiceLoader<>(AbstractSender.class));
     }
 
     CommunicationFactory(Settings settings, CommunicationServiceLoader<Receiver> receivers,
-                         CommunicationServiceLoader<AbstractSender> senders) {
+            CommunicationServiceLoader<AbstractSender> senders) {
         this.settings = settings;
         this.receivers = receivers;
         this.senders = senders;
@@ -75,47 +81,40 @@ public class CommunicationFactory {
         if (settings.containsKey(NjamsSettings.PROPERTY_COMMUNICATION)) {
             final String requiredReceiverName = settings.getProperty(NjamsSettings.PROPERTY_COMMUNICATION);
             final boolean shared =
-                "true".equalsIgnoreCase(settings.getProperty(NjamsSettings.PROPERTY_SHARED_COMMUNICATIONS));
+                    "true".equalsIgnoreCase(settings.getProperty(NjamsSettings.PROPERTY_SHARED_COMMUNICATIONS));
             Class<? extends Receiver> type = findReceiverType(requiredReceiverName, shared);
             if (type != null) {
                 final Receiver newInstance = createReceiver(type, njams.getClientPath(), shared, requiredReceiverName);
                 newInstance.setNjams(njams);
 
                 return newInstance;
-            } else {
-                String available =
-                    StreamSupport.stream(Spliterators.spliteratorUnknownSize(receivers.iterator(), Spliterator.ORDERED),
-                        false).map(cp -> cp.getName()).collect(Collectors.joining(", "));
-                throw new UnsupportedOperationException(
-                    "Unable to find receiver implementation for " + requiredReceiverName + ", available are: "
-                        + available);
             }
-        } else {
-            throw new UnsupportedOperationException("Unable to find " + NjamsSettings.PROPERTY_COMMUNICATION + " in settings properties");
+            Collection<String> available =
+                    getAvailableImplementations(receivers).stream().map(Receiver::getName).sorted()
+                            .collect(Collectors.toSet());
+            throw new IllegalStateException(
+                    "Unable to find receiver implementation for " + requiredReceiverName + ", available are: "
+                            + available);
         }
+        throw new IllegalStateException("Unable to find " + NjamsSettings.PROPERTY_COMMUNICATION
+                + " in settings properties");
     }
 
-    private Class<? extends Receiver> findReceiverType(String name, boolean sharable) {
-        final Iterator<Receiver> iterator = receivers.iterator();
+    private Class<? extends Receiver> findReceiverType(String name, boolean wantsSharable) {
         Receiver found = null;
-        while (iterator.hasNext()) {
-            try {
-                final Receiver receiver = iterator.next();
-                if (receiver.getName().equalsIgnoreCase(name)) {
-                    final boolean implementsSharable = ShareableReceiver.class.isAssignableFrom(receiver.getClass());
-                    if (sharable && implementsSharable || !sharable && !implementsSharable) {
-                        return receiver.getClass();
-                    }
-                    // keep this as last resort, but maybe we find a better one
-                    found = receiver;
+        for (Receiver receiver : getAvailableImplementations(receivers)) {
+            if (receiver.getName().equalsIgnoreCase(name)) {
+                final boolean implementsSharable = receiver instanceof ShareableReceiver;
+                if (wantsSharable == implementsSharable) {
+                    return receiver.getClass();
                 }
-            } catch (ServiceConfigurationError error) {
-                LOG.warn("Error while trying to lazy load receiver: ", error);
+                // keep this as last resort, but maybe we find a better one
+                found = receiver;
             }
         }
-        if (sharable && found != null) {
+        if (wantsSharable && found != null) {
             LOG.info("The requested communication type '{}' does not support sharing the receiver instance. "
-                + "Creating a dedicated instance instead.", found.getName());
+                    + "Creating a dedicated instance instead.", found.getName());
         }
         return found == null ? null : found.getClass();
     }
@@ -158,33 +157,57 @@ public class CommunicationFactory {
      */
     public AbstractSender getSender() {
         if (settings.containsKey(NjamsSettings.PROPERTY_COMMUNICATION)) {
-            final Iterator<AbstractSender> iterator = senders.iterator();
+            final Collection<AbstractSender> availableSenders = getAvailableImplementations(senders);
             final String requiredSenderName = settings.getProperty(NjamsSettings.PROPERTY_COMMUNICATION);
-            while (iterator.hasNext()) {
-                final AbstractSender sender = iterator.next();
-                if (sender.getName().equalsIgnoreCase(requiredSenderName)) {
-                    try {
-                        // create a new instance
-                        LOG.info("Create sender {}", sender.getName());
-                        AbstractSender newInstance = sender.getClass().newInstance();
-                        newInstance.validate();
-                        newInstance.init(settings.getAllProperties());
-                        return newInstance;
-                    } catch (Exception e) {
-                        throw new UnsupportedOperationException(
+            final AbstractSender sender = availableSenders.stream()
+                    .filter(s -> s.getName().equalsIgnoreCase(requiredSenderName)).findAny().orElse(null);
+            if (sender != null) {
+                try {
+                    // create a new instance
+                    LOG.info("Create sender {}", sender.getName());
+                    AbstractSender newInstance = sender.getClass().newInstance();
+                    newInstance.validate();
+                    newInstance.init(settings.getAllProperties());
+                    return newInstance;
+                } catch (Exception e) {
+                    throw new IllegalStateException(
                             "Unable to create new " + requiredSenderName + " instance", e);
-                    }
                 }
             }
-            String available = StreamSupport
-                .stream(Spliterators.spliteratorUnknownSize(
-                    ServiceLoader.load(AbstractSender.class).iterator(),
-                    Spliterator.ORDERED), false)
-                .map(cp -> cp.getName()).collect(Collectors.joining(", "));
-            throw new UnsupportedOperationException(
-                "Unable to find sender implementation for " + requiredSenderName + ", available are: " + available);
+            final Collection<String> availableNames =
+                    availableSenders.stream().map(AbstractSender::getName).collect(Collectors.toSet());
+            throw new IllegalStateException(
+                    "Unable to find sender implementation for " + requiredSenderName + ", available are: "
+                            + availableNames);
         } else {
-            throw new UnsupportedOperationException("Unable to find " + NjamsSettings.PROPERTY_COMMUNICATION + " in settings properties");
+            throw new IllegalStateException("Unable to find " + NjamsSettings.PROPERTY_COMMUNICATION
+                    + " in settings properties");
         }
+    }
+
+    private <T> Collection<T> getAvailableImplementations(CommunicationServiceLoader<T> loader) {
+        if (loader == null) {
+            return Collections.emptyList();
+        }
+        final Iterator<T> iterator = loader.iterator();
+        final Collection<T> available = new ArrayList<>();
+        while (iterator.hasNext()) {
+            try {
+                available.add(iterator.next());
+            } catch (Throwable error) {
+                if (LOG.isDebugEnabled()) {
+                    LOG.debug("Error while trying to lazy load {} service: ", loader.getServiceType().getSimpleName(),
+                            error);
+                } else {
+                    LOG.info("Could not load {} service implementation: {}", loader.getServiceType().getSimpleName(),
+                            error.toString());
+                }
+            }
+        }
+        if (LOG.isDebugEnabled()) {
+            LOG.debug("Available {} implementations {}", loader.getServiceType().getSimpleName(),
+                    available.stream().map(Object::getClass).map(Class::getSimpleName).collect(Collectors.joining(",")));
+        }
+        return available;
     }
 }

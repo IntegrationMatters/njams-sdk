@@ -20,7 +20,6 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 
 import java.time.LocalDateTime;
-import java.util.Properties;
 
 import org.junit.Test;
 
@@ -31,6 +30,7 @@ import com.faizsiegeln.njams.messageformat.v4.projectmessage.ExtractRule;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.RuleType;
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.common.Path;
+import com.im.njams.sdk.communication.TestReceiver;
 import com.im.njams.sdk.configuration.ActivityConfiguration;
 import com.im.njams.sdk.configuration.ProcessConfiguration;
 import com.im.njams.sdk.model.ActivityModel;
@@ -48,7 +48,7 @@ public class JobTest {
         Path clientPath = new Path("SDK4", "TEST");
 
         // Create client config
-        Settings config = new Settings();
+        Settings config = TestReceiver.getSettings();
 
         Njams njams = new Njams(clientPath, "1.0.0", "sdk4", config);
 
