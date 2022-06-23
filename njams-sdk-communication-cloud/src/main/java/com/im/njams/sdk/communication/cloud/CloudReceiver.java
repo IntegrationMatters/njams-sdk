@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Faiz & Siegeln Software GmbH
+ * Copyright (c) 2022 Faiz & Siegeln Software GmbH
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"),
  * to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
@@ -16,10 +16,7 @@
  */
 package com.im.njams.sdk.communication.cloud;
 
-import com.amazonaws.services.iot.client.AWSIotException;
-import com.amazonaws.services.iot.client.AWSIotMessage;
-import com.amazonaws.services.iot.client.AWSIotMqttClient;
-import com.amazonaws.services.iot.client.AWSIotQos;
+import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
 import com.faizsiegeln.njams.messageformat.v4.command.Request;
 import com.faizsiegeln.njams.messageformat.v4.command.Response;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -28,24 +25,34 @@ import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.communication.AbstractReceiver;
 import com.im.njams.sdk.communication.ConnectionStatus;
-import com.im.njams.sdk.communication.cloud.CertificateUtil.KeyStorePasswordPair;
 import com.im.njams.sdk.utils.JsonUtils;
 import com.im.njams.sdk.utils.StringUtils;
+
+import software.amazon.awssdk.crt.CRT;
+import software.amazon.awssdk.crt.io.ClientBootstrap;
+import software.amazon.awssdk.crt.io.EventLoopGroup;
+import software.amazon.awssdk.crt.io.HostResolver;
+import software.amazon.awssdk.crt.mqtt.MqttClientConnection;
+import software.amazon.awssdk.crt.mqtt.MqttClientConnectionEvents;
+import software.amazon.awssdk.crt.mqtt.MqttMessage;
+import software.amazon.awssdk.crt.mqtt.QualityOfService;
+import software.amazon.awssdk.iot.AwsIotMqttConnectionBuilder;
+
 import org.slf4j.LoggerFactory;
 
 import javax.net.ssl.HttpsURLConnection;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.Properties;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
-/**
- * @author pnientiedt
- */
 public class CloudReceiver extends AbstractReceiver {
 
     private static final org.slf4j.Logger LOG = LoggerFactory.getLogger(CloudReceiver.class);
@@ -56,14 +63,14 @@ public class CloudReceiver extends AbstractReceiver {
     protected String endpoint;
     protected String instanceId;
     protected String connectionId;
-    private String certificateFile;
-    private String privateKeyFile;
+    protected String certificateFile;
+    protected String privateKeyFile;
+    protected String caFile;
 
-    private AWSIotQos qos;
-    protected AWSIotMqttClient mqttclient;
+    protected MqttClientConnection connection;
+
     protected String topicName;
 
-    protected KeyStorePasswordPair keyStorePasswordPair;
     private String apikey;
 
     protected boolean retryConnection = false;
@@ -72,7 +79,7 @@ public class CloudReceiver extends AbstractReceiver {
 
     @Override
     public String getName() {
-        return CloudConstants.NAME;
+        return NjamsSettings.PROPERTY_CLOUD_NAME;
     }
 
     @Override
@@ -84,10 +91,10 @@ public class CloudReceiver extends AbstractReceiver {
             LOG.error("Please provide property {} for CloudSender", NjamsSettings.PROPERTY_CLOUD_APIKEY);
         }
 
-        String instanceIdPath = properties.getProperty(NjamsSettings.PROPERTY_CLOUD_CLIENT_INSTANCEID);
+        String instanceIdPath = properties.getProperty(NjamsSettings.PROPERTY_CLOUD_INSTANCEID);
 
         if (instanceIdPath == null) {
-            LOG.error("Please provide property {} for CloudSender", NjamsSettings.PROPERTY_CLOUD_CLIENT_INSTANCEID);
+            LOG.error("Please provide property {} for CloudSender", NjamsSettings.PROPERTY_CLOUD_INSTANCEID);
         }
 
         try {
@@ -120,18 +127,19 @@ public class CloudReceiver extends AbstractReceiver {
             LOG.error("Please provide property {} for CloudReceiver", NjamsSettings.PROPERTY_CLOUD_ENDPOINT);
         }
 
-        certificateFile = properties.getProperty(NjamsSettings.PROPERTY_CLOUD_CLIENT_CERTIFICATE);
+        certificateFile = properties.getProperty(NjamsSettings.PROPERTY_CLOUD_CERTIFICATE);
         if (certificateFile == null) {
-            LOG.error("Please provide property {} for CloudReceiver", NjamsSettings.PROPERTY_CLOUD_CLIENT_CERTIFICATE);
+            LOG.error("Please provide property {} for CloudReceiver", NjamsSettings.PROPERTY_CLOUD_CERTIFICATE);
         }
-        privateKeyFile = properties.getProperty(NjamsSettings.PROPERTY_CLOUD_CLIENT_PRIVATEKEY);
+
+        privateKeyFile = properties.getProperty(NjamsSettings.PROPERTY_CLOUD_PRIVATEKEY);
         if (privateKeyFile == null) {
-            LOG.error("Please provide property {} for CloudReceiver", NjamsSettings.PROPERTY_CLOUD_CLIENT_PRIVATEKEY);
+            LOG.error("Please provide property {} for CloudReceiver", NjamsSettings.PROPERTY_CLOUD_PRIVATEKEY);
         }
-        LOG.info("Creating KeyStorePasswordPair from {} and {}", getCertificateFile(), getPrivateKeyFile());
-        keyStorePasswordPair = CertificateUtil.getKeyStorePasswordPair(getCertificateFile(), getPrivateKeyFile());
-        if (keyStorePasswordPair == null) {
-            throw new IllegalStateException("Certificate or PrivateKey invalid");
+
+        caFile = properties.getProperty(NjamsSettings.PROPERTY_CLOUD_CA);
+        if (caFile == null) {
+            LOG.error("Please provide property {} for CloudReceiver", NjamsSettings.PROPERTY_CLOUD_CA);
         }
 
         // build connectionId String
@@ -157,7 +165,7 @@ public class CloudReceiver extends AbstractReceiver {
         }
         connectionStatus = ConnectionStatus.DISCONNECTED;
         try {
-            getMqttclient().disconnect();
+            // getMqttclient().disconnect();
         } catch (Exception e) {
             LOG.error("Error disconnecting MQTTClient", e);
         }
@@ -202,27 +210,6 @@ public class CloudReceiver extends AbstractReceiver {
         }
         retryConnection = false;
         return endpoints.client;
-    }
-
-    /**
-     * @return the qos
-     */
-    public AWSIotQos getQos() {
-        return qos;
-    }
-
-    /**
-     * @param qos the qos to set
-     */
-    public void setQos(AWSIotQos qos) {
-        this.qos = qos;
-    }
-
-    /**
-     * @return the mqttclient
-     */
-    public AWSIotMqttClient getMqttclient() {
-        return mqttclient;
     }
 
     /**
@@ -320,21 +307,81 @@ public class CloudReceiver extends AbstractReceiver {
 
             connectionStatus = ConnectionStatus.CONNECTING;
             LOG.debug("Connect to endpoint: {} with clientId: {}", endpoint, connectionId);
-            mqttclient = new CustomAWSIotMqttClient(endpoint, connectionId, keyStorePasswordPair.keyStore,
-                keyStorePasswordPair.keyPassword, this);
 
-            // optional parameters can be set before connect()
+            MqttClientConnectionEvents callbacks = new MqttClientConnectionEvents() {
+                @Override
+                public void onConnectionInterrupted(int errorCode) {
+                    if (errorCode != 0) {
+                        System.out
+                                .println("Connection interrupted: " + errorCode + ": " + CRT.awsErrorString(errorCode));
+                    }
+                }
 
-            getMqttclient().connect(30000);
-            setQos(AWSIotQos.QOS1);
+                @Override
+                public void onConnectionResumed(boolean sessionPresent) {
+                    System.out
+                            .println("Connection resumed: " + (sessionPresent ? "existing session" : "clean session"));
+                }
+            };
+
+            EventLoopGroup eventLoopGroup = new EventLoopGroup(1);
+            HostResolver resolver = new HostResolver(eventLoopGroup);
+            ClientBootstrap clientBootstrap = new ClientBootstrap(eventLoopGroup, resolver);
+            AwsIotMqttConnectionBuilder builder =
+                    AwsIotMqttConnectionBuilder.newMtlsBuilderFromPath(certificateFile, privateKeyFile);
+
+            builder.withCertificateAuthorityFromPath(null, caFile).withBootstrap(clientBootstrap)
+                    .withConnectionEventCallbacks(callbacks).withClientId(connectionId).withEndpoint(endpoint)
+                    .withCleanSession(true);
+
+            connection = builder.build();
+
+            CompletableFuture<Boolean> connected = connection.connect();
+            try {
+                boolean sessionPresent = connected.get();
+                LOG.info("Connected to " + (!sessionPresent ? "new" : "existing") + " session!");
+
+                resendOnConnect();
+
+            } catch (Exception ex) {
+                LOG.error("Exception occurred during connect: {}", ex);
+                throw new RuntimeException("Exception occurred during connect", ex);
+            }
 
             // subscribe commands topic
+
             topicName = "/" + instanceId + "/commands/" + connectionId + "/";
-            CloudTopic topic = new CloudTopic(this);
 
-            LOG.debug("Topic Subscription: {}", topic.getTopic());
+            LOG.info("Subscribe to commands topic: {}", topicName);
 
-            getMqttclient().subscribe(topic);
+            CompletableFuture<Integer> subscribed =
+                    connection.subscribe(topicName, QualityOfService.AT_LEAST_ONCE, (message) -> {
+                        String payload = new String(message.getPayload(), StandardCharsets.UTF_8);
+
+                        try {
+                            LOG.info("Received message on topic {}:\n{}", message.getTopic(), payload);
+                            Instruction instruction = getInstruction(payload);
+                            if (instruction != null) {
+                                String uuid = getUUID(instruction);
+                                if (uuid != null) {
+                                    onInstruction(instruction);
+                                    reply(instruction, uuid);
+                                } else {
+                                    LOG.error(
+                                            "Received message on topic {} does not contain a valid mqttUuid. Ignore!");
+                                }
+                            } else {
+                                LOG.warn("Received message on topic {} is not a valid instruction. Ignore!",
+                                        message.getTopic());
+                            }
+                        } catch (Exception e) {
+                            LOG.error("Error in onMessage", e);
+                        }
+
+                    });
+
+            subscribed.get();
+
             connectionStatus = ConnectionStatus.CONNECTED;
 
         } catch (Exception e) {
@@ -347,36 +394,36 @@ public class CloudReceiver extends AbstractReceiver {
 
     }
 
-    public void resendOnConnect() throws JsonProcessingException, AWSIotException {
+    public void resendOnConnect() throws JsonProcessingException, InterruptedException, ExecutionException {
         sendOnConnectMessage(isShared, connectionId, instanceId, njams.getClientPath().toString(),
-            njams.getClientVersion(), njams.getSdkVersion(), njams.getMachine(), njams.getCategory());
+                njams.getClientVersion(), njams.getSdkVersion(), njams.getMachine(), njams.getCategory());
     }
 
     protected void sendOnConnectMessage(Boolean isShared, String connectionId, String instanceId, String path,
-                                        String clientVersion, String sdkVersion, String machine, String category)
-        throws JsonProcessingException, AWSIotException {
+            String clientVersion, String sdkVersion, String machine, String category)
+            throws JsonProcessingException, InterruptedException, ExecutionException {
         String topicName = "/onConnect/";
-        OnConnectMessage onConnectMessage =
-            new OnConnectMessage(isShared, connectionId, instanceId, path, clientVersion, sdkVersion, machine,
-                category);
+        OnConnectMessage onConnectMessage = new OnConnectMessage(isShared, connectionId, instanceId, path,
+                clientVersion, sdkVersion, machine, category);
 
         ObjectMapper objectMapper = new ObjectMapper();
 
         String message = objectMapper.writeValueAsString(onConnectMessage);
 
-        AWSIotMessage msg = new AWSIotMessage(topicName, AWSIotQos.QOS1, message);
+        CompletableFuture<Integer> published = connection
+                .publish(new MqttMessage(topicName, message.getBytes(), QualityOfService.AT_LEAST_ONCE, false));
+        published.get();
 
-        LOG.debug("Send message: {} to topic: {}", msg.getStringPayload(), topicName);
-        getMqttclient().publish(msg);
+        LOG.info("Sent message: {} to topic: {}", message, topicName);
     }
 
     /**
-     * Every time onInstruction in the AbstractReceiver is called, the instruction's
-     * request is extended by this method.
+     * Every time onInstruction in the AbstractReceiver is called, the instruction's request is extended by this method.
      *
-     * @param request the request that will be extended
-     * @return an exception response if there was a problem while retrieving payload
-     * from nJAMS Cloud. If everything worked fine, it returns null.
+     * @param request
+     *            the request that will be extended
+     * @return an exception response if there was a problem while retrieving payload from nJAMS Cloud. If everything
+     *         worked fine, it returns null.
      */
     @Override
     protected Response extendRequest(Request request) {
@@ -398,6 +445,53 @@ public class CloudReceiver extends AbstractReceiver {
         }
         // Everything worked fine
         return null;
+    }
+
+    public Instruction getInstruction(String message) {
+        try {
+            Instruction instruction = JsonUtils.parse(message, Instruction.class);
+            if (instruction.getRequest() != null) {
+                return instruction;
+            }
+        } catch (Exception e) {
+            LOG.error("Error deserializing Instruction", e);
+        }
+        LOG.warn("MSG is not a valid Instruction");
+        return null;
+    }
+
+    public String getUUID(Instruction instruction) {
+        try {
+            if (instruction != null && instruction.getRequest() != null
+                    && instruction.getRequest().getParameters() != null) {
+                return instruction.getRequest().getParameters().get("mqttUuid");
+            }
+        } catch (Exception e) {
+            LOG.error("Error deserializing Instruction", e);
+        }
+        LOG.warn("Instruction does not contain a property mqttUuid");
+        return null;
+    }
+
+    public void reply(Instruction instruction, String uuid) {
+        try {
+            // clear Payload to avoid messages exceeding limit
+            instruction.setRequestParameter("Payload", "");
+            instruction.setRequestParameter("PayloadUrl", "");
+
+            String response = JsonUtils.serialize(instruction);
+            String replyTopic = "/" + instanceId + "/replies/";
+            
+            LOG.debug("Send reply on {}:\n{}", replyTopic, response);
+
+            CompletableFuture<Integer> published = connection
+                    .publish(new MqttMessage(replyTopic, response.getBytes(), QualityOfService.AT_LEAST_ONCE, false));
+            published.get();
+
+           
+        } catch (Exception e) {
+            LOG.error("Error while sending reply for {}", uuid, e);
+        }
     }
 
 }

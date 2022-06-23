@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Faiz & Siegeln Software GmbH
+ * Copyright (c) 2022 Faiz & Siegeln Software GmbH
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"),
  * to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
@@ -16,15 +16,15 @@
  */
 package com.im.njams.sdk.communication.cloud;
 
+import java.nio.charset.StandardCharsets;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.amazonaws.services.iot.client.AWSIotException;
-import com.amazonaws.services.iot.client.AWSIotMessage;
-import com.amazonaws.services.iot.client.AWSIotQos;
 import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.im.njams.sdk.Njams;
@@ -34,18 +34,25 @@ import com.im.njams.sdk.communication.ConnectionStatus;
 import com.im.njams.sdk.communication.ShareableReceiver;
 import com.im.njams.sdk.communication.SharedReceiverSupport;
 
+import software.amazon.awssdk.crt.CRT;
+import software.amazon.awssdk.crt.io.ClientBootstrap;
+import software.amazon.awssdk.crt.io.EventLoopGroup;
+import software.amazon.awssdk.crt.io.HostResolver;
+import software.amazon.awssdk.crt.mqtt.MqttClientConnectionEvents;
+import software.amazon.awssdk.crt.mqtt.QualityOfService;
+import software.amazon.awssdk.iot.AwsIotMqttConnectionBuilder;
+
 /**
  * Overrides the common {@link CloudReceiver} for supporting receiving messages for multiple {@link Njams} instances.
  *
  *
  */
-public class SharedCloudReceiver extends CloudReceiver implements ShareableReceiver<AWSIotMessage> {
+public class SharedCloudReceiver extends CloudReceiver implements ShareableReceiver<Object> {
 
     private static final Logger LOG = LoggerFactory.getLogger(SharedCloudReceiver.class);
 
     private static final boolean IS_SHARED = true;
-    private SharedCloudTopic shareCloudTopic = null;
-    private final SharedReceiverSupport<SharedCloudReceiver, AWSIotMessage> sharingSupport =
+    private final SharedReceiverSupport<SharedCloudReceiver, ?> sharingSupport =
             new SharedReceiverSupport<>(this);
 
     /**
@@ -95,20 +102,81 @@ public class SharedCloudReceiver extends CloudReceiver implements ShareableRecei
 
             connectionStatus = ConnectionStatus.CONNECTING;
             LOG.debug("Connect to endpoint: {} with clientId: {}", endpoint, connectionId);
-            mqttclient = new CustomAWSIotMqttClient(endpoint, connectionId, keyStorePasswordPair.keyStore,
-                    keyStorePasswordPair.keyPassword, this);
+           
+            MqttClientConnectionEvents callbacks = new MqttClientConnectionEvents() {
+                @Override
+                public void onConnectionInterrupted(int errorCode) {
+                    if (errorCode != 0) {
+                        System.out
+                                .println("Connection interrupted: " + errorCode + ": " + CRT.awsErrorString(errorCode));
+                    }
+                }
 
-            // optional parameters can be set before connect()
-            getMqttclient().connect(30000);
-            setQos(AWSIotQos.QOS1);
+                @Override
+                public void onConnectionResumed(boolean sessionPresent) {
+                    System.out
+                            .println("Connection resumed: " + (sessionPresent ? "existing session" : "clean session"));
+                }
+            };
+
+            EventLoopGroup eventLoopGroup = new EventLoopGroup(1);
+            HostResolver resolver = new HostResolver(eventLoopGroup);
+            ClientBootstrap clientBootstrap = new ClientBootstrap(eventLoopGroup, resolver);
+            AwsIotMqttConnectionBuilder builder =
+                    AwsIotMqttConnectionBuilder.newMtlsBuilderFromPath(certificateFile, privateKeyFile);
+
+            builder.withCertificateAuthorityFromPath(null, caFile).withBootstrap(clientBootstrap)
+                    .withConnectionEventCallbacks(callbacks).withClientId(connectionId).withEndpoint(endpoint)
+                    .withCleanSession(true);
+
+            connection = builder.build();
+
+            CompletableFuture<Boolean> connected = connection.connect();
+            try {
+                boolean sessionPresent = connected.get();
+                LOG.info("Connected to " + (!sessionPresent ? "new" : "existing") + " session!");
+
+                resendOnConnect();
+
+            } catch (Exception ex) {
+                LOG.error("Exception occurred during connect: {}", ex);
+                throw new RuntimeException("Exception occurred during connect", ex);
+            }
 
             // subscribe commands topic
+
             topicName = "/" + instanceId + "/commands/" + connectionId + "/";
-            shareCloudTopic = new SharedCloudTopic(this);
 
-            LOG.debug("Topic Subscription: {}", shareCloudTopic.getTopic());
+            LOG.info("Subscribe to commands topic: {}", topicName);
 
-            getMqttclient().subscribe(shareCloudTopic);
+            CompletableFuture<Integer> subscribed =
+                    connection.subscribe(topicName, QualityOfService.AT_LEAST_ONCE, (message) -> {
+                        String payload = new String(message.getPayload(), StandardCharsets.UTF_8);
+
+                        try {
+                            LOG.info("Received message on topic {}:\n{}", message.getTopic(), payload);
+                            Instruction instruction = getInstruction(payload);
+                            if (instruction != null) {
+                                String uuid = getUUID(instruction);
+                                if (uuid != null) {
+                                    onInstruction(instruction);
+                                    reply(instruction, uuid);
+                                } else {
+                                    LOG.error(
+                                            "Received message on topic {} does not contain a valid mqttUuid. Ignore!");
+                                }
+                            } else {
+                                LOG.warn("Received message on topic {} is not a valid instruction. Ignore!",
+                                        message.getTopic());
+                            }
+                        } catch (Exception e) {
+                            LOG.error("Error in onMessage", e);
+                        }
+
+                    });
+
+            subscribed.get();
+
             connectionStatus = ConnectionStatus.CONNECTED;
 
         } catch (Exception e) {
@@ -131,31 +199,29 @@ public class SharedCloudReceiver extends CloudReceiver implements ShareableRecei
     }
 
     @Override
-    public void resendOnConnect() throws JsonProcessingException, AWSIotException {
+    public void resendOnConnect() throws JsonProcessingException, InterruptedException, ExecutionException {
         for (Njams njams : sharingSupport.getAllNjamsInstances()) {
             sendOnConnect(njams);
         }
     }
 
-    private void sendOnConnect(Njams njams) throws JsonProcessingException, AWSIotException {
+    private void sendOnConnect(Njams njams) throws JsonProcessingException, InterruptedException, ExecutionException {
         sendOnConnectMessage(IS_SHARED, connectionId, instanceId, njams.getClientPath().toString(),
                 njams.getClientVersion(), njams.getSdkVersion(), njams.getMachine(), njams.getCategory());
     }
 
-    public void onInstruction(AWSIotMessage message, Instruction instruction) {
-        sharingSupport.onInstruction(message, instruction, true);
-    }
-
+ 
     @Override
-    public Path getReceiverPath(AWSIotMessage requestMessage, Instruction instruction) {
+    public Path getReceiverPath(Object requestMessage, Instruction instruction) {
         return new Path(instruction.getRequestParameterByName("processPath"));
     }
 
     @Override
-    public void sendReply(AWSIotMessage requestMessage, Instruction reply) {
-        final String uuid = shareCloudTopic.getUUID(reply);
-        shareCloudTopic.reply(reply, uuid);
+    public void sendReply(Object requestMessage, Instruction reply) {
+       //      
 
     }
+
+   
 
 }

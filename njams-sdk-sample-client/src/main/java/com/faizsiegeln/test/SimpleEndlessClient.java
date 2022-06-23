@@ -19,7 +19,6 @@ package com.faizsiegeln.test;
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.common.Path;
-import com.im.njams.sdk.communication.cloud.CloudConstants;
 import com.im.njams.sdk.logmessage.Activity;
 import com.im.njams.sdk.logmessage.Job;
 import com.im.njams.sdk.model.ActivityModel;
@@ -114,14 +113,15 @@ public class SimpleEndlessClient {
     }
 
     private static Settings getCloudProperties() {
-        Settings communicationProperties = new Settings();
-        communicationProperties.put(NjamsSettings.PROPERTY_COMMUNICATION, CloudConstants.NAME);
-        communicationProperties.put(CloudConstants.ENDPOINT, "<cloud url>");
-        communicationProperties.put(CloudConstants.APIKEY, "<cloud apikey>");
-        communicationProperties.put(CloudConstants.CLIENT_INSTANCEID, "<cloud client instance>");
-        communicationProperties.put(CloudConstants.CLIENT_CERTIFICATE, "<cloud client certificate>");
-        communicationProperties.put(CloudConstants.CLIENT_PRIVATEKEY, "<cloud client privatekey>");
-        return communicationProperties;
+    	  Settings communicationProperties = new Settings();
+          communicationProperties.put(NjamsSettings.PROPERTY_COMMUNICATION, NjamsSettings.PROPERTY_CLOUD_NAME);
+          communicationProperties.put(NjamsSettings.PROPERTY_CLOUD_ENDPOINT, "<cloud url>");
+          communicationProperties.put(NjamsSettings.PROPERTY_CLOUD_APIKEY, "<cloud apikey>");
+          communicationProperties.put(NjamsSettings.PROPERTY_CLOUD_INSTANCEID, "<cloud client instance>");
+          communicationProperties.put(NjamsSettings.PROPERTY_CLOUD_CERTIFICATE, "<cloud client certificate>");
+          communicationProperties.put(NjamsSettings.PROPERTY_CLOUD_PRIVATEKEY, "<cloud client privatekey>");
+          communicationProperties.put(NjamsSettings.PROPERTY_CLOUD_CA, "<cloud client ca file>");
+          return communicationProperties;
     }
 
     private static Settings getJmsProperties() {

@@ -471,6 +471,8 @@ public class NjamsSettings {
     //   | |    | |/ _ \| | | |/ _` |
     //   | |____| | (_) | |_| | (_| |
     //    \_____|_|\___/ \__,_|\__,_|;
+    
+    public static final String PROPERTY_CLOUD_NAME = "CLOUD";
     /**
      * This is the ingest point of the cloud instance.
      */
@@ -482,14 +484,19 @@ public class NjamsSettings {
     /**
      * This is the name of the njams cloud instance.
      */
-    public static final String PROPERTY_CLOUD_CLIENT_INSTANCEID = "njams.sdk.communication.cloud.instanceid";
+    public static final String PROPERTY_CLOUD_INSTANCEID = "njams.sdk.communication.cloud.instanceid";
     /**
      * This is the path to the certificate.pem file.
      */
-    public static final String PROPERTY_CLOUD_CLIENT_CERTIFICATE = "njams.sdk.communication.cloud.certificate";
+    public static final String PROPERTY_CLOUD_CERTIFICATE = "njams.sdk.communication.cloud.certificate";
     /**
      * This is the path to the private.pem.key file.
      */
-    public static final String PROPERTY_CLOUD_CLIENT_PRIVATEKEY = "njams.sdk.communication.cloud.privatekey";
+    public static final String PROPERTY_CLOUD_PRIVATEKEY = "njams.sdk.communication.cloud.privatekey";
+    /**
+     * This is the path to the ca file.
+     */
+    public static final String PROPERTY_CLOUD_CA = "njams.sdk.communication.cloud.ca";
+    
 
 }

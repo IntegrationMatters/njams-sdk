@@ -19,7 +19,6 @@ package com.faizsiegeln.test;
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.common.Path;
-import com.im.njams.sdk.communication.cloud.CloudConstants;
 import com.im.njams.sdk.logmessage.Activity;
 import com.im.njams.sdk.logmessage.Job;
 import com.im.njams.sdk.model.ActivityModel;
@@ -149,17 +148,14 @@ public class TestCloudClientShared {
 
     public static Settings getCloudProperties() {
         Settings communicationProperties = new Settings();
-        communicationProperties.put(NjamsSettings.PROPERTY_COMMUNICATION, CloudConstants.NAME);
-        communicationProperties.put(CloudConstants.ENDPOINT, "ingest.integrationmatters.com");
-        communicationProperties.put(CloudConstants.APIKEY,
-            "/tmp/njams_hcpqjtw_certificate/661ab6fea1-api.key");
-        communicationProperties.put(CloudConstants.CLIENT_INSTANCEID,
-            "/tmp/njams_hcpqjtw_certificate/661ab6fea1-instanceId");
-        communicationProperties.put(CloudConstants.CLIENT_CERTIFICATE,
-            "/tmp/njams_hcpqjtw_certificate/661ab6fea1-certificate.pem");
-        communicationProperties.put(CloudConstants.CLIENT_PRIVATEKEY,
-            "/tmp/njams_hcpqjtw_certificate/661ab6fea1-private.pem.key");
-
+        communicationProperties.put(NjamsSettings.PROPERTY_COMMUNICATION, NjamsSettings.PROPERTY_CLOUD_NAME);
+        communicationProperties.put(NjamsSettings.PROPERTY_CLOUD_ENDPOINT, "<cloud url>");
+        communicationProperties.put(NjamsSettings.PROPERTY_CLOUD_APIKEY, "<cloud apikey>");
+        communicationProperties.put(NjamsSettings.PROPERTY_CLOUD_INSTANCEID, "<cloud client instance>");
+        communicationProperties.put(NjamsSettings.PROPERTY_CLOUD_CERTIFICATE, "<cloud client certificate>");
+        communicationProperties.put(NjamsSettings.PROPERTY_CLOUD_PRIVATEKEY, "<cloud client privatekey>");
+        communicationProperties.put(NjamsSettings.PROPERTY_CLOUD_CA, "<cloud client ca file>");
+        
         communicationProperties.put(NjamsSettings.PROPERTY_USE_DEPRECATED_PATH_FIELD_FOR_SUBPROCESSES, "false");
         communicationProperties.put("njams.client.sdk.sharedcommunications", "true");
 

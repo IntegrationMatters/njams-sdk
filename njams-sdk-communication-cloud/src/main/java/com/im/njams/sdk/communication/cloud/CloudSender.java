@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Faiz & Siegeln Software GmbH
+ * Copyright (c) 2022 Faiz & Siegeln Software GmbH
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"),
  * to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
@@ -41,9 +41,7 @@ import java.util.Set;
 
 import static java.nio.charset.Charset.defaultCharset;
 
-/**
- * @author stkniep
- */
+
 public class CloudSender extends AbstractSender {
 
     private static final org.slf4j.Logger LOG = LoggerFactory.getLogger(CloudSender.class);
@@ -79,10 +77,10 @@ public class CloudSender extends AbstractSender {
             LOG.error("Please provide property {} for CloudSender", NjamsSettings.PROPERTY_CLOUD_APIKEY);
         }
 
-        String instanceIdPath = properties.getProperty(NjamsSettings.PROPERTY_CLOUD_CLIENT_INSTANCEID);
+        String instanceIdPath = properties.getProperty(NjamsSettings.PROPERTY_CLOUD_INSTANCEID);
 
         if (instanceIdPath == null) {
-            LOG.error("Please provide property {} for CloudSender", NjamsSettings.PROPERTY_CLOUD_CLIENT_INSTANCEID);
+            LOG.error("Please provide property {} for CloudSender", NjamsSettings.PROPERTY_CLOUD_INSTANCEID);
         }
 
         try {
@@ -118,7 +116,7 @@ public class CloudSender extends AbstractSender {
 
     @Override
     public String getName() {
-        return CloudConstants.NAME;
+    	return  NjamsSettings.PROPERTY_CLOUD_NAME;
     }
 
     protected void retryInit() {
