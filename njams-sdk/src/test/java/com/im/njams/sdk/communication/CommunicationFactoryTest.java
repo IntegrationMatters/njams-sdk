@@ -1,17 +1,21 @@
 package com.im.njams.sdk.communication;
 
-import com.im.njams.sdk.Njams;
-import com.im.njams.sdk.NjamsSettings;
-import com.im.njams.sdk.common.Path;
-import com.im.njams.sdk.settings.Settings;
-import org.junit.Before;
-import org.junit.Test;
+import static org.junit.Assert.assertNotNull;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.util.Iterator;
 import java.util.ServiceConfigurationError;
 
-import static org.junit.Assert.assertNotNull;
-import static org.mockito.Mockito.*;
+import org.junit.Before;
+import org.junit.Test;
+
+import com.im.njams.sdk.Njams;
+import com.im.njams.sdk.NjamsSettings;
+import com.im.njams.sdk.common.Path;
+import com.im.njams.sdk.settings.Settings;
 
 public class CommunicationFactoryTest {
 
@@ -28,13 +32,14 @@ public class CommunicationFactoryTest {
     private CommunicationServiceLoader<Receiver> createServiceLoaderMock() {
         Iterator<Receiver> iterator = mock(Iterator.class);
         CommunicationServiceLoader<Receiver> receivers = mock(CommunicationServiceLoader.class);
+        when(receivers.getServiceType()).thenReturn(Receiver.class);
         when(receivers.iterator()).thenReturn(iterator);
 
         return receivers;
     }
 
     private CommunicationFactory createCommunicationFactory(CommunicationServiceLoader<Receiver> receivers,
-                                                            CommunicationServiceLoader<AbstractSender> senders) {
+            CommunicationServiceLoader<AbstractSender> senders) {
 
         Settings settings = new Settings();
         settings.put(NjamsSettings.PROPERTY_COMMUNICATION, TestReceiver.NAME);

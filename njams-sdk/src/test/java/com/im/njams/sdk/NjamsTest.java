@@ -16,6 +16,20 @@
  */
 package com.im.njams.sdk;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+
+import org.junit.Before;
+import org.junit.Test;
+
 import com.faizsiegeln.njams.messageformat.v4.command.Command;
 import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
 import com.faizsiegeln.njams.messageformat.v4.command.Request;
@@ -25,21 +39,13 @@ import com.im.njams.sdk.common.Path;
 import com.im.njams.sdk.communication.ReplayHandler;
 import com.im.njams.sdk.communication.ReplayRequest;
 import com.im.njams.sdk.communication.ReplayResponse;
+import com.im.njams.sdk.communication.TestReceiver;
 import com.im.njams.sdk.communication.TestSender;
 import com.im.njams.sdk.logmessage.DataMasking;
 import com.im.njams.sdk.logmessage.Job;
 import com.im.njams.sdk.model.ProcessModel;
 import com.im.njams.sdk.serializer.Serializer;
 import com.im.njams.sdk.settings.Settings;
-import org.junit.Before;
-import org.junit.Test;
-
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-
-import static org.junit.Assert.*;
 
 /**
  * @author stkniep
@@ -50,7 +56,7 @@ public class NjamsTest {
 
     @Before
     public void createNewInstance() {
-        instance = new Njams(new Path(), "", "", new Settings());
+        instance = new Njams(new Path(), "", "", TestReceiver.getSettings());
     }
 
     @Test

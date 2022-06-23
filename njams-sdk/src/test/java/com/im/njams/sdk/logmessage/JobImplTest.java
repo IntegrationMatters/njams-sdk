@@ -49,10 +49,10 @@ import com.im.njams.sdk.common.DateTimeUtility;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.common.Path;
 import com.im.njams.sdk.communication.NjamsSender;
+import com.im.njams.sdk.communication.TestReceiver;
 import com.im.njams.sdk.model.ActivityModel;
 import com.im.njams.sdk.model.GroupModel;
 import com.im.njams.sdk.model.ProcessModel;
-import com.im.njams.sdk.settings.Settings;
 import com.im.njams.sdk.utils.StringUtils;
 
 /**
@@ -156,7 +156,7 @@ public class JobImplTest extends AbstractTest {
 
         Path clientPath = new Path("SDK4", "TEST");
 
-        Njams mockedNjams = spy(new Njams(clientPath, "1.0.0", "sdk4", new Settings()));
+        Njams mockedNjams = spy(new Njams(clientPath, "1.0.0", "sdk4", TestReceiver.getSettings()));
         Path processPath = new Path("PROCESSES");
         mockedNjams.createProcess(processPath);
         mockedNjams.start();

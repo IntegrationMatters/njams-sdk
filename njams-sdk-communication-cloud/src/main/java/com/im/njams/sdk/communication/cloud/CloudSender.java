@@ -257,10 +257,10 @@ public class CloudSender extends AbstractSender {
 
         Endpoints endpoints = JsonUtils.parse(response.toString(), Endpoints.class);
 
-        if (endpoints.error) {
-            LOG.error(endpoints.errorMessage);
+        if (endpoints.isError()) {
+            LOG.error(endpoints.getErrorMessage());
             endpointError = true;
-            endpointErrorMessage = endpoints.errorMessage;
+            endpointErrorMessage = endpoints.getErrorMessage();
 
             reconnectTime = System.currentTimeMillis() + retryInterval;
             LOG.info("Try to establish connection again in 10 min.");
@@ -270,7 +270,7 @@ public class CloudSender extends AbstractSender {
 
         endpointError = false;
 
-        return endpoints.ingest.startsWith("https://") ? endpoints.ingest : "https://" + endpoints.ingest;
+        return endpoints.getIngest().startsWith("https://") ? endpoints.getIngest() : "https://" + endpoints.getIngest();
     }
 
     private void addAddtionalProperties(final Properties properties, final HttpsURLConnection connection) {

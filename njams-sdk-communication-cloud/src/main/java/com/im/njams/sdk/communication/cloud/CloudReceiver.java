@@ -200,8 +200,8 @@ public class CloudReceiver extends AbstractReceiver {
 
         Endpoints endpoints = JsonUtils.parse(response.toString(), Endpoints.class);
 
-        if (endpoints.error) {
-            LOG.error(endpoints.errorMessage);
+        if (endpoints.isError()) {
+            LOG.error(endpoints.getErrorMessage());
 
             LOG.info("Try to establish connection again in 10 min.");
             retryConnection = true;
@@ -209,7 +209,7 @@ public class CloudReceiver extends AbstractReceiver {
             return "https://localhost";
         }
         retryConnection = false;
-        return endpoints.client;
+        return endpoints.getClient();
     }
 
     /**
