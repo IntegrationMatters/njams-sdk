@@ -130,7 +130,7 @@ public class SimpleClient {
 
     private static Settings getCloudProperties() {
 		  Settings communicationProperties = new Settings();
-	      communicationProperties.put(NjamsSettings.PROPERTY_COMMUNICATION, CloudConstants.NAME);
+		  communicationProperties.put(NjamsSettings.PROPERTY_COMMUNICATION, NjamsSettings.PROPERTY_CLOUD_NAME);
 	      communicationProperties.put(NjamsSettings.PROPERTY_CLOUD_ENDPOINT, "<cloud url>");
 	      communicationProperties.put(NjamsSettings.PROPERTY_CLOUD_APIKEY, "<cloud apikey>");
 	      communicationProperties.put(NjamsSettings.PROPERTY_CLOUD_INSTANCEID, "<cloud client instance>");
