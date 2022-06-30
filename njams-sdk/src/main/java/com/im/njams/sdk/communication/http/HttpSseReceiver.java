@@ -21,9 +21,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.common.JsonSerializerFactory;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
+import com.im.njams.sdk.common.Path;
 import com.im.njams.sdk.communication.AbstractReceiver;
 import com.im.njams.sdk.utils.CommonUtils;
 import com.im.njams.sdk.utils.JsonUtils;
+import com.im.njams.sdk.utils.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -104,6 +106,9 @@ public class HttpSseReceiver extends AbstractReceiver {
         String id = event.getId();
         String payload = event.readData();
         LOG.debug("OnMessage called, id=" + id + " payload=" + payload);
+        if (!isValidMessage(event)) {
+            return;
+        }
         Instruction instruction = null;
         try {
             instruction = mapper.readValue(payload, Instruction.class);
@@ -112,10 +117,23 @@ public class HttpSseReceiver extends AbstractReceiver {
         }
         onInstruction(instruction);
 
-        if(!CommonUtils.ignoreReplayResponseOnInstruction(instruction)) {
+        if (!CommonUtils.ignoreReplayResponseOnInstruction(instruction)) {
             sendReply(id, instruction);
-        }  
-        
+        }
+
+    }
+
+    protected boolean isValidMessage(InboundSseEvent event) {
+        if (event == null) {
+            return false;
+        }
+        final String receiver = event.getName();
+        if (StringUtils.isBlank(receiver) || !njams.getClientPath().equals(new Path(receiver))) {
+            LOG.debug("Message is not for me! Client path from Message is: " + event.getName() +
+                " but nJAMS Client path is: " + njams.getClientPath());
+            return false;
+        }
+        return true;
     }
 
     @Override
