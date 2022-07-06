@@ -150,14 +150,32 @@ public class HttpSseReceiver extends AbstractReceiver {
             Response response = target.request()
                 .header("Content-Type", "application/json")
                 .header("Accept", "text/plain")
-                .header("NJAMS_RECEIVER", "server")
-                .header("NJAMS_MESSAGETYPE", "reply")
-                .header("NJAMS_MESSAGE_ID", responseId)
-                .header("NJAMS_REPLY_FOR", requestId)
+                .header("njams-receiver", "server")
+                .header("njams-messagetype", "reply")
+                .header("njams-message-id", responseId)
+                .header("njams-reply-for", requestId)
                 .post(Entity.json(JsonUtils.serialize(instruction)));
             LOG.debug("Reply response status:" + response.getStatus());
+
+            // Try to use old deprecated HTTP header names
+            if (response.getStatus() != 200 && response.getStatus() != 204) {
+                Response responseOldHeader = target.request()
+                    .header("Content-Type", "application/json")
+                    .header("Accept", "text/plain")
+                    .header("NJAMS_RECEIVER", "server")
+                    .header("NJAMS_MESSAGETYPE", "reply")
+                    .header("NJAMS_MESSAGE_ID", responseId)
+                    .header("NJAMS_REPLY_FOR", requestId)
+                    .post(Entity.json(JsonUtils.serialize(instruction)));
+                LOG.debug("Reply response status with old headers:" + responseOldHeader.getStatus());
+            }
         } finally {
             if (client != null) {
+                try {
+                    Thread.sleep(100);
+                } catch (InterruptedException e) {
+                    // do nothing
+                }
                 client.close();
             }
         }
