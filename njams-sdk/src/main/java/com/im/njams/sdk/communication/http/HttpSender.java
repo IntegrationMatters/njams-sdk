@@ -46,10 +46,22 @@ import java.util.Properties;
 public class HttpSender extends AbstractSender {
     private static final Logger LOG = LoggerFactory.getLogger(HttpSender.class);
 
-    public static final String NJAMS_MESSAGEVERSION_HTTP_HEADER = "njams-messageversion";
-    public static final String NJAMS_PATH_HTTP_HEADER = "njams-path";
-    public static final String NJAMS_LOGID_HTTP_HEADER = "njams-logid";
-    public static final String NJAMS_MESSAGETYPE_HTTP_HEADER = "njams-messagetpe";
+    /**
+     * Name of the HTTP Header for Messageversion
+     */
+    private static final String NJAMS_MESSAGEVERSION_HTTP_HEADER = "njams-messageversion";
+    /**
+     * Name of the HTTP Header for Path
+     */
+    private static final String NJAMS_PATH_HTTP_HEADER = "njams-path";
+    /**
+     * Name of the HTTP Header for Logid
+     */
+    private static final String NJAMS_LOGID_HTTP_HEADER = "njams-logid";
+    /**
+     * Name if the HTTP Header for Messagetype
+     */
+    private static final String NJAMS_MESSAGETYPE_HTTP_HEADER = "njams-messagetpe";
 
     protected ObjectMapper mapper;
     /**
@@ -207,34 +219,12 @@ public class HttpSender extends AbstractSender {
         Exception exception = null;
         do {
             try {
-                Response response = target.request()
-                    .header("Content-Type", "application/json")
-                    .header("Accept", "text/plain")
-                    .header(NJAMS_MESSAGEVERSION_HTTP_HEADER, MessageVersion.V4.toString())
-                    .header(NJAMS_MESSAGETYPE_HTTP_HEADER, properties.getProperty(Sender.NJAMS_MESSAGETYPE))
-                    .header(NJAMS_PATH_HTTP_HEADER, properties.getProperty(Sender.NJAMS_PATH))
-                    .header(NJAMS_LOGID_HTTP_HEADER, properties.getProperty(Sender.NJAMS_LOGID))
-                    .post(Entity.json(JsonUtils.serialize(msg)));
-                LOG.debug("Response status:" + response.getStatus()
-                    + ", Message: " + response.getStatusInfo().getReasonPhrase());
-                responseStatus = response.getStatus();
-                if (response.getStatus() == 200 || response.getStatus() == 204) {
+                responseStatus = send(msg, properties);
+                if (responseStatus == 200 || responseStatus == 204) {
                     sent = true;
-                }
-
-                if (response.getStatus() != 200 && response.getStatus() != 204) {
-                    Response responseOldHeader = target.request()
-                        .header("Content-Type", "application/json")
-                        .header("Accept", "text/plain")
-                        .header(Sender.NJAMS_MESSAGEVERSION, MessageVersion.V4.toString())
-                        .header(Sender.NJAMS_MESSAGETYPE, properties.getProperty(Sender.NJAMS_MESSAGETYPE))
-                        .header(Sender.NJAMS_PATH, properties.getProperty(Sender.NJAMS_PATH))
-                        .header(Sender.NJAMS_LOGID, properties.getProperty(Sender.NJAMS_LOGID))
-                        .post(Entity.json(JsonUtils.serialize(msg)));
-                    LOG.debug("Response status:" + responseOldHeader.getStatus()
-                        + ", Message: " + responseOldHeader.getStatusInfo().getReasonPhrase());
-                    responseStatus = responseOldHeader.getStatus();
-                    if (responseOldHeader.getStatus() == 200 || response.getStatus() == 204) {
+                } else {
+                    responseStatus = sendWithOldHeaders(msg, properties);
+                    if (responseStatus == 200 || responseStatus == 204) {
                         sent = true;
                     }
                 }
@@ -251,10 +241,10 @@ public class HttpSender extends AbstractSender {
                     LOG.warn("Try to reconnect, because the Server HTTP Endpoint could not be reached for {} seconds.",
                         MAX_TRIES * EXCEPTION_IDLE_TIME / 1000);
                     if (exception != null) {
-                        throw new NjamsSdkRuntimeException("Eror sending Message with HTTP Client URI "
+                        throw new NjamsSdkRuntimeException("Error sending Message with HTTP Client URI "
                             + target.getUri().toString(), exception);
                     } else {
-                        throw new NjamsSdkRuntimeException("Eror sending Message with HTTP Client URI "
+                        throw new NjamsSdkRuntimeException("Error sending Message with HTTP Client URI "
                             + target.getUri().toString() + " Response Status is: " + responseStatus);
                     }
                 } else {
@@ -265,6 +255,34 @@ public class HttpSender extends AbstractSender {
             responseStatus = -1;
 
         } while (!sent);
+    }
+
+    private int send(final Object msg, final Properties properties) {
+        Response response = target.request()
+            .header("Content-Type", "application/json")
+            .header("Accept", "text/plain")
+            .header(NJAMS_MESSAGEVERSION_HTTP_HEADER, MessageVersion.V4.toString())
+            .header(NJAMS_MESSAGETYPE_HTTP_HEADER, properties.getProperty(Sender.NJAMS_MESSAGETYPE))
+            .header(NJAMS_PATH_HTTP_HEADER, properties.getProperty(Sender.NJAMS_PATH))
+            .header(NJAMS_LOGID_HTTP_HEADER, properties.getProperty(Sender.NJAMS_LOGID))
+            .post(Entity.json(JsonUtils.serialize(msg)));
+        LOG.debug("Response status:" + response.getStatus()
+            + ", Message: " + response.getStatusInfo().getReasonPhrase());
+        return response.getStatus();
+    }
+
+    private int sendWithOldHeaders(final Object msg, final Properties properties) {
+        Response response = target.request()
+            .header("Content-Type", "application/json")
+            .header("Accept", "text/plain")
+            .header(Sender.NJAMS_MESSAGEVERSION, MessageVersion.V4.toString())
+            .header(Sender.NJAMS_MESSAGETYPE, properties.getProperty(Sender.NJAMS_MESSAGETYPE))
+            .header(Sender.NJAMS_PATH, properties.getProperty(Sender.NJAMS_PATH))
+            .header(Sender.NJAMS_LOGID, properties.getProperty(Sender.NJAMS_LOGID))
+            .post(Entity.json(JsonUtils.serialize(msg)));
+        LOG.debug("Response status:" + response.getStatus()
+            + ", Message: " + response.getStatusInfo().getReasonPhrase());
+        return response.getStatus();
     }
 
     @Override
