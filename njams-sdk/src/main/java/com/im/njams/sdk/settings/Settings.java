@@ -16,14 +16,20 @@
  */
 package com.im.njams.sdk.settings;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Properties;
+import java.util.Set;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.settings.encoding.Transformer;
 import com.im.njams.sdk.utils.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.util.*;
 
 /**
  * The settings contains settings needed for
@@ -107,7 +113,7 @@ public class Settings {
      */
     @Deprecated
     public static final String PROPERTY_USE_DEPRECATED_PATH_FIELD_FOR_SUBPROCESSES =
-        NjamsSettings.PROPERTY_USE_DEPRECATED_PATH_FIELD_FOR_SUBPROCESSES;
+            NjamsSettings.PROPERTY_USE_DEPRECATED_PATH_FIELD_FOR_SUBPROCESSES;
 
     /**
      * If set to <code>true</code> secure XML processing feature will NOT be inititalzied:
@@ -214,7 +220,7 @@ public class Settings {
         List<String> list = new ArrayList<>();
         properties.keySet().forEach(key -> list.add((String) key));
         Collections.sort(list);
-        list.forEach((key) -> {
+        list.forEach(key -> {
             if (isSecuredKey(key)) {
                 logger.info("***      {} = ****", key);
             } else {
@@ -256,11 +262,11 @@ public class Settings {
     public Properties filter(String prefix) {
         Properties response = new Properties();
         properties.entrySet()
-            .stream()
-            .filter(e -> String.class.isAssignableFrom(e.getKey().getClass()))
-            .filter(e -> ((String) e.getKey()).startsWith(prefix))
-            .forEach(e -> response.setProperty((String) e.getKey(), (String) e.getValue()));
-        return Transformer.decode(properties);
+                .stream()
+                .filter(e -> String.class.isAssignableFrom(e.getKey().getClass()))
+                .filter(e -> ((String) e.getKey()).startsWith(prefix))
+                .forEach(e -> response.setProperty((String) e.getKey(), (String) e.getValue()));
+        return Transformer.decode(response);
     }
 
     /**
@@ -273,13 +279,13 @@ public class Settings {
     public Properties filterAndCut(String prefix) {
         Properties response = new Properties();
         properties.entrySet()
-            .stream()
-            .filter(e -> String.class.isAssignableFrom(e.getKey().getClass()))
-            .filter(e -> ((String) e.getKey()).startsWith(prefix))
-            .forEach(e -> response.setProperty(
-                ((String) e.getKey()).substring(((String) e.getKey()).indexOf(prefix) + prefix.length()),
-                (String) e.getValue()));
-        return Transformer.decode(properties);
+                .stream()
+                .filter(e -> String.class.isAssignableFrom(e.getKey().getClass()))
+                .filter(e -> ((String) e.getKey()).startsWith(prefix))
+                .forEach(e -> response.setProperty(
+                        ((String) e.getKey()).substring(((String) e.getKey()).indexOf(prefix) + prefix.length()),
+                        (String) e.getValue()));
+        return Transformer.decode(response);
     }
 
     public void addSecureProperties(Set<String> secureProperties) {

@@ -16,13 +16,16 @@
  */
 package com.im.njams.sdk.settings;
 
-import com.im.njams.sdk.NjamsSettings;
+import static org.junit.Assert.assertEquals;
+
+import java.util.Properties;
+
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import java.util.Properties;
+import com.im.njams.sdk.NjamsSettings;
 
 /**
  * @author krautenberg@integrationmatters.com
@@ -72,4 +75,31 @@ public class SettingsTest {
         settings.printPropertiesWithoutPasswords();
     }
 
+    @Test
+    public void testFilter() {
+        settings.put("a.a", "a");
+        settings.put("a.c", "c");
+        settings.put("a.d", "d");
+        settings.put("b.b", "b");
+        settings.put("c.ce", "ce");
+        Properties result = settings.filter("a.");
+        assertEquals(3, result.size());
+        assertEquals("a", result.get("a.a"));
+        assertEquals("c", result.get("a.c"));
+        assertEquals("d", result.get("a.d"));
+    }
+
+    @Test
+    public void testFilterAndCut() {
+        settings.put("a.a", "a");
+        settings.put("a.c", "c");
+        settings.put("a.d", "d");
+        settings.put("b.b", "b");
+        settings.put("c.ce", "ce");
+        Properties result = settings.filterAndCut("a.");
+        assertEquals(3, result.size());
+        assertEquals("a", result.get("a"));
+        assertEquals("c", result.get("c"));
+        assertEquals("d", result.get("d"));
+    }
 }
