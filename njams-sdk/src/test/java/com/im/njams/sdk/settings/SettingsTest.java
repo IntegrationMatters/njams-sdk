@@ -25,9 +25,11 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import com.im.njams.sdk.NjamsSettings;
+import com.im.njams.sdk.communication.http.HttpsSender;
+import com.im.njams.sdk.communication.jms.JmsConstants;
 
 /**
+ *
  * @author krautenberg@integrationmatters.com
  */
 public class SettingsTest {
@@ -51,28 +53,16 @@ public class SettingsTest {
     @Test
     public void testPrintPropertiesWithoutChangingThem() {
         Properties properties = settings.getAllProperties();
-        properties.put(NjamsSettings.PROPERTY_JMS_SECURITY_CREDENTIALS, "njams");
-        properties.put(NjamsSettings.PROPERTY_JMS_PASSWORD, "njams");
+        properties.put(JmsConstants.SECURITY_CREDENTIALS, "njams");
+        properties.put(JmsConstants.PASSWORD, "njams");
+        properties.put(HttpsSender.SENDER_PASSWORD, "njams");
         settings.printPropertiesWithoutPasswords();
-        String credentials = properties.getProperty(NjamsSettings.PROPERTY_JMS_SECURITY_CREDENTIALS);
+        String credentials = properties.getProperty(JmsConstants.SECURITY_CREDENTIALS);
         Assert.assertEquals("njams", credentials);
-        String jmsPassword = properties.getProperty(NjamsSettings.PROPERTY_JMS_PASSWORD);
+        String jmsPassword = properties.getProperty(JmsConstants.PASSWORD);
         Assert.assertEquals("njams", jmsPassword);
-    }
-
-    /**
-     * This test tests if the PrintPropertiesWithoutPasswords prints the
-     * properties in correct order.
-     */
-    @Test
-    public void testPrintPropertiesInCorrectOrder() {
-        Properties properties = settings.getAllProperties();
-        properties.put("a", "a");
-        properties.put("c", "c");
-        properties.put("d", "d");
-        properties.put("b", "b");
-        properties.put("ce", "ce");
-        settings.printPropertiesWithoutPasswords();
+        String httpsPassword = properties.getProperty(HttpsSender.SENDER_PASSWORD);
+        Assert.assertEquals("njams", httpsPassword);
     }
 
     @Test

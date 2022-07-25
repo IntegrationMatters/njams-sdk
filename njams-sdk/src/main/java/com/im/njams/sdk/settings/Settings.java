@@ -182,7 +182,7 @@ public class Settings {
         List<String> list = new ArrayList<>();
         properties.keySet().forEach(key -> list.add((String) key));
         Collections.sort(list);
-        list.forEach((key) -> {
+        list.forEach(key -> {
             if (isSecuredKey(key)) {
                 logger.info("***      {} = ****", key);
             } else {
@@ -223,11 +223,11 @@ public class Settings {
     public Properties filter(String prefix) {
         Properties response = new Properties();
         properties.entrySet()
-        .stream()
-        .filter(e -> String.class.isAssignableFrom(e.getKey().getClass()))
-        .filter(e -> ((String) e.getKey()).startsWith(prefix))
-        .forEach(e -> response.setProperty((String) e.getKey(), (String) e.getValue()));
-        return Transformer.decode(properties);
+                .stream()
+                .filter(e -> String.class.isAssignableFrom(e.getKey().getClass()))
+                .filter(e -> ((String) e.getKey()).startsWith(prefix))
+                .forEach(e -> response.setProperty((String) e.getKey(), (String) e.getValue()));
+        return Transformer.decode(response);
     }
 
     /**
@@ -240,13 +240,13 @@ public class Settings {
     public Properties filterAndCut(String prefix) {
         Properties response = new Properties();
         properties.entrySet()
-        .stream()
-        .filter(e -> String.class.isAssignableFrom(e.getKey().getClass()))
-        .filter(e -> ((String) e.getKey()).startsWith(prefix))
-        .forEach(e -> response.setProperty(
-                ((String) e.getKey()).substring(((String) e.getKey()).indexOf(prefix) + prefix.length()),
-                (String) e.getValue()));
-        return Transformer.decode(properties);
+                .stream()
+                .filter(e -> String.class.isAssignableFrom(e.getKey().getClass()))
+                .filter(e -> ((String) e.getKey()).startsWith(prefix))
+                .forEach(e -> response.setProperty(
+                        ((String) e.getKey()).substring(((String) e.getKey()).indexOf(prefix) + prefix.length()),
+                        (String) e.getValue()));
+        return Transformer.decode(response);
     }
 
     public void addSecureProperties(Set<String> secureProperties) {
