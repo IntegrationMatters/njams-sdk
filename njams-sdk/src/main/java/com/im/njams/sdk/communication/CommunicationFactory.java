@@ -191,8 +191,13 @@ public class CommunicationFactory {
         }
         final Iterator<T> iterator = loader.iterator();
         final Collection<T> available = new ArrayList<>();
-        while (iterator.hasNext()) {
+
+        while (true) {
             try {
+                // iterator.hasNext() may throw an exception if the class cannot be loaded!
+                if (!iterator.hasNext()) {
+                    break;
+                }
                 available.add(iterator.next());
             } catch (Throwable error) {
                 if (LOG.isDebugEnabled()) {
@@ -206,7 +211,8 @@ public class CommunicationFactory {
         }
         if (LOG.isDebugEnabled()) {
             LOG.debug("Available {} implementations {}", loader.getServiceType().getSimpleName(),
-                    available.stream().map(Object::getClass).map(Class::getSimpleName).collect(Collectors.joining(",")));
+                    available.stream().map(Object::getClass).map(Class::getSimpleName)
+                            .collect(Collectors.joining(",")));
         }
         return available;
     }

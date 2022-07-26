@@ -370,14 +370,12 @@
             <scope>compile</scope>
         </dependency>
 
+        <!-- provided - not shaded -->
         <dependency>
-        	<!-- if this is not present, service loader breaks iteration when trying to create JMS sender/receiver -->
             <groupId>javax.jms</groupId>
             <artifactId>jms-api</artifactId>
-            <scope>compile</scope>
+            <scope>provided</scope>
         </dependency>
-        
-        <!-- provided - not shaded -->
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
