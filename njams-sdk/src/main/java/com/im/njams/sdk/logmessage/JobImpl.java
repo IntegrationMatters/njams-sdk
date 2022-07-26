@@ -228,7 +228,14 @@ public class JobImpl implements Job {
         logMode = configuration.getLogMode();
         LOG.debug("Set LogMode for {} to {}", processModel.getPath(), logMode);
 
-        recording = configuration.isRecording();
+        boolean disableStartData = "true"
+                .equalsIgnoreCase(getNjams().getSettings().getProperty(Settings.PROPERTY_DISABLE_STARTDATA));
+
+        recording = !disableStartData && configuration.isRecording();
+        LOG.debug(
+                "Set recording for {} to {} based on client settings {} and disable-start-data setting {}",
+                processModel.getPath(), recording, configuration.isRecording(), disableStartData);
+
         LOG.debug("Set recording for {} to {} based on client settings", processModel.getPath(), recording);
 
         ProcessConfiguration process = configuration.getProcess(processModel.getPath().toString());
@@ -237,9 +244,11 @@ public class JobImpl implements Job {
             LOG.debug("Set LogLevel for {} to {}", processModel.getPath(), logLevel);
             exclude = process.isExclude();
             LOG.debug("Set Exclude for {} to {}", processModel.getPath(), exclude);
-            recording = process.isRecording();
-            LOG.debug("Set recording for {} to {} based on process settings {} and client setting {}",
-                    processModel.getPath(), recording, process.isRecording(), configuration.isRecording());
+            recording = !disableStartData && process.isRecording();
+            LOG.debug(
+                    "Set recording for {} to {} based on process settings {} and client setting {} and disable-start-data setting {}",
+                    processModel.getPath(), recording, process.isRecording(),
+                    configuration.isRecording(), disableStartData);
         }
         if (recording) {
             addAttribute("$njams_recorded", "true");
@@ -651,7 +660,7 @@ public class JobImpl implements Job {
             //end all not ended activities
             activities.values().stream()
                     .filter(a -> a.getActivityStatus() == null || a.getActivityStatus() == ActivityStatus.RUNNING)
-                    .forEach(a -> a.end());
+                    .forEach(Activity::end);
             if (getEndTime() == null) {
                 setEndTime(DateTimeUtility.now());
             }

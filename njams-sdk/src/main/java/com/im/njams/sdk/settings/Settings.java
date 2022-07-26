@@ -109,6 +109,11 @@ public class Settings {
     public static final String PROPERTY_TRUNCATE_LIMIT = "njams.sdk.truncateActivitiesLimit";
     /** Setting for truncating successful jobs, provided that they were processed as single message.  */
     public static final String PROPERTY_TRUNCATE_ON_SUCCESS = "njams.sdk.truncateOnSuccess";
+    /**
+     * If set to <code>true</code> collecting job start-data is disabled. Please note that this also disables replay
+     * functionality.
+     */
+    public static final String PROPERTY_DISABLE_STARTDATA = "njams.client.sdk.disable.startdata";
 
     public Settings() {
         properties = new Properties();
