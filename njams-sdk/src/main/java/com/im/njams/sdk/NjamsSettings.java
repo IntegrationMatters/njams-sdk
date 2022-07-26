@@ -143,7 +143,7 @@ public class NjamsSettings {
     public static final String PROPERTY_DISCARD_POLICY = "njams.client.sdk.discardpolicy";
 
     /**
-     * If set to <code>true</code> communications (senders and receivers) will be shared accross multiple {@link Njams}
+     * If set to <code>true</code> communications (senders and receivers) will be shared across multiple {@link Njams}
      * instances if supported by the configured implementations. By default (or if set to <code>false</code>) each
      * {@link Njams} instance uses a dedicated instance of sender and receiver pools.
      */
@@ -166,6 +166,12 @@ public class NjamsSettings {
      * This can be helpful for an environment containing an old XML lib, which does not support this.
      */
     public static final String PROPERTY_DISABLE_SECURE_PROCESSING = "njams.client.sdk.disable.secure.processing";
+
+    /**
+     * If set to <code>true</code> collecting job start-data is disabled. Please note that this also disables replay
+     * functionality.
+     */
+    public static final String PROPERTY_DISABLE_STARTDATA = "njams.client.sdk.disable.startdata";
 
     //     _____      _   _   _
     //    / ____|    | | | | (_)
