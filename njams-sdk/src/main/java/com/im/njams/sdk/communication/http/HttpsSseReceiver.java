@@ -3,6 +3,7 @@ package com.im.njams.sdk.communication.http;
 import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.common.JsonSerializerFactory;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
+import com.im.njams.sdk.communication.ConnectionStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -47,15 +48,21 @@ public class HttpsSseReceiver extends HttpSseReceiver {
 
     @Override
     public void connect() {
+        if (isConnected()) {
+            return;
+        }
         try {
+            connectionStatus = ConnectionStatus.CONNECTING;
             client = ClientBuilder.newBuilder().sslContext(sslContext).build();
             target = client.target(url.toString() + "/subscribe");
             source = SseEventSource.target(target).build();
-            source.register(this::onMessage);
+            source.register(this::onMessage, this::onError);
             source.open();
-            LOG.debug("Subscribed SSE receiver to {}", target.getUri());
+            LOG.debug("Subscribed SSL SSE receiver to {}", target.getUri());
+            connectionStatus = ConnectionStatus.CONNECTED;
         } catch (Exception e) {
-            LOG.error("Exception during registering Server Sent Event Endpoint.", e);
+            LOG.error("Exception during registering SSL Server Sent Event Endpoint.", e);
+            throw new NjamsSdkRuntimeException("Exception during registering SSL Server Sent Event Endpoint.", e);
         }
     }
 }

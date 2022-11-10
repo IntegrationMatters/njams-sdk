@@ -16,20 +16,16 @@
  */
 package com.im.njams.sdk.communication.http;
 
-import java.io.IOException;
-
-import javax.ws.rs.client.ClientBuilder;
-import javax.ws.rs.sse.InboundSseEvent;
-import javax.ws.rs.sse.SseEventSource;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.common.Path;
 import com.im.njams.sdk.communication.ShareableReceiver;
 import com.im.njams.sdk.communication.SharedReceiverSupport;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import javax.ws.rs.sse.InboundSseEvent;
+import java.io.IOException;
 
 /**
  * Overrides the common {@link HttpSseReceiver} for supporting receiving messages for multiple {@link Njams} instances.
@@ -40,7 +36,7 @@ public class SharedHttpSseReceiver extends HttpSseReceiver implements ShareableR
     private static final Logger LOG = LoggerFactory.getLogger(SharedHttpSseReceiver.class);
 
     private final SharedReceiverSupport<SharedHttpSseReceiver, InboundSseEvent> sharingSupport =
-            new SharedReceiverSupport<>(this);
+        new SharedReceiverSupport<>(this);
 
     /**
      * Adds the given instance to this receiver for receiving instructions.
@@ -61,20 +57,6 @@ public class SharedHttpSseReceiver extends HttpSseReceiver implements ShareableR
     @Override
     public Path getReceiverPath(InboundSseEvent requestMessage, Instruction instruction) {
         return new Path(requestMessage.getName());
-    }
-
-    @Override
-    public void connect() {
-        try {
-            client = ClientBuilder.newClient();
-            target = client.target(url.toString() + "/subscribe");
-            source = SseEventSource.target(target).build();
-            source.register(this::onMessage);
-            source.open();
-            LOG.debug("Subscribed SSE receiver to {}", target.getUri());
-        } catch (Exception e) {
-            LOG.error("Exception during registering Server Sent Event Endpoint.", e);
-        }
     }
 
     /**

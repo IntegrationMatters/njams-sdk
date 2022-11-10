@@ -11,9 +11,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.net.ssl.SSLContext;
-import javax.ws.rs.client.ClientBuilder;
 import javax.ws.rs.sse.InboundSseEvent;
-import javax.ws.rs.sse.SseEventSource;
 import java.io.IOException;
 import java.net.URL;
 import java.util.Properties;
@@ -62,20 +60,6 @@ public class SharedHttpsSseReceiver extends HttpsSseReceiver implements Shareabl
     @Override
     public Path getReceiverPath(InboundSseEvent requestMessage, Instruction instruction) {
         return new Path(requestMessage.getName());
-    }
-
-    @Override
-    public void connect() {
-        try {
-            client = ClientBuilder.newBuilder().sslContext(sslContext).build();
-            target = client.target(url.toString() + "/subscribe");
-            source = SseEventSource.target(target).build();
-            source.register(this::onMessage);
-            source.open();
-            LOG.debug("Subscribed SSE receiver to {}", target.getUri());
-        } catch (Exception e) {
-            LOG.error("Exception during registering Server Sent Event Endpoint.", e);
-        }
     }
 
     /**

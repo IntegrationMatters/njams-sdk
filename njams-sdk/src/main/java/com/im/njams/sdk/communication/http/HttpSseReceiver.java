@@ -23,6 +23,7 @@ import com.im.njams.sdk.common.JsonSerializerFactory;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.common.Path;
 import com.im.njams.sdk.communication.AbstractReceiver;
+import com.im.njams.sdk.communication.ConnectionStatus;
 import com.im.njams.sdk.utils.CommonUtils;
 import com.im.njams.sdk.utils.JsonUtils;
 import com.im.njams.sdk.utils.StringUtils;
@@ -83,23 +84,40 @@ public class HttpSseReceiver extends AbstractReceiver {
     }
 
     @Override
-    public void start() {
-        connect();
-    }
-
-    @Override
     public void connect() {
+        if (isConnected()) {
+            return;
+        }
         try {
+            connectionStatus = ConnectionStatus.CONNECTING;
             client = ClientBuilder.newClient();
             target = client.target(url.toString() + "/subscribe");
             source = SseEventSource.target(target).build();
-            source.register(this::onMessage);
+            source.register(this::onMessage, this::onError);
             source.open();
             LOG.debug("Subscribed SSE receiver to {}", target.getUri());
-
+            connectionStatus = ConnectionStatus.CONNECTED;
         } catch (Exception e) {
             LOG.error("Exception during registering Server Sent Event Endpoint.", e);
+            throw new NjamsSdkRuntimeException("Exception during registering Server Sent Event Endpoint.", e);
         }
+    }
+
+    void onError(Throwable throwable) {
+        LOG.debug("OnError called, cause: " + throwable.getMessage());
+        try {
+            // Sleep, because source.open() in connect always returns without exception;
+            // It starts a thread for the connection, which will then call this onError Method on failure
+            // Wait for end of connect method (and setting the connectionStatus to CONNECTED first.
+            // Otherwise we will have a race condition here.
+            Thread.sleep(60000);
+        } catch (InterruptedException e) {
+            throw new NjamsSdkRuntimeException(e.getMessage());
+        }
+        connectionStatus = ConnectionStatus.DISCONNECTED;
+        // Cannot use the reconnect loop here, because there is no chance to find out, if a reconnect has
+        // been successful inside the loop and it will always end after first iteration.
+        connect();
     }
 
     void onMessage(InboundSseEvent event) {
@@ -138,6 +156,10 @@ public class HttpSseReceiver extends AbstractReceiver {
 
     @Override
     public void stop() {
+        if (!isConnected()) {
+            return;
+        }
+        connectionStatus = ConnectionStatus.DISCONNECTED;
         source.close();
     }
 
