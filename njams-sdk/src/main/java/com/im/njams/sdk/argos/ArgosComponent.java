@@ -38,10 +38,10 @@ public class ArgosComponent {
     // the name of the container of this component; can be a server, or JVM name, or similar
     private String containerId;
 
-    // the measurement name
+    // the measurement name; for example 'jvm' for component, related to a java VM.
     private String measurement;
 
-    // the technology type
+    // the technology type like: server, process, tibbw6, tipappnode, tibappspace etc.
     private String type;
 
     public ArgosComponent(String id, String name, String containerId, String measurement, String type) {
@@ -109,10 +109,10 @@ public class ArgosComponent {
             try {
                 ArgosComponent argosSignatureToCheck = (ArgosComponent) signatureToCheck;
                 if (!(argosSignatureToCheck.getContainerId().equals(this.getContainerId()) &&
-                        argosSignatureToCheck.getId().equals(this.getId()) &&
-                        argosSignatureToCheck.getName().equals(this.getName()) &&
-                        argosSignatureToCheck.getMeasurement().equals(this.getMeasurement()) &&
-                        argosSignatureToCheck.getType().equals(this.getType()))) {
+                    argosSignatureToCheck.getId().equals(this.getId()) &&
+                    argosSignatureToCheck.getName().equals(this.getName()) &&
+                    argosSignatureToCheck.getMeasurement().equals(this.getMeasurement()) &&
+                    argosSignatureToCheck.getType().equals(this.getType()))) {
                     isEqual = false;
                 }
             } catch (Exception t) {
