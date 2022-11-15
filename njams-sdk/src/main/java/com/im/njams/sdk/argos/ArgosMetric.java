@@ -139,4 +139,49 @@ public abstract class ArgosMetric {
     public void addTag(String key, Object value) {
         tags.put(key, value);
     }
+
+    /**
+     * Set the id of the related component
+     *
+     * @param id the id
+     */
+    public void setId(String id) {
+        this.id = id;
+    }
+
+    /**
+     * Set the logical name (short name) of the related component
+     *
+     * @param name the name
+     */
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    /**
+     * Set the name of the container of the related component
+     *
+     * @param containerid the containerid
+     */
+    public void setContainerid(String containerid) {
+        this.containerid = containerid;
+    }
+
+    /**
+     * Set the measurement name of the related component
+     *
+     * @param measurement the measurement
+     */
+    public void setMeasurement(String measurement) {
+        this.measurement = measurement;
+    }
+
+    /**
+     * Set the technology type of the related component
+     *
+     * @param type the type
+     */
+    public void setType(String type) {
+        this.type = type;
+    }
 }
