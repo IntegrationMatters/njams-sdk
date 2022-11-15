@@ -24,30 +24,53 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Abstract base class for Argos Metrics.
+ * Abstract base class for Argos Metrics. Contains the infos about related {@link ArgosComponent}
  * <p>
  * Extend this class and use it in your @see {@link ArgosCollector}
  * Provide all attributes you want to send to Argos.
  */
 public abstract class ArgosMetric {
 
-    // the id of this component
+    // the id of the related component
     private String id;
 
-    // the logical name (short name) of this component
+    // the logical name (short name) of the related component
     private String name;
 
-    // the name of the container of this component; can be a server, or JVM name, or similar
+    // the name of the container of the related component
     private String containerid;
 
-    // the measurement name
+    // the measurement name of the related component
     private String measurement;
 
-    // the technology type
+    // the technology type of the related component
     private String type;
 
+    // optional map of tags for this metric.
     private Map<String, Object> tags = new HashMap<>();
 
+    /**
+     * Constructor for {@link ArgosMetric}
+     *
+     * @param argosComponent the related component
+     */
+    public ArgosMetric(ArgosComponent argosComponent) {
+        this.id = argosComponent.getId();
+        this.name = argosComponent.getName();
+        this.containerid = argosComponent.getContainerId();
+        this.measurement = argosComponent.getMeasurement();
+        this.type = argosComponent.getType();
+    }
+
+    /**
+     * Constructor for {@link ArgosMetric}
+     *
+     * @param id          the id of the related component
+     * @param name        the logical name (short name) of the related component
+     * @param containerid the name of the container of the related component
+     * @param measurement the measurement name of the related component
+     * @param type        the technology type of the related component
+     */
     public ArgosMetric(String id, String name, String containerid, String measurement, String type) {
         this.id = id;
         this.name = name;
@@ -56,54 +79,63 @@ public abstract class ArgosMetric {
         this.type = type;
     }
 
+    /**
+     * @return the id of the related component
+     */
     public String getId() {
         return id;
     }
 
-    public void setId(String id) {
-        this.id = id;
-    }
-
+    /**
+     * @return the logical name (short name) of the related component
+     */
     public String getName() {
         return name;
     }
 
-    public void setName(String name) {
-        this.name = name;
-    }
-
+    /**
+     * @return the name of the container of the related component
+     */
     public String getContainerId() {
         return containerid;
     }
 
-    public void setContainerId(String containerId) {
-        this.containerid = containerId;
-    }
-
+    /**
+     * @return the measurement name of the related component
+     */
     public String getMeasurement() {
         return measurement;
     }
 
-    public void setMeasurement(String measurement) {
-        this.measurement = measurement;
-    }
-
+    /**
+     * @return the technology type of the related component
+     */
     public String getType() {
         return type;
     }
 
-    public void setType(String type) {
-        this.type = type;
-    }
-
+    /**
+     * @return a map of tags
+     */
     public Map<String, Object> getTags() {
         return tags;
     }
 
+    /**
+     * Replace all tags with tag map
+     *
+     * @param tags the tag map
+     */
     public void setTags(Map<String, Object> tags) {
         this.tags = tags;
     }
 
+    /**
+     * Add a single tag to the map of tags
+     *
+     * @param key   of the tag
+     * @param value of the tag
+     */
     public void addTag(String key, Object value) {
         tags.put(key, value);
     }

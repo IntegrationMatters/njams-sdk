@@ -29,7 +29,7 @@ import java.util.Objects;
  */
 public class ArgosComponent {
 
-    // the id of this very component
+    // the id of this component
     private String id;
 
     // the logical name (short name) of this component
@@ -44,6 +44,15 @@ public class ArgosComponent {
     // the technology type like: server, process, tibbw6, tipappnode, tibappspace etc.
     private String type;
 
+    /**
+     * Constructor for {@link ArgosComponent}
+     *
+     * @param id          the id of this component
+     * @param name        the logical name (short name) of this component
+     * @param containerId the name of the container of this component; can be a server, or JVM name, or similar
+     * @param measurement the measurement name; for example 'jvm' for component, related to a java VM.
+     * @param type        the technology type like: server, process, tibbw6, tipappnode, tibappspace etc.
+     */
     public ArgosComponent(String id, String name, String containerId, String measurement, String type) {
         this.id = id;
         this.name = name;
@@ -52,44 +61,39 @@ public class ArgosComponent {
         this.type = type;
     }
 
+    /**
+     * @return the unique id of this component.
+     */
     public String getId() {
         return id;
     }
 
-    public void setId(String id) {
-        this.id = id;
-    }
-
+    /**
+     * @return the logical name (short name) of this component
+     */
     public String getName() {
         return name;
     }
 
-    public void setName(String name) {
-        this.name = name;
-    }
-
+    /**
+     * @return the name of the container of this component; can be a server, or JVM name, or similar
+     */
     public String getContainerId() {
         return containerId;
     }
 
-    public void setContainerId(String containerId) {
-        this.containerId = containerId;
-    }
-
+    /**
+     * @return the measurement name; for example 'jvm' for component, related to a java VM.
+     */
     public String getMeasurement() {
         return measurement;
     }
 
-    public void setMeasurement(String measurement) {
-        this.measurement = measurement;
-    }
-
+    /**
+     * @return the technology type like: server, process, tibbw6, tipappnode, tibappspace etc.
+     */
     public String getType() {
         return type;
-    }
-
-    public void setType(String type) {
-        this.type = type;
     }
 
     @Override
