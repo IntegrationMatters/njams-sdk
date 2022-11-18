@@ -25,6 +25,7 @@ import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.common.JsonSerializerFactory;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.communication.*;
+import com.im.njams.sdk.settings.Settings;
 import com.im.njams.sdk.utils.JsonUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -58,6 +59,10 @@ public class HttpSender extends AbstractSender {
      * Name of the HTTP Header for Logid
      */
     private static final String NJAMS_LOGID_HTTP_HEADER = "njams-logid";
+    /**
+     * Name of the HTTP Header for clientId
+     */
+    private static final String NJAMS_CLIENTID_HTTP_HEADER = "njams-clientid";
     /**
      * Name if the HTTP Header for Messagetype
      */
@@ -174,6 +179,7 @@ public class HttpSender extends AbstractSender {
         properties.put(Sender.NJAMS_MESSAGETYPE, Sender.NJAMS_MESSAGETYPE_EVENT);
         properties.put(Sender.NJAMS_PATH, msg.getPath());
         properties.put(Sender.NJAMS_LOGID, msg.getLogId());
+        properties.put(Sender.NJAMS_CLIENTID, this.properties.getProperty(Settings.INTERNAL_PROPERTY_CLIENTID));
         try {
             LOG.debug("Sending log message {}", msg.getLogId());
             tryToSend(msg, properties);
@@ -188,7 +194,7 @@ public class HttpSender extends AbstractSender {
         properties.put(Sender.NJAMS_MESSAGEVERSION, MessageVersion.V4.toString());
         properties.put(Sender.NJAMS_MESSAGETYPE, Sender.NJAMS_MESSAGETYPE_PROJECT);
         properties.put(Sender.NJAMS_PATH, msg.getPath());
-
+        properties.put(Sender.NJAMS_CLIENTID, this.properties.getProperty(Settings.INTERNAL_PROPERTY_CLIENTID));
         try {
             LOG.debug("Sending project message for {}", msg.getPath());
             tryToSend(msg, properties);
@@ -203,7 +209,7 @@ public class HttpSender extends AbstractSender {
         properties.put(Sender.NJAMS_MESSAGEVERSION, MessageVersion.V4.toString());
         properties.put(Sender.NJAMS_MESSAGETYPE, Sender.NJAMS_MESSAGETYPE_TRACE);
         properties.put(Sender.NJAMS_PATH, msg.getPath());
-
+        properties.put(Sender.NJAMS_CLIENTID, this.properties.getProperty(Settings.INTERNAL_PROPERTY_CLIENTID));
         try {
             LOG.debug("Sending TraceMessage for {}", msg.getPath());
             tryToSend(msg, properties);
@@ -262,6 +268,8 @@ public class HttpSender extends AbstractSender {
             .header(NJAMS_MESSAGETYPE_HTTP_HEADER, properties.getProperty(Sender.NJAMS_MESSAGETYPE))
             .header(NJAMS_PATH_HTTP_HEADER, properties.getProperty(Sender.NJAMS_PATH))
             .header(NJAMS_LOGID_HTTP_HEADER, properties.getProperty(Sender.NJAMS_LOGID))
+            .header(NJAMS_CLIENTID_HTTP_HEADER, properties.getProperty(Sender.NJAMS_CLIENTID))
+
             // Additionally add old headers for old Server Versions < 5.3.0
             .header(Sender.NJAMS_MESSAGEVERSION, MessageVersion.V4.toString())
             .header(Sender.NJAMS_MESSAGETYPE, properties.getProperty(Sender.NJAMS_MESSAGETYPE))

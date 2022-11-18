@@ -43,6 +43,10 @@ public interface Sender extends ClasspathValidator {
      */
     public static final String NJAMS_LOGID = "NJAMS_LOGID";
     /**
+     * Property key for header property which will contain the clientId for container setups
+     */
+    public static final String NJAMS_CLIENTID = "NJAMS_CLIENTID";
+    /**
      * Property key for header properties which must be send to the server in
      * every message
      */

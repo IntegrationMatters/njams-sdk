@@ -194,6 +194,9 @@ public class Njams implements InstructionListener {
     // The path of the client
     private final Path clientPath;
 
+    // The unique client id, will be generated as UUID on startup
+    private final String clientId;
+
     // The settings of the client
     private final Settings settings;
 
@@ -252,6 +255,8 @@ public class Njams implements InstructionListener {
         this.category = category == null ? null : category.toUpperCase();
         startTime = DateTimeUtility.now();
         this.settings = settings;
+        clientId = UUID.randomUUID().toString();
+        this.settings.put(Settings.INTERNAL_PROPERTY_CLIENTID, clientId);
         processDiagramFactory = new NjamsProcessDiagramFactory(this);
         processModelLayouter = new SimpleProcessModelLayouter();
         argosSender = ArgosSender.getInstance();
@@ -323,6 +328,13 @@ public class Njams implements InstructionListener {
      */
     public Path getClientPath() {
         return clientPath;
+    }
+
+    /**
+     * @return the clientId
+     */
+    public String getClientId() {
+        return clientId;
     }
 
     /**

@@ -32,6 +32,7 @@ import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.communication.*;
 import com.im.njams.sdk.settings.PropertyUtil;
+import com.im.njams.sdk.settings.Settings;
 import com.im.njams.sdk.utils.JsonUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -217,6 +218,9 @@ public class JmsSender extends AbstractSender implements ExceptionListener {
         textMessage.setStringProperty(Sender.NJAMS_MESSAGEVERSION, MessageVersion.V4.toString());
         textMessage.setStringProperty(Sender.NJAMS_MESSAGETYPE, messageType);
         textMessage.setStringProperty(Sender.NJAMS_PATH, msg.getPath());
+        if (properties != null) {
+            textMessage.setStringProperty(Sender.NJAMS_CLIENTID, properties.getProperty(Settings.INTERNAL_PROPERTY_CLIENTID));
+        }
         tryToSend(textMessage);
     }
 
