@@ -642,6 +642,7 @@ public class Njams implements InstructionListener {
         msg.setMachine(getMachine());
         msg.setFeatures(features);
         msg.setLogMode(configuration.getLogMode());
+        msg.setClientId(clientId);
         synchronized (processModels) {
             processModels.values().stream().map(ProcessModel::getSerializableProcessModel)
                 .forEach(ipm -> msg.getProcesses().add(ipm));
