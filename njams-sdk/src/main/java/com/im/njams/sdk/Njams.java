@@ -106,7 +106,12 @@ public class Njams implements InstructionListener {
         /**
          * Value indicating that this instance implements replying to a "ping" request sent from nJAMS server.
          */
-        PING("ping");
+        PING("ping"),
+
+        /**
+         * Value indicating that this instance supports the container mode feature with unique client ids.
+         */
+        CONTAINER_MODE("containerMode");
 
         private final String key;
 
@@ -257,6 +262,7 @@ public class Njams implements InstructionListener {
         this.settings = settings;
         clientId = UUID.randomUUID().toString();
         this.settings.put(Settings.INTERNAL_PROPERTY_CLIENTID, clientId);
+        setContainerModeFeature();
         processDiagramFactory = new NjamsProcessDiagramFactory(this);
         processModelLayouter = new SimpleProcessModelLayouter();
         argosSender = ArgosSender.getInstance();
@@ -387,9 +393,23 @@ public class Njams implements InstructionListener {
     public void setReplayHandler(final ReplayHandler replayHandler) {
         this.replayHandler = replayHandler;
         if (replayHandler == null) {
-            removeFeature(FEATURE_REPLAY);
+            removeFeature(Feature.REPLAY);
         } else {
-            addFeature(FEATURE_REPLAY);
+            addFeature(Feature.REPLAY);
+        }
+    }
+
+    /**
+     * Set the container mode feature property and add the feature flag to feature list.
+     */
+    public void setContainerModeFeature() {
+        if (settings.getProperty(NjamsSettings.PROPERTY_CONTAINER_MODE) == null) {
+            settings.put(NjamsSettings.PROPERTY_CONTAINER_MODE, "true");
+        }
+        if ("true".equalsIgnoreCase(settings.getProperty(NjamsSettings.PROPERTY_CONTAINER_MODE))) {
+            addFeature(Feature.CONTAINER_MODE);
+        } else {
+            removeFeature(Feature.CONTAINER_MODE);
         }
     }
 

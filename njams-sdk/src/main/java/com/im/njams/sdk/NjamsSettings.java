@@ -82,6 +82,19 @@ public class NjamsSettings {
      */
     public static final String PROPERTY_TRUNCATE_ON_SUCCESS = "njams.sdk.truncateOnSuccess";
 
+    /**
+     * This setting is true (which is the default), the SDK will generate a unique client id, which is used to identify
+     * the correct client in a multi node/replica/pod container environment.
+     * <p>
+     * An additional feature flag (named containerMode) will be activated and sent to server with ProjectMessage.
+     * With this information the server knows that the client is running in a multi node container environment, and
+     * has to use the clientId for node selection.
+     * <p>
+     * Some commands will only be sent to one of the multi container nodes (eg. replay and all get commands). The rest
+     * will be sent to all nodes because for example a change to Logmode has to be processed by all nodes.
+     */
+    public static final String PROPERTY_CONTAINER_MODE = "njams.sdk.containerMode";
+
     //     _____ _ _            _      _____ _____  _  __
     //    / ____| (_)          | |    / ____|  __ \| |/ /
     //   | |    | |_  ___ _ __ | |_  | (___ | |  | | ' /
@@ -156,7 +169,7 @@ public class NjamsSettings {
      * because he uses an older Messageformat version.
      */
     public static final String PROPERTY_USE_DEPRECATED_PATH_FIELD_FOR_SUBPROCESSES =
-            "njams.client.sdk.deprecatedsubprocesspathfield";
+        "njams.client.sdk.deprecatedsubprocesspathfield";
 
     /**
      * If set to <code>true</code> secure XML processing feature will NOT be inititalzied:
@@ -289,7 +302,7 @@ public class NjamsSettings {
      * (comma separated) for connecting to a Kafka cluster.
      */
     public static final String PROPERTY_KAFKA_BOOTSTRAP_SERVERS =
-            "njams.sdk.communication.kafka.client.bootstrap.servers";
+        "njams.sdk.communication.kafka.client.bootstrap.servers";
 
     /**
      * This is the prefix of the event, project, commands, and optional error topics.
@@ -302,11 +315,12 @@ public class NjamsSettings {
      * in milliseconds. The default is 30000.
      */
     public static final String PROPERTY_KAFKA_REPLY_PRODUCER_IDLE_TIME =
-            "njams.sdk.communication.kafka.replyProducerIdleTime";
+        "njams.sdk.communication.kafka.replyProducerIdleTime";
 
     /**
      * For testing only.
      * Allows specifying a specific commands topic, overriding the default that is resolved from the topicPrefix setting.
+     *
      * @deprecated This property is being removed in a future release.
      */
     @Deprecated
@@ -391,7 +405,7 @@ public class NjamsSettings {
      * Specifies the jndi initial context factory.
      */
     public static final String PROPERTY_JMS_INITIAL_CONTEXT_FACTORY = PROPERTY_JMS_PREFIX
-            + Context.INITIAL_CONTEXT_FACTORY;
+        + Context.INITIAL_CONTEXT_FACTORY;
 
     /**
      * Specifies the jndi security principal.
