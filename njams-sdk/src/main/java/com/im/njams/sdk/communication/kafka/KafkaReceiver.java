@@ -68,6 +68,10 @@ public class KafkaReceiver extends AbstractReceiver {
      */
     public static final String NJAMS_RECEIVER = "NJAMS_RECEIVER";
     /**
+     * Name of the Kafka header storing the clientId
+     */
+    public static final String NJAMS_CLIENTID = "NJAMS_CLIENTID";
+    /**
      * Name of the Kafka header storing a unique message ID
      */
     public static final String NJAMS_MESSAGE_ID = "NJAMS_MESSAGE_ID";
@@ -223,6 +227,7 @@ public class KafkaReceiver extends AbstractReceiver {
                 LOG.error("Missing request ID in message: {}", msg);
                 return;
             }
+
             final Instruction instruction = getInstruction(msg);
             if (instruction == null) {
                 return;
@@ -230,10 +235,10 @@ public class KafkaReceiver extends AbstractReceiver {
             LOG.debug("Handle message (id={}) {}", messageId, msg);
             onInstruction(instruction);
 
-            if(!CommonUtils.ignoreReplayResponseOnInstruction(instruction)) {
+            if (!CommonUtils.ignoreReplayResponseOnInstruction(instruction)) {
                 sendReply(messageId, instruction);
-            }  
-           
+            }
+
         } catch (final Exception e) {
             LOG.error("Failed to process instruction: {}", msg, e);
         }
@@ -256,6 +261,14 @@ public class KafkaReceiver extends AbstractReceiver {
             LOG.debug("Received non json instruction -> ignore");
             return false;
         }
+
+        final String clientId = getHeader(msg, NJAMS_CLIENTID);
+        if (clientId != null && !njams.getClientId().equals(clientId)) {
+            LOG.debug("Message is not for me! ClientId in Message is: {} but this nJAMS Client has Id: {}",
+                clientId, njams.getClientId());
+            return false;
+        }
+
         return true;
     }
 

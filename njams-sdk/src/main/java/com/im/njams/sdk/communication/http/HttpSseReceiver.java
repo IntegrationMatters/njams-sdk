@@ -141,6 +141,12 @@ public class HttpSseReceiver extends AbstractReceiver {
 
     }
 
+    /**
+     * Check, that the message is valid for this nJAMS client.
+     *
+     * @param event the Inbound Event
+     * @return true, if event is valid and should be handled
+     */
     protected boolean isValidMessage(InboundSseEvent event) {
         if (event == null) {
             return false;
@@ -149,6 +155,12 @@ public class HttpSseReceiver extends AbstractReceiver {
         if (StringUtils.isBlank(receiver) || !njams.getClientPath().equals(new Path(receiver))) {
             LOG.debug("Message is not for me! Client path from Message is: " + event.getName() +
                 " but nJAMS Client path is: " + njams.getClientPath());
+            return false;
+        }
+        final String clientId = event.getComment();
+        if (StringUtils.isBlank(clientId) || !njams.getClientId().equals(clientId)) {
+            LOG.debug("Message is not for me! Client id from Message is: " + event.getComment() +
+                " but nJAMS Client id is: " + njams.getClientId());
             return false;
         }
         return true;

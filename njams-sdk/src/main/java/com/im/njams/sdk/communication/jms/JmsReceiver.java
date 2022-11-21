@@ -405,16 +405,23 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
                 LOG.debug("Received non json instruction -> ignore");
                 return;
             }
+            final String clientId = msg.getStringProperty("NJAMS_CLIENTID");
+            if (clientId != null && !clientId.equals(njams.getClientId())) {
+                LOG.debug("Message is not for me! ClientId in Message is: {} but this nJAMS Client has Id: {}",
+                    clientId, njams.getClientId());
+                return;
+            }
+
             final Instruction instruction = getInstruction(msg);
             if (instruction == null) {
                 return;
             }
 
             onInstruction(instruction);
-            
-            if(!CommonUtils.ignoreReplayResponseOnInstruction(instruction)) {
+
+            if (!CommonUtils.ignoreReplayResponseOnInstruction(instruction)) {
                 reply(msg, instruction);
-            }            
+            }
         } catch (Exception e) {
             LOG.error("Error in onMessage", e);
         }
