@@ -399,6 +399,14 @@ public class Njams implements InstructionListener {
         }
     }
 
+    public Boolean hasContainerModeFeature() {
+        if (settings.getProperty(NjamsSettings.PROPERTY_CONTAINER_MODE) == null) {
+            return true;
+        }
+        return "true".equalsIgnoreCase(settings.getProperty(NjamsSettings.PROPERTY_CONTAINER_MODE)) ? true : false;
+    }
+
+
     /**
      * Set the container mode feature property and add the feature flag to feature list.
      */
@@ -961,7 +969,7 @@ public class Njams implements InstructionListener {
 
     /**
      * Implementation of the InstructionListener interface. Listens on
-     * sendProjectMessage and Replay.
+     * sendProjectMessage, ping, replay and getRequestHandler.
      *
      * @param instruction The instruction which should be handled
      */
@@ -997,6 +1005,18 @@ public class Njams implements InstructionListener {
                 response.setResultMessage("Client cannot replay processes. No replay handler is present.");
                 instruction.setResponse(response);
             }
+        } else if (Command.GET_REQUEST_HANDLER.commandString().equalsIgnoreCase(instruction.getCommand())) {
+            final Response response = new Response();
+            if (hasContainerModeFeature()) {
+                response.setResultCode(0);
+                final Map<String, String> params = response.getParameters();
+                params.put("clientId", getClientId());
+                instruction.setResponse(response);
+            } else {
+                response.setResultCode(1);
+                response.setResultMessage("ContainerMode Feature is not active.");
+                instruction.setResponse(response);
+            }
         }
     }
 
@@ -1007,6 +1027,7 @@ public class Njams implements InstructionListener {
         final Map<String, String> params = response.getParameters();
         params.put("clientPath", clientPath.toString());
         params.put("clientVersion", getClientVersion());
+        params.put("clientId", getClientId());
         params.put("sdkVersion", getSdkVersion());
         params.put("category", getCategory());
         params.put("machine", getMachine());
