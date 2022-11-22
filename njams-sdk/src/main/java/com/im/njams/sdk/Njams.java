@@ -172,7 +172,10 @@ public class Njams implements InstructionListener {
      * Key for sdkVersion
      */
     public static final String SDK_VERSION_KEY = "sdkVersion";
-
+    /**
+     * Key for runtimeVersion. The version of the underlying runtime (eg. Mule, BW6...)
+     */
+    public static final String RUNTIME_VERSION_KEY = "runtimeVersion";
     /**
      * Key for current year
      */
@@ -246,7 +249,7 @@ public class Njams implements InstructionListener {
     private final Collection<ArgosMultiCollector<?>> argosCollectors = new ArrayList<>();
 
     /**
-     * Create a nJAMS client.
+     * Create a nJAMS client without the information about the runtimeVersion of the client.
      *
      * @param path     the path in the tree
      * @param version  the version of the nNJAMS client
@@ -255,6 +258,20 @@ public class Njams implements InstructionListener {
      * @param settings needed settings for client eg. for communication
      */
     public Njams(Path path, String version, String category, Settings settings) {
+        this(path, version, "unknown", category, settings);
+    }
+
+    /**
+     * Create a nJAMS client.
+     *
+     * @param path           the path in the tree
+     * @param version        the version of the nNJAMS client
+     * @param runtimeVersion the version of the underlying runtime (eg. Mule, BW6...)
+     * @param category       the category of the nJAMS client, should describe the
+     *                       technology
+     * @param settings       needed settings for client eg. for communication
+     */
+    public Njams(Path path, String version, String runtimeVersion, String category, Settings settings) {
         treeElements = new ArrayList<>();
         clientPath = path;
         this.category = category == null ? null : category.toUpperCase();
@@ -269,7 +286,8 @@ public class Njams implements InstructionListener {
         argosSender.init(settings);
         loadConfigurationProvider();
         createTreeElements(path, TreeElementType.CLIENT);
-        readVersions(version);
+        readVersionsFromVersionFile(version);
+        this.versions.put(RUNTIME_VERSION_KEY, runtimeVersion);
         printStartupBanner();
         setMachine();
     }
@@ -358,6 +376,13 @@ public class Njams implements InstructionListener {
     }
 
     /**
+     * @return the runtimeVersion
+     */
+    public String getRuntimeVersion() {
+        return versions.get(RUNTIME_VERSION_KEY);
+    }
+
+    /**
      * @return the globalVariables
      */
     public Map<String, String> getGlobalVariables() {
@@ -403,7 +428,7 @@ public class Njams implements InstructionListener {
         if (settings.getProperty(NjamsSettings.PROPERTY_CONTAINER_MODE) == null) {
             return true;
         }
-        return "true".equalsIgnoreCase(settings.getProperty(NjamsSettings.PROPERTY_CONTAINER_MODE)) ? true : false;
+        return "true".equalsIgnoreCase(settings.getProperty(NjamsSettings.PROPERTY_CONTAINER_MODE));
     }
 
 
@@ -665,6 +690,7 @@ public class Njams implements InstructionListener {
         msg.setPath(clientPath.toString());
         msg.setClientVersion(versions.get(CLIENT_VERSION_KEY));
         msg.setSdkVersion(versions.get(SDK_VERSION_KEY));
+        msg.setRuntimeVersion(versions.get(RUNTIME_VERSION_KEY));
         msg.setCategory(getCategory());
         msg.setStartTime(startTime);
         msg.setMachine(getMachine());
@@ -897,7 +923,7 @@ public class Njams implements InstructionListener {
      *
      * @param version
      */
-    private void readVersions(String version) {
+    private void readVersionsFromVersionFile(String version) {
         try {
             final Enumeration<URL> urls = this.getClass().getClassLoader().getResources("njams.version");
             while (urls.hasMoreElements()) {
@@ -1029,6 +1055,7 @@ public class Njams implements InstructionListener {
         params.put("clientVersion", getClientVersion());
         params.put("clientId", getClientId());
         params.put("sdkVersion", getSdkVersion());
+        params.put("runtimeVersion", getRuntimeVersion());
         params.put("category", getCategory());
         params.put("machine", getMachine());
         params.put("features", features.stream().collect(Collectors.joining(",")));

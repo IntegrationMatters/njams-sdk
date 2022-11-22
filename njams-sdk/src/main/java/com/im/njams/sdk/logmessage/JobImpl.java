@@ -16,27 +16,6 @@
  */
 package com.im.njams.sdk.logmessage;
 
-import static java.util.Collections.unmodifiableCollection;
-
-import java.time.Duration;
-import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.ListIterator;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-import java.util.TreeMap;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicInteger;
-
-import org.slf4j.LoggerFactory;
-
 import com.faizsiegeln.njams.messageformat.v4.logmessage.ActivityStatus;
 import com.faizsiegeln.njams.messageformat.v4.logmessage.LogMessage;
 import com.faizsiegeln.njams.messageformat.v4.logmessage.PluginDataItem;
@@ -56,6 +35,16 @@ import com.im.njams.sdk.model.GroupModel;
 import com.im.njams.sdk.model.ProcessModel;
 import com.im.njams.sdk.model.SubProcessActivityModel;
 import com.im.njams.sdk.utils.StringUtils;
+import org.slf4j.LoggerFactory;
+
+import java.time.Duration;
+import java.time.LocalDateTime;
+import java.util.*;
+import java.util.Map.Entry;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
+
+import static java.util.Collections.unmodifiableCollection;
 
 /**
  * This represents an instance of a process/flow etc in engine to monitor.
@@ -247,19 +236,19 @@ public class JobImpl implements Job {
         Configuration configuration = processModel.getNjams().getConfiguration();
         if (configuration == null) {
             LOG.error("Unable to set LogMode, LogLevel and Exclude for {}, configuration is null",
-                    processModel.getPath());
+                processModel.getPath());
             return;
         }
         logMode = configuration.getLogMode();
         LOG.debug("Set LogMode for {} to {}", processModel.getPath(), logMode);
 
         boolean disableStartData = "true"
-                .equalsIgnoreCase(getNjams().getSettings().getProperty(NjamsSettings.PROPERTY_DISABLE_STARTDATA));
+            .equalsIgnoreCase(getNjams().getSettings().getProperty(NjamsSettings.PROPERTY_DISABLE_STARTDATA));
 
         recording = !disableStartData && configuration.isRecording();
         LOG.debug(
-                "Set recording for {} to {} based on client settings {} and disable-start-data setting {}",
-                processModel.getPath(), recording, configuration.isRecording(), disableStartData);
+            "Set recording for {} to {} based on client settings {} and disable-start-data setting {}",
+            processModel.getPath(), recording, configuration.isRecording(), disableStartData);
 
         ProcessConfiguration process = configuration.getProcess(processModel.getPath().toString());
         if (process != null) {
@@ -269,9 +258,9 @@ public class JobImpl implements Job {
             LOG.debug("Set Exclude for {} to {}", processModel.getPath(), exclude);
             recording = !disableStartData && process.isRecording();
             LOG.debug(
-                    "Set recording for {} to {} based on process settings {} and client setting {} and disable-start-data setting {}",
-                    processModel.getPath(), recording, process.isRecording(),
-                    configuration.isRecording(), disableStartData);
+                "Set recording for {} to {} based on process settings {} and client setting {} and disable-start-data setting {}",
+                processModel.getPath(), recording, process.isRecording(),
+                configuration.isRecording(), disableStartData);
         }
         if (recording) {
             addAttribute("$njams_recorded", "true");
@@ -332,23 +321,23 @@ public class JobImpl implements Job {
                 if (activity.isStarter()) {
                     if (hasOrHadStartActivity) {
                         throw new NjamsSdkRuntimeException("A job must not have more than one start activity "
-                                + getJobId());
+                            + getJobId());
                     }
                     startActivity = activity;
                     hasOrHadStartActivity = true;
                 }
             } else {
                 throw new NjamsSdkRuntimeException(
-                        "The method start() must be called before activities can be added to the job!");
+                    "The method start() must be called before activities can be added to the job!");
             }
         }
     }
 
     private boolean hasEvent(final Activity activity) {
         return activity.getEventStatus() != null || StringUtils.isNotBlank(activity.getEventCode())
-                || StringUtils.isNotBlank(activity.getEventMessage())
-                || StringUtils.isNotBlank(activity.getEventPayload())
-                || StringUtils.isNotBlank(activity.getStackTrace());
+            || StringUtils.isNotBlank(activity.getEventMessage())
+            || StringUtils.isNotBlank(activity.getEventPayload())
+            || StringUtils.isNotBlank(activity.getStackTrace());
     }
 
     /**
@@ -397,7 +386,7 @@ public class JobImpl implements Job {
             while (iterator.hasPrevious()) {
                 Activity _activity = activities.get(iterator.previous());
                 if (_activity.getActivityStatus() == ActivityStatus.RUNNING
-                        && _activity.getModelId().equals(activityModelId)) {
+                    && _activity.getModelId().equals(activityModelId)) {
                     return _activity;
                 }
             }
@@ -419,7 +408,7 @@ public class JobImpl implements Job {
             while (iterator.hasPrevious()) {
                 Activity _activity = activities.get(iterator.previous());
                 if (_activity.getActivityStatus().ordinal() > ActivityStatus.RUNNING.ordinal()
-                        && _activity.getModelId().equals(activityModelId)) {
+                    && _activity.getModelId().equals(activityModelId)) {
                     return _activity;
                 }
             }
@@ -470,9 +459,9 @@ public class JobImpl implements Job {
         // only send updates automatically, if a change has been
         // made to the job between individual send events.
         LOG.trace("Job {}: lastPush: {}, age: {}, size: {}", this, getLastFlush(),
-                Duration.between(getLastFlush(), DateTimeUtility.now()), getEstimatedSize());
+            Duration.between(getLastFlush(), DateTimeUtility.now()), getEstimatedSize());
         if ((getLastFlush().isBefore(sentBefore) || getEstimatedSize() > flushSize)
-                && (!attributes.isEmpty() || getEndTime() != null || hasUnsentActivity())) {
+            && (!attributes.isEmpty() || getEndTime() != null || hasUnsentActivity())) {
             LOG.debug("Flush by timer: {}", this);
             flush();
         }
@@ -513,10 +502,10 @@ public class JobImpl implements Job {
         synchronized (activities) {
             // Do not send if one of the conditions is true.
             if (isLogModeNone() || isLogModeExclusiveAndNotInstrumented() || isExcludedProcess()
-                    || isLogLevelHigherAsJobStateAndHasNoTraces()) {
+                || isLogLevelHigherAsJobStateAndHasNoTraces()) {
                 LOG.debug("Job not flushed: Engine Mode: {} // Job's log level: {}, "
                         + "configured level: {} // is excluded: {} // has traces: {}", logMode, getStatus(), logLevel,
-                        exclude, traces);
+                    exclude, traces);
                 //delete not running activities
                 removeNotRunningActivities();
                 calculateEstimatedSize();
@@ -561,7 +550,7 @@ public class JobImpl implements Job {
 
         if (LOG.isDebugEnabled()) {
             LOG.debug("hasStarted[{}] && maxSeverity[{}] < logLevel[{}] && !traces[{}] == {}", hasStarted(),
-                    maxSeverity.getValue(), logLevel.value(), traces, b);
+                maxSeverity.getValue(), logLevel.value(), traces, b);
         }
         return b;
     }
@@ -595,6 +584,7 @@ public class JobImpl implements Job {
         logMessage.setServiceName(businessService);
         logMessage.setClientVersion(njams.getClientVersion());
         logMessage.setSdkVersion(njams.getSdkVersion());
+        logMessage.setRuntimeVersion(njams.getRuntimeVersion());
 
         pluginDataItems.forEach(i -> logMessage.addPluginDataItem(i));
         return logMessage;
@@ -683,7 +673,7 @@ public class JobImpl implements Job {
     private void calculateEstimatedSize() {
         synchronized (activities) {
             estimatedSize =
-                    1000 + activities.values().stream().mapToLong(a -> ((ActivityImpl) a).getEstimatedSize()).sum();
+                1000 + activities.values().stream().mapToLong(a -> ((ActivityImpl) a).getEstimatedSize()).sum();
         }
     }
 
@@ -721,8 +711,8 @@ public class JobImpl implements Job {
             }
             //end all not ended activities
             activities.values().stream()
-                    .filter(a -> a.getActivityStatus() == null || a.getActivityStatus() == ActivityStatus.RUNNING)
-                    .forEach(Activity::end);
+                .filter(a -> a.getActivityStatus() == null || a.getActivityStatus() == ActivityStatus.RUNNING)
+                .forEach(Activity::end);
             if (getEndTime() == null) {
                 setEndTime(DateTimeUtility.now());
             }
@@ -797,7 +787,7 @@ public class JobImpl implements Job {
         activity.setEventStatus(status);
         if (activity.getExecution() == null) {
             activity.setExecution(
-                    errorEvent.getEventTime() == null ? DateTimeUtility.now() : errorEvent.getEventTime());
+                errorEvent.getEventTime() == null ? DateTimeUtility.now() : errorEvent.getEventTime());
         }
         activity.setEventCode(errorEvent.getCode());
         activity.setEventMessage(errorEvent.getMessage());
@@ -844,7 +834,7 @@ public class JobImpl implements Job {
                 LOG.trace("Setting the status of job with logId {} to {}", loggingLogId, loggingStatus);
             } else {
                 LOG.trace("The status of the job with logId {} hasn't been changed. The status is {}.", loggingLogId,
-                        loggingStatus);
+                    loggingStatus);
             }
         }
     }
@@ -1228,7 +1218,7 @@ public class JobImpl implements Job {
 
             }
             LOG.trace("{} activities have been removed from {}. Still running: {}", loggingSum, getLogId(),
-                    activities.size());
+                activities.size());
         }
     }
 
@@ -1272,7 +1262,7 @@ public class JobImpl implements Job {
             LocalDateTime now = DateTimeUtility.now();
             //timing is right, and iterations are less than configured
             return !now.isBefore(tracepoint.getStarttime()) && now.isBefore(tracepoint.getEndtime())
-                    && !tracepoint.iterationsExceeded();
+                && !tracepoint.iterationsExceeded();
         }
         return false;
     }
@@ -1324,7 +1314,7 @@ public class JobImpl implements Job {
 
     @Override
     public void addPluginDataItem(
-            com.faizsiegeln.njams.messageformat.v4.logmessage.interfaces.IPluginDataItem pluginDataItem) {
+        com.faizsiegeln.njams.messageformat.v4.logmessage.interfaces.IPluginDataItem pluginDataItem) {
         pluginDataItems.add((PluginDataItem) pluginDataItem);
     }
 
@@ -1383,7 +1373,7 @@ public class JobImpl implements Job {
     public String toString() {
         StringBuilder sb = new StringBuilder();
         sb.append("JobImpl[process=").append(processModel.getName()).append("; logId=").append(getLogId())
-                .append("; jobId=").append(getJobId()).append(']');
+            .append("; jobId=").append(getJobId()).append(']');
         return sb.toString();
     }
 
@@ -1398,7 +1388,7 @@ public class JobImpl implements Job {
     public static String limitLength(String fieldName, String value, int maxLength) {
         if (value != null && value.length() > maxLength) {
             LOG.warn("Value of field '{}' exceeds max length of {} characters. Value will be truncated.", fieldName,
-                    maxLength);
+                maxLength);
             return value.substring(0, maxLength - 1);
         }
         return value;
