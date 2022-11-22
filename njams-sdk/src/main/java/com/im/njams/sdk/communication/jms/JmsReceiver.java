@@ -49,6 +49,11 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
 
     private static final Logger LOG = LoggerFactory.getLogger(JmsReceiver.class);
 
+    /**
+     * Name of the JMS Message Property  storing the clientId
+     */
+    public static final String NJAMS_CLIENTID = "NJAMS_CLIENTID";
+
     private Connection connection;
     protected Session session;
     private Properties properties;
@@ -405,7 +410,7 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
                 LOG.debug("Received non json instruction -> ignore");
                 return;
             }
-            final String clientId = msg.getStringProperty("NJAMS_CLIENTID");
+            final String clientId = msg.getStringProperty(NJAMS_CLIENTID);
             if (clientId != null && !clientId.equals(njams.getClientId())) {
                 LOG.debug("Message is not for me! ClientId in Message is: {} but this nJAMS Client has Id: {}",
                     clientId, njams.getClientId());
@@ -466,6 +471,7 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
             String response = mapper.writeValueAsString(instruction);
             final TextMessage responseMessage = session.createTextMessage();
             responseMessage.setText(response);
+            responseMessage.setStringProperty(NJAMS_CLIENTID, njams.getClientId());
             final String jmsCorrelationID = message.getJMSCorrelationID();
             if (jmsCorrelationID != null && !jmsCorrelationID.isEmpty()) {
                 responseMessage.setJMSCorrelationID(jmsCorrelationID);

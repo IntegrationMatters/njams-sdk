@@ -298,7 +298,7 @@ public class KafkaReceiver extends AbstractReceiver {
                 new ProducerRecord<>(topicName, responseId, mapper.writeValueAsString(instruction));
             headersUpdater(response).addHeader(NJAMS_MESSAGE_ID, responseId).addHeader(NJAMS_REPLY_FOR, requestId)
                 .addHeader(NJAMS_RECEIVER, RECEIVER_SERVER).addHeader(NJAMS_TYPE, MESSAGE_TYPE_REPLY)
-                .addHeader(NJAMS_CONTENT, CONTENT_TYPE_JSON);
+                .addHeader(NJAMS_CONTENT, CONTENT_TYPE_JSON).addHeader(NJAMS_CLIENTID, njams.getClientId());
 
             synchronized (this) {
                 if (producer == null) {

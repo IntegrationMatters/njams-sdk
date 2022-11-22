@@ -188,6 +188,7 @@ public class HttpSseReceiver extends AbstractReceiver {
                 .header("njams-messagetype", "reply")
                 .header("njams-message-id", responseId)
                 .header("njams-reply-for", requestId)
+                .header("njams-clientid", njams.getClientId())
                 .post(Entity.json(JsonUtils.serialize(instruction)));
             LOG.debug("Reply response status:" + response.getStatus());
 
