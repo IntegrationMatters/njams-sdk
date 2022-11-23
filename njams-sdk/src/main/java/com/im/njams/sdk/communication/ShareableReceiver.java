@@ -75,7 +75,7 @@ public interface ShareableReceiver<M> extends Receiver {
      *
      * @param requestMessage The raw message read from the transport API
      * @param reply          The instruction parsed from the received message
-     * @param clientId
+     * @param clientId       The clientId to reply to
      */
     public void sendReply(M requestMessage, Instruction reply, String clientId);
 
