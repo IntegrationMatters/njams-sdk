@@ -84,8 +84,8 @@ public class SharedHttpSseReceiver extends HttpSseReceiver implements ShareableR
     }
 
     @Override
-    public void sendReply(InboundSseEvent event, Instruction reply) {
-        sendReply(event.getId(), reply);
+    public void sendReply(InboundSseEvent event, Instruction reply, String clientId) {
+        sendReply(event.getId(), reply, clientId);
     }
 
 }

@@ -87,8 +87,8 @@ public class SharedHttpsSseReceiver extends HttpsSseReceiver implements Shareabl
     }
 
     @Override
-    public void sendReply(InboundSseEvent event, Instruction reply) {
-        sendReply(event.getId(), reply);
+    public void sendReply(InboundSseEvent event, Instruction reply, String clientId) {
+        sendReply(event.getId(), reply, clientId);
     }
 
 }

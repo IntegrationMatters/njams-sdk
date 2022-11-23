@@ -75,8 +75,9 @@ public interface ShareableReceiver<M> extends Receiver {
      *
      * @param requestMessage The raw message read from the transport API
      * @param reply          The instruction parsed from the received message
+     * @param clientId
      */
-    public void sendReply(M requestMessage, Instruction reply);
+    public void sendReply(M requestMessage, Instruction reply, String clientId);
 
     /**
      * Always throws an {@link UnsupportedOperationException}. This method is replaced by

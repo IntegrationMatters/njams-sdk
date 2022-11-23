@@ -236,7 +236,7 @@ public class KafkaReceiver extends AbstractReceiver {
             onInstruction(instruction);
 
             if (!CommonUtils.ignoreReplayResponseOnInstruction(instruction)) {
-                sendReply(messageId, instruction);
+                sendReply(messageId, instruction, getHeader(msg, NJAMS_CLIENTID));
             }
 
         } catch (final Exception e) {
@@ -290,21 +290,28 @@ public class KafkaReceiver extends AbstractReceiver {
      *
      * @param requestId   The ID of the request to that this reply belongs
      * @param instruction the instruction that holds the response.
+     * @param clientId
      */
-    protected void sendReply(final String requestId, final Instruction instruction) {
+    protected void sendReply(final String requestId, final Instruction instruction, String clientId) {
         try {
             final String responseId = UUID.randomUUID().toString();
             final ProducerRecord<String, String> response =
                 new ProducerRecord<>(topicName, responseId, mapper.writeValueAsString(instruction));
-            headersUpdater(response).addHeader(NJAMS_MESSAGE_ID, responseId).addHeader(NJAMS_REPLY_FOR, requestId)
-                .addHeader(NJAMS_RECEIVER, RECEIVER_SERVER).addHeader(NJAMS_TYPE, MESSAGE_TYPE_REPLY)
-                .addHeader(NJAMS_CONTENT, CONTENT_TYPE_JSON).addHeader(NJAMS_CLIENTID, njams.getClientId());
+            if (clientId != null) {
+                headersUpdater(response).addHeader(NJAMS_MESSAGE_ID, responseId).addHeader(NJAMS_REPLY_FOR, requestId)
+                    .addHeader(NJAMS_RECEIVER, RECEIVER_SERVER).addHeader(NJAMS_TYPE, MESSAGE_TYPE_REPLY)
+                    .addHeader(NJAMS_CONTENT, CONTENT_TYPE_JSON).addHeader(NJAMS_CLIENTID, clientId);
+            } else {
+                headersUpdater(response).addHeader(NJAMS_MESSAGE_ID, responseId).addHeader(NJAMS_REPLY_FOR, requestId)
+                    .addHeader(NJAMS_RECEIVER, RECEIVER_SERVER).addHeader(NJAMS_TYPE, MESSAGE_TYPE_REPLY)
+                    .addHeader(NJAMS_CONTENT, CONTENT_TYPE_JSON);
+            }
 
             synchronized (this) {
                 if (producer == null) {
                     LOG.debug("Creating new Kafka producer.");
                     producer =
-                        new KafkaProducer<>(filterKafkaProperties(njamsProperties, ClientType.PRODUCER, clientId),
+                        new KafkaProducer<>(filterKafkaProperties(njamsProperties, ClientType.PRODUCER, this.clientId),
                             new StringSerializer(), new StringSerializer());
                 }
                 LOG.debug("Sending reply for request {}: {}", requestId, response);

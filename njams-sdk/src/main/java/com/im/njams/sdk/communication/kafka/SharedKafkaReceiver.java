@@ -68,8 +68,8 @@ public class SharedKafkaReceiver extends KafkaReceiver implements ShareableRecei
     }
 
     @Override
-    public void sendReply(final ConsumerRecord<?, ?> requestMessage, final Instruction reply) {
-        sendReply(getHeader(requestMessage, NJAMS_MESSAGE_ID), reply);
+    public void sendReply(final ConsumerRecord<?, ?> requestMessage, final Instruction reply, String clientId) {
+        sendReply(getHeader(requestMessage, NJAMS_MESSAGE_ID), reply, clientId);
 
     }
 

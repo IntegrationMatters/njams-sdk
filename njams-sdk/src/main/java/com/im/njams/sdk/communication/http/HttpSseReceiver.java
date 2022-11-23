@@ -136,7 +136,7 @@ public class HttpSseReceiver extends AbstractReceiver {
         onInstruction(instruction);
 
         if (!CommonUtils.ignoreReplayResponseOnInstruction(instruction)) {
-            sendReply(id, instruction);
+            sendReply(id, instruction, event.getComment());
         }
 
     }
@@ -175,21 +175,34 @@ public class HttpSseReceiver extends AbstractReceiver {
         source.close();
     }
 
-    protected void sendReply(final String requestId, final Instruction instruction) {
+    protected void sendReply(final String requestId, final Instruction instruction, String clientId) {
         final String responseId = UUID.randomUUID().toString();
         Client client = null;
         try {
             client = ClientBuilder.newClient();
             WebTarget target = client.target(url.toString() + "/reply");
-            Response response = target.request()
-                .header("Content-Type", "application/json")
-                .header("Accept", "text/plain")
-                .header("njams-receiver", "server")
-                .header("njams-messagetype", "reply")
-                .header("njams-message-id", responseId)
-                .header("njams-reply-for", requestId)
-                .header("njams-clientid", njams.getClientId())
-                .post(Entity.json(JsonUtils.serialize(instruction)));
+            Response response;
+            if (clientId != null) {
+                response = target.request()
+                    .header("Content-Type", "application/json")
+                    .header("Accept", "text/plain")
+                    .header("njams-receiver", "server")
+                    .header("njams-messagetype", "reply")
+                    .header("njams-message-id", responseId)
+                    .header("njams-reply-for", requestId)
+                    .header("njams-clientid", clientId)
+                    .post(Entity.json(JsonUtils.serialize(instruction)));
+            } else {
+                response = target.request()
+                    .header("Content-Type", "application/json")
+                    .header("Accept", "text/plain")
+                    .header("njams-receiver", "server")
+                    .header("njams-messagetype", "reply")
+                    .header("njams-message-id", responseId)
+                    .header("njams-reply-for", requestId)
+                    .post(Entity.json(JsonUtils.serialize(instruction)));
+            }
+
             LOG.debug("Reply response status:" + response.getStatus());
 
             // Try to use old deprecated HTTP header names

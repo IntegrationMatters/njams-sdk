@@ -153,7 +153,7 @@ public class SharedCloudReceiver extends CloudReceiver implements ShareableRecei
     }
 
     @Override
-    public void sendReply(AWSIotMessage requestMessage, Instruction reply) {
+    public void sendReply(AWSIotMessage requestMessage, Instruction reply, String clientId) {
         final String uuid = shareCloudTopic.getUUID(reply);
         shareCloudTopic.reply(reply, uuid);
 

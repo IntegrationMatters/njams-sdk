@@ -425,7 +425,7 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
             onInstruction(instruction);
 
             if (!CommonUtils.ignoreReplayResponseOnInstruction(instruction)) {
-                reply(msg, instruction);
+                reply(msg, instruction, clientId);
             }
         } catch (Exception e) {
             LOG.error("Error in onMessage", e);
@@ -463,15 +463,16 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
      * @param message     the destination where the response will be sent to and the
      *                    jmsCorrelationId are safed in here.
      * @param instruction the instruction that holds the response.
+     * @param clientId
      */
-    protected void reply(Message message, Instruction instruction) {
+    protected void reply(Message message, Instruction instruction, String clientId) {
         MessageProducer replyProducer = null;
         try {
             replyProducer = session.createProducer(message.getJMSReplyTo());
             String response = mapper.writeValueAsString(instruction);
             final TextMessage responseMessage = session.createTextMessage();
             responseMessage.setText(response);
-            responseMessage.setStringProperty(NJAMS_CLIENTID, njams.getClientId());
+            responseMessage.setStringProperty(NJAMS_CLIENTID, clientId);
             final String jmsCorrelationID = message.getJMSCorrelationID();
             if (jmsCorrelationID != null && !jmsCorrelationID.isEmpty()) {
                 responseMessage.setJMSCorrelationID(jmsCorrelationID);
