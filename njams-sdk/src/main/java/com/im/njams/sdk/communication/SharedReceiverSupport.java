@@ -103,7 +103,7 @@ public class SharedReceiverSupport<R extends AbstractReceiver & ShareableReceive
             LOG.debug("TargetReceiver found for instruction.");
             onInstruction(instruction, njamsTarget);
             if (!CommonUtils.ignoreReplayResponseOnInstruction(instruction)) {
-                receiver.sendReply(message, instruction, clientId);
+                receiver.sendReply(message, instruction, njamsTarget.getClientId());
             }
         } else {
             if (failOnMissingInstance) {
