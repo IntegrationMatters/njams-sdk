@@ -16,12 +16,6 @@
  */
 package com.im.njams.sdk.communication.cloud;
 
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.amazonaws.services.iot.client.AWSIotException;
 import com.amazonaws.services.iot.client.AWSIotMessage;
 import com.amazonaws.services.iot.client.AWSIotQos;
@@ -33,11 +27,14 @@ import com.im.njams.sdk.common.Path;
 import com.im.njams.sdk.communication.ConnectionStatus;
 import com.im.njams.sdk.communication.ShareableReceiver;
 import com.im.njams.sdk.communication.SharedReceiverSupport;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Overrides the common {@link CloudReceiver} for supporting receiving messages for multiple {@link Njams} instances.
- *
- *
  */
 public class SharedCloudReceiver extends CloudReceiver implements ShareableReceiver<AWSIotMessage> {
 
@@ -46,11 +43,10 @@ public class SharedCloudReceiver extends CloudReceiver implements ShareableRecei
     private static final boolean IS_SHARED = true;
     private SharedCloudTopic shareCloudTopic = null;
     private final SharedReceiverSupport<SharedCloudReceiver, AWSIotMessage> sharingSupport =
-            new SharedReceiverSupport<>(this);
+        new SharedReceiverSupport<>(this);
 
     /**
      * Adds the given instance to this receiver for receiving instructions.
-     *
      */
     @Override
     public void setNjams(Njams njamsInstance) {
@@ -96,7 +92,7 @@ public class SharedCloudReceiver extends CloudReceiver implements ShareableRecei
             connectionStatus = ConnectionStatus.CONNECTING;
             LOG.debug("Connect to endpoint: {} with clientId: {}", endpoint, connectionId);
             mqttclient = new CustomAWSIotMqttClient(endpoint, connectionId, keyStorePasswordPair.keyStore,
-                    keyStorePasswordPair.keyPassword, this);
+                keyStorePasswordPair.keyPassword, this);
 
             // optional parameters can be set before connect()
             getMqttclient().connect(30000);
@@ -139,7 +135,7 @@ public class SharedCloudReceiver extends CloudReceiver implements ShareableRecei
 
     private void sendOnConnect(Njams njams) throws JsonProcessingException, AWSIotException {
         sendOnConnectMessage(IS_SHARED, connectionId, instanceId, njams.getClientPath().toString(),
-                njams.getClientVersion(), njams.getSdkVersion(), njams.getMachine(), njams.getCategory());
+            njams.getClientVersion(), njams.getSdkVersion(), njams.getMachine(), njams.getCategory());
     }
 
     public void onInstruction(AWSIotMessage message, Instruction instruction) {
@@ -149,6 +145,11 @@ public class SharedCloudReceiver extends CloudReceiver implements ShareableRecei
     @Override
     public Path getReceiverPath(AWSIotMessage requestMessage, Instruction instruction) {
         return new Path(instruction.getRequestParameterByName("processPath"));
+    }
+
+    @Override
+    public String getClientId(AWSIotMessage requestMessage, Instruction instruction) {
+        return instruction.getRequestParameterByName("clientId");
     }
 
     @Override

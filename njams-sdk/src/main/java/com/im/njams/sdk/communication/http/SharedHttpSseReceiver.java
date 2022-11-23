@@ -59,6 +59,11 @@ public class SharedHttpSseReceiver extends HttpSseReceiver implements ShareableR
         return new Path(requestMessage.getName());
     }
 
+    @Override
+    public String getClientId(InboundSseEvent requestMessage, Instruction instruction) {
+        return requestMessage.getComment();
+    }
+
     /**
      * This method is the MessageListener implementation. It receives events automatically.
      *

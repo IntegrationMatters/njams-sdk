@@ -1,21 +1,16 @@
 package com.im.njams.sdk.communication;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.Collectors;
-
+import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
+import com.faizsiegeln.njams.messageformat.v4.command.Response;
+import com.im.njams.sdk.Njams;
+import com.im.njams.sdk.common.Path;
+import com.im.njams.sdk.utils.CommonUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
-import com.faizsiegeln.njams.messageformat.v4.command.Response;
-import com.im.njams.sdk.utils.CommonUtils;
-import com.im.njams.sdk.Njams;
-import com.im.njams.sdk.common.Path;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 /**
  * A helper class that implements sharing receiver instances.<br>
@@ -23,11 +18,10 @@ import com.im.njams.sdk.common.Path;
  * The actual implementations using this helper simply have to track adding and removing instances, and call
  * {@link #onInstruction(Object, Instruction, boolean)} for each received (and valid) instruction.
  *
- * @author cwinkler
- * @since 4.2.0
- *
  * @param <R> The actual receiver implementation
  * @param <M> The message type being processed by the receiver
+ * @author cwinkler
+ * @since 4.2.0
  */
 public class SharedReceiverSupport<R extends AbstractReceiver & ShareableReceiver<M>, M> {
 
@@ -51,7 +45,7 @@ public class SharedReceiverSupport<R extends AbstractReceiver & ShareableReceive
             njamsInstances.put(njamsInstance.getClientPath(), njamsInstance);
         }
         LOG.debug("Added client {} to shared receiver; {} attached receivers.", njamsInstance.getClientPath(),
-                njamsInstances.size());
+            njamsInstances.size());
     }
 
     /**
@@ -66,7 +60,7 @@ public class SharedReceiverSupport<R extends AbstractReceiver & ShareableReceive
         synchronized (njamsInstances) {
             njamsInstances.remove(njamsInstance.getClientPath());
             LOG.debug("Removed client {} from shared receiver; {} remaining receivers.", njamsInstance.getClientPath(),
-                    njamsInstances.size());
+                njamsInstances.size());
             if (njamsInstances.isEmpty()) {
                 receiver.stop();
                 return true;
@@ -77,6 +71,7 @@ public class SharedReceiverSupport<R extends AbstractReceiver & ShareableReceive
 
     /**
      * Returns all currently registered {@link Njams} instances.
+     *
      * @return All currently registered {@link Njams} instances.
      */
     public Collection<Njams> getAllNjamsInstances() {
@@ -85,34 +80,39 @@ public class SharedReceiverSupport<R extends AbstractReceiver & ShareableReceive
 
     /**
      * To be called for each received (and valid) instruction.
-     * @param message The original message received.
-     * @param instruction The instruction parsed from the original message and to be completed with a reply.
+     *
+     * @param message               The original message received.
+     * @param instruction           The instruction parsed from the original message and to be completed with a reply.
      * @param failOnMissingInstance If <code>true</code> and error is sent as reply when no matching target {@link Njams}
-     * instance was found. Otherwise, the request is simply ignored.
+     *                              instance was found. Otherwise, the request is simply ignored.
      */
     public void onInstruction(M message, Instruction instruction, boolean failOnMissingInstance) {
         final Path receiverPath = receiver.getReceiverPath(message, instruction);
+        final String clientId = receiver.getClientId(message, instruction);
         LOG.debug("Received instruction {} with target {}", instruction.getCommand(), receiverPath);
+        if (clientId != null) {
+            LOG.debug("ClientId in instruction is {}", clientId);
+        }
         if (receiverPath == null) {
             return;
         }
 
-        final List<Njams> instances = getNjamsTargets(receiverPath);
+        final List<Njams> instances = getNjamsTargets(receiverPath, clientId);
         if (instances != null && !instances.isEmpty()) {
             if (LOG.isDebugEnabled()) {
                 LOG.debug(
-                        "Handling instruction {} with client(s) {}",
-                        instruction.getCommand(),
-                        instances.stream().map(n -> n.getClientPath().toString()).collect(Collectors.toList()));
+                    "Handling instruction {} with client(s) {}",
+                    instruction.getCommand(),
+                    instances.stream().map(n -> n.getClientPath().toString()).collect(Collectors.toList()));
             }
             if (instances.size() > 1) {
                 instances.parallelStream().forEach(i -> onInstruction(instruction, i));
             } else {
                 onInstruction(instruction, instances.get(0));
             }
-            
-            if(!CommonUtils.ignoreReplayResponseOnInstruction(instruction)) {
-            	receiver.sendReply(message, instruction);
+
+            if (!CommonUtils.ignoreReplayResponseOnInstruction(instruction)) {
+                receiver.sendReply(message, instruction);
             }
         } else {
             if (failOnMissingInstance) {
@@ -160,27 +160,41 @@ public class SharedReceiverSupport<R extends AbstractReceiver & ShareableReceive
                 Response response = new Response();
                 response.setResultCode(1);
                 response.setResultMessage(
-                        "No InstructionListener for " + instruction.getRequest().getCommand() + " found");
+                    "No InstructionListener for " + instruction.getRequest().getCommand() + " found");
                 instruction.setResponse(response);
             }
         }
     }
 
-    private List<Njams> getNjamsTargets(Path receiverPath) {
+    private List<Njams> getNjamsTargets(Path receiverPath, String clientId) {
         try {
+            List<Njams> entry = findNjamsByClientId(clientId);
+            if (entry != null) return entry;
+
             final Njams found = njamsInstances.get(receiverPath);
             if (found != null) {
                 return Collections.singletonList(found);
             }
             final int size = receiverPath.getParts().size();
             return njamsInstances
-                    .values()
-                    .stream()
-                    .filter(n -> size < n.getClientPath().getParts().size()
-                            && receiverPath.getParts().equals(n.getClientPath().getParts().subList(0, size)))
-                            .collect(Collectors.toList());
+                .values()
+                .stream()
+                .filter(n -> size < n.getClientPath().getParts().size()
+                    && receiverPath.getParts().equals(n.getClientPath().getParts().subList(0, size)))
+                .collect(Collectors.toList());
         } catch (Exception e) {
             LOG.error("Failed to resolve instruction receiver.", e);
+        }
+        return null;
+    }
+
+    private List<Njams> findNjamsByClientId(String clientId) {
+        if (clientId != null) {
+            for (Map.Entry<Path, Njams> entry : njamsInstances.entrySet()) {
+                if (clientId.equals(entry.getValue().getClientId())) {
+                    return Collections.singletonList(entry.getValue());
+                }
+            }
         }
         return null;
     }

@@ -16,33 +16,30 @@
  */
 package com.im.njams.sdk.communication.jms;
 
-import java.util.Collection;
-import java.util.stream.Collectors;
-
-import javax.jms.JMSException;
-import javax.jms.Message;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.common.Path;
 import com.im.njams.sdk.communication.ShareableReceiver;
 import com.im.njams.sdk.communication.SharedReceiverSupport;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import javax.jms.JMSException;
+import javax.jms.Message;
+import java.util.Collection;
+import java.util.stream.Collectors;
 
 /**
  * Overrides the common {@link JmsReceiver} for supporting receiving messages for multiple {@link Njams} instances.
  *
  * @author cwinkler
- *
  */
 public class SharedJmsReceiver extends JmsReceiver implements ShareableReceiver<Message> {
 
     private static final Logger LOG = LoggerFactory.getLogger(SharedJmsReceiver.class);
 
     private final SharedReceiverSupport<SharedJmsReceiver, Message> sharingSupport =
-            new SharedReceiverSupport<>(this);
+        new SharedReceiverSupport<>(this);
 
     /**
      * This method creates a String that is used as a message selector.
@@ -56,8 +53,8 @@ public class SharedJmsReceiver extends JmsReceiver implements ShareableReceiver<
             return null;
         }
         final String selector = njamsInstances.stream().map(Njams::getClientPath).map(Path::getAllPaths)
-                .flatMap(Collection::stream).collect(Collectors.toSet()).stream().map(Object::toString).sorted()
-                .collect(Collectors.joining("' OR NJAMS_RECEIVER = '", "NJAMS_RECEIVER = '", "'"));
+            .flatMap(Collection::stream).collect(Collectors.toSet()).stream().map(Object::toString).sorted()
+            .collect(Collectors.joining("' OR NJAMS_RECEIVER = '", "NJAMS_RECEIVER = '", "'"));
         LOG.debug("Updated message selector: {}", selector);
         return selector;
     }
@@ -129,6 +126,16 @@ public class SharedJmsReceiver extends JmsReceiver implements ShareableReceiver<
     public Path getReceiverPath(Message requestMessage, Instruction instruction) {
         try {
             return new Path(requestMessage.getStringProperty("NJAMS_RECEIVER"));
+        } catch (JMSException e) {
+            LOG.error("Error reading JMS property", e);
+        }
+        return null;
+    }
+
+    @Override
+    public String getClientId(Message requestMessage, Instruction instruction) {
+        try {
+            return requestMessage.getStringProperty("NJAMS_CLIENTID");
         } catch (JMSException e) {
             LOG.error("Error reading JMS property", e);
         }
