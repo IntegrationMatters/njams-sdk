@@ -16,10 +16,10 @@
  */
 package com.im.njams.sdk.settings.provider;
 
-import java.util.Properties;
-
 import com.im.njams.sdk.settings.Settings;
 import com.im.njams.sdk.settings.SettingsProvider;
+
+import java.util.Properties;
 
 /**
  * Implements a simple MemorySettingsProvider. It just holds the
@@ -58,10 +58,7 @@ public class MemorySettingsProvider implements SettingsProvider {
         if (settings == null) {
             settings = new Settings();
         }
-
-        properties.entrySet()
-                .stream()
-                .forEach(e -> settings.put((String)e.getKey(), (String)e.getValue()));
+        settings.addAll(properties);
     }
 
     /**

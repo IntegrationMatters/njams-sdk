@@ -287,6 +287,10 @@ public class Settings {
         return Transformer.decode(response);
     }
 
+    public void addAll(Properties properties) {
+        this.properties.putAll(properties);
+    }
+
     public void addSecureProperties(Set<String> secureProperties) {
         secureProperties.forEach(property -> {
             this.secureProperties.add(property.toLowerCase());

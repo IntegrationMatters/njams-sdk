@@ -84,7 +84,7 @@ public class NjamsStartup {
         }
 
         Settings settings = new Settings();
-        props.forEach((k, v) -> settings.put((String) k, (String) v));
+        settings.addAll(props);
         return settings;
     }
 

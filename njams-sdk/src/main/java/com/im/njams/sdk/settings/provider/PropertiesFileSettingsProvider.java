@@ -135,9 +135,7 @@ public class PropertiesFileSettingsProvider implements SettingsProvider {
 
         LOG.info("Loaded settings from {}", file);
         final Settings settings = new Settings();
-        properties.entrySet()
-            .stream()
-            .forEach(e -> settings.put((String) e.getKey(), (String) e.getValue()));
+        settings.addAll(properties);
         return settings;
     }
 

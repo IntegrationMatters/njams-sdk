@@ -103,7 +103,7 @@ public class FileSettingsProvider implements SettingsProvider {
             try (InputStream is = new FileInputStream(file)) {
                 Properties properties = objectMapper.readValue(is, Properties.class);
                 Settings settings = new Settings();
-                properties.keySet().forEach(key -> settings.put((String) key, (String) properties.get(key)));
+                settings.addAll(properties);
                 return settings;
             } catch (Exception e) {
                 throw new NjamsSdkRuntimeException("Unable to load file", e);

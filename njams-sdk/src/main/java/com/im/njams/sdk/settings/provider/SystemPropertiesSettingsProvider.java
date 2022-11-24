@@ -16,11 +16,11 @@
  */
 package com.im.njams.sdk.settings.provider;
 
-import java.util.Properties;
-
 import com.im.njams.sdk.settings.Settings;
 import com.im.njams.sdk.settings.SettingsProvider;
 import com.im.njams.sdk.settings.SettingsProviderFactory;
+
+import java.util.Properties;
 
 /**
  * Implements a simple {@link SettingsProvider} that uses Java system properties for configuration.
@@ -29,7 +29,9 @@ import com.im.njams.sdk.settings.SettingsProviderFactory;
  */
 public class SystemPropertiesSettingsProvider implements SettingsProvider {
 
-    /** Name of this implementation that has to be used to configure {@link SettingsProviderFactory}. */
+    /**
+     * Name of this implementation that has to be used to configure {@link SettingsProviderFactory}.
+     */
     public static final String NAME = "systemProperties";
 
     /**
@@ -63,9 +65,7 @@ public class SystemPropertiesSettingsProvider implements SettingsProvider {
         sysPropsCopy.putAll(System.getProperties());
 
         Settings settings = new Settings();
-        sysPropsCopy.entrySet()
-                .stream()
-                .forEach(e -> settings.put((String)e.getKey(), (String)e.getValue()));
+        settings.addAll(sysPropsCopy);
         return settings;
     }
 
