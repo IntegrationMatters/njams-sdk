@@ -1,17 +1,19 @@
 package com.im.njams.sdk.communication;
 
+import java.util.Collection;
+import java.util.Map;
+import java.util.Objects;
+import java.util.concurrent.ConcurrentHashMap;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
 import com.faizsiegeln.njams.messageformat.v4.command.Response;
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.common.Path;
 import com.im.njams.sdk.utils.CommonUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.util.Collection;
-import java.util.Map;
-import java.util.Objects;
-import java.util.concurrent.ConcurrentHashMap;
+import com.im.njams.sdk.utils.StringUtils;
 
 /**
  * A helper class that implements sharing receiver instances.<br>
@@ -46,7 +48,7 @@ public class SharedReceiverSupport<R extends AbstractReceiver & ShareableReceive
             njamsInstances.put(njamsInstance.getClientPath(), njamsInstance);
         }
         LOG.debug("Added client {} to shared receiver; {} attached receivers.", njamsInstance.getClientPath(),
-            njamsInstances.size());
+                njamsInstances.size());
     }
 
     /**
@@ -61,7 +63,7 @@ public class SharedReceiverSupport<R extends AbstractReceiver & ShareableReceive
         synchronized (njamsInstances) {
             njamsInstances.remove(njamsInstance.getClientPath());
             LOG.debug("Removed client {} from shared receiver; {} remaining receivers.", njamsInstance.getClientPath(),
-                njamsInstances.size());
+                    njamsInstances.size());
             if (njamsInstances.isEmpty()) {
                 receiver.stop();
                 return true;
@@ -90,7 +92,8 @@ public class SharedReceiverSupport<R extends AbstractReceiver & ShareableReceive
     public void onInstruction(M message, Instruction instruction, boolean failOnMissingInstance) {
         final Path receiverPath = receiver.getReceiverPath(message, instruction);
         final String clientId = receiver.getClientId(message, instruction);
-        LOG.debug("Received instruction {} with target {}", instruction.getCommand(), receiverPath);
+        LOG.debug("Received instruction {} with target {} and client ID {}", instruction.getCommand(), receiverPath,
+                clientId);
         if (clientId != null) {
             LOG.debug("ClientId in instruction is {}", clientId);
         }
@@ -105,15 +108,13 @@ public class SharedReceiverSupport<R extends AbstractReceiver & ShareableReceive
             if (!CommonUtils.ignoreReplayResponseOnInstruction(instruction)) {
                 receiver.sendReply(message, instruction, njamsTarget.getClientId());
             }
+        } else if (failOnMissingInstance) {
+            LOG.error("No client found for: {}", receiverPath);
+            instruction.setResponseResultCode(99);
+            instruction.setResponseResultMessage("Client instance not found.");
+            receiver.sendReply(message, instruction, clientId);
         } else {
-            if (failOnMissingInstance) {
-                LOG.error("No client found for: {}", receiverPath);
-                instruction.setResponseResultCode(99);
-                instruction.setResponseResultMessage("Client instance not found.");
-                receiver.sendReply(message, instruction, clientId);
-            } else {
-                LOG.debug("No client found for: {}", receiverPath);
-            }
+            LOG.debug("No client found for: {}", receiverPath);
         }
     }
 
@@ -151,7 +152,7 @@ public class SharedReceiverSupport<R extends AbstractReceiver & ShareableReceive
                 Response response = new Response();
                 response.setResultCode(1);
                 response.setResultMessage(
-                    "No InstructionListener for " + instruction.getRequest().getCommand() + " found");
+                        "No InstructionListener for " + instruction.getRequest().getCommand() + " found");
                 instruction.setResponse(response);
             }
         }
@@ -159,27 +160,26 @@ public class SharedReceiverSupport<R extends AbstractReceiver & ShareableReceive
 
     private Njams getNjamsTarget(Path receiverPath, String clientId) {
         try {
-            Njams target = null;
-            target = findNjamsByClientId(clientId);
-            if (target != null) return target;
+            if (StringUtils.isNotBlank(clientId)) {
+                return findNjamsByClientId(clientId);
+            }
+            Njams target = njamsInstances.get(receiverPath);
 
-            target = njamsInstances.get(receiverPath);
-            if (target != null) return target;
+            if (target == null) {
+                LOG.error("Failed to resolve instruction receiver.");
+            }
+            return target;
 
         } catch (Exception e) {
             LOG.error("Error during resolve of instruction receiver.", e);
+            return null;
         }
-
-        LOG.error("Failed to resolve instruction receiver.");
-        return null;
     }
 
     private Njams findNjamsByClientId(String clientId) {
-        if (clientId != null) {
-            for (Map.Entry<Path, Njams> entry : njamsInstances.entrySet()) {
-                if (clientId.equals(entry.getValue().getClientId())) {
-                    return entry.getValue();
-                }
+        for (Njams njams : njamsInstances.values()) {
+            if (clientId.equals(njams.getClientId())) {
+                return njams;
             }
         }
         return null;
