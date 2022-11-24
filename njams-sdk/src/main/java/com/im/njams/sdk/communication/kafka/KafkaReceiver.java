@@ -101,13 +101,13 @@ public class KafkaReceiver extends AbstractReceiver {
     private ObjectMapper mapper;
     private String topicName = null;
     private String kafkaClientId;
-    private String njamsClientId;
 
     /**
      * Initializes this receiver via the given properties.
      *
      * @param properties the properties needed to initialize
      */
+    @SuppressWarnings("deprecation")
     @Override
     public void init(final Properties properties) {
         njamsProperties = properties;
@@ -115,7 +115,6 @@ public class KafkaReceiver extends AbstractReceiver {
         mapper = JsonSerializerFactory.getDefaultMapper();
         final String clientPath = properties.getProperty(Settings.INTERNAL_PROPERTY_CLIENTPATH);
         kafkaClientId = getClientId(clientPath.substring(1, clientPath.length() - 1).replace('>', '_'));
-        njamsClientId = properties.getProperty(Settings.INTERNAL_PROPERTY_CLIENTID);
         if (properties.containsKey(NjamsSettings.PROPERTY_KAFKA_COMMANDS_TOPIC)) {
             topicName = properties.getProperty(NjamsSettings.PROPERTY_KAFKA_COMMANDS_TOPIC);
         }
@@ -239,7 +238,7 @@ public class KafkaReceiver extends AbstractReceiver {
             onInstruction(instruction);
 
             if (!CommonUtils.ignoreReplayResponseOnInstruction(instruction)) {
-                sendReply(messageId, instruction, njamsClientId);
+                sendReply(messageId, instruction, njams.getClientId());
             }
 
         } catch (final Exception e) {

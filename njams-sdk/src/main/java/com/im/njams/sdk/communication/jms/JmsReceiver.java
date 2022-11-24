@@ -16,6 +16,28 @@
  */
 package com.im.njams.sdk.communication.jms;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Properties;
+
+import javax.jms.Connection;
+import javax.jms.ConnectionFactory;
+import javax.jms.ExceptionListener;
+import javax.jms.JMSException;
+import javax.jms.Message;
+import javax.jms.MessageConsumer;
+import javax.jms.MessageListener;
+import javax.jms.MessageProducer;
+import javax.jms.Session;
+import javax.jms.TextMessage;
+import javax.jms.Topic;
+import javax.naming.InitialContext;
+import javax.naming.NameNotFoundException;
+import javax.naming.NamingException;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.im.njams.sdk.Njams;
@@ -28,16 +50,6 @@ import com.im.njams.sdk.communication.ConnectionStatus;
 import com.im.njams.sdk.communication.NjamsConnectionFactory;
 import com.im.njams.sdk.settings.PropertyUtil;
 import com.im.njams.sdk.utils.CommonUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.jms.*;
-import javax.naming.InitialContext;
-import javax.naming.NameNotFoundException;
-import javax.naming.NamingException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Properties;
 
 /**
  * JMS implementation for a Receiver.
@@ -217,9 +229,10 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
      */
     private Connection createConnection(Properties props, ConnectionFactory factory) throws JMSException {
         Connection con;
-        if (props.containsKey(NjamsSettings.PROPERTY_JMS_USERNAME) && props.containsKey(NjamsSettings.PROPERTY_JMS_PASSWORD)) {
+        if (props.containsKey(NjamsSettings.PROPERTY_JMS_USERNAME)
+                && props.containsKey(NjamsSettings.PROPERTY_JMS_PASSWORD)) {
             con = factory.createConnection(props.getProperty(NjamsSettings.PROPERTY_JMS_USERNAME),
-                props.getProperty(NjamsSettings.PROPERTY_JMS_PASSWORD));
+                    props.getProperty(NjamsSettings.PROPERTY_JMS_PASSWORD));
         } else {
             con = factory.createConnection();
         }
@@ -277,7 +290,6 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
      * this.onMessage(Message msg) is invoked.
      * @throws JMSException is thrown if the MessageConsumer can' be created.
      */
-    @SuppressWarnings("squid:S2095")
     protected MessageConsumer createConsumer(Session sess, Topic topic) throws JMSException {
         MessageConsumer cons = sess.createConsumer(topic, messageSelector);
         cons.setMessageListener(this);
@@ -413,7 +425,7 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
             final String clientId = msg.getStringProperty(NJAMS_CLIENTID);
             if (clientId != null && !clientId.equals(njams.getClientId())) {
                 LOG.debug("Message is not for me! ClientId in Message is: {} but this nJAMS Client has Id: {}",
-                    clientId, njams.getClientId());
+                        clientId, njams.getClientId());
                 return;
             }
 
@@ -425,7 +437,7 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
             onInstruction(instruction);
 
             if (!CommonUtils.ignoreReplayResponseOnInstruction(instruction)) {
-                reply(msg, instruction, clientId);
+                reply(msg, instruction, njams.getClientId());
             }
         } catch (Exception e) {
             LOG.error("Error in onMessage", e);
@@ -443,8 +455,7 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
     protected Instruction getInstruction(Message message) {
         try {
             String instructionString = ((TextMessage) message).getText();
-            Instruction instruction = mapper.readValue(instructionString, Instruction.class
-            );
+            Instruction instruction = mapper.readValue(instructionString, Instruction.class);
             if (instruction.getRequest() != null) {
                 return instruction;
             }
@@ -510,21 +521,21 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
      */
     @Override
     public String[] librariesToCheck() {
-        return new String[]{
-            "javax.jms.Connection",
-            "javax.jms.ConnectionFactory",
-            "javax.jms.ExceptionListener",
-            "javax.jms.JMSException",
-            "javax.jms.Message",
-            "javax.jms.MessageConsumer",
-            "javax.jms.MessageListener",
-            "javax.jms.Session",
-            "javax.jms.TextMessage",
-            "javax.jms.MessageProducer",
-            "javax.jms.Topic",
-            "javax.naming.InitialContext",
-            "javax.naming.NameNotFoundException",
-            "javax.naming.NamingException"};
+        return new String[] {
+                "javax.jms.Connection",
+                "javax.jms.ConnectionFactory",
+                "javax.jms.ExceptionListener",
+                "javax.jms.JMSException",
+                "javax.jms.Message",
+                "javax.jms.MessageConsumer",
+                "javax.jms.MessageListener",
+                "javax.jms.Session",
+                "javax.jms.TextMessage",
+                "javax.jms.MessageProducer",
+                "javax.jms.Topic",
+                "javax.naming.InitialContext",
+                "javax.naming.NameNotFoundException",
+                "javax.naming.NamingException" };
     }
 
 }
