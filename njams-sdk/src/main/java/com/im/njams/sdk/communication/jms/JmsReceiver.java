@@ -23,6 +23,7 @@ import java.util.Properties;
 import javax.jms.Connection;
 import javax.jms.ConnectionFactory;
 import javax.jms.ExceptionListener;
+import javax.jms.InvalidDestinationException;
 import javax.jms.JMSException;
 import javax.jms.Message;
 import javax.jms.MessageConsumer;
@@ -468,8 +469,8 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
 
     /**
      * This method tries to reply the instructions response back to the sender.
-     * Send a message to the sender that is metioned in the message. If a
-     * JmsCorrelationId is set in the message, it will be forwarded aswell.
+     * Send a message to the sender that is mentioned in the message. If a
+     * JmsCorrelationId is set in the message, it will be forwarded as well.
      *
      * @param message     the destination where the response will be sent to and the
      *                    jmsCorrelationId are safed in here.
@@ -490,6 +491,9 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
             }
             replyProducer.send(responseMessage);
             LOG.debug("Response: {}", response);
+        } catch (InvalidDestinationException e) {
+            // this request has already been answered by another instance -> ignore
+            LOG.debug("Response channel already closed", e);
         } catch (Exception e) {
             LOG.error("Error while sending reply for {}", topicName, e);
         } finally {
