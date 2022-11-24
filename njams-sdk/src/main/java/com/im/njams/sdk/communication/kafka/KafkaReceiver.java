@@ -17,6 +17,22 @@
 
 package com.im.njams.sdk.communication.kafka;
 
+import static com.im.njams.sdk.communication.kafka.KafkaHeadersUtil.getHeader;
+import static com.im.njams.sdk.communication.kafka.KafkaHeadersUtil.headersUpdater;
+import static com.im.njams.sdk.communication.kafka.KafkaUtil.filterKafkaProperties;
+
+import java.io.IOException;
+import java.util.Collection;
+import java.util.Properties;
+import java.util.UUID;
+
+import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.clients.producer.KafkaProducer;
+import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.common.serialization.StringSerializer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.im.njams.sdk.NjamsSettings;
@@ -29,21 +45,6 @@ import com.im.njams.sdk.communication.kafka.KafkaUtil.ClientType;
 import com.im.njams.sdk.settings.Settings;
 import com.im.njams.sdk.utils.CommonUtils;
 import com.im.njams.sdk.utils.StringUtils;
-import org.apache.kafka.clients.consumer.ConsumerRecord;
-import org.apache.kafka.clients.producer.KafkaProducer;
-import org.apache.kafka.clients.producer.ProducerRecord;
-import org.apache.kafka.common.serialization.StringSerializer;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.io.IOException;
-import java.util.Collection;
-import java.util.Properties;
-import java.util.UUID;
-
-import static com.im.njams.sdk.communication.kafka.KafkaHeadersUtil.getHeader;
-import static com.im.njams.sdk.communication.kafka.KafkaHeadersUtil.headersUpdater;
-import static com.im.njams.sdk.communication.kafka.KafkaUtil.filterKafkaProperties;
 
 /**
  * Kafka implementation for a Receiver.
@@ -99,7 +100,8 @@ public class KafkaReceiver extends AbstractReceiver {
     private Properties njamsProperties;
     private ObjectMapper mapper;
     private String topicName = null;
-    private String clientId;
+    private String kafkaClientId;
+    private String njamsClientId;
 
     /**
      * Initializes this receiver via the given properties.
@@ -112,7 +114,8 @@ public class KafkaReceiver extends AbstractReceiver {
         connectionStatus = ConnectionStatus.DISCONNECTED;
         mapper = JsonSerializerFactory.getDefaultMapper();
         final String clientPath = properties.getProperty(Settings.INTERNAL_PROPERTY_CLIENTPATH);
-        clientId = getClientId(clientPath.substring(1, clientPath.length() - 1).replace('>', '_'));
+        kafkaClientId = getClientId(clientPath.substring(1, clientPath.length() - 1).replace('>', '_'));
+        njamsClientId = properties.getProperty(Settings.INTERNAL_PROPERTY_CLIENTID);
         if (properties.containsKey(NjamsSettings.PROPERTY_KAFKA_COMMANDS_TOPIC)) {
             topicName = properties.getProperty(NjamsSettings.PROPERTY_KAFKA_COMMANDS_TOPIC);
         }
@@ -120,7 +123,7 @@ public class KafkaReceiver extends AbstractReceiver {
             String prefix = properties.getProperty(NjamsSettings.PROPERTY_KAFKA_TOPIC_PREFIX);
             if (StringUtils.isBlank(prefix)) {
                 LOG.warn("Property {} is not set. Using '{}' as default.", NjamsSettings.PROPERTY_KAFKA_TOPIC_PREFIX,
-                    KafkaConstants.DEFAULT_TOPIC_PREFIX);
+                        KafkaConstants.DEFAULT_TOPIC_PREFIX);
                 prefix = KafkaConstants.DEFAULT_TOPIC_PREFIX;
             }
             topicName = prefix + COMMANDS_SUFFIX;
@@ -163,7 +166,7 @@ public class KafkaReceiver extends AbstractReceiver {
     private void tryToConnect() {
         LOG.debug("Try subscribing KafkaReceiver to topic {}", topicName);
         try {
-            commandConsumer = new CommandsConsumer(njamsProperties, topicName, clientId, this);
+            commandConsumer = new CommandsConsumer(njamsProperties, topicName, kafkaClientId, this);
             commandConsumer.start();
         } catch (final Exception e) {
             closeAll();
@@ -236,7 +239,7 @@ public class KafkaReceiver extends AbstractReceiver {
             onInstruction(instruction);
 
             if (!CommonUtils.ignoreReplayResponseOnInstruction(instruction)) {
-                sendReply(messageId, instruction, getHeader(msg, NJAMS_CLIENTID));
+                sendReply(messageId, instruction, njamsClientId);
             }
 
         } catch (final Exception e) {
@@ -265,7 +268,7 @@ public class KafkaReceiver extends AbstractReceiver {
         final String clientId = getHeader(msg, NJAMS_CLIENTID);
         if (clientId != null && !njams.getClientId().equals(clientId)) {
             LOG.debug("Message is not for me! ClientId in Message is: {} but this nJAMS Client has Id: {}",
-                clientId, njams.getClientId());
+                    clientId, njams.getClientId());
             return false;
         }
 
@@ -296,23 +299,24 @@ public class KafkaReceiver extends AbstractReceiver {
         try {
             final String responseId = UUID.randomUUID().toString();
             final ProducerRecord<String, String> response =
-                new ProducerRecord<>(topicName, responseId, mapper.writeValueAsString(instruction));
+                    new ProducerRecord<>(topicName, responseId, mapper.writeValueAsString(instruction));
             if (clientId != null) {
                 headersUpdater(response).addHeader(NJAMS_MESSAGE_ID, responseId).addHeader(NJAMS_REPLY_FOR, requestId)
-                    .addHeader(NJAMS_RECEIVER, RECEIVER_SERVER).addHeader(NJAMS_TYPE, MESSAGE_TYPE_REPLY)
-                    .addHeader(NJAMS_CONTENT, CONTENT_TYPE_JSON).addHeader(NJAMS_CLIENTID, clientId);
+                        .addHeader(NJAMS_RECEIVER, RECEIVER_SERVER).addHeader(NJAMS_TYPE, MESSAGE_TYPE_REPLY)
+                        .addHeader(NJAMS_CONTENT, CONTENT_TYPE_JSON).addHeader(NJAMS_CLIENTID, clientId);
             } else {
                 headersUpdater(response).addHeader(NJAMS_MESSAGE_ID, responseId).addHeader(NJAMS_REPLY_FOR, requestId)
-                    .addHeader(NJAMS_RECEIVER, RECEIVER_SERVER).addHeader(NJAMS_TYPE, MESSAGE_TYPE_REPLY)
-                    .addHeader(NJAMS_CONTENT, CONTENT_TYPE_JSON);
+                        .addHeader(NJAMS_RECEIVER, RECEIVER_SERVER).addHeader(NJAMS_TYPE, MESSAGE_TYPE_REPLY)
+                        .addHeader(NJAMS_CONTENT, CONTENT_TYPE_JSON);
             }
 
             synchronized (this) {
                 if (producer == null) {
                     LOG.debug("Creating new Kafka producer.");
                     producer =
-                        new KafkaProducer<>(filterKafkaProperties(njamsProperties, ClientType.PRODUCER, this.clientId),
-                            new StringSerializer(), new StringSerializer());
+                            new KafkaProducer<>(
+                                    filterKafkaProperties(njamsProperties, ClientType.PRODUCER, kafkaClientId),
+                                    new StringSerializer(), new StringSerializer());
                 }
                 LOG.debug("Sending reply for request {}: {}", requestId, response);
                 producer.send(response);
