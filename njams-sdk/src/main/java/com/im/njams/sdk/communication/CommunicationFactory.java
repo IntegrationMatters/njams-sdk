@@ -30,7 +30,6 @@ import org.slf4j.LoggerFactory;
 
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.NjamsSettings;
-import com.im.njams.sdk.common.Path;
 import com.im.njams.sdk.settings.Settings;
 
 /**
@@ -84,7 +83,7 @@ public class CommunicationFactory {
                     "true".equalsIgnoreCase(settings.getProperty(NjamsSettings.PROPERTY_SHARED_COMMUNICATIONS));
             Class<? extends Receiver> type = findReceiverType(requiredReceiverName, shared);
             if (type != null) {
-                final Receiver newInstance = createReceiver(type, njams.getClientPath(), shared, requiredReceiverName);
+                final Receiver newInstance = createReceiver(type, njams, shared, requiredReceiverName);
                 newInstance.setNjams(njams);
 
                 return newInstance;
@@ -119,10 +118,11 @@ public class CommunicationFactory {
         return found == null ? null : found.getClass();
     }
 
-    private Receiver createReceiver(Class<? extends Receiver> clazz, Path clientPath, boolean shared, String name) {
+    private Receiver createReceiver(Class<? extends Receiver> clazz, Njams njams, boolean shared, String name) {
         try {
             Properties properties = settings.getAllProperties();
-            properties.setProperty(Settings.INTERNAL_PROPERTY_CLIENTPATH, clientPath.toString());
+            properties.setProperty(Settings.INTERNAL_PROPERTY_CLIENTPATH, njams.getClientPath().toString());
+            properties.setProperty(Settings.INTERNAL_PROPERTY_CLIENTID, njams.getClientId());
             Receiver receiver;
             if (shared && ShareableReceiver.class.isAssignableFrom(clazz)) {
                 synchronized (sharedReceivers) {

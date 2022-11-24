@@ -16,19 +16,11 @@
  */
 package com.im.njams.sdk.communication.http;
 
-import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.im.njams.sdk.NjamsSettings;
-import com.im.njams.sdk.common.JsonSerializerFactory;
-import com.im.njams.sdk.common.NjamsSdkRuntimeException;
-import com.im.njams.sdk.common.Path;
-import com.im.njams.sdk.communication.AbstractReceiver;
-import com.im.njams.sdk.communication.ConnectionStatus;
-import com.im.njams.sdk.utils.CommonUtils;
-import com.im.njams.sdk.utils.JsonUtils;
-import com.im.njams.sdk.utils.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import java.io.IOException;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.util.Properties;
+import java.util.UUID;
 
 import javax.ws.rs.client.Client;
 import javax.ws.rs.client.ClientBuilder;
@@ -37,11 +29,22 @@ import javax.ws.rs.client.WebTarget;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.sse.InboundSseEvent;
 import javax.ws.rs.sse.SseEventSource;
-import java.io.IOException;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.util.Properties;
-import java.util.UUID;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.im.njams.sdk.NjamsSettings;
+import com.im.njams.sdk.common.JsonSerializerFactory;
+import com.im.njams.sdk.common.NjamsSdkRuntimeException;
+import com.im.njams.sdk.common.Path;
+import com.im.njams.sdk.communication.AbstractReceiver;
+import com.im.njams.sdk.communication.ConnectionStatus;
+import com.im.njams.sdk.settings.Settings;
+import com.im.njams.sdk.utils.CommonUtils;
+import com.im.njams.sdk.utils.JsonUtils;
+import com.im.njams.sdk.utils.StringUtils;
 
 /**
  * Receives SSE (server sent events) from nJAMS as HTTP Client Communication
@@ -60,8 +63,11 @@ public class HttpSseReceiver extends AbstractReceiver {
     protected ObjectMapper mapper;
     protected URL url;
 
+    private String clientId = null;
+
     @Override
     public void init(Properties properties) {
+        clientId = properties.getProperty(Settings.INTERNAL_PROPERTY_CLIENTID);
         try {
             url = createUrl(properties);
         } catch (final MalformedURLException ex) {
@@ -136,7 +142,7 @@ public class HttpSseReceiver extends AbstractReceiver {
         onInstruction(instruction);
 
         if (!CommonUtils.ignoreReplayResponseOnInstruction(instruction)) {
-            sendReply(id, instruction, event.getComment());
+            sendReply(id, instruction, clientId);
         }
 
     }
@@ -154,13 +160,13 @@ public class HttpSseReceiver extends AbstractReceiver {
         final String receiver = event.getName();
         if (StringUtils.isBlank(receiver) || !njams.getClientPath().equals(new Path(receiver))) {
             LOG.debug("Message is not for me! Client path from Message is: " + event.getName() +
-                " but nJAMS Client path is: " + njams.getClientPath());
+                    " but nJAMS Client path is: " + njams.getClientPath());
             return false;
         }
         final String clientId = event.getComment();
-        if (StringUtils.isBlank(clientId) || !njams.getClientId().equals(clientId)) {
+        if (StringUtils.isNotBlank(clientId) && !njams.getClientId().equals(clientId)) {
             LOG.debug("Message is not for me! Client id from Message is: " + event.getComment() +
-                " but nJAMS Client id is: " + njams.getClientId());
+                    " but nJAMS Client id is: " + njams.getClientId());
             return false;
         }
         return true;
@@ -184,23 +190,23 @@ public class HttpSseReceiver extends AbstractReceiver {
             Response response;
             if (clientId != null) {
                 response = target.request()
-                    .header("Content-Type", "application/json")
-                    .header("Accept", "text/plain")
-                    .header("njams-receiver", "server")
-                    .header("njams-messagetype", "reply")
-                    .header("njams-message-id", responseId)
-                    .header("njams-reply-for", requestId)
-                    .header("njams-clientid", clientId)
-                    .post(Entity.json(JsonUtils.serialize(instruction)));
+                        .header("Content-Type", "application/json")
+                        .header("Accept", "text/plain")
+                        .header("njams-receiver", "server")
+                        .header("njams-messagetype", "reply")
+                        .header("njams-message-id", responseId)
+                        .header("njams-reply-for", requestId)
+                        .header("njams-clientid", clientId)
+                        .post(Entity.json(JsonUtils.serialize(instruction)));
             } else {
                 response = target.request()
-                    .header("Content-Type", "application/json")
-                    .header("Accept", "text/plain")
-                    .header("njams-receiver", "server")
-                    .header("njams-messagetype", "reply")
-                    .header("njams-message-id", responseId)
-                    .header("njams-reply-for", requestId)
-                    .post(Entity.json(JsonUtils.serialize(instruction)));
+                        .header("Content-Type", "application/json")
+                        .header("Accept", "text/plain")
+                        .header("njams-receiver", "server")
+                        .header("njams-messagetype", "reply")
+                        .header("njams-message-id", responseId)
+                        .header("njams-reply-for", requestId)
+                        .post(Entity.json(JsonUtils.serialize(instruction)));
             }
 
             LOG.debug("Reply response status:" + response.getStatus());
@@ -208,13 +214,13 @@ public class HttpSseReceiver extends AbstractReceiver {
             // Try to use old deprecated HTTP header names
             if (response.getStatus() != 200 && response.getStatus() != 204) {
                 Response responseOldHeader = target.request()
-                    .header("Content-Type", "application/json")
-                    .header("Accept", "text/plain")
-                    .header("NJAMS_RECEIVER", "server")
-                    .header("NJAMS_MESSAGETYPE", "reply")
-                    .header("NJAMS_MESSAGE_ID", responseId)
-                    .header("NJAMS_REPLY_FOR", requestId)
-                    .post(Entity.json(JsonUtils.serialize(instruction)));
+                        .header("Content-Type", "application/json")
+                        .header("Accept", "text/plain")
+                        .header("NJAMS_RECEIVER", "server")
+                        .header("NJAMS_MESSAGETYPE", "reply")
+                        .header("NJAMS_MESSAGE_ID", responseId)
+                        .header("NJAMS_REPLY_FOR", requestId)
+                        .post(Entity.json(JsonUtils.serialize(instruction)));
                 LOG.debug("Reply response status with old headers:" + responseOldHeader.getStatus());
             }
         } finally {
