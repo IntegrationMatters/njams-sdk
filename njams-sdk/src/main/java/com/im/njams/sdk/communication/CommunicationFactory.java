@@ -122,7 +122,9 @@ public class CommunicationFactory {
         try {
             Properties properties = settings.getAllProperties();
             properties.setProperty(Settings.INTERNAL_PROPERTY_CLIENTPATH, njams.getClientPath().toString());
-            properties.setProperty(Settings.INTERNAL_PROPERTY_CLIENTID, njams.getClientId());
+            if (njams.getClientId() != null) {
+                properties.setProperty(Settings.INTERNAL_PROPERTY_CLIENTID, njams.getClientId());
+            }
             Receiver receiver;
             if (shared && ShareableReceiver.class.isAssignableFrom(clazz)) {
                 synchronized (sharedReceivers) {
