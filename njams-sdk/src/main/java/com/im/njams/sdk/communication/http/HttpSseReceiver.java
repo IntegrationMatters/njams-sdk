@@ -30,10 +30,7 @@ import com.im.njams.sdk.utils.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.ws.rs.client.Client;
-import javax.ws.rs.client.ClientBuilder;
-import javax.ws.rs.client.Entity;
-import javax.ws.rs.client.WebTarget;
+import javax.ws.rs.client.*;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.sse.InboundSseEvent;
 import javax.ws.rs.sse.SseEventSource;
@@ -169,28 +166,22 @@ public class HttpSseReceiver extends AbstractReceiver {
         try {
             client = ClientBuilder.newClient();
             WebTarget target = client.target(url.toString() + "/reply");
-            Response response = target.request()
+            Invocation.Builder builder = target.request()
                 .header("Content-Type", "application/json")
                 .header("Accept", "text/plain")
                 .header("njams-receiver", "server")
                 .header("njams-messagetype", "reply")
                 .header("njams-message-id", responseId)
                 .header("njams-reply-for", requestId)
-                .post(Entity.json(JsonUtils.serialize(instruction)));
+                // Additionally add old headers
+                .header("Content-Type", "application/json")
+                .header("Accept", "text/plain")
+                .header("NJAMS_RECEIVER", "server")
+                .header("NJAMS_MESSAGETYPE", "reply")
+                .header("NJAMS_MESSAGE_ID", responseId)
+                .header("NJAMS_REPLY_FOR", requestId);
+            Response response = builder.post(Entity.json(JsonUtils.serialize(instruction)));
             LOG.debug("Reply response status:" + response.getStatus());
-
-            // Try to use old deprecated HTTP header names
-            if (response.getStatus() != 200 && response.getStatus() != 204) {
-                Response responseOldHeader = target.request()
-                    .header("Content-Type", "application/json")
-                    .header("Accept", "text/plain")
-                    .header("NJAMS_RECEIVER", "server")
-                    .header("NJAMS_MESSAGETYPE", "reply")
-                    .header("NJAMS_MESSAGE_ID", responseId)
-                    .header("NJAMS_REPLY_FOR", requestId)
-                    .post(Entity.json(JsonUtils.serialize(instruction)));
-                LOG.debug("Reply response status with old headers:" + responseOldHeader.getStatus());
-            }
         } finally {
             if (client != null) {
                 try {
