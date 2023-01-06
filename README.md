@@ -12,15 +12,13 @@ Message structures between client and server.
 ## JavaDoc
 
 * [JavaDoc nJAMS SDK](https://integrationmatters.github.io/njams-sdk/index-njams-sdk.html) - The newest SDK JavaDocs
-* [JavaDoc nJAMS SDK cloud communication](https://integrationmatters.github.io/njams-sdk/index-njams-sdk-communication-cloud.html)
-  - The newest cloud communication JavaDocs
 * [JavaDoc nJAMS SDK sample client](https://integrationmatters.github.io/njams-sdk/index-njams-sdk-sample-client.html) -
   The newest sample JavaDocs
 
 ## Getting started
 
 * [Sample](https://github.com/IntegrationMatters/njams-sdk/tree/master/njams-sdk-sample-client/src/main/java/com/faizsiegeln/test)
-  - See our sample client implementations
+    - See our sample client implementations
 * [Releases](https://github.com/IntegrationMatters/njams-sdk/releases) - Download latest SDK Release
 * Use SDK as a dependency in your Client project.
 * Instantiate Njams Object with your Client Path
