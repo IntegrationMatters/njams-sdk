@@ -46,7 +46,6 @@ public class NjamsSettings {
      * <li>JMS
      * <li>HTTP
      * <li>HTTPS
-     * <li>CLOUD
      * <li>KAFKA
      * <li>YOUR-OWN-COMMUNICATION
      * </ul>
@@ -169,7 +168,7 @@ public class NjamsSettings {
      * because he uses an older Messageformat version.
      */
     public static final String PROPERTY_USE_DEPRECATED_PATH_FIELD_FOR_SUBPROCESSES =
-        "njams.client.sdk.deprecatedsubprocesspathfield";
+            "njams.client.sdk.deprecatedsubprocesspathfield";
 
     /**
      * If set to <code>true</code> secure XML processing feature will NOT be inititalzied:
@@ -302,7 +301,7 @@ public class NjamsSettings {
      * (comma separated) for connecting to a Kafka cluster.
      */
     public static final String PROPERTY_KAFKA_BOOTSTRAP_SERVERS =
-        "njams.sdk.communication.kafka.client.bootstrap.servers";
+            "njams.sdk.communication.kafka.client.bootstrap.servers";
 
     /**
      * This is the prefix of the event, project, commands, and optional error topics.
@@ -315,7 +314,7 @@ public class NjamsSettings {
      * in milliseconds. The default is 30000.
      */
     public static final String PROPERTY_KAFKA_REPLY_PRODUCER_IDLE_TIME =
-        "njams.sdk.communication.kafka.replyProducerIdleTime";
+            "njams.sdk.communication.kafka.replyProducerIdleTime";
 
     /**
      * For testing only.
@@ -405,7 +404,7 @@ public class NjamsSettings {
      * Specifies the jndi initial context factory.
      */
     public static final String PROPERTY_JMS_INITIAL_CONTEXT_FACTORY = PROPERTY_JMS_PREFIX
-        + Context.INITIAL_CONTEXT_FACTORY;
+            + Context.INITIAL_CONTEXT_FACTORY;
 
     /**
      * Specifies the jndi security principal.
@@ -484,32 +483,5 @@ public class NjamsSettings {
      * </pre>
      */
     public static final String PROPERTY_DATA_MASKING_REGEX_PREFIX = "njams.sdk.datamasking.regex.";
-
-    //     _____ _                 _
-    //    / ____| |               | |
-    //   | |    | | ___  _   _  __| |
-    //   | |    | |/ _ \| | | |/ _` |
-    //   | |____| | (_) | |_| | (_| |
-    //    \_____|_|\___/ \__,_|\__,_|;
-    /**
-     * This is the ingest point of the cloud instance.
-     */
-    public static final String PROPERTY_CLOUD_ENDPOINT = "njams.sdk.communication.cloud.endpoint";
-    /**
-     * This is the path to the api.key file.
-     */
-    public static final String PROPERTY_CLOUD_APIKEY = "njams.sdk.communication.cloud.apikey";
-    /**
-     * This is the name of the njams cloud instance.
-     */
-    public static final String PROPERTY_CLOUD_CLIENT_INSTANCEID = "njams.sdk.communication.cloud.instanceid";
-    /**
-     * This is the path to the certificate.pem file.
-     */
-    public static final String PROPERTY_CLOUD_CLIENT_CERTIFICATE = "njams.sdk.communication.cloud.certificate";
-    /**
-     * This is the path to the private.pem.key file.
-     */
-    public static final String PROPERTY_CLOUD_CLIENT_PRIVATEKEY = "njams.sdk.communication.cloud.privatekey";
-
+    
 }
