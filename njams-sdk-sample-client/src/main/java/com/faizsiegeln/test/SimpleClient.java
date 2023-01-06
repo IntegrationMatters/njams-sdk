@@ -19,7 +19,6 @@ package com.faizsiegeln.test;
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.common.Path;
-import com.im.njams.sdk.communication.cloud.CloudConstants;
 import com.im.njams.sdk.logmessage.Activity;
 import com.im.njams.sdk.logmessage.Job;
 import com.im.njams.sdk.model.ActivityModel;
@@ -50,6 +49,7 @@ public class SimpleClient {
         Settings settings = getHttpProperties();
         //Settings settings = getHttpsProperties();
         //Settings settings = getKafkaProperties();
+        //Settings settings = getActiveMqsslProperties();
 
         // Instantiate client for first application
         Njams njams = new Njams(clientPath, "1.0.0", technology, settings);
@@ -121,23 +121,14 @@ public class SimpleClient {
             Thread.sleep(1000);
         }
 
+        Thread.sleep(1000);
+
         // If you are finished with processing or the application goes down, stop the
         // client...
         njams.stop();
 
         Thread.sleep(1000);
         System.out.println("Finsihed " + SimpleClient.class.getSimpleName());
-    }
-
-    private static Settings getCloudProperties() {
-        Settings communicationProperties = new Settings();
-        communicationProperties.put(NjamsSettings.PROPERTY_COMMUNICATION, CloudConstants.NAME);
-        communicationProperties.put(NjamsSettings.PROPERTY_CLOUD_ENDPOINT, "<cloud url>");
-        communicationProperties.put(NjamsSettings.PROPERTY_CLOUD_APIKEY, "<cloud apikey>");
-        communicationProperties.put(NjamsSettings.PROPERTY_CLOUD_CLIENT_INSTANCEID, "<cloud client instance>");
-        communicationProperties.put(NjamsSettings.PROPERTY_CLOUD_CLIENT_CERTIFICATE, "<cloud client certificate>");
-        communicationProperties.put(NjamsSettings.PROPERTY_CLOUD_CLIENT_PRIVATEKEY, "<cloud client privatekey>");
-        return communicationProperties;
     }
 
     private static Settings getJmsProperties() {
@@ -225,10 +216,29 @@ public class SimpleClient {
                 "https://os0100.integrationmatters.com:8443/njams/");
         communicationProperties.put("njams.sdk.communication.http.dataprovider.prefix", "bw");
         communicationProperties
-        .put("njams.sdk.communication.http.ssl.certificate.file",
-                "/Users/bwand/Development/SSLKeystore/cert.wildcard.integrationmatters.com/ca-root-integrationmatters.com.pem");
+                .put("njams.sdk.communication.http.ssl.certificate.file",
+                        "/Users/bwand/Development/SSLKeystore/cert.wildcard.integrationmatters.com/ca-root-integrationmatters.com.pem");
 
         communicationProperties.put("njams.client.sdk.sharedcommunications", "true");
+        return communicationProperties;
+    }
+
+    private static Settings getActiveMqsslProperties() {
+        Settings communicationProperties = new Settings();
+        communicationProperties.put(NjamsSettings.PROPERTY_COMMUNICATION, "JMS");
+        communicationProperties.put(NjamsSettings.PROPERTY_JMS_INITIAL_CONTEXT_FACTORY, "org.apache.activemq.jndi.ActiveMQInitialContextFactory");
+        communicationProperties.put(NjamsSettings.PROPERTY_JMS_SECURITY_PRINCIPAL, "njams");
+        communicationProperties.put(NjamsSettings.PROPERTY_JMS_SECURITY_CREDENTIALS, "njams");
+        communicationProperties.put(NjamsSettings.PROPERTY_JMS_PROVIDER_URL, "ssl://localhost:61714");
+        //communicationProperties.put(NjamsSettings.PROPERTY_JMS_KEYSTORE, "/Users/bwand/Development/apache-activemq-5.17.1/conf/client.ks");
+        //communicationProperties.put(NjamsSettings.PROPERTY_JMS_KEYSTOREPASSWORD, "password");
+        communicationProperties.put(NjamsSettings.PROPERTY_JMS_TRUSTSTORE, "/Users/bwand/Development/apache-activemq-5.17.1/conf/client.ts");
+        communicationProperties.put(NjamsSettings.PROPERTY_JMS_TRUSTSTOREPASSWORD, "password");
+        communicationProperties.put(NjamsSettings.PROPERTY_JMS_CONNECTION_FACTORY, "ActiveMQSslConnectionFactory");
+        communicationProperties.put(NjamsSettings.PROPERTY_JMS_USERNAME, "njams");
+        communicationProperties.put(NjamsSettings.PROPERTY_JMS_PASSWORD, "njams");
+        communicationProperties.put(NjamsSettings.PROPERTY_JMS_DESTINATION, "njams");
+
         return communicationProperties;
     }
 }

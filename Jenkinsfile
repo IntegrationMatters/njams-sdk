@@ -1,9 +1,9 @@
 #!/usr/bin/env groovy
 properties([
-    buildDiscarder(logRotator(artifactDaysToKeepStr: '', artifactNumToKeepStr: '', daysToKeepStr: '', numToKeepStr: '10')),
-    pipelineTriggers([
-        //pollSCM('')
-    ])
+        buildDiscarder(logRotator(artifactDaysToKeepStr: '', artifactNumToKeepStr: '', daysToKeepStr: '', numToKeepStr: '10')),
+        pipelineTriggers([
+                //pollSCM('')
+        ])
 ])
 
 node('master') {
@@ -23,7 +23,7 @@ node('master') {
         echo 'Getting source code...'
         scmInfo = checkout scm
         echo "scm: ${scmInfo}"
-        if (scmInfo.GIT_BRANCH != 'master' && scmInfo.GIT_BRANCH != '4.0.X' && scmInfo.GIT_BRANCH != '4.1.X') {
+        if (scmInfo.GIT_BRANCH != 'master' && scmInfo.GIT_BRANCH != '4.0.X' && scmInfo.GIT_BRANCH != '4.1.X' && scmInfo.GIT_BRANCH != '4.2.X') {
             echo "Only call install on feature branches"
             buildGoal = "install"
         } else {
@@ -50,20 +50,7 @@ node('master') {
             archiveArtifacts 'target/*.jar'
         }
     }
-    stage('Build cloud communication') {
-        echo "Build"
-        dir('njams-sdk-communication-cloud') {
-            try {
-                sh "'${mvnHome}/bin/mvn' clean ${buildGoal} -U -Psonar,jenkins-cli -DrevisionNumberPlugin.revision=${env.BUILD_NUMBER} -DscmBranch=${scmInfo.GIT_BRANCH} -DscmCommit=${scmInfo.GIT_COMMIT}"
-            } finally {
-                //junit 'target/surefire-reports/*.xml'
-            }
-            withSonarQubeEnv('sonar') {
-                sh "'${mvnHome}/bin/mvn' org.sonarsource.scanner.maven:sonar-maven-plugin:3.2:sonar"
-            }
-            archiveArtifacts 'target/*.jar'
-        }
-    }
+
     stage('Build client sample') {
         echo "Build"
         dir('njams-sdk-sample-client') {

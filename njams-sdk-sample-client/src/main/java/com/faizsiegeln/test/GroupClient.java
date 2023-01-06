@@ -19,7 +19,6 @@ package com.faizsiegeln.test;
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.common.Path;
-import com.im.njams.sdk.communication.cloud.CloudConstants;
 import com.im.njams.sdk.logmessage.Activity;
 import com.im.njams.sdk.logmessage.Group;
 import com.im.njams.sdk.logmessage.Job;
@@ -140,22 +139,11 @@ public class GroupClient {
         njams.stop();
     }
 
-    private static Settings getCloudProperties() {
-        Settings communicationProperties = new Settings();
-        communicationProperties.put(NjamsSettings.PROPERTY_COMMUNICATION, CloudConstants.NAME);
-        communicationProperties.put(CloudConstants.ENDPOINT, "<cloud url>");
-        communicationProperties.put(CloudConstants.APIKEY, "<cloud apikey>");
-        communicationProperties.put(CloudConstants.CLIENT_INSTANCEID, "<cloud client instance>");
-        communicationProperties.put(CloudConstants.CLIENT_CERTIFICATE, "<cloud client certificate>");
-        communicationProperties.put(CloudConstants.CLIENT_PRIVATEKEY, "<cloud client privatekey>");
-        return communicationProperties;
-    }
-
     private static Settings getJmsProperties() {
         Settings communicationProperties = new Settings();
         communicationProperties.put(NjamsSettings.PROPERTY_COMMUNICATION, "JMS");
         communicationProperties.put(NjamsSettings.PROPERTY_JMS_INITIAL_CONTEXT_FACTORY,
-            "com.tibco.tibjms.naming.TibjmsInitialContextFactory");
+                "com.tibco.tibjms.naming.TibjmsInitialContextFactory");
         communicationProperties.put(NjamsSettings.PROPERTY_JMS_SECURITY_PRINCIPAL, "njams");
         communicationProperties.put(NjamsSettings.PROPERTY_JMS_SECURITY_CREDENTIALS, "njams");
         communicationProperties.put(NjamsSettings.PROPERTY_JMS_PROVIDER_URL, "tibjmsnaming://vslems01:7222");

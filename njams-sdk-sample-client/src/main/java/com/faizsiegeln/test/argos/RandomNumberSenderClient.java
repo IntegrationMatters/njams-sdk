@@ -121,8 +121,7 @@ public class RandomNumberSenderClient {
         private int randomNumber = 0;
 
         public RandomNumberMetric(ArgosComponent argosComponent) {
-            super(argosComponent.getId(), argosComponent.getName(), argosComponent.getContainerId(),
-                argosComponent.getMeasurement(), argosComponent.getType());
+            super(argosComponent);
         }
 
         public int getRandomNumber() {

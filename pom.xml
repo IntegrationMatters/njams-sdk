@@ -450,6 +450,5 @@
         <module>njams-sdk</module>
         <module>njams-sdk-sample-client</module>
         <module>njams-sdk-sample-app</module>
-        <module>njams-sdk-communication-cloud</module>
     </modules>
 </project>

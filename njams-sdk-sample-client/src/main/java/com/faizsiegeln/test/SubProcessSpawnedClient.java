@@ -21,8 +21,10 @@ import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.common.Path;
 import com.im.njams.sdk.logmessage.Activity;
 import com.im.njams.sdk.logmessage.Job;
+import com.im.njams.sdk.logmessage.SubProcessActivity;
 import com.im.njams.sdk.model.ActivityModel;
 import com.im.njams.sdk.model.ProcessModel;
+import com.im.njams.sdk.model.SubProcessActivityModel;
 import com.im.njams.sdk.settings.Settings;
 
 /**
@@ -31,26 +33,24 @@ import com.im.njams.sdk.settings.Settings;
  *
  * @author pnientiedt
  */
-public class SimpleEndlessClient {
+public class SubProcessSpawnedClient {
 
     public static void main(String[] args) throws InterruptedException {
 
         String technology = "sdk4";
 
         //Specify a client path. This path specifies where your client instance will be visible in the object tree.
-        Path clientPath = new Path("SDK4", "Client", "Simple");
+        Path clientPath = new Path("SDK4", "Client", "SubProcess");
 
         //Create communicationProperties, which specify how your client will communicate with the server
-        Settings settings = getJmsProperties();
-        settings.put(NjamsSettings.PROPERTY_MAX_QUEUE_LENGTH, "2");
-        settings.put(NjamsSettings.PROPERTY_DISCARD_POLICY, "none");
+        //Settings settings = getJmsProperties();
+        Settings settings = getHttpProperties();
 
         //Instantiate client for first application
         Njams njams = new Njams(clientPath, "1.0.0", technology, settings);
 
         //add custom image for your technology
         njams.addImage(technology, "images/njams_java_sdk_process_step.png");
-
         //add custom images for your activites
         njams.addImage("startType", "images/njams_java_sdk_process_start.png");
         njams.addImage("stepType", "images/njams_java_sdk_process_step.png");
@@ -60,18 +60,32 @@ public class SimpleEndlessClient {
          * Creating a process by adding a ProcessModel
          */
         //Specify a process path, which is relative to the client path
-        Path processPath = new Path("Processes", "SimpleProcess");
+        Path processPath = new Path("Processes", "TheProcess");
 
-        //Create an new empty process model
+        //Create an new empty process model for the main process
         ProcessModel process = njams.createProcess(processPath);
 
-        //start the model with a start activity by id, name and type, where type should match one of your previously registered images
+        //start model
         ActivityModel startModel = process.createActivity("start", "Start", "startType");
         startModel.setStarter(true);
-        //step to the next activity
-        ActivityModel logModel = startModel.transitionTo("log", "Log", "stepType");
-        //step to the end activity
-        ActivityModel endModel = logModel.transitionTo("end", "End", "endType");
+
+        //step to subprocess caller
+        SubProcessActivityModel subProcessActivityModel = startModel.transitionToSubProcess("subProcess", "SubProcess", "stepType");
+
+        //step to end
+        ActivityModel endModel = subProcessActivityModel.transitionTo("end", "End", "endType");
+
+        //Create a new process model for the subprocess
+        Path subProcessPath = new Path("PROCESSES", "SpawnedSubProcess");
+        ProcessModel subProcess = njams.createProcess(subProcessPath);
+        ActivityModel subProcessStartModel = subProcess.createActivity("subProcessstart", "Start", "startType");
+        subProcessStartModel.setStarter(true);
+        ActivityModel subProcessLogModel = subProcessStartModel.transitionTo("subProcesslog", "Log", "stepType");
+        ActivityModel subProcessEndModel = subProcessLogModel.transitionTo("subProcessend", "End", "endType");
+
+        //set the subprocess processmodel on the subProcessActivityModel
+        //subProcessActivityModel.setSubProcess(subProcess);
+        subProcessActivityModel.setSubProcess(subProcess.getName(), subProcess.getPath());
 
         // Start client and flush resources, which will create a projectmessage to send all resources to the server
         njams.start();
@@ -79,41 +93,41 @@ public class SimpleEndlessClient {
         /**
          * Running a process by creating a job
          */
+        //Create a job for the main process
+        Job job = process.createJob();
+        //Create a job for the spawned sub process
+        Job subProcessJob = subProcess.createJob();
 
-        int i = 0;
-        while (i++ < 1000) {
-            //Create a job from a previously created ProcessModel
-            Job job = process.createJob();
+        // Starts the job, i.e., sets the according status, job start date if not set before, and flags the job to begin flushing.
+        job.start();
 
-            // Starts the job, i.e., sets the according status, job start date if not set before, and flags the job to begin flushing.
-            job.start();
+        Activity start = job.createActivity(startModel).build();
+        SubProcessActivity subProcessCaller = start.stepToSubProcess(subProcessActivityModel).build();
+        subProcessCaller.setSubProcess(subProcess.getName(), subProcess.getPath().toString(), subProcessJob.getLogId());
+        subProcessCaller.stepTo(endModel).build();
 
-            //Create the start activity from the previously creates startModel
-            Activity start = job.createActivity(startModel).build();
-            //add input and output data to the activity
-            start.processInput("startInput");
-            start.processOutput("startOutput");
+        //End the job, which will flush all previous steps into a logmessage wich will be send to the server
+        job.end();
 
-            //step to the next activity from the previous one.
-            Activity log = start.stepTo(logModel).build();
-            log.processInput("logInput");
-            log.processOutput("logOutput");
 
-            //step to the end
-            Activity end = log.stepTo(endModel).build();
-            end.processInput("endInput");
-            end.processOutput("endOutput");
+        subProcessJob.start();
+        Activity subStart = subProcessJob.createActivity(subProcessStartModel).build();
+        Activity subLog = subStart.stepTo(subProcessLogModel).build();
+        subLog.stepTo(subProcessEndModel).build();
+        subProcessJob.end();
 
-            //End the job, which will flush all previous steps into a logmessage wich will be send to the server
-            job.end();
-            Thread.sleep(1000);
-        }
+        Thread.sleep(1000);
+
         //If you are finished with processing or the application goes down, stop the client...
         njams.stop();
     }
 
     private static Settings getJmsProperties() {
         Settings communicationProperties = new Settings();
+
+        //Use this if your nJAMS Server version is < 5.1
+        //communicationProperties.put(Settings.PROPERTY_USE_DEPRECATED_PATH_FIELD_FOR_SUBPROCESSES, "true");
+
         communicationProperties.put(NjamsSettings.PROPERTY_COMMUNICATION, "JMS");
         communicationProperties.put(NjamsSettings.PROPERTY_JMS_INITIAL_CONTEXT_FACTORY,
                 "com.tibco.tibjms.naming.TibjmsInitialContextFactory");
@@ -126,6 +140,16 @@ public class SimpleEndlessClient {
         communicationProperties.put(NjamsSettings.PROPERTY_JMS_DESTINATION, "njams.endurance");
         //optional: if you want to use a topic for commands not following the name of the other destinations, specify it here
         communicationProperties.put(NjamsSettings.PROPERTY_JMS_COMMANDS_DESTINATION, "njams4.dev.phillip.commands");
+        return communicationProperties;
+    }
+
+    private static Settings getHttpProperties() {
+        Settings communicationProperties = new Settings();
+        communicationProperties.put(NjamsSettings.PROPERTY_COMMUNICATION, "HTTP");
+        communicationProperties.put("njams.sdk.communication.http.base.url",
+                "http://localhost:8080/njams/");
+        communicationProperties.put("njams.sdk.communication.http.dataprovider.prefix", "sdk");
+        communicationProperties.put("njams.client.sdk.sharedcommunications", "true");
         return communicationProperties;
     }
 }

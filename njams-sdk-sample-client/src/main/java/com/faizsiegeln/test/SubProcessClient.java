@@ -19,7 +19,6 @@ package com.faizsiegeln.test;
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.common.Path;
-import com.im.njams.sdk.communication.cloud.CloudConstants;
 import com.im.njams.sdk.logmessage.Activity;
 import com.im.njams.sdk.logmessage.Job;
 import com.im.njams.sdk.logmessage.SubProcessActivity;
@@ -44,7 +43,8 @@ public class SubProcessClient {
         Path clientPath = new Path("SDK4", "Client", "SubProcess");
 
         //Create communicationProperties, which specify how your client will communicate with the server
-        Settings settings = getJmsProperties();
+        //Settings settings = getJmsProperties();
+        Settings settings = getHttpProperties();
 
         //Instantiate client for first application
         Njams njams = new Njams(clientPath, "1.0.0", technology, settings);
@@ -60,7 +60,7 @@ public class SubProcessClient {
          * Creating a process by adding a ProcessModel
          */
         //Specify a process path, which is relative to the client path
-        Path processPath = new Path("Processes", "SubProcessProcess");
+        Path processPath = new Path("Processes", "TheProcess");
 
         //Create an new empty process model for the main process
         ProcessModel process = njams.createProcess(processPath);
@@ -85,6 +85,7 @@ public class SubProcessClient {
 
         //set the subprocess processmodel on the subProcessActivityModel
         subProcessActivityModel.setSubProcess(subProcess);
+        //subProcessActivityModel.setSubProcess(subProcess.getName(), subProcess.getPath());
 
         // Start client and flush resources, which will create a projectmessage to send all resources to the server
         njams.start();
@@ -130,17 +131,6 @@ public class SubProcessClient {
         njams.stop();
     }
 
-    private static Settings getCloudProperties() {
-        Settings communicationProperties = new Settings();
-        communicationProperties.put(NjamsSettings.PROPERTY_COMMUNICATION, CloudConstants.NAME);
-        communicationProperties.put(CloudConstants.ENDPOINT, "<cloud url>");
-        communicationProperties.put(CloudConstants.APIKEY, "<cloud apikey>");
-        communicationProperties.put(CloudConstants.CLIENT_INSTANCEID, "<cloud client instance>");
-        communicationProperties.put(CloudConstants.CLIENT_CERTIFICATE, "<cloud client certificate>");
-        communicationProperties.put(CloudConstants.CLIENT_PRIVATEKEY, "<cloud client privatekey>");
-        return communicationProperties;
-    }
-
     private static Settings getJmsProperties() {
         Settings communicationProperties = new Settings();
 
@@ -149,7 +139,7 @@ public class SubProcessClient {
 
         communicationProperties.put(NjamsSettings.PROPERTY_COMMUNICATION, "JMS");
         communicationProperties.put(NjamsSettings.PROPERTY_JMS_INITIAL_CONTEXT_FACTORY,
-            "com.tibco.tibjms.naming.TibjmsInitialContextFactory");
+                "com.tibco.tibjms.naming.TibjmsInitialContextFactory");
         communicationProperties.put(NjamsSettings.PROPERTY_JMS_SECURITY_PRINCIPAL, "njams");
         communicationProperties.put(NjamsSettings.PROPERTY_JMS_SECURITY_CREDENTIALS, "njams");
         communicationProperties.put(NjamsSettings.PROPERTY_JMS_PROVIDER_URL, "tibjmsnaming://vslems01:7222");
@@ -159,6 +149,16 @@ public class SubProcessClient {
         communicationProperties.put(NjamsSettings.PROPERTY_JMS_DESTINATION, "njams.endurance");
         //optional: if you want to use a topic for commands not following the name of the other destinations, specify it here
         communicationProperties.put(NjamsSettings.PROPERTY_JMS_COMMANDS_DESTINATION, "njams4.dev.phillip.commands");
+        return communicationProperties;
+    }
+
+    private static Settings getHttpProperties() {
+        Settings communicationProperties = new Settings();
+        communicationProperties.put(NjamsSettings.PROPERTY_COMMUNICATION, "HTTP");
+        communicationProperties.put("njams.sdk.communication.http.base.url",
+                "http://localhost:8080/njams/");
+        communicationProperties.put("njams.sdk.communication.http.dataprovider.prefix", "sdk");
+        communicationProperties.put("njams.client.sdk.sharedcommunications", "false");
         return communicationProperties;
     }
 }
