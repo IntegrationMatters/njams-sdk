@@ -18,14 +18,14 @@ package com.im.njams.sdk.communication;
 
 /**
  * This interface must be implemented for replay handlers.
+ * @see AbstractReplayHandler
  */
 public interface ReplayHandler {
     /** Marker attribute for replayed process instances. Set to <code>true</code>. */
     public static final String NJAMS_REPLAYED_ATTRIBUTE = "$njams_replayed";
 
     /**
-     * Executes a replay. The implementation is responsible to set the
-     * instauctions response properly.
+     * Executes a replay. The implementation is responsible to set the instruction's response properly.
      *
      * @param request ReplayRequest
      * @return ReplayResponse

@@ -55,15 +55,12 @@ public abstract class AbstractReplayHandler implements ReplayHandler {
             }
 
             if (request.getTest()) {
-                LOG.debug("Test replaying {} (hasPayload={}; starter={})", process,
-                        StringUtils.isNotBlank(request.getPayload()), request.getActivity());
-                testReplay(process, request.getPayload(), request.getActivity());
+                LOG.debug("Test replaying {} (hasPayload={})", process, StringUtils.isNotBlank(request.getPayload()));
+                testReplay(process, request.getPayload());
                 response.setMainLogId("$$test");
             } else {
-                LOG.debug("Replay process {} (hasPayload={}; starter={})", process,
-                        StringUtils.isNotBlank(request.getPayload()), request.getActivity());
-                final String logId =
-                        executeReplay(process, request.getPayload(), request.getActivity(), request.getDeepTrace());
+                LOG.debug("Replay process {} (hasPayload={})", process, StringUtils.isNotBlank(request.getPayload()));
+                final String logId = executeReplay(process, request.getPayload());
                 response.setMainLogId(logId);
             }
 
@@ -72,11 +69,11 @@ public abstract class AbstractReplayHandler implements ReplayHandler {
             response.setDateTime(DateTimeUtility.now());
         } catch (final Exception e) {
             if (request.getTest()) {
-                LOG.info("Test replay failed for process {} (hasPayload={}; starter={}): {}", process,
-                        StringUtils.isNotBlank(request.getPayload()), request.getActivity(), e.toString());
+                LOG.info("Test replay failed for process {} (hasPayload={}): {}", process,
+                        StringUtils.isNotBlank(request.getPayload()), e.toString());
             } else {
-                LOG.error("Replay failed for process {} (hasPayload={}; starter={})", process,
-                        StringUtils.isNotBlank(request.getPayload()), request.getActivity(), e);
+                LOG.error("Replay failed for process {} (hasPayload={})", process,
+                        StringUtils.isNotBlank(request.getPayload()), e);
             }
             response.setResultCode(ERROR_CODE);
             response.setException(e.toString());
@@ -89,34 +86,22 @@ public abstract class AbstractReplayHandler implements ReplayHandler {
 
     /**
      * Execute a replay according to the given arguments.
-     * @deprecated See deprecated parameters which will be removed in a future release.
      *
      * @param processName The name of the process that shall be replayed.
      * @param startData Optional input data for executing the process. May be <code>null</code>.
-     * @param startActivity <b>Deprecated.</b> <i>This value is not very reliable and is being removed in future.</i>
-     *        Optional name of the starter activity. May be <code>null</code>.
-     * @param deepTrace <b>Deprecated.</b> <i>This flag is handled internally by the SDK.</i>
-     *        Whether or not the job shall be executed with deep-trace enabled.
      * @return The nJAMS log-ID of the replayed job instance needs to be returned for indicating that the according
      * job has been started or has been scheduled for start.
      * @throws Exception Any error that occurred when trying to start the replayed process.
      */
-    @Deprecated
-    public abstract String executeReplay(String processName, String startData, @Deprecated String startActivity,
-            @Deprecated boolean deepTrace) throws Exception;
+    public abstract String executeReplay(String processName, String startData) throws Exception;
 
     /**
      * Test whether or not the given process can be replayed using the given arguments. Throwing any exception indicates
      * that the test failed while completing normal indicates test success.
-     * @deprecated See deprecated parameter which will be removed in a future release.
      *
      * @param processName The name of the process that shall be replayed.
      * @param startData Optional input data for executing the process. May be <code>null</code>.
-     * @param startActivity <b>Deprecated.</b> <i>This value is not very reliable and is being removed in future.</i>
-     *        Optional name of the starter activity. May be <code>null</code>.
      * @throws Exception Any error indicating that the test failed.
      */
-    @Deprecated
-    public abstract void testReplay(String processName, String startData, @Deprecated String startActivity)
-            throws Exception;
+    public abstract void testReplay(String processName, String startData) throws Exception;
 }

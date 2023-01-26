@@ -16,10 +16,10 @@
  */
 package com.im.njams.sdk.communication;
 
-import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
-
 import java.util.HashMap;
 import java.util.Map;
+
+import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
 
 /**
  * Request for the replay command
@@ -28,14 +28,12 @@ import java.util.Map;
  */
 public class ReplayRequest {
 
-    private static final String PARAM_START_ACTIVITY = "StartActivity";
     private static final String PARAM_TEST = "Test";
     private static final String PARAM_DEEPTRACE = "Deeptrace";
     private static final String PARAM_PAYLOAD = "Payload";
     private static final String PARAM_PROCESS = "Process";
 
     private String process;
-    private String activity;
     private String payload;
     private boolean deepTrace;
     private boolean test;
@@ -53,8 +51,6 @@ public class ReplayRequest {
         test = param == null ? false : Boolean.valueOf(param);
         param = instruction.getRequestParameterByName(PARAM_DEEPTRACE);
         deepTrace = param == null ? false : Boolean.valueOf(param);
-        param = instruction.getRequestParameterByName(PARAM_START_ACTIVITY);
-        activity = param == null ? null : param;
         parameters.putAll(instruction.getRequest().getParameters());
     }
 
@@ -70,24 +66,6 @@ public class ReplayRequest {
      */
     public void setProcess(String process) {
         this.process = process;
-    }
-
-    /**
-     * @deprecated This value is not very reliable and is being removed in future.
-     * @return the activity
-     */
-    @Deprecated
-    public String getActivity() {
-        return activity;
-    }
-
-    /**
-     * @deprecated This value is not very reliable and is being removed in future.
-     * @param activity the activity to set
-     */
-    @Deprecated
-    public void setActivity(String activity) {
-        this.activity = activity;
     }
 
     /**
