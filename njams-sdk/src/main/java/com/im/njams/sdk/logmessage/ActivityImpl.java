@@ -19,6 +19,7 @@ package com.im.njams.sdk.logmessage;
 import static com.im.njams.sdk.logmessage.JobImpl.MAX_VALUE_LIMIT;
 import static com.im.njams.sdk.logmessage.JobImpl.limitLength;
 
+import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
@@ -66,6 +67,8 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
     private final boolean traceEnabled;
     // used only for calculating duration in ms
     private long startTime = System.currentTimeMillis();
+    // stores excecution time until it's needed
+    private LocalDateTime tmpExecution = null;
 
     private long estimatedSize = 700L;
     private boolean ended = false;
@@ -257,7 +260,7 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
         }
         if (this instanceof GroupImpl) {
             ((GroupImpl) this).getChildActivities().stream()
-                    .filter(a -> a.getActivityStatus() == ActivityStatus.RUNNING).forEach(a -> a.end());
+                    .filter(a -> a.getActivityStatus() == ActivityStatus.RUNNING).forEach(Activity::end);
         }
         //process input and output if not done yet, for extract rules which do not need data
         if (!inputProcessecd) {
@@ -439,9 +442,25 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
         job.setActivityErrorEvent(this, errorEvent);
     }
 
+    @Override
+    public void setExecution(LocalDateTime execution) {
+        if (execution != null && getExecution() != null) {
+            // is already set, so we need it, so use the given value
+            super.setExecution(execution);
+            tmpExecution = null;
+        } else {
+            // store in case we need it
+            tmpExecution = execution;
+        }
+    }
+
     private void setExecutionIfNotSet() {
         if (getExecution() == null) {
-            setExecution(startTime > 0 ? DateTimeUtility.fromMillis(startTime) : DateTimeUtility.now());
+            if (tmpExecution != null) {
+                super.setExecution(tmpExecution);
+            } else {
+                super.setExecution(startTime > 0 ? DateTimeUtility.fromMillis(startTime) : DateTimeUtility.now());
+            }
         }
     }
 
