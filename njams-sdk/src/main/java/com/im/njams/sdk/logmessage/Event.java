@@ -16,8 +16,6 @@
  */
 package com.im.njams.sdk.logmessage;
 
-import com.im.njams.sdk.common.DateTimeUtility;
-
 import java.time.LocalDateTime;
 
 /**
@@ -28,13 +26,10 @@ import java.time.LocalDateTime;
  */
 public class Event {
 
-    private final Activity activity;
+    private final ActivityImpl activity;
 
-    Event(Activity activity) {
+    Event(ActivityImpl activity) {
         this.activity = activity;
-        if(activity.getExecution() == null){
-            this.setExecutionTime(DateTimeUtility.now());
-        }
     }
 
     /**
@@ -156,6 +151,5 @@ public class Event {
         activity.setExecution(executionTime);
         return this;
     }
-
 
 }

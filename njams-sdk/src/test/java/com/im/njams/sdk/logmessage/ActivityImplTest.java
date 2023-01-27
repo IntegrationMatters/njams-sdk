@@ -42,7 +42,6 @@ public class ActivityImplTest extends AbstractTest {
      * This constructor calls super().
      */
     public ActivityImplTest() {
-        super();
     }
 
     /**
@@ -239,7 +238,8 @@ public class ActivityImplTest extends AbstractTest {
 
         assertNull(act.getExecution());
         act.setExecution(testExecution);
-        assertEquals(act.getExecution(), testExecution);
+        // SDK-303 Only used in conjunction with event data
+        assertNull(act.getExecution());
     }
 
     @Test
@@ -266,10 +266,10 @@ public class ActivityImplTest extends AbstractTest {
 
         assertNull(act.getExecution());
         act.setExecution(testExecution);
-        assertNotNull(act.getExecution());
-        assertEquals(act.getExecution(), testExecution);
+        assertNull(act.getExecution());
 
         act.setEventMessage(testMessage);
+        assertNotNull(act.getExecution());
         assertEquals(act.getEventMessage(), testMessage);
         assertEquals(act.getExecution(), testExecution);
     }

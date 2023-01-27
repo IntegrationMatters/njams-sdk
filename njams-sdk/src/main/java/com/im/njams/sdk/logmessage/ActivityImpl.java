@@ -69,6 +69,7 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
     private long startTime = System.currentTimeMillis();
     // stores excecution time until it's needed
     private LocalDateTime tmpExecution = null;
+    private boolean executionRequired = false;
 
     private long estimatedSize = 700L;
     private boolean ended = false;
@@ -207,6 +208,7 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
      */
     @Override
     public Event createEvent() {
+        setExecutionIfNotSet();
         return new Event(this);
     }
 
@@ -444,8 +446,8 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
 
     @Override
     public void setExecution(LocalDateTime execution) {
-        if (execution != null && getExecution() != null) {
-            // is already set, so we need it, so use the given value
+        if (executionRequired && execution != null) {
+            // we need it, so use the given value
             super.setExecution(execution);
             tmpExecution = null;
         } else {
@@ -456,8 +458,10 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
 
     private void setExecutionIfNotSet() {
         if (getExecution() == null) {
+            executionRequired = true;
             if (tmpExecution != null) {
                 super.setExecution(tmpExecution);
+                tmpExecution = null;
             } else {
                 super.setExecution(startTime > 0 ? DateTimeUtility.fromMillis(startTime) : DateTimeUtility.now());
             }

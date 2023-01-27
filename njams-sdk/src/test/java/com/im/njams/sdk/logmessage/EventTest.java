@@ -16,15 +16,18 @@
  */
 package com.im.njams.sdk.logmessage;
 
-import com.im.njams.sdk.AbstractTest;
-import com.im.njams.sdk.common.DateTimeUtility;
+import static org.mockito.Matchers.anyObject;
+import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+
+import java.time.LocalDateTime;
 
 import org.junit.Before;
 import org.junit.Test;
 
-import java.time.LocalDateTime;
-
-import static org.mockito.Mockito.*;
+import com.im.njams.sdk.AbstractTest;
+import com.im.njams.sdk.common.DateTimeUtility;
 
 /**
  * This class tests the Event class
@@ -34,17 +37,17 @@ import static org.mockito.Mockito.*;
  */
 public class EventTest extends AbstractTest {
 
-    private Activity act;
+    private ActivityImpl act;
     private Event evt;
 
     @Before
-    public void getNewActivity(){
-        act = mock(Activity.class);
+    public void getNewActivity() {
+        act = mock(ActivityImpl.class);
         evt = new Event(act);
     }
 
     @Test
-    public void isExecutionSetOnInit(){
+    public void isExecutionSetOnInit() {
         verify(act, atLeastOnce()).getExecution();
         verify(act, atLeastOnce()).setExecution(anyObject());
     }
@@ -128,11 +131,12 @@ public class EventTest extends AbstractTest {
     }
 
     @Test
-    public void testCallMethodsInSequence(){
+    public void testCallMethodsInSequence() {
         EventStatus status = EventStatus.SUCCESS;
         final String test = "test";
         final LocalDateTime exec = DateTimeUtility.now();
-        evt.setStatus(status).setExecutionTime(exec).setCode(test).setMessage(test).setPayload(test).setStacktrace(test);
+        evt.setStatus(status).setExecutionTime(exec).setCode(test).setMessage(test).setPayload(test)
+                .setStacktrace(test);
         verify(act).setEventStatus(status.getValue());
         verify(act, atLeastOnce()).setExecution(exec);
         verify(act).setEventCode(test);
