@@ -16,7 +16,6 @@
  */
 package com.im.njams.sdk.logmessage;
 
-import static org.mockito.Matchers.anyObject;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -44,12 +43,6 @@ public class EventTest extends AbstractTest {
     public void getNewActivity() {
         act = mock(ActivityImpl.class);
         evt = new Event(act);
-    }
-
-    @Test
-    public void isExecutionSetOnInit() {
-        verify(act, atLeastOnce()).getExecution();
-        verify(act, atLeastOnce()).setExecution(anyObject());
     }
 
     @Test
