@@ -1,5 +1,12 @@
 package com.im.njams.sdk.utils;
 
+import java.util.Collection;
+import java.util.Collections;
+
+import javax.jms.JMSException;
+import javax.jms.Message;
+import javax.jms.TextMessage;
+
 /**
  * Provides some String related utilities.
  *
@@ -58,4 +65,72 @@ public class StringUtils {
     public static boolean isNotBlank(String str) {
         return !isBlank(str);
     }
+
+    /**
+     * Abbreviates the given string to given length
+     * @param s The string to abbreviate
+     * @param maxLength The maximum length
+     * @return The given string if shorter than the given length, or a shortened version with three dots at the end that
+     * indicate the truncation. I.e., the length of a truncated result is <code>maxLength+3</code>.
+     */
+    public static String abbreviate(String s, int maxLength) {
+        if (s == null) {
+            return null;
+        }
+        if (s.length() <= maxLength || maxLength < 1) {
+            return s;
+        }
+        return s.substring(0, maxLength) + "...";
+    }
+
+    /**
+     * Creates a debug string from the given JMS {@link Message}.
+     * @param msg The message to serialize
+     * @return A string containing the message's type, and properties, and body (abbreviated).
+     */
+    @SuppressWarnings("unchecked")
+    public static String messageToString(final Message msg) {
+        if (msg == null) {
+            return null;
+        }
+        Collection<String> keys = Collections.emptyList();
+        try {
+            keys = Collections.list(msg.getPropertyNames());
+        } catch (Exception e) {
+            // ignore
+        }
+        final StringBuilder sb = new StringBuilder();
+        sb.append(msg.getClass().getName()).append("[properties={");
+        int i = 0;
+        for (final String key : keys) {
+            if (i++ > 0) {
+                sb.append(", ");
+            }
+            sb.append(key).append('=');
+            try {
+                final Object obj = msg.getObjectProperty(key);
+                sb.append(obj == null ? "null" : abbreviate(obj.toString(), 300));
+            } catch (JMSException e) {
+                sb.append("[error: ").append(e).append(']');
+            }
+        }
+        sb.append('}');
+        if (msg instanceof TextMessage) {
+            sb.append("; body=");
+            String body = null;
+            try {
+                body = ((TextMessage) msg).getText();
+            } catch (JMSException e) {
+                body = "[error: " + e + "]";
+            }
+            if (body == null) {
+                sb.append("null");
+            } else {
+                sb.append(abbreviate(body, 1000));
+            }
+        }
+        sb.append(']');
+        return sb.toString();
+    }
+
 }

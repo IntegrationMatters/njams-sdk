@@ -56,8 +56,8 @@ public class FileConfigurationProvider implements ConfigurationProvider {
      */
     public FileConfigurationProvider() {
         file = new File("configuration.json");
-        this.objectMapper = JsonSerializerFactory.getDefaultMapper();
-        this.objectWriter = this.objectMapper.writer();
+        objectMapper = JsonSerializerFactory.getDefaultMapper();
+        objectWriter = objectMapper.writer();
     }
 
     /**
@@ -104,7 +104,7 @@ public class FileConfigurationProvider implements ConfigurationProvider {
                 configuration = objectMapper.readValue(new FileInputStream(file), Configuration.class);
 
             } catch (Exception e) {
-                throw new NjamsSdkRuntimeException("Unable to load file", e);
+                throw new NjamsSdkRuntimeException("Unable to load file " + file, e);
             }
         }
         configuration.setConfigurationProvider(this);
@@ -121,7 +121,7 @@ public class FileConfigurationProvider implements ConfigurationProvider {
         try {
             objectWriter.writeValue(file, configuration);
         } catch (Exception e) {
-            throw new NjamsSdkRuntimeException("Unable to save file", e);
+            throw new NjamsSdkRuntimeException("Unable to save file " + file, e);
         }
     }
 

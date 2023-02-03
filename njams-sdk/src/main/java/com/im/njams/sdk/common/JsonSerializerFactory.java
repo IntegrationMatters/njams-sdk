@@ -24,6 +24,8 @@ import java.util.HashSet;
 import java.util.Properties;
 import java.util.Set;
 
+import org.slf4j.LoggerFactory;
+
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
@@ -43,9 +45,8 @@ import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
 import com.fasterxml.jackson.databind.introspect.JacksonAnnotationIntrospector;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.databind.ser.std.StdSerializer;
+import com.fasterxml.jackson.module.jakarta.xmlbind.JakartaXmlBindAnnotationIntrospector;
 import com.fasterxml.jackson.module.jaxb.JaxbAnnotationIntrospector;
-import com.im.njams.sdk.Njams;
-import org.slf4j.LoggerFactory;
 
 /**
  * Provides factory methods for JSON serializers.
@@ -76,10 +77,14 @@ public class JsonSerializerFactory {
      */
     public static ObjectMapper getDefaultMapper() {
         if (LOG.isTraceEnabled()) {
-            LOG.trace("Jackson databind: {}", com.fasterxml.jackson.databind.ObjectMapper.class.getProtectionDomain().getCodeSource().getLocation());
-            LOG.trace("Jackson core: {}", com.fasterxml.jackson.core.JsonFactory.class.getProtectionDomain().getCodeSource().getLocation());
-            LOG.trace("Jackson module.jaxb: {}", com.fasterxml.jackson.module.jaxb.JaxbAnnotationIntrospector.class.getProtectionDomain().getCodeSource().getLocation());
-            LOG.trace("Jackson annotation: {}", com.fasterxml.jackson.annotation.JsonInclude.Include.class.getProtectionDomain().getCodeSource().getLocation());
+            LOG.trace("Jackson databind: {}", com.fasterxml.jackson.databind.ObjectMapper.class.getProtectionDomain()
+                    .getCodeSource().getLocation());
+            LOG.trace("Jackson core: {}",
+                    com.fasterxml.jackson.core.JsonFactory.class.getProtectionDomain().getCodeSource().getLocation());
+            LOG.trace("Jackson module.jaxb: {}", com.fasterxml.jackson.module.jaxb.JaxbAnnotationIntrospector.class
+                    .getProtectionDomain().getCodeSource().getLocation());
+            LOG.trace("Jackson annotation: {}", com.fasterxml.jackson.annotation.JsonInclude.Include.class
+                    .getProtectionDomain().getCodeSource().getLocation());
         }
         return getMapper(true, true);
     }
@@ -94,10 +99,11 @@ public class JsonSerializerFactory {
     public static ObjectMapper getDefaultMapper(JsonFactory factory) {
         ObjectMapper om = factory == null ? new ObjectMapper() : new ObjectMapper(factory);
 
-        AnnotationIntrospector primary = new JacksonAnnotationIntrospector();
-        AnnotationIntrospector secondary = new JaxbAnnotationIntrospector(om.getTypeFactory());
-        AnnotationIntrospector pair = AnnotationIntrospector.pair(primary, secondary);
-        om.setAnnotationIntrospector(pair);
+        AnnotationIntrospector first = new JacksonAnnotationIntrospector();
+        AnnotationIntrospector second = new JaxbAnnotationIntrospector(om.getTypeFactory());
+        AnnotationIntrospector third = new JakartaXmlBindAnnotationIntrospector(om.getTypeFactory());
+        AnnotationIntrospector triple = AnnotationIntrospector.pair(AnnotationIntrospector.pair(first, second), third);
+        om.setAnnotationIntrospector(triple);
         om.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
         om.configure(DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES, false);
         om.registerModule(customSerializersModule);
@@ -111,25 +117,25 @@ public class JsonSerializerFactory {
     public static void addLocalDateTimeSerializer() {
         addSerializer(
                 new StdSerializer<LocalDateTime>(LocalDateTime.class) {
-            private static final long serialVersionUID = 1L;
+                    private static final long serialVersionUID = 1L;
 
-            @Override
-            public void serialize(LocalDateTime value, JsonGenerator gen, SerializerProvider provider)
-                    throws IOException {
-                gen.writeString(value.toString());
+                    @Override
+                    public void serialize(LocalDateTime value, JsonGenerator gen, SerializerProvider provider)
+                            throws IOException {
+                        gen.writeString(value.toString());
 
-            }
-        }, new StdDeserializer<LocalDateTime>(LocalDateTime.class) {
-            private static final long serialVersionUID = 1L;
+                    }
+                }, new StdDeserializer<LocalDateTime>(LocalDateTime.class) {
+                    private static final long serialVersionUID = 1L;
 
-            @Override
-            public LocalDateTime deserialize(JsonParser jp, DeserializationContext ctxt) throws IOException,
-                    JsonProcessingException {
-                JsonNode node = jp.getCodec().readTree(jp);
-                String dt = node.textValue();
-                return LocalDateTime.parse(dt, DateTimeFormatter.ISO_LOCAL_DATE_TIME);
-            }
-        });
+                    @Override
+                    public LocalDateTime deserialize(JsonParser jp, DeserializationContext ctxt) throws IOException,
+                            JsonProcessingException {
+                        JsonNode node = jp.getCodec().readTree(jp);
+                        String dt = node.textValue();
+                        return LocalDateTime.parse(dt, DateTimeFormatter.ISO_LOCAL_DATE_TIME);
+                    }
+                });
     }
 
     /**

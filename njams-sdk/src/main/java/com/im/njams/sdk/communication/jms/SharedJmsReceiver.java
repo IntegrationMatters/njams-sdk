@@ -16,18 +16,21 @@
  */
 package com.im.njams.sdk.communication.jms;
 
+import java.util.Collection;
+import java.util.stream.Collectors;
+
+import javax.jms.JMSException;
+import javax.jms.Message;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.common.Path;
 import com.im.njams.sdk.communication.ShareableReceiver;
 import com.im.njams.sdk.communication.SharedReceiverSupport;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.jms.JMSException;
-import javax.jms.Message;
-import java.util.Collection;
-import java.util.stream.Collectors;
+import com.im.njams.sdk.utils.StringUtils;
 
 /**
  * Overrides the common {@link JmsReceiver} for supporting receiving messages for multiple {@link Njams} instances.
@@ -39,7 +42,7 @@ public class SharedJmsReceiver extends JmsReceiver implements ShareableReceiver<
     private static final Logger LOG = LoggerFactory.getLogger(SharedJmsReceiver.class);
 
     private final SharedReceiverSupport<SharedJmsReceiver, Message> sharingSupport =
-        new SharedReceiverSupport<>(this);
+            new SharedReceiverSupport<>(this);
 
     /**
      * This method creates a String that is used as a message selector.
@@ -53,8 +56,8 @@ public class SharedJmsReceiver extends JmsReceiver implements ShareableReceiver<
             return null;
         }
         final String selector = njamsInstances.stream().map(Njams::getClientPath).map(Path::getAllPaths)
-            .flatMap(Collection::stream).collect(Collectors.toSet()).stream().map(Object::toString).sorted()
-            .collect(Collectors.joining("' OR NJAMS_RECEIVER = '", "NJAMS_RECEIVER = '", "'"));
+                .flatMap(Collection::stream).collect(Collectors.toSet()).stream().map(Object::toString).sorted()
+                .collect(Collectors.joining("' OR NJAMS_RECEIVER = '", "NJAMS_RECEIVER = '", "'"));
         LOG.debug("Updated message selector: {}", selector);
         return selector;
     }
@@ -106,6 +109,10 @@ public class SharedJmsReceiver extends JmsReceiver implements ShareableReceiver<
      */
     @Override
     public void onMessage(Message msg) {
+        if (LOG.isTraceEnabled()) {
+            LOG.trace("Received {}", StringUtils.messageToString(msg));
+        }
+
         try {
             final String njamsContent = msg.getStringProperty("NJAMS_CONTENT");
             if (!njamsContent.equalsIgnoreCase("json")) {

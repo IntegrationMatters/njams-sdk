@@ -50,6 +50,7 @@
 
         <aspectj.version>1.6.10</aspectj.version>
         <jms-api.version>1.1-rev-1</jms-api.version>
+        <jakarta.xml.bind-api>4.0.0</jakarta.xml.bind-api>
         <kafka-version>3.0.0</kafka-version>
         <activemq-version>5.16.3</activemq-version>
         <cloning.version>1.9.0</cloning.version>
@@ -215,12 +216,22 @@
                 <artifactId>jaxb-api</artifactId>
                 <version>${jaxb-api.version}</version>
             </dependency>
+			<dependency>
+			    <groupId>jakarta.xml.bind</groupId>
+			    <artifactId>jakarta.xml.bind-api</artifactId>
+			    <version>${jakarta.xml.bind-api}</version>
+			</dependency>
             <dependency>
                 <groupId>com.fasterxml.jackson.module</groupId>
                 <artifactId>jackson-module-jaxb-annotations</artifactId>
                 <version>${jackson.version}</version>
                 <scope>provided</scope>
             </dependency>
+    		<dependency>
+	            <groupId>com.fasterxml.jackson.module</groupId>
+	            <artifactId>jackson-module-jakarta-xmlbind-annotations</artifactId>
+	            <version>${jackson.version}</version>
+        	</dependency>            
             <dependency>
                 <groupId>com.fasterxml.jackson.core</groupId>
                 <artifactId>jackson-annotations</artifactId>

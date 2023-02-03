@@ -51,6 +51,7 @@ import com.im.njams.sdk.communication.ConnectionStatus;
 import com.im.njams.sdk.communication.NjamsConnectionFactory;
 import com.im.njams.sdk.settings.PropertyUtil;
 import com.im.njams.sdk.utils.CommonUtils;
+import com.im.njams.sdk.utils.StringUtils;
 
 /**
  * JMS implementation for a Receiver.
@@ -133,6 +134,7 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
             }
             selector.append("NJAMS_RECEIVER = '").append(path.toString()).append('\'');
         }
+        LOG.debug("Message selector {}", selector);
         return selector.toString();
     }
 
@@ -417,6 +419,9 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
      */
     @Override
     public void onMessage(Message msg) {
+        if (LOG.isTraceEnabled()) {
+            LOG.trace("Received {}", StringUtils.messageToString(msg));
+        }
         try {
             final String njamsContent = msg.getStringProperty("NJAMS_CONTENT");
             if (!njamsContent.equalsIgnoreCase("json")) {
