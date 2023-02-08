@@ -12,7 +12,6 @@ import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
 import com.faizsiegeln.njams.messageformat.v4.command.Response;
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.common.Path;
-import com.im.njams.sdk.utils.CommonUtils;
 import com.im.njams.sdk.utils.StringUtils;
 
 /**
@@ -105,9 +104,7 @@ public class SharedReceiverSupport<R extends AbstractReceiver & ShareableReceive
         if (njamsTarget != null) {
             LOG.debug("TargetReceiver found for instruction.");
             onInstruction(instruction, njamsTarget);
-            if (!CommonUtils.ignoreReplayResponseOnInstruction(instruction)) {
-                receiver.sendReply(message, instruction, njamsTarget.getClientId());
-            }
+            receiver.sendReply(message, instruction, njamsTarget.getClientId());
         } else if (failOnMissingInstance) {
             LOG.error("No client found for: {}", receiverPath);
             instruction.setResponseResultCode(99);

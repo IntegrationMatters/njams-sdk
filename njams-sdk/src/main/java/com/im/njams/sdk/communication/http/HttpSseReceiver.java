@@ -16,6 +16,24 @@
  */
 package com.im.njams.sdk.communication.http;
 
+import java.io.IOException;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.util.Properties;
+import java.util.UUID;
+
+import javax.ws.rs.client.Client;
+import javax.ws.rs.client.ClientBuilder;
+import javax.ws.rs.client.Entity;
+import javax.ws.rs.client.Invocation;
+import javax.ws.rs.client.WebTarget;
+import javax.ws.rs.core.Response;
+import javax.ws.rs.sse.InboundSseEvent;
+import javax.ws.rs.sse.SseEventSource;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.im.njams.sdk.NjamsSettings;
@@ -25,21 +43,8 @@ import com.im.njams.sdk.common.Path;
 import com.im.njams.sdk.communication.AbstractReceiver;
 import com.im.njams.sdk.communication.ConnectionStatus;
 import com.im.njams.sdk.settings.Settings;
-import com.im.njams.sdk.utils.CommonUtils;
 import com.im.njams.sdk.utils.JsonUtils;
 import com.im.njams.sdk.utils.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.ws.rs.client.*;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.sse.InboundSseEvent;
-import javax.ws.rs.sse.SseEventSource;
-import java.io.IOException;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.util.Properties;
-import java.util.UUID;
 
 /**
  * Receives SSE (server sent events) from nJAMS as HTTP Client Communication
@@ -135,11 +140,7 @@ public class HttpSseReceiver extends AbstractReceiver {
             LOG.error("Exception during receiving SSE Event.", e);
         }
         onInstruction(instruction);
-
-        if (!CommonUtils.ignoreReplayResponseOnInstruction(instruction)) {
-            sendReply(id, instruction, clientId);
-        }
-
+        sendReply(id, instruction, clientId);
     }
 
     /**
@@ -155,13 +156,13 @@ public class HttpSseReceiver extends AbstractReceiver {
         final String receiver = event.getName();
         if (StringUtils.isBlank(receiver) || !njams.getClientPath().equals(new Path(receiver))) {
             LOG.debug("Message is not for me! Client path from Message is: " + event.getName() +
-                " but nJAMS Client path is: " + njams.getClientPath());
+                    " but nJAMS Client path is: " + njams.getClientPath());
             return false;
         }
         final String clientId = event.getComment();
         if (StringUtils.isNotBlank(clientId) && !njams.getClientId().equals(clientId)) {
             LOG.debug("Message is not for me! Client id from Message is: " + event.getComment() +
-                " but nJAMS Client id is: " + njams.getClientId());
+                    " but nJAMS Client id is: " + njams.getClientId());
             return false;
         }
         return true;
@@ -184,19 +185,19 @@ public class HttpSseReceiver extends AbstractReceiver {
             WebTarget target = client.target(url.toString() + "/reply");
 
             Invocation.Builder builder = target.request()
-                .header("Content-Type", "application/json")
-                .header("Accept", "text/plain")
-                .header("njams-receiver", "server")
-                .header("njams-messagetype", "reply")
-                .header("njams-message-id", responseId)
-                .header("njams-reply-for", requestId)
-                // Additionally add old headers
-                .header("Content-Type", "application/json")
-                .header("Accept", "text/plain")
-                .header("NJAMS_RECEIVER", "server")
-                .header("NJAMS_MESSAGETYPE", "reply")
-                .header("NJAMS_MESSAGE_ID", responseId)
-                .header("NJAMS_REPLY_FOR", requestId);
+                    .header("Content-Type", "application/json")
+                    .header("Accept", "text/plain")
+                    .header("njams-receiver", "server")
+                    .header("njams-messagetype", "reply")
+                    .header("njams-message-id", responseId)
+                    .header("njams-reply-for", requestId)
+                    // Additionally add old headers
+                    .header("Content-Type", "application/json")
+                    .header("Accept", "text/plain")
+                    .header("NJAMS_RECEIVER", "server")
+                    .header("NJAMS_MESSAGETYPE", "reply")
+                    .header("NJAMS_MESSAGE_ID", responseId)
+                    .header("NJAMS_REPLY_FOR", requestId);
             if (clientId != null) {
                 builder.header("njams-clientid", clientId);
             }

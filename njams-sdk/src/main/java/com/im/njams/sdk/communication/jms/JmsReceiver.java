@@ -50,7 +50,6 @@ import com.im.njams.sdk.communication.AbstractReceiver;
 import com.im.njams.sdk.communication.ConnectionStatus;
 import com.im.njams.sdk.communication.NjamsConnectionFactory;
 import com.im.njams.sdk.settings.PropertyUtil;
-import com.im.njams.sdk.utils.CommonUtils;
 import com.im.njams.sdk.utils.StringUtils;
 
 /**
@@ -458,10 +457,7 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
             }
 
             onInstruction(instruction);
-
-            if (!CommonUtils.ignoreReplayResponseOnInstruction(instruction)) {
-                reply(msg, instruction, njams.getClientId());
-            }
+            reply(msg, instruction, njams.getClientId());
         } catch (Exception e) {
             LOG.error("Error in onMessage", e);
         }
