@@ -67,6 +67,10 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
      * Name of the JMS Message Property  storing the clientId
      */
     public static final String NJAMS_CLIENTID = "NJAMS_CLIENTID";
+    /**
+     * Content type header. Is used to determine whether this command can be processed by this receiver.
+     */
+    private static final String NJAMS_CONTENT = "NJAMS_CONTENT";
 
     private Connection connection;
     protected Session session;
@@ -185,7 +189,7 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
             LOG.trace("The Connection was started successfully.");
 
         } catch (Exception e) {
-            printExceptions(this.closeAll(context));
+            printExceptionsOnClose(this.closeAll(context));
             throw new NjamsSdkRuntimeException("Unable to initialize", e);
         }
     }
@@ -384,13 +388,26 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
     }
 
     /**
-     * This method logs all exceptions that have been given in the provided list
-     * of exceptions.
+     * This method is used on close and logs all exceptions that have been given in the provided list
+     * of exceptions that occurred when trying to close the JMS connection.
      *
-     * @param exceptions the exceptions that wil be logged.
+     * @param exceptions the exceptions that will be logged.
      */
-    private void printExceptions(List<Exception> exceptions) {
-        exceptions.forEach(exception -> LOG.error(exception.getMessage()));
+    private void printExceptionsOnClose(List<Exception> exceptions) {
+        exceptions.forEach(e -> {
+            String msg;
+            if (e instanceof NjamsSdkRuntimeException) {
+                msg = e.getMessage();
+                final Throwable cause = e.getCause();
+                if (cause != null) {
+                    msg += ". Caused by: " + cause.toString();
+                }
+            } else {
+                msg = e.toString();
+            }
+            LOG.warn(msg);
+            LOG.debug(msg, e);
+        });
     }
 
     /**
@@ -404,7 +421,7 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
         }
         List<Exception> exceptions = this.closeAll();
         if (!exceptions.isEmpty()) {
-            printExceptions(exceptions);
+            printExceptionsOnClose(exceptions);
             LOG.warn("Unable to close {} correctly.", getClass().getSimpleName());
         } else {
             LOG.info("{} has been stopped successfully.", getClass().getSimpleName());
@@ -423,7 +440,7 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
             LOG.trace("Received {}", StringUtils.messageToString(msg));
         }
         try {
-            final String njamsContent = msg.getStringProperty("NJAMS_CONTENT");
+            final String njamsContent = msg.getStringProperty(NJAMS_CONTENT);
             if (!njamsContent.equalsIgnoreCase("json")) {
                 LOG.debug("Received non json instruction -> ignore");
                 return;
@@ -513,14 +530,14 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
     }
 
     /**
-     * This method logs all JMS Exceptions and tries to reconnect the
-     * connection.
+     * This method logs all JMS Exceptions and tries to reconnect the connection.
      *
      * @param exception The jmsException to be logged.
      */
     @Override
     public void onException(JMSException exception) {
-        super.onException(new NjamsSdkRuntimeException("Transport error", exception));
+        LOG.trace("JMS failure", exception);
+        super.onException(exception);
     }
 
     /**
