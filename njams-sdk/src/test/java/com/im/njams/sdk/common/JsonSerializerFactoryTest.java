@@ -18,30 +18,61 @@ package com.im.njams.sdk.common;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Matchers.any;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
 
 import org.junit.Test;
 
+import com.faizsiegeln.njams.messageformat.v4.converter.Converter;
+import com.faizsiegeln.njams.messageformat.v4.converter.DefaultConverter;
+import com.faizsiegeln.njams.messageformat.v4.projectmessage.AttributeType;
+
 public class JsonSerializerFactoryTest {
     public static class MyTestClass {
         public LocalDateTime dateTime = LocalDateTime.now();
+        public AttributeType attributeType = AttributeType.EVENT;
     }
 
     @Test
-    public void testLocalDateTimeSerializer() throws IOException {
-        JsonSerializerFactory.addLocalDateTimeSerializer();
+    public void testSerializer() throws IOException {
         MyTestClass test = new MyTestClass();
         LocalDateTime now = LocalDateTime.now();
         test.dateTime = now;
-
+        test.attributeType = AttributeType.EVENT;
         String s = JsonSerializerFactory.createDefaultWriter().writeValueAsString(test);
         System.out.println(s);
 
         assertTrue(s.contains(now.toString()));
-
+        assertTrue(s.contains(AttributeType.EVENT.toString()));
         MyTestClass parsed = JsonSerializerFactory.getDefaultMapper().readValue(s, MyTestClass.class);
         assertEquals(now, parsed.dateTime);
+        assertEquals(AttributeType.EVENT, parsed.attributeType);
     }
+
+    @Test
+    public void testSerializer2() throws Exception {
+        MyTestClass test = new MyTestClass();
+        LocalDateTime now = LocalDateTime.now();
+        test.dateTime = now;
+        test.attributeType = AttributeType.EVENT;
+        Converter<LocalDateTime> converter = spy(DefaultConverter.get(LocalDateTime.class));
+        JsonSerializerFactory.addSerializer(converter, true);
+        String s = JsonSerializerFactory.createDefaultWriter().writeValueAsString(test);
+        System.out.println(s);
+
+        assertTrue(s.contains(now.toString()));
+        assertTrue(s.contains(AttributeType.EVENT.toString()));
+        MyTestClass parsed = JsonSerializerFactory.getDefaultMapper().readValue(s, MyTestClass.class);
+        assertEquals(now, parsed.dateTime);
+        assertEquals(AttributeType.EVENT, parsed.attributeType);
+
+        verify(converter, times(1)).serialize(any(LocalDateTime.class));
+        verify(converter, times(1)).deserialize(any(String.class));
+    }
+
 }
