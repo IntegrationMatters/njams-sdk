@@ -16,20 +16,6 @@
  */
 package com.im.njams.sdk.configuration;
 
-import com.faizsiegeln.njams.messageformat.v4.command.Command;
-import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
-import com.faizsiegeln.njams.messageformat.v4.command.Response;
-import com.faizsiegeln.njams.messageformat.v4.projectmessage.*;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.im.njams.sdk.common.DateTimeUtility;
-import com.im.njams.sdk.common.JsonSerializerFactory;
-import com.im.njams.sdk.communication.InstructionListener;
-import com.im.njams.sdk.logmessage.ExtractHandler;
-import com.im.njams.sdk.utils.JsonUtils;
-import com.im.njams.sdk.utils.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.Collection;
@@ -38,6 +24,28 @@ import java.util.Map.Entry;
 import java.util.function.Function;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.faizsiegeln.njams.messageformat.v4.command.Command;
+import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
+import com.faizsiegeln.njams.messageformat.v4.command.Response;
+import com.faizsiegeln.njams.messageformat.v4.projectmessage.Extract;
+import com.faizsiegeln.njams.messageformat.v4.projectmessage.ExtractRule;
+import com.faizsiegeln.njams.messageformat.v4.projectmessage.LogLevel;
+import com.faizsiegeln.njams.messageformat.v4.projectmessage.LogMode;
+import com.faizsiegeln.njams.messageformat.v4.projectmessage.RuleType;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.im.njams.sdk.Njams;
+import com.im.njams.sdk.NjamsSettings;
+import com.im.njams.sdk.common.DateTimeUtility;
+import com.im.njams.sdk.common.JsonSerializerFactory;
+import com.im.njams.sdk.communication.InstructionListener;
+import com.im.njams.sdk.logmessage.ExtractHandler;
+import com.im.njams.sdk.model.ProcessModel;
+import com.im.njams.sdk.utils.JsonUtils;
+import com.im.njams.sdk.utils.StringUtils;
 
 /**
  * InstructionListener implementation for all instructions which will modify
@@ -56,7 +64,7 @@ public class ConfigurationInstructionListener implements InstructionListener {
         private InstructionSupport(final Instruction instruction) {
             this.instruction = instruction;
 
-            // initialize success response; overwritten by error(...) methods-
+            // initialize success response; overwritten by error(...) methods.
             response = new Response();
             response.setResultCode(0);
             response.setResultMessage("Success");
@@ -124,7 +132,6 @@ public class ConfigurationInstructionListener implements InstructionListener {
                     getProcessPath(), getActivityId() != null ? "#" + getActivityId() : "", message, e);
             response.setResultCode(1);
             response.setResultMessage(message + (e != null ? ": " + e.getMessage() : ""));
-            return;
         }
 
         /**
@@ -269,14 +276,16 @@ public class ConfigurationInstructionListener implements InstructionListener {
     private static final String RULE_TYPE = "ruleType";
 
     private final Configuration configuration;
+    private final Njams njams;
 
     /**
      * Initialize ConfigurationInstructionListener
      *
-     * @param configuration which should be managed
+     * @param njams The {@link Njams} instance for that this listener is registered. 
      */
-    public ConfigurationInstructionListener(final Configuration configuration) {
-        this.configuration = configuration;
+    public ConfigurationInstructionListener(Njams njams) {
+        this.njams = njams;
+        configuration = njams.getConfiguration();
     }
 
     /**
@@ -296,59 +305,64 @@ public class ConfigurationInstructionListener implements InstructionListener {
         }
         LOG.debug("Received command: {}", command);
         switch (command) {
-            case CONFIGURE_EXTRACT:
-                configureExtract(instructionSupport);
-                break;
-            case DELETE_EXTRACT:
-                deleteExtract(instructionSupport);
-                break;
-            case GET_EXTRACT:
-                getExtract(instructionSupport);
-                break;
-            case GET_LOG_LEVEL:
-                getLogLevel(instructionSupport);
-                break;
-            case GET_LOG_MODE:
-                getLogMode(instructionSupport);
-                break;
-            case GET_TRACING:
-                getTracing(instructionSupport);
-                break;
-            case RECORD:
-                record(instructionSupport);
-                break;
-            case SET_LOG_LEVEL:
-                setLogLevel(instructionSupport);
-                break;
-            case SET_LOG_MODE:
-                setLogMode(instructionSupport);
-                break;
-            case SET_TRACING:
-                setTracing(instructionSupport);
-                break;
-            case TEST_EXPRESSION:
-                testExpression(instructionSupport);
-                break;
+        case CONFIGURE_EXTRACT:
+            configureExtract(instructionSupport);
+            break;
+        case DELETE_EXTRACT:
+            deleteExtract(instructionSupport);
+            break;
+        case GET_EXTRACT:
+            getExtract(instructionSupport);
+            break;
+        case GET_LOG_LEVEL:
+            getLogLevel(instructionSupport);
+            break;
+        case GET_LOG_MODE:
+            getLogMode(instructionSupport);
+            break;
+        case GET_RECORDING:
+            getReording(instructionSupport);
+            break;
+        case GET_TRACING:
+            getTracing(instructionSupport);
+            break;
+        case RECORD:
+            record(instructionSupport);
+            break;
+        case SET_LOG_LEVEL:
+            setLogLevel(instructionSupport);
+            break;
+        case SET_LOG_MODE:
+            setLogMode(instructionSupport);
+            break;
+        case SET_TRACING:
+            setTracing(instructionSupport);
+            break;
+        case TEST_EXPRESSION:
+            testExpression(instructionSupport);
+            break;
 
-            case SEND_PROJECTMESSAGE:
-            case REPLAY:
-            case PING:
-                // not handled here.
-                LOG.debug("Ignoring command: {}", command);
-                return;
+        // non-config commands
+        case GET_REQUEST_HANDLER:
+        case SEND_PROJECTMESSAGE:
+        case REPLAY:
+        case PING:
+            // not handled here.
+            LOG.debug("Ignoring command: {}", command);
+            return;
 
-            default:
-                LOG.debug("Unknown command: {}", command);
-                return;
+        default:
+            LOG.debug("Unknown command: {}", command);
+            return;
         }
 
         // set response into instruction
         instructionSupport.applyResponse();
         LOG.debug("Handled command: {} (result={}) on process: {}{}", command, instructionSupport.isError() ? "error"
-                        : "ok", instructionSupport.getProcessPath(),
+                : "ok", instructionSupport.getProcessPath(),
                 instructionSupport.getActivityId() == null ? ""
                         : "#"
-                        + instructionSupport.getActivityId());
+                                + instructionSupport.getActivityId());
     }
 
     private void getLogLevel(final InstructionSupport instructionSupport) {
@@ -387,10 +401,6 @@ public class ConfigurationInstructionListener implements InstructionListener {
 
         //execute action
         ProcessConfiguration process = configuration.getProcess(processPath);
-        if (process == null) {
-            process = new ProcessConfiguration();
-            configuration.getProcesses().put(processPath, process);
-        }
         final LogMode logMode = instructionSupport.getEnumParameter(LOG_MODE, LogMode.class);
         if (logMode != null) {
             configuration.setLogMode(logMode);
@@ -465,10 +475,6 @@ public class ConfigurationInstructionListener implements InstructionListener {
 
         //execute action
         ProcessConfiguration process = configuration.getProcess(processPath);
-        if (process == null) {
-            process = new ProcessConfiguration();
-            configuration.getProcesses().put(processPath, process);
-        }
         ActivityConfiguration activity = process.getActivity(activityId);
         if (activity == null) {
             activity = new ActivityConfiguration();
@@ -515,10 +521,6 @@ public class ConfigurationInstructionListener implements InstructionListener {
 
         //execute action
         ProcessConfiguration process = configuration.getProcess(processPath);
-        if (process == null) {
-            process = new ProcessConfiguration();
-            configuration.getProcesses().put(processPath, process);
-        }
         ActivityConfiguration activity = null;
         activity = process.getActivity(activityId);
         if (activity == null) {
@@ -641,7 +643,24 @@ public class ConfigurationInstructionListener implements InstructionListener {
         LOG.debug("Get Extract for {} -> {}", processPath, activityId);
     }
 
+    private void getReording(final InstructionSupport instructionSupport) {
+        instructionSupport.setParameter(ENGINE_WIDE_RECORDING, configuration.isRecording());
+        for (ProcessModel model : njams.getProcessModels()) {
+            final boolean recording;
+            if (configuration.hasProcess(model.getPath())) {
+                recording = configuration.getProcess(model.getPath()).isRecording();
+            } else {
+                recording = configuration.isRecording();
+            }
+            instructionSupport.setParameter(model.getPath().toString(), recording);
+        }
+    }
+
     private void record(final InstructionSupport instructionSupport) {
+        if ("true".equalsIgnoreCase(njams.getSettings().getProperty(NjamsSettings.PROPERTY_DISABLE_STARTDATA))) {
+            instructionSupport.error("Collecting start-data is disabled by configuration.");
+            return;
+        }
 
         //fetch parameters
         if (instructionSupport.hasParameter(ENGINE_WIDE_RECORDING)) {
@@ -659,12 +678,7 @@ public class ConfigurationInstructionListener implements InstructionListener {
         final String processPath = instructionSupport.getProcessPath();
         if (processPath != null) {
             try {
-                ProcessConfiguration process = null;
-                process = configuration.getProcess(processPath);
-                if (process == null) {
-                    process = new ProcessConfiguration();
-                    configuration.getProcesses().put(processPath, process);
-                }
+                final ProcessConfiguration process = configuration.getProcess(processPath);
                 final String doRecordParameter = instructionSupport.getParameter(RECORD);
                 final boolean doRecord = "all".equalsIgnoreCase(doRecordParameter);
                 process.setRecording(doRecord);

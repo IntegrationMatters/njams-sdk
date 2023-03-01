@@ -34,6 +34,13 @@ public class ProcessConfiguration {
     private boolean recording = true;
 
     /**
+     * Use {@link Configuration#getProcess(com.im.njams.sdk.common.Path)} for creating an instance.
+     */
+    ProcessConfiguration() {
+        // instances created by Configuration class
+    }
+
+    /**
      * @return the logLevel
      */
     public LogLevel getLogLevel() {

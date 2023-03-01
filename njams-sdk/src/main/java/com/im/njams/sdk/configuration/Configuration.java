@@ -23,6 +23,8 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.LogMode;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.im.njams.sdk.common.Path;
+import com.im.njams.sdk.settings.Settings;
 
 /**
  * The configuration contains all configuration of the client, which are not part of the
@@ -97,18 +99,46 @@ public class Configuration {
 
     /**
      *
-     * Return the ProcessSettings, which contains all settings for a Process.
+     * Return the {@link ProcessConfiguration}, which contains all settings for a process.
      *
-     * @param processPath ProcessPath to search for
-     * @return The ProcessSettings if found, or null if no settings are
-     * specified yet.
+     * @param processPath The path of the process for that a configuration shall be returned.
+     * @return Always ProcessSettings for the given path, which is created if not exists. Use {@link #hasProcess(Path)}
+     * to check whether a configuration exists.
      */
     public ProcessConfiguration getProcess(String processPath) {
-        return processes.get(processPath);
+        ProcessConfiguration process = processes.get(processPath);
+        if (process == null) {
+            process = new ProcessConfiguration();
+            process.setRecording(isRecording());
+            processes.put(processPath, process);
+        }
+        return process;
     }
 
     /**
-     * Should be provided by the Settings
+    *
+    * Return the {@link ProcessConfiguration}, which contains all settings for a process.
+    *
+    * @param processPath The path of the process for that a configuration shall be returned.
+    * @return Always ProcessSettings for the given path, which is created if not exists. Use {@link #hasProcess(Path)}
+    * to check whether a configuration exists.
+    */
+    public ProcessConfiguration getProcess(Path processPath) {
+        return getProcess(processPath.toString());
+    }
+
+    /**
+     * Returns whether or not this configuration contains a separate {@link ProcessConfiguration} for the process with
+     * the given path.
+     * @param processPath The path of the process to check for a configuration.
+     * @return <code>true</code> if there is a configuration for the given path.
+     */
+    public boolean hasProcess(Path processPath) {
+        return processes.containsKey(processPath.toString());
+    }
+
+    /**
+     * @deprecated Should be provided by the {@link Settings}
      * @return the dataMasking
      */
     @Deprecated
@@ -117,7 +147,7 @@ public class Configuration {
     }
 
     /**
-     * Should be provided by the Settings
+     * @deprecated Should be provided by the {@link Settings}
      *
      * @param dataMasking the dataMasking to set
      */

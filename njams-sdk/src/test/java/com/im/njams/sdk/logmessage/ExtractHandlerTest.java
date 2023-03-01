@@ -78,8 +78,15 @@ public class ExtractHandlerTest {
         njams.createProcess(processPath);
         njams.start();
 
+        //-------- The Configuration with the ProcessConfiguration
+        Configuration conf = new Configuration();
+        conf.setLogMode(LogMode.COMPLETE);
+        conf.setDataMasking(new ArrayList<>());
+        conf.setRecording(true);
+
         //-------- The ProcessConfiguration with the ActivityConfiguration
-        ProcessConfiguration processConf = new ProcessConfiguration();
+        ProcessConfiguration processConf =
+                conf.getProcess(njams.getProcessModel(processPath).getPath());
 
         processConf.setLogLevel(LogLevel.INFO);
         processConf.setExclude(false);
@@ -87,14 +94,6 @@ public class ExtractHandlerTest {
         //Override the setActivity with your activityMap for each test.
         processConf.setActivities(null);
 
-        //-------- The Configuration with the ProcessConfiguration
-        Configuration conf = new Configuration();
-        conf.setLogMode(LogMode.COMPLETE);
-        conf.setDataMasking(new ArrayList<>());
-        conf.setRecording(true);
-        Map<String, ProcessConfiguration> processes = new HashMap<>();
-        processes.put(njams.getProcessModel(processPath).getPath().toString(), processConf);
-        conf.setProcesses(processes);
         //-------- Inject the Configuration instead of the one that was
         //created by njams
         doReturn(conf).when(njams).getConfiguration();

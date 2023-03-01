@@ -16,7 +16,11 @@
  */
 package com.im.njams.sdk.client;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -58,7 +62,6 @@ public class CleanTracepointsTaskTest extends AbstractTest {
     private final String FULLPROCESSPATHNAME;
 
     public CleanTracepointsTaskTest() {
-        super();
         TestSender.setSenderMock(new SenderMock());
         njams.start();
         createDefaultActivity(createDefaultStartedJob());
@@ -72,7 +75,7 @@ public class CleanTracepointsTaskTest extends AbstractTest {
 
     @Before
     public void testStopAll() {
-        CleanTracepointsTask.getNjamsInstances().forEach(njams -> CleanTracepointsTask.stop(njams));
+        CleanTracepointsTask.getNjamsInstances().forEach(CleanTracepointsTask::stop);
         when(njamsMock.getClientPath()).thenReturn(new Path("A"));
     }
 
@@ -229,15 +232,11 @@ public class CleanTracepointsTaskTest extends AbstractTest {
     }
 
     private void fillProcessConfiguration(Map<String, ActivityConfiguration> acs) {
-        ProcessConfiguration pc = new ProcessConfiguration();
+        ProcessConfiguration pc = njams.getConfiguration().getProcess(FULLPROCESSPATHNAME);
         pc.setActivities(acs);
         pc.setExclude(true);
         pc.setLogLevel(LogLevel.ERROR);
         pc.setRecording(false);
-
-        Map<String, ProcessConfiguration> pcs = new HashMap<>();
-        pcs.put(FULLPROCESSPATHNAME, pc);
-        njams.getConfiguration().setProcesses(pcs);
     }
 
     private void checkTraceMessage(LocalDateTime ldt1, LocalDateTime ldt2) {

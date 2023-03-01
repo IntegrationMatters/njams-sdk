@@ -1,23 +1,50 @@
 package com.im.njams.sdk.configuration;
 
-import com.faizsiegeln.njams.messageformat.v4.command.Command;
-import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
-import com.faizsiegeln.njams.messageformat.v4.command.Request;
-import com.faizsiegeln.njams.messageformat.v4.command.Response;
-import com.faizsiegeln.njams.messageformat.v4.projectmessage.*;
-import com.im.njams.sdk.common.DateTimeUtility;
-import com.im.njams.sdk.configuration.provider.MemoryConfigurationProvider;
-import com.im.njams.sdk.utils.JsonUtils;
-import org.junit.Before;
-import org.junit.Test;
+import static com.faizsiegeln.njams.messageformat.v4.command.Command.CONFIGURE_EXTRACT;
+import static com.faizsiegeln.njams.messageformat.v4.command.Command.DELETE_EXTRACT;
+import static com.faizsiegeln.njams.messageformat.v4.command.Command.GET_EXTRACT;
+import static com.faizsiegeln.njams.messageformat.v4.command.Command.GET_LOG_LEVEL;
+import static com.faizsiegeln.njams.messageformat.v4.command.Command.GET_LOG_MODE;
+import static com.faizsiegeln.njams.messageformat.v4.command.Command.GET_TRACING;
+import static com.faizsiegeln.njams.messageformat.v4.command.Command.RECORD;
+import static com.faizsiegeln.njams.messageformat.v4.command.Command.REPLAY;
+import static com.faizsiegeln.njams.messageformat.v4.command.Command.SET_LOG_LEVEL;
+import static com.faizsiegeln.njams.messageformat.v4.command.Command.SET_LOG_MODE;
+import static com.faizsiegeln.njams.messageformat.v4.command.Command.SET_TRACING;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.TreeMap;
 
-import static com.faizsiegeln.njams.messageformat.v4.command.Command.*;
-import static org.junit.Assert.*;
-import static org.mockito.Mockito.*;
+import org.junit.Before;
+import org.junit.Test;
+
+import com.faizsiegeln.njams.messageformat.v4.command.Command;
+import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
+import com.faizsiegeln.njams.messageformat.v4.command.Request;
+import com.faizsiegeln.njams.messageformat.v4.command.Response;
+import com.faizsiegeln.njams.messageformat.v4.projectmessage.AttributeType;
+import com.faizsiegeln.njams.messageformat.v4.projectmessage.Extract;
+import com.faizsiegeln.njams.messageformat.v4.projectmessage.ExtractRule;
+import com.faizsiegeln.njams.messageformat.v4.projectmessage.LogLevel;
+import com.faizsiegeln.njams.messageformat.v4.projectmessage.LogMode;
+import com.faizsiegeln.njams.messageformat.v4.projectmessage.RuleType;
+import com.im.njams.sdk.Njams;
+import com.im.njams.sdk.common.DateTimeUtility;
+import com.im.njams.sdk.configuration.provider.MemoryConfigurationProvider;
+import com.im.njams.sdk.settings.Settings;
+import com.im.njams.sdk.utils.JsonUtils;
 
 public class ConfigurationInstructionListenerTest {
 
@@ -32,7 +59,10 @@ public class ConfigurationInstructionListenerTest {
     public void setUp() throws Exception {
         configuration = spy(new Configuration());
         configuration.setConfigurationProvider(new MemoryConfigurationProvider());
-        listener = new ConfigurationInstructionListener(configuration);
+        Njams njams = mock(Njams.class);
+        when(njams.getConfiguration()).thenReturn(configuration);
+        when(njams.getSettings()).thenReturn(new Settings());
+        listener = new ConfigurationInstructionListener(njams);
     }
 
     private ConfigurationInstructionListenerTest prepareInstruction(Command command) {

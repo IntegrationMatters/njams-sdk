@@ -32,7 +32,6 @@ import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.common.Path;
 import com.im.njams.sdk.communication.TestReceiver;
 import com.im.njams.sdk.configuration.ActivityConfiguration;
-import com.im.njams.sdk.configuration.ProcessConfiguration;
 import com.im.njams.sdk.model.ActivityModel;
 import com.im.njams.sdk.model.ProcessModel;
 import com.im.njams.sdk.settings.Settings;
@@ -71,7 +70,6 @@ public class JobTest {
         extract.setName("test");
         extract.getExtractRules().add(rule);
 
-        njams.getConfiguration().getProcesses().put(process.getPath().toString(), new ProcessConfiguration());
         njams.getConfiguration().getProcess(process.getPath().toString()).getActivities().put("b",
                 new ActivityConfiguration());
         njams.getConfiguration().getProcess(process.getPath().toString()).getActivity("b").setExtract(extract);

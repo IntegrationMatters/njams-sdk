@@ -23,6 +23,31 @@
  */
 package com.im.njams.sdk;
 
+import static java.util.stream.Collectors.toList;
+
+import java.net.URL;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.Enumeration;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Objects;
+import java.util.Properties;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+import org.slf4j.LoggerFactory;
+
 import com.faizsiegeln.njams.messageformat.v4.command.Command;
 import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
 import com.faizsiegeln.njams.messageformat.v4.command.Response;
@@ -37,8 +62,21 @@ import com.im.njams.sdk.client.LogMessageFlushTask;
 import com.im.njams.sdk.common.DateTimeUtility;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.common.Path;
-import com.im.njams.sdk.communication.*;
-import com.im.njams.sdk.configuration.*;
+import com.im.njams.sdk.communication.AbstractReplayHandler;
+import com.im.njams.sdk.communication.CommunicationFactory;
+import com.im.njams.sdk.communication.InstructionListener;
+import com.im.njams.sdk.communication.NjamsSender;
+import com.im.njams.sdk.communication.Receiver;
+import com.im.njams.sdk.communication.ReplayHandler;
+import com.im.njams.sdk.communication.ReplayRequest;
+import com.im.njams.sdk.communication.ReplayResponse;
+import com.im.njams.sdk.communication.Sender;
+import com.im.njams.sdk.communication.ShareableReceiver;
+import com.im.njams.sdk.configuration.Configuration;
+import com.im.njams.sdk.configuration.ConfigurationInstructionListener;
+import com.im.njams.sdk.configuration.ConfigurationProvider;
+import com.im.njams.sdk.configuration.ConfigurationProviderFactory;
+import com.im.njams.sdk.configuration.ProcessConfiguration;
 import com.im.njams.sdk.configuration.provider.FileConfigurationProvider;
 import com.im.njams.sdk.logmessage.DataMasking;
 import com.im.njams.sdk.logmessage.Job;
@@ -53,18 +91,6 @@ import com.im.njams.sdk.serializer.Serializer;
 import com.im.njams.sdk.serializer.StringSerializer;
 import com.im.njams.sdk.settings.Settings;
 import com.im.njams.sdk.utils.StringUtils;
-import org.slf4j.LoggerFactory;
-
-import java.net.URL;
-import java.time.LocalDateTime;
-import java.util.*;
-import java.util.Map.Entry;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
-import static java.util.stream.Collectors.toList;
 
 /**
  * This is an instance of nJAMS. It cares about lifecycle and initializations
@@ -230,8 +256,8 @@ public class Njams implements InstructionListener {
 
     // features
     private final List<String> features = Collections
-        .synchronizedList(
-            new ArrayList<>(Arrays.asList(Feature.EXPRESSION_TEST.toString(), Feature.PING.toString())));
+            .synchronizedList(
+                    new ArrayList<>(Arrays.asList(Feature.EXPRESSION_TEST.toString(), Feature.PING.toString())));
 
     private NjamsSender sender;
     private Receiver receiver;
@@ -287,7 +313,7 @@ public class Njams implements InstructionListener {
         loadConfigurationProvider();
         createTreeElements(path, TreeElementType.CLIENT);
         readVersionsFromVersionFile(version);
-        this.versions.put(RUNTIME_VERSION_KEY, runtimeVersion);
+        versions.put(RUNTIME_VERSION_KEY, runtimeVersion);
         printStartupBanner();
         setMachine();
     }
@@ -315,7 +341,7 @@ public class Njams implements InstructionListener {
             settings.put(ConfigurationProviderFactory.CONFIGURATION_PROVIDER, DEFAULT_CACHE_PROVIDER);
         }
         ConfigurationProvider configurationProvider = new ConfigurationProviderFactory(settings, this)
-            .getConfigurationProvider();
+                .getConfigurationProvider();
         configuration = new Configuration();
         configuration.setConfigurationProvider(configurationProvider);
         settings.addSecureProperties(configurationProvider.getSecureProperties());
@@ -421,23 +447,24 @@ public class Njams implements InstructionListener {
             removeFeature(Feature.REPLAY);
         } else {
             addFeature(Feature.REPLAY);
+            if ("true".equalsIgnoreCase(settings.getProperty(NjamsSettings.PROPERTY_DISABLE_STARTDATA))) {
+                LOG.warn("Replay functionality is limited because collecting start-data "
+                        + "is disabled by configuration {}=true", NjamsSettings.PROPERTY_DISABLE_STARTDATA);
+            }
         }
     }
 
-    public Boolean hasContainerModeFeature() {
-        if (settings.getProperty(NjamsSettings.PROPERTY_CONTAINER_MODE) == null) {
-            return true;
-        }
-        return "true".equalsIgnoreCase(settings.getProperty(NjamsSettings.PROPERTY_CONTAINER_MODE));
+    public boolean hasContainerModeFeature() {
+        return !"false".equalsIgnoreCase(settings.getProperty(NjamsSettings.PROPERTY_CONTAINER_MODE));
     }
-
 
     /**
+     * TODO: SDK-314: this cancels the setting in properties
      * Set the container mode feature property and add the feature flag to feature list.
      */
     public void setContainerModeFeature() {
+        settings.put(NjamsSettings.PROPERTY_CONTAINER_MODE, "true");
         if (settings.getProperty(NjamsSettings.PROPERTY_CONTAINER_MODE) == null) {
-            settings.put(NjamsSettings.PROPERTY_CONTAINER_MODE, "true");
         }
         if ("true".equalsIgnoreCase(settings.getProperty(NjamsSettings.PROPERTY_CONTAINER_MODE))) {
             addFeature(Feature.CONTAINER_MODE);
@@ -524,7 +551,7 @@ public class Njams implements InstructionListener {
             loadConfiguration();
             initializeDataMasking();
             instructionListeners.add(this);
-            instructionListeners.add(new ConfigurationInstructionListener(getConfiguration()));
+            instructionListeners.add(new ConfigurationInstructionListener(this));
             startReceiver();
             if (receiver == null) {
                 return false;
@@ -544,28 +571,27 @@ public class Njams implements InstructionListener {
      * @return true is stopping was successful.
      */
     public boolean stop() {
-        if (isStarted()) {
-            LogMessageFlushTask.stop(this);
-            CleanTracepointsTask.stop(this);
-
-            argosCollectors.forEach(argosSender::removeArgosCollector);
-            argosCollectors.clear();
-
-            if (sender != null) {
-                sender.close();
-            }
-            if (receiver != null) {
-                if (receiver instanceof ShareableReceiver) {
-                    ((ShareableReceiver<?>) receiver).removeNjams(this);
-                } else {
-                    receiver.stop();
-                }
-            }
-            instructionListeners.clear();
-            started = false;
-        } else {
+        if (!isStarted()) {
             throw new NjamsSdkRuntimeException(NOT_STARTED_EXCEPTION_MESSAGE);
         }
+        LogMessageFlushTask.stop(this);
+        CleanTracepointsTask.stop(this);
+
+        argosCollectors.forEach(argosSender::removeArgosCollector);
+        argosCollectors.clear();
+
+        if (sender != null) {
+            sender.close();
+        }
+        if (receiver != null) {
+            if (receiver instanceof ShareableReceiver) {
+                ((ShareableReceiver<?>) receiver).removeNjams(this);
+            } else {
+                receiver.stop();
+            }
+        }
+        instructionListeners.clear();
+        started = false;
         return !isStarted();
     }
 
@@ -581,7 +607,7 @@ public class Njams implements InstructionListener {
         }
 
         final List<String> parts = Stream.of(getClientPath(), path).map(Path::getParts).flatMap(List::stream)
-            .collect(toList());
+                .collect(toList());
         synchronized (processModels) {
             final ProcessModel processModel = processModels.get(new Path(parts).toString());
             return processModel;
@@ -599,7 +625,7 @@ public class Njams implements InstructionListener {
             return false;
         }
         final List<String> parts = Stream.of(getClientPath(), path).map(Path::getParts).flatMap(List::stream)
-            .collect(toList());
+                .collect(toList());
         synchronized (processModels) {
             final ProcessModel processModel = processModels.get(new Path(parts).toString());
             return processModel != null;
@@ -697,13 +723,14 @@ public class Njams implements InstructionListener {
         msg.setFeatures(features);
         msg.setLogMode(configuration.getLogMode());
         msg.setClientId(clientId);
+        msg.setRecording(getConfiguration().isRecording());
         synchronized (processModels) {
             processModels.values().stream().map(ProcessModel::getSerializableProcessModel)
-                .forEach(ipm -> msg.getProcesses().add(ipm));
+                    .forEach(ipm -> msg.getProcesses().add(ipm));
             images.forEach(i -> msg.getImages().put(i.getName(), i.getBase64Image()));
             msg.getGlobalVariables().putAll(globalVariables);
             LOG.debug("Sending project message with {} process-models, {} images, {} global-variables.",
-                processModels.size(), images.size(), globalVariables.size());
+                    processModels.size(), images.size(), globalVariables.size());
         }
         getSender().send(msg);
     }
@@ -785,7 +812,7 @@ public class Njams implements InstructionListener {
     public void setTreeElementType(Path path, String type) {
         synchronized (processModels) {
             TreeElement dos = treeElements.stream().filter(d -> d.getPath().equals(path.toString())).findAny()
-                .orElse(null);
+                    .orElse(null);
             if (dos == null) {
                 throw new NjamsSdkRuntimeException("Unable to find DomainObjectStructure for path " + path);
             }
@@ -799,7 +826,7 @@ public class Njams implements InstructionListener {
      */
     private void setStarters() {
         treeElements.stream().filter(te -> te.getTreeElementType() == TreeElementType.PROCESS)
-            .filter(te -> processModels.get(te.getPath()).isStarter()).forEach(te -> te.setStarter(true));
+                .filter(te -> processModels.get(te.getPath()).isStarter()).forEach(te -> te.setStarter(true));
     }
 
     /**
@@ -830,7 +857,7 @@ public class Njams implements InstructionListener {
     }
 
     private List<TreeElement> addTreeElements(List<TreeElement> treeElements, Path processPath,
-                                              TreeElementType targetDomainObjectType, boolean isStarter) {
+            TreeElementType targetDomainObjectType, boolean isStarter) {
         String currentPath = ">";
         for (int i = 0; i < processPath.getParts().size(); i++) {
             String part = processPath.getParts().get(i);
@@ -839,13 +866,13 @@ public class Njams implements InstructionListener {
             boolean found = treeElements.stream().filter(d -> d.getPath().equals(finalPath)).findAny().isPresent();
             if (!found) {
                 TreeElementType domainObjectType =
-                    i == processPath.getParts().size() - 1 ? targetDomainObjectType : null;
+                        i == processPath.getParts().size() - 1 ? targetDomainObjectType : null;
                 String type = getTreeElementDefaultType(i == 0, domainObjectType);
                 treeElements.add(new TreeElement(currentPath, part, type, domainObjectType));
             }
         }
         treeElements.stream().filter(te -> te.getTreeElementType() == TreeElementType.PROCESS)
-            .forEach(te -> te.setStarter(isStarter));
+                .forEach(te -> te.setStarter(isStarter));
         return treeElements;
     }
 
@@ -892,20 +919,19 @@ public class Njams implements InstructionListener {
      * @param job to add to the instances job list.
      */
     public void addJob(Job job) {
-        if (isStarted()) {
-            synchronized (replayedLogIds) {
-                final Boolean deepTrace = replayedLogIds.remove(job.getLogId());
-                if (deepTrace != null) {
-                    job.addAttribute(ReplayHandler.NJAMS_REPLAYED_ATTRIBUTE, "true");
-                    if (deepTrace) {
-                        job.setDeepTrace(true);
-                    }
-                }
-            }
-            jobs.put(job.getJobId(), job);
-        } else {
+        if (!isStarted()) {
             throw new NjamsSdkRuntimeException(NOT_STARTED_EXCEPTION_MESSAGE);
         }
+        synchronized (replayedLogIds) {
+            final Boolean deepTrace = replayedLogIds.remove(job.getLogId());
+            if (deepTrace != null) {
+                job.addAttribute(ReplayHandler.NJAMS_REPLAYED_ATTRIBUTE, "true");
+                if (deepTrace) {
+                    job.setDeepTrace(true);
+                }
+            }
+        }
+        jobs.put(job.getJobId(), job);
     }
 
     /**
@@ -950,8 +976,8 @@ public class Njams implements InstructionListener {
         LOG.info("*** ");
         LOG.info("***      Version Info:");
         versions.entrySet().stream().filter(e -> !CURRENT_YEAR.equals(e.getKey()))
-            .sorted(Comparator.comparing(Entry::getKey))
-            .forEach(e -> LOG.info("***      " + e.getKey() + ": " + e.getValue()));
+                .sorted(Comparator.comparing(Entry::getKey))
+                .forEach(e -> LOG.info("***      " + e.getKey() + ": " + e.getValue()));
         LOG.info("*** ");
         LOG.info("***      Settings:");
 
@@ -1193,7 +1219,8 @@ public class Njams implements InstructionListener {
             Serializer<?> cached = cachedSerializers.get(clazz);
             if (cached == NO_SERIALIZER) {
                 return null;
-            } else if (cached != null) {
+            }
+            if (cached != null) {
                 return (Serializer) cached;
             }
             final Class<? super T> superclass = clazz.getSuperclass();
@@ -1330,8 +1357,8 @@ public class Njams implements InstructionListener {
         boolean dataMaskingEnabled = true;
         if (properties != null) {
             dataMaskingEnabled =
-                Boolean.parseBoolean(properties.getProperty(NjamsSettings.PROPERTY_DATA_MASKING_ENABLED,
-                    "true"));
+                    Boolean.parseBoolean(properties.getProperty(NjamsSettings.PROPERTY_DATA_MASKING_ENABLED,
+                            "true"));
             if (dataMaskingEnabled) {
                 DataMasking.addPatterns(properties);
             } else {
@@ -1342,7 +1369,7 @@ public class Njams implements InstructionListener {
             LOG.warn("DataMasking via the configuration is deprecated but will be used as well. Use settings " +
                     "with the properties \n{} = " +
                     "\"true\" \nand multiple \n{}<YOUR-REGEX-NAME> = <YOUR-REGEX> \nfor this.",
-                NjamsSettings.PROPERTY_DATA_MASKING_ENABLED, NjamsSettings.PROPERTY_DATA_MASKING_REGEX_PREFIX);
+                    NjamsSettings.PROPERTY_DATA_MASKING_ENABLED, NjamsSettings.PROPERTY_DATA_MASKING_REGEX_PREFIX);
             DataMasking.addPatterns(configuration.getDataMasking());
         }
     }

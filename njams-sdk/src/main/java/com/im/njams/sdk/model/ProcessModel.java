@@ -94,6 +94,9 @@ public class ProcessModel {
         if (processConfiguration != null) {
             internalProcessModel.setLogLevel(processConfiguration.getLogLevel());
             internalProcessModel.setExclude(processConfiguration.isExclude());
+            internalProcessModel.setRecording(processConfiguration.isRecording());
+        } else {
+            internalProcessModel.setRecording(njams.getConfiguration().isRecording());
         }
 
         // copy activities
@@ -391,7 +394,7 @@ public class ProcessModel {
      *
      * @return UUID as String
      */
-    private String createUniqueLogId(){
+    private String createUniqueLogId() {
         return IdUtil.createLogId();
     }
 
@@ -407,7 +410,7 @@ public class ProcessModel {
      * @param logId the explicitly set logId
      * @return the {@link Job}
      */
-    public Job createJobWithExplicitLogId(String jobId, String logId){
+    public Job createJobWithExplicitLogId(String jobId, String logId) {
         Job job = new JobImpl(this, jobId, logId);
         njams.addJob(job);
         return job;
