@@ -107,6 +107,9 @@ public class NjamsSettings {
      * exceeds this threshold, the message will be flushed
      */
     public static final String PROPERTY_FLUSH_SIZE = "njams.sdk.flushsize";
+    /**
+     * @deprecated Just for downward compatibility.
+     */
     @Deprecated(since = "5.0.0", forRemoval = true)
     public static final String OLD_FLUSH_SIZE = "njams.client.sdk.flushsize";
 
@@ -117,6 +120,9 @@ public class NjamsSettings {
      * has been sent in the last 30 seconds, it will be flushed
      */
     public static final String PROPERTY_FLUSH_INTERVAL = "njams.sdk.flush_interval";
+    /**
+     * @deprecated Just for downward compatibility.
+     */
     @Deprecated(since = "5.0.0", forRemoval = true)
     public static final String OLD_FLUSH_INTERVAL = "njams.client.sdk.flush_interval";
 
@@ -126,6 +132,9 @@ public class NjamsSettings {
      * that can send project and log messages to the server.
      */
     public static final String PROPERTY_MIN_SENDER_THREADS = "njams.sdk.minsenderthreads";
+    /**
+     * @deprecated Just for downward compatibility.
+     */
     @Deprecated(since = "5.0.0", forRemoval = true)
     public static final String OLD_MIN_SENDER_THREADS = "njams.client.sdk.minsenderthreads";
 
@@ -136,6 +145,9 @@ public class NjamsSettings {
      * (look below njams.client.sdk.senderthreadidletime), the thread will be removed.
      */
     public static final String PROPERTY_MAX_SENDER_THREADS = "njams.sdk.maxsenderthreads";
+    /**
+     * @deprecated Just for downward compatibility.
+     */
     @Deprecated(since = "5.0.0", forRemoval = true)
     public static final String OLD_MAX_SENDER_THREADS = "njams.client.sdk.maxsenderthreads";
 
@@ -144,6 +156,9 @@ public class NjamsSettings {
      * messages will be discarded or client will stop processing until the queue has space again.
      */
     public static final String PROPERTY_MAX_QUEUE_LENGTH = "njams.sdk.maxqueuelength";
+    /**
+     * @deprecated Just for downward compatibility.
+     */
     @Deprecated(since = "5.0.0", forRemoval = true)
     public static final String OLD_MAX_QUEUE_LENGTH = "njams.client.sdk.maxqueuelength";
 
@@ -152,6 +167,9 @@ public class NjamsSettings {
      * message in the last 10 seconds and are not core threads will be removed.
      */
     public static final String PROPERTY_SENDER_THREAD_IDLE_TIME = "njams.sdk.senderthreadidletime";
+    /**
+     * @deprecated Just for downward compatibility.
+     */
     @Deprecated(since = "5.0.0", forRemoval = true)
     public static final String OLD_SENDER_THREAD_IDLE_TIME = "njams.client.sdk.senderthreadidletime";
 
@@ -165,6 +183,9 @@ public class NjamsSettings {
      * </ul>
      */
     public static final String PROPERTY_DISCARD_POLICY = "njams.sdk.discardpolicy";
+    /**
+     * @deprecated Just for downward compatibility.
+     */
     @Deprecated(since = "5.0.0", forRemoval = true)
     public static final String OLD_DISCARD_POLICY = "njams.client.sdk.discardpolicy";
 
@@ -174,6 +195,9 @@ public class NjamsSettings {
      * {@link Njams} instance uses a dedicated instance of sender and receiver pools.
      */
     public static final String PROPERTY_SHARED_COMMUNICATIONS = "njams.sdk.sharedcommunications";
+    /**
+     * @deprecated Just for downward compatibility.
+     */
     @Deprecated(since = "5.0.0", forRemoval = true)
     public static final String OLD_SHARED_COMMUNICATIONS = "njams.client.sdk.sharedcommunications";
 
@@ -185,6 +209,9 @@ public class NjamsSettings {
      */
     public static final String PROPERTY_USE_DEPRECATED_PATH_FIELD_FOR_SUBPROCESSES =
             "njams.sdk.deprecatedsubprocesspathfield";
+    /**
+     * @deprecated Just for downward compatibility.
+     */
     @Deprecated(since = "5.0.0", forRemoval = true)
     public static final String OLD_USE_DEPRECATED_PATH_FIELD_FOR_SUBPROCESSES =
             "njams.client.sdk.deprecatedsubprocesspathfield";
@@ -197,6 +224,9 @@ public class NjamsSettings {
      * This can be helpful for an environment containing an old XML lib, which does not support this.
      */
     public static final String PROPERTY_DISABLE_SECURE_PROCESSING = "njams.sdk.disable.secure.processing";
+    /**
+     * @deprecated Just for downward compatibility.
+     */
     @Deprecated(since = "5.0.0", forRemoval = true)
     public static final String OLD_DISABLE_SECURE_PROCESSING = "njams.client.sdk.disable.secure.processing";
 
@@ -208,6 +238,9 @@ public class NjamsSettings {
      */
     @Deprecated(since = "5.0.0", forRemoval = true)
     public static final String PROPERTY_DISABLE_STARTDATA = "njams.sdk.disable.startdata";
+    /**
+     * @deprecated Just for downward compatibility.
+     */
     @Deprecated(since = "5.0.0", forRemoval = true)
     public static final String OLD_DISABLE_STARTDATA = "njams.client.sdk.disable.startdata";
 
