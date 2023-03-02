@@ -234,7 +234,7 @@ public class NjamsSettings {
      * If set to <code>true</code> collecting job start-data is disabled. Please note that this also disables replay
      * functionality.
      * @deprecated This gets in the way with the new possibility for configuring recording in nJAMS server 5.0.
-     * Use {@link #xPROPERTY_BOOSTRAP_RECORDING} as default setting and configure via nJAMS server.
+     * Use {@link #PROPERTY_BOOSTRAP_RECORDING} as default setting and configure via nJAMS server.
      */
     @Deprecated(since = "5.0.0", forRemoval = true)
     public static final String PROPERTY_DISABLE_STARTDATA = "njams.sdk.disable.startdata";

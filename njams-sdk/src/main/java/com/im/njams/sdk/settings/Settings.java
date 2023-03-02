@@ -214,10 +214,10 @@ public class Settings {
     }
 
     /**
-     * Same as {@link #getPropertyDefaultWithDeprecationWarning(String, String, String)} with <code>null</code> as default value.
+     * Same as {@link #getPropertyWithDeprecationWarning(String, String, String)} with <code>null</code> as default value.
      * @param expectedKey The expected (current) key.
      * @param deprecatedKey Deprecated key to try if the expected one does not exist.
-     * @return see {@link #getPropertyDefaultWithDeprecationWarning(String, String, String)}
+     * @return see {@link #getPropertyWithDeprecationWarning(String, String, String)}
      */
     public String getPropertyWithDeprecationWarning(String expectedKey, String deprecatedKey) {
         return getPropertyWithDeprecationWarning(expectedKey, null, deprecatedKey);
