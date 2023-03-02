@@ -1,13 +1,14 @@
 package com.im.njams.sdk.model.svg;
 
-import com.im.njams.sdk.Njams;
-import com.im.njams.sdk.NjamsSettings;
-import com.im.njams.sdk.settings.Settings;
+import static org.mockito.Mockito.when;
+
 import org.junit.Assert;
 import org.junit.Test;
 import org.mockito.Mockito;
 
-import static org.mockito.Mockito.when;
+import com.im.njams.sdk.Njams;
+import com.im.njams.sdk.NjamsSettings;
+import com.im.njams.sdk.settings.Settings;
 
 public class NjamsProcessDiagramFactoryTest {
 
@@ -35,5 +36,3 @@ public class NjamsProcessDiagramFactoryTest {
         Assert.assertTrue(factory.disableSecureProcessing);
     }
 }
-
-

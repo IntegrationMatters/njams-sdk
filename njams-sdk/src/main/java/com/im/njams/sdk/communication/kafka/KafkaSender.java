@@ -24,19 +24,25 @@
 
 package com.im.njams.sdk.communication.kafka;
 
-import com.faizsiegeln.njams.messageformat.v4.common.CommonMessage;
-import com.faizsiegeln.njams.messageformat.v4.common.MessageVersion;
-import com.faizsiegeln.njams.messageformat.v4.logmessage.LogMessage;
-import com.faizsiegeln.njams.messageformat.v4.projectmessage.ProjectMessage;
-import com.faizsiegeln.njams.messageformat.v4.tracemessage.TraceMessage;
-import com.im.njams.sdk.NjamsSettings;
-import com.im.njams.sdk.common.NjamsSdkRuntimeException;
-import com.im.njams.sdk.communication.*;
-import com.im.njams.sdk.communication.kafka.KafkaHeadersUtil.HeadersUpdater;
-import com.im.njams.sdk.communication.kafka.KafkaUtil.ClientType;
-import com.im.njams.sdk.settings.Settings;
-import com.im.njams.sdk.utils.JsonUtils;
-import com.im.njams.sdk.utils.StringUtils;
+import static com.im.njams.sdk.communication.kafka.KafkaHeadersUtil.headersUpdater;
+
+import java.nio.Buffer;
+import java.nio.ByteBuffer;
+import java.nio.CharBuffer;
+import java.nio.charset.CharsetEncoder;
+import java.nio.charset.CoderResult;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Properties;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
@@ -48,19 +54,23 @@ import org.apache.kafka.common.serialization.StringSerializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.nio.Buffer;
-import java.nio.ByteBuffer;
-import java.nio.CharBuffer;
-import java.nio.charset.CharsetEncoder;
-import java.nio.charset.CoderResult;
-import java.nio.charset.StandardCharsets;
-import java.util.*;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
-
-import static com.im.njams.sdk.communication.kafka.KafkaHeadersUtil.headersUpdater;
+import com.faizsiegeln.njams.messageformat.v4.common.CommonMessage;
+import com.faizsiegeln.njams.messageformat.v4.common.MessageVersion;
+import com.faizsiegeln.njams.messageformat.v4.logmessage.LogMessage;
+import com.faizsiegeln.njams.messageformat.v4.projectmessage.ProjectMessage;
+import com.faizsiegeln.njams.messageformat.v4.tracemessage.TraceMessage;
+import com.im.njams.sdk.NjamsSettings;
+import com.im.njams.sdk.common.NjamsSdkRuntimeException;
+import com.im.njams.sdk.communication.AbstractSender;
+import com.im.njams.sdk.communication.ConnectionStatus;
+import com.im.njams.sdk.communication.DiscardMonitor;
+import com.im.njams.sdk.communication.DiscardPolicy;
+import com.im.njams.sdk.communication.Sender;
+import com.im.njams.sdk.communication.kafka.KafkaHeadersUtil.HeadersUpdater;
+import com.im.njams.sdk.communication.kafka.KafkaUtil.ClientType;
+import com.im.njams.sdk.settings.Settings;
+import com.im.njams.sdk.utils.JsonUtils;
+import com.im.njams.sdk.utils.StringUtils;
 
 /**
  * Kafka implementation for a Sender.
@@ -82,8 +92,6 @@ public class KafkaSender extends AbstractSender {
     private static final Logger LOG = LoggerFactory.getLogger(KafkaSender.class);
     private static final String PROJECT_SUFFIX = ".project";
     private static final String EVENT_SUFFIX = ".event";
-    //    private static final int EXCEPTION_IDLE_TIME = 50;
-    //    private static final int MAX_TRIES = 100;
     private static final CharsetEncoder UTF_8_ENCODER = StandardCharsets.UTF_8.newEncoder();
 
     private KafkaProducer<String, String> producer;
@@ -108,8 +116,8 @@ public class KafkaSender extends AbstractSender {
     public void init(final Properties properties) {
         super.init(properties);
         splitLargeMessages =
-            !"discard".equalsIgnoreCase(properties.getProperty(NjamsSettings.PROPERTY_KAFKA_LARGE_MESSAGE_MODE,
-                "split"));
+                !"discard".equalsIgnoreCase(properties.getProperty(NjamsSettings.PROPERTY_KAFKA_LARGE_MESSAGE_MODE,
+                        "split"));
         kafkaProperties = KafkaUtil.filterKafkaProperties(properties, ClientType.PRODUCER);
         if (discardPolicy != DiscardPolicy.NONE && !kafkaProperties.containsKey(ProducerConfig.RETRIES_CONFIG)) {
             // disable internal retries, if policy is set to discard, unless explicitly specified
@@ -119,7 +127,7 @@ public class KafkaSender extends AbstractSender {
         String topicPrefix = properties.getProperty(NjamsSettings.PROPERTY_KAFKA_TOPIC_PREFIX);
         if (StringUtils.isBlank(topicPrefix)) {
             LOG.warn("Property {} is not set. Using '{}' as default.", NjamsSettings.PROPERTY_KAFKA_TOPIC_PREFIX,
-                KafkaConstants.DEFAULT_TOPIC_PREFIX);
+                    KafkaConstants.DEFAULT_TOPIC_PREFIX);
             topicPrefix = KafkaConstants.DEFAULT_TOPIC_PREFIX;
         }
         topicEvent = topicPrefix + EVENT_SUFFIX;
@@ -199,12 +207,12 @@ public class KafkaSender extends AbstractSender {
     private void validateTopics() {
         final Collection<String> requiredTopics = new ArrayList<>(Arrays.asList(topicEvent, topicProject));
         final Collection<String> foundTopics =
-            KafkaUtil.testTopics(properties, requiredTopics.toArray(new String[requiredTopics.size()]));
+                KafkaUtil.testTopics(properties, requiredTopics.toArray(new String[requiredTopics.size()]));
         LOG.debug("Found topics: {}", foundTopics);
         requiredTopics.removeAll(foundTopics);
         if (!requiredTopics.isEmpty()) {
             throw new NjamsSdkRuntimeException("The following required Kafka topics have not been found: "
-                + requiredTopics);
+                    + requiredTopics);
         }
     }
 
@@ -277,7 +285,7 @@ public class KafkaSender extends AbstractSender {
      * @throws Exception
      */
     private void sendMessage(final CommonMessage msg, final String topic, final String messageType, final String data)
-        throws Exception {
+            throws Exception {
 
         try {
             for (ProducerRecord<String, String> record : splitMessage(msg, topic, messageType, data)) {
@@ -290,7 +298,7 @@ public class KafkaSender extends AbstractSender {
     }
 
     List<ProducerRecord<String, String>> splitMessage(final CommonMessage msg, final String topic,
-                                                      final String messageType, final String data) {
+            final String messageType, final String data) {
 
         List<String> slices = splitData(data);
         if (slices.isEmpty()) {
@@ -315,28 +323,27 @@ public class KafkaSender extends AbstractSender {
             final ProducerRecord<String, String> record = new ProducerRecord<>(topic, recordKey, slices.get(i));
             final HeadersUpdater headers = headersUpdater(record);
             headers.addHeader(Sender.NJAMS_MESSAGEVERSION, MessageVersion.V4.toString())
-                .addHeader(Sender.NJAMS_MESSAGETYPE, messageType)
-                .addHeader(Sender.NJAMS_CLIENTID, properties.getProperty(Settings.INTERNAL_PROPERTY_CLIENTID));
+                    .addHeader(Sender.NJAMS_MESSAGETYPE, messageType)
+                    .addHeader(Sender.NJAMS_CLIENTID, properties.getProperty(Settings.INTERNAL_PROPERTY_CLIENTID));
             if (StringUtils.isNotBlank(logId)) {
                 headers.addHeader(Sender.NJAMS_LOGID, logId);
             }
             if (StringUtils.isNotBlank(msg.getPath())) {
                 headers.addHeader(Sender.NJAMS_PATH, msg.getPath());
             }
-            if (slices.size() > 1) {
-                headers.addHeader(NJAMS_CHUNKS, String.valueOf(slices.size()))
-                    .addHeader(NJAMS_CHUNK_NO, String.valueOf(i + 1));
-                if (chunks == null) {
-                    chunks = new ArrayList<>();
-                }
-                chunks.add(record);
-            } else {
+            if (slices.size() <= 1) {
                 return Collections.singletonList(record);
             }
+            headers.addHeader(NJAMS_CHUNKS, String.valueOf(slices.size()))
+                    .addHeader(NJAMS_CHUNK_NO, String.valueOf(i + 1));
+            if (chunks == null) {
+                chunks = new ArrayList<>();
+            }
+            chunks.add(record);
         }
         if (LOG.isDebugEnabled()) {
             LOG.debug("{} for path {} split into {} chunks.", msg.getClass().getSimpleName(), msg.getPath(),
-                chunks.size());
+                    chunks.size());
         }
         return chunks;
     }
@@ -358,7 +365,8 @@ public class KafkaSender extends AbstractSender {
                 if (!cr.isOverflow()) {
                     // data fits into one message
                     return Collections.singletonList(data);
-                } else if (!splitLargeMessages) {
+                }
+                if (!splitLargeMessages) {
                     // data is too large, but splitting is disabled
                     LOG.warn("Discarding message that is too large (> {} bytes).", maxMessageBytes);
                     DiscardMonitor.discard();
@@ -395,7 +403,7 @@ public class KafkaSender extends AbstractSender {
             final RecordMetadata result = future.get(requestTimeoutMs, TimeUnit.MILLISECONDS);
             if (LOG.isTraceEnabled()) {
                 LOG.trace("Send record result: {} after {}ms\n{}", result, System.currentTimeMillis() - start,
-                    record);
+                        record);
             } else if (LOG.isDebugEnabled()) {
                 LOG.debug("Send record result: {} after {}ms", result, System.currentTimeMillis() - start);
             }
@@ -413,7 +421,7 @@ public class KafkaSender extends AbstractSender {
                 DiscardMonitor.discard();
             }
             LOG.warn("Try to reconnect, because the topic couldn't be reached after {} milliseconds.",
-                System.currentTimeMillis() - start);
+                    System.currentTimeMillis() - start);
             throw cause;
         }
     }

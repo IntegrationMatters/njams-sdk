@@ -16,20 +16,22 @@
  */
 package com.im.njams.sdk.communication;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Properties;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.faizsiegeln.njams.messageformat.v4.common.CommonMessage;
 import com.faizsiegeln.njams.messageformat.v4.logmessage.LogMessage;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.ProjectMessage;
 import com.faizsiegeln.njams.messageformat.v4.tracemessage.TraceMessage;
 import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Properties;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
+import com.im.njams.sdk.settings.Settings;
 
 /**
  * Superclass for all Senders. When writing your own Sender, extend this class
@@ -67,7 +69,8 @@ public abstract class AbstractSender implements Sender {
     @Override
     public void init(Properties properties) {
         this.properties = properties;
-        discardPolicy = DiscardPolicy.byValue(properties.getProperty(NjamsSettings.PROPERTY_DISCARD_POLICY));
+        discardPolicy = DiscardPolicy.byValue(Settings.getPropertyWithDeprecationWarning(properties,
+                NjamsSettings.PROPERTY_DISCARD_POLICY, NjamsSettings.OLD_DISCARD_POLICY));
     }
 
     /**
@@ -108,19 +111,18 @@ public abstract class AbstractSender implements Sender {
     public synchronized void reconnect(NjamsSdkRuntimeException ex) {
         if (isConnecting() || isConnected()) {
             return;
-        } else {
-            synchronized (hasConnected) {
-                hasConnected.set(false);
-                if (LOG.isInfoEnabled() && ex != null) {
-                    if (ex.getCause() == null) {
-                        LOG.info("Initialized reconnect, because of : {}", ex.toString());
+        }
+        synchronized (hasConnected) {
+            hasConnected.set(false);
+            if (LOG.isInfoEnabled() && ex != null) {
+                if (ex.getCause() == null) {
+                    LOG.info("Initialized reconnect, because of : {}", ex.toString());
 
-                    } else {
-                        LOG.info("Initialized reconnect, because of : {}, {}", ex.toString(), ex.getCause().toString());
-                    }
+                } else {
+                    LOG.info("Initialized reconnect, because of : {}, {}", ex.toString(), ex.getCause().toString());
                 }
-                LOG.info("{} senders are reconnecting now", connecting.incrementAndGet());
             }
+            LOG.info("{} senders are reconnecting now", connecting.incrementAndGet());
         }
 
         while (!isConnected() && !shouldShutdown.get()) {

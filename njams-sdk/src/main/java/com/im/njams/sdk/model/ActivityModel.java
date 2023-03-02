@@ -16,6 +16,15 @@
  */
 package com.im.njams.sdk.model;
 
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.stream.Collectors;
+
+import javax.xml.bind.annotation.XmlTransient;
+
 import com.faizsiegeln.njams.messageformat.v4.common.SubProcess;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.Activity;
 import com.im.njams.sdk.NjamsSettings;
@@ -23,10 +32,6 @@ import com.im.njams.sdk.common.IdUtil;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.configuration.ActivityConfiguration;
 import com.im.njams.sdk.configuration.ProcessConfiguration;
-
-import javax.xml.bind.annotation.XmlTransient;
-import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * This class represents a Activity when creating the initial Model.
@@ -98,9 +103,10 @@ public class ActivityModel {
             SubProcess sb = new SubProcess();
             sb.setName(((SubProcessActivityModel) this).getSubProcessName());
             if (((SubProcessActivityModel) this).getSubProcessPath() != null) {
-                String useDeprecatedField = processModel.getNjams().getSettings().
-                    getProperty(NjamsSettings.PROPERTY_USE_DEPRECATED_PATH_FIELD_FOR_SUBPROCESSES);
-                if (useDeprecatedField != null && "true".equalsIgnoreCase(useDeprecatedField)) {
+                String useDeprecatedField = processModel.getNjams().getSettings().getPropertyWithDeprecationWarning(
+                        NjamsSettings.PROPERTY_USE_DEPRECATED_PATH_FIELD_FOR_SUBPROCESSES,
+                        NjamsSettings.OLD_USE_DEPRECATED_PATH_FIELD_FOR_SUBPROCESSES);
+                if ("true".equalsIgnoreCase(useDeprecatedField)) {
                     sb.setPath(((SubProcessActivityModel) this).getSubProcessPath().toString());
                 } else {
                     sb.setSubProcessPath(((SubProcessActivityModel) this).getSubProcessPath().toString());
@@ -141,12 +147,12 @@ public class ActivityModel {
             }
             if (transitionModel.getFromActivity() == null) {
                 throw new NjamsSdkRuntimeException("From activity on transition " + transitionModel.getId()
-                    + " not set");
+                        + " not set");
             }
             String fromId = transitionModel.getFromActivity().getId();
             if (incoming.containsKey(fromId) && incoming.get(fromId) != transitionModel) {
                 throw new NjamsSdkRuntimeException("ActivityModel " + id
-                    + " already contains a TransitionModel with fromActivity " + fromId + "!");
+                        + " already contains a TransitionModel with fromActivity " + fromId + "!");
             }
             incoming.put(fromId, transitionModel);
         }
@@ -182,7 +188,7 @@ public class ActivityModel {
             String toId = transitionModel.getToActivity().getId();
             if (outgoing.containsKey(toId) && outgoing.get(toId) != transitionModel) {
                 throw new NjamsSdkRuntimeException("ActivityModel " + id
-                    + " already contains a TransitionModel with toActivity " + toId + "!");
+                        + " already contains a TransitionModel with toActivity " + toId + "!");
             }
             outgoing.put(transitionModel.getToActivity().getId(), transitionModel);
         }
@@ -244,7 +250,7 @@ public class ActivityModel {
      * @return the new {@link ActivityModel}
      */
     public ActivityModel transitionTo(final String toActivityModelId, final String toActivityName,
-                                      final String toActivityType) {
+            final String toActivityType) {
         if (getId().equals(toActivityModelId)) {
             throw new NjamsSdkRuntimeException("Destination must differ from source: " + getId());
         }
@@ -272,7 +278,7 @@ public class ActivityModel {
      * @return the new {@link ActivityModel}
      */
     public GroupModel
-    transitionToGroup(final String toGroupModelId, final String toGroupName, final String toGroupType) {
+            transitionToGroup(final String toGroupModelId, final String toGroupName, final String toGroupType) {
         if (getId().equals(toGroupModelId)) {
             throw new NjamsSdkRuntimeException("Destination must differ from source: " + getId());
         }
@@ -302,7 +308,7 @@ public class ActivityModel {
      * @return the new {@link ActivityModel}
      */
     public SubProcessActivityModel transitionToSubProcess(final String toSubProcessModelId,
-                                                          final String toSubProcessName, final String toSubProcessType) {
+            final String toSubProcessName, final String toSubProcessType) {
         if (getId().equals(toSubProcessModelId)) {
             throw new NjamsSdkRuntimeException("Destination must differ from source: " + getId());
         }
@@ -426,16 +432,16 @@ public class ActivityModel {
      * @return all Predecessor activities
      */
     public List<ActivityModel> getPredecessors() {
-        return Collections.unmodifiableList(incoming.values().stream().map(t -> t.getFromActivity())
-            .collect(Collectors.toList()));
+        return Collections.unmodifiableList(incoming.values().stream().map(TransitionModel::getFromActivity)
+                .collect(Collectors.toList()));
     }
 
     /**
      * @return all Successor activities
      */
     public List<ActivityModel> getSuccessors() {
-        return Collections.unmodifiableList(outgoing.values().stream().map(t -> t.getToActivity())
-            .collect(Collectors.toList()));
+        return Collections.unmodifiableList(outgoing.values().stream().map(TransitionModel::getToActivity)
+                .collect(Collectors.toList()));
     }
 
     /**
@@ -456,12 +462,10 @@ public class ActivityModel {
             } else {
                 processModel.addStartActivity(this);
             }
+        } else if (parent != null) {
+            parent.removeStartActivity(this);
         } else {
-            if (parent != null) {
-                parent.removeStartActivity(this);
-            } else {
-                processModel.removeStartActivity(this);
-            }
+            processModel.removeStartActivity(this);
         }
     }
 

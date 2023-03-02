@@ -16,19 +16,20 @@
  */
 package com.im.njams.sdk.settings.provider;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.InputStream;
+import java.util.Properties;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.settings.Settings;
 import com.im.njams.sdk.settings.SettingsProvider;
 import com.im.njams.sdk.settings.SettingsProviderFactory;
 import com.im.njams.sdk.utils.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.InputStream;
-import java.util.Properties;
 
 /**
  * Implements a {@link SettingsProvider} that loads and saves settings to a
@@ -51,25 +52,6 @@ public class PropertiesFileSettingsProvider implements SettingsProvider {
      * Default configuration file name.
      */
     public static final String DEFAULT_FILE = "config.properties";
-
-    /**
-     * Property key for specifying the path to the properties file to be used as
-     * settings.
-     */
-    @Deprecated
-    public static final String FILE_CONFIGURATION = NjamsSettings.PROPERTY_PROPERTIES_FILE_SETTINGS_FILE;
-    /**
-     * Default property key for loading parent (default) configuration file. See
-     * {@link #PARENT_CONFIGURATION_KEY} for using an alternative key.
-     */
-    @Deprecated
-    public static final String PARENT_CONFIGURATION = NjamsSettings.PROPERTY_PROPERTIES_FILE_SETTINGS_PARENT_FILE;
-    /**
-     * Allows to override the default parent file key
-     * ({@value #PARENT_CONFIGURATION}).
-     */
-    @Deprecated
-    public static final String PARENT_CONFIGURATION_KEY = NjamsSettings.PROPERTY_PROPERTIES_FILE_SETTINGS_PARENT_KEY;
 
     /**
      * The currently set properties file.
@@ -174,10 +156,9 @@ public class PropertiesFileSettingsProvider implements SettingsProvider {
                 parentFile = new File(file.getParent(), parentFile.getName());
             }
             //Get the Properties of its the currentfiles parents
-            circuitBreaker = ++circuitBreaker;
-            if (circuitBreaker > 100) {
+            if (++circuitBreaker > 100) {
                 LOG.warn("Circuit breaker detected a circle in load of settings parents. Stop loading parents. Please" +
-                    "check for circular dependencies in settings.");
+                        "check for circular dependencies in settings.");
             } else {
                 parentProps = loadProperties(parentFile);
             }

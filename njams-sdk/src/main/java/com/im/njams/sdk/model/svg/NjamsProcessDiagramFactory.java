@@ -16,14 +16,6 @@
  */
 package com.im.njams.sdk.model.svg;
 
-import com.im.njams.sdk.Njams;
-import com.im.njams.sdk.NjamsSettings;
-import com.im.njams.sdk.common.NjamsSdkRuntimeException;
-import com.im.njams.sdk.model.ActivityModel;
-import com.im.njams.sdk.model.GroupModel;
-import com.im.njams.sdk.model.ProcessModel;
-import com.im.njams.sdk.model.TransitionModel;
-
 import java.io.StringWriter;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -43,6 +35,14 @@ import org.slf4j.LoggerFactory;
 import org.w3c.dom.DOMImplementation;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
+
+import com.im.njams.sdk.Njams;
+import com.im.njams.sdk.NjamsSettings;
+import com.im.njams.sdk.common.NjamsSdkRuntimeException;
+import com.im.njams.sdk.model.ActivityModel;
+import com.im.njams.sdk.model.GroupModel;
+import com.im.njams.sdk.model.ProcessModel;
+import com.im.njams.sdk.model.TransitionModel;
 
 /**
  * This is the default SDK ProcessDiagramFactory. It converts a ProcessModel
@@ -89,7 +89,6 @@ public class NjamsProcessDiagramFactory implements ProcessDiagramFactory {
 
     private static final Logger LOG = LoggerFactory.getLogger(NjamsProcessDiagramFactory.class);
 
-    private Njams njams;
     protected boolean disableSecureProcessing = false;
 
     /**
@@ -99,11 +98,11 @@ public class NjamsProcessDiagramFactory implements ProcessDiagramFactory {
      * @param njams Initialize this entry with this Njams
      */
     public NjamsProcessDiagramFactory(Njams njams) {
-        this.njams = njams;
         disableSecureProcessing =
-                "true".equalsIgnoreCase(njams.getSettings().getProperty(
+                "true".equalsIgnoreCase(njams.getSettings().getPropertyWithDeprecationWarning(
                         NjamsSettings.PROPERTY_DISABLE_SECURE_PROCESSING,
-                        DEFAULT_DISABLE_SECURE_PROCESSING));
+                        DEFAULT_DISABLE_SECURE_PROCESSING,
+                        NjamsSettings.OLD_DISABLE_SECURE_PROCESSING));
         if (disableSecureProcessing) {
             LOG.debug("Disabled secure XML processing by configuration switch.");
         } else {

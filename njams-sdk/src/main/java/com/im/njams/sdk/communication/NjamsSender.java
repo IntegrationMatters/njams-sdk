@@ -16,18 +16,29 @@
  */
 package com.im.njams.sdk.communication;
 
-import com.faizsiegeln.njams.messageformat.v4.common.CommonMessage;
-import com.im.njams.sdk.NjamsSettings;
-import com.im.njams.sdk.factories.ThreadFactoryBuilder;
-import com.im.njams.sdk.settings.Settings;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import static com.im.njams.sdk.NjamsSettings.OLD_MAX_QUEUE_LENGTH;
+import static com.im.njams.sdk.NjamsSettings.OLD_MAX_SENDER_THREADS;
+import static com.im.njams.sdk.NjamsSettings.OLD_MIN_SENDER_THREADS;
+import static com.im.njams.sdk.NjamsSettings.OLD_SENDER_THREAD_IDLE_TIME;
+import static com.im.njams.sdk.NjamsSettings.PROPERTY_MAX_QUEUE_LENGTH;
+import static com.im.njams.sdk.NjamsSettings.PROPERTY_MAX_SENDER_THREADS;
+import static com.im.njams.sdk.NjamsSettings.PROPERTY_MIN_SENDER_THREADS;
+import static com.im.njams.sdk.NjamsSettings.PROPERTY_SENDER_THREAD_IDLE_TIME;
 
 import java.util.Properties;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.faizsiegeln.njams.messageformat.v4.common.CommonMessage;
+import com.im.njams.sdk.NjamsSettings;
+import com.im.njams.sdk.factories.ThreadFactoryBuilder;
+import com.im.njams.sdk.settings.Settings;
+import com.im.njams.sdk.utils.StringUtils;
 
 /**
  * This class enforces the maxQueueLength setting. It uses the
@@ -92,7 +103,7 @@ public class NjamsSender implements Sender {
     protected final String name;
 
     public NjamsSender() {
-        this.settings = null;
+        settings = null;
         name = "defaultSender";
     }
 
@@ -139,17 +150,32 @@ public class NjamsSender implements Sender {
      */
     @Override
     public void init(Properties properties) {
-        int minSenderThreads = Integer.parseInt(properties.getProperty(NjamsSettings.PROPERTY_MIN_SENDER_THREADS, "1"));
-        int maxSenderThreads = Integer.parseInt(properties.getProperty(NjamsSettings.PROPERTY_MAX_SENDER_THREADS, "8"));
-        int maxQueueLength = Integer.parseInt(properties.getProperty(NjamsSettings.PROPERTY_MAX_QUEUE_LENGTH, "8"));
-        long idleTime = Long.parseLong(properties.getProperty(NjamsSettings.PROPERTY_SENDER_THREAD_IDLE_TIME, "10000"));
+        int minSenderThreads =
+                (int) getLongProperty(properties, 1, PROPERTY_MIN_SENDER_THREADS, OLD_MIN_SENDER_THREADS);
+        int maxSenderThreads =
+                (int) getLongProperty(properties, 8, PROPERTY_MAX_SENDER_THREADS, OLD_MAX_SENDER_THREADS);
+        int maxQueueLength = (int) getLongProperty(properties, 8, PROPERTY_MAX_QUEUE_LENGTH, OLD_MAX_QUEUE_LENGTH);
+        long idleTime =
+                getLongProperty(properties, 10000, PROPERTY_SENDER_THREAD_IDLE_TIME, OLD_SENDER_THREAD_IDLE_TIME);
         ThreadFactory threadFactory = new ThreadFactoryBuilder()
-            .setNamePrefix(getName() + "-Sender-Thread").setDaemon(true).build();
+                .setNamePrefix(getName() + "-Sender-Thread").setDaemon(true).build();
         executor = new ThreadPoolExecutor(minSenderThreads, maxSenderThreads, idleTime, TimeUnit.MILLISECONDS,
-            new ArrayBlockingQueue<>(maxQueueLength), threadFactory,
-            new MaxQueueLengthHandler(properties));
+                new ArrayBlockingQueue<>(maxQueueLength), threadFactory,
+                new MaxQueueLengthHandler(properties));
         final CommunicationFactory communicationFactory = new CommunicationFactory(settings);
         senderPool = new SenderPool(communicationFactory);
+    }
+
+    private long getLongProperty(Properties properties, int def, String key, String deprecatedKey) {
+        String val = Settings.getPropertyWithDeprecationWarning(properties, key, deprecatedKey);
+        if (StringUtils.isBlank(val)) {
+            return def;
+        }
+        try {
+            return Long.parseLong(val);
+        } catch (NumberFormatException e) {
+            return def;
+        }
     }
 
     /**

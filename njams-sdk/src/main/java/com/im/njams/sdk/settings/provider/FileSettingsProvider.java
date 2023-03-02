@@ -16,6 +16,11 @@
  */
 package com.im.njams.sdk.settings.provider;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.InputStream;
+import java.util.Properties;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectWriter;
 import com.im.njams.sdk.NjamsSettings;
@@ -24,11 +29,6 @@ import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.settings.Settings;
 import com.im.njams.sdk.settings.SettingsProvider;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.InputStream;
-import java.util.Properties;
-
 /**
  * Implements a simple FileSettingsProvider. It loads and saves a
  * Settings to a specified file.
@@ -36,13 +36,6 @@ import java.util.Properties;
  * @author pnientiedt
  */
 public class FileSettingsProvider implements SettingsProvider {
-
-    /**
-     * Property key for settings properties. Specifies the path to the
-     * settings file.
-     */
-    @Deprecated
-    public static final String FILE_CONFIGURATION = NjamsSettings.PROPERTY_FILE_SETTINGS_FILE;
     /**
      * Name of the FileSettingsProvider
      */
@@ -99,18 +92,16 @@ public class FileSettingsProvider implements SettingsProvider {
     public Settings loadSettings() {
         if (!file.exists()) {
             return new Settings();
-        } else {
-            try (InputStream is = new FileInputStream(file)) {
-                Properties properties = objectMapper.readValue(is, Properties.class);
-                Settings settings = new Settings();
-                settings.addAll(properties);
-                return settings;
-            } catch (Exception e) {
-                throw new NjamsSdkRuntimeException("Unable to load file", e);
-            }
+        }
+        try (InputStream is = new FileInputStream(file)) {
+            Properties properties = objectMapper.readValue(is, Properties.class);
+            Settings settings = new Settings();
+            settings.addAll(properties);
+            return settings;
+        } catch (Exception e) {
+            throw new NjamsSdkRuntimeException("Unable to load file", e);
         }
     }
-
 
     /**
      * Get the File where Settings is stored.

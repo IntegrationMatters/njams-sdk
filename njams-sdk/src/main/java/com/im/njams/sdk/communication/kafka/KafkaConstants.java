@@ -17,8 +17,6 @@
 
 package com.im.njams.sdk.communication.kafka;
 
-import com.im.njams.sdk.NjamsSettings;
-
 /**
  * @author sfaiz
  * @version 4.2.0-SNAPSHOT
@@ -34,27 +32,6 @@ public class KafkaConstants {
      * The default topic prefix to be used if {@link com.im.njams.sdk.NjamsSettings#PROPERTY_KAFKA_TOPIC_PREFIX} is not set.
      */
     public static final String DEFAULT_TOPIC_PREFIX = "njams";
-    
-    // ********** General nJAMS properties
-    /** Prefix only for the Kafka specific communication settings that are directly passed to the client. */
-    /**
-     * Property key for the communication properties. Specifies a prefix for resolving the actual topic names.
-     */
-    @Deprecated
-    public static final String TOPIC_PREFIX = NjamsSettings.PROPERTY_KAFKA_TOPIC_PREFIX;
-
-    /**
-     * Property key for the communication properties. Overrides the default commands topic.
-     */
-    @Deprecated
-    public static final String COMMANDS_TOPIC = NjamsSettings.PROPERTY_KAFKA_COMMANDS_TOPIC;
-
-    /**
-     * Property key for the communication properties. Timeout after last use of the
-     * KafkaProducer, who is responsible for responding to Commands.
-     */
-    @Deprecated
-    public static final String REPLY_PRODUCER_IDLE_TIME = NjamsSettings.PROPERTY_KAFKA_REPLY_PRODUCER_IDLE_TIME;
 
     /*
      * ********** Kafka client related prefixes
@@ -64,27 +41,6 @@ public class KafkaConstants {
      * https://kafka.apache.org/10/javadoc/org/apache/kafka/clients/producer/ProducerConfig.html
      * https://kafka.apache.org/10/javadoc/org/apache/kafka/clients/admin/AdminClientConfig.html
      */
-
-    /**
-     * Prefix for properties that shall be applied to all types of Kafka clients
-     */
-    @Deprecated
-    public static final String CLIENT_PREFIX = NjamsSettings.PROPERTY_KAFKA_CLIENT_PREFIX;
-    /**
-     * Prefix for properties that shall be applied to Kafka consumers
-     */
-    @Deprecated
-    public static final String CONSUMER_PREFIX = NjamsSettings.PROPERTY_KAFKA_CONSUMER_PREFIX;
-    /**
-     * Prefix for properties that shall be applied to Kafka producers
-     */
-    @Deprecated
-    public static final String PRODUCER_PREFIX = NjamsSettings.PROPERTY_KAFKA_PRODUCER_PREFIX;
-    /**
-     * Prefix for properties that shall be applied to the Kafka admin client
-     */
-    @Deprecated
-    public static final String ADMIN_PREFIX = NjamsSettings.PROPERTY_KAFKA_ADMIN_PREFIX;
 
     private KafkaConstants() {
         // constants

@@ -16,12 +16,14 @@
  */
 package com.im.njams.sdk.communication;
 
-import com.im.njams.sdk.NjamsSettings;
-import org.slf4j.LoggerFactory;
-
 import java.util.Properties;
 import java.util.concurrent.RejectedExecutionHandler;
 import java.util.concurrent.ThreadPoolExecutor;
+
+import org.slf4j.LoggerFactory;
+
+import com.im.njams.sdk.NjamsSettings;
+import com.im.njams.sdk.settings.Settings;
 
 /**
  * implements the maxQueueLength handling
@@ -36,37 +38,38 @@ public class MaxQueueLengthHandler implements RejectedExecutionHandler {
     private final DiscardPolicy discardPolicy;
 
     public MaxQueueLengthHandler(Properties properties) {
-        discardPolicy = DiscardPolicy.byValue(properties.getProperty(NjamsSettings.PROPERTY_DISCARD_POLICY));
+        discardPolicy = DiscardPolicy.byValue(Settings.getPropertyWithDeprecationWarning(properties,
+                NjamsSettings.PROPERTY_DISCARD_POLICY, NjamsSettings.OLD_DISCARD_POLICY));
     }
 
     @Override
     public void rejectedExecution(Runnable r, ThreadPoolExecutor executor) {
         LOG.trace("Applying discard policy [{}]", discardPolicy);
         switch (discardPolicy) {
-            case DISCARD:
-                LOG.debug("Message discarded");
-                DiscardMonitor.discard();
-                break;
-            case ON_CONNECTION_LOSS:
-                // discardPolicy onConnectionLoss must be handled inside sender implementation,
-                // as the connection status cannot be checked here!
-                //
-                // intentional fall-through
-            case NONE:
-                // intentional fall-through
-            default:
-                if (!executor.isShutdown()) {
-                    try {
-                        // block until this entry can be added
-                        LOG.trace("Waiting for free slot in dispatch queue");
-                        long start = System.currentTimeMillis();
-                        executor.getQueue().put(r);
-                        ThrottleMonitor.throttle(System.currentTimeMillis() - start);
-                    } catch (InterruptedException e) {
-                        // exit handler
-                    }
+        case DISCARD:
+            LOG.debug("Message discarded");
+            DiscardMonitor.discard();
+            break;
+        case ON_CONNECTION_LOSS:
+            // discardPolicy onConnectionLoss must be handled inside sender implementation,
+            // as the connection status cannot be checked here!
+            //
+            // intentional fall-through
+        case NONE:
+            // intentional fall-through
+        default:
+            if (!executor.isShutdown()) {
+                try {
+                    // block until this entry can be added
+                    LOG.trace("Waiting for free slot in dispatch queue");
+                    long start = System.currentTimeMillis();
+                    executor.getQueue().put(r);
+                    ThrottleMonitor.throttle(System.currentTimeMillis() - start);
+                } catch (InterruptedException e) {
+                    // exit handler
                 }
-                break;
+            }
+            break;
         }
 
     }

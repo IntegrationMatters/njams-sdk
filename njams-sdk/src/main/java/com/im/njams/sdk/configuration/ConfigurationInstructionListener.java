@@ -673,7 +673,8 @@ public class ConfigurationInstructionListener implements InstructionListener {
     }
 
     private void record(final InstructionSupport instructionSupport) {
-        if ("true".equalsIgnoreCase(njams.getSettings().getProperty(NjamsSettings.PROPERTY_DISABLE_STARTDATA))) {
+        if ("true".equalsIgnoreCase(njams.getSettings().getPropertyWithDeprecationWarning(
+                NjamsSettings.PROPERTY_DISABLE_STARTDATA, NjamsSettings.OLD_DISABLE_STARTDATA))) {
             instructionSupport.error("Collecting start-data is disabled by configuration.");
             return;
         }

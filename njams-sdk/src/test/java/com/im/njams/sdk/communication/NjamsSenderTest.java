@@ -16,6 +16,16 @@
  */
 package com.im.njams.sdk.communication;
 
+import static org.junit.Assert.assertEquals;
+
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
+
+import org.junit.BeforeClass;
+import org.junit.Test;
+
 import com.faizsiegeln.njams.messageformat.v4.common.CommonMessage;
 import com.faizsiegeln.njams.messageformat.v4.logmessage.LogMessage;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.ProjectMessage;
@@ -24,15 +34,6 @@ import com.im.njams.sdk.AbstractTest;
 import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.settings.Settings;
-import org.junit.BeforeClass;
-import org.junit.Test;
-
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
-
-import static org.junit.Assert.assertEquals;
 
 /**
  * Tests the NjamsSender
@@ -187,9 +188,8 @@ public class NjamsSenderTest extends AbstractTest {
                 if (counter.getAndIncrement() < TRIES) {
                     System.out.println(counter.get() + " times tried to reconnect.");
                     throw new NjamsSdkRuntimeException("" + counter.get());
-                } else {
-                    connectionStatus = ConnectionStatus.CONNECTED;
                 }
+                connectionStatus = ConnectionStatus.CONNECTED;
             }
         }
 

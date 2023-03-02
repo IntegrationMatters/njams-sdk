@@ -106,7 +106,9 @@ public class NjamsSettings {
      * If the flush size of the @{@link com.faizsiegeln.njams.messageformat.v4.logmessage.LogMessage}
      * exceeds this threshold, the message will be flushed
      */
-    public static final String PROPERTY_FLUSH_SIZE = "njams.client.sdk.flushsize";
+    public static final String PROPERTY_FLUSH_SIZE = "njams.sdk.flushsize";
+    @Deprecated(since = "5.0.0", forRemoval = true)
+    public static final String OLD_FLUSH_SIZE = "njams.client.sdk.flushsize";
 
     /**
      * This property is a flush criteria with a default of 30s.
@@ -114,14 +116,18 @@ public class NjamsSettings {
      * If no @{@link com.faizsiegeln.njams.messageformat.v4.logmessage.LogMessage}
      * has been sent in the last 30 seconds, it will be flushed
      */
-    public static final String PROPERTY_FLUSH_INTERVAL = "njams.client.sdk.flush_interval";
+    public static final String PROPERTY_FLUSH_INTERVAL = "njams.sdk.flush_interval";
+    @Deprecated(since = "5.0.0", forRemoval = true)
+    public static final String OLD_FLUSH_INTERVAL = "njams.client.sdk.flush_interval";
 
     /**
      * This property's default is 1 sender thread as core thread
      * (that means it can't be closed even if its idle time has been exceeded)
      * that can send project and log messages to the server.
      */
-    public static final String PROPERTY_MIN_SENDER_THREADS = "njams.client.sdk.minsenderthreads";
+    public static final String PROPERTY_MIN_SENDER_THREADS = "njams.sdk.minsenderthreads";
+    @Deprecated(since = "5.0.0", forRemoval = true)
+    public static final String OLD_MIN_SENDER_THREADS = "njams.client.sdk.minsenderthreads";
 
     /**
      * This property's default is 8 sender threads as maximum threads that can be used.
@@ -129,19 +135,25 @@ public class NjamsSettings {
      * and the threshold hasn't exceeded, a new thread will be started. If the thread isn't in use for
      * (look below njams.client.sdk.senderthreadidletime), the thread will be removed.
      */
-    public static final String PROPERTY_MAX_SENDER_THREADS = "njams.client.sdk.maxsenderthreads";
+    public static final String PROPERTY_MAX_SENDER_THREADS = "njams.sdk.maxsenderthreads";
+    @Deprecated(since = "5.0.0", forRemoval = true)
+    public static final String OLD_MAX_SENDER_THREADS = "njams.client.sdk.maxsenderthreads";
 
     /**
      * This property's default is 8 messages that can be hold in the message Queue before the
      * messages will be discarded or client will stop processing until the queue has space again.
      */
-    public static final String PROPERTY_MAX_QUEUE_LENGTH = "njams.client.sdk.maxqueuelength";
+    public static final String PROPERTY_MAX_QUEUE_LENGTH = "njams.sdk.maxqueuelength";
+    @Deprecated(since = "5.0.0", forRemoval = true)
+    public static final String OLD_MAX_QUEUE_LENGTH = "njams.client.sdk.maxqueuelength";
 
     /**
      * This property's default is 10000 (ms) that means that idle sender threads that haven't send any
      * message in the last 10 seconds and are not core threads will be removed.
      */
-    public static final String PROPERTY_SENDER_THREAD_IDLE_TIME = "njams.client.sdk.senderthreadidletime";
+    public static final String PROPERTY_SENDER_THREAD_IDLE_TIME = "njams.sdk.senderthreadidletime";
+    @Deprecated(since = "5.0.0", forRemoval = true)
+    public static final String OLD_SENDER_THREAD_IDLE_TIME = "njams.client.sdk.senderthreadidletime";
 
     /**
      * This property decides what to do with a logmessage that couldn't be delivered (because of connection loss, full queue, etc.)
@@ -152,22 +164,29 @@ public class NjamsSettings {
      * <li>discard
      * </ul>
      */
-    public static final String PROPERTY_DISCARD_POLICY = "njams.client.sdk.discardpolicy";
+    public static final String PROPERTY_DISCARD_POLICY = "njams.sdk.discardpolicy";
+    @Deprecated(since = "5.0.0", forRemoval = true)
+    public static final String OLD_DISCARD_POLICY = "njams.client.sdk.discardpolicy";
 
     /**
      * If set to <code>true</code> communications (senders and receivers) will be shared across multiple {@link Njams}
      * instances if supported by the configured implementations. By default (or if set to <code>false</code>) each
      * {@link Njams} instance uses a dedicated instance of sender and receiver pools.
      */
-    public static final String PROPERTY_SHARED_COMMUNICATIONS = "njams.client.sdk.sharedcommunications";
+    public static final String PROPERTY_SHARED_COMMUNICATIONS = "njams.sdk.sharedcommunications";
+    @Deprecated(since = "5.0.0", forRemoval = true)
+    public static final String OLD_SHARED_COMMUNICATIONS = "njams.client.sdk.sharedcommunications";
 
     /**
      * New field subProcessPath has been added for Messageformat 4.1.0
      * <p>
-     * This Property can be set to use deprecated format; this might be used when sending to a server not compatible
+     * This property can be set to use deprecated format; this might be used when sending to a server not compatible
      * because he uses an older Messageformat version.
      */
     public static final String PROPERTY_USE_DEPRECATED_PATH_FIELD_FOR_SUBPROCESSES =
+            "njams.sdk.deprecatedsubprocesspathfield";
+    @Deprecated(since = "5.0.0", forRemoval = true)
+    public static final String OLD_USE_DEPRECATED_PATH_FIELD_FOR_SUBPROCESSES =
             "njams.client.sdk.deprecatedsubprocesspathfield";
 
     /**
@@ -177,16 +196,20 @@ public class NjamsSettings {
      * <p>
      * This can be helpful for an environment containing an old XML lib, which does not support this.
      */
-    public static final String PROPERTY_DISABLE_SECURE_PROCESSING = "njams.client.sdk.disable.secure.processing";
+    public static final String PROPERTY_DISABLE_SECURE_PROCESSING = "njams.sdk.disable.secure.processing";
+    @Deprecated(since = "5.0.0", forRemoval = true)
+    public static final String OLD_DISABLE_SECURE_PROCESSING = "njams.client.sdk.disable.secure.processing";
 
     /**
      * If set to <code>true</code> collecting job start-data is disabled. Please note that this also disables replay
      * functionality.
      * @deprecated This gets in the way with the new possibility for configuring recording in nJAMS server 5.0.
-     * Use {@link #PROPERTY_BOOSTRAP_RECORDING} as default setting and configure via nJAMS server.
+     * Use {@link #xPROPERTY_BOOSTRAP_RECORDING} as default setting and configure via nJAMS server.
      */
     @Deprecated(since = "5.0.0", forRemoval = true)
-    public static final String PROPERTY_DISABLE_STARTDATA = "njams.client.sdk.disable.startdata";
+    public static final String PROPERTY_DISABLE_STARTDATA = "njams.sdk.disable.startdata";
+    @Deprecated(since = "5.0.0", forRemoval = true)
+    public static final String OLD_DISABLE_STARTDATA = "njams.client.sdk.disable.startdata";
 
     /**
      * Since 5.0.0.

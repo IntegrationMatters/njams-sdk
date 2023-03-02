@@ -40,13 +40,6 @@ import com.im.njams.sdk.settings.Settings;
 public class CommunicationFactory {
     private static final Logger LOG = LoggerFactory.getLogger(CommunicationFactory.class);
 
-    /**
-     * Property key for communication properties which specifies which
-     * communication implementation will be used.
-     */
-    @Deprecated
-    public static final String COMMUNICATION = NjamsSettings.PROPERTY_COMMUNICATION;
-
     private final Settings settings;
     private final CommunicationServiceLoader<Receiver> receivers;
     private final CommunicationServiceLoader<AbstractSender> senders;
@@ -80,7 +73,8 @@ public class CommunicationFactory {
         if (settings.containsKey(NjamsSettings.PROPERTY_COMMUNICATION)) {
             final String requiredReceiverName = settings.getProperty(NjamsSettings.PROPERTY_COMMUNICATION);
             final boolean shared =
-                    "true".equalsIgnoreCase(settings.getProperty(NjamsSettings.PROPERTY_SHARED_COMMUNICATIONS));
+                    "true".equalsIgnoreCase(settings.getPropertyWithDeprecationWarning(
+                            NjamsSettings.PROPERTY_SHARED_COMMUNICATIONS, NjamsSettings.OLD_SHARED_COMMUNICATIONS));
             Class<? extends Receiver> type = findReceiverType(requiredReceiverName, shared);
             if (type != null) {
                 final Receiver newInstance = createReceiver(type, njams, shared, requiredReceiverName);
@@ -158,33 +152,32 @@ public class CommunicationFactory {
      * @return new initialized Sender
      */
     public AbstractSender getSender() {
-        if (settings.containsKey(NjamsSettings.PROPERTY_COMMUNICATION)) {
-            final Collection<AbstractSender> availableSenders = getAvailableImplementations(senders);
-            final String requiredSenderName = settings.getProperty(NjamsSettings.PROPERTY_COMMUNICATION);
-            final AbstractSender sender = availableSenders.stream()
-                    .filter(s -> s.getName().equalsIgnoreCase(requiredSenderName)).findAny().orElse(null);
-            if (sender != null) {
-                try {
-                    // create a new instance
-                    LOG.info("Create sender {}", sender.getName());
-                    AbstractSender newInstance = sender.getClass().newInstance();
-                    newInstance.validate();
-                    newInstance.init(settings.getAllProperties());
-                    return newInstance;
-                } catch (Exception e) {
-                    throw new IllegalStateException(
-                            "Unable to create new " + requiredSenderName + " instance", e);
-                }
-            }
-            final Collection<String> availableNames =
-                    availableSenders.stream().map(AbstractSender::getName).collect(Collectors.toSet());
-            throw new IllegalStateException(
-                    "Unable to find sender implementation for " + requiredSenderName + ", available are: "
-                            + availableNames);
-        } else {
+        if (!settings.containsKey(NjamsSettings.PROPERTY_COMMUNICATION)) {
             throw new IllegalStateException("Unable to find " + NjamsSettings.PROPERTY_COMMUNICATION
                     + " in settings properties");
         }
+        final Collection<AbstractSender> availableSenders = getAvailableImplementations(senders);
+        final String requiredSenderName = settings.getProperty(NjamsSettings.PROPERTY_COMMUNICATION);
+        final AbstractSender sender = availableSenders.stream()
+                .filter(s -> s.getName().equalsIgnoreCase(requiredSenderName)).findAny().orElse(null);
+        if (sender != null) {
+            try {
+                // create a new instance
+                LOG.info("Create sender {}", sender.getName());
+                AbstractSender newInstance = sender.getClass().newInstance();
+                newInstance.validate();
+                newInstance.init(settings.getAllProperties());
+                return newInstance;
+            } catch (Exception e) {
+                throw new IllegalStateException(
+                        "Unable to create new " + requiredSenderName + " instance", e);
+            }
+        }
+        final Collection<String> availableNames =
+                availableSenders.stream().map(AbstractSender::getName).collect(Collectors.toSet());
+        throw new IllegalStateException(
+                "Unable to find sender implementation for " + requiredSenderName + ", available are: "
+                        + availableNames);
     }
 
     private <T> Collection<T> getAvailableImplementations(CommunicationServiceLoader<T> loader) {

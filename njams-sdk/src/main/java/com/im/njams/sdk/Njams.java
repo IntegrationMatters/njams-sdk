@@ -338,7 +338,7 @@ public class Njams implements InstructionListener {
      */
     private void loadConfigurationProvider() {
         Configuration.setRecordingBootstrapValue(
-                !"false".equalsIgnoreCase(settings.getProperty(NjamsSettings.PROPERTY_BOOSTRAP_RECORDING, "true")));
+                !"false".equalsIgnoreCase(settings.getProperty(NjamsSettings.PROPERTY_BOOSTRAP_RECORDING)));
         if (!settings.containsKey(ConfigurationProviderFactory.CONFIGURATION_PROVIDER)) {
             settings.put(ConfigurationProviderFactory.CONFIGURATION_PROVIDER, DEFAULT_CACHE_PROVIDER);
         }
@@ -449,7 +449,8 @@ public class Njams implements InstructionListener {
             removeFeature(Feature.REPLAY);
         } else {
             addFeature(Feature.REPLAY);
-            if ("true".equalsIgnoreCase(settings.getProperty(NjamsSettings.PROPERTY_DISABLE_STARTDATA))) {
+            if ("true".equalsIgnoreCase(settings.getPropertyWithDeprecationWarning(
+                    NjamsSettings.PROPERTY_DISABLE_STARTDATA, NjamsSettings.OLD_DISABLE_STARTDATA))) {
                 LOG.warn("Replay functionality is limited because collecting start-data "
                         + "is disabled by configuration {}=true", NjamsSettings.PROPERTY_DISABLE_STARTDATA);
             }
@@ -511,7 +512,8 @@ public class Njams implements InstructionListener {
      */
     public Sender getSender() {
         if (sender == null) {
-            if ("true".equalsIgnoreCase(settings.getProperty(NjamsSettings.PROPERTY_SHARED_COMMUNICATIONS))) {
+            if ("true".equalsIgnoreCase(settings.getPropertyWithDeprecationWarning(
+                    NjamsSettings.PROPERTY_SHARED_COMMUNICATIONS, NjamsSettings.OLD_SHARED_COMMUNICATIONS))) {
                 LOG.debug("Using shared sender pool for {}", getClientPath());
                 sender = NjamsSender.takeSharedSender(settings);
             } else {

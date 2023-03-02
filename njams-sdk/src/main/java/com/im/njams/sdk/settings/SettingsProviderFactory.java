@@ -16,13 +16,18 @@
  */
 package com.im.njams.sdk.settings;
 
-import com.im.njams.sdk.NjamsSettings;
+import java.util.Iterator;
+import java.util.Properties;
+import java.util.ServiceLoader;
+import java.util.Spliterator;
+import java.util.Spliterators;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.*;
-import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
+import com.im.njams.sdk.NjamsSettings;
 
 /**
  * This factory is for getting a Provider for setting of client.
@@ -34,39 +39,32 @@ public class SettingsProviderFactory {
     private static final Logger LOG = LoggerFactory.getLogger(SettingsProviderFactory.class);
 
     /**
-     * Property key for the settings properties. Specifies which implementation will be loaded.
-     */
-    @Deprecated
-    public static final String SETTINGS_PROVIDER = NjamsSettings.PROPERTY_SETTINGS_PROVIDER;
-
-    /**
      * Returns the SettingsProvider, which name matches the name given via the Properties into the constructor.
      *
      * @param properties * the properties to find the settings provider
      * @return the {@link SettingsProvider} or a {@link UnsupportedOperationException}
      */
     public static SettingsProvider getSettingsProvider(final Properties properties) {
-        if (properties.containsKey(NjamsSettings.PROPERTY_SETTINGS_PROVIDER)) {
-            final String name = properties.getProperty(NjamsSettings.PROPERTY_SETTINGS_PROVIDER);
-            final ServiceLoader<SettingsProvider> receiverList = ServiceLoader.load(SettingsProvider.class);
-            final Iterator<SettingsProvider> iterator = receiverList.iterator();
-            while (iterator.hasNext()) {
-                final SettingsProvider settingsProvider = iterator.next();
-                if (settingsProvider.getName().equals(name)) {
-                    LOG.info("Create SettingsProvider {}", settingsProvider.getName());
-                    return settingsProvider;
-                }
-            }
-            String available = StreamSupport
-                .stream(Spliterators.spliteratorUnknownSize(ServiceLoader.load(SettingsProvider.class).iterator(),
-                    Spliterator.ORDERED), false)
-                .map(cp -> cp.getName()).collect(Collectors.joining(", "));
+        if (!properties.containsKey(NjamsSettings.PROPERTY_SETTINGS_PROVIDER)) {
             throw new UnsupportedOperationException(
-                "Unable to find SettingsProvider implementation with name " + name + ", available are: "
-                    + available);
-        } else {
-            throw new UnsupportedOperationException(
-                "Unable to find " + NjamsSettings.PROPERTY_SETTINGS_PROVIDER + " in settings properties");
+                    "Unable to find " + NjamsSettings.PROPERTY_SETTINGS_PROVIDER + " in settings properties");
         }
+        final String name = properties.getProperty(NjamsSettings.PROPERTY_SETTINGS_PROVIDER);
+        final ServiceLoader<SettingsProvider> receiverList = ServiceLoader.load(SettingsProvider.class);
+        final Iterator<SettingsProvider> iterator = receiverList.iterator();
+        while (iterator.hasNext()) {
+            final SettingsProvider settingsProvider = iterator.next();
+            if (settingsProvider.getName().equals(name)) {
+                LOG.info("Create SettingsProvider {}", settingsProvider.getName());
+                return settingsProvider;
+            }
+        }
+        String available = StreamSupport
+                .stream(Spliterators.spliteratorUnknownSize(ServiceLoader.load(SettingsProvider.class).iterator(),
+                        Spliterator.ORDERED), false)
+                .map(SettingsProvider::getName).collect(Collectors.joining(", "));
+        throw new UnsupportedOperationException(
+                "Unable to find SettingsProvider implementation with name " + name + ", available are: "
+                        + available);
     }
 }

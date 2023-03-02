@@ -16,14 +16,18 @@
  */
 package com.im.njams.sdk.settings;
 
-import com.im.njams.sdk.Njams;
-import com.im.njams.sdk.NjamsSettings;
-import com.im.njams.sdk.settings.encoding.Transformer;
-import com.im.njams.sdk.utils.StringUtils;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Properties;
+import java.util.Set;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.*;
+import com.im.njams.sdk.settings.encoding.Transformer;
+import com.im.njams.sdk.utils.StringUtils;
 
 /**
  * The settings contains settings needed for
@@ -46,94 +50,6 @@ public class Settings {
      * always use lowercase when adding an entry to this set!
      */
     private Set<String> secureProperties = new HashSet<>();
-
-    /**
-     * This property is a flush criterium with a default of 5mb.
-     * If the flush size of the logmessage exceedes this threshold, the message will be flushed
-     */
-    @Deprecated
-    public static final String PROPERTY_FLUSH_SIZE = NjamsSettings.PROPERTY_FLUSH_SIZE;
-    /**
-     * This property is a flush criterium with a default of 30s.
-     * If no logmessage has been sent in the last 30 seconds, the logmessage will be flushed now
-     */
-    @Deprecated
-    public static final String PROPERTY_FLUSH_INTERVAL = NjamsSettings.PROPERTY_FLUSH_INTERVAL;
-    /**
-     * This property's default is 1 sender thread as core thread
-     * (that means it can't be closed even if its idle time has been exceeded)
-     * that can send project and log messages to the server.
-     */
-    @Deprecated
-    public static final String PROPERTY_MIN_SENDER_THREADS = NjamsSettings.PROPERTY_MIN_SENDER_THREADS;
-    /**
-     * This property's default is 8 sender threads as maximum threads that can be used.
-     * This means if there are more messages to handle than there are sender threads at the moment
-     * and the threshold hasn't exceeded, a new thread will be started. If the thread isn't in use for
-     * (look below njams.client.sdk.senderthreadidletime), the thread will be removed.
-     */
-    @Deprecated
-    public static final String PROPERTY_MAX_SENDER_THREADS = NjamsSettings.PROPERTY_MAX_SENDER_THREADS;
-    /**
-     * This property's default is 8 messages that can be hold in the message Queue before the
-     * messages will be discarded or client will stop processing until the queue has space again.
-     */
-    @Deprecated
-    public static final String PROPERTY_MAX_QUEUE_LENGTH = NjamsSettings.PROPERTY_MAX_QUEUE_LENGTH;
-    /**
-     * This property's default is 10000 (ms) that means that idle sender threads that haven't send any
-     * message in the last 10 seconds and are not core threads will be removed.
-     */
-    @Deprecated
-    public static final String PROPERTY_SENDER_THREAD_IDLE_TIME = NjamsSettings.PROPERTY_SENDER_THREAD_IDLE_TIME;
-    /**
-     * This property decides what to do with a logmessage that couldn't be delivered (because of connection loss, full queue, etc.)
-     * Possible values are: none|onconnectionloss|discard (Default is none)
-     */
-    @Deprecated
-    public static final String PROPERTY_DISCARD_POLICY = NjamsSettings.PROPERTY_DISCARD_POLICY;
-    /**
-     * If set to <code>true</code> communications (senders and receivers) will be shared accross multiple {@link Njams}
-     * instances if supported by the configured implementations. By default (or if set to <code>false</code>) each
-     * {@link Njams} instance uses a dedicated instance of sender and receiver pools.
-     */
-    @Deprecated
-    public static final String PROPERTY_SHARED_COMMUNICATIONS = NjamsSettings.PROPERTY_SHARED_COMMUNICATIONS;
-    /**
-     * New field subProcessPath has been added for Messageformat 4.1.0
-     * <p>
-     * This Property can be set to use deprecated format; this might be used when sending to a server not compatible
-     * because he uses an older Messageformat version.
-     */
-    @Deprecated
-    public static final String PROPERTY_USE_DEPRECATED_PATH_FIELD_FOR_SUBPROCESSES =
-        NjamsSettings.PROPERTY_USE_DEPRECATED_PATH_FIELD_FOR_SUBPROCESSES;
-
-    /**
-     * If set to <code>true</code> secure XML processing feature will NOT be inititalzied:
-     * <p>
-     * factory.setAttribute(XMLConstants.FEATURE_SECURE_PROCESSING, false);
-     * <p>
-     * This can be helpful for an environment containing an old XML lib, which does not support this.
-     */
-    @Deprecated
-    public static final String PROPERTY_DISABLE_SECURE_PROCESSING = NjamsSettings.PROPERTY_DISABLE_SECURE_PROCESSING;
-
-    /**
-     * Setting for enabling the logAllErrors feature.
-     */
-    @Deprecated
-    public static final String PROPERTY_LOG_ALL_ERRORS = NjamsSettings.PROPERTY_LOG_ALL_ERRORS;
-    /**
-     * Setting for truncate limit (nJAMS strip-mode). Number of activities/events before messages are truncated.
-     */
-    @Deprecated
-    public static final String PROPERTY_TRUNCATE_LIMIT = NjamsSettings.PROPERTY_TRUNCATE_LIMIT;
-    /**
-     * Setting for truncating successful jobs, provided that they were processed as single message.
-     */
-    @Deprecated
-    public static final String PROPERTY_TRUNCATE_ON_SUCCESS = NjamsSettings.PROPERTY_TRUNCATE_ON_SUCCESS;
 
     /**
      * Property added internally for passing an instance's client path to the communication layer.
@@ -261,10 +177,10 @@ public class Settings {
     public Properties filter(String prefix) {
         Properties response = new Properties();
         properties.entrySet()
-            .stream()
-            .filter(e -> String.class.isAssignableFrom(e.getKey().getClass()))
-            .filter(e -> ((String) e.getKey()).startsWith(prefix))
-            .forEach(e -> response.setProperty((String) e.getKey(), (String) e.getValue()));
+                .stream()
+                .filter(e -> String.class.isAssignableFrom(e.getKey().getClass()))
+                .filter(e -> ((String) e.getKey()).startsWith(prefix))
+                .forEach(e -> response.setProperty((String) e.getKey(), (String) e.getValue()));
         return Transformer.decode(response);
     }
 
@@ -278,12 +194,12 @@ public class Settings {
     public Properties filterAndCut(String prefix) {
         Properties response = new Properties();
         properties.entrySet()
-            .stream()
-            .filter(e -> String.class.isAssignableFrom(e.getKey().getClass()))
-            .filter(e -> ((String) e.getKey()).startsWith(prefix))
-            .forEach(e -> response.setProperty(
-                ((String) e.getKey()).substring(((String) e.getKey()).indexOf(prefix) + prefix.length()),
-                (String) e.getValue()));
+                .stream()
+                .filter(e -> String.class.isAssignableFrom(e.getKey().getClass()))
+                .filter(e -> ((String) e.getKey()).startsWith(prefix))
+                .forEach(e -> response.setProperty(
+                        ((String) e.getKey()).substring(((String) e.getKey()).indexOf(prefix) + prefix.length()),
+                        (String) e.getValue()));
         return Transformer.decode(response);
     }
 
@@ -295,5 +211,45 @@ public class Settings {
         secureProperties.forEach(property -> {
             this.secureProperties.add(property.toLowerCase());
         });
+    }
+
+    /**
+     * Same as {@link #getPropertyDefaultWithDeprecationWarning(String, String, String)} with <code>null</code> as default value.
+     * @param expectedKey
+     * @param deprecatedKeys
+     * @return see {@link #getPropertyDefaultWithDeprecationWarning(String, String, String)}
+     */
+    public String getPropertyWithDeprecationWarning(String expectedKey, String deprecatedKey) {
+        return getPropertyWithDeprecationWarning(expectedKey, null, deprecatedKey);
+    }
+
+    /**
+     * Same as {@link #getProperty(String, String)} if the <code>expectedKey</code> exists.
+     * If not, the <code>deprecatedKey</code> is tried and if found, a deprecation warning is logged for that key
+     * and the value is returned.
+     * Only if the <code>deprecatedKey</code> was also not found, the <code>default</code> value is returned. 
+     * @param expectedKey The expected (current) key.
+     * @param defaultValue The default to return in case that no key exists at all.
+     * @param deprecatedKey Deprecated key to try if the expected one does not exist.
+     * @return A value for the given keys as explained above.
+     */
+    public String getPropertyWithDeprecationWarning(String expectedKey, String defaultValue, String deprecatedKey) {
+        return getPropertyWithDeprecationWarning(properties, expectedKey, defaultValue, deprecatedKey);
+    }
+
+    public static String getPropertyWithDeprecationWarning(Properties props, String expectedKey, String deprecatedKey) {
+        return getPropertyWithDeprecationWarning(props, expectedKey, null, deprecatedKey);
+    }
+
+    public static String getPropertyWithDeprecationWarning(Properties props, String expectedKey, String defaultValue,
+            String deprecatedKey) {
+        if (props.containsKey(expectedKey)) {
+            return Transformer.decode(props.getProperty(expectedKey));
+        }
+        if (props.containsKey(deprecatedKey)) {
+            LOG.warn("Setting [{}] is outdated. Use [{}] instead.", deprecatedKey, expectedKey);
+            return Transformer.decode(props.getProperty(deprecatedKey));
+        }
+        return defaultValue;
     }
 }
