@@ -34,6 +34,8 @@ import com.im.njams.sdk.settings.Settings;
  * @author pnientiedt
  */
 public class Configuration {
+    // this value is used only for initialization
+    private static boolean bootstrapRecording = true;
 
     @JsonIgnore
     private ConfigurationProvider configurationProvider;
@@ -46,7 +48,15 @@ public class Configuration {
      */
     @Deprecated
     private List<String> dataMasking = new ArrayList<>();
-    private boolean recording = true;
+    private Boolean recording = null;
+
+    /**
+     * Set a default value for {@link #isRecording()} which is used only as default when creating a new configuration.
+     * @param enabled When recording is should be enabled.
+     */
+    public static void setRecordingBootstrapValue(boolean enabled) {
+        bootstrapRecording = enabled;
+    }
 
     /**
      * @param configurationProvider to be set
@@ -160,7 +170,7 @@ public class Configuration {
      * @return the recording
      */
     public boolean isRecording() {
-        return recording;
+        return recording != null ? recording.booleanValue() : bootstrapRecording;
     }
 
     /**

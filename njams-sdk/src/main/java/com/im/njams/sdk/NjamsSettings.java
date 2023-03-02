@@ -171,7 +171,7 @@ public class NjamsSettings {
             "njams.client.sdk.deprecatedsubprocesspathfield";
 
     /**
-     * If set to <code>true</code> secure XML processing feature will NOT be inititalzied:
+     * If set to <code>true</code> secure XML processing feature will NOT be initialized:
      * <p>
      * factory.setAttribute(XMLConstants.FEATURE_SECURE_PROCESSING, false);
      * <p>
@@ -182,8 +182,19 @@ public class NjamsSettings {
     /**
      * If set to <code>true</code> collecting job start-data is disabled. Please note that this also disables replay
      * functionality.
+     * @deprecated This gets in the way with the new possibility for configuring recording in nJAMS server 5.0.
+     * Use {@link #PROPERTY_BOOSTRAP_RECORDING} as default setting and configure via nJAMS server.
      */
+    @Deprecated(since = "5.0.0", forRemoval = true)
     public static final String PROPERTY_DISABLE_STARTDATA = "njams.client.sdk.disable.startdata";
+
+    /**
+     * Since 5.0.0.
+     * This setting is used only once when creating a fresh configuration for an {@link Njams} instance.
+     * It is used in that case as default setting for the client- (engine-) wide recording flag. 
+     * Default is <code>true</code>.
+     */
+    public static final String PROPERTY_BOOSTRAP_RECORDING = "njams.sdk.bootstrap.recording";
 
     //     _____      _   _   _
     //    / ____|    | | | | (_)
@@ -483,5 +494,5 @@ public class NjamsSettings {
      * </pre>
      */
     public static final String PROPERTY_DATA_MASKING_REGEX_PREFIX = "njams.sdk.datamasking.regex.";
-    
+
 }
