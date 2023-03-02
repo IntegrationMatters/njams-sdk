@@ -121,15 +121,31 @@ public class ConfigurationInstructionListener implements InstructionListener {
             error(message, null);
         }
 
+        private void error(final String message, final Exception e) {
+            error(message, e, false);
+        }
+
         /**
          * Creates an error response with the given message and exception.
          *
          * @param message
          * @param e
+         * @param silent if set to <code>true</code> no error is logged. 
          */
-        private void error(final String message, final Exception e) {
-            LOG.error("Failed to execute command: [{}] on process: {}{}. Reason: {}", instruction.getCommand(),
-                    getProcessPath(), getActivityId() != null ? "#" + getActivityId() : "", message, e);
+        private void error(final String message, final Exception e, boolean silent) {
+            if (!silent) {
+                String on = null;
+                final String process = getProcessPath();
+                if (StringUtils.isNotBlank(process)) {
+                    on = " on process: " + process;
+                    final String activity = getActivityId();
+                    if (StringUtils.isNotBlank(activity)) {
+                        on += "#" + activity;
+                    }
+                }
+                LOG.error("Failed to execute command [{}]{}. Reason: {}", instruction.getCommand(),
+                        on != null ? on : "", message, e);
+            }
             response.setResultCode(1);
             response.setResultMessage(message + (e != null ? ": " + e.getMessage() : ""));
         }
@@ -704,7 +720,7 @@ public class ConfigurationInstructionListener implements InstructionListener {
             instructionSupport.setParameter(MATCH_RESULT,
                     ExtractHandler.testExpression(ruleType, expression, testdata));
         } catch (Exception e) {
-            instructionSupport.error("Expression test failed.", e);
+            instructionSupport.error("Expression test failed.", e, true);
         }
 
     }
