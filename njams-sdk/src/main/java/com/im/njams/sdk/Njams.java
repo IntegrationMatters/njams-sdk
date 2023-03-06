@@ -455,7 +455,7 @@ public class Njams implements InstructionListener {
 
     /**
      * Returns whether or not container-mode is enabled.
-     * @return
+     * @return Returns whether or not container-mode is enabled.
      */
     public boolean isContainerMode() {
         return containerMode;
