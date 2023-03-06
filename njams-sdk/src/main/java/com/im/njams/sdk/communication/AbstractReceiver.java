@@ -22,10 +22,12 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.faizsiegeln.njams.messageformat.v4.command.Command;
 import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
 import com.faizsiegeln.njams.messageformat.v4.command.Request;
 import com.faizsiegeln.njams.messageformat.v4.command.Response;
 import com.im.njams.sdk.Njams;
+import com.im.njams.sdk.Njams.Feature;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 
 /**
@@ -154,7 +156,6 @@ public abstract class AbstractReceiver implements Receiver {
      *
      * @param ex the exception that initiated the reconnect
      */
-    @SuppressWarnings({ "squid:S2276", "squid:S2142" })
     public synchronized void reconnect(Exception ex) {
         int got = verifyingCounter.incrementAndGet();
         boolean doReconnect = true;
@@ -267,6 +268,23 @@ public abstract class AbstractReceiver implements Receiver {
      */
     public boolean isConnecting() {
         return connectionStatus == ConnectionStatus.CONNECTING;
+    }
+
+    /**
+     * Returns <code>true</code> only if the given instruction is a {@link Command#GET_REQUEST_HANDLER} command and
+     * the given target client does not support the {@link Feature#CONTAINER_MODE} feature.
+     * @param instruction The instruction to check.
+     * @param targetClient The client that shall receive the instruction.
+     * @return <code>false</code> in all other cases.
+     */
+    protected static boolean suppressGetRequestHandlerInstruction(Instruction instruction, Njams targetClient) {
+        if (Command.GET_REQUEST_HANDLER == Command.getFromInstruction(instruction) && !targetClient.isContainerMode()) {
+            LOG.debug("Ignoring command {} because feature {} is disabled for target client: {}",
+                    Command.GET_REQUEST_HANDLER, Feature.CONTAINER_MODE, targetClient.getClientPath());
+
+            return true;
+        }
+        return false;
     }
 
 }

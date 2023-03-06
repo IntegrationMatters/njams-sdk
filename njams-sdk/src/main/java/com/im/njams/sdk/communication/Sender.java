@@ -16,10 +16,11 @@
  */
 package com.im.njams.sdk.communication;
 
-import com.faizsiegeln.njams.messageformat.v4.common.CommonMessage;
-import com.im.njams.sdk.utils.ClasspathValidator;
-
 import java.util.Properties;
+
+import com.faizsiegeln.njams.messageformat.v4.common.CommonMessage;
+import com.im.njams.sdk.Njams;
+import com.im.njams.sdk.utils.ClasspathValidator;
 
 /**
  * This interface must be implemented to create a nJAMS Sender Inplementations
@@ -76,8 +77,9 @@ public interface Sender extends ClasspathValidator {
      * Send the given message to the new communication layer
      *
      * @param msg the message to send
+     * @param clientSessionId The session ID of the {@link Njams} instance that sends the message.
      */
-    void send(CommonMessage msg);
+    void send(CommonMessage msg, String clientSessionId);
 
     /**
      * Close this Sender.

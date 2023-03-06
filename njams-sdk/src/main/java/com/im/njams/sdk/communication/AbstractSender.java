@@ -153,18 +153,18 @@ public abstract class AbstractSender implements Sender {
      * @param msg the message to send
      */
     @Override
-    public void send(CommonMessage msg) {
+    public void send(CommonMessage msg, String clientSessionId) {
         // do this until message is sent or discard policy onConnectionLoss is satisfied
         boolean isSent = false;
         do {
             if (isConnected()) {
                 try {
                     if (msg instanceof LogMessage) {
-                        send((LogMessage) msg);
+                        send((LogMessage) msg, clientSessionId);
                     } else if (msg instanceof ProjectMessage) {
-                        send((ProjectMessage) msg);
+                        send((ProjectMessage) msg, clientSessionId);
                     } else if (msg instanceof TraceMessage) {
-                        send((TraceMessage) msg);
+                        send((TraceMessage) msg, clientSessionId);
                     }
                     isSent = true;
                     break;
@@ -217,7 +217,7 @@ public abstract class AbstractSender implements Sender {
      * @param msg the message to send
      * @throws NjamsSdkRuntimeException NjamsSdkRuntimeException
      */
-    protected abstract void send(LogMessage msg) throws NjamsSdkRuntimeException;
+    protected abstract void send(LogMessage msg, String clientSessionId) throws NjamsSdkRuntimeException;
 
     /**
      * Implement this method to send ProjectMessages
@@ -225,7 +225,7 @@ public abstract class AbstractSender implements Sender {
      * @param msg the message to send
      * @throws NjamsSdkRuntimeException NjamsSdkRuntimeException
      */
-    protected abstract void send(ProjectMessage msg) throws NjamsSdkRuntimeException;
+    protected abstract void send(ProjectMessage msg, String clientSessionId) throws NjamsSdkRuntimeException;
 
     /**
      * Implement this method to send TraceMessages
@@ -233,7 +233,7 @@ public abstract class AbstractSender implements Sender {
      * @param msg the message to send
      * @throws NjamsSdkRuntimeException NjamsSdkRuntimeException
      */
-    protected abstract void send(TraceMessage msg) throws NjamsSdkRuntimeException;
+    protected abstract void send(TraceMessage msg, String clientSessionId) throws NjamsSdkRuntimeException;
 
     @Override
     public void close() {

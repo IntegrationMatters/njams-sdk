@@ -68,7 +68,6 @@ import com.im.njams.sdk.communication.DiscardPolicy;
 import com.im.njams.sdk.communication.Sender;
 import com.im.njams.sdk.communication.kafka.KafkaHeadersUtil.HeadersUpdater;
 import com.im.njams.sdk.communication.kafka.KafkaUtil.ClientType;
-import com.im.njams.sdk.settings.Settings;
 import com.im.njams.sdk.utils.JsonUtils;
 import com.im.njams.sdk.utils.StringUtils;
 
@@ -222,10 +221,10 @@ public class KafkaSender extends AbstractSender {
      * @param msg the Logmessage to send
      */
     @Override
-    protected void send(final LogMessage msg) {
+    protected void send(final LogMessage msg, String clientSessionId) {
         try {
             final String data = JsonUtils.serialize(msg);
-            sendMessage(msg, topicEvent, Sender.NJAMS_MESSAGETYPE_EVENT, data);
+            sendMessage(msg, topicEvent, Sender.NJAMS_MESSAGETYPE_EVENT, data, clientSessionId);
             if (LOG.isTraceEnabled()) {
                 LOG.trace("Send LogMessage {} to {}:\n{}", msg.getPath(), topicEvent, data);
             } else {
@@ -242,10 +241,10 @@ public class KafkaSender extends AbstractSender {
      * @param msg the Projectmessage to send
      */
     @Override
-    protected void send(final ProjectMessage msg) {
+    protected void send(final ProjectMessage msg, String clientSessionId) {
         try {
             final String data = JsonUtils.serialize(msg);
-            sendMessage(msg, topicProject, Sender.NJAMS_MESSAGETYPE_PROJECT, data);
+            sendMessage(msg, topicProject, Sender.NJAMS_MESSAGETYPE_PROJECT, data, clientSessionId);
             if (LOG.isTraceEnabled()) {
                 LOG.trace("Send ProjectMessage {} to {}:\n{}", msg.getPath(), topicProject, data);
             } else {
@@ -262,10 +261,10 @@ public class KafkaSender extends AbstractSender {
      * @param msg the Tracemessage to send
      */
     @Override
-    protected void send(final TraceMessage msg) {
+    protected void send(final TraceMessage msg, String clientSessionId) {
         try {
             final String data = JsonUtils.serialize(msg);
-            sendMessage(msg, topicProject, Sender.NJAMS_MESSAGETYPE_TRACE, data);
+            sendMessage(msg, topicProject, Sender.NJAMS_MESSAGETYPE_TRACE, data, clientSessionId);
             if (LOG.isTraceEnabled()) {
                 LOG.trace("Send TraceMessage {} to {}:\n{}", msg.getPath(), topicProject, data);
             } else {
@@ -284,11 +283,12 @@ public class KafkaSender extends AbstractSender {
      * @param data
      * @throws Exception
      */
-    private void sendMessage(final CommonMessage msg, final String topic, final String messageType, final String data)
+    private void sendMessage(final CommonMessage msg, final String topic, final String messageType, final String data,
+            String clientSessionId)
             throws Exception {
 
         try {
-            for (ProducerRecord<String, String> record : splitMessage(msg, topic, messageType, data)) {
+            for (ProducerRecord<String, String> record : splitMessage(msg, topic, messageType, data, clientSessionId)) {
                 tryToSend(record);
             }
         } catch (Throwable e) {
@@ -298,7 +298,7 @@ public class KafkaSender extends AbstractSender {
     }
 
     List<ProducerRecord<String, String>> splitMessage(final CommonMessage msg, final String topic,
-            final String messageType, final String data) {
+            final String messageType, final String data, String clientSessionId) {
 
         List<String> slices = splitData(data);
         if (slices.isEmpty()) {
@@ -324,7 +324,7 @@ public class KafkaSender extends AbstractSender {
             final HeadersUpdater headers = headersUpdater(record);
             headers.addHeader(Sender.NJAMS_MESSAGEVERSION, MessageVersion.V4.toString())
                     .addHeader(Sender.NJAMS_MESSAGETYPE, messageType)
-                    .addHeader(Sender.NJAMS_CLIENTID, properties.getProperty(Settings.INTERNAL_PROPERTY_CLIENTID));
+                    .addHeader(Sender.NJAMS_CLIENTID, clientSessionId);
             if (StringUtils.isNotBlank(logId)) {
                 headers.addHeader(Sender.NJAMS_LOGID, logId);
             }

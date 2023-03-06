@@ -296,7 +296,7 @@ public class CleanTracepointsTaskTest extends AbstractTest {
          * @param msg
          */
         @Override
-        public void send(CommonMessage msg) {
+        public void send(CommonMessage msg, String clientId) {
             if (msg instanceof TraceMessage) {
                 message = (TraceMessage) msg;
             }

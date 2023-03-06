@@ -16,16 +16,18 @@
  */
 package com.im.njams.sdk.communication.http;
 
+import java.io.IOException;
+
+import javax.ws.rs.sse.InboundSseEvent;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.common.Path;
 import com.im.njams.sdk.communication.ShareableReceiver;
 import com.im.njams.sdk.communication.SharedReceiverSupport;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.ws.rs.sse.InboundSseEvent;
-import java.io.IOException;
 
 /**
  * Overrides the common {@link HttpSseReceiver} for supporting receiving messages for multiple {@link Njams} instances.
@@ -36,7 +38,7 @@ public class SharedHttpSseReceiver extends HttpSseReceiver implements ShareableR
     private static final Logger LOG = LoggerFactory.getLogger(SharedHttpSseReceiver.class);
 
     private final SharedReceiverSupport<SharedHttpSseReceiver, InboundSseEvent> sharingSupport =
-        new SharedReceiverSupport<>(this);
+            new SharedReceiverSupport<>(this);
 
     /**
      * Adds the given instance to this receiver for receiving instructions.
@@ -73,12 +75,13 @@ public class SharedHttpSseReceiver extends HttpSseReceiver implements ShareableR
     void onMessage(InboundSseEvent event) {
         String id = event.getId();
         String payload = event.readData();
-        LOG.debug("OnMessage in shared receiver called, id=" + id + " payload=" + payload);
+        LOG.debug("OnMessage in shared receiver called, event-id={}, payload={}", id, payload);
         Instruction instruction = null;
         try {
             instruction = mapper.readValue(payload, Instruction.class);
         } catch (IOException e) {
-            LOG.error("Exception during receiving SSE Event.", e);
+            LOG.error("Failed to parse instruction from SSE event.", e);
+            return;
         }
         sharingSupport.onInstruction(event, instruction, false);
     }

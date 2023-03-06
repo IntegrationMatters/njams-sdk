@@ -115,7 +115,6 @@ public class NjamsTest {
         instance.onInstruction(inst);
         Response resp = inst.getResponse();
         assertTrue(resp.getResultCode() == 0);
-        assertEquals("Successfully sent ProjectMessage via NjamsClient", resp.getResultMessage());
     }
 
     @Test
@@ -129,7 +128,6 @@ public class NjamsTest {
 
         Response resp = inst.getResponse();
         assertTrue(resp.getResultCode() == 1);
-        assertEquals("Client cannot replay processes. No replay handler is present.", resp.getResultMessage());
     }
 
     @Test

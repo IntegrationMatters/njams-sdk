@@ -16,6 +16,8 @@
  */
 package com.im.njams.sdk.communication;
 
+import java.util.Properties;
+
 import com.faizsiegeln.njams.messageformat.v4.common.CommonMessage;
 import com.faizsiegeln.njams.messageformat.v4.logmessage.LogMessage;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.ProjectMessage;
@@ -24,8 +26,6 @@ import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.configuration.ConfigurationProviderFactory;
 import com.im.njams.sdk.settings.Settings;
-
-import java.util.Properties;
 
 /**
  * Dummy implementation for testing.<br>
@@ -78,9 +78,9 @@ public class TestSender extends AbstractSender {
     }
 
     @Override
-    public void send(CommonMessage msg) {
+    public void send(CommonMessage msg, String clientId) {
         if (sender != null) {
-            sender.send(msg);
+            sender.send(msg, null);
         }
     }
 
@@ -93,19 +93,19 @@ public class TestSender extends AbstractSender {
     }
 
     @Override
-    protected void send(LogMessage msg) throws NjamsSdkRuntimeException {
+    protected void send(LogMessage msg, String clientId) throws NjamsSdkRuntimeException {
         // TODO Auto-generated method stub
 
     }
 
     @Override
-    protected void send(ProjectMessage msg) throws NjamsSdkRuntimeException {
+    protected void send(ProjectMessage msg, String clientId) throws NjamsSdkRuntimeException {
         // TODO Auto-generated method stub
 
     }
 
     @Override
-    protected void send(TraceMessage msg) throws NjamsSdkRuntimeException {
+    protected void send(TraceMessage msg, String clientId) throws NjamsSdkRuntimeException {
         // TODO Auto-generated method stub
     }
 }

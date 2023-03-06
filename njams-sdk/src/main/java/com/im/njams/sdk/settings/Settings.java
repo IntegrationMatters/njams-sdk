@@ -56,11 +56,6 @@ public class Settings {
      */
     public static final String INTERNAL_PROPERTY_CLIENTPATH = "njams.$clientPath";
 
-    /**
-     * Property added internally for passing an instance's clientId to the communication layer.
-     */
-    public static final String INTERNAL_PROPERTY_CLIENTID = "njams.$clientId";
-
     public Settings() {
         properties = new Properties();
         secureProperties.add("password");

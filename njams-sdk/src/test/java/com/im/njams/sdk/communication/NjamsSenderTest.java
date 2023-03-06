@@ -145,7 +145,7 @@ public class NjamsSenderTest extends AbstractTest {
         assertEquals(10, executor.getMaximumPoolSize());
         assertEquals(5000L, executor.getKeepAliveTime(TimeUnit.MILLISECONDS));
         for (int i = 0; i < 100; i++) {
-            sender.send(new LogMessage());
+            sender.send(new LogMessage(), null);
         }
         //This is for joining the threads
         sender.close();
@@ -165,7 +165,7 @@ public class NjamsSenderTest extends AbstractTest {
         NjamsSender sender = new NjamsSender(SETTINGS);
         int messagesToSend = 1000;
         for (int i = 0; i < messagesToSend; i++) {
-            Thread t = new Thread(() -> sender.send(null));
+            Thread t = new Thread(() -> sender.send(null, null));
             t.start();
         }
         while (counter.get() < ExceptionSender.TRIES) {
@@ -194,22 +194,22 @@ public class NjamsSenderTest extends AbstractTest {
         }
 
         @Override
-        public void send(CommonMessage msg) {
+        public void send(CommonMessage msg, String clientId) {
             onException(null);
         }
 
         @Override
-        protected void send(LogMessage msg) throws NjamsSdkRuntimeException {
+        protected void send(LogMessage msg, String clientId) throws NjamsSdkRuntimeException {
 
         }
 
         @Override
-        protected void send(ProjectMessage msg) throws NjamsSdkRuntimeException {
+        protected void send(ProjectMessage msg, String clientId) throws NjamsSdkRuntimeException {
 
         }
 
         @Override
-        protected void send(TraceMessage msg) throws NjamsSdkRuntimeException {
+        protected void send(TraceMessage msg, String clientId) throws NjamsSdkRuntimeException {
 
         }
 

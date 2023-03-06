@@ -233,9 +233,13 @@ public class KafkaReceiver extends AbstractReceiver {
             if (instruction == null) {
                 return;
             }
+            if (suppressGetRequestHandlerInstruction(instruction, njams)) {
+                return;
+            }
+
             LOG.debug("Handle message (id={}) {}", messageId, msg);
             onInstruction(instruction);
-            sendReply(messageId, instruction, njams.getClientId());
+            sendReply(messageId, instruction, njams.getCommunicationSessionId());
 
         } catch (final Exception e) {
             LOG.error("Failed to process instruction: {}", msg, e);
@@ -261,9 +265,9 @@ public class KafkaReceiver extends AbstractReceiver {
         }
 
         final String clientId = getHeader(msg, NJAMS_CLIENTID);
-        if (clientId != null && !njams.getClientId().equals(clientId)) {
+        if (clientId != null && !njams.getCommunicationSessionId().equals(clientId)) {
             LOG.debug("Message is not for me! ClientId in Message is: {} but this nJAMS Client has Id: {}",
-                    clientId, njams.getClientId());
+                    clientId, njams.getCommunicationSessionId());
             return false;
         }
 

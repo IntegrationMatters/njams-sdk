@@ -501,7 +501,7 @@ public class JobImpl implements Job {
                 LogMessage logMessage = createLogMessage();
                 addToLogMessageAndCleanup(logMessage);
                 logMessage.setSentAt(lastFlush);
-                processModel.getNjams().getSender().send(logMessage);
+                processModel.getNjams().getSender().send(logMessage, njams.getClientSessionId());
                 // clean up jobImpl
                 pluginDataItems.clear();
                 calculateEstimatedSize();

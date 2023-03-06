@@ -116,9 +116,6 @@ public class CommunicationFactory {
         try {
             Properties properties = settings.getAllProperties();
             properties.setProperty(Settings.INTERNAL_PROPERTY_CLIENTPATH, njams.getClientPath().toString());
-            if (njams.getClientId() != null) {
-                properties.setProperty(Settings.INTERNAL_PROPERTY_CLIENTID, njams.getClientId());
-            }
             Receiver receiver;
             if (shared && ShareableReceiver.class.isAssignableFrom(clazz)) {
                 synchronized (sharedReceivers) {
@@ -128,7 +125,7 @@ public class CommunicationFactory {
                         return receiver;
                     }
                     LOG.debug("Creating shared receiver {}", clazz);
-                    receiver = clazz.newInstance();
+                    receiver = clazz.getDeclaredConstructor().newInstance();
                     receiver.validate();
                     sharedReceivers.put(clazz, (ShareableReceiver<?>) receiver);
                     receiver.init(properties);
@@ -136,7 +133,7 @@ public class CommunicationFactory {
                 }
             }
             LOG.debug("Creating dedicated receiver {}", clazz);
-            receiver = clazz.newInstance();
+            receiver = clazz.getDeclaredConstructor().newInstance();
             receiver.validate();
             receiver.init(properties);
             return receiver;
@@ -164,7 +161,7 @@ public class CommunicationFactory {
             try {
                 // create a new instance
                 LOG.info("Create sender {}", sender.getName());
-                AbstractSender newInstance = sender.getClass().newInstance();
+                AbstractSender newInstance = sender.getClass().getDeclaredConstructor().newInstance();
                 newInstance.validate();
                 newInstance.init(settings.getAllProperties());
                 return newInstance;

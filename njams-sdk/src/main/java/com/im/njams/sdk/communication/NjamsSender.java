@@ -185,13 +185,13 @@ public class NjamsSender implements Sender {
      * @param msg the message that will be send to the server.
      */
     @Override
-    public void send(CommonMessage msg) {
+    public void send(CommonMessage msg, String clientSessionId) {
         executor.execute(() -> {
             AbstractSender sender = null;
             try {
                 sender = senderPool.get();
                 if (sender != null) {
-                    sender.send(msg);
+                    sender.send(msg, clientSessionId);
                 }
             } catch (Exception e) {
                 LOG.error("could not send message {}, {}", msg, e);

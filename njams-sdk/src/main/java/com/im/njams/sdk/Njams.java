@@ -43,6 +43,7 @@ import java.util.Properties;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -176,21 +177,6 @@ public class Njams implements InstructionListener {
     }
 
     /**
-     * Static value for feature replay
-     *
-     * @deprecated Use {@link Feature#key()} on instance {@link Feature#REPLAY} instead.
-     */
-    @Deprecated
-    public static final String FEATURE_REPLAY = "replay";
-    /**
-     * Static value for feature inject
-     *
-     * @deprecated Use {@link Feature#key()} on instance {@link Feature#INJECTION} instead.
-     */
-    @Deprecated
-    public static final String FEATURE_INJECTION = "injection";
-
-    /**
      * Key for clientVersion
      */
     public static final String CLIENT_VERSION_KEY = "clientVersion";
@@ -198,10 +184,6 @@ public class Njams implements InstructionListener {
      * Key for sdkVersion
      */
     public static final String SDK_VERSION_KEY = "sdkVersion";
-    /**
-     * Key for runtimeVersion. The version of the underlying runtime (eg. Mule, BW6...)
-     */
-    public static final String RUNTIME_VERSION_KEY = "runtimeVersion";
     /**
      * Key for current year
      */
@@ -229,7 +211,7 @@ public class Njams implements InstructionListener {
     private final Path clientPath;
 
     // The unique client id, will be generated as UUID on startup
-    private final String clientId;
+    private final String clientSessionId;
 
     // The settings of the client
     private final Settings settings;
@@ -254,17 +236,22 @@ public class Njams implements InstructionListener {
     // serializers
     private final HashMap<Class<?>, Serializer<?>> cachedSerializers = new HashMap<>();
 
+    /**
+     * Inherent features implemented in this SDK.
+     */
+    private static final Collection<Feature> COMMON_FEATURES =
+            Collections.unmodifiableCollection(Arrays.asList(Feature.EXPRESSION_TEST, Feature.PING));
     // features
-    private final List<String> features = Collections
-            .synchronizedList(
-                    new ArrayList<>(Arrays.asList(Feature.EXPRESSION_TEST.toString(), Feature.PING.toString())));
+    private final List<Feature> features = new CopyOnWriteArrayList<>(COMMON_FEATURES);
 
     private NjamsSender sender;
     private Receiver receiver;
 
     private Configuration configuration;
     private String machine;
+    private String runtimeVersion;
     private boolean started = false;
+    private boolean containerMode = true;
     private static final String NOT_STARTED_EXCEPTION_MESSAGE = "The instance needs to be started first!";
 
     private ReplayHandler replayHandler = null;
@@ -284,7 +271,7 @@ public class Njams implements InstructionListener {
      * @param settings needed settings for client eg. for communication
      */
     public Njams(Path path, String version, String category, Settings settings) {
-        this(path, version, "unknown", category, settings);
+        this(path, version, null, category, settings);
     }
 
     /**
@@ -303,9 +290,8 @@ public class Njams implements InstructionListener {
         this.category = category == null ? null : category.toUpperCase();
         startTime = DateTimeUtility.now();
         this.settings = settings;
-        clientId = UUID.randomUUID().toString();
-        this.settings.put(Settings.INTERNAL_PROPERTY_CLIENTID, clientId);
-        setContainerModeFeature();
+        clientSessionId = UUID.randomUUID().toString();
+        initContainerMode();
         processDiagramFactory = new NjamsProcessDiagramFactory(this);
         processModelLayouter = new SimpleProcessModelLayouter();
         argosSender = ArgosSender.getInstance();
@@ -313,9 +299,14 @@ public class Njams implements InstructionListener {
         loadConfigurationProvider();
         createTreeElements(path, TreeElementType.CLIENT);
         readVersionsFromVersionFile(version);
-        versions.put(RUNTIME_VERSION_KEY, runtimeVersion);
+        this.runtimeVersion = runtimeVersion;
+
         printStartupBanner();
         setMachine();
+    }
+
+    private void initContainerMode() {
+        setContainerMode(!"false".equalsIgnoreCase(settings.getProperty(NjamsSettings.PROPERTY_CONTAINER_MODE)));
     }
 
     /**
@@ -383,10 +374,11 @@ public class Njams implements InstructionListener {
     }
 
     /**
-     * @return the clientId
+     * This is ID is used in container mode for identifying this client instance in commands.
+     * @return A random ID generated during initialization.
      */
-    public String getClientId() {
-        return clientId;
+    public String getCommunicationSessionId() {
+        return clientSessionId;
     }
 
     /**
@@ -407,7 +399,11 @@ public class Njams implements InstructionListener {
      * @return the runtimeVersion
      */
     public String getRuntimeVersion() {
-        return versions.get(RUNTIME_VERSION_KEY);
+        return runtimeVersion;
+    }
+
+    public void setRuntimeVersion(String runtimeVersion) {
+        this.runtimeVersion = runtimeVersion;
     }
 
     /**
@@ -457,19 +453,25 @@ public class Njams implements InstructionListener {
         }
     }
 
-    public boolean hasContainerModeFeature() {
-        return !"false".equalsIgnoreCase(settings.getProperty(NjamsSettings.PROPERTY_CONTAINER_MODE));
+    /**
+     * Returns whether or not container-mode is enabled.
+     * @return
+     */
+    public boolean isContainerMode() {
+        return containerMode;
     }
 
     /**
-     * TODO: SDK-314: this cancels the setting in properties
-     * Set the container mode feature property and add the feature flag to feature list.
+     * Allows overriding the container-mode support setting.
+     * This can only be changed before the client is started.
+     * @param enabled <code>true</code> for enabling container-mode, <code>false</code> for disabling.
      */
-    public void setContainerModeFeature() {
-        settings.put(NjamsSettings.PROPERTY_CONTAINER_MODE, "true");
-        if (settings.getProperty(NjamsSettings.PROPERTY_CONTAINER_MODE) == null) {
+    public void setContainerMode(boolean enabled) {
+        if (isStarted()) {
+            throw new NjamsSdkRuntimeException("Client is already started.");
         }
-        if ("true".equalsIgnoreCase(settings.getProperty(NjamsSettings.PROPERTY_CONTAINER_MODE))) {
+        containerMode = enabled;
+        if (containerMode) {
             addFeature(Feature.CONTAINER_MODE);
         } else {
             removeFeature(Feature.CONTAINER_MODE);
@@ -564,8 +566,18 @@ public class Njams implements InstructionListener {
             CleanTracepointsTask.start(this);
             started = true;
             sendProjectMessage();
+            LOG.info("SDK instance {} started (client-session={})", getClientPath(), clientSessionId);
         }
         return isStarted();
+    }
+
+    /**
+     * Returns a transient UUID that identifies this {@link Njams} client instance during its JVM lifetime.
+     * This is internally used for (container-mode) communications. 
+     * @return The current ID of this client.
+     */
+    public String getClientSessionId() {
+        return clientSessionId;
     }
 
     /**
@@ -709,25 +721,34 @@ public class Njams implements InstructionListener {
     }
 
     /**
-     * Flush all Resources to the server by creating a new ProjectMessage. It
+     * Initializes the common body of a project message.
+     * @return
+     */
+    private ProjectMessage prepareProjectMessage() {
+        final ProjectMessage msg = new ProjectMessage();
+        msg.setPath(clientPath.toString());
+        msg.setClientVersion(versions.get(CLIENT_VERSION_KEY));
+        msg.setSdkVersion(versions.get(SDK_VERSION_KEY));
+        msg.setRuntimeVersion(runtimeVersion);
+        msg.setCategory(getCategory());
+        msg.setStartTime(startTime);
+        msg.setMachine(getMachine());
+        msg.setFeatures(features.stream().map(Feature::key).collect(Collectors.toList()));
+        msg.setLogMode(configuration.getLogMode());
+        msg.setClientId(clientSessionId);
+        msg.setRecording(getConfiguration().isRecording());
+        return msg;
+    }
+
+    /**
+     * Flush all resources to the server by creating a new ProjectMessage. It
      * can only be flushed when the instance was started.
      */
     public void sendProjectMessage() {
         addDefaultImagesIfNeededAndAbsent();
-        final ProjectMessage msg = new ProjectMessage();
         setStarters();
+        final ProjectMessage msg = prepareProjectMessage();
         msg.getTreeElements().addAll(treeElements);
-        msg.setPath(clientPath.toString());
-        msg.setClientVersion(versions.get(CLIENT_VERSION_KEY));
-        msg.setSdkVersion(versions.get(SDK_VERSION_KEY));
-        msg.setRuntimeVersion(versions.get(RUNTIME_VERSION_KEY));
-        msg.setCategory(getCategory());
-        msg.setStartTime(startTime);
-        msg.setMachine(getMachine());
-        msg.setFeatures(features);
-        msg.setLogMode(configuration.getLogMode());
-        msg.setClientId(clientId);
-        msg.setRecording(getConfiguration().isRecording());
         synchronized (processModels) {
             processModels.values().stream().map(ProcessModel::getSerializableProcessModel)
                     .forEach(ipm -> msg.getProcesses().add(ipm));
@@ -736,7 +757,24 @@ public class Njams implements InstructionListener {
             LOG.debug("Sending project message with {} process-models, {} images, {} global-variables.",
                     processModels.size(), images.size(), globalVariables.size());
         }
-        getSender().send(msg);
+        getSender().send(msg, clientSessionId);
+    }
+
+    /**
+     * Send an additional process for an already started client.
+     * This will create a small ProjectMessage only containing the new process.
+     *
+     * @param model the additional model to send
+     */
+    public void sendAdditionalProcess(final ProcessModel model) {
+        if (!isStarted()) {
+            throw new NjamsSdkRuntimeException("Njams is not started. Please use createProcess Method instead");
+        }
+        final ProjectMessage msg = prepareProjectMessage();
+        addTreeElements(msg.getTreeElements(), getClientPath(), TreeElementType.CLIENT, false);
+        addTreeElements(msg.getTreeElements(), model.getPath(), TreeElementType.PROCESS, model.isStarter());
+        msg.getProcesses().add(model.getSerializableProcessModel());
+        getSender().send(msg, clientSessionId);
     }
 
     /**
@@ -831,33 +869,6 @@ public class Njams implements InstructionListener {
     private void setStarters() {
         treeElements.stream().filter(te -> te.getTreeElementType() == TreeElementType.PROCESS)
                 .filter(te -> processModels.get(te.getPath()).isStarter()).forEach(te -> te.setStarter(true));
-    }
-
-    /**
-     * Send an additional process for an already started client.
-     * This will create a small ProjectMessage only containing the new process.
-     *
-     * @param model the additional model to send
-     */
-    public void sendAdditionalProcess(final ProcessModel model) {
-        if (!isStarted()) {
-            throw new NjamsSdkRuntimeException("Njams is not started. Please use createProcess Method instead");
-        }
-        final ProjectMessage msg = new ProjectMessage();
-        msg.setPath(clientPath.toString());
-        msg.setClientVersion(versions.get(CLIENT_VERSION_KEY));
-        msg.setSdkVersion(versions.get(SDK_VERSION_KEY));
-        msg.setCategory(getCategory());
-        msg.setStartTime(startTime);
-        msg.setMachine(getMachine());
-        msg.setFeatures(features);
-        msg.setLogMode(configuration.getLogMode());
-
-        addTreeElements(msg.getTreeElements(), getClientPath(), TreeElementType.CLIENT, false);
-        addTreeElements(msg.getTreeElements(), model.getPath(), TreeElementType.PROCESS, model.isStarter());
-
-        msg.getProcesses().add(model.getSerializableProcessModel());
-        getSender().send(msg);
     }
 
     private List<TreeElement> addTreeElements(List<TreeElement> treeElements, Path processPath,
@@ -994,7 +1005,7 @@ public class Njams implements InstructionListener {
      * @return the instructionListeners
      */
     public List<InstructionListener> getInstructionListeners() {
-        return Collections.unmodifiableList(instructionListeners);
+        return new ArrayList<>(instructionListeners);
     }
 
     /**
@@ -1031,48 +1042,54 @@ public class Njams implements InstructionListener {
      */
     @Override
     public void onInstruction(Instruction instruction) {
-        if (Command.SEND_PROJECTMESSAGE.commandString().equalsIgnoreCase(instruction.getCommand())) {
+        final Command command = Command.getFromInstruction(instruction);
+        if (command == null) {
+            LOG.error("Received unsupported command {}", instruction.getCommand());
+            instruction.setResponseResultCode(1);
+            instruction.setResponseResultMessage("Unsupported command: " + instruction.getCommand());
+            return;
+        }
+        switch (command) {
+        case SEND_PROJECTMESSAGE:
+            LOG.debug("Send ProjectMessage requested by nJAMS server.");
             sendProjectMessage();
-            final Response response = new Response();
-            response.setResultCode(0);
-            response.setResultMessage("Successfully sent ProjectMessage via NjamsClient");
-            instruction.setResponse(response);
-            LOG.debug("Sent ProjectMessage requested via Instruction via Njams");
-        } else if (Command.PING.commandString().equalsIgnoreCase(instruction.getCommand())) {
+            instruction.setResponseResultCode(0);
+            instruction.setResponseResultMessage("ProjectMessage sent");
+            break;
+        case PING:
             instruction.setResponse(createPingResponse());
-        } else if (Command.REPLAY.commandString().equalsIgnoreCase(instruction.getCommand())) {
-            final Response response = new Response();
-            if (replayHandler != null) {
-                try {
-                    final ReplayRequest replayRequest = new ReplayRequest(instruction);
-                    final ReplayResponse replayResponse = replayHandler.replay(replayRequest);
-                    replayResponse.addParametersToInstruction(instruction);
-                    if (!replayRequest.getTest()) {
-                        setReplayMarker(replayResponse.getMainLogId(), replayRequest.getDeepTrace());
-                    }
-                } catch (final Exception ex) {
-                    response.setResultCode(2);
-                    response.setResultMessage("Error while executing replay: " + ex.getMessage());
-                    instruction.setResponse(response);
-                    instruction.setResponseParameter("Exception", String.valueOf(ex));
+            break;
+        case REPLAY:
+            handleReplayRequest(instruction);
+            break;
+        case GET_REQUEST_HANDLER:
+            instruction.setResponseResultCode(0);
+            instruction.setResponseParameter("clientId", clientSessionId);
+            break;
+        default:
+            // skip all others
+            break;
+
+        }
+    }
+
+    private void handleReplayRequest(Instruction instruction) {
+        if (replayHandler != null) {
+            try {
+                final ReplayRequest replayRequest = new ReplayRequest(instruction);
+                final ReplayResponse replayResponse = replayHandler.replay(replayRequest);
+                replayResponse.addParametersToInstruction(instruction);
+                if (!replayRequest.getTest()) {
+                    setReplayMarker(replayResponse.getMainLogId(), replayRequest.getDeepTrace());
                 }
-            } else {
-                response.setResultCode(1);
-                response.setResultMessage("Client cannot replay processes. No replay handler is present.");
-                instruction.setResponse(response);
+            } catch (final Exception ex) {
+                instruction.setResponseResultCode(2);
+                instruction.setResponseResultMessage("Error while executing replay: " + ex.getMessage());
+                instruction.setResponseParameter("Exception", String.valueOf(ex));
             }
-        } else if (Command.GET_REQUEST_HANDLER.commandString().equalsIgnoreCase(instruction.getCommand())) {
-            final Response response = new Response();
-            if (hasContainerModeFeature()) {
-                response.setResultCode(0);
-                final Map<String, String> params = response.getParameters();
-                params.put("clientId", getClientId());
-                instruction.setResponse(response);
-            } else {
-                response.setResultCode(1);
-                response.setResultMessage("ContainerMode Feature is not active.");
-                instruction.setResponse(response);
-            }
+        } else {
+            instruction.setResponseResultCode(1);
+            instruction.setResponseResultMessage("No replay handler registered.");
         }
     }
 
@@ -1083,12 +1100,12 @@ public class Njams implements InstructionListener {
         final Map<String, String> params = response.getParameters();
         params.put("clientPath", clientPath.toString());
         params.put("clientVersion", getClientVersion());
-        params.put("clientId", getClientId());
+        params.put("clientId", clientSessionId);
         params.put("sdkVersion", getSdkVersion());
         params.put("runtimeVersion", getRuntimeVersion());
         params.put("category", getCategory());
         params.put("machine", getMachine());
-        params.put("features", features.stream().collect(Collectors.joining(",")));
+        params.put("features", features.stream().map(Feature::key).collect(Collectors.joining(",")));
         return response;
     }
 
@@ -1207,15 +1224,15 @@ public class Njams implements InstructionListener {
     }
 
     /**
-     * Gets the serialier with the given class key. If not serializer is
-     * registered yet, the superclass hierarchy will be checked recursivly. If
+     * Gets the serializer with the given class key. If not serializer is
+     * registered yet, the superclass hierarchy will be checked recursively. If
      * neither the class nor any superclass if registered, the interface
-     * hierarchy will be checked recursivly. if no (super) interface is
-     * registed, <b>null</b> will be returned.
+     * hierarchy will be checked recursively. if no (super) interface is
+     * registered, <b>null</b> will be returned.
      *
      * @param <T>   Type of the class
      * @param clazz Class for which a serializer will be searched.
-     * @return Serizalier of <b>null</b>.
+     * @return Serializer or <b>null</b>.
      */
     public <T> Serializer<? super T> findSerializer(final Class<T> clazz) {
         Serializer<? super T> serializer = getSerializer(clazz);
@@ -1285,19 +1302,8 @@ public class Njams implements InstructionListener {
     /**
      * @return the list of features this client has
      */
-    public List<String> getFeatures() {
-        return Collections.unmodifiableList(features);
-    }
-
-    /**
-     * Adds a new feature to the feature list
-     *
-     * @param feature to set
-     */
-    public void addFeature(String feature) {
-        if (!features.contains(feature)) {
-            features.add(feature);
-        }
+    public List<Feature> getFeatures() {
+        return new ArrayList<>(features);
     }
 
     /**
@@ -1306,16 +1312,9 @@ public class Njams implements InstructionListener {
      * @param feature to set
      */
     public void addFeature(Feature feature) {
-        addFeature(feature.key());
-    }
-
-    /**
-     * Remove a feature from the feature list
-     *
-     * @param feature to remove
-     */
-    public void removeFeature(final String feature) {
-        features.remove(feature);
+        if (!hasFeature(feature)) {
+            features.add(feature);
+        }
     }
 
     /**
@@ -1324,7 +1323,14 @@ public class Njams implements InstructionListener {
      * @param feature to remove
      */
     public void removeFeature(final Feature feature) {
-        removeFeature(feature.key());
+        if (COMMON_FEATURES.contains(feature)) {
+            throw new NjamsSdkRuntimeException("Cannot remove inherent feature " + feature);
+        }
+        features.remove(feature);
+    }
+
+    public boolean hasFeature(final Feature feature) {
+        return features.contains(feature);
     }
 
     /**

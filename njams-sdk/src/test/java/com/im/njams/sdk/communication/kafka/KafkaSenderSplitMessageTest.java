@@ -1,12 +1,10 @@
 package com.im.njams.sdk.communication.kafka;
 
-import static org.junit.Assert.*;
-
-import com.faizsiegeln.njams.messageformat.v4.common.CommonMessage;
-import com.faizsiegeln.njams.messageformat.v4.logmessage.LogMessage;
-import com.faizsiegeln.njams.messageformat.v4.projectmessage.ProjectMessage;
-import com.im.njams.sdk.NjamsSettings;
-import com.im.njams.sdk.communication.Sender;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
@@ -20,6 +18,12 @@ import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.junit.Before;
 import org.junit.Test;
+
+import com.faizsiegeln.njams.messageformat.v4.common.CommonMessage;
+import com.faizsiegeln.njams.messageformat.v4.logmessage.LogMessage;
+import com.faizsiegeln.njams.messageformat.v4.projectmessage.ProjectMessage;
+import com.im.njams.sdk.NjamsSettings;
+import com.im.njams.sdk.communication.Sender;
 
 public class KafkaSenderSplitMessageTest {
 
@@ -119,7 +123,7 @@ public class KafkaSenderSplitMessageTest {
         LogMessage msg = new LogMessage();
         msg.setLogId("4711");
         msg.setPath(">a>b>c>");
-        List<ProducerRecord<String, String>> records = toTest.splitMessage(msg, "topic", "event", testData45);
+        List<ProducerRecord<String, String>> records = toTest.splitMessage(msg, "topic", "event", testData45, null);
         assertEquals(3, records.size());
         String data = "";
         for (int i = 0; i < records.size(); i++) {
@@ -139,7 +143,7 @@ public class KafkaSenderSplitMessageTest {
         assertEquals(testData45, data);
 
         init(20, false);
-        records = toTest.splitMessage(msg, "topic", "event", testData45);
+        records = toTest.splitMessage(msg, "topic", "event", testData45, null);
         assertNotNull(records);
         assertTrue(records.isEmpty());
     }
@@ -151,7 +155,7 @@ public class KafkaSenderSplitMessageTest {
         LogMessage msg = new LogMessage();
         msg.setLogId("4711");
         msg.setPath(">a>b>c>");
-        List<ProducerRecord<String, String>> records = toTest.splitMessage(msg, "topic", "event", testData15);
+        List<ProducerRecord<String, String>> records = toTest.splitMessage(msg, "topic", "event", testData15, null);
         assertEquals(1, records.size());
         ProducerRecord<String, String> record = records.get(0);
         assertEquals("4711", record.key());
@@ -167,7 +171,7 @@ public class KafkaSenderSplitMessageTest {
         assertEquals(testData15, record.value());
 
         init(20, false);
-        records = toTest.splitMessage(msg, "topic", "event", testData15);
+        records = toTest.splitMessage(msg, "topic", "event", testData15, null);
         assertEquals(1, records.size());
         record = records.get(0);
         assertEquals("4711", record.key());
@@ -189,7 +193,7 @@ public class KafkaSenderSplitMessageTest {
         init(20, true);
         ProjectMessage msg = new ProjectMessage();
         msg.setPath(">a>b>c>");
-        List<ProducerRecord<String, String>> records = toTest.splitMessage(msg, "topic", "project", testData45);
+        List<ProducerRecord<String, String>> records = toTest.splitMessage(msg, "topic", "project", testData45, null);
         assertEquals(3, records.size());
         String data = "";
         String key = null;
@@ -213,7 +217,7 @@ public class KafkaSenderSplitMessageTest {
         assertEquals(testData45, data);
 
         init(20, false);
-        records = toTest.splitMessage(msg, "topic", "project", testData45);
+        records = toTest.splitMessage(msg, "topic", "project", testData45, null);
         assertNotNull(records);
         assertTrue(records.isEmpty());
     }
@@ -224,7 +228,7 @@ public class KafkaSenderSplitMessageTest {
         init(20, true);
         ProjectMessage msg = new ProjectMessage();
         msg.setPath(">a>b>c>");
-        List<ProducerRecord<String, String>> records = toTest.splitMessage(msg, "topic", "project", testData15);
+        List<ProducerRecord<String, String>> records = toTest.splitMessage(msg, "topic", "project", testData15, null);
         assertEquals(1, records.size());
         ProducerRecord<String, String> record = records.get(0);
         assertNull(record.key());
@@ -240,7 +244,7 @@ public class KafkaSenderSplitMessageTest {
         assertEquals(testData15, record.value());
 
         init(20, false);
-        records = toTest.splitMessage(msg, "topic", "project", testData15);
+        records = toTest.splitMessage(msg, "topic", "project", testData15, null);
         assertEquals(1, records.size());
         record = records.get(0);
         assertNull(record.key());
@@ -261,19 +265,19 @@ public class KafkaSenderSplitMessageTest {
         init(20, true);
         CommonMessage msg = new LogMessage();
         msg.setPath(">a>b>c>");
-        List<ProducerRecord<String, String>> records = toTest.splitMessage(msg, "topic", "event", null);
+        List<ProducerRecord<String, String>> records = toTest.splitMessage(msg, "topic", "event", null, null);
         assertNotNull(records);
         assertTrue(records.isEmpty());
-        records = toTest.splitMessage(msg, "topic", "event", "");
+        records = toTest.splitMessage(msg, "topic", "event", "", null);
         assertNotNull(records);
         assertTrue(records.isEmpty());
 
         msg = new ProjectMessage();
         msg.setPath(">a>b>c>");
-        records = toTest.splitMessage(msg, "topic", "project", null);
+        records = toTest.splitMessage(msg, "topic", "project", null, null);
         assertNotNull(records);
         assertTrue(records.isEmpty());
-        records = toTest.splitMessage(msg, "topic", "project", "");
+        records = toTest.splitMessage(msg, "topic", "project", "", null);
         assertNotNull(records);
         assertTrue(records.isEmpty());
     }

@@ -42,7 +42,6 @@ import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.common.Path;
 import com.im.njams.sdk.communication.AbstractReceiver;
 import com.im.njams.sdk.communication.ConnectionStatus;
-import com.im.njams.sdk.settings.Settings;
 import com.im.njams.sdk.utils.JsonUtils;
 import com.im.njams.sdk.utils.StringUtils;
 
@@ -63,11 +62,8 @@ public class HttpSseReceiver extends AbstractReceiver {
     protected ObjectMapper mapper;
     protected URL url;
 
-    private String clientId = null;
-
     @Override
     public void init(Properties properties) {
-        clientId = properties.getProperty(Settings.INTERNAL_PROPERTY_CLIENTID);
         try {
             url = createUrl(properties);
         } catch (final MalformedURLException ex) {
@@ -112,6 +108,7 @@ public class HttpSseReceiver extends AbstractReceiver {
     void onError(Throwable throwable) {
         LOG.debug("OnError called, cause: " + throwable.getMessage());
         try {
+            // TODO SDK-327
             // Sleep, because source.open() in connect always returns without exception;
             // It starts a thread for the connection, which will then call this onError Method on failure
             // Wait for end of connect method (and setting the connectionStatus to CONNECTED first.
@@ -129,7 +126,7 @@ public class HttpSseReceiver extends AbstractReceiver {
     void onMessage(InboundSseEvent event) {
         String id = event.getId();
         String payload = event.readData();
-        LOG.debug("OnMessage called, id=" + id + " payload=" + payload);
+        LOG.debug("OnMessage called, event-id={}, payload={}", id, payload);
         if (!isValidMessage(event)) {
             return;
         }
@@ -137,10 +134,14 @@ public class HttpSseReceiver extends AbstractReceiver {
         try {
             instruction = mapper.readValue(payload, Instruction.class);
         } catch (IOException e) {
-            LOG.error("Exception during receiving SSE Event.", e);
+            LOG.error("Failed to parse instruction from SSE event.", e);
+            return;
+        }
+        if (suppressGetRequestHandlerInstruction(instruction, njams)) {
+            return;
         }
         onInstruction(instruction);
-        sendReply(id, instruction, clientId);
+        sendReply(id, instruction, njams.getClientSessionId());
     }
 
     /**
@@ -160,9 +161,9 @@ public class HttpSseReceiver extends AbstractReceiver {
             return false;
         }
         final String clientId = event.getComment();
-        if (StringUtils.isNotBlank(clientId) && !njams.getClientId().equals(clientId)) {
+        if (StringUtils.isNotBlank(clientId) && !njams.getCommunicationSessionId().equals(clientId)) {
             LOG.debug("Message is not for me! Client id from Message is: " + event.getComment() +
-                    " but nJAMS Client id is: " + njams.getClientId());
+                    " but nJAMS Client id is: " + njams.getCommunicationSessionId());
             return false;
         }
         return true;

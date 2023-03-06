@@ -70,7 +70,6 @@ public class JobImplTest extends AbstractTest {
      * This constructor calls super().
      */
     public JobImplTest() {
-        super();
     }
 
     /**
@@ -173,7 +172,7 @@ public class JobImplTest extends AbstractTest {
         doAnswer((Answer<Object>) (InvocationOnMock invocation) -> {
             msg = (LogMessage) invocation.getArguments()[0];
             return null;
-        }).when(sender).send(any(CommonMessage.class));
+        }).when(sender).send(any(CommonMessage.class), any(String.class));
 
         job.start();
         createFullyFilledActivity(job);
@@ -276,9 +275,10 @@ public class JobImplTest extends AbstractTest {
         activities.forEach(activity -> assertFalse(onlyAsterisksOrNull(activity.getEventCode())));
         activities.forEach(activity -> assertFalse(onlyAsterisksOrNull(activity.getEventPayload())));
         activities.forEach(activity -> assertFalse(onlyAsterisksOrNull(activity.getStackTrace())));
-        activities.stream().map((activity) -> activity.getAttributes()).forEachOrdered((actAttr) -> {
-            actAttr.keySet().forEach(key -> assertFalse(onlyAsterisksOrNull(actAttr.get(key))));
-        });
+        activities.stream().map(com.faizsiegeln.njams.messageformat.v4.logmessage.Activity::getAttributes)
+                .forEachOrdered(actAttr -> {
+                    actAttr.keySet().forEach(key -> assertFalse(onlyAsterisksOrNull(actAttr.get(key))));
+                });
 
         //These should be masked, because they should always me masked and they can't be set by the ExtractHandler
         activities.forEach(activity -> assertTrue(onlyAsterisksOrNull(activity.getInput())));

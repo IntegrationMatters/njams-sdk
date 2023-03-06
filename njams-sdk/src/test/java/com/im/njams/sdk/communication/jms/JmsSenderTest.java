@@ -16,19 +16,31 @@
  */
 package com.im.njams.sdk.communication.jms;
 
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+import static org.mockito.Matchers.any;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import java.time.LocalDateTime;
+
+import javax.jms.JMSException;
+import javax.jms.MessageProducer;
+import javax.jms.ResourceAllocationException;
+import javax.jms.Session;
+import javax.jms.TextMessage;
+
+import org.junit.Test;
+
 import com.faizsiegeln.njams.messageformat.v4.common.CommonMessage;
 import com.faizsiegeln.njams.messageformat.v4.logmessage.LogMessage;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.im.njams.sdk.common.JsonSerializerFactory;
-import org.junit.Test;
-
-import javax.jms.*;
-import java.time.LocalDateTime;
-
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-import static org.mockito.Mockito.*;
 
 /**
  * This class tests if the JmsSender works correctly.
@@ -85,7 +97,7 @@ public class JmsSenderTest {
         doThrow(er1).doThrow(er2).doNothing().when(producer).send(any());
         final CommonMessage msg = mock(CommonMessage.class);
         when(msg.getPath()).thenReturn("path");
-        sender.sendMessage(msg, "messageType", "data");
+        sender.sendMessage(msg, "messageType", "data", null);
         verify(producer, times(3)).send(any());
     }
 
@@ -101,7 +113,7 @@ public class JmsSenderTest {
         final CommonMessage msg = mock(CommonMessage.class);
         when(msg.getPath()).thenReturn("path");
         try {
-            sender.sendMessage(msg, "messageType", "data");
+            sender.sendMessage(msg, "messageType", "data", null);
         } catch (ResourceAllocationException ex) {
             throw ex;
         } finally {

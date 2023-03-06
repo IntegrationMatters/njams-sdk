@@ -85,31 +85,32 @@ public class SharedReceiverSupport<R extends AbstractReceiver & ShareableReceive
      *
      * @param message               The original message received.
      * @param instruction           The instruction parsed from the original message and to be completed with a reply.
-     * @param failOnMissingInstance If <code>true</code> and error is sent as reply when no matching target {@link Njams}
+     * @param failOnMissingInstance If <code>true</code> an error is sent as reply when no matching target {@link Njams}
      *                              instance was found. Otherwise, the request is simply ignored.
      */
     public void onInstruction(M message, Instruction instruction, boolean failOnMissingInstance) {
         final Path receiverPath = receiver.getReceiverPath(message, instruction);
-        final String clientId = receiver.getClientId(message, instruction);
-        LOG.debug("Received instruction {} with target {} and client ID {}", instruction.getCommand(), receiverPath,
-                clientId);
-        if (clientId != null) {
-            LOG.debug("ClientId in instruction is {}", clientId);
-        }
         if (receiverPath == null) {
             return;
         }
+        final String clientId = receiver.getClientId(message, instruction);
+        LOG.debug("Received instruction {} with target {} and client ID {}", instruction.getCommand(), receiverPath,
+                clientId);
 
         final Njams njamsTarget = getNjamsTarget(receiverPath, clientId);
         if (njamsTarget != null) {
             LOG.debug("TargetReceiver found for instruction.");
+            if (AbstractReceiver.suppressGetRequestHandlerInstruction(instruction, njamsTarget)) {
+                return;
+            }
+            LOG.debug("TargetReceiver found for instruction.");
             onInstruction(instruction, njamsTarget);
-            receiver.sendReply(message, instruction, njamsTarget.getClientId());
+            receiver.sendReply(message, instruction, njamsTarget.getCommunicationSessionId());
         } else if (failOnMissingInstance) {
             LOG.error("No client found for: {}", receiverPath);
             instruction.setResponseResultCode(99);
             instruction.setResponseResultMessage("Client instance not found.");
-            receiver.sendReply(message, instruction, clientId);
+            receiver.sendReply(message, instruction, null);
         } else {
             LOG.debug("No client found for: {}", receiverPath);
         }
@@ -175,7 +176,7 @@ public class SharedReceiverSupport<R extends AbstractReceiver & ShareableReceive
 
     private Njams findNjamsByClientId(String clientId) {
         for (Njams njams : njamsInstances.values()) {
-            if (clientId.equals(njams.getClientId())) {
+            if (clientId.equals(njams.getCommunicationSessionId())) {
                 return njams;
             }
         }

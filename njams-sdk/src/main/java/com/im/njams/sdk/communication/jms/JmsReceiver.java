@@ -445,9 +445,9 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
                 return;
             }
             final String clientId = msg.getStringProperty(NJAMS_CLIENTID);
-            if (clientId != null && !clientId.equals(njams.getClientId())) {
+            if (clientId != null && !clientId.equals(njams.getCommunicationSessionId())) {
                 LOG.debug("Message is not for me! ClientId in Message is: {} but this nJAMS Client has Id: {}",
-                        clientId, njams.getClientId());
+                        clientId, njams.getCommunicationSessionId());
                 return;
             }
 
@@ -455,9 +455,11 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
             if (instruction == null) {
                 return;
             }
-
+            if (suppressGetRequestHandlerInstruction(instruction, njams)) {
+                return;
+            }
             onInstruction(instruction);
-            reply(msg, instruction, njams.getClientId());
+            reply(msg, instruction, njams.getCommunicationSessionId());
         } catch (Exception e) {
             LOG.error("Error in onMessage", e);
         }
