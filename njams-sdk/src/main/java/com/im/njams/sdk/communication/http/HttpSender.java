@@ -159,17 +159,15 @@ public class HttpSender extends AbstractSender {
             testConnection();
             connectionStatus = ConnectionStatus.CONNECTED;
         } catch (final Exception e) {
-            connectionStatus = ConnectionStatus.DISCONNECTED;
-            if (client != null) {
-                client.close();
-                client = null;
-                target = null;
+            close();
+            if (e instanceof NjamsSdkRuntimeException) {
+                throw e;
             }
             throw new NjamsSdkRuntimeException("Failed to connect", e);
         }
     }
 
-    private void testConnection() {
+    protected void testConnection() {
         if (target == null) {
             throw new NullPointerException("No target");
         }

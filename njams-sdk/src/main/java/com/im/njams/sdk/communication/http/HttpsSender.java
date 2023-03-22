@@ -65,16 +65,15 @@ public class HttpsSender extends HttpSender {
         try {
             connectionStatus = ConnectionStatus.CONNECTING;
             client = ClientBuilder.newBuilder().sslContext(sslContext).build();
-            target = client.target(String.valueOf(uri));
+            target = client.target(uri);
+            testConnection();
             connectionStatus = ConnectionStatus.CONNECTED;
         } catch (final Exception e) {
-            connectionStatus = ConnectionStatus.DISCONNECTED;
-            if (client != null) {
-                client.close();
-                client = null;
-                target = null;
+            close();
+            if (e instanceof NjamsSdkRuntimeException) {
+                throw e;
             }
-            throw new NjamsSdkRuntimeException("Unable to connect", e);
+            throw new NjamsSdkRuntimeException("Failed to connect", e);
         }
     }
 
