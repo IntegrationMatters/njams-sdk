@@ -33,10 +33,10 @@ public class HttpsSseReceiver extends HttpSseReceiver {
 
     @Override
     public void init(Properties properties) {
+        super.init(properties);
         try {
             sslContext =
                     HttpsSender.initializeSSLContext(properties.getProperty(SSL_CERTIFIACTE_FILE));
-            url = createUrl(properties);
         } catch (final Exception ex) {
             throw new NjamsSdkRuntimeException("Unable to init HTTPS Receiver", ex);
         }

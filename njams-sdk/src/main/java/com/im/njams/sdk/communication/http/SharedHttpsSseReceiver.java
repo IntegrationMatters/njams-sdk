@@ -1,8 +1,6 @@
 package com.im.njams.sdk.communication.http;
 
 import java.io.IOException;
-import java.net.URL;
-import java.util.Properties;
 
 import javax.ws.rs.sse.InboundSseEvent;
 
@@ -11,7 +9,6 @@ import org.slf4j.LoggerFactory;
 
 import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
 import com.im.njams.sdk.Njams;
-import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.common.Path;
 import com.im.njams.sdk.communication.ShareableReceiver;
 import com.im.njams.sdk.communication.SharedReceiverSupport;
@@ -26,16 +23,6 @@ public class SharedHttpsSseReceiver extends HttpsSseReceiver implements Shareabl
 
     private final SharedReceiverSupport<SharedHttpsSseReceiver, InboundSseEvent> sharingSupport =
             new SharedReceiverSupport<>(this);
-
-    @Override
-    public void init(Properties properties) {
-        try {
-            HttpsSender.initializeSSLContext(properties.getProperty(SSL_CERTIFIACTE_FILE));
-            url = new URL(properties.getProperty(BASE_URL) + SSE_API_PATH);
-        } catch (final Exception ex) {
-            throw new NjamsSdkRuntimeException("unable to init https sse receiver", ex);
-        }
-    }
 
     /**
      * Adds the given instance to this receiver for receiving instructions.

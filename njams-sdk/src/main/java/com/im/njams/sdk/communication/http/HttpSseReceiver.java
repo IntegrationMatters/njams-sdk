@@ -72,8 +72,11 @@ public class HttpSseReceiver extends AbstractReceiver {
         }
     }
 
-    protected URL createUrl(final Properties properties) throws MalformedURLException {
+    private URL createUrl(final Properties properties) throws MalformedURLException {
         String base = properties.getProperty(BASE_URL);
+        if (StringUtils.isBlank(base)) {
+            throw new NjamsSdkRuntimeException("Required parameter " + BASE_URL + " is missing.");
+        }
         if (base.charAt(base.length() - 1) != '/') {
             base += "/";
         }
