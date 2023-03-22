@@ -77,7 +77,7 @@ public class HttpSender extends AbstractSender {
     /**
      * Name if the HTTP Header for Messagetype
      */
-    private static final String NJAMS_MESSAGETYPE_HTTP_HEADER = "njams-messagetpe";
+    private static final String NJAMS_MESSAGETYPE_HTTP_HEADER = "njams-messagetype";
 
     protected final ObjectMapper mapper = JsonSerializerFactory.getDefaultMapper();
     /**
