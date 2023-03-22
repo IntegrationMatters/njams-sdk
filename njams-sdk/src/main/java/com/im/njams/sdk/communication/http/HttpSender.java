@@ -20,8 +20,8 @@ import static com.im.njams.sdk.NjamsSettings.PROPERTY_HTTP_BASE_URL;
 import static com.im.njams.sdk.NjamsSettings.PROPERTY_HTTP_DATAPROVIDER_PREFIX;
 import static com.im.njams.sdk.NjamsSettings.PROPERTY_HTTP_DATAPROVIDER_SUFFIX;
 
-import java.net.MalformedURLException;
-import java.net.URL;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.Properties;
 
 import javax.ws.rs.client.Client;
@@ -29,10 +29,13 @@ import javax.ws.rs.client.ClientBuilder;
 import javax.ws.rs.client.Entity;
 import javax.ws.rs.client.WebTarget;
 import javax.ws.rs.core.Response;
+import javax.ws.rs.core.Response.Status;
+import javax.ws.rs.core.Response.StatusType;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.faizsiegeln.njams.messageformat.v4.common.CommonMessage;
 import com.faizsiegeln.njams.messageformat.v4.common.MessageVersion;
 import com.faizsiegeln.njams.messageformat.v4.logmessage.LogMessage;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.ProjectMessage;
@@ -92,7 +95,7 @@ public class HttpSender extends AbstractSender {
     private static final int EXCEPTION_IDLE_TIME = 50;
     private static final int MAX_TRIES = 100;
 
-    protected URL url;
+    protected URI uri;
     protected Client client;
     protected WebTarget target;
 
@@ -111,19 +114,19 @@ public class HttpSender extends AbstractSender {
     public void init(Properties properties) {
         this.properties = properties;
         try {
-            url = createUrl(properties);
-        } catch (final MalformedURLException ex) {
+            uri = createUri(properties);
+        } catch (final URISyntaxException ex) {
             throw new NjamsSdkRuntimeException("unable to init http sender", ex);
         }
         try {
             connect();
-            LOG.debug("Initialized http sender with url {}", url);
+            LOG.debug("Initialized http sender with url {}", uri);
         } catch (final NjamsSdkRuntimeException e) {
-            LOG.error("Could not initialize sender with url {}\n", url, e);
+            LOG.debug("Could not initialize sender with URL {}", uri, e);
         }
     }
 
-    private URL createUrl(Properties properties) throws MalformedURLException {
+    private URI createUri(Properties properties) throws URISyntaxException {
         String base = properties.getProperty(PROPERTY_HTTP_BASE_URL);
         if (StringUtils.isBlank(base)) {
             throw new NjamsSdkRuntimeException("Required parameter " + PROPERTY_HTTP_BASE_URL + " is missing.");
@@ -131,13 +134,14 @@ public class HttpSender extends AbstractSender {
         if (base.charAt(base.length() - 1) != '/') {
             base += "/";
         }
+        @SuppressWarnings("removal")
         final String suffix = Settings.getPropertyWithDeprecationWarning(properties, PROPERTY_HTTP_DATAPROVIDER_SUFFIX,
                 PROPERTY_HTTP_DATAPROVIDER_PREFIX);
         if (StringUtils.isBlank(suffix)) {
             throw new NjamsSdkRuntimeException(
                     "Required parameter " + PROPERTY_HTTP_DATAPROVIDER_SUFFIX + " is missing.");
         }
-        return new URL(base + INGEST_API_PATH + suffix);
+        return new URI(base + INGEST_API_PATH + suffix);
     }
 
     /**
@@ -151,7 +155,8 @@ public class HttpSender extends AbstractSender {
         try {
             connectionStatus = ConnectionStatus.CONNECTING;
             client = ClientBuilder.newClient();
-            target = client.target(String.valueOf(url));
+            target = client.target(uri);
+            testConnection();
             connectionStatus = ConnectionStatus.CONNECTED;
         } catch (final Exception e) {
             connectionStatus = ConnectionStatus.DISCONNECTED;
@@ -160,8 +165,28 @@ public class HttpSender extends AbstractSender {
                 client = null;
                 target = null;
             }
-            throw new NjamsSdkRuntimeException("Unable to connect", e);
+            throw new NjamsSdkRuntimeException("Failed to connect", e);
         }
+    }
+
+    private void testConnection() {
+        if (target == null) {
+            throw new NullPointerException("No target");
+        }
+        final Response response = target.request().head();
+        final StatusType status = response.getStatusInfo();
+        LOG.debug("HEAD response={} [{}]", status.getStatusCode(), status.getReasonPhrase());
+        if (response.getStatus() == Status.OK.getStatusCode() ||
+                response.getStatus() == Status.METHOD_NOT_ALLOWED.getStatusCode()) {
+            // 405 'method not allowed' for old nJAMS not implementing HEAD; however, this does not tell whether a DP is 
+            // listening on the requested path suffix, but it confirms that a server is listening on that address
+            return;
+        }
+        if (response.getStatus() == Status.NOT_FOUND.getStatusCode()) {
+            throw new IllegalStateException("No active dataprovider found at: " + uri);
+        }
+        final String statusMessage = status.getStatusCode() + " (" + status.getReasonPhrase() + ")";
+        throw new IllegalStateException("Received unexpected status " + statusMessage + " from: HEAD " + uri);
     }
 
     /**
@@ -169,7 +194,7 @@ public class HttpSender extends AbstractSender {
      */
     @Override
     public void close() {
-        LOG.info("Called close on HTTP Sender.");
+        LOG.debug("Called close on HTTP Sender.");
         connectionStatus = ConnectionStatus.DISCONNECTED;
         if (client != null) {
             try {
@@ -184,48 +209,64 @@ public class HttpSender extends AbstractSender {
 
     @Override
     protected void send(final LogMessage msg, String clientSessionId) {
-        final Properties properties = new Properties();
-        properties.put(Sender.NJAMS_MESSAGEVERSION, MessageVersion.V4.toString());
-        properties.put(Sender.NJAMS_MESSAGETYPE, Sender.NJAMS_MESSAGETYPE_EVENT);
-        properties.put(Sender.NJAMS_PATH, msg.getPath());
+        final Properties properties = createProperties(msg, clientSessionId);
         properties.put(Sender.NJAMS_LOGID, msg.getLogId());
-        properties.put(Sender.NJAMS_CLIENTID, clientSessionId);
         try {
-            LOG.debug("Sending log message {}", msg.getLogId());
+            LOG.trace("Sending log message {}", msg.getLogId());
             tryToSend(msg, properties);
         } catch (final Exception ex) {
-            LOG.error("Error sending LogMessage", ex);
+            if (ex instanceof RuntimeException) {
+                throw (RuntimeException) ex;
+            }
+            throw new NjamsSdkRuntimeException("Failed to send log message", ex);
         }
     }
 
     @Override
     protected void send(final ProjectMessage msg, String clientSessionId) {
-        final Properties properties = new Properties();
-        properties.put(Sender.NJAMS_MESSAGEVERSION, MessageVersion.V4.toString());
-        properties.put(Sender.NJAMS_MESSAGETYPE, Sender.NJAMS_MESSAGETYPE_PROJECT);
-        properties.put(Sender.NJAMS_PATH, msg.getPath());
-        properties.put(Sender.NJAMS_CLIENTID, clientSessionId);
+        final Properties properties = createProperties(msg, clientSessionId);
         try {
-            LOG.debug("Sending project message for {}", msg.getPath());
+            LOG.trace("Sending project message for {}", msg.getPath());
             tryToSend(msg, properties);
         } catch (final Exception ex) {
-            LOG.error("Error sending ProjectMessage", ex);
+            if (ex instanceof RuntimeException) {
+                throw (RuntimeException) ex;
+            }
+            throw new NjamsSdkRuntimeException("Failed to send project message", ex);
         }
     }
 
     @Override
     protected void send(TraceMessage msg, String clientSessionId) throws NjamsSdkRuntimeException {
-        final Properties properties = new Properties();
-        properties.put(Sender.NJAMS_MESSAGEVERSION, MessageVersion.V4.toString());
-        properties.put(Sender.NJAMS_MESSAGETYPE, Sender.NJAMS_MESSAGETYPE_TRACE);
-        properties.put(Sender.NJAMS_PATH, msg.getPath());
-        properties.put(Sender.NJAMS_CLIENTID, clientSessionId);
+        final Properties properties = createProperties(msg, clientSessionId);
         try {
-            LOG.debug("Sending TraceMessage for {}", msg.getPath());
+            LOG.trace("Sending TraceMessage for {}", msg.getPath());
             tryToSend(msg, properties);
         } catch (final Exception ex) {
-            LOG.error("Error sending TraceMessage", ex);
+            if (ex instanceof RuntimeException) {
+                throw (RuntimeException) ex;
+            }
+            throw new NjamsSdkRuntimeException("Failed to send trace message", ex);
         }
+    }
+
+    private Properties createProperties(CommonMessage msg, String clientSessionId) {
+        final Properties properties = new Properties();
+        properties.put(Sender.NJAMS_MESSAGEVERSION, MessageVersion.V4.toString());
+        properties.put(Sender.NJAMS_PATH, msg.getPath());
+        properties.put(Sender.NJAMS_CLIENTID, clientSessionId);
+        final String msgType;
+        if (msg instanceof LogMessage) {
+            msgType = Sender.NJAMS_MESSAGETYPE_EVENT;
+        } else if (msg instanceof ProjectMessage) {
+            msgType = Sender.NJAMS_MESSAGETYPE_PROJECT;
+        } else if (msg instanceof TraceMessage) {
+            msgType = Sender.NJAMS_MESSAGETYPE_TRACE;
+        } else {
+            throw new IllegalArgumentException("Unknown message type: " + msg.getClass());
+        }
+        properties.put(Sender.NJAMS_MESSAGETYPE, msgType);
+        return properties;
     }
 
     private void tryToSend(final Object msg, final Properties properties) throws InterruptedException {
@@ -233,7 +274,7 @@ public class HttpSender extends AbstractSender {
         int responseStatus = -1;
         int tries = 0;
         Exception exception = null;
-        String json = JsonUtils.serialize(msg);
+        final String json = JsonUtils.serialize(msg);
         do {
             try {
                 responseStatus = send(json, properties);
@@ -251,14 +292,14 @@ public class HttpSender extends AbstractSender {
                     break;
                 }
                 if (++tries >= MAX_TRIES) {
-                    LOG.warn("Try to reconnect, because the Server HTTP Endpoint could not be reached for {} seconds.",
+                    LOG.warn("Start reconnect because the server HTTP endpoint could not be reached for {} seconds.",
                             MAX_TRIES * EXCEPTION_IDLE_TIME / 1000);
                     if (exception != null) {
-                        throw new NjamsSdkRuntimeException("Error sending Message with HTTP Client URI "
-                                + target.getUri().toString(), exception);
+                        throw new NjamsSdkRuntimeException("Error sending message with HTTP client URI "
+                                + target.getUri(), exception);
                     }
-                    throw new NjamsSdkRuntimeException("Error sending Message with HTTP Client URI "
-                            + target.getUri().toString() + " Response Status is: " + responseStatus);
+                    throw new NjamsSdkRuntimeException("Error sending message with HTTP client URI "
+                            + target.getUri() + " Response status is: " + responseStatus);
                 }
                 Thread.sleep(EXCEPTION_IDLE_TIME);
             }
@@ -269,7 +310,7 @@ public class HttpSender extends AbstractSender {
     }
 
     private int send(final String msg, final Properties properties) {
-        Response response = target.request()
+        final Response response = target.request()
                 .header("Content-Type", "application/json")
                 .header("Accept", "text/plain")
                 .header(NJAMS_MESSAGEVERSION_HTTP_HEADER, MessageVersion.V4.toString())
@@ -284,8 +325,9 @@ public class HttpSender extends AbstractSender {
                 .header(Sender.NJAMS_PATH, properties.getProperty(Sender.NJAMS_PATH))
                 .header(Sender.NJAMS_LOGID, properties.getProperty(Sender.NJAMS_LOGID))
                 .post(Entity.json(msg));
-        LOG.debug("Response status:" + response.getStatus()
-                + ", Message: " + response.getStatusInfo().getReasonPhrase());
+        if (LOG.isTraceEnabled()) {
+            LOG.trace("POST response: {} [{}]", response.getStatus(), response.getStatusInfo().getReasonPhrase());
+        }
         return response.getStatus();
     }
 

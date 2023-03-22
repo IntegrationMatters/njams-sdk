@@ -122,7 +122,7 @@ public abstract class AbstractSender implements Sender {
                     LOG.info("Initialized reconnect, because of : {}, {}", ex.toString(), ex.getCause().toString());
                 }
             }
-            LOG.info("{} senders are reconnecting now", connecting.incrementAndGet());
+            LOG.debug("{} senders are reconnecting now", connecting.incrementAndGet());
         }
 
         while (!isConnected() && !shouldShutdown.get()) {
@@ -130,7 +130,6 @@ public abstract class AbstractSender implements Sender {
                 connect();
                 synchronized (hasConnected) {
                     if (!hasConnected.get()) {
-                        LOG.info("Connection can be established again!");
                         LOG.info("Reconnected sender {}", getName());
                         hasConnected.set(true);
                     }

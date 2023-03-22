@@ -48,9 +48,9 @@ public class HttpsSender extends HttpSender {
         try {
             sslContext = initializeSSLContext(properties.getProperty(NjamsSettings.PROPERTY_HTTP_SSL_CERTIFICATE_FILE));
             super.init(properties);
-            LOG.debug("Initialized HTTPS Sender with url {}", url);
+            LOG.debug("Initialized HTTPS Sender with url {}", uri);
         } catch (final Exception e) {
-            LOG.error("Could not initialize HTTPS Sender with url {}\n", url, e);
+            LOG.error("Could not initialize HTTPS Sender with url {}\n", uri, e);
         }
     }
 
@@ -65,7 +65,7 @@ public class HttpsSender extends HttpSender {
         try {
             connectionStatus = ConnectionStatus.CONNECTING;
             client = ClientBuilder.newBuilder().sslContext(sslContext).build();
-            target = client.target(String.valueOf(url));
+            target = client.target(String.valueOf(uri));
             connectionStatus = ConnectionStatus.CONNECTED;
         } catch (final Exception e) {
             connectionStatus = ConnectionStatus.DISCONNECTED;
