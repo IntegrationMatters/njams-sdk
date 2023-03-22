@@ -72,7 +72,7 @@ public class SharedHttpSseReceiver extends HttpSseReceiver implements ShareableR
      * @param event the new arrived event
      */
     @Override
-    void onMessage(InboundSseEvent event) {
+    protected void onMessage(InboundSseEvent event) {
         String id = event.getId();
         String payload = event.readData();
         LOG.debug("OnMessage in shared receiver called, event-id={}, payload={}", id, payload);

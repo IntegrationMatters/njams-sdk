@@ -1,20 +1,20 @@
 package com.im.njams.sdk.communication.http;
 
+import java.io.IOException;
+import java.net.URL;
+import java.util.Properties;
+
+import javax.ws.rs.sse.InboundSseEvent;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
 import com.im.njams.sdk.Njams;
-import com.im.njams.sdk.common.JsonSerializerFactory;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.common.Path;
 import com.im.njams.sdk.communication.ShareableReceiver;
 import com.im.njams.sdk.communication.SharedReceiverSupport;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.net.ssl.SSLContext;
-import javax.ws.rs.sse.InboundSseEvent;
-import java.io.IOException;
-import java.net.URL;
-import java.util.Properties;
 
 /**
  * Receiver, which shares a connection and has to pick the right messages from it.
@@ -24,21 +24,17 @@ import java.util.Properties;
 public class SharedHttpsSseReceiver extends HttpsSseReceiver implements ShareableReceiver<InboundSseEvent> {
     private static final Logger LOG = LoggerFactory.getLogger(SharedHttpsSseReceiver.class);
 
-    private SSLContext sslContext;
-
     private final SharedReceiverSupport<SharedHttpsSseReceiver, InboundSseEvent> sharingSupport =
-        new SharedReceiverSupport<>(this);
+            new SharedReceiverSupport<>(this);
 
     @Override
     public void init(Properties properties) {
         try {
-            sslContext =
-                HttpsSender.initializeSSLContext(properties.getProperty(SSL_CERTIFIACTE_FILE));
+            HttpsSender.initializeSSLContext(properties.getProperty(SSL_CERTIFIACTE_FILE));
             url = new URL(properties.getProperty(BASE_URL) + SSE_API_PATH);
         } catch (final Exception ex) {
             throw new NjamsSdkRuntimeException("unable to init https sse receiver", ex);
         }
-        mapper = JsonSerializerFactory.getDefaultMapper();
     }
 
     /**
@@ -73,7 +69,7 @@ public class SharedHttpsSseReceiver extends HttpsSseReceiver implements Shareabl
      * @param event the new arrived event
      */
     @Override
-    void onMessage(InboundSseEvent event) {
+    protected void onMessage(InboundSseEvent event) {
         String id = event.getId();
         String payload = event.readData();
         LOG.debug("OnMessage in shared receiver called, id=" + id + " payload=" + payload);

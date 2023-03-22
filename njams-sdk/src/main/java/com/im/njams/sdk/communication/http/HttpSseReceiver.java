@@ -22,6 +22,7 @@ import java.net.URL;
 import java.util.Properties;
 import java.util.UUID;
 
+import javax.jms.IllegalStateException;
 import javax.ws.rs.client.Client;
 import javax.ws.rs.client.ClientBuilder;
 import javax.ws.rs.client.Entity;
@@ -57,22 +58,21 @@ public class HttpSseReceiver extends AbstractReceiver {
     protected static final String SSE_API_PATH = "api/httpcommunication";
 
     protected Client client;
-    protected WebTarget target;
     protected SseEventSource source;
-    protected ObjectMapper mapper;
+    protected final ObjectMapper mapper = JsonSerializerFactory.getDefaultMapper();
     protected URL url;
+    private Throwable connectError = null;
 
     @Override
-    public void init(Properties properties) {
+    public void init(final Properties properties) {
         try {
             url = createUrl(properties);
         } catch (final MalformedURLException ex) {
             throw new NjamsSdkRuntimeException("Unable to init HTTP Receiver", ex);
         }
-        mapper = JsonSerializerFactory.getDefaultMapper();
     }
 
-    protected URL createUrl(Properties properties) throws MalformedURLException {
+    protected URL createUrl(final Properties properties) throws MalformedURLException {
         String base = properties.getProperty(BASE_URL);
         if (base.charAt(base.length() - 1) != '/') {
             base += "/";
@@ -93,39 +93,59 @@ public class HttpSseReceiver extends AbstractReceiver {
         try {
             connectionStatus = ConnectionStatus.CONNECTING;
             client = ClientBuilder.newClient();
-            target = client.target(url.toString() + "/subscribe");
+            final WebTarget target = client.target(url.toString() + "/subscribe");
             source = SseEventSource.target(target).build();
             source.register(this::onMessage, this::onError);
-            source.open();
-            LOG.debug("Subscribed SSE receiver to {}", target.getUri());
-            connectionStatus = ConnectionStatus.CONNECTED;
-        } catch (Exception e) {
-            LOG.error("Exception during registering Server Sent Event Endpoint.", e);
-            throw new NjamsSdkRuntimeException("Exception during registering Server Sent Event Endpoint.", e);
+            connectError = null;
+            synchronized (this) {
+                LOG.debug("Start connect...");
+                source.open();
+                /* 
+                 * source.open() has no reliable error handling, i.e., it is not possible to determine whether
+                 * source.open() was successful or not. This is because the actual connection is created in a
+                 * separate thread and when source.open() completes and connection failed, neither the on-error
+                 * callback was reliably called before, nor the connection state has been set to "closed".
+                 * As a workaround, we wait for at most 1 second here to allow either of the above mentioned
+                 * error handling to occur in parallel.
+                 * 
+                 */
+                long wait = 1000;
+                final long waitEnd = System.currentTimeMillis() + wait;
+                while (wait > 0) {
+                    if (connectError != null || !source.isOpen()) {
+                        LOG.debug("Connect failed: {}", connectError.toString());
+                        throw connectError != null ? connectError
+                                : new IllegalStateException("Event source is closed.");
+                    }
+                    wait(wait);
+                    wait = waitEnd - System.currentTimeMillis();
+                }
+                connectError = null;
+                connectionStatus = ConnectionStatus.CONNECTED;
+                LOG.debug("Subscribed SSE receiver to {}", target.getUri());
+            }
+        } catch (final Throwable e) {
+            throw new NjamsSdkRuntimeException("Exception during registering SSE endpoint.", e);
         }
     }
 
-    void onError(Throwable throwable) {
-        LOG.debug("OnError called, cause: " + throwable.getMessage());
-        try {
-            // TODO SDK-327
-            // Sleep, because source.open() in connect always returns without exception;
-            // It starts a thread for the connection, which will then call this onError Method on failure
-            // Wait for end of connect method (and setting the connectionStatus to CONNECTED first.
-            // Otherwise we will have a race condition here.
-            Thread.sleep(60000);
-        } catch (InterruptedException e) {
-            throw new NjamsSdkRuntimeException(e.getMessage());
-        }
+    protected synchronized void onError(final Throwable throwable) {
+        LOG.debug("OnError called, cause: {} (status={})", throwable, connectionStatus);
+        connectError = throwable;
+
+        // trigger the reconnect thread only if connection breaks, not when already trying to re-connect.
+        final boolean triggerReconnect = connectionStatus == ConnectionStatus.CONNECTED;
         connectionStatus = ConnectionStatus.DISCONNECTED;
-        // Cannot use the reconnect loop here, because there is no chance to find out, if a reconnect has
-        // been successful inside the loop and it will always end after first iteration.
-        connect();
+        notifyAll();
+        if (triggerReconnect) {
+            onException(throwable instanceof Exception ? (Exception) throwable
+                    : new NjamsSdkRuntimeException("Connection failed.", throwable));
+        }
     }
 
-    void onMessage(InboundSseEvent event) {
-        String id = event.getId();
-        String payload = event.readData();
+    protected void onMessage(final InboundSseEvent event) {
+        final String id = event.getId();
+        final String payload = event.readData();
         LOG.debug("OnMessage called, event-id={}, payload={}", id, payload);
         if (!isValidMessage(event)) {
             return;
@@ -133,7 +153,7 @@ public class HttpSseReceiver extends AbstractReceiver {
         Instruction instruction = null;
         try {
             instruction = mapper.readValue(payload, Instruction.class);
-        } catch (IOException e) {
+        } catch (final IOException e) {
             LOG.error("Failed to parse instruction from SSE event.", e);
             return;
         }
@@ -147,10 +167,10 @@ public class HttpSseReceiver extends AbstractReceiver {
     /**
      * Check, that the message is valid for this nJAMS client.
      *
-     * @param event the Inbound Event
+     * @param event the inbound event
      * @return true, if event is valid and should be handled
      */
-    protected boolean isValidMessage(InboundSseEvent event) {
+    protected boolean isValidMessage(final InboundSseEvent event) {
         if (event == null) {
             return false;
         }
@@ -178,14 +198,14 @@ public class HttpSseReceiver extends AbstractReceiver {
         source.close();
     }
 
-    protected void sendReply(final String requestId, final Instruction instruction, String clientId) {
+    protected void sendReply(final String requestId, final Instruction instruction, final String clientId) {
         final String responseId = UUID.randomUUID().toString();
         Client client = null;
         try {
             client = ClientBuilder.newClient();
-            WebTarget target = client.target(url.toString() + "/reply");
+            final WebTarget target = client.target(url.toString() + "/reply");
 
-            Invocation.Builder builder = target.request()
+            final Invocation.Builder builder = target.request()
                     .header("Content-Type", "application/json")
                     .header("Accept", "text/plain")
                     .header("njams-receiver", "server")
@@ -193,8 +213,6 @@ public class HttpSseReceiver extends AbstractReceiver {
                     .header("njams-message-id", responseId)
                     .header("njams-reply-for", requestId)
                     // Additionally add old headers
-                    .header("Content-Type", "application/json")
-                    .header("Accept", "text/plain")
                     .header("NJAMS_RECEIVER", "server")
                     .header("NJAMS_MESSAGETYPE", "reply")
                     .header("NJAMS_MESSAGE_ID", responseId)
@@ -202,13 +220,13 @@ public class HttpSseReceiver extends AbstractReceiver {
             if (clientId != null) {
                 builder.header("njams-clientid", clientId);
             }
-            Response response = builder.post(Entity.json(JsonUtils.serialize(instruction)));
+            final Response response = builder.post(Entity.json(JsonUtils.serialize(instruction)));
             LOG.debug("Reply response status:" + response.getStatus());
         } finally {
             if (client != null) {
                 try {
                     Thread.sleep(100);
-                } catch (InterruptedException e) {
+                } catch (final InterruptedException e) {
                     // do nothing
                 }
                 client.close();

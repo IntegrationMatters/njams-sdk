@@ -1,16 +1,18 @@
 package com.im.njams.sdk.communication.http;
 
-import com.im.njams.sdk.NjamsSettings;
-import com.im.njams.sdk.common.JsonSerializerFactory;
-import com.im.njams.sdk.common.NjamsSdkRuntimeException;
-import com.im.njams.sdk.communication.ConnectionStatus;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import java.util.Properties;
 
 import javax.net.ssl.SSLContext;
 import javax.ws.rs.client.ClientBuilder;
+import javax.ws.rs.client.WebTarget;
 import javax.ws.rs.sse.SseEventSource;
-import java.util.Properties;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.im.njams.sdk.NjamsSettings;
+import com.im.njams.sdk.common.NjamsSdkRuntimeException;
+import com.im.njams.sdk.communication.ConnectionStatus;
 
 /**
  * Receives SSE (server sent events) from nJAMS as HTTPS Client Communication
@@ -33,12 +35,11 @@ public class HttpsSseReceiver extends HttpSseReceiver {
     public void init(Properties properties) {
         try {
             sslContext =
-                HttpsSender.initializeSSLContext(properties.getProperty(SSL_CERTIFIACTE_FILE));
+                    HttpsSender.initializeSSLContext(properties.getProperty(SSL_CERTIFIACTE_FILE));
             url = createUrl(properties);
         } catch (final Exception ex) {
             throw new NjamsSdkRuntimeException("Unable to init HTTPS Receiver", ex);
         }
-        mapper = JsonSerializerFactory.getDefaultMapper();
     }
 
     @Override
@@ -54,7 +55,7 @@ public class HttpsSseReceiver extends HttpSseReceiver {
         try {
             connectionStatus = ConnectionStatus.CONNECTING;
             client = ClientBuilder.newBuilder().sslContext(sslContext).build();
-            target = client.target(url.toString() + "/subscribe");
+            WebTarget target = client.target(url.toString() + "/subscribe");
             source = SseEventSource.target(target).build();
             source.register(this::onMessage, this::onError);
             source.open();

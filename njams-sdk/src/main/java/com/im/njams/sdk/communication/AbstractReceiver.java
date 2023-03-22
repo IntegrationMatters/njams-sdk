@@ -184,7 +184,6 @@ public abstract class AbstractReceiver implements Receiver {
                 connect();
                 synchronized (hasConnected) {
                     if (!hasConnected.get()) {
-                        LOG.info("Connection can be established again!");
                         LOG.info("Reconnected receiver {}", getName());
                         hasConnected.set(true);
                         reconnectIntervalIncreasing.set(RECONNECT_INTERVAL);
