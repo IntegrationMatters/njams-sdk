@@ -1,21 +1,22 @@
 package com.im.njams.sdk.communication.http;
 
-import com.im.njams.sdk.NjamsSettings;
-import com.im.njams.sdk.common.JsonSerializerFactory;
-import com.im.njams.sdk.common.NjamsSdkRuntimeException;
-import com.im.njams.sdk.communication.ConnectionStatus;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.TrustManagerFactory;
-import javax.ws.rs.client.ClientBuilder;
 import java.io.FileInputStream;
 import java.io.InputStream;
 import java.security.KeyStore;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateFactory;
 import java.util.Properties;
+
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManagerFactory;
+import javax.ws.rs.client.ClientBuilder;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.im.njams.sdk.NjamsSettings;
+import com.im.njams.sdk.common.NjamsSdkRuntimeException;
+import com.im.njams.sdk.communication.ConnectionStatus;
 
 /**
  * Sends Messages via HTTPS to nJAMS
@@ -44,12 +45,9 @@ public class HttpsSender extends HttpSender {
      */
     @Override
     public void init(Properties properties) {
-        this.properties = properties;
-        mapper = JsonSerializerFactory.getDefaultMapper();
         try {
             sslContext = initializeSSLContext(properties.getProperty(NjamsSettings.PROPERTY_HTTP_SSL_CERTIFICATE_FILE));
-            url = createUrl(properties);
-            connect();
+            super.init(properties);
             LOG.debug("Initialized HTTPS Sender with url {}", url);
         } catch (final Exception e) {
             LOG.error("Could not initialize HTTPS Sender with url {}\n", url, e);

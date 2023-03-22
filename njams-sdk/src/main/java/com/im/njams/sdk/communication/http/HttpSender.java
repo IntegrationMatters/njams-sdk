@@ -16,6 +16,10 @@
  */
 package com.im.njams.sdk.communication.http;
 
+import static com.im.njams.sdk.NjamsSettings.PROPERTY_HTTP_BASE_URL;
+import static com.im.njams.sdk.NjamsSettings.PROPERTY_HTTP_DATAPROVIDER_PREFIX;
+import static com.im.njams.sdk.NjamsSettings.PROPERTY_HTTP_DATAPROVIDER_SUFFIX;
+
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Properties;
@@ -42,7 +46,9 @@ import com.im.njams.sdk.communication.ConnectionStatus;
 import com.im.njams.sdk.communication.DiscardMonitor;
 import com.im.njams.sdk.communication.DiscardPolicy;
 import com.im.njams.sdk.communication.Sender;
+import com.im.njams.sdk.settings.Settings;
 import com.im.njams.sdk.utils.JsonUtils;
+import com.im.njams.sdk.utils.StringUtils;
 
 /**
  * Sends Messages via HTTP to nJAMS
@@ -73,20 +79,11 @@ public class HttpSender extends AbstractSender {
      */
     private static final String NJAMS_MESSAGETYPE_HTTP_HEADER = "njams-messagetpe";
 
-    protected ObjectMapper mapper;
+    protected final ObjectMapper mapper = JsonSerializerFactory.getDefaultMapper();
     /**
      * Name of the HTTP component
      */
     public static final String NAME = "HTTP";
-
-    /**
-     * http base url of njams
-     */
-    private static final String BASE_URL = NjamsSettings.PROPERTY_HTTP_BASE_URL;
-    /**
-     * http dataprovider prefix
-     */
-    private static final String INGEST_ENDPOINT = NjamsSettings.PROPERTY_HTTP_DATAPROVIDER_PREFIX;
 
     /**
      * this is the API path to the ingest
@@ -113,7 +110,6 @@ public class HttpSender extends AbstractSender {
     @Override
     public void init(Properties properties) {
         this.properties = properties;
-        mapper = JsonSerializerFactory.getDefaultMapper();
         try {
             url = createUrl(properties);
         } catch (final MalformedURLException ex) {
@@ -127,12 +123,21 @@ public class HttpSender extends AbstractSender {
         }
     }
 
-    protected URL createUrl(Properties properties) throws MalformedURLException {
-        String base = properties.getProperty(BASE_URL);
+    private URL createUrl(Properties properties) throws MalformedURLException {
+        String base = properties.getProperty(PROPERTY_HTTP_BASE_URL);
+        if (StringUtils.isBlank(base)) {
+            throw new NjamsSdkRuntimeException("Required parameter " + PROPERTY_HTTP_BASE_URL + " is missing.");
+        }
         if (base.charAt(base.length() - 1) != '/') {
             base += "/";
         }
-        return new URL(base + INGEST_API_PATH + properties.getProperty(INGEST_ENDPOINT));
+        final String suffix = Settings.getPropertyWithDeprecationWarning(properties, PROPERTY_HTTP_DATAPROVIDER_SUFFIX,
+                PROPERTY_HTTP_DATAPROVIDER_PREFIX);
+        if (StringUtils.isBlank(suffix)) {
+            throw new NjamsSdkRuntimeException(
+                    "Required parameter " + PROPERTY_HTTP_DATAPROVIDER_SUFFIX + " is missing.");
+        }
+        return new URL(base + INGEST_API_PATH + suffix);
     }
 
     /**
@@ -251,10 +256,9 @@ public class HttpSender extends AbstractSender {
                     if (exception != null) {
                         throw new NjamsSdkRuntimeException("Error sending Message with HTTP Client URI "
                                 + target.getUri().toString(), exception);
-                    } else {
-                        throw new NjamsSdkRuntimeException("Error sending Message with HTTP Client URI "
-                                + target.getUri().toString() + " Response Status is: " + responseStatus);
                     }
+                    throw new NjamsSdkRuntimeException("Error sending Message with HTTP Client URI "
+                            + target.getUri().toString() + " Response Status is: " + responseStatus);
                 }
                 Thread.sleep(EXCEPTION_IDLE_TIME);
             }

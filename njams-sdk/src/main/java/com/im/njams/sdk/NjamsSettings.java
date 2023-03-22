@@ -325,13 +325,18 @@ public class NjamsSettings {
 
     /**
      * The URL, where the nJAMS Server is running and reachable
-     * (eg. <a href="http://localhost:8080/njams/">http://localhost:8080/njams/</a>)
+     * (eg. <code>http://localhost:8080/njams/</code>)
      */
     public static final String PROPERTY_HTTP_BASE_URL = "njams.sdk.communication.http.base.url";
 
     /**
-     * This is the prefix of the Dataprovider you want to send your Events to.
+     * This is the http path suffix of the nJAMS dataprovider you want to send your events to.
      */
+    public static final String PROPERTY_HTTP_DATAPROVIDER_SUFFIX = "njams.sdk.communication.http.dataprovider.suffix";
+    /**
+     * @deprecated Replaced by {@link #PROPERTY_HTTP_DATAPROVIDER_SUFFIX}
+     */
+    @Deprecated(since = "5.0.0", forRemoval = true)
     public static final String PROPERTY_HTTP_DATAPROVIDER_PREFIX = "njams.sdk.communication.http.dataprovider.prefix";
 
     /**

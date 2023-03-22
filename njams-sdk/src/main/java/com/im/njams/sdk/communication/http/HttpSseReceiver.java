@@ -54,7 +54,6 @@ import com.im.njams.sdk.utils.StringUtils;
 public class HttpSseReceiver extends AbstractReceiver {
     private static final Logger LOG = LoggerFactory.getLogger(HttpSseReceiver.class);
     private static final String NAME = "HTTP";
-    protected static final String BASE_URL = NjamsSettings.PROPERTY_HTTP_BASE_URL;
     protected static final String SSE_API_PATH = "api/httpcommunication";
 
     protected Client client;
@@ -73,9 +72,10 @@ public class HttpSseReceiver extends AbstractReceiver {
     }
 
     private URL createUrl(final Properties properties) throws MalformedURLException {
-        String base = properties.getProperty(BASE_URL);
+        String base = properties.getProperty(NjamsSettings.PROPERTY_HTTP_BASE_URL);
         if (StringUtils.isBlank(base)) {
-            throw new NjamsSdkRuntimeException("Required parameter " + BASE_URL + " is missing.");
+            throw new NjamsSdkRuntimeException(
+                    "Required parameter " + NjamsSettings.PROPERTY_HTTP_BASE_URL + " is missing.");
         }
         if (base.charAt(base.length() - 1) != '/') {
             base += "/";
