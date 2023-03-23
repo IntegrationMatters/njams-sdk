@@ -14,6 +14,12 @@ import javax.net.ssl.TrustManagerFactory;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.utils.StringUtils;
 
+/**
+ * Factory for creating {@link SSLContext} when https is configured.
+ *  
+ * @author cwinkler
+ *
+ */
 public class SSLContextFactory {
     private SSLContextFactory() {
         // static only
