@@ -17,12 +17,14 @@
 package com.im.njams.sdk.communication.http;
 
 import static com.im.njams.sdk.NjamsSettings.PROPERTY_HTTP_BASE_URL;
+import static com.im.njams.sdk.NjamsSettings.PROPERTY_HTTP_CONNECTION_TEST;
 import static com.im.njams.sdk.NjamsSettings.PROPERTY_HTTP_DATAPROVIDER_PREFIX;
 import static com.im.njams.sdk.NjamsSettings.PROPERTY_HTTP_DATAPROVIDER_SUFFIX;
 
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Properties;
+import java.util.function.Supplier;
 
 import javax.ws.rs.client.Client;
 import javax.ws.rs.client.ClientBuilder;
@@ -59,10 +61,36 @@ import com.im.njams.sdk.utils.StringUtils;
  * @author bwand
  */
 public class HttpSender extends AbstractSender {
+    private static class ConnectionTest {
+        private final URI uri;
+        private final Supplier<Response> request;
+        private final String method;
+
+        private ConnectionTest(URI uri, Supplier<Response> request, String method) {
+            this.uri = uri;
+            this.request = request;
+            this.method = method;
+        }
+
+        private Response execute() {
+            Response response = request.get();
+            if (LOG.isDebugEnabled()) {
+                final StatusType status = response.getStatusInfo();
+                LOG.debug("{} response={} [{}]", this, status.getStatusCode(), status.getReasonPhrase());
+            }
+            return response;
+        }
+
+        @Override
+        public String toString() {
+            return method + " " + uri;
+        }
+    }
+
     private static final Logger LOG = LoggerFactory.getLogger(HttpSender.class);
 
     /**
-     * Name of the HTTP Header for Messageversion
+     * Name of the HTTP Header for message version
      */
     private static final String NJAMS_MESSAGEVERSION_HTTP_HEADER = "njams-messageversion";
     /**
@@ -78,26 +106,38 @@ public class HttpSender extends AbstractSender {
      */
     private static final String NJAMS_CLIENTID_HTTP_HEADER = "njams-clientid";
     /**
-     * Name if the HTTP Header for Messagetype
+     * Name if the HTTP Header for message type
      */
     private static final String NJAMS_MESSAGETYPE_HTTP_HEADER = "njams-messagetype";
 
     protected final ObjectMapper mapper = JsonSerializerFactory.getDefaultMapper();
     /**
-     * Name of the HTTP component
+     * Name of the HTTP sender
      */
     public static final String NAME = "HTTP";
 
     /**
-     * this is the API path to the ingest
+     * this is the API path to the nJAMS ingest service
      */
-    protected static final String INGEST_API_PATH = "api/processing/ingest/";
+    private static final String INGEST_API_PATH = "api/processing/ingest/";
+    private static final String LEGACY_CONNECTION_TEST_PATH = "api/public/version";
     private static final int EXCEPTION_IDLE_TIME = 50;
     private static final int MAX_TRIES = 100;
 
     protected URI uri;
     protected Client client;
     protected WebTarget target;
+
+    private enum ConnectionTestMode {
+        /** Initial value that triggers trying {@link #STANDARD} first, then falling back to {@link #LEGACY} */
+        DETECT,
+        /** Standard connection test using <code>HEAD</code> on ingest resource (since nJAMS 5.3.4) */
+        STANDARD,
+        /** Fallback connection test just checking nJAMS' public API */
+        LEGACY
+    }
+
+    private static ConnectionTestMode connectionTestMode = ConnectionTestMode.DETECT;
 
     /**
      * Initializes this Sender via the given Properties.
@@ -110,23 +150,38 @@ public class HttpSender extends AbstractSender {
      *
      * @param properties the properties needed to initialize
      */
+    @SuppressWarnings("removal")
     @Override
     public void init(Properties properties) {
         this.properties = properties;
         try {
-            uri = createUri(properties);
-        } catch (final URISyntaxException ex) {
-            throw new NjamsSdkRuntimeException("unable to init http sender", ex);
-        }
-        try {
+            final String suffix =
+                    Settings.getPropertyWithDeprecationWarning(properties, PROPERTY_HTTP_DATAPROVIDER_SUFFIX,
+                            PROPERTY_HTTP_DATAPROVIDER_PREFIX);
+            if (StringUtils.isBlank(suffix)) {
+                throw new NjamsSdkRuntimeException(
+                        "Required parameter " + PROPERTY_HTTP_DATAPROVIDER_SUFFIX + " is missing.");
+            }
+            uri = createUri(INGEST_API_PATH + suffix);
+            final boolean legacy = "legacy".equalsIgnoreCase(properties.getProperty(PROPERTY_HTTP_CONNECTION_TEST));
+            if (legacy) {
+                synchronized (HttpSender.class) {
+                    connectionTestMode = ConnectionTestMode.LEGACY;
+                }
+            }
             connect();
             LOG.debug("Initialized http sender with url {}", uri);
-        } catch (final NjamsSdkRuntimeException e) {
+        } catch (final Exception e) {
             LOG.debug("Could not initialize sender with URL {}", uri, e);
         }
     }
 
-    private URI createUri(Properties properties) throws URISyntaxException {
+    private URI createUri(String path) throws URISyntaxException {
+        final String base = createBaseUri();
+        return new URI(base + path);
+    }
+
+    private String createBaseUri() {
         String base = properties.getProperty(PROPERTY_HTTP_BASE_URL);
         if (StringUtils.isBlank(base)) {
             throw new NjamsSdkRuntimeException("Required parameter " + PROPERTY_HTTP_BASE_URL + " is missing.");
@@ -134,14 +189,7 @@ public class HttpSender extends AbstractSender {
         if (base.charAt(base.length() - 1) != '/') {
             base += "/";
         }
-        @SuppressWarnings("removal")
-        final String suffix = Settings.getPropertyWithDeprecationWarning(properties, PROPERTY_HTTP_DATAPROVIDER_SUFFIX,
-                PROPERTY_HTTP_DATAPROVIDER_PREFIX);
-        if (StringUtils.isBlank(suffix)) {
-            throw new NjamsSdkRuntimeException(
-                    "Required parameter " + PROPERTY_HTTP_DATAPROVIDER_SUFFIX + " is missing.");
-        }
-        return new URI(base + INGEST_API_PATH + suffix);
+        return base;
     }
 
     /**
@@ -171,20 +219,53 @@ public class HttpSender extends AbstractSender {
         if (target == null) {
             throw new NullPointerException("No target");
         }
-        final Response response = target.request().head();
-        final StatusType status = response.getStatusInfo();
-        LOG.debug("HEAD response={} [{}]", status.getStatusCode(), status.getReasonPhrase());
-        if (response.getStatus() == Status.OK.getStatusCode() ||
-                response.getStatus() == Status.METHOD_NOT_ALLOWED.getStatusCode()) {
-            // 405 'method not allowed' for old nJAMS not implementing HEAD; however, this does not tell whether a DP is 
-            // listening on the requested path suffix, but it confirms that a server is listening on that address
+        final ConnectionTest connectionTest = getConnectionTest();
+        final Response response = connectionTest.execute();
+        if (response.getStatus() == Status.OK.getStatusCode()) {
             return;
         }
         if (response.getStatus() == Status.NOT_FOUND.getStatusCode()) {
-            throw new IllegalStateException("No active dataprovider found at: " + uri);
+            throw new IllegalStateException("No active dataprovider found at: " + connectionTest.uri);
         }
-        final String statusMessage = status.getStatusCode() + " (" + status.getReasonPhrase() + ")";
-        throw new IllegalStateException("Received unexpected status " + statusMessage + " from: HEAD " + uri);
+        final StatusType status = response.getStatusInfo();
+        throw new IllegalStateException("Received unexpected status " + status.getStatusCode() + " ("
+                + status.getReasonPhrase() + ") from: " + connectionTest);
+    }
+
+    private ConnectionTest getConnectionTest() {
+        if (connectionTestMode == ConnectionTestMode.DETECT) {
+            synchronized (HttpSender.class) {
+                if (connectionTestMode == ConnectionTestMode.DETECT) {
+                    final ConnectionTest connectionTest = getConnectionTest(ConnectionTestMode.STANDARD);
+                    final Response response = connectionTest.execute();
+                    if (response.getStatus() == Status.METHOD_NOT_ALLOWED.getStatusCode()) {
+                        // 405 -> The server does not know about HEAD on that resource -> use legacy fallback
+                        connectionTestMode = ConnectionTestMode.LEGACY;
+                        LOG.info("Switched to legacy http connection test implementation.");
+                        return getConnectionTest(ConnectionTestMode.LEGACY);
+                    }
+                    connectionTestMode = ConnectionTestMode.STANDARD;
+                    return connectionTest;
+                }
+            }
+        }
+        return getConnectionTest(connectionTestMode);
+    }
+
+    private ConnectionTest getConnectionTest(ConnectionTestMode mode) {
+        if (mode == ConnectionTestMode.LEGACY) {
+            // Fallback for old nJAMS not implementing HEAD; however, this does not tell whether a DP is 
+            // listening on the requested path suffix, but it confirms that a server is listening on that address
+            try {
+                final URI uri = createUri(LEGACY_CONNECTION_TEST_PATH);
+                return new ConnectionTest(uri, () -> client.target(uri).request().get(), "GET");
+            } catch (URISyntaxException e) {
+                // actually, this cannot happen since creating the actual ingest URI would have failed before
+                throw new IllegalArgumentException(e);
+            }
+        }
+        return new ConnectionTest(uri, () -> target.request().head(), "HEAD");
+
     }
 
     /**

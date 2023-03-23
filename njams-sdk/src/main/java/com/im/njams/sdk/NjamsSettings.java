@@ -25,6 +25,8 @@ package com.im.njams.sdk;
 
 import javax.naming.Context;
 
+import com.im.njams.sdk.communication.http.HttpSender;
+
 /**
  * This class is a list and documentation for all settings, which can be used in SDK.
  */
@@ -343,6 +345,17 @@ public class NjamsSettings {
      * This is the full path to your certificate file to use for SSL
      */
     public static final String PROPERTY_HTTP_SSL_CERTIFICATE_FILE = "njams.sdk.communication.http.ssl.certificate.file";
+    /**
+     * The http sender uses a connection test for testing whether or not the expected http dataprovider
+     * is available. This test is supported since nJAMS 5.3.4. For older versions the test is tried once,
+     * and, if fails, it switches to a less reliable legacy fallback. However, the failing first attempt
+     * leads to an exception in nJAMS server logs which can be prevented by setting this property
+     * to <code>legacy</code><br>
+     * See SER-337 and {@link HttpSender}<code>.testConnection()</code>.
+     * @deprecated To be removed in future releases.  
+     */
+    @Deprecated(since = "5.0.0", forRemoval = true)
+    public static final String PROPERTY_HTTP_CONNECTION_TEST = "njams.sdk.communication.http.connection.test";
 
     //    _  __          ______ _  __
     //   | |/ /    /\   |  ____| |/ /    /\
