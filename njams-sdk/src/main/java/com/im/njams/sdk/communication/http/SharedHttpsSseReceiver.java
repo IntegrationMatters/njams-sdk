@@ -1,7 +1,5 @@
 package com.im.njams.sdk.communication.http;
 
-import java.io.IOException;
-
 import javax.ws.rs.sse.InboundSseEvent;
 
 import org.slf4j.Logger;
@@ -12,6 +10,7 @@ import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.common.Path;
 import com.im.njams.sdk.communication.ShareableReceiver;
 import com.im.njams.sdk.communication.SharedReceiverSupport;
+import com.im.njams.sdk.utils.JsonUtils;
 
 /**
  * Receiver, which shares a connection and has to pick the right messages from it.
@@ -59,12 +58,13 @@ public class SharedHttpsSseReceiver extends HttpsSseReceiver implements Shareabl
     protected void onMessage(InboundSseEvent event) {
         String id = event.getId();
         String payload = event.readData();
-        LOG.debug("OnMessage in shared receiver called, id=" + id + " payload=" + payload);
+        LOG.debug("OnMessage in shared receiver called, event-id={}, payload={}", id, payload);
         Instruction instruction = null;
         try {
-            instruction = mapper.readValue(payload, Instruction.class);
-        } catch (IOException e) {
-            LOG.error("Exception during receiving SSE Event.", e);
+            instruction = JsonUtils.parse(payload, Instruction.class);
+        } catch (Exception e) {
+            LOG.error("Failed to parse instruction from SSE event.", e);
+            return;
         }
         sharingSupport.onInstruction(event, instruction, false);
     }

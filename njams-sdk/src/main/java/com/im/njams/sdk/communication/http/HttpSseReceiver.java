@@ -16,9 +16,8 @@
  */
 package com.im.njams.sdk.communication.http;
 
-import java.io.IOException;
-import java.net.MalformedURLException;
-import java.net.URL;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.Properties;
 import java.util.UUID;
 
@@ -36,9 +35,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.im.njams.sdk.NjamsSettings;
-import com.im.njams.sdk.common.JsonSerializerFactory;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.common.Path;
 import com.im.njams.sdk.communication.AbstractReceiver;
@@ -54,24 +51,26 @@ import com.im.njams.sdk.utils.StringUtils;
 public class HttpSseReceiver extends AbstractReceiver {
     private static final Logger LOG = LoggerFactory.getLogger(HttpSseReceiver.class);
     private static final String NAME = "HTTP";
-    protected static final String SSE_API_PATH = "api/httpcommunication";
+    protected static final String SSE_API_PATH = "api/httpcommunication/";
 
-    protected Client client;
-    protected SseEventSource source;
-    protected final ObjectMapper mapper = JsonSerializerFactory.getDefaultMapper();
-    protected URL url;
+    protected Client client = null;
+    protected SseEventSource source = null;
+    protected URI subscribeUri = null;
+    protected URI replyUri = null;
     private Throwable connectError = null;
 
     @Override
     public void init(final Properties properties) {
         try {
-            url = createUrl(properties);
-        } catch (final MalformedURLException ex) {
-            throw new NjamsSdkRuntimeException("Unable to init HTTP Receiver", ex);
+            subscribeUri = createUri(properties, "subscribe");
+            replyUri = createUri(properties, "reply");
+        } catch (final Exception ex) {
+            throw new NjamsSdkRuntimeException("Unable to init HTTP receiver", ex);
         }
+        LOG.debug("URI subscription={}; reply={}", subscribeUri, replyUri);
     }
 
-    private URL createUrl(final Properties properties) throws MalformedURLException {
+    private URI createUri(final Properties properties, String path) throws URISyntaxException {
         String base = properties.getProperty(NjamsSettings.PROPERTY_HTTP_BASE_URL);
         if (StringUtils.isBlank(base)) {
             throw new NjamsSdkRuntimeException(
@@ -80,7 +79,7 @@ public class HttpSseReceiver extends AbstractReceiver {
         if (base.charAt(base.length() - 1) != '/') {
             base += "/";
         }
-        return new URL(base + SSE_API_PATH);
+        return new URI(base + SSE_API_PATH + path);
     }
 
     @Override
@@ -95,8 +94,8 @@ public class HttpSseReceiver extends AbstractReceiver {
         }
         try {
             connectionStatus = ConnectionStatus.CONNECTING;
-            client = ClientBuilder.newClient();
-            final WebTarget target = client.target(url.toString() + "/subscribe");
+            client = createClient();
+            final WebTarget target = client.target(subscribeUri);
             source = SseEventSource.target(target).build();
             source.register(this::onMessage, this::onError);
             connectError = null;
@@ -128,8 +127,14 @@ public class HttpSseReceiver extends AbstractReceiver {
                 LOG.debug("Subscribed SSE receiver to {}", target.getUri());
             }
         } catch (final Throwable e) {
+            close();
             throw new NjamsSdkRuntimeException("Exception during registering SSE endpoint.", e);
         }
+    }
+
+    protected Client createClient() {
+        LOG.debug("Creating new http client.");
+        return ClientBuilder.newClient();
     }
 
     protected synchronized void onError(final Throwable throwable) {
@@ -155,8 +160,8 @@ public class HttpSseReceiver extends AbstractReceiver {
         }
         Instruction instruction = null;
         try {
-            instruction = mapper.readValue(payload, Instruction.class);
-        } catch (final IOException e) {
+            instruction = JsonUtils.parse(payload, Instruction.class);
+        } catch (final Exception e) {
             LOG.error("Failed to parse instruction from SSE event.", e);
             return;
         }
@@ -179,14 +184,14 @@ public class HttpSseReceiver extends AbstractReceiver {
         }
         final String receiver = event.getName();
         if (StringUtils.isBlank(receiver) || !njams.getClientPath().equals(new Path(receiver))) {
-            LOG.debug("Message is not for me! Client path from Message is: " + event.getName() +
-                    " but nJAMS Client path is: " + njams.getClientPath());
+            LOG.debug("Message is not for me! Client path from message is: " + event.getName() +
+                    " but nJAMS client path is: " + njams.getClientPath());
             return false;
         }
         final String clientId = event.getComment();
         if (StringUtils.isNotBlank(clientId) && !njams.getCommunicationSessionId().equals(clientId)) {
-            LOG.debug("Message is not for me! Client id from Message is: " + event.getComment() +
-                    " but nJAMS Client id is: " + njams.getCommunicationSessionId());
+            LOG.debug("Message is not for me! Client id from message is: " + event.getComment() +
+                    " but nJAMS client id is: " + njams.getCommunicationSessionId());
             return false;
         }
         return true;
@@ -198,42 +203,43 @@ public class HttpSseReceiver extends AbstractReceiver {
             return;
         }
         connectionStatus = ConnectionStatus.DISCONNECTED;
-        source.close();
+        close();
+    }
+
+    private void close() {
+        if (source != null) {
+            source.close();
+            source = null;
+        }
+        if (client != null) {
+            client.close();
+            client = null;
+            LOG.debug("Client closed");
+        }
     }
 
     protected void sendReply(final String requestId, final Instruction instruction, final String clientId) {
-        final String responseId = UUID.randomUUID().toString();
-        Client client = null;
-        try {
-            client = ClientBuilder.newClient();
-            final WebTarget target = client.target(url.toString() + "/reply");
+        final String replyId = UUID.randomUUID().toString();
+        final String json = JsonUtils.serialize(instruction);
+        LOG.trace("Sending reply {} (clientId={}) for request {}:\n{}", replyId, clientId, requestId, json);
+        final WebTarget target = client.target(replyUri);
 
-            final Invocation.Builder builder = target.request()
-                    .header("Content-Type", "application/json")
-                    .header("Accept", "text/plain")
-                    .header("njams-receiver", "server")
-                    .header("njams-messagetype", "reply")
-                    .header("njams-message-id", responseId)
-                    .header("njams-reply-for", requestId)
-                    // Additionally add old headers
-                    .header("NJAMS_RECEIVER", "server")
-                    .header("NJAMS_MESSAGETYPE", "reply")
-                    .header("NJAMS_MESSAGE_ID", responseId)
-                    .header("NJAMS_REPLY_FOR", requestId);
-            if (clientId != null) {
-                builder.header("njams-clientid", clientId);
-            }
-            final Response response = builder.post(Entity.json(JsonUtils.serialize(instruction)));
-            LOG.debug("Reply response status:" + response.getStatus());
-        } finally {
-            if (client != null) {
-                try {
-                    Thread.sleep(100);
-                } catch (final InterruptedException e) {
-                    // do nothing
-                }
-                client.close();
-            }
+        final Invocation.Builder builder = target.request()
+                .header("Content-Type", "application/json")
+                .header("Accept", "text/plain")
+                .header("njams-receiver", "server")
+                .header("njams-messagetype", "reply")
+                .header("njams-message-id", replyId)
+                .header("njams-reply-for", requestId)
+                // Additionally add old headers
+                .header("NJAMS_RECEIVER", "server")
+                .header("NJAMS_MESSAGETYPE", "reply")
+                .header("NJAMS_MESSAGE_ID", replyId)
+                .header("NJAMS_REPLY_FOR", requestId);
+        if (clientId != null) {
+            builder.header("njams-clientid", clientId);
         }
+        final Response response = builder.post(Entity.json(json));
+        LOG.debug("Response status for reply {}: {}", replyId, response.getStatus());
     }
 }

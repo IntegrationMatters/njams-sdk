@@ -16,8 +16,6 @@
  */
 package com.im.njams.sdk.communication.http;
 
-import java.io.IOException;
-
 import javax.ws.rs.sse.InboundSseEvent;
 
 import org.slf4j.Logger;
@@ -28,6 +26,7 @@ import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.common.Path;
 import com.im.njams.sdk.communication.ShareableReceiver;
 import com.im.njams.sdk.communication.SharedReceiverSupport;
+import com.im.njams.sdk.utils.JsonUtils;
 
 /**
  * Overrides the common {@link HttpSseReceiver} for supporting receiving messages for multiple {@link Njams} instances.
@@ -78,8 +77,8 @@ public class SharedHttpSseReceiver extends HttpSseReceiver implements ShareableR
         LOG.debug("OnMessage in shared receiver called, event-id={}, payload={}", id, payload);
         Instruction instruction = null;
         try {
-            instruction = mapper.readValue(payload, Instruction.class);
-        } catch (IOException e) {
+            instruction = JsonUtils.parse(payload, Instruction.class);
+        } catch (Exception e) {
             LOG.error("Failed to parse instruction from SSE event.", e);
             return;
         }
