@@ -1,14 +1,8 @@
 package com.im.njams.sdk.communication.http;
 
-import java.io.FileInputStream;
-import java.io.InputStream;
-import java.security.KeyStore;
-import java.security.cert.Certificate;
-import java.security.cert.CertificateFactory;
 import java.util.Properties;
 
 import javax.net.ssl.SSLContext;
-import javax.net.ssl.TrustManagerFactory;
 import javax.ws.rs.client.ClientBuilder;
 
 import org.slf4j.Logger;
@@ -46,7 +40,8 @@ public class HttpsSender extends HttpSender {
     @Override
     public void init(Properties properties) {
         try {
-            sslContext = initializeSSLContext(properties.getProperty(NjamsSettings.PROPERTY_HTTP_SSL_CERTIFICATE_FILE));
+            sslContext = SSLContextFactory
+                    .createSSLContext(properties.getProperty(NjamsSettings.PROPERTY_HTTP_SSL_CERTIFICATE_FILE));
             super.init(properties);
             LOG.debug("Initialized HTTPS Sender with url {}", uri);
         } catch (final Exception e) {
@@ -82,28 +77,4 @@ public class HttpsSender extends HttpSender {
         return NAME;
     }
 
-    /**
-     * This Method gets a certificate and uses it to initalize a SSLContext with it.
-     *
-     * @param certificateFile the certificate to connect to nJAMS
-     * @return the ssl context
-     */
-    public static SSLContext initializeSSLContext(String certificateFile) {
-        try (InputStream fis = new FileInputStream(certificateFile)) {
-            CertificateFactory cf = CertificateFactory.getInstance("X.509");
-            Certificate cert = cf.generateCertificate(fis);
-            // load the keystore that includes self-signed cert as a "trusted" entry
-            KeyStore keyStore = KeyStore.getInstance(KeyStore.getDefaultType());
-            keyStore.load(null, null);
-            TrustManagerFactory tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
-            keyStore.setCertificateEntry("cert-alias", cert);
-            tmf.init(keyStore);
-            SSLContext sslContext = SSLContext.getInstance("TLS");
-            sslContext.init(null, tmf.getTrustManagers(), null);
-            return sslContext;
-        } catch (Exception e) {
-            throw new NjamsSdkRuntimeException("Could not initialize SSLContext.", e);
-        }
-
-    }
 }

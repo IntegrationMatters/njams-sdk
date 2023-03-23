@@ -50,8 +50,9 @@ import com.im.njams.sdk.utils.StringUtils;
  */
 public class HttpSseReceiver extends AbstractReceiver {
     private static final Logger LOG = LoggerFactory.getLogger(HttpSseReceiver.class);
+
     private static final String NAME = "HTTP";
-    protected static final String SSE_API_PATH = "api/httpcommunication/";
+    private static final String SSE_API_PATH = "api/httpcommunication/";
 
     protected Client client = null;
     protected SseEventSource source = null;

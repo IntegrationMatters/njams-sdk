@@ -31,7 +31,7 @@ public class HttpsSseReceiver extends HttpSseReceiver {
     public void init(Properties properties) {
         super.init(properties);
         try {
-            sslContext = HttpsSender.initializeSSLContext(
+            sslContext = SSLContextFactory.createSSLContext(
                     properties.getProperty(NjamsSettings.PROPERTY_HTTP_SSL_CERTIFICATE_FILE));
         } catch (final Exception ex) {
             throw new NjamsSdkRuntimeException("Unable to init HTTPS Receiver", ex);
