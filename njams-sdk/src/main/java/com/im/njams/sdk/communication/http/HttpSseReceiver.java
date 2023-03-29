@@ -247,7 +247,7 @@ public class HttpSseReceiver extends AbstractReceiver {
     /**
      * Check, that the message is valid for this nJAMS client.
      *
-     * @param event the inbound event
+     * @param headers the headers of the inbound event
      * @return true, if event is valid and should be handled
      */
     protected boolean isValidMessage(final Map<String, String> headers) {
