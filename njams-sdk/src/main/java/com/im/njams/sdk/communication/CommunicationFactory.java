@@ -71,7 +71,10 @@ public class CommunicationFactory {
      */
     public Receiver getReceiver(Njams njams) {
         if (settings.containsKey(NjamsSettings.PROPERTY_COMMUNICATION)) {
-            final String requiredReceiverName = settings.getProperty(NjamsSettings.PROPERTY_COMMUNICATION);
+            String requiredReceiverName = settings.getProperty(NjamsSettings.PROPERTY_COMMUNICATION);
+            if ("HTTPS".equalsIgnoreCase(requiredReceiverName)) {
+                requiredReceiverName = "HTTP";
+            }
             final boolean shared =
                     "true".equalsIgnoreCase(settings.getPropertyWithDeprecationWarning(
                             NjamsSettings.PROPERTY_SHARED_COMMUNICATIONS, NjamsSettings.OLD_SHARED_COMMUNICATIONS));

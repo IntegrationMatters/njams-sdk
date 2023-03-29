@@ -26,6 +26,7 @@ import java.net.URISyntaxException;
 import java.util.Properties;
 import java.util.function.Supplier;
 
+import javax.net.ssl.SSLContext;
 import javax.ws.rs.client.Client;
 import javax.ws.rs.client.ClientBuilder;
 import javax.ws.rs.client.Entity;
@@ -127,6 +128,7 @@ public class HttpSender extends AbstractSender {
     protected URI uri;
     protected Client client;
     protected WebTarget target;
+    private SSLContext sslContext = null;
 
     private enum ConnectionTestMode {
         /** Initial value that triggers trying {@link #STANDARD} first, then falling back to {@link #LEGACY} */
@@ -169,11 +171,19 @@ public class HttpSender extends AbstractSender {
                     connectionTestMode = ConnectionTestMode.LEGACY;
                 }
             }
+            if (isSslRequested()) {
+                sslContext = SSLContextFactory
+                        .createSSLContext(properties.getProperty(NjamsSettings.PROPERTY_HTTP_SSL_CERTIFICATE_FILE));
+            }
             connect();
-            LOG.debug("Initialized http sender with url {}", uri);
+            LOG.debug("Initialized {} sender with URL {}", isSslRequested() ? "https" : "http", uri);
         } catch (final Exception e) {
             LOG.debug("Could not initialize sender with URL {}", uri, e);
         }
+    }
+
+    private boolean isSslRequested() {
+        return SSLContextFactory.isSslUri(uri);
     }
 
     private URI createUri(String path) throws URISyntaxException {
@@ -202,7 +212,7 @@ public class HttpSender extends AbstractSender {
         }
         try {
             connectionStatus = ConnectionStatus.CONNECTING;
-            client = ClientBuilder.newClient();
+            client = createClient();
             target = client.target(uri);
             testConnection();
             connectionStatus = ConnectionStatus.CONNECTED;
@@ -215,7 +225,16 @@ public class HttpSender extends AbstractSender {
         }
     }
 
-    protected void testConnection() {
+    private Client createClient() {
+        if (isSslRequested()) {
+            LOG.debug("Creating new https client.");
+            return ClientBuilder.newBuilder().sslContext(sslContext).build();
+        }
+        LOG.debug("Creating new http client.");
+        return ClientBuilder.newClient();
+    }
+
+    private void testConnection() {
         if (target == null) {
             throw new NullPointerException("No target");
         }

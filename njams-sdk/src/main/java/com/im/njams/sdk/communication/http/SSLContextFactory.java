@@ -19,6 +19,7 @@ package com.im.njams.sdk.communication.http;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URI;
 import java.security.KeyStore;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
@@ -39,6 +40,18 @@ import com.im.njams.sdk.utils.StringUtils;
 public class SSLContextFactory {
     private SSLContextFactory() {
         // static only
+    }
+
+    /**
+     * Returns whether or not the given URI uses <code>https</code> scheme.
+     * @param uri The URI to test
+     * @return <code>true</code> only if the given URI uses https
+     */
+    public static boolean isSslUri(URI uri) {
+        if (uri == null) {
+            return false;
+        }
+        return "https".equalsIgnoreCase(uri.getScheme());
     }
 
     /**

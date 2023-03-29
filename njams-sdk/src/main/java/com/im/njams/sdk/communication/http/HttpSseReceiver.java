@@ -27,6 +27,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 
 import javax.jms.IllegalStateException;
+import javax.net.ssl.SSLContext;
 import javax.ws.rs.client.Client;
 import javax.ws.rs.client.ClientBuilder;
 import javax.ws.rs.client.Entity;
@@ -75,6 +76,7 @@ public class HttpSseReceiver extends AbstractReceiver {
     protected SseEventSource source = null;
     protected URI subscribeUri = null;
     protected URI replyUri = null;
+    private SSLContext sslContext = null;
     private Throwable connectError = null;
     private final ReentrantLock connectLock = new ReentrantLock();
 
@@ -86,7 +88,15 @@ public class HttpSseReceiver extends AbstractReceiver {
         } catch (final Exception ex) {
             throw new NjamsSdkRuntimeException("Unable to init HTTP receiver", ex);
         }
-        LOG.debug("URI subscription={}; reply={}", subscribeUri, replyUri);
+        if (isSslRequested()) {
+            sslContext = SSLContextFactory
+                    .createSSLContext(properties.getProperty(NjamsSettings.PROPERTY_HTTP_SSL_CERTIFICATE_FILE));
+        }
+        LOG.debug("URI subscription={}; reply={}; isSsl={}", subscribeUri, replyUri, isSslRequested());
+    }
+
+    private boolean isSslRequested() {
+        return SSLContextFactory.isSslUri(subscribeUri);
     }
 
     private URI createUri(final Properties properties, String path) throws URISyntaxException {
@@ -110,13 +120,15 @@ public class HttpSseReceiver extends AbstractReceiver {
     public void connect() {
         LOG.trace("Enter connect.");
         long connectWait = 1000;
+        boolean unlock = false;
         try {
-            if (!connectLock.tryLock(connectWait * 2, TimeUnit.MILLISECONDS)) {
+            if (!connectLock.tryLock(connectWait * 4, TimeUnit.MILLISECONDS)) {
                 if (isConnected()) {
                     return;
                 }
                 throw new IllegalStateException("Failed to get connect lock");
             }
+            unlock = true;
             if (isConnected()) {
                 LOG.debug("Already connected.");
                 return;
@@ -157,11 +169,17 @@ public class HttpSseReceiver extends AbstractReceiver {
             throw new NjamsSdkRuntimeException("Exception during registering SSE endpoint.", e);
         } finally {
             connectError = null;
-            connectLock.unlock();
+            if (unlock) {
+                connectLock.unlock();
+            }
         }
     }
 
-    protected Client createClient() {
+    private Client createClient() {
+        if (isSslRequested()) {
+            LOG.debug("Creating new https client.");
+            return ClientBuilder.newBuilder().sslContext(sslContext).build();
+        }
         LOG.debug("Creating new http client.");
         return ClientBuilder.newClient();
     }
