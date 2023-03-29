@@ -30,18 +30,6 @@ import com.im.njams.sdk.utils.ClasspathValidator;
  * @author pnientiedt
  */
 public interface Receiver extends ClasspathValidator {
-    /**
-     * Name of the header storing the receiver (client) path
-     */
-    public static final String NJAMS_RECEIVER = "NJAMS_RECEIVER";
-    /**
-     * Name of the header storing a unique message ID
-     */
-    public static final String NJAMS_MESSAGE_ID = "NJAMS_MESSAGE_ID";
-    /**
-     * Name of the Kafka header storing the ID of the request message to that a reply message belongs
-     */
-    public static final String NJAMS_REPLY_FOR = "NJAMS_REPLY_FOR";
 
     /**
      * Set njams instance

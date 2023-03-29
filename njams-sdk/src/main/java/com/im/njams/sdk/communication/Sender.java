@@ -31,42 +31,6 @@ import com.im.njams.sdk.utils.ClasspathValidator;
 public interface Sender extends ClasspathValidator {
 
     /**
-     * Property key for header properties which will specify the messageVersion
-     */
-    public static final String NJAMS_MESSAGEVERSION = "NJAMS_MESSAGEVERSION";
-    /**
-     * Property key for header properties which will specify the path
-     */
-    public static final String NJAMS_PATH = "NJAMS_PATH";
-    /**
-     * Property key for header properties which must be send to the server in
-     * logmessages specifing the logId
-     */
-    public static final String NJAMS_LOGID = "NJAMS_LOGID";
-    /**
-     * Property key for header property which will contain the clientId for container setups
-     */
-    public static final String NJAMS_CLIENTID = "NJAMS_CLIENTID";
-    /**
-     * Property key for header properties which must be send to the server in
-     * every message
-     */
-    public static final String NJAMS_MESSAGETYPE = "NJAMS_MESSAGETYPE";
-
-    /**
-     * Property value for header properties which specifies a logmessage
-     */
-    public static final String NJAMS_MESSAGETYPE_EVENT = "event";
-    /**
-     * Property value for header properties which specifies a projectmessage
-     */
-    public static final String NJAMS_MESSAGETYPE_PROJECT = "project";
-    /**
-     * Property value for header properties which specifies a tracemessage
-     */
-    public static final String NJAMS_MESSAGETYPE_TRACE = "command";
-
-    /**
      * This new implementation should initialize itself via the given
      * Properties.
      *

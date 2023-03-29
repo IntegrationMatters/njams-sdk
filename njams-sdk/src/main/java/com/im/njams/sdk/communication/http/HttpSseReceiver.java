@@ -16,6 +16,18 @@
  */
 package com.im.njams.sdk.communication.http;
 
+import static com.im.njams.sdk.communication.MessageHeaders.CONTENT_TYPE_JSON;
+import static com.im.njams.sdk.communication.MessageHeaders.NJAMS_CLIENTID_HTTP_HEADER;
+import static com.im.njams.sdk.communication.MessageHeaders.NJAMS_CONTENT_HTTP_HEADER;
+import static com.im.njams.sdk.communication.MessageHeaders.NJAMS_MESSAGETYPE_HEADER;
+import static com.im.njams.sdk.communication.MessageHeaders.NJAMS_MESSAGETYPE_HTTP_HEADER;
+import static com.im.njams.sdk.communication.MessageHeaders.NJAMS_MESSAGE_ID_HEADER;
+import static com.im.njams.sdk.communication.MessageHeaders.NJAMS_MESSAGE_ID_HTTP_HEADER;
+import static com.im.njams.sdk.communication.MessageHeaders.NJAMS_RECEIVER_HEADER;
+import static com.im.njams.sdk.communication.MessageHeaders.NJAMS_RECEIVER_HTTP_HEADER;
+import static com.im.njams.sdk.communication.MessageHeaders.NJAMS_REPLY_FOR_HEADER;
+import static com.im.njams.sdk.communication.MessageHeaders.NJAMS_REPLY_FOR_HTTP_HEADER;
+
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Collections;
@@ -46,8 +58,6 @@ import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.common.Path;
 import com.im.njams.sdk.communication.AbstractReceiver;
 import com.im.njams.sdk.communication.ConnectionStatus;
-import com.im.njams.sdk.communication.Receiver;
-import com.im.njams.sdk.communication.Sender;
 import com.im.njams.sdk.utils.JsonUtils;
 import com.im.njams.sdk.utils.StringUtils;
 
@@ -60,14 +70,14 @@ public class HttpSseReceiver extends AbstractReceiver {
 
     private static final Logger LOG = LoggerFactory.getLogger(HttpSseReceiver.class);
 
-    protected static final String NJAMS_CLIENTID_HTTP_HEADER = "njams-clientid";
-    protected static final String NJAMS_CONTENT_HTTP_HEADER = "njams-content";
-    protected static final String NJAMS_MESSAGE_ID_HTTP_HEADER = "njams-message-id";
-    protected static final String NJAMS_RECEIVER_HTTP_HEADER = "njams-receiver";
-    public static final String NJAMS_MESSAGETYPE_HTTP_HEADER = "njams-messagetype";
-    public static final String NJAMS_REPLY_FOR_HTTP_HEADER = "njams-reply-for";
+    //    protected static final String NJAMS_CLIENTID_HTTP_HEADER = "njams-clientid";
+    //    protected static final String NJAMS_CONTENT_HTTP_HEADER = "njams-content";
+    //    protected static final String NJAMS_MESSAGE_ID_HTTP_HEADER = "njams-message-id";
+    //    protected static final String NJAMS_RECEIVER_HTTP_HEADER = "njams-receiver";
+    //    public static final String NJAMS_MESSAGETYPE_HTTP_HEADER = "njams-messagetype";
+    //    public static final String NJAMS_REPLY_FOR_HTTP_HEADER = "njams-reply-for";
 
-    protected static final String CONTENT_TYPE_JSON = "json";
+    //    protected static final String CONTENT_TYPE_JSON = "json";
 
     private static final String NAME = "HTTP";
     private static final String SSE_API_PATH = "api/httpcommunication/";
@@ -310,10 +320,10 @@ public class HttpSseReceiver extends AbstractReceiver {
                 .header(NJAMS_MESSAGE_ID_HTTP_HEADER, replyId)
                 .header(NJAMS_REPLY_FOR_HTTP_HEADER, requestId)
                 // Additionally add old headers
-                .header(Sender.NJAMS_MESSAGETYPE, "Reply")
-                .header(Receiver.NJAMS_RECEIVER, "server")
-                .header(Receiver.NJAMS_MESSAGE_ID, replyId)
-                .header(Receiver.NJAMS_REPLY_FOR, requestId);
+                .header(NJAMS_MESSAGETYPE_HEADER, "Reply")
+                .header(NJAMS_RECEIVER_HEADER, "server")
+                .header(NJAMS_MESSAGE_ID_HEADER, replyId)
+                .header(NJAMS_REPLY_FOR_HEADER, requestId);
         if (clientId != null) {
             builder.header("njams-clientid", clientId);
         }

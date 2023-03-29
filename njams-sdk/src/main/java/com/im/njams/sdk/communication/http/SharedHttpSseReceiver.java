@@ -16,6 +16,12 @@
  */
 package com.im.njams.sdk.communication.http;
 
+import static com.im.njams.sdk.communication.MessageHeaders.CONTENT_TYPE_JSON;
+import static com.im.njams.sdk.communication.MessageHeaders.NJAMS_CLIENTID_HTTP_HEADER;
+import static com.im.njams.sdk.communication.MessageHeaders.NJAMS_CONTENT_HTTP_HEADER;
+import static com.im.njams.sdk.communication.MessageHeaders.NJAMS_MESSAGE_ID_HTTP_HEADER;
+import static com.im.njams.sdk.communication.MessageHeaders.NJAMS_RECEIVER_HTTP_HEADER;
+
 import java.util.Map;
 
 import javax.ws.rs.sse.InboundSseEvent;

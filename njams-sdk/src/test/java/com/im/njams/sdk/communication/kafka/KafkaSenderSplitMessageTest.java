@@ -1,5 +1,9 @@
 package com.im.njams.sdk.communication.kafka;
 
+import static com.im.njams.sdk.communication.MessageHeaders.NJAMS_LOGID_HEADER;
+import static com.im.njams.sdk.communication.MessageHeaders.NJAMS_MESSAGETYPE_HEADER;
+import static com.im.njams.sdk.communication.MessageHeaders.NJAMS_MESSAGEVERSION_HEADER;
+import static com.im.njams.sdk.communication.MessageHeaders.NJAMS_PATH_HEADER;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -23,7 +27,6 @@ import com.faizsiegeln.njams.messageformat.v4.common.CommonMessage;
 import com.faizsiegeln.njams.messageformat.v4.logmessage.LogMessage;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.ProjectMessage;
 import com.im.njams.sdk.NjamsSettings;
-import com.im.njams.sdk.communication.Sender;
 
 public class KafkaSenderSplitMessageTest {
 
@@ -133,10 +136,10 @@ public class KafkaSenderSplitMessageTest {
             data += record.value();
 
             Map<String, String> headers = getHeaders(record);
-            assertEquals(">a>b>c>", headers.get(Sender.NJAMS_PATH));
-            assertEquals("4711", headers.get(Sender.NJAMS_LOGID));
-            assertEquals("event", headers.get(Sender.NJAMS_MESSAGETYPE));
-            assertEquals("V4", headers.get(Sender.NJAMS_MESSAGEVERSION));
+            assertEquals(">a>b>c>", headers.get(NJAMS_PATH_HEADER));
+            assertEquals("4711", headers.get(NJAMS_LOGID_HEADER));
+            assertEquals("event", headers.get(NJAMS_MESSAGETYPE_HEADER));
+            assertEquals("V4", headers.get(NJAMS_MESSAGEVERSION_HEADER));
             assertEquals("3", headers.get(KafkaSender.NJAMS_CHUNKS));
             assertEquals(String.valueOf(i + 1), headers.get(KafkaSender.NJAMS_CHUNK_NO));
         }
@@ -162,10 +165,10 @@ public class KafkaSenderSplitMessageTest {
         assertEquals("topic", record.topic());
 
         Map<String, String> headers = getHeaders(record);
-        assertEquals(">a>b>c>", headers.get(Sender.NJAMS_PATH));
-        assertEquals("4711", headers.get(Sender.NJAMS_LOGID));
-        assertEquals("event", headers.get(Sender.NJAMS_MESSAGETYPE));
-        assertEquals("V4", headers.get(Sender.NJAMS_MESSAGEVERSION));
+        assertEquals(">a>b>c>", headers.get(NJAMS_PATH_HEADER));
+        assertEquals("4711", headers.get(NJAMS_LOGID_HEADER));
+        assertEquals("event", headers.get(NJAMS_MESSAGETYPE_HEADER));
+        assertEquals("V4", headers.get(NJAMS_MESSAGEVERSION_HEADER));
         assertFalse(headers.containsKey(KafkaSender.NJAMS_CHUNKS));
         assertFalse(headers.containsKey(KafkaSender.NJAMS_CHUNK_NO));
         assertEquals(testData15, record.value());
@@ -178,10 +181,10 @@ public class KafkaSenderSplitMessageTest {
         assertEquals("topic", record.topic());
 
         headers = getHeaders(record);
-        assertEquals(">a>b>c>", headers.get(Sender.NJAMS_PATH));
-        assertEquals("4711", headers.get(Sender.NJAMS_LOGID));
-        assertEquals("event", headers.get(Sender.NJAMS_MESSAGETYPE));
-        assertEquals("V4", headers.get(Sender.NJAMS_MESSAGEVERSION));
+        assertEquals(">a>b>c>", headers.get(NJAMS_PATH_HEADER));
+        assertEquals("4711", headers.get(NJAMS_LOGID_HEADER));
+        assertEquals("event", headers.get(NJAMS_MESSAGETYPE_HEADER));
+        assertEquals("V4", headers.get(NJAMS_MESSAGEVERSION_HEADER));
         assertFalse(headers.containsKey(KafkaSender.NJAMS_CHUNKS));
         assertFalse(headers.containsKey(KafkaSender.NJAMS_CHUNK_NO));
         assertEquals(testData15, record.value());
@@ -207,12 +210,12 @@ public class KafkaSenderSplitMessageTest {
             data += record.value();
 
             Map<String, String> headers = getHeaders(record);
-            assertEquals(">a>b>c>", headers.get(Sender.NJAMS_PATH));
-            assertEquals("project", headers.get(Sender.NJAMS_MESSAGETYPE));
-            assertEquals("V4", headers.get(Sender.NJAMS_MESSAGEVERSION));
+            assertEquals(">a>b>c>", headers.get(NJAMS_PATH_HEADER));
+            assertEquals("project", headers.get(NJAMS_MESSAGETYPE_HEADER));
+            assertEquals("V4", headers.get(NJAMS_MESSAGEVERSION_HEADER));
             assertEquals("3", headers.get(KafkaSender.NJAMS_CHUNKS));
             assertEquals(String.valueOf(i + 1), headers.get(KafkaSender.NJAMS_CHUNK_NO));
-            assertNull(headers.get(Sender.NJAMS_LOGID));
+            assertNull(headers.get(NJAMS_LOGID_HEADER));
         }
         assertEquals(testData45, data);
 
@@ -235,12 +238,12 @@ public class KafkaSenderSplitMessageTest {
         assertEquals("topic", record.topic());
 
         Map<String, String> headers = getHeaders(record);
-        assertEquals(">a>b>c>", headers.get(Sender.NJAMS_PATH));
-        assertEquals("project", headers.get(Sender.NJAMS_MESSAGETYPE));
-        assertEquals("V4", headers.get(Sender.NJAMS_MESSAGEVERSION));
+        assertEquals(">a>b>c>", headers.get(NJAMS_PATH_HEADER));
+        assertEquals("project", headers.get(NJAMS_MESSAGETYPE_HEADER));
+        assertEquals("V4", headers.get(NJAMS_MESSAGEVERSION_HEADER));
         assertFalse(headers.containsKey(KafkaSender.NJAMS_CHUNKS));
         assertFalse(headers.containsKey(KafkaSender.NJAMS_CHUNK_NO));
-        assertNull(headers.get(Sender.NJAMS_LOGID));
+        assertNull(headers.get(NJAMS_LOGID_HEADER));
         assertEquals(testData15, record.value());
 
         init(20, false);
@@ -251,12 +254,12 @@ public class KafkaSenderSplitMessageTest {
         assertEquals("topic", record.topic());
 
         headers = getHeaders(record);
-        assertEquals(">a>b>c>", headers.get(Sender.NJAMS_PATH));
-        assertEquals("project", headers.get(Sender.NJAMS_MESSAGETYPE));
-        assertEquals("V4", headers.get(Sender.NJAMS_MESSAGEVERSION));
+        assertEquals(">a>b>c>", headers.get(NJAMS_PATH_HEADER));
+        assertEquals("project", headers.get(NJAMS_MESSAGETYPE_HEADER));
+        assertEquals("V4", headers.get(NJAMS_MESSAGEVERSION_HEADER));
         assertFalse(headers.containsKey(KafkaSender.NJAMS_CHUNKS));
         assertFalse(headers.containsKey(KafkaSender.NJAMS_CHUNK_NO));
-        assertNull(headers.get(Sender.NJAMS_LOGID));
+        assertNull(headers.get(NJAMS_LOGID_HEADER));
         assertEquals(testData15, record.value());
     }
 

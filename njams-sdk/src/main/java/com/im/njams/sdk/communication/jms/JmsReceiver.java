@@ -16,6 +16,9 @@
  */
 package com.im.njams.sdk.communication.jms;
 
+import static com.im.njams.sdk.communication.MessageHeaders.NJAMS_CLIENTID_HEADER;
+import static com.im.njams.sdk.communication.MessageHeaders.NJAMS_CONTENT_HEADER;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
@@ -62,15 +65,6 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
 
     private static final Logger LOG = LoggerFactory.getLogger(JmsReceiver.class);
 
-    /**
-     * Name of the JMS Message Property  storing the clientId
-     */
-    public static final String NJAMS_CLIENTID = "NJAMS_CLIENTID";
-    /**
-     * Content type header. Is used to determine whether this command can be processed by this receiver.
-     */
-    private static final String NJAMS_CONTENT = "NJAMS_CONTENT";
-
     private Connection connection;
     protected Session session;
     private Properties properties;
@@ -87,7 +81,7 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
      */
     @Override
     public String getName() {
-        return JmsConstants.COMMUNICATION_NAME;
+        return JmsSender.COMMUNICATION_NAME;
     }
 
     /**
@@ -439,12 +433,12 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
             LOG.trace("Received {}", StringUtils.messageToString(msg));
         }
         try {
-            final String njamsContent = msg.getStringProperty(NJAMS_CONTENT);
+            final String njamsContent = msg.getStringProperty(NJAMS_CONTENT_HEADER);
             if (!njamsContent.equalsIgnoreCase("json")) {
                 LOG.debug("Received non json instruction -> ignore");
                 return;
             }
-            final String clientId = msg.getStringProperty(NJAMS_CLIENTID);
+            final String clientId = msg.getStringProperty(NJAMS_CLIENTID_HEADER);
             if (clientId != null && !clientId.equals(njams.getCommunicationSessionId())) {
                 LOG.debug("Message is not for me! ClientId in Message is: {} but this nJAMS Client has Id: {}",
                         clientId, njams.getCommunicationSessionId());
@@ -504,7 +498,7 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
             String response = mapper.writeValueAsString(instruction);
             final TextMessage responseMessage = session.createTextMessage();
             responseMessage.setText(response);
-            responseMessage.setStringProperty(NJAMS_CLIENTID, clientId);
+            responseMessage.setStringProperty(NJAMS_CLIENTID_HEADER, clientId);
             final String jmsCorrelationID = message.getJMSCorrelationID();
             if (jmsCorrelationID != null && !jmsCorrelationID.isEmpty()) {
                 responseMessage.setJMSCorrelationID(jmsCorrelationID);

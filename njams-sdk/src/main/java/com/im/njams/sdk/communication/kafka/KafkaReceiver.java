@@ -17,6 +17,15 @@
 
 package com.im.njams.sdk.communication.kafka;
 
+import static com.im.njams.sdk.communication.MessageHeaders.COMMAND_TYPE_REPLY;
+import static com.im.njams.sdk.communication.MessageHeaders.CONTENT_TYPE_JSON;
+import static com.im.njams.sdk.communication.MessageHeaders.NJAMS_CLIENTID_HEADER;
+import static com.im.njams.sdk.communication.MessageHeaders.NJAMS_CONTENT_HEADER;
+import static com.im.njams.sdk.communication.MessageHeaders.NJAMS_MESSAGE_ID_HEADER;
+import static com.im.njams.sdk.communication.MessageHeaders.NJAMS_RECEIVER_HEADER;
+import static com.im.njams.sdk.communication.MessageHeaders.NJAMS_REPLY_FOR_HEADER;
+import static com.im.njams.sdk.communication.MessageHeaders.NJAMS_TYPE_HEADER;
+import static com.im.njams.sdk.communication.MessageHeaders.RECEIVER_SERVER;
 import static com.im.njams.sdk.communication.kafka.KafkaHeadersUtil.getHeader;
 import static com.im.njams.sdk.communication.kafka.KafkaHeadersUtil.headersUpdater;
 import static com.im.njams.sdk.communication.kafka.KafkaUtil.filterKafkaProperties;
@@ -41,7 +50,7 @@ import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.common.Path;
 import com.im.njams.sdk.communication.AbstractReceiver;
 import com.im.njams.sdk.communication.ConnectionStatus;
-import com.im.njams.sdk.communication.Sender;
+import com.im.njams.sdk.communication.kafka.KafkaHeadersUtil.HeadersUpdater;
 import com.im.njams.sdk.communication.kafka.KafkaUtil.ClientType;
 import com.im.njams.sdk.settings.Settings;
 import com.im.njams.sdk.utils.StringUtils;
@@ -55,25 +64,6 @@ import com.im.njams.sdk.utils.StringUtils;
 public class KafkaReceiver extends AbstractReceiver {
 
     private final Logger LOG = LoggerFactory.getLogger(KafkaReceiver.class);
-
-    /**
-     * Name of the Kafka header storing the message's content type. Expected value is {@value #CONTENT_TYPE_JSON}
-     */
-    public static final String NJAMS_CONTENT = "NJAMS_CONTENT";
-    /**
-     * Name of the Kafka header storing the request type
-     */
-    public static final String NJAMS_TYPE = "NJAMS_TYPE";
-
-    /**
-     * The value used with header {@value #NJAMS_TYPE} for reply messages
-     */
-    private static final String MESSAGE_TYPE_REPLY = "Reply";
-    /**
-     * The value used with header {@value #NJAMS_CONTENT} for JSON content type (the only supported one)
-     */
-    public static final String CONTENT_TYPE_JSON = "json";
-    private static final String RECEIVER_SERVER = "server";
 
     private static final String GROUP_PREFIX = "njsdk_";
     private static final String COMMANDS_SUFFIX = ".commands";
@@ -208,7 +198,7 @@ public class KafkaReceiver extends AbstractReceiver {
             if (!isValidMessage(msg)) {
                 return;
             }
-            final String messageId = getHeader(msg, NJAMS_MESSAGE_ID);
+            final String messageId = getHeader(msg, NJAMS_MESSAGE_ID_HEADER);
             if (StringUtils.isBlank(messageId)) {
                 LOG.error("Missing request ID in message: {}", msg);
                 return;
@@ -235,21 +225,21 @@ public class KafkaReceiver extends AbstractReceiver {
         if (msg == null) {
             return false;
         }
-        if (StringUtils.isNotBlank(getHeader(msg, NJAMS_REPLY_FOR))) {
+        if (StringUtils.isNotBlank(getHeader(msg, NJAMS_REPLY_FOR_HEADER))) {
             // skip messages sent as a reply
             return false;
         }
-        final String receiver = getHeader(msg, NJAMS_RECEIVER);
+        final String receiver = getHeader(msg, NJAMS_RECEIVER_HEADER);
         if (StringUtils.isBlank(receiver) || !njams.getClientPath().equals(new Path(receiver))) {
             LOG.debug("Message is not for me!");
             return false;
         }
-        if (!CONTENT_TYPE_JSON.equalsIgnoreCase(getHeader(msg, NJAMS_CONTENT))) {
+        if (!CONTENT_TYPE_JSON.equalsIgnoreCase(getHeader(msg, NJAMS_CONTENT_HEADER))) {
             LOG.debug("Received non json instruction -> ignore");
             return false;
         }
 
-        final String clientId = getHeader(msg, Sender.NJAMS_CLIENTID);
+        final String clientId = getHeader(msg, NJAMS_CLIENTID_HEADER);
         if (clientId != null && !njams.getCommunicationSessionId().equals(clientId)) {
             LOG.debug("Message is not for me! ClientId in Message is: {} but this nJAMS Client has Id: {}",
                     clientId, njams.getCommunicationSessionId());
@@ -284,14 +274,15 @@ public class KafkaReceiver extends AbstractReceiver {
             final String responseId = UUID.randomUUID().toString();
             final ProducerRecord<String, String> response =
                     new ProducerRecord<>(topicName, responseId, mapper.writeValueAsString(instruction));
+            final HeadersUpdater headersUpdater = headersUpdater(response)
+                    .addHeader(NJAMS_MESSAGE_ID_HEADER, responseId)
+                    .addHeader(NJAMS_REPLY_FOR_HEADER, requestId)
+                    .addHeader(NJAMS_RECEIVER_HEADER, RECEIVER_SERVER)
+                    .addHeader(NJAMS_TYPE_HEADER, COMMAND_TYPE_REPLY)
+                    .addHeader(NJAMS_CONTENT_HEADER, CONTENT_TYPE_JSON);
+
             if (clientId != null) {
-                headersUpdater(response).addHeader(NJAMS_MESSAGE_ID, responseId).addHeader(NJAMS_REPLY_FOR, requestId)
-                        .addHeader(NJAMS_RECEIVER, RECEIVER_SERVER).addHeader(NJAMS_TYPE, MESSAGE_TYPE_REPLY)
-                        .addHeader(NJAMS_CONTENT, CONTENT_TYPE_JSON).addHeader(Sender.NJAMS_CLIENTID, clientId);
-            } else {
-                headersUpdater(response).addHeader(NJAMS_MESSAGE_ID, responseId).addHeader(NJAMS_REPLY_FOR, requestId)
-                        .addHeader(NJAMS_RECEIVER, RECEIVER_SERVER).addHeader(NJAMS_TYPE, MESSAGE_TYPE_REPLY)
-                        .addHeader(NJAMS_CONTENT, CONTENT_TYPE_JSON);
+                headersUpdater.addHeader(NJAMS_CLIENTID_HEADER, clientId);
             }
 
             synchronized (this) {

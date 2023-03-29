@@ -16,6 +16,12 @@
  */
 package com.im.njams.sdk.communication.kafka;
 
+import static com.im.njams.sdk.communication.MessageHeaders.CONTENT_TYPE_JSON;
+import static com.im.njams.sdk.communication.MessageHeaders.NJAMS_CLIENTID_HEADER;
+import static com.im.njams.sdk.communication.MessageHeaders.NJAMS_CONTENT_HEADER;
+import static com.im.njams.sdk.communication.MessageHeaders.NJAMS_MESSAGE_ID_HEADER;
+import static com.im.njams.sdk.communication.MessageHeaders.NJAMS_RECEIVER_HEADER;
+import static com.im.njams.sdk.communication.MessageHeaders.NJAMS_REPLY_FOR_HEADER;
 import static com.im.njams.sdk.communication.kafka.KafkaHeadersUtil.getHeader;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -26,7 +32,6 @@ import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.common.Path;
 import com.im.njams.sdk.communication.ConnectionStatus;
-import com.im.njams.sdk.communication.Sender;
 import com.im.njams.sdk.communication.ShareableReceiver;
 import com.im.njams.sdk.communication.SharedReceiverSupport;
 import com.im.njams.sdk.utils.StringUtils;
@@ -61,17 +66,17 @@ public class SharedKafkaReceiver extends KafkaReceiver implements ShareableRecei
 
     @Override
     public Path getReceiverPath(final ConsumerRecord<?, ?> requestMessage, final Instruction instruction) {
-        return new Path(getHeader(requestMessage, NJAMS_RECEIVER));
+        return new Path(getHeader(requestMessage, NJAMS_RECEIVER_HEADER));
     }
 
     @Override
     public String getClientId(ConsumerRecord<?, ?> requestMessage, Instruction instruction) {
-        return getHeader(requestMessage, Sender.NJAMS_CLIENTID);
+        return getHeader(requestMessage, NJAMS_CLIENTID_HEADER);
     }
 
     @Override
     public void sendReply(final ConsumerRecord<?, ?> requestMessage, final Instruction reply, String clientId) {
-        sendReply(getHeader(requestMessage, NJAMS_MESSAGE_ID), reply, clientId);
+        sendReply(getHeader(requestMessage, NJAMS_MESSAGE_ID_HEADER), reply, clientId);
 
     }
 
@@ -111,19 +116,19 @@ public class SharedKafkaReceiver extends KafkaReceiver implements ShareableRecei
         if (msg == null) {
             return false;
         }
-        if (StringUtils.isNotBlank(getHeader(msg, NJAMS_REPLY_FOR))) {
+        if (StringUtils.isNotBlank(getHeader(msg, NJAMS_REPLY_FOR_HEADER))) {
             // skip messages sent as a reply
             return false;
         }
-        if (StringUtils.isBlank(getHeader(msg, NJAMS_MESSAGE_ID))) {
+        if (StringUtils.isBlank(getHeader(msg, NJAMS_MESSAGE_ID_HEADER))) {
             LOG.error("Missing request ID in message: {}", msg);
             return false;
         }
-        if (StringUtils.isBlank(getHeader(msg, NJAMS_RECEIVER))) {
+        if (StringUtils.isBlank(getHeader(msg, NJAMS_RECEIVER_HEADER))) {
             LOG.error("Missing receiver in message: {}", msg);
             return false;
         }
-        if (!CONTENT_TYPE_JSON.equalsIgnoreCase(getHeader(msg, NJAMS_CONTENT))) {
+        if (!CONTENT_TYPE_JSON.equalsIgnoreCase(getHeader(msg, NJAMS_CONTENT_HEADER))) {
             LOG.debug("Received non json instruction -> ignore");
             return false;
         }

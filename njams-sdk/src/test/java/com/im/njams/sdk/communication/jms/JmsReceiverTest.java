@@ -16,6 +16,22 @@
  */
 package com.im.njams.sdk.communication.jms;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+import java.util.Properties;
+
+import javax.jms.JMSException;
+import javax.jms.Message;
+import javax.jms.TextMessage;
+
+import org.junit.After;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Test;
+
 import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
 import com.faizsiegeln.njams.messageformat.v4.command.Request;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -23,20 +39,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.communication.ConnectionStatus;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
-
-import javax.jms.JMSException;
-import javax.jms.Message;
-import javax.jms.TextMessage;
-import java.util.Properties;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 /**
  * This class tests the JmsReceiver
@@ -59,7 +61,7 @@ public class JmsReceiverTest {
     private static void fillProps(Properties props) {
         props.put(NjamsSettings.PROPERTY_COMMUNICATION, "JMS");
         props.put(NjamsSettings.PROPERTY_JMS_INITIAL_CONTEXT_FACTORY,
-            "com.tibco.tibjms.naming.TibjmsInitialContextFactory");
+                "com.tibco.tibjms.naming.TibjmsInitialContextFactory");
         props.put(NjamsSettings.PROPERTY_JMS_SECURITY_PRINCIPAL, "njams");
         props.put(NjamsSettings.PROPERTY_JMS_SECURITY_CREDENTIALS, "njams");
         props.put(NjamsSettings.PROPERTY_JMS_PROVIDER_URL, "tibjmsnaming://blablub:7222");
@@ -87,7 +89,7 @@ public class JmsReceiverTest {
      */
     @Test
     public void testGetNameWithProperties() {
-        assertEquals(impl.getName(), JmsConstants.COMMUNICATION_NAME);
+        assertEquals(impl.getName(), JmsSender.COMMUNICATION_NAME);
     }
 
     //init tests
@@ -221,7 +223,7 @@ public class JmsReceiverTest {
         Properties props = new Properties();
         props.put(NjamsSettings.PROPERTY_COMMUNICATION, "JMS");
         props.put(NjamsSettings.PROPERTY_JMS_INITIAL_CONTEXT_FACTORY,
-            "com.tibco.tibjms.naming.TibjmsInitialContextFactory");
+                "com.tibco.tibjms.naming.TibjmsInitialContextFactory");
         props.put(NjamsSettings.PROPERTY_JMS_SECURITY_PRINCIPAL, "njams");
         props.put(NjamsSettings.PROPERTY_JMS_SECURITY_CREDENTIALS, "njams");
         props.put(NjamsSettings.PROPERTY_JMS_PROVIDER_URL, "tibjmsnaming://blablub:7222");
@@ -339,7 +341,8 @@ public class JmsReceiverTest {
      * @throws com.fasterxml.jackson.core.JsonProcessingException isn't thrown
      */
     @Test
-    public void testOnMessageWithJsonContentAndValidInstructionButWithoutConnection() throws JMSException, JsonProcessingException {
+    public void testOnMessageWithJsonContentAndValidInstructionButWithoutConnection()
+            throws JMSException, JsonProcessingException {
         impl.init(FILLEDPROPS);
         TextMessage msg = mock(TextMessage.class);
         when(msg.getStringProperty("NJAMS_CONTENT")).thenReturn("json");

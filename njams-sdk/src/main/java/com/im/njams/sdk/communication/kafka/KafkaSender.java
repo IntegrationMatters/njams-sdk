@@ -24,6 +24,14 @@
 
 package com.im.njams.sdk.communication.kafka;
 
+import static com.im.njams.sdk.communication.MessageHeaders.NJAMS_CLIENTID_HEADER;
+import static com.im.njams.sdk.communication.MessageHeaders.NJAMS_LOGID_HEADER;
+import static com.im.njams.sdk.communication.MessageHeaders.MESSAGETYPE_EVENT;
+import static com.im.njams.sdk.communication.MessageHeaders.NJAMS_MESSAGETYPE_HEADER;
+import static com.im.njams.sdk.communication.MessageHeaders.MESSAGETYPE_PROJECT;
+import static com.im.njams.sdk.communication.MessageHeaders.MESSAGETYPE_TRACE;
+import static com.im.njams.sdk.communication.MessageHeaders.NJAMS_MESSAGEVERSION_HEADER;
+import static com.im.njams.sdk.communication.MessageHeaders.NJAMS_PATH_HEADER;
 import static com.im.njams.sdk.communication.kafka.KafkaHeadersUtil.headersUpdater;
 
 import java.nio.Buffer;
@@ -65,7 +73,6 @@ import com.im.njams.sdk.communication.AbstractSender;
 import com.im.njams.sdk.communication.ConnectionStatus;
 import com.im.njams.sdk.communication.DiscardMonitor;
 import com.im.njams.sdk.communication.DiscardPolicy;
-import com.im.njams.sdk.communication.Sender;
 import com.im.njams.sdk.communication.kafka.KafkaHeadersUtil.HeadersUpdater;
 import com.im.njams.sdk.communication.kafka.KafkaUtil.ClientType;
 import com.im.njams.sdk.utils.JsonUtils;
@@ -224,7 +231,7 @@ public class KafkaSender extends AbstractSender {
     protected void send(final LogMessage msg, String clientSessionId) {
         try {
             final String data = JsonUtils.serialize(msg);
-            sendMessage(msg, topicEvent, Sender.NJAMS_MESSAGETYPE_EVENT, data, clientSessionId);
+            sendMessage(msg, topicEvent, MESSAGETYPE_EVENT, data, clientSessionId);
             if (LOG.isTraceEnabled()) {
                 LOG.trace("Send LogMessage {} to {}:\n{}", msg.getPath(), topicEvent, data);
             } else {
@@ -244,7 +251,7 @@ public class KafkaSender extends AbstractSender {
     protected void send(final ProjectMessage msg, String clientSessionId) {
         try {
             final String data = JsonUtils.serialize(msg);
-            sendMessage(msg, topicProject, Sender.NJAMS_MESSAGETYPE_PROJECT, data, clientSessionId);
+            sendMessage(msg, topicProject, MESSAGETYPE_PROJECT, data, clientSessionId);
             if (LOG.isTraceEnabled()) {
                 LOG.trace("Send ProjectMessage {} to {}:\n{}", msg.getPath(), topicProject, data);
             } else {
@@ -264,7 +271,7 @@ public class KafkaSender extends AbstractSender {
     protected void send(final TraceMessage msg, String clientSessionId) {
         try {
             final String data = JsonUtils.serialize(msg);
-            sendMessage(msg, topicProject, Sender.NJAMS_MESSAGETYPE_TRACE, data, clientSessionId);
+            sendMessage(msg, topicProject, MESSAGETYPE_TRACE, data, clientSessionId);
             if (LOG.isTraceEnabled()) {
                 LOG.trace("Send TraceMessage {} to {}:\n{}", msg.getPath(), topicProject, data);
             } else {
@@ -322,14 +329,14 @@ public class KafkaSender extends AbstractSender {
         for (int i = 0; i < slices.size(); i++) {
             final ProducerRecord<String, String> record = new ProducerRecord<>(topic, recordKey, slices.get(i));
             final HeadersUpdater headers = headersUpdater(record);
-            headers.addHeader(Sender.NJAMS_MESSAGEVERSION, MessageVersion.V4.toString())
-                    .addHeader(Sender.NJAMS_MESSAGETYPE, messageType)
-                    .addHeader(Sender.NJAMS_CLIENTID, clientSessionId);
+            headers.addHeader(NJAMS_MESSAGEVERSION_HEADER, MessageVersion.V4.toString())
+                    .addHeader(NJAMS_MESSAGETYPE_HEADER, messageType)
+                    .addHeader(NJAMS_CLIENTID_HEADER, clientSessionId);
             if (StringUtils.isNotBlank(logId)) {
-                headers.addHeader(Sender.NJAMS_LOGID, logId);
+                headers.addHeader(NJAMS_LOGID_HEADER, logId);
             }
             if (StringUtils.isNotBlank(msg.getPath())) {
-                headers.addHeader(Sender.NJAMS_PATH, msg.getPath());
+                headers.addHeader(NJAMS_PATH_HEADER, msg.getPath());
             }
             if (slices.size() <= 1) {
                 return Collections.singletonList(record);

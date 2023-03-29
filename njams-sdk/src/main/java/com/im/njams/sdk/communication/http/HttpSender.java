@@ -20,6 +20,19 @@ import static com.im.njams.sdk.NjamsSettings.PROPERTY_HTTP_BASE_URL;
 import static com.im.njams.sdk.NjamsSettings.PROPERTY_HTTP_CONNECTION_TEST;
 import static com.im.njams.sdk.NjamsSettings.PROPERTY_HTTP_DATAPROVIDER_PREFIX;
 import static com.im.njams.sdk.NjamsSettings.PROPERTY_HTTP_DATAPROVIDER_SUFFIX;
+import static com.im.njams.sdk.communication.MessageHeaders.MESSAGETYPE_EVENT;
+import static com.im.njams.sdk.communication.MessageHeaders.MESSAGETYPE_PROJECT;
+import static com.im.njams.sdk.communication.MessageHeaders.MESSAGETYPE_TRACE;
+import static com.im.njams.sdk.communication.MessageHeaders.NJAMS_CLIENTID_HEADER;
+import static com.im.njams.sdk.communication.MessageHeaders.NJAMS_CLIENTID_HTTP_HEADER;
+import static com.im.njams.sdk.communication.MessageHeaders.NJAMS_LOGID_HEADER;
+import static com.im.njams.sdk.communication.MessageHeaders.NJAMS_LOGID_HTTP_HEADER;
+import static com.im.njams.sdk.communication.MessageHeaders.NJAMS_MESSAGETYPE_HEADER;
+import static com.im.njams.sdk.communication.MessageHeaders.NJAMS_MESSAGETYPE_HTTP_HEADER;
+import static com.im.njams.sdk.communication.MessageHeaders.NJAMS_MESSAGEVERSION_HEADER;
+import static com.im.njams.sdk.communication.MessageHeaders.NJAMS_MESSAGEVERSION_HTTP_HEADER;
+import static com.im.njams.sdk.communication.MessageHeaders.NJAMS_PATH_HEADER;
+import static com.im.njams.sdk.communication.MessageHeaders.NJAMS_PATH_HTTP_HEADER;
 
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -43,15 +56,12 @@ import com.faizsiegeln.njams.messageformat.v4.common.MessageVersion;
 import com.faizsiegeln.njams.messageformat.v4.logmessage.LogMessage;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.ProjectMessage;
 import com.faizsiegeln.njams.messageformat.v4.tracemessage.TraceMessage;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.im.njams.sdk.NjamsSettings;
-import com.im.njams.sdk.common.JsonSerializerFactory;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.communication.AbstractSender;
 import com.im.njams.sdk.communication.ConnectionStatus;
 import com.im.njams.sdk.communication.DiscardMonitor;
 import com.im.njams.sdk.communication.DiscardPolicy;
-import com.im.njams.sdk.communication.Sender;
 import com.im.njams.sdk.settings.Settings;
 import com.im.njams.sdk.utils.JsonUtils;
 import com.im.njams.sdk.utils.StringUtils;
@@ -91,29 +101,7 @@ public class HttpSender extends AbstractSender {
     private static final Logger LOG = LoggerFactory.getLogger(HttpSender.class);
 
     /**
-     * Name of the HTTP Header for message version
-     */
-    private static final String NJAMS_MESSAGEVERSION_HTTP_HEADER = "njams-messageversion";
-    /**
-     * Name of the HTTP Header for Path
-     */
-    private static final String NJAMS_PATH_HTTP_HEADER = "njams-path";
-    /**
-     * Name of the HTTP Header for Logid
-     */
-    private static final String NJAMS_LOGID_HTTP_HEADER = "njams-logid";
-    /**
-     * Name of the HTTP Header for clientId
-     */
-    private static final String NJAMS_CLIENTID_HTTP_HEADER = "njams-clientid";
-    /**
-     * Name if the HTTP Header for message type
-     */
-    private static final String NJAMS_MESSAGETYPE_HTTP_HEADER = "njams-messagetype";
-
-    protected final ObjectMapper mapper = JsonSerializerFactory.getDefaultMapper();
-    /**
-     * Name of the HTTP sender
+     * Name of the HTTP(s) communication implementation.
      */
     public static final String NAME = "HTTP";
 
@@ -308,7 +296,7 @@ public class HttpSender extends AbstractSender {
     @Override
     protected void send(final LogMessage msg, String clientSessionId) {
         final Properties properties = createProperties(msg, clientSessionId);
-        properties.put(Sender.NJAMS_LOGID, msg.getLogId());
+        properties.put(NJAMS_LOGID_HTTP_HEADER, msg.getLogId());
         try {
             LOG.trace("Sending log message {}", msg.getLogId());
             tryToSend(msg, properties);
@@ -350,20 +338,20 @@ public class HttpSender extends AbstractSender {
 
     private Properties createProperties(CommonMessage msg, String clientSessionId) {
         final Properties properties = new Properties();
-        properties.put(Sender.NJAMS_MESSAGEVERSION, MessageVersion.V4.toString());
-        properties.put(Sender.NJAMS_PATH, msg.getPath());
-        properties.put(Sender.NJAMS_CLIENTID, clientSessionId);
+        properties.put(NJAMS_MESSAGEVERSION_HTTP_HEADER, MessageVersion.V4.toString());
+        properties.put(NJAMS_PATH_HTTP_HEADER, msg.getPath());
+        properties.put(NJAMS_CLIENTID_HTTP_HEADER, clientSessionId);
         final String msgType;
         if (msg instanceof LogMessage) {
-            msgType = Sender.NJAMS_MESSAGETYPE_EVENT;
+            msgType = MESSAGETYPE_EVENT;
         } else if (msg instanceof ProjectMessage) {
-            msgType = Sender.NJAMS_MESSAGETYPE_PROJECT;
+            msgType = MESSAGETYPE_PROJECT;
         } else if (msg instanceof TraceMessage) {
-            msgType = Sender.NJAMS_MESSAGETYPE_TRACE;
+            msgType = MESSAGETYPE_TRACE;
         } else {
             throw new IllegalArgumentException("Unknown message type: " + msg.getClass());
         }
-        properties.put(Sender.NJAMS_MESSAGETYPE, msgType);
+        properties.put(NJAMS_MESSAGETYPE_HEADER, msgType);
         return properties;
     }
 
@@ -412,16 +400,16 @@ public class HttpSender extends AbstractSender {
                 .header("Content-Type", "application/json")
                 .header("Accept", "text/plain")
                 .header(NJAMS_MESSAGEVERSION_HTTP_HEADER, MessageVersion.V4.toString())
-                .header(NJAMS_MESSAGETYPE_HTTP_HEADER, properties.getProperty(Sender.NJAMS_MESSAGETYPE))
-                .header(NJAMS_PATH_HTTP_HEADER, properties.getProperty(Sender.NJAMS_PATH))
-                .header(NJAMS_LOGID_HTTP_HEADER, properties.getProperty(Sender.NJAMS_LOGID))
-                .header(NJAMS_CLIENTID_HTTP_HEADER, properties.getProperty(Sender.NJAMS_CLIENTID))
+                .header(NJAMS_MESSAGETYPE_HTTP_HEADER, properties.getProperty(NJAMS_MESSAGETYPE_HEADER))
+                .header(NJAMS_PATH_HTTP_HEADER, properties.getProperty(NJAMS_PATH_HEADER))
+                .header(NJAMS_LOGID_HTTP_HEADER, properties.getProperty(NJAMS_LOGID_HEADER))
+                .header(NJAMS_CLIENTID_HTTP_HEADER, properties.getProperty(NJAMS_CLIENTID_HEADER))
 
                 // Additionally add old headers for old Server Versions < 5.3.0
-                .header(Sender.NJAMS_MESSAGEVERSION, MessageVersion.V4.toString())
-                .header(Sender.NJAMS_MESSAGETYPE, properties.getProperty(Sender.NJAMS_MESSAGETYPE))
-                .header(Sender.NJAMS_PATH, properties.getProperty(Sender.NJAMS_PATH))
-                .header(Sender.NJAMS_LOGID, properties.getProperty(Sender.NJAMS_LOGID))
+                .header(NJAMS_MESSAGEVERSION_HEADER, MessageVersion.V4.toString())
+                .header(NJAMS_MESSAGETYPE_HEADER, properties.getProperty(NJAMS_MESSAGETYPE_HEADER))
+                .header(NJAMS_PATH_HEADER, properties.getProperty(NJAMS_PATH_HEADER))
+                .header(NJAMS_LOGID_HEADER, properties.getProperty(NJAMS_LOGID_HEADER))
                 .post(Entity.json(msg));
         if (LOG.isTraceEnabled()) {
             LOG.trace("POST response: {} [{}]", response.getStatus(), response.getStatusInfo().getReasonPhrase());

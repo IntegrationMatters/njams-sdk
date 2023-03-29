@@ -16,6 +16,11 @@
  */
 package com.im.njams.sdk.communication.jms;
 
+import static com.im.njams.sdk.communication.MessageHeaders.CONTENT_TYPE_JSON;
+import static com.im.njams.sdk.communication.MessageHeaders.NJAMS_CLIENTID_HEADER;
+import static com.im.njams.sdk.communication.MessageHeaders.NJAMS_CONTENT_HEADER;
+import static com.im.njams.sdk.communication.MessageHeaders.NJAMS_RECEIVER_HEADER;
+
 import java.util.Collection;
 import java.util.stream.Collectors;
 
@@ -114,8 +119,8 @@ public class SharedJmsReceiver extends JmsReceiver implements ShareableReceiver<
         }
 
         try {
-            final String njamsContent = msg.getStringProperty("NJAMS_CONTENT");
-            if (!njamsContent.equalsIgnoreCase("json")) {
+            final String njamsContent = msg.getStringProperty(NJAMS_CONTENT_HEADER);
+            if (!CONTENT_TYPE_JSON.equalsIgnoreCase(njamsContent)) {
                 LOG.debug("Received non json instruction -> ignore");
                 return;
             }
@@ -132,7 +137,7 @@ public class SharedJmsReceiver extends JmsReceiver implements ShareableReceiver<
     @Override
     public Path getReceiverPath(Message requestMessage, Instruction instruction) {
         try {
-            return new Path(requestMessage.getStringProperty("NJAMS_RECEIVER"));
+            return new Path(requestMessage.getStringProperty(NJAMS_RECEIVER_HEADER));
         } catch (JMSException e) {
             LOG.error("Error reading JMS property", e);
         }
@@ -142,7 +147,7 @@ public class SharedJmsReceiver extends JmsReceiver implements ShareableReceiver<
     @Override
     public String getClientId(Message requestMessage, Instruction instruction) {
         try {
-            return requestMessage.getStringProperty("NJAMS_CLIENTID");
+            return requestMessage.getStringProperty(NJAMS_CLIENTID_HEADER);
         } catch (JMSException e) {
             LOG.error("Error reading JMS property", e);
         }

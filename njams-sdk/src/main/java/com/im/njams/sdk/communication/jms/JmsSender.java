@@ -23,6 +23,15 @@
  */
 package com.im.njams.sdk.communication.jms;
 
+import static com.im.njams.sdk.communication.MessageHeaders.MESSAGETYPE_EVENT;
+import static com.im.njams.sdk.communication.MessageHeaders.MESSAGETYPE_PROJECT;
+import static com.im.njams.sdk.communication.MessageHeaders.MESSAGETYPE_TRACE;
+import static com.im.njams.sdk.communication.MessageHeaders.NJAMS_CLIENTID_HEADER;
+import static com.im.njams.sdk.communication.MessageHeaders.NJAMS_LOGID_HEADER;
+import static com.im.njams.sdk.communication.MessageHeaders.NJAMS_MESSAGETYPE_HEADER;
+import static com.im.njams.sdk.communication.MessageHeaders.NJAMS_MESSAGEVERSION_HEADER;
+import static com.im.njams.sdk.communication.MessageHeaders.NJAMS_PATH_HEADER;
+
 import java.util.Properties;
 
 import javax.jms.Connection;
@@ -54,7 +63,6 @@ import com.im.njams.sdk.communication.ConnectionStatus;
 import com.im.njams.sdk.communication.DiscardMonitor;
 import com.im.njams.sdk.communication.DiscardPolicy;
 import com.im.njams.sdk.communication.NjamsConnectionFactory;
-import com.im.njams.sdk.communication.Sender;
 import com.im.njams.sdk.settings.PropertyUtil;
 import com.im.njams.sdk.utils.JsonUtils;
 
@@ -67,6 +75,11 @@ import com.im.njams.sdk.utils.JsonUtils;
 public class JmsSender extends AbstractSender implements ExceptionListener {
 
     private static final Logger LOG = LoggerFactory.getLogger(JmsSender.class);
+
+    /**
+     * Name for the JMS comminuication implementation.
+     */
+    public static final String COMMUNICATION_NAME = "JMS";
 
     private Connection connection;
     protected Session session;
@@ -91,9 +104,9 @@ public class JmsSender extends AbstractSender implements ExceptionListener {
         super.init(properties);
         try {
             connect();
-            LOG.debug("Initialized sender {}", JmsConstants.COMMUNICATION_NAME);
+            LOG.debug("Initialized sender {}", getName());
         } catch (NjamsSdkRuntimeException e) {
-            LOG.error("Could not initialize sender {}\n", JmsConstants.COMMUNICATION_NAME, e);
+            LOG.error("Could not initialize sender {}", getName(), e);
         }
     }
 
@@ -172,7 +185,7 @@ public class JmsSender extends AbstractSender implements ExceptionListener {
     protected void send(LogMessage msg, String clientSessionId) throws NjamsSdkRuntimeException {
         try {
             String data = JsonUtils.serialize(msg);
-            sendMessage(msg, Sender.NJAMS_MESSAGETYPE_EVENT, data, clientSessionId);
+            sendMessage(msg, MESSAGETYPE_EVENT, data, clientSessionId);
             if (LOG.isTraceEnabled()) {
                 LOG.trace("Send LogMessage {} to {}:\n{}", msg.getPath(), producer.getDestination(), data);
             } else {
@@ -193,7 +206,7 @@ public class JmsSender extends AbstractSender implements ExceptionListener {
     protected void send(ProjectMessage msg, String clientSessionId) throws NjamsSdkRuntimeException {
         try {
             String data = JsonUtils.serialize(msg);
-            sendMessage(msg, Sender.NJAMS_MESSAGETYPE_PROJECT, data, clientSessionId);
+            sendMessage(msg, MESSAGETYPE_PROJECT, data, clientSessionId);
             if (LOG.isTraceEnabled()) {
                 LOG.trace("Send ProjectMessage {} to {}:\n{}", msg.getPath(), producer.getDestination(), data);
             } else {
@@ -214,7 +227,7 @@ public class JmsSender extends AbstractSender implements ExceptionListener {
     protected void send(TraceMessage msg, String clientSessionId) throws NjamsSdkRuntimeException {
         try {
             String data = JsonUtils.serialize(msg);
-            sendMessage(msg, Sender.NJAMS_MESSAGETYPE_TRACE, data, clientSessionId);
+            sendMessage(msg, MESSAGETYPE_TRACE, data, clientSessionId);
             if (LOG.isTraceEnabled()) {
                 LOG.trace("Send TraceMessage {} to {}:\n{}", msg.getPath(), producer.getDestination(), data);
             } else {
@@ -229,13 +242,13 @@ public class JmsSender extends AbstractSender implements ExceptionListener {
             throws JMSException, InterruptedException {
         TextMessage textMessage = session.createTextMessage(data);
         if (msg instanceof LogMessage) {
-            textMessage.setStringProperty(Sender.NJAMS_LOGID, ((LogMessage) msg).getLogId());
+            textMessage.setStringProperty(NJAMS_LOGID_HEADER, ((LogMessage) msg).getLogId());
         }
-        textMessage.setStringProperty(Sender.NJAMS_MESSAGEVERSION, MessageVersion.V4.toString());
-        textMessage.setStringProperty(Sender.NJAMS_MESSAGETYPE, messageType);
-        textMessage.setStringProperty(Sender.NJAMS_PATH, msg.getPath());
+        textMessage.setStringProperty(NJAMS_MESSAGEVERSION_HEADER, MessageVersion.V4.toString());
+        textMessage.setStringProperty(NJAMS_MESSAGETYPE_HEADER, messageType);
+        textMessage.setStringProperty(NJAMS_PATH_HEADER, msg.getPath());
         if (properties != null) {
-            textMessage.setStringProperty(Sender.NJAMS_CLIENTID, clientSessionId);
+            textMessage.setStringProperty(NJAMS_CLIENTID_HEADER, clientSessionId);
         }
         tryToSend(textMessage);
     }
@@ -310,7 +323,7 @@ public class JmsSender extends AbstractSender implements ExceptionListener {
 
     @Override
     public String getName() {
-        return JmsConstants.COMMUNICATION_NAME;
+        return COMMUNICATION_NAME;
     }
 
     @Override
