@@ -171,11 +171,10 @@ public class Settings {
      */
     public Properties filter(String prefix) {
         Properties response = new Properties();
-        properties.entrySet()
+        properties.stringPropertyNames()
                 .stream()
-                .filter(e -> String.class.isAssignableFrom(e.getKey().getClass()))
-                .filter(e -> ((String) e.getKey()).startsWith(prefix))
-                .forEach(e -> response.setProperty((String) e.getKey(), (String) e.getValue()));
+                .filter(k -> k.startsWith(prefix))
+                .forEach(k -> response.setProperty(k, properties.getProperty(k)));
         return Transformer.decode(response);
     }
 
@@ -188,13 +187,12 @@ public class Settings {
      */
     public Properties filterAndCut(String prefix) {
         Properties response = new Properties();
-        properties.entrySet()
+        properties.stringPropertyNames()
                 .stream()
-                .filter(e -> String.class.isAssignableFrom(e.getKey().getClass()))
-                .filter(e -> ((String) e.getKey()).startsWith(prefix))
-                .forEach(e -> response.setProperty(
-                        ((String) e.getKey()).substring(((String) e.getKey()).indexOf(prefix) + prefix.length()),
-                        (String) e.getValue()));
+                .filter(k -> k.startsWith(prefix))
+                .forEach(k -> response.setProperty(
+                        k.substring(k.indexOf(prefix) + prefix.length()),
+                        properties.getProperty(k)));
         return Transformer.decode(response);
     }
 
@@ -229,7 +227,7 @@ public class Settings {
      * @return A value for the given keys as explained above.
      */
     public String getPropertyWithDeprecationWarning(String expectedKey, String defaultValue, String deprecatedKey) {
-        return getPropertyWithDeprecationWarning(properties, expectedKey, defaultValue, deprecatedKey);
+        return getPropertyWithDeprecationWarning(getAllProperties(), expectedKey, defaultValue, deprecatedKey);
     }
 
     public static String getPropertyWithDeprecationWarning(Properties props, String expectedKey, String deprecatedKey) {
