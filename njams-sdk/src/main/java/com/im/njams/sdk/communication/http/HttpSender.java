@@ -44,6 +44,8 @@ import javax.ws.rs.client.Client;
 import javax.ws.rs.client.ClientBuilder;
 import javax.ws.rs.client.Entity;
 import javax.ws.rs.client.WebTarget;
+import javax.ws.rs.core.MultivaluedHashMap;
+import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.core.Response.StatusType;
@@ -295,11 +297,9 @@ public class HttpSender extends AbstractSender {
 
     @Override
     protected void send(final LogMessage msg, String clientSessionId) {
-        final Properties properties = createProperties(msg, clientSessionId);
-        properties.put(NJAMS_LOGID_HTTP_HEADER, msg.getLogId());
         try {
             LOG.trace("Sending log message {}", msg.getLogId());
-            tryToSend(msg, properties);
+            tryToSend(msg, createHeaders(msg, clientSessionId));
         } catch (final Exception ex) {
             if (ex instanceof RuntimeException) {
                 throw (RuntimeException) ex;
@@ -310,10 +310,9 @@ public class HttpSender extends AbstractSender {
 
     @Override
     protected void send(final ProjectMessage msg, String clientSessionId) {
-        final Properties properties = createProperties(msg, clientSessionId);
         try {
             LOG.trace("Sending project message for {}", msg.getPath());
-            tryToSend(msg, properties);
+            tryToSend(msg, createHeaders(msg, clientSessionId));
         } catch (final Exception ex) {
             if (ex instanceof RuntimeException) {
                 throw (RuntimeException) ex;
@@ -324,10 +323,9 @@ public class HttpSender extends AbstractSender {
 
     @Override
     protected void send(TraceMessage msg, String clientSessionId) throws NjamsSdkRuntimeException {
-        final Properties properties = createProperties(msg, clientSessionId);
         try {
             LOG.trace("Sending TraceMessage for {}", msg.getPath());
-            tryToSend(msg, properties);
+            tryToSend(msg, createHeaders(msg, clientSessionId));
         } catch (final Exception ex) {
             if (ex instanceof RuntimeException) {
                 throw (RuntimeException) ex;
@@ -336,14 +334,27 @@ public class HttpSender extends AbstractSender {
         }
     }
 
-    private Properties createProperties(CommonMessage msg, String clientSessionId) {
-        final Properties properties = new Properties();
-        properties.put(NJAMS_MESSAGEVERSION_HTTP_HEADER, MessageVersion.V4.toString());
-        properties.put(NJAMS_PATH_HTTP_HEADER, msg.getPath());
-        properties.put(NJAMS_CLIENTID_HTTP_HEADER, clientSessionId);
+    /**
+     * For compatibility reasons both the common nJAMS headers and the Nginx compatible headers are added here.
+     * @param msg
+     * @param clientSessionId
+     * @return
+     */
+    private MultivaluedMap<String, Object> createHeaders(CommonMessage msg, String clientSessionId) {
+        final MultivaluedMap<String, Object> headers = new MultivaluedHashMap<>();
+        headers.putSingle(NJAMS_MESSAGEVERSION_HTTP_HEADER, MessageVersion.V4.toString());
+        headers.putSingle(NJAMS_MESSAGEVERSION_HEADER, MessageVersion.V4.toString());
+        headers.putSingle(NJAMS_PATH_HTTP_HEADER, msg.getPath());
+        headers.putSingle(NJAMS_PATH_HEADER, msg.getPath());
+        if (clientSessionId != null) {
+            headers.putSingle(NJAMS_CLIENTID_HTTP_HEADER, clientSessionId);
+            headers.putSingle(NJAMS_CLIENTID_HEADER, clientSessionId);
+        }
         final String msgType;
         if (msg instanceof LogMessage) {
             msgType = MESSAGETYPE_EVENT;
+            headers.putSingle(NJAMS_LOGID_HTTP_HEADER, ((LogMessage) msg).getLogId());
+            headers.putSingle(NJAMS_LOGID_HEADER, ((LogMessage) msg).getLogId());
         } else if (msg instanceof ProjectMessage) {
             msgType = MESSAGETYPE_PROJECT;
         } else if (msg instanceof TraceMessage) {
@@ -351,11 +362,13 @@ public class HttpSender extends AbstractSender {
         } else {
             throw new IllegalArgumentException("Unknown message type: " + msg.getClass());
         }
-        properties.put(NJAMS_MESSAGETYPE_HEADER, msgType);
-        return properties;
+        headers.putSingle(NJAMS_MESSAGETYPE_HTTP_HEADER, msgType);
+        headers.putSingle(NJAMS_MESSAGETYPE_HEADER, msgType);
+        return headers;
     }
 
-    private void tryToSend(final Object msg, final Properties properties) throws InterruptedException {
+    private void tryToSend(final CommonMessage msg, final MultivaluedMap<String, Object> headers)
+            throws InterruptedException {
         boolean sent = false;
         int responseStatus = -1;
         int tries = 0;
@@ -363,12 +376,12 @@ public class HttpSender extends AbstractSender {
         final String json = JsonUtils.serialize(msg);
         do {
             try {
-                responseStatus = send(json, properties);
+                responseStatus = send(json, headers);
                 if (responseStatus == 200 || responseStatus == 204) {
                     sent = true;
                 }
             } catch (Exception ex) {
-                LOG.trace("Failed to send to {}:\n{}\nheaders={}", target.getUri(), json, properties, ex);
+                LOG.trace("Failed to send to {}:\n{}\nheaders={}", target.getUri(), json, headers, ex);
                 exception = ex;
             }
             if (exception != null || !sent) {
@@ -395,22 +408,8 @@ public class HttpSender extends AbstractSender {
         } while (!sent);
     }
 
-    private int send(final String msg, final Properties properties) {
-        final Response response = target.request()
-                .header("Content-Type", "application/json")
-                .header("Accept", "text/plain")
-                .header(NJAMS_MESSAGEVERSION_HTTP_HEADER, MessageVersion.V4.toString())
-                .header(NJAMS_MESSAGETYPE_HTTP_HEADER, properties.getProperty(NJAMS_MESSAGETYPE_HEADER))
-                .header(NJAMS_PATH_HTTP_HEADER, properties.getProperty(NJAMS_PATH_HEADER))
-                .header(NJAMS_LOGID_HTTP_HEADER, properties.getProperty(NJAMS_LOGID_HEADER))
-                .header(NJAMS_CLIENTID_HTTP_HEADER, properties.getProperty(NJAMS_CLIENTID_HEADER))
-
-                // Additionally add old headers for old Server Versions < 5.3.0
-                .header(NJAMS_MESSAGEVERSION_HEADER, MessageVersion.V4.toString())
-                .header(NJAMS_MESSAGETYPE_HEADER, properties.getProperty(NJAMS_MESSAGETYPE_HEADER))
-                .header(NJAMS_PATH_HEADER, properties.getProperty(NJAMS_PATH_HEADER))
-                .header(NJAMS_LOGID_HEADER, properties.getProperty(NJAMS_LOGID_HEADER))
-                .post(Entity.json(msg));
+    private int send(final String msg, final MultivaluedMap<String, Object> headers) {
+        final Response response = target.request().headers(headers).post(Entity.json(msg));
         if (LOG.isTraceEnabled()) {
             LOG.trace("POST response: {} [{}]", response.getStatus(), response.getStatusInfo().getReasonPhrase());
         }
