@@ -16,6 +16,8 @@
  */
 package com.im.njams.sdk.communication.http;
 
+import java.util.Map;
+
 import javax.ws.rs.sse.InboundSseEvent;
 
 import org.slf4j.Logger;
@@ -27,16 +29,17 @@ import com.im.njams.sdk.common.Path;
 import com.im.njams.sdk.communication.ShareableReceiver;
 import com.im.njams.sdk.communication.SharedReceiverSupport;
 import com.im.njams.sdk.utils.JsonUtils;
+import com.im.njams.sdk.utils.StringUtils;
 
 /**
  * Overrides the common {@link HttpSseReceiver} for supporting receiving messages for multiple {@link Njams} instances.
  *
  * @author bwand
  */
-public class SharedHttpSseReceiver extends HttpSseReceiver implements ShareableReceiver<InboundSseEvent> {
+public class SharedHttpSseReceiver extends HttpSseReceiver implements ShareableReceiver<Map<String, String>> {
     private static final Logger LOG = LoggerFactory.getLogger(SharedHttpSseReceiver.class);
 
-    private final SharedReceiverSupport<SharedHttpSseReceiver, InboundSseEvent> sharingSupport =
+    private final SharedReceiverSupport<SharedHttpSseReceiver, Map<String, String>> sharingSupport =
             new SharedReceiverSupport<>(this);
 
     /**
@@ -56,13 +59,13 @@ public class SharedHttpSseReceiver extends HttpSseReceiver implements ShareableR
     }
 
     @Override
-    public Path getReceiverPath(InboundSseEvent requestMessage, Instruction instruction) {
-        return new Path(requestMessage.getName());
+    public Path getReceiverPath(Map<String, String> eventHeaders, Instruction instruction) {
+        return new Path(eventHeaders.get(NJAMS_RECEIVER_HTTP_HEADER));
     }
 
     @Override
-    public String getClientId(InboundSseEvent requestMessage, Instruction instruction) {
-        return requestMessage.getComment();
+    public String getClientId(Map<String, String> eventHeaders, Instruction instruction) {
+        return eventHeaders.get(NJAMS_CLIENTID_HTTP_HEADER);
     }
 
     /**
@@ -71,23 +74,51 @@ public class SharedHttpSseReceiver extends HttpSseReceiver implements ShareableR
      * @param event the new arrived event
      */
     @Override
-    protected void onMessage(InboundSseEvent event) {
-        String id = event.getId();
-        String payload = event.readData();
-        LOG.debug("OnMessage in shared receiver called, event-id={}, payload={}", id, payload);
+    protected void onMessage(final InboundSseEvent event) {
+        LOG.debug("OnMessage called, event-id={}", event.getId());
+        final Map<String, String> eventHeaders = parseEventHeaders(event);
+        if (!isValidMessage(eventHeaders)) {
+            return;
+        }
+        final String id = eventHeaders.get(NJAMS_MESSAGE_ID_HTTP_HEADER);
+        final String payload = event.readData();
+        LOG.debug("Processing event {} (headers={}, payload={})", id, eventHeaders, payload);
         Instruction instruction = null;
         try {
             instruction = JsonUtils.parse(payload, Instruction.class);
-        } catch (Exception e) {
+        } catch (final Exception e) {
             LOG.error("Failed to parse instruction from SSE event.", e);
             return;
         }
-        sharingSupport.onInstruction(event, instruction, false);
+        sharingSupport.onInstruction(eventHeaders, instruction, false);
     }
 
     @Override
-    public void sendReply(InboundSseEvent event, Instruction reply, String clientId) {
-        sendReply(event.getId(), reply, clientId);
+    protected boolean isValidMessage(final Map<String, String> headers) {
+        if (headers == null || headers.isEmpty()) {
+            return false;
+        }
+        final String receiver = headers.get(NJAMS_RECEIVER_HTTP_HEADER);
+        if (StringUtils.isBlank(receiver)) {
+            LOG.debug("Missing receiver path");
+            return false;
+        }
+        final String messageId = headers.get(NJAMS_MESSAGE_ID_HTTP_HEADER);
+        if (StringUtils.isBlank(messageId)) {
+            LOG.debug("No message ID in event");
+            return false;
+        }
+        if (!CONTENT_TYPE_JSON.equalsIgnoreCase(headers.get(NJAMS_CONTENT_HTTP_HEADER))) {
+            LOG.debug("Received non json event -> ignore");
+            return false;
+        }
+
+        return true;
+    }
+
+    @Override
+    public void sendReply(Map<String, String> eventHeaders, Instruction reply, String clientId) {
+        sendReply(eventHeaders.get(NJAMS_MESSAGE_ID_HTTP_HEADER), reply, clientId);
     }
 
 }

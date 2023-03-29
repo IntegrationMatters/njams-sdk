@@ -16,18 +16,20 @@
  */
 package com.im.njams.sdk.communication.kafka;
 
-import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
-import com.im.njams.sdk.Njams;
-import com.im.njams.sdk.common.Path;
-import com.im.njams.sdk.communication.ConnectionStatus;
-import com.im.njams.sdk.communication.ShareableReceiver;
-import com.im.njams.sdk.communication.SharedReceiverSupport;
-import com.im.njams.sdk.utils.StringUtils;
+import static com.im.njams.sdk.communication.kafka.KafkaHeadersUtil.getHeader;
+
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static com.im.njams.sdk.communication.kafka.KafkaHeadersUtil.getHeader;
+import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
+import com.im.njams.sdk.Njams;
+import com.im.njams.sdk.common.Path;
+import com.im.njams.sdk.communication.ConnectionStatus;
+import com.im.njams.sdk.communication.Sender;
+import com.im.njams.sdk.communication.ShareableReceiver;
+import com.im.njams.sdk.communication.SharedReceiverSupport;
+import com.im.njams.sdk.utils.StringUtils;
 
 /**
  * Overrides the common {@link KafkaReceiver} for supporting receiving messages for multiple {@link Njams} instances.
@@ -39,7 +41,7 @@ public class SharedKafkaReceiver extends KafkaReceiver implements ShareableRecei
     private static final Logger LOG = LoggerFactory.getLogger(SharedKafkaReceiver.class);
 
     private final SharedReceiverSupport<SharedKafkaReceiver, ConsumerRecord<?, ?>> sharingSupport =
-        new SharedReceiverSupport<>(this);
+            new SharedReceiverSupport<>(this);
 
     /**
      * Adds the given instance to this receiver for receiving instructions.
@@ -64,7 +66,7 @@ public class SharedKafkaReceiver extends KafkaReceiver implements ShareableRecei
 
     @Override
     public String getClientId(ConsumerRecord<?, ?> requestMessage, Instruction instruction) {
-        return getHeader(requestMessage, NJAMS_CLIENTID);
+        return getHeader(requestMessage, Sender.NJAMS_CLIENTID);
     }
 
     @Override

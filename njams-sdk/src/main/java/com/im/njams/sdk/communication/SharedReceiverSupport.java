@@ -99,11 +99,10 @@ public class SharedReceiverSupport<R extends AbstractReceiver & ShareableReceive
 
         final Njams njamsTarget = getNjamsTarget(receiverPath, clientId);
         if (njamsTarget != null) {
-            LOG.debug("TargetReceiver found for instruction.");
+            LOG.debug("Target receiver instance found for instruction.");
             if (AbstractReceiver.suppressGetRequestHandlerInstruction(instruction, njamsTarget)) {
                 return;
             }
-            LOG.debug("TargetReceiver found for instruction.");
             onInstruction(instruction, njamsTarget);
             receiver.sendReply(message, instruction, njamsTarget.getCommunicationSessionId());
         } else if (failOnMissingInstance) {

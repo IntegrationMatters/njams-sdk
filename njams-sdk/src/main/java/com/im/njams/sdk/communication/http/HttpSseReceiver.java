@@ -18,8 +18,13 @@ package com.im.njams.sdk.communication.http;
 
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Properties;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.ReentrantLock;
 
 import javax.jms.IllegalStateException;
 import javax.ws.rs.client.Client;
@@ -40,6 +45,8 @@ import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.common.Path;
 import com.im.njams.sdk.communication.AbstractReceiver;
 import com.im.njams.sdk.communication.ConnectionStatus;
+import com.im.njams.sdk.communication.Receiver;
+import com.im.njams.sdk.communication.Sender;
 import com.im.njams.sdk.utils.JsonUtils;
 import com.im.njams.sdk.utils.StringUtils;
 
@@ -49,7 +56,17 @@ import com.im.njams.sdk.utils.StringUtils;
  * @author bwand
  */
 public class HttpSseReceiver extends AbstractReceiver {
+
     private static final Logger LOG = LoggerFactory.getLogger(HttpSseReceiver.class);
+
+    protected static final String NJAMS_CLIENTID_HTTP_HEADER = "njams-clientid";
+    protected static final String NJAMS_CONTENT_HTTP_HEADER = "njams-content";
+    protected static final String NJAMS_MESSAGE_ID_HTTP_HEADER = "njams-message-id";
+    protected static final String NJAMS_RECEIVER_HTTP_HEADER = "njams-receiver";
+    public static final String NJAMS_MESSAGETYPE_HTTP_HEADER = "njams-messagetype";
+    public static final String NJAMS_REPLY_FOR_HTTP_HEADER = "njams-reply-for";
+
+    protected static final String CONTENT_TYPE_JSON = "json";
 
     private static final String NAME = "HTTP";
     private static final String SSE_API_PATH = "api/httpcommunication/";
@@ -59,6 +76,7 @@ public class HttpSseReceiver extends AbstractReceiver {
     protected URI subscribeUri = null;
     protected URI replyUri = null;
     private Throwable connectError = null;
+    private final ReentrantLock connectLock = new ReentrantLock();
 
     @Override
     public void init(final Properties properties) {
@@ -90,10 +108,19 @@ public class HttpSseReceiver extends AbstractReceiver {
 
     @Override
     public void connect() {
-        if (isConnected()) {
-            return;
-        }
+        LOG.trace("Enter connect.");
+        long connectWait = 1000;
         try {
+            if (!connectLock.tryLock(connectWait * 2, TimeUnit.MILLISECONDS)) {
+                if (isConnected()) {
+                    return;
+                }
+                throw new IllegalStateException("Failed to get connect lock");
+            }
+            if (isConnected()) {
+                LOG.debug("Already connected.");
+                return;
+            }
             connectionStatus = ConnectionStatus.CONNECTING;
             client = createClient();
             final WebTarget target = client.target(subscribeUri);
@@ -112,24 +139,25 @@ public class HttpSseReceiver extends AbstractReceiver {
                  * error handling to occur in parallel.
                  * 
                  */
-                long wait = 1000;
-                final long waitEnd = System.currentTimeMillis() + wait;
-                while (wait > 0) {
+                final long waitEnd = System.currentTimeMillis() + connectWait;
+                while (connectWait > 0) {
                     if (connectError != null || !source.isOpen()) {
                         LOG.debug("Connect failed: {}", connectError.toString());
                         throw connectError != null ? connectError
                                 : new IllegalStateException("Event source is closed.");
                     }
-                    wait(wait);
-                    wait = waitEnd - System.currentTimeMillis();
+                    wait(connectWait);
+                    connectWait = waitEnd - System.currentTimeMillis();
                 }
-                connectError = null;
-                connectionStatus = ConnectionStatus.CONNECTED;
-                LOG.debug("Subscribed SSE receiver to {}", target.getUri());
             }
+            connectionStatus = ConnectionStatus.CONNECTED;
+            LOG.debug("Subscribed SSE receiver to {}", target.getUri());
         } catch (final Throwable e) {
             close();
             throw new NjamsSdkRuntimeException("Exception during registering SSE endpoint.", e);
+        } finally {
+            connectError = null;
+            connectLock.unlock();
         }
     }
 
@@ -153,24 +181,45 @@ public class HttpSseReceiver extends AbstractReceiver {
     }
 
     protected void onMessage(final InboundSseEvent event) {
-        final String id = event.getId();
-        final String payload = event.readData();
-        LOG.debug("OnMessage called, event-id={}, payload={}", id, payload);
-        if (!isValidMessage(event)) {
+        LOG.debug("OnMessage called, event-id={}", event.getId());
+        final Map<String, String> eventHeaders = parseEventHeaders(event);
+        if (!isValidMessage(eventHeaders)) {
             return;
         }
-        Instruction instruction = null;
+        final String requestId = eventHeaders.get(NJAMS_MESSAGE_ID_HTTP_HEADER);
+        final String payload = event.readData();
+        LOG.debug("Processing event {} (headers={}, payload={})", requestId, eventHeaders, payload);
+        final Instruction instruction;
         try {
             instruction = JsonUtils.parse(payload, Instruction.class);
         } catch (final Exception e) {
-            LOG.error("Failed to parse instruction from SSE event.", e);
+            LOG.error("Failed to parse instruction from SSE event {}", event, e);
             return;
         }
         if (suppressGetRequestHandlerInstruction(instruction, njams)) {
             return;
         }
         onInstruction(instruction);
-        sendReply(id, instruction, njams.getClientSessionId());
+        sendReply(requestId, instruction, njams.getClientSessionId());
+    }
+
+    @SuppressWarnings("unchecked")
+    protected Map<String, String> parseEventHeaders(InboundSseEvent event) {
+        final String name = event.getName();
+        if (StringUtils.isBlank(name)) {
+            LOG.error("Received unnamed event: {}", event);
+            return Collections.emptyMap();
+        }
+        if (name.trim().charAt(0) == '{') {
+            LOG.debug("Assuming JSON event {}: {}", event.getId(), name);
+            return JsonUtils.parse(name, HashMap.class);
+        }
+        LOG.debug("Assuming legacy event {}: {}", event.getId(), name);
+        final Map<String, String> map = new HashMap<>();
+        map.put(NJAMS_MESSAGE_ID_HTTP_HEADER, event.getId());
+        map.put(NJAMS_RECEIVER_HTTP_HEADER, name);
+        map.put(NJAMS_CONTENT_HTTP_HEADER, CONTENT_TYPE_JSON);
+        return map;
     }
 
     /**
@@ -179,22 +228,32 @@ public class HttpSseReceiver extends AbstractReceiver {
      * @param event the inbound event
      * @return true, if event is valid and should be handled
      */
-    protected boolean isValidMessage(final InboundSseEvent event) {
-        if (event == null) {
+    protected boolean isValidMessage(final Map<String, String> headers) {
+        if (headers == null || headers.isEmpty()) {
             return false;
         }
-        final String receiver = event.getName();
+        final String receiver = headers.get(NJAMS_RECEIVER_HTTP_HEADER);
         if (StringUtils.isBlank(receiver) || !njams.getClientPath().equals(new Path(receiver))) {
-            LOG.debug("Message is not for me! Client path from message is: " + event.getName() +
-                    " but nJAMS client path is: " + njams.getClientPath());
+            LOG.debug("Message is not for me! Client path from message is: {} but nJAMS client path is: {} ", receiver,
+                    njams.getClientPath());
             return false;
         }
-        final String clientId = event.getComment();
+        final String clientId = headers.get(NJAMS_CLIENTID_HTTP_HEADER);
         if (StringUtils.isNotBlank(clientId) && !njams.getCommunicationSessionId().equals(clientId)) {
-            LOG.debug("Message is not for me! Client id from message is: " + event.getComment() +
-                    " but nJAMS client id is: " + njams.getCommunicationSessionId());
+            LOG.debug("Message is not for me! Client id from message is: {} but nJAMS client id is: {} ", clientId,
+                    njams.getCommunicationSessionId());
             return false;
         }
+        final String messageId = headers.get(NJAMS_MESSAGE_ID_HTTP_HEADER);
+        if (StringUtils.isBlank(messageId)) {
+            LOG.debug("No message ID in event");
+            return false;
+        }
+        if (!CONTENT_TYPE_JSON.equalsIgnoreCase(headers.get(NJAMS_CONTENT_HTTP_HEADER))) {
+            LOG.debug("Received non json event -> ignore");
+            return false;
+        }
+
         return true;
     }
 
@@ -228,15 +287,15 @@ public class HttpSseReceiver extends AbstractReceiver {
         final Invocation.Builder builder = target.request()
                 .header("Content-Type", "application/json")
                 .header("Accept", "text/plain")
-                .header("njams-receiver", "server")
-                .header("njams-messagetype", "reply")
-                .header("njams-message-id", replyId)
-                .header("njams-reply-for", requestId)
+                .header(NJAMS_RECEIVER_HTTP_HEADER, "server")
+                .header(NJAMS_MESSAGETYPE_HTTP_HEADER, "Reply")
+                .header(NJAMS_MESSAGE_ID_HTTP_HEADER, replyId)
+                .header(NJAMS_REPLY_FOR_HTTP_HEADER, requestId)
                 // Additionally add old headers
-                .header("NJAMS_RECEIVER", "server")
-                .header("NJAMS_MESSAGETYPE", "reply")
-                .header("NJAMS_MESSAGE_ID", replyId)
-                .header("NJAMS_REPLY_FOR", requestId);
+                .header(Sender.NJAMS_MESSAGETYPE, "Reply")
+                .header(Receiver.NJAMS_RECEIVER, "server")
+                .header(Receiver.NJAMS_MESSAGE_ID, replyId)
+                .header(Receiver.NJAMS_REPLY_FOR, requestId);
         if (clientId != null) {
             builder.header("njams-clientid", clientId);
         }

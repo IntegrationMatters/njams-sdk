@@ -41,6 +41,7 @@ import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.common.Path;
 import com.im.njams.sdk.communication.AbstractReceiver;
 import com.im.njams.sdk.communication.ConnectionStatus;
+import com.im.njams.sdk.communication.Sender;
 import com.im.njams.sdk.communication.kafka.KafkaUtil.ClientType;
 import com.im.njams.sdk.settings.Settings;
 import com.im.njams.sdk.utils.StringUtils;
@@ -63,22 +64,6 @@ public class KafkaReceiver extends AbstractReceiver {
      * Name of the Kafka header storing the request type
      */
     public static final String NJAMS_TYPE = "NJAMS_TYPE";
-    /**
-     * Name of the Kafka header storing the receiver (client) path
-     */
-    public static final String NJAMS_RECEIVER = "NJAMS_RECEIVER";
-    /**
-     * Name of the Kafka header storing the clientId
-     */
-    public static final String NJAMS_CLIENTID = "NJAMS_CLIENTID";
-    /**
-     * Name of the Kafka header storing a unique message ID
-     */
-    public static final String NJAMS_MESSAGE_ID = "NJAMS_MESSAGE_ID";
-    /**
-     * Name of the Kafka header storing the ID of the request message to that a reply message belongs
-     */
-    public static final String NJAMS_REPLY_FOR = "NJAMS_REPLY_FOR";
 
     /**
      * The value used with header {@value #NJAMS_TYPE} for reply messages
@@ -264,7 +249,7 @@ public class KafkaReceiver extends AbstractReceiver {
             return false;
         }
 
-        final String clientId = getHeader(msg, NJAMS_CLIENTID);
+        final String clientId = getHeader(msg, Sender.NJAMS_CLIENTID);
         if (clientId != null && !njams.getCommunicationSessionId().equals(clientId)) {
             LOG.debug("Message is not for me! ClientId in Message is: {} but this nJAMS Client has Id: {}",
                     clientId, njams.getCommunicationSessionId());
@@ -302,7 +287,7 @@ public class KafkaReceiver extends AbstractReceiver {
             if (clientId != null) {
                 headersUpdater(response).addHeader(NJAMS_MESSAGE_ID, responseId).addHeader(NJAMS_REPLY_FOR, requestId)
                         .addHeader(NJAMS_RECEIVER, RECEIVER_SERVER).addHeader(NJAMS_TYPE, MESSAGE_TYPE_REPLY)
-                        .addHeader(NJAMS_CONTENT, CONTENT_TYPE_JSON).addHeader(NJAMS_CLIENTID, clientId);
+                        .addHeader(NJAMS_CONTENT, CONTENT_TYPE_JSON).addHeader(Sender.NJAMS_CLIENTID, clientId);
             } else {
                 headersUpdater(response).addHeader(NJAMS_MESSAGE_ID, responseId).addHeader(NJAMS_REPLY_FOR, requestId)
                         .addHeader(NJAMS_RECEIVER, RECEIVER_SERVER).addHeader(NJAMS_TYPE, MESSAGE_TYPE_REPLY)

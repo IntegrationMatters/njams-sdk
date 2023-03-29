@@ -52,6 +52,7 @@ public interface Sender extends ClasspathValidator {
      * every message
      */
     public static final String NJAMS_MESSAGETYPE = "NJAMS_MESSAGETYPE";
+
     /**
      * Property value for header properties which specifies a logmessage
      */

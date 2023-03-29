@@ -99,6 +99,8 @@ public class CommunicationFactory {
             if (receiver.getName().equalsIgnoreCase(name)) {
                 final boolean implementsSharable = receiver instanceof ShareableReceiver;
                 if (wantsSharable == implementsSharable) {
+                    LOG.debug("Found receiver for criteria name={}, sharable={}: {}", name, wantsSharable,
+                            receiver.getClass());
                     return receiver.getClass();
                 }
                 // keep this as last resort, but maybe we find a better one
@@ -109,6 +111,8 @@ public class CommunicationFactory {
             LOG.info("The requested communication type '{}' does not support sharing the receiver instance. "
                     + "Creating a dedicated instance instead.", found.getName());
         }
+        LOG.debug("Found receiver for criteria name={}, sharable={}: {}", name, wantsSharable,
+                found == null ? null : found.getClass());
         return found == null ? null : found.getClass();
     }
 
