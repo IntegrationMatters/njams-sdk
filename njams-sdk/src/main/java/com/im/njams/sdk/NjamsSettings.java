@@ -47,7 +47,6 @@ public class NjamsSettings {
      * <ul>
      * <li>JMS
      * <li>HTTP
-     * <li>HTTPS
      * <li>KAFKA
      * <li>YOUR-OWN-COMMUNICATION
      * </ul>
@@ -96,12 +95,6 @@ public class NjamsSettings {
      */
     public static final String PROPERTY_CONTAINER_MODE = "njams.sdk.containerMode";
 
-    //     _____ _ _            _      _____ _____  _  __
-    //    / ____| (_)          | |    / ____|  __ \| |/ /
-    //   | |    | |_  ___ _ __ | |_  | (___ | |  | | ' /
-    //   | |    | | |/ _ \ '_ \| __|  \___ \| |  | |  <
-    //   | |____| | |  __/ | | | |_   ____) | |__| | . \
-    //    \_____|_|_|\___|_| |_|\__| |_____/|_____/|_|\_\
     /**
      * This property is a flush criteria with a default of 5mb.
      * <p>
@@ -253,6 +246,23 @@ public class NjamsSettings {
      * Default is <code>true</code>.
      */
     public static final String PROPERTY_BOOSTRAP_RECORDING = "njams.sdk.bootstrap.recording";
+
+    /**
+     * Since 5.0.0
+     * When this setting is set to either <code>truncate</code> or <code>discard</code> large payloads like
+     * <code>input, output, event-payload, event-stack, or attribute-values</code> are either truncated
+     * or discarded when they reach the limit configured with property{@value #PROPERTY_PAYLOAD_LIMIT_SIZE}.<br>
+     * By default payloads are not limited.
+     */
+    public static final String PROPERTY_PAYLOAD_LIMIT_MODE = "njams.sdk.payload.limit.mode";
+
+    /**
+     * Since 5.0.0
+     * When property {@value #PROPERTY_PAYLOAD_LIMIT_MODE} is set to limiting payloads, this setting specifies
+     * the maximum size (in characters) before the payload is limited.<br>
+     * This value is required when using payload limitations. 
+     */
+    public static final String PROPERTY_PAYLOAD_LIMIT_SIZE = "njams.sdk.payload.limit.size";
 
     //     _____      _   _   _
     //    / ____|    | | | | (_)

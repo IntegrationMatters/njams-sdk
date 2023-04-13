@@ -34,9 +34,6 @@ import java.util.regex.Pattern;
 public class DataMaskingType {
 
     private String nameOfPattern;
-
-    private String regex;
-
     private Pattern pattern;
 
     /**
@@ -47,8 +44,7 @@ public class DataMaskingType {
      */
     public DataMaskingType(String nameOfPattern, String regex) {
         this.nameOfPattern = nameOfPattern;
-        this.regex = regex;
-        this.pattern = Pattern.compile(regex);
+        pattern = Pattern.compile(regex);
     }
 
     /**
@@ -66,7 +62,7 @@ public class DataMaskingType {
      * @return regex of pattern as String
      */
     public String getRegex() {
-        return regex;
+        return pattern.pattern();
     }
 
     /**
@@ -77,4 +73,10 @@ public class DataMaskingType {
     public Pattern getPattern() {
         return pattern;
     }
+
+    @Override
+    public String toString() {
+        return "DataMaskingType[nameOfPattern=" + nameOfPattern + ", pattern=" + pattern.pattern() + "]";
+    }
+
 }

@@ -12,6 +12,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import com.im.njams.sdk.Njams;
+import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.model.ProcessModel;
 import com.im.njams.sdk.settings.Settings;
 
@@ -30,8 +31,9 @@ public class TruncatingTest {
         when(processModel.getNjams()).thenReturn(njams);
         Settings settings = mock(Settings.class);
         when(njams.getSettings()).thenReturn(settings);
-        when(settings.getProperty(eq(JobImpl.TRUNCATE_LIMIT))).then(i -> String.valueOf(limit));
-        when(settings.getProperty(eq(JobImpl.TRUNCATE_ON_SUCCESS))).then(i -> String.valueOf(truncateOnSuccess));
+        when(settings.getProperty(eq(NjamsSettings.PROPERTY_TRUNCATE_LIMIT))).then(i -> String.valueOf(limit));
+        when(settings.getProperty(eq(NjamsSettings.PROPERTY_TRUNCATE_ON_SUCCESS)))
+                .then(i -> String.valueOf(truncateOnSuccess));
         job = null;
     }
 

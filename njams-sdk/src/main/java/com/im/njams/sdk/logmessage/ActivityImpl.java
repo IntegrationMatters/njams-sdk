@@ -505,7 +505,7 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
      */
     @Override
     public void setInput(String input) {
-        super.setInput(DataMasking.maskString(input));
+        super.setInput(DataMasking.maskString(job.limitPayload(input)));
     }
 
     /**
@@ -515,7 +515,7 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
      */
     @Override
     public void setOutput(String output) {
-        super.setOutput(DataMasking.maskString(output));
+        super.setOutput(DataMasking.maskString(job.limitPayload(output)));
     }
 
     /**
@@ -526,7 +526,7 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
     @Override
     public void setEventMessage(String message) {
         setExecutionIfNotSet();
-        super.setEventMessage(limitLength("eventMessage", message, MAX_VALUE_LIMIT));
+        super.setEventMessage(DataMasking.maskString(limitLength("eventMessage", message, MAX_VALUE_LIMIT)));
         if (StringUtils.isNotBlank(message)) {
             job.setInstrumented();
         }
@@ -554,11 +554,13 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
      * @param eventPayload the eventPayload to mask and set to the Activity.
      */
     @Override
-    public void setEventPayload(String eventPayload) {
+    public void setEventPayload(final String eventPayload) {
         setExecutionIfNotSet();
-        super.setEventPayload(eventPayload);
+        final String limited = DataMasking.maskString(job.limitPayload(eventPayload));
+        super.setEventPayload(limited);
+        // checking for the original value here for setting flags correctly
         if (StringUtils.isNotBlank(eventPayload)) {
-            int payloadSize = eventPayload.length();
+            final int payloadSize = limited == null ? 0 : limited.length();
             addToEstimatedSize(payloadSize);
             job.addToEstimatedSize(payloadSize);
             job.setInstrumented();
@@ -573,11 +575,13 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
      * @param stackTrace the stackTrace to mask and set to the Activity.
      */
     @Override
-    public void setStackTrace(String stackTrace) {
+    public void setStackTrace(final String stackTrace) {
         setExecutionIfNotSet();
-        super.setStackTrace(stackTrace);
-        if (stackTrace != null) {
-            int stackTraceSize = stackTrace.length();
+        final String limited = DataMasking.maskString(job.limitPayload(stackTrace));
+        super.setStackTrace(limited);
+        // checking for the original value here for setting flags correctly
+        if (StringUtils.isNotBlank(stackTrace)) {
+            int stackTraceSize = limited == null ? 0 : limited.length();
             addToEstimatedSize(stackTraceSize);
             job.addToEstimatedSize(stackTraceSize);
             job.setInstrumented();
@@ -604,15 +608,17 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
 
     /**
      * This method masks the attributes map and calls its super method.
-     * Furthermore it adds the masked attributes to the jobs attributes aswell.
+     * Furthermore it adds the masked attributes to the jobs attributes as well.
      *
      * @param attributes the attributes to mask and set to the Activity.
      */
     @Override
     public void setAttributes(Map<String, String> attributes) {
+        if (attributes == null) {
+            return;
+        }
         synchronized (attributesLock) {
-            attributes.forEach((key, value) -> job.addAttribute(key, value));
-            super.setAttributes(attributes);
+            attributes.entrySet().forEach(e -> addAttribute(e.getKey(), e.getValue()));
         }
     }
 
@@ -629,9 +635,10 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
             return;
         }
         String limitKey = limitLength("attributeName", key, 500);
+        String maskedValue = DataMasking.maskString(job.limitPayload(value));
         synchronized (attributesLock) {
-            job.addAttribute(limitKey, value);
-            super.addAttribute(limitKey, value);
+            job.addAttribute(limitKey, maskedValue);
+            super.addAttribute(limitKey, maskedValue);
         }
     }
 

@@ -16,23 +16,24 @@
  */
 package com.im.njams.sdk.logmessage;
 
-import com.im.njams.sdk.Njams;
-import com.im.njams.sdk.NjamsSettings;
-import com.im.njams.sdk.model.ActivityModel;
-import com.im.njams.sdk.model.ProcessModel;
-import org.junit.After;
-import org.junit.BeforeClass;
-import org.junit.Test;
-import org.mockito.Mockito;
-
-import java.util.Properties;
-
 import static junit.framework.TestCase.assertEquals;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.not;
 import static org.junit.Assert.assertThat;
 import static org.mockito.Matchers.anyObject;
 import static org.mockito.Mockito.doAnswer;
+
+import java.util.Properties;
+
+import org.junit.After;
+import org.junit.BeforeClass;
+import org.junit.Test;
+import org.mockito.Mockito;
+
+import com.im.njams.sdk.Njams;
+import com.im.njams.sdk.NjamsSettings;
+import com.im.njams.sdk.model.ActivityModel;
+import com.im.njams.sdk.model.ProcessModel;
 
 /**
  * @author pnientiedt
@@ -49,6 +50,7 @@ public class DataMaskingTest {
         doAnswer(invocation -> true).when(JOB).isDeepTrace();
         doAnswer(invocation -> NJAMS).when(MODEL).getNjams();
         doAnswer(invocation -> NJAMS).when(JOB).getNjams();
+        doAnswer(invocation -> invocation.getArgumentAt(0, String.class)).when(JOB).limitPayload(anyObject());
         doAnswer(invocation -> invocation.getArguments()[0]).when(NJAMS).serialize(anyObject());
         IMPL = new ActivityImpl(JOB, Mockito.mock(ActivityModel.class));
         IMPL.start();
@@ -104,9 +106,30 @@ public class DataMaskingTest {
     }
 
     @Test
+    public void testFields() {
+        DataMasking.addPattern("o");
+        String in = "Hello World";
+        String expected = "Hell* W*rld";
+
+        IMPL.setInput(in);
+        assertEquals(expected, IMPL.getInput());
+        IMPL.setOutput(in);
+        assertEquals(expected, IMPL.getOutput());
+        IMPL.setEventPayload(in);
+        assertEquals(expected, IMPL.getEventPayload());
+        IMPL.setEventMessage(in);
+        assertEquals(expected, IMPL.getEventMessage());
+        IMPL.setStackTrace(in);
+        assertEquals(expected, IMPL.getStackTrace());
+        IMPL.addAttribute("key", in);
+        assertEquals(expected, IMPL.getAttributes().get("key"));
+    }
+
+    @Test
     public void addPatternsFromProperties() {
         Properties properties = new Properties();
-        properties.put(NjamsSettings.PROPERTY_DATA_MASKING_REGEX_PREFIX + "creditcard", "Creditcard Number : \\p{Digit}+");
+        properties.put(NjamsSettings.PROPERTY_DATA_MASKING_REGEX_PREFIX + "creditcard",
+                "Creditcard Number : \\p{Digit}+");
         properties.put("SomeOtherString", ".*");
         DataMasking.addPatterns(properties);
         final String maskedString1 = DataMasking.maskString("Creditcard Number : 1234");

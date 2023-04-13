@@ -20,6 +20,7 @@ import static java.util.Collections.unmodifiableCollection;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -35,6 +36,7 @@ import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.faizsiegeln.njams.messageformat.v4.logmessage.ActivityStatus;
@@ -55,6 +57,7 @@ import com.im.njams.sdk.model.ActivityModel;
 import com.im.njams.sdk.model.GroupModel;
 import com.im.njams.sdk.model.ProcessModel;
 import com.im.njams.sdk.model.SubProcessActivityModel;
+import com.im.njams.sdk.settings.Settings;
 import com.im.njams.sdk.utils.StringUtils;
 
 /**
@@ -64,7 +67,16 @@ import com.im.njams.sdk.utils.StringUtils;
  */
 public class JobImpl implements Job {
 
-    private static final org.slf4j.Logger LOG = LoggerFactory.getLogger(JobImpl.class);
+    private static final Logger LOG = LoggerFactory.getLogger(JobImpl.class);
+
+    /**
+     * This messages is used when payload has been discard because its size limit has been exceeded.
+     */
+    /**
+     * This messages is used as suffix when payload has been truncated because its size limit has been exceeded.
+     */
+    public static final String PAYLOAD_DISCARDED_MESSAGE = "[Discarded by client due to configured payload limits]";
+    public static final String PAYLOAD_TRUNCATED_SUFFIX = "... [Truncated by client due to configured payload limits]";
 
     /**
      * Default flush size: 5MB
@@ -168,23 +180,7 @@ public class JobImpl implements Job {
     private final Object errorLock = new Object();
     private ActivityImpl errorActivity = null;
     private ErrorEvent errorEvent = null;
-    /**
-     * @deprecated Use {@link com.im.njams.sdk.NjamsSettings#PROPERTY_LOG_ALL_ERRORS} instead
-     */
-    @Deprecated
-    public static final String LOG_ALL_ERRORS = NjamsSettings.PROPERTY_LOG_ALL_ERRORS;
     private final boolean allErrors;
-
-    /**
-     * @deprecated Use {@link com.im.njams.sdk.NjamsSettings#PROPERTY_TRUNCATE_LIMIT} instead
-     */
-    @Deprecated
-    public static final String TRUNCATE_LIMIT = NjamsSettings.PROPERTY_TRUNCATE_LIMIT;
-    /**
-     * @deprecated Use {@link com.im.njams.sdk.NjamsSettings#PROPERTY_TRUNCATE_ON_SUCCESS} instead
-     */
-    @Deprecated
-    public static final String TRUNCATE_ON_SUCCESS = NjamsSettings.PROPERTY_TRUNCATE_ON_SUCCESS;
     private final int truncateLimit;
     private final boolean truncateOnSuccess;
     private boolean isTruncatingActivities = false;
@@ -194,6 +190,8 @@ public class JobImpl implements Job {
     private final Map<String, Boolean> activityIds = new HashMap<>();
     // IDs of activities that have been flushed but are not complete yet; for checking timer-flush
     private Set<String> flushedActivities = ConcurrentHashMap.newKeySet();
+
+    private Entry<Boolean, Integer> payloadLimit = null;
 
     /**
      * Create a job with a givenModelId, a jobId and a logId
@@ -219,22 +217,48 @@ public class JobImpl implements Job {
         //will be set to true.
         startTime = DateTimeUtility.now();
         startTimeExplicitlySet = false;
-        allErrors = "true".equalsIgnoreCase(njams.getSettings().getProperty(LOG_ALL_ERRORS));
-        truncateOnSuccess = "true".equalsIgnoreCase(njams.getSettings().getProperty(TRUNCATE_ON_SUCCESS));
+        allErrors = "true".equalsIgnoreCase(njams.getSettings().getProperty(NjamsSettings.PROPERTY_LOG_ALL_ERRORS));
+        truncateOnSuccess =
+                "true".equalsIgnoreCase(njams.getSettings().getProperty(NjamsSettings.PROPERTY_LOG_ALL_ERRORS));
         truncateLimit = getTruncateLimit();
+        initPayloadLimit();
+    }
+
+    private void initPayloadLimit() {
+        final Settings settings = njams.getSettings();
+        // truncate, discard
+        final String mode = settings.getProperty(NjamsSettings.PROPERTY_PAYLOAD_LIMIT_MODE);
+        if (StringUtils.isBlank(mode)) {
+            return;
+        }
+        try {
+            final int limit = Integer.parseInt(settings.getProperty(NjamsSettings.PROPERTY_PAYLOAD_LIMIT_SIZE));
+            if (limit < 0) {
+                return;
+            }
+            if (limit == 0 || "discard".equalsIgnoreCase(mode)) {
+                payloadLimit = new AbstractMap.SimpleImmutableEntry<>(false, limit);
+            } else if ("truncate".equalsIgnoreCase(mode)) {
+                payloadLimit = new AbstractMap.SimpleImmutableEntry<>(true, limit);
+            }
+        } catch (NumberFormatException e) {
+            LOG.error("Failed to parse payload limit size: {}", e.toString());
+        }
+
     }
 
     private int getTruncateLimit() {
         String s = null;
         try {
-            s = njams.getSettings().getProperty(TRUNCATE_LIMIT);
+            s = njams.getSettings().getProperty(NjamsSettings.PROPERTY_TRUNCATE_LIMIT);
             if (StringUtils.isBlank(s)) {
                 return Integer.MAX_VALUE;
             }
             final int i = Integer.parseInt(s);
             return i > 0 ? i : Integer.MAX_VALUE;
         } catch (Exception e) {
-            LOG.warn("Failed  to parse setting: {}={} - Truncating will be disabled.", TRUNCATE_LIMIT, s);
+            LOG.warn("Failed  to parse setting: {}={} - Truncating will be disabled.",
+                    NjamsSettings.PROPERTY_TRUNCATE_LIMIT, s);
             return Integer.MAX_VALUE;
         }
     }
@@ -1368,7 +1392,7 @@ public class JobImpl implements Job {
         }
         String limitKey = limitLength("attributeName", key, 500);
         synchronized (attributes) {
-            attributes.put(limitKey, value);
+            attributes.put(limitKey, DataMasking.maskString(limitPayload(value)));
         }
     }
 
@@ -1399,5 +1423,24 @@ public class JobImpl implements Job {
             return value.substring(0, maxLength - 1);
         }
         return value;
+    }
+
+    /**
+     * If limiting payload size is enabled, this method ensures that the given payload is handled accordingly.
+     * @param payload The payload to limit.
+     * @return The given payload adjusted to the configured limits.
+     */
+    String limitPayload(String payload) {
+        if (payload == null || payloadLimit == null || payload.length() <= payloadLimit.getValue()) {
+            return payload;
+        }
+        final int limit = payloadLimit.getValue();
+        if (limit > 0 && payloadLimit.getKey()) {
+            // truncate
+            final String suffix = PAYLOAD_TRUNCATED_SUFFIX;
+            return payload.substring(0, limit) + suffix;
+        }
+        // discard
+        return PAYLOAD_DISCARDED_MESSAGE;
     }
 }

@@ -139,7 +139,7 @@ public class DataMasking {
             LOG.info("Added masking pattern \"{}\" with regex: \"{}\"", dataMaskingTypeToAdd.getNameOfPattern(),
                     dataMaskingTypeToAdd.getRegex());
         } catch (Exception e) {
-            LOG.error("Could not add pattern " + regexAsString, e);
+            LOG.error("Could not add pattern {}", regexAsString, e);
         }
     }
 
