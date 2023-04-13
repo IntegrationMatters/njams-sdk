@@ -782,7 +782,7 @@ public class JobImpl implements Job {
 
     /**
      * Records that an error occurred for the given activity. Whether or not an according event is
-     * generated depends on the {@link JobImpl#LOG_ALL_ERRORS} setting, or the job's end status
+     * generated depends on the {@value NjamsSettings#PROPERTY_LOG_ALL_ERRORS} setting, or the job's end status
      * reported by the executing engine.
      *
      * @param errorActivity The activity instance on that the given error occurred.

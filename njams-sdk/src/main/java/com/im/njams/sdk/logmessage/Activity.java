@@ -17,6 +17,7 @@
 package com.im.njams.sdk.logmessage;
 
 import com.faizsiegeln.njams.messageformat.v4.logmessage.interfaces.IActivity;
+import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.model.ActivityModel;
 import com.im.njams.sdk.model.GroupModel;
 import com.im.njams.sdk.model.SubProcessActivityModel;
@@ -127,8 +128,8 @@ public interface Activity extends IActivity {
     public void setEventStatus(EventStatus status);
 
     /**
-     * Records that an error occurred when executing this activity instance . Whether or not an
-     * according event is generated depends on the {@value JobImpl#LOG_ALL_ERRORS} setting,
+     * Records that an error occurred when executing this activity instance. Whether or not an
+     * according event is generated depends on the {@value NjamsSettings#PROPERTY_LOG_ALL_ERRORS} setting,
      * or the job's end status reported by the executing engine.
      *
      * @param errorEvent Information about the error that occurred. This information is used for
