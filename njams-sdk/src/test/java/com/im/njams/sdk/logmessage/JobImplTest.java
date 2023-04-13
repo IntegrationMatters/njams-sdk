@@ -241,7 +241,8 @@ public class JobImplTest extends AbstractTest {
         assertFalse(onlyAsterisksOrNull(msg.getObjectName()));
         assertFalse(onlyAsterisksOrNull(msg.getServiceName()));
         Map<String, String> attr = msg.getAttributes();
-        attr.keySet().forEach(key -> assertFalse(onlyAsterisksOrNull(attr.get(key))));
+        System.out.println(attr);
+        attr.keySet().forEach(key -> assertTrue(onlyAsterisksOrNull(attr.get(key))));
     }
 
     /**
@@ -270,14 +271,13 @@ public class JobImplTest extends AbstractTest {
         activities.forEach(activity -> assertFalse(onlyAsterisksOrNull(activity.getSubProcess().getSubProcessPath())));
         activities.forEach(activity -> assertFalse(onlyAsterisksOrNull(activity.getSubProcess().getLogId())));
 
-        //Those shouldn't be masked because they were set directly by us, not by the ExtractHandler [SDK-125]
-        activities.forEach(activity -> assertFalse(onlyAsterisksOrNull(activity.getEventMessage())));
-        activities.forEach(activity -> assertFalse(onlyAsterisksOrNull(activity.getEventCode())));
-        activities.forEach(activity -> assertFalse(onlyAsterisksOrNull(activity.getEventPayload())));
-        activities.forEach(activity -> assertFalse(onlyAsterisksOrNull(activity.getStackTrace())));
+        activities.forEach(activity -> assertTrue(onlyAsterisksOrNull(activity.getEventMessage())));
+        activities.forEach(activity -> assertTrue(onlyAsterisksOrNull(activity.getEventCode())));
+        activities.forEach(activity -> assertTrue(onlyAsterisksOrNull(activity.getEventPayload())));
+        activities.forEach(activity -> assertTrue(onlyAsterisksOrNull(activity.getStackTrace())));
         activities.stream().map(com.faizsiegeln.njams.messageformat.v4.logmessage.Activity::getAttributes)
                 .forEachOrdered(actAttr -> {
-                    actAttr.keySet().forEach(key -> assertFalse(onlyAsterisksOrNull(actAttr.get(key))));
+                    actAttr.keySet().forEach(key -> assertTrue(onlyAsterisksOrNull(actAttr.get(key))));
                 });
 
         //These should be masked, because they should always me masked and they can't be set by the ExtractHandler

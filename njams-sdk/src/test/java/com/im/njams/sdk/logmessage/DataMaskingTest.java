@@ -117,6 +117,8 @@ public class DataMaskingTest {
         assertEquals(expected, IMPL.getOutput());
         IMPL.setEventPayload(in);
         assertEquals(expected, IMPL.getEventPayload());
+        IMPL.setEventCode(in);
+        assertEquals(expected, IMPL.getEventCode());
         IMPL.setEventMessage(in);
         assertEquals(expected, IMPL.getEventMessage());
         IMPL.setStackTrace(in);

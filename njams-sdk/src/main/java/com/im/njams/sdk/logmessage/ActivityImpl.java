@@ -540,7 +540,7 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
     @Override
     public void setEventCode(String code) {
         setExecutionIfNotSet();
-        super.setEventCode(limitLength("eventCode", code, MAX_VALUE_LIMIT));
+        super.setEventCode(DataMasking.maskString(limitLength("eventCode", code, MAX_VALUE_LIMIT)));
         if (StringUtils.isNotBlank(code)) {
             job.setInstrumented();
         }
