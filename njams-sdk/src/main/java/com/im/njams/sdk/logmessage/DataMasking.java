@@ -24,6 +24,7 @@
 package com.im.njams.sdk.logmessage;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
 import java.util.regex.Matcher;
@@ -32,6 +33,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.im.njams.sdk.NjamsSettings;
+import com.im.njams.sdk.utils.StringUtils;
 
 /**
  * DataMasking implementation
@@ -42,9 +44,9 @@ public class DataMasking {
 
     private static final Logger LOG = LoggerFactory.getLogger(DataMasking.class);
 
-    private static final String MASK_CHAR = "*";
-
     private static final List<DataMaskingType> DATA_MASKING_TYPES = new ArrayList<>();
+    private static final char MASK_CHAR = '*';
+    private static char[] mask = new char[0];
 
     /**
      * Mask a string by patterns given to this class
@@ -52,39 +54,41 @@ public class DataMasking {
      * @param inString String to apply datamasking to
      * @return String with applied datamasking
      */
-    public static String maskString(String inString) {
-        if (inString == null || inString.isEmpty() || DATA_MASKING_TYPES.isEmpty()) {
+    public static String maskString(final String inString) {
+        if (DATA_MASKING_TYPES.isEmpty() || StringUtils.isBlank(inString)) {
             return inString;
         }
 
-        String maskedString = inString;
-        boolean foundAtleastOneMatch = false;
+        final StringBuilder maskedString = new StringBuilder(inString);
         for (DataMaskingType dataMaskingType : DATA_MASKING_TYPES) {
-            Matcher m = dataMaskingType.getPattern().matcher(inString);
+            final Matcher m = dataMaskingType.getPattern().matcher(inString);
             while (m.find()) {
-                int startIdx = m.start();
-                int endIdx = m.end();
+                maskedString.replace(m.start(), m.end(), getMask(m.end() - m.start()));
+            }
+            LOG.trace("\nApplied {}, new result={}", dataMaskingType, maskedString);
+        }
+        LOG.debug("Masked string: {}", maskedString);
 
-                String patternMatch = inString.substring(startIdx, endIdx);
-                String partToBeMasked = patternMatch.substring(0, patternMatch.length());
-                String mask = "";
-                for (int i = 0; i < partToBeMasked.length(); i++) {
-                    mask = mask + MASK_CHAR;
+        return maskedString.toString();
+    }
+
+    /**
+     * Efficient way for getting the a string containing only the masking character.
+     * @param len The length of the string to return, respectively the number of masking characters.
+     * @return A string of the given length containing only the masking character.
+     */
+    private static String getMask(int len) {
+        if (mask.length < len) {
+            synchronized (DataMasking.class) {
+                if (mask.length < len) {
+                    // make sure that concurrent executions only see the filled array
+                    final char[] newMask = new char[len];
+                    Arrays.fill(newMask, MASK_CHAR);
+                    mask = newMask;
                 }
-
-                String maskedNumber = mask + patternMatch.substring(patternMatch.length());
-                maskedString = maskedString.replace(patternMatch, maskedNumber);
-                foundAtleastOneMatch = true;
-            }
-            if (foundAtleastOneMatch && LOG.isDebugEnabled()) {
-                LOG.debug("\nApplied masking of pattern: \"{}\". \nThe regex is: \"{}\"",
-                        dataMaskingType.getNameOfPattern(), dataMaskingType.getRegex());
             }
         }
-        if (foundAtleastOneMatch && LOG.isTraceEnabled()) {
-            LOG.trace("Masked String: {}", maskedString);
-        }
-        return maskedString;
+        return String.valueOf(mask, 0, len);
     }
 
     /**
@@ -113,12 +117,10 @@ public class DataMasking {
      * @param properties the properties to provide
      */
     public static void addPatterns(Properties properties) {
-        properties.keySet().stream()
-                .filter(key -> ((String) key).startsWith(NjamsSettings.PROPERTY_DATA_MASKING_REGEX_PREFIX))
-                .forEach(key -> {
-                    String name = ((String) key).substring(NjamsSettings.PROPERTY_DATA_MASKING_REGEX_PREFIX.length());
-                    addPattern(name, properties.getProperty((String) key));
-                });
+        properties.stringPropertyNames().stream()
+                .filter(k -> k.startsWith(NjamsSettings.PROPERTY_DATA_MASKING_REGEX_PREFIX))
+                .forEach(k -> addPattern(k.substring(NjamsSettings.PROPERTY_DATA_MASKING_REGEX_PREFIX.length()),
+                        properties.getProperty(k)));
     }
 
     /**
