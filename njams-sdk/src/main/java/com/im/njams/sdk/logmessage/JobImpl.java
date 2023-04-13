@@ -72,10 +72,10 @@ public class JobImpl implements Job {
     /**
      * This messages is used when payload has been discard because its size limit has been exceeded.
      */
+    public static final String PAYLOAD_DISCARDED_MESSAGE = "[Discarded by client due to configured payload limits]";
     /**
      * This messages is used as suffix when payload has been truncated because its size limit has been exceeded.
      */
-    public static final String PAYLOAD_DISCARDED_MESSAGE = "[Discarded by client due to configured payload limits]";
     public static final String PAYLOAD_TRUNCATED_SUFFIX = "... [Truncated by client due to configured payload limits]";
 
     /**
