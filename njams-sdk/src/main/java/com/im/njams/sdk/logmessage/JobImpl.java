@@ -219,7 +219,7 @@ public class JobImpl implements Job {
         startTimeExplicitlySet = false;
         allErrors = "true".equalsIgnoreCase(njams.getSettings().getProperty(NjamsSettings.PROPERTY_LOG_ALL_ERRORS));
         truncateOnSuccess =
-                "true".equalsIgnoreCase(njams.getSettings().getProperty(NjamsSettings.PROPERTY_LOG_ALL_ERRORS));
+                "true".equalsIgnoreCase(njams.getSettings().getProperty(NjamsSettings.PROPERTY_TRUNCATE_ON_SUCCESS));
         truncateLimit = getTruncateLimit();
         initPayloadLimit();
     }

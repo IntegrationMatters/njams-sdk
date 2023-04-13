@@ -21,25 +21,22 @@ public class TruncatingTest {
     private JobImpl job = null;
     private final Random random = new Random();
     private ProcessModel processModel = null;
-    private int limit = 10;
-    private boolean truncateOnSuccess = false;
+    private Settings settings = null;
 
     @Before
     public void setup() {
         processModel = mock(ProcessModel.class);
         Njams njams = mock(Njams.class);
         when(processModel.getNjams()).thenReturn(njams);
-        Settings settings = mock(Settings.class);
+        settings = mock(Settings.class);
         when(njams.getSettings()).thenReturn(settings);
-        when(settings.getProperty(eq(NjamsSettings.PROPERTY_TRUNCATE_LIMIT))).then(i -> String.valueOf(limit));
-        when(settings.getProperty(eq(NjamsSettings.PROPERTY_TRUNCATE_ON_SUCCESS)))
-                .then(i -> String.valueOf(truncateOnSuccess));
         job = null;
     }
 
     private void init(int limit, boolean onSuccess) {
-        this.limit = limit;
-        truncateOnSuccess = onSuccess;
+        when(settings.getProperty(eq(NjamsSettings.PROPERTY_TRUNCATE_LIMIT))).then(i -> String.valueOf(limit));
+        when(settings.getProperty(eq(NjamsSettings.PROPERTY_TRUNCATE_ON_SUCCESS)))
+                .then(i -> String.valueOf(onSuccess));
         job = new JobImpl(processModel, "4711", "4812");
     }
 
