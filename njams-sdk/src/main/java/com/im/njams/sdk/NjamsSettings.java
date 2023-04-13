@@ -197,21 +197,6 @@ public class NjamsSettings {
     public static final String OLD_SHARED_COMMUNICATIONS = "njams.client.sdk.sharedcommunications";
 
     /**
-     * New field subProcessPath has been added for Messageformat 4.1.0
-     * <p>
-     * This property can be set to use deprecated format; this might be used when sending to a server not compatible
-     * because he uses an older Messageformat version.
-     */
-    public static final String PROPERTY_USE_DEPRECATED_PATH_FIELD_FOR_SUBPROCESSES =
-            "njams.sdk.deprecatedsubprocesspathfield";
-    /**
-     * @deprecated Just for downward compatibility.
-     */
-    @Deprecated(since = "5.0.0", forRemoval = true)
-    public static final String OLD_USE_DEPRECATED_PATH_FIELD_FOR_SUBPROCESSES =
-            "njams.client.sdk.deprecatedsubprocesspathfield";
-
-    /**
      * If set to <code>true</code> secure XML processing feature will NOT be initialized:
      * <p>
      * factory.setAttribute(XMLConstants.FEATURE_SECURE_PROCESSING, false);

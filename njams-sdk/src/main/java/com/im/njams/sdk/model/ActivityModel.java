@@ -27,7 +27,6 @@ import javax.xml.bind.annotation.XmlTransient;
 
 import com.faizsiegeln.njams.messageformat.v4.common.SubProcess;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.Activity;
-import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.common.IdUtil;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.configuration.ActivityConfiguration;
@@ -103,15 +102,7 @@ public class ActivityModel {
             SubProcess sb = new SubProcess();
             sb.setName(((SubProcessActivityModel) this).getSubProcessName());
             if (((SubProcessActivityModel) this).getSubProcessPath() != null) {
-                String useDeprecatedField = processModel.getNjams().getSettings().getPropertyWithDeprecationWarning(
-                        NjamsSettings.PROPERTY_USE_DEPRECATED_PATH_FIELD_FOR_SUBPROCESSES,
-                        NjamsSettings.OLD_USE_DEPRECATED_PATH_FIELD_FOR_SUBPROCESSES);
-                if ("true".equalsIgnoreCase(useDeprecatedField)) {
-                    sb.setPath(((SubProcessActivityModel) this).getSubProcessPath().toString());
-                } else {
-                    sb.setSubProcessPath(((SubProcessActivityModel) this).getSubProcessPath().toString());
-                }
-
+                sb.setSubProcessPath(((SubProcessActivityModel) this).getSubProcessPath().toString());
             }
             activity.setSubProcess(sb);
         }
