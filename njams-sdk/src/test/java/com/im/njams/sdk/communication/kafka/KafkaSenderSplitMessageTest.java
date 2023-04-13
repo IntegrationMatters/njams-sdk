@@ -42,9 +42,8 @@ public class KafkaSenderSplitMessageTest {
         };
     }
 
-    private void init(int maxSize, boolean split) {
+    private void init(int maxSize) {
         Properties config = new Properties();
-        config.setProperty(NjamsSettings.PROPERTY_KAFKA_LARGE_MESSAGE_MODE, split ? "split" : "discard");
         config.setProperty(NjamsSettings.PROPERTY_KAFKA_CLIENT_PREFIX + ProducerConfig.MAX_REQUEST_SIZE_CONFIG,
                 String.valueOf(maxSize));
         toTest.init(config);
@@ -52,7 +51,7 @@ public class KafkaSenderSplitMessageTest {
 
     @Test
     public void testSplitData() {
-        init(20, true); // factor 0.9 -> 18
+        init(20); // factor 0.9 -> 18
         String testData45 = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRS";
         List<String> sliced = toTest.splitData(testData45);
         assertEquals(3, sliced.size());
@@ -69,7 +68,7 @@ public class KafkaSenderSplitMessageTest {
         String testData45 = String.copyValueOf(euros);
         assertEquals(45, testData45.length());
 
-        init(20, true); // factor 0.9 -> 18
+        init(20); // factor 0.9 -> 18
         List<String> sliced = toTest.splitData(testData45);
         assertEquals(euros.length * 3 / 18 + 1, sliced.size());
         assertEquals(testData45, sliced.stream().collect(Collectors.joining()));
@@ -77,21 +76,12 @@ public class KafkaSenderSplitMessageTest {
 
     @Test
     public void testSplitData3() {
-        init(20, true); // factor 0.9 -> 18
+        init(20); // factor 0.9 -> 18
         List<String> sliced = toTest.splitData("abcde");
         assertEquals(1, sliced.size());
         assertEquals("abcde", sliced.get(0));
 
-        init(20, false); // factor 0.9 -> 18
-        sliced = toTest.splitData("abcde");
-        assertEquals(1, sliced.size());
-        assertEquals("abcde", sliced.get(0));
-
-        init(5, false);
-        sliced = toTest.splitData("abcdefgh");
-        assertEquals(0, sliced.size());
-
-        init(10, true);
+        init(10);
         sliced = toTest.splitData("abcdefghi€qwert");
         assertEquals(2, sliced.size());
         assertEquals("abcdefghi€qwert", sliced.stream().collect(Collectors.joining()));
@@ -100,7 +90,7 @@ public class KafkaSenderSplitMessageTest {
 
     @Test
     public void testSplitDataNull() {
-        init(20, true);
+        init(20);
         List<String> sliced = toTest.splitData(null);
         assertNotNull(sliced);
         assertTrue(sliced.isEmpty());
@@ -109,20 +99,12 @@ public class KafkaSenderSplitMessageTest {
         assertNotNull(sliced);
         assertTrue(sliced.isEmpty());
 
-        init(20, false);
-        sliced = toTest.splitData(null);
-        assertNotNull(sliced);
-        assertTrue(sliced.isEmpty());
-
-        sliced = toTest.splitData("");
-        assertNotNull(sliced);
-        assertTrue(sliced.isEmpty());
     }
 
     @Test
     public void testSplitMessage() {
         String testData45 = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRS";
-        init(20, true);
+        init(20);
         LogMessage msg = new LogMessage();
         msg.setLogId("4711");
         msg.setPath(">a>b>c>");
@@ -145,16 +127,12 @@ public class KafkaSenderSplitMessageTest {
         }
         assertEquals(testData45, data);
 
-        init(20, false);
-        records = toTest.splitMessage(msg, "topic", "event", testData45, null);
-        assertNotNull(records);
-        assertTrue(records.isEmpty());
     }
 
     @Test
     public void testNoSplitMessage() {
         String testData15 = "abcdefghijklmno";
-        init(20, true);
+        init(20);
         LogMessage msg = new LogMessage();
         msg.setLogId("4711");
         msg.setPath(">a>b>c>");
@@ -172,28 +150,12 @@ public class KafkaSenderSplitMessageTest {
         assertFalse(headers.containsKey(KafkaSender.NJAMS_CHUNKS));
         assertFalse(headers.containsKey(KafkaSender.NJAMS_CHUNK_NO));
         assertEquals(testData15, record.value());
-
-        init(20, false);
-        records = toTest.splitMessage(msg, "topic", "event", testData15, null);
-        assertEquals(1, records.size());
-        record = records.get(0);
-        assertEquals("4711", record.key());
-        assertEquals("topic", record.topic());
-
-        headers = getHeaders(record);
-        assertEquals(">a>b>c>", headers.get(NJAMS_PATH_HEADER));
-        assertEquals("4711", headers.get(NJAMS_LOGID_HEADER));
-        assertEquals("event", headers.get(NJAMS_MESSAGETYPE_HEADER));
-        assertEquals("V4", headers.get(NJAMS_MESSAGEVERSION_HEADER));
-        assertFalse(headers.containsKey(KafkaSender.NJAMS_CHUNKS));
-        assertFalse(headers.containsKey(KafkaSender.NJAMS_CHUNK_NO));
-        assertEquals(testData15, record.value());
     }
 
     @Test
     public void testSplitMessage2() {
         String testData45 = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRS";
-        init(20, true);
+        init(20);
         ProjectMessage msg = new ProjectMessage();
         msg.setPath(">a>b>c>");
         List<ProducerRecord<String, String>> records = toTest.splitMessage(msg, "topic", "project", testData45, null);
@@ -219,16 +181,12 @@ public class KafkaSenderSplitMessageTest {
         }
         assertEquals(testData45, data);
 
-        init(20, false);
-        records = toTest.splitMessage(msg, "topic", "project", testData45, null);
-        assertNotNull(records);
-        assertTrue(records.isEmpty());
     }
 
     @Test
     public void testNoSplitMessage2() {
         String testData15 = "abcdefghijklmno";
-        init(20, true);
+        init(20);
         ProjectMessage msg = new ProjectMessage();
         msg.setPath(">a>b>c>");
         List<ProducerRecord<String, String>> records = toTest.splitMessage(msg, "topic", "project", testData15, null);
@@ -246,26 +204,11 @@ public class KafkaSenderSplitMessageTest {
         assertNull(headers.get(NJAMS_LOGID_HEADER));
         assertEquals(testData15, record.value());
 
-        init(20, false);
-        records = toTest.splitMessage(msg, "topic", "project", testData15, null);
-        assertEquals(1, records.size());
-        record = records.get(0);
-        assertNull(record.key());
-        assertEquals("topic", record.topic());
-
-        headers = getHeaders(record);
-        assertEquals(">a>b>c>", headers.get(NJAMS_PATH_HEADER));
-        assertEquals("project", headers.get(NJAMS_MESSAGETYPE_HEADER));
-        assertEquals("V4", headers.get(NJAMS_MESSAGEVERSION_HEADER));
-        assertFalse(headers.containsKey(KafkaSender.NJAMS_CHUNKS));
-        assertFalse(headers.containsKey(KafkaSender.NJAMS_CHUNK_NO));
-        assertNull(headers.get(NJAMS_LOGID_HEADER));
-        assertEquals(testData15, record.value());
     }
 
     @Test
     public void testNoSplitMessageNull() {
-        init(20, true);
+        init(20);
         CommonMessage msg = new LogMessage();
         msg.setPath(">a>b>c>");
         List<ProducerRecord<String, String>> records = toTest.splitMessage(msg, "topic", "event", null, null);

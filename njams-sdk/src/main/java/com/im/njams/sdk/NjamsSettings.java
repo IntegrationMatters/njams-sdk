@@ -365,18 +365,6 @@ public class NjamsSettings {
     public static final String PROPERTY_KAFKA_PREFIX = "njams.sdk.communication.kafka.";
 
     /**
-     * How to treat messages larger than the maximum size supported by Kafka.<br>
-     * <code>discard</code> - discard large messages; this option is deprecated and only for compatibility. Use
-     * this option only with nJAMS server 5.2.0 and 5.2.1 which does not support split messages.<br>
-     * <code>split</code> - split large messages into smaller chunks; this the default and will be the only option
-     * in future<br>
-     *
-     * @deprecated This is just for compatibility with nJAMS server 5.2.0 and 5.2.1 and will be removed in future.
-     */
-    @Deprecated
-    public static final String PROPERTY_KAFKA_LARGE_MESSAGE_MODE = "njams.sdk.communication.kafka.largeMessageMode";
-
-    /**
      * This is the only mandatory client property that is used to list bootstrap servers
      * (comma separated) for connecting to a Kafka cluster.
      */

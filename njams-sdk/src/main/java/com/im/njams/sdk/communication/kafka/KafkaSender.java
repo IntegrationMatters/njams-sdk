@@ -24,12 +24,12 @@
 
 package com.im.njams.sdk.communication.kafka;
 
-import static com.im.njams.sdk.communication.MessageHeaders.NJAMS_CLIENTID_HEADER;
-import static com.im.njams.sdk.communication.MessageHeaders.NJAMS_LOGID_HEADER;
 import static com.im.njams.sdk.communication.MessageHeaders.MESSAGETYPE_EVENT;
-import static com.im.njams.sdk.communication.MessageHeaders.NJAMS_MESSAGETYPE_HEADER;
 import static com.im.njams.sdk.communication.MessageHeaders.MESSAGETYPE_PROJECT;
 import static com.im.njams.sdk.communication.MessageHeaders.MESSAGETYPE_TRACE;
+import static com.im.njams.sdk.communication.MessageHeaders.NJAMS_CLIENTID_HEADER;
+import static com.im.njams.sdk.communication.MessageHeaders.NJAMS_LOGID_HEADER;
+import static com.im.njams.sdk.communication.MessageHeaders.NJAMS_MESSAGETYPE_HEADER;
 import static com.im.njams.sdk.communication.MessageHeaders.NJAMS_MESSAGEVERSION_HEADER;
 import static com.im.njams.sdk.communication.MessageHeaders.NJAMS_PATH_HEADER;
 import static com.im.njams.sdk.communication.kafka.KafkaHeadersUtil.headersUpdater;
@@ -108,9 +108,6 @@ public class KafkaSender extends AbstractSender {
     private int maxMessageBytes = (int) (1024 * 1024 * 0.9d); // 90% of Kafka's default of 1MB
     private int requestTimeoutMs = 6000;
 
-    @Deprecated
-    private boolean splitLargeMessages = true;
-
     /**
      * Initializes this Sender via the given Properties.
      * <p>
@@ -121,9 +118,6 @@ public class KafkaSender extends AbstractSender {
     @Override
     public void init(final Properties properties) {
         super.init(properties);
-        splitLargeMessages =
-                !"discard".equalsIgnoreCase(properties.getProperty(NjamsSettings.PROPERTY_KAFKA_LARGE_MESSAGE_MODE,
-                        "split"));
         kafkaProperties = KafkaUtil.filterKafkaProperties(properties, ClientType.PRODUCER);
         if (discardPolicy != DiscardPolicy.NONE && !kafkaProperties.containsKey(ProducerConfig.RETRIES_CONFIG)) {
             // disable internal retries, if policy is set to discard, unless explicitly specified
@@ -154,7 +148,7 @@ public class KafkaSender extends AbstractSender {
         if (i > 0) {
             maxMessageBytes = (int) (i * 0.9d);
         }
-        LOG.debug("Max message size {} bytes (split={})", maxMessageBytes, splitLargeMessages);
+        LOG.debug("Max message size {} bytes", maxMessageBytes);
 
         // set request timeout according to producer config +1 second
         i = getPropertyInt(kafkaProperties, ProducerConfig.DELIVERY_TIMEOUT_MS_CONFIG, 120000);
@@ -372,12 +366,6 @@ public class KafkaSender extends AbstractSender {
                 if (!cr.isOverflow()) {
                     // data fits into one message
                     return Collections.singletonList(data);
-                }
-                if (!splitLargeMessages) {
-                    // data is too large, but splitting is disabled
-                    LOG.warn("Discarding message that is too large (> {} bytes).", maxMessageBytes);
-                    DiscardMonitor.discard();
-                    return Collections.emptyList();
                 }
                 // create array for collecting chunks
                 chunks = new ArrayList<>();
