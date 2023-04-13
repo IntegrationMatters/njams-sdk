@@ -385,15 +385,6 @@ public class NjamsSettings {
             "njams.sdk.communication.kafka.replyProducerIdleTime";
 
     /**
-     * For testing only.
-     * Allows specifying a specific commands topic, overriding the default that is resolved from the topicPrefix setting.
-     *
-     * @deprecated This property is being removed in a future release.
-     */
-    @Deprecated
-    public static final String PROPERTY_KAFKA_COMMANDS_TOPIC = "njams.sdk.communication.kafka.commandsTopic";
-
-    /**
      * All properties with these prefixes are directly passed to the Kafka clients used by the SDK:
      * <ul>
      * <li>njams.sdk.communication.kafka.client.*

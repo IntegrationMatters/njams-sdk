@@ -81,7 +81,6 @@ public class KafkaReceiver extends AbstractReceiver {
      *
      * @param properties the properties needed to initialize
      */
-    @SuppressWarnings("deprecation")
     @Override
     public void init(final Properties properties) {
         njamsProperties = properties;
@@ -89,18 +88,13 @@ public class KafkaReceiver extends AbstractReceiver {
         mapper = JsonSerializerFactory.getDefaultMapper();
         final String clientPath = properties.getProperty(Settings.INTERNAL_PROPERTY_CLIENTPATH);
         kafkaClientId = getClientId(clientPath.substring(1, clientPath.length() - 1).replace('>', '_'));
-        if (properties.containsKey(NjamsSettings.PROPERTY_KAFKA_COMMANDS_TOPIC)) {
-            topicName = properties.getProperty(NjamsSettings.PROPERTY_KAFKA_COMMANDS_TOPIC);
+        String prefix = properties.getProperty(NjamsSettings.PROPERTY_KAFKA_TOPIC_PREFIX);
+        if (StringUtils.isBlank(prefix)) {
+            LOG.warn("Property {} is not set. Using '{}' as default.", NjamsSettings.PROPERTY_KAFKA_TOPIC_PREFIX,
+                    KafkaConstants.DEFAULT_TOPIC_PREFIX);
+            prefix = KafkaConstants.DEFAULT_TOPIC_PREFIX;
         }
-        if (StringUtils.isBlank(topicName)) {
-            String prefix = properties.getProperty(NjamsSettings.PROPERTY_KAFKA_TOPIC_PREFIX);
-            if (StringUtils.isBlank(prefix)) {
-                LOG.warn("Property {} is not set. Using '{}' as default.", NjamsSettings.PROPERTY_KAFKA_TOPIC_PREFIX,
-                        KafkaConstants.DEFAULT_TOPIC_PREFIX);
-                prefix = KafkaConstants.DEFAULT_TOPIC_PREFIX;
-            }
-            topicName = prefix + COMMANDS_SUFFIX;
-        }
+        topicName = prefix + COMMANDS_SUFFIX;
     }
 
     private static String getClientId(final String path) {
