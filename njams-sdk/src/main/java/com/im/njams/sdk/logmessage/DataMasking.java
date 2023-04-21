@@ -81,9 +81,10 @@ public class DataMasking {
         if (mask.length < len) {
             synchronized (DataMasking.class) {
                 if (mask.length < len) {
-                    // make sure that concurrent executions only see the filled array
-                    final char[] newMask = new char[len];
+                    // extend by multiples of 100 chars
+                    final char[] newMask = new char[(len / 100 + 1) * 100];
                     Arrays.fill(newMask, MASK_CHAR);
+                    // make sure that concurrent executions only see the filled array
                     mask = newMask;
                 }
             }
