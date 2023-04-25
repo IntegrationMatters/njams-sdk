@@ -45,10 +45,10 @@ public class NjamsSettings {
      * <p>
      * Possible values:
      * <ul>
-     * <li>JMS
-     * <li>HTTP
-     * <li>KAFKA
-     * <li>YOUR-OWN-COMMUNICATION
+     * <li>JMS</li>
+     * <li>HTTP</li>
+     * <li>KAFKA</li>
+     * <li>YOUR-OWN-COMMUNICATION</li>
      * </ul>
      */
     public static final String PROPERTY_COMMUNICATION = "njams.sdk.communication";
@@ -83,17 +83,16 @@ public class NjamsSettings {
     public static final String PROPERTY_TRUNCATE_ON_SUCCESS = "njams.sdk.truncateOnSuccess";
 
     /**
-     * This setting is true (which is the default), the SDK will generate a unique client id, which is used to identify
-     * the correct client in a multi node/replica/pod container environment.
+     * If this setting is true (which is the default), the SDK will generate a unique client id, which is used to identify
+     * the correct client in a multi- node/replica/pod container environment.
      * <p>
-     * An additional feature flag (named containerMode) will be activated and sent to server with ProjectMessage.
-     * With this information the server knows that the client is running in a multi node container environment, and
-     * has to use the clientId for node selection.
+     * An additional feature flag (named containerMode) indicates that the feature is activated and nJAMS server then
+     * uses the according server feature for communicating with the specific clients in the container environment.
      * <p>
-     * Some commands will only be sent to one of the multi container nodes (eg. replay and all get commands). The rest
-     * will be sent to all nodes because for example a change to Logmode has to be processed by all nodes.
+     * Some commands will only be sent to just one of the multi-container nodes (eg. replay and all get commands). The rest
+     * will be sent to all nodes because for example a change to log-mode has to be processed by all nodes.
      */
-    public static final String PROPERTY_CONTAINER_MODE = "njams.sdk.containerMode";
+    public static final String PROPERTY_CONTAINER_MODE = "njams.sdk.communication.containerMode";
 
     /**
      * This property is a flush criteria with a default of 5mb.
@@ -189,7 +188,7 @@ public class NjamsSettings {
      * instances if supported by the configured implementations. By default (or if set to <code>false</code>) each
      * {@link Njams} instance uses a dedicated instance of sender and receiver pools.
      */
-    public static final String PROPERTY_SHARED_COMMUNICATIONS = "njams.sdk.sharedcommunications";
+    public static final String PROPERTY_SHARED_COMMUNICATIONS = "njams.sdk.communication.shared";
     /**
      * @deprecated Just for downward compatibility.
      */
