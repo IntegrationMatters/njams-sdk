@@ -20,7 +20,6 @@ import java.util.Properties;
 
 import com.faizsiegeln.njams.messageformat.v4.common.CommonMessage;
 import com.im.njams.sdk.Njams;
-import com.im.njams.sdk.utils.ClasspathValidator;
 
 /**
  * This interface must be implemented to create a nJAMS Sender Inplementations
@@ -28,7 +27,7 @@ import com.im.njams.sdk.utils.ClasspathValidator;
  *
  * @author bwand
  */
-public interface Sender extends ClasspathValidator {
+public interface Sender {
 
     /**
      * This new implementation should initialize itself via the given

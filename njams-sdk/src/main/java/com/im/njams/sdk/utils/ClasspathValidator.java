@@ -18,6 +18,7 @@ import org.slf4j.LoggerFactory;
  * @version 4.0.5
  */
 public interface ClasspathValidator {
+    Logger LOG = LoggerFactory.getLogger(ClasspathValidator.class);
 
     /**
      * Per default this method validates that libraries that are returned by
@@ -27,8 +28,7 @@ public interface ClasspathValidator {
      * @throws java.lang.ClassNotFoundException This exception is thrown
      * if any class is not found.
      */
-    public default void validate() throws ClassNotFoundException{
-        Logger LOG = LoggerFactory.getLogger(ClasspathValidator.class);
+    public default void validate() throws ClassNotFoundException {
         String[] libs = librariesToCheck();
         if (libs != null && libs.length != 0) {
             for (String path : libs) {
@@ -49,7 +49,5 @@ public interface ClasspathValidator {
      *
      * @return An array of Strings of fully qualified class names. 
      */
-    public default String[] librariesToCheck(){
-        return null;
-    }
+    public String[] librariesToCheck();
 }

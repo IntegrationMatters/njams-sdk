@@ -53,6 +53,7 @@ import com.im.njams.sdk.communication.AbstractReceiver;
 import com.im.njams.sdk.communication.ConnectionStatus;
 import com.im.njams.sdk.communication.NjamsConnectionFactory;
 import com.im.njams.sdk.settings.PropertyUtil;
+import com.im.njams.sdk.utils.ClasspathValidator;
 import com.im.njams.sdk.utils.StringUtils;
 
 /**
@@ -61,7 +62,7 @@ import com.im.njams.sdk.utils.StringUtils;
  * @author pnientiedt, krautenberg@integrationmatters.ocm
  * @version 4.0.5
  */
-public class JmsReceiver extends AbstractReceiver implements MessageListener, ExceptionListener {
+public class JmsReceiver extends AbstractReceiver implements MessageListener, ExceptionListener, ClasspathValidator {
 
     private static final Logger LOG = LoggerFactory.getLogger(JmsReceiver.class);
 

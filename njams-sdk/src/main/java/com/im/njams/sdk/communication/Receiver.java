@@ -21,7 +21,6 @@ import java.util.Properties;
 import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.NjamsSettings;
-import com.im.njams.sdk.utils.ClasspathValidator;
 
 /**
  * This interface must be implenmented by a new Receiver for a given
@@ -29,7 +28,7 @@ import com.im.njams.sdk.utils.ClasspathValidator;
  *
  * @author pnientiedt
  */
-public interface Receiver extends ClasspathValidator {
+public interface Receiver {
 
     /**
      * Set njams instance

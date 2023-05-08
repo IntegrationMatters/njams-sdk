@@ -31,6 +31,7 @@ import org.slf4j.LoggerFactory;
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.settings.Settings;
+import com.im.njams.sdk.utils.ClasspathValidator;
 
 /**
  * Factory for creating Sender and Receiver
@@ -133,7 +134,9 @@ public class CommunicationFactory {
                     }
                     LOG.debug("Creating shared receiver {}", clazz);
                     receiver = clazz.getDeclaredConstructor().newInstance();
-                    receiver.validate();
+                    if (receiver instanceof ClasspathValidator) {
+                        ((ClasspathValidator) receiver).validate();
+                    }
                     sharedReceivers.put(clazz, (ShareableReceiver<?>) receiver);
                     receiver.init(properties);
                     return receiver;
@@ -141,7 +144,9 @@ public class CommunicationFactory {
             }
             LOG.debug("Creating dedicated receiver {}", clazz);
             receiver = clazz.getDeclaredConstructor().newInstance();
-            receiver.validate();
+            if (receiver instanceof ClasspathValidator) {
+                ((ClasspathValidator) receiver).validate();
+            }
             receiver.init(properties);
             return receiver;
         } catch (Exception e) {
@@ -169,7 +174,10 @@ public class CommunicationFactory {
                 // create a new instance
                 LOG.info("Create sender {}", sender.getName());
                 AbstractSender newInstance = sender.getClass().getDeclaredConstructor().newInstance();
-                newInstance.validate();
+                if (newInstance instanceof ClasspathValidator) {
+                    ((ClasspathValidator) newInstance).validate();
+                }
+
                 newInstance.init(settings.getAllProperties());
                 return newInstance;
             } catch (Exception e) {

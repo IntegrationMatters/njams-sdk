@@ -64,6 +64,7 @@ import com.im.njams.sdk.communication.DiscardMonitor;
 import com.im.njams.sdk.communication.DiscardPolicy;
 import com.im.njams.sdk.communication.NjamsConnectionFactory;
 import com.im.njams.sdk.settings.PropertyUtil;
+import com.im.njams.sdk.utils.ClasspathValidator;
 import com.im.njams.sdk.utils.JsonUtils;
 
 /**
@@ -72,12 +73,12 @@ import com.im.njams.sdk.utils.JsonUtils;
  * @author hsiegeln
  * @version 4.0.6
  */
-public class JmsSender extends AbstractSender implements ExceptionListener {
+public class JmsSender extends AbstractSender implements ExceptionListener, ClasspathValidator {
 
     private static final Logger LOG = LoggerFactory.getLogger(JmsSender.class);
 
     /**
-     * Name for the JMS comminuication implementation.
+     * Name for the JMS communication implementation.
      */
     public static final String COMMUNICATION_NAME = "JMS";
 
@@ -327,7 +328,7 @@ public class JmsSender extends AbstractSender implements ExceptionListener {
     }
 
     @Override
-    protected void onException(NjamsSdkRuntimeException exception) {
+    protected void onException(Exception exception) {
         if (reconnector != null && reconnector.isAlive()) {
             return;
         }
@@ -347,8 +348,7 @@ public class JmsSender extends AbstractSender implements ExceptionListener {
     @Override
     public String[] librariesToCheck() {
         return new String[] { "javax.jms.Connection", "javax.jms.ConnectionFactory", "javax.jms.Destination",
-                "javax" + ".jms" +
-                        ".ExceptionListener",
+                "javax.jms.ExceptionListener",
                 "javax.jms.Session", "javax.jms.JMSException",
                 "javax.jms.MessageProducer",
                 "javax.jms.Session", "javax.jms.TextMessage", "javax.naming.InitialContext",
