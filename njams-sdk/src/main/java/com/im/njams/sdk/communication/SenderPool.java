@@ -16,10 +16,15 @@
  */
 package com.im.njams.sdk.communication;
 
-import org.slf4j.LoggerFactory;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.IdentityHashMap;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
-import java.util.Enumeration;
-import java.util.Hashtable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * pool for Sender sub-classes
@@ -27,20 +32,36 @@ import java.util.Hashtable;
  * @author hsiegeln
  */
 public class SenderPool {
-    private static final org.slf4j.Logger LOG = LoggerFactory.getLogger(SenderPool.class);
+    private static final Logger LOG = LoggerFactory.getLogger(SenderPool.class);
 
     private final CommunicationFactory factory;
-    private final Hashtable<AbstractSender, Long> unlocked, locked;
+    // TODO: SDK-356: value is never used
+    private final Map<AbstractSender, Long> locked = new ConcurrentHashMap<>();
+    // TODO: SDK-356: value is never used
+    private final Map<AbstractSender, Long> unlocked = new ConcurrentHashMap<>();
+    private final Collection<SenderExceptionListener> exceptionListeners =
+            Collections.newSetFromMap(new IdentityHashMap<>());
 
     public SenderPool(CommunicationFactory factory) {
-        super();
         this.factory = factory;
-        unlocked = new Hashtable<>();
-        locked = new Hashtable<>();
+    }
+
+    /**
+     * Add a listener that is called whenever an exception occurs on sending a message.
+     * @param listener
+     */
+    public void addSenderExceptionListener(SenderExceptionListener listener) {
+        exceptionListeners.add(listener);
+        unlocked.keySet().forEach(s -> s.addExceptionListener(listener));
+        locked.keySet().forEach(s -> s.addExceptionListener(listener));
     }
 
     protected AbstractSender create() {
-        return factory.getSender();
+        final AbstractSender sender = factory.getSender();
+        if (!exceptionListeners.isEmpty()) {
+            exceptionListeners.forEach(sender::addExceptionListener);
+        }
+        return sender;
     }
 
     public boolean validate(AbstractSender sender) {
@@ -48,7 +69,8 @@ public class SenderPool {
         return true;
     }
 
-    public void expire(AbstractSender sender) {
+    private void destroy(AbstractSender sender) {
+        sender.setShouldShutdown(true);
         sender.close();
     }
 
@@ -61,6 +83,8 @@ public class SenderPool {
     }
 
     /**
+     * TODO: SDK-355: revision required!
+     * 
      * get an object from the pool. Timeout controls for how long to wait for an object becoming available.
      * a timeout is less than 0 results in an endless wait
      * a timeout equals 0 results in a singly try; if no object is available, null is returned
@@ -74,23 +98,21 @@ public class SenderPool {
         long now = System.currentTimeMillis();
         // try to get an object, until timeout expires
         do {
-            if (unlocked.size() > 0) {
-                Enumeration<AbstractSender> e = unlocked.keys();
-                while (e.hasMoreElements()) {
-                    sender = e.nextElement();
+            if (!unlocked.isEmpty()) {
+                final Iterator<AbstractSender> it = unlocked.keySet().iterator();
+                while (it.hasNext()) {
+                    sender = it.next();
                     if (validate(sender)) {
-                        unlocked.remove(sender);
+                        it.remove();
                         locked.put(sender, now);
-                        LOG.trace("Got Sender: " + sender);
+                        LOG.trace("Got Sender: {}", sender);
                         return sender;
-                    } else {
-                        // object failed validation
-                        LOG.debug("Object failed validation!");
-                        unlocked.remove(sender);
-                        expire(sender);
-                        sender = null;
                     }
-
+                    // object failed validation
+                    LOG.debug("Sender {} failed validation!", sender);
+                    it.remove();
+                    destroy(sender);
+                    sender = null;
                 }
             }
             // no objects available, create a new one
@@ -107,11 +129,10 @@ public class SenderPool {
         LOG.trace("Close locked={}, unlocked={}", locked.size(), unlocked.size());
     }
 
-    public synchronized void expireAll() {
+    private synchronized void expireAll() {
         for (AbstractSender sender : locked.keySet()) {
             try {
-                sender.setShouldShutdown(true);
-                sender.close();
+                destroy(sender);
             } catch (Exception e) {
                 LOG.error("Couldn't close {}", sender.getClass().getSimpleName());
             }
@@ -119,8 +140,7 @@ public class SenderPool {
         locked.clear();
         for (AbstractSender sender : unlocked.keySet()) {
             try {
-                sender.setShouldShutdown(true);
-                sender.close();
+                destroy(sender);
             } catch (Exception e) {
                 LOG.error("Couldn't close {}", sender.getClass().getSimpleName());
             }

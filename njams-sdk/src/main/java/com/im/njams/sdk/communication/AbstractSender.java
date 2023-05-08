@@ -16,8 +16,9 @@
  */
 package com.im.njams.sdk.communication;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.IdentityHashMap;
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -48,7 +49,7 @@ public abstract class AbstractSender implements Sender {
     protected ConnectionStatus connectionStatus;
     protected DiscardPolicy discardPolicy = DiscardPolicy.DEFAULT;
     protected Properties properties;
-    private List<SenderExceptionListener> exceptionListeners = new ArrayList<>();
+    private Collection<SenderExceptionListener> exceptionListeners = Collections.newSetFromMap(new IdentityHashMap<>());
 
     private static final AtomicBoolean hasConnected = new AtomicBoolean(false);
 
@@ -108,7 +109,7 @@ public abstract class AbstractSender implements Sender {
      *
      * @param ex the exception that initiated the reconnect
      */
-    public synchronized void reconnect(NjamsSdkRuntimeException ex) {
+    public synchronized void reconnect(Exception ex) {
         if (isConnecting() || isConnected()) {
             return;
         }
@@ -135,7 +136,7 @@ public abstract class AbstractSender implements Sender {
                     }
                     LOG.debug("{} senders still need to reconnect.", connecting.decrementAndGet());
                 }
-            } catch (NjamsSdkRuntimeException e) {
+            } catch (Exception e) {
                 try {
                     Thread.sleep(1000);
                 } catch (InterruptedException e1) {
@@ -167,7 +168,7 @@ public abstract class AbstractSender implements Sender {
                     }
                     isSent = true;
                     break;
-                } catch (NjamsSdkRuntimeException e) {
+                } catch (Exception e) {
                     for (SenderExceptionListener listener : exceptionListeners) {
                         listener.onException(e, msg);
                     }
@@ -204,7 +205,7 @@ public abstract class AbstractSender implements Sender {
      *
      * @param exception NjamsSdkRuntimeException
      */
-    protected void onException(NjamsSdkRuntimeException exception) {
+    protected void onException(Exception exception) {
         // close the existing connection
         close();
         reconnect(exception);

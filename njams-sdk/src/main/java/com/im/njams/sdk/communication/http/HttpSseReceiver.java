@@ -56,11 +56,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
+import com.faizsiegeln.njams.messageformat.v4.common.CommonMessage;
 import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.common.Path;
 import com.im.njams.sdk.communication.AbstractReceiver;
 import com.im.njams.sdk.communication.ConnectionStatus;
+import com.im.njams.sdk.communication.SenderExceptionListener;
 import com.im.njams.sdk.utils.JsonUtils;
 import com.im.njams.sdk.utils.StringUtils;
 
@@ -69,7 +71,7 @@ import com.im.njams.sdk.utils.StringUtils;
  *
  * @author bwand
  */
-public class HttpSseReceiver extends AbstractReceiver {
+public class HttpSseReceiver extends AbstractReceiver implements SenderExceptionListener {
 
     private static final Logger LOG = LoggerFactory.getLogger(HttpSseReceiver.class);
 
@@ -324,5 +326,13 @@ public class HttpSseReceiver extends AbstractReceiver {
         }
         final Response response = builder.post(Entity.json(json));
         LOG.debug("Response status for reply {}: {}", replyId, response.getStatus());
+    }
+
+    @Override
+    public void onException(Exception exception, CommonMessage msg) {
+        if (exception instanceof HttpSendException) {
+            LOG.debug("Received HttpSendException from sender", exception);
+            onError(exception);
+        }
     }
 }

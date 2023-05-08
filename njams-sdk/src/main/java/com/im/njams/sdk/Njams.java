@@ -71,7 +71,7 @@ import com.im.njams.sdk.communication.Receiver;
 import com.im.njams.sdk.communication.ReplayHandler;
 import com.im.njams.sdk.communication.ReplayRequest;
 import com.im.njams.sdk.communication.ReplayResponse;
-import com.im.njams.sdk.communication.Sender;
+import com.im.njams.sdk.communication.SenderExceptionListener;
 import com.im.njams.sdk.communication.ShareableReceiver;
 import com.im.njams.sdk.configuration.Configuration;
 import com.im.njams.sdk.configuration.ConfigurationInstructionListener;
@@ -512,7 +512,7 @@ public class Njams implements InstructionListener {
      *
      * @return the Sender
      */
-    public Sender getSender() {
+    public NjamsSender getSender() {
         if (sender == null) {
             if ("true".equalsIgnoreCase(settings.getPropertyWithDeprecationWarning(
                     NjamsSettings.PROPERTY_SHARED_COMMUNICATIONS, NjamsSettings.OLD_SHARED_COMMUNICATIONS))) {
@@ -533,6 +533,12 @@ public class Njams implements InstructionListener {
         try {
             receiver = new CommunicationFactory(settings).getReceiver(this);
             receiver.start();
+            if (receiver instanceof SenderExceptionListener) {
+                final NjamsSender sender = getSender();
+                if (sender != null) {
+                    sender.addSenderExceptionListener((SenderExceptionListener) receiver);
+                }
+            }
         } catch (Exception e) {
             LOG.error("Error starting Receiver", e);
             try {

@@ -1,7 +1,6 @@
 package com.im.njams.sdk.communication;
 
 import com.faizsiegeln.njams.messageformat.v4.common.CommonMessage;
-import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 
 /**
  * ExceptionListener will be called when an exception occurred.
@@ -14,5 +13,5 @@ public interface SenderExceptionListener {
      * @param exception the exception thrown
      * @param msg       the message
      */
-    void onException(NjamsSdkRuntimeException exception, CommonMessage msg);
+    void onException(Exception exception, CommonMessage msg);
 }

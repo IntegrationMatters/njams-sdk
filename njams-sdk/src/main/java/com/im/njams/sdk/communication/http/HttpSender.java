@@ -394,8 +394,9 @@ public class HttpSender extends AbstractSender {
                     LOG.warn("Start reconnect because the server HTTP endpoint could not be reached for {} seconds.",
                             MAX_TRIES * EXCEPTION_IDLE_TIME / 1000);
                     if (exception != null) {
-                        throw new NjamsSdkRuntimeException("Error sending message with HTTP client URI "
-                                + target.getUri(), exception);
+                        // this triggers reconnecting the command-receiver which is only necessary on communication issues
+                        // but not on message error indicated by some error code response
+                        throw new HttpSendException(target.getUri(), exception);
                     }
                     throw new NjamsSdkRuntimeException("Error sending message with HTTP client URI "
                             + target.getUri() + " Response status is: " + responseStatus);

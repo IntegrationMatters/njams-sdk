@@ -1,9 +1,11 @@
 package com.im.njams.sdk.communication;
 
-import org.junit.Test;
-
 import static org.junit.Assert.assertEquals;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+
+import org.junit.Test;
 
 public class SenderPoolTest {
 
@@ -20,36 +22,22 @@ public class SenderPoolTest {
                 if (first) {
                     first = false;
                     return mockedAC;
-                } else {
-                    return mockedAC2;
                 }
+                return mockedAC2;
             }
 
-            @Override
-            public boolean validate(AbstractSender o) {
-                return true;
-            }
-
-            @Override
-            public void expire(AbstractSender o) {
-                try {
-                    o.close();
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            }
         };
         //To fill the locked map
         AbstractSender get1 = op.get();
         assertEquals(mockedAC, get1);
         //To clear the locked map
-        op.expireAll();
+        op.shutdown();
         verify(get1, times(1)).close();
 
         AbstractSender get2 = op.get();
         assertEquals(mockedAC2, get2);
         op.close(get2);
-        op.expireAll();
+        op.shutdown();
         verify(get2, times(1)).close();
         //This hasn't been closed again, because it isn't in the maps anymore
         verify(get1, times(1)).close();

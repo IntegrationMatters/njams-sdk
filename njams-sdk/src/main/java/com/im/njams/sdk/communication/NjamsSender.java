@@ -49,7 +49,7 @@ import com.im.njams.sdk.utils.StringUtils;
  * @author hsiegeln
  * @version 4.0.6
  */
-public class NjamsSender implements Sender {
+public class NjamsSender {
 
     private static class NjamsSharedSender extends NjamsSender {
         private final Object lock = new Object();
@@ -148,7 +148,6 @@ public class NjamsSender implements Sender {
      * @param properties the properties for MIN_QUEUE_LENGTH, MAX_QUEUE_LENGTH
      *                   and IDLE_TIME for the sender threads.
      */
-    @Override
     public void init(Properties properties) {
         int minSenderThreads =
                 (int) getLongProperty(properties, 1, PROPERTY_MIN_SENDER_THREADS, OLD_MIN_SENDER_THREADS);
@@ -184,7 +183,6 @@ public class NjamsSender implements Sender {
      *
      * @param msg the message that will be send to the server.
      */
-    @Override
     public void send(CommonMessage msg, String clientSessionId) {
         executor.execute(() -> {
             AbstractSender sender = null;
@@ -208,7 +206,6 @@ public class NjamsSender implements Sender {
      * termination for 10 seconds, after that, an InterruptedException will be
      * thrown and the senders will be closed.
      */
-    @Override
     public void close() {
         try {
             int waitTime = 10;
@@ -225,7 +222,7 @@ public class NjamsSender implements Sender {
             LOG.info("Shutdown now the sender's threadpool executor.");
             executor.shutdownNow();
             LOG.debug("Shutdown of the sender's threadpool executor finished.");
-            senderPool.expireAll();
+            senderPool.shutdown();
             LOG.debug("Expire all sender pools finished.");
         }
     }
@@ -237,7 +234,6 @@ public class NjamsSender implements Sender {
      * @return the value to key njams.sdk.communication in the
      * settings
      */
-    @Override
     public String getName() {
         return name;
     }
@@ -251,4 +247,10 @@ public class NjamsSender implements Sender {
         return executor;
     }
 
+    public void addSenderExceptionListener(SenderExceptionListener listener) {
+        if (senderPool == null) {
+            throw new IllegalStateException("Sender not initialized.");
+        }
+        senderPool.addSenderExceptionListener(listener);
+    }
 }
