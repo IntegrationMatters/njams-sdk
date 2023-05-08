@@ -35,6 +35,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.faizsiegeln.njams.messageformat.v4.common.CommonMessage;
+import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.factories.ThreadFactoryBuilder;
 import com.im.njams.sdk.settings.Settings;
@@ -182,6 +183,7 @@ public class NjamsSender {
      * senderpool.
      *
      * @param msg the message that will be send to the server.
+     * @param clientSessionId The current client-session ID of the {@link Njams} instance sending this message
      */
     public void send(CommonMessage msg, String clientSessionId) {
         executor.execute(() -> {

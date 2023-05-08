@@ -48,7 +48,7 @@ public class SenderPool {
 
     /**
      * Add a listener that is called whenever an exception occurs on sending a message.
-     * @param listener
+     * @param listener The listener to add
      */
     public void addSenderExceptionListener(SenderExceptionListener listener) {
         exceptionListeners.add(listener);

@@ -18,6 +18,9 @@ import org.slf4j.LoggerFactory;
  * @version 4.0.5
  */
 public interface ClasspathValidator {
+    /**
+     * The logger used by default implementations.
+     */
     Logger LOG = LoggerFactory.getLogger(ClasspathValidator.class);
 
     /**

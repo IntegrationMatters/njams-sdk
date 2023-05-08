@@ -4,6 +4,12 @@ import java.net.URI;
 
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 
+/**
+ * A special {@link NjamsSdkRuntimeException} that triggers reconnecting the {@link HttpSseReceiver}.
+ * 
+ * @author cwinkler
+ *
+ */
 public class HttpSendException extends NjamsSdkRuntimeException {
 
     private static final long serialVersionUID = -4404653059366192032L;
