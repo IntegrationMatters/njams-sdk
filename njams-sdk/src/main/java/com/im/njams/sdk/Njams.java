@@ -25,6 +25,8 @@ package com.im.njams.sdk;
 
 import static java.util.stream.Collectors.toList;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.net.URL;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -32,7 +34,6 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -176,6 +177,8 @@ public class Njams implements InstructionListener {
         }
     }
 
+    private static final String[] VERSION_FILES = new String[] { "njams.version", "msg.version", "client.version" };
+
     /**
      * Key for clientVersion
      */
@@ -183,11 +186,17 @@ public class Njams implements InstructionListener {
     /**
      * Key for sdkVersion
      */
-    public static final String SDK_VERSION_KEY = "sdkVersion";
+    public static final String SDK_VERSION_KEY = "sdk.version";
     /**
      * Key for current year
+     * @deprecated Replaced by {@link #BUILD_YEAR}
      */
-    public static final String CURRENT_YEAR = "currentYear";
+    @Deprecated
+    public static final String CURRENT_YEAR = "sdk.buildYear";
+    /**
+     * Key for build-year
+     */
+    public static final String BUILD_YEAR = "sdk.buildYear";
 
     private static final Serializer<Object> DEFAULT_SERIALIZER = new StringSerializer<>();
     private static final Serializer<Object> NO_SERIALIZER = o -> null;
@@ -971,34 +980,46 @@ public class Njams implements InstructionListener {
      * @param version
      */
     private void readVersionsFromVersionFile(String version) {
-        try {
-            final Enumeration<URL> urls = this.getClass().getClassLoader().getResources("njams.version");
-            while (urls.hasMoreElements()) {
-                final Properties prop = new Properties();
-                prop.load(urls.nextElement().openStream());
-                prop.entrySet().forEach(e -> versions.put(String.valueOf(e.getKey()), String.valueOf(e.getValue())));
+        final Collection<URL> urls =
+                Arrays.stream(VERSION_FILES)
+                        .map(v -> {
+                            try {
+                                return Collections.list(getClass().getClassLoader().getResources(v));
+                            } catch (IOException e) {
+                                LOG.error("Unable to list version files: {}", v, e);
+                                return null;
+                            }
+                        }).filter(Objects::nonNull)
+                        .flatMap(Collection::stream).collect(Collectors.toList());
+        for (URL url : urls) {
+            LOG.debug("Reading {}", url);
+            final Properties prop = new Properties();
+            try (InputStream is = url.openStream()) {
+                prop.load(is);
+                prop.entrySet()
+                        .forEach(e -> versions.put(String.valueOf(e.getKey()), String.valueOf(e.getValue())));
+            } catch (Exception e) {
+                LOG.error("Unable to load versions from {}", url, e);
             }
-        } catch (Exception e) {
-            LOG.error("Unable to load versions from njams.version files", e);
         }
         if (version != null && !versions.containsKey(CLIENT_VERSION_KEY)) {
-            LOG.debug("No njams.version file for {} found!", CLIENT_VERSION_KEY);
+            LOG.debug("No version file for {} found!", CLIENT_VERSION_KEY);
             versions.put(CLIENT_VERSION_KEY, version);
         }
         if (!versions.containsKey(SDK_VERSION_KEY)) {
-            LOG.debug("No njams.version file for {} found!", SDK_VERSION_KEY);
-            versions.put(SDK_VERSION_KEY, "4.0.0.alpha");
+            LOG.debug("No version file for {} found!", SDK_VERSION_KEY);
+            versions.put(SDK_VERSION_KEY, "5.0.0.dev");
         }
     }
 
     private void printStartupBanner() {
         LOG.info("************************************************************");
-        LOG.info("***      nJAMS SDK: Copyright (c) " + versions.get(CURRENT_YEAR) + " Integration Matters GmbH");
+        LOG.info("***      nJAMS SDK: Copyright (c) " + versions.get(BUILD_YEAR) + " Integration Matters GmbH");
         LOG.info("*** ");
         LOG.info("***      Version Info:");
-        versions.entrySet().stream().filter(e -> !CURRENT_YEAR.equals(e.getKey()))
+        versions.entrySet().stream().filter(e -> !e.getKey().toLowerCase().contains("buildyear"))
                 .sorted(Comparator.comparing(Entry::getKey))
-                .forEach(e -> LOG.info("***      " + e.getKey() + ": " + e.getValue()));
+                .forEach(e -> LOG.info("***      {}: {}", e.getKey(), e.getValue()));
         LOG.info("*** ");
         LOG.info("***      Settings:");
 
