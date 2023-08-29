@@ -14,17 +14,17 @@ import org.slf4j.LoggerFactory;
  */
 public class StreamImageSupplier extends ImageSupplier {
 
-    private static final Logger LOG = LoggerFactory.getLogger(StreamImageSupplier.class);
-
     /**
-     * Provides (opens-) an input stream for reading an images source.
+     * Provides (opens-) an input stream for reading an image's source.
      */
     @FunctionalInterface
     public interface StreamSupplier {
         public InputStream openStream() throws Exception;
     }
 
-    final StreamSupplier streamSupplier;
+    private static final Logger LOG = LoggerFactory.getLogger(StreamImageSupplier.class);
+
+    private final StreamSupplier streamSupplier;
 
     /**
      * Sole constructor.
