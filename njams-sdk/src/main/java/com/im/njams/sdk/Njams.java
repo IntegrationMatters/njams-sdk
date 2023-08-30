@@ -23,8 +23,6 @@
  */
 package com.im.njams.sdk;
 
-import static java.util.stream.Collectors.toList;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
@@ -46,9 +44,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
-import org.slf4j.LoggerFactory;
 
 import com.faizsiegeln.njams.messageformat.v4.command.Command;
 import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
@@ -93,6 +88,8 @@ import com.im.njams.sdk.serializer.Serializer;
 import com.im.njams.sdk.serializer.StringSerializer;
 import com.im.njams.sdk.settings.Settings;
 import com.im.njams.sdk.utils.StringUtils;
+
+import org.slf4j.LoggerFactory;
 
 /**
  * This is an instance of nJAMS. It cares about lifecycle and initializations
@@ -249,7 +246,7 @@ public class Njams implements InstructionListener {
      * Inherent features implemented in this SDK.
      */
     private static final Collection<Feature> COMMON_FEATURES =
-            Collections.unmodifiableCollection(Arrays.asList(Feature.EXPRESSION_TEST, Feature.PING));
+        Collections.unmodifiableCollection(Arrays.asList(Feature.EXPRESSION_TEST, Feature.PING));
     // features
     private final List<Feature> features = new CopyOnWriteArrayList<>(COMMON_FEATURES);
 
@@ -338,12 +335,12 @@ public class Njams implements InstructionListener {
      */
     private void loadConfigurationProvider() {
         Configuration.setRecordingBootstrapValue(
-                !"false".equalsIgnoreCase(settings.getProperty(NjamsSettings.PROPERTY_BOOSTRAP_RECORDING)));
+            !"false".equalsIgnoreCase(settings.getProperty(NjamsSettings.PROPERTY_BOOSTRAP_RECORDING)));
         if (!settings.containsKey(ConfigurationProviderFactory.CONFIGURATION_PROVIDER)) {
             settings.put(ConfigurationProviderFactory.CONFIGURATION_PROVIDER, DEFAULT_CACHE_PROVIDER);
         }
         ConfigurationProvider configurationProvider = new ConfigurationProviderFactory(settings, this)
-                .getConfigurationProvider();
+            .getConfigurationProvider();
         configuration = new Configuration();
         configuration.setConfigurationProvider(configurationProvider);
         settings.addSecureProperties(configurationProvider.getSecureProperties());
@@ -455,9 +452,9 @@ public class Njams implements InstructionListener {
         } else {
             addFeature(Feature.REPLAY);
             if ("true".equalsIgnoreCase(settings.getPropertyWithDeprecationWarning(
-                    NjamsSettings.PROPERTY_DISABLE_STARTDATA, NjamsSettings.OLD_DISABLE_STARTDATA))) {
+                NjamsSettings.PROPERTY_DISABLE_STARTDATA, NjamsSettings.OLD_DISABLE_STARTDATA))) {
                 LOG.warn("Replay functionality is limited because collecting start-data "
-                        + "is disabled by configuration {}=true", NjamsSettings.PROPERTY_DISABLE_STARTDATA);
+                    + "is disabled by configuration {}=true", NjamsSettings.PROPERTY_DISABLE_STARTDATA);
             }
         }
     }
@@ -524,7 +521,7 @@ public class Njams implements InstructionListener {
     public NjamsSender getSender() {
         if (sender == null) {
             if ("true".equalsIgnoreCase(settings.getPropertyWithDeprecationWarning(
-                    NjamsSettings.PROPERTY_SHARED_COMMUNICATIONS, NjamsSettings.OLD_SHARED_COMMUNICATIONS))) {
+                NjamsSettings.PROPERTY_SHARED_COMMUNICATIONS, NjamsSettings.OLD_SHARED_COMMUNICATIONS))) {
                 LOG.debug("Using shared sender pool for {}", getClientPath());
                 sender = NjamsSender.takeSharedSender(settings);
             } else {
@@ -588,7 +585,7 @@ public class Njams implements InstructionListener {
 
     /**
      * Returns a transient UUID that identifies this {@link Njams} client instance during its JVM lifetime.
-     * This is internally used for (container-mode) communications. 
+     * This is internally used for (container-mode) communications.
      * @return The current ID of this client.
      */
     public String getClientSessionId() {
@@ -629,37 +626,35 @@ public class Njams implements InstructionListener {
     /**
      * Return the ProcessModel to the path;
      *
-     * @param path the path where to get the ProcessModel from
+     * @param relativePath The relative path of the process model to get
      * @return the ProcessModel or {@link NjamsSdkRuntimeException}
      */
-    public ProcessModel getProcessModel(final Path path) {
-        if (!hasProcessModel(path)) {
-            throw new NjamsSdkRuntimeException("ProcessModel not found for path " + path);
-        }
+    public ProcessModel getProcessModel(final Path relativePath) {
 
-        final List<String> parts = Stream.of(getClientPath(), path).map(Path::getParts).flatMap(List::stream)
-                .collect(toList());
+        final Path absolutePath = getClientPath().add(relativePath);
+        final ProcessModel pm;
         synchronized (processModels) {
-            final ProcessModel processModel = processModels.get(new Path(parts).toString());
-            return processModel;
+            pm = processModels.get(absolutePath.toString());
         }
+        if (pm == null) {
+            throw new NjamsSdkRuntimeException("ProcessModel not found for path " + relativePath);
+        }
+        return pm;
     }
 
     /**
      * Check for a process model under that path
      *
-     * @param path the path where to search for a {@link ProcessModel}.
+     * @param relativePath The relative path of the process model to check
      * @return true if found else false
      */
-    public boolean hasProcessModel(final Path path) {
-        if (path == null) {
+    public boolean hasProcessModel(final Path relativePath) {
+        if (relativePath == null) {
             return false;
         }
-        final List<String> parts = Stream.of(getClientPath(), path).map(Path::getParts).flatMap(List::stream)
-                .collect(toList());
+        final Path absolutePath = getClientPath().add(relativePath);
         synchronized (processModels) {
-            final ProcessModel processModel = processModels.get(new Path(parts).toString());
-            return processModel != null;
+            return processModels.containsKey(absolutePath.toString());
         }
     }
 
@@ -766,11 +761,11 @@ public class Njams implements InstructionListener {
         msg.getTreeElements().addAll(treeElements);
         synchronized (processModels) {
             processModels.values().stream().map(ProcessModel::getSerializableProcessModel)
-                    .forEach(ipm -> msg.getProcesses().add(ipm));
+                .forEach(ipm -> msg.getProcesses().add(ipm));
             images.forEach(i -> msg.getImages().put(i.getName(), i.getBase64Image()));
             msg.getGlobalVariables().putAll(globalVariables);
             LOG.debug("Sending project message with {} process-models, {} images, {} global-variables.",
-                    processModels.size(), images.size(), globalVariables.size());
+                processModels.size(), images.size(), globalVariables.size());
         }
         getSender().send(msg, clientSessionId);
     }
@@ -869,7 +864,7 @@ public class Njams implements InstructionListener {
     public void setTreeElementType(Path path, String type) {
         synchronized (processModels) {
             TreeElement dos = treeElements.stream().filter(d -> d.getPath().equals(path.toString())).findAny()
-                    .orElse(null);
+                .orElse(null);
             if (dos == null) {
                 throw new NjamsSdkRuntimeException("Unable to find DomainObjectStructure for path " + path);
             }
@@ -883,11 +878,11 @@ public class Njams implements InstructionListener {
      */
     private void setStarters() {
         treeElements.stream().filter(te -> te.getTreeElementType() == TreeElementType.PROCESS)
-                .filter(te -> processModels.get(te.getPath()).isStarter()).forEach(te -> te.setStarter(true));
+            .filter(te -> processModels.get(te.getPath()).isStarter()).forEach(te -> te.setStarter(true));
     }
 
     private List<TreeElement> addTreeElements(List<TreeElement> treeElements, Path processPath,
-            TreeElementType targetDomainObjectType, boolean isStarter) {
+        TreeElementType targetDomainObjectType, boolean isStarter) {
         String currentPath = ">";
         for (int i = 0; i < processPath.getParts().size(); i++) {
             String part = processPath.getParts().get(i);
@@ -896,13 +891,13 @@ public class Njams implements InstructionListener {
             boolean found = treeElements.stream().filter(d -> d.getPath().equals(finalPath)).findAny().isPresent();
             if (!found) {
                 TreeElementType domainObjectType =
-                        i == processPath.getParts().size() - 1 ? targetDomainObjectType : null;
+                    i == processPath.getParts().size() - 1 ? targetDomainObjectType : null;
                 String type = getTreeElementDefaultType(i == 0, domainObjectType);
                 treeElements.add(new TreeElement(currentPath, part, type, domainObjectType));
             }
         }
         treeElements.stream().filter(te -> te.getTreeElementType() == TreeElementType.PROCESS)
-                .forEach(te -> te.setStarter(isStarter));
+            .forEach(te -> te.setStarter(isStarter));
         return treeElements;
     }
 
@@ -923,8 +918,7 @@ public class Njams implements InstructionListener {
     @Override
     public int hashCode() {
         int hash = 5;
-        hash = 83 * hash + Objects.hashCode(clientPath);
-        return hash;
+        return 83 * hash + Objects.hashCode(clientPath);
     }
 
     @Override
@@ -981,23 +975,23 @@ public class Njams implements InstructionListener {
      */
     private void readVersionsFromVersionFile(String version) {
         final Collection<URL> urls =
-                Arrays.stream(VERSION_FILES)
-                        .map(v -> {
-                            try {
-                                return Collections.list(getClass().getClassLoader().getResources(v));
-                            } catch (IOException e) {
-                                LOG.error("Unable to list version files: {}", v, e);
-                                return null;
-                            }
-                        }).filter(Objects::nonNull)
-                        .flatMap(Collection::stream).collect(Collectors.toList());
+            Arrays.stream(VERSION_FILES)
+                .map(v -> {
+                    try {
+                        return Collections.list(getClass().getClassLoader().getResources(v));
+                    } catch (IOException e) {
+                        LOG.error("Unable to list version files: {}", v, e);
+                        return null;
+                    }
+                }).filter(Objects::nonNull)
+                .flatMap(Collection::stream).collect(Collectors.toList());
         for (URL url : urls) {
             LOG.debug("Reading {}", url);
             final Properties prop = new Properties();
             try (InputStream is = url.openStream()) {
                 prop.load(is);
                 prop.entrySet()
-                        .forEach(e -> versions.put(String.valueOf(e.getKey()), String.valueOf(e.getValue())));
+                    .forEach(e -> versions.put(String.valueOf(e.getKey()), String.valueOf(e.getValue())));
             } catch (Exception e) {
                 LOG.error("Unable to load versions from {}", url, e);
             }
@@ -1018,8 +1012,8 @@ public class Njams implements InstructionListener {
         LOG.info("*** ");
         LOG.info("***      Version Info:");
         versions.entrySet().stream().filter(e -> !e.getKey().toLowerCase().contains("buildyear"))
-                .sorted(Comparator.comparing(Entry::getKey))
-                .forEach(e -> LOG.info("***      {}: {}", e.getKey(), e.getValue()));
+            .sorted(Comparator.comparing(Entry::getKey))
+            .forEach(e -> LOG.info("***      {}: {}", e.getKey(), e.getValue()));
         LOG.info("*** ");
         LOG.info("***      Settings:");
 
@@ -1077,25 +1071,25 @@ public class Njams implements InstructionListener {
             return;
         }
         switch (command) {
-        case SEND_PROJECTMESSAGE:
-            LOG.debug("Send ProjectMessage requested by nJAMS server.");
-            sendProjectMessage();
-            instruction.setResponseResultCode(0);
-            instruction.setResponseResultMessage("ProjectMessage sent");
-            break;
-        case PING:
-            instruction.setResponse(createPingResponse());
-            break;
-        case REPLAY:
-            handleReplayRequest(instruction);
-            break;
-        case GET_REQUEST_HANDLER:
-            instruction.setResponseResultCode(0);
-            instruction.setResponseParameter("clientId", clientSessionId);
-            break;
-        default:
-            // skip all others
-            break;
+            case SEND_PROJECTMESSAGE:
+                LOG.debug("Send ProjectMessage requested by nJAMS server.");
+                sendProjectMessage();
+                instruction.setResponseResultCode(0);
+                instruction.setResponseResultMessage("ProjectMessage sent");
+                break;
+            case PING:
+                instruction.setResponse(createPingResponse());
+                break;
+            case REPLAY:
+                handleReplayRequest(instruction);
+                break;
+            case GET_REQUEST_HANDLER:
+                instruction.setResponseResultCode(0);
+                instruction.setResponseParameter("clientId", clientSessionId);
+                break;
+            default:
+                // skip all others
+                break;
 
         }
     }
@@ -1394,8 +1388,8 @@ public class Njams implements InstructionListener {
         boolean dataMaskingEnabled = true;
         if (properties != null) {
             dataMaskingEnabled =
-                    Boolean.parseBoolean(properties.getProperty(NjamsSettings.PROPERTY_DATA_MASKING_ENABLED,
-                            "true"));
+                Boolean.parseBoolean(properties.getProperty(NjamsSettings.PROPERTY_DATA_MASKING_ENABLED,
+                    "true"));
             if (dataMaskingEnabled) {
                 DataMasking.addPatterns(properties);
             } else {
@@ -1404,9 +1398,9 @@ public class Njams implements InstructionListener {
         }
         if (dataMaskingEnabled && !configuration.getDataMasking().isEmpty()) {
             LOG.warn("DataMasking via the configuration is deprecated but will be used as well. Use settings " +
-                    "with the properties \n{} = " +
-                    "\"true\" \nand multiple \n{}<YOUR-REGEX-NAME> = <YOUR-REGEX> \nfor this.",
-                    NjamsSettings.PROPERTY_DATA_MASKING_ENABLED, NjamsSettings.PROPERTY_DATA_MASKING_REGEX_PREFIX);
+                "with the properties \n{} = " +
+                "\"true\" \nand multiple \n{}<YOUR-REGEX-NAME> = <YOUR-REGEX> \nfor this.",
+                NjamsSettings.PROPERTY_DATA_MASKING_ENABLED, NjamsSettings.PROPERTY_DATA_MASKING_REGEX_PREFIX);
             DataMasking.addPatterns(configuration.getDataMasking());
         }
     }
