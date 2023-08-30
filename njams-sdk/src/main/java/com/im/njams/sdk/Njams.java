@@ -1196,12 +1196,14 @@ public class Njams implements InstructionListener {
     }
 
     /**
-     * Gets the serialier with the given class key. If not serializer is
+     * Gets the serializer for exactly the given class key. If no serializer is
      * registered yet, <b>null</b> will be returned.
+     * This implementation does not consider the class hierarchy. See also {@link #findSerializer(Class)}.
      *
      * @param <T> type of the class
      * @param key a class
      * @return Registered serializer or <b>null</b>
+     * @see #findSerializer(Class)
      */
     public <T> Serializer<T> getSerializer(final Class<T> key) {
         if (key != null) {
@@ -1245,9 +1247,9 @@ public class Njams implements InstructionListener {
     }
 
     /**
-     * Gets the serializer with the given class key. If not serializer is
+     * Gets the serializer with the given class key. If no serializer is
      * registered yet, the superclass hierarchy will be checked recursively. If
-     * neither the class nor any superclass if registered, the interface
+     * neither the class nor any superclass is registered, the interface
      * hierarchy will be checked recursively. if no (super) interface is
      * registered, <b>null</b> will be returned.
      *
