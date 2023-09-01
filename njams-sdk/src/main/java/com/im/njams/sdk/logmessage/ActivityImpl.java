@@ -660,12 +660,10 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
         return activityModel;
     }
 
-    @Override
     public final boolean isGroup() {
         return this instanceof Group;
     }
 
-    @Override
     public final boolean isSubProcess() {
         return this instanceof SubProcessActivity;
     }
