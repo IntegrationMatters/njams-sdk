@@ -136,4 +136,14 @@ public interface Activity extends IActivity {
      * generating an according event if required.
      */
     public void setActivityError(ErrorEvent errorEvent);
+
+    /**
+     * @return Whether this is a {@link Group} instance.
+     */
+    public boolean isGroup();
+
+    /**
+     * @return Whether this is a {@link SubProcessActivity} instance.
+     */
+    public boolean isSubProcess();
 }

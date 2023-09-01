@@ -76,7 +76,7 @@ public class GroupImpl extends ActivityImpl implements Group {
          *
          */
         if (toActivity == null || !Objects.equals(toActivity.getIteration(), getIteration())
-                || toActivity.getParent() != getParent()) {
+            || toActivity.getParent() != getParent()) {
             builder = new ActivityBuilder((JobImpl) getJob(), childActivityModel);
         } else {
             builder = new ActivityBuilder(toActivity);
@@ -118,8 +118,9 @@ public class GroupImpl extends ActivityImpl implements Group {
      * afterwards will be added to a new iteration
      */
     @Override
-    public void iterate() {
+    public long iterate() {
         setMaxIterations(getMaxIterations() + 1);
+        return getMaxIterations();
     }
 
     /**
@@ -134,7 +135,7 @@ public class GroupImpl extends ActivityImpl implements Group {
         final GroupImpl toGroup = (GroupImpl) getJob().getActivityByModelId(childGroupModel.getId());
         final GroupBuilder builder;
         if (toGroup == null || !Objects.equals(toGroup.getIteration(), getIteration())
-                || toGroup.getParent() != getParent()) {
+            || toGroup.getParent() != getParent()) {
             builder = new GroupBuilder((JobImpl) getJob(), childGroupModel);
         } else {
             builder = new GroupBuilder(toGroup);
@@ -155,10 +156,10 @@ public class GroupImpl extends ActivityImpl implements Group {
     public SubProcessActivityBuilder createChildSubProcess(SubProcessActivityModel childSubProcessModel) {
         // check if a activity with the same modelId and the same iteration already exists.
         final SubProcessActivityImpl toSubProcess =
-                (SubProcessActivityImpl) getJob().getActivityByModelId(childSubProcessModel.getId());
+            (SubProcessActivityImpl) getJob().getActivityByModelId(childSubProcessModel.getId());
         final SubProcessActivityBuilder builder;
         if (toSubProcess == null || !Objects.equals(toSubProcess.getIteration(), getIteration())
-                || toSubProcess.getParent() != getParent()) {
+            || toSubProcess.getParent() != getParent()) {
             builder = new SubProcessActivityBuilder((JobImpl) getJob(), childSubProcessModel);
         } else {
             builder = new SubProcessActivityBuilder(toSubProcess);
@@ -207,7 +208,7 @@ public class GroupImpl extends ActivityImpl implements Group {
     private SubProcessActivityBuilder newChildSubProcess(SubProcessActivityModel childSubProcessModel) {
         // check if a activity with the same modelId and the same iteration already exists.
         final SubProcessActivityBuilder builder =
-                new SubProcessActivityBuilder((JobImpl) getJob(), childSubProcessModel);
+            new SubProcessActivityBuilder((JobImpl) getJob(), childSubProcessModel);
         builder.setParent(this);
         builder.setIteration(getMaxIterations());
         if (childSubProcessModel.getSubProcess() != null) {

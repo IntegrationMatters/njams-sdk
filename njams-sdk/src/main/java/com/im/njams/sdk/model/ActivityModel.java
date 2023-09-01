@@ -501,7 +501,14 @@ public class ActivityModel {
      * @return the isGroup
      */
     public final boolean isGroup() {
-        return GroupModel.class.isAssignableFrom(this.getClass());
+        return this instanceof GroupModel;
+    }
+
+    /**
+     * @return Whether this is a {@link SubProcessActivityModel} instance
+     */
+    public final boolean isSubProcess() {
+        return this instanceof SubProcessActivityModel;
     }
 
     /**

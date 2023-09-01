@@ -58,8 +58,9 @@ public interface Group extends Activity {
     /**
      * Increase the iteration counter of the group. All activities added
      * afterwards will be added to a new iteration
+     * @return The current (new) iteration
      */
-    public void iterate();
+    public long iterate();
 
     /**
      * return all child activities in an unmodifiable list

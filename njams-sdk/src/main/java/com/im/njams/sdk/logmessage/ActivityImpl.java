@@ -26,9 +26,6 @@ import java.util.Objects;
 
 import javax.xml.bind.annotation.XmlTransient;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.faizsiegeln.njams.messageformat.v4.logmessage.ActivityStatus;
 import com.faizsiegeln.njams.messageformat.v4.logmessage.Predecessor;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.Extract;
@@ -42,6 +39,9 @@ import com.im.njams.sdk.model.GroupModel;
 import com.im.njams.sdk.model.SubProcessActivityModel;
 import com.im.njams.sdk.model.TransitionModel;
 import com.im.njams.sdk.utils.StringUtils;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * This is internal implementation of the Activity. It is a extension of the
@@ -130,14 +130,14 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
         TransitionModel transitionModel = toActivityModel.getIncomingTransitionFrom(getModelId());
         if (transitionModel == null) {
             throw new NjamsSdkRuntimeException("No transition from " + getModelId() + " to " + toActivityModel.getId()
-                    + " found!");
+                + " found!");
         }
         end();
         //check if a activity with the same modelId and the same iteration and parent already exists.
         final ActivityImpl toActivity = (ActivityImpl) job.getActivityByModelId(toActivityModel.getId());
         final ActivityBuilder builder;
         if (toActivity == null || !Objects.equals(toActivity.getIteration(), getIteration())
-                || toActivity.getParent() != getParent()) {
+            || toActivity.getParent() != getParent()) {
             builder = new ActivityBuilder(job, toActivityModel);
         } else {
             builder = new ActivityBuilder(toActivity);
@@ -191,7 +191,7 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
         final GroupImpl toGroup = (GroupImpl) job.getActivityByModelId(toGroupModel.getId());
         final GroupBuilder builder;
         if (toGroup == null || !Objects.equals(toGroup.getIteration(), getIteration())
-                || toGroup.getParent() != getParent()) {
+            || toGroup.getParent() != getParent()) {
             builder = new GroupBuilder(job, toGroupModel);
         } else {
             builder = new GroupBuilder(toGroup);
@@ -262,7 +262,7 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
         }
         if (this instanceof GroupImpl) {
             ((GroupImpl) this).getChildActivities().stream()
-                    .filter(a -> a.getActivityStatus() == ActivityStatus.RUNNING).forEach(Activity::end);
+                .filter(a -> a.getActivityStatus() == ActivityStatus.RUNNING).forEach(Activity::end);
         }
         //process input and output if not done yet, for extract rules which do not need data
         if (!inputProcessecd) {
@@ -361,10 +361,10 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
         TransitionModel transitionModel = toSubProcessModel.getIncomingTransitionFrom(getModelId());
         //check if a activity with the same modelId and the same iteration already exists.
         final SubProcessActivityImpl toSubProcess =
-                (SubProcessActivityImpl) job.getActivityByModelId(toSubProcessModel.getId());
+            (SubProcessActivityImpl) job.getActivityByModelId(toSubProcessModel.getId());
         final SubProcessActivityBuilder builder;
         if (toSubProcess == null || !Objects.equals(toSubProcess.getIteration(), getIteration())
-                || toSubProcess.getParent() != getParent()) {
+            || toSubProcess.getParent() != getParent()) {
             builder = new SubProcessActivityBuilder(job, toSubProcessModel);
         } else {
             builder = new SubProcessActivityBuilder(toSubProcess);
@@ -402,7 +402,7 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
             setEventStatus(EventStatus.byValue(eventStatus));
         } catch (NjamsSdkRuntimeException e) {
             LOG.error("{} for job with logId: {}. Using old status: {}", e.getMessage(), job.getLogId(),
-                    super.getEventStatus());
+                super.getEventStatus());
         }
 
     }
@@ -434,7 +434,7 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
             }
         } catch (NjamsSdkRuntimeException e) {
             LOG.error("{} for job with logId: {}. Using old status: {}", e.getMessage(), job.getLogId(),
-                    super.getEventStatus());
+                super.getEventStatus());
         }
     }
 
@@ -658,6 +658,16 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
     @XmlTransient
     ActivityModel getActivityModel() {
         return activityModel;
+    }
+
+    @Override
+    public final boolean isGroup() {
+        return this instanceof Group;
+    }
+
+    @Override
+    public final boolean isSubProcess() {
+        return this instanceof SubProcessActivity;
     }
 
 }
