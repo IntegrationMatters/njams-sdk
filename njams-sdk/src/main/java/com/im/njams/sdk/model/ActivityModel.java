@@ -138,12 +138,12 @@ public class ActivityModel {
             }
             if (transitionModel.getFromActivity() == null) {
                 throw new NjamsSdkRuntimeException("From activity on transition " + transitionModel.getId()
-                        + " not set");
+                    + " not set");
             }
             String fromId = transitionModel.getFromActivity().getId();
             if (incoming.containsKey(fromId) && incoming.get(fromId) != transitionModel) {
                 throw new NjamsSdkRuntimeException("ActivityModel " + id
-                        + " already contains a TransitionModel with fromActivity " + fromId + "!");
+                    + " already contains a TransitionModel with fromActivity " + fromId + "!");
             }
             incoming.put(fromId, transitionModel);
         }
@@ -179,7 +179,7 @@ public class ActivityModel {
             String toId = transitionModel.getToActivity().getId();
             if (outgoing.containsKey(toId) && outgoing.get(toId) != transitionModel) {
                 throw new NjamsSdkRuntimeException("ActivityModel " + id
-                        + " already contains a TransitionModel with toActivity " + toId + "!");
+                    + " already contains a TransitionModel with toActivity " + toId + "!");
             }
             outgoing.put(transitionModel.getToActivity().getId(), transitionModel);
         }
@@ -241,7 +241,7 @@ public class ActivityModel {
      * @return the new {@link ActivityModel}
      */
     public ActivityModel transitionTo(final String toActivityModelId, final String toActivityName,
-            final String toActivityType) {
+        final String toActivityType) {
         if (getId().equals(toActivityModelId)) {
             throw new NjamsSdkRuntimeException("Destination must differ from source: " + getId());
         }
@@ -269,7 +269,7 @@ public class ActivityModel {
      * @return the new {@link ActivityModel}
      */
     public GroupModel
-            transitionToGroup(final String toGroupModelId, final String toGroupName, final String toGroupType) {
+        transitionToGroup(final String toGroupModelId, final String toGroupName, final String toGroupType) {
         if (getId().equals(toGroupModelId)) {
             throw new NjamsSdkRuntimeException("Destination must differ from source: " + getId());
         }
@@ -299,7 +299,7 @@ public class ActivityModel {
      * @return the new {@link ActivityModel}
      */
     public SubProcessActivityModel transitionToSubProcess(final String toSubProcessModelId,
-            final String toSubProcessName, final String toSubProcessType) {
+        final String toSubProcessName, final String toSubProcessType) {
         if (getId().equals(toSubProcessModelId)) {
             throw new NjamsSdkRuntimeException("Destination must differ from source: " + getId());
         }
@@ -424,7 +424,7 @@ public class ActivityModel {
      */
     public List<ActivityModel> getPredecessors() {
         return Collections.unmodifiableList(incoming.values().stream().map(TransitionModel::getFromActivity)
-                .collect(Collectors.toList()));
+            .collect(Collectors.toList()));
     }
 
     /**
@@ -432,7 +432,7 @@ public class ActivityModel {
      */
     public List<ActivityModel> getSuccessors() {
         return Collections.unmodifiableList(outgoing.values().stream().map(TransitionModel::getToActivity)
-                .collect(Collectors.toList()));
+            .collect(Collectors.toList()));
     }
 
     /**
@@ -462,15 +462,21 @@ public class ActivityModel {
 
     @Override
     public String toString() {
-        return "ActivityModel{id=" + id + ", name=" + name + ", type=" + type + ", parent=" + parent + '}';
+        final StringBuilder sb = new StringBuilder();
+        sb.append(getClass().getSimpleName());
+        sb.append("[id=").append(id);
+        sb.append(", name=").append(name);
+        sb.append(", type=").append(type);
+        sb.append(", parent=").append(parent);
+        sb.append(']');
+        return sb.toString();
     }
 
     @Override
     public int hashCode() {
         int hash = 7;
         hash = 83 * hash + Objects.hashCode(processModel);
-        hash = 83 * hash + Objects.hashCode(id);
-        return hash;
+        return 83 * hash + Objects.hashCode(id);
     }
 
     @Override

@@ -1,14 +1,14 @@
-/* 
+/*
  * Copyright (c) 2018 Faiz & Siegeln Software GmbH
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"),
  * to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
  * and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
- * 
+ *
  * The Software shall be used for Good, not Evil.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
@@ -72,7 +72,7 @@ public class GroupModel extends ActivityModel {
      * @return the created {@link ActivityModel}
      */
     public ActivityModel createChildActivity(final String activityModelId, final String activityName,
-            final String activityType) {
+        final String activityType) {
         if (this.getId().equals(activityModelId)) {
             throw new NjamsSdkRuntimeException("Child must differ from parent: " + this.getId());
         }
@@ -106,11 +106,13 @@ public class GroupModel extends ActivityModel {
      * @param subProcessType of Actvity to create
      * @return the created {@link GroupModel}
      */
-    public SubProcessActivityModel createChildSubProcess(final String subProcessModelId, final String subProcessName, final String subProcessType) {
+    public SubProcessActivityModel createChildSubProcess(final String subProcessModelId, final String subProcessName,
+        final String subProcessType) {
         if (this.getId().equals(subProcessModelId)) {
             throw new NjamsSdkRuntimeException("Child must differ from parent: " + this.getId());
         }
-        final SubProcessActivityModel subProcess = getProcessModel().createSubProcess(subProcessModelId, subProcessName, subProcessType);
+        final SubProcessActivityModel subProcess =
+            getProcessModel().createSubProcess(subProcessModelId, subProcessName, subProcessType);
         addChildActivity(subProcess);
         return subProcess;
     }
@@ -145,7 +147,7 @@ public class GroupModel extends ActivityModel {
             childActivity.setParent(this);
         } else if (activity != childActivity) {
             throw new NjamsSdkRuntimeException(
-                    "A child activity with id " + childActivity.getId() + " already exists for " + getId());
+                "A child activity with id " + childActivity.getId() + " already exists for " + getId());
         }
     }
 
@@ -161,7 +163,7 @@ public class GroupModel extends ActivityModel {
             childTransition.setParent(this);
         } else if (transition != childTransition) {
             throw new NjamsSdkRuntimeException(
-                    "A child transition with id " + childTransition.getId() + " already exists for " + getId());
+                "A child transition with id " + childTransition.getId() + " already exists for " + getId());
         }
     }
 
@@ -232,9 +234,10 @@ public class GroupModel extends ActivityModel {
      * @return All child groups
      */
     public Collection<GroupModel> getChildGroups() {
-        return this.childActivities.values().stream()
-                .filter(ActivityModel::isGroup)
-                .map(GroupModel.class::cast)
-                .collect(toList());
+        return childActivities.values().stream()
+            .filter(ActivityModel::isGroup)
+            .map(GroupModel.class::cast)
+            .collect(toList());
     }
+
 }
