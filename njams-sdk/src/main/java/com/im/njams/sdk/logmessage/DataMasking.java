@@ -29,11 +29,11 @@ import java.util.List;
 import java.util.Properties;
 import java.util.regex.Matcher;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.utils.StringUtils;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * DataMasking implementation
@@ -119,9 +119,9 @@ public class DataMasking {
      */
     public static void addPatterns(Properties properties) {
         properties.stringPropertyNames().stream()
-                .filter(k -> k.startsWith(NjamsSettings.PROPERTY_DATA_MASKING_REGEX_PREFIX))
-                .forEach(k -> addPattern(k.substring(NjamsSettings.PROPERTY_DATA_MASKING_REGEX_PREFIX.length()),
-                        properties.getProperty(k)));
+            .filter(k -> k.startsWith(NjamsSettings.PROPERTY_DATA_MASKING_REGEX_PREFIX))
+            .forEach(k -> addPattern(k.substring(NjamsSettings.PROPERTY_DATA_MASKING_REGEX_PREFIX.length()),
+                properties.getProperty(k)));
     }
 
     /**
@@ -132,13 +132,17 @@ public class DataMasking {
      * @param regexAsString the pattern to add
      */
     public static void addPattern(String nameOfPattern, String regexAsString) {
+        if (StringUtils.isBlank(regexAsString)) {
+            LOG.debug("Skipping empty regex for pattern \"{}\"", nameOfPattern);
+            return;
+        }
         try {
             String nameToAdd =
-                    nameOfPattern != null && !nameOfPattern.isEmpty() ? nameOfPattern : "" + DATA_MASKING_TYPES.size();
+                nameOfPattern != null && !nameOfPattern.isEmpty() ? nameOfPattern : "" + DATA_MASKING_TYPES.size();
             DataMaskingType dataMaskingTypeToAdd = new DataMaskingType(nameToAdd, regexAsString);
             DATA_MASKING_TYPES.add(dataMaskingTypeToAdd);
             LOG.info("Added masking pattern \"{}\" with regex: \"{}\"", dataMaskingTypeToAdd.getNameOfPattern(),
-                    dataMaskingTypeToAdd.getRegex());
+                dataMaskingTypeToAdd.getRegex());
         } catch (Exception e) {
             LOG.error("Could not add pattern {}", regexAsString, e);
         }
