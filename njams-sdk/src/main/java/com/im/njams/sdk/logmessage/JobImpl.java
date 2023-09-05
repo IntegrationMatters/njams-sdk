@@ -1271,7 +1271,7 @@ public class JobImpl implements Job {
 
     @Override
     public boolean needsData(ActivityModel activityModel) {
-        if (deepTrace) {
+        if (deepTrace || activityModel.isStarter()) {
             return true;
         }
         ActivityConfiguration activityConfig = getActivityConfiguration(activityModel);
