@@ -89,7 +89,7 @@ public class ProcessConfiguration {
      * @return the ActivitySettings
      */
     public ActivityConfiguration getActivity(String activityId) {
-        return activities.get(activityId);
+        return activities.computeIfAbsent(activityId, k -> new ActivityConfiguration());
     }
 
     /**
