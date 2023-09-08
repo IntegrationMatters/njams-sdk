@@ -28,11 +28,11 @@ import java.net.InetAddress;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.im.njams.sdk.argos.ArgosCollector;
 import com.im.njams.sdk.argos.ArgosComponent;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * This is a concrete implementation for collecting JMV statistic metrics.
@@ -77,7 +77,11 @@ public class JVMCollector extends ArgosCollector<JVMMetric> {
     }
 
     public JVMCollector(String id, String name, String type) {
-        this(createDefaultJVMComponent(id, name, type), getPid());
+        this(createDefaultJVMComponent(id, name, type));
+    }
+
+    public JVMCollector(ArgosComponent argosComponent) {
+        this(argosComponent, getPid());
     }
 
     public JVMCollector(ArgosComponent argosComponent, int pid) {
