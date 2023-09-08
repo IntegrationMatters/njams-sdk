@@ -55,11 +55,11 @@ public abstract class ArgosMetric {
      * @param argosComponent the related component
      */
     public ArgosMetric(ArgosComponent argosComponent) {
-        this.id = argosComponent.getId();
-        this.name = argosComponent.getName();
-        this.containerid = argosComponent.getContainerId();
-        this.measurement = argosComponent.getMeasurement();
-        this.type = argosComponent.getType();
+        id = argosComponent.getId();
+        name = argosComponent.getName();
+        containerid = argosComponent.getContainerId();
+        measurement = argosComponent.getMeasurement();
+        type = argosComponent.getType();
     }
 
     /**
@@ -96,7 +96,7 @@ public abstract class ArgosMetric {
     /**
      * @return the name of the container of the related component
      */
-    public String getContainerId() {
+    public String getContainerid() {
         return containerid;
     }
 
