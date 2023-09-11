@@ -23,11 +23,11 @@
  */
 package com.im.njams.sdk.communication;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.im.njams.sdk.common.DateTimeUtility;
 import com.im.njams.sdk.utils.StringUtils;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * A base implementation of the {@link ReplayHandler} interface that hides request/response handling from the
@@ -70,10 +70,10 @@ public abstract class AbstractReplayHandler implements ReplayHandler {
         } catch (final Exception e) {
             if (request.getTest()) {
                 LOG.info("Test replay failed for process {} (hasPayload={}): {}", process,
-                        StringUtils.isNotBlank(request.getPayload()), e.toString());
+                    StringUtils.isNotBlank(request.getPayload()), e.toString());
             } else {
                 LOG.error("Replay failed for process {} (hasPayload={})", process,
-                        StringUtils.isNotBlank(request.getPayload()), e);
+                    StringUtils.isNotBlank(request.getPayload()), e);
             }
             response.setResultCode(ERROR_CODE);
             response.setException(e.toString());

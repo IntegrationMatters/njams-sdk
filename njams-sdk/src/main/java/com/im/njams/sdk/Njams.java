@@ -949,7 +949,7 @@ public class Njams implements InstructionListener {
         synchronized (replayedLogIds) {
             final Boolean deepTrace = replayedLogIds.remove(job.getLogId());
             if (deepTrace != null) {
-                job.addAttribute(ReplayHandler.NJAMS_REPLAYED_ATTRIBUTE, "true");
+                ReplayHandler.markAsReplayed(job);
                 if (deepTrace) {
                     job.setDeepTrace(true);
                 }
@@ -965,6 +965,7 @@ public class Njams implements InstructionListener {
      */
     public void removeJob(String jobId) {
         jobs.remove(jobId);
+        LOG.debug("Job {} removed", jobId);
     }
 
     /**
@@ -1102,6 +1103,7 @@ public class Njams implements InstructionListener {
                 replayResponse.addParametersToInstruction(instruction);
                 if (!replayRequest.getTest()) {
                     setReplayMarker(replayResponse.getMainLogId(), replayRequest.getDeepTrace());
+                    LOG.debug("Processed replay response {}", replayResponse.getMainLogId());
                 }
             } catch (final Exception ex) {
                 instruction.setResponseResultCode(2);
@@ -1139,16 +1141,16 @@ public class Njams implements InstructionListener {
         if (StringUtils.isBlank(logId)) {
             return;
         }
-        final Job job = getJobs().stream().filter(j -> j.getLogId().equals(logId)).findAny().orElse(null);
-        if (job != null) {
-            // if the job is already known, set the marker
-            job.addAttribute(ReplayHandler.NJAMS_REPLAYED_ATTRIBUTE, "true");
-            if (deepTrace) {
-                job.setDeepTrace(true);
-            }
-        } else {
-            // remember the log ID for when the job is added later -> consumed by addJob(...)
-            synchronized (replayedLogIds) {
+        synchronized (replayedLogIds) {
+            final Job job = getJobs().stream().filter(j -> j.getLogId().equals(logId)).findAny().orElse(null);
+            if (job != null) {
+                // if the job is already known, set the marker
+                ReplayHandler.markAsReplayed(job);
+                if (deepTrace) {
+                    job.setDeepTrace(true);
+                }
+            } else {
+                // remember the log ID for when the job is added later -> consumed by addJob(...)
                 replayedLogIds.put(logId, deepTrace);
             }
         }

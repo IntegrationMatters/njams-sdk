@@ -16,13 +16,24 @@
  */
 package com.im.njams.sdk.communication;
 
+import com.im.njams.sdk.logmessage.Job;
+
 /**
  * This interface must be implemented for replay handlers.
  * @see AbstractReplayHandler
  */
 public interface ReplayHandler {
-    /** Marker attribute for replayed process instances. Set to <code>true</code>. */
+    /** Marker attribute for replayed process instances. Set to <code>true</code>.<br>
+     * Do not use directly. Instead use {@link #markAsReplayed(Job)}. */
     public static final String NJAMS_REPLAYED_ATTRIBUTE = "$njams_replayed";
+
+    /**
+     * Flags the given job instance as 'replayed'.
+     * @param job The replayed job instance to be flagged.
+     */
+    public static void markAsReplayed(Job job) {
+        job.addAttribute(NJAMS_REPLAYED_ATTRIBUTE, "true");
+    }
 
     /**
      * Executes a replay. The implementation is responsible to set the instruction's response properly.
