@@ -83,12 +83,23 @@ public class ProcessConfiguration {
     }
 
     /**
-     * Returns the ActivitySettings for a given ActivityId
+     * Returns the {@link ActivityConfiguration} for a given activity model id
      *
      * @param activityId for the activity
-     * @return the ActivitySettings
+     * @return The configuration if exists, otherwise <code>null</code>.
      */
     public ActivityConfiguration getActivity(String activityId) {
+        return activities.get(activityId);
+    }
+
+    /**
+     * Returns the {@link ActivityConfiguration} for a given activity model id.
+     * If no such configuration exists, this method will create one.
+     *
+     * @param activityId for the activity
+     * @return Always a configuration for the given model-id, otherwise <code>null</code>.
+     */
+    public ActivityConfiguration getOrCreateActivity(String activityId) {
         return activities.computeIfAbsent(activityId, k -> new ActivityConfiguration());
     }
 
