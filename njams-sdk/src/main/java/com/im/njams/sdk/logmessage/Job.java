@@ -24,7 +24,6 @@ import com.faizsiegeln.njams.messageformat.v4.logmessage.interfaces.IPluginDataI
 import com.im.njams.sdk.common.Path;
 import com.im.njams.sdk.model.ActivityModel;
 import com.im.njams.sdk.model.GroupModel;
-import com.im.njams.sdk.model.ProcessModel;
 import com.im.njams.sdk.model.SubProcessActivityModel;
 
 /**
@@ -122,6 +121,11 @@ public interface Job {
     public Map<String, String> getAttributes();
 
     /**
+     * @return the businessEnd
+     */
+    public LocalDateTime getBusinessEnd();
+
+    /**
      * Return the businessObject
      *
      * @return the businessObject
@@ -134,6 +138,11 @@ public interface Job {
      * @return the businessService
      */
     public String getBusinessService();
+
+    /**
+     * @return the businessStart
+     */
+    public LocalDateTime getBusinessStart();
 
     /**
      * Returns the last added and completed activity to a given modelId.

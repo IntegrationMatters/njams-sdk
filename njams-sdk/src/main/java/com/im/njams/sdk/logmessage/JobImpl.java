@@ -1359,6 +1359,11 @@ public class JobImpl implements Job {
         this.businessStart = businessStart;
     }
 
+    @Override
+    public LocalDateTime getBusinessStart() {
+        return businessStart;
+    }
+
     /**
      * This method sets the businessEnd in the ActivityImpl
      *
@@ -1367,6 +1372,11 @@ public class JobImpl implements Job {
     @Override
     public void setBusinessEnd(LocalDateTime businessEnd) {
         this.businessEnd = businessEnd;
+    }
+
+    @Override
+    public LocalDateTime getBusinessEnd() {
+        return businessEnd;
     }
 
     /**
@@ -1443,4 +1453,5 @@ public class JobImpl implements Job {
         // discard
         return PAYLOAD_DISCARDED_MESSAGE;
     }
+
 }
