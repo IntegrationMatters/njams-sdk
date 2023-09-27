@@ -38,6 +38,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Properties;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -873,12 +874,13 @@ public class Njams implements InstructionListener {
     }
 
     /**
-     * Sets the TreeElements starter to true if the corresponding processModel
-     * is a starter
+     * Sets the TreeElements starter flag according to the corresponding processModel
      */
     private void setStarters() {
-        treeElements.stream().filter(te -> te.getTreeElementType() == TreeElementType.PROCESS)
-            .filter(te -> processModels.get(te.getPath()).isStarter()).forEach(te -> te.setStarter(true));
+        treeElements.stream().filter(t -> t.getTreeElementType() == TreeElementType.PROCESS)
+            .forEach(t -> t.setStarter(
+                Optional.ofNullable(
+                    processModels.get(t.getPath())).map(ProcessModel::isStarter).orElse(false)));
     }
 
     private List<TreeElement> addTreeElements(List<TreeElement> treeElements, Path processPath,
