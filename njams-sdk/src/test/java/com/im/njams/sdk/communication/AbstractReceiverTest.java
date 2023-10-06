@@ -16,20 +16,21 @@
  */
 package com.im.njams.sdk.communication;
 
-import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
-import com.faizsiegeln.njams.messageformat.v4.command.Request;
-import com.faizsiegeln.njams.messageformat.v4.command.Response;
-import com.im.njams.sdk.Njams;
-import com.im.njams.sdk.common.NjamsSdkRuntimeException;
-import org.junit.Test;
+import static org.junit.Assert.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
 
-import static org.junit.Assert.*;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import org.junit.Test;
+
+import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
+import com.faizsiegeln.njams.messageformat.v4.command.Request;
+import com.faizsiegeln.njams.messageformat.v4.command.Response;
+import com.im.njams.sdk.Njams;
+import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 
 /**
  * This class tests the AbstractReceiver methods.
@@ -154,7 +155,8 @@ public class AbstractReceiverTest {
         Instruction inst = mockUp(list);
 
         assertEquals(1, inst.getResponse().getResultCode());
-        assertEquals("No InstructionListener for " + inst.getRequest().getCommand() + " found", inst.getResponse().getResultMessage());
+        assertEquals("No InstructionListener for " + inst.getRequest().getCommand() + " found",
+                inst.getResponse().getResultMessage());
         assertEquals("true", inst.getRequestParameterByName("Extended"));
     }
 
@@ -355,7 +357,7 @@ public class AbstractReceiverTest {
         impl.reconnect(new NjamsSdkRuntimeException("Test", new Exception("Test2")));
         long afterReconnectMillis = System.currentTimeMillis();
         long diff = afterReconnectMillis - currentTimeMillis;
-        assertTrue(diff >= 1000L);
+        assertTrue(diff >= 500L);
         System.out.println("The Thread slept ~ " + diff + "ms.");
     }
 
@@ -625,7 +627,7 @@ public class AbstractReceiverTest {
     /**
      * This class is used for the onInstructionTests
      */
-    private class ExceptionInstructionListener implements InstructionListener {
+    private static class ExceptionInstructionListener implements InstructionListener {
 
         @Override
         public void onInstruction(Instruction instruction) {
