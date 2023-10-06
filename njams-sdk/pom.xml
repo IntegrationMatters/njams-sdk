@@ -285,8 +285,12 @@
                                     <shadedPattern>com.im.smallrye</shadedPattern>
                                 </relocation>
                                 <relocation>
-                                    <pattern>org.apache.http</pattern>
-                                    <shadedPattern>com.im.http</shadedPattern>
+                                    <pattern>okhttp3</pattern>
+                                    <shadedPattern>com.im.okhttp3</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>com.launchdarkly</pattern>
+                                    <shadedPattern>com.im.launchdarkly</shadedPattern>
                                 </relocation>
                             </relocations>
                             <filters>
@@ -317,11 +321,16 @@
             <groupId>com.faizsiegeln</groupId>
             <artifactId>njams-messageformat</artifactId>
         </dependency>
-
-        <dependency>
-            <groupId>org.jboss.resteasy</groupId>
-            <artifactId>resteasy-client</artifactId>
-        </dependency>
+  		<dependency>
+			<groupId>com.squareup.okhttp3</groupId>
+			<artifactId>okhttp</artifactId>
+			<version>4.11.0</version>
+		</dependency>
+		<dependency>
+			<groupId>com.launchdarkly</groupId>
+			<artifactId>okhttp-eventsource</artifactId>
+			<version>4.1.1</version>
+		</dependency>
         <dependency>
             <groupId>net.sourceforge.saxon</groupId>
             <artifactId>saxon</artifactId>

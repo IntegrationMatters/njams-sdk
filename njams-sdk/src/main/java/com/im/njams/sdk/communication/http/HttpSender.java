@@ -20,35 +20,16 @@ import static com.im.njams.sdk.NjamsSettings.PROPERTY_HTTP_BASE_URL;
 import static com.im.njams.sdk.NjamsSettings.PROPERTY_HTTP_CONNECTION_TEST;
 import static com.im.njams.sdk.NjamsSettings.PROPERTY_HTTP_DATAPROVIDER_PREFIX;
 import static com.im.njams.sdk.NjamsSettings.PROPERTY_HTTP_DATAPROVIDER_SUFFIX;
-import static com.im.njams.sdk.communication.MessageHeaders.MESSAGETYPE_EVENT;
-import static com.im.njams.sdk.communication.MessageHeaders.MESSAGETYPE_PROJECT;
-import static com.im.njams.sdk.communication.MessageHeaders.MESSAGETYPE_TRACE;
-import static com.im.njams.sdk.communication.MessageHeaders.NJAMS_CLIENTID_HEADER;
-import static com.im.njams.sdk.communication.MessageHeaders.NJAMS_CLIENTID_HTTP_HEADER;
-import static com.im.njams.sdk.communication.MessageHeaders.NJAMS_LOGID_HEADER;
-import static com.im.njams.sdk.communication.MessageHeaders.NJAMS_LOGID_HTTP_HEADER;
-import static com.im.njams.sdk.communication.MessageHeaders.NJAMS_MESSAGETYPE_HEADER;
-import static com.im.njams.sdk.communication.MessageHeaders.NJAMS_MESSAGETYPE_HTTP_HEADER;
-import static com.im.njams.sdk.communication.MessageHeaders.NJAMS_MESSAGEVERSION_HEADER;
-import static com.im.njams.sdk.communication.MessageHeaders.NJAMS_MESSAGEVERSION_HTTP_HEADER;
-import static com.im.njams.sdk.communication.MessageHeaders.NJAMS_PATH_HEADER;
-import static com.im.njams.sdk.communication.MessageHeaders.NJAMS_PATH_HTTP_HEADER;
+import static com.im.njams.sdk.communication.MessageHeaders.*;
 
+import java.io.IOException;
+import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.net.URL;
+import java.util.Map;
 import java.util.Properties;
-import java.util.function.Supplier;
-
-import javax.net.ssl.SSLContext;
-import javax.ws.rs.client.Client;
-import javax.ws.rs.client.ClientBuilder;
-import javax.ws.rs.client.Entity;
-import javax.ws.rs.client.WebTarget;
-import javax.ws.rs.core.MultivaluedHashMap;
-import javax.ws.rs.core.MultivaluedMap;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.Response.Status;
-import javax.ws.rs.core.Response.StatusType;
+import java.util.TreeMap;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -68,30 +49,45 @@ import com.im.njams.sdk.settings.Settings;
 import com.im.njams.sdk.utils.JsonUtils;
 import com.im.njams.sdk.utils.StringUtils;
 
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.Request.Builder;
+import okhttp3.RequestBody;
+import okhttp3.Response;
+
 /**
  * Sends Messages via HTTP to nJAMS
  *
  * @author bwand
  */
 public class HttpSender extends AbstractSender {
+    @FunctionalInterface
+    private interface TestCall {
+        Response execute() throws IOException;
+    }
+
     private static class ConnectionTest {
-        private final URI uri;
-        private final Supplier<Response> request;
+        private final URL uri;
+        private final TestCall request;
         private final String method;
 
-        private ConnectionTest(URI uri, Supplier<Response> request, String method) {
+        private ConnectionTest(URL uri, TestCall request, String method) {
             this.uri = uri;
             this.request = request;
             this.method = method;
         }
 
         private Response execute() {
-            Response response = request.get();
-            if (LOG.isDebugEnabled()) {
-                final StatusType status = response.getStatusInfo();
-                LOG.debug("{} response={} [{}]", this, status.getStatusCode(), status.getReasonPhrase());
+            try {
+                final Response response = request.execute();
+                if (LOG.isDebugEnabled()) {
+                    LOG.debug("{} response={}", this, response.code());
+                }
+                return response;
+            } catch (IOException e) {
+                LOG.debug("{} test call failed", this, e);
+                return null;
             }
-            return response;
         }
 
         @Override
@@ -114,11 +110,14 @@ public class HttpSender extends AbstractSender {
     private static final String LEGACY_CONNECTION_TEST_PATH = "api/public/version";
     private static final int EXCEPTION_IDLE_TIME = 50;
     private static final int MAX_TRIES = 100;
+    
+    private static final int NOT_FOUND = 404;
+    private static final int METHOD_NOT_ALLOWED = 405;
+    private static final int OK = 200;
 
-    protected URI uri;
-    protected Client client;
-    protected WebTarget target;
-    private SSLContext sslContext = null;
+    protected URL url;
+    protected OkHttpClient client;
+    protected HttpClientFactory clientFactory;
 
     private enum ConnectionTestMode {
         /** Initial value that triggers trying {@link #STANDARD} first, then falling back to {@link #LEGACY} */
@@ -154,26 +153,20 @@ public class HttpSender extends AbstractSender {
                 throw new NjamsSdkRuntimeException(
                         "Required parameter " + PROPERTY_HTTP_DATAPROVIDER_SUFFIX + " is missing.");
             }
-            uri = createUri(INGEST_API_PATH + suffix);
+            final URI uri = createUri(INGEST_API_PATH + suffix);
+            url = uri.toURL();
             final boolean legacy = "legacy".equalsIgnoreCase(properties.getProperty(PROPERTY_HTTP_CONNECTION_TEST));
             if (legacy) {
                 synchronized (HttpSender.class) {
                     connectionTestMode = ConnectionTestMode.LEGACY;
                 }
             }
-            if (isSslRequested()) {
-                sslContext = SSLContextFactory
-                        .createSSLContext(properties.getProperty(NjamsSettings.PROPERTY_HTTP_SSL_CERTIFICATE_FILE));
-            }
+            clientFactory = new HttpClientFactory(properties, uri);
             connect();
-            LOG.debug("Initialized {} sender with URL {}", isSslRequested() ? "https" : "http", uri);
+            LOG.debug("Initialized sender with URL {}", uri);
         } catch (final Exception e) {
-            LOG.debug("Could not initialize sender with URL {}", uri, e);
+            LOG.debug("Could not initialize sender with URL {}", url, e);
         }
-    }
-
-    private boolean isSslRequested() {
-        return SSLContextFactory.isSslUri(uri);
     }
 
     private URI createUri(String path) throws URISyntaxException {
@@ -201,9 +194,10 @@ public class HttpSender extends AbstractSender {
             return;
         }
         try {
+
             connectionStatus = ConnectionStatus.CONNECTING;
-            client = createClient();
-            target = client.target(uri);
+            client = clientFactory.createClient();
+            //            target = client.target(uri);
             testConnection();
             connectionStatus = ConnectionStatus.CONNECTED;
         } catch (final Exception e) {
@@ -215,30 +209,23 @@ public class HttpSender extends AbstractSender {
         }
     }
 
-    private Client createClient() {
-        if (isSslRequested()) {
-            LOG.debug("Creating new https client.");
-            return ClientBuilder.newBuilder().sslContext(sslContext).build();
-        }
-        LOG.debug("Creating new http client.");
-        return ClientBuilder.newClient();
-    }
 
     private void testConnection() {
-        if (target == null) {
-            throw new NullPointerException("No target");
-        }
         final ConnectionTest connectionTest = getConnectionTest();
         final Response response = connectionTest.execute();
-        if (response.getStatus() == Status.OK.getStatusCode()) {
-            return;
+        if (response != null) {
+            if (response.code() == OK) {
+                return;
+            }
+            if (response.code() == NOT_FOUND) {
+                throw new IllegalStateException("No active dataprovider found at: " + connectionTest.uri);
+            }
+            throw new IllegalStateException(
+                    "Received unexpected status " + response.code() + " from: " + connectionTest);
         }
-        if (response.getStatus() == Status.NOT_FOUND.getStatusCode()) {
-            throw new IllegalStateException("No active dataprovider found at: " + connectionTest.uri);
-        }
-        final StatusType status = response.getStatusInfo();
-        throw new IllegalStateException("Received unexpected status " + status.getStatusCode() + " ("
-                + status.getReasonPhrase() + ") from: " + connectionTest);
+        throw new IllegalStateException(
+                "No response from test call: " + connectionTest);
+
     }
 
     private ConnectionTest getConnectionTest() {
@@ -247,7 +234,7 @@ public class HttpSender extends AbstractSender {
                 if (connectionTestMode == ConnectionTestMode.DETECT) {
                     final ConnectionTest connectionTest = getConnectionTest(ConnectionTestMode.STANDARD);
                     final Response response = connectionTest.execute();
-                    if (response.getStatus() == Status.METHOD_NOT_ALLOWED.getStatusCode()) {
+                    if (response.code() == METHOD_NOT_ALLOWED) {
                         // 405 -> The server does not know about HEAD on that resource -> use legacy fallback
                         connectionTestMode = ConnectionTestMode.LEGACY;
                         LOG.info("Switched to legacy http connection test implementation.");
@@ -263,17 +250,19 @@ public class HttpSender extends AbstractSender {
 
     private ConnectionTest getConnectionTest(ConnectionTestMode mode) {
         if (mode == ConnectionTestMode.LEGACY) {
-            // Fallback for old nJAMS not implementing HEAD; however, this does not tell whether a DP is 
+            // Fallback for old nJAMS not implementing HEAD; however, this does not tell whether a DP is
             // listening on the requested path suffix, but it confirms that a server is listening on that address
             try {
                 final URI uri = createUri(LEGACY_CONNECTION_TEST_PATH);
-                return new ConnectionTest(uri, () -> client.target(uri).request().get(), "GET");
-            } catch (URISyntaxException e) {
+                return new ConnectionTest(uri.toURL(),
+                        () -> client.newCall(new Request.Builder().url(uri.toURL()).get().build()).execute(), "GET");
+            } catch (URISyntaxException | MalformedURLException e) {
                 // actually, this cannot happen since creating the actual ingest URI would have failed before
                 throw new IllegalArgumentException(e);
             }
         }
-        return new ConnectionTest(uri, () -> target.request().head(), "HEAD");
+        return new ConnectionTest(url,
+                () -> client.newCall(new Request.Builder().url(url).head().build()).execute(), "HEAD");
 
     }
 
@@ -286,9 +275,7 @@ public class HttpSender extends AbstractSender {
         connectionStatus = ConnectionStatus.DISCONNECTED;
         if (client != null) {
             try {
-                client.close();
                 client = null;
-                target = null;
             } catch (Exception ex) {
                 LOG.error("Error closing HTTP connection.", ex);
             }
@@ -340,21 +327,21 @@ public class HttpSender extends AbstractSender {
      * @param clientSessionId
      * @return
      */
-    private MultivaluedMap<String, Object> createHeaders(CommonMessage msg, String clientSessionId) {
-        final MultivaluedMap<String, Object> headers = new MultivaluedHashMap<>();
-        headers.putSingle(NJAMS_MESSAGEVERSION_HTTP_HEADER, MessageVersion.V4.toString());
-        headers.putSingle(NJAMS_MESSAGEVERSION_HEADER, MessageVersion.V4.toString());
-        headers.putSingle(NJAMS_PATH_HTTP_HEADER, msg.getPath());
-        headers.putSingle(NJAMS_PATH_HEADER, msg.getPath());
+    private Map<String, String> createHeaders(CommonMessage msg, String clientSessionId) {
+        final Map<String, String> headers = new TreeMap<>();
+        headers.put(NJAMS_MESSAGEVERSION_HTTP_HEADER, MessageVersion.V4.toString());
+        headers.put(NJAMS_MESSAGEVERSION_HEADER, MessageVersion.V4.toString());
+        headers.put(NJAMS_PATH_HTTP_HEADER, msg.getPath());
+        headers.put(NJAMS_PATH_HEADER, msg.getPath());
         if (clientSessionId != null) {
-            headers.putSingle(NJAMS_CLIENTID_HTTP_HEADER, clientSessionId);
-            headers.putSingle(NJAMS_CLIENTID_HEADER, clientSessionId);
+            headers.put(NJAMS_CLIENTID_HTTP_HEADER, clientSessionId);
+            headers.put(NJAMS_CLIENTID_HEADER, clientSessionId);
         }
         final String msgType;
         if (msg instanceof LogMessage) {
             msgType = MESSAGETYPE_EVENT;
-            headers.putSingle(NJAMS_LOGID_HTTP_HEADER, ((LogMessage) msg).getLogId());
-            headers.putSingle(NJAMS_LOGID_HEADER, ((LogMessage) msg).getLogId());
+            headers.put(NJAMS_LOGID_HTTP_HEADER, ((LogMessage) msg).getLogId());
+            headers.put(NJAMS_LOGID_HEADER, ((LogMessage) msg).getLogId());
         } else if (msg instanceof ProjectMessage) {
             msgType = MESSAGETYPE_PROJECT;
         } else if (msg instanceof TraceMessage) {
@@ -362,12 +349,12 @@ public class HttpSender extends AbstractSender {
         } else {
             throw new IllegalArgumentException("Unknown message type: " + msg.getClass());
         }
-        headers.putSingle(NJAMS_MESSAGETYPE_HTTP_HEADER, msgType);
-        headers.putSingle(NJAMS_MESSAGETYPE_HEADER, msgType);
+        headers.put(NJAMS_MESSAGETYPE_HTTP_HEADER, msgType);
+        headers.put(NJAMS_MESSAGETYPE_HEADER, msgType);
         return headers;
     }
 
-    private void tryToSend(final CommonMessage msg, final MultivaluedMap<String, Object> headers)
+    private void tryToSend(final CommonMessage msg, final Map<String, String> headers)
             throws InterruptedException {
         boolean sent = false;
         int responseStatus = -1;
@@ -381,7 +368,7 @@ public class HttpSender extends AbstractSender {
                     sent = true;
                 }
             } catch (Exception ex) {
-                LOG.trace("Failed to send to {}:\n{}\nheaders={}", target.getUri(), json, headers, ex);
+                LOG.trace("Failed to send to {}:\n{}\nheaders={}", url, json, headers, ex);
                 exception = ex;
             }
             if (exception != null || !sent) {
@@ -396,10 +383,10 @@ public class HttpSender extends AbstractSender {
                     if (exception != null) {
                         // this triggers reconnecting the command-receiver which is only necessary on communication issues
                         // but not on message error indicated by some error code response
-                        throw new HttpSendException(target.getUri(), exception);
+                        throw new HttpSendException(url, exception);
                     }
                     throw new NjamsSdkRuntimeException("Error sending message with HTTP client URI "
-                            + target.getUri() + " Response status is: " + responseStatus);
+                            + url + " Response status is: " + responseStatus);
                 }
                 Thread.sleep(EXCEPTION_IDLE_TIME);
             }
@@ -409,12 +396,15 @@ public class HttpSender extends AbstractSender {
         } while (!sent);
     }
 
-    private int send(final String msg, final MultivaluedMap<String, Object> headers) {
-        final Response response = target.request().headers(headers).post(Entity.json(msg));
+    private int send(final String msg, final Map<String, String> headers) throws IOException {
+        final Builder requestBuilder =
+                new Request.Builder().url(url).post(RequestBody.create(msg, HttpClientFactory.MEDIA_TYPE_JSON));
+        headers.entrySet().forEach(e -> requestBuilder.addHeader(e.getKey(), e.getValue()));
+        final Response response = client.newCall(requestBuilder.build()).execute();
         if (LOG.isTraceEnabled()) {
-            LOG.trace("POST response: {} [{}]", response.getStatus(), response.getStatusInfo().getReasonPhrase());
+            LOG.trace("POST response: {}", response.code());
         }
-        return response.getStatus();
+        return response.code();
     }
 
     @Override

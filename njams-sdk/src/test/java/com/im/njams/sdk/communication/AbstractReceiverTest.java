@@ -533,7 +533,7 @@ public class AbstractReceiverTest {
 
         public static final int THROWINGMAXCOUNTER = 10;
 
-        public static final long RECONNECT_INTERVAL = AbstractReceiver.RECONNECT_INTERVAL;
+        public static final long RECONNECT_INTERVAL = AbstractReceiver.INIT_RECONNECT_INTERVAL;
 
         //This method should be tested by the real subclass of the AbstractReceiver
         @Override

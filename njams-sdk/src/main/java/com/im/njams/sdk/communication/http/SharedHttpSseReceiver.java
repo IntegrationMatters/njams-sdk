@@ -16,15 +16,9 @@
  */
 package com.im.njams.sdk.communication.http;
 
-import static com.im.njams.sdk.communication.MessageHeaders.CONTENT_TYPE_JSON;
-import static com.im.njams.sdk.communication.MessageHeaders.NJAMS_CLIENTID_HTTP_HEADER;
-import static com.im.njams.sdk.communication.MessageHeaders.NJAMS_CONTENT_HTTP_HEADER;
-import static com.im.njams.sdk.communication.MessageHeaders.NJAMS_MESSAGE_ID_HTTP_HEADER;
-import static com.im.njams.sdk.communication.MessageHeaders.NJAMS_RECEIVER_HTTP_HEADER;
+import static com.im.njams.sdk.communication.MessageHeaders.*;
 
 import java.util.Map;
-
-import javax.ws.rs.sse.InboundSseEvent;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,6 +30,7 @@ import com.im.njams.sdk.communication.ShareableReceiver;
 import com.im.njams.sdk.communication.SharedReceiverSupport;
 import com.im.njams.sdk.utils.JsonUtils;
 import com.im.njams.sdk.utils.StringUtils;
+import com.launchdarkly.eventsource.MessageEvent;
 
 /**
  * Overrides the common {@link HttpSseReceiver} for supporting receiving messages for multiple {@link Njams} instances.
@@ -80,14 +75,14 @@ public class SharedHttpSseReceiver extends HttpSseReceiver implements ShareableR
      * @param event the new arrived event
      */
     @Override
-    protected void onMessage(final InboundSseEvent event) {
-        LOG.debug("OnMessage called, event-id={}", event.getId());
+    protected void onMessage(final MessageEvent event) {
+        LOG.debug("OnMessage called, event-id={}", event.getLastEventId());
         final Map<String, String> eventHeaders = parseEventHeaders(event);
         if (!isValidMessage(eventHeaders)) {
             return;
         }
         final String id = eventHeaders.get(NJAMS_MESSAGE_ID_HTTP_HEADER);
-        final String payload = event.readData();
+        final String payload = event.getData();
         LOG.debug("Processing event {} (headers={}, payload={})", id, eventHeaders, payload);
         Instruction instruction = null;
         try {

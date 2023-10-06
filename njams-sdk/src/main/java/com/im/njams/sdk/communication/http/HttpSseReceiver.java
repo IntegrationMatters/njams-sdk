@@ -16,23 +16,13 @@
  */
 package com.im.njams.sdk.communication.http;
 
-import static com.im.njams.sdk.communication.MessageHeaders.COMMAND_TYPE_REPLY;
-import static com.im.njams.sdk.communication.MessageHeaders.CONTENT_TYPE_JSON;
-import static com.im.njams.sdk.communication.MessageHeaders.NJAMS_CLIENTID_HEADER;
-import static com.im.njams.sdk.communication.MessageHeaders.NJAMS_CLIENTID_HTTP_HEADER;
-import static com.im.njams.sdk.communication.MessageHeaders.NJAMS_CONTENT_HTTP_HEADER;
-import static com.im.njams.sdk.communication.MessageHeaders.NJAMS_MESSAGETYPE_HEADER;
-import static com.im.njams.sdk.communication.MessageHeaders.NJAMS_MESSAGETYPE_HTTP_HEADER;
-import static com.im.njams.sdk.communication.MessageHeaders.NJAMS_MESSAGE_ID_HEADER;
-import static com.im.njams.sdk.communication.MessageHeaders.NJAMS_MESSAGE_ID_HTTP_HEADER;
-import static com.im.njams.sdk.communication.MessageHeaders.NJAMS_RECEIVER_HEADER;
-import static com.im.njams.sdk.communication.MessageHeaders.NJAMS_RECEIVER_HTTP_HEADER;
-import static com.im.njams.sdk.communication.MessageHeaders.NJAMS_REPLY_FOR_HEADER;
-import static com.im.njams.sdk.communication.MessageHeaders.NJAMS_REPLY_FOR_HTTP_HEADER;
-import static com.im.njams.sdk.communication.MessageHeaders.RECEIVER_SERVER;
+import static com.im.njams.sdk.communication.MessageHeaders.*;
 
+import java.io.IOException;
+import java.net.SocketTimeoutException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.net.URL;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -42,15 +32,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 
 import javax.jms.IllegalStateException;
-import javax.net.ssl.SSLContext;
-import javax.ws.rs.client.Client;
-import javax.ws.rs.client.ClientBuilder;
-import javax.ws.rs.client.Entity;
-import javax.ws.rs.client.Invocation;
-import javax.ws.rs.client.WebTarget;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.sse.InboundSseEvent;
-import javax.ws.rs.sse.SseEventSource;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -65,24 +46,37 @@ import com.im.njams.sdk.communication.ConnectionStatus;
 import com.im.njams.sdk.communication.SenderExceptionListener;
 import com.im.njams.sdk.utils.JsonUtils;
 import com.im.njams.sdk.utils.StringUtils;
+import com.launchdarkly.eventsource.ConnectStrategy;
+import com.launchdarkly.eventsource.ErrorStrategy;
+import com.launchdarkly.eventsource.EventSource;
+import com.launchdarkly.eventsource.MessageEvent;
+import com.launchdarkly.eventsource.ReadyState;
+import com.launchdarkly.eventsource.StreamIOException;
+import com.launchdarkly.eventsource.background.BackgroundEventHandler;
+import com.launchdarkly.eventsource.background.BackgroundEventSource;
+
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.RequestBody;
+import okhttp3.Response;
 
 /**
  * Receives SSE (server sent events) from nJAMS as HTTP Client Communication
  *
  * @author bwand
  */
-public class HttpSseReceiver extends AbstractReceiver implements SenderExceptionListener {
+public class HttpSseReceiver extends AbstractReceiver implements SenderExceptionListener, BackgroundEventHandler {
 
     private static final Logger LOG = LoggerFactory.getLogger(HttpSseReceiver.class);
 
     private static final String NAME = "HTTP";
     private static final String SSE_API_PATH = "api/httpcommunication/";
 
-    protected Client client = null;
-    protected SseEventSource source = null;
+    protected OkHttpClient client = null;
+    protected BackgroundEventSource source = null;
     protected URI subscribeUri = null;
-    protected URI replyUri = null;
-    private SSLContext sslContext = null;
+    protected URL replyUrl = null;
+    private HttpClientFactory clientFactory = null;
     private Throwable connectError = null;
     private final ReentrantLock connectLock = new ReentrantLock();
 
@@ -90,19 +84,12 @@ public class HttpSseReceiver extends AbstractReceiver implements SenderException
     public void init(final Properties properties) {
         try {
             subscribeUri = createUri(properties, "subscribe");
-            replyUri = createUri(properties, "reply");
+            replyUrl = createUri(properties, "reply").toURL();
+            clientFactory = new HttpClientFactory(properties, subscribeUri);
         } catch (final Exception ex) {
             throw new NjamsSdkRuntimeException("Unable to init HTTP receiver", ex);
         }
-        if (isSslRequested()) {
-            sslContext = SSLContextFactory
-                    .createSSLContext(properties.getProperty(NjamsSettings.PROPERTY_HTTP_SSL_CERTIFICATE_FILE));
-        }
-        LOG.debug("URI subscription={}; reply={}; isSsl={}", subscribeUri, replyUri, isSslRequested());
-    }
-
-    private boolean isSslRequested() {
-        return SSLContextFactory.isSslUri(subscribeUri);
+        LOG.debug("URI subscription={}; reply={}", subscribeUri, replyUrl);
     }
 
     private URI createUri(final Properties properties, String path) throws URISyntaxException {
@@ -140,27 +127,37 @@ public class HttpSseReceiver extends AbstractReceiver implements SenderException
                 return;
             }
             connectionStatus = ConnectionStatus.CONNECTING;
-            client = createClient();
-            final WebTarget target = client.target(subscribeUri);
-            source = SseEventSource.target(target).build();
-            source.register(this::onMessage, this::onError);
+            if (client == null) {
+                client = clientFactory.createClient();
+            }
+
+            BackgroundEventSource.Builder builder =
+                    new BackgroundEventSource.Builder(this,
+                            new EventSource.Builder(
+                                    ConnectStrategy
+                                            .http(subscribeUri)
+                                            .httpClient(client))
+                                                    .errorStrategy(ErrorStrategy.alwaysContinue()));
+            source = builder.build();
             connectError = null;
             synchronized (this) {
                 LOG.debug("Start connect...");
-                source.open();
-                /* 
+                source.getEventSource().start();
+                source.start();
+                /*
                  * source.open() has no reliable error handling, i.e., it is not possible to determine whether
                  * source.open() was successful or not. This is because the actual connection is created in a
                  * separate thread and when source.open() completes and connection failed, neither the on-error
                  * callback was reliably called before, nor the connection state has been set to "closed".
                  * As a workaround, we wait for at most 1 second here to allow either of the above mentioned
                  * error handling to occur in parallel.
-                 * 
+                 *
                  */
                 final long waitEnd = System.currentTimeMillis() + connectWait;
                 while (connectWait > 0) {
-                    if (connectError != null || !source.isOpen()) {
-                        LOG.debug("Connect failed: {}", connectError.toString());
+                    if (connectError != null || source.getEventSource().getState() != ReadyState.OPEN) {
+                        LOG.debug("Connect failed: state={}", source.getEventSource().getState(),
+                                connectError);
                         throw connectError != null ? connectError
                                 : new IllegalStateException("Event source is closed.");
                     }
@@ -169,7 +166,7 @@ public class HttpSseReceiver extends AbstractReceiver implements SenderException
                 }
             }
             connectionStatus = ConnectionStatus.CONNECTED;
-            LOG.debug("Subscribed SSE receiver to {}", target.getUri());
+            LOG.debug("Subscribed SSE receiver to {}", subscribeUri);
         } catch (final Throwable e) {
             close();
             throw new NjamsSdkRuntimeException("Exception during registering SSE endpoint.", e);
@@ -181,37 +178,14 @@ public class HttpSseReceiver extends AbstractReceiver implements SenderException
         }
     }
 
-    private Client createClient() {
-        if (isSslRequested()) {
-            LOG.debug("Creating new https client.");
-            return ClientBuilder.newBuilder().sslContext(sslContext).build();
-        }
-        LOG.debug("Creating new http client.");
-        return ClientBuilder.newClient();
-    }
-
-    protected synchronized void onError(final Throwable throwable) {
-        LOG.debug("OnError called, cause: {} (status={})", throwable, connectionStatus);
-        connectError = throwable;
-
-        // trigger the reconnect thread only if connection breaks, not when already trying to re-connect.
-        final boolean triggerReconnect = connectionStatus == ConnectionStatus.CONNECTED;
-        connectionStatus = ConnectionStatus.DISCONNECTED;
-        notifyAll();
-        if (triggerReconnect) {
-            onException(throwable instanceof Exception ? (Exception) throwable
-                    : new NjamsSdkRuntimeException("Connection failed.", throwable));
-        }
-    }
-
-    protected void onMessage(final InboundSseEvent event) {
-        LOG.debug("OnMessage called, event-id={}", event.getId());
+    protected void onMessage(final MessageEvent event) {
+        LOG.debug("OnMessage called, event-id={}", event.getLastEventId());
         final Map<String, String> eventHeaders = parseEventHeaders(event);
         if (!isValidMessage(eventHeaders)) {
             return;
         }
         final String requestId = eventHeaders.get(NJAMS_MESSAGE_ID_HTTP_HEADER);
-        final String payload = event.readData();
+        final String payload = event.getData();
         LOG.debug("Processing event {} (headers={}, payload={})", requestId, eventHeaders, payload);
         final Instruction instruction;
         try {
@@ -228,19 +202,19 @@ public class HttpSseReceiver extends AbstractReceiver implements SenderException
     }
 
     @SuppressWarnings("unchecked")
-    protected Map<String, String> parseEventHeaders(InboundSseEvent event) {
-        final String name = event.getName();
+    protected Map<String, String> parseEventHeaders(MessageEvent event) {
+        final String name = event.getEventName();
         if (StringUtils.isBlank(name)) {
             LOG.error("Received unnamed event: {}", event);
             return Collections.emptyMap();
         }
         if (name.trim().charAt(0) == '{') {
-            LOG.debug("Assuming JSON event {}: {}", event.getId(), name);
+            LOG.debug("Assuming JSON event {}: {}", event.getLastEventId(), name);
             return JsonUtils.parse(name, HashMap.class);
         }
-        LOG.debug("Assuming legacy event {}: {}", event.getId(), name);
+        LOG.debug("Assuming legacy event {}: {}", event.getLastEventId(), name);
         final Map<String, String> map = new HashMap<>();
-        map.put(NJAMS_MESSAGE_ID_HTTP_HEADER, event.getId());
+        map.put(NJAMS_MESSAGE_ID_HTTP_HEADER, event.getLastEventId());
         map.put(NJAMS_RECEIVER_HTTP_HEADER, name);
         map.put(NJAMS_CONTENT_HTTP_HEADER, CONTENT_TYPE_JSON);
         return map;
@@ -295,20 +269,14 @@ public class HttpSseReceiver extends AbstractReceiver implements SenderException
             source.close();
             source = null;
         }
-        if (client != null) {
-            client.close();
-            client = null;
-            LOG.debug("Client closed");
-        }
     }
 
     protected void sendReply(final String requestId, final Instruction instruction, final String clientId) {
         final String replyId = UUID.randomUUID().toString();
         final String json = JsonUtils.serialize(instruction);
         LOG.trace("Sending reply {} (clientId={}) for request {}:\n{}", replyId, clientId, requestId, json);
-        final WebTarget target = client.target(replyUri);
-
-        final Invocation.Builder builder = target.request()
+        Request.Builder builder = new Request.Builder().url(replyUrl)
+                .post(RequestBody.create(json, HttpClientFactory.MEDIA_TYPE_JSON))
                 .header("Content-Type", "application/json")
                 .header("Accept", "text/plain")
                 .header(NJAMS_RECEIVER_HTTP_HEADER, RECEIVER_SERVER)
@@ -320,12 +288,18 @@ public class HttpSseReceiver extends AbstractReceiver implements SenderException
                 .header(NJAMS_MESSAGETYPE_HEADER, COMMAND_TYPE_REPLY)
                 .header(NJAMS_MESSAGE_ID_HEADER, replyId)
                 .header(NJAMS_REPLY_FOR_HEADER, requestId);
+
         if (clientId != null) {
             builder.header(NJAMS_CLIENTID_HTTP_HEADER, clientId)
                     .header(NJAMS_CLIENTID_HEADER, clientId);
         }
-        final Response response = builder.post(Entity.json(json));
-        LOG.debug("Response status for reply {}: {}", replyId, response.getStatus());
+        try {
+            final Response response = client.newCall(builder.build()).execute();
+            LOG.debug("Response status for reply {}: {}", replyId, response.code());
+            response.close();
+        } catch (IOException e) {
+            LOG.error("Failed to send response for request {} (clientId={})", requestId, clientId, e);
+        }
     }
 
     @Override
@@ -335,4 +309,52 @@ public class HttpSseReceiver extends AbstractReceiver implements SenderException
             onError(exception);
         }
     }
+
+    // ********************************************************
+    // *** implements BackgroundEventHandler
+    @Override
+    public void onMessage(String event, MessageEvent messageEvent) throws Exception {
+        onMessage(messageEvent);
+    }
+
+    @Override
+    public synchronized void onError(final Throwable throwable) {
+        LOG.debug("OnError called, cause: {} (status={})", throwable, connectionStatus);
+        Throwable e = throwable;
+        if (e instanceof StreamIOException) {
+            // SocketTimeoutException might be wrapped in StreamIOException
+            e = e.getCause();
+        }
+        if (e instanceof SocketTimeoutException) {
+            // this automatically recovers in the client --> ignore
+            return;
+        }
+        connectError = throwable;
+
+        // trigger the reconnect thread only if connection breaks, not when already trying to re-connect.
+        final boolean triggerReconnect = connectionStatus == ConnectionStatus.CONNECTED;
+        connectionStatus = ConnectionStatus.DISCONNECTED;
+        notifyAll();
+        if (triggerReconnect) {
+            LOG.debug("Trigger reconnecting receiver due to {}", throwable.toString());
+            onException(throwable instanceof Exception ? (Exception) throwable
+                    : new NjamsSdkRuntimeException("Connection failed.", throwable));
+        }
+    }
+
+    @Override
+    public void onOpen() throws Exception {
+        // ignore
+    }
+
+    @Override
+    public void onComment(String comment) throws Exception {
+        // ignore
+    }
+
+    @Override
+    public void onClosed() throws Exception {
+        // ignore
+    }
+    // ********************************************************
 }

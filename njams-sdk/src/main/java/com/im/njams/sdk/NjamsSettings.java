@@ -226,7 +226,7 @@ public class NjamsSettings {
     /**
      * Since 5.0.0.
      * This setting is used only once when creating a fresh configuration for an {@link Njams} instance.
-     * It is used in that case as default setting for the client- (engine-) wide recording flag. 
+     * It is used in that case as default setting for the client- (engine-) wide recording flag.
      * Default is <code>true</code>.
      */
     public static final String PROPERTY_BOOSTRAP_RECORDING = "njams.sdk.bootstrap.recording";
@@ -244,7 +244,7 @@ public class NjamsSettings {
      * Since 5.0.0
      * When property {@value #PROPERTY_PAYLOAD_LIMIT_MODE} is set to limiting payloads, this setting specifies
      * the maximum size (in characters) before the payload is limited.<br>
-     * This value is required when using payload limitations. 
+     * This value is required when using payload limitations.
      */
     public static final String PROPERTY_PAYLOAD_LIMIT_SIZE = "njams.sdk.payload.limit.size";
 
@@ -346,10 +346,24 @@ public class NjamsSettings {
      * leads to an exception in nJAMS server logs which can be prevented by setting this property
      * to <code>legacy</code><br>
      * See SER-337 and {@link HttpSender}<code>.testConnection()</code>.
-     * @deprecated To be removed in future releases.  
+     * @deprecated To be removed in future releases.
      */
     @Deprecated(since = "5.0.0", forRemoval = true)
     public static final String PROPERTY_HTTP_CONNECTION_TEST = "njams.sdk.communication.http.connection.test";
+
+    public static final String PROPERTY_HTTP_PROXY_HOST = "njams.sdk.communication.http.proxy.host";
+    public static final String PROPERTY_HTTP_PROXY_PORT = "njams.sdk.communication.http.proxy.port";
+    public static final String PROPERTY_HTTP_PROXY_USER = "njams.sdk.communication.http.proxy.user";
+    public static final String PROPERTY_HTTP_PROXY_PASSWORD = "njams.sdk.communication.http.proxy.password";
+
+    public static final String PROPERTY_HTTP_TRUSTSTORE_PATH = "njams.sdk.communication.http.ssl.truststore.path";
+    public static final String PROPERTY_HTTP_TRUSTSTORE_TYPE = "njams.sdk.communication.http.ssl.truststore.type";
+    public static final String PROPERTY_HTTP_TRUSTSTORE_PASSWORD =
+            "njams.sdk.communication.http.ssl.truststore.password";
+    public static final String PROPERTY_HTTP_KEYSTORE_PATH = "njams.sdk.communication.http.ssl.keystore.path";
+    public static final String PROPERTY_HTTP_KEYSTORE_TYPE = "njams.sdk.communication.http.ssl.keystore.type";
+    public static final String PROPERTY_HTTP_KEYSTORE_PASSWORD = "njams.sdk.communication.http.ssl.keystore.password";
+    public static final String PROPERTY_HTTP_VERIFY_HOSTNAME = "njams.sdk.communication.http.ssl.verifyHostname";
 
     //    _  __          ______ _  __
     //   | |/ /    /\   |  ____| |/ /    /\

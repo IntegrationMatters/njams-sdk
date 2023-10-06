@@ -1,0 +1,248 @@
+/*
+ * Copyright (c) 2023 Integration Matters GmbH
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"),
+ * to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
+ * and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+ *
+ * The Software shall be used for Good, not Evil.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
+ */
+package com.im.njams.sdk.communication.http;
+
+import static com.im.njams.sdk.NjamsSettings.*;
+
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.InetSocketAddress;
+import java.net.Proxy;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URL;
+import java.security.KeyStore;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
+import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
+import java.util.AbstractMap.SimpleImmutableEntry;
+import java.util.Map.Entry;
+import java.util.Properties;
+import java.util.concurrent.TimeUnit;
+
+import javax.net.ssl.HostnameVerifier;
+import javax.net.ssl.KeyManager;
+import javax.net.ssl.KeyManagerFactory;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.TrustManagerFactory;
+import javax.net.ssl.X509TrustManager;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.im.njams.sdk.utils.StringUtils;
+
+import okhttp3.Authenticator;
+import okhttp3.Credentials;
+import okhttp3.MediaType;
+import okhttp3.OkHttpClient;
+
+public class HttpClientFactory {
+
+    private static final Logger LOG = LoggerFactory.getLogger(HttpClientFactory.class);
+
+    public static final MediaType MEDIA_TYPE_JSON = MediaType.parse("application/json; charset=utf-8");
+
+    private final Authenticator proxyAuthenticator;
+    private final Proxy proxy;
+    private final SSLContext sslContext;
+    private final TrustManager trustManager;
+    private final HostnameVerifier hostnameVerifier;
+
+    public HttpClientFactory(final Properties properties, final URI uri) throws Exception {
+        final Entry<Proxy, Authenticator> proxyEntry = createProxy(properties);
+        if (proxyEntry != null) {
+            proxy = proxyEntry.getKey();
+            proxyAuthenticator = proxyEntry.getValue();
+        } else {
+            proxy = null;
+            proxyAuthenticator = null;
+        }
+
+        if (isSslUri(uri)) {
+            final Entry<SSLContext, TrustManager> sslEntry = createSSLContext(properties);
+            sslContext = sslEntry.getKey();
+            trustManager = sslEntry.getValue();
+
+            // accept all hostnames?
+            if ("false".equalsIgnoreCase(properties.getProperty(PROPERTY_HTTP_VERIFY_HOSTNAME))) {
+                hostnameVerifier = (hostname, session) -> true;
+                LOG.debug("Disabled hostname verification.");
+            } else {
+                hostnameVerifier = null;
+            }
+        } else {
+            sslContext = null;
+            trustManager = null;
+            hostnameVerifier = null;
+        }
+    }
+
+    /**
+     * Returns whether or not the given URI uses <code>https</code> scheme.
+     * @param uri The URI to test
+     * @return <code>true</code> only if the given URI uses https
+     */
+    public static boolean isSslUri(final URI uri) {
+        if (uri == null) {
+            return false;
+        }
+        return "https".equalsIgnoreCase(uri.getScheme());
+    }
+
+    /**
+     * Returns whether or not the given URL uses <code>https</code> scheme.
+     * @param url The URL to test
+     * @return <code>true</code> only if the given URL uses https
+     */
+    public static boolean isSslUrl(final URL url) {
+        try {
+            return isSslUri(url.toURI());
+        } catch (final URISyntaxException e) {
+            // should not happen
+            LOG.debug("Failed to check SSL URL: {}", url, e);
+            return false;
+        }
+    }
+
+    private Entry<Proxy, Authenticator> createProxy(final Properties properties) {
+        final String proxyHost = properties.getProperty(PROPERTY_HTTP_PROXY_HOST);
+
+        // init proxy
+        if (StringUtils.isBlank(proxyHost)) {
+            return null;
+        }
+        final int proxyPort = Integer.parseInt(properties.getProperty(PROPERTY_HTTP_PROXY_PORT, "8080"));
+        final Proxy proxy = new Proxy(Proxy.Type.HTTP, new InetSocketAddress(proxyHost, proxyPort));
+
+        // init proxy authenticator
+        final String proxyUser = properties.getProperty(PROPERTY_HTTP_PROXY_USER);
+        Authenticator proxyAuthenticator = null;
+        if (StringUtils.isNotBlank(proxyUser)) {
+            final String proxyPassword = properties.getProperty(PROPERTY_HTTP_PROXY_PASSWORD);
+            proxyAuthenticator = (route, response) -> {
+                final String credential = Credentials.basic(proxyUser, proxyPassword);
+                return response.request().newBuilder()
+                        .header("Proxy-Authorization", credential)
+                        .build();
+            };
+        }
+        LOG.debug("Created proxy {}:{} (user={})", proxyHost, proxyPort, proxyUser);
+        return new SimpleImmutableEntry<>(proxy, proxyAuthenticator);
+    }
+
+    public OkHttpClient createClient() {
+        try {
+            final okhttp3.OkHttpClient.Builder clientBuilder = new OkHttpClient.Builder()
+                    .connectTimeout(60, TimeUnit.SECONDS)
+                    .retryOnConnectionFailure(true)
+                    .writeTimeout(60, TimeUnit.SECONDS)
+                    .readTimeout(60, TimeUnit.SECONDS);
+
+            // init proxy authenticator
+            if (proxy != null) {
+                clientBuilder.proxy(proxy);
+                if (proxyAuthenticator != null) {
+                    clientBuilder.proxyAuthenticator(proxyAuthenticator);
+                }
+            }
+
+            // SSL?
+            if (sslContext != null) {
+                clientBuilder.sslSocketFactory(sslContext.getSocketFactory(), (X509TrustManager) trustManager);
+                if (hostnameVerifier != null) {
+                    clientBuilder.hostnameVerifier(hostnameVerifier);
+                }
+            }
+            return clientBuilder.build();
+        } catch (final Exception e) {
+            throw new RuntimeException("Could not initialize http sender", e);
+        }
+
+    }
+
+    private Entry<SSLContext, TrustManager> createSSLContext(final Properties properties) throws Exception {
+
+        final SSLContext sslContext = SSLContext.getInstance("SSL");
+        TrustManager trustManager[] = null;
+        KeyManager keyManager[] = null;
+
+        // truststore?
+        final String truststorePath = properties.getProperty(PROPERTY_HTTP_TRUSTSTORE_PATH);
+        if (StringUtils.isNotBlank(truststorePath)) {
+            final String truststoreType = properties.getProperty(PROPERTY_HTTP_TRUSTSTORE_TYPE, "jks");
+            final String truststorePassword = properties.getProperty(PROPERTY_HTTP_TRUSTSTORE_PASSWORD);
+            final KeyStore truststore = readKeyStore(truststorePath, truststoreType, truststorePassword);
+            final TrustManagerFactory trustManagerFactory =
+                    TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+            trustManagerFactory.init(truststore);
+            trustManager = trustManagerFactory.getTrustManagers();
+        } else {
+            // accept all certificates
+            trustManager = new TrustManager[] { new X509TrustManager() {
+
+                @Override
+                public void checkClientTrusted(final X509Certificate[] chain, final String authType)
+                        throws CertificateException {
+                }
+
+                @Override
+                public void checkServerTrusted(final X509Certificate[] chain, final String authType)
+                        throws CertificateException {
+                }
+
+                @Override
+                public X509Certificate[] getAcceptedIssuers() {
+                    final X509Certificate[] cArrr = new X509Certificate[0];
+                    return cArrr;
+                }
+            } };
+
+        }
+
+        // keystore?
+        final String keystorePath = properties.getProperty(PROPERTY_HTTP_KEYSTORE_PATH);
+        if (StringUtils.isNotBlank(keystorePath)) {
+            final String keystoreType = properties.getProperty(PROPERTY_HTTP_KEYSTORE_TYPE, "jks");
+            final String keystorePassword = properties.getProperty(PROPERTY_HTTP_KEYSTORE_PASSWORD);
+            final KeyStore keystore = readKeyStore(keystorePath, keystoreType, keystorePassword);
+            final KeyManagerFactory keyManagerFactory =
+                    KeyManagerFactory.getInstance(KeyManagerFactory
+                            .getDefaultAlgorithm());
+            keyManagerFactory.init(keystore, keystorePassword.toCharArray());
+            keyManager = keyManagerFactory.getKeyManagers();
+        }
+        sslContext.init(keyManager, trustManager, new SecureRandom());
+        LOG.debug("Created SSL context.");
+        return new SimpleImmutableEntry<>(sslContext, trustManager[0]);
+    }
+
+    private KeyStore readKeyStore(final String keystorePath, final String type, final String password)
+            throws KeyStoreException, NoSuchAlgorithmException, CertificateException, IOException {
+
+        final KeyStore ks = KeyStore.getInstance(type);
+        try (final InputStream is = new FileInputStream(keystorePath)) {
+            ks.load(is, password.toCharArray());
+        }
+        return ks;
+    }
+
+}

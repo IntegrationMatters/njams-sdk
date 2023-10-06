@@ -42,7 +42,8 @@ public abstract class AbstractReceiver implements Receiver {
     //The Logger
     private static final Logger LOG = LoggerFactory.getLogger(AbstractReceiver.class);
     //The time it needs before a new reconnection is tried after an exception throw.
-    protected static final int RECONNECT_INTERVAL = 1000;
+    protected static final int INIT_RECONNECT_INTERVAL = 500;
+    protected static final int MAX_RECONNECT_INTERVAL = 60_000;
 
     //This AtomicInteger is for debugging.
     final AtomicInteger verifyingCounter = new AtomicInteger();
@@ -54,7 +55,7 @@ public abstract class AbstractReceiver implements Receiver {
 
     private static final AtomicInteger connecting = new AtomicInteger(0);
 
-    private AtomicInteger reconnectIntervalIncreasing = new AtomicInteger(RECONNECT_INTERVAL);
+    private AtomicInteger reconnectIntervalIncreasing = new AtomicInteger(INIT_RECONNECT_INTERVAL * 10 + 1);
 
     /**
      * Njams to hold
@@ -151,7 +152,7 @@ public abstract class AbstractReceiver implements Receiver {
      * This method tries to establish the connection over and over as long as it
      * not connected. If {@link #connect() connect} throws an exception, the
      * reconnection threads sleeps for
-     * {@link #RECONNECT_INTERVAL RECONNECT_INTERVAL} second before trying again
+     * {@link #INIT_RECONNECT_INTERVAL} second before trying again
      * to reconnect.
      *
      * @param ex the exception that initiated the reconnect
@@ -166,12 +167,13 @@ public abstract class AbstractReceiver implements Receiver {
                 hasConnected.set(false);
                 if (LOG.isInfoEnabled() && ex != null) {
                     if (ex.getCause() == null) {
-                        LOG.info("Initialized reconnect, because of : {}", ex.toString());
+                        LOG.info("Initialized receiver reconnect, because of : {}", ex.toString());
                     } else {
-                        LOG.info("Initialized reconnect, because of : {}, {}", ex.toString(), ex.getCause().toString());
+                        LOG.info("Initialized receiver reconnect, because of : {}, {}", ex.toString(),
+                                ex.getCause().toString());
                     }
                 }
-                LOG.info("{} receivers are reconnecting now.", connecting.incrementAndGet());
+                LOG.debug("{} receivers are reconnecting now.", connecting.incrementAndGet());
             }
         }
         if (got > 1) {
@@ -186,7 +188,7 @@ public abstract class AbstractReceiver implements Receiver {
                     if (!hasConnected.get()) {
                         LOG.info("Reconnected receiver {}", getName());
                         hasConnected.set(true);
-                        reconnectIntervalIncreasing.set(RECONNECT_INTERVAL);
+                        resetReconnectInterval();
                     }
                     LOG.debug("{} receivers still need to reconnect.", connecting.decrementAndGet());
                 }
@@ -194,10 +196,7 @@ public abstract class AbstractReceiver implements Receiver {
                 try {
                     //Using Thread.sleep because this.wait would release the lock for this object, Thread.sleep doesn't.
 
-                    Thread.sleep(reconnectIntervalIncreasing.getAndSet(
-                            reconnectIntervalIncreasing.get() >= 600000
-                                    ? 600000
-                                    : reconnectIntervalIncreasing.get() * 2));
+                    Thread.sleep(nextReconnectInterval());
                 } catch (InterruptedException e1) {
                     LOG.error("The reconnecting thread was interrupted!", e1);
                     doReconnect = false;
@@ -206,6 +205,30 @@ public abstract class AbstractReceiver implements Receiver {
         }
         LOG.debug("Receiver reconnect loop ended!");
         verifyingCounter.decrementAndGet();
+    }
+
+    private void resetReconnectInterval() {
+        reconnectIntervalIncreasing.set(INIT_RECONNECT_INTERVAL * 10);
+    }
+
+    /**
+     * Try 10 times with the same value before increasing exponentially and then trying 10 times again
+     * until {@link #MAX_RECONNECT_INTERVAL} is reached.
+     *
+     * @return
+     */
+    private int nextReconnectInterval() {
+        int reconnect = reconnectIntervalIncreasing.get();
+        if (reconnect / 10 >= MAX_RECONNECT_INTERVAL) {
+            return MAX_RECONNECT_INTERVAL;
+        }
+        if (reconnect % 10 == 0) {
+            reconnect = Math.min(MAX_RECONNECT_INTERVAL * 10, (reconnect / 10 - 1) * 20 + 1);
+        } else {
+            reconnect++;
+        }
+        reconnectIntervalIncreasing.set(reconnect);
+        return (reconnect - 1) / 10;
     }
 
     /**
