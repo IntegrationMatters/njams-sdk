@@ -351,18 +351,51 @@ public class NjamsSettings {
     @Deprecated(since = "5.0.0", forRemoval = true)
     public static final String PROPERTY_HTTP_CONNECTION_TEST = "njams.sdk.communication.http.connection.test";
 
+    /**
+     * Optional proxy host for http connection
+     */
     public static final String PROPERTY_HTTP_PROXY_HOST = "njams.sdk.communication.http.proxy.host";
+    /**
+     * Http proxy port is using a proxy.
+     */
     public static final String PROPERTY_HTTP_PROXY_PORT = "njams.sdk.communication.http.proxy.port";
+    /**
+     * User-name for proxy authentication.
+     */
     public static final String PROPERTY_HTTP_PROXY_USER = "njams.sdk.communication.http.proxy.user";
+    /**
+     * Password for proxy authentication.
+     */
     public static final String PROPERTY_HTTP_PROXY_PASSWORD = "njams.sdk.communication.http.proxy.password";
 
+    /**
+     * The path to a custom truststore file to be used for SSL connection.
+     */
     public static final String PROPERTY_HTTP_TRUSTSTORE_PATH = "njams.sdk.communication.http.ssl.truststore.path";
+    /**
+     * Custom truststore type. Default: <code>jks</code>
+     */
     public static final String PROPERTY_HTTP_TRUSTSTORE_TYPE = "njams.sdk.communication.http.ssl.truststore.type";
+    /**
+     * Optional truststore password.
+     */
     public static final String PROPERTY_HTTP_TRUSTSTORE_PASSWORD =
-            "njams.sdk.communication.http.ssl.truststore.password";
+        "njams.sdk.communication.http.ssl.truststore.password";
+    /**
+     * The path to a custom keystore file to be used for SSL connection.
+     */
     public static final String PROPERTY_HTTP_KEYSTORE_PATH = "njams.sdk.communication.http.ssl.keystore.path";
+    /**
+     * Custom keystore type. Default: <code>jks</code>
+     */
     public static final String PROPERTY_HTTP_KEYSTORE_TYPE = "njams.sdk.communication.http.ssl.keystore.type";
+    /**
+     * Optional keystore password.
+     */
     public static final String PROPERTY_HTTP_KEYSTORE_PASSWORD = "njams.sdk.communication.http.ssl.keystore.password";
+    /**
+     * Allows disabling host-name verification when setting up a SSL connection.
+     */
     public static final String PROPERTY_HTTP_VERIFY_HOSTNAME = "njams.sdk.communication.http.ssl.verifyHostname";
 
     //    _  __          ______ _  __
@@ -382,7 +415,7 @@ public class NjamsSettings {
      * (comma separated) for connecting to a Kafka cluster.
      */
     public static final String PROPERTY_KAFKA_BOOTSTRAP_SERVERS =
-            "njams.sdk.communication.kafka.client.bootstrap.servers";
+        "njams.sdk.communication.kafka.client.bootstrap.servers";
 
     /**
      * This is the prefix of the event, project, commands, and optional error topics.
@@ -395,7 +428,7 @@ public class NjamsSettings {
      * in milliseconds. The default is 30000.
      */
     public static final String PROPERTY_KAFKA_REPLY_PRODUCER_IDLE_TIME =
-            "njams.sdk.communication.kafka.replyProducerIdleTime";
+        "njams.sdk.communication.kafka.replyProducerIdleTime";
 
     /**
      * All properties with these prefixes are directly passed to the Kafka clients used by the SDK:
@@ -476,7 +509,7 @@ public class NjamsSettings {
      * Specifies the jndi initial context factory.
      */
     public static final String PROPERTY_JMS_INITIAL_CONTEXT_FACTORY = PROPERTY_JMS_PREFIX
-            + Context.INITIAL_CONTEXT_FACTORY;
+        + Context.INITIAL_CONTEXT_FACTORY;
 
     /**
      * Specifies the jndi security principal.

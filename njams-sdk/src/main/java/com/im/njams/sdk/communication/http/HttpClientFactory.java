@@ -30,7 +30,9 @@ import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
+import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
+import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.util.AbstractMap.SimpleImmutableEntry;
 import java.util.Map.Entry;
@@ -55,10 +57,16 @@ import okhttp3.Credentials;
 import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
 
+/**
+ * Factory that provides configured http client instances according to the configuration given as properties.
+ */
 public class HttpClientFactory {
 
     private static final Logger LOG = LoggerFactory.getLogger(HttpClientFactory.class);
 
+    /**
+     * Constant for media type <code>application/json</code>
+     */
     public static final MediaType MEDIA_TYPE_JSON = MediaType.parse("application/json; charset=utf-8");
 
     private final Authenticator proxyAuthenticator;
@@ -141,21 +149,25 @@ public class HttpClientFactory {
             proxyAuthenticator = (route, response) -> {
                 final String credential = Credentials.basic(proxyUser, proxyPassword);
                 return response.request().newBuilder()
-                        .header("Proxy-Authorization", credential)
-                        .build();
+                    .header("Proxy-Authorization", credential)
+                    .build();
             };
         }
         LOG.debug("Created proxy {}:{} (user={})", proxyHost, proxyPort, proxyUser);
         return new SimpleImmutableEntry<>(proxy, proxyAuthenticator);
     }
 
+    /**
+     * Creates a new client instance according to this builder's configuration.
+     * @return A new client instance.
+     */
     public OkHttpClient createClient() {
         try {
             final okhttp3.OkHttpClient.Builder clientBuilder = new OkHttpClient.Builder()
-                    .connectTimeout(60, TimeUnit.SECONDS)
-                    .retryOnConnectionFailure(true)
-                    .writeTimeout(60, TimeUnit.SECONDS)
-                    .readTimeout(60, TimeUnit.SECONDS);
+                .connectTimeout(60, TimeUnit.SECONDS)
+                .retryOnConnectionFailure(true)
+                .writeTimeout(60, TimeUnit.SECONDS)
+                .readTimeout(60, TimeUnit.SECONDS);
 
             // init proxy authenticator
             if (proxy != null) {
@@ -182,37 +194,55 @@ public class HttpClientFactory {
     private Entry<SSLContext, TrustManager> createSSLContext(final Properties properties) throws Exception {
 
         final SSLContext sslContext = SSLContext.getInstance("SSL");
-        TrustManager trustManager[] = null;
-        KeyManager keyManager[] = null;
+        TrustManager trustManagers[] = null;
+        KeyManager keyManagers[] = null;
 
         // truststore?
         final String truststorePath = properties.getProperty(PROPERTY_HTTP_TRUSTSTORE_PATH);
+        final String certificateFile = properties.getProperty(PROPERTY_HTTP_SSL_CERTIFICATE_FILE);
         if (StringUtils.isNotBlank(truststorePath)) {
+            LOG.debug("Init truststore from: {}", truststorePath);
             final String truststoreType = properties.getProperty(PROPERTY_HTTP_TRUSTSTORE_TYPE, "jks");
             final String truststorePassword = properties.getProperty(PROPERTY_HTTP_TRUSTSTORE_PASSWORD);
             final KeyStore truststore = readKeyStore(truststorePath, truststoreType, truststorePassword);
             final TrustManagerFactory trustManagerFactory =
-                    TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+                TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
             trustManagerFactory.init(truststore);
-            trustManager = trustManagerFactory.getTrustManagers();
+            trustManagers = trustManagerFactory.getTrustManagers();
+        } else if (StringUtils.isNotBlank(certificateFile)) {
+            // new truststore with cert-file
+            LOG.debug("Create truststore with: {}", certificateFile);
+            final CertificateFactory certFactory = CertificateFactory.getInstance("X.509");
+            final Certificate cert;
+            try (InputStream fis = new FileInputStream(certificateFile)) {
+                cert = certFactory.generateCertificate(fis);
+            }
+            // load the keystore that includes self-signed cert as a "trusted" entry
+            final KeyStore trustStore = KeyStore.getInstance(KeyStore.getDefaultType());
+            trustStore.load(null, null);
+            final TrustManagerFactory trustManagerFactory =
+                TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+            trustStore.setCertificateEntry("cert-alias", cert);
+            trustManagerFactory.init(trustStore);
+            trustManagers = trustManagerFactory.getTrustManagers();
         } else {
+            LOG.debug("Trust all certificates");
             // accept all certificates
-            trustManager = new TrustManager[] { new X509TrustManager() {
+            trustManagers = new TrustManager[] { new X509TrustManager() {
 
                 @Override
                 public void checkClientTrusted(final X509Certificate[] chain, final String authType)
-                        throws CertificateException {
+                    throws CertificateException {
                 }
 
                 @Override
                 public void checkServerTrusted(final X509Certificate[] chain, final String authType)
-                        throws CertificateException {
+                    throws CertificateException {
                 }
 
                 @Override
                 public X509Certificate[] getAcceptedIssuers() {
-                    final X509Certificate[] cArrr = new X509Certificate[0];
-                    return cArrr;
+                    return new X509Certificate[] {};
                 }
             } };
 
@@ -221,22 +251,23 @@ public class HttpClientFactory {
         // keystore?
         final String keystorePath = properties.getProperty(PROPERTY_HTTP_KEYSTORE_PATH);
         if (StringUtils.isNotBlank(keystorePath)) {
+            LOG.debug("Init keystore from: {}", keystorePath);
             final String keystoreType = properties.getProperty(PROPERTY_HTTP_KEYSTORE_TYPE, "jks");
             final String keystorePassword = properties.getProperty(PROPERTY_HTTP_KEYSTORE_PASSWORD);
             final KeyStore keystore = readKeyStore(keystorePath, keystoreType, keystorePassword);
             final KeyManagerFactory keyManagerFactory =
-                    KeyManagerFactory.getInstance(KeyManagerFactory
-                            .getDefaultAlgorithm());
+                KeyManagerFactory.getInstance(KeyManagerFactory
+                    .getDefaultAlgorithm());
             keyManagerFactory.init(keystore, keystorePassword.toCharArray());
-            keyManager = keyManagerFactory.getKeyManagers();
+            keyManagers = keyManagerFactory.getKeyManagers();
         }
-        sslContext.init(keyManager, trustManager, new SecureRandom());
+        sslContext.init(keyManagers, trustManagers, new SecureRandom());
         LOG.debug("Created SSL context.");
-        return new SimpleImmutableEntry<>(sslContext, trustManager[0]);
+        return new SimpleImmutableEntry<>(sslContext, trustManagers[0]);
     }
 
     private KeyStore readKeyStore(final String keystorePath, final String type, final String password)
-            throws KeyStoreException, NoSuchAlgorithmException, CertificateException, IOException {
+        throws KeyStoreException, NoSuchAlgorithmException, CertificateException, IOException {
 
         final KeyStore ks = KeyStore.getInstance(type);
         try (final InputStream is = new FileInputStream(keystorePath)) {

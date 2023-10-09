@@ -110,7 +110,7 @@ public class HttpSender extends AbstractSender {
     private static final String LEGACY_CONNECTION_TEST_PATH = "api/public/version";
     private static final int EXCEPTION_IDLE_TIME = 50;
     private static final int MAX_TRIES = 100;
-    
+
     private static final int NOT_FOUND = 404;
     private static final int METHOD_NOT_ALLOWED = 405;
     private static final int OK = 200;
@@ -208,7 +208,6 @@ public class HttpSender extends AbstractSender {
             throw new NjamsSdkRuntimeException("Failed to connect", e);
         }
     }
-
 
     private void testConnection() {
         final ConnectionTest connectionTest = getConnectionTest();
@@ -397,6 +396,9 @@ public class HttpSender extends AbstractSender {
     }
 
     private int send(final String msg, final Map<String, String> headers) throws IOException {
+        if (LOG.isTraceEnabled()) {
+            LOG.trace("Send:\nheaders={}\nbody={}", headers, msg);
+        }
         final Builder requestBuilder =
                 new Request.Builder().url(url).post(RequestBody.create(msg, HttpClientFactory.MEDIA_TYPE_JSON));
         headers.entrySet().forEach(e -> requestBuilder.addHeader(e.getKey(), e.getValue()));
