@@ -254,14 +254,19 @@ public class HttpSender extends AbstractSender {
             try {
                 final URI uri = createUri(LEGACY_CONNECTION_TEST_PATH);
                 return new ConnectionTest(uri.toURL(),
-                        () -> client.newCall(new Request.Builder().url(uri.toURL()).get().build()).execute(), "GET");
+                        () -> client.newCall(
+                                new Request.Builder().addHeader("Content-Length", "0").url(uri.toURL()).get().build())
+                                .execute(),
+                        "GET");
             } catch (URISyntaxException | MalformedURLException e) {
                 // actually, this cannot happen since creating the actual ingest URI would have failed before
                 throw new IllegalArgumentException(e);
             }
         }
         return new ConnectionTest(url,
-                () -> client.newCall(new Request.Builder().url(url).head().build()).execute(), "HEAD");
+                () -> client.newCall(new Request.Builder().addHeader("Content-Length", "0").url(url).head().build())
+                        .execute(),
+                "HEAD");
 
     }
 
@@ -402,6 +407,7 @@ public class HttpSender extends AbstractSender {
         final Builder requestBuilder =
                 new Request.Builder().url(url).post(RequestBody.create(msg, HttpClientFactory.MEDIA_TYPE_JSON));
         headers.entrySet().forEach(e -> requestBuilder.addHeader(e.getKey(), e.getValue()));
+        requestBuilder.addHeader("Content-Length", String.valueOf(msg.getBytes("UTF-8").length));
         final Response response = client.newCall(requestBuilder.build()).execute();
         if (LOG.isTraceEnabled()) {
             LOG.trace("POST response: {}", response.code());
