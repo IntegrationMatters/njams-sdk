@@ -67,12 +67,12 @@ public class HttpSender extends AbstractSender {
     }
 
     private static class ConnectionTest {
-        private final URL uri;
+        private final URL url;
         private final TestCall request;
         private final String method;
 
-        private ConnectionTest(URL uri, TestCall request, String method) {
-            this.uri = uri;
+        private ConnectionTest(URL url, TestCall request, String method) {
+            this.url = url;
             this.request = request;
             this.method = method;
         }
@@ -92,7 +92,7 @@ public class HttpSender extends AbstractSender {
 
         @Override
         public String toString() {
-            return method + " " + uri;
+            return "ConnectionTest[" + method + " " + url + "]";
         }
     }
 
@@ -147,11 +147,11 @@ public class HttpSender extends AbstractSender {
         this.properties = properties;
         try {
             final String suffix =
-                    Settings.getPropertyWithDeprecationWarning(properties, PROPERTY_HTTP_DATAPROVIDER_SUFFIX,
-                            PROPERTY_HTTP_DATAPROVIDER_PREFIX);
+                Settings.getPropertyWithDeprecationWarning(properties, PROPERTY_HTTP_DATAPROVIDER_SUFFIX,
+                    PROPERTY_HTTP_DATAPROVIDER_PREFIX);
             if (StringUtils.isBlank(suffix)) {
                 throw new NjamsSdkRuntimeException(
-                        "Required parameter " + PROPERTY_HTTP_DATAPROVIDER_SUFFIX + " is missing.");
+                    "Required parameter " + PROPERTY_HTTP_DATAPROVIDER_SUFFIX + " is missing.");
             }
             final URI uri = createUri(INGEST_API_PATH + suffix);
             url = uri.toURL();
@@ -217,13 +217,13 @@ public class HttpSender extends AbstractSender {
                 return;
             }
             if (response.code() == NOT_FOUND) {
-                throw new IllegalStateException("No active dataprovider found at: " + connectionTest.uri);
+                throw new IllegalStateException("No active dataprovider found at: " + connectionTest.url);
             }
             throw new IllegalStateException(
-                    "Received unexpected status " + response.code() + " from: " + connectionTest);
+                "Received unexpected status " + response.code() + " from: " + connectionTest);
         }
         throw new IllegalStateException(
-                "No response from test call: " + connectionTest);
+            "No response from test call: " + connectionTest);
 
     }
 
@@ -254,19 +254,19 @@ public class HttpSender extends AbstractSender {
             try {
                 final URI uri = createUri(LEGACY_CONNECTION_TEST_PATH);
                 return new ConnectionTest(uri.toURL(),
-                        () -> client.newCall(
-                                new Request.Builder().addHeader("Content-Length", "0").url(uri.toURL()).get().build())
-                                .execute(),
-                        "GET");
+                    () -> client.newCall(
+                        new Request.Builder().addHeader("Content-Length", "0").url(uri.toURL()).get().build())
+                        .execute(),
+                    "GET");
             } catch (URISyntaxException | MalformedURLException e) {
                 // actually, this cannot happen since creating the actual ingest URI would have failed before
                 throw new IllegalArgumentException(e);
             }
         }
         return new ConnectionTest(url,
-                () -> client.newCall(new Request.Builder().addHeader("Content-Length", "0").url(url).head().build())
-                        .execute(),
-                "HEAD");
+            () -> client.newCall(new Request.Builder().addHeader("Content-Length", "0").url(url).head().build())
+                .execute(),
+            "HEAD");
 
     }
 
@@ -359,7 +359,7 @@ public class HttpSender extends AbstractSender {
     }
 
     private void tryToSend(final CommonMessage msg, final Map<String, String> headers)
-            throws InterruptedException {
+        throws InterruptedException {
         boolean sent = false;
         int responseStatus = -1;
         int tries = 0;
@@ -383,14 +383,14 @@ public class HttpSender extends AbstractSender {
                 }
                 if (++tries >= MAX_TRIES) {
                     LOG.warn("Start reconnect because the server HTTP endpoint could not be reached for {} seconds.",
-                            MAX_TRIES * EXCEPTION_IDLE_TIME / 1000);
+                        MAX_TRIES * EXCEPTION_IDLE_TIME / 1000);
                     if (exception != null) {
                         // this triggers reconnecting the command-receiver which is only necessary on communication issues
                         // but not on message error indicated by some error code response
                         throw new HttpSendException(url, exception);
                     }
                     throw new NjamsSdkRuntimeException("Error sending message with HTTP client URI "
-                            + url + " Response status is: " + responseStatus);
+                        + url + " Response status is: " + responseStatus);
                 }
                 Thread.sleep(EXCEPTION_IDLE_TIME);
             }
@@ -405,9 +405,9 @@ public class HttpSender extends AbstractSender {
             LOG.trace("Send:\nheaders={}\nbody={}", headers, msg);
         }
         final Builder requestBuilder =
-                new Request.Builder().url(url).post(RequestBody.create(msg, HttpClientFactory.MEDIA_TYPE_JSON));
-        headers.entrySet().forEach(e -> requestBuilder.addHeader(e.getKey(), e.getValue()));
-        requestBuilder.addHeader("Content-Length", String.valueOf(msg.getBytes("UTF-8").length));
+            new Request.Builder().url(url).post(RequestBody.create(msg, HttpClientFactory.MEDIA_TYPE_JSON));
+        headers.entrySet().forEach(e -> requestBuilder.header(e.getKey(), e.getValue()));
+        requestBuilder.header("Content-Length", String.valueOf(msg.getBytes("UTF-8").length));
         final Response response = client.newCall(requestBuilder.build()).execute();
         if (LOG.isTraceEnabled()) {
             LOG.trace("POST response: {}", response.code());

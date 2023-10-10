@@ -352,11 +352,19 @@ public class NjamsSettings {
     public static final String PROPERTY_HTTP_CONNECTION_TEST = "njams.sdk.communication.http.connection.test";
 
     /**
+     * nJAMS user if nJAMS server is required to use authentication for the ingest-service
+     */
+    public static final String PROPERTY_HTTP_USER = "njams.sdk.communication.http.user";
+    /**
+     * Password of the nJAMS user if nJAMS server is required to use authentication for the ingest-service
+     */
+    public static final String PROPERTY_HTTP_PASSWORD = "njams.sdk.communication.http.password";
+    /**
      * Optional proxy host for http connection
      */
     public static final String PROPERTY_HTTP_PROXY_HOST = "njams.sdk.communication.http.proxy.host";
     /**
-     * Http proxy port is using a proxy.
+     * Http proxy port is using a proxy. Default is 80.
      */
     public static final String PROPERTY_HTTP_PROXY_PORT = "njams.sdk.communication.http.proxy.port";
     /**
@@ -371,28 +379,28 @@ public class NjamsSettings {
     /**
      * The path to a custom truststore file to be used for SSL connection.
      */
-    public static final String PROPERTY_HTTP_TRUSTSTORE_PATH = "njams.sdk.communication.http.ssl.truststore.path";
+    public static final String PROPERTY_HTTP_TRUSTSTORE_PATH = "njams.sdk.communication.http.ssl.trustStore";
     /**
      * Custom truststore type. Default: <code>jks</code>
      */
-    public static final String PROPERTY_HTTP_TRUSTSTORE_TYPE = "njams.sdk.communication.http.ssl.truststore.type";
+    public static final String PROPERTY_HTTP_TRUSTSTORE_TYPE = "njams.sdk.communication.http.ssl.trustStoreType";
     /**
      * Optional truststore password.
      */
     public static final String PROPERTY_HTTP_TRUSTSTORE_PASSWORD =
-        "njams.sdk.communication.http.ssl.truststore.password";
+        "njams.sdk.communication.http.ssl.trustStorePassword";
     /**
      * The path to a custom keystore file to be used for SSL connection.
      */
-    public static final String PROPERTY_HTTP_KEYSTORE_PATH = "njams.sdk.communication.http.ssl.keystore.path";
+    public static final String PROPERTY_HTTP_KEYSTORE_PATH = "njams.sdk.communication.http.ssl.keyStore";
     /**
      * Custom keystore type. Default: <code>jks</code>
      */
-    public static final String PROPERTY_HTTP_KEYSTORE_TYPE = "njams.sdk.communication.http.ssl.keystore.type";
+    public static final String PROPERTY_HTTP_KEYSTORE_TYPE = "njams.sdk.communication.http.ssl.keyStoreType";
     /**
      * Optional keystore password.
      */
-    public static final String PROPERTY_HTTP_KEYSTORE_PASSWORD = "njams.sdk.communication.http.ssl.keystore.password";
+    public static final String PROPERTY_HTTP_KEYSTORE_PASSWORD = "njams.sdk.communication.http.ssl.keyStorePassword";
     /**
      * Allows disabling host-name verification when setting up a SSL connection.
      */

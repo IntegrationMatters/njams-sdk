@@ -26,6 +26,7 @@ import java.net.Proxy;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
@@ -69,6 +70,7 @@ public class HttpClientFactory {
      */
     public static final MediaType MEDIA_TYPE_JSON = MediaType.parse("application/json; charset=utf-8");
 
+    private final Authenticator requestAuthenticator;
     private final Authenticator proxyAuthenticator;
     private final Proxy proxy;
     private final SSLContext sslContext;
@@ -76,6 +78,7 @@ public class HttpClientFactory {
     private final HostnameVerifier hostnameVerifier;
 
     public HttpClientFactory(final Properties properties, final URI uri) throws Exception {
+        requestAuthenticator = createBasicAuth(properties);
         final Entry<Proxy, Authenticator> proxyEntry = createProxy(properties);
         if (proxyEntry != null) {
             proxy = proxyEntry.getKey();
@@ -131,32 +134,6 @@ public class HttpClientFactory {
         }
     }
 
-    private Entry<Proxy, Authenticator> createProxy(final Properties properties) {
-        final String proxyHost = properties.getProperty(PROPERTY_HTTP_PROXY_HOST);
-
-        // init proxy
-        if (StringUtils.isBlank(proxyHost)) {
-            return null;
-        }
-        final int proxyPort = Integer.parseInt(properties.getProperty(PROPERTY_HTTP_PROXY_PORT, "8080"));
-        final Proxy proxy = new Proxy(Proxy.Type.HTTP, new InetSocketAddress(proxyHost, proxyPort));
-
-        // init proxy authenticator
-        final String proxyUser = properties.getProperty(PROPERTY_HTTP_PROXY_USER);
-        Authenticator proxyAuthenticator = null;
-        if (StringUtils.isNotBlank(proxyUser)) {
-            final String proxyPassword = properties.getProperty(PROPERTY_HTTP_PROXY_PASSWORD);
-            proxyAuthenticator = (route, response) -> {
-                final String credential = Credentials.basic(proxyUser, proxyPassword);
-                return response.request().newBuilder()
-                    .header("Proxy-Authorization", credential)
-                    .build();
-            };
-        }
-        LOG.debug("Created proxy {}:{} (user={})", proxyHost, proxyPort, proxyUser);
-        return new SimpleImmutableEntry<>(proxy, proxyAuthenticator);
-    }
-
     /**
      * Creates a new client instance according to this builder's configuration.
      * @return A new client instance.
@@ -169,6 +146,10 @@ public class HttpClientFactory {
                 .writeTimeout(60, TimeUnit.SECONDS)
                 .readTimeout(60, TimeUnit.SECONDS);
 
+            // Basic-Auth for nJAMS ingest
+            if (requestAuthenticator != null) {
+                clientBuilder.authenticator(requestAuthenticator);
+            }
             // init proxy authenticator
             if (proxy != null) {
                 clientBuilder.proxy(proxy);
@@ -189,6 +170,47 @@ public class HttpClientFactory {
             throw new RuntimeException("Could not initialize http sender", e);
         }
 
+    }
+
+    /**
+     * NOTE: Authentication is not yet supported by nJAMS server (6.0) (SER-5068)
+     * @param properties
+     * @return
+     */
+    private Authenticator createBasicAuth(final Properties properties) {
+        final String user = properties.getProperty(PROPERTY_HTTP_USER);
+        if (StringUtils.isBlank(user)) {
+            return null;
+        }
+        final String credential =
+            Credentials.basic(user, properties.getProperty(PROPERTY_HTTP_PASSWORD), StandardCharsets.UTF_8);
+        LOG.debug("Created basic-auth with user: {}", user);
+        return (route, response) -> response.request().newBuilder().header("Authorization", credential).build();
+    }
+
+    private Entry<Proxy, Authenticator> createProxy(final Properties properties) {
+        final String proxyHost = properties.getProperty(PROPERTY_HTTP_PROXY_HOST);
+
+        // init proxy
+        if (StringUtils.isBlank(proxyHost)) {
+            return null;
+        }
+        final int proxyPort = Integer.parseInt(properties.getProperty(PROPERTY_HTTP_PROXY_PORT, "80"));
+        final Proxy proxy = new Proxy(Proxy.Type.HTTP, new InetSocketAddress(proxyHost, proxyPort));
+
+        // init proxy authenticator
+        final String proxyUser = properties.getProperty(PROPERTY_HTTP_PROXY_USER);
+        Authenticator proxyAuthenticator = null;
+        if (StringUtils.isNotBlank(proxyUser)) {
+            final String credential =
+                Credentials.basic(proxyUser, properties.getProperty(PROPERTY_HTTP_PROXY_PASSWORD),
+                    StandardCharsets.UTF_8);
+            proxyAuthenticator = (route, response) -> response.request().newBuilder()
+                .header("Proxy-Authorization", credential)
+                .build();
+        }
+        LOG.debug("Created proxy {}:{} (user={})", proxyHost, proxyPort, proxyUser);
+        return new SimpleImmutableEntry<>(proxy, proxyAuthenticator);
     }
 
     private Entry<SSLContext, TrustManager> createSSLContext(final Properties properties) throws Exception {
