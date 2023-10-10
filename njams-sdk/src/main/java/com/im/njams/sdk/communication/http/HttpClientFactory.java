@@ -36,6 +36,7 @@ import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.util.AbstractMap.SimpleImmutableEntry;
+import java.util.Arrays;
 import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
@@ -74,7 +75,7 @@ public class HttpClientFactory {
     private final Authenticator proxyAuthenticator;
     private final Proxy proxy;
     private final SSLContext sslContext;
-    private final TrustManager trustManager;
+    private final X509TrustManager trustManager;
     private final HostnameVerifier hostnameVerifier;
 
     public HttpClientFactory(final Properties properties, final URI uri) throws Exception {
@@ -89,14 +90,14 @@ public class HttpClientFactory {
         }
 
         if (isSslUri(uri)) {
-            final Entry<SSLContext, TrustManager> sslEntry = createSSLContext(properties);
+            final Entry<SSLContext, X509TrustManager> sslEntry = createSSLContext(properties);
             sslContext = sslEntry.getKey();
             trustManager = sslEntry.getValue();
 
             // accept all hostnames?
-            if ("false".equalsIgnoreCase(properties.getProperty(PROPERTY_HTTP_VERIFY_HOSTNAME))) {
+            if ("true".equalsIgnoreCase(properties.getProperty(PROPERTY_HTTP_DISABLE_HOSTNAME_VERIFICATION))) {
                 hostnameVerifier = (hostname, session) -> true;
-                LOG.debug("Disabled hostname verification.");
+                LOG.info("Using unsafe option: disable-hostname-verification");
             } else {
                 hostnameVerifier = null;
             }
@@ -146,7 +147,7 @@ public class HttpClientFactory {
                 .writeTimeout(60, TimeUnit.SECONDS)
                 .readTimeout(60, TimeUnit.SECONDS);
 
-            // Basic-Auth for nJAMS ingest
+            // Basic-Auth for nJAMS ingest; SER-5068
             if (requestAuthenticator != null) {
                 clientBuilder.authenticator(requestAuthenticator);
             }
@@ -160,7 +161,7 @@ public class HttpClientFactory {
 
             // SSL?
             if (sslContext != null) {
-                clientBuilder.sslSocketFactory(sslContext.getSocketFactory(), (X509TrustManager) trustManager);
+                clientBuilder.sslSocketFactory(sslContext.getSocketFactory(), trustManager);
                 if (hostnameVerifier != null) {
                     clientBuilder.hostnameVerifier(hostnameVerifier);
                 }
@@ -213,7 +214,7 @@ public class HttpClientFactory {
         return new SimpleImmutableEntry<>(proxy, proxyAuthenticator);
     }
 
-    private Entry<SSLContext, TrustManager> createSSLContext(final Properties properties) throws Exception {
+    private Entry<SSLContext, X509TrustManager> createSSLContext(final Properties properties) throws Exception {
 
         final SSLContext sslContext = SSLContext.getInstance("SSL");
         TrustManager trustManagers[] = null;
@@ -223,7 +224,7 @@ public class HttpClientFactory {
         final String truststorePath = properties.getProperty(PROPERTY_HTTP_TRUSTSTORE_PATH);
         final String certificateFile = properties.getProperty(PROPERTY_HTTP_SSL_CERTIFICATE_FILE);
         if (StringUtils.isNotBlank(truststorePath)) {
-            LOG.debug("Init truststore from: {}", truststorePath);
+            LOG.debug("Load truststore from: {}", truststorePath);
             final String truststoreType = properties.getProperty(PROPERTY_HTTP_TRUSTSTORE_TYPE, "jks");
             final String truststorePassword = properties.getProperty(PROPERTY_HTTP_TRUSTSTORE_PASSWORD);
             final KeyStore truststore = readKeyStore(truststorePath, truststoreType, truststorePassword);
@@ -247,8 +248,8 @@ public class HttpClientFactory {
             trustStore.setCertificateEntry("cert-alias", cert);
             trustManagerFactory.init(trustStore);
             trustManagers = trustManagerFactory.getTrustManagers();
-        } else {
-            LOG.debug("Trust all certificates");
+        } else if ("true".equalsIgnoreCase(properties.getProperty(PROPERTY_HTTP_TRUST_ALL_CERTIFICATES))) {
+            LOG.info("Using unsafe option: trust-all-certificates");
             // accept all certificates
             trustManagers = new TrustManager[] { new X509TrustManager() {
 
@@ -267,13 +268,19 @@ public class HttpClientFactory {
                     return new X509Certificate[] {};
                 }
             } };
-
+        } else {
+            LOG.debug("Use system default trust-store");
+            // get from default SSLContext
+            final TrustManagerFactory trustManagerFactory =
+                TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+            trustManagerFactory.init((KeyStore) null);
+            trustManagers = trustManagerFactory.getTrustManagers();
         }
 
         // keystore?
         final String keystorePath = properties.getProperty(PROPERTY_HTTP_KEYSTORE_PATH);
         if (StringUtils.isNotBlank(keystorePath)) {
-            LOG.debug("Init keystore from: {}", keystorePath);
+            LOG.debug("Load keystore from: {}", keystorePath);
             final String keystoreType = properties.getProperty(PROPERTY_HTTP_KEYSTORE_TYPE, "jks");
             final String keystorePassword = properties.getProperty(PROPERTY_HTTP_KEYSTORE_PASSWORD);
             final KeyStore keystore = readKeyStore(keystorePath, keystoreType, keystorePassword);
@@ -284,8 +291,12 @@ public class HttpClientFactory {
             keyManagers = keyManagerFactory.getKeyManagers();
         }
         sslContext.init(keyManagers, trustManagers, new SecureRandom());
+
+        final X509TrustManager x509TrustManager =
+            Arrays.stream(trustManagers).filter(X509TrustManager.class::isInstance)
+                .map(X509TrustManager.class::cast).findAny().orElse(null);
         LOG.debug("Created SSL context.");
-        return new SimpleImmutableEntry<>(sslContext, trustManagers[0]);
+        return new SimpleImmutableEntry<>(sslContext, x509TrustManager);
     }
 
     private KeyStore readKeyStore(final String keystorePath, final String type, final String password)

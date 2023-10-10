@@ -404,7 +404,13 @@ public class NjamsSettings {
     /**
      * Allows disabling host-name verification when setting up a SSL connection.
      */
-    public static final String PROPERTY_HTTP_VERIFY_HOSTNAME = "njams.sdk.communication.http.ssl.verifyHostname";
+    public static final String PROPERTY_HTTP_DISABLE_HOSTNAME_VERIFICATION =
+        "njams.sdk.communication.http.ssl.unsafe.disableHostnameVerification";
+    /**
+     * Trust all SSL certificates
+     */
+    public static final String PROPERTY_HTTP_TRUST_ALL_CERTIFICATES =
+        "njams.sdk.communication.http.ssl.unsafe.trustAllCertificates";
 
     //    _  __          ______ _  __
     //   | |/ /    /\   |  ____| |/ /    /\
