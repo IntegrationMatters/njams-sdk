@@ -80,9 +80,7 @@ public class HttpSender extends AbstractSender {
         private Response execute() {
             try {
                 final Response response = request.execute();
-                if (LOG.isDebugEnabled()) {
-                    LOG.debug("{} response={}", this, response.code());
-                }
+                LOG.debug("{} response={}", this, response.code());
                 return response;
             } catch (IOException e) {
                 LOG.debug("{} test call failed", this, e);
@@ -128,7 +126,7 @@ public class HttpSender extends AbstractSender {
         LEGACY
     }
 
-    private static ConnectionTestMode connectionTestMode = ConnectionTestMode.DETECT;
+    private static ConnectionTest connectionTest = null;
 
     /**
      * Initializes this Sender via the given Properties.
@@ -147,18 +145,18 @@ public class HttpSender extends AbstractSender {
         this.properties = properties;
         try {
             final String suffix =
-                Settings.getPropertyWithDeprecationWarning(properties, PROPERTY_HTTP_DATAPROVIDER_SUFFIX,
-                    PROPERTY_HTTP_DATAPROVIDER_PREFIX);
+                    Settings.getPropertyWithDeprecationWarning(properties, PROPERTY_HTTP_DATAPROVIDER_SUFFIX,
+                            PROPERTY_HTTP_DATAPROVIDER_PREFIX);
             if (StringUtils.isBlank(suffix)) {
                 throw new NjamsSdkRuntimeException(
-                    "Required parameter " + PROPERTY_HTTP_DATAPROVIDER_SUFFIX + " is missing.");
+                        "Required parameter " + PROPERTY_HTTP_DATAPROVIDER_SUFFIX + " is missing.");
             }
             final URI uri = createUri(INGEST_API_PATH + suffix);
             url = uri.toURL();
             final boolean legacy = "legacy".equalsIgnoreCase(properties.getProperty(PROPERTY_HTTP_CONNECTION_TEST));
             if (legacy) {
                 synchronized (HttpSender.class) {
-                    connectionTestMode = ConnectionTestMode.LEGACY;
+                    connectionTest = getConnectionTest(ConnectionTestMode.LEGACY);
                 }
             }
             clientFactory = new HttpClientFactory(properties, uri);
@@ -196,8 +194,9 @@ public class HttpSender extends AbstractSender {
         try {
 
             connectionStatus = ConnectionStatus.CONNECTING;
-            client = clientFactory.createClient();
-            //            target = client.target(uri);
+            if (client == null) {
+                client = clientFactory.createClient();
+            }
             testConnection();
             connectionStatus = ConnectionStatus.CONNECTED;
         } catch (final Exception e) {
@@ -210,41 +209,39 @@ public class HttpSender extends AbstractSender {
     }
 
     private void testConnection() {
-        final ConnectionTest connectionTest = getConnectionTest();
-        final Response response = connectionTest.execute();
+        final ConnectionTest testCon = getConnectionTest();
+        final Response response = testCon.execute();
         if (response != null) {
             if (response.code() == OK) {
                 return;
             }
             if (response.code() == NOT_FOUND) {
-                throw new IllegalStateException("No active dataprovider found at: " + connectionTest.url);
+                throw new IllegalStateException("No active dataprovider found at: " + testCon.url);
             }
             throw new IllegalStateException(
-                "Received unexpected status " + response.code() + " from: " + connectionTest);
+                    "Received unexpected status " + response.code() + " from: " + testCon);
         }
         throw new IllegalStateException(
-            "No response from test call: " + connectionTest);
+                "No response from test call: " + testCon);
 
     }
 
     private ConnectionTest getConnectionTest() {
-        if (connectionTestMode == ConnectionTestMode.DETECT) {
+        if (connectionTest == null) {
             synchronized (HttpSender.class) {
-                if (connectionTestMode == ConnectionTestMode.DETECT) {
-                    final ConnectionTest connectionTest = getConnectionTest(ConnectionTestMode.STANDARD);
-                    final Response response = connectionTest.execute();
+                if (connectionTest == null) {
+                    ConnectionTest testCon = getConnectionTest(ConnectionTestMode.STANDARD);
+                    final Response response = testCon.execute();
                     if (response.code() == METHOD_NOT_ALLOWED) {
                         // 405 -> The server does not know about HEAD on that resource -> use legacy fallback
-                        connectionTestMode = ConnectionTestMode.LEGACY;
+                        testCon = getConnectionTest(ConnectionTestMode.LEGACY);
                         LOG.info("Switched to legacy http connection test implementation.");
-                        return getConnectionTest(ConnectionTestMode.LEGACY);
                     }
-                    connectionTestMode = ConnectionTestMode.STANDARD;
-                    return connectionTest;
+                    connectionTest = testCon;
                 }
             }
         }
-        return getConnectionTest(connectionTestMode);
+        return connectionTest;
     }
 
     private ConnectionTest getConnectionTest(ConnectionTestMode mode) {
@@ -254,19 +251,19 @@ public class HttpSender extends AbstractSender {
             try {
                 final URI uri = createUri(LEGACY_CONNECTION_TEST_PATH);
                 return new ConnectionTest(uri.toURL(),
-                    () -> client.newCall(
-                        new Request.Builder().addHeader("Content-Length", "0").url(uri.toURL()).get().build())
-                        .execute(),
-                    "GET");
+                        () -> client.newCall(
+                                new Request.Builder().addHeader("Content-Length", "0").url(uri.toURL()).get().build())
+                                .execute(),
+                        "GET");
             } catch (URISyntaxException | MalformedURLException e) {
                 // actually, this cannot happen since creating the actual ingest URI would have failed before
                 throw new IllegalArgumentException(e);
             }
         }
         return new ConnectionTest(url,
-            () -> client.newCall(new Request.Builder().addHeader("Content-Length", "0").url(url).head().build())
-                .execute(),
-            "HEAD");
+                () -> client.newCall(new Request.Builder().addHeader("Content-Length", "0").url(url).head().build())
+                        .execute(),
+                "HEAD");
 
     }
 
@@ -275,15 +272,7 @@ public class HttpSender extends AbstractSender {
      */
     @Override
     public void close() {
-        LOG.debug("Called close on HTTP Sender.");
         connectionStatus = ConnectionStatus.DISCONNECTED;
-        if (client != null) {
-            try {
-                client = null;
-            } catch (Exception ex) {
-                LOG.error("Error closing HTTP connection.", ex);
-            }
-        }
     }
 
     @Override
@@ -359,7 +348,7 @@ public class HttpSender extends AbstractSender {
     }
 
     private void tryToSend(final CommonMessage msg, final Map<String, String> headers)
-        throws InterruptedException {
+            throws InterruptedException {
         boolean sent = false;
         int responseStatus = -1;
         int tries = 0;
@@ -383,14 +372,14 @@ public class HttpSender extends AbstractSender {
                 }
                 if (++tries >= MAX_TRIES) {
                     LOG.warn("Start reconnect because the server HTTP endpoint could not be reached for {} seconds.",
-                        MAX_TRIES * EXCEPTION_IDLE_TIME / 1000);
+                            MAX_TRIES * EXCEPTION_IDLE_TIME / 1000);
                     if (exception != null) {
                         // this triggers reconnecting the command-receiver which is only necessary on communication issues
                         // but not on message error indicated by some error code response
                         throw new HttpSendException(url, exception);
                     }
                     throw new NjamsSdkRuntimeException("Error sending message with HTTP client URI "
-                        + url + " Response status is: " + responseStatus);
+                            + url + " Response status is: " + responseStatus);
                 }
                 Thread.sleep(EXCEPTION_IDLE_TIME);
             }
@@ -405,7 +394,7 @@ public class HttpSender extends AbstractSender {
             LOG.trace("Send:\nheaders={}\nbody={}", headers, msg);
         }
         final Builder requestBuilder =
-            new Request.Builder().url(url).post(RequestBody.create(msg, HttpClientFactory.MEDIA_TYPE_JSON));
+                new Request.Builder().url(url).post(RequestBody.create(msg, HttpClientFactory.MEDIA_TYPE_JSON));
         headers.entrySet().forEach(e -> requestBuilder.header(e.getKey(), e.getValue()));
         requestBuilder.header("Content-Length", String.valueOf(msg.getBytes("UTF-8").length));
         final Response response = client.newCall(requestBuilder.build()).execute();
