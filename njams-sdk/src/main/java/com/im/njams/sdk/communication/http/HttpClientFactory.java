@@ -97,7 +97,7 @@ public class HttpClientFactory {
             // accept all hostnames?
             if ("true".equalsIgnoreCase(properties.getProperty(PROPERTY_HTTP_DISABLE_HOSTNAME_VERIFICATION))) {
                 hostnameVerifier = (hostname, session) -> true;
-                LOG.info("Using unsafe option: disable-hostname-verification");
+                LOG.warn("Using unsafe option: disable-hostname-verification");
             } else {
                 hostnameVerifier = null;
             }
@@ -249,7 +249,7 @@ public class HttpClientFactory {
             trustManagerFactory.init(trustStore);
             trustManagers = trustManagerFactory.getTrustManagers();
         } else if ("true".equalsIgnoreCase(properties.getProperty(PROPERTY_HTTP_TRUST_ALL_CERTIFICATES))) {
-            LOG.info("Using unsafe option: trust-all-certificates");
+            LOG.warn("Using unsafe option: trust-all-certificates");
             // accept all certificates
             trustManagers = new TrustManager[] { new X509TrustManager() {
 
