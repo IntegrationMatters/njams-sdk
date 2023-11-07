@@ -56,6 +56,7 @@ import com.im.njams.sdk.utils.StringUtils;
 
 import okhttp3.Authenticator;
 import okhttp3.Credentials;
+import okhttp3.Interceptor;
 import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
 
@@ -71,7 +72,7 @@ public class HttpClientFactory {
      */
     public static final MediaType MEDIA_TYPE_JSON = MediaType.parse("application/json; charset=utf-8");
 
-    private final Authenticator requestAuthenticator;
+    private final Interceptor requestAuthenticator;
     private final Authenticator proxyAuthenticator;
     private final Proxy proxy;
     private final SSLContext sslContext;
@@ -142,14 +143,15 @@ public class HttpClientFactory {
     public OkHttpClient createClient() {
         try {
             final okhttp3.OkHttpClient.Builder clientBuilder = new OkHttpClient.Builder()
-                .connectTimeout(60, TimeUnit.SECONDS)
-                .retryOnConnectionFailure(true)
-                .writeTimeout(60, TimeUnit.SECONDS)
-                .readTimeout(60, TimeUnit.SECONDS);
+                    .connectTimeout(60, TimeUnit.SECONDS)
+                    .retryOnConnectionFailure(true)
+                    .writeTimeout(60, TimeUnit.SECONDS)
+                    .readTimeout(60, TimeUnit.SECONDS);
 
             // Basic-Auth for nJAMS ingest; SER-5068
             if (requestAuthenticator != null) {
-                clientBuilder.authenticator(requestAuthenticator);
+                // SDK-372: instead of clientBuilder.authenticator(requestAuthenticator) add an interceptor
+                clientBuilder.addInterceptor(requestAuthenticator);
             }
             // init proxy authenticator
             if (proxy != null) {
@@ -166,6 +168,7 @@ public class HttpClientFactory {
                     clientBuilder.hostnameVerifier(hostnameVerifier);
                 }
             }
+
             return clientBuilder.build();
         } catch (final Exception e) {
             throw new RuntimeException("Could not initialize http sender", e);
@@ -174,19 +177,20 @@ public class HttpClientFactory {
     }
 
     /**
-     * NOTE: Authentication is not yet supported by nJAMS server (6.0) (SER-5068)
+     * NOTE: Authentication is supported since nJAMS server 6.0.1 only (SER-5068)
      * @param properties
-     * @return
+     * @return SDK-372: Instead of building an {@link Authenticator} which leads to duplicated requests for any reason,
+     * return an {@link Interceptor} that adds the according <code>Authorization</code> header.
      */
-    private Authenticator createBasicAuth(final Properties properties) {
+    private Interceptor createBasicAuth(final Properties properties) {
         final String user = properties.getProperty(PROPERTY_HTTP_USER);
         if (StringUtils.isBlank(user)) {
             return null;
         }
         final String credential =
-            Credentials.basic(user, properties.getProperty(PROPERTY_HTTP_PASSWORD), StandardCharsets.UTF_8);
+                Credentials.basic(user, properties.getProperty(PROPERTY_HTTP_PASSWORD), StandardCharsets.UTF_8);
         LOG.debug("Created basic-auth with user: {}", user);
-        return (route, response) -> response.request().newBuilder().header("Authorization", credential).build();
+        return chain -> chain.proceed(chain.request().newBuilder().header("Authorization", credential).build());
     }
 
     private Entry<Proxy, Authenticator> createProxy(final Properties properties) {
@@ -204,11 +208,11 @@ public class HttpClientFactory {
         Authenticator proxyAuthenticator = null;
         if (StringUtils.isNotBlank(proxyUser)) {
             final String credential =
-                Credentials.basic(proxyUser, properties.getProperty(PROPERTY_HTTP_PROXY_PASSWORD),
-                    StandardCharsets.UTF_8);
+                    Credentials.basic(proxyUser, properties.getProperty(PROPERTY_HTTP_PROXY_PASSWORD),
+                            StandardCharsets.UTF_8);
             proxyAuthenticator = (route, response) -> response.request().newBuilder()
-                .header("Proxy-Authorization", credential)
-                .build();
+                    .header("Proxy-Authorization", credential)
+                    .build();
         }
         LOG.debug("Created proxy {}:{} (user={})", proxyHost, proxyPort, proxyUser);
         return new SimpleImmutableEntry<>(proxy, proxyAuthenticator);
@@ -229,7 +233,7 @@ public class HttpClientFactory {
             final String truststorePassword = properties.getProperty(PROPERTY_HTTP_TRUSTSTORE_PASSWORD);
             final KeyStore truststore = readKeyStore(truststorePath, truststoreType, truststorePassword);
             final TrustManagerFactory trustManagerFactory =
-                TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+                    TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
             trustManagerFactory.init(truststore);
             trustManagers = trustManagerFactory.getTrustManagers();
         } else if (StringUtils.isNotBlank(certificateFile)) {
@@ -244,7 +248,7 @@ public class HttpClientFactory {
             final KeyStore trustStore = KeyStore.getInstance(KeyStore.getDefaultType());
             trustStore.load(null, null);
             final TrustManagerFactory trustManagerFactory =
-                TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+                    TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
             trustStore.setCertificateEntry("cert-alias", cert);
             trustManagerFactory.init(trustStore);
             trustManagers = trustManagerFactory.getTrustManagers();
@@ -255,12 +259,12 @@ public class HttpClientFactory {
 
                 @Override
                 public void checkClientTrusted(final X509Certificate[] chain, final String authType)
-                    throws CertificateException {
+                        throws CertificateException {
                 }
 
                 @Override
                 public void checkServerTrusted(final X509Certificate[] chain, final String authType)
-                    throws CertificateException {
+                        throws CertificateException {
                 }
 
                 @Override
@@ -272,7 +276,7 @@ public class HttpClientFactory {
             LOG.debug("Use system default trust-store");
             // get from default SSLContext
             final TrustManagerFactory trustManagerFactory =
-                TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+                    TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
             trustManagerFactory.init((KeyStore) null);
             trustManagers = trustManagerFactory.getTrustManagers();
         }
@@ -285,22 +289,22 @@ public class HttpClientFactory {
             final String keystorePassword = properties.getProperty(PROPERTY_HTTP_KEYSTORE_PASSWORD);
             final KeyStore keystore = readKeyStore(keystorePath, keystoreType, keystorePassword);
             final KeyManagerFactory keyManagerFactory =
-                KeyManagerFactory.getInstance(KeyManagerFactory
-                    .getDefaultAlgorithm());
+                    KeyManagerFactory.getInstance(KeyManagerFactory
+                            .getDefaultAlgorithm());
             keyManagerFactory.init(keystore, keystorePassword.toCharArray());
             keyManagers = keyManagerFactory.getKeyManagers();
         }
         sslContext.init(keyManagers, trustManagers, new SecureRandom());
 
         final X509TrustManager x509TrustManager =
-            Arrays.stream(trustManagers).filter(X509TrustManager.class::isInstance)
-                .map(X509TrustManager.class::cast).findAny().orElse(null);
+                Arrays.stream(trustManagers).filter(X509TrustManager.class::isInstance)
+                        .map(X509TrustManager.class::cast).findAny().orElse(null);
         LOG.debug("Created SSL context.");
         return new SimpleImmutableEntry<>(sslContext, x509TrustManager);
     }
 
     private KeyStore readKeyStore(final String keystorePath, final String type, final String password)
-        throws KeyStoreException, NoSuchAlgorithmException, CertificateException, IOException {
+            throws KeyStoreException, NoSuchAlgorithmException, CertificateException, IOException {
 
         final KeyStore ks = KeyStore.getInstance(type);
         try (final InputStream is = new FileInputStream(keystorePath)) {

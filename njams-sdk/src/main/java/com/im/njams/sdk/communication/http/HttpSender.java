@@ -30,6 +30,8 @@ import java.net.URL;
 import java.util.Map;
 import java.util.Properties;
 import java.util.TreeMap;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -391,7 +393,7 @@ public class HttpSender extends AbstractSender {
 
     private int send(final String msg, final Map<String, String> headers) throws IOException {
         if (LOG.isTraceEnabled()) {
-            LOG.trace("Send:\nheaders={}\nbody={}", headers, msg);
+            LOG.trace("Business-headers={}\nbody={}", headers, msg);
         }
         final Builder requestBuilder =
                 new Request.Builder().url(url).post(RequestBody.create(msg, HttpClientFactory.MEDIA_TYPE_JSON));
@@ -399,6 +401,9 @@ public class HttpSender extends AbstractSender {
         requestBuilder.header("Content-Length", String.valueOf(msg.getBytes("UTF-8").length));
         final Response response = client.newCall(requestBuilder.build()).execute();
         if (LOG.isTraceEnabled()) {
+            // logging request headers after execution to ensure that all interceptors adding headers have been executed
+            LOG.trace("Protocol-headers={}", StreamSupport.stream(response.request().headers().spliterator(), false)
+                    .map(h -> h.getFirst() + "=" + h.getSecond()).collect(Collectors.toList()));
             LOG.trace("POST response: {}", response.code());
         }
         return response.code();
