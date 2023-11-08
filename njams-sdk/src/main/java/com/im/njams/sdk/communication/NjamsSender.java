@@ -16,14 +16,7 @@
  */
 package com.im.njams.sdk.communication;
 
-import static com.im.njams.sdk.NjamsSettings.OLD_MAX_QUEUE_LENGTH;
-import static com.im.njams.sdk.NjamsSettings.OLD_MAX_SENDER_THREADS;
-import static com.im.njams.sdk.NjamsSettings.OLD_MIN_SENDER_THREADS;
-import static com.im.njams.sdk.NjamsSettings.OLD_SENDER_THREAD_IDLE_TIME;
-import static com.im.njams.sdk.NjamsSettings.PROPERTY_MAX_QUEUE_LENGTH;
-import static com.im.njams.sdk.NjamsSettings.PROPERTY_MAX_SENDER_THREADS;
-import static com.im.njams.sdk.NjamsSettings.PROPERTY_MIN_SENDER_THREADS;
-import static com.im.njams.sdk.NjamsSettings.PROPERTY_SENDER_THREAD_IDLE_TIME;
+import static com.im.njams.sdk.NjamsSettings.*;
 
 import java.util.Properties;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -157,6 +150,9 @@ public class NjamsSender {
         int maxQueueLength = (int) getLongProperty(properties, 8, PROPERTY_MAX_QUEUE_LENGTH, OLD_MAX_QUEUE_LENGTH);
         long idleTime =
                 getLongProperty(properties, 10000, PROPERTY_SENDER_THREAD_IDLE_TIME, OLD_SENDER_THREAD_IDLE_TIME);
+        LOG.debug("Init thread pool (min={}, max={}, queue={}, idle={})", minSenderThreads, maxSenderThreads,
+                maxQueueLength, idleTime);
+        validateThreadPool(minSenderThreads, maxSenderThreads, maxQueueLength, idleTime);
         ThreadFactory threadFactory = new ThreadFactoryBuilder()
                 .setNamePrefix(getName() + "-Sender-Thread").setDaemon(true).build();
         executor = new ThreadPoolExecutor(minSenderThreads, maxSenderThreads, idleTime, TimeUnit.MILLISECONDS,
@@ -164,6 +160,18 @@ public class NjamsSender {
                 new MaxQueueLengthHandler(properties));
         final CommunicationFactory communicationFactory = new CommunicationFactory(settings);
         senderPool = new SenderPool(communicationFactory);
+    }
+
+    private void validateThreadPool(int minThreads, int maxThreads, int maxQueueLen, long idleTime) {
+        if (minThreads < 1) {
+            throw new IllegalArgumentException("Minimum threads must be >0");
+        }
+        if (maxThreads < minThreads) {
+            throw new IllegalArgumentException("Maximum threads must be >= minimum threads");
+        }
+        if (idleTime < 0) {
+            throw new IllegalArgumentException("Idle time must be >0");
+        }
     }
 
     private long getLongProperty(Properties properties, int def, String key, String deprecatedKey) {
