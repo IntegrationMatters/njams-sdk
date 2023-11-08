@@ -179,6 +179,7 @@ public class CommunicationFactory {
                 }
 
                 newInstance.init(settings.getAllProperties());
+                newInstance.startup();
                 return newInstance;
             } catch (Exception e) {
                 throw new IllegalStateException(

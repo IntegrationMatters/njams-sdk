@@ -23,14 +23,7 @@
  */
 package com.im.njams.sdk.communication.jms;
 
-import static com.im.njams.sdk.communication.MessageHeaders.MESSAGETYPE_EVENT;
-import static com.im.njams.sdk.communication.MessageHeaders.MESSAGETYPE_PROJECT;
-import static com.im.njams.sdk.communication.MessageHeaders.MESSAGETYPE_TRACE;
-import static com.im.njams.sdk.communication.MessageHeaders.NJAMS_CLIENTID_HEADER;
-import static com.im.njams.sdk.communication.MessageHeaders.NJAMS_LOGID_HEADER;
-import static com.im.njams.sdk.communication.MessageHeaders.NJAMS_MESSAGETYPE_HEADER;
-import static com.im.njams.sdk.communication.MessageHeaders.NJAMS_MESSAGEVERSION_HEADER;
-import static com.im.njams.sdk.communication.MessageHeaders.NJAMS_PATH_HEADER;
+import static com.im.njams.sdk.communication.MessageHeaders.*;
 
 import java.util.Properties;
 
@@ -89,26 +82,13 @@ public class JmsSender extends AbstractSender implements ExceptionListener, Clas
 
     /**
      * Initializes this Sender via the given Properties.
-     * <p>
-     * Valid properties are:
-     * <ul>
-     * <li>{@value NjamsSettings#PROPERTY_JMS_CONNECTION_FACTORY}
-     * <li>{@value NjamsSettings#PROPERTY_JMS_USERNAME}
-     * <li>{@value NjamsSettings#PROPERTY_JMS_PASSWORD}
-     * <li>{@value NjamsSettings#PROPERTY_JMS_DESTINATION}
-     * </ul>
      *
      * @param properties the properties needed to initialize
      */
     @Override
     public void init(Properties properties) {
         super.init(properties);
-        try {
-            connect();
-            LOG.debug("Initialized sender {}", getName());
-        } catch (NjamsSdkRuntimeException e) {
-            LOG.error("Could not initialize sender {}", getName(), e);
-        }
+        LOG.debug("Initialized sender {}", getName());
     }
 
     @Override

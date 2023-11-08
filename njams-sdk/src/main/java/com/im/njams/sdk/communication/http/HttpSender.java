@@ -111,9 +111,12 @@ public class HttpSender extends AbstractSender {
     private static final int EXCEPTION_IDLE_TIME = 50;
     private static final int MAX_TRIES = 100;
 
+    private static final int OK = 200;
+    private static final int NO_CONTENT = 204;
+    private static final int UNAUTHORIZED = 401;
+    private static final int FORBIDDEN = 403;
     private static final int NOT_FOUND = 404;
     private static final int METHOD_NOT_ALLOWED = 405;
-    private static final int OK = 200;
 
     protected URL url;
     protected OkHttpClient client;
@@ -162,10 +165,10 @@ public class HttpSender extends AbstractSender {
                 }
             }
             clientFactory = new HttpClientFactory(properties, uri);
-            connect();
             LOG.debug("Initialized sender with URL {}", uri);
         } catch (final Exception e) {
             LOG.debug("Could not initialize sender with URL {}", url, e);
+            throw new IllegalStateException("Could not initialize http sender", e);
         }
     }
 
@@ -214,17 +217,20 @@ public class HttpSender extends AbstractSender {
         final ConnectionTest testCon = getConnectionTest();
         final Response response = testCon.execute();
         if (response != null) {
-            if (response.code() == OK) {
+            if (response.code() == OK || response.code() == NO_CONTENT) {
                 return;
             }
             if (response.code() == NOT_FOUND) {
                 throw new IllegalStateException("No active dataprovider found at: " + testCon.url);
             }
+            if (response.code() == UNAUTHORIZED || response.code() == FORBIDDEN) {
+                throw new IllegalStateException(
+                        "Authorization failure; received status " + response.code() + " from " + testCon);
+            }
             throw new IllegalStateException(
                     "Received unexpected status " + response.code() + " from: " + testCon);
         }
-        throw new IllegalStateException(
-                "No response from test call: " + testCon);
+        throw new IllegalStateException("No response from: " + testCon);
 
     }
 

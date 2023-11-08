@@ -84,6 +84,21 @@ public abstract class AbstractSender implements Sender {
     }
 
     /**
+     * Triggers initial startup of this sender. I.e., the sender tries to connect, and, if not possible, triggers
+     * the reconnect loop.<br>
+     * This should be called just once for initial connection. Subsequent connection attempts should use the
+     * {@link #reconnect(Exception)} implementation.
+     */
+    public void startup() {
+        try {
+            connect();
+        } catch (Exception e) {
+            LOG.error("Startup of sender {} failed.", getName(), e);
+            reconnect(e);
+        }
+    }
+
+    /**
      * override this method to implement your own connection initialization
      *
      * @throws NjamsSdkRuntimeException NjamsSdkRuntimeException
@@ -116,12 +131,7 @@ public abstract class AbstractSender implements Sender {
         synchronized (hasConnected) {
             hasConnected.set(false);
             if (LOG.isInfoEnabled() && ex != null) {
-                if (ex.getCause() == null) {
-                    LOG.info("Initialized reconnect, because of : {}", ex.toString());
-
-                } else {
-                    LOG.info("Initialized reconnect, because of : {}, {}", ex.toString(), ex.getCause().toString());
-                }
+                LOG.info("Initialized reconnect, because of: {}", getExceptionWithCauses(ex));
             }
             LOG.debug("{} senders are reconnecting now", connecting.incrementAndGet());
         }
@@ -144,6 +154,19 @@ public abstract class AbstractSender implements Sender {
                 }
             }
         }
+    }
+
+    private String getExceptionWithCauses(final Throwable t) {
+        Throwable current = t;
+        StringBuilder sb = new StringBuilder();
+        while (current != null) {
+            if (sb.length() > 1) {
+                sb.append(", caused by: ");
+            }
+            sb.append(current.toString());
+            current = current.getCause();
+        }
+        return sb.toString();
     }
 
     /**
@@ -193,7 +216,7 @@ public abstract class AbstractSender implements Sender {
                 }
             } else {
                 // trigger reconnect
-                onException(null);
+                onException(new IllegalStateException("Not connected"));
             }
         } while (!isSent);
     }

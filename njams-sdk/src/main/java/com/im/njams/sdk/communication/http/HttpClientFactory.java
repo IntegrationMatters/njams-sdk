@@ -144,7 +144,7 @@ public class HttpClientFactory {
         try {
             final okhttp3.OkHttpClient.Builder clientBuilder = new OkHttpClient.Builder()
                     .connectTimeout(60, TimeUnit.SECONDS)
-                    .retryOnConnectionFailure(true)
+                    .retryOnConnectionFailure(false)
                     .writeTimeout(60, TimeUnit.SECONDS)
                     .readTimeout(60, TimeUnit.SECONDS);
 

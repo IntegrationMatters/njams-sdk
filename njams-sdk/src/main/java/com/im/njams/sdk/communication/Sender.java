@@ -22,16 +22,15 @@ import com.faizsiegeln.njams.messageformat.v4.common.CommonMessage;
 import com.im.njams.sdk.Njams;
 
 /**
- * This interface must be implemented to create a nJAMS Sender Inplementations
- * which can send Project and Logmessages to nJAMS Server.
+ * This interface must be implemented to create a nJAMS sender implementation
+ * which can send project and log-messages to nJAMS server.
  *
  * @author bwand
  */
 public interface Sender {
 
     /**
-     * This new implementation should initialize itself via the given
-     * Properties.
+     * This implementation should initialize itself via the given properties.
      *
      * @param properties to be used for initialization
      */
@@ -50,6 +49,10 @@ public interface Sender {
      */
     public void close();
 
+    /**
+     * Each implementation should provide a unique name.
+     * @return This implementation's name
+     */
     public String getName();
 
 }

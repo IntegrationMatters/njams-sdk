@@ -24,14 +24,7 @@
 
 package com.im.njams.sdk.communication.kafka;
 
-import static com.im.njams.sdk.communication.MessageHeaders.MESSAGETYPE_EVENT;
-import static com.im.njams.sdk.communication.MessageHeaders.MESSAGETYPE_PROJECT;
-import static com.im.njams.sdk.communication.MessageHeaders.MESSAGETYPE_TRACE;
-import static com.im.njams.sdk.communication.MessageHeaders.NJAMS_CLIENTID_HEADER;
-import static com.im.njams.sdk.communication.MessageHeaders.NJAMS_LOGID_HEADER;
-import static com.im.njams.sdk.communication.MessageHeaders.NJAMS_MESSAGETYPE_HEADER;
-import static com.im.njams.sdk.communication.MessageHeaders.NJAMS_MESSAGEVERSION_HEADER;
-import static com.im.njams.sdk.communication.MessageHeaders.NJAMS_PATH_HEADER;
+import static com.im.njams.sdk.communication.MessageHeaders.*;
 import static com.im.njams.sdk.communication.kafka.KafkaHeadersUtil.headersUpdater;
 
 import java.nio.Buffer;
@@ -133,12 +126,7 @@ public class KafkaSender extends AbstractSender {
         topicEvent = topicPrefix + EVENT_SUFFIX;
         topicProject = topicPrefix + PROJECT_SUFFIX;
         initMaxMessageSizeAndTimeout();
-        try {
-            connect();
-            LOG.debug("Initialized sender {}", KafkaConstants.COMMUNICATION_NAME);
-        } catch (final NjamsSdkRuntimeException e) {
-            LOG.error("Could not initialize sender {}\n", KafkaConstants.COMMUNICATION_NAME, e);
-        }
+        LOG.debug("Initialized sender {}", KafkaConstants.COMMUNICATION_NAME);
     }
 
     private void initMaxMessageSizeAndTimeout() {
