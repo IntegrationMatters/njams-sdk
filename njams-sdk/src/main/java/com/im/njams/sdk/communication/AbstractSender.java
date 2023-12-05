@@ -71,7 +71,7 @@ public abstract class AbstractSender implements Sender {
     public void init(Properties properties) {
         this.properties = properties;
         discardPolicy = DiscardPolicy.byValue(Settings.getPropertyWithDeprecationWarning(properties,
-                NjamsSettings.PROPERTY_DISCARD_POLICY, NjamsSettings.OLD_DISCARD_POLICY));
+            NjamsSettings.PROPERTY_DISCARD_POLICY, NjamsSettings.OLD_DISCARD_POLICY));
     }
 
     /**
@@ -125,7 +125,7 @@ public abstract class AbstractSender implements Sender {
      * @param ex the exception that initiated the reconnect
      */
     public synchronized void reconnect(Exception ex) {
-        if (isConnecting() || isConnected()) {
+        if (isConnecting() || isConnected() || shouldShutdown.get()) {
             return;
         }
         synchronized (hasConnected) {
@@ -212,13 +212,14 @@ public abstract class AbstractSender implements Sender {
                 try {
                     Thread.sleep(1000);
                 } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
                     break;
                 }
             } else {
                 // trigger reconnect
                 onException(new IllegalStateException("Not connected"));
             }
-        } while (!isSent);
+        } while (!isSent && !Thread.currentThread().isInterrupted() && !shouldShutdown.get());
     }
 
     /**
@@ -288,7 +289,7 @@ public abstract class AbstractSender implements Sender {
     /**
      * Set this value to true during shutdown to stop the reconnecting thread
      *
-     * @param shutdown if the Sender is in shutodown state
+     * @param shutdown if the Sender is in shutdown state
      */
     public void setShouldShutdown(boolean shutdown) {
         shouldShutdown.set(shutdown);

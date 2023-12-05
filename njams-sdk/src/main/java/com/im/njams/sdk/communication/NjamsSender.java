@@ -144,20 +144,20 @@ public class NjamsSender {
      */
     public void init(Properties properties) {
         int minSenderThreads =
-                (int) getLongProperty(properties, 1, PROPERTY_MIN_SENDER_THREADS, OLD_MIN_SENDER_THREADS);
+            (int) getLongProperty(properties, 1, PROPERTY_MIN_SENDER_THREADS, OLD_MIN_SENDER_THREADS);
         int maxSenderThreads =
-                (int) getLongProperty(properties, 8, PROPERTY_MAX_SENDER_THREADS, OLD_MAX_SENDER_THREADS);
+            (int) getLongProperty(properties, 8, PROPERTY_MAX_SENDER_THREADS, OLD_MAX_SENDER_THREADS);
         int maxQueueLength = (int) getLongProperty(properties, 8, PROPERTY_MAX_QUEUE_LENGTH, OLD_MAX_QUEUE_LENGTH);
         long idleTime =
-                getLongProperty(properties, 10000, PROPERTY_SENDER_THREAD_IDLE_TIME, OLD_SENDER_THREAD_IDLE_TIME);
+            getLongProperty(properties, 10000, PROPERTY_SENDER_THREAD_IDLE_TIME, OLD_SENDER_THREAD_IDLE_TIME);
         LOG.debug("Init thread pool (min={}, max={}, queue={}, idle={})", minSenderThreads, maxSenderThreads,
-                maxQueueLength, idleTime);
+            maxQueueLength, idleTime);
         validateThreadPool(minSenderThreads, maxSenderThreads, maxQueueLength, idleTime);
         ThreadFactory threadFactory = new ThreadFactoryBuilder()
-                .setNamePrefix(getName() + "-Sender-Thread").setDaemon(true).build();
+            .setNamePrefix(getName() + "-Sender-Thread").setDaemon(true).build();
         executor = new ThreadPoolExecutor(minSenderThreads, maxSenderThreads, idleTime, TimeUnit.MILLISECONDS,
-                new ArrayBlockingQueue<>(maxQueueLength), threadFactory,
-                new MaxQueueLengthHandler(properties));
+            new ArrayBlockingQueue<>(maxQueueLength), threadFactory,
+            new MaxQueueLengthHandler(properties));
         final CommunicationFactory communicationFactory = new CommunicationFactory(settings);
         senderPool = new SenderPool(communicationFactory);
     }
@@ -194,13 +194,17 @@ public class NjamsSender {
      * @param clientSessionId The current client-session ID of the {@link Njams} instance sending this message
      */
     public void send(CommonMessage msg, String clientSessionId) {
+        if (executor.isShutdown() || executor.isTerminating()) {
+            return;
+        }
         executor.execute(() -> {
             AbstractSender sender = null;
             try {
                 sender = senderPool.get();
-                if (sender != null) {
-                    sender.send(msg, clientSessionId);
+                if (sender == null) {
+                    throw new NullPointerException("No sender available");
                 }
+                sender.send(msg, clientSessionId);
             } catch (Exception e) {
                 LOG.error("could not send message {}, {}", msg, e);
             } finally {
@@ -217,21 +221,28 @@ public class NjamsSender {
      * thrown and the senders will be closed.
      */
     public void close() {
+        final int waitTime = 10;
+        final TimeUnit unit = TimeUnit.SECONDS;
+        boolean terminated = false;
         try {
-            int waitTime = 10;
-            TimeUnit unit = TimeUnit.SECONDS;
+            LOG.info("Shutdown the sender's threadpool executor.");
             executor.shutdown();
-            boolean awaitTermination = executor.awaitTermination(waitTime, unit);
-            if (!awaitTermination) {
-                LOG.error("The termination time of the executor has been exceeded ({} {}).", waitTime, unit);
+            terminated = executor.awaitTermination(waitTime, unit);
+            if (terminated) {
+                LOG.debug("Shutdown of the sender's threadpool executor finished.");
             }
         } catch (InterruptedException ex) {
             LOG.error("The shutdown of the sender's threadpool has been interrupted. {}", ex);
+            terminated = false;
         } finally {
-            //This will call the interrupt() function of the threads
-            LOG.info("Shutdown now the sender's threadpool executor.");
-            executor.shutdownNow();
-            LOG.debug("Shutdown of the sender's threadpool executor finished.");
+            senderPool.declareShutdown();
+            if (!terminated) {
+                LOG.warn(
+                    "The termination time of the sender's threadpool has been exceeded ({} {}). Forcing shutdown now.",
+                    waitTime, unit);
+                //This will call the interrupt() function of the threads
+                executor.shutdownNow();
+            }
             senderPool.shutdown();
             LOG.debug("Expire all sender pools finished.");
         }

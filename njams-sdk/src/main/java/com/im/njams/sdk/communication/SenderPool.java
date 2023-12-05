@@ -22,6 +22,7 @@ import java.util.IdentityHashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Stream;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,7 +41,8 @@ public class SenderPool {
     // TODO: SDK-356: value is never used
     private final Map<AbstractSender, Long> unlocked = new ConcurrentHashMap<>();
     private final Collection<SenderExceptionListener> exceptionListeners =
-            Collections.newSetFromMap(new IdentityHashMap<>());
+        Collections.newSetFromMap(new IdentityHashMap<>());
+    private boolean shutdown = false;
 
     public SenderPool(CommunicationFactory factory) {
         this.factory = factory;
@@ -52,11 +54,13 @@ public class SenderPool {
      */
     public void addSenderExceptionListener(SenderExceptionListener listener) {
         exceptionListeners.add(listener);
-        unlocked.keySet().forEach(s -> s.addExceptionListener(listener));
-        locked.keySet().forEach(s -> s.addExceptionListener(listener));
+        streamAll().forEach(s -> s.addExceptionListener(listener));
     }
 
     protected AbstractSender create() {
+        if (shutdown) {
+            return null;
+        }
         final AbstractSender sender = factory.getSender();
         if (!exceptionListeners.isEmpty()) {
             exceptionListeners.forEach(sender::addExceptionListener);
@@ -71,7 +75,11 @@ public class SenderPool {
 
     private void destroy(AbstractSender sender) {
         sender.setShouldShutdown(true);
-        sender.close();
+        try {
+            sender.close();
+        } catch (Exception e) {
+            LOG.error("Couldn't close {}", sender.getClass().getSimpleName());
+        }
     }
 
     public void shutdown() {
@@ -84,7 +92,7 @@ public class SenderPool {
 
     /**
      * TODO: SDK-355: revision required!
-     * 
+     *
      * get an object from the pool. Timeout controls for how long to wait for an object becoming available.
      * a timeout is less than 0 results in an endless wait
      * a timeout equals 0 results in a singly try; if no object is available, null is returned
@@ -105,7 +113,7 @@ public class SenderPool {
                     if (validate(sender)) {
                         it.remove();
                         locked.put(sender, now);
-                        LOG.trace("Got Sender: {}", sender);
+                        LOG.trace("Got sender: {}", sender);
                         return sender;
                     }
                     // object failed validation
@@ -116,10 +124,17 @@ public class SenderPool {
                 }
             }
             // no objects available, create a new one
+            LOG.trace("Creating new sender, locked={}, unlocked={}", locked.size(), unlocked.size());
             sender = create();
-            locked.put(sender, now);
-        } while (sender == null && (timeout < 0 || System.currentTimeMillis() - now < timeout));
-        LOG.trace("Created Sender: " + sender);
+            if (sender != null) {
+                if (shutdown) {
+                    sender.setShouldShutdown(true);
+                }
+                locked.put(sender, now);
+            }
+        } while (sender == null && !shutdown && (timeout < 0 || System.currentTimeMillis() - now < timeout));
+        LOG.debug("Created sender: {} (shouldShutdown={})", sender, shutdown);
+        LOG.trace("Create locked={}, unlocked={}", locked.size(), unlocked.size());
         return sender;
     }
 
@@ -129,22 +144,18 @@ public class SenderPool {
         LOG.trace("Close locked={}, unlocked={}", locked.size(), unlocked.size());
     }
 
+    public void declareShutdown() {
+        shutdown = true;
+        streamAll().forEach(s -> s.setShouldShutdown(true));
+    }
+
     private synchronized void expireAll() {
-        for (AbstractSender sender : locked.keySet()) {
-            try {
-                destroy(sender);
-            } catch (Exception e) {
-                LOG.error("Couldn't close {}", sender.getClass().getSimpleName());
-            }
-        }
+        streamAll().forEach(this::destroy);
         locked.clear();
-        for (AbstractSender sender : unlocked.keySet()) {
-            try {
-                destroy(sender);
-            } catch (Exception e) {
-                LOG.error("Couldn't close {}", sender.getClass().getSimpleName());
-            }
-        }
         unlocked.clear();
+    }
+
+    private Stream<AbstractSender> streamAll() {
+        return Stream.concat(locked.keySet().stream(), unlocked.keySet().stream());
     }
 }
