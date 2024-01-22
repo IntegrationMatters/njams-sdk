@@ -105,7 +105,7 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
         connectionStatus = ConnectionStatus.DISCONNECTED;
         mapper = JsonSerializerFactory.getDefaultMapper();
         properties = props;
-        if (props.containsKey(NjamsSettings.PROPERTY_JMS_COMMANDS_DESTINATION)) {
+        if (StringUtils.isNotBlank(props.getProperty(NjamsSettings.PROPERTY_JMS_COMMANDS_DESTINATION))) {
             topicName = props.getProperty(NjamsSettings.PROPERTY_JMS_COMMANDS_DESTINATION);
         } else {
             topicName = props.getProperty(NjamsSettings.PROPERTY_JMS_DESTINATION) + ".commands";
@@ -231,9 +231,9 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
     private Connection createConnection(Properties props, ConnectionFactory factory) throws JMSException {
         Connection con;
         if (props.containsKey(NjamsSettings.PROPERTY_JMS_USERNAME)
-                && props.containsKey(NjamsSettings.PROPERTY_JMS_PASSWORD)) {
+            && props.containsKey(NjamsSettings.PROPERTY_JMS_PASSWORD)) {
             con = factory.createConnection(props.getProperty(NjamsSettings.PROPERTY_JMS_USERNAME),
-                    props.getProperty(NjamsSettings.PROPERTY_JMS_PASSWORD));
+                props.getProperty(NjamsSettings.PROPERTY_JMS_PASSWORD));
         } else {
             con = factory.createConnection();
         }
@@ -442,15 +442,12 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
             final String clientId = msg.getStringProperty(NJAMS_CLIENTID_HEADER);
             if (clientId != null && !clientId.equals(njams.getCommunicationSessionId())) {
                 LOG.debug("Message is not for me! ClientId in Message is: {} but this nJAMS Client has Id: {}",
-                        clientId, njams.getCommunicationSessionId());
+                    clientId, njams.getCommunicationSessionId());
                 return;
             }
 
             final Instruction instruction = getInstruction(msg);
-            if (instruction == null) {
-                return;
-            }
-            if (suppressGetRequestHandlerInstruction(instruction, njams)) {
+            if ((instruction == null) || suppressGetRequestHandlerInstruction(instruction, njams)) {
                 return;
             }
             onInstruction(instruction);
@@ -541,20 +538,20 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
     @Override
     public String[] librariesToCheck() {
         return new String[] {
-                "javax.jms.Connection",
-                "javax.jms.ConnectionFactory",
-                "javax.jms.ExceptionListener",
-                "javax.jms.JMSException",
-                "javax.jms.Message",
-                "javax.jms.MessageConsumer",
-                "javax.jms.MessageListener",
-                "javax.jms.Session",
-                "javax.jms.TextMessage",
-                "javax.jms.MessageProducer",
-                "javax.jms.Topic",
-                "javax.naming.InitialContext",
-                "javax.naming.NameNotFoundException",
-                "javax.naming.NamingException" };
+            "javax.jms.Connection",
+            "javax.jms.ConnectionFactory",
+            "javax.jms.ExceptionListener",
+            "javax.jms.JMSException",
+            "javax.jms.Message",
+            "javax.jms.MessageConsumer",
+            "javax.jms.MessageListener",
+            "javax.jms.Session",
+            "javax.jms.TextMessage",
+            "javax.jms.MessageProducer",
+            "javax.jms.Topic",
+            "javax.naming.InitialContext",
+            "javax.naming.NameNotFoundException",
+            "javax.naming.NamingException" };
     }
 
 }
