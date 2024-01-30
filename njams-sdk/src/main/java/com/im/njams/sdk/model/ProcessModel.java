@@ -83,7 +83,7 @@ public class ProcessModel {
      */
     public com.faizsiegeln.njams.messageformat.v4.projectmessage.ProcessModel getSerializableProcessModel() {
         com.faizsiegeln.njams.messageformat.v4.projectmessage.ProcessModel internalProcessModel =
-                new com.faizsiegeln.njams.messageformat.v4.projectmessage.ProcessModel();
+            new com.faizsiegeln.njams.messageformat.v4.projectmessage.ProcessModel();
 
         // set meta data
         internalProcessModel.setPath(path.toString());
@@ -93,7 +93,7 @@ public class ProcessModel {
         ProcessConfiguration processConfiguration = njams.getConfiguration().getProcess(path.toString());
         if (processConfiguration != null) {
             internalProcessModel.setLogLevel(processConfiguration.getLogLevel());
-            internalProcessModel.setExclude(processConfiguration.isExclude());
+            internalProcessModel.setExclude(njams.isExcluded(path));
             internalProcessModel.setRecording(processConfiguration.isRecording());
         } else {
             internalProcessModel.setRecording(njams.getConfiguration().isRecording());
@@ -101,13 +101,13 @@ public class ProcessModel {
 
         // copy activities
         activities.values().stream()
-                .map(a -> a.getSerializableActivity(processConfiguration))
-                .forEach(activity -> internalProcessModel.getActivities().add(activity));
+            .map(a -> a.getSerializableActivity(processConfiguration))
+            .forEach(activity -> internalProcessModel.getActivities().add(activity));
 
         // copy transitions
         transitions.values().stream()
-                .map(TransitionModel::getSerializableTransition)
-                .forEach(transition -> internalProcessModel.getTransitions().add(transition));
+            .map(TransitionModel::getSerializableTransition)
+            .forEach(transition -> internalProcessModel.getTransitions().add(transition));
 
         try {
             // process SVG
@@ -169,8 +169,8 @@ public class ProcessModel {
      */
     public List<GroupModel> getGroupModels() {
         return activities.values().stream()
-                .filter(activity -> GroupModel.class.isAssignableFrom(activity.getClass())).map(GroupModel.class::cast)
-                .collect(toList());
+            .filter(activity -> GroupModel.class.isAssignableFrom(activity.getClass())).map(GroupModel.class::cast)
+            .collect(toList());
     }
 
     /**
@@ -180,9 +180,9 @@ public class ProcessModel {
      */
     public List<SubProcessActivityModel> getSubProcessModels() {
         return activities.values().stream()
-                .filter(activity -> SubProcessActivityModel.class.isAssignableFrom(activity.getClass()))
-                .map(SubProcessActivityModel.class::cast)
-                .collect(toList());
+            .filter(activity -> SubProcessActivityModel.class.isAssignableFrom(activity.getClass()))
+            .map(SubProcessActivityModel.class::cast)
+            .collect(toList());
     }
 
     /**
@@ -203,7 +203,7 @@ public class ProcessModel {
         String id = activityModel.getId();
         if (activities.containsKey(id) && activities.get(id) != activityModel) {
             throw new NjamsSdkRuntimeException(
-                    "ProcessModel " + getPath() + " already contains a ActivityModel with id " + id + "!");
+                "ProcessModel " + getPath() + " already contains a ActivityModel with id " + id + "!");
         }
         activities.put(id, activityModel);
     }
@@ -228,7 +228,7 @@ public class ProcessModel {
         final ActivityModel activityModel = activities.get(groupModelId);
         if (activityModel != null && !(activityModel instanceof GroupModel)) {
             throw new NjamsSdkRuntimeException(
-                    "ActivityModel with id " + groupModelId + " found, but GroupModel expected!");
+                "ActivityModel with id " + groupModelId + " found, but GroupModel expected!");
         }
         return (GroupModel) activityModel;
     }
@@ -243,7 +243,7 @@ public class ProcessModel {
         final ActivityModel activityModel = activities.get(subProcessModelId);
         if (activityModel != null && !(activityModel instanceof SubProcessActivityModel)) {
             throw new NjamsSdkRuntimeException(
-                    "SubProcessModel with id " + subProcessModelId + " found, but SubProcessModel expected!");
+                "SubProcessModel with id " + subProcessModelId + " found, but SubProcessModel expected!");
         }
         return (SubProcessActivityModel) activityModel;
     }
@@ -257,7 +257,7 @@ public class ProcessModel {
         String id = transitionModel.getId();
         if (transitions.containsKey(id) && transitions.get(id) != transitionModel) {
             throw new NjamsSdkRuntimeException(
-                    "ProcessModel " + getPath() + " already contains a TransitionModel with id " + id + "!");
+                "ProcessModel " + getPath() + " already contains a TransitionModel with id " + id + "!");
         }
         transitions.put(id, transitionModel);
     }
@@ -281,7 +281,7 @@ public class ProcessModel {
      * @return the created {@link ActivityModel}
      */
     public ActivityModel createActivity(String startActivityModelId, String startActivityName,
-            String startActivityType) {
+        String startActivityType) {
         ActivityModel activity = new ActivityModel(this);
         activity.setId(startActivityModelId);
         activity.setName(startActivityName);
@@ -317,7 +317,7 @@ public class ProcessModel {
      * @return the created {@link ActivityModel}
      */
     public SubProcessActivityModel createSubProcess(String subProcessModelId, String subProcessName,
-            String subProcessType) {
+        String subProcessType) {
         SubProcessActivityModel subProcessModel = new SubProcessActivityModel(this);
         subProcessModel.setId(subProcessModelId);
         subProcessModel.setName(subProcessName);
@@ -338,7 +338,7 @@ public class ProcessModel {
      */
     public TransitionModel createTransition(String fromActivityModelId, String toActivityModelId) {
         return createTransition(fromActivityModelId, toActivityModelId,
-                IdUtil.getTransitionModelId(fromActivityModelId, toActivityModelId));
+            IdUtil.getTransitionModelId(fromActivityModelId, toActivityModelId));
     }
 
     /**
@@ -353,7 +353,7 @@ public class ProcessModel {
      * @return the created {@link TransitionModel}
      */
     public TransitionModel createTransition(String fromActivityModelId, String toActivityModelId,
-            String transitionModelId) {
+        String transitionModelId) {
         ActivityModel fromActivityModel = activities.get(fromActivityModelId);
         if (fromActivityModel == null) {
             throw new NjamsSdkRuntimeException("FromActivityModel with id " + fromActivityModelId + " does not exist");

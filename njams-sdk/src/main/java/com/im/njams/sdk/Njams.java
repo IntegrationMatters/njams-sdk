@@ -46,6 +46,8 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.stream.Collectors;
 
+import org.slf4j.LoggerFactory;
+
 import com.faizsiegeln.njams.messageformat.v4.command.Command;
 import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
 import com.faizsiegeln.njams.messageformat.v4.command.Response;
@@ -74,7 +76,7 @@ import com.im.njams.sdk.configuration.Configuration;
 import com.im.njams.sdk.configuration.ConfigurationInstructionListener;
 import com.im.njams.sdk.configuration.ConfigurationProvider;
 import com.im.njams.sdk.configuration.ConfigurationProviderFactory;
-import com.im.njams.sdk.configuration.ProcessConfiguration;
+import com.im.njams.sdk.configuration.ProcessFilter;
 import com.im.njams.sdk.configuration.provider.FileConfigurationProvider;
 import com.im.njams.sdk.logmessage.DataMasking;
 import com.im.njams.sdk.logmessage.Job;
@@ -89,8 +91,6 @@ import com.im.njams.sdk.serializer.Serializer;
 import com.im.njams.sdk.serializer.StringSerializer;
 import com.im.njams.sdk.settings.Settings;
 import com.im.njams.sdk.utils.StringUtils;
-
-import org.slf4j.LoggerFactory;
 
 /**
  * This is an instance of nJAMS. It cares about lifecycle and initializations
@@ -175,7 +175,7 @@ public class Njams implements InstructionListener {
         }
     }
 
-    private static final String[] VERSION_FILES = new String[] { "njams.version", "msg.version", "client.version" };
+    private static final String[] VERSION_FILES = { "njams.version", "msg.version", "client.version" };
 
     /**
      * Key for clientVersion
@@ -267,6 +267,7 @@ public class Njams implements InstructionListener {
 
     private ArgosSender argosSender = null;
     private final Collection<ArgosMultiCollector<?>> argosCollectors = new ArrayList<>();
+    private final ProcessFilter processFilter;
 
     /**
      * Create a nJAMS client without the information about the runtimeVersion of the client.
@@ -304,6 +305,7 @@ public class Njams implements InstructionListener {
         argosSender = ArgosSender.getInstance();
         argosSender.init(settings);
         loadConfigurationProvider();
+        processFilter = new ProcessFilter(configuration);
         createTreeElements(path, TreeElementType.CLIENT);
         readVersionsFromVersionFile(version);
         this.runtimeVersion = runtimeVersion;
@@ -928,10 +930,7 @@ public class Njams implements InstructionListener {
         if (this == obj) {
             return true;
         }
-        if (obj == null) {
-            return false;
-        }
-        if (getClass() != obj.getClass()) {
+        if (obj == null || getClass() != obj.getClass()) {
             return false;
         }
         final Njams other = (Njams) obj;
@@ -1074,25 +1073,25 @@ public class Njams implements InstructionListener {
             return;
         }
         switch (command) {
-            case SEND_PROJECTMESSAGE:
-                LOG.debug("Send ProjectMessage requested by nJAMS server.");
-                sendProjectMessage();
-                instruction.setResponseResultCode(0);
-                instruction.setResponseResultMessage("ProjectMessage sent");
-                break;
-            case PING:
-                instruction.setResponse(createPingResponse());
-                break;
-            case REPLAY:
-                handleReplayRequest(instruction);
-                break;
-            case GET_REQUEST_HANDLER:
-                instruction.setResponseResultCode(0);
-                instruction.setResponseParameter("clientId", clientSessionId);
-                break;
-            default:
-                // skip all others
-                break;
+        case SEND_PROJECTMESSAGE:
+            LOG.debug("Send ProjectMessage requested by nJAMS server.");
+            sendProjectMessage();
+            instruction.setResponseResultCode(0);
+            instruction.setResponseResultMessage("ProjectMessage sent");
+            break;
+        case PING:
+            instruction.setResponse(createPingResponse());
+            break;
+        case REPLAY:
+            handleReplayRequest(instruction);
+            break;
+        case GET_REQUEST_HANDLER:
+            instruction.setResponseResultCode(0);
+            instruction.setResponseParameter("clientId", clientSessionId);
+            break;
+        default:
+            // skip all others
+            break;
 
         }
     }
@@ -1375,14 +1374,7 @@ public class Njams implements InstructionListener {
      * @return true if the process is excluded, or false if not
      */
     public boolean isExcluded(Path processPath) {
-        if (processPath == null) {
-            return false;
-        }
-        if (getConfiguration().getLogMode() == LogMode.NONE) {
-            return true;
-        }
-        ProcessConfiguration processConfiguration = getConfiguration().getProcess(processPath.toString());
-        return processConfiguration != null && processConfiguration.isExclude();
+        return !processFilter.isSelected(processPath);
     }
 
     /**

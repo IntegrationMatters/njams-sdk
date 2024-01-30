@@ -41,6 +41,7 @@ import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.common.DateTimeUtility;
 import com.im.njams.sdk.common.JsonSerializerFactory;
+import com.im.njams.sdk.common.Path;
 import com.im.njams.sdk.communication.InstructionListener;
 import com.im.njams.sdk.logmessage.ExtractHandler;
 import com.im.njams.sdk.model.ProcessModel;
@@ -86,7 +87,7 @@ public class ConfigurationInstructionListener implements InstructionListener {
          */
         private boolean validate(String... names) {
             Collection<String> missing =
-                    Arrays.stream(names).filter(n -> StringUtils.isBlank(getParameter(n))).collect(Collectors.toList());
+                Arrays.stream(names).filter(n -> StringUtils.isBlank(getParameter(n))).collect(Collectors.toList());
             if (!missing.isEmpty()) {
                 error("missing parameter(s) " + missing);
                 return false;
@@ -130,7 +131,7 @@ public class ConfigurationInstructionListener implements InstructionListener {
          *
          * @param message
          * @param e
-         * @param silent if set to <code>true</code> no error is logged. 
+         * @param silent if set to <code>true</code> no error is logged.
          */
         private void error(final String message, final Exception e, boolean silent) {
             if (!silent) {
@@ -144,7 +145,7 @@ public class ConfigurationInstructionListener implements InstructionListener {
                     }
                 }
                 LOG.error("Failed to execute command [{}]{}. Reason: {}", instruction.getCommand(),
-                        on != null ? on : "", message, e);
+                    on != null ? on : "", message, e);
             }
             response.setResultCode(1);
             response.setResultMessage(message + (e != null ? ": " + e.getMessage() : ""));
@@ -211,8 +212,8 @@ public class ConfigurationInstructionListener implements InstructionListener {
          */
         private String getParameter(final String name) {
             return instruction.getRequest().getParameters().entrySet().stream()
-                    .filter(e -> e.getKey().equalsIgnoreCase(name)).map(Entry::getValue)
-                    .findAny().orElse(null);
+                .filter(e -> e.getKey().equalsIgnoreCase(name)).map(Entry::getValue)
+                .findAny().orElse(null);
         }
 
         /**
@@ -255,7 +256,7 @@ public class ConfigurationInstructionListener implements InstructionListener {
                 return null;
             }
             return Arrays.stream(enumeration.getEnumConstants()).filter(c -> c.name().equalsIgnoreCase(constantName))
-                    .findAny().orElse(null);
+                .findAny().orElse(null);
         }
 
         /**
@@ -297,7 +298,7 @@ public class ConfigurationInstructionListener implements InstructionListener {
     /**
      * Initialize ConfigurationInstructionListener
      *
-     * @param njams The {@link Njams} instance for that this listener is registered. 
+     * @param njams The {@link Njams} instance for that this listener is registered.
      */
     public ConfigurationInstructionListener(Njams njams) {
         this.njams = njams;
@@ -315,7 +316,7 @@ public class ConfigurationInstructionListener implements InstructionListener {
         final InstructionSupport instructionSupport = new InstructionSupport(instruction);
         if (command == null) {
             instructionSupport.error("Missing or unsupported command [" + instruction.getCommand()
-                    + "] in instruction.");
+                + "] in instruction.");
             instructionSupport.applyResponse();
             return;
         }
@@ -375,10 +376,10 @@ public class ConfigurationInstructionListener implements InstructionListener {
         // set response into instruction
         instructionSupport.applyResponse();
         LOG.debug("Handled command: {} (result={}) on process: {}{}", command, instructionSupport.isError() ? "error"
-                : "ok", instructionSupport.getProcessPath(),
-                instructionSupport.getActivityId() == null ? ""
-                        : "#"
-                                + instructionSupport.getActivityId());
+            : "ok", instructionSupport.getProcessPath(),
+            instructionSupport.getActivityId() == null ? ""
+                : "#"
+                    + instructionSupport.getActivityId());
     }
 
     private void getLogLevel(final InstructionSupport instructionSupport) {
@@ -391,24 +392,23 @@ public class ConfigurationInstructionListener implements InstructionListener {
         //execute action
         // init with defaults
         LogLevel logLevel = LogLevel.INFO;
-        boolean exclude = false;
+        boolean exclude = njams.isExcluded(new Path(processPath));
 
         // differing config stored?
         final ProcessConfiguration process = configuration.getProcess(processPath);
         if (process != null) {
             logLevel = process.getLogLevel();
-            exclude = process.isExclude();
         }
 
         instructionSupport.setParameter(LOG_LEVEL, logLevel.name()).setParameter(EXCLUDE, exclude)
-                .setParameter(LOG_MODE, configuration.getLogMode());
+            .setParameter(LOG_MODE, configuration.getLogMode());
 
         LOG.debug("Return LogLevel for {}", processPath);
     }
 
     private void setLogLevel(final InstructionSupport instructionSupport) {
         if (!instructionSupport.validate(PROCESS_PATH, LOG_LEVEL)
-                || !instructionSupport.validate(LOG_LEVEL, LogLevel.class)) {
+            || !instructionSupport.validate(LOG_LEVEL, LogLevel.class)) {
             return;
         }
         //fetch parameters
@@ -552,11 +552,11 @@ public class ConfigurationInstructionListener implements InstructionListener {
             return;
         }
         final List<String> invalidAttributes =
-                extract.getExtractRules().stream().map(ExtractRule::getAttribute)
-                        .filter(this::isAttributeNameInvalid).collect(Collectors.toList());
+            extract.getExtractRules().stream().map(ExtractRule::getAttribute)
+                .filter(this::isAttributeNameInvalid).collect(Collectors.toList());
         if (!invalidAttributes.isEmpty()) {
             final String errorMessage =
-                    "Invalid attribute names " + invalidAttributes + " in extract for " + extract.getName();
+                "Invalid attribute names " + invalidAttributes + " in extract for " + extract.getName();
             instructionSupport.error(errorMessage);
             return;
         }
@@ -619,9 +619,9 @@ public class ConfigurationInstructionListener implements InstructionListener {
         }
 
         instructionSupport.setParameter(STARTTIME, tracepoint.getStarttime())
-                .setParameter(ENDTIME, tracepoint.getEndtime())
-                .setParameter(ITERATIONS, tracepoint.getIterations())
-                .setParameter(DEEP_TRACE, tracepoint.isDeeptrace());
+            .setParameter(ENDTIME, tracepoint.getEndtime())
+            .setParameter(ITERATIONS, tracepoint.getIterations())
+            .setParameter(DEEP_TRACE, tracepoint.isDeeptrace());
 
     }
 
@@ -674,7 +674,7 @@ public class ConfigurationInstructionListener implements InstructionListener {
 
     private void record(final InstructionSupport instructionSupport) {
         if ("true".equalsIgnoreCase(njams.getSettings().getPropertyWithDeprecationWarning(
-                NjamsSettings.PROPERTY_DISABLE_STARTDATA, NjamsSettings.OLD_DISABLE_STARTDATA))) {
+            NjamsSettings.PROPERTY_DISABLE_STARTDATA, NjamsSettings.OLD_DISABLE_STARTDATA))) {
             instructionSupport.error("Collecting start-data is disabled by configuration.");
             return;
         }
@@ -719,7 +719,7 @@ public class ConfigurationInstructionListener implements InstructionListener {
         final String testdata = instructionSupport.getParameter(DATA);
         try {
             instructionSupport.setParameter(MATCH_RESULT,
-                    ExtractHandler.testExpression(ruleType, expression, testdata));
+                ExtractHandler.testExpression(ruleType, expression, testdata));
         } catch (Exception e) {
             instructionSupport.error("Expression test failed.", e, true);
         }

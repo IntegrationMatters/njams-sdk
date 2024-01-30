@@ -36,6 +36,9 @@ import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.faizsiegeln.njams.messageformat.v4.logmessage.ActivityStatus;
 import com.faizsiegeln.njams.messageformat.v4.logmessage.LogMessage;
 import com.faizsiegeln.njams.messageformat.v4.logmessage.PluginDataItem;
@@ -56,9 +59,6 @@ import com.im.njams.sdk.model.ProcessModel;
 import com.im.njams.sdk.model.SubProcessActivityModel;
 import com.im.njams.sdk.settings.Settings;
 import com.im.njams.sdk.utils.StringUtils;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * This represents an instance of a process/flow etc in engine to monitor.
@@ -290,14 +290,14 @@ public class JobImpl implements Job {
         if (process != null) {
             logLevel = process.getLogLevel();
             LOG.debug("Set LogLevel for {} to {}", processModel.getPath(), logLevel);
-            exclude = process.isExclude();
-            LOG.debug("Set Exclude for {} to {}", processModel.getPath(), exclude);
             recording = !disableStartData && process.isRecording();
             LOG.debug(
                 "Set recording for {} to {} based on process settings {} and client setting {} and disable-start-data setting {}",
                 processModel.getPath(), recording, process.isRecording(),
                 configuration.isRecording(), disableStartData);
         }
+        exclude = njams.isExcluded(processModel.getPath());
+        LOG.debug("Set Exclude for {} to {}", processModel.getPath(), exclude);
         if (recording) {
             addAttribute("$njams_recorded", "true");
         }

@@ -17,6 +17,7 @@
 package com.im.njams.sdk.configuration;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -49,6 +50,8 @@ public class Configuration {
     @Deprecated
     private List<String> dataMasking = new ArrayList<>();
     private Boolean recording = null;
+
+    private Collection<ProcessFilterEntry> processFilter = new ArrayList<>();
 
     /**
      * Set a default value for {@link #isRecording()} which is used only as default when creating a new configuration.
@@ -170,7 +173,7 @@ public class Configuration {
      * @return the recording
      */
     public boolean isRecording() {
-        return recording != null ? recording.booleanValue() : bootstrapRecording;
+        return recording != null ? recording : bootstrapRecording;
     }
 
     /**
@@ -179,4 +182,13 @@ public class Configuration {
     public void setRecording(boolean recording) {
         this.recording = recording;
     }
+
+    public Collection<ProcessFilterEntry> getProcessFilter() {
+        return processFilter;
+    }
+
+    public void setProcessFilter(Collection<ProcessFilterEntry> processFilter) {
+        this.processFilter = processFilter;
+    }
+
 }
