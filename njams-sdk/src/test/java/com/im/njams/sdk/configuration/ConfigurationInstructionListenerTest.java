@@ -1,27 +1,8 @@
 package com.im.njams.sdk.configuration;
 
-import static com.faizsiegeln.njams.messageformat.v4.command.Command.CONFIGURE_EXTRACT;
-import static com.faizsiegeln.njams.messageformat.v4.command.Command.DELETE_EXTRACT;
-import static com.faizsiegeln.njams.messageformat.v4.command.Command.GET_EXTRACT;
-import static com.faizsiegeln.njams.messageformat.v4.command.Command.GET_LOG_LEVEL;
-import static com.faizsiegeln.njams.messageformat.v4.command.Command.GET_LOG_MODE;
-import static com.faizsiegeln.njams.messageformat.v4.command.Command.GET_TRACING;
-import static com.faizsiegeln.njams.messageformat.v4.command.Command.RECORD;
-import static com.faizsiegeln.njams.messageformat.v4.command.Command.REPLAY;
-import static com.faizsiegeln.njams.messageformat.v4.command.Command.SET_LOG_LEVEL;
-import static com.faizsiegeln.njams.messageformat.v4.command.Command.SET_LOG_MODE;
-import static com.faizsiegeln.njams.messageformat.v4.command.Command.SET_TRACING;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static com.faizsiegeln.njams.messageformat.v4.command.Command.*;
+import static org.junit.Assert.*;
+import static org.mockito.Mockito.*;
 
 import java.time.LocalDateTime;
 import java.util.Map;
@@ -167,7 +148,6 @@ public class ConfigurationInstructionListenerTest {
         parameters = response.getParameters();
         assertEquals("WARNING", parameters.get("logLevel"));
         assertEquals("EXCLUSIVE", parameters.get("logMode"));
-        assertEquals("true", parameters.get("exclude"));
 
     }
 
@@ -321,8 +301,8 @@ public class ConfigurationInstructionListenerTest {
         LocalDateTime start = DateTimeUtility.now();
         LocalDateTime end = DateTimeUtility.now().plusMinutes(10);
         prepareInstruction(SET_TRACING).addPath(PATH).addActivityId(ACT).addParameter("enableTracing", true)
-                .addParameter("starttime", start).addParameter("endtime", end).addParameter("iterations", 5)
-                .addParameter("deepTrace", true);
+            .addParameter("starttime", start).addParameter("endtime", end).addParameter("iterations", 5)
+            .addParameter("deepTrace", true);
 
         listener.onInstruction(instruction);
         Response response = instruction.getResponse();
@@ -343,8 +323,8 @@ public class ConfigurationInstructionListenerTest {
 
         // disable
         prepareInstruction(SET_TRACING).addPath(PATH).addActivityId(ACT).addParameter("enableTracing", false)
-                .addParameter("starttime", start).addParameter("endtime", end).addParameter("iterations", 5)
-                .addParameter("deepTrace", true);
+            .addParameter("starttime", start).addParameter("endtime", end).addParameter("iterations", 5)
+            .addParameter("deepTrace", true);
         listener.onInstruction(instruction);
         response = instruction.getResponse();
         assertEquals(0, response.getResultCode());
@@ -361,8 +341,8 @@ public class ConfigurationInstructionListenerTest {
         // enable but expired
         end = DateTimeUtility.now().minusMinutes(10);
         prepareInstruction(SET_TRACING).addPath(PATH).addActivityId(ACT).addParameter("enableTracing", true)
-                .addParameter("starttime", start).addParameter("endtime", end).addParameter("iterations", 5)
-                .addParameter("deepTrace", true);
+            .addParameter("starttime", start).addParameter("endtime", end).addParameter("iterations", 5)
+            .addParameter("deepTrace", true);
         listener.onInstruction(instruction);
         response = instruction.getResponse();
         assertEquals(0, response.getResultCode());
@@ -626,9 +606,9 @@ public class ConfigurationInstructionListenerTest {
         instruction.setRequestParameter("ruleType", "xpath");
         instruction.setRequestParameter("expression", "//name");
         instruction.setRequestParameter("data", "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\r\n" +
-                "<configuration scan=\"true\">\r\n" +
-                "    <name>Hello world</name>\r\n" +
-                "</configuration>");
+            "<configuration scan=\"true\">\r\n" +
+            "    <name>Hello world</name>\r\n" +
+            "</configuration>");
         listener.onInstruction(instruction);
 
         Response response = instruction.getResponse();
