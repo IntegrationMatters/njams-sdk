@@ -193,7 +193,7 @@ public class Configuration {
 
     /**
      * Sets (overwrites) all process (-path) filters.
-     * @param processFilter New filters to set
+     * @param processFilters New filters to set
      */
     public void setProcessFilters(Collection<ProcessFilterEntry> processFilters) {
         this.processFilters = processFilters;
