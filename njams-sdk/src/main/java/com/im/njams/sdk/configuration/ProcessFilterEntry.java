@@ -1,12 +1,27 @@
 package com.im.njams.sdk.configuration;
 
+/**
+ * Defines a filter to be matched against process paths.
+ */
 public class ProcessFilterEntry {
+    /**
+     * The matcher to be used when comparing the process path against the filter.
+     */
     public enum MatcherType {
-        VALUE, REGEX
+        /** The given filter value is a plain value (literal) */
+        VALUE,
+        /** The given filter value is a regular expression. */
+        REGEX
     }
 
+    /**
+     * Defines the type of the filter (include or exclude)
+     */
     public enum FilterType {
-        INCLUDE, EXCLUDE
+        /** The filter value should be used for including processes. */
+        INCLUDE,
+        /** The filter value should be used for excluding processes. */
+        EXCLUDE
     }
 
     private String filterValue = null;

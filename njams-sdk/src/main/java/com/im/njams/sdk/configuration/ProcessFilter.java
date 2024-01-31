@@ -17,6 +17,9 @@ import com.im.njams.sdk.configuration.ProcessFilterEntry.FilterType;
 import com.im.njams.sdk.configuration.ProcessFilterEntry.MatcherType;
 import com.im.njams.sdk.utils.StringUtils;
 
+/**
+ * This class implements filtering processes based on the runtime {@link Configuration}.
+ */
 public class ProcessFilter {
 
     private static final Logger LOG = LoggerFactory.getLogger(ProcessFilter.class);
@@ -87,8 +90,8 @@ public class ProcessFilter {
      * <li>The combination of configured process includes/excludes in {@link Configuration#getProcessFilter()}
      * results in excluding the process</li>
      * </ol>
-     * @param processPath
-     * @return
+     * @param processPath The path of the process to test.
+     * @return <code>true</code> if the process with shall be processed.
      */
     public boolean isSelected(final Path processPath) {
         if (processPath == null) {
