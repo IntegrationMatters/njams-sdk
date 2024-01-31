@@ -89,7 +89,7 @@ public class ProcessFilter {
      * <ol>
      * <li>The client instance's log-mode is {@link LogMode#NONE}</li>
      * <li>The process itself is excluded by the according flag {@link ProcessConfiguration#isExclude()}</li>
-     * <li>The combination of configured process includes/excludes in {@link Configuration#getProcessFilter()}
+     * <li>The combination of configured process includes/excludes in {@link Configuration#getProcessFilters()}
      * results in excluding the process</li>
      * </ol>
      * @param processPath The path of the process to test.
