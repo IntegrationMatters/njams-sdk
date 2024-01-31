@@ -3,8 +3,9 @@ package com.im.njams.sdk.configuration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Map;
-import java.util.Optional;
+import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Predicate;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
@@ -37,8 +38,9 @@ public class ProcessFilter {
 
     public ProcessFilter(final Configuration config) {
         this.config = config;
-        if (config.getProcessFilter() != null) {
-            for (final ProcessFilterEntry filter : config.getProcessFilter()) {
+        convertProcessExcludes();
+        if (config.getProcessFilters() != null) {
+            for (final ProcessFilterEntry filter : config.getProcessFilters()) {
                 if (StringUtils.isBlank(filter.getFilterValue())) {
                     continue;
                 }
@@ -98,7 +100,7 @@ public class ProcessFilter {
             return false;
         }
         final String pathString = processPath.toString();
-        if (isExcludedProcess(pathString)) {
+        if (config.getLogMode() == LogMode.NONE) {
             // do not cache, since this setting can change during runtime!
             return false;
         }
@@ -133,10 +135,67 @@ public class ProcessFilter {
 
     }
 
-    private boolean isExcludedProcess(final String processPath) {
-        if (config.getLogMode() == LogMode.NONE) {
-            return true;
+    /**
+     * Sets or removes an exclude filter for the given process depending on the <code>exclude</code> parameter.<br>
+     * This is used for processing the according set command from nJAMS server.
+     * @param processPath The process path for that an exclude filter shall be added or removed.
+     * @param excluded If <code>true</code> an exclude-filter for the given path is added (if none exists), if
+     * <code>false</code>, any existing exclude-filter for that path is removed.
+     *
+     */
+    public void setExcluded(Path processPath, boolean excluded) {
+        decisions.put(processPath, excluded);
+        final String pathString = processPath.toString();
+        if (excluded) {
+            if (config.getProcessFilters().stream().noneMatch(excludeProcessPredicate(pathString))) {
+                config.addProcessFilter(new ProcessFilterEntry(FilterType.EXCLUDE, MatcherType.VALUE, pathString));
+                config.save();
+                LOG.debug("Process {} excluded explicitly.", pathString);
+            }
+        } else if (config.getProcessFilters().removeIf(excludeProcessPredicate(pathString))) {
+            config.save();
+            LOG.debug("Process {} no longer explicitly excluded.", pathString);
         }
-        return Optional.ofNullable(config.getProcess(processPath)).map(ProcessConfiguration::isExclude).orElse(false);
+    }
+
+    /**
+     * Returns whether or not the process with the given path has an explicit exclude filter setm i.e., an exclude
+     * filter that excludes this path only.<br>
+     * This is the new implementation for the former (deprecated) {@link ProcessConfiguration#isExclude()} flag and
+     * is used to serve the according get command from nJAMS server.<br>
+     * This is different from !{@link #isSelected(Path)} since there can be additional filters that prevent the given
+     * process from being processed even when it is not explicitly excluded.
+     * @param processPath The process path to test.
+     * @return <code>true</code> only if there is an explicit exclude filter for the given path.
+     */
+    public boolean hasExcludeFilter(Path processPath) {
+        return config.getProcessFilters().stream().anyMatch(excludeProcessPredicate(processPath.toString()));
+    }
+
+    private Predicate<ProcessFilterEntry> excludeProcessPredicate(String process) {
+        return f -> FilterType.EXCLUDE.equals(f.getFilterType()) && MatcherType.VALUE.equals(f.getMatcherType())
+            && process.equalsIgnoreCase(f.getFilterValue());
+    }
+
+    /**
+     * Maps the former {@link ProcessConfiguration#isExclude()} settings into according {@link ProcessFilterEntry}s.
+     */
+    @SuppressWarnings("removal")
+    private void convertProcessExcludes() {
+        if (config.getProcesses() == null) {
+            return;
+        }
+        boolean needsSave = false;
+        for (Entry<String, ProcessConfiguration> e : config.getProcesses().entrySet()) {
+            if (Boolean.TRUE.equals(e.getValue().isExclude())) {
+                config.addProcessFilter(new ProcessFilterEntry(FilterType.EXCLUDE, MatcherType.VALUE, e.getKey()));
+                LOG.debug("Converted old exclude: {}={}", e.getKey(), e.getValue().isExclude());
+                e.getValue().setExclude(null);
+                needsSave = true;
+            }
+        }
+        if (needsSave) {
+            config.save();
+        }
     }
 }

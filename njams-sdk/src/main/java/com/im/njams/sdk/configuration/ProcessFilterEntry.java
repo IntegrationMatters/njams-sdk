@@ -28,6 +28,25 @@ public class ProcessFilterEntry {
     private FilterType filterType = FilterType.EXCLUDE;
     private MatcherType matcherType = MatcherType.VALUE;
 
+    /**
+     * Default constructor for de-serialization.
+     */
+    public ProcessFilterEntry() {
+        // nothing
+    }
+
+    /**
+     * Full initializing constructor.
+     * @param type The filter type for this instance.
+     * @param matcher The matcher type for this instance.
+     * @param value The actual match/filter value.
+     */
+    public ProcessFilterEntry(FilterType type, MatcherType matcher, String value) {
+        filterType = type;
+        matcherType = matcher;
+        filterValue = value;
+    }
+
     public String getFilterValue() {
         return filterValue;
     }

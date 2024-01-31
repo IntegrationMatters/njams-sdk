@@ -392,7 +392,7 @@ public class ConfigurationInstructionListener implements InstructionListener {
         //execute action
         // init with defaults
         LogLevel logLevel = LogLevel.INFO;
-        boolean exclude = njams.isExcluded(new Path(processPath));
+        boolean exclude = configuration.hasProcessExcludeFilter(new Path(processPath));
 
         // differing config stored?
         final ProcessConfiguration process = configuration.getProcess(processPath);
@@ -422,7 +422,8 @@ public class ConfigurationInstructionListener implements InstructionListener {
             configuration.setLogMode(logMode);
         }
         process.setLogLevel(loglevel);
-        process.setExclude(instructionSupport.getBoolParameter(EXCLUDE));
+        configuration.setProcessExcluded(new Path(processPath), instructionSupport.getBoolParameter(EXCLUDE));
+        process.setExclude(null);
         saveConfiguration(instructionSupport);
     }
 

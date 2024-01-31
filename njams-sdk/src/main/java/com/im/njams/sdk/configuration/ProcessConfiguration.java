@@ -29,7 +29,8 @@ import com.faizsiegeln.njams.messageformat.v4.projectmessage.LogLevel;
 public class ProcessConfiguration {
 
     private LogLevel logLevel = LogLevel.INFO;
-    private boolean exclude = false;
+    @Deprecated(since = "5.0.0", forRemoval = true)
+    private Boolean exclude = false;
     private Map<String, ActivityConfiguration> activities = new ConcurrentHashMap<>();
     private boolean recording = true;
 
@@ -55,16 +56,20 @@ public class ProcessConfiguration {
     }
 
     /**
+     * @deprecated Replaced by {@link Configuration#hasProcessExcludeFilter(com.im.njams.sdk.common.Path)}
      * @return the exclude
      */
-    public boolean isExclude() {
+    @Deprecated(since = "5.0.0", forRemoval = true)
+    public Boolean isExclude() {
         return exclude;
     }
 
     /**
+     * @deprecated Replaced by {@link Configuration#setProcessExcluded(com.im.njams.sdk.common.Path, boolean)}
      * @param exclude the exclude to set
      */
-    public void setExclude(boolean exclude) {
+    @Deprecated(since = "5.0.0", forRemoval = true)
+    public void setExclude(Boolean exclude) {
         this.exclude = exclude;
     }
 

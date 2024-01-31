@@ -93,7 +93,7 @@ public class ProcessModel {
         ProcessConfiguration processConfiguration = njams.getConfiguration().getProcess(path.toString());
         if (processConfiguration != null) {
             internalProcessModel.setLogLevel(processConfiguration.getLogLevel());
-            internalProcessModel.setExclude(njams.isExcluded(path));
+            internalProcessModel.setExclude(njams.getConfiguration().hasProcessExcludeFilter(path));
             internalProcessModel.setRecording(processConfiguration.isRecording());
         } else {
             internalProcessModel.setRecording(njams.getConfiguration().isRecording());

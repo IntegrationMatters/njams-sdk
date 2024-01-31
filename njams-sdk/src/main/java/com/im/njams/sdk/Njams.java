@@ -76,7 +76,6 @@ import com.im.njams.sdk.configuration.Configuration;
 import com.im.njams.sdk.configuration.ConfigurationInstructionListener;
 import com.im.njams.sdk.configuration.ConfigurationProvider;
 import com.im.njams.sdk.configuration.ConfigurationProviderFactory;
-import com.im.njams.sdk.configuration.ProcessFilter;
 import com.im.njams.sdk.configuration.provider.FileConfigurationProvider;
 import com.im.njams.sdk.logmessage.DataMasking;
 import com.im.njams.sdk.logmessage.Job;
@@ -267,7 +266,6 @@ public class Njams implements InstructionListener {
 
     private ArgosSender argosSender = null;
     private final Collection<ArgosMultiCollector<?>> argosCollectors = new ArrayList<>();
-    private final ProcessFilter processFilter;
 
     /**
      * Create a nJAMS client without the information about the runtimeVersion of the client.
@@ -305,7 +303,6 @@ public class Njams implements InstructionListener {
         argosSender = ArgosSender.getInstance();
         argosSender.init(settings);
         loadConfigurationProvider();
-        processFilter = new ProcessFilter(configuration);
         createTreeElements(path, TreeElementType.CLIENT);
         readVersionsFromVersionFile(version);
         this.runtimeVersion = runtimeVersion;
@@ -1374,7 +1371,7 @@ public class Njams implements InstructionListener {
      * @return true if the process is excluded, or false if not
      */
     public boolean isExcluded(Path processPath) {
-        return !processFilter.isSelected(processPath);
+        return configuration.isProcessExcluded(processPath);
     }
 
     /**

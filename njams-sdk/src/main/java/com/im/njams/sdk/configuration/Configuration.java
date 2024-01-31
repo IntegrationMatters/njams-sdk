@@ -51,7 +51,8 @@ public class Configuration {
     private List<String> dataMasking = new ArrayList<>();
     private Boolean recording = null;
 
-    private Collection<ProcessFilterEntry> processFilter = new ArrayList<>();
+    private final ProcessFilter processFilter = new ProcessFilter(this);
+    private Collection<ProcessFilterEntry> processFilters = new ArrayList<>();
 
     /**
      * Set a default value for {@link #isRecording()} which is used only as default when creating a new configuration.
@@ -183,12 +184,60 @@ public class Configuration {
         this.recording = recording;
     }
 
-    public Collection<ProcessFilterEntry> getProcessFilter() {
-        return processFilter;
+    /**
+     * @return List of all defined process (-path) filters.
+     */
+    public Collection<ProcessFilterEntry> getProcessFilters() {
+        return processFilters;
     }
 
-    public void setProcessFilter(Collection<ProcessFilterEntry> processFilter) {
-        this.processFilter = processFilter;
+    /**
+     * Sets (overwrites) all process (-path) filters.
+     * @param processFilter New filters to set
+     */
+    public void setProcessFilters(Collection<ProcessFilterEntry> processFilters) {
+        this.processFilters = processFilters;
     }
 
+    /**
+     * Adds a process filter to the current list of filters.
+     * @param processFilter The filter to add.
+     */
+    public void addProcessFilter(ProcessFilterEntry processFilter) {
+        processFilters.add(processFilter);
+    }
+
+    /**
+     * Returns <code>true</code> if the given process is excluded from processing for any reason.
+     * @param processPath The process path to test
+     * @return <code>true</code> if the process must not be processed.
+     * @see ProcessFilter#isSelected(Path)
+     */
+    public boolean isProcessExcluded(Path processPath) {
+        return !processFilter.isSelected(processPath);
+    }
+
+    /**
+     * Returns <code>true</code> only if there is a specific exclude setting for given process.<br>
+     * This is not the same as {@link #isProcessExcluded(Path)} since there may be additional filters that lead to
+     * excluding this process.<br>
+     * This method is mainly for processing configuration commands from nJAMS server.
+     * @param processPath The process path to test
+     * @return Whether there is a specific exclude filter for the given process.
+     * @see ProcessFilter#hasExcludeFilter(Path)
+     */
+    public boolean hasProcessExcludeFilter(Path processPath) {
+        return processFilter.hasExcludeFilter(processPath);
+    }
+
+    /**
+     * Sets an exclude filter for the given process, or removes it according to the given <code>exclude</code>
+     * parameter.
+     * @param processPath The process path for that an exclude shall be updated
+     * @param excluded If <code>true</code>, an exclude filter is set, otherwise it's removed.
+     * @see ProcessFilter#setExcluded(Path, boolean)
+     */
+    public void setProcessExcluded(Path processPath, boolean excluded) {
+        processFilter.setExcluded(processPath, excluded);
+    }
 }
