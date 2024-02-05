@@ -79,4 +79,11 @@ public interface ConfigurationProvider {
     default Set<String> getSecureProperties() {
         return Collections.emptySet();
     }
+
+    /**
+     * Has to create a new {@link ProcessConfiguration} initialized with defaults.
+     * @return
+     */
+    public ProcessConfiguration newProcesConfiguration();
+
 }

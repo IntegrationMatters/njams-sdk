@@ -35,8 +35,6 @@ import com.im.njams.sdk.settings.Settings;
  * @author pnientiedt
  */
 public class Configuration {
-    // this value is used only for initialization
-    private static boolean bootstrapRecording = true;
 
     @JsonIgnore
     private ConfigurationProvider configurationProvider;
@@ -49,18 +47,10 @@ public class Configuration {
      */
     @Deprecated
     private List<String> dataMasking = new ArrayList<>();
-    private Boolean recording = null;
+    private boolean recording = true;
 
     private final ProcessFilter processFilter = new ProcessFilter(this);
     private Collection<ProcessFilterEntry> processFilters = new ArrayList<>();
-
-    /**
-     * Set a default value for {@link #isRecording()} which is used only as default when creating a new configuration.
-     * @param enabled When recording is should be enabled.
-     */
-    public static void setRecordingBootstrapValue(boolean enabled) {
-        bootstrapRecording = enabled;
-    }
 
     /**
      * @param configurationProvider to be set
@@ -122,7 +112,7 @@ public class Configuration {
     public ProcessConfiguration getProcess(String processPath) {
         ProcessConfiguration process = processes.get(processPath);
         if (process == null) {
-            process = new ProcessConfiguration();
+            process = getConfigurationProvider().newProcesConfiguration();
             process.setRecording(isRecording());
             processes.put(processPath, process);
         }
@@ -174,7 +164,7 @@ public class Configuration {
      * @return the recording
      */
     public boolean isRecording() {
-        return recording != null ? recording : bootstrapRecording;
+        return recording;
     }
 
     /**

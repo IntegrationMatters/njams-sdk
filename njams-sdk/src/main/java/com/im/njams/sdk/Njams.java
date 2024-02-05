@@ -334,8 +334,6 @@ public class Njams implements InstructionListener {
      * Load the ConfigurationProvider via the provided Properties
      */
     private void loadConfigurationProvider() {
-        Configuration.setRecordingBootstrapValue(
-            !"false".equalsIgnoreCase(settings.getProperty(NjamsSettings.PROPERTY_BOOSTRAP_RECORDING)));
         if (!settings.containsKey(ConfigurationProviderFactory.CONFIGURATION_PROVIDER)) {
             settings.put(ConfigurationProviderFactory.CONFIGURATION_PROVIDER, DEFAULT_CACHE_PROVIDER);
         }

@@ -248,6 +248,17 @@ public class NjamsSettings {
      */
     public static final String PROPERTY_PAYLOAD_LIMIT_SIZE = "njams.sdk.payload.limit.size";
 
+    /**
+     * Since 5.0.0
+     * Defines the default log-mode that is used until the client's configuration contains a specific setting for that.
+     */
+    public static final String PROPERTY_LOG_MODE_DEFAULT = "njams.sdk.logMode.default";
+    /**
+     * Since 5.0.0
+     * Defines the default log-level that is used until a process' configuration contains a specific setting for that.
+     */
+    public static final String PROPERTY_LOG_LEVEL_DEFAULT = "njams.sdk.logLevel.default";
+
     //     _____      _   _   _
     //    / ____|    | | | | (_)
     //   | (___   ___| |_| |_ _ _ __   __ _ ___

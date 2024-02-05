@@ -12,23 +12,29 @@ import com.im.njams.sdk.common.JsonSerializerFactory;
 import com.im.njams.sdk.common.Path;
 import com.im.njams.sdk.configuration.ProcessFilterEntry.FilterType;
 import com.im.njams.sdk.configuration.ProcessFilterEntry.MatcherType;
+import com.im.njams.sdk.configuration.provider.MemoryConfigurationProvider;
 
 public class ProcessFilterTest {
 
     private static final Logger LOG = LoggerFactory.getLogger(ProcessFilterTest.class);
 
     private static class Builder {
-        Configuration config = new Configuration() {
-            @Override
-            public void save() {
-                try {
-                    LOG.debug(JsonSerializerFactory.getDefaultMapper().writeValueAsString(this));
-                } catch (JsonProcessingException e) {
-                    // TODO Auto-generated catch block
-                    e.printStackTrace();
+        final Configuration config;
+
+        public Builder() {
+            config = new Configuration() {
+                @Override
+                public void save() {
+                    try {
+                        LOG.debug(JsonSerializerFactory.getDefaultMapper().writeValueAsString(this));
+                    } catch (JsonProcessingException e) {
+                        // TODO Auto-generated catch block
+                        e.printStackTrace();
+                    }
                 }
             };
-        };
+            config.setConfigurationProvider(new MemoryConfigurationProvider());
+        }
 
         public Builder inValue(String value) {
             config.addProcessFilter(new ProcessFilterEntry(FilterType.INCLUDE, MatcherType.VALUE, value));
@@ -61,6 +67,7 @@ public class ProcessFilterTest {
         }
 
         public ProcessFilter build() {
+            config.setConfigurationProvider(new MemoryConfigurationProvider());
             return new ProcessFilter(config);
         }
     }

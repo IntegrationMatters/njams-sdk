@@ -37,7 +37,7 @@ public class ProcessConfiguration {
     /**
      * Use {@link Configuration#getProcess(com.im.njams.sdk.common.Path)} for creating an instance.
      */
-    ProcessConfiguration() {
+    public ProcessConfiguration() {
         // instances created by Configuration class
     }
 

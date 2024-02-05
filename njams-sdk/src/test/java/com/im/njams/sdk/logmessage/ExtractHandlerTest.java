@@ -43,6 +43,7 @@ import com.im.njams.sdk.communication.TestReceiver;
 import com.im.njams.sdk.configuration.ActivityConfiguration;
 import com.im.njams.sdk.configuration.Configuration;
 import com.im.njams.sdk.configuration.ProcessConfiguration;
+import com.im.njams.sdk.configuration.provider.MemoryConfigurationProvider;
 import com.im.njams.sdk.logmessage.ExtractHandler.ExtractSource;
 import com.im.njams.sdk.model.ActivityModel;
 import com.im.njams.sdk.model.ProcessModel;
@@ -80,13 +81,14 @@ public class ExtractHandlerTest {
 
         //-------- The Configuration with the ProcessConfiguration
         Configuration conf = new Configuration();
+        conf.setConfigurationProvider(new MemoryConfigurationProvider());
         conf.setLogMode(LogMode.COMPLETE);
         conf.setDataMasking(new ArrayList<>());
         conf.setRecording(true);
 
         //-------- The ProcessConfiguration with the ActivityConfiguration
         ProcessConfiguration processConf =
-                conf.getProcess(njams.getProcessModel(processPath).getPath());
+            conf.getProcess(njams.getProcessModel(processPath).getPath());
 
         processConf.setLogLevel(LogLevel.INFO);
         processConf.setExclude(false);
