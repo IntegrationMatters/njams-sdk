@@ -82,7 +82,7 @@ public interface ConfigurationProvider {
 
     /**
      * Has to create a new {@link ProcessConfiguration} initialized with defaults.
-     * @return
+     * @return  A new pre-initialized {@link #newProcesConfiguration()}
      */
     public ProcessConfiguration newProcesConfiguration();
 

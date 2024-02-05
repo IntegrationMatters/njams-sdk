@@ -10,14 +10,22 @@ import com.faizsiegeln.njams.messageformat.v4.projectmessage.LogMode;
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.configuration.ConfigurationProvider;
 import com.im.njams.sdk.configuration.ProcessConfiguration;
+import com.im.njams.sdk.settings.Settings;
 import com.im.njams.sdk.utils.StringUtils;
 
+/**
+ * A base implementation for {@link ConfigurationProvider} that manages common default that are provided via
+ * {@link Settings}.
+ */
 public abstract class AbstractConfigurationProvider implements ConfigurationProvider {
 
     private static final Logger LOG = LoggerFactory.getLogger(AbstractConfigurationProvider.class);
     private static final String CONFIG_PREFIX = "$$" + AbstractConfigurationProvider.class.getSimpleName() + ".";
+    /** Key used for passing default setting for <code>recording</code> into this provider. */
     public static final String DEFAULT_RECORDING_CONFIG = CONFIG_PREFIX + "recording.default.";
+    /** Key used for passing default setting for <code>logMode</code> into this provider. */
     public static final String DEFAULT_LOG_MODE_CONFIG = CONFIG_PREFIX + "logMode.default";
+    /** Key used for passing default setting for <code>logLevel</code> into this provider. */
     public static final String DEFAULT_LOG_LEVEL_CONFIG = CONFIG_PREFIX + "logLevel.default";
 
     private Njams njams = null;
