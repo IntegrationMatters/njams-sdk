@@ -265,11 +265,6 @@
                                     <pattern>io.burt.jmespath</pattern>
                                     <shadedPattern>com.im.jmespath</shadedPattern>
                                 </relocation>
-                                <!-- Oshi -->
-                                <relocation>
-                                    <pattern>oshi</pattern>
-                                    <shadedPattern>com.im.oshi</shadedPattern>
-                                </relocation>
                                 <!-- SDK-270: Kafka must not be relocated -->
                                 <relocation>
                                     <pattern>net.jpountz</pattern>
