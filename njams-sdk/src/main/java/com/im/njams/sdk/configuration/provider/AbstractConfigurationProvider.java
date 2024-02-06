@@ -60,22 +60,26 @@ public abstract class AbstractConfigurationProvider implements ConfigurationProv
         if (StringUtils.isBlank(val)) {
             return;
         }
-        try {
-            defaultLogMode = LogMode.valueOf(val);
-        } catch (Exception e) {
-            LOG.warn("Could not initialize default log-mode. Unsupported value: {}", val);
+        for (LogMode l : LogMode.values()) {
+            if (l.name().equalsIgnoreCase(val)) {
+                defaultLogMode = l;
+                return;
+            }
         }
+        LOG.warn("Could not initialize default log-mode. Unsupported value: {}", val);
     }
 
     private void initLogLevel(String val) {
         if (StringUtils.isBlank(val)) {
             return;
         }
-        try {
-            defaultLogLevel = LogLevel.valueOf(val);
-        } catch (Exception e) {
-            LOG.warn("Could not initialize default log-level. Unsupported value: {}", val);
+        for (LogLevel l : LogLevel.values()) {
+            if (l.name().equalsIgnoreCase(val)) {
+                defaultLogLevel = l;
+                return;
+            }
         }
+        LOG.warn("Could not initialize default log-level. Unsupported value: {}", val);
 
     }
 
