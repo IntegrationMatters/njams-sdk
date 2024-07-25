@@ -109,7 +109,7 @@ public class HttpSender extends AbstractSender {
     private static final String INGEST_API_PATH = "api/processing/ingest/";
     private static final String LEGACY_CONNECTION_TEST_PATH = "api/public/version";
     private static final int EXCEPTION_IDLE_TIME = 50;
-    private static final int MAX_TRIES = 100;
+    private static final int MAX_TRIES = 20;
 
     private static final int OK = 200;
     private static final int NO_CONTENT = 204;

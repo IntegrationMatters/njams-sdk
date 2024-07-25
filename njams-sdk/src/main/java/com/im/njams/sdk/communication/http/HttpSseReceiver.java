@@ -37,13 +37,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
-import com.faizsiegeln.njams.messageformat.v4.common.CommonMessage;
 import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.common.Path;
 import com.im.njams.sdk.communication.AbstractReceiver;
 import com.im.njams.sdk.communication.ConnectionStatus;
-import com.im.njams.sdk.communication.SenderExceptionListener;
 import com.im.njams.sdk.utils.JsonUtils;
 import com.im.njams.sdk.utils.StringUtils;
 import com.launchdarkly.eventsource.ConnectStrategy;
@@ -65,7 +63,7 @@ import okhttp3.Response;
  *
  * @author bwand
  */
-public class HttpSseReceiver extends AbstractReceiver implements SenderExceptionListener, BackgroundEventHandler {
+public class HttpSseReceiver extends AbstractReceiver implements BackgroundEventHandler {
 
     private static final Logger LOG = LoggerFactory.getLogger(HttpSseReceiver.class);
 
@@ -251,7 +249,6 @@ public class HttpSseReceiver extends AbstractReceiver implements SenderException
             LOG.debug("Received non json event -> ignore");
             return false;
         }
-
         return true;
     }
 
@@ -299,14 +296,6 @@ public class HttpSseReceiver extends AbstractReceiver implements SenderException
             response.close();
         } catch (IOException e) {
             LOG.error("Failed to send response for request {} (clientId={})", requestId, clientId, e);
-        }
-    }
-
-    @Override
-    public void onException(Exception exception, CommonMessage msg) {
-        if (exception instanceof HttpSendException) {
-            LOG.debug("Received HttpSendException from sender", exception);
-            onError(exception);
         }
     }
 
