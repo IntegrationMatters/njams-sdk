@@ -110,10 +110,9 @@ public class HttpSseReceiver extends AbstractReceiver implements BackgroundEvent
     @Override
     public void connect() {
         LOG.trace("Enter connect.");
-        long connectWait = 1000;
         boolean unlock = false;
         try {
-            if (!connectLock.tryLock(connectWait * 4, TimeUnit.MILLISECONDS)) {
+            if (!connectLock.tryLock(4, TimeUnit.SECONDS)) {
                 if (isConnected()) {
                     return;
                 }
@@ -125,20 +124,25 @@ public class HttpSseReceiver extends AbstractReceiver implements BackgroundEvent
                 return;
             }
             connectionStatus = ConnectionStatus.CONNECTING;
-            if (client == null) {
-                client = clientFactory.createClient();
-            }
 
-            BackgroundEventSource.Builder builder =
-                    new BackgroundEventSource.Builder(this,
-                            new EventSource.Builder(
-                                    ConnectStrategy
-                                            .http(subscribeUri)
-                                            .httpClient(client))
-                                                    .errorStrategy(ErrorStrategy.alwaysContinue()));
-            source = builder.build();
             connectError = null;
             synchronized (this) {
+                if (source != null) {
+                    close();
+                }
+                if (client == null) {
+                    client = clientFactory.createClient();
+                }
+                BackgroundEventSource.Builder builder =
+                        new BackgroundEventSource.Builder(this,
+                                new EventSource.Builder(
+                                        ConnectStrategy
+                                                .http(subscribeUri)
+                                                .httpClient(client))
+                                                        .errorStrategy(
+                                                                ErrorStrategy.continueWithTimeLimit(2,
+                                                                        TimeUnit.SECONDS)));
+                source = builder.build();
                 LOG.debug("Start connect...");
                 source.getEventSource().start();
                 source.start();
@@ -151,6 +155,7 @@ public class HttpSseReceiver extends AbstractReceiver implements BackgroundEvent
                  * error handling to occur in parallel.
                  *
                  */
+                long connectWait = 2000;
                 final long waitEnd = System.currentTimeMillis() + connectWait;
                 while (connectWait > 0) {
                     if (connectError != null || source.getEventSource().getState() != ReadyState.OPEN) {
@@ -166,6 +171,7 @@ public class HttpSseReceiver extends AbstractReceiver implements BackgroundEvent
             connectionStatus = ConnectionStatus.CONNECTED;
             LOG.debug("Subscribed SSE receiver to {}", subscribeUri);
         } catch (final Throwable e) {
+            LOG.debug("Connect error", e);
             close();
             throw new NjamsSdkRuntimeException("Exception during registering SSE endpoint.", e);
         } finally {
@@ -258,13 +264,29 @@ public class HttpSseReceiver extends AbstractReceiver implements BackgroundEvent
             return;
         }
         connectionStatus = ConnectionStatus.DISCONNECTED;
-        close();
+        try {
+            if (connectLock.tryLock(1, TimeUnit.SECONDS)) {
+                try {
+                    close();
+                } finally {
+                    connectLock.unlock();
+                }
+            }
+        } catch (InterruptedException e) {
+            LOG.debug("Failed to get lock for closing.", e);
+            Thread.currentThread().interrupt();
+        }
     }
 
     private void close() {
+        LOG.debug("Called close", new Exception("Called close"));
         if (source != null) {
             source.close();
             source = null;
+        }
+        if (client != null) {
+            client.connectionPool().evictAll();
+            client = null;
         }
     }
 
