@@ -94,6 +94,7 @@ public abstract class AbstractSender implements Sender {
             connect();
         } catch (Exception e) {
             LOG.error("Startup of sender {} failed.", getName(), e);
+            LOG.warn(getDiscardPolicyWarning());
             reconnect(e);
         }
     }
@@ -293,5 +294,18 @@ public abstract class AbstractSender implements Sender {
      */
     public void setShouldShutdown(boolean shutdown) {
         shouldShutdown.set(shutdown);
+    }
+
+    public String getDiscardPolicyWarning(){
+        switch(this.discardPolicy){
+            case NONE:
+                return "Discard Policy is set to NONE. Runtime will be stopped until the connection is reestablished.";
+            case DISCARD:
+                return "Discard Policy is set to DISCARD. Messages will be discarded until the connection is reestablished. This will affect the monitoring with nJAMS.";
+            case ON_CONNECTION_LOSS:
+                return "Discard Policy is set to ON_CONNECTION_LOSS. Messages will be discarded until the connection is reestablished. This will affect the monitoring with nJAMS.";
+            default:
+                return "Could not get Discard Policy.";
+        }
     }
 }

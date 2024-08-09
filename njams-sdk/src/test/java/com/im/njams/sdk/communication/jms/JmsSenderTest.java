@@ -19,12 +19,7 @@ package com.im.njams.sdk.communication.jms;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 import java.time.LocalDateTime;
 
@@ -34,6 +29,7 @@ import javax.jms.ResourceAllocationException;
 import javax.jms.Session;
 import javax.jms.TextMessage;
 
+import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import org.junit.Test;
 
 import com.faizsiegeln.njams.messageformat.v4.common.CommonMessage;
@@ -83,6 +79,16 @@ public class JmsSenderTest {
         } catch (JsonProcessingException ex) {
             fail(ex.getMessage());
         }
+    }
+
+    @Test
+    public void logDiscardMessageTest() {
+        final JmsSender sender = spy(new JmsSender());
+        //sender.init(SETTINGS.getAllProperties());
+        doThrow(new NjamsSdkRuntimeException("Unable to connect", new Exception())).when(sender).connect();
+        doNothing().when(sender).reconnect(any());
+        sender.startup();
+        verify(sender, times(1)).getDiscardPolicyWarning();
     }
 
     @Test
