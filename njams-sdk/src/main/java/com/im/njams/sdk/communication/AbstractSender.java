@@ -51,7 +51,7 @@ public abstract class AbstractSender implements Sender {
     protected Properties properties;
     private Collection<SenderExceptionListener> exceptionListeners = Collections.newSetFromMap(new IdentityHashMap<>());
 
-    private static final AtomicBoolean hasConnected = new AtomicBoolean(false);
+    public static final AtomicBoolean hasConnected = new AtomicBoolean(false);
 
     private static final AtomicInteger connecting = new AtomicInteger(0);
 
@@ -296,7 +296,7 @@ public abstract class AbstractSender implements Sender {
         shouldShutdown.set(shutdown);
     }
 
-    public String getDiscardPolicyWarning(){
+    protected String getDiscardPolicyWarning(){
         switch(this.discardPolicy){
             case NONE:
                 return "Discard Policy is set to NONE. Runtime will be stopped until the connection is reestablished.";

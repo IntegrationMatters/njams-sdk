@@ -25,6 +25,8 @@ import org.slf4j.LoggerFactory;
 import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.settings.Settings;
 
+import static com.im.njams.sdk.communication.AbstractSender.hasConnected;
+
 /**
  * implements the maxQueueLength handling
  * its behavior is controlled using the njams.client.sdk.discardpolicy property
@@ -42,36 +44,45 @@ public class MaxQueueLengthHandler implements RejectedExecutionHandler {
                 NjamsSettings.PROPERTY_DISCARD_POLICY, NjamsSettings.OLD_DISCARD_POLICY));
     }
 
+
     @Override
     public void rejectedExecution(Runnable r, ThreadPoolExecutor executor) {
         LOG.trace("Applying discard policy [{}]", discardPolicy);
         switch (discardPolicy) {
         case DISCARD:
-            LOG.debug("Message discarded");
-            DiscardMonitor.discard();
+            discard();
             break;
         case ON_CONNECTION_LOSS:
-            // discardPolicy onConnectionLoss must be handled inside sender implementation,
-            // as the connection status cannot be checked here!
+            if(!hasConnected.get()){
+                discard();
+                break;
+            }
             //
             // intentional fall-through
         case NONE:
             // intentional fall-through
         default:
-            if (!executor.isShutdown()) {
-                try {
-                    // block until this entry can be added
-                    LOG.trace("Waiting for free slot in dispatch queue");
-                    long start = System.currentTimeMillis();
-                    executor.getQueue().put(r);
-                    ThrottleMonitor.throttle(System.currentTimeMillis() - start);
-                } catch (InterruptedException e) {
-                    // exit handler
-                }
-            }
+            blockRuntime(r, executor);
             break;
         }
+    }
 
+    protected void discard(){
+        LOG.debug("Message discarded");
+        DiscardMonitor.discard();
+    }
+
+    protected void blockRuntime(Runnable r, ThreadPoolExecutor executor){
+        if (!executor.isShutdown()) {
+            try {
+                LOG.trace("Waiting for free slot in dispatch queue");
+                long start = System.currentTimeMillis();
+                executor.getQueue().put(r);
+                ThrottleMonitor.throttle(System.currentTimeMillis() - start);
+            } catch (InterruptedException e) {
+                // exit handler
+            }
+        }
     }
 
 }

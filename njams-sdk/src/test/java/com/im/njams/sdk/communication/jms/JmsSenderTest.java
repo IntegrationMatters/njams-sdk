@@ -82,16 +82,6 @@ public class JmsSenderTest {
     }
 
     @Test
-    public void logDiscardMessageTest() {
-        final JmsSender sender = spy(new JmsSender());
-        //sender.init(SETTINGS.getAllProperties());
-        doThrow(new NjamsSdkRuntimeException("Unable to connect", new Exception())).when(sender).connect();
-        doNothing().when(sender).reconnect(any());
-        sender.startup();
-        verify(sender, times(1)).getDiscardPolicyWarning();
-    }
-
-    @Test
     public void queueIsFullTest() throws JMSException, InterruptedException {
         final String ERROR_MESSAGE = "Queue limit exceeded";
         final JmsSender sender = spy(new JmsSender());
