@@ -103,9 +103,9 @@ public class JmsSender extends AbstractSender implements ExceptionListener, Clas
             context = new InitialContext(PropertyUtil.filterAndCut(properties, NjamsSettings.PROPERTY_JMS_PREFIX));
             ConnectionFactory factory = NjamsConnectionFactory.getFactory(context, properties);
             if (StringUtils.isNotBlank(properties.getProperty(NjamsSettings.PROPERTY_JMS_USERNAME))
-                && StringUtils.isNotBlank(properties.getProperty(NjamsSettings.PROPERTY_JMS_PASSWORD))) {
+                    && StringUtils.isNotBlank(properties.getProperty(NjamsSettings.PROPERTY_JMS_PASSWORD))) {
                 connection = factory.createConnection(properties.getProperty(NjamsSettings.PROPERTY_JMS_USERNAME),
-                    properties.getProperty(NjamsSettings.PROPERTY_JMS_PASSWORD));
+                        properties.getProperty(NjamsSettings.PROPERTY_JMS_PASSWORD));
             } else {
                 connection = factory.createConnection();
             }
@@ -221,7 +221,7 @@ public class JmsSender extends AbstractSender implements ExceptionListener, Clas
     }
 
     protected void sendMessage(CommonMessage msg, String messageType, String data, String clientSessionId)
-        throws JMSException, InterruptedException {
+            throws JMSException, InterruptedException {
         TextMessage textMessage = session.createTextMessage(data);
         if (msg instanceof LogMessage) {
             textMessage.setStringProperty(NJAMS_LOGID_HEADER, ((LogMessage) msg).getLogId());
@@ -248,14 +248,14 @@ public class JmsSender extends AbstractSender implements ExceptionListener, Clas
             } catch (ResourceAllocationException ex) {
                 if (discardPolicy == DiscardPolicy.ON_CONNECTION_LOSS) {
                     LOG.debug("JMS Queue limit exceeded. Applying discard policy [{}]. Message discarded.",
-                        discardPolicy);
+                            discardPolicy);
                     DiscardMonitor.discard();
                     break;
                 }
                 //Queue limit exceeded
                 if (++tries >= MAX_TRIES) {
                     LOG.warn("Try to reconnect, because the MessageQueue hasn't got enough space after {} seconds.",
-                        MAX_TRIES * EXCEPTION_IDLE_TIME);
+                            MAX_TRIES * EXCEPTION_IDLE_TIME);
                     throw ex;
                 }
                 Thread.sleep(EXCEPTION_IDLE_TIME);
@@ -308,19 +308,6 @@ public class JmsSender extends AbstractSender implements ExceptionListener, Clas
         return COMMUNICATION_NAME;
     }
 
-    @Override
-    protected void onException(Exception exception) {
-        if (reconnector != null && reconnector.isAlive()) {
-            return;
-        }
-        close();
-        // reconnect
-        reconnector = new Thread(() -> reconnect(exception));
-        reconnector.setDaemon(true);
-        reconnector.setName(String.format("%s-Sender-Reconnector-Thread", getName()));
-        reconnector.start();
-    }
-
     /**
      * This method gets all libraries that need to be checked.
      *
@@ -329,10 +316,10 @@ public class JmsSender extends AbstractSender implements ExceptionListener, Clas
     @Override
     public String[] librariesToCheck() {
         return new String[] { "javax.jms.Connection", "javax.jms.ConnectionFactory", "javax.jms.Destination",
-            "javax.jms.ExceptionListener",
-            "javax.jms.Session", "javax.jms.JMSException",
-            "javax.jms.MessageProducer",
-            "javax.jms.Session", "javax.jms.TextMessage", "javax.naming.InitialContext",
-            "javax.naming" + ".NameNotFoundException", "javax.naming.NamingException" };
+                "javax.jms.ExceptionListener",
+                "javax.jms.Session", "javax.jms.JMSException",
+                "javax.jms.MessageProducer",
+                "javax.jms.Session", "javax.jms.TextMessage", "javax.naming.InitialContext",
+                "javax.naming" + ".NameNotFoundException", "javax.naming.NamingException" };
     }
 }

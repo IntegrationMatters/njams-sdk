@@ -144,22 +144,22 @@ public class NjamsSender {
      */
     public void init(Properties properties) {
         int minSenderThreads =
-            (int) getLongProperty(properties, 1, PROPERTY_MIN_SENDER_THREADS, OLD_MIN_SENDER_THREADS);
+                (int) getLongProperty(properties, 1, PROPERTY_MIN_SENDER_THREADS, OLD_MIN_SENDER_THREADS);
         int maxSenderThreads =
-            (int) getLongProperty(properties, 8, PROPERTY_MAX_SENDER_THREADS, OLD_MAX_SENDER_THREADS);
+                (int) getLongProperty(properties, 8, PROPERTY_MAX_SENDER_THREADS, OLD_MAX_SENDER_THREADS);
         int maxQueueLength = (int) getLongProperty(properties, 8, PROPERTY_MAX_QUEUE_LENGTH, OLD_MAX_QUEUE_LENGTH);
         long idleTime =
-            getLongProperty(properties, 10000, PROPERTY_SENDER_THREAD_IDLE_TIME, OLD_SENDER_THREAD_IDLE_TIME);
+                getLongProperty(properties, 10000, PROPERTY_SENDER_THREAD_IDLE_TIME, OLD_SENDER_THREAD_IDLE_TIME);
         LOG.debug("Init thread pool (min={}, max={}, queue={}, idle={})", minSenderThreads, maxSenderThreads,
-            maxQueueLength, idleTime);
+                maxQueueLength, idleTime);
         validateThreadPool(minSenderThreads, maxSenderThreads, maxQueueLength, idleTime);
         ThreadFactory threadFactory = new ThreadFactoryBuilder()
-            .setNamePrefix(getName() + "-Sender-Thread").setDaemon(true).build();
-        executor = new ThreadPoolExecutor(minSenderThreads, maxSenderThreads, idleTime, TimeUnit.MILLISECONDS,
-            new ArrayBlockingQueue<>(maxQueueLength), threadFactory,
-            new MaxQueueLengthHandler(properties));
+                .setNamePrefix(getName() + "-Sender-Thread").setDaemon(true).build();
         final CommunicationFactory communicationFactory = new CommunicationFactory(settings);
         senderPool = new SenderPool(communicationFactory);
+        executor = new ThreadPoolExecutor(minSenderThreads, maxSenderThreads, idleTime, TimeUnit.MILLISECONDS,
+                new ArrayBlockingQueue<>(maxQueueLength), threadFactory,
+                new MaxQueueLengthHandler(properties, senderPool::isConnectionFailure));
     }
 
     private void validateThreadPool(int minThreads, int maxThreads, int maxQueueLen, long idleTime) {
@@ -197,6 +197,7 @@ public class NjamsSender {
         if (executor.isShutdown() || executor.isTerminating()) {
             return;
         }
+        LOG.trace("Sending {}", msg);
         executor.execute(() -> {
             AbstractSender sender = null;
             try {
@@ -238,8 +239,8 @@ public class NjamsSender {
             senderPool.declareShutdown();
             if (!terminated) {
                 LOG.warn(
-                    "The termination time of the sender's threadpool has been exceeded ({} {}). Forcing shutdown now.",
-                    waitTime, unit);
+                        "The termination time of the sender's threadpool has been exceeded ({} {}). Forcing shutdown now.",
+                        waitTime, unit);
                 //This will call the interrupt() function of the threads
                 executor.shutdownNow();
             }

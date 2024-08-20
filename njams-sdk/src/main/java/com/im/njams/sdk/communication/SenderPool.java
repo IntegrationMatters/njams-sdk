@@ -20,7 +20,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.Iterator;
-import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Stream;
 
@@ -28,7 +28,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * pool for Sender sub-classes
+ * Pool for {@link AbstractSender} implementations.
  *
  * @author hsiegeln
  */
@@ -36,12 +36,10 @@ public class SenderPool {
     private static final Logger LOG = LoggerFactory.getLogger(SenderPool.class);
 
     private final CommunicationFactory factory;
-    // TODO: SDK-356: value is never used
-    private final Map<AbstractSender, Long> locked = new ConcurrentHashMap<>();
-    // TODO: SDK-356: value is never used
-    private final Map<AbstractSender, Long> unlocked = new ConcurrentHashMap<>();
+    private final Set<AbstractSender> locked = Collections.newSetFromMap(new ConcurrentHashMap<>());
+    private final Set<AbstractSender> unlocked = Collections.newSetFromMap(new ConcurrentHashMap<>());
     private final Collection<SenderExceptionListener> exceptionListeners =
-        Collections.newSetFromMap(new IdentityHashMap<>());
+            Collections.newSetFromMap(new IdentityHashMap<>());
     private boolean shutdown = false;
 
     public SenderPool(CommunicationFactory factory) {
@@ -55,6 +53,10 @@ public class SenderPool {
     public void addSenderExceptionListener(SenderExceptionListener listener) {
         exceptionListeners.add(listener);
         streamAll().forEach(s -> s.addExceptionListener(listener));
+    }
+
+    public boolean isConnectionFailure() {
+        return streamAll().anyMatch(AbstractSender::hasConnectionFailure);
     }
 
     protected AbstractSender create() {
@@ -103,16 +105,16 @@ public class SenderPool {
     private synchronized AbstractSender get(long timeout) {
         LOG.trace("Get locked={}, unlocked={}", locked.size(), unlocked.size());
         AbstractSender sender = null;
-        long now = System.currentTimeMillis();
+        final long now = System.currentTimeMillis();
         // try to get an object, until timeout expires
         do {
             if (!unlocked.isEmpty()) {
-                final Iterator<AbstractSender> it = unlocked.keySet().iterator();
+                final Iterator<AbstractSender> it = unlocked.iterator();
                 while (it.hasNext()) {
                     sender = it.next();
                     if (validate(sender)) {
                         it.remove();
-                        locked.put(sender, now);
+                        locked.add(sender);
                         LOG.trace("Got sender: {}", sender);
                         return sender;
                     }
@@ -130,7 +132,7 @@ public class SenderPool {
                 if (shutdown) {
                     sender.setShouldShutdown(true);
                 }
-                locked.put(sender, now);
+                locked.add(sender);
             }
         } while (sender == null && !shutdown && (timeout < 0 || System.currentTimeMillis() - now < timeout));
         LOG.debug("Created sender: {} (shouldShutdown={})", sender, shutdown);
@@ -140,7 +142,7 @@ public class SenderPool {
 
     public synchronized void close(AbstractSender t) {
         locked.remove(t);
-        unlocked.put(t, System.currentTimeMillis());
+        unlocked.add(t);
         LOG.trace("Close locked={}, unlocked={}", locked.size(), unlocked.size());
     }
 
@@ -156,6 +158,6 @@ public class SenderPool {
     }
 
     private Stream<AbstractSender> streamAll() {
-        return Stream.concat(locked.keySet().stream(), unlocked.keySet().stream());
+        return Stream.concat(unlocked.stream(), locked.stream());
     }
 }

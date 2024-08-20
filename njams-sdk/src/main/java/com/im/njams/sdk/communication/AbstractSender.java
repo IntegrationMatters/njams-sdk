@@ -49,6 +49,8 @@ public abstract class AbstractSender implements Sender {
     protected ConnectionStatus connectionStatus;
     protected DiscardPolicy discardPolicy = DiscardPolicy.DEFAULT;
     protected Properties properties;
+    protected boolean hasConnectionFailure = false;
+    private Thread reconnector = null;
     private Collection<SenderExceptionListener> exceptionListeners = Collections.newSetFromMap(new IdentityHashMap<>());
 
     private static final AtomicBoolean hasConnected = new AtomicBoolean(false);
@@ -71,7 +73,7 @@ public abstract class AbstractSender implements Sender {
     public void init(Properties properties) {
         this.properties = properties;
         discardPolicy = DiscardPolicy.byValue(Settings.getPropertyWithDeprecationWarning(properties,
-            NjamsSettings.PROPERTY_DISCARD_POLICY, NjamsSettings.OLD_DISCARD_POLICY));
+                NjamsSettings.PROPERTY_DISCARD_POLICY, NjamsSettings.OLD_DISCARD_POLICY));
     }
 
     /**
@@ -93,8 +95,22 @@ public abstract class AbstractSender implements Sender {
         try {
             connect();
         } catch (Exception e) {
-            LOG.error("Startup of sender {} failed.", getName(), e);
+            LOG.error("Startup of sender {} failed. Discard policy is set to '{}'. {}", getName(), discardPolicy,
+                    getDiscardPolicyMessage(), e);
             reconnect(e);
+        }
+    }
+
+    private String getDiscardPolicyMessage() {
+        switch (discardPolicy) {
+        case NONE:
+            return "Runtime will be blocked until the connection is established.";
+        case DISCARD:
+        case ON_CONNECTION_LOSS:
+            return "Messages will be discarded until the connection is established. "
+                    + "This will affect the monitoring with nJAMS.";
+        default:
+            return "Unkwown discard policy!";
         }
     }
 
@@ -119,15 +135,34 @@ public abstract class AbstractSender implements Sender {
     }
 
     /**
-     * initiates a reconnect, if isConnected() is false and no other reconnect
-     * is currently executed. Override this for your own reconnect handling
+     * Initiates a reconnect thread if {@link #isConnected()} is <code>false</code> and no other reconnect
+     * is currently running.
      *
-     * @param ex the exception that initiated the reconnect
+     * @param e the exception that initiated the reconnect
      */
-    public synchronized void reconnect(Exception ex) {
+    public synchronized void reconnect(Exception e) {
         if (isConnecting() || isConnected() || shouldShutdown.get()) {
             return;
         }
+        if (reconnector != null && reconnector.isAlive()) {
+            return;
+        }
+        reconnector = new Thread(() -> {
+            LOG.debug("Start reconnect thread for sender {}", this);
+            doReconnect(e);
+            LOG.debug("Reconnect thread for sender {} terminated.", this);
+        });
+        reconnector.setDaemon(true);
+        reconnector
+                .setName(String.format("Sender-Reconnector-Thread[%s/%d]", getName(), System.identityHashCode(this)));
+        reconnector.start();
+    }
+
+    /**
+     * Implements reconnect behavior. Override this for your own reconnect handling
+     * @param ex the exception that initiated the reconnect
+     */
+    protected synchronized void doReconnect(Exception ex) {
         synchronized (hasConnected) {
             hasConnected.set(false);
             if (LOG.isInfoEnabled() && ex != null) {
@@ -135,7 +170,7 @@ public abstract class AbstractSender implements Sender {
             }
             LOG.debug("{} senders are reconnecting now", connecting.incrementAndGet());
         }
-
+        hasConnectionFailure = true;
         while (!isConnected() && !shouldShutdown.get()) {
             try {
                 connect();
@@ -146,6 +181,7 @@ public abstract class AbstractSender implements Sender {
                     }
                     LOG.debug("{} senders still need to reconnect.", connecting.decrementAndGet());
                 }
+                hasConnectionFailure = false;
             } catch (Exception e) {
                 try {
                     Thread.sleep(1000);
@@ -177,6 +213,7 @@ public abstract class AbstractSender implements Sender {
      */
     @Override
     public void send(CommonMessage msg, String clientSessionId) {
+        LOG.trace("Sending message {}, state={}", msg, connectionStatus);
         // do this until message is sent or discard policy onConnectionLoss is satisfied
         boolean isSent = false;
         do {
@@ -198,7 +235,8 @@ public abstract class AbstractSender implements Sender {
                     onException(e);
                 }
             }
-            if (isDisconnected()) {
+            // if connecting, we're effectively disconnected
+            if (isDisconnected() || isConnecting()) {
                 // discard message, if onConnectionLoss is used
                 isSent = discardPolicy == DiscardPolicy.ON_CONNECTION_LOSS;
                 if (isSent) {
@@ -294,4 +332,13 @@ public abstract class AbstractSender implements Sender {
     public void setShouldShutdown(boolean shutdown) {
         shouldShutdown.set(shutdown);
     }
+
+    /**
+     * Returns <code>true</code> in case connection failed or could not be established initially.
+     * @return <code>true</code> only in case of connection failure.
+     */
+    public boolean hasConnectionFailure() {
+        return hasConnectionFailure;
+    }
+
 }

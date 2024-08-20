@@ -19,6 +19,7 @@ package com.im.njams.sdk.communication;
 import java.util.Properties;
 import java.util.concurrent.RejectedExecutionHandler;
 import java.util.concurrent.ThreadPoolExecutor;
+import java.util.function.Supplier;
 
 import org.slf4j.LoggerFactory;
 
@@ -26,8 +27,8 @@ import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.settings.Settings;
 
 /**
- * implements the maxQueueLength handling
- * its behavior is controlled using the njams.client.sdk.discardpolicy property
+ * Implements the <code>maxQueueLength</code> handling for senders.
+ * Its behavior is controlled using the {@value NjamsSettings#PROPERTY_DISCARD_POLICY} property
  *
  * @author hsiegeln
  */
@@ -36,42 +37,54 @@ public class MaxQueueLengthHandler implements RejectedExecutionHandler {
     private static final org.slf4j.Logger LOG = LoggerFactory.getLogger(MaxQueueLengthHandler.class);
 
     private final DiscardPolicy discardPolicy;
+    private final Supplier<Boolean> isConnectionLost;
 
-    public MaxQueueLengthHandler(Properties properties) {
+    @SuppressWarnings("removal")
+    public MaxQueueLengthHandler(final Properties properties, final Supplier<Boolean> isConnectionLost) {
         discardPolicy = DiscardPolicy.byValue(Settings.getPropertyWithDeprecationWarning(properties,
                 NjamsSettings.PROPERTY_DISCARD_POLICY, NjamsSettings.OLD_DISCARD_POLICY));
+        this.isConnectionLost = isConnectionLost;
     }
 
     @Override
-    public void rejectedExecution(Runnable r, ThreadPoolExecutor executor) {
-        LOG.trace("Applying discard policy [{}]", discardPolicy);
+    public void rejectedExecution(final Runnable r, final ThreadPoolExecutor executor) {
+        LOG.debug("Applying discard policy [{}]", discardPolicy);
         switch (discardPolicy) {
         case DISCARD:
-            LOG.debug("Message discarded");
+            LOG.trace("Message discarded (discard-policy={})", discardPolicy);
             DiscardMonitor.discard();
             break;
         case ON_CONNECTION_LOSS:
-            // discardPolicy onConnectionLoss must be handled inside sender implementation,
-            // as the connection status cannot be checked here!
-            //
-            // intentional fall-through
+            // discardPolicy onConnectionLoss must be handled also inside sender implementation,
+            // as it should apply also before the buffers are exhausted!
+            if (isConnectionLost.get()) {
+                LOG.trace("Message discarded (discard-policy={})", discardPolicy);
+                DiscardMonitor.discard();
+                break;
+            }
+
+            // intentional fall-through; if !isConnectionsLost, we will block processing
         case NONE:
-            // intentional fall-through
+            // intentional fall-through; block processing;
         default:
             if (!executor.isShutdown()) {
-                try {
-                    // block until this entry can be added
-                    LOG.trace("Waiting for free slot in dispatch queue");
-                    long start = System.currentTimeMillis();
-                    executor.getQueue().put(r);
-                    ThrottleMonitor.throttle(System.currentTimeMillis() - start);
-                } catch (InterruptedException e) {
-                    // exit handler
-                }
+                LOG.trace("Waiting for free slot in dispatch queue (discard-policy={})", discardPolicy);
+                blockThread(r, executor);
             }
             break;
         }
 
+    }
+
+    private void blockThread(final Runnable r, final ThreadPoolExecutor executor) {
+        try {
+            // block until this entry can be added
+            final long start = System.currentTimeMillis();
+            executor.getQueue().put(r);
+            ThrottleMonitor.throttle(System.currentTimeMillis() - start);
+        } catch (final InterruptedException e) {
+            // exit handler
+        }
     }
 
 }

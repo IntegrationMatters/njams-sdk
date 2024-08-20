@@ -261,7 +261,9 @@ public abstract class AbstractReceiver implements Receiver {
         // reconnect
         Thread reconnector = new Thread(() -> reconnect(exception));
         reconnector.setDaemon(true);
-        reconnector.setName(String.format("%s-Receiver-Reconnector-Thread", getName()));
+        reconnector
+                .setName(String.format("Receiver-Sender-Reconnector-Thread[%s/%d]", getName(),
+                        System.identityHashCode(this)));
         reconnector.start();
     }
 
