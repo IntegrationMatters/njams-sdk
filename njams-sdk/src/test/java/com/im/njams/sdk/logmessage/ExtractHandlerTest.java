@@ -88,7 +88,7 @@ public class ExtractHandlerTest {
 
         //-------- The ProcessConfiguration with the ActivityConfiguration
         ProcessConfiguration processConf =
-            conf.getProcess(njams.getProcessModel(processPath).getPath());
+                conf.getProcess(njams.getProcessModel(processPath).getPath());
 
         processConf.setLogLevel(LogLevel.INFO);
         processConf.setExclude(false);
@@ -121,7 +121,7 @@ public class ExtractHandlerTest {
         ActivityImpl impl = testExtract(ACTIVITYNAME, RuleType.VALUE, TESTVALUE);
         JobImpl job = (JobImpl) impl.getJob();
 
-        ExtractHandler.handleExtract(job, extract, impl, ExtractSource.INPUT, null, null);
+        ExtractHandler.handleExtract(job, extract, impl, ExtractSource.INPUT, null);
         Assert.assertNotNull(impl.getAttributes().get(TESTKEY));
         Assert.assertEquals(TESTVALUE, impl.getAttributes().get(TESTKEY));
     }
@@ -185,7 +185,7 @@ public class ExtractHandlerTest {
         ActivityImpl impl = testExtract(ACTIVITYNAME, RuleType.VALUE, TESTVALUE);
         JobImpl job = (JobImpl) impl.getJob();
 
-        ExtractHandler.handleExtract(job, extract, impl, ExtractSource.INPUT, null, null);
+        ExtractHandler.handleExtract(job, extract, impl, ExtractSource.INPUT, null);
         Assert.assertNotNull(impl.getAttributes().get(TESTKEY));
         Assert.assertEquals("********", impl.getAttributes().get(TESTKEY));
     }
@@ -201,7 +201,7 @@ public class ExtractHandlerTest {
         ActivityImpl impl = testExtract(ACTIVITYNAME, RuleType.REGEXP, EXTRACTPATTERN);
         JobImpl job = (JobImpl) impl.getJob();
 
-        ExtractHandler.handleExtract(job, extract, impl, ExtractSource.INPUT, "ABC" + TESTVALUE, null);
+        ExtractHandler.handleExtract(job, extract, impl, ExtractSource.INPUT, "ABC" + TESTVALUE);
         Assert.assertNotNull(impl.getAttributes().get(TESTKEY));
         Assert.assertEquals("ABCTest", impl.getAttributes().get(TESTKEY));
     }
@@ -221,7 +221,7 @@ public class ExtractHandlerTest {
         ActivityImpl impl = testExtract(ACTIVITYNAME, RuleType.REGEXP, EXTRACTPATTERN);
         JobImpl job = (JobImpl) impl.getJob();
 
-        ExtractHandler.handleExtract(job, extract, impl, ExtractSource.INPUT, "ABC" + TESTVALUE, null);
+        ExtractHandler.handleExtract(job, extract, impl, ExtractSource.INPUT, "ABC" + TESTVALUE);
         Assert.assertNotNull(impl.getAttributes().get(TESTKEY));
         Assert.assertEquals("ABC****Rule", impl.getAttributes().get(TESTKEY));
     }

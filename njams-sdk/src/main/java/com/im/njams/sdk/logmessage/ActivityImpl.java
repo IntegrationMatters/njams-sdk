@@ -26,9 +26,13 @@ import java.util.Objects;
 
 import javax.xml.bind.annotation.XmlTransient;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.faizsiegeln.njams.messageformat.v4.logmessage.ActivityStatus;
 import com.faizsiegeln.njams.messageformat.v4.logmessage.Predecessor;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.Extract;
+import com.faizsiegeln.njams.messageformat.v4.projectmessage.RuleType;
 import com.im.njams.sdk.common.DateTimeUtility;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.configuration.ActivityConfiguration;
@@ -39,9 +43,6 @@ import com.im.njams.sdk.model.GroupModel;
 import com.im.njams.sdk.model.SubProcessActivityModel;
 import com.im.njams.sdk.model.TransitionModel;
 import com.im.njams.sdk.utils.StringUtils;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * This is internal implementation of the Activity. It is a extension of the
@@ -231,19 +232,32 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
      */
     @Override
     public void processInput(Object input) {
-        if (input != null) {
-            handleTracing(input, true);
-            if (getInput() != null) {
-                addToEstimatedSize(getInput().length());
-                job.addToEstimatedSize(getInput().length());
-            }
+        final String serializedData;
+        if (isTracing() || needsData(extract)) {
+            serializedData = DataMasking.maskString(job.getNjams().serialize(input));
+        } else {
+            serializedData = null;
+        }
+        if (serializedData != null && isTracing()) {
+            handleTracing(serializedData, true);
         }
 
         if (extract != null) {
-            ExtractHandler.handleExtract(job, extract, this, ExtractSource.INPUT, input, getInput());
+            ExtractHandler.handleExtract(job, extract, this, ExtractSource.INPUT, serializedData);
         }
 
         inputProcessecd = true;
+    }
+
+    /**
+     * Returns whether the given extract needs input data to be evaluated.
+     * @param extract The {@link Extract} to check.
+     * @return <code>true</code> only if the given extracts needs input data.
+     */
+    private boolean needsData(Extract extract) {
+        return extract != null && extract.getExtractRules() != null && extract.getExtractRules()
+            .stream().anyMatch(r -> r.getRuleType() == RuleType.XPATH || r.getRuleType() == RuleType.REGEXP
+                || r.getRuleType() == RuleType.JMESPATH);
     }
 
     /**
@@ -283,15 +297,18 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
      */
     @Override
     public void processOutput(Object output) {
-        if (output != null) {
-            handleTracing(output, false);
-            if (getOutput() != null) {
-                addToEstimatedSize(getOutput().length());
-                job.addToEstimatedSize(getOutput().length());
-            }
+        final String serializedData;
+        if (isTracing() || needsData(extract)) {
+            serializedData = DataMasking.maskString(job.getNjams().serialize(output));
+        } else {
+            serializedData = null;
+        }
+        if (serializedData != null && isTracing()) {
+            handleTracing(serializedData, false);
+
         }
         if (extract != null) {
-            ExtractHandler.handleExtract(job, extract, this, ExtractSource.OUTPUT, output, getOutput());
+            ExtractHandler.handleExtract(job, extract, this, ExtractSource.OUTPUT, serializedData);
         }
 
         outputProcessed = true;
@@ -303,17 +320,16 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
      * @param data
      * @param input
      */
-    private void handleTracing(Object data, boolean input) {
-        if (data != null && isTracing()) {
-            // if there is any data to handle add trace data
-            if (input) {
-                setInput(job.getNjams().serialize(data));
-            } else {
-                setOutput(job.getNjams().serialize(data));
-            }
-            setExecutionIfNotSet();
-            job.setTraces(true);
+    private void handleTracing(String data, boolean input) {
+        if (input) {
+            setInput(data);
+        } else {
+            setOutput(data);
         }
+        addToEstimatedSize(data.length());
+        job.addToEstimatedSize(data.length());
+        setExecutionIfNotSet();
+        job.setTraces(true);
     }
 
     /**
@@ -335,7 +351,7 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
         if (job.isActiveTracepoint(tracepoint)) {
             tracepoint.increaseCurrentIterations();
             //activate deeptrace if needed
-            if (tracepoint.isDeeptrace()) {
+            if (Boolean.TRUE.equals(tracepoint.isDeeptrace())) {
                 job.setDeepTrace(true);
             }
             return true;
@@ -398,7 +414,6 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
         }
         try {
             //This will cause a NjamsSdkRuntimeException, if the eventStatus is not valid.
-            //            EventStatus.byValue(eventStatus);
             setEventStatus(EventStatus.byValue(eventStatus));
         } catch (NjamsSdkRuntimeException e) {
             LOG.error("{} for job with logId: {}. Using old status: {}", e.getMessage(), job.getLogId(),
