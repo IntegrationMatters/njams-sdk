@@ -16,13 +16,15 @@
  */
 package com.im.njams.sdk.communication;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.*;
+import static org.mockito.Mockito.*;
 
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
+import com.im.njams.sdk.Njams;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -34,6 +36,8 @@ import com.im.njams.sdk.AbstractTest;
 import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.settings.Settings;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
 
 /**
  * Tests the NjamsSender
@@ -176,6 +180,150 @@ public class NjamsSenderTest extends AbstractTest {
         assertEquals(counter.get(), ExceptionSender.TRIES + 1);
         TestSender.setSenderMock(null);
         assertEquals(counter.get(), ExceptionSender.TRIES + 1);
+    }
+
+    private static Settings discardPolicySettings;
+
+    @BeforeClass
+    public static void createDiscardPolicySettings() {
+        discardPolicySettings = new Settings();
+        discardPolicySettings.put(NjamsSettings.PROPERTY_COMMUNICATION, TestSender.NAME);
+        discardPolicySettings.put(NjamsSettings.PROPERTY_MIN_SENDER_THREADS, "3");
+        discardPolicySettings.put(NjamsSettings.PROPERTY_MAX_SENDER_THREADS, "10");
+        discardPolicySettings.put(NjamsSettings.PROPERTY_SENDER_THREAD_IDLE_TIME, "5000");
+    }
+
+    @Test
+    public void discardPolicyNoneOnStartupTest() {
+        testIfThreadBlocksOnStartup("none");
+    }
+
+    @Test
+    public void discardPolicyNoneTest() {
+        testIfThreadBlocks("none");
+    }
+
+    @Test
+    public void onConnectionLossOnStartupTest() {
+        testIfThreadBlocksOnStartup("onconnectionloss");
+    }
+
+    @Test
+    public void onConnectionLossTestTest() {
+        testIfThreadBlocks("onconnectionloss");
+    }
+
+    private void testIfThreadBlocks(String discardPolicy) {
+        createDiscardPolicySettings();
+        discardPolicySettings.put(NjamsSettings.PROPERTY_DISCARD_POLICY, discardPolicy);
+        NjamsSender sender = spy(new NjamsSender(discardPolicySettings));
+        ThreadPoolExecutor executor = sender.getExecutor();
+        MaxQueueLengthHandler maxQueueLengthHandler =
+            (MaxQueueLengthHandler) spy(executor.getRejectedExecutionHandler());
+        Runnable runnable = mock(Runnable.class);
+        doNothing().when(maxQueueLengthHandler).blockThread(any(), any());
+
+        int messagesToSend = 100;
+        for (int i = 0; i < messagesToSend; i++) {
+            try {
+                sender.send(new LogMessage(), null);
+            } catch (Exception e) {
+                maxQueueLengthHandler.rejectedExecution(runnable, executor);
+            }
+        }
+        verify(maxQueueLengthHandler, times(0)).rejectedExecution(runnable, executor);
+
+        //Connection loss
+        doThrow(new NjamsSdkRuntimeException(null)).when(sender).send(any(), any());
+        for (int i = 0; i < messagesToSend; i++) {
+            try {
+                sender.send(new LogMessage(), null);
+            } catch (Exception e) {
+                maxQueueLengthHandler.rejectedExecution(runnable, executor);
+            }
+        }
+        verify(maxQueueLengthHandler, times(messagesToSend)).rejectedExecution(runnable, executor);
+        verify(maxQueueLengthHandler, times(messagesToSend)).blockThread(runnable, executor);
+    }
+
+    private void testIfThreadBlocksOnStartup(String discardPolicy) {
+        createDiscardPolicySettings();
+        discardPolicySettings.put(NjamsSettings.PROPERTY_DISCARD_POLICY, discardPolicy);
+        NjamsSender sender = spy(new NjamsSender(discardPolicySettings));
+        ThreadPoolExecutor executor = sender.getExecutor();
+        MaxQueueLengthHandler maxQueueLengthHandler =
+            (MaxQueueLengthHandler) spy(executor.getRejectedExecutionHandler());
+        Runnable r = mock(Runnable.class);
+        doThrow(new NjamsSdkRuntimeException(null)).when(sender).send(any(), any());
+        doNothing().when(maxQueueLengthHandler).blockThread(any(), any());
+
+        int messagesToSend = 100;
+        for (int i = 0; i < messagesToSend; i++) {
+            try {
+                sender.send(new LogMessage(), null);
+            } catch (Exception e) {
+                maxQueueLengthHandler.rejectedExecution(r, executor);
+            }
+        }
+        verify(maxQueueLengthHandler, times(messagesToSend)).blockThread(r, executor);
+    }
+
+    @Test
+    public void discardOnStartupTest() {
+        createDiscardPolicySettings();
+        discardPolicySettings.put(NjamsSettings.PROPERTY_DISCARD_POLICY, "discard");
+        NjamsSender sender = spy(new NjamsSender(discardPolicySettings));
+        ThreadPoolExecutor executor = sender.getExecutor();
+        MaxQueueLengthHandler maxQueueLengthHandler =
+            (MaxQueueLengthHandler) spy(executor.getRejectedExecutionHandler());
+        Runnable runnable = mock(Runnable.class);
+        doThrow(new NjamsSdkRuntimeException(null)).when(sender).send(any(), any());
+        doNothing().when(maxQueueLengthHandler).blockThread(any(), any());
+
+        int messagesToSend = 100;
+        for (int i = 0; i < messagesToSend; i++) {
+            try {
+                sender.send(new LogMessage(), null);
+            } catch (Exception e) {
+                maxQueueLengthHandler.rejectedExecution(runnable, executor);
+            }
+        }
+        verify(maxQueueLengthHandler, times(messagesToSend)).rejectedExecution(runnable, executor);
+        verify(maxQueueLengthHandler, times(0)).blockThread(runnable, executor);
+    }
+
+    @Test
+    public void discardTest() {
+        createDiscardPolicySettings();
+        discardPolicySettings.put(NjamsSettings.PROPERTY_DISCARD_POLICY, "discard");
+        NjamsSender sender = spy(new NjamsSender(discardPolicySettings));
+        ThreadPoolExecutor executor = sender.getExecutor();
+        MaxQueueLengthHandler maxQueueLengthHandler =
+            (MaxQueueLengthHandler) spy(executor.getRejectedExecutionHandler());
+        Runnable runnable = mock(Runnable.class);
+        doNothing().when(maxQueueLengthHandler).blockThread(any(), any());
+
+        int messagesToSend = 100;
+        for (int i = 0; i < messagesToSend; i++) {
+            try {
+                sender.send(new LogMessage(), null);
+            } catch (Exception e) {
+                maxQueueLengthHandler.rejectedExecution(runnable, executor);
+            }
+        }
+        verify(maxQueueLengthHandler, times(0)).rejectedExecution(runnable, executor);
+
+        //Connection loss
+        doThrow(new NjamsSdkRuntimeException(null)).when(sender).send(any(), any());
+        for (int i = 0; i < messagesToSend; i++) {
+            try {
+                sender.send(new LogMessage(), null);
+            } catch (Exception e) {
+                maxQueueLengthHandler.rejectedExecution(runnable, executor);
+            }
+        }
+        verify(maxQueueLengthHandler, times(messagesToSend)).rejectedExecution(runnable, executor);
+        verify(maxQueueLengthHandler, times(0)).blockThread(runnable, executor);
     }
 
     private class ExceptionSender extends AbstractSender {
