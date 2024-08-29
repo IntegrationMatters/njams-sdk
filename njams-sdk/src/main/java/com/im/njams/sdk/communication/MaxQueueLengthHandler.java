@@ -76,7 +76,7 @@ public class MaxQueueLengthHandler implements RejectedExecutionHandler {
 
     }
 
-    private void blockThread(final Runnable r, final ThreadPoolExecutor executor) {
+    protected void blockThread(final Runnable r, final ThreadPoolExecutor executor) {
         try {
             // block until this entry can be added
             final long start = System.currentTimeMillis();
