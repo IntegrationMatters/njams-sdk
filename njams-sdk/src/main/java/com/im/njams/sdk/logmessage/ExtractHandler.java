@@ -128,7 +128,7 @@ public class ExtractHandler {
      * @param data            The serialized data object on that the extract is being evaluated.
      */
     public static void handleExtract(JobImpl job, Extract extract, ActivityImpl activity, ExtractSource sourceDirection,
-        String data) {
+            String data) {
         if (extract == null) {
             return;
         }
@@ -146,6 +146,7 @@ public class ExtractHandler {
                 doRegexp(job, activity, er, maskedData);
                 break;
             case EVENT:
+                // TODO: does this make sense? does this case really exist => MSG-27 ?
                 doEvent(job, activity, er);
                 break;
             case VALUE:
@@ -164,7 +165,7 @@ public class ExtractHandler {
     }
 
     private static void
-        doRegexp(JobImpl job, ActivityImpl activity, ExtractRule er, String data) {
+            doRegexp(JobImpl job, ActivityImpl activity, ExtractRule er, String data) {
         if (StringUtils.isBlank(data)) {
             return;
         }
@@ -237,7 +238,7 @@ public class ExtractHandler {
             }
             if (LOG.isTraceEnabled()) {
                 LOG.trace("Executed JMESPath query: {}\non:\n{}\nResult:\n{}", expression, data,
-                    mapper.writeValueAsString(result));
+                        mapper.writeValueAsString(result));
             }
         } catch (final IOException e) {
             LOG.error("Unable to get jmespath " + expression + " from " + data, e);
@@ -280,7 +281,7 @@ public class ExtractHandler {
         final StringBuilder strResult = new StringBuilder();
         for (Object node : nodes) {
             if (node instanceof net.sf.saxon.tinytree.TinyNodeImpl
-                && !(node instanceof net.sf.saxon.tinytree.WhitespaceTextImpl)) {
+                    && !(node instanceof net.sf.saxon.tinytree.WhitespaceTextImpl)) {
                 strResult.append(((net.sf.saxon.tinytree.TinyNodeImpl) node).getStringValue());
             } else {
                 strResult.append(node);
@@ -345,7 +346,7 @@ public class ExtractHandler {
     }
 
     private static void doXpath(JobImpl job, ActivityImpl activity, ExtractRule er,
-        String data) {
+            String data) {
         if (StringUtils.isBlank(data)) {
             return;
         }
@@ -378,7 +379,7 @@ public class ExtractHandler {
 
     private static void setAttributes(Job job, ActivityImpl activity, String setting, String uncheckedvalue) {
         String value = DataMasking.maskString(uncheckedvalue);
-        LOG.debug("nJAMS: setAttributes: {}/{}", setting, value);
+        LOG.debug("nJAMS: setAttributes: {}={}", setting, value);
 
         switch (setting.toLowerCase()) {
         case "correlationlogid":
@@ -414,13 +415,13 @@ public class ExtractHandler {
     }
 
     private static int getEventStatus(String status) {
-        if ("success".equalsIgnoreCase(status)) {
+        if ("success".equalsIgnoreCase(status) || "1".equals(status)) {
             return EventStatus.SUCCESS.getValue();
         }
-        if ("warning".equalsIgnoreCase(status)) {
+        if ("warning".equalsIgnoreCase(status) || "2".equals(status)) {
             return EventStatus.WARNING.getValue();
         }
-        if ("error".equalsIgnoreCase(status)) {
+        if ("error".equalsIgnoreCase(status) || "3".equals(status)) {
             return EventStatus.ERROR.getValue();
         }
         return EventStatus.INFO.getValue();
