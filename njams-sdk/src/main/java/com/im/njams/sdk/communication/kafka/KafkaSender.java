@@ -176,13 +176,14 @@ public class KafkaSender extends AbstractSender {
             return;
         }
         try {
+            setConnectionStatus(ConnectionStatus.CONNECTING);
             validateTopics();
-            connectionStatus = ConnectionStatus.CONNECTING;
             producer = new KafkaProducer<>(kafkaProperties, new StringSerializer(), new StringSerializer());
 
-            connectionStatus = ConnectionStatus.CONNECTED;
+            setConnectionStatus(ConnectionStatus.CONNECTED);
         } catch (final Exception e) {
-            connectionStatus = ConnectionStatus.DISCONNECTED;
+
+            setConnectionStatus(ConnectionStatus.DISCONNECTED);
             if (producer != null) {
                 producer.close();
                 producer = null;
@@ -431,7 +432,7 @@ public class KafkaSender extends AbstractSender {
         if (!isConnected()) {
             return;
         }
-        connectionStatus = ConnectionStatus.DISCONNECTED;
+        setConnectionStatus(ConnectionStatus.DISCONNECTED);
         if (producer != null) {
             try {
                 producer.close();

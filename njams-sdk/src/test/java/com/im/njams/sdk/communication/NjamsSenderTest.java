@@ -24,7 +24,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
-import com.im.njams.sdk.Njams;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -36,8 +35,6 @@ import com.im.njams.sdk.AbstractTest;
 import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.settings.Settings;
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.stubbing.Answer;
 
 /**
  * Tests the NjamsSender
@@ -337,7 +334,7 @@ public class NjamsSenderTest extends AbstractTest {
                     System.out.println(counter.get() + " times tried to reconnect.");
                     throw new NjamsSdkRuntimeException("" + counter.get());
                 }
-                connectionStatus = ConnectionStatus.CONNECTED;
+                setConnectionStatus(ConnectionStatus.CONNECTED);
             }
         }
 

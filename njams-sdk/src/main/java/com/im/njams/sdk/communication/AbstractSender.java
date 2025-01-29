@@ -66,7 +66,7 @@ public abstract class AbstractSender implements Sender {
      * returns a new AbstractSender
      */
     public AbstractSender() {
-        connectionStatus = ConnectionStatus.DISCONNECTED;
+        setConnectionStatus(ConnectionStatus.DISCONNECTED);
     }
 
     @Override
@@ -124,11 +124,11 @@ public abstract class AbstractSender implements Sender {
             return;
         }
         try {
-            connectionStatus = ConnectionStatus.CONNECTING;
+            setConnectionStatus(ConnectionStatus.CONNECTING);
             LOG.debug("Connecting...");
-            connectionStatus = ConnectionStatus.CONNECTED;
+            setConnectionStatus(ConnectionStatus.CONNECTED);
         } catch (Exception e) {
-            connectionStatus = ConnectionStatus.DISCONNECTED;
+            setConnectionStatus(ConnectionStatus.DISCONNECTED);
             throw new NjamsSdkRuntimeException("Unable to connect", e);
         }
 
@@ -205,6 +205,15 @@ public abstract class AbstractSender implements Sender {
         return sb.toString();
     }
 
+
+    protected synchronized void setConnectionStatus(ConnectionStatus newConnectionStatus) {
+        this.connectionStatus = newConnectionStatus;
+    }
+
+    protected synchronized ConnectionStatus getConnectionStatus() {
+        return this.connectionStatus;
+    }
+
     /**
      * Send the given message. This method automatically applies the
      * discardPolicy onConnectionLoss, if set
@@ -213,7 +222,7 @@ public abstract class AbstractSender implements Sender {
      */
     @Override
     public void send(CommonMessage msg, String clientSessionId) {
-        LOG.trace("Sending message {}, state={}", msg, connectionStatus);
+        LOG.trace("Sending message {}, state={}", msg, getConnectionStatus());
         // do this until message is sent or discard policy onConnectionLoss is satisfied
         boolean isSent = false;
         do {
@@ -307,21 +316,21 @@ public abstract class AbstractSender implements Sender {
      * @return true if connectionStatus == ConnectionStatus.CONNECTED
      */
     public boolean isConnected() {
-        return connectionStatus == ConnectionStatus.CONNECTED;
+        return getConnectionStatus() == ConnectionStatus.CONNECTED;
     }
 
     /**
      * @return true if connectionStatus == ConnectionStatus.DISCONNECTED
      */
     public boolean isDisconnected() {
-        return connectionStatus == ConnectionStatus.DISCONNECTED;
+        return getConnectionStatus() == ConnectionStatus.DISCONNECTED;
     }
 
     /**
      * @return true if connectionStatus == ConnectionStatus.CONNECTING
      */
     public boolean isConnecting() {
-        return connectionStatus == ConnectionStatus.CONNECTING;
+        return getConnectionStatus() == ConnectionStatus.CONNECTING;
     }
 
     /**
