@@ -1,0 +1,48 @@
+name: workflow.yml
+on:
+  push:
+    branches:
+      - github_dev
+
+jobs:
+  build-root:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Set up JDK
+      uses: actions/setup-java@v4
+      with:
+        java-version: '11'
+        distribution: 'temurin'
+        cache: maven
+        overwrite-settings: 'false'
+
+    - name: Build Root Pom
+      run: mvn -B -N clean package --file pom.xml
+
+  build-sdk:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Set up JDK
+      uses: actions/setup-java@v4
+      with:
+        java-version: '11'
+        distribution: 'temurin'
+        cache: maven
+
+    - name: Build SDK with Maven
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      run: mvn -B package --file njams-sdk/pom.xml
+
+  build-client-sample:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Build client sample
+      run: mvn -B clean package -U
+
