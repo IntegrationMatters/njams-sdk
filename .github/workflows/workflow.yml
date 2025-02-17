@@ -20,7 +20,7 @@ jobs:
         overwrite-settings: 'false'
 
     - name: Build Root Pom
-      run: mvn -B -N clean package --file pom.xml
+      run: mvn -B -N clean package --file pom.xml -Pgithub
 
   build-sdk:
     runs-on: ubuntu-latest
@@ -39,7 +39,7 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-      run: mvn -B package --file njams-sdk/pom.xml
+      run: mvn -B package --file njams-sdk/pom.xml -Pgithub
 
   build-client-sample:
     runs-on: ubuntu-latest
@@ -55,5 +55,5 @@ jobs:
         cache: maven
 
     - name: Build client sample
-      run: mvn -B clean package -U --file njams-sdk-sample-client/pom.xml
+      run: mvn -B clean package -U --file njams-sdk-sample-client/pom.xml -Pgithub
 
