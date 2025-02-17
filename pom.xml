@@ -45,7 +45,7 @@
         <jacoco-maven-plugin.version>0.8.3</jacoco-maven-plugin.version>
 
         <!-- Dependency versions -->
-        <njams-messageformat.version>5.0.0</njams-messageformat.version>
+        <njams-messageformat.version>5.0.1-SNAPSHOT</njams-messageformat.version>
 
         <aspectj.version>1.6.10</aspectj.version>
         <jms-api.version>1.1-rev-1</jms-api.version>
@@ -124,7 +124,7 @@
 	                <groupId>org.apache.maven.plugins</groupId>
 	                <artifactId>maven-javadoc-plugin</artifactId>
 	                <version>3.4.1</version>
-	            </plugin>                
+	            </plugin>
             </plugins>
         </pluginManagement>
 
@@ -235,7 +235,7 @@
 	            <groupId>com.fasterxml.jackson.module</groupId>
 	            <artifactId>jackson-module-jakarta-xmlbind-annotations</artifactId>
 	            <version>${jackson.version}</version>
-        	</dependency>            
+        	</dependency>
             <dependency>
                 <groupId>com.fasterxml.jackson.core</groupId>
                 <artifactId>jackson-annotations</artifactId>
@@ -321,6 +321,22 @@
     </dependencyManagement>
 
     <profiles>
+        <profile>
+            <id>github</id>
+            <repositories>
+                <repository>
+                    <id>central</id>
+                    <url>https://repo1.maven.org/maven2</url>
+                </repository>
+                <repository>
+                    <id>github</id>
+                    <url>https://maven.pkg.github.com/IntegrationMatters/njams-messageformat</url>
+                    <snapshots>
+                        <enabled>true</enabled>
+                    </snapshots>
+                </repository>
+            </repositories>
+        </profile>
         <profile>
             <id>sonar</id>
             <build>
