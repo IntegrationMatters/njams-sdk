@@ -54,6 +54,15 @@ public class NjamsSettings {
     public static final String PROPERTY_COMMUNICATION = "njams.sdk.communication";
 
     /**
+     * Limits the message size for messages being sent to the server. The given value is the maximum size in bytes.
+     * Only the message body (JSON) is truncated by this value. Message headers are not considered. If the transport's
+     * limitation includes the headers, the configured value has to be accordingly smaller. A value of 0 or less
+     * disables splitting large messages. This is the default.
+     * @since 5.1.0
+     */
+    public static final String PROPERTY_MAX_MESSAGE_SIZE = "njams.sdk.communication.maxMessageSize";
+
+    /**
      * When this settings is false (default) nJAMS creates error events only for error situations that are not
      * handled by the execution engine. If set to true, nJAMS will also create error events for errors that are handled.
      */
@@ -399,7 +408,7 @@ public class NjamsSettings {
      * Optional truststore password.
      */
     public static final String PROPERTY_HTTP_TRUSTSTORE_PASSWORD =
-        "njams.sdk.communication.http.ssl.trustStorePassword";
+            "njams.sdk.communication.http.ssl.trustStorePassword";
     /**
      * The path to a custom keystore file to be used for SSL connection.
      */
@@ -416,12 +425,12 @@ public class NjamsSettings {
      * Allows disabling host-name verification when setting up a SSL connection.
      */
     public static final String PROPERTY_HTTP_DISABLE_HOSTNAME_VERIFICATION =
-        "njams.sdk.communication.http.ssl.unsafe.disableHostnameVerification";
+            "njams.sdk.communication.http.ssl.unsafe.disableHostnameVerification";
     /**
      * Trust all SSL certificates
      */
     public static final String PROPERTY_HTTP_TRUST_ALL_CERTIFICATES =
-        "njams.sdk.communication.http.ssl.unsafe.trustAllCertificates";
+            "njams.sdk.communication.http.ssl.unsafe.trustAllCertificates";
 
     //    _  __          ______ _  __
     //   | |/ /    /\   |  ____| |/ /    /\
@@ -440,7 +449,7 @@ public class NjamsSettings {
      * (comma separated) for connecting to a Kafka cluster.
      */
     public static final String PROPERTY_KAFKA_BOOTSTRAP_SERVERS =
-        "njams.sdk.communication.kafka.client.bootstrap.servers";
+            "njams.sdk.communication.kafka.client.bootstrap.servers";
 
     /**
      * This is the prefix of the event, project, commands, and optional error topics.
@@ -453,7 +462,7 @@ public class NjamsSettings {
      * in milliseconds. The default is 30000.
      */
     public static final String PROPERTY_KAFKA_REPLY_PRODUCER_IDLE_TIME =
-        "njams.sdk.communication.kafka.replyProducerIdleTime";
+            "njams.sdk.communication.kafka.replyProducerIdleTime";
 
     /**
      * All properties with these prefixes are directly passed to the Kafka clients used by the SDK:
@@ -534,7 +543,7 @@ public class NjamsSettings {
      * Specifies the jndi initial context factory.
      */
     public static final String PROPERTY_JMS_INITIAL_CONTEXT_FACTORY = PROPERTY_JMS_PREFIX
-        + Context.INITIAL_CONTEXT_FACTORY;
+            + Context.INITIAL_CONTEXT_FACTORY;
 
     /**
      * Specifies the jndi security principal.

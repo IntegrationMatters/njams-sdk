@@ -25,6 +25,7 @@ package com.im.njams.sdk.communication.jms;
 
 import static com.im.njams.sdk.communication.MessageHeaders.*;
 
+import java.util.List;
 import java.util.Properties;
 
 import javax.jms.Connection;
@@ -41,6 +42,7 @@ import javax.naming.InitialContext;
 import javax.naming.NameNotFoundException;
 import javax.naming.NamingException;
 
+import org.apache.kafka.common.Uuid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -56,6 +58,7 @@ import com.im.njams.sdk.communication.ConnectionStatus;
 import com.im.njams.sdk.communication.DiscardMonitor;
 import com.im.njams.sdk.communication.DiscardPolicy;
 import com.im.njams.sdk.communication.NjamsConnectionFactory;
+import com.im.njams.sdk.communication.SplitSupport;
 import com.im.njams.sdk.settings.PropertyUtil;
 import com.im.njams.sdk.utils.ClasspathValidator;
 import com.im.njams.sdk.utils.JsonUtils;
@@ -80,6 +83,7 @@ public class JmsSender extends AbstractSender implements ExceptionListener, Clas
     protected Session session;
     protected MessageProducer producer;
     private Thread reconnector;
+    private SplitSupport splitSupport;
 
     /**
      * Initializes this Sender via the given Properties.
@@ -89,6 +93,7 @@ public class JmsSender extends AbstractSender implements ExceptionListener, Clas
     @Override
     public void init(Properties properties) {
         super.init(properties);
+        splitSupport = new SplitSupport(properties);
         LOG.debug("Initialized sender {}", getName());
     }
 
@@ -166,14 +171,7 @@ public class JmsSender extends AbstractSender implements ExceptionListener, Clas
     @Override
     protected void send(LogMessage msg, String clientSessionId) throws NjamsSdkRuntimeException {
         try {
-            String data = JsonUtils.serialize(msg);
-            sendMessage(msg, MESSAGETYPE_EVENT, data, clientSessionId);
-            if (LOG.isTraceEnabled()) {
-                LOG.trace("Send LogMessage {} to {}:\n{}", msg.getPath(), producer.getDestination(), data);
-            } else {
-                LOG.debug("Send Logmessage for {} to {}", msg.getPath(), producer.getDestination());
-            }
-
+            sendMessage(msg, MESSAGETYPE_EVENT, clientSessionId);
         } catch (Exception e) {
             throw new NjamsSdkRuntimeException("Unable to send LogMessage", e);
         }
@@ -187,14 +185,7 @@ public class JmsSender extends AbstractSender implements ExceptionListener, Clas
     @Override
     protected void send(ProjectMessage msg, String clientSessionId) throws NjamsSdkRuntimeException {
         try {
-            String data = JsonUtils.serialize(msg);
-            sendMessage(msg, MESSAGETYPE_PROJECT, data, clientSessionId);
-            if (LOG.isTraceEnabled()) {
-                LOG.trace("Send ProjectMessage {} to {}:\n{}", msg.getPath(), producer.getDestination(), data);
-            } else {
-                LOG.debug("Send ProjectMessage for {} to {}", msg.getPath(), producer.getDestination());
-            }
-
+            sendMessage(msg, MESSAGETYPE_PROJECT, clientSessionId);
         } catch (Exception e) {
             throw new NjamsSdkRuntimeException("Unable to send ProjectMessage", e);
         }
@@ -208,31 +199,60 @@ public class JmsSender extends AbstractSender implements ExceptionListener, Clas
     @Override
     protected void send(TraceMessage msg, String clientSessionId) throws NjamsSdkRuntimeException {
         try {
-            String data = JsonUtils.serialize(msg);
-            sendMessage(msg, MESSAGETYPE_TRACE, data, clientSessionId);
-            if (LOG.isTraceEnabled()) {
-                LOG.trace("Send TraceMessage {} to {}:\n{}", msg.getPath(), producer.getDestination(), data);
-            } else {
-                LOG.debug("Send TraceMessage for {} to {}", msg.getPath(), producer.getDestination());
-            }
+            sendMessage(msg, MESSAGETYPE_TRACE, clientSessionId);
         } catch (Exception e) {
             throw new NjamsSdkRuntimeException("Unable to send TraceMessage", e);
         }
     }
 
-    protected void sendMessage(CommonMessage msg, String messageType, String data, String clientSessionId)
+    protected void sendMessage(CommonMessage msg, String messageType, String clientSessionId)
             throws JMSException, InterruptedException {
-        TextMessage textMessage = session.createTextMessage(data);
+        final String data = JsonUtils.serialize(msg);
+        final List<String> chunks = splitSupport.splitData(data);
+        if (chunks.isEmpty()) {
+            return;
+        }
+        final String messageKey;
+        final String logId;
         if (msg instanceof LogMessage) {
-            textMessage.setStringProperty(NJAMS_LOGID_HEADER, ((LogMessage) msg).getLogId());
+            logId = ((LogMessage) msg).getLogId();
+            messageKey = logId;
+        } else if (chunks.size() > 1) {
+            // ensure same key for all chunks
+            messageKey = Uuid.randomUuid().toString();
+            logId = null;
+        } else {
+            messageKey = null;
+            logId = null;
         }
-        textMessage.setStringProperty(NJAMS_MESSAGEVERSION_HEADER, MessageVersion.V4.toString());
-        textMessage.setStringProperty(NJAMS_MESSAGETYPE_HEADER, messageType);
-        textMessage.setStringProperty(NJAMS_PATH_HEADER, msg.getPath());
-        if (properties != null) {
+
+        for (int i = 0; i < chunks.size(); i++) {
+            final TextMessage textMessage = session.createTextMessage(chunks.get(i));
+            if (logId != null) {
+                textMessage.setStringProperty(NJAMS_LOGID_HEADER, logId);
+            }
+            textMessage.setStringProperty(NJAMS_MESSAGEVERSION_HEADER, MessageVersion.V4.toString());
+            textMessage.setStringProperty(NJAMS_MESSAGETYPE_HEADER, messageType);
+            textMessage.setStringProperty(NJAMS_PATH_HEADER, msg.getPath());
             textMessage.setStringProperty(NJAMS_CLIENTID_HEADER, clientSessionId);
+            splitSupport.addChunkHeaders((k, v) -> setProperty(textMessage, k, v), i, chunks.size(), messageKey);
+            tryToSend(textMessage);
         }
-        tryToSend(textMessage);
+        if (LOG.isTraceEnabled()) {
+            LOG.trace("Send {} for {} to {}:\n{}", msg.getClass().getSimpleName(), msg.getPath(),
+                    producer.getDestination(), data);
+        } else if (LOG.isDebugEnabled()) {
+            LOG.debug("Send {} for {} to {}", msg.getClass().getSimpleName(), msg.getPath(),
+                    producer.getDestination());
+        }
+    }
+
+    private void setProperty(TextMessage message, String key, String value) {
+        try {
+            message.setStringProperty(key, value);
+        } catch (JMSException e) {
+            LOG.error("Failed to set property: {}", key, e);
+        }
     }
 
     private void tryToSend(TextMessage textMessage) throws InterruptedException, JMSException {

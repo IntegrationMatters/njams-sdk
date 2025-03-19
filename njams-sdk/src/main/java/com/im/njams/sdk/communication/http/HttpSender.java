@@ -27,12 +27,14 @@ import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
+import org.apache.kafka.common.Uuid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -47,6 +49,7 @@ import com.im.njams.sdk.communication.AbstractSender;
 import com.im.njams.sdk.communication.ConnectionStatus;
 import com.im.njams.sdk.communication.DiscardMonitor;
 import com.im.njams.sdk.communication.DiscardPolicy;
+import com.im.njams.sdk.communication.SplitSupport;
 import com.im.njams.sdk.settings.Settings;
 import com.im.njams.sdk.utils.JsonUtils;
 import com.im.njams.sdk.utils.StringUtils;
@@ -121,6 +124,7 @@ public class HttpSender extends AbstractSender {
     protected URL url;
     protected OkHttpClient client;
     protected HttpClientFactory clientFactory;
+    private SplitSupport splitSupport;
 
     private enum ConnectionTestMode {
         /** Initial value that triggers trying {@link #STANDARD} first, then falling back to {@link #LEGACY} */
@@ -164,6 +168,7 @@ public class HttpSender extends AbstractSender {
                     connectionTest = getConnectionTest(ConnectionTestMode.LEGACY);
                 }
             }
+            splitSupport = new SplitSupport(properties);
             clientFactory = new HttpClientFactory(properties, uri);
             LOG.debug("Initialized sender with URL {}", uri);
         } catch (final Exception e) {
@@ -357,11 +362,29 @@ public class HttpSender extends AbstractSender {
 
     private void tryToSend(final CommonMessage msg, final Map<String, String> headers)
             throws InterruptedException {
+        final List<String> chunks = splitSupport.splitData(JsonUtils.serialize(msg));
+        String messageKey = null;
+        if (chunks.size() > 1) {
+            if (msg instanceof LogMessage) {
+                messageKey = ((LogMessage) msg).getLogId();
+            } else {
+                // ensure same key for all chunks
+                messageKey = Uuid.randomUuid().toString();
+            }
+        }
+        for (int i = 0; i < chunks.size(); i++) {
+            splitSupport.addChunkHeaders(headers::put, i, chunks.size(), messageKey);
+            tryToSend(chunks.get(i), headers);
+        }
+
+    }
+
+    private void tryToSend(final String json, final Map<String, String> headers)
+            throws InterruptedException {
         boolean sent = false;
         int responseStatus = -1;
         int tries = 0;
         Exception exception = null;
-        final String json = JsonUtils.serialize(msg);
         do {
             try {
                 responseStatus = send(json, headers);

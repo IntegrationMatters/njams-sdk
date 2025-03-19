@@ -27,12 +27,6 @@ package com.im.njams.sdk.communication.kafka;
 import static com.im.njams.sdk.communication.MessageHeaders.*;
 import static com.im.njams.sdk.communication.kafka.KafkaHeadersUtil.headersUpdater;
 
-import java.nio.Buffer;
-import java.nio.ByteBuffer;
-import java.nio.CharBuffer;
-import java.nio.charset.CharsetEncoder;
-import java.nio.charset.CoderResult;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -66,6 +60,7 @@ import com.im.njams.sdk.communication.AbstractSender;
 import com.im.njams.sdk.communication.ConnectionStatus;
 import com.im.njams.sdk.communication.DiscardMonitor;
 import com.im.njams.sdk.communication.DiscardPolicy;
+import com.im.njams.sdk.communication.SplitSupport;
 import com.im.njams.sdk.communication.kafka.KafkaHeadersUtil.HeadersUpdater;
 import com.im.njams.sdk.communication.kafka.KafkaUtil.ClientType;
 import com.im.njams.sdk.utils.JsonUtils;
@@ -75,30 +70,19 @@ import com.im.njams.sdk.utils.StringUtils;
  * Kafka implementation for a Sender.
  *
  * @author sfaiz
- * @version 4.2.0-SNAPSHOT
  */
 public class KafkaSender extends AbstractSender {
-
-    /**
-     * Header set for messages that are split into chunks. The number (sequence) of the chunk, starting with 1
-     */
-    public static final String NJAMS_CHUNK_NO = "NJAMS_CHUNK_NO";
-    /**
-     * Header set for messages that are split into chunks. The total number of chunks into that this message is split.
-     */
-    public static final String NJAMS_CHUNKS = "NJAMS_CHUNKS";
 
     private static final Logger LOG = LoggerFactory.getLogger(KafkaSender.class);
     private static final String PROJECT_SUFFIX = ".project";
     private static final String EVENT_SUFFIX = ".event";
-    private static final CharsetEncoder UTF_8_ENCODER = StandardCharsets.UTF_8.newEncoder();
 
     private KafkaProducer<String, String> producer;
     private String topicEvent;
     private String topicProject;
     private Properties kafkaProperties;
+    private SplitSupport splitSupport;
 
-    private int maxMessageBytes = (int) (1024 * 1024 * 0.9d); // 90% of Kafka's default of 1MB
     private int requestTimeoutMs = 6000;
 
     /**
@@ -126,20 +110,14 @@ public class KafkaSender extends AbstractSender {
         topicEvent = topicPrefix + EVENT_SUFFIX;
         topicProject = topicPrefix + PROJECT_SUFFIX;
         initMaxMessageSizeAndTimeout();
+        splitSupport = new SplitSupport(properties);
         LOG.debug("Initialized sender {}", KafkaConstants.COMMUNICATION_NAME);
     }
 
     private void initMaxMessageSizeAndTimeout() {
-        // set max message size to 90% of the producer's max message size; that allows for some overhead, even if
-        // compression is disabled.
-        int i = getPropertyInt(kafkaProperties, ProducerConfig.MAX_REQUEST_SIZE_CONFIG, 1048576);
-        if (i > 0) {
-            maxMessageBytes = (int) (i * 0.9d);
-        }
-        LOG.debug("Max message size {} bytes", maxMessageBytes);
 
         // set request timeout according to producer config +1 second
-        i = getPropertyInt(kafkaProperties, ProducerConfig.DELIVERY_TIMEOUT_MS_CONFIG, 120000);
+        final int i = getPropertyInt(kafkaProperties, ProducerConfig.DELIVERY_TIMEOUT_MS_CONFIG, 120000);
         if (i > 0) {
             requestTimeoutMs = i + 1000;
         } else {
@@ -289,7 +267,7 @@ public class KafkaSender extends AbstractSender {
     List<ProducerRecord<String, String>> splitMessage(final CommonMessage msg, final String topic,
             final String messageType, final String data, String clientSessionId) {
 
-        List<String> slices = splitData(data);
+        List<String> slices = splitSupport.splitData(data);
         if (slices.isEmpty()) {
             return Collections.emptyList();
         }
@@ -323,8 +301,7 @@ public class KafkaSender extends AbstractSender {
             if (slices.size() <= 1) {
                 return Collections.singletonList(record);
             }
-            headers.addHeader(NJAMS_CHUNKS, String.valueOf(slices.size()))
-                    .addHeader(NJAMS_CHUNK_NO, String.valueOf(i + 1));
+            splitSupport.addChunkHeaders(headers::addHeader, i, slices.size(), recordKey);
             if (chunks == null) {
                 chunks = new ArrayList<>();
             }
@@ -333,42 +310,6 @@ public class KafkaSender extends AbstractSender {
         if (LOG.isDebugEnabled()) {
             LOG.debug("{} for path {} split into {} chunks.", msg.getClass().getSimpleName(), msg.getPath(),
                     chunks.size());
-        }
-        return chunks;
-    }
-
-    List<String> splitData(final String data) {
-        if (StringUtils.isBlank(data)) {
-            return Collections.emptyList();
-        }
-        final ByteBuffer out = ByteBuffer.allocate(maxMessageBytes);
-        final CharBuffer in = CharBuffer.wrap(data);
-
-        List<String> chunks = null;
-        int pos = 0;
-        boolean first = true;
-        while (true) {
-            final CoderResult cr = UTF_8_ENCODER.encode(in, out, true);
-            if (first) {
-                // short exit if splitting is not necessary or disabled
-                if (!cr.isOverflow()) {
-                    // data fits into one message
-                    return Collections.singletonList(data);
-                }
-                // create array for collecting chunks
-                chunks = new ArrayList<>();
-                first = false;
-            }
-            final int newpos = data.length() - in.length();
-            chunks.add(data.substring(pos, newpos));
-            if (!cr.isOverflow()) {
-                break;
-            }
-            pos = newpos;
-            // this weird cast is a workaround for a compatibility issue between Java-8 and 11.
-            // see approach 2 in the answer to this post:
-            // https://stackoverflow.com/questions/61267495/exception-in-thread-main-java-lang-nosuchmethoderror-java-nio-bytebuffer-flip
-            ((Buffer) out).rewind();
         }
         return chunks;
     }
