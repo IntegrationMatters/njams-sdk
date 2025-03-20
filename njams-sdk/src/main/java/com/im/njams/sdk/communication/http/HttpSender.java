@@ -154,11 +154,11 @@ public class HttpSender extends AbstractSender {
         this.properties = properties;
         try {
             final String suffix =
-                    Settings.getPropertyWithDeprecationWarning(properties, PROPERTY_HTTP_DATAPROVIDER_SUFFIX,
-                            PROPERTY_HTTP_DATAPROVIDER_PREFIX);
+                Settings.getPropertyWithDeprecationWarning(properties, PROPERTY_HTTP_DATAPROVIDER_SUFFIX,
+                    PROPERTY_HTTP_DATAPROVIDER_PREFIX);
             if (StringUtils.isBlank(suffix)) {
                 throw new NjamsSdkRuntimeException(
-                        "Required parameter " + PROPERTY_HTTP_DATAPROVIDER_SUFFIX + " is missing.");
+                    "Required parameter " + PROPERTY_HTTP_DATAPROVIDER_SUFFIX + " is missing.");
             }
             final URI uri = createUri(INGEST_API_PATH + suffix);
             url = uri.toURL();
@@ -230,10 +230,10 @@ public class HttpSender extends AbstractSender {
             }
             if (response.code() == UNAUTHORIZED || response.code() == FORBIDDEN) {
                 throw new IllegalStateException(
-                        "Authorization failure; received status " + response.code() + " from " + testCon);
+                    "Authorization failure; received status " + response.code() + " from " + testCon);
             }
             throw new IllegalStateException(
-                    "Received unexpected status " + response.code() + " from: " + testCon);
+                "Received unexpected status " + response.code() + " from: " + testCon);
         }
         throw new IllegalStateException("No response from: " + testCon);
 
@@ -264,19 +264,19 @@ public class HttpSender extends AbstractSender {
             try {
                 final URI uri = createUri(LEGACY_CONNECTION_TEST_PATH);
                 return new ConnectionTest(uri.toURL(),
-                        () -> client.newCall(
-                                new Request.Builder().addHeader("Content-Length", "0").url(uri.toURL()).get().build())
-                                .execute(),
-                        "GET");
+                    () -> client.newCall(
+                        new Request.Builder().addHeader("Content-Length", "0").url(uri.toURL()).get().build())
+                        .execute(),
+                    "GET");
             } catch (URISyntaxException | MalformedURLException e) {
                 // actually, this cannot happen since creating the actual ingest URI would have failed before
                 throw new IllegalArgumentException(e);
             }
         }
         return new ConnectionTest(url,
-                () -> client.newCall(new Request.Builder().addHeader("Content-Length", "0").url(url).head().build())
-                        .execute(),
-                "HEAD");
+            () -> client.newCall(new Request.Builder().addHeader("Content-Length", "0").url(url).head().build())
+                .execute(),
+            "HEAD");
 
     }
 
@@ -361,26 +361,31 @@ public class HttpSender extends AbstractSender {
     }
 
     private void tryToSend(final CommonMessage msg, final Map<String, String> headers)
-            throws InterruptedException {
-        final List<String> chunks = splitSupport.splitData(JsonUtils.serialize(msg));
-        String messageKey = null;
-        if (chunks.size() > 1) {
-            if (msg instanceof LogMessage) {
-                messageKey = ((LogMessage) msg).getLogId();
-            } else {
-                // ensure same key for all chunks
-                messageKey = Uuid.randomUuid().toString();
+        throws InterruptedException {
+        final String data = JsonUtils.serialize(msg);
+        if (splitSupport.isSplitting()) {
+            final List<String> chunks = splitSupport.splitData(data);
+            String messageKey = null;
+            if (chunks.size() > 1) {
+                if (msg instanceof LogMessage) {
+                    messageKey = ((LogMessage) msg).getLogId();
+                } else {
+                    // ensure same key for all chunks
+                    messageKey = Uuid.randomUuid().toString();
+                }
             }
+            for (int i = 0; i < chunks.size(); i++) {
+                splitSupport.addChunkHeaders(headers::put, i, chunks.size(), messageKey);
+                tryToSend(chunks.get(i), headers);
+            }
+        } else {
+            tryToSend(data, headers);
         }
-        for (int i = 0; i < chunks.size(); i++) {
-            splitSupport.addChunkHeaders(headers::put, i, chunks.size(), messageKey);
-            tryToSend(chunks.get(i), headers);
-        }
-
+        LOG.trace("Sent message: headers={},\n{}", headers, data);
     }
 
     private void tryToSend(final String json, final Map<String, String> headers)
-            throws InterruptedException {
+        throws InterruptedException {
         boolean sent = false;
         int responseStatus = -1;
         int tries = 0;
@@ -403,14 +408,14 @@ public class HttpSender extends AbstractSender {
                 }
                 if (++tries >= MAX_TRIES) {
                     LOG.warn("Start reconnect because the server HTTP endpoint could not be reached for {} seconds.",
-                            MAX_TRIES * EXCEPTION_IDLE_TIME / 1000);
+                        MAX_TRIES * EXCEPTION_IDLE_TIME / 1000);
                     if (exception != null) {
                         // this triggers reconnecting the command-receiver which is only necessary on communication issues
                         // but not on message error indicated by some error code response
                         throw new HttpSendException(url, exception);
                     }
                     throw new NjamsSdkRuntimeException("Error sending message with HTTP client URI "
-                            + url + " Response status is: " + responseStatus);
+                        + url + " Response status is: " + responseStatus);
                 }
                 Thread.sleep(EXCEPTION_IDLE_TIME);
             }
@@ -425,14 +430,14 @@ public class HttpSender extends AbstractSender {
             LOG.trace("Business-headers={}\nbody={}", headers, msg);
         }
         final Builder requestBuilder =
-                new Request.Builder().url(url).post(RequestBody.create(msg, HttpClientFactory.MEDIA_TYPE_JSON));
+            new Request.Builder().url(url).post(RequestBody.create(msg, HttpClientFactory.MEDIA_TYPE_JSON));
         headers.entrySet().forEach(e -> requestBuilder.header(e.getKey(), e.getValue()));
         requestBuilder.header("Content-Length", String.valueOf(msg.getBytes("UTF-8").length));
         final Response response = client.newCall(requestBuilder.build()).execute();
         if (LOG.isTraceEnabled()) {
             // logging request headers after execution to ensure that all interceptors adding headers have been executed
             LOG.trace("Protocol-headers={}", StreamSupport.stream(response.request().headers().spliterator(), false)
-                    .map(h -> h.getFirst() + "=" + h.getSecond()).collect(Collectors.toList()));
+                .map(h -> h.getFirst() + "=" + h.getSecond()).collect(Collectors.toList()));
             LOG.trace("POST response: {}", response.code());
         }
         return response.code();

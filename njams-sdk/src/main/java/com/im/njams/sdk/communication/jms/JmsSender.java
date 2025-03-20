@@ -82,7 +82,6 @@ public class JmsSender extends AbstractSender implements ExceptionListener, Clas
     private Connection connection;
     protected Session session;
     protected MessageProducer producer;
-    private Thread reconnector;
     private SplitSupport splitSupport;
 
     /**
@@ -212,6 +211,30 @@ public class JmsSender extends AbstractSender implements ExceptionListener, Clas
     protected void sendMessage(CommonMessage msg, String messageType, String clientSessionId)
         throws JMSException, InterruptedException {
         final String data = serialize(msg);
+        if (splitSupport.isSplitting()) {
+            sendChunks(msg, data, messageType, clientSessionId);
+        } else {
+            final String logId;
+            if (msg instanceof LogMessage) {
+                logId = ((LogMessage) msg).getLogId();
+            } else {
+                logId = null;
+            }
+
+            final TextMessage textMessage = buildMessage(logId, msg.getPath(), data, messageType, clientSessionId);
+            tryToSend(textMessage);
+        }
+        if (LOG.isTraceEnabled()) {
+            LOG.trace("Send {} for {} to {}:\n{}", msg.getClass().getSimpleName(), msg.getPath(),
+                producer.getDestination(), data);
+        } else if (LOG.isDebugEnabled()) {
+            LOG.debug("Send {} for {} to {}", msg.getClass().getSimpleName(), msg.getPath(),
+                producer.getDestination());
+        }
+    }
+
+    private void sendChunks(CommonMessage msg, String data, String messageType, String clientSessionId)
+        throws JMSException, InterruptedException {
         final List<String> chunks = splitSupport.splitData(data);
         if (chunks.isEmpty()) {
             return;
@@ -230,26 +253,24 @@ public class JmsSender extends AbstractSender implements ExceptionListener, Clas
             }
             logId = null;
         }
-
         for (int i = 0; i < chunks.size(); i++) {
-            final TextMessage textMessage = session.createTextMessage(chunks.get(i));
-            if (logId != null) {
-                textMessage.setStringProperty(NJAMS_LOGID_HEADER, logId);
-            }
-            textMessage.setStringProperty(NJAMS_MESSAGEVERSION_HEADER, MessageVersion.V4.toString());
-            textMessage.setStringProperty(NJAMS_MESSAGETYPE_HEADER, messageType);
-            textMessage.setStringProperty(NJAMS_PATH_HEADER, msg.getPath());
-            textMessage.setStringProperty(NJAMS_CLIENTID_HEADER, clientSessionId);
+            final TextMessage textMessage = buildMessage(logId, msg.getPath(), data, messageType, clientSessionId);
             splitSupport.addChunkHeaders((k, v) -> setProperty(textMessage, k, v), i, chunks.size(), messageKey);
             tryToSend(textMessage);
         }
-        if (LOG.isTraceEnabled()) {
-            LOG.trace("Send {} for {} to {}:\n{}", msg.getClass().getSimpleName(), msg.getPath(),
-                producer.getDestination(), data);
-        } else if (LOG.isDebugEnabled()) {
-            LOG.debug("Send {} for {} to {}", msg.getClass().getSimpleName(), msg.getPath(),
-                producer.getDestination());
+    }
+
+    private TextMessage buildMessage(String logId, String path, String msg, String messageType,
+        String clientSessionId) throws JMSException {
+        final TextMessage textMessage = session.createTextMessage(msg);
+        if (logId != null) {
+            textMessage.setStringProperty(NJAMS_LOGID_HEADER, logId);
         }
+        textMessage.setStringProperty(NJAMS_MESSAGEVERSION_HEADER, MessageVersion.V4.toString());
+        textMessage.setStringProperty(NJAMS_MESSAGETYPE_HEADER, messageType);
+        textMessage.setStringProperty(NJAMS_PATH_HEADER, path);
+        textMessage.setStringProperty(NJAMS_CLIENTID_HEADER, clientSessionId);
+        return textMessage;
     }
 
     private void setProperty(TextMessage message, String key, String value) {

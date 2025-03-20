@@ -104,7 +104,7 @@ public class KafkaSender extends AbstractSender {
         String topicPrefix = properties.getProperty(NjamsSettings.PROPERTY_KAFKA_TOPIC_PREFIX);
         if (StringUtils.isBlank(topicPrefix)) {
             LOG.warn("Property {} is not set. Using '{}' as default.", NjamsSettings.PROPERTY_KAFKA_TOPIC_PREFIX,
-                    KafkaConstants.DEFAULT_TOPIC_PREFIX);
+                KafkaConstants.DEFAULT_TOPIC_PREFIX);
             topicPrefix = KafkaConstants.DEFAULT_TOPIC_PREFIX;
         }
         topicEvent = topicPrefix + EVENT_SUFFIX;
@@ -139,7 +139,6 @@ public class KafkaSender extends AbstractSender {
                 return Integer.parseInt(s);
             } catch (Exception e) {
                 LOG.warn("Failed to parse value {} of property {} to int.", s, key);
-                return defaultValue;
             }
         }
         return defaultValue;
@@ -173,12 +172,12 @@ public class KafkaSender extends AbstractSender {
     private void validateTopics() {
         final Collection<String> requiredTopics = new ArrayList<>(Arrays.asList(topicEvent, topicProject));
         final Collection<String> foundTopics =
-                KafkaUtil.testTopics(properties, requiredTopics.toArray(new String[requiredTopics.size()]));
+            KafkaUtil.testTopics(properties, requiredTopics.toArray(new String[requiredTopics.size()]));
         LOG.debug("Found topics: {}", foundTopics);
         requiredTopics.removeAll(foundTopics);
         if (!requiredTopics.isEmpty()) {
             throw new NjamsSdkRuntimeException("The following required Kafka topics have not been found: "
-                    + requiredTopics);
+                + requiredTopics);
         }
     }
 
@@ -251,9 +250,10 @@ public class KafkaSender extends AbstractSender {
      * @throws Exception
      */
     private void sendMessage(final CommonMessage msg, final String topic, final String messageType, final String data,
-            String clientSessionId)
-            throws Exception {
+        String clientSessionId)
+        throws Exception {
 
+        // for Kafka, there is always a max message size limit that may cause message fragmentation
         try {
             for (ProducerRecord<String, String> record : splitMessage(msg, topic, messageType, data, clientSessionId)) {
                 tryToSend(record);
@@ -265,7 +265,7 @@ public class KafkaSender extends AbstractSender {
     }
 
     List<ProducerRecord<String, String>> splitMessage(final CommonMessage msg, final String topic,
-            final String messageType, final String data, String clientSessionId) {
+        final String messageType, final String data, String clientSessionId) {
 
         List<String> slices = splitSupport.splitData(data);
         if (slices.isEmpty()) {
@@ -276,12 +276,13 @@ public class KafkaSender extends AbstractSender {
         if (msg instanceof LogMessage) {
             logId = ((LogMessage) msg).getLogId();
             recordKey = logId;
-        } else if (slices.size() > 1) {
-            // ensure same key for all chunks
-            recordKey = Uuid.randomUuid().toString();
-            logId = null;
         } else {
-            recordKey = null;
+            if (slices.size() > 1) {
+                // ensure same key for all chunks
+                recordKey = Uuid.randomUuid().toString();
+            } else {
+                recordKey = null;
+            }
             logId = null;
         }
 
@@ -290,8 +291,8 @@ public class KafkaSender extends AbstractSender {
             final ProducerRecord<String, String> record = new ProducerRecord<>(topic, recordKey, slices.get(i));
             final HeadersUpdater headers = headersUpdater(record);
             headers.addHeader(NJAMS_MESSAGEVERSION_HEADER, MessageVersion.V4.toString())
-                    .addHeader(NJAMS_MESSAGETYPE_HEADER, messageType)
-                    .addHeader(NJAMS_CLIENTID_HEADER, clientSessionId);
+                .addHeader(NJAMS_MESSAGETYPE_HEADER, messageType)
+                .addHeader(NJAMS_CLIENTID_HEADER, clientSessionId);
             if (StringUtils.isNotBlank(logId)) {
                 headers.addHeader(NJAMS_LOGID_HEADER, logId);
             }
@@ -309,7 +310,7 @@ public class KafkaSender extends AbstractSender {
         }
         if (LOG.isDebugEnabled()) {
             LOG.debug("{} for path {} split into {} chunks.", msg.getClass().getSimpleName(), msg.getPath(),
-                    chunks.size());
+                chunks == null ? "null" : chunks.size());
         }
         return chunks;
     }
@@ -327,7 +328,7 @@ public class KafkaSender extends AbstractSender {
             final RecordMetadata result = future.get(requestTimeoutMs, TimeUnit.MILLISECONDS);
             if (LOG.isTraceEnabled()) {
                 LOG.trace("Send record result: {} after {}ms\n{}", result, System.currentTimeMillis() - start,
-                        record);
+                    record);
             } else if (LOG.isDebugEnabled()) {
                 LOG.debug("Send record result: {} after {}ms", result, System.currentTimeMillis() - start);
             }
@@ -345,7 +346,7 @@ public class KafkaSender extends AbstractSender {
                 DiscardMonitor.discard();
             }
             LOG.warn("Try to reconnect, because the topic couldn't be reached after {} milliseconds.",
-                    System.currentTimeMillis() - start);
+                System.currentTimeMillis() - start);
             throw cause;
         }
     }

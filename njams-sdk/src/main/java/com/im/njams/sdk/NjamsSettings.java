@@ -25,6 +25,7 @@ package com.im.njams.sdk;
 
 import javax.naming.Context;
 
+import com.im.njams.sdk.communication.SplitSupport;
 import com.im.njams.sdk.communication.http.HttpSender;
 
 /**
@@ -57,7 +58,16 @@ public class NjamsSettings {
      * Limits the message size for messages being sent to the server. The given value is the maximum size in bytes.
      * Only the message body (JSON) is truncated by this value. Message headers are not considered. If the transport's
      * limitation includes the headers, the configured value has to be accordingly smaller. A value of 0 or less
-     * disables splitting large messages. This is the default.
+     * disables splitting large messages. This is the default. The minimum allowed is
+     * {@value SplitSupport#MIN_SIZE_LIMIT} bytes.<br>
+     * The configured value does not take into account when message compressing is used. If the transport compresses
+     * messages, the configured value should expect zero compression since the actual compression ratio cannot be
+     * estimated.<br>
+     * <b>KAFKA:</b> When using Kafka transport, this setting is limited by the Kafka client producer's max message
+     * size setting.
+     * I.e., the smaller setting is used. Additionally a {@value SplitSupport#KAFKA_OVERHEAD} bytes overhead has to be
+     * considered which increases the allowed minimum size setting by this value when using Kafka.
+     *
      * @since 5.1.0
      */
     public static final String PROPERTY_MAX_MESSAGE_SIZE = "njams.sdk.communication.maxMessageSize";
@@ -408,7 +418,7 @@ public class NjamsSettings {
      * Optional truststore password.
      */
     public static final String PROPERTY_HTTP_TRUSTSTORE_PASSWORD =
-            "njams.sdk.communication.http.ssl.trustStorePassword";
+        "njams.sdk.communication.http.ssl.trustStorePassword";
     /**
      * The path to a custom keystore file to be used for SSL connection.
      */
@@ -425,12 +435,12 @@ public class NjamsSettings {
      * Allows disabling host-name verification when setting up a SSL connection.
      */
     public static final String PROPERTY_HTTP_DISABLE_HOSTNAME_VERIFICATION =
-            "njams.sdk.communication.http.ssl.unsafe.disableHostnameVerification";
+        "njams.sdk.communication.http.ssl.unsafe.disableHostnameVerification";
     /**
      * Trust all SSL certificates
      */
     public static final String PROPERTY_HTTP_TRUST_ALL_CERTIFICATES =
-            "njams.sdk.communication.http.ssl.unsafe.trustAllCertificates";
+        "njams.sdk.communication.http.ssl.unsafe.trustAllCertificates";
 
     //    _  __          ______ _  __
     //   | |/ /    /\   |  ____| |/ /    /\
@@ -449,7 +459,7 @@ public class NjamsSettings {
      * (comma separated) for connecting to a Kafka cluster.
      */
     public static final String PROPERTY_KAFKA_BOOTSTRAP_SERVERS =
-            "njams.sdk.communication.kafka.client.bootstrap.servers";
+        "njams.sdk.communication.kafka.client.bootstrap.servers";
 
     /**
      * This is the prefix of the event, project, commands, and optional error topics.
@@ -462,7 +472,7 @@ public class NjamsSettings {
      * in milliseconds. The default is 30000.
      */
     public static final String PROPERTY_KAFKA_REPLY_PRODUCER_IDLE_TIME =
-            "njams.sdk.communication.kafka.replyProducerIdleTime";
+        "njams.sdk.communication.kafka.replyProducerIdleTime";
 
     /**
      * All properties with these prefixes are directly passed to the Kafka clients used by the SDK:
@@ -543,7 +553,7 @@ public class NjamsSettings {
      * Specifies the jndi initial context factory.
      */
     public static final String PROPERTY_JMS_INITIAL_CONTEXT_FACTORY = PROPERTY_JMS_PREFIX
-            + Context.INITIAL_CONTEXT_FACTORY;
+        + Context.INITIAL_CONTEXT_FACTORY;
 
     /**
      * Specifies the jndi security principal.
