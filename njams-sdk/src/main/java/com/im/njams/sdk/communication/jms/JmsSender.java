@@ -108,9 +108,9 @@ public class JmsSender extends AbstractSender implements ExceptionListener, Clas
             context = new InitialContext(PropertyUtil.filterAndCut(properties, NjamsSettings.PROPERTY_JMS_PREFIX));
             ConnectionFactory factory = NjamsConnectionFactory.getFactory(context, properties);
             if (StringUtils.isNotBlank(properties.getProperty(NjamsSettings.PROPERTY_JMS_USERNAME))
-                    && StringUtils.isNotBlank(properties.getProperty(NjamsSettings.PROPERTY_JMS_PASSWORD))) {
+                && StringUtils.isNotBlank(properties.getProperty(NjamsSettings.PROPERTY_JMS_PASSWORD))) {
                 connection = factory.createConnection(properties.getProperty(NjamsSettings.PROPERTY_JMS_USERNAME),
-                        properties.getProperty(NjamsSettings.PROPERTY_JMS_PASSWORD));
+                    properties.getProperty(NjamsSettings.PROPERTY_JMS_PASSWORD));
             } else {
                 connection = factory.createConnection();
             }
@@ -205,9 +205,13 @@ public class JmsSender extends AbstractSender implements ExceptionListener, Clas
         }
     }
 
+    String serialize(CommonMessage msg) {
+        return JsonUtils.serialize(msg);
+    }
+
     protected void sendMessage(CommonMessage msg, String messageType, String clientSessionId)
-            throws JMSException, InterruptedException {
-        final String data = JsonUtils.serialize(msg);
+        throws JMSException, InterruptedException {
+        final String data = serialize(msg);
         final List<String> chunks = splitSupport.splitData(data);
         if (chunks.isEmpty()) {
             return;
@@ -217,12 +221,13 @@ public class JmsSender extends AbstractSender implements ExceptionListener, Clas
         if (msg instanceof LogMessage) {
             logId = ((LogMessage) msg).getLogId();
             messageKey = logId;
-        } else if (chunks.size() > 1) {
-            // ensure same key for all chunks
-            messageKey = Uuid.randomUuid().toString();
-            logId = null;
         } else {
-            messageKey = null;
+            if (chunks.size() > 1) {
+                // ensure same key for all chunks
+                messageKey = Uuid.randomUuid().toString();
+            } else {
+                messageKey = null;
+            }
             logId = null;
         }
 
@@ -240,10 +245,10 @@ public class JmsSender extends AbstractSender implements ExceptionListener, Clas
         }
         if (LOG.isTraceEnabled()) {
             LOG.trace("Send {} for {} to {}:\n{}", msg.getClass().getSimpleName(), msg.getPath(),
-                    producer.getDestination(), data);
+                producer.getDestination(), data);
         } else if (LOG.isDebugEnabled()) {
             LOG.debug("Send {} for {} to {}", msg.getClass().getSimpleName(), msg.getPath(),
-                    producer.getDestination());
+                producer.getDestination());
         }
     }
 
@@ -268,14 +273,14 @@ public class JmsSender extends AbstractSender implements ExceptionListener, Clas
             } catch (ResourceAllocationException ex) {
                 if (discardPolicy == DiscardPolicy.ON_CONNECTION_LOSS) {
                     LOG.debug("JMS Queue limit exceeded. Applying discard policy [{}]. Message discarded.",
-                            discardPolicy);
+                        discardPolicy);
                     DiscardMonitor.discard();
                     break;
                 }
                 //Queue limit exceeded
                 if (++tries >= MAX_TRIES) {
                     LOG.warn("Try to reconnect, because the MessageQueue hasn't got enough space after {} seconds.",
-                            MAX_TRIES * EXCEPTION_IDLE_TIME);
+                        MAX_TRIES * EXCEPTION_IDLE_TIME);
                     throw ex;
                 }
                 Thread.sleep(EXCEPTION_IDLE_TIME);
@@ -336,10 +341,10 @@ public class JmsSender extends AbstractSender implements ExceptionListener, Clas
     @Override
     public String[] librariesToCheck() {
         return new String[] { "javax.jms.Connection", "javax.jms.ConnectionFactory", "javax.jms.Destination",
-                "javax.jms.ExceptionListener",
-                "javax.jms.Session", "javax.jms.JMSException",
-                "javax.jms.MessageProducer",
-                "javax.jms.Session", "javax.jms.TextMessage", "javax.naming.InitialContext",
-                "javax.naming" + ".NameNotFoundException", "javax.naming.NamingException" };
+            "javax.jms.ExceptionListener",
+            "javax.jms.Session", "javax.jms.JMSException",
+            "javax.jms.MessageProducer",
+            "javax.jms.Session", "javax.jms.TextMessage", "javax.naming.InitialContext",
+            "javax.naming" + ".NameNotFoundException", "javax.naming.NamingException" };
     }
 }
