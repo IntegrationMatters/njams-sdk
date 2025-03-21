@@ -524,7 +524,13 @@ public class NjamsSettings {
     public static final String PROPERTY_JMS_PREFIX = "njams.sdk.communication.jms.";
 
     /**
-     * Delivery mode for JMS Sender. Attention: NonPersistent might lead to data loss.
+     * Delivery mode for JMS Sender. Attention: NonPersistent might lead to data loss.<br>
+     * Supported values (ignoring case)
+     * <ul>
+     * <li><code>NON_PERSISTENT</code> or <code>NONPERSISTENT</code>: JMS non-persistent delivery mode</li>
+     * <li><code>RELIABLE</code> (Tibco EMS only): Tibco EMS reliable delivery mode (since 5.0.3)</li>
+     * <li><i>all others</i>: JMS persistent delivery mode (default)</li>
+     * </ul>
      */
     public static final String PROPERTY_JMS_DELIVERY_MODE = "njams.sdk.communication.jms.delivery.mode";
 
@@ -552,30 +558,40 @@ public class NjamsSettings {
      * This is the prefix of the commands topic, if it is different to the one that is set in destination.
      */
     public static final String PROPERTY_JMS_COMMANDS_DESTINATION = "njams.sdk.communication.jms.destination.commands";
+    /**
+     * This setting specifies whether the used JMS implementation supports message selectors for consumers.<br>
+     * The default is <code>true</code> since this is actually JMS standard, and it's always preferable to use message
+     * selectors if available.<br>
+     * If set to <code>false</code> a workaround implementation is used that requires an additional queue with
+     * suffix <code>.project</code>
+     * @since 5.0.3
+     */
+    public static final String PROPERTY_JMS_SUPPORTS_MESSAGE_SELECTOR =
+        "njams.sdk.communication.jms.supportsMessageSelector";
 
     /**
-     * Specifies the jndi initial context factory.
+     * Specifies the JNDI initial context factory.
      */
     public static final String PROPERTY_JMS_INITIAL_CONTEXT_FACTORY = PROPERTY_JMS_PREFIX
         + Context.INITIAL_CONTEXT_FACTORY;
 
     /**
-     * Specifies the jndi security principal.
+     * Specifies the JNDI security principal.
      */
     public static final String PROPERTY_JMS_SECURITY_PRINCIPAL = PROPERTY_JMS_PREFIX + Context.SECURITY_PRINCIPAL;
 
     /**
-     * Specifies the jndi security credentials.
+     * Specifies the JNDI security credentials.
      */
     public static final String PROPERTY_JMS_SECURITY_CREDENTIALS = PROPERTY_JMS_PREFIX + Context.SECURITY_CREDENTIALS;
 
     /**
-     * Specifies the jndi provider url.
+     * Specifies the JNDI provider URL.
      */
     public static final String PROPERTY_JMS_PROVIDER_URL = PROPERTY_JMS_PREFIX + Context.PROVIDER_URL;
 
     /**
-     * Prefix for the ssl communication properties
+     * Prefix for the SSL communication properties
      */
     public static final String SSLPREFIX = PROPERTY_JMS_PREFIX + "javax.net.ssl.";
     /**

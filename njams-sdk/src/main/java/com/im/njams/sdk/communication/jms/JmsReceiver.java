@@ -20,8 +20,12 @@ import static com.im.njams.sdk.communication.MessageHeaders.NJAMS_CLIENTID_HEADE
 import static com.im.njams.sdk.communication.MessageHeaders.NJAMS_CONTENT_HEADER;
 
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 import javax.jms.Connection;
 import javax.jms.ConnectionFactory;
@@ -66,14 +70,20 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
 
     private static final Logger LOG = LoggerFactory.getLogger(JmsReceiver.class);
 
-    private Connection connection;
-    protected Session session;
-    private Properties properties;
-    protected MessageConsumer consumer;
-    private String topicName;
-    private ObjectMapper mapper;
-    protected Topic topic;
-    protected String messageSelector;
+    protected static final String JMS_TIMESTAMP_PROPERTY = "JMSTimestamp";
+    protected static final String NJAMS_RECEIVER_PROPERTY = "NJAMS_RECEIVER";
+
+    private Connection connection = null;
+    protected Session session = null;
+    private Properties properties = null;
+    protected MessageConsumer consumer = null;
+    private String topicName = null;
+    private ObjectMapper mapper = null;
+    protected Topic topic = null;
+    protected boolean useMessageselector = true;
+    protected String messageSelector = null;
+    protected Predicate<Message> messageFilter = m -> true;
+    protected long oldestMessageTime = Long.MAX_VALUE;
 
     /**
      * Returns the name for this Receiver. (JMS)
@@ -110,7 +120,8 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
         } else {
             topicName = props.getProperty(NjamsSettings.PROPERTY_JMS_DESTINATION) + ".commands";
         }
-
+        useMessageselector =
+            !"false".equalsIgnoreCase(props.getProperty(NjamsSettings.PROPERTY_JMS_SUPPORTS_MESSAGE_SELECTOR));
     }
 
     /**
@@ -119,21 +130,69 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
      * @return the message selector String.
      */
     protected String createMessageSelector() {
-
-        Path fullPath = new Path(njams.getClientPath().toString());
-        Path path = null;
-        StringBuilder selector = new StringBuilder();
-        for (String part : fullPath.getParts()) {
-            if (path == null) {
-                path = new Path(part);
-            } else {
-                path = path.add(part);
-                selector.append(" OR ");
-            }
-            selector.append("NJAMS_RECEIVER = '").append(path.toString()).append('\'');
+        if (!useMessageselector) {
+            return null;
         }
-        LOG.debug("Message selector {}", selector);
-        return selector.toString();
+        final Collection<Njams> njamsInstances = provideNjamsInstances();
+        if (njamsInstances.isEmpty()) {
+            return null;
+        }
+        final String selector = njamsInstances.stream().map(Njams::getClientPath).map(Path::getAllPaths)
+            .flatMap(Collection::stream).map(Object::toString).sorted()
+            .collect(Collectors.joining("' OR NJAMS_RECEIVER = '", "NJAMS_RECEIVER = '", "'"));
+        LOG.debug("Updated message selector: {}", selector);
+        return selector;
+    }
+
+    /**
+     * This method creates a message filter that is used when message selectors are not supported.
+     */
+    protected Predicate<Message> createMessageFilter() {
+        if (useMessageselector) {
+            return m -> true;
+        }
+        // for discarding old commands in case that only durable subscription is supported
+        final Predicate<Message> timeFilter =
+            m -> {
+                try {
+                    return !m.propertyExists(JMS_TIMESTAMP_PROPERTY)
+                        || m.getLongProperty(JMS_TIMESTAMP_PROPERTY) > oldestMessageTime;
+                } catch (JMSException e) {
+                    return false;
+                }
+            };
+        final Collection<Njams> njamsInstances = provideNjamsInstances();
+        if (njamsInstances.isEmpty()) {
+            return null;
+        }
+
+        final Collection<String> paths = njamsInstances.stream()
+            .map(Njams::getClientPath)
+            .map(Path::getAllPaths)
+            .flatMap(Collection::stream)
+            .map(Object::toString)
+            .collect(Collectors.toSet());
+        // the actual message selector
+        final Predicate<Message> pathFilter = m -> {
+            try {
+                return m.propertyExists(NJAMS_RECEIVER_PROPERTY)
+                    && paths.contains(m.getStringProperty(NJAMS_RECEIVER_PROPERTY));
+            } catch (JMSException e) {
+                return false;
+            }
+        };
+        LOG.debug("Updated message filter with timestamp {} and paths: {}", oldestMessageTime, paths);
+        return timeFilter.and(pathFilter);
+    }
+
+    /**
+     * Has to provide all {@link Njams} instances that use this receiver for selecting the commands addressed to any
+     * of these instances.
+     * @return All instances that use this receiver.
+     */
+    protected Collection<Njams> provideNjamsInstances() {
+        // the non-shared receiver only serves one Njams instance
+        return Collections.singleton(njams);
     }
 
     /**
@@ -179,6 +238,7 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
             consumer = createConsumer(session, topic);
             LOG.trace("The MessageConsumer was created successfully.");
 
+            oldestMessageTime = System.currentTimeMillis() - 1000;
             startConnection(connection);
             LOG.trace("The Connection was started successfully.");
 
@@ -301,6 +361,8 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
     public void setNjams(Njams njams) {
         super.setNjams(njams);
         messageSelector = createMessageSelector();
+        messageFilter = createMessageFilter();
+
     }
 
     /**
@@ -430,6 +492,12 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
      */
     @Override
     public void onMessage(Message msg) {
+        if (!messageFilter.test(msg)) {
+            if (LOG.isTraceEnabled()) {
+                LOG.trace("Discarded by filter {}", StringUtils.messageToString(msg));
+            }
+            return;
+        }
         if (LOG.isTraceEnabled()) {
             LOG.trace("Received {}", StringUtils.messageToString(msg));
         }
@@ -447,7 +515,7 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
             }
 
             final Instruction instruction = getInstruction(msg);
-            if ((instruction == null) || suppressGetRequestHandlerInstruction(instruction, njams)) {
+            if (instruction == null || suppressGetRequestHandlerInstruction(instruction, njams)) {
                 return;
             }
             onInstruction(instruction);

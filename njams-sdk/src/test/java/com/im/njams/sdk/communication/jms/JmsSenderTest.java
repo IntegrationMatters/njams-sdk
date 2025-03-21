@@ -101,7 +101,7 @@ public class JmsSenderTest {
     @Test
     public void queueIsFullTest() throws JMSException, InterruptedException {
         final String ERROR_MESSAGE = "Queue limit exceeded";
-        final MessageProducer producer = sender.producer = mock(MessageProducer.class);
+        final MessageProducer producer = sender.eventProducer = mock(MessageProducer.class);
         final Session session = sender.session = mock(Session.class);
         when(session.createTextMessage(any())).thenReturn(mock(TextMessage.class));
         ResourceAllocationException er1 = new ResourceAllocationException(ERROR_MESSAGE);
@@ -109,14 +109,14 @@ public class JmsSenderTest {
         doThrow(er1).doThrow(er2).doNothing().when(producer).send(any());
         final CommonMessage msg = mock(CommonMessage.class);
         when(msg.getPath()).thenReturn("path");
-        sender.sendMessage(msg, "messageType", null);
+        sender.sendMessage(producer, msg, "messageType", null);
         verify(producer, times(3)).send(any());
     }
 
     @Test(expected = ResourceAllocationException.class)
     public void queueIsFullMaxTriesTest() throws JMSException, InterruptedException {
         final String ERROR_MESSAGE = "Queue limit exceeded";
-        final MessageProducer producer = sender.producer = mock(MessageProducer.class);
+        final MessageProducer producer = sender.eventProducer = mock(MessageProducer.class);
         final Session session = sender.session = mock(Session.class);
         when(session.createTextMessage(any())).thenReturn(mock(TextMessage.class));
         ResourceAllocationException er = new ResourceAllocationException(ERROR_MESSAGE);
@@ -124,7 +124,7 @@ public class JmsSenderTest {
         final CommonMessage msg = mock(CommonMessage.class);
         when(msg.getPath()).thenReturn("path");
         try {
-            sender.sendMessage(msg, "messageType", null);
+            sender.sendMessage(producer, msg, "messageType", null);
         } catch (ResourceAllocationException ex) {
             throw ex;
         } finally {
