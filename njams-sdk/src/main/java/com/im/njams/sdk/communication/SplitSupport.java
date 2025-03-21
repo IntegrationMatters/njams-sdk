@@ -68,7 +68,7 @@ public class SplitSupport {
 
     /**
      * Constructor that initializes this instance from the given {@link Settings}.
-     * @param settings
+     * @param settings {@link Settings} to be used for initializing this instance.
      */
     public SplitSupport(Settings settings) {
         this(settings.getAllProperties());
@@ -76,7 +76,7 @@ public class SplitSupport {
 
     /**
      * Constructor that initializes this instance from the given {@link Properties}.
-     * @param properties
+     * @param properties {@link Properties} to be used for initializing this instance.
      */
     public SplitSupport(Properties properties) {
         final String transport = properties.getProperty(NjamsSettings.PROPERTY_COMMUNICATION);
