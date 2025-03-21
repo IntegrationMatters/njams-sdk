@@ -71,6 +71,10 @@ public class NjamsSettings {
      * @since 5.1.0
      */
     public static final String PROPERTY_MAX_MESSAGE_SIZE = "njams.sdk.communication.maxMessageSize";
+    /**
+     * For testing only. Disables limit checks for {@link #PROPERTY_MAX_MESSAGE_SIZE}
+     */
+    public static final String PROPERTY_MAX_MESSAGE_SIZE_NO_LiMITS = "njams.sdk.communication.maxMessageSize.noLimit";
 
     /**
      * When this settings is false (default) nJAMS creates error events only for error situations that are not

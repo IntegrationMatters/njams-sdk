@@ -20,8 +20,10 @@ import com.faizsiegeln.njams.messageformat.v4.logmessage.LogMessage;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.ProjectMessage;
 import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.communication.SplitSupport;
+import com.im.njams.sdk.communication.kafka.KafkaConstants;
+import com.im.njams.sdk.communication.kafka.KafkaSender;
 
-public class KafkaSenderSplitMessageTest {
+public class SplitMessageTest {
 
     private KafkaSender toTest = null;
     private SplitSupport splitSupport = null;
@@ -46,6 +48,7 @@ public class KafkaSenderSplitMessageTest {
 
         Properties config = new Properties();
         config.setProperty(NjamsSettings.PROPERTY_MAX_MESSAGE_SIZE, String.valueOf(maxSize));
+        config.setProperty(NjamsSettings.PROPERTY_MAX_MESSAGE_SIZE_NO_LiMITS, "true");
         config.setProperty(NjamsSettings.PROPERTY_COMMUNICATION, KafkaConstants.COMMUNICATION_NAME);
         return config;
     }
@@ -98,7 +101,7 @@ public class KafkaSenderSplitMessageTest {
 
         sliced = splitSupport.splitData("");
         assertNotNull(sliced);
-        assertTrue(sliced.isEmpty());
+        assertTrue(sliced.contains(""));
 
     }
 
@@ -217,7 +220,7 @@ public class KafkaSenderSplitMessageTest {
         assertTrue(records.isEmpty());
         records = toTest.splitMessage(msg, "topic", "event", "", null);
         assertNotNull(records);
-        assertTrue(records.isEmpty());
+        assertEquals(1, records.size());
 
         msg = new ProjectMessage();
         msg.setPath(">a>b>c>");
@@ -226,7 +229,7 @@ public class KafkaSenderSplitMessageTest {
         assertTrue(records.isEmpty());
         records = toTest.splitMessage(msg, "topic", "project", "", null);
         assertNotNull(records);
-        assertTrue(records.isEmpty());
+        assertEquals(1, records.size());
     }
 
     private Map<String, String> getHeaders(ProducerRecord<?, ?> record) {

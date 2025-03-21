@@ -85,22 +85,29 @@ public class SplitSupport {
         }
 
         int limit = getPropertyInt(properties, NjamsSettings.PROPERTY_MAX_MESSAGE_SIZE, -1);
-        if (limit > 0 && limit < MIN_SIZE_LIMIT) {
-            LOG.warn("The configured max message size limit of {} bytes is less than the allowed minimum of {} bytes."
-                + " Using the minimum.", limit, MIN_SIZE_LIMIT);
-            limit = MIN_SIZE_LIMIT;
-        }
-        final boolean isKafka = KafkaConstants.COMMUNICATION_NAME.equalsIgnoreCase(transport);
-        final int kafkaLimit = isKafka ? getKafkaProducerLimit(properties) : Integer.MAX_VALUE;
-
-        if (isKafka && limit <= 0) {
-            maxMessageBytes = kafkaLimit;
-        } else if (limit > kafkaLimit) {
-            LOG.warn("The configured max message size of {} bytes is larger than that configured for the Kafka "
-                + "client ({} bytes). Using Kafka client's setting.", limit, kafkaLimit);
-            maxMessageBytes = kafkaLimit;
-        } else {
+        if ("true"
+            .equalsIgnoreCase(properties.getProperty(NjamsSettings.PROPERTY_MAX_MESSAGE_SIZE_NO_LiMITS, "false"))) {
             maxMessageBytes = limit;
+        } else {
+            if (limit > 0 && limit < MIN_SIZE_LIMIT) {
+                LOG.warn(
+                    "The configured max message size limit of {} bytes is less than the allowed minimum of {} bytes."
+                        + " Using the minimum.",
+                    limit, MIN_SIZE_LIMIT);
+                limit = MIN_SIZE_LIMIT;
+            }
+            final boolean isKafka = KafkaConstants.COMMUNICATION_NAME.equalsIgnoreCase(transport);
+            final int kafkaLimit = isKafka ? getKafkaProducerLimit(properties) : Integer.MAX_VALUE;
+
+            if (isKafka && limit <= 0) {
+                maxMessageBytes = kafkaLimit;
+            } else if (limit > kafkaLimit) {
+                LOG.warn("The configured max message size of {} bytes is larger than that configured for the Kafka "
+                    + "client ({} bytes). Using Kafka client's setting.", limit, kafkaLimit);
+                maxMessageBytes = kafkaLimit;
+            } else {
+                maxMessageBytes = limit;
+            }
         }
         if (maxMessageBytes > 0) {
             LOG.info("Limitting max message size to {} bytes", maxMessageBytes);
@@ -127,7 +134,7 @@ public class SplitSupport {
      */
     private int getKafkaProducerLimit(Properties properties) {
         final Properties kafka = KafkaUtil.filterKafkaProperties(properties, ClientType.PRODUCER);
-    final    int kafkaLimit = getPropertyInt(kafka, ProducerConfig.MAX_REQUEST_SIZE_CONFIG, KAFKA_MAX_SIZE_DEFAULT);
+        final int kafkaLimit = getPropertyInt(kafka, ProducerConfig.MAX_REQUEST_SIZE_CONFIG, KAFKA_MAX_SIZE_DEFAULT);
         if (kafkaLimit <= MIN_SIZE_LIMIT + KAFKA_OVERHEAD) {
             LOG.error(
                 "The configured Kafka client producer's message size limit of {} bytes is less than the allowed "
