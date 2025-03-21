@@ -86,7 +86,7 @@ public class SplitSupport {
 
         int limit = getPropertyInt(properties, NjamsSettings.PROPERTY_MAX_MESSAGE_SIZE, -1);
         if ("true"
-            .equalsIgnoreCase(properties.getProperty(NjamsSettings.PROPERTY_MAX_MESSAGE_SIZE_NO_LiMITS, "false"))) {
+            .equalsIgnoreCase(properties.getProperty(NjamsSettings.PROPERTY_MAX_MESSAGE_SIZE_NO_LIMITS, "false"))) {
             maxMessageBytes = limit;
         } else {
             if (limit > 0 && limit < MIN_SIZE_LIMIT) {

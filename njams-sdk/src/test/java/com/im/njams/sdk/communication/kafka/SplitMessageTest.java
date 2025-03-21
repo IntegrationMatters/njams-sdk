@@ -48,7 +48,7 @@ public class SplitMessageTest {
 
         Properties config = new Properties();
         config.setProperty(NjamsSettings.PROPERTY_MAX_MESSAGE_SIZE, String.valueOf(maxSize));
-        config.setProperty(NjamsSettings.PROPERTY_MAX_MESSAGE_SIZE_NO_LiMITS, "true");
+        config.setProperty(NjamsSettings.PROPERTY_MAX_MESSAGE_SIZE_NO_LIMITS, "true");
         config.setProperty(NjamsSettings.PROPERTY_COMMUNICATION, KafkaConstants.COMMUNICATION_NAME);
         return config;
     }
