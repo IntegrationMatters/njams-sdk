@@ -24,6 +24,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
+import java.util.UUID;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -84,6 +85,7 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
     protected String messageSelector = null;
     protected Predicate<Message> messageFilter = m -> true;
     protected long oldestMessageTime = Long.MAX_VALUE;
+    private String subscriptionName = null;
 
     /**
      * Returns the name for this Receiver. (JMS)
@@ -122,6 +124,9 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
         }
         useMessageselector =
             !"false".equalsIgnoreCase(props.getProperty(NjamsSettings.PROPERTY_JMS_SUPPORTS_MESSAGE_SELECTOR));
+        if (subscriptionName == null) {
+            subscriptionName = UUID.randomUUID().toString();
+        }
     }
 
     /**
@@ -151,19 +156,9 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
         if (useMessageselector) {
             return m -> true;
         }
-        // for discarding old commands in case that only durable subscription is supported
-        final Predicate<Message> timeFilter =
-            m -> {
-                try {
-                    return !m.propertyExists(JMS_TIMESTAMP_PROPERTY)
-                        || m.getLongProperty(JMS_TIMESTAMP_PROPERTY) > oldestMessageTime;
-                } catch (JMSException e) {
-                    return false;
-                }
-            };
         final Collection<Njams> njamsInstances = provideNjamsInstances();
         if (njamsInstances.isEmpty()) {
-            return null;
+            return m -> false;
         }
 
         final Collection<String> paths = njamsInstances.stream()
@@ -172,17 +167,31 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
             .flatMap(Collection::stream)
             .map(Object::toString)
             .collect(Collectors.toSet());
-        // the actual message selector
-        final Predicate<Message> pathFilter = m -> {
+        final Predicate<Message> filter = m -> {
             try {
-                return m.propertyExists(NJAMS_RECEIVER_PROPERTY)
-                    && paths.contains(m.getStringProperty(NJAMS_RECEIVER_PROPERTY));
-            } catch (JMSException e) {
+                // for discarding old commands in case that only durable subscription is supported
+                if (m.getJMSTimestamp() > 0 && m.getJMSTimestamp() < oldestMessageTime) {
+                    LOG.trace("Message discarded by time filter (getJMSTimestamp={})", m.getJMSTimestamp());
+                    return false;
+                }
+
+                // the actual message selector
+                if (m.propertyExists(NJAMS_RECEIVER_PROPERTY)
+                    && paths.contains(m.getStringProperty(NJAMS_RECEIVER_PROPERTY))) {
+                    return true;
+                }
+                if (LOG.isTraceEnabled()) {
+                    LOG.trace("Message discarded by receiver filter ({})", StringUtils.headersToString(m));
+                }
+                return false;
+            } catch (Exception e) {
+                LOG.error("Failed to evaluate filter for message {}. Message discarded.",
+                    StringUtils.headersToString(m), e);
                 return false;
             }
         };
         LOG.debug("Updated message filter with timestamp {} and paths: {}", oldestMessageTime, paths);
-        return timeFilter.and(pathFilter);
+        return filter;
     }
 
     /**
@@ -329,9 +338,9 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
         Topic topic;
         try {
             topic = (Topic) context.lookup(topicName);
-            LOG.info("Topic {} has been found.", topicName);
+            LOG.info("Topic {} has been found via JNDI.", topicName);
         } catch (NameNotFoundException e) {
-            LOG.info("Topic {} hasn't been found. Create Topic...", topicName);
+            LOG.debug("Topic {} hasn't been found via JNDI.", topicName);
             topic = session.createTopic(topicName);
         }
         return topic;
@@ -352,7 +361,13 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
      * @throws JMSException is thrown if the MessageConsumer can' be created.
      */
     protected MessageConsumer createConsumer(Session sess, Topic topic) throws JMSException {
-        MessageConsumer cons = sess.createConsumer(topic, messageSelector);
+        final MessageConsumer cons;
+        LOG.debug("Creating consumer with subscription {} and message selector: {}", subscriptionName, messageSelector);
+        if (messageSelector == null) {
+            cons = sess.createConsumer(topic);
+        } else {
+            cons = sess.createConsumer(topic, messageSelector);
+        }
         cons.setMessageListener(this);
         return cons;
     }
@@ -360,9 +375,15 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
     @Override
     public void setNjams(Njams njams) {
         super.setNjams(njams);
+        if (njams != null) {
+            updateFilters();
+        }
+    }
+
+    protected void updateFilters() {
+        LOG.debug("Updating selector/filter");
         messageSelector = createMessageSelector();
         messageFilter = createMessageFilter();
-
     }
 
     /**
@@ -493,9 +514,6 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
     @Override
     public void onMessage(Message msg) {
         if (!messageFilter.test(msg)) {
-            if (LOG.isTraceEnabled()) {
-                LOG.trace("Discarded by filter {}", StringUtils.messageToString(msg));
-            }
             return;
         }
         if (LOG.isTraceEnabled()) {

@@ -88,32 +88,13 @@ public class StringUtils {
      * @param msg The message to serialize
      * @return A string containing the message's type, and properties, and body (abbreviated).
      */
-    @SuppressWarnings("unchecked")
     public static String messageToString(final Message msg) {
         if (msg == null) {
             return null;
         }
-        Collection<String> keys = Collections.emptyList();
-        try {
-            keys = Collections.list(msg.getPropertyNames());
-        } catch (Exception e) {
-            // ignore
-        }
         final StringBuilder sb = new StringBuilder();
         sb.append(msg.getClass().getName()).append("[properties={");
-        int i = 0;
-        for (final String key : keys) {
-            if (i++ > 0) {
-                sb.append(", ");
-            }
-            sb.append(key).append('=');
-            try {
-                final Object obj = msg.getObjectProperty(key);
-                sb.append(obj == null ? "null" : abbreviate(obj.toString(), 300));
-            } catch (JMSException e) {
-                sb.append("[error: ").append(e).append(']');
-            }
-        }
+        appendHeaders(sb, msg);
         sb.append('}');
         if (msg instanceof TextMessage) {
             sb.append("; body=");
@@ -130,6 +111,46 @@ public class StringUtils {
             }
         }
         sb.append(']');
+        return sb.toString();
+    }
+
+    /**
+     * Creates a debug string from the given JMS {@link Message}.
+     * @param msg The message to serialize
+     * @return A string containing the message's type, and properties, and body (abbreviated).
+     */
+    public static String headersToString(final Message msg) {
+        if (msg == null) {
+            return null;
+        }
+        StringBuilder sb = new StringBuilder();
+        sb.append(msg.getClass().getName()).append("[properties={");
+        appendHeaders(sb, msg);
+        sb.append("}]");
+        return sb.toString();
+    }
+
+    @SuppressWarnings("unchecked")
+    private static String appendHeaders(StringBuilder sb, final Message msg) {
+        Collection<String> keys = Collections.emptyList();
+        try {
+            keys = Collections.list(msg.getPropertyNames());
+        } catch (Exception e) {
+            // ignore
+        }
+        int i = 0;
+        for (final String key : keys) {
+            if (i++ > 0) {
+                sb.append(", ");
+            }
+            sb.append(key).append('=');
+            try {
+                final Object obj = msg.getObjectProperty(key);
+                sb.append(obj == null ? "null" : abbreviate(obj.toString(), 300));
+            } catch (JMSException e) {
+                sb.append("[error: ").append(e).append(']');
+            }
+        }
         return sb.toString();
     }
 

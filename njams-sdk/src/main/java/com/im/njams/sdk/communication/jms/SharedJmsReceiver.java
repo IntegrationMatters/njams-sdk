@@ -68,8 +68,10 @@ public class SharedJmsReceiver extends JmsReceiver implements ShareableReceiver<
         super.setNjams(null);
         sharingSupport.addNjams(njamsInstance);
         synchronized (this) {
-            messageSelector = createMessageSelector();
-            updateConsumer();
+            updateFilters();
+            if (useMessageselector) {
+                updateConsumer();
+            }
         }
     }
 
@@ -77,8 +79,10 @@ public class SharedJmsReceiver extends JmsReceiver implements ShareableReceiver<
     public void removeNjams(Njams njamsInstance) {
         if (sharingSupport.removeNjams(njamsInstance)) {
             synchronized (this) {
-                messageSelector = createMessageSelector();
-                updateConsumer();
+                updateFilters();
+                if (useMessageselector) {
+                    updateConsumer();
+                }
             }
         }
     }
@@ -106,9 +110,6 @@ public class SharedJmsReceiver extends JmsReceiver implements ShareableReceiver<
     @Override
     public void onMessage(Message msg) {
         if (!messageFilter.test(msg)) {
-            if (LOG.isTraceEnabled()) {
-                LOG.trace("Discarded by filter {}", StringUtils.messageToString(msg));
-            }
             return;
         }
         if (LOG.isTraceEnabled()) {
