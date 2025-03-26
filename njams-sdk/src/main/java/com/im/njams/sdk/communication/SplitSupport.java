@@ -51,7 +51,7 @@ public class SplitSupport {
     private static final Logger LOG = LoggerFactory.getLogger(SplitSupport.class);
     private static final CharsetEncoder UTF_8_ENCODER = StandardCharsets.UTF_8.newEncoder();
 
-    /** For testing only. Disables limit checks for {@link #PROPERTY_MAX_MESSAGE_SIZE} */
+    /** For testing only. Disables limit checks for {@link NjamsSettings#PROPERTY_MAX_MESSAGE_SIZE} */
     public static final String TESTING_NO_LIMIT_CHECKS = "test-no-limit-checks";
 
     /** The minimum value allowed as max message size */

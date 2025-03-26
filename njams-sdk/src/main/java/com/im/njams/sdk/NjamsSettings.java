@@ -27,6 +27,7 @@ import javax.naming.Context;
 
 import com.im.njams.sdk.communication.SplitSupport;
 import com.im.njams.sdk.communication.http.HttpSender;
+import com.im.njams.sdk.communication.kafka.KafkaSender;
 
 /**
  * This class is a list and documentation for all settings, which can be used in SDK.
@@ -65,7 +66,7 @@ public class NjamsSettings {
      * estimated.<br>
      * <b>KAFKA:</b> When using Kafka transport, this setting is limited by the Kafka client producer's max message
      * size setting.
-     * I.e., the smaller setting is used. Additionally a {@value SplitSupport#HEADERS_OVERHEAD} bytes overhead has to be
+     * I.e., the smaller setting is used. Additionally a {@value KafkaSender#HEADERS_OVERHEAD} bytes overhead has to be
      * considered which increases the allowed minimum size setting by this value when using Kafka.
      *
      * @since 5.1.0
