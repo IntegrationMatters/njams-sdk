@@ -12,6 +12,10 @@ import okio.BufferedSink;
 import okio.GzipSink;
 import okio.Okio;
 
+/**
+ * Http request interceptor that GZIPs request body content. This interceptor is optionally added to the http client
+ * if configured via the client's settings. GZIP has to be supported by nJAMS server (since 6.1.2).
+ */
 public class GzipRequestInterceptor implements Interceptor {
     private static class GzipRequestBody extends RequestBody {
         private final RequestBody originalBody;
