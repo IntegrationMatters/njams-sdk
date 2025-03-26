@@ -20,8 +20,6 @@ import com.faizsiegeln.njams.messageformat.v4.logmessage.LogMessage;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.ProjectMessage;
 import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.communication.SplitSupport;
-import com.im.njams.sdk.communication.kafka.KafkaConstants;
-import com.im.njams.sdk.communication.kafka.KafkaSender;
 
 public class SplitMessageTest {
 
@@ -41,14 +39,14 @@ public class SplitMessageTest {
     private void init(int maxSize) {
         Properties p = buildProps(maxSize);
         toTest.init(p);
-        splitSupport = new SplitSupport(p);
+        splitSupport = new SplitSupport(p, -1);
     }
 
     private Properties buildProps(int maxSize) {
 
         Properties config = new Properties();
         config.setProperty(NjamsSettings.PROPERTY_MAX_MESSAGE_SIZE, String.valueOf(maxSize));
-        config.setProperty(NjamsSettings.PROPERTY_MAX_MESSAGE_SIZE_NO_LIMITS, "true");
+        config.setProperty(SplitSupport.TESTING_NO_LIMIT_CHECKS, "true");
         config.setProperty(NjamsSettings.PROPERTY_COMMUNICATION, KafkaConstants.COMMUNICATION_NAME);
         return config;
     }

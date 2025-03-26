@@ -21,6 +21,8 @@ import static com.im.njams.sdk.NjamsSettings.PROPERTY_HTTP_CONNECTION_TEST;
 import static com.im.njams.sdk.NjamsSettings.PROPERTY_HTTP_DATAPROVIDER_PREFIX;
 import static com.im.njams.sdk.NjamsSettings.PROPERTY_HTTP_DATAPROVIDER_SUFFIX;
 import static com.im.njams.sdk.communication.MessageHeaders.*;
+import static com.im.njams.sdk.utils.PropertyUtil.getPropertyBool;
+import static com.im.njams.sdk.utils.PropertyUtil.getPropertyWithDeprecationWarning;
 
 import java.io.IOException;
 import java.net.MalformedURLException;
@@ -50,7 +52,6 @@ import com.im.njams.sdk.communication.ConnectionStatus;
 import com.im.njams.sdk.communication.DiscardMonitor;
 import com.im.njams.sdk.communication.DiscardPolicy;
 import com.im.njams.sdk.communication.SplitSupport;
-import com.im.njams.sdk.settings.Settings;
 import com.im.njams.sdk.utils.JsonUtils;
 import com.im.njams.sdk.utils.StringUtils;
 
@@ -100,7 +101,8 @@ public class HttpSender extends AbstractSender {
     }
 
     private static final Logger LOG = LoggerFactory.getLogger(HttpSender.class);
-
+    /** The extract bytes limit of RESTEasy in nJAMS server when using gzip compression (200 MB). */
+    private static final int HTTP_COMPRESSION_MAX_SIZE_DEFAULT = 200 * 1024 * 1024;
     /**
      * Name of the HTTP(s) communication implementation.
      */
@@ -154,7 +156,7 @@ public class HttpSender extends AbstractSender {
         this.properties = properties;
         try {
             final String suffix =
-                Settings.getPropertyWithDeprecationWarning(properties, PROPERTY_HTTP_DATAPROVIDER_SUFFIX,
+                getPropertyWithDeprecationWarning(properties, PROPERTY_HTTP_DATAPROVIDER_SUFFIX,
                     PROPERTY_HTTP_DATAPROVIDER_PREFIX);
             if (StringUtils.isBlank(suffix)) {
                 throw new NjamsSdkRuntimeException(
@@ -168,13 +170,21 @@ public class HttpSender extends AbstractSender {
                     connectionTest = getConnectionTest(ConnectionTestMode.LEGACY);
                 }
             }
-            splitSupport = new SplitSupport(properties);
+            splitSupport = new SplitSupport(properties, getMaxMessageSize(properties));
             clientFactory = new HttpClientFactory(properties, uri);
             LOG.debug("Initialized sender with URL {}", uri);
         } catch (final Exception e) {
             LOG.debug("Could not initialize sender with URL {}", url, e);
             throw new IllegalStateException("Could not initialize http sender", e);
         }
+    }
+
+    private int getMaxMessageSize(final Properties properties) {
+        if (!getPropertyBool(properties, NjamsSettings.PROPERTY_HTTP_COMPRESSION_ENABLED, false)) {
+            return -1;
+        }
+        // only applies to compressed messages
+        return HTTP_COMPRESSION_MAX_SIZE_DEFAULT;
     }
 
     private URI createUri(String path) throws URISyntaxException {

@@ -59,9 +59,9 @@ import com.im.njams.sdk.communication.DiscardMonitor;
 import com.im.njams.sdk.communication.DiscardPolicy;
 import com.im.njams.sdk.communication.NjamsConnectionFactory;
 import com.im.njams.sdk.communication.SplitSupport;
-import com.im.njams.sdk.settings.PropertyUtil;
 import com.im.njams.sdk.utils.ClasspathValidator;
 import com.im.njams.sdk.utils.JsonUtils;
+import com.im.njams.sdk.utils.PropertyUtil;
 import com.im.njams.sdk.utils.StringUtils;
 
 /**
@@ -99,7 +99,7 @@ public class JmsSender extends AbstractSender implements ExceptionListener, Clas
         if (useProjectQueue) {
             LOG.info("Using separate project queue.");
         }
-        splitSupport = new SplitSupport(properties);
+        splitSupport = new SplitSupport(properties, -1);
         LOG.debug("Initialized sender {} (useProjectQueue={})", getName(), useProjectQueue);
     }
 

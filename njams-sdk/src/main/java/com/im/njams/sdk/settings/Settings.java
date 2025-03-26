@@ -27,6 +27,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.im.njams.sdk.settings.encoding.Transformer;
+import com.im.njams.sdk.utils.PropertyUtil;
 import com.im.njams.sdk.utils.StringUtils;
 
 /**
@@ -172,9 +173,9 @@ public class Settings {
     public Properties filter(String prefix) {
         Properties response = new Properties();
         properties.stringPropertyNames()
-                .stream()
-                .filter(k -> k.startsWith(prefix))
-                .forEach(k -> response.setProperty(k, properties.getProperty(k)));
+            .stream()
+            .filter(k -> k.startsWith(prefix))
+            .forEach(k -> response.setProperty(k, properties.getProperty(k)));
         return Transformer.decode(response);
     }
 
@@ -188,11 +189,11 @@ public class Settings {
     public Properties filterAndCut(String prefix) {
         Properties response = new Properties();
         properties.stringPropertyNames()
-                .stream()
-                .filter(k -> k.startsWith(prefix))
-                .forEach(k -> response.setProperty(
-                        k.substring(k.indexOf(prefix) + prefix.length()),
-                        properties.getProperty(k)));
+            .stream()
+            .filter(k -> k.startsWith(prefix))
+            .forEach(k -> response.setProperty(
+                k.substring(k.indexOf(prefix) + prefix.length()),
+                properties.getProperty(k)));
         return Transformer.decode(response);
     }
 
@@ -220,29 +221,15 @@ public class Settings {
      * Same as {@link #getProperty(String, String)} if the <code>expectedKey</code> exists.
      * If not, the <code>deprecatedKey</code> is tried and if found, a deprecation warning is logged for that key
      * and the value is returned.
-     * Only if the <code>deprecatedKey</code> was also not found, the <code>default</code> value is returned. 
+     * Only if the <code>deprecatedKey</code> was also not found, the <code>default</code> value is returned.
      * @param expectedKey The expected (current) key.
      * @param defaultValue The default to return in case that no key exists at all.
      * @param deprecatedKey Deprecated key to try if the expected one does not exist.
      * @return A value for the given keys as explained above.
      */
     public String getPropertyWithDeprecationWarning(String expectedKey, String defaultValue, String deprecatedKey) {
-        return getPropertyWithDeprecationWarning(getAllProperties(), expectedKey, defaultValue, deprecatedKey);
+        return PropertyUtil.getPropertyWithDeprecationWarning(getAllProperties(), expectedKey, defaultValue,
+            deprecatedKey);
     }
 
-    public static String getPropertyWithDeprecationWarning(Properties props, String expectedKey, String deprecatedKey) {
-        return getPropertyWithDeprecationWarning(props, expectedKey, null, deprecatedKey);
-    }
-
-    public static String getPropertyWithDeprecationWarning(Properties props, String expectedKey, String defaultValue,
-            String deprecatedKey) {
-        if (props.containsKey(expectedKey)) {
-            return Transformer.decode(props.getProperty(expectedKey));
-        }
-        if (props.containsKey(deprecatedKey)) {
-            LOG.warn("Setting [{}] is outdated. Use [{}] instead.", deprecatedKey, expectedKey);
-            return Transformer.decode(props.getProperty(deprecatedKey));
-        }
-        return defaultValue;
-    }
 }

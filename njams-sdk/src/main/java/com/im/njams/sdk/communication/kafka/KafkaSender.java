@@ -26,6 +26,7 @@ package com.im.njams.sdk.communication.kafka;
 
 import static com.im.njams.sdk.communication.MessageHeaders.*;
 import static com.im.njams.sdk.communication.kafka.KafkaHeadersUtil.headersUpdater;
+import static com.im.njams.sdk.utils.PropertyUtil.getPropertyInt;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -74,6 +75,12 @@ import com.im.njams.sdk.utils.StringUtils;
 public class KafkaSender extends AbstractSender {
 
     private static final Logger LOG = LoggerFactory.getLogger(KafkaSender.class);
+
+    /** Kafka's internal default for a producer's message size limit (1MB). */
+    private static final int MAX_MESSAGE_SIZE_DEFAULT = 1048576;
+    /** Some overhead that is subtracted from Kafka's producer message size limit, if used. */
+    public static final int HEADERS_OVERHEAD = 4096;
+
     private static final String PROJECT_SUFFIX = ".project";
     private static final String EVENT_SUFFIX = ".event";
 
@@ -110,8 +117,20 @@ public class KafkaSender extends AbstractSender {
         topicEvent = topicPrefix + EVENT_SUFFIX;
         topicProject = topicPrefix + PROJECT_SUFFIX;
         initMaxMessageSizeAndTimeout();
-        splitSupport = new SplitSupport(properties);
+        splitSupport = new SplitSupport(properties, getProducerLimit(properties));
         LOG.debug("Initialized sender {}", KafkaConstants.COMMUNICATION_NAME);
+    }
+
+    /**
+     * Get Kafka's producer setting or use its default.
+     * See also {@link NjamsSettings#PROPERTY_MAX_MESSAGE_SIZE}
+     * @param properties
+     * @return
+     */
+    private int getProducerLimit(final Properties properties) {
+        final Properties kafka = KafkaUtil.filterKafkaProperties(properties, ClientType.PRODUCER);
+        final int kafkaLimit = getPropertyInt(kafka, ProducerConfig.MAX_REQUEST_SIZE_CONFIG, MAX_MESSAGE_SIZE_DEFAULT);
+        return kafkaLimit - HEADERS_OVERHEAD;
     }
 
     private void initMaxMessageSizeAndTimeout() {
@@ -130,18 +149,6 @@ public class KafkaSender extends AbstractSender {
         requestTimeoutMs = Math.min(6000, requestTimeoutMs);
         LOG.debug("Request timeout {}ms", requestTimeoutMs);
 
-    }
-
-    private static int getPropertyInt(Properties properties, String key, int defaultValue) {
-        final String s = properties.getProperty(key);
-        if (StringUtils.isNotBlank(s)) {
-            try {
-                return Integer.parseInt(s);
-            } catch (Exception e) {
-                LOG.warn("Failed to parse value {} of property {} to int.", s, key);
-            }
-        }
-        return defaultValue;
     }
 
     /**

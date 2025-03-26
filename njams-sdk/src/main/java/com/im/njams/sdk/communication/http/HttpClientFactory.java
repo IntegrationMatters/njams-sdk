@@ -78,6 +78,7 @@ public class HttpClientFactory {
     private final SSLContext sslContext;
     private final X509TrustManager trustManager;
     private final HostnameVerifier hostnameVerifier;
+    private final boolean compression;
 
     public HttpClientFactory(final Properties properties, final URI uri) throws Exception {
         requestAuthenticator = createBasicAuth(properties);
@@ -107,6 +108,8 @@ public class HttpClientFactory {
             trustManager = null;
             hostnameVerifier = null;
         }
+
+        compression = "true".equalsIgnoreCase(properties.getProperty(PROPERTY_HTTP_COMPRESSION_ENABLED));
     }
 
     /**
@@ -143,10 +146,14 @@ public class HttpClientFactory {
     public OkHttpClient createClient() {
         try {
             final okhttp3.OkHttpClient.Builder clientBuilder = new OkHttpClient.Builder()
-                    .connectTimeout(60, TimeUnit.SECONDS)
-                    .retryOnConnectionFailure(false)
-                    .writeTimeout(60, TimeUnit.SECONDS)
-                    .readTimeout(60, TimeUnit.SECONDS);
+                .connectTimeout(60, TimeUnit.SECONDS)
+                .retryOnConnectionFailure(false)
+                .writeTimeout(60, TimeUnit.SECONDS)
+                .readTimeout(60, TimeUnit.SECONDS);
+
+            if (compression) {
+                clientBuilder.addInterceptor(new GzipRequestInterceptor());
+            }
 
             // Basic-Auth for nJAMS ingest; SER-5068
             if (requestAuthenticator != null) {
@@ -188,7 +195,7 @@ public class HttpClientFactory {
             return null;
         }
         final String credential =
-                Credentials.basic(user, properties.getProperty(PROPERTY_HTTP_PASSWORD), StandardCharsets.UTF_8);
+            Credentials.basic(user, properties.getProperty(PROPERTY_HTTP_PASSWORD), StandardCharsets.UTF_8);
         LOG.debug("Created basic-auth with user: {}", user);
         return chain -> chain.proceed(chain.request().newBuilder().header("Authorization", credential).build());
     }
@@ -208,11 +215,11 @@ public class HttpClientFactory {
         Authenticator proxyAuthenticator = null;
         if (StringUtils.isNotBlank(proxyUser)) {
             final String credential =
-                    Credentials.basic(proxyUser, properties.getProperty(PROPERTY_HTTP_PROXY_PASSWORD),
-                            StandardCharsets.UTF_8);
+                Credentials.basic(proxyUser, properties.getProperty(PROPERTY_HTTP_PROXY_PASSWORD),
+                    StandardCharsets.UTF_8);
             proxyAuthenticator = (route, response) -> response.request().newBuilder()
-                    .header("Proxy-Authorization", credential)
-                    .build();
+                .header("Proxy-Authorization", credential)
+                .build();
         }
         LOG.debug("Created proxy {}:{} (user={})", proxyHost, proxyPort, proxyUser);
         return new SimpleImmutableEntry<>(proxy, proxyAuthenticator);
@@ -233,7 +240,7 @@ public class HttpClientFactory {
             final String truststorePassword = properties.getProperty(PROPERTY_HTTP_TRUSTSTORE_PASSWORD);
             final KeyStore truststore = readKeyStore(truststorePath, truststoreType, truststorePassword);
             final TrustManagerFactory trustManagerFactory =
-                    TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+                TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
             trustManagerFactory.init(truststore);
             trustManagers = trustManagerFactory.getTrustManagers();
         } else if (StringUtils.isNotBlank(certificateFile)) {
@@ -248,7 +255,7 @@ public class HttpClientFactory {
             final KeyStore trustStore = KeyStore.getInstance(KeyStore.getDefaultType());
             trustStore.load(null, null);
             final TrustManagerFactory trustManagerFactory =
-                    TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+                TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
             trustStore.setCertificateEntry("cert-alias", cert);
             trustManagerFactory.init(trustStore);
             trustManagers = trustManagerFactory.getTrustManagers();
@@ -259,12 +266,12 @@ public class HttpClientFactory {
 
                 @Override
                 public void checkClientTrusted(final X509Certificate[] chain, final String authType)
-                        throws CertificateException {
+                    throws CertificateException {
                 }
 
                 @Override
                 public void checkServerTrusted(final X509Certificate[] chain, final String authType)
-                        throws CertificateException {
+                    throws CertificateException {
                 }
 
                 @Override
@@ -276,7 +283,7 @@ public class HttpClientFactory {
             LOG.debug("Use system default trust-store");
             // get from default SSLContext
             final TrustManagerFactory trustManagerFactory =
-                    TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+                TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
             trustManagerFactory.init((KeyStore) null);
             trustManagers = trustManagerFactory.getTrustManagers();
         }
@@ -289,22 +296,22 @@ public class HttpClientFactory {
             final String keystorePassword = properties.getProperty(PROPERTY_HTTP_KEYSTORE_PASSWORD);
             final KeyStore keystore = readKeyStore(keystorePath, keystoreType, keystorePassword);
             final KeyManagerFactory keyManagerFactory =
-                    KeyManagerFactory.getInstance(KeyManagerFactory
-                            .getDefaultAlgorithm());
+                KeyManagerFactory.getInstance(KeyManagerFactory
+                    .getDefaultAlgorithm());
             keyManagerFactory.init(keystore, keystorePassword.toCharArray());
             keyManagers = keyManagerFactory.getKeyManagers();
         }
         sslContext.init(keyManagers, trustManagers, new SecureRandom());
 
         final X509TrustManager x509TrustManager =
-                Arrays.stream(trustManagers).filter(X509TrustManager.class::isInstance)
-                        .map(X509TrustManager.class::cast).findAny().orElse(null);
+            Arrays.stream(trustManagers).filter(X509TrustManager.class::isInstance)
+                .map(X509TrustManager.class::cast).findAny().orElse(null);
         LOG.debug("Created SSL context.");
         return new SimpleImmutableEntry<>(sslContext, x509TrustManager);
     }
 
     private KeyStore readKeyStore(final String keystorePath, final String type, final String password)
-            throws KeyStoreException, NoSuchAlgorithmException, CertificateException, IOException {
+        throws KeyStoreException, NoSuchAlgorithmException, CertificateException, IOException {
 
         final KeyStore ks = KeyStore.getInstance(type);
         try (final InputStream is = new FileInputStream(keystorePath)) {

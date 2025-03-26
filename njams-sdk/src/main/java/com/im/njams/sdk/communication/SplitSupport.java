@@ -17,6 +17,8 @@
 package com.im.njams.sdk.communication;
 
 import static com.im.njams.sdk.communication.MessageHeaders.*;
+import static com.im.njams.sdk.utils.PropertyUtil.getPropertyBool;
+import static com.im.njams.sdk.utils.PropertyUtil.getPropertyInt;
 
 import java.nio.Buffer;
 import java.nio.ByteBuffer;
@@ -30,20 +32,16 @@ import java.util.List;
 import java.util.Properties;
 import java.util.function.BiConsumer;
 
-import org.apache.kafka.clients.producer.ProducerConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.communication.http.HttpSender;
-import com.im.njams.sdk.communication.kafka.KafkaConstants;
-import com.im.njams.sdk.communication.kafka.KafkaUtil;
-import com.im.njams.sdk.communication.kafka.KafkaUtil.ClientType;
 import com.im.njams.sdk.settings.Settings;
-import com.im.njams.sdk.utils.StringUtils;
 
 /**
- * Splits large messages according to the configuration setting {@link NjamsSettings#PROPERTY_MAX_MESSAGE_SIZE}.
+ * Splits large messages according to the configuration setting {@link NjamsSettings#PROPERTY_MAX_MESSAGE_SIZE} or
+ * using a technical size limit caused by the used transport implementation.
  *
  * @author cwinkler
  *
@@ -53,11 +51,10 @@ public class SplitSupport {
     private static final Logger LOG = LoggerFactory.getLogger(SplitSupport.class);
     private static final CharsetEncoder UTF_8_ENCODER = StandardCharsets.UTF_8.newEncoder();
 
-    /** Kafka's internal default for a producer's message size limit (1MB). */
-    private static final int KAFKA_MAX_SIZE_DEFAULT = 1048576;
-    /** Some overhead that is subtracted from Kafka's producer message size limit, if used. */
-    public static final int KAFKA_OVERHEAD = 4096;
-    /** The minimum value allowed as max message size (10kb)*/
+    /** For testing only. Disables limit checks for {@link #PROPERTY_MAX_MESSAGE_SIZE} */
+    public static final String TESTING_NO_LIMIT_CHECKS = "test-no-limit-checks";
+
+    /** The minimum value allowed as max message size */
     public static final int MIN_SIZE_LIMIT = 10240;
 
     private final int maxMessageBytes;
@@ -69,45 +66,30 @@ public class SplitSupport {
     /**
      * Constructor that initializes this instance from the given {@link Settings}.
      * @param settings {@link Settings} to be used for initializing this instance.
+     * @param techLimit Technical limitation of the maximum message size enforced by the transport implementation,
+     * if any. This works as an upper limit. Set to 0 or less if there is no such limit.
      */
-    public SplitSupport(Settings settings) {
-        this(settings.getAllProperties());
+    public SplitSupport(final Settings settings, final int techLimit) {
+        this(settings.getAllProperties(), techLimit);
     }
 
     /**
      * Constructor that initializes this instance from the given {@link Properties}.
      * @param properties {@link Properties} to be used for initializing this instance.
+     * @param techLimit Technical limitation of the maximum message size enforced by the transport implementation,
+     * if any. This works as an upper limit. Set to 0 or less if there is no such limit.
      */
-    public SplitSupport(Properties properties) {
+    public SplitSupport(final Properties properties, final int techLimit) {
         final String transport = properties.getProperty(NjamsSettings.PROPERTY_COMMUNICATION);
         if (transport == null) {
             throw new IllegalArgumentException("Missing setting: " + NjamsSettings.PROPERTY_COMMUNICATION);
         }
 
-        int limit = getPropertyInt(properties, NjamsSettings.PROPERTY_MAX_MESSAGE_SIZE, -1);
-        if ("true"
-            .equalsIgnoreCase(properties.getProperty(NjamsSettings.PROPERTY_MAX_MESSAGE_SIZE_NO_LIMITS, "false"))) {
-            maxMessageBytes = limit;
+        final int configuredLimit = getPropertyInt(properties, NjamsSettings.PROPERTY_MAX_MESSAGE_SIZE, -1);
+        if (getPropertyBool(properties, TESTING_NO_LIMIT_CHECKS, false)) {
+            maxMessageBytes = configuredLimit;
         } else {
-            if (limit > 0 && limit < MIN_SIZE_LIMIT) {
-                LOG.warn(
-                    "The configured max message size limit of {} bytes is less than the allowed minimum of {} bytes."
-                        + " Using the minimum.",
-                    limit, MIN_SIZE_LIMIT);
-                limit = MIN_SIZE_LIMIT;
-            }
-            final boolean isKafka = KafkaConstants.COMMUNICATION_NAME.equalsIgnoreCase(transport);
-            final int kafkaLimit = isKafka ? getKafkaProducerLimit(properties) : Integer.MAX_VALUE;
-
-            if (isKafka && limit <= 0) {
-                maxMessageBytes = kafkaLimit;
-            } else if (limit > kafkaLimit) {
-                LOG.warn("The configured max message size of {} bytes is larger than that configured for the Kafka "
-                    + "client ({} bytes). Using Kafka client's setting.", limit, kafkaLimit);
-                maxMessageBytes = kafkaLimit;
-            } else {
-                maxMessageBytes = limit;
-            }
+            maxMessageBytes = resolveLimit(configuredLimit, techLimit);
         }
         if (maxMessageBytes > 0) {
             LOG.info("Limitting max message size to {} bytes", maxMessageBytes);
@@ -117,34 +99,38 @@ public class SplitSupport {
             chunkNoHeader = NJAMS_CHUNK_NO_HTTP_HEADER;
             chunksHeader = NJAMS_CHUNKS_HTTP_HEADER;
             chunkMessageKeyHeader = NJAMS_CHUNK_MESSAGE_KEY_HTTP_HEADER;
-            LOG.debug("Using http headers.");
+            LOG.debug("Using nginx compatible http headers.");
         } else {
             chunkNoHeader = NJAMS_CHUNK_NO_HEADER;
             chunksHeader = NJAMS_CHUNKS_HEADER;
             chunkMessageKeyHeader = NJAMS_CHUNK_MESSAGE_KEY_HEADER;
-            LOG.debug("Using JMS/Kafka headers.");
+            LOG.debug("Using common message properties.");
         }
     }
 
-    /**
-     * Get Kafka's producer setting or use its default.
-     * See also {@link NjamsSettings#PROPERTY_MAX_MESSAGE_SIZE}
-     * @param properties
-     * @return
-     */
-    private int getKafkaProducerLimit(Properties properties) {
-        final Properties kafka = KafkaUtil.filterKafkaProperties(properties, ClientType.PRODUCER);
-        final int kafkaLimit = getPropertyInt(kafka, ProducerConfig.MAX_REQUEST_SIZE_CONFIG, KAFKA_MAX_SIZE_DEFAULT);
-        if (kafkaLimit <= MIN_SIZE_LIMIT + KAFKA_OVERHEAD) {
-            LOG.error(
-                "The configured Kafka client producer's message size limit of {} bytes is less than the allowed "
-                    + "minimum of {} bytes. This setup is not supported.",
-                kafkaLimit, MIN_SIZE_LIMIT + KAFKA_OVERHEAD);
+    private static int resolveLimit(int configuredLimit, int techLimit) {
+        if (techLimit > 0 && techLimit < MIN_SIZE_LIMIT) {
             throw new IllegalArgumentException(
-                "Illegal value " + kafkaLimit + " for setting: " + ProducerConfig.MAX_REQUEST_SIZE_CONFIG
-                    + ": Is less than minimum: " + (MIN_SIZE_LIMIT + KAFKA_OVERHEAD));
+                "The technical transport message size limit of " + techLimit + " bytes is "
+                    + "less than the allowed minimum of " + MIN_SIZE_LIMIT + " bytes.");
         }
-        return kafkaLimit - KAFKA_OVERHEAD;
+        if (configuredLimit > 0 && configuredLimit < MIN_SIZE_LIMIT) {
+            LOG.warn(
+                "The configured max message size limit of {} bytes is less than the allowed minimum of {} bytes."
+                    + " Using the minimum.",
+                configuredLimit, MIN_SIZE_LIMIT);
+            configuredLimit = MIN_SIZE_LIMIT;
+        }
+
+        if (techLimit > 0 && configuredLimit <= 0) {
+            return techLimit;
+        }
+        if (techLimit > 0 && configuredLimit > techLimit) {
+            LOG.warn("The configured max message size of {} bytes is larger than the transport's "
+                + "technical limit of {} bytes. Using the technical limit.", configuredLimit, techLimit);
+            return techLimit;
+        }
+        return configuredLimit;
     }
 
     /**
@@ -157,21 +143,12 @@ public class SplitSupport {
         return maxMessageBytes > 0;
     }
 
-    private static int getPropertyInt(Properties properties, String key, int defaultValue) {
-        final String s = properties.getProperty(key);
-        if (StringUtils.isNotBlank(s)) {
-            try {
-                return Integer.parseInt(s);
-            } catch (Exception e) {
-                LOG.warn("Failed to parse value {} of property {} to int.", s, key);
-            }
-        }
-        return defaultValue;
-    }
-
     /**
      * Splits the given data string into chunks exactly respecting the configured (or resolved)
-     * {@link NjamsSettings#PROPERTY_MAX_MESSAGE_SIZE} value (UTF-8 bytes).
+     * {@link NjamsSettings#PROPERTY_MAX_MESSAGE_SIZE} value (UTF-8 bytes).<br>
+     * <br>
+     * <b>Implementation-note:</b> A call to this method always comes with some overhead, even if not splitting at all.
+     * Use {@link #isSplitting()} to the decide whether calling this method is actually necessary.
      *
      * @param data The data to split.
      * @return Sorted list of chunks resolved from the given input data. The list will be empty only if
@@ -225,8 +202,8 @@ public class SplitSupport {
      * by {@link #splitData(String)}.
      * @param messageKey The unique message key that identifies the chunks that belong to a single message.
      */
-    public void addChunkHeaders(BiConsumer<String, String> headersUpdater, int currentChunk, int totalChunks,
-        String messageKey) {
+    public void addChunkHeaders(final BiConsumer<String, String> headersUpdater, final int currentChunk,
+        final int totalChunks, final String messageKey) {
         if (totalChunks < 2) {
             return;
         }

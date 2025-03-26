@@ -16,6 +16,8 @@
  */
 package com.im.njams.sdk.communication;
 
+import static com.im.njams.sdk.utils.PropertyUtil.getPropertyWithDeprecationWarning;
+
 import java.util.Collection;
 import java.util.Collections;
 import java.util.IdentityHashMap;
@@ -32,7 +34,6 @@ import com.faizsiegeln.njams.messageformat.v4.projectmessage.ProjectMessage;
 import com.faizsiegeln.njams.messageformat.v4.tracemessage.TraceMessage;
 import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
-import com.im.njams.sdk.settings.Settings;
 
 /**
  * Superclass for all Senders. When writing your own Sender, extend this class
@@ -72,8 +73,8 @@ public abstract class AbstractSender implements Sender {
     @Override
     public void init(Properties properties) {
         this.properties = properties;
-        discardPolicy = DiscardPolicy.byValue(Settings.getPropertyWithDeprecationWarning(properties,
-                NjamsSettings.PROPERTY_DISCARD_POLICY, NjamsSettings.OLD_DISCARD_POLICY));
+        discardPolicy = DiscardPolicy.byValue(getPropertyWithDeprecationWarning(properties,
+            NjamsSettings.PROPERTY_DISCARD_POLICY, NjamsSettings.OLD_DISCARD_POLICY));
     }
 
     /**
@@ -96,7 +97,7 @@ public abstract class AbstractSender implements Sender {
             connect();
         } catch (Exception e) {
             LOG.error("Startup of sender {} failed. Discard policy is set to '{}'. {}", getName(), discardPolicy,
-                    getDiscardPolicyMessage(), e);
+                getDiscardPolicyMessage(), e);
             reconnect(e);
         }
     }
@@ -108,7 +109,7 @@ public abstract class AbstractSender implements Sender {
         case DISCARD:
         case ON_CONNECTION_LOSS:
             return "Messages will be discarded until the connection is established. "
-                    + "This will affect the monitoring with nJAMS.";
+                + "This will affect the monitoring with nJAMS.";
         default:
             return "Unkwown discard policy!";
         }
@@ -154,7 +155,7 @@ public abstract class AbstractSender implements Sender {
         });
         reconnector.setDaemon(true);
         reconnector
-                .setName(String.format("Sender-Reconnector-Thread[%s/%d]", getName(), System.identityHashCode(this)));
+            .setName(String.format("Sender-Reconnector-Thread[%s/%d]", getName(), System.identityHashCode(this)));
         reconnector.start();
     }
 

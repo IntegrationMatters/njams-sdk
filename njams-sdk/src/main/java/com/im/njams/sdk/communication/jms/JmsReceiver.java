@@ -57,8 +57,8 @@ import com.im.njams.sdk.common.Path;
 import com.im.njams.sdk.communication.AbstractReceiver;
 import com.im.njams.sdk.communication.ConnectionStatus;
 import com.im.njams.sdk.communication.NjamsConnectionFactory;
-import com.im.njams.sdk.settings.PropertyUtil;
 import com.im.njams.sdk.utils.ClasspathValidator;
+import com.im.njams.sdk.utils.PropertyUtil;
 import com.im.njams.sdk.utils.StringUtils;
 
 /**

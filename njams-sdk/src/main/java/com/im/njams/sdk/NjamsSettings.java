@@ -65,16 +65,12 @@ public class NjamsSettings {
      * estimated.<br>
      * <b>KAFKA:</b> When using Kafka transport, this setting is limited by the Kafka client producer's max message
      * size setting.
-     * I.e., the smaller setting is used. Additionally a {@value SplitSupport#KAFKA_OVERHEAD} bytes overhead has to be
+     * I.e., the smaller setting is used. Additionally a {@value SplitSupport#HEADERS_OVERHEAD} bytes overhead has to be
      * considered which increases the allowed minimum size setting by this value when using Kafka.
      *
      * @since 5.1.0
      */
     public static final String PROPERTY_MAX_MESSAGE_SIZE = "njams.sdk.communication.maxMessageSize";
-    /**
-     * For testing only. Disables limit checks for {@link #PROPERTY_MAX_MESSAGE_SIZE}
-     */
-    public static final String PROPERTY_MAX_MESSAGE_SIZE_NO_LIMITS = "njams.sdk.communication.maxMessageSize.noLimit";
 
     /**
      * When this settings is false (default) nJAMS creates error events only for error situations that are not
@@ -445,6 +441,12 @@ public class NjamsSettings {
      */
     public static final String PROPERTY_HTTP_TRUST_ALL_CERTIFICATES =
         "njams.sdk.communication.http.ssl.unsafe.trustAllCertificates";
+    /**
+     * Set to <code>true</code> to enabled GZIP compression for request bodies. Needs to be supported by
+     * nJAMS server! Disabled by default.
+     */
+    public static final String PROPERTY_HTTP_COMPRESSION_ENABLED =
+        "njams.sdk.communication.http.compression.enabled";
 
     //    _  __          ______ _  __
     //   | |/ /    /\   |  ____| |/ /    /\
