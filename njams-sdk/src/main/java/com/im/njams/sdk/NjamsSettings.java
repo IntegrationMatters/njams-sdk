@@ -25,7 +25,9 @@ package com.im.njams.sdk;
 
 import javax.naming.Context;
 
+import com.im.njams.sdk.communication.SplitSupport;
 import com.im.njams.sdk.communication.http.HttpSender;
+import com.im.njams.sdk.communication.kafka.KafkaSender;
 
 /**
  * This class is a list and documentation for all settings, which can be used in SDK.
@@ -52,6 +54,24 @@ public class NjamsSettings {
      * </ul>
      */
     public static final String PROPERTY_COMMUNICATION = "njams.sdk.communication";
+
+    /**
+     * Limits the message size for messages being sent to the server. The given value is the maximum size in bytes.
+     * Only the message body (JSON) is truncated by this value. Message headers are not considered. If the transport's
+     * limitation includes the headers, the configured value has to be accordingly smaller. A value of 0 or less
+     * disables splitting large messages. This is the default. The minimum allowed is
+     * {@value SplitSupport#MIN_SIZE_LIMIT} bytes.<br>
+     * The configured value does not take into account when message compressing is used. If the transport compresses
+     * messages, the configured value should expect zero compression since the actual compression ratio cannot be
+     * estimated.<br>
+     * <b>KAFKA:</b> When using Kafka transport, this setting is limited by the Kafka client producer's max message
+     * size setting.
+     * I.e., the smaller setting is used. Additionally a {@value KafkaSender#HEADERS_OVERHEAD} bytes overhead has to be
+     * considered which increases the allowed minimum size setting by this value when using Kafka.
+     *
+     * @since 5.1.0
+     */
+    public static final String PROPERTY_MAX_MESSAGE_SIZE = "njams.sdk.communication.maxMessageSize";
 
     /**
      * When this settings is false (default) nJAMS creates error events only for error situations that are not
@@ -422,6 +442,12 @@ public class NjamsSettings {
      */
     public static final String PROPERTY_HTTP_TRUST_ALL_CERTIFICATES =
         "njams.sdk.communication.http.ssl.unsafe.trustAllCertificates";
+    /**
+     * Set to <code>true</code> to enabled GZIP compression for request bodies. Needs to be supported by
+     * nJAMS server! Disabled by default.
+     */
+    public static final String PROPERTY_HTTP_COMPRESSION_ENABLED =
+        "njams.sdk.communication.http.compression.enabled";
 
     //    _  __          ______ _  __
     //   | |/ /    /\   |  ____| |/ /    /\
@@ -501,7 +527,13 @@ public class NjamsSettings {
     public static final String PROPERTY_JMS_PREFIX = "njams.sdk.communication.jms.";
 
     /**
-     * Delivery mode for JMS Sender. Attention: NonPersistent might lead to data loss.
+     * Delivery mode for JMS Sender. Attention: NonPersistent might lead to data loss.<br>
+     * Supported values (ignoring case)
+     * <ul>
+     * <li><code>NON_PERSISTENT</code> or <code>NONPERSISTENT</code>: JMS non-persistent delivery mode</li>
+     * <li><code>RELIABLE</code> (Tibco EMS only): Tibco EMS reliable delivery mode (since 5.0.3)</li>
+     * <li><i>all others</i>: JMS persistent delivery mode (default)</li>
+     * </ul>
      */
     public static final String PROPERTY_JMS_DELIVERY_MODE = "njams.sdk.communication.jms.delivery.mode";
 
@@ -529,30 +561,40 @@ public class NjamsSettings {
      * This is the prefix of the commands topic, if it is different to the one that is set in destination.
      */
     public static final String PROPERTY_JMS_COMMANDS_DESTINATION = "njams.sdk.communication.jms.destination.commands";
+    /**
+     * This setting specifies whether the used JMS implementation supports message selectors for consumers.<br>
+     * The default is <code>true</code> since this is actually JMS standard, and it's always preferable to use message
+     * selectors if available.<br>
+     * If set to <code>false</code> a workaround implementation is used that requires an additional queue with
+     * suffix <code>.project</code>
+     * @since 5.0.3
+     */
+    public static final String PROPERTY_JMS_SUPPORTS_MESSAGE_SELECTOR =
+        "njams.sdk.communication.jms.supportsMessageSelector";
 
     /**
-     * Specifies the jndi initial context factory.
+     * Specifies the JNDI initial context factory.
      */
     public static final String PROPERTY_JMS_INITIAL_CONTEXT_FACTORY = PROPERTY_JMS_PREFIX
         + Context.INITIAL_CONTEXT_FACTORY;
 
     /**
-     * Specifies the jndi security principal.
+     * Specifies the JNDI security principal.
      */
     public static final String PROPERTY_JMS_SECURITY_PRINCIPAL = PROPERTY_JMS_PREFIX + Context.SECURITY_PRINCIPAL;
 
     /**
-     * Specifies the jndi security credentials.
+     * Specifies the JNDI security credentials.
      */
     public static final String PROPERTY_JMS_SECURITY_CREDENTIALS = PROPERTY_JMS_PREFIX + Context.SECURITY_CREDENTIALS;
 
     /**
-     * Specifies the jndi provider url.
+     * Specifies the JNDI provider URL.
      */
     public static final String PROPERTY_JMS_PROVIDER_URL = PROPERTY_JMS_PREFIX + Context.PROVIDER_URL;
 
     /**
-     * Prefix for the ssl communication properties
+     * Prefix for the SSL communication properties
      */
     public static final String SSLPREFIX = PROPERTY_JMS_PREFIX + "javax.net.ssl.";
     /**

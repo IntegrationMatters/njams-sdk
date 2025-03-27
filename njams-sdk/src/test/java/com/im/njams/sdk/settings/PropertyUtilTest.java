@@ -18,6 +18,9 @@ package com.im.njams.sdk.settings;
 
 import java.util.Properties;
 import org.junit.Test;
+
+import com.im.njams.sdk.utils.PropertyUtil;
+
 import static org.junit.Assert.*;
 
 /**

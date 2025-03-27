@@ -74,6 +74,18 @@ public class MessageHeaders {
      */
     public static final String NJAMS_MESSAGETYPE_HEADER = "NJAMS_MESSAGETYPE";
 
+    /**
+     * Header set for messages that are split into chunks. The number (sequence) of the chunk, starting with 1
+     */
+    public static final String NJAMS_CHUNK_NO_HEADER = "NJAMS_CHUNK_NO";
+    /**
+     * Header set for messages that are split into chunks. The total number of chunks into that this message is split.
+     */
+    public static final String NJAMS_CHUNKS_HEADER = "NJAMS_CHUNKS";
+    /** Message ID header for matching chunks that belong to the same message.
+     * Typically but not necessarily the log-ID of event messages. */
+    public static final String NJAMS_CHUNK_MESSAGE_KEY_HEADER = "NJAMS_CHUNK_MESSAGE_KEY";
+
     // ==================================================================================
     // Message-type constants
     // ==================================================================================
@@ -158,6 +170,18 @@ public class MessageHeaders {
      * <b>http-only!</b> Name of the header storing command type.
      */
     public static final String NJAMS_TYPE_HTTP_HEADER = "njams-type";
+
+    /**
+     * Header set for messages that are split into chunks. The number (sequence) of the chunk, starting with 1
+     */
+    public static final String NJAMS_CHUNK_NO_HTTP_HEADER = "njams-chunk-no";
+    /**
+     * Header set for messages that are split into chunks. The total number of chunks into that this message is split.
+     */
+    public static final String NJAMS_CHUNKS_HTTP_HEADER = "njams-chunks";
+    /** Message ID header for matching chunks that belong to the same message.
+     * Typically but not necessarily the log-ID of event messages. */
+    public static final String NJAMS_CHUNK_MESSAGE_KEY_HTTP_HEADER = "njams-chunk-message-key";
 
     private MessageHeaders() {
         // static

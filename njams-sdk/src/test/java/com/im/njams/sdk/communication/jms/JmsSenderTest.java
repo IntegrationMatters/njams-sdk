@@ -19,14 +19,10 @@ package com.im.njams.sdk.communication.jms;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 import java.time.LocalDateTime;
+import java.util.Properties;
 
 import javax.jms.JMSException;
 import javax.jms.MessageProducer;
@@ -34,12 +30,14 @@ import javax.jms.ResourceAllocationException;
 import javax.jms.Session;
 import javax.jms.TextMessage;
 
+import org.junit.Before;
 import org.junit.Test;
 
 import com.faizsiegeln.njams.messageformat.v4.common.CommonMessage;
 import com.faizsiegeln.njams.messageformat.v4.logmessage.LogMessage;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.common.JsonSerializerFactory;
 
 /**
@@ -57,6 +55,21 @@ public class JmsSenderTest {
     private static final LocalDateTime SENTAT = LocalDateTime.of(2018, 11, 20, 15, 00, 01, 213000000);
 
     private static final ObjectMapper mapper = JsonSerializerFactory.getDefaultMapper();
+    private JmsSender sender = null;
+
+    @Before
+    public void beforeEach() {
+        sender = spy(new JmsSender() {
+            @Override
+            String serialize(CommonMessage msg) {
+                return "dummy data";
+            }
+        });
+
+        Properties props = new Properties();
+        props.put(NjamsSettings.PROPERTY_COMMUNICATION, JmsSender.COMMUNICATION_NAME);
+        sender.init(props);
+    }
 
     /**
      * The serializer should use ISO 8601 for serializing LocalDateTime.
@@ -88,8 +101,7 @@ public class JmsSenderTest {
     @Test
     public void queueIsFullTest() throws JMSException, InterruptedException {
         final String ERROR_MESSAGE = "Queue limit exceeded";
-        final JmsSender sender = spy(new JmsSender());
-        final MessageProducer producer = sender.producer = mock(MessageProducer.class);
+        final MessageProducer producer = sender.eventProducer = mock(MessageProducer.class);
         final Session session = sender.session = mock(Session.class);
         when(session.createTextMessage(any())).thenReturn(mock(TextMessage.class));
         ResourceAllocationException er1 = new ResourceAllocationException(ERROR_MESSAGE);
@@ -97,15 +109,14 @@ public class JmsSenderTest {
         doThrow(er1).doThrow(er2).doNothing().when(producer).send(any());
         final CommonMessage msg = mock(CommonMessage.class);
         when(msg.getPath()).thenReturn("path");
-        sender.sendMessage(msg, "messageType", "data", null);
+        sender.sendMessage(producer, msg, "messageType", null);
         verify(producer, times(3)).send(any());
     }
 
     @Test(expected = ResourceAllocationException.class)
     public void queueIsFullMaxTriesTest() throws JMSException, InterruptedException {
         final String ERROR_MESSAGE = "Queue limit exceeded";
-        final JmsSender sender = spy(new JmsSender());
-        final MessageProducer producer = sender.producer = mock(MessageProducer.class);
+        final MessageProducer producer = sender.eventProducer = mock(MessageProducer.class);
         final Session session = sender.session = mock(Session.class);
         when(session.createTextMessage(any())).thenReturn(mock(TextMessage.class));
         ResourceAllocationException er = new ResourceAllocationException(ERROR_MESSAGE);
@@ -113,7 +124,7 @@ public class JmsSenderTest {
         final CommonMessage msg = mock(CommonMessage.class);
         when(msg.getPath()).thenReturn("path");
         try {
-            sender.sendMessage(msg, "messageType", "data", null);
+            sender.sendMessage(producer, msg, "messageType", null);
         } catch (ResourceAllocationException ex) {
             throw ex;
         } finally {

@@ -22,7 +22,6 @@ import static com.im.njams.sdk.communication.MessageHeaders.NJAMS_CONTENT_HEADER
 import static com.im.njams.sdk.communication.MessageHeaders.NJAMS_RECEIVER_HEADER;
 
 import java.util.Collection;
-import java.util.stream.Collectors;
 
 import javax.jms.JMSException;
 import javax.jms.Message;
@@ -47,24 +46,16 @@ public class SharedJmsReceiver extends JmsReceiver implements ShareableReceiver<
     private static final Logger LOG = LoggerFactory.getLogger(SharedJmsReceiver.class);
 
     private final SharedReceiverSupport<SharedJmsReceiver, Message> sharingSupport =
-            new SharedReceiverSupport<>(this);
+        new SharedReceiverSupport<>(this);
 
     /**
-     * This method creates a String that is used as a message selector.
-     *
-     * @return the message selector String.
+     * Has to provide all {@link Njams} instances that use this receiver for selecting the commands addressed to any
+     * of these instances.
+     * @return All instances that use this receiver.
      */
     @Override
-    protected String createMessageSelector() {
-        final Collection<Njams> njamsInstances = sharingSupport.getAllNjamsInstances();
-        if (njamsInstances.isEmpty()) {
-            return null;
-        }
-        final String selector = njamsInstances.stream().map(Njams::getClientPath).map(Path::getAllPaths)
-                .flatMap(Collection::stream).collect(Collectors.toSet()).stream().map(Object::toString).sorted()
-                .collect(Collectors.joining("' OR NJAMS_RECEIVER = '", "NJAMS_RECEIVER = '", "'"));
-        LOG.debug("Updated message selector: {}", selector);
-        return selector;
+    protected Collection<Njams> provideNjamsInstances() {
+        return sharingSupport.getAllNjamsInstances();
     }
 
     /**
@@ -77,8 +68,10 @@ public class SharedJmsReceiver extends JmsReceiver implements ShareableReceiver<
         super.setNjams(null);
         sharingSupport.addNjams(njamsInstance);
         synchronized (this) {
-            messageSelector = createMessageSelector();
-            updateConsumer();
+            updateFilters();
+            if (useMessageselector) {
+                updateConsumer();
+            }
         }
     }
 
@@ -86,8 +79,10 @@ public class SharedJmsReceiver extends JmsReceiver implements ShareableReceiver<
     public void removeNjams(Njams njamsInstance) {
         if (sharingSupport.removeNjams(njamsInstance)) {
             synchronized (this) {
-                messageSelector = createMessageSelector();
-                updateConsumer();
+                updateFilters();
+                if (useMessageselector) {
+                    updateConsumer();
+                }
             }
         }
     }
@@ -114,6 +109,9 @@ public class SharedJmsReceiver extends JmsReceiver implements ShareableReceiver<
      */
     @Override
     public void onMessage(Message msg) {
+        if (!messageFilter.test(msg)) {
+            return;
+        }
         if (LOG.isTraceEnabled()) {
             LOG.trace("Received {}", StringUtils.messageToString(msg));
         }
