@@ -47,7 +47,7 @@ public abstract class AbstractSender implements Sender {
 
     private static final Logger LOG = LoggerFactory.getLogger(AbstractSender.class);
 
-    protected ConnectionStatus connectionStatus;
+    private ConnectionStatus connectionStatus;
     protected DiscardPolicy discardPolicy = DiscardPolicy.DEFAULT;
     protected Properties properties;
     protected boolean hasConnectionFailure = false;
@@ -205,7 +205,6 @@ public abstract class AbstractSender implements Sender {
         }
         return sb.toString();
     }
-
 
     protected synchronized void setConnectionStatus(ConnectionStatus newConnectionStatus) {
         this.connectionStatus = newConnectionStatus;
