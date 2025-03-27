@@ -212,13 +212,12 @@ public class HttpSender extends AbstractSender {
             return;
         }
         try {
-
-            connectionStatus = ConnectionStatus.CONNECTING;
+            setConnectionStatus(ConnectionStatus.CONNECTING);
             if (client == null) {
                 client = clientFactory.createClient();
             }
             testConnection();
-            connectionStatus = ConnectionStatus.CONNECTED;
+            setConnectionStatus(ConnectionStatus.CONNECTED);
         } catch (final Exception e) {
             close();
             if (e instanceof NjamsSdkRuntimeException) {
@@ -295,7 +294,7 @@ public class HttpSender extends AbstractSender {
      */
     @Override
     public void close() {
-        connectionStatus = ConnectionStatus.DISCONNECTED;
+        setConnectionStatus(ConnectionStatus.DISCONNECTED);
     }
 
     @Override

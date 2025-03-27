@@ -110,7 +110,7 @@ public class JmsSender extends AbstractSender implements ExceptionListener, Clas
         }
         InitialContext context = null;
         try {
-            connectionStatus = ConnectionStatus.CONNECTING;
+            setConnectionStatus(ConnectionStatus.CONNECTING);
             context = new InitialContext(PropertyUtil.filterAndCut(properties, NjamsSettings.PROPERTY_JMS_PREFIX));
             ConnectionFactory factory = NjamsConnectionFactory.getFactory(context, properties);
             if (StringUtils.isNotBlank(properties.getProperty(NjamsSettings.PROPERTY_JMS_USERNAME))
@@ -124,9 +124,9 @@ public class JmsSender extends AbstractSender implements ExceptionListener, Clas
             createProducers(context, session);
 
             connection.setExceptionListener(this);
-            connectionStatus = ConnectionStatus.CONNECTED;
+            setConnectionStatus(ConnectionStatus.CONNECTED);
         } catch (Exception e) {
-            connectionStatus = ConnectionStatus.DISCONNECTED;
+            setConnectionStatus(ConnectionStatus.DISCONNECTED);
             if (session != null) {
                 try {
                     session.close();
@@ -356,7 +356,7 @@ public class JmsSender extends AbstractSender implements ExceptionListener, Clas
         if (!isConnected()) {
             return;
         }
-        connectionStatus = ConnectionStatus.DISCONNECTED;
+        setConnectionStatus(ConnectionStatus.DISCONNECTED);
         if (eventProducer != null) {
             try {
                 eventProducer.close();
