@@ -73,7 +73,7 @@ public interface JmsFactory extends AutoCloseable {
      *
      * @param settings Settings specifying what provider to use. Obtained from nJAMS' {@link Settings}.
      * @return Found instance or {@link JndiJmsFactory} as a default. The returned instance
-     * is {@link JmsFactory#init(Settings) initialized} with given settings.
+     * is {@link JmsFactory#init(Properties) initialized} with given settings.
      */
     public static JmsFactory find(Properties settings) {
         String toFind = settings.getProperty(NjamsSettings.PROPERTY_JMS_JMSFACTORY);
