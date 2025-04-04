@@ -56,8 +56,8 @@ public class JndiJmsFactory implements JmsFactory {
      */
     public static final String NAME = "JNDI";
 
-    private ConnectionFactory factory = null;
-    protected Context context = null;
+    protected ConnectionFactory factory = null;
+    private Context context = null;
 
     @Override
     public String getName() {
@@ -71,11 +71,14 @@ public class JndiJmsFactory implements JmsFactory {
             return;
         }
         context = new InitialContext(PropertyUtil.filterAndCut(settings, NjamsSettings.PROPERTY_JMS_PREFIX));
+        initFactory(settings);
+    }
+
+    protected void initFactory(Properties settings) throws NamingException, JMSException {
         final String connectFactory = settings.getProperty(PROPERTY_JMS_CONNECTION_FACTORY);
         if (StringUtils.isNotBlank(connectFactory)) {
-            factory = (ConnectionFactory) context.lookup(settings.getProperty(PROPERTY_JMS_CONNECTION_FACTORY));
+            factory = (ConnectionFactory) context.lookup(connectFactory);
         }
-
         LOG.debug("Got connection factory {} from JNDI lookup.", factory);
     }
 

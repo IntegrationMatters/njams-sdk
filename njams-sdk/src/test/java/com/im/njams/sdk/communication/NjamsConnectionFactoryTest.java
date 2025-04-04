@@ -24,6 +24,8 @@ public class NjamsConnectionFactoryTest {
     @Before
     public void setUp() {
         properties = new Properties();
+        properties.put(NjamsSettings.PROPERTY_JMS_INITIAL_CONTEXT_FACTORY,
+            "org.apache.activemq.jndi.ActiveMQInitialContextFactory");
         properties.setProperty(NjamsSettings.PROPERTY_JMS_KEYSTORE, "keystore");
         properties.setProperty(NjamsSettings.PROPERTY_JMS_KEYSTOREPASSWORD, "keypwd");
         properties.setProperty(NjamsSettings.PROPERTY_JMS_KEYSTORETYPE, "keytype");

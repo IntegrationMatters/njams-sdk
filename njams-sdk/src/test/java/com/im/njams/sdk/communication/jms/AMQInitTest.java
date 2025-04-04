@@ -14,12 +14,13 @@ import javax.naming.NamingException;
 
 import org.apache.activemq.ActiveMQConnectionFactory;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.im.njams.sdk.communication.jms.factory.JmsFactory;
 import com.im.njams.sdk.communication.jms.factory.JndiJmsFactory;
 
-public class EMSInitTest {
+public class AMQInitTest {
 
     private Properties props = null;
 
@@ -40,6 +41,7 @@ public class EMSInitTest {
     }
 
     @Test
+    @Ignore("This should only be executed manually")
     public void testConnectToActiveMQ() throws JMSException, NamingException {
         try (JmsFactory factory = JmsFactory.find(props)) {
             assertTrue(factory instanceof JndiJmsFactory);

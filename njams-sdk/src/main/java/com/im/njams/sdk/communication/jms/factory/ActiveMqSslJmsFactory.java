@@ -48,7 +48,6 @@ public class ActiveMqSslJmsFactory extends JndiJmsFactory implements JmsFactory 
      * This implementation identifier for SPI lookup.
      */
     public static final String NAME = "ActiveMQSslConnectionFactory";
-    private ConnectionFactory factory = null;
 
     @Override
     public String getName() {
@@ -56,15 +55,7 @@ public class ActiveMqSslJmsFactory extends JndiJmsFactory implements JmsFactory 
     }
 
     @Override
-    public void init(Properties properties) throws JMSException, NamingException {
-        if (context == null) {
-            // init JNDI for queue/topic lookup
-            super.init(properties);
-        }
-        if (factory != null) {
-            // assuming that config does not change
-            return;
-        }
+    protected void initFactory(Properties properties) throws NamingException, JMSException {
         try {
             @SuppressWarnings("unchecked")
             final Class<ConnectionFactory> clazz =
@@ -87,14 +78,6 @@ public class ActiveMqSslJmsFactory extends JndiJmsFactory implements JmsFactory 
             jmsEx.initCause(e);
             throw jmsEx;
         }
-    }
-
-    @Override
-    public ConnectionFactory createConnectionFactory() {
-        if (factory == null) {
-            throw new IllegalStateException("Not initialized.");
-        }
-        return factory;
     }
 
     private void setProperty(ConnectionFactory target, Properties source, String setter, String property) {
