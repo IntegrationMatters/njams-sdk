@@ -3,6 +3,8 @@ package com.im.njams.sdk.utils;
 import com.im.njams.sdk.common.JsonSerializerFactory;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 
+import java.io.InputStream;
+
 /**
  * Utilities for serializing to and parsing from JSON.
  *
@@ -35,7 +37,28 @@ public class JsonUtils {
             throw new NjamsSdkRuntimeException(
                     "Could not parse JSON string " + json + " to type " + type.getSimpleName(), e);
         }
+    }
 
+    /**
+     * Parses the given InputStream and initializes a new object of the given type from that InputStream.
+     *
+     * @param <T>
+     *            The type of the object to return
+     * @param stream
+     *            The Inputstream to parse.
+     * @param type
+     *            The type of the object to be created from the given JSON.
+     * @return New instance of the given type.
+     * @throws NjamsSdkRuntimeException
+     *             If parsing the given JSON into the target type failed.
+     */
+    public static <T> T parse(InputStream stream, Class<T> type) throws NjamsSdkRuntimeException {
+        try {
+            return JsonSerializerFactory.getFastMapper().readValue(stream, type);
+        } catch (Exception e) {
+            throw new NjamsSdkRuntimeException(
+                "Could not parse InputStream to type " + type.getSimpleName(), e);
+        }
     }
 
     /**
