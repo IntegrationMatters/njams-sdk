@@ -46,7 +46,7 @@ import com.im.njams.sdk.utils.StringUtils;
  * Use {@link #find(Properties)} for getting an instance.
  */
 public interface JmsFactory extends AutoCloseable {
-
+    /** Loger for static and default implementations */
     static final Logger LOG = LoggerFactory.getLogger(JmsFactory.class);
 
     /**
@@ -129,7 +129,8 @@ public interface JmsFactory extends AutoCloseable {
      * called.<br>
      * Implementations have to handle that this method could be invoked multiple times.
      * @param settings The {@link Njams} instance's settings that uses this factory.
-     * @throws Exception
+     * @throws JMSException If creating a JMS object failed
+     * @throws NamingException If a JNDI related error occurred
      */
     public void init(Properties settings) throws JMSException, NamingException;
 
@@ -137,7 +138,8 @@ public interface JmsFactory extends AutoCloseable {
      * Is called for obtaining a {@link ConnectionFactory} instance. Once created, a factory should be reusable.
      * So, it should be ok the return always the same instance.
      * @return Has to return a {@link ConnectionFactory} instance.
-     * @throws Exception
+     * @throws JMSException If creating a JMS object failed
+     * @throws NamingException If a JNDI related error occurred
      */
     public ConnectionFactory createConnectionFactory() throws JMSException, NamingException;
 
@@ -146,8 +148,8 @@ public interface JmsFactory extends AutoCloseable {
      * @param session The session to be used for creating the topic.
      * @param topicName The name of the topic to create.
      * @return The created topic.
-     * @throws JMSException
-     * @throws NamingException
+     * @throws JMSException If creating a JMS object failed
+     * @throws NamingException If a JNDI related error occurred
      */
     public default Topic createTopic(Session session, String topicName) throws JMSException, NamingException {
         return session.createTopic(topicName);
@@ -158,8 +160,8 @@ public interface JmsFactory extends AutoCloseable {
      * @param session The session to be used for creating the queue.
      * @param queueName The name of the queue to create.
      * @return The created queue.
-     * @throws JMSException
-     * @throws NamingException
+     * @throws JMSException If creating a JMS object failed
+     * @throws NamingException If a JNDI related error occurred
      */
     public default Queue createQueue(Session session, String queueName) throws JMSException, NamingException {
         return session.createQueue(queueName);

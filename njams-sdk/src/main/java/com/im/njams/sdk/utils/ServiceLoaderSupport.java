@@ -100,7 +100,7 @@ public class ServiceLoaderSupport<S> implements Iterable<S> {
 
     /**
      * The interface type given on initialization.
-     * @return
+     * @return The service type being looked up by this instance
      */
     public Class<S> getServiceType() {
         return serviceType;
@@ -142,6 +142,7 @@ public class ServiceLoaderSupport<S> implements Iterable<S> {
 
     /**
      * Tries to find an instance that is of the given type.
+     * @param <T> The type of the instance to return.
      * @param type The type of the instance to return.
      * @return The found instance or <code>null</code>.
      */
