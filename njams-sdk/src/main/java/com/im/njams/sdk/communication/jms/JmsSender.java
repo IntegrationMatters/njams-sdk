@@ -31,15 +31,13 @@ import java.util.Properties;
 import javax.jms.Connection;
 import javax.jms.ConnectionFactory;
 import javax.jms.DeliveryMode;
-import javax.jms.Destination;
 import javax.jms.ExceptionListener;
 import javax.jms.JMSException;
 import javax.jms.MessageProducer;
+import javax.jms.Queue;
 import javax.jms.ResourceAllocationException;
 import javax.jms.Session;
 import javax.jms.TextMessage;
-import javax.naming.InitialContext;
-import javax.naming.NameNotFoundException;
 import javax.naming.NamingException;
 
 import org.apache.kafka.common.Uuid;
@@ -57,11 +55,10 @@ import com.im.njams.sdk.communication.AbstractSender;
 import com.im.njams.sdk.communication.ConnectionStatus;
 import com.im.njams.sdk.communication.DiscardMonitor;
 import com.im.njams.sdk.communication.DiscardPolicy;
-import com.im.njams.sdk.communication.NjamsConnectionFactory;
 import com.im.njams.sdk.communication.SplitSupport;
+import com.im.njams.sdk.communication.jms.factory.JmsFactory;
 import com.im.njams.sdk.utils.ClasspathValidator;
 import com.im.njams.sdk.utils.JsonUtils;
-import com.im.njams.sdk.utils.PropertyUtil;
 import com.im.njams.sdk.utils.StringUtils;
 
 /**
@@ -108,11 +105,9 @@ public class JmsSender extends AbstractSender implements ExceptionListener, Clas
         if (isConnected()) {
             return;
         }
-        InitialContext context = null;
-        try {
+        try (JmsFactory jmsFactory = JmsFactory.find(properties)) {
             setConnectionStatus(ConnectionStatus.CONNECTING);
-            context = new InitialContext(PropertyUtil.filterAndCut(properties, NjamsSettings.PROPERTY_JMS_PREFIX));
-            ConnectionFactory factory = NjamsConnectionFactory.getFactory(context, properties);
+            ConnectionFactory factory = jmsFactory.createConnectionFactory();
             if (StringUtils.isNotBlank(properties.getProperty(NjamsSettings.PROPERTY_JMS_USERNAME))
                 && StringUtils.isNotBlank(properties.getProperty(NjamsSettings.PROPERTY_JMS_PASSWORD))) {
                 connection = factory.createConnection(properties.getProperty(NjamsSettings.PROPERTY_JMS_USERNAME),
@@ -121,7 +116,7 @@ public class JmsSender extends AbstractSender implements ExceptionListener, Clas
                 connection = factory.createConnection();
             }
             session = connection.createSession(false, Session.CLIENT_ACKNOWLEDGE);
-            createProducers(context, session);
+            createProducers(jmsFactory, session);
 
             connection.setExceptionListener(this);
             setConnectionStatus(ConnectionStatus.CONNECTED);
@@ -146,24 +141,16 @@ public class JmsSender extends AbstractSender implements ExceptionListener, Clas
                 }
             }
             throw new NjamsSdkRuntimeException("Unable to connect", e);
-        } finally {
-            if (context != null) {
-                try {
-                    context.close();
-                    context = null;
-                } catch (NamingException e) {
-                }
-            }
         }
 
     }
 
-    private void createProducers(InitialContext context, Session session) throws NamingException, JMSException {
+    private void createProducers(JmsFactory jmsFactory, Session session) throws NamingException, JMSException {
         final String prefix = properties.getProperty(NjamsSettings.PROPERTY_JMS_DESTINATION, "njams");
-        eventProducer = createProducer(context, session, prefix + ".event");
+        eventProducer = createProducer(jmsFactory, session, prefix + ".event");
         if (useProjectQueue) {
             // separate one for project/trace messages
-            projectProducer = createProducer(context, session, prefix + ".project");
+            projectProducer = createProducer(jmsFactory, session, prefix + ".project");
         } else {
             // same for all messages
             projectProducer = eventProducer;
@@ -171,14 +158,9 @@ public class JmsSender extends AbstractSender implements ExceptionListener, Clas
 
     }
 
-    private MessageProducer createProducer(InitialContext context, Session session, String destinationName)
+    private MessageProducer createProducer(JmsFactory jmsFactory, Session session, String destinationName)
         throws NamingException, JMSException {
-        Destination destination = null;
-        try {
-            destination = (Destination) context.lookup(destinationName);
-        } catch (NameNotFoundException e) {
-            destination = session.createQueue(destinationName);
-        }
+        Queue destination = jmsFactory.createQueue(session, destinationName);
         final MessageProducer messageProducer = session.createProducer(destination);
         messageProducer.setDeliveryMode(getDeliveryMode());
         return messageProducer;

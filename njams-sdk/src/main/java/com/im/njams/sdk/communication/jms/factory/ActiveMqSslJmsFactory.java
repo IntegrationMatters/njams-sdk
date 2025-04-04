@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Faiz & Siegeln Software GmbH
+ * Copyright (c) 2025 Integration Matters GmbH
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
  * documentation files (the "Software"),
@@ -21,50 +21,44 @@
  * SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
  */
-package com.im.njams.sdk.communication;
+package com.im.njams.sdk.communication.jms.factory;
 
-import com.im.njams.sdk.NjamsSettings;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.jms.ConnectionFactory;
-import javax.naming.Context;
 import java.lang.reflect.Method;
 import java.util.Properties;
 
-import static com.im.njams.sdk.NjamsSettings.PROPERTY_JMS_CONNECTION_FACTORY;
+import javax.jms.ConnectionFactory;
+import javax.jms.JMSException;
+import javax.naming.NamingException;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.im.njams.sdk.NjamsSettings;
 
 /**
- * nJAMS ConnectionFactory provider mainly used for configuring SSL connection for ActiveMQ.
- *
- * @author sfaiz
- * @version 4.1.7
+ * IMPORTANT: This is loaded and initialized via SPI. Make sure that an instance can be created even when
+ * required libraries are missing!<br>
+ * This extends {@link JndiJmsFactory} for using JNDI when looking up queue/topic. Only obtaining a
+ * {@link ConnectionFactory} is different here.
  */
-public class NjamsConnectionFactory {
+public class ActiveMqSslJmsFactory extends JndiJmsFactory implements JmsFactory {
 
-    private static final Logger LOG = LoggerFactory.getLogger(NjamsConnectionFactory.class);
-
+    private static final Logger LOG = LoggerFactory.getLogger(ActiveMqSslJmsFactory.class);
     /**
-     * Creates the Factory via the given {@link Properties} and {@link Context}.
-     *
-     * @param context    the context needed to initialize
-     * @param properties the properties needed to initialize
-     * @return the ConnectionFactory to use
-     * @throws Exception if an error occurred
+     * This implementation identifier for SPI lookup.
      */
-    public static ConnectionFactory getFactory(Context context, Properties properties) throws Exception {
-        ConnectionFactory factory;
-        if (properties.getProperty(PROPERTY_JMS_CONNECTION_FACTORY).equalsIgnoreCase("ActiveMQSslConnectionFactory")) {
-            factory = createActiveMQSslConnectionFactory(properties);
-        } else {
-            factory = (ConnectionFactory) context.lookup(properties.getProperty(PROPERTY_JMS_CONNECTION_FACTORY));
-        }
-        return factory;
+    public static final String NAME = "ActiveMQSslConnectionFactory";
+
+    @Override
+    public String getName() {
+        return NAME;
     }
 
-    private static ConnectionFactory createActiveMQSslConnectionFactory(Properties properties) throws Exception {
+    @Override
+    protected void initFactory(Properties properties) throws NamingException, JMSException {
         try {
-            @SuppressWarnings("unchecked") final Class<ConnectionFactory> clazz =
+            @SuppressWarnings("unchecked")
+            final Class<ConnectionFactory> clazz =
                 (Class<ConnectionFactory>) Class.forName("org.apache.activemq.ActiveMQSslConnectionFactory");
             final ConnectionFactory amqSsl = clazz.getDeclaredConstructor().newInstance();
             setProperty(amqSsl, properties, "setKeyStore", NjamsSettings.PROPERTY_JMS_KEYSTORE);
@@ -77,14 +71,16 @@ public class NjamsConnectionFactory {
             setProperty(amqSsl, properties, "setUserName", NjamsSettings.PROPERTY_JMS_USERNAME);
             setProperty(amqSsl, properties, "setBrokerURL", NjamsSettings.PROPERTY_JMS_PROVIDER_URL);
             LOG.debug("Created ActiveMQSslConnectionFactory");
-            return amqSsl;
+            factory = amqSsl;
         } catch (Exception e) {
             LOG.error("ActiveMQSslConnectionFactory could not be created", e);
-            throw e;
+            final JMSException jmsEx = new JMSException("Failed to setup ActiveMQSslConnectionFactory");
+            jmsEx.initCause(e);
+            throw jmsEx;
         }
     }
 
-    private static void setProperty(ConnectionFactory target, Properties source, String setter, String property) {
+    private void setProperty(ConnectionFactory target, Properties source, String setter, String property) {
         if (source.containsKey(property)) {
             try {
                 final Method setMethod = target.getClass().getMethod(setter, String.class);
@@ -94,5 +90,10 @@ public class NjamsConnectionFactory {
                     property, source.getProperty(property), e);
             }
         }
+    }
+
+    @Override
+    public String toString() {
+        return getClass().getSimpleName() + "[name=" + NAME + "]";
     }
 }

@@ -385,11 +385,20 @@
             <artifactId>jms-api</artifactId>
             <scope>provided</scope>
         </dependency>
+
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
             <scope>provided</scope>
         </dependency>
+        
+		<dependency>
+		    <groupId>com.microsoft.azure</groupId>
+		    <artifactId>azure-servicebus-jms</artifactId>
+		    <version>1.0.2</version>
+		    <scope>provided</scope>
+		</dependency>
+		
         <!-- This is only needed in a JDK11 (openJDK) environment
              JDK8 will contain the needed classes.-->
         <dependency>
@@ -428,6 +437,5 @@
             <artifactId>activemq-client</artifactId>
             <scope>test</scope>
         </dependency>
-
     </dependencies>
 </project>

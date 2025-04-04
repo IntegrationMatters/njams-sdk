@@ -1,29 +1,31 @@
 package com.im.njams.sdk.communication;
 
-import com.im.njams.sdk.NjamsSettings;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+
+import java.util.Properties;
+
+import javax.jms.ConnectionFactory;
+
+import org.apache.activemq.ActiveMQConnectionFactory;
 import org.apache.activemq.ActiveMQSslConnectionFactory;
 import org.junit.Before;
 import org.junit.Test;
 
-import javax.jms.ConnectionFactory;
-import javax.naming.Context;
-import java.util.Properties;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.eq;
-import static org.mockito.Mockito.*;
+import com.im.njams.sdk.NjamsSettings;
+import com.im.njams.sdk.communication.jms.factory.ActiveMqSslJmsFactory;
+import com.im.njams.sdk.communication.jms.factory.JmsFactory;
+import com.im.njams.sdk.communication.jms.factory.JndiJmsFactory;
 
 public class NjamsConnectionFactoryTest {
 
-    private Context context;
     private Properties properties;
 
     @Before
-    public void setUp() throws Exception {
-        context = mock(Context.class);
+    public void setUp() {
         properties = new Properties();
+        properties.put(NjamsSettings.PROPERTY_JMS_INITIAL_CONTEXT_FACTORY,
+            "org.apache.activemq.jndi.ActiveMQInitialContextFactory");
         properties.setProperty(NjamsSettings.PROPERTY_JMS_KEYSTORE, "keystore");
         properties.setProperty(NjamsSettings.PROPERTY_JMS_KEYSTOREPASSWORD, "keypwd");
         properties.setProperty(NjamsSettings.PROPERTY_JMS_KEYSTORETYPE, "keytype");
@@ -36,10 +38,11 @@ public class NjamsConnectionFactoryTest {
     }
 
     @Test
-    public void testGetFactoryAMQ() throws Exception {
+    public void testGetFactoryAMQnonJNDIwithSSL() throws Exception {
         properties.setProperty(NjamsSettings.PROPERTY_JMS_CONNECTION_FACTORY, "ActiveMQSslConnectionFactory");
-        ConnectionFactory cnf = NjamsConnectionFactory.getFactory(context, properties);
-        verify(context, never()).lookup(any(String.class));
+        JmsFactory jmsFactory = JmsFactory.find(properties);
+        assertTrue(jmsFactory instanceof ActiveMqSslJmsFactory);
+        ConnectionFactory cnf = jmsFactory.createConnectionFactory();
 
         assertTrue(cnf instanceof ActiveMQSslConnectionFactory);
         ActiveMQSslConnectionFactory amq = (ActiveMQSslConnectionFactory) cnf;
@@ -55,10 +58,14 @@ public class NjamsConnectionFactoryTest {
     }
 
     @Test
-    public void testGetFactoryOther() throws Exception {
-        properties.setProperty(NjamsSettings.PROPERTY_JMS_CONNECTION_FACTORY, "bla");
-        NjamsConnectionFactory.getFactory(context, properties);
-        verify(context, times(1)).lookup(eq("bla"));
+    public void testGetFactoryAMQviaJNDI() throws Exception {
+        properties.setProperty(NjamsSettings.PROPERTY_JMS_CONNECTION_FACTORY, "QueueConnectionFactory");
+        properties.setProperty(NjamsSettings.PROPERTY_JMS_INITIAL_CONTEXT_FACTORY,
+            "org.apache.activemq.jndi.ActiveMQInitialContextFactory");
+        JmsFactory jmsFactory = JmsFactory.find(properties);
+        assertTrue(jmsFactory instanceof JndiJmsFactory);
+        ConnectionFactory cnf = jmsFactory.createConnectionFactory();
+        assertTrue(cnf instanceof ActiveMQConnectionFactory);
     }
 
 }

@@ -61,11 +61,11 @@ public class JmsReceiverTest {
     private static void fillProps(Properties props) {
         props.put(NjamsSettings.PROPERTY_COMMUNICATION, "JMS");
         props.put(NjamsSettings.PROPERTY_JMS_INITIAL_CONTEXT_FACTORY,
-                "com.tibco.tibjms.naming.TibjmsInitialContextFactory");
+            "com.tibco.tibjms.naming.TibjmsInitialContextFactory");
         props.put(NjamsSettings.PROPERTY_JMS_SECURITY_PRINCIPAL, "njams");
         props.put(NjamsSettings.PROPERTY_JMS_SECURITY_CREDENTIALS, "njams");
         props.put(NjamsSettings.PROPERTY_JMS_PROVIDER_URL, "tibjmsnaming://blablub:7222");
-        props.put(NjamsSettings.PROPERTY_JMS_CONNECTION_FACTORY, "ConnectionFactory");
+        props.put(NjamsSettings.PROPERTY_JMS_CONNECTION_FACTORY, "NoopJmsFactory");
         props.put(NjamsSettings.PROPERTY_JMS_USERNAME, "njams");
         props.put(NjamsSettings.PROPERTY_JMS_PASSWORD, "njams");
         props.put(NjamsSettings.PROPERTY_JMS_DESTINATION, "njams4.sdk.test");
@@ -223,11 +223,11 @@ public class JmsReceiverTest {
         Properties props = new Properties();
         props.put(NjamsSettings.PROPERTY_COMMUNICATION, "JMS");
         props.put(NjamsSettings.PROPERTY_JMS_INITIAL_CONTEXT_FACTORY,
-                "com.tibco.tibjms.naming.TibjmsInitialContextFactory");
+            "com.tibco.tibjms.naming.TibjmsInitialContextFactory");
         props.put(NjamsSettings.PROPERTY_JMS_SECURITY_PRINCIPAL, "njams");
         props.put(NjamsSettings.PROPERTY_JMS_SECURITY_CREDENTIALS, "njams");
         props.put(NjamsSettings.PROPERTY_JMS_PROVIDER_URL, "tibjmsnaming://blablub:7222");
-        props.put(NjamsSettings.PROPERTY_JMS_CONNECTION_FACTORY, "ConnectionFactory");
+        props.put(NjamsSettings.PROPERTY_JMS_CONNECTION_FACTORY, "NoopJmsFactory");
         props.put(NjamsSettings.PROPERTY_JMS_DESTINATION, "njams4.dev.kai");
 
         JmsReceiverMock.testBeforeInit(impl);
@@ -342,7 +342,7 @@ public class JmsReceiverTest {
      */
     @Test
     public void testOnMessageWithJsonContentAndValidInstructionButWithoutConnection()
-            throws JMSException, JsonProcessingException {
+        throws JMSException, JsonProcessingException {
         impl.init(FILLEDPROPS);
         TextMessage msg = mock(TextMessage.class);
         when(msg.getStringProperty("NJAMS_CONTENT")).thenReturn("json");
