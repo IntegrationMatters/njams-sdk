@@ -1,0 +1,2 @@
+com.im.njams.sdk.communication.jms.FailingJmsFactory
+com.im.njams.sdk.communication.jms.NoopJmsFactory

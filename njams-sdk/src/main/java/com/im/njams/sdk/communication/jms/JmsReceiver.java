@@ -40,9 +40,6 @@ import javax.jms.MessageProducer;
 import javax.jms.Session;
 import javax.jms.TextMessage;
 import javax.jms.Topic;
-import javax.naming.InitialContext;
-import javax.naming.NameNotFoundException;
-import javax.naming.NamingException;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -56,9 +53,8 @@ import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.common.Path;
 import com.im.njams.sdk.communication.AbstractReceiver;
 import com.im.njams.sdk.communication.ConnectionStatus;
-import com.im.njams.sdk.communication.NjamsConnectionFactory;
+import com.im.njams.sdk.communication.jms.factory.JmsFactory;
 import com.im.njams.sdk.utils.ClasspathValidator;
-import com.im.njams.sdk.utils.PropertyUtil;
 import com.im.njams.sdk.utils.StringUtils;
 
 /**
@@ -227,12 +223,10 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
      * @param props the Properties that are used for connecting.
      */
     private void tryToConnect(Properties props) {
-        InitialContext context = null;
-        try {
-            context = getInitialContext(props);
+        try (final JmsFactory jmsFactory = JmsFactory.find(props)) {
             LOG.trace("The InitialContext was created successfully.");
 
-            ConnectionFactory factory = getConnectionFactory(props, context);
+            ConnectionFactory factory = jmsFactory.createConnectionFactory();
             LOG.trace("The ConnectionFactory was created successfully.");
 
             connection = createConnection(props, factory);
@@ -241,7 +235,7 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
             session = createSession(connection);
             LOG.trace("The Session was created successfully.");
 
-            topic = getOrCreateTopic(context, session);
+            topic = jmsFactory.createTopic(session, topicName);
             LOG.trace("The Topic was created successfully.");
 
             consumer = createConsumer(session, topic);
@@ -252,37 +246,9 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
             LOG.trace("The Connection was started successfully.");
 
         } catch (Exception e) {
-            printExceptionsOnClose(this.closeAll(context));
+            printExceptionsOnClose(closeAll());
             throw new NjamsSdkRuntimeException("Unable to initialize", e);
         }
-    }
-
-    /**
-     * This method creates a new InitialContext out of the properties that are
-     * given as parameter.
-     *
-     * @param prop the Properties that will be used to create a new
-     *             InitialContext
-     * @return the InitialContext that has been created.
-     * @throws NamingException is thrown if something with the name is wrong.
-     */
-    private InitialContext getInitialContext(Properties prop) throws NamingException {
-        return new InitialContext(PropertyUtil.filterAndCut(prop, NjamsSettings.PROPERTY_JMS_PREFIX));
-    }
-
-    /**
-     * This method gets a ConnectionFactory out of the properties value for
-     * JmsConstants.CONNECTION_FACTORY and the context that looks up for the
-     * factory.
-     *
-     * @param props   the Properties where JmsConstants.CONNECTION_FACTORY as key
-     *                should be provided.
-     * @param context the context that is used to look up the connectionFactory.
-     * @return the ConnectionFactory, if found.
-     * @throws NamingException is thrown if something with the name is wrong.
-     */
-    private ConnectionFactory getConnectionFactory(Properties props, InitialContext context) throws Exception {
-        return NjamsConnectionFactory.getFactory(context, props);
     }
 
     /**
@@ -320,30 +286,6 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
      */
     private Session createSession(Connection con) throws JMSException {
         return con.createSession(false, Session.AUTO_ACKNOWLEDGE);
-    }
-
-    /**
-     * This method creates or gets a existing topic that has been specified in
-     * the properties beforehand.
-     *
-     * @param context the context to look up for the topic, if it exists
-     *                already.
-     * @param session the session to create a new topic, if no topic can be
-     *                found.
-     * @return the topic that was created or has been found before.
-     * @throws NamingException is thrown if something with the name is wrong.
-     * @throws JMSException    is thrown if the topic can't be created.
-     */
-    private Topic getOrCreateTopic(InitialContext context, Session session) throws NamingException, JMSException {
-        Topic topic;
-        try {
-            topic = (Topic) context.lookup(topicName);
-            LOG.info("Topic {} has been found via JNDI.", topicName);
-        } catch (NameNotFoundException e) {
-            LOG.debug("Topic {} hasn't been found via JNDI.", topicName);
-            topic = session.createTopic(topicName);
-        }
-        return topic;
     }
 
     /**
@@ -438,27 +380,6 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
                 exceptions.add(new NjamsSdkRuntimeException("Unable to close connection correctly", ex));
             } finally {
                 connection = null;
-            }
-        }
-        return exceptions;
-    }
-
-    /**
-     * This method sets the connectionStatus to DISCONNECTED and closes all
-     * resources that have been saved as fields. Furthermore it closes the
-     * initial context hat has been provided as parameter.
-     *
-     * @param context the context that is tried to be closed.
-     * @return a list of exceptions that may have been thrown by any of the
-     * resources.
-     */
-    private List<Exception> closeAll(InitialContext context) {
-        List<Exception> exceptions = closeAll();
-        if (context != null) {
-            try {
-                context.close();
-            } catch (NamingException ex) {
-                exceptions.add(new NjamsSdkRuntimeException("Unable to close initial context correctly", ex));
             }
         }
         return exceptions;
