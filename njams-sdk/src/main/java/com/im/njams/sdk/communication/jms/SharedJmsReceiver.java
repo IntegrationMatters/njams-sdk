@@ -154,7 +154,11 @@ public class SharedJmsReceiver extends JmsReceiver implements ShareableReceiver<
 
     @Override
     public void sendReply(Message requestMessage, Instruction reply, String clientId) {
-        reply(requestMessage, reply, clientId);
+        try {
+            reply(requestMessage.getJMSReplyTo(), requestMessage.getJMSCorrelationID(), reply, clientId);
+        } catch (JMSException e) {
+            LOG.error("Failed to send reply message {}", reply, e);
+        }
     }
 
 }

@@ -55,7 +55,7 @@ import com.im.njams.sdk.communication.AbstractSender;
 import com.im.njams.sdk.communication.ConnectionStatus;
 import com.im.njams.sdk.communication.DiscardMonitor;
 import com.im.njams.sdk.communication.DiscardPolicy;
-import com.im.njams.sdk.communication.SplitSupport;
+import com.im.njams.sdk.communication.fragments.SplitSupport;
 import com.im.njams.sdk.communication.jms.factory.JmsFactory;
 import com.im.njams.sdk.utils.ClasspathValidator;
 import com.im.njams.sdk.utils.JsonUtils;

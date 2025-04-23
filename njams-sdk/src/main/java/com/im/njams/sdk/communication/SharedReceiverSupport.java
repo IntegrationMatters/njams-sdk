@@ -47,7 +47,7 @@ public class SharedReceiverSupport<R extends AbstractReceiver & ShareableReceive
             njamsInstances.put(njamsInstance.getClientPath(), njamsInstance);
         }
         LOG.debug("Added client {} to shared receiver; {} attached receivers.", njamsInstance.getClientPath(),
-                njamsInstances.size());
+            njamsInstances.size());
     }
 
     /**
@@ -62,7 +62,7 @@ public class SharedReceiverSupport<R extends AbstractReceiver & ShareableReceive
         synchronized (njamsInstances) {
             njamsInstances.remove(njamsInstance.getClientPath());
             LOG.debug("Removed client {} from shared receiver; {} remaining receivers.", njamsInstance.getClientPath(),
-                    njamsInstances.size());
+                njamsInstances.size());
             if (njamsInstances.isEmpty()) {
                 receiver.stop();
                 return true;
@@ -89,13 +89,15 @@ public class SharedReceiverSupport<R extends AbstractReceiver & ShareableReceive
      *                              instance was found. Otherwise, the request is simply ignored.
      */
     public void onInstruction(M message, Instruction instruction, boolean failOnMissingInstance) {
+        LOG.trace("onInstruction called with:  {}", message);
         final Path receiverPath = receiver.getReceiverPath(message, instruction);
         if (receiverPath == null) {
+            LOG.trace("No receiver path from: {}", message);
             return;
         }
         final String clientId = receiver.getClientId(message, instruction);
         LOG.debug("Received instruction {} with target {} and client ID {}", instruction.getCommand(), receiverPath,
-                clientId);
+            clientId);
 
         final Njams njamsTarget = getNjamsTarget(receiverPath, clientId);
         if (njamsTarget != null) {
@@ -149,7 +151,7 @@ public class SharedReceiverSupport<R extends AbstractReceiver & ShareableReceive
                 Response response = new Response();
                 response.setResultCode(1);
                 response.setResultMessage(
-                        "No InstructionListener for " + instruction.getRequest().getCommand() + " found");
+                    "No InstructionListener for " + instruction.getRequest().getCommand() + " found");
                 instruction.setResponse(response);
             }
         }

@@ -16,6 +16,7 @@
  */
 package com.im.njams.sdk.communication;
 
+import java.io.IOException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -28,7 +29,9 @@ import com.faizsiegeln.njams.messageformat.v4.command.Request;
 import com.faizsiegeln.njams.messageformat.v4.command.Response;
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.Njams.Feature;
+import com.im.njams.sdk.common.JsonSerializerFactory;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
+import com.im.njams.sdk.communication.fragments.RawMessage;
 
 /**
  * This class should be extended when implementing an new Receiver for a new
@@ -119,7 +122,7 @@ public abstract class AbstractReceiver implements Receiver {
                 Response response = new Response();
                 response.setResultCode(1);
                 response.setResultMessage(
-                        "No InstructionListener for " + instruction.getRequest().getCommand() + " found");
+                    "No InstructionListener for " + instruction.getRequest().getCommand() + " found");
                 instruction.setResponse(response);
             }
         }
@@ -138,6 +141,19 @@ public abstract class AbstractReceiver implements Receiver {
         //Doesn't extend the request as default.
         //This can be used by the subclasses to alter the request.
         return null;
+    }
+
+    /**
+     * This method tries to extract the {@link Instruction} out of the provided message. It
+     * maps the Json string to an {@link Instruction} object.
+     *
+     * @param message the Json Message
+     * @return the Instruction object that was extracted or null, if no valid
+     * instruction was found or it could be parsed to an instruction object.
+     * @throws IOException if the {@link Instruction} could not be extracted.
+     */
+    protected Instruction parseInstruction(final RawMessage message) throws IOException {
+        return JsonSerializerFactory.getFastMapper().readValue(message.getBody(), Instruction.class);
     }
 
     /**
@@ -170,7 +186,7 @@ public abstract class AbstractReceiver implements Receiver {
                         LOG.info("Initialized receiver reconnect, because of : {}", ex.toString());
                     } else {
                         LOG.info("Initialized receiver reconnect, because of : {}, {}", ex.toString(),
-                                ex.getCause().toString());
+                            ex.getCause().toString());
                     }
                 }
                 LOG.debug("{} receivers are reconnecting now.", connecting.incrementAndGet());
@@ -262,8 +278,8 @@ public abstract class AbstractReceiver implements Receiver {
         Thread reconnector = new Thread(() -> reconnect(exception));
         reconnector.setDaemon(true);
         reconnector
-                .setName(String.format("Receiver-Sender-Reconnector-Thread[%s/%d]", getName(),
-                        System.identityHashCode(this)));
+            .setName(String.format("Receiver-Sender-Reconnector-Thread[%s/%d]", getName(),
+                System.identityHashCode(this)));
         reconnector.start();
     }
 
@@ -304,7 +320,7 @@ public abstract class AbstractReceiver implements Receiver {
     protected static boolean suppressGetRequestHandlerInstruction(Instruction instruction, Njams targetClient) {
         if (Command.GET_REQUEST_HANDLER == Command.getFromInstruction(instruction) && !targetClient.isContainerMode()) {
             LOG.debug("Ignoring command {} because feature {} is disabled for target client: {}",
-                    Command.GET_REQUEST_HANDLER, Feature.CONTAINER_MODE, targetClient.getClientPath());
+                Command.GET_REQUEST_HANDLER, Feature.CONTAINER_MODE, targetClient.getClientPath());
 
             return true;
         }

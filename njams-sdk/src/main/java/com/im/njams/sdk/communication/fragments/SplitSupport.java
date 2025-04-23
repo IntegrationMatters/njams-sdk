@@ -14,7 +14,7 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
  */
-package com.im.njams.sdk.communication;
+package com.im.njams.sdk.communication.fragments;
 
 import static com.im.njams.sdk.communication.MessageHeaders.*;
 import static com.im.njams.sdk.utils.PropertyUtil.getPropertyBool;
@@ -191,6 +191,14 @@ public class SplitSupport {
             ((Buffer) out).rewind();
         }
         return chunks;
+    }
+
+    /**
+     * The configured (or resolved) max message size in bytes that this instance uses.
+     * @return The configured (or resolved) max message size in bytes.
+     */
+    public int getMaxMessageSize() {
+        return maxMessageBytes;
     }
 
     /**

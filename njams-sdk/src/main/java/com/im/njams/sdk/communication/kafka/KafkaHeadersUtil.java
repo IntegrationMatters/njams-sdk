@@ -4,7 +4,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.Objects;
 import java.util.TreeMap;
-import java.util.function.BiFunction;
+import java.util.function.BiPredicate;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
@@ -37,8 +37,8 @@ public class KafkaHeadersUtil {
          * @return This instance for chaining updates.
          */
         public HeadersUpdater addHeader(final String name, final String value,
-                final BiFunction<String, String, Boolean> condition) {
-            if (condition.apply(name, value)) {
+            final BiPredicate<String, String> condition) {
+            if (condition.test(name, value)) {
                 return addHeader(name, value);
             }
             return this;
@@ -62,8 +62,8 @@ public class KafkaHeadersUtil {
          * as input arguments.
          * @return This instance for chaining updates.
          */
-        public HeadersUpdater removeHeader(final String name, final BiFunction<String, String, Boolean> condition) {
-            if (condition.apply(name, getHeader(headers, name))) {
+        public HeadersUpdater removeHeader(final String name, final BiPredicate<String, String> condition) {
+            if (condition.test(name, getHeader(headers, name))) {
                 return removeHeader(name);
             }
             return this;
@@ -76,6 +76,16 @@ public class KafkaHeadersUtil {
          */
         public HeadersUpdater removeHeader(final String name) {
             headers.remove(name);
+            return this;
+        }
+
+        /**
+         * Adds all headers from the given map.
+         * @param toAdd The headers to add.
+         * @return This instance for chaining updates.
+         */
+        public HeadersUpdater addAllHeaders(final Map<String, String> toAdd) {
+            toAdd.entrySet().forEach(e -> addHeader(e.getKey(), e.getValue()));
             return this;
         }
     }
@@ -102,8 +112,8 @@ public class KafkaHeadersUtil {
      */
     public static Map<String, String> convertHeaders(final Headers headers) {
         return StreamSupport.stream(headers.spliterator(), false)
-                .collect(Collectors.toMap(Header::key, h -> new String(h.value(), StandardCharsets.UTF_8), (a, b) -> b,
-                        TreeMap::new));
+            .collect(Collectors.toMap(Header::key, h -> new String(h.value(), StandardCharsets.UTF_8), (a, b) -> b,
+                TreeMap::new));
     }
 
     /**

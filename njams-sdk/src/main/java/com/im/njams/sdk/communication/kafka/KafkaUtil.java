@@ -17,8 +17,7 @@
 
 package com.im.njams.sdk.communication.kafka;
 
-import com.im.njams.sdk.NjamsSettings;
-import com.im.njams.sdk.utils.StringUtils;
+import static com.im.njams.sdk.utils.PropertyUtil.getPropertyInt;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -41,6 +40,9 @@ import org.apache.kafka.common.PartitionInfo;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.im.njams.sdk.NjamsSettings;
+import com.im.njams.sdk.utils.StringUtils;
 
 /**
  * Provides some utilities related to Kafka communication.
@@ -91,6 +93,11 @@ public class KafkaUtil {
 
     }
 
+    /** Kafka's internal default for a producer's message size limit (1MB). */
+    private static final int MAX_MESSAGE_SIZE_DEFAULT = 1048576;
+    /** Some overhead that is subtracted from Kafka's producer message size limit, if used. */
+    public static final int HEADERS_OVERHEAD = 4096;
+
     private KafkaUtil() {
         // static
     }
@@ -107,7 +114,7 @@ public class KafkaUtil {
         final Properties p = filterKafkaProperties(njamsProperties, ClientType.CONSUMER);
         p.remove(ConsumerConfig.CLIENT_ID_CONFIG);
         try (KafkaConsumer<String, String> consumer =
-                new KafkaConsumer<>(p, new StringDeserializer(), new StringDeserializer())) {
+            new KafkaConsumer<>(p, new StringDeserializer(), new StringDeserializer())) {
             final Map<String, List<PartitionInfo>> topicMap = consumer.listTopics(Duration.ofSeconds(5));
             if (topics != null && topics.length > 0) {
                 for (final String topic : topics) {
@@ -143,18 +150,18 @@ public class KafkaUtil {
      * @return Properties instance prepared to be used as Kafka client configuration.
      */
     public static Properties filterKafkaProperties(final Properties properties, final ClientType clientType,
-            final String clientId) {
+        final String clientId) {
         final Properties kafkaProperties = new Properties();
         final ClientType type = clientType == null ? ClientType.CONSUMER : clientType;
 
         // add keys from CLIENT_PREFIX
         properties.stringPropertyNames().stream()
-                .map(k -> getKafkaKey(k, type.clientFilter)).filter(Objects::nonNull)
-                .forEach(e -> kafkaProperties.setProperty(e.getValue(), properties.getProperty(e.getKey())));
+            .map(k -> getKafkaKey(k, type.clientFilter)).filter(Objects::nonNull)
+            .forEach(e -> kafkaProperties.setProperty(e.getValue(), properties.getProperty(e.getKey())));
         // override with keys from type specific prefix
         properties.stringPropertyNames().stream().map(k -> getKafkaKey(k, type.typeFilter))
-                .filter(Objects::nonNull)
-                .forEach(e -> kafkaProperties.setProperty(e.getValue(), properties.getProperty(e.getKey())));
+            .filter(Objects::nonNull)
+            .forEach(e -> kafkaProperties.setProperty(e.getValue(), properties.getProperty(e.getKey())));
 
         if (StringUtils.isNotBlank(clientId) && !kafkaProperties.containsKey(ConsumerConfig.CLIENT_ID_CONFIG)) {
             kafkaProperties.setProperty(ConsumerConfig.CLIENT_ID_CONFIG, clientId);
@@ -196,6 +203,18 @@ public class KafkaUtil {
                 kafka.setProperty(key, defaults.getProperty(key));
             }
         }
+    }
+
+    /**
+     * Get Kafka's producer setting or use its default.
+     * See also {@link NjamsSettings#PROPERTY_MAX_MESSAGE_SIZE}
+     * @param properties
+     * @return
+     */
+    public static int getProducerLimit(final Properties properties) {
+        final Properties kafka = KafkaUtil.filterKafkaProperties(properties, ClientType.PRODUCER);
+        final int kafkaLimit = getPropertyInt(kafka, ProducerConfig.MAX_REQUEST_SIZE_CONFIG, MAX_MESSAGE_SIZE_DEFAULT);
+        return kafkaLimit - HEADERS_OVERHEAD;
     }
 
 }

@@ -17,22 +17,17 @@
 
 package com.im.njams.sdk.communication.kafka;
 
-import static com.im.njams.sdk.communication.MessageHeaders.COMMAND_TYPE_REPLY;
-import static com.im.njams.sdk.communication.MessageHeaders.CONTENT_TYPE_JSON;
-import static com.im.njams.sdk.communication.MessageHeaders.NJAMS_CLIENTID_HEADER;
-import static com.im.njams.sdk.communication.MessageHeaders.NJAMS_CONTENT_HEADER;
-import static com.im.njams.sdk.communication.MessageHeaders.NJAMS_MESSAGE_ID_HEADER;
-import static com.im.njams.sdk.communication.MessageHeaders.NJAMS_RECEIVER_HEADER;
-import static com.im.njams.sdk.communication.MessageHeaders.NJAMS_REPLY_FOR_HEADER;
-import static com.im.njams.sdk.communication.MessageHeaders.NJAMS_TYPE_HEADER;
-import static com.im.njams.sdk.communication.MessageHeaders.RECEIVER_SERVER;
+import static com.im.njams.sdk.communication.MessageHeaders.*;
 import static com.im.njams.sdk.communication.kafka.KafkaHeadersUtil.getHeader;
 import static com.im.njams.sdk.communication.kafka.KafkaHeadersUtil.headersUpdater;
 import static com.im.njams.sdk.communication.kafka.KafkaUtil.filterKafkaProperties;
+import static com.im.njams.sdk.communication.kafka.KafkaUtil.getProducerLimit;
 
-import java.io.IOException;
 import java.util.Collection;
+import java.util.List;
+import java.util.Map;
 import java.util.Properties;
+import java.util.TreeMap;
 import java.util.UUID;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -43,6 +38,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.common.JsonSerializerFactory;
@@ -50,6 +46,9 @@ import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.common.Path;
 import com.im.njams.sdk.communication.AbstractReceiver;
 import com.im.njams.sdk.communication.ConnectionStatus;
+import com.im.njams.sdk.communication.fragments.KafkaChunkAssembly;
+import com.im.njams.sdk.communication.fragments.RawMessage;
+import com.im.njams.sdk.communication.fragments.SplitSupport;
 import com.im.njams.sdk.communication.kafka.KafkaHeadersUtil.HeadersUpdater;
 import com.im.njams.sdk.communication.kafka.KafkaUtil.ClientType;
 import com.im.njams.sdk.settings.Settings;
@@ -63,7 +62,7 @@ import com.im.njams.sdk.utils.StringUtils;
  */
 public class KafkaReceiver extends AbstractReceiver {
 
-    private final Logger LOG = LoggerFactory.getLogger(KafkaReceiver.class);
+    private static final Logger LOG = LoggerFactory.getLogger(KafkaReceiver.class);
 
     private static final String GROUP_PREFIX = "njsdk_";
     private static final String COMMANDS_SUFFIX = ".commands";
@@ -76,6 +75,9 @@ public class KafkaReceiver extends AbstractReceiver {
     private String topicName = null;
     private String kafkaClientId;
 
+    private SplitSupport splitSupport = null;
+    protected final KafkaChunkAssembly chunkAssembly = new KafkaChunkAssembly();
+
     /**
      * Initializes this receiver via the given properties.
      *
@@ -85,16 +87,21 @@ public class KafkaReceiver extends AbstractReceiver {
     public void init(final Properties properties) {
         njamsProperties = properties;
         connectionStatus = ConnectionStatus.DISCONNECTED;
-        mapper = JsonSerializerFactory.getDefaultMapper();
+        mapper = JsonSerializerFactory.getFastMapper();
         final String clientPath = properties.getProperty(Settings.INTERNAL_PROPERTY_CLIENTPATH);
         kafkaClientId = getClientId(clientPath.substring(1, clientPath.length() - 1).replace('>', '_'));
         String prefix = properties.getProperty(NjamsSettings.PROPERTY_KAFKA_TOPIC_PREFIX);
         if (StringUtils.isBlank(prefix)) {
             LOG.warn("Property {} is not set. Using '{}' as default.", NjamsSettings.PROPERTY_KAFKA_TOPIC_PREFIX,
-                    KafkaConstants.DEFAULT_TOPIC_PREFIX);
+                KafkaConstants.DEFAULT_TOPIC_PREFIX);
             prefix = KafkaConstants.DEFAULT_TOPIC_PREFIX;
         }
         topicName = prefix + COMMANDS_SUFFIX;
+
+        splitSupport = new SplitSupport(properties, getProducerLimit(properties));
+        if (splitSupport.isSplitting()) {
+            LOG.debug("Init with message fragmentation support (max={} bytes).", splitSupport.getMaxMessageSize());
+        }
     }
 
     private static String getClientId(final String path) {
@@ -192,21 +199,23 @@ public class KafkaReceiver extends AbstractReceiver {
             if (!isValidMessage(msg)) {
                 return;
             }
-            final String messageId = getHeader(msg, NJAMS_MESSAGE_ID_HEADER);
+            final RawMessage raw = chunkAssembly.resolve(msg);
+            if (raw == null) {
+                LOG.debug("Received partial message");
+                return;
+            }
+            final String messageId = raw.getHeader(NJAMS_MESSAGE_ID_HEADER);
             if (StringUtils.isBlank(messageId)) {
                 LOG.error("Missing request ID in message: {}", msg);
                 return;
             }
 
-            final Instruction instruction = getInstruction(msg);
-            if (instruction == null) {
-                return;
-            }
-            if (suppressGetRequestHandlerInstruction(instruction, njams)) {
+            final Instruction instruction = parseInstruction(raw);
+            if (instruction == null || suppressGetRequestHandlerInstruction(instruction, njams)) {
                 return;
             }
 
-            LOG.debug("Handle message (id={}) {}", messageId, msg);
+            LOG.debug("Handle message (id={}) {}", messageId, raw);
             onInstruction(instruction);
             sendReply(messageId, instruction, njams.getCommunicationSessionId());
 
@@ -216,10 +225,7 @@ public class KafkaReceiver extends AbstractReceiver {
     }
 
     protected boolean isValidMessage(final ConsumerRecord<?, ?> msg) {
-        if (msg == null) {
-            return false;
-        }
-        if (StringUtils.isNotBlank(getHeader(msg, NJAMS_REPLY_FOR_HEADER))) {
+        if (msg == null || StringUtils.isNotBlank(getHeader(msg, NJAMS_REPLY_FOR_HEADER))) {
             // skip messages sent as a reply
             return false;
         }
@@ -236,24 +242,11 @@ public class KafkaReceiver extends AbstractReceiver {
         final String clientId = getHeader(msg, NJAMS_CLIENTID_HEADER);
         if (clientId != null && !njams.getCommunicationSessionId().equals(clientId)) {
             LOG.debug("Message is not for me! ClientId in Message is: {} but this nJAMS Client has Id: {}",
-                    clientId, njams.getCommunicationSessionId());
+                clientId, njams.getCommunicationSessionId());
             return false;
         }
 
         return true;
-    }
-
-    /**
-     * This method tries to extract the {@link Instruction} out of the provided message. It
-     * maps the Json string to an {@link Instruction} object.
-     *
-     * @param message the Json Message
-     * @return the Instruction object that was extracted or null, if no valid
-     * instruction was found or it could be parsed to an instruction object.
-     * @throws IOException if the {@link Instruction} could not be extracted.
-     */
-    protected Instruction getInstruction(final ConsumerRecord<String, String> message) throws IOException {
-        return mapper.readValue(message.value(), Instruction.class);
     }
 
     /**
@@ -264,36 +257,57 @@ public class KafkaReceiver extends AbstractReceiver {
      * @param clientId
      */
     protected void sendReply(final String requestId, final Instruction instruction, String clientId) {
+        final String responseId = UUID.randomUUID().toString();
+        final Map<String, String> headers = new TreeMap<>();
+        headers.put(NJAMS_MESSAGE_ID_HEADER, responseId);
+        headers.put(NJAMS_REPLY_FOR_HEADER, requestId);
+        headers.put(NJAMS_RECEIVER_HEADER, RECEIVER_SERVER);
+        headers.put(NJAMS_TYPE_HEADER, COMMAND_TYPE_REPLY);
+        headers.put(NJAMS_CONTENT_HEADER, CONTENT_TYPE_JSON);
+        if (clientId != null) {
+            headers.put(NJAMS_CLIENTID_HEADER, clientId);
+        }
+        final String data;
         try {
-            final String responseId = UUID.randomUUID().toString();
-            final ProducerRecord<String, String> response =
-                    new ProducerRecord<>(topicName, responseId, mapper.writeValueAsString(instruction));
-            final HeadersUpdater headersUpdater = headersUpdater(response)
-                    .addHeader(NJAMS_MESSAGE_ID_HEADER, responseId)
-                    .addHeader(NJAMS_REPLY_FOR_HEADER, requestId)
-                    .addHeader(NJAMS_RECEIVER_HEADER, RECEIVER_SERVER)
-                    .addHeader(NJAMS_TYPE_HEADER, COMMAND_TYPE_REPLY)
-                    .addHeader(NJAMS_CONTENT_HEADER, CONTENT_TYPE_JSON);
-
-            if (clientId != null) {
-                headersUpdater.addHeader(NJAMS_CLIENTID_HEADER, clientId);
+            data = mapper.writeValueAsString(instruction);
+        } catch (JsonProcessingException e) {
+            LOG.error("Failed to serialize reply for request {}", requestId, e);
+            return;
+        }
+        if (splitSupport.isSplitting()) {
+            final List<String> chunks = splitSupport.splitData(data);
+            for (int i = 0; i < chunks.size(); i++) {
+                sendReply(headers, responseId, chunks.get(i), i, chunks.size());
             }
+        } else {
+            sendReply(headers, responseId, data, 1, 1);
+        }
+    }
+
+    protected void sendReply(final Map<String, String> headers, String responseId, final String body, int chunkNo,
+        int totalChunks) {
+        try {
+            final ProducerRecord<String, String> response = new ProducerRecord<>(topicName, responseId, body);
+            final HeadersUpdater headersUpdater = headersUpdater(response).addAllHeaders(headers);
+            splitSupport.addChunkHeaders(headersUpdater::addHeader, chunkNo, totalChunks, responseId);
 
             synchronized (this) {
                 if (producer == null) {
                     LOG.debug("Creating new Kafka producer.");
                     producer =
-                            new KafkaProducer<>(
-                                    filterKafkaProperties(njamsProperties, ClientType.PRODUCER, kafkaClientId),
-                                    new StringSerializer(), new StringSerializer());
+                        new KafkaProducer<>(
+                            filterKafkaProperties(njamsProperties, ClientType.PRODUCER, kafkaClientId),
+                            new StringSerializer(), new StringSerializer());
                 }
-                LOG.debug("Sending reply for request {}: {}", requestId, response);
+                LOG.debug("Sending reply {} (part {}/{}): {}", responseId, chunkNo, totalChunks, response);
                 producer.send(response);
-                producer.flush();
+                if (chunkNo >= totalChunks) {
+                    producer.flush();
+                }
             }
 
         } catch (final Exception e) {
-            LOG.error("Error while sending reply for {}", requestId, e);
+            LOG.error("Error while sending reply {}", responseId, e);
             closeProducer();
         }
     }

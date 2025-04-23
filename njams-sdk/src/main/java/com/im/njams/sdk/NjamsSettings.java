@@ -26,7 +26,7 @@ package com.im.njams.sdk;
 import javax.jms.ConnectionFactory;
 import javax.naming.Context;
 
-import com.im.njams.sdk.communication.SplitSupport;
+import com.im.njams.sdk.communication.fragments.SplitSupport;
 import com.im.njams.sdk.communication.http.HttpSender;
 import com.im.njams.sdk.communication.jms.factory.JmsFactory;
 import com.im.njams.sdk.communication.jms.factory.JndiJmsFactory;

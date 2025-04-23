@@ -19,7 +19,7 @@ import com.faizsiegeln.njams.messageformat.v4.common.CommonMessage;
 import com.faizsiegeln.njams.messageformat.v4.logmessage.LogMessage;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.ProjectMessage;
 import com.im.njams.sdk.NjamsSettings;
-import com.im.njams.sdk.communication.SplitSupport;
+import com.im.njams.sdk.communication.fragments.SplitSupport;
 
 public class SplitMessageTest {
 

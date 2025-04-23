@@ -26,6 +26,7 @@ package com.im.njams.sdk.communication.kafka;
 
 import static com.im.njams.sdk.communication.MessageHeaders.*;
 import static com.im.njams.sdk.communication.kafka.KafkaHeadersUtil.headersUpdater;
+import static com.im.njams.sdk.communication.kafka.KafkaUtil.getProducerLimit;
 import static com.im.njams.sdk.utils.PropertyUtil.getPropertyInt;
 
 import java.util.ArrayList;
@@ -61,7 +62,7 @@ import com.im.njams.sdk.communication.AbstractSender;
 import com.im.njams.sdk.communication.ConnectionStatus;
 import com.im.njams.sdk.communication.DiscardMonitor;
 import com.im.njams.sdk.communication.DiscardPolicy;
-import com.im.njams.sdk.communication.SplitSupport;
+import com.im.njams.sdk.communication.fragments.SplitSupport;
 import com.im.njams.sdk.communication.kafka.KafkaHeadersUtil.HeadersUpdater;
 import com.im.njams.sdk.communication.kafka.KafkaUtil.ClientType;
 import com.im.njams.sdk.utils.JsonUtils;
@@ -75,11 +76,6 @@ import com.im.njams.sdk.utils.StringUtils;
 public class KafkaSender extends AbstractSender {
 
     private static final Logger LOG = LoggerFactory.getLogger(KafkaSender.class);
-
-    /** Kafka's internal default for a producer's message size limit (1MB). */
-    private static final int MAX_MESSAGE_SIZE_DEFAULT = 1048576;
-    /** Some overhead that is subtracted from Kafka's producer message size limit, if used. */
-    public static final int HEADERS_OVERHEAD = 4096;
 
     private static final String PROJECT_SUFFIX = ".project";
     private static final String EVENT_SUFFIX = ".event";
@@ -119,18 +115,6 @@ public class KafkaSender extends AbstractSender {
         initMaxMessageSizeAndTimeout();
         splitSupport = new SplitSupport(properties, getProducerLimit(properties));
         LOG.debug("Initialized sender {}", KafkaConstants.COMMUNICATION_NAME);
-    }
-
-    /**
-     * Get Kafka's producer setting or use its default.
-     * See also {@link NjamsSettings#PROPERTY_MAX_MESSAGE_SIZE}
-     * @param properties
-     * @return
-     */
-    private int getProducerLimit(final Properties properties) {
-        final Properties kafka = KafkaUtil.filterKafkaProperties(properties, ClientType.PRODUCER);
-        final int kafkaLimit = getPropertyInt(kafka, ProducerConfig.MAX_REQUEST_SIZE_CONFIG, MAX_MESSAGE_SIZE_DEFAULT);
-        return kafkaLimit - HEADERS_OVERHEAD;
     }
 
     private void initMaxMessageSizeAndTimeout() {
@@ -263,8 +247,8 @@ public class KafkaSender extends AbstractSender {
 
         // for Kafka, there is always a max message size limit that may cause message fragmentation
         try {
-            for (ProducerRecord<String, String> record : splitMessage(msg, topic, messageType, data, clientSessionId)) {
-                tryToSend(record);
+            for (ProducerRecord<String, String> producerRecord : splitMessage(msg, topic, messageType, data, clientSessionId)) {
+                tryToSend(producerRecord);
             }
         } catch (Throwable e) {
             LOG.error("Failed to prepare '{}' message", messageType, e);
@@ -296,8 +280,8 @@ public class KafkaSender extends AbstractSender {
 
         List<ProducerRecord<String, String>> chunks = null;
         for (int i = 0; i < slices.size(); i++) {
-            final ProducerRecord<String, String> record = new ProducerRecord<>(topic, recordKey, slices.get(i));
-            final HeadersUpdater headers = headersUpdater(record);
+            final ProducerRecord<String, String> producerRecord = new ProducerRecord<>(topic, recordKey, slices.get(i));
+            final HeadersUpdater headers = headersUpdater(producerRecord);
             headers.addHeader(NJAMS_MESSAGEVERSION_HEADER, MessageVersion.V4.toString())
                 .addHeader(NJAMS_MESSAGETYPE_HEADER, messageType)
                 .addHeader(NJAMS_CLIENTID_HEADER, clientSessionId);
@@ -308,13 +292,13 @@ public class KafkaSender extends AbstractSender {
                 headers.addHeader(NJAMS_PATH_HEADER, msg.getPath());
             }
             if (slices.size() <= 1) {
-                return Collections.singletonList(record);
+                return Collections.singletonList(producerRecord);
             }
             splitSupport.addChunkHeaders(headers::addHeader, i, slices.size(), recordKey);
             if (chunks == null) {
                 chunks = new ArrayList<>();
             }
-            chunks.add(record);
+            chunks.add(producerRecord);
         }
         if (LOG.isDebugEnabled()) {
             LOG.debug("{} for path {} split into {} chunks.", msg.getClass().getSimpleName(), msg.getPath(),
@@ -326,17 +310,17 @@ public class KafkaSender extends AbstractSender {
     /**
      * Relies on Kafka's internal retry which is controlled by according producer settings.
      *
-     * @param record
+     * @param producerRecord
      * @throws Exception
      */
-    private void tryToSend(final ProducerRecord<String, String> record) throws Exception {
+    private void tryToSend(final ProducerRecord<String, String> producerRecord) throws Exception {
         long start = System.currentTimeMillis();
         try {
-            final Future<RecordMetadata> future = producer.send(record);
+            final Future<RecordMetadata> future = producer.send(producerRecord);
             final RecordMetadata result = future.get(requestTimeoutMs, TimeUnit.MILLISECONDS);
             if (LOG.isTraceEnabled()) {
                 LOG.trace("Send record result: {} after {}ms\n{}", result, System.currentTimeMillis() - start,
-                    record);
+                    producerRecord);
             } else if (LOG.isDebugEnabled()) {
                 LOG.debug("Send record result: {} after {}ms", result, System.currentTimeMillis() - start);
             }
