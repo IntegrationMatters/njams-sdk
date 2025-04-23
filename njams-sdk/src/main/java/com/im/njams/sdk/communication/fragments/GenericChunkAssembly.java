@@ -110,7 +110,7 @@ public abstract class GenericChunkAssembly<T> {
      * respect to nJAMS messages. Otherwise, this method returns <code>null</code> and stores the given record until
      * it has been completed with the remaining chunks.
      *
-     * @param partialMessage
+     * @param partialMessage A message chunk used for resolving a complete message.
      * @return The message returned for a split messages contains the headers of the first chunk only.
      */
     public RawMessage resolve(final T partialMessage) {

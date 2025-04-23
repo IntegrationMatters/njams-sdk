@@ -21,6 +21,9 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
+/**
+ * Used for collecting message chunks that form a complete message only when all chunks arrived.
+ */
 public class ChunkedMessage {
     private long timestamp = System.currentTimeMillis();
     private final Map<String, String> headers;
@@ -36,8 +39,8 @@ public class ChunkedMessage {
     }
 
     /**
-     * For logging only
-     * @return
+     * For logging only.
+     * @return Returns <code>true</code> only once. This is just used to suppress repeated logging.
      */
     public synchronized boolean isNew() {
         boolean b = isNew;

@@ -18,23 +18,44 @@ package com.im.njams.sdk.communication.fragments;
 
 import java.util.Map;
 
+/**
+ * Immutable container for messages build of headers and message body.
+ */
 public class RawMessage {
     private final Map<String, String> headers;
     private final String body;
 
+    /**
+     * Sole constructor for full initialization of an immutable instance.
+     * @param headers The message's headers, if any.
+     * @param body The message's body/content.
+     */
     public RawMessage(Map<String, String> headers, String body) {
         this.headers = headers;
         this.body = body;
     }
 
+    /**
+     * Get this message's headers.
+     * @return This message's headers, if any. May be <code>null</code>.
+     */
     public Map<String, String> getHeaders() {
         return headers;
     }
 
+    /**
+     * Get this message's body/content which is not necessarily a complete message.
+     * @return This message's body/content.
+     */
     public String getBody() {
         return body;
     }
 
+    /**
+     * Return's the value of a header from this message's headers.
+     * @param key The name of the header to read.
+     * @return The header's value, or <code>null</code> if no such header exists.
+     */
     public String getHeader(String key) {
         return headers == null ? null : headers.get(key);
     }

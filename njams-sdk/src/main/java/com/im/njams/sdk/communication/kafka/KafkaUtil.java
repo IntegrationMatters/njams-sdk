@@ -208,8 +208,8 @@ public class KafkaUtil {
     /**
      * Get Kafka's producer setting or use its default.
      * See also {@link NjamsSettings#PROPERTY_MAX_MESSAGE_SIZE}
-     * @param properties
-     * @return
+     * @param properties The client's properties that may also contain Kafka producer settings.
+     * @return The producer's max message size setting to use for message chunking.
      */
     public static int getProducerLimit(final Properties properties) {
         final Properties kafka = KafkaUtil.filterKafkaProperties(properties, ClientType.PRODUCER);

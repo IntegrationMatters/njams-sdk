@@ -16,6 +16,9 @@ import com.im.njams.sdk.utils.JsonUtils;
 import com.im.njams.sdk.utils.StringUtils;
 import com.launchdarkly.eventsource.MessageEvent;
 
+/**
+ * HTTP server sent events implementation working on {@link MessageEvent} messages.
+ */
 public class HttpSseChunkAssembly extends GenericChunkAssembly<MessageEvent> {
 
     private static final Logger LOG = LoggerFactory.getLogger(HttpSseChunkAssembly.class);
