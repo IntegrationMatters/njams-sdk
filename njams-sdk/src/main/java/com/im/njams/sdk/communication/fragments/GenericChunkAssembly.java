@@ -31,8 +31,7 @@ import com.im.njams.sdk.communication.MessageHeaders;
 
 /**
  * Collects and merges messages that are split into several chunks.<br>
- * See {@link #resolve(Object)} for details.<br>
- * Obtain instances from {@link ChunkAssemblyManager}.
+ * See {@link #resolve(Object)} for details.
  *
  * @author cwinkler
  * @param <T> The type of the raw chunked messages as used by a reader implementation, e.g., {@link TextMessage} for
