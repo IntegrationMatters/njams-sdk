@@ -30,6 +30,7 @@ import java.util.stream.Collectors;
 
 import javax.jms.Connection;
 import javax.jms.ConnectionFactory;
+import javax.jms.Destination;
 import javax.jms.ExceptionListener;
 import javax.jms.InvalidDestinationException;
 import javax.jms.JMSException;
@@ -53,6 +54,9 @@ import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.common.Path;
 import com.im.njams.sdk.communication.AbstractReceiver;
 import com.im.njams.sdk.communication.ConnectionStatus;
+import com.im.njams.sdk.communication.fragments.JMSChunkAssembly;
+import com.im.njams.sdk.communication.fragments.RawMessage;
+import com.im.njams.sdk.communication.fragments.SplitSupport;
 import com.im.njams.sdk.communication.jms.factory.JmsFactory;
 import com.im.njams.sdk.utils.ClasspathValidator;
 import com.im.njams.sdk.utils.StringUtils;
@@ -81,7 +85,9 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
     protected String messageSelector = null;
     protected Predicate<Message> messageFilter = m -> true;
     protected long oldestMessageTime = Long.MAX_VALUE;
-    private String subscriptionName = null;
+
+    private SplitSupport splitSupport = null;
+    protected final JMSChunkAssembly chunkAssembly = new JMSChunkAssembly();
 
     /**
      * Returns the name for this Receiver. (JMS)
@@ -111,7 +117,7 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
     @Override
     public void init(Properties props) {
         connectionStatus = ConnectionStatus.DISCONNECTED;
-        mapper = JsonSerializerFactory.getDefaultMapper();
+        mapper = JsonSerializerFactory.getFastMapper();
         properties = props;
         if (StringUtils.isNotBlank(props.getProperty(NjamsSettings.PROPERTY_JMS_COMMANDS_DESTINATION))) {
             topicName = props.getProperty(NjamsSettings.PROPERTY_JMS_COMMANDS_DESTINATION);
@@ -120,9 +126,8 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
         }
         useMessageselector =
             !"false".equalsIgnoreCase(props.getProperty(NjamsSettings.PROPERTY_JMS_SUPPORTS_MESSAGE_SELECTOR));
-        if (subscriptionName == null) {
-            subscriptionName = UUID.randomUUID().toString();
-        }
+
+        splitSupport = new SplitSupport(props, -1);
     }
 
     /**
@@ -304,7 +309,7 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
      */
     protected MessageConsumer createConsumer(Session sess, Topic topic) throws JMSException {
         final MessageConsumer cons;
-        LOG.debug("Creating consumer with subscription {} and message selector: {}", subscriptionName, messageSelector);
+        LOG.debug("Creating consumer with  message selector: {}", messageSelector);
         if (messageSelector == null) {
             cons = sess.createConsumer(topic);
         } else {
@@ -458,31 +463,39 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
                 return;
             }
             onInstruction(instruction);
-            reply(msg, instruction, njams.getCommunicationSessionId());
+            reply(msg.getJMSReplyTo(), msg.getJMSCorrelationID(), instruction, njams.getCommunicationSessionId());
         } catch (Exception e) {
             LOG.error("Error in onMessage", e);
         }
     }
 
     /**
-     * This method tries to extract the Instruction out of the provided message.
-     * It maps the Json string to an Instruction object.
+     * This method tries to extract an {@link Instruction} from the provided JMS message.
+     * It maps the JSON string to an {@link Instruction} object.
      *
-     * @param message the Json Message
-     * @return the Instruction object that was extracted or null, if no valid
-     * instruction was found or it could be parsed to an instruction object.
+     * @param message the JSON Message
+     * @return the {@link Instruction} object that was extracted or <code>null</code>, if the instruction was not yet
+     * complete or it was not valid.
      */
     protected Instruction getInstruction(Message message) {
+        if (!(message instanceof TextMessage)) {
+            LOG.debug("Unexpected message type: {}", message.getClass());
+            return null;
+        }
+        final RawMessage resolved = chunkAssembly.resolve((TextMessage) message);
+        if (resolved == null) {
+            LOG.debug("Received incomplete command message.");
+            return null;
+        }
         try {
-            String instructionString = ((TextMessage) message).getText();
-            Instruction instruction = mapper.readValue(instructionString, Instruction.class);
+            final Instruction instruction = mapper.readValue(resolved.getBody(), Instruction.class);
             if (instruction.getRequest() != null) {
                 return instruction;
             }
         } catch (Exception e) {
-            LOG.error("Error deserializing Instruction", e);
+            LOG.error("Error deserializing instruction: {}", resolved.getBody(), e);
         }
-        LOG.warn("MSG is not a valid Instruction");
+        LOG.warn("Illegal instruction format in: {}", resolved.getBody());
         return null;
     }
 
@@ -491,25 +504,34 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
      * Send a message to the sender that is mentioned in the message. If a
      * JmsCorrelationId is set in the message, it will be forwarded as well.
      *
-     * @param message     the destination where the response will be sent to and the
-     *                    jmsCorrelationId are safed in here.
+     * @param replyDestination The JMS destination where the reply has to be sent to
+     * @param jmsCorrelationID Optional JMS correlation ID for correlating the reply to its request.
      * @param instruction the instruction that holds the response.
      * @param clientId
      */
-    protected void reply(Message message, Instruction instruction, String clientId) {
+    protected void reply(Destination replyDestination, String jmsCorrelationID, Instruction instruction,
+        String clientId) {
         MessageProducer replyProducer = null;
         try {
-            replyProducer = session.createProducer(message.getJMSReplyTo());
+            replyProducer = session.createProducer(replyDestination);
             String response = mapper.writeValueAsString(instruction);
-            final TextMessage responseMessage = session.createTextMessage();
-            responseMessage.setText(response);
-            responseMessage.setStringProperty(NJAMS_CLIENTID_HEADER, clientId);
-            final String jmsCorrelationID = message.getJMSCorrelationID();
-            if (jmsCorrelationID != null && !jmsCorrelationID.isEmpty()) {
-                responseMessage.setJMSCorrelationID(jmsCorrelationID);
+
+            final List<String> data = splitSupport.splitData(response);
+            final String messageId = UUID.randomUUID().toString();
+            LOG.debug("Sending reply {} with {} message fragments to {}: {}", messageId, data.size(), replyDestination,
+                response);
+            for (int i = 0; i < data.size(); i++) {
+                final TextMessage responseMessage = session.createTextMessage(data.get(i));
+                responseMessage.setStringProperty(NJAMS_CLIENTID_HEADER, clientId);
+                if (jmsCorrelationID != null && !jmsCorrelationID.isEmpty()) {
+                    responseMessage.setJMSCorrelationID(jmsCorrelationID);
+                }
+                splitSupport.addChunkHeaders((k, v) -> JMSChunkAssembly.setHeader(responseMessage, k, v), i,
+                    data.size(), messageId);
+                replyProducer.send(responseMessage);
+                LOG.trace("Sent fragment {}/{}", i + 1, data.size());
             }
-            replyProducer.send(responseMessage);
-            LOG.debug("Response: {}", response);
+
         } catch (InvalidDestinationException e) {
             // this request has already been answered by another instance -> ignore
             LOG.debug("Response channel already closed", e);

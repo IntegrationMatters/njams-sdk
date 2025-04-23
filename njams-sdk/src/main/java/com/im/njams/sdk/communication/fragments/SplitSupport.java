@@ -14,7 +14,7 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
  */
-package com.im.njams.sdk.communication;
+package com.im.njams.sdk.communication.fragments;
 
 import static com.im.njams.sdk.communication.MessageHeaders.*;
 import static com.im.njams.sdk.utils.PropertyUtil.getPropertyBool;
@@ -81,9 +81,6 @@ public class SplitSupport {
      */
     public SplitSupport(final Properties properties, final int techLimit) {
         final String transport = properties.getProperty(NjamsSettings.PROPERTY_COMMUNICATION);
-        if (transport == null) {
-            throw new IllegalArgumentException("Missing setting: " + NjamsSettings.PROPERTY_COMMUNICATION);
-        }
 
         final int configuredLimit = getPropertyInt(properties, NjamsSettings.PROPERTY_MAX_MESSAGE_SIZE, -1);
         if (getPropertyBool(properties, TESTING_NO_LIMIT_CHECKS, false)) {
@@ -191,6 +188,14 @@ public class SplitSupport {
             ((Buffer) out).rewind();
         }
         return chunks;
+    }
+
+    /**
+     * The configured (or resolved) max message size in bytes that this instance uses.
+     * @return The configured (or resolved) max message size in bytes.
+     */
+    public int getMaxMessageSize() {
+        return maxMessageBytes;
     }
 
     /**

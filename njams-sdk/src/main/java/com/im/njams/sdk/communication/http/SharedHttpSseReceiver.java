@@ -28,6 +28,7 @@ import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.common.Path;
 import com.im.njams.sdk.communication.ShareableReceiver;
 import com.im.njams.sdk.communication.SharedReceiverSupport;
+import com.im.njams.sdk.communication.fragments.RawMessage;
 import com.im.njams.sdk.utils.JsonUtils;
 import com.im.njams.sdk.utils.StringUtils;
 import com.launchdarkly.eventsource.MessageEvent;
@@ -41,7 +42,7 @@ public class SharedHttpSseReceiver extends HttpSseReceiver implements ShareableR
     private static final Logger LOG = LoggerFactory.getLogger(SharedHttpSseReceiver.class);
 
     private final SharedReceiverSupport<SharedHttpSseReceiver, Map<String, String>> sharingSupport =
-            new SharedReceiverSupport<>(this);
+        new SharedReceiverSupport<>(this);
 
     /**
      * Adds the given instance to this receiver for receiving instructions.
@@ -77,13 +78,17 @@ public class SharedHttpSseReceiver extends HttpSseReceiver implements ShareableR
     @Override
     protected void onMessage(final MessageEvent event) {
         LOG.debug("OnMessage called, event-id={}", event.getLastEventId());
-        final Map<String, String> eventHeaders = parseEventHeaders(event);
-        if (!isValidMessage(eventHeaders)) {
+        RawMessage resolved = chunkAssembly.resolve(event);
+        if (resolved == null) {
+            LOG.debug("Received incomplete command message");
             return;
         }
-        final String id = eventHeaders.get(NJAMS_MESSAGE_ID_HTTP_HEADER);
-        final String payload = event.getData();
-        LOG.debug("Processing event {} (headers={}, payload={})", id, eventHeaders, payload);
+        if (!isValidMessage(resolved.getHeaders())) {
+            return;
+        }
+        final String id = resolved.getHeader(NJAMS_MESSAGE_ID_HTTP_HEADER);
+        final String payload = resolved.getBody();
+        LOG.debug("Processing event {} (message={})", id, resolved);
         Instruction instruction = null;
         try {
             instruction = JsonUtils.parse(payload, Instruction.class);
@@ -91,7 +96,7 @@ public class SharedHttpSseReceiver extends HttpSseReceiver implements ShareableR
             LOG.error("Failed to parse instruction from SSE event.", e);
             return;
         }
-        sharingSupport.onInstruction(eventHeaders, instruction, false);
+        sharingSupport.onInstruction(resolved.getHeaders(), instruction, false);
     }
 
     @Override

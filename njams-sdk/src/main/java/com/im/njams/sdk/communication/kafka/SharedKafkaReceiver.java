@@ -16,12 +16,7 @@
  */
 package com.im.njams.sdk.communication.kafka;
 
-import static com.im.njams.sdk.communication.MessageHeaders.CONTENT_TYPE_JSON;
-import static com.im.njams.sdk.communication.MessageHeaders.NJAMS_CLIENTID_HEADER;
-import static com.im.njams.sdk.communication.MessageHeaders.NJAMS_CONTENT_HEADER;
-import static com.im.njams.sdk.communication.MessageHeaders.NJAMS_MESSAGE_ID_HEADER;
-import static com.im.njams.sdk.communication.MessageHeaders.NJAMS_RECEIVER_HEADER;
-import static com.im.njams.sdk.communication.MessageHeaders.NJAMS_REPLY_FOR_HEADER;
+import static com.im.njams.sdk.communication.MessageHeaders.*;
 import static com.im.njams.sdk.communication.kafka.KafkaHeadersUtil.getHeader;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -34,6 +29,7 @@ import com.im.njams.sdk.common.Path;
 import com.im.njams.sdk.communication.ConnectionStatus;
 import com.im.njams.sdk.communication.ShareableReceiver;
 import com.im.njams.sdk.communication.SharedReceiverSupport;
+import com.im.njams.sdk.communication.fragments.RawMessage;
 import com.im.njams.sdk.utils.StringUtils;
 
 /**
@@ -46,7 +42,7 @@ public class SharedKafkaReceiver extends KafkaReceiver implements ShareableRecei
     private static final Logger LOG = LoggerFactory.getLogger(SharedKafkaReceiver.class);
 
     private final SharedReceiverSupport<SharedKafkaReceiver, ConsumerRecord<?, ?>> sharingSupport =
-            new SharedReceiverSupport<>(this);
+        new SharedReceiverSupport<>(this);
 
     /**
      * Adds the given instance to this receiver for receiving instructions.
@@ -100,8 +96,13 @@ public class SharedKafkaReceiver extends KafkaReceiver implements ShareableRecei
             if (!isValidMessage(msg)) {
                 return;
             }
+            final RawMessage raw = chunkAssembly.resolve(msg);
+            if (raw == null) {
+                LOG.debug("Received partial message");
+                return;
+            }
 
-            final Instruction instruction = getInstruction(msg);
+            final Instruction instruction = parseInstruction(raw);
             if (instruction == null) {
                 return;
             }
@@ -113,10 +114,7 @@ public class SharedKafkaReceiver extends KafkaReceiver implements ShareableRecei
 
     @Override
     protected boolean isValidMessage(final ConsumerRecord<?, ?> msg) {
-        if (msg == null) {
-            return false;
-        }
-        if (StringUtils.isNotBlank(getHeader(msg, NJAMS_REPLY_FOR_HEADER))) {
+        if (msg == null || StringUtils.isNotBlank(getHeader(msg, NJAMS_REPLY_FOR_HEADER))) {
             // skip messages sent as a reply
             return false;
         }

@@ -23,8 +23,7 @@ import java.net.SocketTimeoutException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
-import java.util.Collections;
-import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.UUID;
@@ -42,6 +41,9 @@ import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.common.Path;
 import com.im.njams.sdk.communication.AbstractReceiver;
 import com.im.njams.sdk.communication.ConnectionStatus;
+import com.im.njams.sdk.communication.fragments.HttpSseChunkAssembly;
+import com.im.njams.sdk.communication.fragments.RawMessage;
+import com.im.njams.sdk.communication.fragments.SplitSupport;
 import com.im.njams.sdk.utils.JsonUtils;
 import com.im.njams.sdk.utils.StringUtils;
 import com.launchdarkly.eventsource.ConnectStrategy;
@@ -78,6 +80,9 @@ public class HttpSseReceiver extends AbstractReceiver implements BackgroundEvent
     private Throwable connectError = null;
     private final ReentrantLock connectLock = new ReentrantLock();
 
+    private SplitSupport splitSupport = null;
+    protected final HttpSseChunkAssembly chunkAssembly = new HttpSseChunkAssembly();
+
     @Override
     public void init(final Properties properties) {
         try {
@@ -87,6 +92,7 @@ public class HttpSseReceiver extends AbstractReceiver implements BackgroundEvent
         } catch (final Exception ex) {
             throw new NjamsSdkRuntimeException("Unable to init HTTP receiver", ex);
         }
+        splitSupport = new SplitSupport(properties, 0);
         LOG.debug("URI subscription={}; reply={}", subscribeUri, replyUrl);
     }
 
@@ -94,7 +100,7 @@ public class HttpSseReceiver extends AbstractReceiver implements BackgroundEvent
         String base = properties.getProperty(NjamsSettings.PROPERTY_HTTP_BASE_URL);
         if (StringUtils.isBlank(base)) {
             throw new NjamsSdkRuntimeException(
-                    "Required parameter " + NjamsSettings.PROPERTY_HTTP_BASE_URL + " is missing.");
+                "Required parameter " + NjamsSettings.PROPERTY_HTTP_BASE_URL + " is missing.");
         }
         if (base.charAt(base.length() - 1) != '/') {
             base += "/";
@@ -134,14 +140,14 @@ public class HttpSseReceiver extends AbstractReceiver implements BackgroundEvent
                     client = clientFactory.createClient();
                 }
                 BackgroundEventSource.Builder builder =
-                        new BackgroundEventSource.Builder(this,
-                                new EventSource.Builder(
-                                        ConnectStrategy
-                                                .http(subscribeUri)
-                                                .httpClient(client))
-                                                        .errorStrategy(
-                                                                ErrorStrategy.continueWithTimeLimit(2,
-                                                                        TimeUnit.SECONDS)));
+                    new BackgroundEventSource.Builder(this,
+                        new EventSource.Builder(
+                            ConnectStrategy
+                                .http(subscribeUri)
+                                .httpClient(client))
+                                    .errorStrategy(
+                                        ErrorStrategy.continueWithTimeLimit(2,
+                                            TimeUnit.SECONDS)));
                 source = builder.build();
                 LOG.debug("Start connect...");
                 source.getEventSource().start();
@@ -160,9 +166,9 @@ public class HttpSseReceiver extends AbstractReceiver implements BackgroundEvent
                 while (connectWait > 0) {
                     if (connectError != null || source.getEventSource().getState() != ReadyState.OPEN) {
                         LOG.debug("Connect failed: state={}", source.getEventSource().getState(),
-                                connectError);
+                            connectError);
                         throw connectError != null ? connectError
-                                : new IllegalStateException("Event source is closed.");
+                            : new IllegalStateException("Event source is closed.");
                     }
                     wait(connectWait);
                     connectWait = waitEnd - System.currentTimeMillis();
@@ -184,18 +190,22 @@ public class HttpSseReceiver extends AbstractReceiver implements BackgroundEvent
 
     protected void onMessage(final MessageEvent event) {
         LOG.debug("OnMessage called, event-id={}", event.getLastEventId());
-        final Map<String, String> eventHeaders = parseEventHeaders(event);
-        if (!isValidMessage(eventHeaders)) {
+        RawMessage resolved = chunkAssembly.resolve(event);
+        if (resolved == null) {
+            LOG.debug("Received incomplete command message");
             return;
         }
-        final String requestId = eventHeaders.get(NJAMS_MESSAGE_ID_HTTP_HEADER);
-        final String payload = event.getData();
-        LOG.debug("Processing event {} (headers={}, payload={})", requestId, eventHeaders, payload);
+        if (!isValidMessage(resolved.getHeaders())) {
+            return;
+        }
+        final String requestId = resolved.getHeader(NJAMS_MESSAGE_ID_HTTP_HEADER);
+        final String payload = resolved.getBody();
+        LOG.debug("Processing event {} (message={})", requestId, resolved);
         final Instruction instruction;
         try {
             instruction = JsonUtils.parse(payload, Instruction.class);
         } catch (final Exception e) {
-            LOG.error("Failed to parse instruction from SSE event {}", event, e);
+            LOG.error("Failed to parse instruction from SSE event {}", resolved, e);
             return;
         }
         if (suppressGetRequestHandlerInstruction(instruction, njams)) {
@@ -203,25 +213,6 @@ public class HttpSseReceiver extends AbstractReceiver implements BackgroundEvent
         }
         onInstruction(instruction);
         sendReply(requestId, instruction, njams.getClientSessionId());
-    }
-
-    @SuppressWarnings("unchecked")
-    protected Map<String, String> parseEventHeaders(MessageEvent event) {
-        final String name = event.getEventName();
-        if (StringUtils.isBlank(name)) {
-            LOG.error("Received unnamed event: {}", event);
-            return Collections.emptyMap();
-        }
-        if (name.trim().charAt(0) == '{') {
-            LOG.debug("Assuming JSON event {}: {}", event.getLastEventId(), name);
-            return JsonUtils.parse(name, HashMap.class);
-        }
-        LOG.debug("Assuming legacy event {}: {}", event.getLastEventId(), name);
-        final Map<String, String> map = new HashMap<>();
-        map.put(NJAMS_MESSAGE_ID_HTTP_HEADER, event.getLastEventId());
-        map.put(NJAMS_RECEIVER_HTTP_HEADER, name);
-        map.put(NJAMS_CONTENT_HTTP_HEADER, CONTENT_TYPE_JSON);
-        return map;
     }
 
     /**
@@ -237,13 +228,13 @@ public class HttpSseReceiver extends AbstractReceiver implements BackgroundEvent
         final String receiver = headers.get(NJAMS_RECEIVER_HTTP_HEADER);
         if (StringUtils.isBlank(receiver) || !njams.getClientPath().equals(new Path(receiver))) {
             LOG.debug("Message is not for me! Client path from message is: {} but nJAMS client path is: {} ", receiver,
-                    njams.getClientPath());
+                njams.getClientPath());
             return false;
         }
         final String clientId = headers.get(NJAMS_CLIENTID_HTTP_HEADER);
         if (StringUtils.isNotBlank(clientId) && !njams.getCommunicationSessionId().equals(clientId)) {
             LOG.debug("Message is not for me! Client id from message is: {} but nJAMS client id is: {} ", clientId,
-                    njams.getCommunicationSessionId());
+                njams.getCommunicationSessionId());
             return false;
         }
         final String messageId = headers.get(NJAMS_MESSAGE_ID_HTTP_HEADER);
@@ -292,10 +283,12 @@ public class HttpSseReceiver extends AbstractReceiver implements BackgroundEvent
 
     protected void sendReply(final String requestId, final Instruction instruction, final String clientId) {
         final String replyId = UUID.randomUUID().toString();
-        final String json = JsonUtils.serialize(instruction);
-        LOG.trace("Sending reply {} (clientId={}) for request {}:\n{}", replyId, clientId, requestId, json);
-        Request.Builder builder = new Request.Builder().url(replyUrl)
-                .post(RequestBody.create(json, HttpClientFactory.MEDIA_TYPE_JSON))
+        final List<String> parts = splitSupport.splitData(JsonUtils.serialize(instruction));
+        for (int i = 0; i < parts.size(); i++) {
+            LOG.trace("Sending reply {} (part={}/{}, clientId={}) for request {}", replyId, i + 1, parts.size(),
+                clientId, requestId);
+            final Request.Builder builder = new Request.Builder().url(replyUrl)
+                .post(RequestBody.create(parts.get(i), HttpClientFactory.MEDIA_TYPE_JSON))
                 .header("Content-Type", "application/json")
                 .header("Accept", "text/plain")
                 .header(NJAMS_RECEIVER_HTTP_HEADER, RECEIVER_SERVER)
@@ -308,16 +301,18 @@ public class HttpSseReceiver extends AbstractReceiver implements BackgroundEvent
                 .header(NJAMS_MESSAGE_ID_HEADER, replyId)
                 .header(NJAMS_REPLY_FOR_HEADER, requestId);
 
-        if (clientId != null) {
-            builder.header(NJAMS_CLIENTID_HTTP_HEADER, clientId)
+            if (clientId != null) {
+                builder.header(NJAMS_CLIENTID_HTTP_HEADER, clientId)
                     .header(NJAMS_CLIENTID_HEADER, clientId);
-        }
-        try {
-            final Response response = client.newCall(builder.build()).execute();
-            LOG.debug("Response status for reply {}: {}", replyId, response.code());
-            response.close();
-        } catch (IOException e) {
-            LOG.error("Failed to send response for request {} (clientId={})", requestId, clientId, e);
+            }
+            splitSupport.addChunkHeaders(builder::header, i, parts.size(), replyId);
+            try {
+                final Response response = client.newCall(builder.build()).execute();
+                LOG.debug("Response status for reply {}: {}", replyId, response.code());
+                response.close();
+            } catch (IOException e) {
+                LOG.error("Failed to send response for request {} (clientId={})", requestId, clientId, e);
+            }
         }
     }
 
@@ -349,7 +344,7 @@ public class HttpSseReceiver extends AbstractReceiver implements BackgroundEvent
         if (triggerReconnect) {
             LOG.debug("Trigger reconnecting receiver due to {}", throwable.toString());
             onException(throwable instanceof Exception ? (Exception) throwable
-                    : new NjamsSdkRuntimeException("Connection failed.", throwable));
+                : new NjamsSdkRuntimeException("Connection failed.", throwable));
         }
     }
 
