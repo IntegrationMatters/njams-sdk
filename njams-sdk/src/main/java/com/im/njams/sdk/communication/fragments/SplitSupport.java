@@ -81,9 +81,6 @@ public class SplitSupport {
      */
     public SplitSupport(final Properties properties, final int techLimit) {
         final String transport = properties.getProperty(NjamsSettings.PROPERTY_COMMUNICATION);
-        if (transport == null) {
-            throw new IllegalArgumentException("Missing setting: " + NjamsSettings.PROPERTY_COMMUNICATION);
-        }
 
         final int configuredLimit = getPropertyInt(properties, NjamsSettings.PROPERTY_MAX_MESSAGE_SIZE, -1);
         if (getPropertyBool(properties, TESTING_NO_LIMIT_CHECKS, false)) {
