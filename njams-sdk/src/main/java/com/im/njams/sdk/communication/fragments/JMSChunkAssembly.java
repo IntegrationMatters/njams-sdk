@@ -12,6 +12,9 @@ import javax.jms.TextMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * JMS implementation working on {@link TextMessage} messages.
+ */
 public class JMSChunkAssembly extends GenericChunkAssembly<TextMessage> {
 
     private static final Logger LOG = LoggerFactory.getLogger(JMSChunkAssembly.class);

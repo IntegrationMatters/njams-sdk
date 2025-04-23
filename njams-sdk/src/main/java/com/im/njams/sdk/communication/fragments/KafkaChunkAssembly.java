@@ -20,6 +20,9 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
 
 import com.im.njams.sdk.communication.kafka.KafkaHeadersUtil;
 
+/**
+ * Kafka implementation working on {@link ConsumerRecord} messages.
+ */
 public class KafkaChunkAssembly extends GenericChunkAssembly<ConsumerRecord<String, String>> {
 
     public KafkaChunkAssembly() {
