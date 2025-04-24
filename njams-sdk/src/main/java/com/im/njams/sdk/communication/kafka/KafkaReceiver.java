@@ -24,7 +24,6 @@ import static com.im.njams.sdk.communication.kafka.KafkaUtil.filterKafkaProperti
 import static com.im.njams.sdk.communication.kafka.KafkaUtil.getProducerLimit;
 
 import java.util.Collection;
-import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.TreeMap;
@@ -49,6 +48,7 @@ import com.im.njams.sdk.communication.ConnectionStatus;
 import com.im.njams.sdk.communication.fragments.KafkaChunkAssembly;
 import com.im.njams.sdk.communication.fragments.RawMessage;
 import com.im.njams.sdk.communication.fragments.SplitSupport;
+import com.im.njams.sdk.communication.fragments.SplitSupport.SplitIterator;
 import com.im.njams.sdk.communication.kafka.KafkaHeadersUtil.HeadersUpdater;
 import com.im.njams.sdk.communication.kafka.KafkaUtil.ClientType;
 import com.im.njams.sdk.settings.Settings;
@@ -275,9 +275,9 @@ public class KafkaReceiver extends AbstractReceiver {
             return;
         }
         if (splitSupport.isSplitting()) {
-            final List<String> chunks = splitSupport.splitData(data);
-            for (int i = 0; i < chunks.size(); i++) {
-                sendReply(headers, responseId, chunks.get(i), i, chunks.size());
+            final SplitIterator chunks = splitSupport.iterator(data);
+            while (chunks.hasNext()) {
+                sendReply(headers, responseId, chunks.next(), chunks.currentIndex(), chunks.size());
             }
         } else {
             sendReply(headers, responseId, data, 1, 1);

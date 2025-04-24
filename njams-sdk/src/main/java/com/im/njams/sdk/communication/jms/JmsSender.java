@@ -25,7 +25,6 @@ package com.im.njams.sdk.communication.jms;
 
 import static com.im.njams.sdk.communication.MessageHeaders.*;
 
-import java.util.List;
 import java.util.Properties;
 
 import javax.jms.Connection;
@@ -56,6 +55,7 @@ import com.im.njams.sdk.communication.ConnectionStatus;
 import com.im.njams.sdk.communication.DiscardMonitor;
 import com.im.njams.sdk.communication.DiscardPolicy;
 import com.im.njams.sdk.communication.fragments.SplitSupport;
+import com.im.njams.sdk.communication.fragments.SplitSupport.SplitIterator;
 import com.im.njams.sdk.communication.jms.factory.JmsFactory;
 import com.im.njams.sdk.utils.ClasspathValidator;
 import com.im.njams.sdk.utils.JsonUtils;
@@ -254,7 +254,7 @@ public class JmsSender extends AbstractSender implements ExceptionListener, Clas
     private void sendChunks(MessageProducer producer, CommonMessage msg, String data, String messageType,
         String clientSessionId)
         throws JMSException, InterruptedException {
-        final List<String> chunks = splitSupport.splitData(data);
+        final SplitIterator chunks = splitSupport.iterator(data);
         if (chunks.isEmpty()) {
             return;
         }
@@ -272,10 +272,11 @@ public class JmsSender extends AbstractSender implements ExceptionListener, Clas
             }
             logId = null;
         }
-        for (int i = 0; i < chunks.size(); i++) {
+        while (chunks.hasNext()) {
             final TextMessage textMessage =
-                buildMessage(logId, msg.getPath(), chunks.get(i), messageType, clientSessionId);
-            splitSupport.addChunkHeaders((k, v) -> setProperty(textMessage, k, v), i, chunks.size(), messageKey);
+                buildMessage(logId, msg.getPath(), chunks.next(), messageType, clientSessionId);
+            splitSupport.addChunkHeaders((k, v) -> setProperty(textMessage, k, v), chunks.currentIndex(), chunks.size(),
+                messageKey);
             tryToSend(producer, textMessage);
         }
     }

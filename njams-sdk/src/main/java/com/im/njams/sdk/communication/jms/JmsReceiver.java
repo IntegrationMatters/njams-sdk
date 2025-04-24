@@ -57,6 +57,7 @@ import com.im.njams.sdk.communication.ConnectionStatus;
 import com.im.njams.sdk.communication.fragments.JMSChunkAssembly;
 import com.im.njams.sdk.communication.fragments.RawMessage;
 import com.im.njams.sdk.communication.fragments.SplitSupport;
+import com.im.njams.sdk.communication.fragments.SplitSupport.SplitIterator;
 import com.im.njams.sdk.communication.jms.factory.JmsFactory;
 import com.im.njams.sdk.utils.ClasspathValidator;
 import com.im.njams.sdk.utils.StringUtils;
@@ -516,20 +517,22 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
             replyProducer = session.createProducer(replyDestination);
             String response = mapper.writeValueAsString(instruction);
 
-            final List<String> data = splitSupport.splitData(response);
+            final SplitIterator chunks = splitSupport.iterator(response);
             final String messageId = UUID.randomUUID().toString();
-            LOG.debug("Sending reply {} with {} message fragments to {}: {}", messageId, data.size(), replyDestination,
+            LOG.debug("Sending reply {} with {} message fragments to {}: {}", messageId, chunks.size(),
+                replyDestination,
                 response);
-            for (int i = 0; i < data.size(); i++) {
-                final TextMessage responseMessage = session.createTextMessage(data.get(i));
+            while (chunks.hasNext()) {
+                final TextMessage responseMessage = session.createTextMessage(chunks.next());
                 responseMessage.setStringProperty(NJAMS_CLIENTID_HEADER, clientId);
                 if (jmsCorrelationID != null && !jmsCorrelationID.isEmpty()) {
                     responseMessage.setJMSCorrelationID(jmsCorrelationID);
                 }
-                splitSupport.addChunkHeaders((k, v) -> JMSChunkAssembly.setHeader(responseMessage, k, v), i,
-                    data.size(), messageId);
+                splitSupport.addChunkHeaders((k, v) -> JMSChunkAssembly.setHeader(responseMessage, k, v),
+                    chunks.currentIndex(),
+                    chunks.size(), messageId);
                 replyProducer.send(responseMessage);
-                LOG.trace("Sent fragment {}/{}", i + 1, data.size());
+                LOG.trace("Sent fragment {}/{}", chunks.currentIndex() + 1, chunks.size());
             }
 
         } catch (InvalidDestinationException e) {
