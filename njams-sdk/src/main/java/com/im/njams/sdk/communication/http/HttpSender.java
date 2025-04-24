@@ -29,7 +29,6 @@ import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
-import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.TreeMap;
@@ -52,6 +51,7 @@ import com.im.njams.sdk.communication.ConnectionStatus;
 import com.im.njams.sdk.communication.DiscardMonitor;
 import com.im.njams.sdk.communication.DiscardPolicy;
 import com.im.njams.sdk.communication.fragments.SplitSupport;
+import com.im.njams.sdk.communication.fragments.SplitSupport.SplitIterator;
 import com.im.njams.sdk.utils.JsonUtils;
 import com.im.njams.sdk.utils.StringUtils;
 
@@ -373,19 +373,22 @@ public class HttpSender extends AbstractSender {
         throws InterruptedException {
         final String data = JsonUtils.serialize(msg);
         if (splitSupport.isSplitting()) {
-            final List<String> chunks = splitSupport.splitData(data);
-            String messageKey = null;
+            final SplitIterator chunks = splitSupport.iterator(data);
+            final String messageKey;
             if (chunks.size() > 1) {
                 if (msg instanceof LogMessage) {
-                    messageKey = ((LogMessage) msg).getLogId();
+                    messageKey = ((LogMessage) msg).getLogId() + System.currentTimeMillis();
                 } else {
                     // ensure same key for all chunks
                     messageKey = Uuid.randomUuid().toString();
                 }
+            } else {
+                messageKey = null;
             }
-            for (int i = 0; i < chunks.size(); i++) {
-                splitSupport.addChunkHeaders(headers::put, i, chunks.size(), messageKey);
-                tryToSend(chunks.get(i), headers);
+            while (chunks.hasNext()) {
+                final String chunk = chunks.next();
+                splitSupport.addChunkHeaders(headers::put, chunks.currentIndex(), chunks.size(), messageKey);
+                tryToSend(chunk, headers);
             }
         } else {
             tryToSend(data, headers);

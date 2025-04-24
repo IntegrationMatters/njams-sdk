@@ -20,15 +20,11 @@ import static com.im.njams.sdk.communication.MessageHeaders.*;
 import static com.im.njams.sdk.utils.PropertyUtil.getPropertyBool;
 import static com.im.njams.sdk.utils.PropertyUtil.getPropertyInt;
 
-import java.nio.Buffer;
-import java.nio.ByteBuffer;
-import java.nio.CharBuffer;
-import java.nio.charset.CharsetEncoder;
-import java.nio.charset.CoderResult;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.Properties;
 import java.util.function.BiConsumer;
 
@@ -49,7 +45,130 @@ import com.im.njams.sdk.settings.Settings;
 public class SplitSupport {
 
     private static final Logger LOG = LoggerFactory.getLogger(SplitSupport.class);
-    private static final CharsetEncoder UTF_8_ENCODER = StandardCharsets.UTF_8.newEncoder();
+
+    /**
+     * Simple immutable container for two <code>int</code> values defining a from/to range.
+     */
+    public static class Range {
+        private final int from;
+        private final int to;
+
+        /**
+         * Sole constructor.
+         * @param from The from parameter.
+         * @param to The to parameter.
+         */
+        public Range(int from, int to) {
+            this.from = from;
+            this.to = to;
+        }
+
+        /**
+         * @return The from value.
+         */
+        public int from() {
+            return from;
+        }
+
+        /**
+         * @return The to value.
+         */
+        public int to() {
+            return to;
+        }
+
+        @Override
+        public String toString() {
+            StringBuilder builder = new StringBuilder();
+            builder.append("Range[from=").append(from).append(", to=").append(to).append("]");
+            return builder.toString();
+        }
+
+    }
+
+    /**
+     * Iterator for message chunks having some additional methods for getting size (chunk count) and current index.
+     */
+    public class SplitIterator implements Iterator<String> {
+
+        private final Iterator<Range> indexesIterator;
+        private final String data;
+        private final int size;
+
+        // used for implementing fast single/no entry iterator; used when indexesIterator is null.
+        private boolean dataReturned = false;
+        // user for getting the current iteration index
+        private int currentIndex = -1;
+
+        private SplitIterator(String data) {
+            this.data = data;
+            final List<Range> splitIndexes = getSplitIndexesInternal(data);
+            if (splitIndexes == null) {
+                indexesIterator = null;
+                dataReturned = true;
+                size = 0;
+            } else if (splitIndexes == FIT_ALL) {
+                indexesIterator = null;
+                dataReturned = false;
+                size = 1;
+            } else {
+                indexesIterator = splitIndexes.iterator();
+                size = splitIndexes.size();
+            }
+        }
+
+        @Override
+        public boolean hasNext() {
+            return indexesIterator == null ? !dataReturned : indexesIterator.hasNext();
+        }
+
+        @Override
+        public String next() {
+            if (indexesIterator == null) {
+                if (dataReturned) {
+                    throw new NoSuchElementException();
+                }
+                currentIndex = 0;
+                dataReturned = true;
+                return data;
+            }
+            final Range range = indexesIterator.next();
+            currentIndex++;
+            return data.substring(range.from, range.to);
+        }
+
+        /**
+         * The numeric index of the current record, i.e., the one returned by the last call to
+         * {@link #next()}. Before the first call to {@link #next()}, this method returns -1.
+         * @return The current iteration index
+         */
+        public int currentIndex() {
+            return currentIndex;
+        }
+
+        /**
+         * The size of records returned by this iterator.
+         * @return This iterator's size
+         */
+        public int size() {
+            return size;
+        }
+
+        /**
+         * Returns whether this iterator returns no records.
+         * @return Whether this iterator returns no records.
+         */
+        public boolean isEmpty() {
+            return size > 0;
+        }
+    }
+
+    /**
+     * Marker list instance returned by {@link #getSplitIndexes(String)} if the whole given data fits
+     * into this instance's max-message size. The list is empty but has to be interpreted as if containing
+     * single entry with <code>{0, data.length()}</code>.
+     */
+    private static final List<Range> FIT_ALL = Collections.unmodifiableList(new ArrayList<>());
 
     /** For testing only. Disables limit checks for {@link NjamsSettings#PROPERTY_MAX_MESSAGE_SIZE} */
     public static final String TESTING_NO_LIMIT_CHECKS = "test-no-limit-checks";
@@ -132,8 +251,7 @@ public class SplitSupport {
 
     /**
      * Returns whether or not a max-message size limit is active that requires splitting larger messages.
-     * If <code>false</code> {@link #splitData(String)} will virtually do nothing, i.e., it will always return a list
-     * with a single entry containing the whole data.
+     * If <code>false</code> using this instance can be avoided for better performance.
      * @return Whether splitting is active.
      */
     public boolean isSplitting() {
@@ -141,53 +259,91 @@ public class SplitSupport {
     }
 
     /**
-     * Splits the given data string into chunks exactly respecting the configured (or resolved)
-     * {@link NjamsSettings#PROPERTY_MAX_MESSAGE_SIZE} value (UTF-8 bytes).<br>
+     * Calculates the indexes in terms of {@link String#substring(int, int)} where to split the given data so that
+     * each chunk fits into this instance's max-message size.<br>
      * <br>
-     * <b>Implementation-note:</b> A call to this method always comes with some overhead, even if not splitting at all.
-     * Use {@link #isSplitting()} to the decide whether calling this method is actually necessary.
+     * <b>Note:</b> Users should prefer using the {@link #iterator(String)} which correctly evaluates the split indexes.
      *
-     * @param data The data to split.
-     * @return Sorted list of chunks resolved from the given input data. The list will be empty only if
-     * <code>data</code> is <code>null</code>. Otherwise it will contain at least one entry with the given input.
+     * @param data The data for which split indexes are calculated.
+     * @return List of indexes for splitting the given input data.
+     * @see #iterator(String)
      */
-    public List<String> splitData(final String data) {
+    public List<Range> getSplitIndexes(final String data) {
+        final List<Range> list = getSplitIndexesInternal(data);
+        if (list == FIT_ALL) {
+            // convert the internal marker into an according result
+            return Collections.singletonList(new Range(0, data.length()));
+        }
+        return list;
+    }
+
+    private List<Range> getSplitIndexesInternal(final String data) {
         if (data == null) {
             return Collections.emptyList();
         }
-        if (!isSplitting()) {
-            return Collections.singletonList(data);
+        if (!isSplitting() || data.isEmpty()) {
+            return FIT_ALL;
         }
-        final ByteBuffer out = ByteBuffer.allocate(maxMessageBytes);
-        final CharBuffer in = CharBuffer.wrap(data);
-
-        List<String> chunks = null;
-        int pos = 0;
-        boolean first = true;
-        while (true) {
-            final CoderResult cr = UTF_8_ENCODER.encode(in, out, true);
-            if (first) {
-                // short exit if splitting is not necessary or disabled
-                if (!cr.isOverflow()) {
-                    // data fits into one message
-                    return Collections.singletonList(data);
+        final int stopPos = data.length() - 1;
+        int startPosIncl = 0;
+        int endPosExcl = 0;
+        List<Range> chunks = null;
+        while (endPosExcl < stopPos) {
+            endPosExcl = nextChunkEnd(data, startPosIncl);
+            if (chunks == null) {
+                if (endPosExcl >= stopPos) {
+                    return FIT_ALL;
                 }
-                // create array for collecting chunks
                 chunks = new ArrayList<>();
-                first = false;
             }
-            final int newpos = data.length() - in.length();
-            chunks.add(data.substring(pos, newpos));
-            if (!cr.isOverflow()) {
-                break;
-            }
-            pos = newpos;
-            // this weird cast is a workaround for a compatibility issue between Java-8 and 11.
-            // see approach 2 in the answer to this post:
-            // https://stackoverflow.com/questions/61267495/exception-in-thread-main-java-lang-nosuchmethoderror-java-nio-bytebuffer-flip
-            ((Buffer) out).rewind();
+            chunks.add(new Range(startPosIncl, endPosExcl));
+            startPosIncl = endPosExcl;
         }
         return chunks;
+    }
+
+    /**
+     * Returns a new {@link SplitIterator} for the given data that iterates over the data's chunks according to this
+     * instance's max-message size.
+     * @param data The data to iterate as chunks
+     * @return An iterator for given data's chunks.
+     */
+    public SplitIterator iterator(final String data) {
+        return new SplitIterator(data);
+    }
+
+    /**
+     * Returns the index in the given string so that the substring using this end index fits into the max-message
+     * limit (as UTF-8 byte size).
+     *
+     * @param sequence The next data sequence to check.
+     * @param startPos The start index that is used for calculating the next chunk end index.
+     * @return The next endIndex for calling {@link String#substring(int, int)}, i.e., the returned value is exclusive.
+     * @see <a href="https://stackoverflow.com/questions/8511490/calculating-length-in-utf-8-of-java-string-without-actually-encoding-it">
+     * Implementation adapted from Stackoverflow</a>
+     * @see <a href="https://www.rfc-editor.org/rfc/rfc3629#section-3">UTF-8 Specification</a>
+     */
+    private int nextChunkEnd(CharSequence sequence, int startPos) {
+        final int len = sequence.length();
+        int bytes = 0;
+        for (int i = startPos; i < len; i++) {
+            boolean isSurrogate = false;
+            final char c = sequence.charAt(i);
+            if (c <= 0x7F) {
+                bytes++;
+            } else if (c <= 0x7FF) {
+                bytes += 2;
+            } else if (isSurrogate = Character.isHighSurrogate(c)) {
+                bytes += 4;
+                ++i;
+            } else {
+                bytes += 3;
+            }
+            if (bytes > maxMessageBytes) {
+                return isSurrogate ? i - 1 : i;
+            }
+        }
+        return len;
     }
 
     /**
@@ -202,9 +358,9 @@ public class SplitSupport {
      * Passes chunk-related headers to the given headers updater function if required.
      * @param headersUpdater Function that accepts key/value strings and is backed on a message's headers/properties.
      * @param currentChunk The index (based on 0) of the current chunk. I.e., the current iteration index when
-     * processing the chunks resolved by {@link #splitData(String)}.
-     * @param totalChunks The total number of chunks for the current message. I.e., the size of the list returned
-     * by {@link #splitData(String)}.
+     * processing the chunks.
+     * @param totalChunks The total number of chunks to be sent for the current message. If &lt; 2, this method
+     * will do nothing.
      * @param messageKey The unique message key that identifies the chunks that belong to a single message.
      */
     public void addChunkHeaders(final BiConsumer<String, String> headersUpdater, final int currentChunk,

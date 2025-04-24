@@ -32,9 +32,8 @@ import static com.im.njams.sdk.utils.PropertyUtil.getPropertyInt;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
 import java.util.Properties;
+import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -45,7 +44,6 @@ import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.KafkaException;
-import org.apache.kafka.common.Uuid;
 import org.apache.kafka.common.errors.RecordTooLargeException;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.slf4j.Logger;
@@ -63,6 +61,7 @@ import com.im.njams.sdk.communication.ConnectionStatus;
 import com.im.njams.sdk.communication.DiscardMonitor;
 import com.im.njams.sdk.communication.DiscardPolicy;
 import com.im.njams.sdk.communication.fragments.SplitSupport;
+import com.im.njams.sdk.communication.fragments.SplitSupport.SplitIterator;
 import com.im.njams.sdk.communication.kafka.KafkaHeadersUtil.HeadersUpdater;
 import com.im.njams.sdk.communication.kafka.KafkaUtil.ClientType;
 import com.im.njams.sdk.utils.JsonUtils;
@@ -247,8 +246,22 @@ public class KafkaSender extends AbstractSender {
 
         // for Kafka, there is always a max message size limit that may cause message fragmentation
         try {
-            for (ProducerRecord<String, String> producerRecord : splitMessage(msg, topic, messageType, data, clientSessionId)) {
-                tryToSend(producerRecord);
+            final SplitIterator chunks = splitSupport.iterator(data);
+            final String recordKey;
+            if (chunks.size() < 2) {
+                recordKey = null;
+            } else if (msg instanceof LogMessage) {
+                recordKey = ((LogMessage) msg).getLogId() + System.currentTimeMillis();
+            } else {
+                recordKey = UUID.randomUUID().toString();
+            }
+            while (chunks.hasNext()) {
+                tryToSend(buildRecord(msg, topic, messageType, chunks.next(), clientSessionId, chunks.currentIndex(),
+                    chunks.size(), recordKey));
+                if (LOG.isDebugEnabled()) {
+                    LOG.debug("Sent {} message to {} (chunk {}/{}, key={})", messageType, topic,
+                        chunks.currentIndex() + 1, chunks.size(), recordKey);
+                }
             }
         } catch (Throwable e) {
             LOG.error("Failed to prepare '{}' message", messageType, e);
@@ -256,55 +269,23 @@ public class KafkaSender extends AbstractSender {
         }
     }
 
-    List<ProducerRecord<String, String>> splitMessage(final CommonMessage msg, final String topic,
-        final String messageType, final String data, String clientSessionId) {
+    ProducerRecord<String, String> buildRecord(final CommonMessage msg, final String topic,
+        final String messageType, final String data, String clientSessionId, int chunkNo, int totaChunks,
+        String recordKey) {
 
-        List<String> slices = splitSupport.splitData(data);
-        if (slices.isEmpty()) {
-            return Collections.emptyList();
-        }
-        final String recordKey;
-        final String logId;
+        final ProducerRecord<String, String> producerRecord = new ProducerRecord<>(topic, recordKey, data);
+        final HeadersUpdater headers = headersUpdater(producerRecord);
+        headers.addHeader(NJAMS_MESSAGEVERSION_HEADER, MessageVersion.V4.toString())
+            .addHeader(NJAMS_MESSAGETYPE_HEADER, messageType)
+            .addHeader(NJAMS_CLIENTID_HEADER, clientSessionId);
         if (msg instanceof LogMessage) {
-            logId = ((LogMessage) msg).getLogId();
-            recordKey = logId;
-        } else {
-            if (slices.size() > 1) {
-                // ensure same key for all chunks
-                recordKey = Uuid.randomUuid().toString();
-            } else {
-                recordKey = null;
-            }
-            logId = null;
+            headers.addHeader(NJAMS_LOGID_HEADER, ((LogMessage) msg).getLogId());
         }
-
-        List<ProducerRecord<String, String>> chunks = null;
-        for (int i = 0; i < slices.size(); i++) {
-            final ProducerRecord<String, String> producerRecord = new ProducerRecord<>(topic, recordKey, slices.get(i));
-            final HeadersUpdater headers = headersUpdater(producerRecord);
-            headers.addHeader(NJAMS_MESSAGEVERSION_HEADER, MessageVersion.V4.toString())
-                .addHeader(NJAMS_MESSAGETYPE_HEADER, messageType)
-                .addHeader(NJAMS_CLIENTID_HEADER, clientSessionId);
-            if (StringUtils.isNotBlank(logId)) {
-                headers.addHeader(NJAMS_LOGID_HEADER, logId);
-            }
-            if (StringUtils.isNotBlank(msg.getPath())) {
-                headers.addHeader(NJAMS_PATH_HEADER, msg.getPath());
-            }
-            if (slices.size() <= 1) {
-                return Collections.singletonList(producerRecord);
-            }
-            splitSupport.addChunkHeaders(headers::addHeader, i, slices.size(), recordKey);
-            if (chunks == null) {
-                chunks = new ArrayList<>();
-            }
-            chunks.add(producerRecord);
+        if (StringUtils.isNotBlank(msg.getPath())) {
+            headers.addHeader(NJAMS_PATH_HEADER, msg.getPath());
         }
-        if (LOG.isDebugEnabled()) {
-            LOG.debug("{} for path {} split into {} chunks.", msg.getClass().getSimpleName(), msg.getPath(),
-                chunks == null ? "null" : chunks.size());
-        }
-        return chunks;
+        splitSupport.addChunkHeaders(headers::addHeader, chunkNo, totaChunks, recordKey);
+        return producerRecord;
     }
 
     /**

@@ -23,7 +23,6 @@ import java.net.SocketTimeoutException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
-import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.UUID;
@@ -44,6 +43,7 @@ import com.im.njams.sdk.communication.ConnectionStatus;
 import com.im.njams.sdk.communication.fragments.HttpSseChunkAssembly;
 import com.im.njams.sdk.communication.fragments.RawMessage;
 import com.im.njams.sdk.communication.fragments.SplitSupport;
+import com.im.njams.sdk.communication.fragments.SplitSupport.SplitIterator;
 import com.im.njams.sdk.utils.JsonUtils;
 import com.im.njams.sdk.utils.StringUtils;
 import com.launchdarkly.eventsource.ConnectStrategy;
@@ -283,12 +283,13 @@ public class HttpSseReceiver extends AbstractReceiver implements BackgroundEvent
 
     protected void sendReply(final String requestId, final Instruction instruction, final String clientId) {
         final String replyId = UUID.randomUUID().toString();
-        final List<String> parts = splitSupport.splitData(JsonUtils.serialize(instruction));
-        for (int i = 0; i < parts.size(); i++) {
-            LOG.trace("Sending reply {} (part={}/{}, clientId={}) for request {}", replyId, i + 1, parts.size(),
+        final SplitIterator chunks = splitSupport.iterator(JsonUtils.serialize(instruction));
+        while (chunks.hasNext()) {
+            LOG.trace("Sending reply {} (part={}/{}, clientId={}) for request {}", replyId, chunks.currentIndex() + 1,
+                chunks.size(),
                 clientId, requestId);
             final Request.Builder builder = new Request.Builder().url(replyUrl)
-                .post(RequestBody.create(parts.get(i), HttpClientFactory.MEDIA_TYPE_JSON))
+                .post(RequestBody.create(chunks.next(), HttpClientFactory.MEDIA_TYPE_JSON))
                 .header("Content-Type", "application/json")
                 .header("Accept", "text/plain")
                 .header(NJAMS_RECEIVER_HTTP_HEADER, RECEIVER_SERVER)
@@ -305,7 +306,7 @@ public class HttpSseReceiver extends AbstractReceiver implements BackgroundEvent
                 builder.header(NJAMS_CLIENTID_HTTP_HEADER, clientId)
                     .header(NJAMS_CLIENTID_HEADER, clientId);
             }
-            splitSupport.addChunkHeaders(builder::header, i, parts.size(), replyId);
+            splitSupport.addChunkHeaders(builder::header, chunks.currentIndex(), chunks.size(), replyId);
             try {
                 final Response response = client.newCall(builder.build()).execute();
                 LOG.debug("Response status for reply {}: {}", replyId, response.code());
