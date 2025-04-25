@@ -103,7 +103,7 @@ public class SplitSupport {
         private SplitIterator(String data) {
             this.data = data;
             final List<Range> splitIndexes = getSplitIndexesInternal(data);
-            if (splitIndexes == null) {
+            if (splitIndexes == null || splitIndexes.isEmpty() && splitIndexes != FIT_ALL) {
                 indexesIterator = null;
                 dataReturned = true;
                 size = 0;
@@ -281,7 +281,7 @@ public class SplitSupport {
 
     private List<Range> getSplitIndexesInternal(final String data) {
         if (data == null) {
-            return Collections.emptyList();
+            return null;
         }
         // worst case is 4 bytes per character
         if (!isSplitting() || data.isEmpty() || data.length() * 4 <= maxMessageBytes) {
