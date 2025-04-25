@@ -11,7 +11,6 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Properties;
 
-import org.junit.Before;
 import org.junit.Test;
 
 import com.im.njams.sdk.NjamsSettings;
@@ -23,10 +22,6 @@ import com.im.njams.sdk.communication.jms.JmsSender;
 
 public class SplitSupportTest {
     private SplitSupport splitSupport = null;
-
-    @Before
-    public void setUp() throws Exception {
-    }
 
     private void init(int maxSize) {
         init(maxSize, false);
@@ -252,6 +247,23 @@ public class SplitSupportTest {
         splitSupport.addChunkHeaders(headers::put, 5, 1, "uuid");
         assertTrue(headers.isEmpty());
 
+    }
+
+    @Test
+    public void testIterationLoopIndex() {
+        init(20);
+        String testData45 = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRS";
+        SplitIterator it = splitSupport.iterator(testData45);
+        int i = 0;
+        while (it.hasNext()) {
+            verify(it.next(), i++, it.currentIndex());
+        }
+
+    }
+
+    private void verify(String chunk, int expectedIndex, int isIndex) {
+        assertNotNull(chunk);
+        assertEquals(expectedIndex, isIndex);
     }
 
 }

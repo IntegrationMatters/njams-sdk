@@ -281,7 +281,8 @@ public class SplitSupport {
         if (data == null) {
             return Collections.emptyList();
         }
-        if (!isSplitting() || data.isEmpty()) {
+        // worst case is 4 bytes per character
+        if (!isSplitting() || data.isEmpty() || data.length() * 4 <= maxMessageBytes) {
             return FIT_ALL;
         }
         final int stopPos = data.length() - 1;
