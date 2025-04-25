@@ -80,7 +80,7 @@ public class SplitSupport {
         @Override
         public String toString() {
             StringBuilder builder = new StringBuilder();
-            builder.append("Range[from=").append(from).append(", to=").append(to).append("]");
+            builder.append("Range[").append(from).append("-").append(to).append("]");
             return builder.toString();
         }
 
@@ -115,6 +115,8 @@ public class SplitSupport {
                 indexesIterator = splitIndexes.iterator();
                 size = splitIndexes.size();
             }
+            LOG.trace("New SplitIterator with size={} for data with {} chars (ranges={})", size, data.length(),
+                splitIndexes);
         }
 
         @Override
