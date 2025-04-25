@@ -576,7 +576,8 @@ public class NjamsSettings {
     public static final String PROPERTY_JMS_DESTINATION = "njams.sdk.communication.jms.destination";
 
     /**
-     * This is the prefix of the commands topic, if it is different to the one that is set in destination.
+     * This is the the commands topic to use, if its name does not match the common convention using the
+     * destination prefix and <code>.commands</code> suffix.
      */
     public static final String PROPERTY_JMS_COMMANDS_DESTINATION = "njams.sdk.communication.jms.destination.commands";
     /**
