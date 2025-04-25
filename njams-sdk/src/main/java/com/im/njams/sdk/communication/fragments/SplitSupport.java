@@ -115,8 +115,8 @@ public class SplitSupport {
                 indexesIterator = splitIndexes.iterator();
                 size = splitIndexes.size();
             }
-            LOG.trace("New SplitIterator with size={} for data with {} chars (ranges={})", size, data.length(),
-                splitIndexes);
+            LOG.trace("New SplitIterator with size={} for data with {} chars (ranges={})", size,
+                data == null ? -1 : data.length(), splitIndexes);
         }
 
         @Override
