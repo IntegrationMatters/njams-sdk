@@ -109,18 +109,31 @@ public class SplitSupportTest {
 
     @Test
     public void testGetSplitIndexes1() {
-        init(20);
         String testData45 = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRS";
+        init(50);
         List<Range> idx = splitSupport.getSplitIndexes(testData45);
+        assertFalse(idx.isEmpty());
+        assertEquals(1, idx.size());
+        assertEqual(testData45, idx, 50);
+        init(20);
+        idx = splitSupport.getSplitIndexes(testData45);
+        assertFalse(idx.isEmpty());
         assertEquals(3, idx.size());
         assertEqual(testData45, idx, 20);
     }
 
     @Test
     public void testtSplitIterator1() {
-        init(20);
         String testData45 = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRS";
+        init(50);
         SplitIterator it = splitSupport.iterator(testData45);
+        assertFalse(it.isEmpty());
+        assertTrue(it.hasNext());
+        assertEquals(1, it.size());
+        assertEqual(testData45, it, 50);
+        init(20);
+        it = splitSupport.iterator(testData45);
+        assertFalse(it.isEmpty());
         assertEquals(3, it.size());
         assertEqual(testData45, it, 20);
     }
@@ -214,6 +227,7 @@ public class SplitSupportTest {
 
         idx = splitSupport.getSplitIndexes("");
         assertNotNull(idx);
+        assertFalse(idx.isEmpty());
         assertEqual("", idx, 20);
 
     }
@@ -223,10 +237,12 @@ public class SplitSupportTest {
         init(20);
         SplitIterator it = splitSupport.iterator(null);
         assertNotNull(it);
+        assertTrue(it.isEmpty());
         assertFalse(it.hasNext());
 
         it = splitSupport.iterator("");
         assertNotNull(it);
+        assertFalse(it.isEmpty());
         assertEquals("", it.next());
         assertFalse(it.hasNext());
         try {

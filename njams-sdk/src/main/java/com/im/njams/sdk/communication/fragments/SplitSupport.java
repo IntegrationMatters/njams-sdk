@@ -95,9 +95,8 @@ public class SplitSupport {
         private final String data;
         private final int size;
 
-        // used for implementing fast single/no entry iterator; used when indexesIterator is null.
-        private boolean dataReturned = false;
-        // user for getting the current iteration index
+        // used for getting the current iteration index and to implement fast single/no entry iterator (only when
+        // indexeIterator is null)
         private int currentIndex = -1;
 
         private SplitIterator(String data) {
@@ -105,11 +104,10 @@ public class SplitSupport {
             final List<Range> splitIndexes = getSplitIndexesInternal(data);
             if (splitIndexes == null || splitIndexes.isEmpty() && splitIndexes != FIT_ALL) {
                 indexesIterator = null;
-                dataReturned = true;
+                currentIndex = 0;
                 size = 0;
             } else if (splitIndexes == FIT_ALL) {
                 indexesIterator = null;
-                dataReturned = false;
                 size = 1;
             } else {
                 indexesIterator = splitIndexes.iterator();
@@ -121,17 +119,16 @@ public class SplitSupport {
 
         @Override
         public boolean hasNext() {
-            return indexesIterator == null ? !dataReturned : indexesIterator.hasNext();
+            return indexesIterator == null ? currentIndex < 0 : indexesIterator.hasNext();
         }
 
         @Override
         public String next() {
             if (indexesIterator == null) {
-                if (dataReturned) {
+                if (currentIndex >= 0) {
                     throw new NoSuchElementException();
                 }
                 currentIndex = 0;
-                dataReturned = true;
                 return data;
             }
             final Range range = indexesIterator.next();
@@ -161,7 +158,7 @@ public class SplitSupport {
          * @return Whether this iterator returns no records.
          */
         public boolean isEmpty() {
-            return size > 0;
+            return size <= 0;
         }
     }
 
