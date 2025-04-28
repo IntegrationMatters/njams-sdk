@@ -207,7 +207,7 @@ public class SplitSupport {
         if (getPropertyBool(properties, TESTING_NO_LIMIT_CHECKS, false)) {
             maxMessageBytes = configuredLimit;
         } else {
-            maxMessageBytes = resolveLimit(configuredLimit, techLimit);
+            maxMessageBytes = Math.max(0, resolveLimit(configuredLimit, techLimit));
         }
         if (maxMessageBytes > 0) {
             LOG.info("Limitting max message size to {} bytes", maxMessageBytes);
@@ -281,7 +281,7 @@ public class SplitSupport {
 
     private List<Range> getSplitIndexesInternal(final String data) {
         if (data == null) {
-            return null;
+            return Collections.emptyList();
         }
         // worst case is 4 bytes per character
         if (!isSplitting() || data.isEmpty() || data.length() * 4 <= maxMessageBytes) {
@@ -351,7 +351,7 @@ public class SplitSupport {
 
     /**
      * The configured (or resolved) max message size in bytes that this instance uses.
-     * @return The configured (or resolved) max message size in bytes.
+     * @return The configured (or resolved) max message size in bytes. Always &ge;0.
      */
     public int getMaxMessageSize() {
         return maxMessageBytes;

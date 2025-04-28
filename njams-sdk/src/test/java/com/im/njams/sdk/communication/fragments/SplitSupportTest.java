@@ -60,6 +60,53 @@ public class SplitSupportTest {
         assertEquals(expected, sb.toString());
     }
 
+    private void initWithLimits(int sdk, int tech) {
+        Properties config = new Properties();
+        config.setProperty(NjamsSettings.PROPERTY_MAX_MESSAGE_SIZE, String.valueOf(sdk));
+        splitSupport = new SplitSupport(config, tech);
+    }
+
+    @Test
+    public void testLimits() {
+        initWithLimits(20_000, 0);
+        assertTrue(splitSupport.isSplitting());
+        assertEquals(20_000, splitSupport.getMaxMessageSize());
+        initWithLimits(5_000, 0);
+        assertTrue(splitSupport.isSplitting());
+        assertEquals(10_240, splitSupport.getMaxMessageSize());
+        initWithLimits(0, 0);
+        assertFalse(splitSupport.isSplitting());
+        assertEquals(0, splitSupport.getMaxMessageSize());
+        initWithLimits(-1, 0);
+        assertFalse(splitSupport.isSplitting());
+        assertEquals(0, splitSupport.getMaxMessageSize());
+    }
+
+    @Test
+    public void testTechLimits() {
+        initWithLimits(20_000, 50_000);
+        assertTrue(splitSupport.isSplitting());
+        assertEquals(20_000, splitSupport.getMaxMessageSize());
+        initWithLimits(70_000, 50_000);
+        assertTrue(splitSupport.isSplitting());
+        assertEquals(50_000, splitSupport.getMaxMessageSize());
+        initWithLimits(5_000, 50_000);
+        assertTrue(splitSupport.isSplitting());
+        assertEquals(10_240, splitSupport.getMaxMessageSize());
+        initWithLimits(0, 50_000);
+        assertTrue(splitSupport.isSplitting());
+        assertEquals(50_000, splitSupport.getMaxMessageSize());
+        initWithLimits(-1, 50_000);
+        assertTrue(splitSupport.isSplitting());
+        assertEquals(50_000, splitSupport.getMaxMessageSize());
+        try {
+            initWithLimits(1_000, 1_000);
+            fail("IllegalArgumentException expected");
+        } catch (IllegalArgumentException e) {
+            // expected
+        }
+    }
+
     @Test
     public void testGetSplitIndexes1() {
         init(20);
