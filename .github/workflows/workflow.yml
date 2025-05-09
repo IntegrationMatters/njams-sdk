@@ -2,7 +2,7 @@ name: workflow.yml
 on:
   push:
     branches:
-      - github_dev # Nur auf dem dev-Branch triggern
+      - github_dev # Auf dem dev-Branch triggern
 
 jobs:
   build-root:
