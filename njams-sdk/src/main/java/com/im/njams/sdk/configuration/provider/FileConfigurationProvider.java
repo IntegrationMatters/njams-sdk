@@ -159,10 +159,18 @@ public class FileConfigurationProvider extends AbstractConfigurationProvider {
 
     @Override
     public ConfigurationValidationResult validate() {
+        if (file == null) {
+            return new ConfigurationValidationResult(false, false, new IllegalArgumentException("No file configured."));
+        }
         File testFile = file;
         if (!testFile.isFile()) {
+            testFile = testFile.getAbsoluteFile().getParentFile();
+            if (testFile == null) {
+                // there is no parent
+                return new ConfigurationValidationResult(false, false,
+                    new FileNotFoundException(file.getAbsolutePath()));
+            }
             // if the file not exists, check the parent folder for access
-            testFile = testFile.getParentFile();
             if (!testFile.isDirectory()) {
                 // neither file nor folder exists
                 return new ConfigurationValidationResult(false, false,

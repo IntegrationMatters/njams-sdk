@@ -86,6 +86,14 @@ public class FileConfigurationProviderTest {
     }
 
     @Test
+    public void testValidate4() {
+        ConfigurationValidationResult validation = toTest.validate();
+        assertTrue(validation.isReadable());
+        assertTrue(validation.isWritable());
+        assertFalse(validation.hasErrors());
+    }
+
+    @Test
     public void testValidateFail() {
         File config = new File(tmpDir, "xxx/gibtsNicht.json");
         assertFalse(config.isFile());
