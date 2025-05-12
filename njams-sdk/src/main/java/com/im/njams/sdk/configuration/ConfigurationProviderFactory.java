@@ -17,11 +17,7 @@
 package com.im.njams.sdk.configuration;
 
 import java.util.Properties;
-import java.util.ServiceLoader;
-import java.util.Spliterator;
-import java.util.Spliterators;
 import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,7 +25,10 @@ import org.slf4j.LoggerFactory;
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.configuration.provider.AbstractConfigurationProvider;
+import com.im.njams.sdk.configuration.provider.ConfigurationValidationResult;
 import com.im.njams.sdk.settings.Settings;
+import com.im.njams.sdk.utils.ServiceLoaderSupport;
+import com.nimbusds.oauth2.sdk.util.StringUtils;
 
 /**
  * Creates the ConfigurationProvider, which has been specified in the settings
@@ -41,6 +40,8 @@ public class ConfigurationProviderFactory {
 
     private static final Logger LOG = LoggerFactory.getLogger(ConfigurationProviderFactory.class);
 
+    private final ServiceLoaderSupport<ConfigurationProvider> serviceLoader =
+        new ServiceLoaderSupport<>(ConfigurationProvider.class);
     /**
      * Key for Configuration Provider
      */
@@ -68,25 +69,37 @@ public class ConfigurationProviderFactory {
      * @return Configuration Provider matching CONFIGURATION_PROVIDER
      */
     public ConfigurationProvider getConfigurationProvider() {
-        if (!settings.containsKey(CONFIGURATION_PROVIDER)) {
-            throw new UnsupportedOperationException(
+        final String name = settings.getProperty(CONFIGURATION_PROVIDER);
+        if (StringUtils.isBlank(name)) {
+            throw new IllegalArgumentException(
                 "Unable to find " + CONFIGURATION_PROVIDER + " in configuration properties");
         }
-        String name = settings.getProperty(CONFIGURATION_PROVIDER);
-        ServiceLoader<ConfigurationProvider> receiverList = ServiceLoader.load(ConfigurationProvider.class);
-        for (ConfigurationProvider configurationProvider : receiverList) {
-            if (configurationProvider.getName().equals(name)) {
-                LOG.info("Create ConfigurationProvider {}", configurationProvider.getName());
-                configurationProvider.configure(createProviderProperties(configurationProvider), njams);
-                return configurationProvider;
-            }
+        final ConfigurationProvider configurationProvider = serviceLoader.find(s -> name.equals(s.getName()));
+        if (configurationProvider != null) {
+            LOG.info("Create ConfigurationProvider {}", configurationProvider.getName());
+            configurationProvider.configure(createProviderProperties(configurationProvider), njams);
+            validate(configurationProvider);
+            return configurationProvider;
         }
-        String available = StreamSupport
-            .stream(Spliterators.spliteratorUnknownSize(ServiceLoader.load(ConfigurationProvider.class).iterator(),
-                Spliterator.ORDERED), false)
-            .map(ConfigurationProvider::getName).sorted().collect(Collectors.joining(", "));
-        throw new UnsupportedOperationException(
-            "Unable to find ConfigurationProvider implementation with name " + name + ", available are: " + available);
+        throw new IllegalArgumentException(
+            "Unable to find ConfigurationProvider implementation with name " + name + ", available are: "
+                + serviceLoader.stream().map(ConfigurationProvider::getName).sorted()
+                    .collect(Collectors.toList()));
+    }
+
+    private void validate(ConfigurationProvider cfg) {
+        final ConfigurationValidationResult result = cfg.validate();
+        if (result == null || result.isWritable()) {
+            return;
+        }
+        final String errors =
+            result.hasErrors() ? result.getErrors().stream().map(Object::toString).collect(Collectors.joining(", "))
+                : "";
+        if (!result.isReadable()) {
+            throw new IllegalStateException("Configuration is not readable: " + errors);
+        }
+        LOG.warn("Configuration is not writable! Configuration updates cannot be persisted: {}", errors);
+
     }
 
     private Properties createProviderProperties(ConfigurationProvider configurationProvider) {

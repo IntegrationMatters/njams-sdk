@@ -21,6 +21,7 @@ import java.util.Properties;
 import java.util.Set;
 
 import com.im.njams.sdk.Njams;
+import com.im.njams.sdk.configuration.provider.ConfigurationValidationResult;
 
 /**
  * This interface must be implemented for creating new ConfigurationProvider
@@ -86,4 +87,12 @@ public interface ConfigurationProvider {
      */
     public ProcessConfiguration newProcesConfiguration();
 
+    /**
+     * Is called when the {@link ConfigurationProvider} has been {@link #configure(Properties, Njams) configured}
+     * to ensure that the according {@link Configuration} is fully usable.
+     * @return Validation result. {@link ConfigurationValidationResult#SUCCESS} by default.
+     */
+    public default ConfigurationValidationResult validate() {
+        return ConfigurationValidationResult.SUCCESS;
+    }
 }
