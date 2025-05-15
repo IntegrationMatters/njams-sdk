@@ -46,7 +46,7 @@ import com.im.njams.sdk.utils.StringUtils;
  * Use {@link #find(Properties)} for getting an instance.
  */
 public interface JmsFactory extends AutoCloseable {
-    /** Loger for static and default implementations */
+    /** Logger for static and default implementations */
     static final Logger LOG = LoggerFactory.getLogger(JmsFactory.class);
 
     /**
@@ -73,9 +73,26 @@ public interface JmsFactory extends AutoCloseable {
      *
      * @param settings Settings specifying what provider to use. Obtained from nJAMS' {@link Settings}.
      * @return Found instance or {@link JndiJmsFactory} as a default. The returned instance
-     * is {@link JmsFactory#init(Properties) initialized} with given settings.
+     * is {@link JmsFactory#init(Properties) initialized} with the given settings.
      */
     public static JmsFactory find(Properties settings) {
+        return find(settings, true);
+    }
+
+    /**
+     * This is a variant of {@link #find(Properties)} that allows to get an <b>un</b>initialized instance of
+     * {@link JmsFactory}.<br>
+     * This is only needed in rare cases. Most common cases should use {@link #find(Properties)} instead.
+     *
+     * @param settings Settings specifying what provider to use. Obtained from nJAMS' {@link Settings}.
+     * @param init Whether the returned instance shall be initialize by calling {@link JmsFactory#init(Properties)}.
+     * If <code>false</code>, the returned instance still needs to be initialized before using.
+     * @return Found instance or {@link JndiJmsFactory} as a default. The returned instance
+     * is only {@link JmsFactory#init(Properties) initialized} with the given settings, if the <code>init</code>
+     * argument is <code>true</code>.
+     * @see #find(Properties)
+     */
+    public static JmsFactory find(Properties settings, boolean init) {
         String toFind = settings.getProperty(NjamsSettings.PROPERTY_JMS_JMSFACTORY);
         JmsFactory found = find(toFind);
         if (found == null) {
@@ -88,8 +105,9 @@ public interface JmsFactory extends AutoCloseable {
             found = new JndiJmsFactory();
             LOG.debug("Using default JMS factory implementation: {}", found);
         }
-
-        initFactory(found, settings);
+        if (init) {
+            initFactory(found, settings);
+        }
         return found;
     }
 
@@ -99,8 +117,8 @@ public interface JmsFactory extends AutoCloseable {
         }
         final ServiceLoaderSupport<JmsFactory> spiLoader = new ServiceLoaderSupport<>(JmsFactory.class);
         final JmsFactory factory =
-            spiLoader.find(j -> toFind.equalsIgnoreCase(j.getName()) || j.getClass().getSimpleName().equals(toFind)
-                || j.getClass().getName().equals(toFind));
+                spiLoader.find(j -> toFind.equalsIgnoreCase(j.getName()) || j.getClass().getSimpleName().equals(toFind)
+                        || j.getClass().getName().equals(toFind));
         if (factory != null) {
             LOG.debug("Found JMS factory implementation {} for key {}", factory, toFind);
             return factory;
