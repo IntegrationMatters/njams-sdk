@@ -79,4 +79,5 @@ public class MemoryConfigurationProvider extends AbstractConfigurationProvider {
     public String getPropertyPrefix() {
         return PROPERTY_PREFIX;
     }
+
 }

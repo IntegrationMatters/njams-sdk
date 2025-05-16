@@ -18,6 +18,9 @@ package com.im.njams.sdk.configuration.provider;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.nio.file.Files;
 import java.util.Properties;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -152,5 +155,38 @@ public class FileConfigurationProvider extends AbstractConfigurationProvider {
     @Override
     public String getPropertyPrefix() {
         return PROPERTY_PREFIX;
+    }
+
+    @Override
+    public ConfigurationValidationResult validate() {
+        if (file == null) {
+            return new ConfigurationValidationResult(false, false, new IllegalArgumentException("No file configured."));
+        }
+        File testFile = file;
+        if (!testFile.isFile()) {
+            testFile = testFile.getAbsoluteFile().getParentFile();
+            if (testFile == null) {
+                // there is no parent
+                return new ConfigurationValidationResult(false, false,
+                    new FileNotFoundException(file.getAbsolutePath()));
+            }
+            // if the file not exists, check the parent folder for access
+            if (!testFile.isDirectory()) {
+                // neither file nor folder exists
+                return new ConfigurationValidationResult(false, false,
+                    new FileNotFoundException(file.getAbsolutePath()),
+                    new FileNotFoundException(testFile.getAbsolutePath()));
+            }
+        }
+        // check the accessibility of the file or folder
+        if (!Files.isReadable(testFile.toPath())) {
+            return new ConfigurationValidationResult(false, false,
+                new IOException(testFile.getAbsolutePath() + " is not readable."));
+        }
+        if (!Files.isWritable(testFile.toPath())) {
+            return new ConfigurationValidationResult(true, false,
+                new IOException(testFile.getAbsolutePath() + " is not writable."));
+        }
+        return ConfigurationValidationResult.SUCCESS;
     }
 }
