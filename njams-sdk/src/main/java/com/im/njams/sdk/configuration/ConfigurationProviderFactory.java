@@ -40,8 +40,6 @@ public class ConfigurationProviderFactory {
 
     private static final Logger LOG = LoggerFactory.getLogger(ConfigurationProviderFactory.class);
 
-    private final ServiceLoaderSupport<ConfigurationProvider> serviceLoader =
-            new ServiceLoaderSupport<>(ConfigurationProvider.class);
     /**
      * Key for Configuration Provider
      */
@@ -74,6 +72,8 @@ public class ConfigurationProviderFactory {
             throw new IllegalArgumentException(
                     "Unable to find " + CONFIGURATION_PROVIDER + " in configuration properties");
         }
+        final ServiceLoaderSupport<ConfigurationProvider> serviceLoader =
+                new ServiceLoaderSupport<>(ConfigurationProvider.class);
         final ConfigurationProvider configurationProvider = serviceLoader.find(s -> name.equals(s.getName()));
         if (configurationProvider != null) {
             LOG.info("Create ConfigurationProvider {}", configurationProvider.getName());

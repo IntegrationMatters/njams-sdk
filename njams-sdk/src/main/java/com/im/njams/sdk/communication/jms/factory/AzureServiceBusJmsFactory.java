@@ -26,6 +26,7 @@ package com.im.njams.sdk.communication.jms.factory;
 import static com.im.njams.sdk.NjamsSettings.PROPERTY_JMS_PASSWORD;
 import static com.im.njams.sdk.NjamsSettings.PROPERTY_JMS_PROVIDER_URL;
 import static com.im.njams.sdk.NjamsSettings.PROPERTY_JMS_USERNAME;
+import static com.im.njams.sdk.utils.ReflectionWrapper.argsBuilder;
 
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -37,9 +38,7 @@ import javax.jms.JMSException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.microsoft.azure.servicebus.jms.ConnectionStringBuilder;
-import com.microsoft.azure.servicebus.jms.ServiceBusJmsConnectionFactory;
-import com.microsoft.azure.servicebus.jms.ServiceBusJmsConnectionFactorySettings;
+import com.im.njams.sdk.utils.ReflectionWrapper;
 
 /**
  * IMPORTANT: This is loaded and initialized via SPI. Make sure that an instance can be created even when
@@ -50,7 +49,7 @@ public class AzureServiceBusJmsFactory implements JmsFactory {
 
     private static final Logger LOG = LoggerFactory.getLogger(AzureServiceBusJmsFactory.class);
     /**
-     * This implementation identifier for SPI lookup.
+     * This implementation's identifier for SPI lookup.
      */
     public static final String NAME = "AzureServiceBusPremium";
     private ConnectionFactory factory = null;
@@ -66,28 +65,44 @@ public class AzureServiceBusJmsFactory implements JmsFactory {
             // assuming that config does not change
             return;
         }
-        final URI uri;
+        final ClassLoader cl = Thread.currentThread().getContextClassLoader();
         try {
-            uri = new URI(properties.getProperty(PROPERTY_JMS_PROVIDER_URL));
-        } catch (URISyntaxException e) {
-            final JMSException jmsEx = new JMSException("Failed to create URI");
-            jmsEx.initCause(e);
-            throw jmsEx;
-        }
-        final ConnectionStringBuilder connectStringBuilder =
-            new ConnectionStringBuilder(
-                uri,
-                null,
-                properties.getProperty(PROPERTY_JMS_USERNAME),
-                properties.getProperty(PROPERTY_JMS_PASSWORD));
+            final URI uri = new URI(properties.getProperty(PROPERTY_JMS_PROVIDER_URL));
+            final ReflectionWrapper connectStringBuilder =
+                    new ReflectionWrapper("com.microsoft.azure.servicebus.jms.ConnectionStringBuilder", cl,
+                            argsBuilder()
+                                    .addObject(uri)
+                                    .addNull(String.class)
+                                    .addObject(properties.getProperty(PROPERTY_JMS_USERNAME))
+                                    .addObject(properties.getProperty(PROPERTY_JMS_PASSWORD)));
 
-        final ServiceBusJmsConnectionFactorySettings connectSettings = new ServiceBusJmsConnectionFactorySettings();
-        connectSettings.setShouldReconnect(false);
-        connectSettings.setConnectionIdleTimeoutMS(120_000);
-        connectSettings.setMaxReconnectAttempts(1);
-        connectSettings.setStartupMaxReconnectAttempts(1);
-        factory = new ServiceBusJmsConnectionFactory(connectStringBuilder, connectSettings);
-        LOG.debug("Created connection factory for URI: {}", uri);
+            final ReflectionWrapper connectSettings =
+                    new ReflectionWrapper("com.microsoft.azure.servicebus.jms.ServiceBusJmsConnectionFactorySettings",
+                            cl, null)
+                                    .setPrimitive("setShouldReconnect", false)
+                                    .setPrimitive("setConnectionIdleTimeoutMS", 120_000l)
+                                    .setPrimitive("setMaxReconnectAttempts", 1)
+                                    .setPrimitive("setStartupMaxReconnectAttempts", 1);
+
+            factory = (ConnectionFactory) new ReflectionWrapper(
+                    "com.microsoft.azure.servicebus.jms.ServiceBusJmsConnectionFactory", cl,
+                    argsBuilder()
+                            .addObject(connectStringBuilder.getTarget())
+                            .addObject(connectSettings.getTarget())).getTarget();
+
+            LOG.debug("Created connection factory for URI: {}", uri);
+        } catch (ReflectiveOperationException e) {
+            throw buildException("Failed to load Azure Service Bus Premium JMS implemenation", e);
+        } catch (URISyntaxException e) {
+            throw buildException("Failed to create URI from: " + properties.getProperty(PROPERTY_JMS_PROVIDER_URL), e);
+        }
+
+    }
+
+    private static JMSException buildException(String message, Throwable cause) {
+        final JMSException jmsEx = new JMSException(message);
+        jmsEx.initCause(cause);
+        return jmsEx;
     }
 
     @Override

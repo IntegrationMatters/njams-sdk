@@ -23,7 +23,6 @@
  */
 package com.im.njams.sdk.communication.jms.factory;
 
-import java.lang.reflect.Method;
 import java.util.Properties;
 
 import javax.jms.ConnectionFactory;
@@ -34,6 +33,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.im.njams.sdk.NjamsSettings;
+import com.im.njams.sdk.utils.ReflectionWrapper;
 
 /**
  * IMPORTANT: This is loaded and initialized via SPI. Make sure that an instance can be created even when
@@ -57,10 +57,10 @@ public class ActiveMqSslJmsFactory extends JndiJmsFactory implements JmsFactory 
     @Override
     protected void initFactory(Properties properties) throws NamingException, JMSException {
         try {
-            @SuppressWarnings("unchecked")
-            final Class<ConnectionFactory> clazz =
-                (Class<ConnectionFactory>) Class.forName("org.apache.activemq.ActiveMQSslConnectionFactory");
-            final ConnectionFactory amqSsl = clazz.getDeclaredConstructor().newInstance();
+
+            final ReflectionWrapper amqSsl =
+                    new ReflectionWrapper("org.apache.activemq.ActiveMQSslConnectionFactory", null);
+
             setProperty(amqSsl, properties, "setKeyStore", NjamsSettings.PROPERTY_JMS_KEYSTORE);
             setProperty(amqSsl, properties, "setKeyStorePassword", NjamsSettings.PROPERTY_JMS_KEYSTOREPASSWORD);
             setProperty(amqSsl, properties, "setKeyStoreType", NjamsSettings.PROPERTY_JMS_KEYSTORETYPE);
@@ -70,8 +70,9 @@ public class ActiveMqSslJmsFactory extends JndiJmsFactory implements JmsFactory 
             setProperty(amqSsl, properties, "setPassword", NjamsSettings.PROPERTY_JMS_PASSWORD);
             setProperty(amqSsl, properties, "setUserName", NjamsSettings.PROPERTY_JMS_USERNAME);
             setProperty(amqSsl, properties, "setBrokerURL", NjamsSettings.PROPERTY_JMS_PROVIDER_URL);
+            factory = (ConnectionFactory) amqSsl.getTarget();
+
             LOG.debug("Created ActiveMQSslConnectionFactory");
-            factory = amqSsl;
         } catch (Exception e) {
             LOG.error("ActiveMQSslConnectionFactory could not be created", e);
             final JMSException jmsEx = new JMSException("Failed to setup ActiveMQSslConnectionFactory");
@@ -80,15 +81,15 @@ public class ActiveMqSslJmsFactory extends JndiJmsFactory implements JmsFactory 
         }
     }
 
-    private void setProperty(ConnectionFactory target, Properties source, String setter, String property) {
-        if (source.containsKey(property)) {
-            try {
-                final Method setMethod = target.getClass().getMethod(setter, String.class);
-                setMethod.invoke(target, source.getProperty(property));
-            } catch (Exception e) {
-                LOG.error("Failed to invoke {}(String) on {} with property {}={}", setter, target.getClass(),
+    private void setProperty(ReflectionWrapper target, Properties source, String setter, String property) {
+        if (!source.containsKey(property)) {
+            return;
+        }
+        try {
+            target.setObject(setter, source.getProperty(property));
+        } catch (Exception e) {
+            LOG.error("Failed to invoke {}(String) on {} with property {}={}", setter, target.getClass(),
                     property, source.getProperty(property), e);
-            }
         }
     }
 

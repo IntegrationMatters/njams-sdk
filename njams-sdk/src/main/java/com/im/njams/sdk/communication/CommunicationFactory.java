@@ -40,8 +40,6 @@ public class CommunicationFactory {
     private static final Logger LOG = LoggerFactory.getLogger(CommunicationFactory.class);
 
     private final Settings settings;
-    private final ServiceLoaderSupport<Receiver> receivers;
-    private final ServiceLoaderSupport<AbstractSender> senders;
     private static final Map<Class<? extends Receiver>, ShareableReceiver<?>> sharedReceivers = new HashMap<>();
 
     /**
@@ -50,15 +48,15 @@ public class CommunicationFactory {
      * @param settings Settings to add
      */
     public CommunicationFactory(Settings settings) {
-        this(settings, new ServiceLoaderSupport<>(Receiver.class),
-            new ServiceLoaderSupport<>(AbstractSender.class));
+        this.settings = settings;
     }
 
-    CommunicationFactory(Settings settings, ServiceLoaderSupport<Receiver> receivers,
-        ServiceLoaderSupport<AbstractSender> senders) {
-        this.settings = settings;
-        this.receivers = receivers;
-        this.senders = senders;
+    ServiceLoaderSupport<Receiver> getReceiverLoader() {
+        return new ServiceLoaderSupport<>(Receiver.class);
+    }
+
+    ServiceLoaderSupport<AbstractSender> getSenderLoader() {
+        return new ServiceLoaderSupport<>(AbstractSender.class);
     }
 
     /**
@@ -75,8 +73,8 @@ public class CommunicationFactory {
                 requiredReceiverName = "HTTP";
             }
             final boolean shared =
-                "true".equalsIgnoreCase(settings.getPropertyWithDeprecationWarning(
-                    NjamsSettings.PROPERTY_SHARED_COMMUNICATIONS, NjamsSettings.OLD_SHARED_COMMUNICATIONS));
+                    "true".equalsIgnoreCase(settings.getPropertyWithDeprecationWarning(
+                            NjamsSettings.PROPERTY_SHARED_COMMUNICATIONS, NjamsSettings.OLD_SHARED_COMMUNICATIONS));
             Class<? extends Receiver> type = findReceiverType(requiredReceiverName, shared);
             if (type != null) {
                 final Receiver newInstance = createReceiver(type, njams, shared, requiredReceiverName);
@@ -84,28 +82,30 @@ public class CommunicationFactory {
 
                 return newInstance;
             }
-            Collection<String> available = receivers.stream().map(Receiver::getName).sorted()
-                .collect(Collectors.toSet());
+            Collection<String> available = getReceiverLoader().stream().map(Receiver::getName).sorted()
+                    .collect(Collectors.toSet());
             throw new IllegalStateException(
-                "Unable to find receiver implementation for " + requiredReceiverName + ", available are: "
-                    + available);
+                    "Unable to find receiver implementation for " + requiredReceiverName + ", available are: "
+                            + available);
         }
         throw new IllegalStateException("Unable to find " + NjamsSettings.PROPERTY_COMMUNICATION
-            + " in settings properties");
+                + " in settings properties");
     }
 
     private Class<? extends Receiver> findReceiverType(String name, boolean wantsSharable) {
+        final ServiceLoaderSupport<Receiver> receivers = getReceiverLoader();
         Receiver found =
-            receivers.find(r -> r.getName().equalsIgnoreCase(name) && wantsSharable == r instanceof ShareableReceiver);
+                receivers.find(
+                        r -> r.getName().equalsIgnoreCase(name) && wantsSharable == r instanceof ShareableReceiver);
         if (found == null) {
             found = receivers.find(r -> r.getName().equalsIgnoreCase(name));
             if (wantsSharable && found != null) {
                 LOG.warn("The requested communication type '{}' does not support sharing the receiver instance. "
-                    + "Creating a dedicated instance instead.", found.getName());
+                        + "Creating a dedicated instance instead.", found.getName());
             }
         }
         LOG.debug("Found receiver for criteria name={}, sharable={}: {}", name, wantsSharable,
-            found == null ? null : found.getClass());
+                found == null ? null : found.getClass());
         return found == null ? null : found.getClass();
     }
 
@@ -152,8 +152,9 @@ public class CommunicationFactory {
     public AbstractSender getSender() {
         if (!settings.containsKey(NjamsSettings.PROPERTY_COMMUNICATION)) {
             throw new IllegalStateException("Unable to find " + NjamsSettings.PROPERTY_COMMUNICATION
-                + " in settings properties");
+                    + " in settings properties");
         }
+        final ServiceLoaderSupport<AbstractSender> senders = getSenderLoader();
         final String requiredSenderName = settings.getProperty(NjamsSettings.PROPERTY_COMMUNICATION);
         final AbstractSender sender = senders.find(s -> s.getName().equalsIgnoreCase(requiredSenderName));
         if (sender != null) {
@@ -170,14 +171,14 @@ public class CommunicationFactory {
                 return newInstance;
             } catch (Exception e) {
                 throw new IllegalStateException(
-                    "Unable to create new " + requiredSenderName + " instance", e);
+                        "Unable to create new " + requiredSenderName + " instance", e);
             }
         }
         final Collection<String> availableNames =
-            senders.getAll().stream().map(AbstractSender::getName).sorted().collect(Collectors.toSet());
+                senders.getAll().stream().map(AbstractSender::getName).sorted().collect(Collectors.toSet());
         throw new IllegalStateException(
-            "Unable to find sender implementation for " + requiredSenderName + ", available are: "
-                + availableNames);
+                "Unable to find sender implementation for " + requiredSenderName + ", available are: "
+                        + availableNames);
     }
 
 }

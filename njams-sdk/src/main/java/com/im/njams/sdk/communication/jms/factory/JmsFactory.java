@@ -43,7 +43,11 @@ import com.im.njams.sdk.utils.StringUtils;
 
 /**
  * A named factory loaded via SPI for creating JMS related instances.<br>
- * Use {@link #find(Properties)} for getting an instance.
+ * Use {@link #find(Properties)} for getting an instance.<br>
+ * <br>
+ * <b>Implementation Notes:</b> Make sure that implementations use the
+ * {@link Thread#getContextClassLoader() context classloader} like JNDI or SPI does for looking up JMS implementations
+ * which may be provided by external classpath that is only accessible via this {@link ClassLoader}.
  */
 public interface JmsFactory extends AutoCloseable {
     /** Logger for static and default implementations */
@@ -128,6 +132,7 @@ public interface JmsFactory extends AutoCloseable {
 
     private static void initFactory(JmsFactory factory, Properties settings) {
         try {
+            LOG.trace("Init {} with {}", factory, factory.getClass().getClassLoader());
             factory.init(settings);
         } catch (Throwable e) {
             // could be an Error, for example when required libs are missing
