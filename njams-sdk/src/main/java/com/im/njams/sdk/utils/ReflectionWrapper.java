@@ -91,7 +91,7 @@ public class ReflectionWrapper {
          * @param obj The non-primitive value to add. For primitives, use {@link #addPrimitive(Object)}.
          * For <code>null</code> use {@link #addNull(Class)}.
          * @param asType The type expected by the method that is assignable from the object's type.
-         * @return
+         * @return This builder for chaining.
          */
         public <T> ArgsBuilder addObject(final T obj, final Class<? super T> asType) {
             args.add(new Argument(Objects.requireNonNull(asType), obj));
@@ -139,7 +139,7 @@ public class ReflectionWrapper {
 
     /**
      * Returns a new {@link ArgsBuilder} instance for building an argument list.
-     * @return
+     * @return An arguemnts builder.
      */
     public static ArgsBuilder argsBuilder() {
         return new ArgsBuilder();
@@ -196,7 +196,7 @@ public class ReflectionWrapper {
      * @param method The name of the setter method to call.
      * @param nullType The exact type of the setter's argument which is set to <code>null</code>.
      * @return This instance for chaining.
-     * @throws ReflectiveOperationException
+     * @throws ReflectiveOperationException On any error that occurred when creating the instance.
      */
 
     public ReflectionWrapper setNull(final String method, final Class<?> nullType) throws ReflectiveOperationException {
@@ -211,7 +211,7 @@ public class ReflectionWrapper {
      * @param method The name of the setter method to call.
      * @param primitive The primitive value to set.
      * @return This instance for chaining.
-     * @throws ReflectiveOperationException
+     * @throws ReflectiveOperationException On any error that occurred when creating the instance.
      */
     public ReflectionWrapper setPrimitive(final String method, final Object primitive)
             throws ReflectiveOperationException {
@@ -226,7 +226,7 @@ public class ReflectionWrapper {
      * @param method The name of the setter method to call.
      * @param object The value to set.
      * @return This instance for chaining.
-     * @throws ReflectiveOperationException
+     * @throws ReflectiveOperationException On any error that occurred when creating the instance.
      */
     public ReflectionWrapper setObject(final String method, final Object object)
             throws ReflectiveOperationException {
@@ -244,7 +244,7 @@ public class ReflectionWrapper {
      * @param object The value to set.
      * @param asType The type expected by the method that is assignable from the object's type.
      * @return This instance for chaining.
-     * @throws ReflectiveOperationException
+     * @throws ReflectiveOperationException On any error that occurred when creating the instance.
      */
     public <T> ReflectionWrapper setObject(final String method, final T object, final Class<? super T> asType)
             throws ReflectiveOperationException {
