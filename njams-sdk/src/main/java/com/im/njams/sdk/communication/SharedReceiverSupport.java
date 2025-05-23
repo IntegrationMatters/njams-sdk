@@ -47,7 +47,7 @@ public class SharedReceiverSupport<R extends AbstractReceiver & ShareableReceive
             njamsInstances.put(njamsInstance.getClientPath(), njamsInstance);
         }
         LOG.debug("Added client {} to shared receiver; {} attached receivers.", njamsInstance.getClientPath(),
-            njamsInstances.size());
+                njamsInstances.size());
     }
 
     /**
@@ -62,7 +62,7 @@ public class SharedReceiverSupport<R extends AbstractReceiver & ShareableReceive
         synchronized (njamsInstances) {
             njamsInstances.remove(njamsInstance.getClientPath());
             LOG.debug("Removed client {} from shared receiver; {} remaining receivers.", njamsInstance.getClientPath(),
-                njamsInstances.size());
+                    njamsInstances.size());
             if (njamsInstances.isEmpty()) {
                 receiver.stop();
                 return true;
@@ -97,7 +97,7 @@ public class SharedReceiverSupport<R extends AbstractReceiver & ShareableReceive
         }
         final String clientId = receiver.getClientId(message, instruction);
         LOG.debug("Received instruction {} with target {} and client ID {}", instruction.getCommand(), receiverPath,
-            clientId);
+                clientId);
 
         final Njams njamsTarget = getNjamsTarget(receiverPath, clientId);
         if (njamsTarget != null) {
@@ -151,7 +151,7 @@ public class SharedReceiverSupport<R extends AbstractReceiver & ShareableReceive
                 Response response = new Response();
                 response.setResultCode(1);
                 response.setResultMessage(
-                    "No InstructionListener for " + instruction.getRequest().getCommand() + " found");
+                        "No InstructionListener for " + instruction.getRequest().getCommand() + " found");
                 instruction.setResponse(response);
             }
         }
@@ -165,12 +165,13 @@ public class SharedReceiverSupport<R extends AbstractReceiver & ShareableReceive
             Njams target = njamsInstances.get(receiverPath);
 
             if (target == null) {
-                LOG.error("Failed to resolve instruction receiver.");
+                LOG.debug("Failed to resolve instruction receiver {} (id={})", receiverPath, clientId);
+                LOG.debug("Available instances: {}", njamsInstances);
             }
             return target;
 
         } catch (Exception e) {
-            LOG.error("Error during resolve of instruction receiver.", e);
+            LOG.error("Error during resolve of instruction receiver {} (id={})", receiverPath, clientId, e);
             return null;
         }
     }
