@@ -21,9 +21,9 @@ jobs:
 
     - name: Extract Maven coordinates (Parent)
       run: |
-        echo "GROUP_ID=$(mvn help:evaluate -f parent/pom.xml -Dexpression=project.groupId -q -DforceStdout)" >> $GITHUB_ENV
-        echo "ARTIFACT_ID=$(mvn help:evaluate -f parent/pom.xml -Dexpression=project.artifactId -q -DforceStdout)" >> $GITHUB_ENV
-        echo "VERSION=$(mvn help:evaluate -f parent/pom.xml -Dexpression=project.version -q -DforceStdout)" >> $GITHUB_ENV
+        echo "GROUP_ID=$(mvn help:evaluate -f pom.xml -Dexpression=project.groupId -q -DforceStdout)" >> $GITHUB_ENV
+        echo "ARTIFACT_ID=$(mvn help:evaluate -f pom.xml -Dexpression=project.artifactId -q -DforceStdout)" >> $GITHUB_ENV
+        echo "VERSION=$(mvn help:evaluate -f pom.xml -Dexpression=project.version -q -DforceStdout)" >> $GITHUB_ENV
 
     - name: Build Root Pom
       run: mvn -B -N clean package install --file pom.xml -Pgithub
@@ -54,11 +54,11 @@ jobs:
           name:  ${{ needs.build-root.steps.extract.outputs.ARTIFACT_ID }}-${{ needs.build-root.steps.extract.outputs.VERSION }}
           path: ~/.m2/repository/${{ needs.build-root.steps.extract.outputs.GROUP_ID }}/
 
-    - name: Extract Maven coordinates (Module)
+    - name: Extract Maven coordinates (njams-sdk)
       run: |
-        echo "GROUP_ID=$(mvn help:evaluate -f module/pom.xml -Dexpression=project.groupId -q -DforceStdout)" >> $GITHUB_ENV
-        echo "ARTIFACT_ID=$(mvn help:evaluate -f module/pom.xml -Dexpression=project.artifactId -q -DforceStdout)" >> $GITHUB_ENV
-        echo "VERSION=$(mvn help:evaluate -f module/pom.xml -Dexpression=project.version -q -DforceStdout)" >> $GITHUB_ENV
+        echo "GROUP_ID=$(mvn help:evaluate -f njams-sdk/pom.xml -Dexpression=project.groupId -q -DforceStdout)" >> $GITHUB_ENV
+        echo "ARTIFACT_ID=$(mvn help:evaluate -f njams-sdk/pom.xml -Dexpression=project.artifactId -q -DforceStdout)" >> $GITHUB_ENV
+        echo "VERSION=$(mvn help:evaluate -f njams-sdk/pom.xml -Dexpression=project.version -q -DforceStdout)" >> $GITHUB_ENV
 
     - name: Build SDK with Maven
       env:
