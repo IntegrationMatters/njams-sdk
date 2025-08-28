@@ -40,7 +40,14 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-      run: mvn -B package org.sonarsource.scanner.maven:sonar-maven-plugin:sonar --file njams-sdk/pom.xml -Pgithub -Dsonar.projectKey=IntegrationMatters_njams-sdk
+      run: mvn -B install org.sonarsource.scanner.maven:sonar-maven-plugin:sonar --file njams-sdk/pom.xml -Pgithub -Dsonar.projectKey=IntegrationMatters_njams-sdk
+
+    - name: Upload local Maven repository
+      uses: actions/upload-artifact@v4
+      with:
+        name: m2-repo
+        path: ~/.m2/repository
+        retention-days: 1
 
   build-client-sample:
     runs-on: ubuntu-latest
@@ -54,6 +61,12 @@ jobs:
         java-version: '11'
         distribution: 'temurin'
         cache: maven
+
+    - name: Download local Maven repository
+      uses: actions/download-artifact@v4
+      with:
+        name: m2-repo
+        path: ~/.m2/repository
 
     - name: Build client sample
       env:
