@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - github_dev # Auf dem dev-Branch triggern
+  workflow_dispatch:
 
 jobs:
   build-root:
