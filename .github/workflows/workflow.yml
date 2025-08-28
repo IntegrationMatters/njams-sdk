@@ -1,4 +1,4 @@
-name: workflow.yml
+name: Build nJAMS SDK
 on:
   push:
     branches:
@@ -90,6 +90,26 @@ jobs:
         name: ${{ steps.extract-maven-coordinates.outputs.ARTIFACT_ID }}-${{ steps.extract-maven-coordinates.outputs.VERSION }}
         path: ~/.m2/repository/${{ steps.extract-maven-coordinates.outputs.GROUP_PATH }}/
         retention-days: 1
+
+  trivy-scan:
+      runs-on: ubuntu-latest
+      needs:
+          - build-sdk
+      steps:
+        - name: Download njams-sdk repository
+          uses: actions/download-artifact@v4
+          with:
+            name: ${{ needs.build-sdk.outputs.ARTIFACT_ID }}-${{ needs.build-sdk.outputs.VERSION }}
+            path: ~/.m2/repository/${{ needs.build-sdk.outputs.GROUP_PATH }}/
+
+        - name: Install Trivy
+          uses: aquasecurity/trivy-action@master
+          with:
+            scan-type: fs
+            scan-ref: ~/.m2/repository/${{ needs.build-sdk.outputs.GROUP_PATH }}/${{ needs.build-sdk.outputs.ARTIFACT_ID }}-${{  needs.build-sdk.outputs.VERSION  }}.jar
+            format: table
+            exit-code: 1   # schlägt fehl, wenn Vulnerabilities gefunden werden
+            severity: CRITICAL,HIGH
 
   build-client-sample:
     runs-on: ubuntu-latest
