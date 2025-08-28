@@ -3,7 +3,6 @@ on:
   push:
     branches:
       - github_dev # Auf dem dev-Branch triggern
-  workflow_dispatch:
 
 jobs:
   build-root:
@@ -20,14 +19,20 @@ jobs:
         cache: maven
         overwrite-settings: 'false'
 
+    - name: Extract Maven coordinates (Parent)
+      run: |
+        echo "GROUP_ID=$(mvn help:evaluate -f parent/pom.xml -Dexpression=project.groupId -q -DforceStdout)" >> $GITHUB_ENV
+        echo "ARTIFACT_ID=$(mvn help:evaluate -f parent/pom.xml -Dexpression=project.artifactId -q -DforceStdout)" >> $GITHUB_ENV
+        echo "VERSION=$(mvn help:evaluate -f parent/pom.xml -Dexpression=project.version -q -DforceStdout)" >> $GITHUB_ENV
+
     - name: Build Root Pom
       run: mvn -B -N clean package install --file pom.xml -Pgithub
 
     - name: Upload local Maven repository
       uses: actions/upload-artifact@v4
       with:
-        name: m2-repo
-        path: ~/.m2/repository
+        name: ${{ env.ARTIFACT_ID }}-${{ env.VERSION }}
+        path: ~/.m2/repository/${{ env.GROUP_ID }}/
         retention-days: 1
 
   build-sdk:
@@ -46,8 +51,14 @@ jobs:
     - name: Download local Maven repository
       uses: actions/download-artifact@v4
       with:
-        name: m2-repo
-        path: ~/.m2/repository
+          name:  ${{ needs.build-root.steps.extract.outputs.ARTIFACT_ID }}-${{ needs.build-root.steps.extract.outputs.VERSION }}
+          path: ~/.m2/repository/${{ needs.build-root.steps.extract.outputs.GROUP_ID }}/
+
+    - name: Extract Maven coordinates (Module)
+      run: |
+        echo "GROUP_ID=$(mvn help:evaluate -f module/pom.xml -Dexpression=project.groupId -q -DforceStdout)" >> $GITHUB_ENV
+        echo "ARTIFACT_ID=$(mvn help:evaluate -f module/pom.xml -Dexpression=project.artifactId -q -DforceStdout)" >> $GITHUB_ENV
+        echo "VERSION=$(mvn help:evaluate -f module/pom.xml -Dexpression=project.version -q -DforceStdout)" >> $GITHUB_ENV
 
     - name: Build SDK with Maven
       env:
@@ -58,8 +69,8 @@ jobs:
     - name: Upload local Maven repository
       uses: actions/upload-artifact@v4
       with:
-        name: m2-repo
-        path: ~/.m2/repository
+        name: ${{ env.ARTIFACT_ID }}-${{ env.VERSION }}
+        path: ~/.m2/repository/${{ env.GROUP_ID }}/
         retention-days: 1
 
   build-client-sample:
@@ -73,12 +84,13 @@ jobs:
       with:
         java-version: '11'
         distribution: 'temurin'
+        cache: maven
 
     - name: Download local Maven repository
       uses: actions/download-artifact@v4
       with:
-        name: m2-repo
-        path: ~/.m2/repository
+          name: ${{ needs.build-sdk.steps.extract.outputs.ARTIFACT_ID }}-${{ needs.build-sdk.steps.extract.outputs.VERSION }}
+          path: ~/.m2/repository/${{ needs.build-sdk.steps.extract.outputs.GROUP_ID }}/
 
     - name: Build client sample
       env:
