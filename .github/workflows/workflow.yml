@@ -61,7 +61,7 @@ jobs:
         distribution: 'temurin'
         cache: maven
 
-    - name: Download local Maven repository
+    - name: Download parent pom repository
       uses: actions/download-artifact@v4
       with:
           name:  ${{ needs.build-root.outputs.ARTIFACT_ID }}-${{ needs.build-root.outputs.VERSION }}
@@ -104,7 +104,13 @@ jobs:
         distribution: 'temurin'
         cache: maven
 
-    - name: Download local Maven repository
+    -   name: Download parent pom repository
+        uses: actions/download-artifact@v4
+        with:
+            name: ${{ needs.build-root.outputs.ARTIFACT_ID }}-${{ needs.build-root.outputs.VERSION }}
+            path: ~/.m2/repository/${{ needs.build-root.outputs.GROUP_PATH }}/
+
+    - name: Download njams-sdk repository
       uses: actions/download-artifact@v4
       with:
           name: ${{ needs.build-sdk.outputs.ARTIFACT_ID }}-${{ needs.build-sdk.outputs.VERSION }}
