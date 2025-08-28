@@ -21,9 +21,14 @@ jobs:
 
     - name: Extract Maven coordinates (Parent)
       run: |
-        echo "GROUP_ID=$(mvn help:evaluate -f pom.xml -Dexpression=project.groupId -q -DforceStdout)" >> $GITHUB_ENV
-        echo "ARTIFACT_ID=$(mvn help:evaluate -f pom.xml -Dexpression=project.artifactId -q -DforceStdout)" >> $GITHUB_ENV
-        echo "VERSION=$(mvn help:evaluate -f pom.xml -Dexpression=project.version -q -DforceStdout)" >> $GITHUB_ENV
+          GROUP_ID=$(mvn help:evaluate -f pom.xml -Dexpression=project.groupId -q -DforceStdout)
+          ARTIFACT_ID=$(mvn help:evaluate -f pom.xml -Dexpression=project.artifactId -q -DforceStdout)
+          VERSION=$(mvn help:evaluate -f pom.xml -Dexpression=project.version -q -DforceStdout)
+          GROUP_PATH=${GROUP_ID//./\/}
+          echo "GROUP_ID=$GROUP_ID" >> $GITHUB_ENV
+          echo "ARTIFACT_ID=$ARTIFACT_ID" >> $GITHUB_ENV
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+          echo "GROUP_PATH=$GROUP_PATH" >> $GITHUB_ENV
 
     - name: Build Root Pom
       run: mvn -B -N clean package install --file pom.xml -Pgithub
@@ -32,7 +37,7 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: ${{ env.ARTIFACT_ID }}-${{ env.VERSION }}
-        path: ~/.m2/repository/${{ env.GROUP_ID }}/
+        path: ~/.m2/repository/${{ env.GROUP_PATH }}/
         retention-days: 1
 
   build-sdk:
@@ -52,13 +57,18 @@ jobs:
       uses: actions/download-artifact@v4
       with:
           name:  ${{ needs.build-root.steps.extract.outputs.ARTIFACT_ID }}-${{ needs.build-root.steps.extract.outputs.VERSION }}
-          path: ~/.m2/repository/${{ needs.build-root.steps.extract.outputs.GROUP_ID }}/
+          path: ~/.m2/repository/${{ needs.build-root.steps.extract.outputs.GROUP_PATH }}/
 
     - name: Extract Maven coordinates (njams-sdk)
       run: |
-        echo "GROUP_ID=$(mvn help:evaluate -f njams-sdk/pom.xml -Dexpression=project.groupId -q -DforceStdout)" >> $GITHUB_ENV
-        echo "ARTIFACT_ID=$(mvn help:evaluate -f njams-sdk/pom.xml -Dexpression=project.artifactId -q -DforceStdout)" >> $GITHUB_ENV
-        echo "VERSION=$(mvn help:evaluate -f njams-sdk/pom.xml -Dexpression=project.version -q -DforceStdout)" >> $GITHUB_ENV
+        GROUP_ID=$(mvn help:evaluate -f njams-sdk/pom.xml -Dexpression=project.groupId -q -DforceStdout)
+        ARTIFACT_ID=$(mvn help:evaluate -f njams-sdk/pom.xml -Dexpression=project.artifactId -q -DforceStdout)
+        VERSION=$(mvn help:evaluate -f njams-sdk/pom.xml -Dexpression=project.version -q -DforceStdout)
+        GROUP_PATH=${GROUP_ID//./\/}
+        echo "GROUP_ID=$GROUP_ID" >> $GITHUB_ENV
+        echo "ARTIFACT_ID=$ARTIFACT_ID" >> $GITHUB_ENV
+        echo "VERSION=$VERSION" >> $GITHUB_ENV
+        echo "GROUP_PATH=$GROUP_PATH" >> $GITHUB_ENV
 
     - name: Build SDK with Maven
       env:
@@ -70,7 +80,7 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: ${{ env.ARTIFACT_ID }}-${{ env.VERSION }}
-        path: ~/.m2/repository/${{ env.GROUP_ID }}/
+        path: ~/.m2/repository/${{ env.GROUP_PATH }}/
         retention-days: 1
 
   build-client-sample:
@@ -90,7 +100,7 @@ jobs:
       uses: actions/download-artifact@v4
       with:
           name: ${{ needs.build-sdk.steps.extract.outputs.ARTIFACT_ID }}-${{ needs.build-sdk.steps.extract.outputs.VERSION }}
-          path: ~/.m2/repository/${{ needs.build-sdk.steps.extract.outputs.GROUP_ID }}/
+          path: ~/.m2/repository/${{ needs.build-sdk.steps.extract.outputs.GROUP_PATH }}/
 
     - name: Build client sample
       env:
