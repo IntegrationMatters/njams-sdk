@@ -29,10 +29,6 @@ jobs:
           ARTIFACT_ID=$(mvn help:evaluate -f pom.xml -Dexpression=project.artifactId -q -DforceStdout)
           VERSION=$(mvn help:evaluate -f pom.xml -Dexpression=project.version -q -DforceStdout)
           GROUP_PATH=${GROUP_ID//./\/}
-          echo "GROUP_ID=$GROUP_ID" >> $GITHUB_ENV
-          echo "ARTIFACT_ID=$ARTIFACT_ID" >> $GITHUB_ENV
-          echo "VERSION=$VERSION" >> $GITHUB_ENV
-          echo "GROUP_PATH=$GROUP_PATH" >> $GITHUB_ENV
           echo "ARTIFACT_ID=$ARTIFACT_ID" >> $GITHUB_OUTPUT
           echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
           echo "GROUP_PATH=$GROUP_PATH" >> $GITHUB_OUTPUT
@@ -43,8 +39,8 @@ jobs:
     - name: Upload local Maven repository
       uses: actions/upload-artifact@v4
       with:
-        name: ${{ env.ARTIFACT_ID }}-${{ env.VERSION }}
-        path: ~/.m2/repository/${{ env.GROUP_PATH }}/
+        name: ${{ steps.extract-maven-coordinates.outputs.ARTIFACT_ID }}-${{ steps.extract-maven-coordinates.outputs.VERSION }}
+        path: ~/.m2/repository/${{ steps.extract-maven-coordinates.outputs.GROUP_PATH }}/
         retention-days: 1
 
   build-sdk:
@@ -78,10 +74,9 @@ jobs:
         ARTIFACT_ID=$(mvn help:evaluate -f njams-sdk/pom.xml -Dexpression=project.artifactId -q -DforceStdout)
         VERSION=$(mvn help:evaluate -f njams-sdk/pom.xml -Dexpression=project.version -q -DforceStdout)
         GROUP_PATH=${GROUP_ID//./\/}
-        echo "GROUP_ID=$GROUP_ID" >> $GITHUB_ENV
-        echo "ARTIFACT_ID=$ARTIFACT_ID" >> $GITHUB_ENV
-        echo "VERSION=$VERSION" >> $GITHUB_ENV
-        echo "GROUP_PATH=$GROUP_PATH" >> $GITHUB_ENV
+        echo "ARTIFACT_ID=$ARTIFACT_ID" >> $GITHUB_OUTPUT
+        echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+        echo "GROUP_PATH=$GROUP_PATH" >> $GITHUB_OUTPUT
 
     - name: Build SDK with Maven
       env:
@@ -92,8 +87,8 @@ jobs:
     - name: Upload local Maven repository
       uses: actions/upload-artifact@v4
       with:
-        name: ${{ env.ARTIFACT_ID }}-${{ env.VERSION }}
-        path: ~/.m2/repository/${{ env.GROUP_PATH }}/
+        name: ${{ steps.extract-maven-coordinates.outputs.ARTIFACT_ID }}-${{ steps.extract-maven-coordinates.outputs.VERSION }}
+        path: ~/.m2/repository/${{ steps.extract-maven-coordinates.outputs.GROUP_PATH }}/
         retention-days: 1
 
   build-client-sample:
