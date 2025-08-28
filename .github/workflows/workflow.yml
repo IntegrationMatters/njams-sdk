@@ -82,7 +82,6 @@ jobs:
         echo "ARTIFACT_ID=$ARTIFACT_ID" >> $GITHUB_ENV
         echo "VERSION=$VERSION" >> $GITHUB_ENV
         echo "GROUP_PATH=$GROUP_PATH" >> $GITHUB_ENV
-        echo "
 
     - name: Build SDK with Maven
       env:
