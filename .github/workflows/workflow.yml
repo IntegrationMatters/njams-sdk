@@ -106,7 +106,7 @@ jobs:
           uses: aquasecurity/trivy-action@master
           with:
             scan-type: fs
-            scan-ref: ~/.m2/repository/${{ needs.build-sdk.outputs.GROUP_PATH }}/${{ needs.build-sdk.outputs.ARTIFACT_ID }}-${{  needs.build-sdk.outputs.VERSION  }}.jar
+            scan-ref: ~/.m2/repository/${{ needs.build-sdk.outputs.GROUP_PATH }}/${{ needs.build-sdk.outputs.ARTIFACT_ID }}/${{ needs.build-sdk.outputs.ARTIFACT_ID }}-${{  needs.build-sdk.outputs.VERSION  }}.jar
             format: table
             exit-code: 1   # schlägt fehl, wenn Vulnerabilities gefunden werden
             severity: CRITICAL,HIGH
