@@ -40,7 +40,7 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: ${{ steps.extract-maven-coordinates.outputs.ARTIFACT_ID }}-${{ steps.extract-maven-coordinates.outputs.VERSION }}
-        path: ~/.m2/repository/${{ steps.extract-maven-coordinates.outputs.GROUP_PATH }}/
+        path: ${{ env.HOME }}/.m2/repository/${{ steps.extract-maven-coordinates.outputs.GROUP_PATH }}/
         retention-days: 1
 
   build-sdk:
@@ -65,7 +65,7 @@ jobs:
       uses: actions/download-artifact@v4
       with:
           name:  ${{ needs.build-root.outputs.ARTIFACT_ID }}-${{ needs.build-root.outputs.VERSION }}
-          path: ~/.m2/repository/${{ needs.build-root.outputs.GROUP_PATH }}/
+          path: ${{ env.HOME }}/.m2/repository/${{ needs.build-root.outputs.GROUP_PATH }}/
 
     - name: Extract Maven coordinates (njams-sdk)
       id: extract-maven-coordinates
@@ -88,7 +88,7 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: ${{ steps.extract-maven-coordinates.outputs.ARTIFACT_ID }}-${{ steps.extract-maven-coordinates.outputs.VERSION }}
-        path: ~/.m2/repository/${{ steps.extract-maven-coordinates.outputs.GROUP_PATH }}/
+        path: ${{ env.HOME }}/.m2/repository/${{ steps.extract-maven-coordinates.outputs.GROUP_PATH }}/
         retention-days: 1
 
   trivy-scan:
@@ -100,13 +100,13 @@ jobs:
           uses: actions/download-artifact@v4
           with:
             name: ${{ needs.build-sdk.outputs.ARTIFACT_ID }}-${{ needs.build-sdk.outputs.VERSION }}
-            path: ~/.m2/repository/${{ needs.build-sdk.outputs.GROUP_PATH }}/
+            path: ${{ env.HOME }}/.m2/repository/${{ needs.build-sdk.outputs.GROUP_PATH }}/
 
         - name: Install Trivy
           uses: aquasecurity/trivy-action@master
           with:
             scan-type: fs
-            scan-ref: ~/.m2/repository/${{ needs.build-sdk.outputs.GROUP_PATH }}/${{ needs.build-sdk.outputs.ARTIFACT_ID }}/${{  needs.build-sdk.outputs.VERSION  }}/${{ needs.build-sdk.outputs.ARTIFACT_ID }}-${{  needs.build-sdk.outputs.VERSION  }}.jar
+            scan-ref: ${{ env.HOME }}/.m2/repository/${{ needs.build-sdk.outputs.GROUP_PATH }}/${{ needs.build-sdk.outputs.ARTIFACT_ID }}/${{  needs.build-sdk.outputs.VERSION  }}/${{ needs.build-sdk.outputs.ARTIFACT_ID }}-${{  needs.build-sdk.outputs.VERSION  }}.jar
             format: table
             exit-code: 1   # schlägt fehl, wenn Vulnerabilities gefunden werden
             severity: CRITICAL,HIGH
@@ -129,13 +129,13 @@ jobs:
         uses: actions/download-artifact@v4
         with:
             name: ${{ needs.build-root.outputs.ARTIFACT_ID }}-${{ needs.build-root.outputs.VERSION }}
-            path: ~/.m2/repository/${{ needs.build-root.outputs.GROUP_PATH }}/
+            path: ${{ env.HOME }}/.m2/repository/${{ needs.build-root.outputs.GROUP_PATH }}/
 
     - name: Download njams-sdk repository
       uses: actions/download-artifact@v4
       with:
           name: ${{ needs.build-sdk.outputs.ARTIFACT_ID }}-${{ needs.build-sdk.outputs.VERSION }}
-          path: ~/.m2/repository/${{ needs.build-sdk.outputs.GROUP_PATH }}/
+          path: ${{ env.HOME }}/.m2/repository/${{ needs.build-sdk.outputs.GROUP_PATH }}/
 
     - name: Build client sample
       env:
