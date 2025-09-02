@@ -15,19 +15,6 @@
     <profiles>
         <profile>
             <id>checkstyle</id>
-            <reporting>
-                <plugins>
-                    <plugin>
-                        <artifactId>maven-project-info-reports-plugin</artifactId>
-                        <version>2.4</version>
-                        <reportSets>
-                            <reportSet>
-                                <reports/>
-                            </reportSet>
-                        </reportSets>
-                    </plugin>
-                </plugins>
-            </reporting>
             <build>
                 <plugins>
                     <plugin>
@@ -35,26 +22,15 @@
                         <version>3.0.0</version>
                         <executions>
                             <execution>
-                                <id>checkstyle-report</id>
-                                <phase>site</phase>
-                                <goals>
-                                    <goal>checkstyle</goal>
-                                </goals>
-                            </execution>
-
-                            <!-- 🚩 Prüfung mit Build-Abbruch -->
-                            <execution>
                                 <id>checkstyle-check</id>
                                 <phase>validate</phase>
                                 <goals>
                                     <goal>check</goal>
                                 </goals>
-                                <configuration>
-                                    <failsOnError>true</failsOnError>
-                                </configuration>
                             </execution>
                         </executions>
                         <configuration>
+                            <failsOnError>true</failsOnError>
                             <configLocation>src/main/resources/checkstyle.xml</configLocation>
                         </configuration>
                     </plugin>
