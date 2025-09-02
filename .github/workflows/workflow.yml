@@ -57,6 +57,8 @@ jobs:
         cache: maven
 
     - name: Create checkstyle report
+      env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: mvn -B site --file njams-sdk/pom.xml -Pgithub,checkstyle
 
     - name: Upload Checkstyle report
