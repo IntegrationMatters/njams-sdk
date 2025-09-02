@@ -65,7 +65,7 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: checkstyle-report
-        path: target/site
+        path: njams-sdk/target/site
 
     - name: Check on Error
       run: mvn -B validate --file njams-sdk/pom.xml -Pgithub,checkstyle
