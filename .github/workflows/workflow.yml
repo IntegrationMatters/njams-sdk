@@ -43,6 +43,31 @@ jobs:
         path: ~/.m2/repository/${{ steps.extract-maven-coordinates.outputs.GROUP_PATH }}/
         retention-days: 1
 
+  run-checkstyle:
+    runs-on: ubuntu-latest
+    needs: build-root
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Set up JDK
+      uses: actions/setup-java@v4
+      with:
+        java-version: '11'
+        distribution: 'temurin'
+        cache: maven
+
+    - name: Create checkstyle report
+      run: mvn -B site --file njams-sdk/pom.xml -Pcheckstyle
+
+    - name: Upload Checkstyle report
+      uses: actions/upload-artifact@v4
+      with:
+        name: checkstyle-report
+        path: target/site
+
+    - name: Check on Error
+      run: mvn -B validate --file njams-sdk/pom.xml -Pcheckstyle
+
   build-sdk:
     runs-on: ubuntu-latest
     needs:
@@ -90,6 +115,19 @@ jobs:
         name: ${{ steps.extract-maven-coordinates.outputs.ARTIFACT_ID }}-${{ steps.extract-maven-coordinates.outputs.VERSION }}
         path: ~/.m2/repository/${{ steps.extract-maven-coordinates.outputs.GROUP_PATH }}/
         retention-days: 1
+  checkstyle:
+      runs-on: ubuntu-latest
+      needs:
+          - build-sdk
+
+      steps:
+        - uses: actions/checkout@v4
+        - name: Set up JDK
+          uses: actions/setup-java@v4
+          with:
+            java-version: '11'
+            distribution: 'temurin'
+            cache: maven
 
   trivy-scan:
       runs-on: ubuntu-latest
