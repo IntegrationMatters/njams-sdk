@@ -2,7 +2,7 @@ name: Build nJAMS SDK
 on:
   push:
     branches:
-      - github_dev # Auf dem dev-Branch triggern
+      - github_dev # Trigger only on github_dev
 
 jobs:
   build-root:
