@@ -87,7 +87,7 @@ jobs:
 
       - name: Build JavaDoc
         run:
-          mvn -B generate-sources javadoc:javadoc --file pom.xml
+          mvn -B generate-sources javadoc:javadoc --file pom.xml -Pgithub
 
   build-sdk:
     runs-on: ubuntu-latest
