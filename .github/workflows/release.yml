@@ -1,0 +1,96 @@
+name: Release nJAMS SDK
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: "Branch to release from"
+        required: true
+        default: "main"
+      version:
+        description: "Release version (e.g. 1.0.0)"
+        required: true
+      prerelease:
+        description: "Is this a prerelease?"
+        required: true
+        default: "false"
+
+permissions: write-all
+
+jobs:
+  create-release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.branch }}
+          fetch-depth: 0
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Run Maven Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          mvn -B release:prepare release:perform --file pom.xml \
+            -DreleaseVersion=${{ github.event.inputs.version }} \
+            -DdevelopmentVersion=${{ github.event.inputs.version }}-SNAPSHOT \
+            -DpushChanges=true \
+            -DrevisionNumber=${{ github.run_number }} -DscmBranch=${{ github.ref_name }} -DscmCommit=${{ github.sha }}
+
+      - name: Create GitHub Release with JARs
+        uses: softprops/action-gh-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.event.inputs.version }}
+          name: Release ${{ github.event.inputs.version }}
+          files: |
+            njams-sdk/target/*.jar
+            njams-sdk-sample-client/target/*.jar
+            njams-sdk-sample-app/target/*.jar
+          prerelease: ${{ github.event.inputs.prerelease }}
+
+  create-java-doc-for-njams-sdk:
+
+    runs-on: ubuntu-latest
+    needs: create-release
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          java-version: '11'
+          distribution: 'temurin'
+          cache: maven
+          overwrite-settings: 'false'
+
+      - name: Build JavaDoc
+        run:
+          mvn -B generate-sources javadoc:javadoc --file pom.xml
+
+      - name: Prepare Javadoc publish dir
+        run: |
+          mkdir -p ./gh-pages-publish
+          cp -r njams-sdk/target/site/apidocs ./gh-pages-publish/njams-sdk
+          cp -r njams-sdk-sample-client/target/site/apidocs ./gh-pages-publish/njams-sdk-sample-client
+          cp -r njams-sdk-sample-app/target/site/apidocs ./gh-pages-publish/njams-sdk-sample-app
+
+      - name: Publish JavaDoc to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./gh-pages-publish
+          publish_branch: gh-pages
+          destination_dir: ${{ github.event.inputs.version }}
+          user_name: github-actions[bot]
+          user_email: github-actions[bot]@users.noreply.github.com
