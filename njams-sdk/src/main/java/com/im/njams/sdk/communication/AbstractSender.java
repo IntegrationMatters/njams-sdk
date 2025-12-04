@@ -111,7 +111,7 @@ public abstract class AbstractSender implements Sender {
             return "Messages will be discarded until the connection is established. "
                 + "This will affect the monitoring with nJAMS.";
         default:
-            return "Unkwown discard policy!";
+            return "Unknown discard policy!";
         }
     }
 
@@ -163,7 +163,7 @@ public abstract class AbstractSender implements Sender {
      * Implements reconnect behavior. Override this for your own reconnect handling
      * @param ex the exception that initiated the reconnect
      */
-    protected synchronized void doReconnect(Exception ex) {
+    protected void doReconnect(Exception ex) {
         synchronized (hasConnected) {
             hasConnected.set(false);
             if (LOG.isInfoEnabled() && ex != null) {
@@ -244,28 +244,31 @@ public abstract class AbstractSender implements Sender {
                     onException(e);
                 }
             }
+
             // if connecting, we're effectively disconnected
             if (isDisconnected() || isConnecting()) {
-                // discard message, if onConnectionLoss is used
-                isSent = discardPolicy == DiscardPolicy.ON_CONNECTION_LOSS;
+                isSent = discardPolicy == DiscardPolicy.ON_CONNECTION_LOSS || discardPolicy == DiscardPolicy.DISCARD;
                 if (isSent) {
                     DiscardMonitor.discard();
                     LOG.debug("Applying discard policy [{}]. Message discarded.", discardPolicy);
                     break;
                 }
             }
+
             // wait for reconnect
-            if (isConnecting()) {
-                try {
-                    Thread.sleep(1000);
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                    break;
-                }
-            } else {
-                // trigger reconnect
+            try {
+                Thread.sleep(1000);
+            }
+            catch(InterruptedException e) {
+                Thread.currentThread().interrupt();
+                break;
+            }
+
+            // trigger reconnect
+            if (!isConnected()) {
                 onException(new IllegalStateException("Not connected"));
             }
+
         } while (!isSent && !Thread.currentThread().isInterrupted() && !shouldShutdown.get());
     }
 
