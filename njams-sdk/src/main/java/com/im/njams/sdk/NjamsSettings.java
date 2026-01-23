@@ -72,7 +72,7 @@ public class NjamsSettings {
      * I.e., the smaller setting is used. Additionally a {@value KafkaUtil#HEADERS_OVERHEAD} bytes overhead has to be
      * considered which increases the allowed minimum size setting by this value when using Kafka.
      *
-     * @since 5.1.0
+     * @since 5.0.3
      */
     public static final String PROPERTY_MAX_MESSAGE_SIZE = "njams.sdk.communication.maxMessageSize";
 
