@@ -42,7 +42,7 @@ public abstract class GenericChunkAssembly<T> {
 
     private static final Logger LOG = LoggerFactory.getLogger(GenericChunkAssembly.class);
 
-    private static final int CHUNK_EXPIRATION = 5000;
+    private static final int CHUNK_EXPIRATION = 60_000;
     private static final int EXPIRATION_CHECK_INTERVAL = 1000;
 
     // message-key -> message chunks
@@ -182,15 +182,15 @@ public abstract class GenericChunkAssembly<T> {
             if (now < nextCheck) {
                 return;
             }
-            // run each minute
+            // run each second
             nextCheck = now + EXPIRATION_CHECK_INTERVAL;
             LOG.debug("Check for stalled messages. [{}]", this);
-            // expire older than 1 hour
+            // expire older than 1 minute
             long expireTime = now - CHUNK_EXPIRATION;
             int total = 0;
             try {
-                // only purge for running DPs, respectively, keep messages for DPs that are currently stopped
                 final int count = chunkedMessages.size();
+                // timestamp is the last accessed time
                 chunkedMessages.values().removeIf(c -> c.getTimestamp() < expireTime);
                 total += count - chunkedMessages.size();
             } catch (Exception e) {

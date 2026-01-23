@@ -84,6 +84,7 @@ public class ChunkedMessage {
 
     private RawMessage build() {
         if (!isComplete()) {
+            timestamp = System.currentTimeMillis();
             return null;
         }
         return new RawMessage(headers, Arrays.stream(chunks).collect(Collectors.joining()));
