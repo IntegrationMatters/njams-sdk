@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Faiz & Siegeln Software GmbH
+ * Copyright (c) 2026 Salesfive Integration Services GmbH
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
  * documentation files (the "Software"),
@@ -1009,7 +1009,7 @@ public class Njams implements InstructionListener {
 
     private void printStartupBanner() {
         LOG.info("************************************************************");
-        LOG.info("***      nJAMS SDK: Copyright (c) " + versions.get(BUILD_YEAR) + " Integration Matters GmbH");
+        LOG.info("***      nJAMS SDK: Copyright (c) " + versions.get(BUILD_YEAR) + " Salesfive Integration Services GmbH");
         LOG.info("*** ");
         LOG.info("***      Version Info:");
         versions.entrySet().stream().filter(e -> !e.getKey().toLowerCase().contains("buildyear"))
