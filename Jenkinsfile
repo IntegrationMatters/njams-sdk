@@ -6,6 +6,7 @@ properties([
         ])
 ])
 
+
 node('master') {
     def version = '4.2.2-SNAPSHOT'
     def buildGoal
