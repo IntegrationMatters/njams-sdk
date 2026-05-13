@@ -25,6 +25,7 @@ package com.im.njams.sdk.model.svg;
 
 import java.io.StringWriter;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 import javax.xml.XMLConstants;
@@ -37,6 +38,7 @@ import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 
+import com.im.njams.sdk.utils.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.w3c.dom.DOMImplementation;
@@ -106,10 +108,10 @@ public class NjamsProcessDiagramFactory implements ProcessDiagramFactory {
      */
     public NjamsProcessDiagramFactory(Njams njams) {
         disableSecureProcessing =
-                "true".equalsIgnoreCase(njams.getSettings().getPropertyWithDeprecationWarning(
-                        NjamsSettings.PROPERTY_DISABLE_SECURE_PROCESSING,
-                        DEFAULT_DISABLE_SECURE_PROCESSING,
-                        NjamsSettings.OLD_DISABLE_SECURE_PROCESSING));
+            "true".equalsIgnoreCase(njams.getSettings().getPropertyWithDeprecationWarning(
+                NjamsSettings.PROPERTY_DISABLE_SECURE_PROCESSING,
+                DEFAULT_DISABLE_SECURE_PROCESSING,
+                NjamsSettings.OLD_DISABLE_SECURE_PROCESSING));
         if (disableSecureProcessing) {
             LOG.debug("Disabled secure XML processing by configuration switch.");
         } else {
@@ -182,18 +184,18 @@ public class NjamsProcessDiagramFactory implements ProcessDiagramFactory {
 
         // draw root activities
         List<ActivityModel> rootActivities =
-                processModel.getActivityModels().stream().filter(a -> a.getParent() == null)
-                        .filter(a -> !(a instanceof GroupModel)).collect(Collectors.toList());
+            processModel.getActivityModels().stream().filter(a -> a.getParent() == null)
+                .filter(a -> !(a instanceof GroupModel)).collect(Collectors.toList());
         rootActivities.forEach(a -> drawActivity(context, a));
 
         // draw root transitions
         List<TransitionModel> rootTransition = processModel.getTransitionModels().stream()
-                .filter(a -> a.getParent() == null).collect(Collectors.toList());
+            .filter(a -> a.getParent() == null).collect(Collectors.toList());
         rootTransition.forEach(t -> drawTransition(context, t));
 
         // draw root groups
         List<GroupModel> rootGroups = processModel.getActivityModels().stream().filter(a -> a.getParent() == null)
-                .filter(a -> a instanceof GroupModel).map(GroupModel.class::cast).collect(Collectors.toList());
+            .filter(a -> a instanceof GroupModel).map(GroupModel.class::cast).collect(Collectors.toList());
         rootGroups.forEach(a -> drawGroup(context, a));
 
         drawExtraElements(context);
@@ -372,7 +374,7 @@ public class NjamsProcessDiagramFactory implements ProcessDiagramFactory {
 
         // draw root activities
         List<ActivityModel> groupActivities = groupModel.getChildActivities().stream()
-                .filter(a -> !(a instanceof GroupModel)).collect(Collectors.toList());
+            .filter(a -> !(a instanceof GroupModel)).collect(Collectors.toList());
         groupActivities.forEach(a -> drawActivity(context, a));
 
         // draw root transitions
@@ -381,7 +383,7 @@ public class NjamsProcessDiagramFactory implements ProcessDiagramFactory {
 
         // draw root groups
         List<GroupModel> groupGroups = groupModel.getChildActivities().stream().filter(a -> a instanceof GroupModel)
-                .map(GroupModel.class::cast).collect(Collectors.toList());
+            .map(GroupModel.class::cast).collect(Collectors.toList());
         groupGroups.forEach(a -> drawGroup(context, a));
 
         // after drawing my childs, set back to the previous parent
@@ -437,15 +439,19 @@ public class NjamsProcessDiagramFactory implements ProcessDiagramFactory {
         line.setAttributeNS(null, "style", "cursor: pointer; stroke:#000; fill:#000");
         context.getContainerElement().appendChild(line);
 
-        // create text under transition on half way to next activity
-        double x = fromPoint.getX() + (fromPoint.getX() - fromPoint.getY()) / 2;
-        double y = fromPoint.getX() + DEFAULT_TEXT_SIZE;
-        Element bwTransitionText = context.getDoc().createElementNS(context.getSvgNS(), "text");
-        bwTransitionText.setAttributeNS(null, "id", transitionModel.getId() + "_label");
-        bwTransitionText.setAttributeNS(null, "x", String.valueOf(x));
-        bwTransitionText.setAttributeNS(null, "y", String.valueOf(y));
-        bwTransitionText.setAttributeNS(null, "text-anchor", "middle");
-        context.getContainerElement().appendChild(bwTransitionText);
+        if (StringUtils.isNotBlank(transitionModel.getName()) && !Objects.equals(transitionModel.getName(),
+            transitionModel.getId())) {
+            // create text under transition on half way to next activity
+            double x = (fromPoint.getX() + toPoint.getX()) / 2;
+            double y = (fromPoint.getY() + toPoint.getY()) / 2 + DEFAULT_TEXT_SIZE;
+            Element bwTransitionText = context.getDoc().createElementNS(context.getSvgNS(), "text");
+            bwTransitionText.setAttributeNS(null, "id", transitionModel.getId() + "_label");
+            bwTransitionText.setAttributeNS(null, "x", String.valueOf(x));
+            bwTransitionText.setAttributeNS(null, "y", String.valueOf(y));
+            bwTransitionText.setAttributeNS(null, "text-anchor", "middle");
+            bwTransitionText.setTextContent(transitionModel.getName());
+            context.getContainerElement().appendChild(bwTransitionText);
+        }
     }
 
     /**
