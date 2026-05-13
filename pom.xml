@@ -70,8 +70,6 @@
         <!-- Test -->
         <junit.version>4.13.2</junit.version>
         <mockito.version>1.10.19</mockito.version>
-        <tibcrypt.version>5.1.0</tibcrypt.version>
-        <tibjms.version>5.1.0</tibjms.version>
     </properties>
 
     <build>
@@ -188,16 +186,6 @@
                 <groupId>com.faizsiegeln</groupId>
                 <artifactId>njams-messageformat</artifactId>
                 <version>${njams-messageformat.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>tibco</groupId>
-                <artifactId>tibcrypt</artifactId>
-                <version>${tibcrypt.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>tibco</groupId>
-                <artifactId>tibjms</artifactId>
-                <version>${tibjms.version}</version>
             </dependency>
             <dependency>
                 <groupId>javax.jms</groupId>
