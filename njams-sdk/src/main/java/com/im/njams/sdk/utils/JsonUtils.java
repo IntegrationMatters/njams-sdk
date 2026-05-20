@@ -94,8 +94,24 @@ public class JsonUtils {
      *             If serializing the object to JSON failed.
      */
     public static String serialize(Object object) throws NjamsSdkRuntimeException {
+        return serialize(object, false);
+    }
+
+    /**
+     * Serializes the given object to a JSON string.
+     *
+     * @param object
+     *            The object to serialize.
+     * @param prettyPrint
+     *            If true uses the default mapper (pretty-printed JSON), otherwise the fast mapper.
+     * @return JSON string representing the given object.
+     * @throws NjamsSdkRuntimeException
+     *             If serializing the object to JSON failed.
+     */
+    public static String serialize(Object object, boolean prettyPrint) throws NjamsSdkRuntimeException {
         try {
-            return JsonSerializerFactory.getFastMapper().writeValueAsString(object);
+            return (prettyPrint ? JsonSerializerFactory.getDefaultMapper() : JsonSerializerFactory.getFastMapper())
+                    .writeValueAsString(object);
         } catch (Exception e) {
             throw new NjamsSdkRuntimeException("Could not serialize Object " + object, e);
         }
