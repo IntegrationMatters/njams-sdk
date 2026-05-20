@@ -23,39 +23,80 @@
  */
 package com.im.njams.sdk.model.svg;
 
-import static org.mockito.Mockito.when;
+import java.io.ByteArrayInputStream;
+import java.nio.charset.StandardCharsets;
+
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.transform.stream.StreamSource;
 
 import org.junit.Assert;
 import org.junit.Test;
-import org.mockito.Mockito;
-
-import com.im.njams.sdk.Njams;
-import com.im.njams.sdk.NjamsSettings;
-import com.im.njams.sdk.settings.Settings;
+import org.w3c.dom.Document;
 
 public class NjamsProcessDiagramFactoryTest {
 
     @Test
     public void testSecureProcessingEnabled() {
-        Settings config = new Settings();
-        config.put(NjamsSettings.PROPERTY_DISABLE_SECURE_PROCESSING, "false");
-
-        Njams njams = Mockito.mock(Njams.class);
-        when(njams.getSettings()).thenReturn(config);
-        NjamsProcessDiagramFactory factory = new NjamsProcessDiagramFactory(njams);
+        NjamsProcessDiagramFactory factory = new NjamsProcessDiagramFactory(false);
 
         Assert.assertFalse(factory.disableSecureProcessing);
     }
 
     @Test
     public void testSecureProcessingDisabled() {
-        Settings config = new Settings();
-        config.put(NjamsSettings.PROPERTY_DISABLE_SECURE_PROCESSING, "true");
-
-        Njams njams = Mockito.mock(Njams.class);
-        when(njams.getSettings()).thenReturn(config);
-        NjamsProcessDiagramFactory factory = new NjamsProcessDiagramFactory(njams);
+        NjamsProcessDiagramFactory factory = new NjamsProcessDiagramFactory(true);
 
         Assert.assertTrue(factory.disableSecureProcessing);
+    }
+
+    @Test
+    public void testWithXsltString() throws Exception {
+        NjamsProcessDiagramFactory factory = new NjamsProcessDiagramFactory(false);
+        String result = factory.withXslt(getMarkingXslt()).serializeDocument(createSimpleContext());
+        Assert.assertTrue(result.contains("data-postprocessed=\"yes\""));
+    }
+
+    @Test
+    public void testWithXsltSource() throws Exception {
+        NjamsProcessDiagramFactory factory = new NjamsProcessDiagramFactory(false);
+        String result = factory.withXslt(new StreamSource(new java.io.StringReader(getMarkingXslt())))
+            .serializeDocument(createSimpleContext());
+        Assert.assertTrue(result.contains("data-postprocessed=\"yes\""));
+    }
+
+    @Test
+    public void testWithXsltInputStream() throws Exception {
+        NjamsProcessDiagramFactory factory = new NjamsProcessDiagramFactory(false);
+        ByteArrayInputStream in = new ByteArrayInputStream(getMarkingXslt().getBytes(StandardCharsets.UTF_8));
+        String result = factory.withXslt(in).serializeDocument(createSimpleContext());
+        Assert.assertTrue(result.contains("data-postprocessed=\"yes\""));
+    }
+
+    private static NjamsProcessDiagramContext createSimpleContext() throws Exception {
+        DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+        Document doc = dbf.newDocumentBuilder().newDocument();
+        doc.appendChild(doc.createElementNS("http://www.w3.org/2000/svg", "svg"));
+        NjamsProcessDiagramContext context = new NjamsProcessDiagramContext();
+        context.setDoc(doc);
+        context.setSvgNS("http://www.w3.org/2000/svg");
+        return context;
+    }
+
+    private static String getMarkingXslt() {
+        return "<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
+            + "<xsl:stylesheet version=\"1.0\" xmlns:xsl=\"http://www.w3.org/1999/XSL/Transform\" "
+            + "xmlns:svg=\"http://www.w3.org/2000/svg\">"
+            + "<xsl:output method=\"xml\" indent=\"yes\" encoding=\"UTF-8\"/>"
+            + "<xsl:template match=\"@*|node()\">"
+            + "<xsl:copy><xsl:apply-templates select=\"@*|node()\"/></xsl:copy>"
+            + "</xsl:template>"
+            + "<xsl:template match=\"svg:svg\">"
+            + "<xsl:copy>"
+            + "<xsl:apply-templates select=\"@*\"/>"
+            + "<xsl:attribute name=\"data-postprocessed\">yes</xsl:attribute>"
+            + "<xsl:apply-templates select=\"node()\"/>"
+            + "</xsl:copy>"
+            + "</xsl:template>"
+            + "</xsl:stylesheet>";
     }
 }

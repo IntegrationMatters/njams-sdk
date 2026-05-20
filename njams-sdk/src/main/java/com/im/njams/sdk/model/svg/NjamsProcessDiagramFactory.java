@@ -23,6 +23,8 @@
  */
 package com.im.njams.sdk.model.svg;
 
+import java.io.InputStream;
+import java.io.StringReader;
 import java.io.StringWriter;
 import java.util.List;
 import java.util.Objects;
@@ -32,11 +34,15 @@ import javax.xml.XMLConstants;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.transform.OutputKeys;
+import javax.xml.transform.Source;
+import javax.xml.transform.Templates;
 import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerConfigurationException;
 import javax.xml.transform.TransformerException;
 import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
+import javax.xml.transform.stream.StreamSource;
 
 import com.im.njams.sdk.utils.StringUtils;
 import org.slf4j.Logger;
@@ -100,6 +106,8 @@ public class NjamsProcessDiagramFactory implements ProcessDiagramFactory {
 
     protected boolean disableSecureProcessing = false;
 
+    private volatile Templates postProcessXsltTemplates;
+
     /**
      * Creates the objects by using the settings values of the Njams
      * instance, or the defaults.
@@ -107,16 +115,57 @@ public class NjamsProcessDiagramFactory implements ProcessDiagramFactory {
      * @param njams Initialize this entry with this Njams
      */
     public NjamsProcessDiagramFactory(Njams njams) {
-        disableSecureProcessing =
-            "true".equalsIgnoreCase(njams.getSettings().getPropertyWithDeprecationWarning(
-                NjamsSettings.PROPERTY_DISABLE_SECURE_PROCESSING,
-                DEFAULT_DISABLE_SECURE_PROCESSING,
-                NjamsSettings.OLD_DISABLE_SECURE_PROCESSING));
+        this("true".equalsIgnoreCase(njams.getSettings().getPropertyWithDeprecationWarning(
+            NjamsSettings.PROPERTY_DISABLE_SECURE_PROCESSING,
+            DEFAULT_DISABLE_SECURE_PROCESSING,
+            NjamsSettings.OLD_DISABLE_SECURE_PROCESSING)));
+    }
+
+    NjamsProcessDiagramFactory(boolean disableSecureProcessing) {
+        this.disableSecureProcessing = disableSecureProcessing;
         if (disableSecureProcessing) {
             LOG.debug("Disabled secure XML processing by configuration switch.");
         } else {
             LOG.debug("Enabled secure XML processing.");
         }
+    }
+
+    /**
+     * Configure an XSLT stylesheet to be applied after SVG generation.
+     *
+     * @param xsltSource the stylesheet source
+     * @return this factory for fluent API usage
+     */
+    public NjamsProcessDiagramFactory withXslt(Source xsltSource) {
+        Objects.requireNonNull(xsltSource, "xsltSource must not be null");
+        try {
+            postProcessXsltTemplates = createTransformerFactory().newTemplates(xsltSource);
+            return this;
+        } catch (TransformerConfigurationException e) {
+            throw new NjamsSdkRuntimeException("Error compiling process diagram XSLT", e);
+        }
+    }
+
+    /**
+     * Configure an XSLT stylesheet from a String to be applied after SVG generation.
+     *
+     * @param xslt the stylesheet content
+     * @return this factory for fluent API usage
+     */
+    public NjamsProcessDiagramFactory withXslt(String xslt) {
+        Objects.requireNonNull(xslt, "xslt must not be null");
+        return withXslt(new StreamSource(new StringReader(xslt)));
+    }
+
+    /**
+     * Configure an XSLT stylesheet from a stream to be applied after SVG generation.
+     *
+     * @param xsltStream the stylesheet stream
+     * @return this factory for fluent API usage
+     */
+    public NjamsProcessDiagramFactory withXslt(InputStream xsltStream) {
+        Objects.requireNonNull(xsltStream, "xsltStream must not be null");
+        return withXslt(new StreamSource(xsltStream));
     }
 
     /**
@@ -521,15 +570,31 @@ public class NjamsProcessDiagramFactory implements ProcessDiagramFactory {
      */
     protected String serializeDocument(NjamsProcessDiagramContext context) throws TransformerException {
         StringWriter sw = new StringWriter();
-        TransformerFactory tf = TransformerFactory.newInstance("net.sf.saxon.TransformerFactoryImpl", null);
-        Transformer transformer = tf.newTransformer();
-        transformer.setOutputProperty(OutputKeys.OMIT_XML_DECLARATION, "no");
-        transformer.setOutputProperty(OutputKeys.METHOD, "xml");
-        transformer.setOutputProperty(OutputKeys.INDENT, "yes");
-        transformer.setOutputProperty(OutputKeys.ENCODING, "UTF-8");
+        Transformer transformer;
+        if (postProcessXsltTemplates != null) {
+            transformer = postProcessXsltTemplates.newTransformer();
+        } else {
+            transformer = createTransformerFactory().newTransformer();
+            transformer.setOutputProperty(OutputKeys.OMIT_XML_DECLARATION, "no");
+            transformer.setOutputProperty(OutputKeys.METHOD, "xml");
+            transformer.setOutputProperty(OutputKeys.INDENT, "yes");
+            transformer.setOutputProperty(OutputKeys.ENCODING, "UTF-8");
+        }
 
         transformer.transform(new DOMSource(context.getDoc()), new StreamResult(sw));
         return sw.toString();
+    }
+
+    private TransformerFactory createTransformerFactory() {
+        TransformerFactory tf = TransformerFactory.newInstance("net.sf.saxon.TransformerFactoryImpl", null);
+        if (!disableSecureProcessing) {
+            try {
+                tf.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
+            } catch (TransformerConfigurationException e) {
+                throw new NjamsSdkRuntimeException("Error enabling secure processing for XML transformer", e);
+            }
+        }
+        return tf;
     }
 
     /**
