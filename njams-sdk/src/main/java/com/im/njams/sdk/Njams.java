@@ -212,7 +212,7 @@ public class Njams implements InstructionListener {
     // Also used for synchronizing access to the project message resources:
     // process-models, images, global-variables, tree-elements
     // Path -> ProcessModel
-    private final Map<String, ProcessModel> processModels = new HashMap<>();
+    private final Map<com.im.njams.sdk.Path, ProcessModel> processModels = new HashMap<>();
 
     // Images
     private final Collection<ImageSupplier> images = new HashSet<>();
@@ -636,7 +636,7 @@ public class Njams implements InstructionListener {
         final Path absolutePath = getClientPath().add(relativePath);
         final ProcessModel pm;
         synchronized (processModels) {
-            pm = processModels.get(absolutePath.toString());
+            pm = processModels.get(com.im.njams.sdk.Path.of(absolutePath));
         }
         if (pm == null) {
             throw new NjamsSdkRuntimeException("ProcessModel not found for path " + relativePath);
@@ -656,7 +656,7 @@ public class Njams implements InstructionListener {
         }
         final Path absolutePath = getClientPath().add(relativePath);
         synchronized (processModels) {
-            return processModels.containsKey(absolutePath.toString());
+            return processModels.containsKey(com.im.njams.sdk.Path.of(absolutePath));
         }
     }
 
@@ -703,7 +703,7 @@ public class Njams implements InstructionListener {
         final ProcessModel model = new ProcessModel(fullClientPath, this);
         synchronized (processModels) {
             createTreeElements(fullClientPath, TreeElementType.PROCESS);
-            processModels.put(fullClientPath.toString(), model);
+            processModels.put(com.im.njams.sdk.Path.of(fullClientPath), model);
         }
         return model;
     }
@@ -728,7 +728,7 @@ public class Njams implements InstructionListener {
         }
         synchronized (processModels) {
             createTreeElements(processModel.getPath(), TreeElementType.PROCESS);
-            processModels.put(processModel.getPath().toString(), processModel);
+            processModels.put(com.im.njams.sdk.Path.of(processModel.getPath()), processModel);
         }
     }
 
@@ -881,7 +881,7 @@ public class Njams implements InstructionListener {
         treeElements.stream().filter(t -> t.getTreeElementType() == TreeElementType.PROCESS)
                 .forEach(t -> t.setStarter(
                         Optional.ofNullable(
-                                processModels.get(t.getPath())).map(ProcessModel::isStarter).orElse(false)));
+                                processModels.get(com.im.njams.sdk.Path.resolve(t.getPath()))).map(ProcessModel::isStarter).orElse(false)));
     }
 
     private List<TreeElement> addTreeElements(List<TreeElement> treeElements, Path processPath,
