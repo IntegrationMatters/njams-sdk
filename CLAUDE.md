@@ -172,6 +172,7 @@ Apply best practices and maintain clean architecture in all production code. Cod
 
 ### General Principles
 
+- **Prefer imports over fully qualified class names.** Always import a class and use the simple name. Reach for fully qualified names only when a same-simple-name conflict in the file leaves no other option — for example, during the legacy-to-new `Path` migration where both `com.im.njams.sdk.Path` and `com.im.njams.sdk.common.Path` appear. In that case, **import the new type and fully qualify the legacy one**.
 - **SOLID.** Single responsibility per class and method. Depend on abstractions, not implementations. Keep interfaces focused.
 - **Self-documenting code.** Names for classes, methods, and variables should express intent clearly enough that comments are rarely needed. A comment is warranted only when the *why* is non-obvious from the code.
 - **No unnecessary complexity.** Solve the problem at hand. Do not introduce abstractions, patterns, or generalisations that have no current use.
