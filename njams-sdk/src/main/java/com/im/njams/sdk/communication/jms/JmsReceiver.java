@@ -34,6 +34,7 @@ import java.util.Properties;
 import java.util.UUID;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import javax.jms.Connection;
 import javax.jms.ConnectionFactory;
@@ -56,9 +57,9 @@ import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.NjamsSettings;
+import com.im.njams.sdk.Path;
 import com.im.njams.sdk.common.JsonSerializerFactory;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
-import com.im.njams.sdk.common.Path;
 import com.im.njams.sdk.communication.AbstractReceiver;
 import com.im.njams.sdk.communication.ConnectionStatus;
 import com.im.njams.sdk.communication.fragments.JMSChunkAssembly;
@@ -151,8 +152,8 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
         if (njamsInstances.isEmpty()) {
             return null;
         }
-        final String selector = njamsInstances.stream().map(Njams::getClientPath).map(p -> p.toLegacyPath().getAllPaths())
-            .flatMap(Collection::stream).map(Object::toString).sorted()
+        final String selector = njamsInstances.stream().map(Njams::getClientPath).flatMap(JmsReceiver::ancestorPathStrings)
+            .sorted()
             .collect(Collectors.joining("' OR NJAMS_RECEIVER = '", "NJAMS_RECEIVER = '", "'"));
         LOG.debug("Updated message selector: {}", selector);
         return selector;
@@ -172,9 +173,7 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
 
         final Collection<String> paths = njamsInstances.stream()
             .map(Njams::getClientPath)
-            .map(p -> p.toLegacyPath().getAllPaths())
-            .flatMap(Collection::stream)
-            .map(Object::toString)
+            .flatMap(JmsReceiver::ancestorPathStrings)
             .collect(Collectors.toSet());
         final Predicate<Message> filter = m -> {
             try {
@@ -201,6 +200,14 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
         };
         LOG.debug("Updated message filter with timestamp {} and paths: {}", oldestMessageTime, paths);
         return filter;
+    }
+
+    private static Stream<String> ancestorPathStrings(Path path) {
+        List<String> result = new ArrayList<>();
+        for (Path p = path; !p.isRoot(); p = p.getParent()) {
+            result.add(p.toString());
+        }
+        return result.stream();
     }
 
     /**

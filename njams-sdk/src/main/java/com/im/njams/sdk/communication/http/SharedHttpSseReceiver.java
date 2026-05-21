@@ -32,7 +32,7 @@ import org.slf4j.LoggerFactory;
 
 import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
 import com.im.njams.sdk.Njams;
-import com.im.njams.sdk.common.Path;
+import com.im.njams.sdk.Path;
 import com.im.njams.sdk.communication.ShareableReceiver;
 import com.im.njams.sdk.communication.SharedReceiverSupport;
 import com.im.njams.sdk.communication.fragments.RawMessage;
@@ -69,7 +69,7 @@ public class SharedHttpSseReceiver extends HttpSseReceiver implements ShareableR
 
     @Override
     public Path getReceiverPath(Map<String, String> eventHeaders, Instruction instruction) {
-        return new Path(eventHeaders.get(NJAMS_RECEIVER_HTTP_HEADER));
+        return Path.resolve(eventHeaders.get(NJAMS_RECEIVER_HTTP_HEADER));
     }
 
     @Override

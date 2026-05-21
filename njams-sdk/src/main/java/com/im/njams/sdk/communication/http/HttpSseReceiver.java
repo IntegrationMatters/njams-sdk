@@ -43,8 +43,8 @@ import org.slf4j.LoggerFactory;
 
 import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
 import com.im.njams.sdk.NjamsSettings;
+import com.im.njams.sdk.Path;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
-import com.im.njams.sdk.common.Path;
 import com.im.njams.sdk.communication.AbstractReceiver;
 import com.im.njams.sdk.communication.ConnectionStatus;
 import com.im.njams.sdk.communication.fragments.HttpSseChunkAssembly;
@@ -233,7 +233,7 @@ public class HttpSseReceiver extends AbstractReceiver implements BackgroundEvent
             return false;
         }
         final String receiver = headers.get(NJAMS_RECEIVER_HTTP_HEADER);
-        if (StringUtils.isBlank(receiver) || !njams.getClientPath().equals(new Path(receiver))) {
+        if (StringUtils.isBlank(receiver) || njams.getClientPath() != Path.resolve(receiver)) {
             LOG.debug("Message is not for me! Client path from message is: {} but nJAMS client path is: {} ", receiver,
                 njams.getClientPath());
             return false;

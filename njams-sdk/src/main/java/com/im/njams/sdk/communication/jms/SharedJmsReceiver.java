@@ -38,7 +38,7 @@ import org.slf4j.LoggerFactory;
 
 import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
 import com.im.njams.sdk.Njams;
-import com.im.njams.sdk.common.Path;
+import com.im.njams.sdk.Path;
 import com.im.njams.sdk.communication.ShareableReceiver;
 import com.im.njams.sdk.communication.SharedReceiverSupport;
 import com.im.njams.sdk.utils.StringUtils;
@@ -142,7 +142,7 @@ public class SharedJmsReceiver extends JmsReceiver implements ShareableReceiver<
     @Override
     public Path getReceiverPath(Message requestMessage, Instruction instruction) {
         try {
-            return new Path(requestMessage.getStringProperty(NJAMS_RECEIVER_HEADER));
+            return Path.resolve(requestMessage.getStringProperty(NJAMS_RECEIVER_HEADER));
         } catch (JMSException e) {
             LOG.error("Error reading JMS property", e);
         }

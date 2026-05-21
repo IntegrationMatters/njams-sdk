@@ -32,7 +32,7 @@ import org.slf4j.LoggerFactory;
 
 import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
 import com.im.njams.sdk.Njams;
-import com.im.njams.sdk.common.Path;
+import com.im.njams.sdk.Path;
 import com.im.njams.sdk.communication.ConnectionStatus;
 import com.im.njams.sdk.communication.ShareableReceiver;
 import com.im.njams.sdk.communication.SharedReceiverSupport;
@@ -69,7 +69,7 @@ public class SharedKafkaReceiver extends KafkaReceiver implements ShareableRecei
 
     @Override
     public Path getReceiverPath(final ConsumerRecord<?, ?> requestMessage, final Instruction instruction) {
-        return new Path(getHeader(requestMessage, NJAMS_RECEIVER_HEADER));
+        return Path.resolve(getHeader(requestMessage, NJAMS_RECEIVER_HEADER));
     }
 
     @Override

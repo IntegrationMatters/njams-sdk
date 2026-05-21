@@ -34,7 +34,7 @@ import org.slf4j.LoggerFactory;
 import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
 import com.faizsiegeln.njams.messageformat.v4.command.Response;
 import com.im.njams.sdk.Njams;
-import com.im.njams.sdk.common.Path;
+import com.im.njams.sdk.Path;
 import com.im.njams.sdk.utils.StringUtils;
 
 /**
@@ -67,7 +67,7 @@ public class SharedReceiverSupport<R extends AbstractReceiver & ShareableReceive
      */
     public void addNjams(Njams njamsInstance) {
         synchronized (njamsInstances) {
-            njamsInstances.put(njamsInstance.getClientPath().toLegacyPath(), njamsInstance);
+            njamsInstances.put(njamsInstance.getClientPath(), njamsInstance);
         }
         LOG.debug("Added client {} to shared receiver; {} attached receivers.", njamsInstance.getClientPath(),
                 njamsInstances.size());
@@ -83,7 +83,7 @@ public class SharedReceiverSupport<R extends AbstractReceiver & ShareableReceive
     public boolean removeNjams(Njams njamsInstance) {
 
         synchronized (njamsInstances) {
-            njamsInstances.remove(njamsInstance.getClientPath().toLegacyPath());
+            njamsInstances.remove(njamsInstance.getClientPath());
             LOG.debug("Removed client {} from shared receiver; {} remaining receivers.", njamsInstance.getClientPath(),
                     njamsInstances.size());
             if (njamsInstances.isEmpty()) {

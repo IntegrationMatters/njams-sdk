@@ -47,8 +47,8 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.common.JsonSerializerFactory;
+import com.im.njams.sdk.Path;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
-import com.im.njams.sdk.common.Path;
 import com.im.njams.sdk.communication.AbstractReceiver;
 import com.im.njams.sdk.communication.ConnectionStatus;
 import com.im.njams.sdk.communication.fragments.KafkaChunkAssembly;
@@ -236,7 +236,7 @@ public class KafkaReceiver extends AbstractReceiver {
             return false;
         }
         final String receiver = getHeader(msg, NJAMS_RECEIVER_HEADER);
-        if (StringUtils.isBlank(receiver) || !njams.getClientPath().equals(new Path(receiver))) {
+        if (StringUtils.isBlank(receiver) || njams.getClientPath() != Path.resolve(receiver)) {
             LOG.debug("Message is not for me!");
             return false;
         }
