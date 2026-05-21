@@ -20,6 +20,8 @@ SDK-123 #comment <description>
 
 **When creating a new Jira ticket** (for a bug that has none yet), always set the `fix version` field to the current working copy's version with the `-SNAPSHOT` suffix stripped — read from the root `pom.xml`. Example: working on `6.0.0-SNAPSHOT` → fix version `6.0.0`.
 
+**Manage the `breaking-change` label on the ticket.** If the fix changes any public or protected API signature, return type, parameter type, or observable behaviour, add the `breaking-change` label. If the fix does not break public API, remove the label if present. Check the label at the start of the fix and again before declaring it done.
+
 **Never modify an existing test case without explicit user permission.** If your fix causes an existing test to fail, the fix is wrong — not the test. Stop and reconsider the approach.
 
 **If you believe a test case is incorrect**, do not change it unilaterally. Write out:

@@ -15,6 +15,8 @@ Every `public` or `protected` member you add becomes a permanent commitment to a
 
 **When creating a new Jira ticket** (for a feature that has none yet), always set the `fix version` field to the current working copy's version with the `-SNAPSHOT` suffix stripped — read from the root `pom.xml`. Example: working on `6.0.0-SNAPSHOT` → fix version `6.0.0`.
 
+**Manage the `breaking-change` label on the ticket.** Purely additive features (new methods, classes, overloads) are not breaking — make sure the label is absent. If the feature inadvertently requires changing an existing signature, return type, parameter type, or behaviour, add the `breaking-change` label. Check at the start and again before declaring the feature done.
+
 **Default scope is private.** Every new field, method, and class starts as `private` or package-private. Promote to `public`/`protected` only when there is a clear, intentional reason for external access.
 
 **Clarify the public API before any planning or implementation.** If it is not obvious what callers will need to use from the outside, stop and ask. Do not infer the API surface from implementation needs — those are internal details.

@@ -25,6 +25,8 @@ The deprecated member is still existing code being modified — the full test co
 
 **All commits must reference the related Jira ticket** using the Smart Commits format: `SDK-XXX #comment <description>`. If no ticket has been provided, ask before committing.
 
+**Manage the `breaking-change` label on the ticket.** Since this workflow is about modifying existing code, any modification that touches a public or protected member's signature, return type, parameter type, or observable behaviour is breaking — add the `breaking-change` label. Pure refactors of private/internal code, or purely additive new public members, are not breaking — make sure the label is absent. Check at the start of the modification and again before declaring it done.
+
 **Tests written during this workflow are frozen.** They document what the code does. If your modification breaks one of these tests, fix your code — never the test.
 
 ## Workflow
@@ -95,7 +97,10 @@ All tests must be green before you write a single line of modification. If tests
 **5. Make your changes.**
 Implement the requested modification. Do not touch test code. Apply clean code and architecture principles: keep changes focused, respect layer boundaries, use clear naming, and avoid introducing unnecessary complexity. If the change adds or exposes any new `public` or `protected` member in production code, it must have Javadoc. If it deprecates an existing member, the Javadoc must include a `@deprecated` tag referencing the replacement. Documentation and code quality rules do not apply to test code.
 
-**6. Verify the baseline holds.**
+**6. Update the FAQ if settings are affected.**
+If the change alters a setting's behavior or default, deprecates a setting, or removes one, update `C:\scm\GitHub\njams-sdk.wiki\FAQ.md` and push the wiki change.
+
+**7. Verify the baseline holds.**
 ```bash
 mvn test -Dtest=YourTestClass -pl njams-sdk
 ```
@@ -116,5 +121,6 @@ If any test fails, revert your implementation change and rethink the approach. T
 | Changing or removing a public member without being asked | Raise it with the user — adding new members is fine, changing/removing is not |
 | Removing deprecated old API when adding new replacement | Keep both; mark old one `@Deprecated` with `@deprecated` Javadoc pointing to new |
 | Adding a new public member without Javadoc | All public/protected members must have Javadoc — no exceptions |
+| Changing a setting without updating the FAQ | Any change to a setting's behavior, default, deprecation, or removal must be reflected in the wiki FAQ |
 | Treating a passing build as coverage | Compilation proves nothing; tests assert behavior |
 | Writing tests after the change | Tests written post-change just describe what you did, not what the code should do |
