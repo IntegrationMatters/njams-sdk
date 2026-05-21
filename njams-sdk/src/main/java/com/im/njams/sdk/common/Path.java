@@ -35,7 +35,10 @@ import java.util.stream.Collectors;
  * String representation uses the &gt; as separator between path elements.
  *
  * @author pnientiedt
+ * @deprecated Use {@link com.im.njams.sdk.Path} instead, which guarantees path uniqueness,
+ *     immutability, and thread-safety.
  */
+@Deprecated
 public class Path implements Comparable<Path> {
 
     private final String pathAsString;
