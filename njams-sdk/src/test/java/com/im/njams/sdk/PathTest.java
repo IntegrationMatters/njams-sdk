@@ -545,6 +545,28 @@ public class PathTest {
         Path.of("mgocSepChain").getOrCreateChild("a", "b>c");
     }
 
+    // --- getSegments ---
+
+    @Test
+    public void segmentsOfRootIsEmpty() {
+        assertTrue(Path.ROOT.getSegments().isEmpty());
+    }
+
+    @Test
+    public void segmentsOfSingleNode() {
+        assertEquals(java.util.Arrays.asList("seg1"), Path.of("seg1").getSegments());
+    }
+
+    @Test
+    public void segmentsOfNestedNode() {
+        assertEquals(java.util.Arrays.asList("a", "b", "c"), Path.of("a", "b", "c").getSegments());
+    }
+
+    @Test(expected = UnsupportedOperationException.class)
+    public void segmentsAreUnmodifiable() {
+        Path.of("immutsegA").getSegments().add("illegal");
+    }
+
     // --- getSegmentName ---
 
     @Test

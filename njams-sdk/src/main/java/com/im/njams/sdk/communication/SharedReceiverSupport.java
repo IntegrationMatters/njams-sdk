@@ -67,7 +67,7 @@ public class SharedReceiverSupport<R extends AbstractReceiver & ShareableReceive
      */
     public void addNjams(Njams njamsInstance) {
         synchronized (njamsInstances) {
-            njamsInstances.put(njamsInstance.getClientPath(), njamsInstance);
+            njamsInstances.put(njamsInstance.getClientPath().toLegacyPath(), njamsInstance);
         }
         LOG.debug("Added client {} to shared receiver; {} attached receivers.", njamsInstance.getClientPath(),
                 njamsInstances.size());
@@ -83,7 +83,7 @@ public class SharedReceiverSupport<R extends AbstractReceiver & ShareableReceive
     public boolean removeNjams(Njams njamsInstance) {
 
         synchronized (njamsInstances) {
-            njamsInstances.remove(njamsInstance.getClientPath());
+            njamsInstances.remove(njamsInstance.getClientPath().toLegacyPath());
             LOG.debug("Removed client {} from shared receiver; {} remaining receivers.", njamsInstance.getClientPath(),
                     njamsInstances.size());
             if (njamsInstances.isEmpty()) {

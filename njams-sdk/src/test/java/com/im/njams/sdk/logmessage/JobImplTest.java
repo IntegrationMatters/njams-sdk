@@ -54,7 +54,7 @@ import com.im.njams.sdk.AbstractTest;
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.common.DateTimeUtility;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
-import com.im.njams.sdk.common.Path;
+import com.im.njams.sdk.Path;
 import com.im.njams.sdk.communication.NjamsSender;
 import com.im.njams.sdk.communication.TestReceiver;
 import com.im.njams.sdk.model.ActivityModel;
@@ -160,16 +160,16 @@ public class JobImplTest extends AbstractTest {
     @Test
     public void testDataMaskingAfterFlushing() {
 
-        Path clientPath = new Path("SDK4", "TEST");
+        Path clientPath = Path.of("SDK4", "TEST");
 
         Njams mockedNjams = spy(new Njams(clientPath, "1.0.0", "sdk4", TestReceiver.getSettings()));
-        Path processPath = new Path("PROCESSES");
+        Path processPath = Path.of("PROCESSES");
         mockedNjams.createProcess(processPath);
         mockedNjams.start();
         //add DataMasking
         DataMasking.addPattern(".*");
         //Create a job
-        ProcessModel process = mockedNjams.getProcessModel(new Path(PROCESSPATHNAME));
+        ProcessModel process = mockedNjams.getProcessModel(Path.of(PROCESSPATHNAME));
         process.createActivity("id", "name", null);
         JobImpl job = (JobImpl) process.createJob();
 

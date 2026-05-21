@@ -23,8 +23,10 @@
  */
 package com.im.njams.sdk;
 
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -204,6 +206,28 @@ public final class Path {
      */
     public String getSegmentName() {
         return segment;
+    }
+
+    /**
+     * Returns the ordered list of segment names that make up this path, root first.
+     * Empty for the {@link #ROOT} path.
+     *
+     * @return an unmodifiable, ordered list of segment names; never {@code null}
+     */
+    public List<String> getSegments() {
+        if (parent == null) {
+            return Collections.emptyList();
+        }
+        int depth = 0;
+        for (Path p = this; p.parent != null; p = p.parent) {
+            depth++;
+        }
+        String[] arr = new String[depth];
+        int i = depth - 1;
+        for (Path p = this; p.parent != null; p = p.parent) {
+            arr[i--] = p.segment;
+        }
+        return Collections.unmodifiableList(Arrays.asList(arr));
     }
 
     /**

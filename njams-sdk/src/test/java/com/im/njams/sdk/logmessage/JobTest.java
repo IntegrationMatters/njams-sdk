@@ -36,7 +36,7 @@ import com.faizsiegeln.njams.messageformat.v4.projectmessage.Extract;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.ExtractRule;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.RuleType;
 import com.im.njams.sdk.Njams;
-import com.im.njams.sdk.common.Path;
+import com.im.njams.sdk.Path;
 import com.im.njams.sdk.communication.TestReceiver;
 import com.im.njams.sdk.configuration.ActivityConfiguration;
 import com.im.njams.sdk.model.ActivityModel;
@@ -51,14 +51,14 @@ public class JobTest {
 
     @Test
     public void testEventExtract() throws Exception {
-        Path clientPath = new Path("SDK4", "TEST");
+        Path clientPath = Path.of("SDK4", "TEST");
 
         // Create client config
         Settings config = TestReceiver.getSettings();
 
         Njams njams = new Njams(clientPath, "1.0.0", "sdk4", config);
 
-        Path processPath = new Path("PROCESSES", "testWithoutModel");
+        Path processPath = Path.of("PROCESSES", "testWithoutModel");
 
         //Creates an empty process model
         ProcessModel process = njams.createProcess(processPath);

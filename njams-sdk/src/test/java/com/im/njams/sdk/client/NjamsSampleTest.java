@@ -38,7 +38,7 @@ import com.faizsiegeln.njams.messageformat.v4.projectmessage.ExtractRule;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.RuleType;
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.NjamsSettings;
-import com.im.njams.sdk.common.Path;
+import com.im.njams.sdk.Path;
 import com.im.njams.sdk.communication.TestSender;
 import com.im.njams.sdk.configuration.ActivityConfiguration;
 import com.im.njams.sdk.configuration.ProcessConfiguration;
@@ -69,7 +69,7 @@ public class NjamsSampleTest {
 
     @Test
     public void testWithModel() throws Exception {
-        Path clientPath = new Path("SDK4", "TEST");
+        Path clientPath = Path.of("SDK4", "TEST");
 
         // Create client config
         Settings communicationProperties = getSettings();
@@ -77,7 +77,7 @@ public class NjamsSampleTest {
         // Instantiate client for first application
         Njams njams = new Njams(clientPath, "1.0.0", "sdk4", communicationProperties);
 
-        Path processPath = new Path("PROCESSES", "testWithModel");
+        Path processPath = Path.of("PROCESSES", "testWithModel");
 
         //Creates an empty process model
         ProcessModel process = njams.createProcess(processPath);
@@ -178,7 +178,7 @@ public class NjamsSampleTest {
 
     @Test
     public void testWithModelWithBranches() throws Exception {
-        Path clientPath = new Path("SDK4", "TEST");
+        Path clientPath = Path.of("SDK4", "TEST");
 
         // Create client config
         Settings communicationProperties = getSettings();
@@ -186,7 +186,7 @@ public class NjamsSampleTest {
         // Instantiate client for first application
         Njams njams = new Njams(clientPath, "1.0.0", "sdk4", communicationProperties);
 
-        Path processPath = new Path("PROCESSES", "testWithModelWithBranches");
+        Path processPath = Path.of("PROCESSES", "testWithModelWithBranches");
 
         //Creates an empty process model
         ProcessModel process = njams.createProcess(processPath);
@@ -301,14 +301,14 @@ public class NjamsSampleTest {
 
     @Test
     public void testGroupWithModel() throws Exception {
-        Path clientPath = new Path("SDK4", "TEST");
+        Path clientPath = Path.of("SDK4", "TEST");
 
         // Create client config
         Settings communicationProperties = getSettings();
 
         Njams njams = new Njams(clientPath, "1.0.0", "sdk4", communicationProperties);
 
-        Path processPath = new Path("PROCESSES", "testGroupWithModel");
+        Path processPath = Path.of("PROCESSES", "testGroupWithModel");
 
         //Creates an empty process model
         ProcessModel process = njams.createProcess(processPath);
@@ -428,14 +428,14 @@ public class NjamsSampleTest {
 
     @Test
     public void testGroupInGroupWithModel() throws Exception {
-        Path clientPath = new Path("SDK4", "TEST");
+        Path clientPath = Path.of("SDK4", "TEST");
 
         // Create client config
         Settings communicationProperties = getSettings();
 
         Njams njams = new Njams(clientPath, "1.0.0", "sdk4", communicationProperties);
 
-        Path processPath = new Path("PROCESSES", "testGroupInGroupWithModel");
+        Path processPath = Path.of("PROCESSES", "testGroupInGroupWithModel");
 
         //Creates an empty process model
         ProcessModel process = njams.createProcess(processPath);
@@ -588,7 +588,7 @@ public class NjamsSampleTest {
 
     @Test
     public void testSubprocess() throws Exception {
-        Path clientPath = new Path("SDK4", "TEST");
+        Path clientPath = Path.of("SDK4", "TEST");
 
         // Create client config
         Settings communicationProperties = getSettings();
@@ -596,7 +596,7 @@ public class NjamsSampleTest {
         // Instantiate client for first application
         Njams njams = new Njams(clientPath, "1.0.0", "sdk4", communicationProperties);
 
-        Path processPath = new Path("PROCESSES", "SubProcessCaller");
+        Path processPath = Path.of("PROCESSES", "SubProcessCaller");
 
         //Creates an empty process model
         ProcessModel process = njams.createProcess(processPath);
@@ -613,7 +613,7 @@ public class NjamsSampleTest {
         ActivityModel endModel = subProcessModel.transitionTo("end", "End", "endType");
 
         //subprocess
-        Path subProcessPath = new Path("PROCESSES", "SubProcess");
+        Path subProcessPath = Path.of("PROCESSES", "SubProcess");
         ProcessModel subProcess = njams.createProcess(subProcessPath);
 
         ActivityModel subProcessStartModel = subProcess.createActivity("subProcessstart", "Start", "startType");
@@ -623,10 +623,10 @@ public class NjamsSampleTest {
 
         subProcessModel.setSubProcess(subProcess);
 
-        njams.setTreeElementType(new Path("SDK4"), "first");
-        njams.setTreeElementType(new Path("SDK4", "TEST"), "second");
-        njams.setTreeElementType(new Path("SDK4", "TEST", "PROCESSES"), "third");
-        njams.setTreeElementType(new Path("SDK4", "TEST", "PROCESSES", "SubProcess"), "fourth");
+        njams.setTreeElementType(Path.of("SDK4"), "first");
+        njams.setTreeElementType(Path.of("SDK4", "TEST"), "second");
+        njams.setTreeElementType(Path.of("SDK4", "TEST", "PROCESSES"), "third");
+        njams.setTreeElementType(Path.of("SDK4", "TEST", "PROCESSES", "SubProcess"), "fourth");
         njams.addImage("first", "images/njams_java_sdk_process_start.png");
         njams.addImage("second", "images/njams_java_sdk_process_start.png");
         njams.addImage("third", "images/njams_java_sdk_process_start.png");
@@ -675,14 +675,14 @@ public class NjamsSampleTest {
 
     @Test
     public void testGroupInGroupWithFlushes() throws Exception {
-        Path clientPath = new Path("SDK4", "TEST");
+        Path clientPath = Path.of("SDK4", "TEST");
 
         // Create client config
         Settings communicationProperties = getSettings();
 
         Njams njams = new Njams(clientPath, "1.0.0", "sdk4", communicationProperties);
 
-        Path processPath = new Path("PROCESSES", "testGroupInGroupWithFlushes");
+        Path processPath = Path.of("PROCESSES", "testGroupInGroupWithFlushes");
 
         //Creates an empty process model
         ProcessModel process = njams.createProcess(processPath);
@@ -843,7 +843,7 @@ public class NjamsSampleTest {
 
     @Test
     public void testSubprocessSpawned() throws Exception {
-        Path clientPath = new Path("SDK4", "TEST");
+        Path clientPath = Path.of("SDK4", "TEST");
 
         // Create client config
         Settings communicationProperties = getSettings();
@@ -851,7 +851,7 @@ public class NjamsSampleTest {
         // Instantiate client for first application
         Njams njams = new Njams(clientPath, "1.0.0", "sdk4", communicationProperties);
 
-        Path processPath = new Path("PROCESSES", "SubProcessSpawner");
+        Path processPath = Path.of("PROCESSES", "SubProcessSpawner");
 
         //Creates an empty process model
         ProcessModel process = njams.createProcess(processPath);
@@ -864,7 +864,7 @@ public class NjamsSampleTest {
         ActivityModel endModel = subProcessModel.transitionTo("end", "End", "endType");
 
         //subprocess
-        Path subProcessPath = new Path("PROCESSES", "SubProcess");
+        Path subProcessPath = Path.of("PROCESSES", "SubProcess");
         ProcessModel subProcess = njams.createProcess(subProcessPath);
 
         ActivityModel subProcessStartModel = subProcess.createActivity("subProcessstart", "Start", "startType");
@@ -874,10 +874,10 @@ public class NjamsSampleTest {
 
         subProcessModel.setSubProcess(subProcess.getName(), subProcess.getPath());
 
-        njams.setTreeElementType(new Path("SDK4"), "first");
-        njams.setTreeElementType(new Path("SDK4", "TEST"), "second");
-        njams.setTreeElementType(new Path("SDK4", "TEST", "PROCESSES"), "third");
-        njams.setTreeElementType(new Path("SDK4", "TEST", "PROCESSES", "SubProcess"), "fourth");
+        njams.setTreeElementType(Path.of("SDK4"), "first");
+        njams.setTreeElementType(Path.of("SDK4", "TEST"), "second");
+        njams.setTreeElementType(Path.of("SDK4", "TEST", "PROCESSES"), "third");
+        njams.setTreeElementType(Path.of("SDK4", "TEST", "PROCESSES", "SubProcess"), "fourth");
         njams.addImage("first", "images/njams_java_sdk_process_start.png");
         njams.addImage("second", "images/njams_java_sdk_process_start.png");
         njams.addImage("third", "images/njams_java_sdk_process_start.png");
@@ -930,7 +930,7 @@ public class NjamsSampleTest {
 
     @Test
     public void testGroupInGroupWithFlushesAndEncoded() throws Exception {
-        Path clientPath = new Path("SDK4", "TEST");
+        Path clientPath = Path.of("SDK4", "TEST");
 
         // Create client config
         Settings communicationProperties = new Settings();
@@ -938,7 +938,7 @@ public class NjamsSampleTest {
 
         Njams njams = new Njams(clientPath, "1.0.0", "sdk4", communicationProperties);
 
-        Path processPath = new Path("PROCESSES", "testGroupInGroupWithFlushesAndEncoded");
+        Path processPath = Path.of("PROCESSES", "testGroupInGroupWithFlushesAndEncoded");
 
         //Creates an empty process model
         ProcessModel process = njams.createProcess(processPath);

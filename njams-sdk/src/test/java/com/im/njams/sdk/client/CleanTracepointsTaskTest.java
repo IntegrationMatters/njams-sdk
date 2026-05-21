@@ -52,7 +52,7 @@ import com.im.njams.sdk.AbstractTest;
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.common.DateTimeUtility;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
-import com.im.njams.sdk.common.Path;
+import com.im.njams.sdk.Path;
 import com.im.njams.sdk.communication.Sender;
 import com.im.njams.sdk.communication.TestSender;
 import com.im.njams.sdk.configuration.ActivityConfiguration;
@@ -72,7 +72,7 @@ public class CleanTracepointsTaskTest extends AbstractTest {
         TestSender.setSenderMock(new SenderMock());
         njams.start();
         createDefaultActivity(createDefaultStartedJob());
-        FULLPROCESSPATHNAME = njams.getClientPath().add(PROCESSPATHNAME).toString();
+        FULLPROCESSPATHNAME = njams.getClientPath().getOrCreateChild(PROCESSPATHNAME).toString();
     }
 
     @BeforeClass
@@ -83,7 +83,7 @@ public class CleanTracepointsTaskTest extends AbstractTest {
     @Before
     public void testStopAll() {
         CleanTracepointsTask.getNjamsInstances().forEach(CleanTracepointsTask::stop);
-        when(njamsMock.getClientPath()).thenReturn(new Path("A"));
+        when(njamsMock.getClientPath()).thenReturn(Path.of("A"));
     }
 
     @Test(expected = NjamsSdkRuntimeException.class)

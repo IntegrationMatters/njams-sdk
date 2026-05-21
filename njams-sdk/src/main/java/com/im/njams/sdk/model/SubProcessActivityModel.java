@@ -23,7 +23,7 @@
  */
 package com.im.njams.sdk.model;
 
-import com.im.njams.sdk.common.Path;
+import com.im.njams.sdk.Path;
 
 /**
  * This activity represents a SubProcess call in a Process. It can handle

@@ -38,7 +38,7 @@ import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
 import com.faizsiegeln.njams.messageformat.v4.command.Request;
 import com.faizsiegeln.njams.messageformat.v4.command.Response;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
-import com.im.njams.sdk.common.Path;
+import com.im.njams.sdk.Path;
 import com.im.njams.sdk.communication.ReplayHandler;
 import com.im.njams.sdk.communication.ReplayRequest;
 import com.im.njams.sdk.communication.ReplayResponse;
@@ -60,7 +60,7 @@ public class NjamsTest {
 
     @Before
     public void createNewInstance() {
-        instance = new Njams(new Path(), "", "", TestReceiver.getSettings());
+        instance = new Njams(Path.of(), "", "", TestReceiver.getSettings());
     }
 
     @Test
@@ -91,7 +91,7 @@ public class NjamsTest {
 
     @Test(expected = NjamsSdkRuntimeException.class)
     public void testAddJobWithoutStart() {
-        ProcessModel model = new ProcessModel(new Path("PROCESSES"), instance);
+        ProcessModel model = new ProcessModel(Path.of("PROCESSES"), instance);
         //This should throw an NjamsSdkRuntimeException
         Job job = model.createJob();
     }
@@ -176,7 +176,7 @@ public class NjamsTest {
 
     @Test
     public void testHasNoProcessModel() {
-        assertFalse(instance.hasProcessModel(new Path("PROCESSES")));
+        assertFalse(instance.hasProcessModel(Path.of("PROCESSES")));
     }
 
     @Test
@@ -186,8 +186,8 @@ public class NjamsTest {
 
     @Test
     public void testHasProcessModel() {
-        instance.createProcess(new Path("PROCESSES"));
-        assertTrue(instance.hasProcessModel(new Path("PROCESSES")));
+        instance.createProcess(Path.of("PROCESSES"));
+        assertTrue(instance.hasProcessModel(Path.of("PROCESSES")));
     }
 
     @Test
@@ -199,7 +199,7 @@ public class NjamsTest {
         settings.put(NjamsSettings.PROPERTY_DATA_MASKING_REGEX_PREFIX + "MaskAll", ".*");
         settings.put(NjamsSettings.PROPERTY_COMMUNICATION, TestSender.NAME);
 
-        Njams njams = new Njams(new Path("TestPath"), "1.0.0", "SDK", settings);
+        Njams njams = new Njams(Path.of("TestPath"), "1.0.0", "SDK", settings);
         njams.start();
 
         assertEquals("*****", DataMasking.maskString("Hello"));
@@ -213,7 +213,7 @@ public class NjamsTest {
         settings.put(NjamsSettings.PROPERTY_DATA_MASKING_REGEX_PREFIX, ".*");
         settings.put(NjamsSettings.PROPERTY_COMMUNICATION, TestSender.NAME);
 
-        Njams njams = new Njams(new Path("TestPath"), "1.0.0", "SDK", settings);
+        Njams njams = new Njams(Path.of("TestPath"), "1.0.0", "SDK", settings);
         njams.start();
 
         assertEquals("Hello", DataMasking.maskString("Hello"));
@@ -228,7 +228,7 @@ public class NjamsTest {
         settings.put(NjamsSettings.PROPERTY_DATA_MASKING_REGEX_PREFIX, ".*");
         settings.put(NjamsSettings.PROPERTY_COMMUNICATION, TestSender.NAME);
 
-        Njams njams = new Njams(new Path("TestPath"), "1.0.0", "SDK", settings);
+        Njams njams = new Njams(Path.of("TestPath"), "1.0.0", "SDK", settings);
 
         List<String> dataMaskingStrings = new ArrayList<>();
         dataMaskingStrings.add("Hello");
@@ -245,7 +245,7 @@ public class NjamsTest {
         settings.put(NjamsSettings.PROPERTY_DATA_MASKING_ENABLED, "true");
         settings.put(NjamsSettings.PROPERTY_COMMUNICATION, TestSender.NAME);
 
-        Njams njams = new Njams(new Path("TestPath"), "1.0.0", "SDK", settings);
+        Njams njams = new Njams(Path.of("TestPath"), "1.0.0", "SDK", settings);
 
         njams.start();
 

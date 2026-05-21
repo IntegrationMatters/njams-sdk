@@ -42,7 +42,7 @@ import org.slf4j.LoggerFactory;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.NjamsSettings;
-import com.im.njams.sdk.common.Path;
+import com.im.njams.sdk.Path;
 import com.im.njams.sdk.communication.ConnectionStatus;
 
 /**
@@ -59,7 +59,7 @@ class JmsReceiverMock extends JmsReceiver {
 
     public JmsReceiverMock() {
         Njams njamsImpl = mock(Njams.class);
-        Path path = new Path("SDK4>TEST");
+        Path path = Path.of("SDK4", "TEST");
         when(njamsImpl.getClientPath()).thenReturn(path);
         useMessageselector = true;
         super.setNjams(njamsImpl);

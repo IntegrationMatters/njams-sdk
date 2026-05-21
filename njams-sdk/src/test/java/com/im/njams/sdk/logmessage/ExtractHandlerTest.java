@@ -45,7 +45,7 @@ import com.faizsiegeln.njams.messageformat.v4.projectmessage.LogLevel;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.LogMode;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.RuleType;
 import com.im.njams.sdk.Njams;
-import com.im.njams.sdk.common.Path;
+import com.im.njams.sdk.Path;
 import com.im.njams.sdk.communication.TestReceiver;
 import com.im.njams.sdk.configuration.ActivityConfiguration;
 import com.im.njams.sdk.configuration.Configuration;
@@ -76,13 +76,13 @@ public class ExtractHandlerTest {
      */
     @BeforeClass
     public static void configureNjams() {
-        Path clientPath = new Path("SDK4", "TEST");
+        Path clientPath = Path.of("SDK4", "TEST");
 
         Settings config = TestReceiver.getSettings();
 
         njams = spy(new Njams(clientPath, "1.0.0", "sdk4", config));
 
-        Path processPath = new Path(PROCESSPATHNAME);
+        Path processPath = Path.of(PROCESSPATHNAME);
         njams.createProcess(processPath);
         njams.start();
 
@@ -95,7 +95,7 @@ public class ExtractHandlerTest {
 
         //-------- The ProcessConfiguration with the ActivityConfiguration
         ProcessConfiguration processConf =
-                conf.getProcess(njams.getProcessModel(processPath).getPath());
+                conf.getProcess(njams.getProcessModel(processPath).getPath().toString());
 
         processConf.setLogLevel(LogLevel.INFO);
         processConf.setExclude(false);
@@ -139,7 +139,7 @@ public class ExtractHandlerTest {
      * @return The ActivityImpl with the created extract
      */
     private ActivityImpl testExtract(String activityName, RuleType ruleType, String extractRule) {
-        ProcessModel process = njams.getProcessModel(new Path(PROCESSPATHNAME));
+        ProcessModel process = njams.getProcessModel(Path.of(PROCESSPATHNAME));
 
         ActivityModel model = process.createActivity(activityName, "Act", null);
 

@@ -671,8 +671,8 @@ public class ConfigurationInstructionListener implements InstructionListener {
         instructionSupport.setParameter(ENGINE_WIDE_RECORDING, configuration.isRecording());
         for (ProcessModel model : njams.getProcessModels()) {
             final boolean recording;
-            if (configuration.hasProcess(model.getPath())) {
-                recording = configuration.getProcess(model.getPath()).isRecording();
+            if (configuration.hasProcess(model.getPath().toLegacyPath())) {
+                recording = configuration.getProcess(model.getPath().toLegacyPath()).isRecording();
             } else {
                 recording = configuration.isRecording();
             }

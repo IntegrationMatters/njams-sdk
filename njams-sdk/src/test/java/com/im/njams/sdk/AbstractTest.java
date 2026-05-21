@@ -25,7 +25,7 @@ package com.im.njams.sdk;
 
 import com.faizsiegeln.njams.messageformat.v4.common.SubProcess;
 import com.faizsiegeln.njams.messageformat.v4.logmessage.Predecessor;
-import com.im.njams.sdk.common.Path;
+import com.im.njams.sdk.Path;
 import com.im.njams.sdk.communication.TestSender;
 import com.im.njams.sdk.logmessage.Activity;
 import com.im.njams.sdk.logmessage.ActivityImpl;
@@ -76,10 +76,10 @@ public abstract class AbstractTest {
      * @param settings the Settings for JMS, JNDI, etc.
      */
     public AbstractTest(Settings settings) {
-        Path clientPath = new Path("SDK4", "TEST");
+        Path clientPath = Path.of("SDK4", "TEST");
 
         njams = new Njams(clientPath, CLIENTVERSION, CATEGORY, settings);
-        Path processPath = new Path("PROCESSES");
+        Path processPath = Path.of("PROCESSES");
         process = njams.createProcess(processPath);
 
         njams.start();

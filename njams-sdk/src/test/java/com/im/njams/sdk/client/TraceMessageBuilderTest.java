@@ -50,7 +50,7 @@ public class TraceMessageBuilderTest extends AbstractTest {
     private String FULLPROCESSPATHNAME;
 
     public TraceMessageBuilderTest(){
-        FULLPROCESSPATHNAME = njams.getClientPath().add(PROCESSPATHNAME).toString();
+        FULLPROCESSPATHNAME = njams.getClientPath().getOrCreateChild(PROCESSPATHNAME).toString();
     }
 
     @Test

@@ -35,7 +35,7 @@ import org.junit.Test;
 
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.NjamsSettings;
-import com.im.njams.sdk.common.Path;
+import com.im.njams.sdk.Path;
 import com.im.njams.sdk.communication.jms.FailingJmsFactory;
 import com.im.njams.sdk.settings.Settings;
 
@@ -46,7 +46,7 @@ public class CommunicationFactoryTest {
     @Before
     public void setUp() {
         njams = mock(Njams.class);
-        when(njams.getClientPath()).thenReturn(new Path("test"));
+        when(njams.getClientPath()).thenReturn(Path.of("test"));
     }
 
     private Settings createSettings(String communicationType) {

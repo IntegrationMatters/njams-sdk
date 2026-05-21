@@ -222,7 +222,7 @@ public class Njams implements InstructionListener {
     private final Map<String, String> versions = new HashMap<>();
 
     // The path of the client
-    private final com.im.njams.sdk.common.Path clientPath;
+    private final Path clientPath;
 
     // The unique client id, will be generated as UUID on startup
     private final String clientSessionId;
@@ -279,7 +279,7 @@ public class Njams implements InstructionListener {
      *                 technology
      * @param settings needed settings for client eg. for communication
      */
-    public Njams(com.im.njams.sdk.common.Path path, String version, String category, Settings settings) {
+    public Njams(Path path, String version, String category, Settings settings) {
         this(path, version, null, category, settings);
     }
 
@@ -293,7 +293,7 @@ public class Njams implements InstructionListener {
      *                       technology
      * @param settings       needed settings for client eg. for communication
      */
-    public Njams(com.im.njams.sdk.common.Path path, String version, String runtimeVersion, String category, Settings settings) {
+    public Njams(Path path, String version, String runtimeVersion, String category, Settings settings) {
         treeElements = new ArrayList<>();
         clientPath = path;
         this.category = category == null ? null : category.toUpperCase();
@@ -376,7 +376,7 @@ public class Njams implements InstructionListener {
     /**
      * @return the clientPath
      */
-    public com.im.njams.sdk.common.Path getClientPath() {
+    public Path getClientPath() {
         return clientPath;
     }
 
@@ -630,12 +630,11 @@ public class Njams implements InstructionListener {
      * @param relativePath The relative path of the process model to get
      * @return the ProcessModel or {@link NjamsSdkRuntimeException}
      */
-    public ProcessModel getProcessModel(final com.im.njams.sdk.common.Path relativePath) {
-
-        final com.im.njams.sdk.common.Path absolutePath = getClientPath().add(relativePath);
+    public ProcessModel getProcessModel(final Path relativePath) {
+        final Path absolutePath = clientPath.resolveChild(relativePath.toString());
         final ProcessModel pm;
         synchronized (processModels) {
-            pm = processModels.get(Path.of(absolutePath));
+            pm = absolutePath == null ? null : processModels.get(absolutePath);
         }
         if (pm == null) {
             throw new NjamsSdkRuntimeException("ProcessModel not found for path " + relativePath);
@@ -649,13 +648,16 @@ public class Njams implements InstructionListener {
      * @param relativePath The relative path of the process model to check
      * @return true if found else false
      */
-    public boolean hasProcessModel(final com.im.njams.sdk.common.Path relativePath) {
+    public boolean hasProcessModel(final Path relativePath) {
         if (relativePath == null) {
             return false;
         }
-        final com.im.njams.sdk.common.Path absolutePath = getClientPath().add(relativePath);
+        final Path absolutePath = clientPath.resolveChild(relativePath.toString());
+        if (absolutePath == null) {
+            return false;
+        }
         synchronized (processModels) {
-            return processModels.containsKey(Path.of(absolutePath));
+            return processModels.containsKey(absolutePath);
         }
     }
 
@@ -697,12 +699,12 @@ public class Njams implements InstructionListener {
      *             created
      * @return the new ProcessModel or a {@link NjamsSdkRuntimeException}
      */
-    public ProcessModel createProcess(final com.im.njams.sdk.common.Path path) {
-        final com.im.njams.sdk.common.Path fullClientPath = path.addBase(clientPath);
+    public ProcessModel createProcess(final Path path) {
+        final Path fullClientPath = clientPath.resolveOrCreateChild(path.toString());
         final ProcessModel model = new ProcessModel(fullClientPath, this);
         synchronized (processModels) {
             createTreeElements(fullClientPath, TreeElementType.PROCESS);
-            processModels.put(Path.of(fullClientPath), model);
+            processModels.put(fullClientPath, model);
         }
         return model;
     }
@@ -720,14 +722,17 @@ public class Njams implements InstructionListener {
         if (processModel.getNjams() != this) {
             throw new NjamsSdkRuntimeException("Process model has been created for a different nJAMS instance.");
         }
-        final List<String> clientParts = clientPath.getParts();
-        final List<String> prefix = processModel.getPath().getParts().subList(0, clientParts.size());
-        if (!clientParts.equals(prefix)) {
+        final Path modelPath = processModel.getPath();
+        Path ancestor = modelPath;
+        while (ancestor != null && ancestor != clientPath) {
+            ancestor = ancestor.getParent();
+        }
+        if (ancestor == null) {
             throw new NjamsSdkRuntimeException("Process model path does not match this nJAMS instance.");
         }
         synchronized (processModels) {
-            createTreeElements(processModel.getPath(), TreeElementType.PROCESS);
-            processModels.put(Path.of(processModel.getPath()), processModel);
+            createTreeElements(modelPath, TreeElementType.PROCESS);
+            processModels.put(modelPath, processModel);
         }
     }
 
@@ -819,16 +824,17 @@ public class Njams implements InstructionListener {
      * Create DomainObjectStructure which is the tree representation for the
      * client
      */
-    private void createTreeElements(com.im.njams.sdk.common.Path path, TreeElementType targetDomainObjectType) {
+    private void createTreeElements(Path path, TreeElementType targetDomainObjectType) {
         synchronized (processModels) {
+            final List<String> parts = path.getSegments();
             String currentPath = ">";
-            for (int i = 0; i < path.getParts().size(); i++) {
-                String part = path.getParts().get(i);
+            for (int i = 0; i < parts.size(); i++) {
+                String part = parts.get(i);
                 currentPath += part + ">";
                 final String finalPath = currentPath;
                 boolean found = treeElements.stream().filter(d -> d.getPath().equals(finalPath)).findAny().isPresent();
                 if (!found) {
-                    TreeElementType domainObjectType = i == path.getParts().size() - 1 ? targetDomainObjectType : null;
+                    TreeElementType domainObjectType = i == parts.size() - 1 ? targetDomainObjectType : null;
                     String type = getTreeElementDefaultType(i == 0, domainObjectType);
                     treeElements.add(new TreeElement(currentPath, part, type, domainObjectType));
                 }
@@ -862,7 +868,7 @@ public class Njams implements InstructionListener {
      * @param path the path of the tree icon
      * @param type icon type of the tree element
      */
-    public void setTreeElementType(com.im.njams.sdk.common.Path path, String type) {
+    public void setTreeElementType(Path path, String type) {
         synchronized (processModels) {
             TreeElement dos = treeElements.stream().filter(d -> d.getPath().equals(path.toString())).findAny()
                     .orElse(null);
@@ -883,17 +889,18 @@ public class Njams implements InstructionListener {
                                 processModels.get(Path.resolve(t.getPath()))).map(ProcessModel::isStarter).orElse(false)));
     }
 
-    private List<TreeElement> addTreeElements(List<TreeElement> treeElements, com.im.njams.sdk.common.Path processPath,
+    private List<TreeElement> addTreeElements(List<TreeElement> treeElements, Path processPath,
             TreeElementType targetDomainObjectType, boolean isStarter) {
+        final List<String> parts = processPath.getSegments();
         String currentPath = ">";
-        for (int i = 0; i < processPath.getParts().size(); i++) {
-            String part = processPath.getParts().get(i);
+        for (int i = 0; i < parts.size(); i++) {
+            String part = parts.get(i);
             currentPath += part + ">";
             final String finalPath = currentPath;
             boolean found = treeElements.stream().filter(d -> d.getPath().equals(finalPath)).findAny().isPresent();
             if (!found) {
                 TreeElementType domainObjectType =
-                        i == processPath.getParts().size() - 1 ? targetDomainObjectType : null;
+                        i == parts.size() - 1 ? targetDomainObjectType : null;
                 String type = getTreeElementDefaultType(i == 0, domainObjectType);
                 treeElements.add(new TreeElement(currentPath, part, type, domainObjectType));
             }
@@ -1371,8 +1378,8 @@ public class Njams implements InstructionListener {
      * @param processPath for the process which should be checked
      * @return true if the process is excluded, or false if not
      */
-    public boolean isExcluded(com.im.njams.sdk.common.Path processPath) {
-        return configuration.isProcessExcluded(processPath);
+    public boolean isExcluded(Path processPath) {
+        return configuration.isProcessExcluded(processPath == null ? null : processPath.toLegacyPath());
     }
 
     /**

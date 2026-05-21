@@ -37,7 +37,7 @@ import org.slf4j.LoggerFactory;
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.common.IdUtil;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
-import com.im.njams.sdk.common.Path;
+import com.im.njams.sdk.Path;
 import com.im.njams.sdk.configuration.ProcessConfiguration;
 import com.im.njams.sdk.logmessage.Job;
 import com.im.njams.sdk.logmessage.JobImpl;
@@ -94,13 +94,13 @@ public class ProcessModel {
 
         // set meta data
         internalProcessModel.setPath(path.toString());
-        internalProcessModel.setName(path.getObjectName());
+        internalProcessModel.setName(path.getSegmentName());
 
         // set configuration data
         ProcessConfiguration processConfiguration = njams.getConfiguration().getProcess(path.toString());
         if (processConfiguration != null) {
             internalProcessModel.setLogLevel(processConfiguration.getLogLevel());
-            internalProcessModel.setExclude(njams.getConfiguration().hasProcessExcludeFilter(path));
+            internalProcessModel.setExclude(njams.getConfiguration().hasProcessExcludeFilter(path.toLegacyPath()));
             internalProcessModel.setRecording(processConfiguration.isRecording());
         } else {
             internalProcessModel.setRecording(njams.getConfiguration().isRecording());
@@ -156,7 +156,7 @@ public class ProcessModel {
      * @return Name of this ProcessModel
      */
     public String getName() {
-        return path.getObjectName();
+        return path.getSegmentName();
     }
 
     /**
