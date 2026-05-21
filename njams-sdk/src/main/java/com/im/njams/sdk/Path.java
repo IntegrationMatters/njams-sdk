@@ -359,6 +359,22 @@ public final class Path {
     }
 
     /**
+     * Returns a legacy {@link com.im.njams.sdk.common.Path} equivalent to this path,
+     * constructed from this path's full string representation.
+     *
+     * <p>Intended only as a migration helper for code still consuming
+     * {@link com.im.njams.sdk.common.Path}. Switch call sites to use {@link Path} directly.
+     *
+     * @return a new legacy path instance with the same {@code toString()} value as this path
+     * @deprecated Switch callers from {@link com.im.njams.sdk.common.Path} to the new
+     *     {@link Path} type. This bridge exists only to ease incremental migration.
+     */
+    @Deprecated
+    public com.im.njams.sdk.common.Path toLegacyPath() {
+        return new com.im.njams.sdk.common.Path(pathStringAc);
+    }
+
+    /**
      * Returns the full path string, e.g., {@code ">a>b>"}.
      *
      * @return the full path string; never {@code null}

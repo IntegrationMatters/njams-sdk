@@ -419,6 +419,32 @@ public class PathTest {
         assertSame(Path.get("legX", "legY"), result);
     }
 
+    // --- toLegacyPath ---
+
+    @Test
+    @SuppressWarnings("deprecation")
+    public void toLegacyPathFromRoot() {
+        com.im.njams.sdk.common.Path legacy = Path.ROOT.toLegacyPath();
+        assertEquals(">", legacy.toString());
+    }
+
+    @Test
+    @SuppressWarnings("deprecation")
+    public void toLegacyPathPreservesPathString() {
+        Path neu = Path.get("tlpA", "tlpB", "tlpC");
+        com.im.njams.sdk.common.Path legacy = neu.toLegacyPath();
+        assertEquals(">tlpA>tlpB>tlpC>", legacy.toString());
+        assertEquals(java.util.Arrays.asList("tlpA", "tlpB", "tlpC"), legacy.getParts());
+    }
+
+    @Test
+    @SuppressWarnings("deprecation")
+    public void toLegacyPathRoundTripsViaGet() {
+        Path neu = Path.get("rtripA", "rtripB");
+        com.im.njams.sdk.common.Path legacy = neu.toLegacyPath();
+        assertSame(neu, Path.get(legacy));
+    }
+
     // --- multi-segment getChild ---
 
     @Test
