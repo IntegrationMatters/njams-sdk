@@ -24,8 +24,14 @@
 package com.im.njams.sdk.settings;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
 
 import org.junit.Assert;
 import org.junit.Before;
@@ -108,5 +114,62 @@ public class SettingsTest {
         assertEquals("a", result.get("a"));
         assertEquals("c", result.get("c"));
         assertEquals("d", result.get("d"));
+    }
+
+    @Test
+    public void testIteratorYieldsAllEntries() {
+        settings.put("a", "1");
+        settings.put("b", "2");
+        Map<String, String> seen = new HashMap<>();
+        settings.forEach(e -> seen.put(e.getKey(), e.getValue()));
+        assertEquals(2, seen.size());
+        assertEquals("1", seen.get("a"));
+        assertEquals("2", seen.get("b"));
+    }
+
+    @Test
+    public void testIteratorIsEmptyForEmptySettings() {
+        assertFalse(settings.iterator().hasNext());
+    }
+
+    @Test
+    public void testGetSecuredPropertiesContainsDefaultTokens() {
+        Set<String> tokens = settings.getSecuredProperties();
+        assertTrue(tokens.contains("password"));
+        assertTrue(tokens.contains("credentials"));
+        assertTrue(tokens.contains("secret"));
+        assertTrue(tokens.contains("keystore.key"));
+    }
+
+    @Test(expected = UnsupportedOperationException.class)
+    public void testGetSecuredPropertiesIsUnmodifiable() {
+        settings.getSecuredProperties().add("x");
+    }
+
+    @Test
+    public void testGetSecuredPropertiesReflectsAddSecureProperties() {
+        Set<String> extra = new HashSet<>();
+        extra.add("ApiKey");
+        settings.addSecureProperties(extra);
+        assertTrue(settings.getSecuredProperties().contains("apikey"));
+    }
+
+    @Test
+    public void testPutAllAddsEntries() {
+        Map<String, String> extra = new HashMap<>();
+        extra.put("a", "1");
+        extra.put("b", "2");
+        settings.putAll(extra);
+        assertEquals("1", settings.getProperty("a"));
+        assertEquals("2", settings.getProperty("b"));
+    }
+
+    @Test
+    public void testPutAllOverwritesExistingValues() {
+        settings.put("a", "old");
+        Map<String, String> extra = new HashMap<>();
+        extra.put("a", "new");
+        settings.putAll(extra);
+        assertEquals("new", settings.getProperty("a"));
     }
 }

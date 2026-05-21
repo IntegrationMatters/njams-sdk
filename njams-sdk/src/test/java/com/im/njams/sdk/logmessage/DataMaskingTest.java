@@ -27,7 +27,7 @@ import static junit.framework.TestCase.assertEquals;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.not;
 import static org.junit.Assert.assertThat;
-import static org.mockito.Matchers.anyObject;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 
 import java.util.Properties;
@@ -57,8 +57,8 @@ public class DataMaskingTest {
         doAnswer(invocation -> true).when(JOB).isDeepTrace();
         doAnswer(invocation -> NJAMS).when(MODEL).getNjams();
         doAnswer(invocation -> NJAMS).when(JOB).getNjams();
-        doAnswer(invocation -> invocation.getArgumentAt(0, String.class)).when(JOB).limitPayload(anyObject());
-        doAnswer(invocation -> invocation.getArguments()[0]).when(NJAMS).serialize(anyObject());
+        doAnswer(invocation -> invocation.getArgument(0, String.class)).when(JOB).limitPayload(any());
+        doAnswer(invocation -> invocation.getArguments()[0]).when(NJAMS).serialize(any());
         IMPL = new ActivityImpl(JOB, Mockito.mock(ActivityModel.class));
         IMPL.start();
     }

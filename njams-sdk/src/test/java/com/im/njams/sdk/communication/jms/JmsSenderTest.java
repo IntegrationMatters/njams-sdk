@@ -25,7 +25,7 @@ package com.im.njams.sdk.communication.jms;
 
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-import static org.mockito.Matchers.any;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 import java.time.LocalDateTime;
