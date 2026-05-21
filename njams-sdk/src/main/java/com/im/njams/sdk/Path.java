@@ -45,12 +45,14 @@ import java.util.concurrent.ConcurrentHashMap;
 public final class Path {
 
     private static final Set<String> INVALID_SEGMENTS = ConcurrentHashMap.newKeySet();
+    private static final ConcurrentHashMap<String, String[]> SPLIT_CACHE = new ConcurrentHashMap<>();
+    private static final String[] EMPTY_SEGMENTS = new String[0];
 
     /**
      * The root path {@code ">"}, the only path with a {@code null} parent.
      * Always exists; never {@code null}.
      */
-    public static final Path ROOT = new Path(null, null, ">");
+    public static final Path ROOT = new Path(null, null);
 
     private final Path parent;
     private final String segment;
@@ -58,10 +60,10 @@ public final class Path {
     private final int cachedHashCode;
     private final ConcurrentHashMap<String, Path> children = new ConcurrentHashMap<>();
 
-    private Path(Path parent, String segment, String pathString) {
+    private Path(Path parent, String segment) {
         this.parent = parent;
         this.segment = segment;
-        this.pathString = pathString;
+        this.pathString = parent == null ? ">" : parent.toString() + segment + ">";
         this.cachedHashCode = pathString.hashCode();
     }
 
@@ -71,6 +73,9 @@ public final class Path {
      * <p>Calling this method with the same segments always returns the identical object.
      * Reads are non-blocking: segment validation is skipped entirely when the child node
      * already exists. Validation and creation are atomic per slot in the path tree.
+     *
+     * <p>For arguments that may contain embedded {@code >} separators (partial path strings),
+     * use {@link #resolve(String...)} instead.
      *
      * @param segments zero or more non-null, non-blank path segment names; must not contain {@code >}.
      *     The single value {@code ">"} is treated as the root and returns {@link #ROOT}.
@@ -84,11 +89,83 @@ public final class Path {
         if (segments.length == 1 && ">".equals(segments[0])) {
             return ROOT;
         }
-        Path current = ROOT;
-        for (String seg : segments) {
-            current = current.getOrCreateChild(seg);
+        return ROOT.getOrCreateChild(segments);
+    }
+
+    /**
+     * Returns the new {@link Path} instance equivalent to the given legacy
+     * {@link com.im.njams.sdk.common.Path}, resolved via its
+     * {@link com.im.njams.sdk.common.Path#getParts() getParts()} segments.
+     *
+     * <p>Intended only as a migration helper while callers still hold legacy instances.
+     * Switch call sites to construct {@link Path} directly via {@link #get(String...)} or
+     * {@link #resolve(String...)} and drop the dependency on
+     * {@link com.im.njams.sdk.common.Path}.
+     *
+     * @param legacyPath the legacy path; {@code null} returns {@link #ROOT}
+     * @return the equivalent new {@link Path} node
+     * @throws IllegalArgumentException if any of the legacy path's parts is invalid as a segment
+     * @deprecated Switch callers from {@link com.im.njams.sdk.common.Path} to the new
+     *     {@link Path} type and construct instances directly via {@link #get(String...)} or
+     *     {@link #resolve(String...)}.
+     */
+    @Deprecated
+    public static Path get(com.im.njams.sdk.common.Path legacyPath) {
+        if (legacyPath == null) {
+            return ROOT;
         }
-        return current;
+        return get(legacyPath.getParts().toArray(new String[0]));
+    }
+
+    /**
+     * Returns the {@link Path} instance for the given arguments, treating each argument as
+     * a (possibly partial) path string. Each argument is split at {@code >}; empty and
+     * {@code null} segments are silently dropped. The remaining segments are then walked
+     * exactly like {@link #get(String...)}.
+     *
+     * <p>This is more lenient than {@link #get(String...)}: it accepts arguments such as
+     * {@code "a>b>"} or {@code ">c>"} that {@code get} would reject. Bare segment arguments
+     * such as {@code resolve("a", "b", "c")} produce the same instance as the equivalent
+     * {@code get} call.
+     *
+     * <p>Split results are cached per input string to amortise the splitting overhead across
+     * repeated calls. Even with caching, this method is slower than {@link #get(String...)};
+     * prefer {@link #get(String...)} whenever the individual segment names are already known.
+     *
+     * @param paths zero or more path strings to split and walk; {@code null} array or
+     *     {@code null} entries return / contribute nothing
+     * @return the resolved {@link Path} node; {@link #ROOT} if no non-empty segments result
+     * @throws IllegalArgumentException if any resulting segment is blank or otherwise invalid
+     */
+    public static Path resolve(String... paths) {
+        return ROOT.resolveOrCreateChild(paths);
+    }
+
+    private static String[] splitSegments(String input) {
+        if (input.isEmpty()) {
+            return EMPTY_SEGMENTS;
+        }
+        String[] raw = input.split(">");
+        int count = 0;
+        for (String p : raw) {
+            if (p != null && !p.isEmpty()) {
+                count++;
+            }
+        }
+        if (count == 0) {
+            return EMPTY_SEGMENTS;
+        }
+        if (count == raw.length) {
+            return raw;
+        }
+        String[] result = new String[count];
+        int i = 0;
+        for (String p : raw) {
+            if (p != null && !p.isEmpty()) {
+                result[i++] = p;
+            }
+        }
+        return result;
     }
 
     private static void validate(String segment) {
@@ -111,6 +188,15 @@ public final class Path {
     }
 
     /**
+     * Returns {@code true} if this is the {@link #ROOT} path.
+     *
+     * @return {@code true} if this path has no parent
+     */
+    public boolean isRoot() {
+        return parent == null;
+    }
+
+    /**
      * Returns this node's own segment name (the last component of its path), or
      * {@code null} if this is the {@link #ROOT}.
      *
@@ -121,46 +207,146 @@ public final class Path {
     }
 
     /**
-     * Returns the child path node with the given segment name, or {@code null} if
-     * no such child has been created yet.
+     * Returns the descendant path node reached by walking the given segment names as a
+     * relative path from this node, or {@code null} if any step along the chain does not
+     * yet exist.
      *
-     * @param name the segment name of the child to look up
-     * @return the child path, or {@code null} if not present
+     * <p>With no arguments (or a {@code null} array) returns this node itself.
+     *
+     * @param names zero or more segment names forming a relative path from this node
+     * @return the descendant path, this node if no names are given, or {@code null} if
+     *     any intermediate child has not been created
      */
-    public Path getChild(String name) {
-        return children.get(name);
+    public Path getChild(String... names) {
+        if (names == null || names.length == 0) {
+            return this;
+        }
+        Path current = this;
+        for (String name : names) {
+            current = current.children.get(name);
+            if (current == null) {
+                return null;
+            }
+        }
+        return current;
     }
 
     /**
-     * Tests whether a child node with the given segment name has been created under this path.
+     * Returns the descendant path node reached by walking the given (possibly partial)
+     * path strings as a relative path from this node, or {@code null} if any step along
+     * the chain does not yet exist. Each argument is split at {@code >} and empty/null
+     * segments are dropped before walking.
      *
-     * @param name the segment name to look up; {@code null} always returns {@code false}
-     * @return {@code true} if a child by that name exists; {@code false} otherwise
+     * <p>This is the instance counterpart of {@link #resolve(String...)}. Prefer
+     * {@link #getChild(String...)} whenever the segment names are already known to avoid
+     * the splitting overhead.
+     *
+     * @param paths zero or more (possibly partial) path strings forming a relative path
+     *     from this node; {@code null} entries are skipped
+     * @return the descendant path, this node if no segments result, or {@code null} if
+     *     any intermediate child has not been created
      */
-    public boolean hasChild(String name) {
-        return name != null && children.containsKey(name);
+    public Path resolveChild(String... paths) {
+        return walkSplit(paths, false);
     }
 
     /**
-     * Returns the child path node with the given segment name, creating it if it does
-     * not yet exist. Concurrent calls with the same name return the identical instance.
+     * Tests whether the descendant path reached by walking the given segment names exists
+     * as a chain of created children under this path.
      *
-     * @param name the segment name; must not be {@code null}, blank, or contain {@code >}
-     * @return the existing or newly created child path
-     * @throws IllegalArgumentException if {@code name} is {@code null}, blank, or contains {@code >}
+     * <p>With no arguments (or a {@code null} array) returns {@code true} (the empty
+     * relative path always exists). A {@code null} segment in the chain returns
+     * {@code false}.
+     *
+     * @param names zero or more segment names forming a relative path from this node
+     * @return {@code true} if the full chain has been created; {@code false} otherwise
      */
-    public Path getOrCreateChild(String name) {
-        if (name == null) {
-            throw new IllegalArgumentException("Path segment must not be null");
+    public boolean hasChild(String... names) {
+        if (names == null || names.length == 0) {
+            return true;
         }
-        Path next = children.get(name);
-        if (next == null) {
-            validate(name);
-            next = children.computeIfAbsent(
-                    name,
-                    s -> new Path(this, s, pathString + s + ">"));
+        Path current = this;
+        for (String name : names) {
+            if (name == null) {
+                return false;
+            }
+            current = current.children.get(name);
+            if (current == null) {
+                return false;
+            }
         }
-        return next;
+        return true;
+    }
+
+    /**
+     * Returns the descendant path node reached by walking the given (possibly partial)
+     * path strings as a relative path from this node, creating any missing intermediate
+     * children along the way. Each argument is split at {@code >} and empty/null
+     * segments are dropped before walking.
+     *
+     * <p>This is the instance counterpart of {@link #resolve(String...)}. Prefer
+     * {@link #getOrCreateChild(String...)} whenever the segment names are already known
+     * to avoid the splitting overhead.
+     *
+     * @param paths zero or more (possibly partial) path strings forming a relative path
+     *     from this node; {@code null} entries are skipped
+     * @return the existing or newly created descendant path; this node if no segments result
+     * @throws IllegalArgumentException if any resulting segment is blank or contains {@code >}
+     */
+    public Path resolveOrCreateChild(String... paths) {
+        return walkSplit(paths, true);
+    }
+
+    private Path walkSplit(String[] paths, boolean createMissing) {
+        if (paths == null || paths.length == 0) {
+            return this;
+        }
+        Path current = this;
+        for (String path : paths) {
+            if (path == null) {
+                continue;
+            }
+            String[] segments = SPLIT_CACHE.computeIfAbsent(path, Path::splitSegments);
+            current = createMissing ? current.getOrCreateChild(segments) : current.getChild(segments);
+            if (current == null) {
+                return null;
+            }
+        }
+        return current;
+    }
+
+    /**
+     * Returns the descendant path node reached by walking the given segment names as a
+     * relative path from this node, creating any missing intermediate children along the
+     * way. Concurrent calls with the same names return the identical instance for each
+     * level.
+     *
+     * <p>With no arguments (or a {@code null} array) returns this node itself.
+     *
+     * @param names zero or more segment names; each must be non-{@code null}, non-blank,
+     *     and must not contain {@code >}
+     * @return the existing or newly created descendant path
+     * @throws IllegalArgumentException if any of the names is {@code null}, blank, or
+     *     contains {@code >}
+     */
+    public Path getOrCreateChild(String... names) {
+        if (names == null || names.length == 0) {
+            return this;
+        }
+        Path current = this;
+        for (String name : names) {
+            if (name == null) {
+                throw new IllegalArgumentException("Path segment must not be null");
+            }
+            Path next = current.children.get(name);
+            if (next == null) {
+                validate(name);
+                final Path nodeParent = current;
+                next = current.children.computeIfAbsent(name, s -> new Path(nodeParent, s));
+            }
+            current = next;
+        }
+        return current;
     }
 
     /**

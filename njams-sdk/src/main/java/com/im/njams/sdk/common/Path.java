@@ -36,7 +36,8 @@ import java.util.stream.Collectors;
  *
  * @author pnientiedt
  * @deprecated Use {@link com.im.njams.sdk.Path} instead, which guarantees path uniqueness,
- *     immutability, and thread-safety.
+ *     immutability, and thread-safety. Existing instances can be converted to the new type via
+ *     {@link com.im.njams.sdk.Path#get(com.im.njams.sdk.common.Path)}.
  */
 @Deprecated
 public class Path implements Comparable<Path> {
