@@ -96,7 +96,7 @@ mvn clean install -DskipTests
 
 ## Project Structure
 
-Multi-module Maven project (`com.faizsiegeln`, version 5.0.5-SNAPSHOT):
+Multi-module Maven project (`com.faizsiegeln`, version 6.0.0-SNAPSHOT):
 - `njams-sdk/` — Core SDK library (primary development target)
 - `njams-sdk-sample-client/` — Usage examples demonstrating all SDK features
 - `njams-sdk-sample-app/` — Additional sample application
