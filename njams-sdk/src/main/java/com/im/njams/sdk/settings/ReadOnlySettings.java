@@ -31,6 +31,9 @@ import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Set;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -97,6 +100,28 @@ public interface ReadOnlySettings extends Iterable<Entry<String, String>> {
     boolean containsKey(String key);
 
     /**
+     * Returns a sequential {@link Stream} over the entries of these settings. The stream uses the
+     * {@link #iterator() iterator} of this {@link Iterable}.
+     *
+     * @return a stream of the current entries
+     */
+    default Stream<Entry<String, String>> stream() {
+        return StreamSupport.stream(spliterator(), false);
+    }
+
+    /**
+     * Returns the set of registered keys. The default implementation walks the
+     * {@link #iterator() iterator}; implementations are expected to override this with a direct
+     * lookup against the backing storage for efficiency. Filtering implementations must apply the
+     * key filter so that only visible keys appear in the returned set.
+     *
+     * @return an unmodifiable set of the registered keys
+     */
+    default Set<String> keySet() {
+        return stream().map(Entry::getKey).collect(Collectors.toUnmodifiableSet());
+    }
+
+    /**
      * Returns the value for the given key parsed as an {@code int}. If no value is registered the
      * given default is returned. If the registered value cannot be parsed as an integer, a warning
      * is logged and the default is returned.
@@ -106,17 +131,7 @@ public interface ReadOnlySettings extends Iterable<Entry<String, String>> {
      * @return the parsed integer or {@code defaultValue} on missing/invalid input
      */
     default int getInt(String key, int defaultValue) {
-        String value = getProperty(key);
-        if (value == null) {
-            return defaultValue;
-        }
-        try {
-            return Integer.parseInt(value);
-        } catch (NumberFormatException e) {
-            LoggerFactory.getLogger(ReadOnlySettings.class).warn(
-                "Setting [{}] has invalid integer value [{}]; using default [{}]", key, value, defaultValue);
-            return defaultValue;
-        }
+        return parseInt(key, getProperty(key), defaultValue);
     }
 
     /**
@@ -129,17 +144,7 @@ public interface ReadOnlySettings extends Iterable<Entry<String, String>> {
      * @return the parsed long or {@code defaultValue} on missing/invalid input
      */
     default long getLong(String key, long defaultValue) {
-        String value = getProperty(key);
-        if (value == null) {
-            return defaultValue;
-        }
-        try {
-            return Long.parseLong(value);
-        } catch (NumberFormatException e) {
-            LoggerFactory.getLogger(ReadOnlySettings.class).warn(
-                "Setting [{}] has invalid long value [{}]; using default [{}]", key, value, defaultValue);
-            return defaultValue;
-        }
+        return parseLong(key, getProperty(key), defaultValue);
     }
 
     /**
@@ -153,7 +158,79 @@ public interface ReadOnlySettings extends Iterable<Entry<String, String>> {
      * @return the parsed boolean or {@code defaultValue} on missing/invalid input
      */
     default boolean getBool(String key, boolean defaultValue) {
-        String value = getProperty(key);
+        return parseBool(key, getProperty(key), defaultValue);
+    }
+
+    /**
+     * Same as {@link #getInt(String, int)} with deprecated-key fallback. The deprecated key is
+     * tried only if {@code expectedKey} is not present; a deprecation warning is logged when the
+     * fallback is used. If neither key is present (or both yield unparseable values), the default
+     * is returned.
+     *
+     * @param expectedKey   the expected (current) key
+     * @param defaultValue  the value to return when neither key is present or both values are invalid
+     * @param deprecatedKey deprecated key to try if the expected key does not exist
+     * @return the parsed integer or {@code defaultValue}
+     */
+    default int getIntWithDeprecationWarning(String expectedKey, int defaultValue, String deprecatedKey) {
+        return parseInt(expectedKey, getPropertyWithDeprecationWarning(expectedKey, deprecatedKey), defaultValue);
+    }
+
+    /**
+     * Same as {@link #getLong(String, long)} with deprecated-key fallback. The deprecated key is
+     * tried only if {@code expectedKey} is not present; a deprecation warning is logged when the
+     * fallback is used.
+     *
+     * @param expectedKey   the expected (current) key
+     * @param defaultValue  the value to return when neither key is present or both values are invalid
+     * @param deprecatedKey deprecated key to try if the expected key does not exist
+     * @return the parsed long or {@code defaultValue}
+     */
+    default long getLongWithDeprecationWarning(String expectedKey, long defaultValue, String deprecatedKey) {
+        return parseLong(expectedKey, getPropertyWithDeprecationWarning(expectedKey, deprecatedKey), defaultValue);
+    }
+
+    /**
+     * Same as {@link #getBool(String, boolean)} with deprecated-key fallback. The deprecated key is
+     * tried only if {@code expectedKey} is not present; a deprecation warning is logged when the
+     * fallback is used.
+     *
+     * @param expectedKey   the expected (current) key
+     * @param defaultValue  the value to return when neither key is present or both values are invalid
+     * @param deprecatedKey deprecated key to try if the expected key does not exist
+     * @return the parsed boolean or {@code defaultValue}
+     */
+    default boolean getBoolWithDeprecationWarning(String expectedKey, boolean defaultValue, String deprecatedKey) {
+        return parseBool(expectedKey, getPropertyWithDeprecationWarning(expectedKey, deprecatedKey), defaultValue);
+    }
+
+    private static int parseInt(String key, String value, int defaultValue) {
+        if (value == null) {
+            return defaultValue;
+        }
+        try {
+            return Integer.parseInt(value);
+        } catch (NumberFormatException e) {
+            LoggerFactory.getLogger(ReadOnlySettings.class).warn(
+                "Setting [{}] has invalid integer value [{}]; using default [{}]", key, value, defaultValue);
+            return defaultValue;
+        }
+    }
+
+    private static long parseLong(String key, String value, long defaultValue) {
+        if (value == null) {
+            return defaultValue;
+        }
+        try {
+            return Long.parseLong(value);
+        } catch (NumberFormatException e) {
+            LoggerFactory.getLogger(ReadOnlySettings.class).warn(
+                "Setting [{}] has invalid long value [{}]; using default [{}]", key, value, defaultValue);
+            return defaultValue;
+        }
+    }
+
+    private static boolean parseBool(String key, String value, boolean defaultValue) {
         if (value == null) {
             return defaultValue;
         }

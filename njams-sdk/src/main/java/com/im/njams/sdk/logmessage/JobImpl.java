@@ -224,9 +224,8 @@ public class JobImpl implements Job {
         //will be set to true.
         startTime = DateTimeUtility.now();
         startTimeExplicitlySet = false;
-        allErrors = "true".equalsIgnoreCase(njams.getSettings().getProperty(NjamsSettings.PROPERTY_LOG_ALL_ERRORS));
-        truncateOnSuccess =
-                "true".equalsIgnoreCase(njams.getSettings().getProperty(NjamsSettings.PROPERTY_TRUNCATE_ON_SUCCESS));
+        allErrors = njams.getSettings().getBool(NjamsSettings.PROPERTY_LOG_ALL_ERRORS, false);
+        truncateOnSuccess = njams.getSettings().getBool(NjamsSettings.PROPERTY_TRUNCATE_ON_SUCCESS, false);
         truncateLimit = getTruncateLimit();
         initPayloadLimit();
     }
@@ -238,36 +237,20 @@ public class JobImpl implements Job {
         if (StringUtils.isBlank(mode)) {
             return;
         }
-        try {
-            final int limit = Integer.parseInt(settings.getProperty(NjamsSettings.PROPERTY_PAYLOAD_LIMIT_SIZE));
-            if (limit < 0) {
-                return;
-            }
-            if (limit == 0 || "discard".equalsIgnoreCase(mode)) {
-                payloadLimit = new AbstractMap.SimpleImmutableEntry<>(false, limit);
-            } else if ("truncate".equalsIgnoreCase(mode)) {
-                payloadLimit = new AbstractMap.SimpleImmutableEntry<>(true, limit);
-            }
-        } catch (NumberFormatException e) {
-            LOG.error("Failed to parse payload limit size: {}", e.toString());
+        final int limit = settings.getInt(NjamsSettings.PROPERTY_PAYLOAD_LIMIT_SIZE, -1);
+        if (limit < 0) {
+            return;
         }
-
+        if (limit == 0 || "discard".equalsIgnoreCase(mode)) {
+            payloadLimit = new AbstractMap.SimpleImmutableEntry<>(false, limit);
+        } else if ("truncate".equalsIgnoreCase(mode)) {
+            payloadLimit = new AbstractMap.SimpleImmutableEntry<>(true, limit);
+        }
     }
 
     private int getTruncateLimit() {
-        String s = null;
-        try {
-            s = njams.getSettings().getProperty(NjamsSettings.PROPERTY_TRUNCATE_LIMIT);
-            if (StringUtils.isBlank(s)) {
-                return Integer.MAX_VALUE;
-            }
-            final int i = Integer.parseInt(s);
-            return i > 0 ? i : Integer.MAX_VALUE;
-        } catch (Exception e) {
-            LOG.warn("Failed  to parse setting: {}={} - Truncating will be disabled.",
-                    NjamsSettings.PROPERTY_TRUNCATE_LIMIT, s);
-            return Integer.MAX_VALUE;
-        }
+        int i = njams.getSettings().getInt(NjamsSettings.PROPERTY_TRUNCATE_LIMIT, Integer.MAX_VALUE);
+        return i > 0 ? i : Integer.MAX_VALUE;
     }
 
     /**

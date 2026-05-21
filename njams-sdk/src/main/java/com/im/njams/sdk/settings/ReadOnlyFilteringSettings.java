@@ -26,9 +26,11 @@ package com.im.njams.sdk.settings;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 import com.im.njams.sdk.settings.encoding.Transformer;
 
@@ -80,6 +82,13 @@ class ReadOnlyFilteringSettings extends ReadOnlySettingsImpl {
     public boolean containsKey(String key) {
         String transformed = transformKey(key);
         return filter.test(transformed) && super.containsKey(transformed);
+    }
+
+    @Override
+    public Set<String> keySet() {
+        return map.keySet().stream()
+            .filter(filter)
+            .collect(Collectors.toUnmodifiableSet());
     }
 
     @Override

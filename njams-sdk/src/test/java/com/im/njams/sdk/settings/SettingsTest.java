@@ -172,4 +172,30 @@ public class SettingsTest {
         settings.putAll(extra);
         assertEquals("new", settings.getProperty("a"));
     }
+
+    @Test
+    public void testKeySetReturnsAllKeys() {
+        settings.put("a", "1");
+        settings.put("b", "2");
+        Set<String> keys = settings.keySet();
+        assertEquals(2, keys.size());
+        assertTrue(keys.contains("a"));
+        assertTrue(keys.contains("b"));
+    }
+
+    @Test
+    public void testKeySetEmptyForEmptySettings() {
+        assertTrue(settings.keySet().isEmpty());
+    }
+
+    @Test
+    public void testStreamYieldsAllEntries() {
+        settings.put("a", "1");
+        settings.put("b", "2");
+        Map<String, String> seen = new HashMap<>();
+        settings.stream().forEach(e -> seen.put(e.getKey(), e.getValue()));
+        assertEquals(2, seen.size());
+        assertEquals("1", seen.get("a"));
+        assertEquals("2", seen.get("b"));
+    }
 }

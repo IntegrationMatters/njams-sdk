@@ -119,6 +119,16 @@ public class Settings implements WritableSettings {
     }
 
     /**
+     * Returns the set of property keys registered in these settings.
+     *
+     * @return an unmodifiable snapshot of the registered keys
+     */
+    @Override
+    public Set<String> keySet() {
+        return properties.stringPropertyNames();
+    }
+
+    /**
      * Put a key/value pair to settings.
      *
      * @param key   the key

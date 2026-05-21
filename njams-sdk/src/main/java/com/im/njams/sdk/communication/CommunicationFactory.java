@@ -87,9 +87,8 @@ public class CommunicationFactory {
             if ("HTTPS".equalsIgnoreCase(requiredReceiverName)) {
                 requiredReceiverName = "HTTP";
             }
-            final boolean shared =
-                    "true".equalsIgnoreCase(settings.getPropertyWithDeprecationWarning(
-                            NjamsSettings.PROPERTY_SHARED_COMMUNICATIONS, NjamsSettings.OLD_SHARED_COMMUNICATIONS));
+            final boolean shared = settings.getBoolWithDeprecationWarning(
+                    NjamsSettings.PROPERTY_SHARED_COMMUNICATIONS, false, NjamsSettings.OLD_SHARED_COMMUNICATIONS);
             Class<? extends Receiver> type = findReceiverType(requiredReceiverName, shared);
             if (type != null) {
                 final Receiver newInstance = createReceiver(type, njams, shared, requiredReceiverName);

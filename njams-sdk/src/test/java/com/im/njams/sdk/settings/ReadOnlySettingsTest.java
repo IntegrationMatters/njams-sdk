@@ -559,6 +559,79 @@ public class ReadOnlySettingsTest {
         assertFalse(settings.getBool("missing", false));
     }
 
+    // ---------- typed deprecation-aware getters ----------
+
+    @Test
+    public void getIntWithDeprecationWarning_returnsExpectedValue() {
+        settings.put("new", "42");
+        assertEquals(42, settings.getIntWithDeprecationWarning("new", -1, "old"));
+    }
+
+    @Test
+    public void getIntWithDeprecationWarning_returnsDeprecatedValue() {
+        settings.put("old", "42");
+        assertEquals(42, settings.getIntWithDeprecationWarning("new", -1, "old"));
+    }
+
+    @Test
+    public void getIntWithDeprecationWarning_returnsDefaultWhenNeitherPresent() {
+        assertEquals(-1, settings.getIntWithDeprecationWarning("new", -1, "old"));
+    }
+
+    @Test
+    public void getIntWithDeprecationWarning_returnsDefaultForInvalidValue() {
+        settings.put("new", "not-a-number");
+        assertEquals(-1, settings.getIntWithDeprecationWarning("new", -1, "old"));
+    }
+
+    @Test
+    public void getLongWithDeprecationWarning_returnsExpectedValue() {
+        settings.put("new", "9999999999");
+        assertEquals(9999999999L, settings.getLongWithDeprecationWarning("new", -1L, "old"));
+    }
+
+    @Test
+    public void getLongWithDeprecationWarning_returnsDeprecatedValue() {
+        settings.put("old", "42");
+        assertEquals(42L, settings.getLongWithDeprecationWarning("new", -1L, "old"));
+    }
+
+    @Test
+    public void getLongWithDeprecationWarning_returnsDefaultForInvalidValue() {
+        settings.put("new", "abc");
+        assertEquals(-1L, settings.getLongWithDeprecationWarning("new", -1L, "old"));
+    }
+
+    @Test
+    public void getBoolWithDeprecationWarning_returnsExpectedValue() {
+        settings.put("new", "true");
+        assertTrue(settings.getBoolWithDeprecationWarning("new", false, "old"));
+    }
+
+    @Test
+    public void getBoolWithDeprecationWarning_returnsDeprecatedValue() {
+        settings.put("old", "false");
+        assertFalse(settings.getBoolWithDeprecationWarning("new", true, "old"));
+    }
+
+    @Test
+    public void getBoolWithDeprecationWarning_returnsDefaultWhenNeitherPresent() {
+        assertTrue(settings.getBoolWithDeprecationWarning("new", true, "old"));
+    }
+
+    @Test
+    public void getBoolWithDeprecationWarning_returnsDefaultForInvalidValue() {
+        settings.put("new", "yes");
+        assertTrue(settings.getBoolWithDeprecationWarning("new", true, "old"));
+    }
+
+    @Test
+    public void getBoolWithDeprecationWarning_prefersExpectedOverDeprecated() {
+        settings.put("new", "false");
+        settings.put("old", "true");
+        assertFalse(settings.getBoolWithDeprecationWarning("new", true, "old"));
+    }
+
     // ---------- filter ----------
 
     @Test
@@ -706,6 +779,69 @@ public class ReadOnlySettingsTest {
         extra.put("a", "new");
         settings.putAll(extra);
         assertEquals("new", settings.getProperty("a"));
+    }
+
+    // ---------- stream ----------
+
+    @Test
+    public void stream_yieldsAllEntries() {
+        settings.put("a", "1");
+        settings.put("b", "2");
+        Map<String, String> seen = new HashMap<>();
+        settings.stream().forEach(e -> seen.put(e.getKey(), e.getValue()));
+        assertEquals(2, seen.size());
+        assertEquals("1", seen.get("a"));
+        assertEquals("2", seen.get("b"));
+    }
+
+    @Test
+    public void stream_emptyForEmptySettings() {
+        assertEquals(0L, settings.stream().count());
+    }
+
+    // ---------- keySet ----------
+
+    @Test
+    public void keySet_returnsAllKeys() {
+        settings.put("a", "1");
+        settings.put("b", "2");
+        Set<String> keys = settings.keySet();
+        assertEquals(2, keys.size());
+        assertTrue(keys.contains("a"));
+        assertTrue(keys.contains("b"));
+    }
+
+    @Test
+    public void keySet_emptyForEmptySettings() {
+        assertTrue(settings.keySet().isEmpty());
+    }
+
+    @Test(expected = UnsupportedOperationException.class)
+    public void keySet_isUnmodifiable() {
+        settings.put("a", "1");
+        settings.keySet().add("z");
+    }
+
+    @Test
+    public void keySet_filteringSettings_appliesFilter() {
+        Map<String, String> backing = new HashMap<>();
+        backing.put("FOO", "1");
+        backing.put("BAR", "2");
+        backing.put("BAZ", "3");
+        ReadOnlyFilteringSettings ro = new ReadOnlyFilteringSettings(backing, key -> key.startsWith("B"));
+        Set<String> keys = ro.keySet();
+        assertEquals(2, keys.size());
+        assertTrue(keys.contains("BAR"));
+        assertTrue(keys.contains("BAZ"));
+        assertFalse(keys.contains("FOO"));
+    }
+
+    @Test
+    public void keySet_filteringSettings_emptyWhenFilterRejectsAll() {
+        Map<String, String> backing = new HashMap<>();
+        backing.put("FOO", "1");
+        ReadOnlyFilteringSettings ro = new ReadOnlyFilteringSettings(backing, key -> false);
+        assertTrue(ro.keySet().isEmpty());
     }
 
     // ---------- iterator ----------

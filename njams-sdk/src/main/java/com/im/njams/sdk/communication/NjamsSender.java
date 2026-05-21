@@ -24,7 +24,6 @@
 package com.im.njams.sdk.communication;
 
 import static com.im.njams.sdk.NjamsSettings.*;
-import static com.im.njams.sdk.utils.PropertyUtil.getPropertyWithDeprecationWarning;
 
 import java.util.Properties;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -41,7 +40,6 @@ import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.factories.ThreadFactoryBuilder;
 import com.im.njams.sdk.settings.WritableSettings;
 import com.im.njams.sdk.utils.PropertyUtil;
-import com.im.njams.sdk.utils.StringUtils;
 
 /**
  * This class enforces the maxQueueLength setting. It uses the
@@ -153,12 +151,13 @@ public class NjamsSender {
      */
     public void init(Properties properties) {
         int minSenderThreads =
-            (int) getLongProperty(properties, 1, PROPERTY_MIN_SENDER_THREADS, OLD_MIN_SENDER_THREADS);
+            (int) settings.getLongWithDeprecationWarning(PROPERTY_MIN_SENDER_THREADS, 1, OLD_MIN_SENDER_THREADS);
         int maxSenderThreads =
-            (int) getLongProperty(properties, 8, PROPERTY_MAX_SENDER_THREADS, OLD_MAX_SENDER_THREADS);
-        int maxQueueLength = (int) getLongProperty(properties, 8, PROPERTY_MAX_QUEUE_LENGTH, OLD_MAX_QUEUE_LENGTH);
+            (int) settings.getLongWithDeprecationWarning(PROPERTY_MAX_SENDER_THREADS, 8, OLD_MAX_SENDER_THREADS);
+        int maxQueueLength =
+            (int) settings.getLongWithDeprecationWarning(PROPERTY_MAX_QUEUE_LENGTH, 8, OLD_MAX_QUEUE_LENGTH);
         long idleTime =
-            getLongProperty(properties, 10000, PROPERTY_SENDER_THREAD_IDLE_TIME, OLD_SENDER_THREAD_IDLE_TIME);
+            settings.getLongWithDeprecationWarning(PROPERTY_SENDER_THREAD_IDLE_TIME, 10000, OLD_SENDER_THREAD_IDLE_TIME);
         LOG.debug("Init thread pool (min={}, max={}, queue={}, idle={})", minSenderThreads, maxSenderThreads,
             maxQueueLength, idleTime);
         validateThreadPool(minSenderThreads, maxSenderThreads, maxQueueLength, idleTime);
@@ -180,18 +179,6 @@ public class NjamsSender {
         }
         if (idleTime < 0) {
             throw new IllegalArgumentException("Idle time must be >0");
-        }
-    }
-
-    private long getLongProperty(Properties properties, int def, String key, String deprecatedKey) {
-        String val = getPropertyWithDeprecationWarning(properties, key, deprecatedKey);
-        if (StringUtils.isBlank(val)) {
-            return def;
-        }
-        try {
-            return Long.parseLong(val);
-        } catch (NumberFormatException e) {
-            return def;
         }
     }
 

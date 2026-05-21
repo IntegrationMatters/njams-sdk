@@ -316,7 +316,7 @@ public class Njams implements InstructionListener {
     }
 
     private void initContainerMode() {
-        setContainerMode(!"false".equalsIgnoreCase(settings.getProperty(NjamsSettings.PROPERTY_CONTAINER_MODE)));
+        setContainerMode(settings.getBool(NjamsSettings.PROPERTY_CONTAINER_MODE, true));
     }
 
     /**
@@ -453,8 +453,8 @@ public class Njams implements InstructionListener {
             removeFeature(Feature.REPLAY);
         } else {
             addFeature(Feature.REPLAY);
-            if ("true".equalsIgnoreCase(settings.getPropertyWithDeprecationWarning(
-                    NjamsSettings.PROPERTY_DISABLE_STARTDATA, NjamsSettings.OLD_DISABLE_STARTDATA))) {
+            if (settings.getBoolWithDeprecationWarning(
+                    NjamsSettings.PROPERTY_DISABLE_STARTDATA, false, NjamsSettings.OLD_DISABLE_STARTDATA)) {
                 LOG.warn("Replay functionality is limited because collecting start-data "
                         + "is disabled by configuration {}=true", NjamsSettings.PROPERTY_DISABLE_STARTDATA);
             }
@@ -522,8 +522,8 @@ public class Njams implements InstructionListener {
      */
     public NjamsSender getSender() {
         if (sender == null) {
-            if ("true".equalsIgnoreCase(settings.getPropertyWithDeprecationWarning(
-                    NjamsSettings.PROPERTY_SHARED_COMMUNICATIONS, NjamsSettings.OLD_SHARED_COMMUNICATIONS))) {
+            if (settings.getBoolWithDeprecationWarning(
+                    NjamsSettings.PROPERTY_SHARED_COMMUNICATIONS, false, NjamsSettings.OLD_SHARED_COMMUNICATIONS)) {
                 LOG.debug("Using shared sender pool for {}", getClientPath());
                 sender = NjamsSender.takeSharedSender(settings);
             } else {
@@ -1388,17 +1388,11 @@ public class Njams implements InstructionListener {
      */
     private void initializeDataMasking() {
 
-        Properties properties = PropertyUtil.toProperties(settings);
-        boolean dataMaskingEnabled = true;
-        if (properties != null) {
-            dataMaskingEnabled =
-                    Boolean.parseBoolean(properties.getProperty(NjamsSettings.PROPERTY_DATA_MASKING_ENABLED,
-                            "true"));
-            if (dataMaskingEnabled) {
-                DataMasking.addPatterns(properties);
-            } else {
-                LOG.info("DataMasking is disabled.");
-            }
+        boolean dataMaskingEnabled = settings.getBool(NjamsSettings.PROPERTY_DATA_MASKING_ENABLED, true);
+        if (dataMaskingEnabled) {
+            DataMasking.addPatterns(PropertyUtil.toProperties(settings));
+        } else {
+            LOG.info("DataMasking is disabled.");
         }
         if (dataMaskingEnabled && !configuration.getDataMasking().isEmpty()) {
             LOG.warn("DataMasking via the configuration is deprecated but will be used as well. Use settings " +

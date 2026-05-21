@@ -23,9 +23,11 @@
  */
 package com.im.njams.sdk.settings;
 
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 
 import com.im.njams.sdk.settings.encoding.Transformer;
 
@@ -45,6 +47,11 @@ class ReadOnlySettingsImpl extends AbstractReadOnlySettings {
     @Override
     public boolean containsKey(String key) {
         return map.containsKey(key);
+    }
+
+    @Override
+    public Set<String> keySet() {
+        return Collections.unmodifiableSet(map.keySet());
     }
 
     @Override

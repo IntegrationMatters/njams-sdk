@@ -25,6 +25,8 @@ package com.im.njams.sdk.logmessage;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -57,9 +59,8 @@ public class TruncatingTest {
     }
 
     private void init(int limit, boolean onSuccess) {
-        when(settings.getProperty(eq(NjamsSettings.PROPERTY_TRUNCATE_LIMIT))).then(i -> String.valueOf(limit));
-        when(settings.getProperty(eq(NjamsSettings.PROPERTY_TRUNCATE_ON_SUCCESS)))
-                .then(i -> String.valueOf(onSuccess));
+        when(settings.getInt(eq(NjamsSettings.PROPERTY_TRUNCATE_LIMIT), anyInt())).thenReturn(limit);
+        when(settings.getBool(eq(NjamsSettings.PROPERTY_TRUNCATE_ON_SUCCESS), anyBoolean())).thenReturn(onSuccess);
         job = new JobImpl(processModel, "4711", "4812");
     }
 
