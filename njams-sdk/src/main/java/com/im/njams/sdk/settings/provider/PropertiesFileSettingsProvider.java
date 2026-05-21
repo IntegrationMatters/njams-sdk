@@ -45,7 +45,12 @@ import com.im.njams.sdk.utils.StringUtils;
  * {@value NjamsSettings#PROPERTY_PROPERTIES_FILE_SETTINGS_PARENT_FILE}.
  *
  * @author cwinkler
+ * @deprecated Use {@link com.im.njams.sdk.settings.WritableSettings} instead. Load the
+ *     {@code .properties} file with {@link Properties#load(java.io.InputStream)} and pass the
+ *     result to {@link com.im.njams.sdk.settings.WritableSettings#from(Properties)}. The
+ *     provider/factory layer is no longer needed.
  */
+@Deprecated
 public class PropertiesFileSettingsProvider implements SettingsProvider {
 
     private static final Logger LOG = LoggerFactory.getLogger(PropertiesFileSettingsProvider.class);

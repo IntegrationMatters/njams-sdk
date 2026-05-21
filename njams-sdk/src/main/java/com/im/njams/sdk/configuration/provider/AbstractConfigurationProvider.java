@@ -33,12 +33,12 @@ import com.faizsiegeln.njams.messageformat.v4.projectmessage.LogMode;
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.configuration.ConfigurationProvider;
 import com.im.njams.sdk.configuration.ProcessConfiguration;
-import com.im.njams.sdk.settings.Settings;
+import com.im.njams.sdk.settings.WritableSettings;
 import com.im.njams.sdk.utils.StringUtils;
 
 /**
  * A base implementation for {@link ConfigurationProvider} that manages common default that are provided via
- * {@link Settings}.
+ * {@link WritableSettings}.
  */
 public abstract class AbstractConfigurationProvider implements ConfigurationProvider {
 

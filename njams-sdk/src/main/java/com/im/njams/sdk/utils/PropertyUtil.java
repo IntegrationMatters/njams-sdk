@@ -23,11 +23,13 @@
  */
 package com.im.njams.sdk.utils;
 
+import java.util.Map;
 import java.util.Properties;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.im.njams.sdk.settings.ReadOnlySettings;
 import com.im.njams.sdk.settings.encoding.Transformer;
 
 /**
@@ -41,6 +43,23 @@ public class PropertyUtil {
 
     private PropertyUtil() {
         // static only
+    }
+
+    /**
+     * Builds a {@link Properties} snapshot from the entries of the given {@link ReadOnlySettings}.
+     * Provided as a bridge for third-party APIs (e.g. Kafka, JMS, HTTP clients) that require a
+     * {@link Properties} instance for configuration. SDK code should otherwise operate on
+     * {@link com.im.njams.sdk.settings.WritableSettings} directly.
+     *
+     * @param settings the settings to copy entries from
+     * @return a new {@link Properties} containing every entry of {@code settings}
+     */
+    public static Properties toProperties(ReadOnlySettings settings) {
+        Properties result = new Properties();
+        for (Map.Entry<String, String> entry : settings) {
+            result.setProperty(entry.getKey(), entry.getValue());
+        }
+        return result;
     }
 
     /**

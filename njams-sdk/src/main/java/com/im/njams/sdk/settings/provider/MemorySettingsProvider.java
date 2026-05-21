@@ -33,7 +33,13 @@ import java.util.Properties;
  * settings in memory and returns it if load is called.
  *
  * @author pnientiedt
+ * @deprecated Use {@link com.im.njams.sdk.settings.WritableSettings} instead. Construct an
+ *     in-memory settings view directly via
+ *     {@link com.im.njams.sdk.settings.WritableSettings#from(java.util.Map)} (or
+ *     {@link com.im.njams.sdk.settings.WritableSettings#from(java.util.Properties)}). The
+ *     provider/factory layer is no longer needed.
  */
+@Deprecated
 public class MemorySettingsProvider implements SettingsProvider {
 
     /**

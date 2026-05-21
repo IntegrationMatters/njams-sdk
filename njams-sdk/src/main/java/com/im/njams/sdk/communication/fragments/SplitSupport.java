@@ -40,7 +40,8 @@ import org.slf4j.LoggerFactory;
 
 import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.communication.http.HttpSender;
-import com.im.njams.sdk.settings.Settings;
+import com.im.njams.sdk.settings.WritableSettings;
+import com.im.njams.sdk.utils.PropertyUtil;
 
 /**
  * Splits large messages according to the configuration setting {@link NjamsSettings#PROPERTY_MAX_MESSAGE_SIZE} or
@@ -189,13 +190,13 @@ public class SplitSupport {
     private final String chunkMessageKeyHeader;
 
     /**
-     * Constructor that initializes this instance from the given {@link Settings}.
-     * @param settings {@link Settings} to be used for initializing this instance.
+     * Constructor that initializes this instance from the given {@link WritableSettings}.
+     * @param settings {@link WritableSettings} to be used for initializing this instance.
      * @param techLimit Technical limitation of the maximum message size enforced by the transport implementation,
      * if any. This works as an upper limit. Set to 0 or less if there is no such limit.
      */
-    public SplitSupport(final Settings settings, final int techLimit) {
-        this(settings.getAllProperties(), techLimit);
+    public SplitSupport(final WritableSettings settings, final int techLimit) {
+        this(PropertyUtil.toProperties(settings), techLimit);
     }
 
     /**

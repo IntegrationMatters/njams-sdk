@@ -34,8 +34,9 @@ import org.slf4j.LoggerFactory;
 
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.NjamsSettings;
-import com.im.njams.sdk.settings.Settings;
+import com.im.njams.sdk.settings.WritableSettings;
 import com.im.njams.sdk.utils.ClasspathValidator;
+import com.im.njams.sdk.utils.PropertyUtil;
 import com.im.njams.sdk.utils.ServiceLoaderSupport;
 
 /**
@@ -46,7 +47,14 @@ import com.im.njams.sdk.utils.ServiceLoaderSupport;
 public class CommunicationFactory {
     private static final Logger LOG = LoggerFactory.getLogger(CommunicationFactory.class);
 
-    private final Settings settings;
+    /**
+     * Property key used internally to pass the client path from the {@link Njams} instance to
+     * senders and receivers via their configuration properties. The {@code "njams.$"} prefix marks
+     * the key as not user-configurable.
+     */
+    public static final String INTERNAL_PROPERTY_CLIENTPATH = "njams.$clientPath";
+
+    private final WritableSettings settings;
     private static final Map<Class<? extends Receiver>, ShareableReceiver<?>> sharedReceivers = new HashMap<>();
 
     /**
@@ -54,7 +62,7 @@ public class CommunicationFactory {
      *
      * @param settings Settings to add
      */
-    public CommunicationFactory(Settings settings) {
+    public CommunicationFactory(WritableSettings settings) {
         this.settings = settings;
     }
 
@@ -118,8 +126,8 @@ public class CommunicationFactory {
 
     private Receiver createReceiver(Class<? extends Receiver> clazz, Njams njams, boolean shared, String name) {
         try {
-            Properties properties = settings.getAllProperties();
-            properties.setProperty(Settings.INTERNAL_PROPERTY_CLIENTPATH, njams.getClientPath().toString());
+            Properties properties = PropertyUtil.toProperties(settings);
+            properties.setProperty(INTERNAL_PROPERTY_CLIENTPATH, njams.getClientPath().toString());
             Receiver receiver;
             if (shared && ShareableReceiver.class.isAssignableFrom(clazz)) {
                 synchronized (sharedReceivers) {
@@ -173,7 +181,7 @@ public class CommunicationFactory {
                     ((ClasspathValidator) newInstance).validate();
                 }
 
-                newInstance.init(settings.getAllProperties());
+                newInstance.init(PropertyUtil.toProperties(settings));
                 newInstance.startup();
                 return newInstance;
             } catch (Exception e) {

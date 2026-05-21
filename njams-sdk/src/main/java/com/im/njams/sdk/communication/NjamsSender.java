@@ -39,7 +39,8 @@ import com.faizsiegeln.njams.messageformat.v4.common.CommonMessage;
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.factories.ThreadFactoryBuilder;
-import com.im.njams.sdk.settings.Settings;
+import com.im.njams.sdk.settings.WritableSettings;
+import com.im.njams.sdk.utils.PropertyUtil;
 import com.im.njams.sdk.utils.StringUtils;
 
 /**
@@ -57,7 +58,7 @@ public class NjamsSender {
         private final Object lock = new Object();
         private int usage = 0;
 
-        private NjamsSharedSender(Settings settings) {
+        private NjamsSharedSender(WritableSettings settings) {
             super(settings);
         }
 
@@ -99,7 +100,7 @@ public class NjamsSender {
     protected ThreadPoolExecutor executor = null;
 
     //The settings will be used for the name and max-queue-length
-    protected final Settings settings;
+    protected final WritableSettings settings;
 
     //The name for the executor threads.
     protected final String name;
@@ -116,10 +117,10 @@ public class NjamsSender {
      *
      * @param settings the setting where some settings will be taken from.
      */
-    public NjamsSender(Settings settings) {
+    public NjamsSender(WritableSettings settings) {
         this.settings = settings;
         name = settings.getProperty(NjamsSettings.PROPERTY_COMMUNICATION);
-        init(settings.getAllProperties());
+        init(PropertyUtil.toProperties(settings));
     }
 
     /**
@@ -134,7 +135,7 @@ public class NjamsSender {
      * @param settings Only used if a new instance needs to be created.
      * @return The shared sender instance as explained above.
      */
-    public static synchronized NjamsSender takeSharedSender(Settings settings) {
+    public static synchronized NjamsSender takeSharedSender(WritableSettings settings) {
         if (sharedInstance == null || sharedInstance.isDestroyed()) {
             sharedInstance = new NjamsSharedSender(settings);
         }

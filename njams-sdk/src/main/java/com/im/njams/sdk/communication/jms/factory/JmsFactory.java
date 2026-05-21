@@ -37,7 +37,7 @@ import org.slf4j.LoggerFactory;
 
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.NjamsSettings;
-import com.im.njams.sdk.settings.Settings;
+import com.im.njams.sdk.settings.WritableSettings;
 import com.im.njams.sdk.utils.ServiceLoaderSupport;
 import com.im.njams.sdk.utils.StringUtils;
 
@@ -75,7 +75,7 @@ public interface JmsFactory extends AutoCloseable {
      * {@link JmsFactory} that still needs the common {@value NjamsSettings#PROPERTY_JMS_CONNECTION_FACTORY} key
      * for looking the {@link ConnectionFactory} in the JNDI context as second step.
      *
-     * @param settings Settings specifying what provider to use. Obtained from nJAMS' {@link Settings}.
+     * @param settings Settings specifying what provider to use. Obtained from nJAMS' {@link WritableSettings}.
      * @return Found instance or {@link JndiJmsFactory} as a default. The returned instance
      * is {@link JmsFactory#init(Properties) initialized} with the given settings.
      */
@@ -88,7 +88,7 @@ public interface JmsFactory extends AutoCloseable {
      * {@link JmsFactory}.<br>
      * This is only needed in rare cases. Most common cases should use {@link #find(Properties)} instead.
      *
-     * @param settings Settings specifying what provider to use. Obtained from nJAMS' {@link Settings}.
+     * @param settings Settings specifying what provider to use. Obtained from nJAMS' {@link WritableSettings}.
      * @param init Whether the returned instance shall be initialize by calling {@link JmsFactory#init(Properties)}.
      * If <code>false</code>, the returned instance still needs to be initialized before using.
      * @return Found instance or {@link JndiJmsFactory} as a default. The returned instance

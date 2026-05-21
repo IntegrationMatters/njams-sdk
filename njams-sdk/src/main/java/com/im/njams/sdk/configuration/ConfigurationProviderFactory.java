@@ -33,7 +33,7 @@ import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.configuration.provider.AbstractConfigurationProvider;
 import com.im.njams.sdk.configuration.provider.ConfigurationValidationResult;
-import com.im.njams.sdk.settings.Settings;
+import com.im.njams.sdk.settings.WritableSettings;
 import com.im.njams.sdk.utils.ServiceLoaderSupport;
 import com.im.njams.sdk.utils.StringUtils;
 
@@ -52,7 +52,7 @@ public class ConfigurationProviderFactory {
      */
     public static final String CONFIGURATION_PROVIDER = "njams.sdk.configuration.provider";
 
-    private Settings settings;
+    private WritableSettings settings;
     private final Njams njams;
 
     /**
@@ -62,7 +62,7 @@ public class ConfigurationProviderFactory {
      * @param settings Settings
      * @param njams Njams instance
      */
-    public ConfigurationProviderFactory(Settings settings, Njams njams) {
+    public ConfigurationProviderFactory(WritableSettings settings, Njams njams) {
         this.settings = settings;
         this.njams = njams;
     }

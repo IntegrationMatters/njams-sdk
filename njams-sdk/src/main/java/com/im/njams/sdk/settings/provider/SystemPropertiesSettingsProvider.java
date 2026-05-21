@@ -33,7 +33,11 @@ import java.util.Properties;
  * Implements a simple {@link SettingsProvider} that uses Java system properties for configuration.
  *
  * @author cwinkler
+ * @deprecated Use
+ *     {@link com.im.njams.sdk.settings.WritableSettings#fromSystemProperties(java.util.function.Predicate)}
+ *     instead. The provider/factory layer is no longer needed.
  */
+@Deprecated
 public class SystemPropertiesSettingsProvider implements SettingsProvider {
 
     /**

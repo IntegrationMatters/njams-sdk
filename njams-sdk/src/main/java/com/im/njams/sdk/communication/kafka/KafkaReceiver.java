@@ -50,6 +50,7 @@ import com.im.njams.sdk.common.JsonSerializerFactory;
 import com.im.njams.sdk.Path;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.communication.AbstractReceiver;
+import com.im.njams.sdk.communication.CommunicationFactory;
 import com.im.njams.sdk.communication.ConnectionStatus;
 import com.im.njams.sdk.communication.fragments.KafkaChunkAssembly;
 import com.im.njams.sdk.communication.fragments.RawMessage;
@@ -57,7 +58,6 @@ import com.im.njams.sdk.communication.fragments.SplitSupport;
 import com.im.njams.sdk.communication.fragments.SplitSupport.SplitIterator;
 import com.im.njams.sdk.communication.kafka.KafkaHeadersUtil.HeadersUpdater;
 import com.im.njams.sdk.communication.kafka.KafkaUtil.ClientType;
-import com.im.njams.sdk.settings.Settings;
 import com.im.njams.sdk.utils.StringUtils;
 
 /**
@@ -94,7 +94,7 @@ public class KafkaReceiver extends AbstractReceiver {
         njamsProperties = properties;
         connectionStatus = ConnectionStatus.DISCONNECTED;
         mapper = JsonSerializerFactory.getFastMapper();
-        final String clientPath = properties.getProperty(Settings.INTERNAL_PROPERTY_CLIENTPATH);
+        final String clientPath = properties.getProperty(CommunicationFactory.INTERNAL_PROPERTY_CLIENTPATH);
         kafkaClientId = getClientId(clientPath.substring(1, clientPath.length() - 1).replace('>', '_'));
         String prefix = properties.getProperty(NjamsSettings.PROPERTY_KAFKA_TOPIC_PREFIX);
         if (StringUtils.isBlank(prefix)) {

@@ -48,7 +48,17 @@ import com.im.njams.sdk.utils.StringUtils;
  * Please only use them and not the deprecated ones from here-
  *
  * @author bwand
+ * @deprecated This class is preserved only as a legacy implementation of {@link WritableSettings}
+ *     for backwards compatibility with existing client code. The SDK itself no longer uses it
+ *     internally — all internal settings handling now goes through the {@link WritableSettings}
+ *     and {@link ReadOnlySettings} interfaces. Obtain settings instances via one of the factory
+ *     methods on those interfaces: {@link WritableSettings#from(java.util.Map)},
+ *     {@link WritableSettings#from(java.util.Properties)},
+ *     {@link WritableSettings#fromSystemProperties(java.util.function.Predicate)}, or
+ *     {@link ReadOnlySettings#fromEnvironment(java.util.function.Predicate)} for a read-only
+ *     environment-backed view.
  */
+@Deprecated
 public class Settings implements WritableSettings {
 
     //The Logger
