@@ -2,6 +2,18 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Project Resources
+
+- **Wiki:** https://github.com/IntegrationMatters/njams-sdk/wiki — project home page
+- **FAQ:** https://github.com/IntegrationMatters/njams-sdk/wiki/FAQ — covers settings providers, all transport configurations (JMS, HTTP/HTTPS, Kafka), message size and flush tuning, data masking, Argos metrics, and custom `ProcessModelLayouter` implementations
+
+Consult the FAQ before implementing or modifying anything related to configuration, communication, or advanced SDK features — it documents intended behavior and usage patterns.
+
+The FAQ must be kept up to date. Update `C:\scm\GitHub\njams-sdk.wiki\FAQ.md` and push whenever:
+- A new setting is added
+- The behavior or default value of an existing setting changes
+- A setting is deprecated or removed
+
 ## Project Tracking
 
 Issues and tasks for this project are tracked in Jira: **https://salesfive.atlassian.net** — space key **SDK**.
@@ -96,7 +108,7 @@ mvn clean install -DskipTests
 
 ## Project Structure
 
-Multi-module Maven project (`com.faizsiegeln`, version 6.0.0-SNAPSHOT):
+Multi-module Maven project (`com.salesfive.njams`, version 6.0.0-SNAPSHOT):
 - `njams-sdk/` — Core SDK library (primary development target)
 - `njams-sdk-sample-client/` — Usage examples demonstrating all SDK features
 - `njams-sdk-sample-app/` — Additional sample application
