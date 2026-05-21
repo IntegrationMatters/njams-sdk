@@ -2,7 +2,7 @@ package com.im.sdk.njams.sample;
 
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.NjamsSettings;
-import com.im.njams.sdk.common.Path;
+import com.im.njams.sdk.Path;
 import com.im.njams.sdk.model.ActivityModel;
 import com.im.njams.sdk.model.ProcessModel;
 import com.im.njams.sdk.settings.Settings;
@@ -33,7 +33,7 @@ public class NjamsStartup {
         //Settings settings = getJmsPropertiesFromFile("settings.properties");
 
         // Specify a client path. This path specifies where your client instance will be visible in the object tree.
-        Path clientPath = new Path("SDK4", "Client", "Simple");
+        Path clientPath = Path.of("SDK4", "Client", "Simple");
 
         // Instantiate client for first application
         njams = new Njams(clientPath, "1.0.0", technology, settings);
@@ -50,7 +50,7 @@ public class NjamsStartup {
          * Creating a process by adding a ProcessModel
          */
         // Specify a process path, which is relative to the client path
-        Path processPath = new Path("Processes", "SimpleProcess");
+        Path processPath = Path.of("Processes", "SimpleProcess");
 
         // Create an new empty process model
         ProcessModel process = njams.createProcess(processPath);

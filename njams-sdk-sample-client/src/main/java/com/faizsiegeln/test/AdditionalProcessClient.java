@@ -25,7 +25,7 @@ package com.faizsiegeln.test;
 
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.NjamsSettings;
-import com.im.njams.sdk.common.Path;
+import com.im.njams.sdk.Path;
 import com.im.njams.sdk.model.ActivityModel;
 import com.im.njams.sdk.model.ProcessModel;
 import com.im.njams.sdk.settings.Settings;
@@ -40,7 +40,7 @@ public class AdditionalProcessClient {
         String technology = "sdk4";
 
         //Specify a client path. This path specifies where your client instance will be visible in the object tree.
-        Path clientPath = new Path("SDK4", "Client", "Simple");
+        Path clientPath = Path.of("SDK4", "Client", "Simple");
 
         //Create communicationProperties, which specify how your client will communicate with the server
         Settings settings = getJmsProperties();
@@ -60,7 +60,7 @@ public class AdditionalProcessClient {
          * Creating a process by adding a ProcessModel
          */
         //Specify a process path, which is relative to the client path
-        Path processPath = new Path("Processes", "SimpleProcess");
+        Path processPath = Path.of("Processes", "SimpleProcess");
 
         //Create an new empty process model
         ProcessModel process = njams.createProcess(processPath);
@@ -80,7 +80,7 @@ public class AdditionalProcessClient {
          * Creating a process by adding a ProcessModel
          */
         //Specify a process path, which is relative to the client path
-        Path processPath2 = new Path("Processes", "AddedProcess");
+        Path processPath2 = Path.of("Processes", "AddedProcess");
 
         //Create an new empty process model
         ProcessModel process2 = njams.createProcess(processPath2);

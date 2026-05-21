@@ -26,7 +26,7 @@ package com.faizsiegeln.test.argos;
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.argos.jvm.JVMCollector;
-import com.im.njams.sdk.common.Path;
+import com.im.njams.sdk.Path;
 import com.im.njams.sdk.settings.Settings;
 
 /**
@@ -58,7 +58,7 @@ public class JVMSenderClient {
         String technology = "sdk4";
 
         //Specify a client path. This path specifies where your client instance will be visible in the object tree.
-        Path clientPath = new Path("SDK4", "Client", "Argos");
+        Path clientPath = Path.of("SDK4", "Client", "Argos");
 
         //Create communicationProperties, which specify how your client will communicate with the server
         Settings settings = getProperties();

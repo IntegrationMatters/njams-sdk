@@ -28,7 +28,7 @@ import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.argos.ArgosCollector;
 import com.im.njams.sdk.argos.ArgosComponent;
 import com.im.njams.sdk.argos.ArgosMetric;
-import com.im.njams.sdk.common.Path;
+import com.im.njams.sdk.Path;
 import com.im.njams.sdk.settings.Settings;
 
 import java.util.Random;
@@ -62,7 +62,7 @@ public class RandomNumberSenderClient {
         String technology = "sdk4";
 
         //Specify a client path. This path specifies where your client instance will be visible in the object tree.
-        Path clientPath = new Path("SDK4", "Client", "Argos");
+        Path clientPath = Path.of("SDK4", "Client", "Argos");
 
         //Create communicationProperties, which specify how your client will communicate with the server
         Settings settings = getProperties();
