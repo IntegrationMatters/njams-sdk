@@ -55,7 +55,7 @@ import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.common.DateTimeUtility;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
-import com.im.njams.sdk.common.Path;
+import com.im.njams.sdk.Path;
 import com.im.njams.sdk.configuration.ActivityConfiguration;
 import com.im.njams.sdk.configuration.Configuration;
 import com.im.njams.sdk.configuration.ProcessConfiguration;
@@ -967,7 +967,7 @@ public class JobImpl implements Job {
      */
     @Override
     public void setBusinessService(String businessService) {
-        setBusinessService(new Path(businessService));
+        setBusinessService(Path.resolve(businessService));
     }
 
     /**
@@ -999,7 +999,7 @@ public class JobImpl implements Job {
      */
     @Override
     public void setBusinessObject(String businessObject) {
-        setBusinessObject(new Path(businessObject));
+        setBusinessObject(Path.resolve(businessObject));
     }
 
     /**

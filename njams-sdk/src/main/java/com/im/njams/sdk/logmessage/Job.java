@@ -28,7 +28,7 @@ import java.util.Collection;
 import java.util.Map;
 
 import com.faizsiegeln.njams.messageformat.v4.logmessage.interfaces.IPluginDataItem;
-import com.im.njams.sdk.common.Path;
+import com.im.njams.sdk.Path;
 import com.im.njams.sdk.model.ActivityModel;
 import com.im.njams.sdk.model.GroupModel;
 import com.im.njams.sdk.model.SubProcessActivityModel;
