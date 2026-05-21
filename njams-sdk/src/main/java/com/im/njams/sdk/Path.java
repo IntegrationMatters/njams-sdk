@@ -23,7 +23,7 @@
  */
 package com.im.njams.sdk;
 
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -41,6 +41,30 @@ import java.util.concurrent.ConcurrentHashMap;
  * is no public constructor.
  *
  * <p>The tree is thread-safe: reads are non-blocking; node creation is atomic per slot.
+ *
+ * <h2>Strict vs. resolve API — which to use</h2>
+ *
+ * <p>Two parallel APIs are provided:
+ * <ul>
+ *   <li><b>Strict (segment-based)</b>: {@link #of(String...)}, {@link #getChild(String...)},
+ *       {@link #hasChild(String...)}, {@link #getOrCreateChild(String...)}. Each argument
+ *       is treated as a single segment name. Walking the tree is one
+ *       {@code ConcurrentHashMap.get} per level — no parsing, no string allocation, and
+ *       validation is skipped entirely for already-existing nodes.
+ *   <li><b>Resolve (path-string-based)</b>: {@link #resolve(String...)},
+ *       {@link #resolveChild(String...)}, {@link #resolvesChild(String...)},
+ *       {@link #resolveOrCreateChild(String...)}. Each argument may be a partial path
+ *       string with embedded {@code >} separators; arguments are split, empty and
+ *       {@code null} segments are dropped, and the remaining segments are walked the
+ *       same way as the strict variants. Split results are cached per input string, but
+ *       even with a cache hit the split + cache lookup costs more than passing segments
+ *       directly.
+ * </ul>
+ *
+ * <p><b>Prefer the strict variants whenever the segment names are already known.</b>
+ * Use the resolve variants only when the input is itself a path string — for example
+ * parsed from configuration, received from the wire, or otherwise arriving as raw text
+ * that may contain {@code >} separators.
  *
  * @see com.im.njams.sdk.common.Path
  */
@@ -212,22 +236,19 @@ public final class Path {
      * Returns the ordered list of segment names that make up this path, root first.
      * Empty for the {@link #ROOT} path.
      *
-     * @return an unmodifiable, ordered list of segment names; never {@code null}
+     * <p>A fresh list is returned on every call and is not backed by any internal state,
+     * so callers are free to mutate it.
+     *
+     * @return an ordered list of segment names; never {@code null}
      */
     public List<String> getSegments() {
-        if (parent == null) {
-            return Collections.emptyList();
+        ArrayList<String> segments = new ArrayList<>();
+        Path current = this;
+        while (current != null && !current.isRoot()) {
+            segments.add(0, current.segment);
+            current = current.parent;
         }
-        int depth = 0;
-        for (Path p = this; p.parent != null; p = p.parent) {
-            depth++;
-        }
-        String[] arr = new String[depth];
-        int i = depth - 1;
-        for (Path p = this; p.parent != null; p = p.parent) {
-            arr[i--] = p.segment;
-        }
-        return Collections.unmodifiableList(Arrays.asList(arr));
+        return segments;
     }
 
     /**
@@ -276,30 +297,54 @@ public final class Path {
 
     /**
      * Tests whether the descendant path reached by walking the given segment names exists
-     * as a chain of created children under this path.
+     * as a chain of created children under this path. This is the strict variant: each
+     * argument is treated as a single segment name and is not parsed.
      *
      * <p>With no arguments (or a {@code null} array) returns {@code true} (the empty
-     * relative path always exists). A {@code null} segment in the chain returns
-     * {@code false}.
+     * relative path always exists). A {@code null} entry in the array returns
+     * {@code false} (a null segment cannot identify a child).
+     *
+     * <p>For arguments that may contain embedded {@code >} separators (partial path strings),
+     * use {@link #resolvesChild(String...)} instead — it splits each argument and drops
+     * empty/null segments, at the cost of splitting overhead.
      *
      * @param names zero or more segment names forming a relative path from this node
      * @return {@code true} if the full chain has been created; {@code false} otherwise
+     * @see #resolvesChild(String...)
      */
     public boolean hasChild(String... names) {
-        if (names == null || names.length == 0) {
-            return true;
-        }
-        Path current = this;
-        for (String name : names) {
-            if (name == null) {
-                return false;
-            }
-            current = current.children.get(name);
-            if (current == null) {
-                return false;
+        if (names != null) {
+            for (String name : names) {
+                if (name == null) {
+                    return false;
+                }
             }
         }
-        return true;
+        return getChild(names) != null;
+    }
+
+    /**
+     * Tests whether the descendant path reached by walking the given (possibly partial)
+     * path strings exists as a chain of created children under this path. Each argument
+     * is split at {@code >} and empty segments are dropped before walking; {@code null}
+     * entries in the array are silently skipped.
+     *
+     * <p>With no arguments (or a {@code null} array) returns {@code true} (the empty
+     * relative path always exists).
+     *
+     * <p>This is the lenient counterpart of {@link #hasChild(String...)}: it accepts
+     * arguments such as {@code "a>b>"} or {@code ">c>"} that {@code hasChild} would
+     * treat as a single (and therefore non-matching) segment. Prefer
+     * {@link #hasChild(String...)} when the segment names are already known, to avoid
+     * the splitting overhead.
+     *
+     * @param paths zero or more (possibly partial) path strings forming a relative path
+     *     from this node; {@code null} entries are skipped
+     * @return {@code true} if the full chain has been created; {@code false} otherwise
+     * @see #hasChild(String...)
+     */
+    public boolean resolvesChild(String... paths) {
+        return resolveChild(paths) != null;
     }
 
     /**

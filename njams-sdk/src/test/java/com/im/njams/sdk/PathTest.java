@@ -345,6 +345,53 @@ public class PathTest {
         assertSame(leaf, parent.resolveChild("a>>b"));
     }
 
+    // --- resolvesChild ---
+
+    @Test
+    public void resolvesChildWithNoArgsReturnsTrue() {
+        assertTrue(Path.of("rscSelf").resolvesChild());
+    }
+
+    @Test
+    public void resolvesChildWithNullArrayReturnsTrue() {
+        assertTrue(Path.of("rscNullArr").resolvesChild((String[]) null));
+    }
+
+    @Test
+    public void resolvesChildTrueWhenChainExists() {
+        Path parent = Path.of("rscExists");
+        Path.of("rscExists", "a", "b");
+        assertTrue(parent.resolvesChild("a>b"));
+    }
+
+    @Test
+    public void resolvesChildFalseWhenChainBroken() {
+        Path parent = Path.of("rscBroken");
+        Path.of("rscBroken", "a");
+        assertFalse(parent.resolvesChild("a>missing"));
+    }
+
+    @Test
+    public void resolvesChildSplitsMultipleArguments() {
+        Path parent = Path.of("rscMulti");
+        Path.of("rscMulti", "a", "b", "c");
+        assertTrue(parent.resolvesChild("a>b>", ">c>"));
+    }
+
+    @Test
+    public void resolvesChildSkipsNullArguments() {
+        Path parent = Path.of("rscNullArg");
+        Path.of("rscNullArg", "a", "b");
+        assertTrue(parent.resolvesChild("a", null, "b"));
+    }
+
+    @Test
+    public void resolvesChildFiltersEmptySegments() {
+        Path parent = Path.of("rscEmpty");
+        Path.of("rscEmpty", "a", "b");
+        assertTrue(parent.resolvesChild("a>>b"));
+    }
+
     // --- resolveOrCreateChild ---
 
     @Test
@@ -560,11 +607,6 @@ public class PathTest {
     @Test
     public void segmentsOfNestedNode() {
         assertEquals(java.util.Arrays.asList("a", "b", "c"), Path.of("a", "b", "c").getSegments());
-    }
-
-    @Test(expected = UnsupportedOperationException.class)
-    public void segmentsAreUnmodifiable() {
-        Path.of("immutsegA").getSegments().add("illegal");
     }
 
     // --- getSegmentName ---
