@@ -17,6 +17,8 @@ Every `public` or `protected` member you add becomes a permanent commitment to a
 
 **Manage the `breaking-change` label on the ticket.** Purely additive features (new methods, classes, overloads) are not breaking — make sure the label is absent. If the feature inadvertently requires changing an existing signature, return type, parameter type, or behaviour, add the `breaking-change` label. Check at the start and again before declaring the feature done.
 
+**Transition the ticket to `In Progress` at the start of the work** (unless it is already started or closed). Do this once the ticket key is confirmed, before any planning or implementation. For tickets created on the spot for the feature, transition immediately after creation.
+
 **Default scope is private.** Every new field, method, and class starts as `private` or package-private. Promote to `public`/`protected` only when there is a clear, intentional reason for external access.
 
 **Clarify the public API before any planning or implementation.** If it is not obvious what callers will need to use from the outside, stop and ask. Do not infer the API surface from implementation needs — those are internal details.

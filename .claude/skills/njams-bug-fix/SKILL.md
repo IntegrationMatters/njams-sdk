@@ -22,6 +22,8 @@ SDK-123 #comment <description>
 
 **Manage the `breaking-change` label on the ticket.** If the fix changes any public or protected API signature, return type, parameter type, or observable behaviour, add the `breaking-change` label. If the fix does not break public API, remove the label if present. Check the label at the start of the fix and again before declaring it done.
 
+**Transition the ticket to `In Progress` at the start of the fix** (unless it is already started or closed). Do this right after the ticket key is confirmed — before establishing the test baseline or making any code changes. For tickets created on the spot for the fix, transition immediately after creation.
+
 **Never modify an existing test case without explicit user permission.** If your fix causes an existing test to fail, the fix is wrong — not the test. Stop and reconsider the approach.
 
 **If you believe a test case is incorrect**, do not change it unilaterally. Write out:

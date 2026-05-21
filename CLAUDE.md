@@ -22,6 +22,8 @@ Issues and tasks for this project are tracked in Jira: **https://salesfive.atlas
 
 **When working on a Jira ticket, manage the `breaking-change` label.** If the work introduces a breaking change to public or protected API (signature / return-type / parameter-type change, removal, observable behaviour change), add the `breaking-change` label to the ticket. If the work does not break public API, remove the label if present. Adding new methods, classes, or overloads is not breaking. Check the label at the start of working on the ticket and again before declaring it done.
 
+**When starting work on a Jira ticket, transition it to `In Progress`** (unless it is already in a started or done state). Do this after the ticket key is confirmed and before making any code changes. For tickets created on the spot, transition immediately after creation.
+
 ## Commit Message Convention
 
 Every commit must reference the related Jira ticket using the Jira Smart Commits format:

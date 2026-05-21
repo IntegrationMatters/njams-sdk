@@ -27,6 +27,8 @@ The deprecated member is still existing code being modified — the full test co
 
 **Manage the `breaking-change` label on the ticket.** Since this workflow is about modifying existing code, any modification that touches a public or protected member's signature, return type, parameter type, or observable behaviour is breaking — add the `breaking-change` label. Pure refactors of private/internal code, or purely additive new public members, are not breaking — make sure the label is absent. Check at the start of the modification and again before declaring it done.
 
+**Transition the ticket to `In Progress` at the start of the modification** (unless it is already started or closed). Do this once the ticket key is confirmed, before establishing the test baseline or making any changes.
+
 **Tests written during this workflow are frozen.** They document what the code does. If your modification breaks one of these tests, fix your code — never the test.
 
 ## Workflow
