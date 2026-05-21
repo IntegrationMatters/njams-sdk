@@ -35,7 +35,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * Examples of valid path strings: {@code >}, {@code >a>}, {@code >a>b>}.
  *
  * <p>Each instance is a unique, immutable node. The same logical path always returns
- * the same object reference. Use {@link #get(String...)} to obtain instances; there
+ * the same object reference. Use {@link #of(String...)} to obtain instances; there
  * is no public constructor.
  *
  * <p>The tree is thread-safe: reads are non-blocking; node creation is atomic per slot.
@@ -82,7 +82,7 @@ public final class Path {
      * @return the corresponding {@link Path} node; {@link #ROOT} if no segments are provided
      * @throws IllegalArgumentException if any segment is {@code null}, blank, or contains {@code >}
      */
-    public static Path get(String... segments) {
+    public static Path of(String... segments) {
         if (segments == null || segments.length == 0) {
             return ROOT;
         }
@@ -98,7 +98,7 @@ public final class Path {
      * {@link com.im.njams.sdk.common.Path#getParts() getParts()} segments.
      *
      * <p>Intended only as a migration helper while callers still hold legacy instances.
-     * Switch call sites to construct {@link Path} directly via {@link #get(String...)} or
+     * Switch call sites to construct {@link Path} directly via {@link #of(String...)} or
      * {@link #resolve(String...)} and drop the dependency on
      * {@link com.im.njams.sdk.common.Path}.
      *
@@ -106,31 +106,31 @@ public final class Path {
      * @return the equivalent new {@link Path} node
      * @throws IllegalArgumentException if any of the legacy path's parts is invalid as a segment
      * @deprecated Switch callers from {@link com.im.njams.sdk.common.Path} to the new
-     *     {@link Path} type and construct instances directly via {@link #get(String...)} or
+     *     {@link Path} type and construct instances directly via {@link #of(String...)} or
      *     {@link #resolve(String...)}.
      */
     @Deprecated
-    public static Path get(com.im.njams.sdk.common.Path legacyPath) {
+    public static Path of(com.im.njams.sdk.common.Path legacyPath) {
         if (legacyPath == null) {
             return ROOT;
         }
-        return get(legacyPath.getParts().toArray(new String[0]));
+        return of(legacyPath.getParts().toArray(new String[0]));
     }
 
     /**
      * Returns the {@link Path} instance for the given arguments, treating each argument as
      * a (possibly partial) path string. Each argument is split at {@code >}; empty and
      * {@code null} segments are silently dropped. The remaining segments are then walked
-     * exactly like {@link #get(String...)}.
+     * exactly like {@link #of(String...)}.
      *
-     * <p>This is more lenient than {@link #get(String...)}: it accepts arguments such as
-     * {@code "a>b>"} or {@code ">c>"} that {@code get} would reject. Bare segment arguments
+     * <p>This is more lenient than {@link #of(String...)}: it accepts arguments such as
+     * {@code "a>b>"} or {@code ">c>"} that {@code of} would reject. Bare segment arguments
      * such as {@code resolve("a", "b", "c")} produce the same instance as the equivalent
-     * {@code get} call.
+     * {@code of} call.
      *
      * <p>Split results are cached per input string to amortise the splitting overhead across
-     * repeated calls. Even with caching, this method is slower than {@link #get(String...)};
-     * prefer {@link #get(String...)} whenever the individual segment names are already known.
+     * repeated calls. Even with caching, this method is slower than {@link #of(String...)};
+     * prefer {@link #of(String...)} whenever the individual segment names are already known.
      *
      * @param paths zero or more path strings to split and walk; {@code null} array or
      *     {@code null} entries return / contribute nothing
@@ -371,7 +371,7 @@ public final class Path {
      */
     @Deprecated
     public com.im.njams.sdk.common.Path toLegacyPath() {
-        return new com.im.njams.sdk.common.Path(pathStringAc);
+        return new com.im.njams.sdk.common.Path(pathString);
     }
 
     /**

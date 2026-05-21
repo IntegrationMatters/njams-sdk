@@ -39,8 +39,8 @@ public class PathTest {
 
     @Test
     public void nonRootIsNotRoot() {
-        assertFalse(Path.get("notroot").isRoot());
-        assertFalse(Path.get("notroot", "deep").isRoot());
+        assertFalse(Path.of("notroot").isRoot());
+        assertFalse(Path.of("notroot", "deep").isRoot());
     }
 
     @Test
@@ -51,50 +51,50 @@ public class PathTest {
     // --- Factory: no-arg / null / root string ---
 
     @Test
-    public void getWithNoSegmentsReturnsRoot() {
-        assertSame(Path.ROOT, Path.get());
+    public void ofWithNoSegmentsReturnsRoot() {
+        assertSame(Path.ROOT, Path.of());
     }
 
     @Test
-    public void getWithNullArrayReturnsRoot() {
-        assertSame(Path.ROOT, Path.get((String[]) null));
+    public void ofWithNullArrayReturnsRoot() {
+        assertSame(Path.ROOT, Path.of((String[]) null));
     }
 
     @Test
-    public void getWithRootStringReturnsRoot() {
-        assertSame(Path.ROOT, Path.get(">"));
+    public void ofWithRootStringReturnsRoot() {
+        assertSame(Path.ROOT, Path.of(">"));
     }
 
     // --- Path string representation ---
 
     @Test
     public void singleSegmentPathString() {
-        assertEquals(">seg1>", Path.get("seg1").toString());
+        assertEquals(">seg1>", Path.of("seg1").toString());
     }
 
     @Test
     public void twoSegmentPathString() {
-        assertEquals(">alpha>beta>", Path.get("alpha", "beta").toString());
+        assertEquals(">alpha>beta>", Path.of("alpha", "beta").toString());
     }
 
     @Test
     public void threeSegmentPathString() {
-        assertEquals(">a>b>c>", Path.get("a", "b", "c").toString());
+        assertEquals(">a>b>c>", Path.of("a", "b", "c").toString());
     }
 
     // --- Singleton guarantee ---
 
     @Test
     public void sameSegmentsReturnSameInstance() {
-        Path p1 = Path.get("singleton", "test");
-        Path p2 = Path.get("singleton", "test");
+        Path p1 = Path.of("singleton", "test");
+        Path p2 = Path.of("singleton", "test");
         assertSame(p1, p2);
     }
 
     @Test
     public void intermediateNodeIsShared() {
-        Path child = Path.get("shared", "child");
-        Path parent = Path.get("shared");
+        Path child = Path.of("shared", "child");
+        Path parent = Path.of("shared");
         assertSame(parent, child.getParent());
     }
 
@@ -102,13 +102,13 @@ public class PathTest {
 
     @Test
     public void parentOfRootChildIsRoot() {
-        assertSame(Path.ROOT, Path.get("rootchild").getParent());
+        assertSame(Path.ROOT, Path.of("rootchild").getParent());
     }
 
     @Test
     public void parentAtDepthTwo() {
-        Path parent = Path.get("depth", "one");
-        Path child = Path.get("depth", "one", "two");
+        Path parent = Path.of("depth", "one");
+        Path child = Path.of("depth", "one", "two");
         assertSame(parent, child.getParent());
     }
 
@@ -116,14 +116,14 @@ public class PathTest {
 
     @Test
     public void getChildReturnsKnownChild() {
-        Path parent = Path.get("nav", "parent");
-        Path child = Path.get("nav", "parent", "kid");
+        Path parent = Path.of("nav", "parent");
+        Path child = Path.of("nav", "parent", "kid");
         assertSame(child, parent.getChild("kid"));
     }
 
     @Test
     public void getChildReturnsNullForUnknown() {
-        Path p = Path.get("unknownchild");
+        Path p = Path.of("unknownchild");
         assertNull(p.getChild("doesnotexist"));
     }
 
@@ -131,9 +131,9 @@ public class PathTest {
 
     @Test
     public void getChildrenContainsCreatedChildren() {
-        Path parent = Path.get("multi");
-        Path c1 = Path.get("multi", "first");
-        Path c2 = Path.get("multi", "second");
+        Path parent = Path.of("multi");
+        Path c1 = Path.of("multi", "first");
+        Path c2 = Path.of("multi", "second");
         Collection<Path> children = parent.getChildren();
         assertTrue(children.contains(c1));
         assertTrue(children.contains(c2));
@@ -141,46 +141,46 @@ public class PathTest {
 
     @Test
     public void getChildrenIsUnmodifiable() {
-        Path p = Path.get("immutablechildren");
+        Path p = Path.of("immutablechildren");
         assertThrows(UnsupportedOperationException.class,
-                () -> p.getChildren().add(Path.get("illegal")));
+                () -> p.getChildren().add(Path.of("illegal")));
     }
 
     // --- equals and hashCode ---
 
     @Test
     public void equalsIsTrueForSameInstance() {
-        Path p = Path.get("eqtest");
+        Path p = Path.of("eqtest");
         assertTrue(p.equals(p));
     }
 
     @Test
     public void equalsIsFalseForDifferentInstance() {
-        Path p1 = Path.get("eq", "a");
-        Path p2 = Path.get("eq", "b");
+        Path p1 = Path.of("eq", "a");
+        Path p2 = Path.of("eq", "b");
         assertFalse(p1.equals(p2));
     }
 
     @Test
     public void equalsIsFalseForNull() {
-        assertFalse(Path.get("eqnull").equals(null));
+        assertFalse(Path.of("eqnull").equals(null));
     }
 
     @Test
     public void equalsIsFalseForOtherType() {
-        assertFalse(Path.get("eqtype").equals(">eqtype>"));
+        assertFalse(Path.of("eqtype").equals(">eqtype>"));
     }
 
     @Test
     public void hashCodeIsStable() {
-        Path p = Path.get("hashstable");
+        Path p = Path.of("hashstable");
         assertEquals(p.hashCode(), p.hashCode());
     }
 
     @Test
     public void equalInstancesHaveSameHashCode() {
-        Path p1 = Path.get("hashequal");
-        Path p2 = Path.get("hashequal");
+        Path p1 = Path.of("hashequal");
+        Path p2 = Path.of("hashequal");
         assertSame(p1, p2);
         assertEquals(p1.hashCode(), p2.hashCode());
     }
@@ -189,33 +189,33 @@ public class PathTest {
 
     @Test(expected = IllegalArgumentException.class)
     public void nullSegmentThrows() {
-        Path.get("valid", null);
+        Path.of("valid", null);
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void emptySegmentThrows() {
-        Path.get("");
+        Path.of("");
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void blankSegmentThrows() {
-        Path.get("   ");
+        Path.of("   ");
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void segmentContainingSeparatorThrows() {
-        Path.get("a>b");
+        Path.of("a>b");
     }
 
     @Test
     public void invalidSegmentIsRejectedOnRepeat() {
         try {
-            Path.get("bad>repeat");
+            Path.of("bad>repeat");
             fail("Expected IllegalArgumentException");
         } catch (IllegalArgumentException e) {
             // expected
         }
-        assertThrows(IllegalArgumentException.class, () -> Path.get("bad>repeat"));
+        assertThrows(IllegalArgumentException.class, () -> Path.of("bad>repeat"));
     }
 
     // --- resolve ---
@@ -272,14 +272,14 @@ public class PathTest {
 
     @Test
     public void resolveProducesSameInstanceAsGet() {
-        Path viaGet = Path.get("rsame", "x", "y");
+        Path viaGet = Path.of("rsame", "x", "y");
         Path viaResolve = Path.resolve("rsame>x>y>");
         assertSame(viaGet, viaResolve);
     }
 
     @Test
     public void resolveWorksLikeGetForBareSegments() {
-        Path viaGet = Path.get("rbare", "x", "y");
+        Path viaGet = Path.of("rbare", "x", "y");
         Path viaResolve = Path.resolve("rbare", "x", "y");
         assertSame(viaGet, viaResolve);
     }
@@ -300,48 +300,48 @@ public class PathTest {
 
     @Test
     public void resolveChildWithNoArgsReturnsSelf() {
-        Path p = Path.get("rcSelf");
+        Path p = Path.of("rcSelf");
         assertSame(p, p.resolveChild());
     }
 
     @Test
     public void resolveChildWithNullArrayReturnsSelf() {
-        Path p = Path.get("rcNullArr");
+        Path p = Path.of("rcNullArr");
         assertSame(p, p.resolveChild((String[]) null));
     }
 
     @Test
     public void resolveChildSplitsPathString() {
-        Path parent = Path.get("rcSplit");
-        Path leaf = Path.get("rcSplit", "a", "b");
+        Path parent = Path.of("rcSplit");
+        Path leaf = Path.of("rcSplit", "a", "b");
         assertSame(leaf, parent.resolveChild("a>b"));
     }
 
     @Test
     public void resolveChildSplitsMultipleArguments() {
-        Path parent = Path.get("rcMulti");
-        Path leaf = Path.get("rcMulti", "a", "b", "c");
+        Path parent = Path.of("rcMulti");
+        Path leaf = Path.of("rcMulti", "a", "b", "c");
         assertSame(leaf, parent.resolveChild("a>b>", ">c>"));
     }
 
     @Test
     public void resolveChildSkipsNullArguments() {
-        Path parent = Path.get("rcNullArg");
-        Path leaf = Path.get("rcNullArg", "a", "b");
+        Path parent = Path.of("rcNullArg");
+        Path leaf = Path.of("rcNullArg", "a", "b");
         assertSame(leaf, parent.resolveChild("a", null, "b"));
     }
 
     @Test
     public void resolveChildReturnsNullWhenChainBroken() {
-        Path parent = Path.get("rcBroken");
-        Path.get("rcBroken", "a");
+        Path parent = Path.of("rcBroken");
+        Path.of("rcBroken", "a");
         assertNull(parent.resolveChild("a>missing"));
     }
 
     @Test
     public void resolveChildFiltersEmptySegments() {
-        Path parent = Path.get("rcEmpty");
-        Path leaf = Path.get("rcEmpty", "a", "b");
+        Path parent = Path.of("rcEmpty");
+        Path leaf = Path.of("rcEmpty", "a", "b");
         assertSame(leaf, parent.resolveChild("a>>b"));
     }
 
@@ -349,74 +349,74 @@ public class PathTest {
 
     @Test
     public void resolveOrCreateChildWithNoArgsReturnsSelf() {
-        Path p = Path.get("rocSelf");
+        Path p = Path.of("rocSelf");
         assertSame(p, p.resolveOrCreateChild());
     }
 
     @Test
     public void resolveOrCreateChildWithNullArrayReturnsSelf() {
-        Path p = Path.get("rocNullArr");
+        Path p = Path.of("rocNullArr");
         assertSame(p, p.resolveOrCreateChild((String[]) null));
     }
 
     @Test
     public void resolveOrCreateChildSplitsAndCreates() {
-        Path parent = Path.get("rocCreate");
+        Path parent = Path.of("rocCreate");
         Path leaf = parent.resolveOrCreateChild("a>b>c");
         assertEquals(">rocCreate>a>b>c>", leaf.toString());
-        assertSame(leaf, Path.get("rocCreate", "a", "b", "c"));
+        assertSame(leaf, Path.of("rocCreate", "a", "b", "c"));
     }
 
     @Test
     public void resolveOrCreateChildSplitsMultipleArguments() {
-        Path parent = Path.get("rocMulti");
+        Path parent = Path.of("rocMulti");
         Path leaf = parent.resolveOrCreateChild("a>b>", ">c>");
         assertEquals(">rocMulti>a>b>c>", leaf.toString());
     }
 
     @Test
     public void resolveOrCreateChildSkipsNullArguments() {
-        Path parent = Path.get("rocNullArg");
+        Path parent = Path.of("rocNullArg");
         Path leaf = parent.resolveOrCreateChild("a", null, "b");
         assertEquals(">rocNullArg>a>b>", leaf.toString());
     }
 
     @Test
     public void resolveOrCreateChildFiltersEmptySegments() {
-        Path parent = Path.get("rocEmpty");
+        Path parent = Path.of("rocEmpty");
         Path leaf = parent.resolveOrCreateChild("a>>b");
         assertEquals(">rocEmpty>a>b>", leaf.toString());
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void resolveOrCreateChildValidatesBlankSegment() {
-        Path.get("rocBlank").resolveOrCreateChild("a> >b");
+        Path.of("rocBlank").resolveOrCreateChild("a> >b");
     }
 
     // --- get(legacy Path) ---
 
     @Test
     @SuppressWarnings("deprecation")
-    public void getFromNullLegacyReturnsRoot() {
-        assertSame(Path.ROOT, Path.get((com.im.njams.sdk.common.Path) null));
+    public void ofFromNullLegacyReturnsRoot() {
+        assertSame(Path.ROOT, Path.of((com.im.njams.sdk.common.Path) null));
     }
 
     @Test
     @SuppressWarnings("deprecation")
-    public void getFromLegacyConvertsToNewPath() {
+    public void ofFromLegacyConvertsToNewPath() {
         com.im.njams.sdk.common.Path legacy = new com.im.njams.sdk.common.Path("legA", "legB");
-        Path result = Path.get(legacy);
+        Path result = Path.of(legacy);
         assertEquals(">legA>legB>", result.toString());
-        assertSame(Path.get("legA", "legB"), result);
+        assertSame(Path.of("legA", "legB"), result);
     }
 
     @Test
     @SuppressWarnings("deprecation")
-    public void getFromLegacySinglePathString() {
+    public void ofFromLegacySinglePathString() {
         com.im.njams.sdk.common.Path legacy = new com.im.njams.sdk.common.Path(">legX>legY>");
-        Path result = Path.get(legacy);
+        Path result = Path.of(legacy);
         assertEquals(">legX>legY>", result.toString());
-        assertSame(Path.get("legX", "legY"), result);
+        assertSame(Path.of("legX", "legY"), result);
     }
 
     // --- toLegacyPath ---
@@ -431,7 +431,7 @@ public class PathTest {
     @Test
     @SuppressWarnings("deprecation")
     public void toLegacyPathPreservesPathString() {
-        Path neu = Path.get("tlpA", "tlpB", "tlpC");
+        Path neu = Path.of("tlpA", "tlpB", "tlpC");
         com.im.njams.sdk.common.Path legacy = neu.toLegacyPath();
         assertEquals(">tlpA>tlpB>tlpC>", legacy.toString());
         assertEquals(java.util.Arrays.asList("tlpA", "tlpB", "tlpC"), legacy.getParts());
@@ -440,36 +440,36 @@ public class PathTest {
     @Test
     @SuppressWarnings("deprecation")
     public void toLegacyPathRoundTripsViaGet() {
-        Path neu = Path.get("rtripA", "rtripB");
+        Path neu = Path.of("rtripA", "rtripB");
         com.im.njams.sdk.common.Path legacy = neu.toLegacyPath();
-        assertSame(neu, Path.get(legacy));
+        assertSame(neu, Path.of(legacy));
     }
 
     // --- multi-segment getChild ---
 
     @Test
     public void getChildWithNoArgsReturnsSelf() {
-        Path p = Path.get("mcgcSelf");
+        Path p = Path.of("mcgcSelf");
         assertSame(p, p.getChild());
     }
 
     @Test
     public void getChildWithNullArrayReturnsSelf() {
-        Path p = Path.get("mcgcNullArr");
+        Path p = Path.of("mcgcNullArr");
         assertSame(p, p.getChild((String[]) null));
     }
 
     @Test
     public void getChildMultiSegmentReturnsGrandchild() {
-        Path parent = Path.get("mcgcParent");
-        Path grand = Path.get("mcgcParent", "a", "b");
+        Path parent = Path.of("mcgcParent");
+        Path grand = Path.of("mcgcParent", "a", "b");
         assertSame(grand, parent.getChild("a", "b"));
     }
 
     @Test
     public void getChildMultiSegmentReturnsNullWhenMissing() {
-        Path parent = Path.get("mcgcMiss");
-        Path.get("mcgcMiss", "a");
+        Path parent = Path.of("mcgcMiss");
+        Path.of("mcgcMiss", "a");
         assertNull(parent.getChild("a", "doesnotexist"));
     }
 
@@ -477,32 +477,32 @@ public class PathTest {
 
     @Test
     public void hasChildWithNoArgsReturnsTrue() {
-        assertTrue(Path.get("mhcSelf").hasChild());
+        assertTrue(Path.of("mhcSelf").hasChild());
     }
 
     @Test
     public void hasChildWithNullArrayReturnsTrue() {
-        assertTrue(Path.get("mhcNullArr").hasChild((String[]) null));
+        assertTrue(Path.of("mhcNullArr").hasChild((String[]) null));
     }
 
     @Test
     public void hasChildMultiSegmentTrueWhenChainExists() {
-        Path parent = Path.get("mhcChain");
-        Path.get("mhcChain", "a", "b");
+        Path parent = Path.of("mhcChain");
+        Path.of("mhcChain", "a", "b");
         assertTrue(parent.hasChild("a", "b"));
     }
 
     @Test
     public void hasChildMultiSegmentFalseWhenChainBroken() {
-        Path parent = Path.get("mhcBroken");
-        Path.get("mhcBroken", "a");
+        Path parent = Path.of("mhcBroken");
+        Path.of("mhcBroken", "a");
         assertFalse(parent.hasChild("a", "missing"));
     }
 
     @Test
     public void hasChildMultiSegmentFalseForNullSegment() {
-        Path parent = Path.get("mhcNullSeg");
-        Path.get("mhcNullSeg", "a");
+        Path parent = Path.of("mhcNullSeg");
+        Path.of("mhcNullSeg", "a");
         assertFalse(parent.hasChild("a", null));
     }
 
@@ -510,39 +510,39 @@ public class PathTest {
 
     @Test
     public void getOrCreateChildWithNoArgsReturnsSelf() {
-        Path p = Path.get("mgocSelf");
+        Path p = Path.of("mgocSelf");
         assertSame(p, p.getOrCreateChild());
     }
 
     @Test
     public void getOrCreateChildWithNullArrayReturnsSelf() {
-        Path p = Path.get("mgocNullArr");
+        Path p = Path.of("mgocNullArr");
         assertSame(p, p.getOrCreateChild((String[]) null));
     }
 
     @Test
     public void getOrCreateChildMultiSegmentCreatesChain() {
-        Path parent = Path.get("mgocChain");
+        Path parent = Path.of("mgocChain");
         Path leaf = parent.getOrCreateChild("a", "b", "c");
         assertEquals(">mgocChain>a>b>c>", leaf.toString());
-        assertSame(leaf, Path.get("mgocChain", "a", "b", "c"));
+        assertSame(leaf, Path.of("mgocChain", "a", "b", "c"));
     }
 
     @Test
     public void getOrCreateChildMultiSegmentReturnsExistingChain() {
-        Path parent = Path.get("mgocExist");
-        Path pre = Path.get("mgocExist", "a", "b");
+        Path parent = Path.of("mgocExist");
+        Path pre = Path.of("mgocExist", "a", "b");
         assertSame(pre, parent.getOrCreateChild("a", "b"));
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void getOrCreateChildMultiSegmentRejectsNullInChain() {
-        Path.get("mgocNullChain").getOrCreateChild("a", null, "b");
+        Path.of("mgocNullChain").getOrCreateChild("a", null, "b");
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void getOrCreateChildMultiSegmentRejectsSeparatorInChain() {
-        Path.get("mgocSepChain").getOrCreateChild("a", "b>c");
+        Path.of("mgocSepChain").getOrCreateChild("a", "b>c");
     }
 
     // --- getSegmentName ---
@@ -554,54 +554,54 @@ public class PathTest {
 
     @Test
     public void segmentNameOfRootChild() {
-        assertEquals("seg", Path.get("seg").getSegmentName());
+        assertEquals("seg", Path.of("seg").getSegmentName());
     }
 
     @Test
     public void segmentNameAtDepthTwo() {
-        assertEquals("leaf", Path.get("branch", "leaf").getSegmentName());
+        assertEquals("leaf", Path.of("branch", "leaf").getSegmentName());
     }
 
     // --- hasChild ---
 
     @Test
     public void hasChildReturnsFalseForUnknown() {
-        assertFalse(Path.get("hcparent").hasChild("nope"));
+        assertFalse(Path.of("hcparent").hasChild("nope"));
     }
 
     @Test
     public void hasChildReturnsTrueForKnown() {
-        Path parent = Path.get("hcparent2");
-        Path.get("hcparent2", "kid");
+        Path parent = Path.of("hcparent2");
+        Path.of("hcparent2", "kid");
         assertTrue(parent.hasChild("kid"));
     }
 
     @Test
     public void hasChildReturnsFalseForNullSegment() {
-        assertFalse(Path.get("hcnull").hasChild((String) null));
+        assertFalse(Path.of("hcnull").hasChild((String) null));
     }
 
     // --- getOrCreateChild ---
 
     @Test
     public void getOrCreateChildReturnsExistingChild() {
-        Path parent = Path.get("gocparent");
-        Path existing = Path.get("gocparent", "child");
+        Path parent = Path.of("gocparent");
+        Path existing = Path.of("gocparent", "child");
         assertSame(existing, parent.getOrCreateChild("child"));
     }
 
     @Test
     public void getOrCreateChildCreatesNewChild() {
-        Path parent = Path.get("gocnew");
+        Path parent = Path.of("gocnew");
         Path created = parent.getOrCreateChild("freshchild");
         assertEquals(">gocnew>freshchild>", created.toString());
         assertSame(parent, created.getParent());
-        assertSame(created, Path.get("gocnew", "freshchild"));
+        assertSame(created, Path.of("gocnew", "freshchild"));
     }
 
     @Test
     public void getOrCreateChildIsIdempotent() {
-        Path parent = Path.get("gocidem");
+        Path parent = Path.of("gocidem");
         Path a = parent.getOrCreateChild("c");
         Path b = parent.getOrCreateChild("c");
         assertSame(a, b);
@@ -609,17 +609,17 @@ public class PathTest {
 
     @Test(expected = IllegalArgumentException.class)
     public void getOrCreateChildThrowsForNullSegment() {
-        Path.get("gocthrow").getOrCreateChild((String) null);
+        Path.of("gocthrow").getOrCreateChild((String) null);
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void getOrCreateChildThrowsForBlank() {
-        Path.get("gocthrow2").getOrCreateChild("   ");
+        Path.of("gocthrow2").getOrCreateChild("   ");
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void getOrCreateChildThrowsForSeparator() {
-        Path.get("gocthrow3").getOrCreateChild("a>b");
+        Path.of("gocthrow3").getOrCreateChild("a>b");
     }
 
     // --- Thread safety ---
@@ -637,7 +637,7 @@ public class PathTest {
             threadList.add(new Thread(() -> {
                 try {
                     barrier.await();
-                    ref.set(Path.get("concurrent", "singleton", "test"));
+                    ref.set(Path.of("concurrent", "singleton", "test"));
                 } catch (Exception e) {
                     throw new RuntimeException(e);
                 }
