@@ -18,6 +18,8 @@ This workflow builds on `njams-safe-modification`: the same test coverage and pu
 SDK-123 #comment <description>
 ```
 
+**When creating a new Jira ticket** (for a bug that has none yet), always set the `fix version` field to the current working copy's version with the `-SNAPSHOT` suffix stripped — read from the root `pom.xml`. Example: working on `6.0.0-SNAPSHOT` → fix version `6.0.0`.
+
 **Never modify an existing test case without explicit user permission.** If your fix causes an existing test to fail, the fix is wrong — not the test. Stop and reconsider the approach.
 
 **If you believe a test case is incorrect**, do not change it unilaterally. Write out:

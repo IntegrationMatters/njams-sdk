@@ -18,6 +18,8 @@ The FAQ must be kept up to date. Update `C:\scm\GitHub\njams-sdk.wiki\FAQ.md` an
 
 Issues and tasks for this project are tracked in Jira: **https://salesfive.atlassian.net** — space key **SDK**.
 
+**When creating a new Jira ticket, always set the `fix version` field** to the current working copy's version with the `-SNAPSHOT` suffix stripped. Read the version from the root `pom.xml`. Example: working on `6.0.0-SNAPSHOT` → fix version `6.0.0`.
+
 ## Commit Message Convention
 
 Every commit must reference the related Jira ticket using the Jira Smart Commits format:
@@ -31,6 +33,8 @@ The `#comment` token causes the commit message to be posted automatically as a c
 ## Branching and Committing
 
 All current work is committed directly to the `6.0-dev` branch. Do not create additional branches unless explicitly requested. The `master` branch is the stable release baseline and is not the target for ongoing development.
+
+**At the start of each session on a non-`master` branch, check whether `master` has commits not yet merged into the current branch.** Run `git fetch origin master` then `git log --oneline HEAD..origin/master`. If the list is non-empty, summarize what is missing and ask the user whether to merge `master` into the current branch before doing further work. Do not merge without confirmation. Skip the check if already done earlier in the same session.
 
 ## Dependencies
 

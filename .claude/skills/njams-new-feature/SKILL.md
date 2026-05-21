@@ -13,6 +13,8 @@ Every `public` or `protected` member you add becomes a permanent commitment to a
 
 **All commits must reference the related Jira ticket** using the Smart Commits format: `SDK-XXX #comment <description>`. If no ticket has been provided for the feature, ask before committing.
 
+**When creating a new Jira ticket** (for a feature that has none yet), always set the `fix version` field to the current working copy's version with the `-SNAPSHOT` suffix stripped — read from the root `pom.xml`. Example: working on `6.0.0-SNAPSHOT` → fix version `6.0.0`.
+
 **Default scope is private.** Every new field, method, and class starts as `private` or package-private. Promote to `public`/`protected` only when there is a clear, intentional reason for external access.
 
 **Clarify the public API before any planning or implementation.** If it is not obvious what callers will need to use from the outside, stop and ask. Do not infer the API surface from implementation needs — those are internal details.
@@ -72,7 +74,10 @@ For any public type, consider whether callers need the concrete class or only a 
 **5. Write Javadoc for all public and protected members.**
 Every `public` and `protected` class, interface, method, constructor, and field in production code must have a Javadoc comment. Write it alongside the code, not as an afterthought. Document what the member does, its parameters, return value, and any exceptions. Internal members (`private`, package-private) do not require Javadoc. Test code is exempt from documentation and code quality rules.
 
-**6. Review before finalising.**
+**6. Update the FAQ if settings are involved.**
+If the feature introduces any new settings, update `C:\scm\GitHub\njams-sdk.wiki\FAQ.md` to document the new setting: its purpose, accepted values, and default. Push the wiki change before or alongside the code commit.
+
+**7. Review before finalising.**
 Before considering the implementation done:
 - Scan every `public` and `protected` member: could it be package-private? Does it have Javadoc?
 - Check architecture: does the new code respect the model/logmessage/communication layer boundaries?
