@@ -29,7 +29,8 @@ import java.util.function.Predicate;
 
 /**
  * Read/write view of the nJAMS SDK settings. Extends {@link ReadOnlySettings} with operations that
- * modify the registered properties.
+ * modify the registered properties. This is the interface most SDK consumers work with — see
+ * {@link ReadOnlySettings} for context on when the read-only restriction is meaningful.
  */
 public interface WritableSettings extends ReadOnlySettings {
 
@@ -48,14 +49,18 @@ public interface WritableSettings extends ReadOnlySettings {
     /**
      * Returns a {@link WritableSettings} backed by the given properties. Subsequent changes to the
      * properties are visible through the returned instance, and writes through the instance are
-     * reflected in the properties. Assumes that all keys and values are strings.
+     * reflected in the properties. Reads and writes go exclusively through the public Properties
+     * string API ({@link Properties#getProperty}, {@link Properties#setProperty},
+     * {@link Properties#stringPropertyNames}), which keeps the wrapper consistent with
+     * {@code Properties} subclasses that override the string API while leaving inherited
+     * {@link java.util.Hashtable}-typed methods stale (e.g. Camel's
+     * {@code OrderedLocationProperties}).
      *
      * @param properties the properties to wrap
      * @return a {@link WritableSettings} view of the given properties
      */
-    @SuppressWarnings({"unchecked", "rawtypes"})
     static WritableSettings from(Properties properties) {
-        return from((Map) properties);
+        return new PropertiesBackedSettings(properties);
     }
 
     /**

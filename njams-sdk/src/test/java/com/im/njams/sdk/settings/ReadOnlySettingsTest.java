@@ -67,6 +67,56 @@ public class ReadOnlySettingsTest {
     }
 
     @Test
+    public void fromProperties_removalOnSource_isVisibleThroughWrapper() {
+        Properties props = new Properties();
+        props.setProperty("a", "1");
+        WritableSettings s = WritableSettings.from(props);
+        assertTrue(s.containsKey("a"));
+        props.remove("a");
+        assertFalse(s.containsKey("a"));
+        assertNull(s.getProperty("a"));
+    }
+
+    @Test
+    public void fromProperties_misbehavingSubclass_allReadsAgree() {
+        // Subclass that mirrors Camel's OrderedLocationProperties pattern: it exposes its real
+        // storage only via the string API (getProperty / stringPropertyNames), but the inherited
+        // Hashtable storage stays empty — so containsKey, get, entrySet, keySet (inherited) all
+        // see nothing. The SDK wrapper must use the string API exclusively to stay consistent.
+        Properties props = new Properties() {
+            private final Map<String, String> store = new HashMap<>(Map.of("camel.k", "v"));
+
+            @Override public String getProperty(String key) {
+                return store.get(key);
+            }
+
+            @Override public Set<String> stringPropertyNames() {
+                return new HashSet<>(store.keySet());
+            }
+
+            @Override public synchronized Object setProperty(String key, String value) {
+                return store.put(key, value);
+            }
+        };
+
+        WritableSettings s = WritableSettings.from(props);
+
+        // All four SDK read paths must see the entry.
+        assertTrue("containsKey must see entries reported by stringPropertyNames", s.containsKey("camel.k"));
+        assertEquals("v", s.getProperty("camel.k"));
+        assertTrue("keySet must see entries reported by stringPropertyNames", s.keySet().contains("camel.k"));
+        List<Entry<String, String>> entries = new ArrayList<>();
+        s.forEach(entries::add);
+        assertEquals(1, entries.size());
+        assertEquals("camel.k", entries.get(0).getKey());
+        assertEquals("v", entries.get(0).getValue());
+
+        // Writes must round-trip through setProperty so the subclass's storage is updated.
+        s.put("camel.k2", "v2");
+        assertEquals("v2", props.getProperty("camel.k2"));
+    }
+
+    @Test
     public void fromMap_readOnlyFactoryReturnsReadable() {
         backing.put("a", "1");
         ReadOnlySettings ro = ReadOnlySettings.from(backing);

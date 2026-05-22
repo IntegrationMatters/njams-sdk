@@ -42,6 +42,22 @@ import org.slf4j.LoggerFactory;
  * Read-only view of the nJAMS SDK settings. Exposes only operations that retrieve or report
  * configuration values without mutating them. Implementations are {@link Iterable} over the
  * registered key/value pairs.
+ * <p>
+ * <strong>When to use this interface vs. {@link WritableSettings}.</strong> The split between
+ * read-only and writable settings is a technical concession for settings sources that are
+ * inherently read-only from inside the JVM — chiefly process environment variables (see
+ * {@link #fromEnvironment(Predicate)}). Every other source the SDK works with — files loaded
+ * into {@link Properties}, in-memory maps, system properties, layered configurations — is
+ * writable. Settings consumed by the SDK (passed into {@code Njams}, {@code HierarchicalSettings}
+ * builders, etc.) are almost always {@link WritableSettings}. Prefer the writable interface in
+ * new code unless you specifically need to model a read-only source.
+ * <p>
+ * <strong>Implementation contract.</strong> Implementations must keep
+ * {@link #getProperty(String)}, {@link #containsKey(String)}, {@link #iterator()}, and
+ * {@link #keySet()} mutually consistent: a key reported by {@link #iterator()} must also be
+ * reported by {@link #containsKey(String)} and resolvable via {@link #getProperty(String)}, and
+ * vice versa. Default methods on this interface rely on this consistency; violating it produces
+ * silently wrong results, not exceptions.
  */
 public interface ReadOnlySettings extends Iterable<Entry<String, String>> {
 
