@@ -32,8 +32,17 @@ import javax.xml.transform.stream.StreamSource;
 import org.junit.Assert;
 import org.junit.Test;
 import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.NodeList;
+
+import com.im.njams.sdk.Path;
+import com.im.njams.sdk.model.GroupModel;
+import com.im.njams.sdk.model.ProcessModel;
 
 public class NjamsProcessDiagramFactoryTest {
+
+    private static final String SVG_NS = "http://www.w3.org/2000/svg";
+    private static final String XLINK_NS = "http://www.w3.org/1999/xlink";
 
     @Test
     public void testSecureProcessingEnabled() {
@@ -80,6 +89,94 @@ public class NjamsProcessDiagramFactoryTest {
         context.setDoc(doc);
         context.setSvgNS("http://www.w3.org/2000/svg");
         return context;
+    }
+
+    private static NjamsProcessDiagramContext createDrawableContext(String category) throws Exception {
+        DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+        Document doc = dbf.newDocumentBuilder().newDocument();
+        Element svgRoot = doc.createElementNS(SVG_NS, "svg");
+        doc.appendChild(svgRoot);
+        NjamsProcessDiagramContext context = new NjamsProcessDiagramContext();
+        context.setDoc(doc);
+        context.setSvgNS(SVG_NS);
+        context.setContainerElement(svgRoot);
+        context.setCategory(category);
+        return context;
+    }
+
+    private static GroupModel buildGroup(String id, String name, String type, int x, int y, int width, int height) {
+        ProcessModel pm = new ProcessModel(Path.of("PROCESSES"), null);
+        GroupModel group = new GroupModel(pm, id, name, type);
+        group.setX(x);
+        group.setY(y);
+        group.setWidth(width);
+        group.setHeight(height);
+        return group;
+    }
+
+    private static Element findChildElementWithAttribute(Element parent, String localTagName, String attrName) {
+        NodeList list = parent.getElementsByTagNameNS(SVG_NS, localTagName);
+        for (int i = 0; i < list.getLength(); i++) {
+            Element e = (Element) list.item(i);
+            if (e.hasAttributeNS(null, attrName)) {
+                return e;
+            }
+        }
+        return null;
+    }
+
+    @Test
+    public void drawGroup_labelIsLeftBoundToIconInsideHeader() throws Exception {
+        NjamsProcessDiagramContext context = createDrawableContext("cat");
+        NjamsProcessDiagramFactory factory = new NjamsProcessDiagramFactory(true);
+        int groupX = 100;
+        int groupY = 50;
+        int headerHeight = 20;
+        int iconSize = 16;
+
+        GroupModel group = buildGroup("g1", "MyGroup", "loop", groupX, groupY, 200, 150);
+        factory.drawGroup(context, group);
+
+        Element label = null;
+        NodeList texts = context.getDoc().getElementsByTagNameNS(SVG_NS, "text");
+        for (int i = 0; i < texts.getLength(); i++) {
+            Element t = (Element) texts.item(i);
+            if ("g1_label".equals(t.getAttributeNS(null, "id"))) {
+                label = t;
+                break;
+            }
+        }
+        Assert.assertNotNull("Expected label text element with id 'g1_label'", label);
+
+        double labelY = Double.parseDouble(label.getAttributeNS(null, "y"));
+        Assert.assertTrue("Group label y (" + labelY + ") must be inside the header [" + groupY + ", "
+            + (groupY + headerHeight) + "], but was outside.", labelY >= groupY && labelY <= groupY + headerHeight);
+
+        double labelX = Double.parseDouble(label.getAttributeNS(null, "x"));
+        Assert.assertTrue("Group label x (" + labelX + ") must sit to the right of the icon (>= "
+            + (groupX + iconSize) + ") with a small gap.", labelX > groupX + iconSize);
+        Assert.assertNotEquals("Group label must not be center-anchored; it must be left-bound to the icon.",
+            "middle", label.getAttributeNS(null, "text-anchor"));
+    }
+
+    @Test
+    public void drawGroup_iconUsesTypeBasedAttribute_andDoesNotHardcodeHref() throws Exception {
+        NjamsProcessDiagramContext context = createDrawableContext("cat");
+        NjamsProcessDiagramFactory factory = new NjamsProcessDiagramFactory(true);
+
+        GroupModel group = buildGroup("g1", "MyGroup", "loop", 0, 0, 100, 100);
+        factory.drawGroup(context, group);
+
+        NodeList groups = context.getDoc().getElementsByTagNameNS(SVG_NS, "g");
+        Assert.assertTrue("Expected a <g> element to be created for the group", groups.getLength() > 0);
+        Element groupContainer = (Element) groups.item(0);
+
+        Element icon = findChildElementWithAttribute(groupContainer, "image", "group-type");
+        Assert.assertNotNull(
+            "Expected the group icon image to carry a 'group-type' attribute analogous to activity-type", icon);
+        Assert.assertEquals("cat.loop", icon.getAttributeNS(null, "group-type"));
+        Assert.assertFalse("Group icon must not hardcode an xlink:href",
+            icon.hasAttributeNS(XLINK_NS, "href"));
     }
 
     private static String getMarkingXslt() {

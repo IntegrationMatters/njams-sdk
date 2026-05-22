@@ -384,13 +384,14 @@ public class NjamsProcessDiagramFactory implements ProcessDiagramFactory {
         rectHeader.setAttributeNS(null, "stroke", "black");
         context.getContainerElement().appendChild(rectHeader);
 
+        int iconSize = 16;
         Element groupIcon = context.getDoc().createElementNS(context.getSvgNS(), "image");
+        groupIcon.setAttributeNS(null, "modelId", groupModel.getId());
         groupIcon.setAttributeNS(null, "x", String.valueOf(headerX));
         groupIcon.setAttributeNS(null, "y", String.valueOf(headerY));
-        groupIcon.setAttributeNS(null, "width", String.valueOf(16));
-        groupIcon.setAttributeNS(null, "height", String.valueOf(16));
-        // TODO: wtf, make this configurable or whatever
-        groupIcon.setAttributeNS("http://www.w3.org/1999/xlink", "xlink:href", "assets/images/svg/groupType_group.png");
+        groupIcon.setAttributeNS(null, "width", String.valueOf(iconSize));
+        groupIcon.setAttributeNS(null, "height", String.valueOf(iconSize));
+        groupIcon.setAttributeNS(null, "group-type", context.getCategory() + "." + groupModel.getType());
         context.getContainerElement().appendChild(groupIcon);
 
         // general container sizing
@@ -409,15 +410,16 @@ public class NjamsProcessDiagramFactory implements ProcessDiagramFactory {
         rectGroupContainer.setAttributeNS(null, "stroke", "black");
         context.getContainerElement().appendChild(rectGroupContainer);
 
-        // general text sizing
-        int groupTextX = groupX + groupWidth / 2;
-        int groupTextY = groupY + groupHeight + DEFAULT_TEXT_SIZE;
+        // label left-aligned next to the icon, inside the header
+        int labelGap = 4;
+        int groupTextX = headerX + iconSize + labelGap;
+        int groupTextY = headerY + DEFAULT_TEXT_SIZE;
 
         Element groupText = context.getDoc().createElementNS(context.getSvgNS(), "text");
         groupText.setAttributeNS(null, "id", groupModel.getId() + "_label");
         groupText.setAttributeNS(null, "x", String.valueOf(groupTextX));
         groupText.setAttributeNS(null, "y", String.valueOf(groupTextY));
-        groupText.setAttributeNS(null, "text-anchor", "middle");
+        groupText.setAttributeNS(null, "text-anchor", "start");
         groupText.setTextContent(groupModel.getName());
         context.getContainerElement().appendChild(groupText);
 
