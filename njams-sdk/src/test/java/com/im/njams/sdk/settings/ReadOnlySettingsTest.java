@@ -151,7 +151,7 @@ public class ReadOnlySettingsTest {
         env.put("FOO", "1");
         env.put("BAR", "2");
         ReadOnlyFilteringSettings ro =
-            new ReadOnlyFilteringSettings(env, key -> key.startsWith("F"));
+            new ReadOnlyFilteringSettings(ReadOnlySettings.from(env), key -> key.startsWith("F"));
         assertEquals("1", ro.getProperty("FOO"));
         assertNull(ro.getProperty("BAR"));
     }
@@ -162,7 +162,7 @@ public class ReadOnlySettingsTest {
         env.put("FOO", "1");
         env.put("BAR", "2");
         ReadOnlyFilteringSettings ro =
-            new ReadOnlyFilteringSettings(env, key -> key.startsWith("F"));
+            new ReadOnlyFilteringSettings(ReadOnlySettings.from(env), key -> key.startsWith("F"));
         assertTrue(ro.containsKey("FOO"));
         assertFalse(ro.containsKey("BAR"));
     }
@@ -174,7 +174,7 @@ public class ReadOnlySettingsTest {
         env.put("BAR", "2");
         env.put("BAZ", "3");
         ReadOnlyFilteringSettings ro =
-            new ReadOnlyFilteringSettings(env, key -> key.startsWith("B"));
+            new ReadOnlyFilteringSettings(ReadOnlySettings.from(env), key -> key.startsWith("B"));
         Map<String, String> seen = new HashMap<>();
         ro.forEach(e -> seen.put(e.getKey(), e.getValue()));
         assertEquals(2, seen.size());
@@ -188,7 +188,7 @@ public class ReadOnlySettingsTest {
         env.put("FOO_X", "1");
         env.put("BAR_X", "2");
         ReadOnlyFilteringSettings ro =
-            new ReadOnlyFilteringSettings(env, key -> key.startsWith("FOO"));
+            new ReadOnlyFilteringSettings(ReadOnlySettings.from(env), key -> key.startsWith("FOO"));
         Properties result = ro.filter("");
         assertEquals(1, result.size());
         assertEquals("1", result.getProperty("FOO_X"));
@@ -200,7 +200,7 @@ public class ReadOnlySettingsTest {
         env.put("ALLOWED_INT", "42");
         env.put("BLOCKED_INT", "99");
         ReadOnlyFilteringSettings ro =
-            new ReadOnlyFilteringSettings(env, key -> key.startsWith("ALLOWED"));
+            new ReadOnlyFilteringSettings(ReadOnlySettings.from(env), key -> key.startsWith("ALLOWED"));
         assertEquals(42, ro.getInt("ALLOWED_INT", -1));
         assertEquals(-1, ro.getInt("BLOCKED_INT", -1));
     }
@@ -210,7 +210,7 @@ public class ReadOnlySettingsTest {
         Map<String, String> env = new HashMap<>();
         env.put("FOO", "1");
         env.put("BAR", "2");
-        ReadOnlyFilteringSettings ro = new ReadOnlyFilteringSettings(env, key -> true);
+        ReadOnlyFilteringSettings ro = new ReadOnlyFilteringSettings(ReadOnlySettings.from(env), key -> true);
         assertEquals("1", ro.getProperty("FOO"));
         assertEquals("2", ro.getProperty("BAR"));
         assertTrue(ro.containsKey("FOO"));
@@ -222,7 +222,7 @@ public class ReadOnlySettingsTest {
         Map<String, String> backing = new HashMap<>();
         backing.put("FOO", "1");
         backing.put("BAR", "2");
-        ReadOnlyFilteringSettings ro = new ReadOnlyFilteringSettings(backing, null);
+        ReadOnlyFilteringSettings ro = new ReadOnlyFilteringSettings(ReadOnlySettings.from(backing), null);
         assertEquals("1", ro.getProperty("FOO"));
         assertEquals("2", ro.getProperty("BAR"));
         assertTrue(ro.containsKey("FOO"));
@@ -274,12 +274,64 @@ public class ReadOnlySettingsTest {
         }
     }
 
+    @Test
+    public void fromSystemProperties_misbehavingPropertiesSubclass_isConsistent() {
+        // Symmetric to fromProperties_misbehavingSubclass_allReadsAgree: install a Properties
+        // subclass whose real storage is exposed only via the string API. Replacing
+        // System.getProperties() with such a subclass would silently break the SDK if the
+        // filtering layer still used the inherited Hashtable Map view.
+        Properties original = System.getProperties();
+        Properties custom = new Properties() {
+            private final Map<String, String> store = new HashMap<>(Map.of("njams.test.camel.k", "v"));
+
+            @Override public String getProperty(String key) {
+                return store.get(key);
+            }
+
+            @Override public Set<String> stringPropertyNames() {
+                return new HashSet<>(store.keySet());
+            }
+
+            @Override public synchronized Object setProperty(String key, String value) {
+                return store.put(key, value);
+            }
+        };
+        try {
+            System.setProperties(custom);
+            WritableSettings ws = WritableSettings.fromSystemProperties(k -> k.startsWith("njams.test"));
+            assertTrue(ws.containsKey("njams.test.camel.k"));
+            assertEquals("v", ws.getProperty("njams.test.camel.k"));
+            assertTrue(ws.keySet().contains("njams.test.camel.k"));
+            List<Entry<String, String>> entries = new ArrayList<>();
+            ws.forEach(entries::add);
+            assertTrue(entries.stream().anyMatch(e -> "njams.test.camel.k".equals(e.getKey())));
+        } finally {
+            System.setProperties(original);
+        }
+    }
+
     // ---------- FilteringWritableSettings ----------
+
+    @Test
+    public void filteringDecoratesSettings_innerWriteVisibleThroughFilter() {
+        // Filtering is now a decorator: writes through the inner settings (not the wrapper)
+        // must be visible on the next read through the wrapper. Confirms there is no stale
+        // cache between the filter and the inner.
+        Map<String, String> backing = new HashMap<>();
+        WritableSettings inner = WritableSettings.from(backing);
+        FilteringWritableSettings ws = new FilteringWritableSettings(inner, k -> k.startsWith("a"));
+        inner.put("a.x", "1");
+        inner.put("b.y", "2");
+        assertEquals("1", ws.getProperty("a.x"));
+        assertNull(ws.getProperty("b.y"));
+        assertTrue(ws.containsKey("a.x"));
+        assertFalse(ws.containsKey("b.y"));
+    }
 
     @Test
     public void filteringWritable_putWritesToBacking() {
         Map<String, String> backing = new HashMap<>();
-        FilteringWritableSettings ws = new FilteringWritableSettings(backing, key -> true);
+        FilteringWritableSettings ws = new FilteringWritableSettings(WritableSettings.from(backing), key -> true);
         ws.put("FOO", "1");
         assertEquals("1", backing.get("FOO"));
     }
@@ -288,7 +340,7 @@ public class ReadOnlySettingsTest {
     public void filteringWritable_filterAppliesToReadsNotWrites() {
         Map<String, String> backing = new HashMap<>();
         FilteringWritableSettings ws =
-            new FilteringWritableSettings(backing, key -> !key.equals("FOO"));
+            new FilteringWritableSettings(WritableSettings.from(backing), key -> !key.equals("FOO"));
         ws.put("FOO", "1");
         assertEquals("1", backing.get("FOO"));
         assertNull(ws.getProperty("FOO"));
@@ -299,7 +351,7 @@ public class ReadOnlySettingsTest {
     public void filteringWritable_putAllWritesAllUnfiltered() {
         Map<String, String> backing = new HashMap<>();
         FilteringWritableSettings ws =
-            new FilteringWritableSettings(backing, key -> key.startsWith("A"));
+            new FilteringWritableSettings(WritableSettings.from(backing), key -> key.startsWith("A"));
         Map<String, String> extra = new HashMap<>();
         extra.put("AAA", "1");
         extra.put("BBB", "2");
@@ -313,7 +365,7 @@ public class ReadOnlySettingsTest {
     @Test
     public void filteringWritable_nullFilterAcceptsAllReads() {
         Map<String, String> backing = new HashMap<>();
-        FilteringWritableSettings ws = new FilteringWritableSettings(backing, null);
+        FilteringWritableSettings ws = new FilteringWritableSettings(WritableSettings.from(backing), null);
         ws.put("FOO", "1");
         assertEquals("1", ws.getProperty("FOO"));
     }
@@ -353,7 +405,7 @@ public class ReadOnlySettingsTest {
         Map<String, String> backing = new HashMap<>();
         backing.put("HELLO_WORLD", "value");
         ReadOnlyFilteringSettings ro = new ReadOnlyFilteringSettings(
-            backing, null, ReadOnlyFilteringSettings.ENVIRONMENT_KEY_TRANSFORMER);
+            ReadOnlySettings.from(backing), null, ReadOnlyFilteringSettings.ENVIRONMENT_KEY_TRANSFORMER);
         assertEquals("value", ro.getProperty("Hello.world"));
         assertEquals("value", ro.getProperty("HELLO_WORLD"));
     }
@@ -363,7 +415,7 @@ public class ReadOnlySettingsTest {
         Map<String, String> backing = new HashMap<>();
         backing.put("HELLO_WORLD", "value");
         ReadOnlyFilteringSettings ro = new ReadOnlyFilteringSettings(
-            backing, null, ReadOnlyFilteringSettings.ENVIRONMENT_KEY_TRANSFORMER);
+            ReadOnlySettings.from(backing), null, ReadOnlyFilteringSettings.ENVIRONMENT_KEY_TRANSFORMER);
         assertTrue(ro.containsKey("Hello.world"));
         assertTrue(ro.containsKey("HELLO_WORLD"));
         assertFalse(ro.containsKey("unknown.key"));
@@ -375,7 +427,7 @@ public class ReadOnlySettingsTest {
         backing.put("FOO_BAR", "1");
         backing.put("BAZ_QUX", "2");
         ReadOnlyFilteringSettings ro = new ReadOnlyFilteringSettings(
-            backing, null, ReadOnlyFilteringSettings.ENVIRONMENT_KEY_TRANSFORMER);
+            ReadOnlySettings.from(backing), null, ReadOnlyFilteringSettings.ENVIRONMENT_KEY_TRANSFORMER);
         Set<String> keys = new HashSet<>();
         ro.forEach(e -> keys.add(e.getKey()));
         assertEquals(2, keys.size());
@@ -389,7 +441,7 @@ public class ReadOnlySettingsTest {
         backing.put("HELLO_WORLD", "1");
         backing.put("FOO_BAR", "2");
         ReadOnlyFilteringSettings ro = new ReadOnlyFilteringSettings(
-            backing, key -> key.startsWith("HELLO"),
+            ReadOnlySettings.from(backing), key -> key.startsWith("HELLO"),
             ReadOnlyFilteringSettings.ENVIRONMENT_KEY_TRANSFORMER);
         assertEquals("1", ro.getProperty("Hello.world"));
         assertNull(ro.getProperty("Foo.bar"));
@@ -399,7 +451,7 @@ public class ReadOnlySettingsTest {
     public void keyTransformer_nullActsAsIdentity() {
         Map<String, String> backing = new HashMap<>();
         backing.put("Hello.world", "1");
-        ReadOnlyFilteringSettings ro = new ReadOnlyFilteringSettings(backing, null, null);
+        ReadOnlyFilteringSettings ro = new ReadOnlyFilteringSettings(ReadOnlySettings.from(backing), null, null);
         assertEquals("1", ro.getProperty("Hello.world"));
         assertNull(ro.getProperty("HELLO_WORLD"));
     }
@@ -413,7 +465,7 @@ public class ReadOnlySettingsTest {
             callCount.incrementAndGet();
             return ReadOnlyFilteringSettings.ENVIRONMENT_KEY_TRANSFORMER.apply(key);
         };
-        ReadOnlyFilteringSettings ro = new ReadOnlyFilteringSettings(backing, null, counting);
+        ReadOnlyFilteringSettings ro = new ReadOnlyFilteringSettings(ReadOnlySettings.from(backing), null, counting);
         ro.getProperty("Hello.world");
         ro.getProperty("Hello.world");
         ro.getProperty("Hello.world");
@@ -425,7 +477,7 @@ public class ReadOnlySettingsTest {
     public void keyTransformer_putAppliesTransformer() {
         Map<String, String> backing = new HashMap<>();
         FilteringWritableSettings ws = new FilteringWritableSettings(
-            backing, null, ReadOnlyFilteringSettings.ENVIRONMENT_KEY_TRANSFORMER);
+            WritableSettings.from(backing), null, ReadOnlyFilteringSettings.ENVIRONMENT_KEY_TRANSFORMER);
         ws.put("Hello.world", "value");
         assertEquals("value", backing.get("HELLO_WORLD"));
         assertNull(backing.get("Hello.world"));
@@ -435,7 +487,7 @@ public class ReadOnlySettingsTest {
     public void keyTransformer_putAllAppliesTransformer() {
         Map<String, String> backing = new HashMap<>();
         FilteringWritableSettings ws = new FilteringWritableSettings(
-            backing, null, ReadOnlyFilteringSettings.ENVIRONMENT_KEY_TRANSFORMER);
+            WritableSettings.from(backing), null, ReadOnlyFilteringSettings.ENVIRONMENT_KEY_TRANSFORMER);
         Map<String, String> extra = new HashMap<>();
         extra.put("foo", "1");
         extra.put("bar.baz", "2");
@@ -448,7 +500,7 @@ public class ReadOnlySettingsTest {
     public void keyTransformer_writeAndReadRoundTrip() {
         Map<String, String> backing = new HashMap<>();
         FilteringWritableSettings ws = new FilteringWritableSettings(
-            backing, null, ReadOnlyFilteringSettings.ENVIRONMENT_KEY_TRANSFORMER);
+            WritableSettings.from(backing), null, ReadOnlyFilteringSettings.ENVIRONMENT_KEY_TRANSFORMER);
         ws.put("Hello.world", "value");
         assertEquals("value", ws.getProperty("Hello.world"));
         assertEquals("value", ws.getProperty("hello.WORLD"));
@@ -878,7 +930,7 @@ public class ReadOnlySettingsTest {
         backing.put("FOO", "1");
         backing.put("BAR", "2");
         backing.put("BAZ", "3");
-        ReadOnlyFilteringSettings ro = new ReadOnlyFilteringSettings(backing, key -> key.startsWith("B"));
+        ReadOnlyFilteringSettings ro = new ReadOnlyFilteringSettings(ReadOnlySettings.from(backing), key -> key.startsWith("B"));
         Set<String> keys = ro.keySet();
         assertEquals(2, keys.size());
         assertTrue(keys.contains("BAR"));
@@ -890,7 +942,7 @@ public class ReadOnlySettingsTest {
     public void keySet_filteringSettings_emptyWhenFilterRejectsAll() {
         Map<String, String> backing = new HashMap<>();
         backing.put("FOO", "1");
-        ReadOnlyFilteringSettings ro = new ReadOnlyFilteringSettings(backing, key -> false);
+        ReadOnlyFilteringSettings ro = new ReadOnlyFilteringSettings(ReadOnlySettings.from(backing), key -> false);
         assertTrue(ro.keySet().isEmpty());
     }
 

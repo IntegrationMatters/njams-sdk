@@ -32,9 +32,7 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
-import com.im.njams.sdk.settings.encoding.Transformer;
-
-class ReadOnlyFilteringSettings extends ReadOnlySettingsImpl {
+class ReadOnlyFilteringSettings extends AbstractReadOnlySettings {
 
     static final Function<String, String> ENVIRONMENT_KEY_TRANSFORMER = key -> {
         if (key == null) {
@@ -52,17 +50,18 @@ class ReadOnlyFilteringSettings extends ReadOnlySettingsImpl {
         return sb.toString();
     };
 
+    final ReadOnlySettings inner;
     private final Predicate<String> filter;
     private final Function<String, String> keyTransformer;
     private final Map<String, String> keyCache;
 
-    ReadOnlyFilteringSettings(Map<String, String> backing, Predicate<String> filter) {
-        this(backing, filter, null);
+    ReadOnlyFilteringSettings(ReadOnlySettings inner, Predicate<String> filter) {
+        this(inner, filter, null);
     }
 
-    ReadOnlyFilteringSettings(Map<String, String> backing, Predicate<String> filter,
+    ReadOnlyFilteringSettings(ReadOnlySettings inner, Predicate<String> filter,
         Function<String, String> keyTransformer) {
-        super(backing);
+        this.inner = inner;
         this.filter = filter == null ? key -> true : filter;
         this.keyTransformer = keyTransformer;
         this.keyCache = keyTransformer == null ? null : new ConcurrentHashMap<>();
@@ -75,27 +74,26 @@ class ReadOnlyFilteringSettings extends ReadOnlySettingsImpl {
     @Override
     public String getProperty(String key) {
         String transformed = transformKey(key);
-        return filter.test(transformed) ? super.getProperty(transformed) : null;
+        return filter.test(transformed) ? inner.getProperty(transformed) : null;
     }
 
     @Override
     public boolean containsKey(String key) {
         String transformed = transformKey(key);
-        return filter.test(transformed) && super.containsKey(transformed);
+        return filter.test(transformed) && inner.containsKey(transformed);
     }
 
     @Override
     public Set<String> keySet() {
-        return map.keySet().stream()
+        return inner.keySet().stream()
             .filter(filter)
             .collect(Collectors.toUnmodifiableSet());
     }
 
     @Override
     public Iterator<Entry<String, String>> iterator() {
-        return map.entrySet().stream()
+        return inner.stream()
             .filter(e -> filter.test(e.getKey()))
-            .map(e -> Map.entry(e.getKey(), Transformer.decode(e.getValue())))
             .iterator();
     }
 }

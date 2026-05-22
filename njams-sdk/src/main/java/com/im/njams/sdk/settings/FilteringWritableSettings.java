@@ -23,23 +23,25 @@
  */
 package com.im.njams.sdk.settings;
 
-import java.util.Map;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
 class FilteringWritableSettings extends ReadOnlyFilteringSettings implements WritableSettings {
 
-    FilteringWritableSettings(Map<String, String> backing, Predicate<String> filter) {
-        this(backing, filter, null);
+    private final WritableSettings writableInner;
+
+    FilteringWritableSettings(WritableSettings inner, Predicate<String> filter) {
+        this(inner, filter, null);
     }
 
-    FilteringWritableSettings(Map<String, String> backing, Predicate<String> filter,
+    FilteringWritableSettings(WritableSettings inner, Predicate<String> filter,
         Function<String, String> keyTransformer) {
-        super(backing, filter, keyTransformer);
+        super(inner, filter, keyTransformer);
+        this.writableInner = inner;
     }
 
     @Override
     public void put(String key, String value) {
-        map.put(transformKey(key), value);
+        writableInner.put(transformKey(key), value);
     }
 }

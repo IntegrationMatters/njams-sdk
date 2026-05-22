@@ -96,7 +96,9 @@ public interface ReadOnlySettings extends Iterable<Entry<String, String>> {
      */
     static ReadOnlySettings fromEnvironment(Predicate<String> filter) {
         return new ReadOnlyFilteringSettings(
-            System.getenv(), filter, ReadOnlyFilteringSettings.ENVIRONMENT_KEY_TRANSFORMER);
+            ReadOnlySettings.from(System.getenv()),
+            filter,
+            ReadOnlyFilteringSettings.ENVIRONMENT_KEY_TRANSFORMER);
     }
 
     /**

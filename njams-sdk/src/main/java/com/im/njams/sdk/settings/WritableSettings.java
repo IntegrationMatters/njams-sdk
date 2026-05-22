@@ -70,13 +70,17 @@ public interface WritableSettings extends ReadOnlySettings {
      * visible if the predicate accepts its key. Writes via {@link #put(String, String)} or
      * {@link #putAll(Map)} are unfiltered and propagate to {@link System#getProperties()}. If
      * {@code filter} is {@code null}, all keys are accepted.
+     * <p>
+     * Reads and writes go through the public {@link Properties} string API (via
+     * {@link #from(Properties)}), so the wrapper stays consistent even if
+     * {@link System#getProperties()} has been replaced with a {@link Properties} subclass that
+     * overrides only a subset of the inherited {@link java.util.Hashtable}-typed methods.
      *
      * @param filter optional key filter; {@code null} accepts all keys
      * @return a {@link WritableSettings} view over the (read-filtered) system properties
      */
-    @SuppressWarnings({"unchecked", "rawtypes"})
     static WritableSettings fromSystemProperties(Predicate<String> filter) {
-        return new FilteringWritableSettings((Map) System.getProperties(), filter);
+        return new FilteringWritableSettings(from(System.getProperties()), filter);
     }
 
     /**
