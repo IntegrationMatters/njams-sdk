@@ -169,13 +169,17 @@ public final class HierarchicalSettings implements WritableSettings {
         Collections.sort(sortedKeys);
         for (String key : sortedKeys) {
             NamedLayer layer = source.get(key);
-            String paddedName = String.format(namePattern, StringUtils.abbreviate(layer.name, MAX_NAME_WIDTH));
+            String paddedName = String.format(namePattern, displayName(layer.name));
             if (isSecured(key, layer.settings.getSecuredProperties())) {
-                logger.info("*** [{}]  {} = ****", paddedName, key);
+                logger.info("***      [{}]  {} = ****", paddedName, key);
             } else {
-                logger.info("*** [{}]  {} = {}", paddedName, key, values.get(key));
+                logger.info("***      [{}]  {} = {}", paddedName, key, values.get(key));
             }
         }
+    }
+
+    private static String displayName(String name) {
+        return name.length() <= MAX_NAME_WIDTH ? name : StringUtils.abbreviate(name, MAX_NAME_WIDTH - 3);
     }
 
     private static boolean isSecured(String key, Set<String> tokens) {

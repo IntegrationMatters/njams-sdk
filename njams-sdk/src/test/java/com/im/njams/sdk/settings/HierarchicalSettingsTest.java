@@ -238,7 +238,7 @@ public class HierarchicalSettingsTest {
         assertEquals(1, records.size());
         String fullDefault = "<" + base.getClass().getSimpleName() + "@"
             + Integer.toHexString(System.identityHashCode(base)) + ">";
-        String expectedDisplayed = StringUtils.abbreviate(fullDefault, 20);
+        String expectedDisplayed = StringUtils.abbreviate(fullDefault, 17);
         // recorded as "<format>|<paddedLayerName>|<key>|<value>"
         assertTrue("expected abbreviated default name " + expectedDisplayed + " in: " + records.get(0),
             records.get(0).contains("|" + expectedDisplayed + "|"));
@@ -253,7 +253,7 @@ public class HierarchicalSettingsTest {
         settings.printPropertiesWithoutPasswords(newRecordingLogger(records));
         assertEquals(1, records.size());
         // recorded as "<format>|<paddedLayerName>|<key>|<value>"
-        assertEquals("*** [{}]  {} = {}|my-base|a|1", records.get(0));
+        assertEquals("***      [{}]  {} = {}|my-base|a|1", records.get(0));
     }
 
     // ---------- system-properties layer ----------
@@ -343,9 +343,9 @@ public class HierarchicalSettingsTest {
         settings.printPropertiesWithoutPasswords(newRecordingLogger(records));
         assertEquals(3, records.size());
         // layer names padded to width 7 (max of "base", "overlay")
-        assertEquals("*** [{}]  {} = {}|overlay|a|A", records.get(0));
-        assertEquals("*** [{}]  {} = {}|base   |b|B", records.get(1));
-        assertEquals("*** [{}]  {} = {}|overlay|c|C", records.get(2));
+        assertEquals("***      [{}]  {} = {}|overlay|a|A", records.get(0));
+        assertEquals("***      [{}]  {} = {}|base   |b|B", records.get(1));
+        assertEquals("***      [{}]  {} = {}|overlay|c|C", records.get(2));
     }
 
     @Test
@@ -364,13 +364,13 @@ public class HierarchicalSettingsTest {
         settings.printPropertiesWithoutPasswords(newRecordingLogger(records));
         assertEquals(2, records.size());
         // sorted: api.token first, user.password second; names padded to width 7
-        assertEquals("*** [{}]  {} = ****|overlay|api.token", records.get(0));
-        assertEquals("*** [{}]  {} = ****|base   |user.password", records.get(1));
+        assertEquals("***      [{}]  {} = ****|overlay|api.token", records.get(0));
+        assertEquals("***      [{}]  {} = ****|base   |user.password", records.get(1));
     }
 
     @Test
     public void print_abbreviatesLayerNamesLongerThan20Chars() {
-        // 25-char name exceeds the 20-char cap and gets abbreviated to "first20chars..."
+        // 25-char name exceeds the 20-char cap and gets abbreviated to "first17chars..." (20 chars total)
         String longName = "very-long-layer-name-1234"; // 25 chars
         WritableSettings settings = HierarchicalSettings.from(backing(map("k", "v")))
             .withName(longName)
@@ -379,7 +379,7 @@ public class HierarchicalSettingsTest {
         List<String> records = new ArrayList<>();
         settings.printPropertiesWithoutPasswords(newRecordingLogger(records));
         assertEquals(1, records.size());
-        assertEquals("*** [{}]  {} = {}|" + longName.substring(0, 20) + "...|k|v", records.get(0));
+        assertEquals("***      [{}]  {} = {}|" + longName.substring(0, 17) + "...|k|v", records.get(0));
     }
 
     @Test
@@ -397,7 +397,7 @@ public class HierarchicalSettingsTest {
         settings.printPropertiesWithoutPasswords(newRecordingLogger(records));
         assertEquals(1, records.size());
         // only overlay is printed (base contributes no keys), padding width = 7
-        assertEquals("*** [{}]  {} = ****|overlay|special.thing", records.get(0));
+        assertEquals("***      [{}]  {} = ****|overlay|special.thing", records.get(0));
     }
 
     // ---------- helpers ----------
