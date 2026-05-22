@@ -78,6 +78,19 @@ public final class HierarchicalSettings implements WritableSettings {
         return new Builder(base);
     }
 
+    /**
+     * Starts a new hierarchical settings chain with an in-memory, initially empty base layer.
+     * The base is a {@link WritableSettings} backed by a fresh {@link LinkedHashMap}; writes
+     * through the resulting hierarchical settings are stored there and discarded when the
+     * instance becomes unreachable. The base layer is named {@code <in-memory>} by default;
+     * override with {@link Builder#withName(String)} if needed.
+     *
+     * @return a builder for adding further layers
+     */
+    public static Builder fromEmpty() {
+        return new Builder(WritableSettings.from(new LinkedHashMap<>())).withName("<in-memory>");
+    }
+
     private WritableSettings base() {
         return (WritableSettings) layers.get(0).settings;
     }

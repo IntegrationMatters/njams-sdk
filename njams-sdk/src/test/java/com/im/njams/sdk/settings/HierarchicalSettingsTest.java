@@ -34,6 +34,47 @@ public class HierarchicalSettingsTest {
         assertThrows(NullPointerException.class, () -> HierarchicalSettings.from(null));
     }
 
+    @Test
+    public void fromEmpty_buildsUsableSettingsWithEmptyBase() {
+        WritableSettings settings = HierarchicalSettings.fromEmpty().build();
+
+        assertFalse(settings.containsKey("anything"));
+        assertNull(settings.getProperty("anything"));
+    }
+
+    @Test
+    public void fromEmpty_writesGoToTransientBase() {
+        WritableSettings settings = HierarchicalSettings.fromEmpty().build();
+
+        settings.put("k", "v");
+
+        assertEquals("v", settings.getProperty("k"));
+        assertTrue(settings.containsKey("k"));
+    }
+
+    @Test
+    public void fromEmpty_overlayLayerStillReadable() {
+        WritableSettings settings = HierarchicalSettings.fromEmpty()
+            .andThen(backing(map("overlay-key", "overlay-value")))
+            .build();
+
+        settings.put("base-key", "base-value");
+
+        assertEquals("base-value", settings.getProperty("base-key"));
+        assertEquals("overlay-value", settings.getProperty("overlay-key"));
+    }
+
+    @Test
+    public void fromEmpty_isolatesBaseBetweenCalls() {
+        WritableSettings first = HierarchicalSettings.fromEmpty().build();
+        WritableSettings second = HierarchicalSettings.fromEmpty().build();
+
+        first.put("k", "v");
+
+        assertEquals("v", first.getProperty("k"));
+        assertNull(second.getProperty("k"));
+    }
+
     // ---------- read priority ----------
 
     @Test
