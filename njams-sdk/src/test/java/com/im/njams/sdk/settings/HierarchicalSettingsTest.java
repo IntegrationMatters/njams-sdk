@@ -235,13 +235,13 @@ public class HierarchicalSettingsTest {
         WritableSettings settings = HierarchicalSettings.from(base).build();
         List<String> records = new ArrayList<>();
         settings.printPropertiesWithoutPasswords(newRecordingLogger(records));
-        assertEquals(2, records.size());
+        assertEquals(1, records.size());
         String fullDefault = "<" + base.getClass().getSimpleName() + "@"
             + Integer.toHexString(System.identityHashCode(base)) + ">";
         String expectedDisplayed = StringUtils.abbreviate(fullDefault, 19);
-        // recorded as "<format>|<paddedLayerName>|<key>|<value>"; entry log is at index 1 (chain at 0)
-        assertTrue("expected abbreviated default name " + expectedDisplayed + " in: " + records.get(1),
-            records.get(1).contains("|" + expectedDisplayed + "|"));
+        // recorded as "<format>|<paddedLayerName>|<key>|<value>"
+        assertTrue("expected abbreviated default name " + expectedDisplayed + " in: " + records.get(0),
+            records.get(0).contains("|" + expectedDisplayed + "|"));
     }
 
     @Test
@@ -251,10 +251,9 @@ public class HierarchicalSettingsTest {
             .build();
         List<String> records = new ArrayList<>();
         settings.printPropertiesWithoutPasswords(newRecordingLogger(records));
-        assertEquals(2, records.size());
-        assertEquals("***      Lookup chain: {}|[my-base]", records.get(0));
+        assertEquals(1, records.size());
         // recorded as "<format>|<paddedLayerName>|<key>|<value>"
-        assertEquals("***      [{}]  {} = {}|my-base|a|1", records.get(1));
+        assertEquals("***      [{}]  {} = {}|my-base|a|1", records.get(0));
     }
 
     // ---------- system-properties layer ----------
@@ -342,12 +341,11 @@ public class HierarchicalSettingsTest {
 
         List<String> records = new ArrayList<>();
         settings.printPropertiesWithoutPasswords(newRecordingLogger(records));
-        assertEquals(4, records.size());
-        assertEquals("***      Lookup chain: {}|[base] -> [overlay]", records.get(0));
+        assertEquals(3, records.size());
         // layer names padded to width 7 (max of "base", "overlay")
-        assertEquals("***      [{}]  {} = {}|overlay|a|A", records.get(1));
-        assertEquals("***      [{}]  {} = {}|base   |b|B", records.get(2));
-        assertEquals("***      [{}]  {} = {}|overlay|c|C", records.get(3));
+        assertEquals("***      [{}]  {} = {}|overlay|a|A", records.get(0));
+        assertEquals("***      [{}]  {} = {}|base   |b|B", records.get(1));
+        assertEquals("***      [{}]  {} = {}|overlay|c|C", records.get(2));
     }
 
     @Test
@@ -364,11 +362,10 @@ public class HierarchicalSettingsTest {
 
         List<String> records = new ArrayList<>();
         settings.printPropertiesWithoutPasswords(newRecordingLogger(records));
-        assertEquals(3, records.size());
-        assertEquals("***      Lookup chain: {}|[base] -> [overlay]", records.get(0));
+        assertEquals(2, records.size());
         // sorted: api.token first, user.password second; names padded to width 7
-        assertEquals("***      [{}]  {} = ****|overlay|api.token", records.get(1));
-        assertEquals("***      [{}]  {} = ****|base   |user.password", records.get(2));
+        assertEquals("***      [{}]  {} = ****|overlay|api.token", records.get(0));
+        assertEquals("***      [{}]  {} = ****|base   |user.password", records.get(1));
     }
 
     @Test
@@ -381,11 +378,9 @@ public class HierarchicalSettingsTest {
 
         List<String> records = new ArrayList<>();
         settings.printPropertiesWithoutPasswords(newRecordingLogger(records));
-        assertEquals(2, records.size());
-        // chain log uses full layer name; only the per-entry column is abbreviated
-        assertEquals("***      Lookup chain: {}|[" + longName + "]", records.get(0));
+        assertEquals(1, records.size());
         assertEquals("***      [{}]  {} = {}|" + longName.substring(0, 19) + StringUtils.ELLIPSIS + "|k|v",
-            records.get(1));
+            records.get(0));
     }
 
     @Test
@@ -401,24 +396,30 @@ public class HierarchicalSettingsTest {
 
         List<String> records = new ArrayList<>();
         settings.printPropertiesWithoutPasswords(newRecordingLogger(records));
-        assertEquals(2, records.size());
-        assertEquals("***      Lookup chain: {}|[base] -> [overlay]", records.get(0));
+        assertEquals(1, records.size());
         // only overlay is printed (base contributes no keys), padding width = 7
-        assertEquals("***      [{}]  {} = ****|overlay|special.thing", records.get(1));
+        assertEquals("***      [{}]  {} = ****|overlay|special.thing", records.get(0));
     }
 
+    // ---------- toString ----------
+
     @Test
-    public void print_logsLookupChainInPrecedenceOrder() {
-        // chain log lists layers in the same order they are consulted (first added = highest precedence)
+    public void toString_returnsLookupChainInPrecedenceOrder() {
+        // chain lists layers in the same order they are consulted (first added = highest precedence)
         WritableSettings settings = HierarchicalSettings.from(backing(new HashMap<>())).withName("first")
             .andThen(backing(new HashMap<>())).withName("second")
             .andThen(backing(new HashMap<>())).withName("third")
             .build();
 
-        List<String> records = new ArrayList<>();
-        settings.printPropertiesWithoutPasswords(newRecordingLogger(records));
-        assertEquals(1, records.size()); // no entries, only the chain log
-        assertEquals("***      Lookup chain: {}|[first] -> [second] -> [third]", records.get(0));
+        assertEquals("[first] -> [second] -> [third]", settings.toString());
+    }
+
+    @Test
+    public void toString_singleLayer_omitsArrow() {
+        WritableSettings settings = HierarchicalSettings.from(backing(new HashMap<>())).withName("only")
+            .build();
+
+        assertEquals("[only]", settings.toString());
     }
 
     // ---------- helpers ----------

@@ -36,6 +36,7 @@ import java.util.function.Predicate;
 import java.util.regex.Pattern;
 
 import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.im.njams.sdk.utils.StringUtils;
 
@@ -60,12 +61,27 @@ import com.im.njams.sdk.utils.StringUtils;
  */
 public final class HierarchicalSettings implements WritableSettings {
 
+    private static final Logger LOG = LoggerFactory.getLogger(HierarchicalSettings.class);
+
     private static final int MAX_NAME_WIDTH = 20;
 
     private final List<NamedLayer> layers;
 
     private HierarchicalSettings(List<NamedLayer> layers) {
         this.layers = List.copyOf(layers);
+        LOG.info("Settings lookup chain: {}", this);
+    }
+
+    @Override
+    public String toString() {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < layers.size(); i++) {
+            if (i > 0) {
+                sb.append(" -> ");
+            }
+            sb.append('[').append(layers.get(i).name).append(']');
+        }
+        return sb.toString();
     }
 
     /**
@@ -147,7 +163,6 @@ public final class HierarchicalSettings implements WritableSettings {
 
     @Override
     public void printPropertiesWithoutPasswords(Logger logger) {
-        logger.info("***      Lookup chain: {}", renderLookupChain());
         Map<String, NamedLayer> source = new LinkedHashMap<>();
         Map<String, String> values = new LinkedHashMap<>();
         for (NamedLayer layer : layers) {
@@ -181,17 +196,6 @@ public final class HierarchicalSettings implements WritableSettings {
 
     private static String displayName(String name) {
         return name.length() <= MAX_NAME_WIDTH ? name : StringUtils.abbreviate(name, MAX_NAME_WIDTH - 1);
-    }
-
-    private String renderLookupChain() {
-        StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < layers.size(); i++) {
-            if (i > 0) {
-                sb.append(" -> ");
-            }
-            sb.append('[').append(layers.get(i).name).append(']');
-        }
-        return sb.toString();
     }
 
     private static boolean isSecured(String key, Set<String> tokens) {
