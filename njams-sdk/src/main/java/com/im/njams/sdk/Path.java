@@ -126,7 +126,7 @@ public final class Path {
      * @throws IllegalArgumentException if any segment is {@code null}, blank, or contains {@code >}
      */
     public static Path of(List<String> segments) {
-        return of(segments == null ? EMPTY_SEGMENTS : segments.toArray(EMPTY_SEGMENTS));
+        return of(segments == null ? EMPTY_SEGMENTS : segments.toArray(new String[0]));
     }
 
     /**
@@ -186,7 +186,7 @@ public final class Path {
      * @throws IllegalArgumentException if any resulting segment is blank or otherwise invalid
      */
     public static Path resolve(List<String> paths) {
-        return resolve(paths == null ? EMPTY_SEGMENTS : paths.toArray(EMPTY_SEGMENTS));
+        return resolve(paths == null ? EMPTY_SEGMENTS : paths.toArray(new String[0]));
     }
 
     private static String[] splitSegments(String input) {
@@ -306,7 +306,7 @@ public final class Path {
      *     child has not been created
      */
     public Path getChild(List<String> names) {
-        return getChild(names == null ? EMPTY_SEGMENTS : names.toArray(EMPTY_SEGMENTS));
+        return getChild(names == null ? EMPTY_SEGMENTS : names.toArray(new String[0]));
     }
 
     /**
@@ -336,7 +336,7 @@ public final class Path {
      *     child has not been created
      */
     public Path resolveChild(List<String> paths) {
-        return resolveChild(paths == null ? EMPTY_SEGMENTS : paths.toArray(EMPTY_SEGMENTS));
+        return resolveChild(paths == null ? EMPTY_SEGMENTS : paths.toArray(new String[0]));
     }
 
     /**
@@ -374,7 +374,7 @@ public final class Path {
      * @return {@code true} if the full chain has been created; {@code false} otherwise
      */
     public boolean hasChild(List<String> names) {
-        return hasChild(names == null ? EMPTY_SEGMENTS : names.toArray(EMPTY_SEGMENTS));
+        return hasChild(names == null ? EMPTY_SEGMENTS : names.toArray(new String[0]));
     }
 
     /**
@@ -408,7 +408,7 @@ public final class Path {
      * @return {@code true} if the full chain has been created; {@code false} otherwise
      */
     public boolean resolvesChild(List<String> paths) {
-        return resolvesChild(paths == null ? EMPTY_SEGMENTS : paths.toArray(EMPTY_SEGMENTS));
+        return resolvesChild(paths == null ? EMPTY_SEGMENTS : paths.toArray(new String[0]));
     }
 
     /**
@@ -438,7 +438,7 @@ public final class Path {
      * @throws IllegalArgumentException if any resulting segment is blank or contains {@code >}
      */
     public Path resolveOrCreateChild(List<String> paths) {
-        return resolveOrCreateChild(paths == null ? EMPTY_SEGMENTS : paths.toArray(EMPTY_SEGMENTS));
+        return resolveOrCreateChild(paths == null ? EMPTY_SEGMENTS : paths.toArray(new String[0]));
     }
 
     private Path walkSplit(String[] paths, boolean createMissing) {
@@ -501,7 +501,7 @@ public final class Path {
      * @throws IllegalArgumentException if any of the names is {@code null}, blank, or contains {@code >}
      */
     public Path getOrCreateChild(List<String> names) {
-        return getOrCreateChild(names == null ? EMPTY_SEGMENTS : names.toArray(EMPTY_SEGMENTS));
+        return getOrCreateChild(names == null ? EMPTY_SEGMENTS : names.toArray(new String[0]));
     }
 
     /**
