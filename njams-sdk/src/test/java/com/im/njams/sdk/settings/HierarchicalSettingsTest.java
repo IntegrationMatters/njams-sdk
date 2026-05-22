@@ -21,6 +21,8 @@ import java.util.Set;
 import org.junit.Test;
 import org.slf4j.Logger;
 
+import com.im.njams.sdk.utils.StringUtils;
+
 public class HierarchicalSettingsTest {
 
     private static WritableSettings backing(Map<String, String> map) {
@@ -234,10 +236,12 @@ public class HierarchicalSettingsTest {
         List<String> records = new ArrayList<>();
         settings.printPropertiesWithoutPasswords(newRecordingLogger(records));
         assertEquals(1, records.size());
-        String expectedDefault = "<" + base.getClass().getSimpleName() + "@"
+        String fullDefault = "<" + base.getClass().getSimpleName() + "@"
             + Integer.toHexString(System.identityHashCode(base)) + ">";
-        assertTrue("expected default name " + expectedDefault + " in: " + records.get(0),
-            records.get(0).endsWith("|" + expectedDefault));
+        String expectedDisplayed = StringUtils.abbreviate(fullDefault, 20);
+        // recorded as "<format>|<paddedLayerName>|<key>|<value>"
+        assertTrue("expected abbreviated default name " + expectedDisplayed + " in: " + records.get(0),
+            records.get(0).contains("|" + expectedDisplayed + "|"));
     }
 
     @Test
@@ -248,9 +252,8 @@ public class HierarchicalSettingsTest {
         List<String> records = new ArrayList<>();
         settings.printPropertiesWithoutPasswords(newRecordingLogger(records));
         assertEquals(1, records.size());
-        // recorded as "<format>|<key>|<value>|<layerName>"
-        assertTrue("expected layer name as last arg in: " + records.get(0),
-            records.get(0).endsWith("|my-base"));
+        // recorded as "<format>|<paddedLayerName>|<key>|<value>"
+        assertEquals("*** [{}]  {} = {}|my-base|a|1", records.get(0));
     }
 
     // ---------- system-properties layer ----------
@@ -331,7 +334,7 @@ public class HierarchicalSettingsTest {
     // ---------- printPropertiesWithoutPasswords ----------
 
     @Test
-    public void print_appendsLayerNameAndSortsKeys() {
+    public void print_prependsLayerNameAndSortsKeys() {
         WritableSettings settings = HierarchicalSettings.from(backing(map("b", "B"))).withName("base")
             .andThen(backing(map("a", "A", "c", "C"))).withName("overlay")
             .build();
@@ -339,9 +342,10 @@ public class HierarchicalSettingsTest {
         List<String> records = new ArrayList<>();
         settings.printPropertiesWithoutPasswords(newRecordingLogger(records));
         assertEquals(3, records.size());
-        assertEquals("***      {} = {} [{}]|a|A|overlay", records.get(0));
-        assertEquals("***      {} = {} [{}]|b|B|base", records.get(1));
-        assertEquals("***      {} = {} [{}]|c|C|overlay", records.get(2));
+        // layer names padded to width 7 (max of "base", "overlay")
+        assertEquals("*** [{}]  {} = {}|overlay|a|A", records.get(0));
+        assertEquals("*** [{}]  {} = {}|base   |b|B", records.get(1));
+        assertEquals("*** [{}]  {} = {}|overlay|c|C", records.get(2));
     }
 
     @Test
@@ -359,9 +363,23 @@ public class HierarchicalSettingsTest {
         List<String> records = new ArrayList<>();
         settings.printPropertiesWithoutPasswords(newRecordingLogger(records));
         assertEquals(2, records.size());
-        // sorted: api.token first, user.password second
-        assertEquals("***      {} = **** [{}]|api.token|overlay", records.get(0));
-        assertEquals("***      {} = **** [{}]|user.password|base", records.get(1));
+        // sorted: api.token first, user.password second; names padded to width 7
+        assertEquals("*** [{}]  {} = ****|overlay|api.token", records.get(0));
+        assertEquals("*** [{}]  {} = ****|base   |user.password", records.get(1));
+    }
+
+    @Test
+    public void print_abbreviatesLayerNamesLongerThan20Chars() {
+        // 25-char name exceeds the 20-char cap and gets abbreviated to "first20chars..."
+        String longName = "very-long-layer-name-1234"; // 25 chars
+        WritableSettings settings = HierarchicalSettings.from(backing(map("k", "v")))
+            .withName(longName)
+            .build();
+
+        List<String> records = new ArrayList<>();
+        settings.printPropertiesWithoutPasswords(newRecordingLogger(records));
+        assertEquals(1, records.size());
+        assertEquals("*** [{}]  {} = {}|" + longName.substring(0, 20) + "...|k|v", records.get(0));
     }
 
     @Test
@@ -378,7 +396,8 @@ public class HierarchicalSettingsTest {
         List<String> records = new ArrayList<>();
         settings.printPropertiesWithoutPasswords(newRecordingLogger(records));
         assertEquals(1, records.size());
-        assertEquals("***      {} = **** [{}]|special.thing|overlay", records.get(0));
+        // only overlay is printed (base contributes no keys), padding width = 7
+        assertEquals("*** [{}]  {} = ****|overlay|special.thing", records.get(0));
     }
 
     // ---------- helpers ----------

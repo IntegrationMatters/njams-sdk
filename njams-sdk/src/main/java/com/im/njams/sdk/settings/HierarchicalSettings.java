@@ -37,6 +37,8 @@ import java.util.regex.Pattern;
 
 import org.slf4j.Logger;
 
+import com.im.njams.sdk.utils.StringUtils;
+
 /**
  * A {@link WritableSettings} that composes an ordered list of named layers. Each read operation
  * consults the layers in order and returns the result from the first layer that contains the
@@ -57,6 +59,8 @@ import org.slf4j.Logger;
  * based on the source layer's tokens, not on a global union.
  */
 public final class HierarchicalSettings implements WritableSettings {
+
+    private static final int MAX_NAME_WIDTH = 20;
 
     private final List<NamedLayer> layers;
 
@@ -153,14 +157,23 @@ public final class HierarchicalSettings implements WritableSettings {
                 }
             }
         }
+        int nameWidth = 0;
+        for (NamedLayer layer : source.values()) {
+            int len = Math.min(layer.name.length(), MAX_NAME_WIDTH);
+            if (len > nameWidth) {
+                nameWidth = len;
+            }
+        }
+        String namePattern = "%-" + Math.max(nameWidth, 1) + "s";
         List<String> sortedKeys = new ArrayList<>(source.keySet());
         Collections.sort(sortedKeys);
         for (String key : sortedKeys) {
             NamedLayer layer = source.get(key);
+            String paddedName = String.format(namePattern, StringUtils.abbreviate(layer.name, MAX_NAME_WIDTH));
             if (isSecured(key, layer.settings.getSecuredProperties())) {
-                logger.info("***      {} = **** [{}]", key, layer.name);
+                logger.info("*** [{}]  {} = ****", paddedName, key);
             } else {
-                logger.info("***      {} = {} [{}]", key, values.get(key), layer.name);
+                logger.info("*** [{}]  {} = {}", paddedName, key, values.get(key));
             }
         }
     }
