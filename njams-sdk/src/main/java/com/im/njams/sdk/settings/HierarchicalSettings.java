@@ -179,7 +179,7 @@ public final class HierarchicalSettings implements WritableSettings {
     }
 
     private static String displayName(String name) {
-        return name.length() <= MAX_NAME_WIDTH ? name : StringUtils.abbreviate(name, MAX_NAME_WIDTH - 3);
+        return name.length() <= MAX_NAME_WIDTH ? name : StringUtils.abbreviate(name, MAX_NAME_WIDTH - 1);
     }
 
     private static boolean isSecured(String key, Set<String> tokens) {

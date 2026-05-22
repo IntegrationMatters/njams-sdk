@@ -238,7 +238,7 @@ public class HierarchicalSettingsTest {
         assertEquals(1, records.size());
         String fullDefault = "<" + base.getClass().getSimpleName() + "@"
             + Integer.toHexString(System.identityHashCode(base)) + ">";
-        String expectedDisplayed = StringUtils.abbreviate(fullDefault, 17);
+        String expectedDisplayed = StringUtils.abbreviate(fullDefault, 19);
         // recorded as "<format>|<paddedLayerName>|<key>|<value>"
         assertTrue("expected abbreviated default name " + expectedDisplayed + " in: " + records.get(0),
             records.get(0).contains("|" + expectedDisplayed + "|"));
@@ -370,7 +370,7 @@ public class HierarchicalSettingsTest {
 
     @Test
     public void print_abbreviatesLayerNamesLongerThan20Chars() {
-        // 25-char name exceeds the 20-char cap and gets abbreviated to "first17chars..." (20 chars total)
+        // 25-char name exceeds the 20-char cap and gets abbreviated to "first19chars…" (20 chars total)
         String longName = "very-long-layer-name-1234"; // 25 chars
         WritableSettings settings = HierarchicalSettings.from(backing(map("k", "v")))
             .withName(longName)
@@ -379,7 +379,8 @@ public class HierarchicalSettingsTest {
         List<String> records = new ArrayList<>();
         settings.printPropertiesWithoutPasswords(newRecordingLogger(records));
         assertEquals(1, records.size());
-        assertEquals("***      [{}]  {} = {}|" + longName.substring(0, 17) + "...|k|v", records.get(0));
+        assertEquals("***      [{}]  {} = {}|" + longName.substring(0, 19) + StringUtils.ELLIPSIS + "|k|v",
+            records.get(0));
     }
 
     @Test
