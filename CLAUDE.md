@@ -181,6 +181,7 @@ Apply best practices and maintain clean architecture in all production code. Cod
 - **Self-documenting code.** Names for classes, methods, and variables should express intent clearly enough that comments are rarely needed. A comment is warranted only when the *why* is non-obvious from the code.
 - **No unnecessary complexity.** Solve the problem at hand. Do not introduce abstractions, patterns, or generalisations that have no current use.
 - **DRY within reason.** Eliminate duplication, but do not create premature abstractions to unify code that merely looks similar.
+- **Delegate, don't duplicate.** When adding an overload, alternative entry point, or deprecated alias for an existing method, have the new method adapt its input and call through to the canonical implementation. Never copy an algorithm into a second method just because the signature differs.
 - **Avoid code smells.** Long methods, deep nesting, large classes, primitive obsession, and feature envy are signals to refactor.
 
 ### Architecture Constraints

@@ -686,6 +686,113 @@ public class PathTest {
         Path.of("gocthrow3").getOrCreateChild("a>b");
     }
 
+    // --- List overloads ---
+
+    @Test
+    public void ofListEquivalentToVarargs() {
+        assertSame(Path.of("listOf", "a", "b"), Path.of(java.util.Arrays.asList("listOf", "a", "b")));
+    }
+
+    @Test
+    public void ofListEmptyReturnsRoot() {
+        assertSame(Path.ROOT, Path.of(java.util.Collections.emptyList()));
+    }
+
+    @Test
+    public void ofListNullReturnsRoot() {
+        assertSame(Path.ROOT, Path.of((List<String>) null));
+    }
+
+    @Test
+    public void resolveListEquivalentToVarargs() {
+        assertSame(Path.resolve("resolveList>a>b"),
+            Path.resolve(java.util.Arrays.asList("resolveList>a>b")));
+    }
+
+    @Test
+    public void resolveListNullReturnsRoot() {
+        assertSame(Path.ROOT, Path.resolve((List<String>) null));
+    }
+
+    @Test
+    public void getChildListEquivalentToVarargs() {
+        Path parent = Path.of("gcListParent");
+        Path grand = Path.of("gcListParent", "a", "b");
+        assertSame(grand, parent.getChild(java.util.Arrays.asList("a", "b")));
+    }
+
+    @Test
+    public void getChildListNullReturnsSelf() {
+        Path p = Path.of("gcListNull");
+        assertSame(p, p.getChild((List<String>) null));
+    }
+
+    @Test
+    public void resolveChildListEquivalentToVarargs() {
+        Path parent = Path.of("rcListParent");
+        Path leaf = Path.of("rcListParent", "a", "b");
+        assertSame(leaf, parent.resolveChild(java.util.Arrays.asList("a>b>")));
+    }
+
+    @Test
+    public void resolveChildListNullReturnsSelf() {
+        Path p = Path.of("rcListNull");
+        assertSame(p, p.resolveChild((List<String>) null));
+    }
+
+    @Test
+    public void hasChildListEquivalentToVarargs() {
+        Path parent = Path.of("hcListParent");
+        Path.of("hcListParent", "a", "b");
+        assertTrue(parent.hasChild(java.util.Arrays.asList("a", "b")));
+        assertFalse(parent.hasChild(java.util.Arrays.asList("a", "missing")));
+    }
+
+    @Test
+    public void hasChildListNullReturnsTrue() {
+        assertTrue(Path.of("hcListNull").hasChild((List<String>) null));
+    }
+
+    @Test
+    public void resolvesChildListEquivalentToVarargs() {
+        Path parent = Path.of("rscListParent");
+        Path.of("rscListParent", "a", "b");
+        assertTrue(parent.resolvesChild(java.util.Arrays.asList("a>b>")));
+    }
+
+    @Test
+    public void resolvesChildListNullReturnsTrue() {
+        assertTrue(Path.of("rscListNull").resolvesChild((List<String>) null));
+    }
+
+    @Test
+    public void resolveOrCreateChildListEquivalentToVarargs() {
+        Path parent = Path.of("rocListParent");
+        Path leaf = parent.resolveOrCreateChild(java.util.Arrays.asList("a>b>c"));
+        assertEquals(">rocListParent>a>b>c>", leaf.toString());
+        assertSame(leaf, Path.of("rocListParent", "a", "b", "c"));
+    }
+
+    @Test
+    public void resolveOrCreateChildListNullReturnsSelf() {
+        Path p = Path.of("rocListNull");
+        assertSame(p, p.resolveOrCreateChild((List<String>) null));
+    }
+
+    @Test
+    public void getOrCreateChildListEquivalentToVarargs() {
+        Path parent = Path.of("gocListParent");
+        Path leaf = parent.getOrCreateChild(java.util.Arrays.asList("a", "b", "c"));
+        assertEquals(">gocListParent>a>b>c>", leaf.toString());
+        assertSame(leaf, Path.of("gocListParent", "a", "b", "c"));
+    }
+
+    @Test
+    public void getOrCreateChildListNullReturnsSelf() {
+        Path p = Path.of("gocListNull");
+        assertSame(p, p.getOrCreateChild((List<String>) null));
+    }
+
     // --- Thread safety ---
 
     @Test

@@ -119,6 +119,17 @@ public final class Path {
     }
 
     /**
+     * List variant of {@link #of(String...)}; see that method for full semantics.
+     *
+     * @param segments segment names; {@code null} returns {@link #ROOT}
+     * @return the corresponding {@link Path} node
+     * @throws IllegalArgumentException if any segment is {@code null}, blank, or contains {@code >}
+     */
+    public static Path of(List<String> segments) {
+        return of(segments == null ? EMPTY_SEGMENTS : segments.toArray(EMPTY_SEGMENTS));
+    }
+
+    /**
      * Returns the new {@link Path} instance equivalent to the given legacy
      * {@link com.im.njams.sdk.common.Path}, resolved via its
      * {@link com.im.njams.sdk.common.Path#getParts() getParts()} segments.
@@ -165,6 +176,17 @@ public final class Path {
      */
     public static Path resolve(String... paths) {
         return ROOT.resolveOrCreateChild(paths);
+    }
+
+    /**
+     * List variant of {@link #resolve(String...)}; see that method for full semantics.
+     *
+     * @param paths path strings to split and walk; {@code null} returns {@link #ROOT}
+     * @return the resolved {@link Path} node
+     * @throws IllegalArgumentException if any resulting segment is blank or otherwise invalid
+     */
+    public static Path resolve(List<String> paths) {
+        return resolve(paths == null ? EMPTY_SEGMENTS : paths.toArray(EMPTY_SEGMENTS));
     }
 
     private static String[] splitSegments(String input) {
@@ -277,6 +299,17 @@ public final class Path {
     }
 
     /**
+     * List variant of {@link #getChild(String...)}; see that method for full semantics.
+     *
+     * @param names segment names forming a relative path from this node; {@code null} returns this node
+     * @return the descendant path, this node if no names are given, or {@code null} if any intermediate
+     *     child has not been created
+     */
+    public Path getChild(List<String> names) {
+        return getChild(names == null ? EMPTY_SEGMENTS : names.toArray(EMPTY_SEGMENTS));
+    }
+
+    /**
      * Returns the descendant path node reached by walking the given (possibly partial)
      * path strings as a relative path from this node, or {@code null} if any step along
      * the chain does not yet exist. Each argument is split at {@code >} and empty/null
@@ -293,6 +326,17 @@ public final class Path {
      */
     public Path resolveChild(String... paths) {
         return walkSplit(paths, false);
+    }
+
+    /**
+     * List variant of {@link #resolveChild(String...)}; see that method for full semantics.
+     *
+     * @param paths path strings forming a relative path from this node; {@code null} returns this node
+     * @return the descendant path, this node if no segments result, or {@code null} if any intermediate
+     *     child has not been created
+     */
+    public Path resolveChild(List<String> paths) {
+        return resolveChild(paths == null ? EMPTY_SEGMENTS : paths.toArray(EMPTY_SEGMENTS));
     }
 
     /**
@@ -324,6 +368,16 @@ public final class Path {
     }
 
     /**
+     * List variant of {@link #hasChild(String...)}; see that method for full semantics.
+     *
+     * @param names segment names forming a relative path from this node; {@code null} returns {@code true}
+     * @return {@code true} if the full chain has been created; {@code false} otherwise
+     */
+    public boolean hasChild(List<String> names) {
+        return hasChild(names == null ? EMPTY_SEGMENTS : names.toArray(EMPTY_SEGMENTS));
+    }
+
+    /**
      * Tests whether the descendant path reached by walking the given (possibly partial)
      * path strings exists as a chain of created children under this path. Each argument
      * is split at {@code >} and empty segments are dropped before walking; {@code null}
@@ -348,6 +402,16 @@ public final class Path {
     }
 
     /**
+     * List variant of {@link #resolvesChild(String...)}; see that method for full semantics.
+     *
+     * @param paths path strings forming a relative path from this node; {@code null} returns {@code true}
+     * @return {@code true} if the full chain has been created; {@code false} otherwise
+     */
+    public boolean resolvesChild(List<String> paths) {
+        return resolvesChild(paths == null ? EMPTY_SEGMENTS : paths.toArray(EMPTY_SEGMENTS));
+    }
+
+    /**
      * Returns the descendant path node reached by walking the given (possibly partial)
      * path strings as a relative path from this node, creating any missing intermediate
      * children along the way. Each argument is split at {@code >} and empty/null
@@ -364,6 +428,17 @@ public final class Path {
      */
     public Path resolveOrCreateChild(String... paths) {
         return walkSplit(paths, true);
+    }
+
+    /**
+     * List variant of {@link #resolveOrCreateChild(String...)}; see that method for full semantics.
+     *
+     * @param paths path strings forming a relative path from this node; {@code null} returns this node
+     * @return the existing or newly created descendant path; this node if no segments result
+     * @throws IllegalArgumentException if any resulting segment is blank or contains {@code >}
+     */
+    public Path resolveOrCreateChild(List<String> paths) {
+        return resolveOrCreateChild(paths == null ? EMPTY_SEGMENTS : paths.toArray(EMPTY_SEGMENTS));
     }
 
     private Path walkSplit(String[] paths, boolean createMissing) {
@@ -416,6 +491,17 @@ public final class Path {
             current = next;
         }
         return current;
+    }
+
+    /**
+     * List variant of {@link #getOrCreateChild(String...)}; see that method for full semantics.
+     *
+     * @param names segment names; {@code null} returns this node
+     * @return the existing or newly created descendant path
+     * @throws IllegalArgumentException if any of the names is {@code null}, blank, or contains {@code >}
+     */
+    public Path getOrCreateChild(List<String> names) {
+        return getOrCreateChild(names == null ? EMPTY_SEGMENTS : names.toArray(EMPTY_SEGMENTS));
     }
 
     /**
