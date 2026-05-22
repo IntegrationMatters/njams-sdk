@@ -31,6 +31,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.Properties;
 import java.util.Set;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
@@ -64,6 +65,8 @@ public final class HierarchicalSettings implements WritableSettings {
     private static final Logger LOG = LoggerFactory.getLogger(HierarchicalSettings.class);
 
     private static final int MAX_NAME_WIDTH = 20;
+
+    private static final String WRITABILITY_PROBE_KEY = "__njams_hsettings_writable_probe__";
 
     private final List<NamedLayer> layers;
 
@@ -99,6 +102,53 @@ public final class HierarchicalSettings implements WritableSettings {
     }
 
     /**
+     * Convenience factory that wraps the given map in {@link WritableSettings#from(Map)} and
+     * uses it as the base layer.
+     * <p>
+     * <strong>The map must accept write operations.</strong> Writes through the hierarchical
+     * settings are dispatched to the base layer, so an immutable or unmodifiable map would fail
+     * the first time a property is set. To catch this early, the map is probed with a
+     * {@code put}/{@code remove} of a reserved sentinel key at this call; if the probe throws
+     * <em>any</em> exception (the JDK's {@link UnsupportedOperationException}, an implementation-
+     * specific {@code IllegalStateException}, a custom security check, etc.), an
+     * {@link IllegalArgumentException} is thrown with the original cause attached.
+     *
+     * @param base the writable map to use as the base layer; must not be {@code null}
+     * @return a builder for adding further layers
+     * @throws NullPointerException     if {@code base} is {@code null}
+     * @throws IllegalArgumentException if the writability probe on {@code base} throws any exception
+     */
+    public static Builder from(Map<String, String> base) {
+        Objects.requireNonNull(base, "base map must not be null");
+        requireWritable(base);
+        return from(WritableSettings.from(base));
+    }
+
+    /**
+     * Convenience factory that wraps the given properties in
+     * {@link WritableSettings#from(Properties)} and uses them as the base layer.
+     * <p>
+     * <strong>The properties must accept write operations.</strong> Writes through the
+     * hierarchical settings are dispatched to the base layer, so a {@link Properties} subclass
+     * that rejects mutations would fail the first time a property is set. To catch this early,
+     * the properties are probed with a {@code setProperty}/{@code remove} of a reserved sentinel
+     * key at this call; if the probe throws <em>any</em> exception (the JDK's
+     * {@link UnsupportedOperationException}, an implementation-specific
+     * {@code IllegalStateException}, a custom security check, etc.), an
+     * {@link IllegalArgumentException} is thrown with the original cause attached.
+     *
+     * @param base the writable properties to use as the base layer; must not be {@code null}
+     * @return a builder for adding further layers
+     * @throws NullPointerException     if {@code base} is {@code null}
+     * @throws IllegalArgumentException if the writability probe on {@code base} throws any exception
+     */
+    public static Builder from(Properties base) {
+        Objects.requireNonNull(base, "base properties must not be null");
+        requireWritable(base);
+        return from(WritableSettings.from(base));
+    }
+
+    /**
      * Starts a new hierarchical settings chain with an in-memory, initially empty base layer.
      * The base is a {@link WritableSettings} backed by a fresh {@link LinkedHashMap}; writes
      * through the resulting hierarchical settings are stored there and discarded when the
@@ -109,6 +159,28 @@ public final class HierarchicalSettings implements WritableSettings {
      */
     public static Builder fromEmpty() {
         return new Builder(WritableSettings.from(new LinkedHashMap<>())).withName("<in-memory>");
+    }
+
+    private static void requireWritable(Map<String, String> map) {
+        try {
+            map.put(WRITABILITY_PROBE_KEY, "");
+            map.remove(WRITABILITY_PROBE_KEY);
+        } catch (Exception e) {
+            throw new IllegalArgumentException(
+                "Base map for HierarchicalSettings.from(Map) must accept writes; "
+                    + "probe put/remove threw " + e.getClass().getSimpleName(), e);
+        }
+    }
+
+    private static void requireWritable(Properties properties) {
+        try {
+            properties.setProperty(WRITABILITY_PROBE_KEY, "");
+            properties.remove(WRITABILITY_PROBE_KEY);
+        } catch (Exception e) {
+            throw new IllegalArgumentException(
+                "Base properties for HierarchicalSettings.from(Properties) must accept writes; "
+                    + "probe setProperty/remove threw " + e.getClass().getSimpleName(), e);
+        }
     }
 
     private WritableSettings base() {
@@ -334,6 +406,35 @@ public final class HierarchicalSettings implements WritableSettings {
         }
 
         /**
+         * Convenience overload that wraps the given map via {@link ReadOnlySettings#from(Map)} and
+         * appends it as the next layer. {@code null} is accepted and silently skipped. The map
+         * does not need to be writable — non-base layers are consulted read-only by the
+         * hierarchical view.
+         *
+         * @param map the next layer's backing map, may be {@code null}
+         * @return this builder
+         */
+        public Builder andThen(Map<String, String> map) {
+            return andThen(map == null ? null : ReadOnlySettings.from(map));
+        }
+
+        /**
+         * Convenience overload that wraps the given properties via
+         * {@link WritableSettings#from(Properties)} and appends them as the next layer.
+         * {@code null} is accepted and silently skipped. The properties do not need to be
+         * writable — non-base layers are consulted read-only by the hierarchical view. Routing
+         * through {@link WritableSettings#from(Properties)} keeps the wrapper safe with
+         * {@link Properties} subclasses that override only a subset of the inherited
+         * {@link java.util.Hashtable}-typed methods.
+         *
+         * @param properties the next layer's backing properties, may be {@code null}
+         * @return this builder
+         */
+        public Builder andThen(Properties properties) {
+            return andThen(properties == null ? null : WritableSettings.from(properties));
+        }
+
+        /**
          * Appends a system-properties layer backed by {@link System#getProperties()}. The returned
          * builder additionally exposes prefix and regex filter configuration.
          *
@@ -437,6 +538,26 @@ public final class HierarchicalSettings implements WritableSettings {
          */
         public Builder andThen(ReadOnlySettings settings) {
             return builder.andThen(settings);
+        }
+
+        /**
+         * See {@link Builder#andThen(Map)}.
+         *
+         * @param map the next layer's backing map, may be {@code null}
+         * @return the common builder
+         */
+        public Builder andThen(Map<String, String> map) {
+            return builder.andThen(map);
+        }
+
+        /**
+         * See {@link Builder#andThen(Properties)}.
+         *
+         * @param properties the next layer's backing properties, may be {@code null}
+         * @return the common builder
+         */
+        public Builder andThen(Properties properties) {
+            return builder.andThen(properties);
         }
 
         /**

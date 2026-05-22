@@ -16,6 +16,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Properties;
 import java.util.Set;
 
 import org.junit.Test;
@@ -33,7 +34,177 @@ public class HierarchicalSettingsTest {
 
     @Test
     public void from_rejectsNullBase() {
-        assertThrows(NullPointerException.class, () -> HierarchicalSettings.from(null));
+        assertThrows(NullPointerException.class,
+            () -> HierarchicalSettings.from((WritableSettings) null));
+    }
+
+    // ---------- from(Map) / from(Properties) convenience factories ----------
+
+    @Test
+    public void fromMap_buildsBaseAndAcceptsWrites() {
+        Map<String, String> base = new HashMap<>();
+        base.put("a", "1");
+        WritableSettings settings = HierarchicalSettings.from(base).build();
+        assertEquals("1", settings.getProperty("a"));
+        settings.put("b", "2");
+        assertEquals("2", base.get("b"));
+    }
+
+    @Test
+    public void fromMap_rejectsNull() {
+        assertThrows(NullPointerException.class,
+            () -> HierarchicalSettings.from((Map<String, String>) null));
+    }
+
+    @Test
+    public void fromMap_immutableMap_throwsIllegalArgumentException() {
+        Map<String, String> immutable = Map.of("a", "1");
+        assertThrows(IllegalArgumentException.class, () -> HierarchicalSettings.from(immutable));
+    }
+
+    @Test
+    public void fromMap_unmodifiableMap_throwsIllegalArgumentException() {
+        Map<String, String> wrapped = java.util.Collections.unmodifiableMap(new HashMap<>(Map.of("a", "1")));
+        assertThrows(IllegalArgumentException.class, () -> HierarchicalSettings.from(wrapped));
+    }
+
+    @Test
+    public void fromMap_probeLeavesNoLingeringSentinel() {
+        Map<String, String> base = new HashMap<>();
+        base.put("a", "1");
+        HierarchicalSettings.from(base);
+        assertEquals(1, base.size());
+        assertEquals("1", base.get("a"));
+    }
+
+    @Test
+    public void fromProperties_buildsBaseAndAcceptsWrites() {
+        Properties base = new Properties();
+        base.setProperty("a", "1");
+        WritableSettings settings = HierarchicalSettings.from(base).build();
+        assertEquals("1", settings.getProperty("a"));
+        settings.put("b", "2");
+        assertEquals("2", base.getProperty("b"));
+    }
+
+    @Test
+    public void fromProperties_rejectsNull() {
+        assertThrows(NullPointerException.class,
+            () -> HierarchicalSettings.from((Properties) null));
+    }
+
+    @Test
+    public void fromProperties_unwritableSubclass_throwsIllegalArgumentException() {
+        Properties readOnly = new Properties() {
+            @Override public synchronized Object setProperty(String key, String value) {
+                throw new UnsupportedOperationException("read-only");
+            }
+        };
+        assertThrows(IllegalArgumentException.class, () -> HierarchicalSettings.from(readOnly));
+    }
+
+    @Test
+    public void fromMap_probeThrowsNonUOE_stillTranslatesToIllegalArgumentException() {
+        // The probe catches *any* exception, not just UnsupportedOperationException. Custom
+        // storage implementations can reject writes with arbitrary exception types — we treat
+        // all of them uniformly as "not writable".
+        Map<String, String> rejecting = new HashMap<String, String>() {
+            @Override public String put(String key, String value) {
+                throw new IllegalStateException("custom rejection");
+            }
+        };
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+            () -> HierarchicalSettings.from(rejecting));
+        // the original cause is preserved
+        org.junit.Assert.assertTrue(ex.getCause() instanceof IllegalStateException);
+    }
+
+    @Test
+    public void fromProperties_probeThrowsNonUOE_stillTranslatesToIllegalArgumentException() {
+        Properties rejecting = new Properties() {
+            @Override public synchronized Object setProperty(String key, String value) {
+                throw new SecurityException("denied by SecurityManager-style check");
+            }
+        };
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+            () -> HierarchicalSettings.from(rejecting));
+        org.junit.Assert.assertTrue(ex.getCause() instanceof SecurityException);
+    }
+
+    @Test
+    public void fromProperties_probeLeavesNoLingeringSentinel() {
+        Properties base = new Properties();
+        base.setProperty("a", "1");
+        HierarchicalSettings.from(base);
+        assertEquals(1, base.size());
+        assertEquals("1", base.getProperty("a"));
+    }
+
+    // ---------- andThen(Map) / andThen(Properties) convenience overloads ----------
+
+    @Test
+    public void andThenMap_addsLayer_readableThroughHierarchy() {
+        Map<String, String> overlay = new HashMap<>();
+        overlay.put("o.k", "o.v");
+        WritableSettings settings = HierarchicalSettings.from(new HashMap<>())
+            .andThen(overlay)
+            .build();
+        assertEquals("o.v", settings.getProperty("o.k"));
+    }
+
+    @Test
+    public void andThenMap_acceptsNull_silentlySkipped() {
+        WritableSettings settings = HierarchicalSettings.from(new HashMap<>())
+            .andThen((Map<String, String>) null)
+            .build();
+        assertFalse(settings.containsKey("anything"));
+    }
+
+    @Test
+    public void andThenMap_immutableMapAccepted_nonBaseLayerNeedNotBeWritable() {
+        // Only the base layer must be writable; overlay layers may be immutable.
+        WritableSettings settings = HierarchicalSettings.from(new HashMap<>())
+            .andThen(Map.of("a", "1"))
+            .build();
+        assertEquals("1", settings.getProperty("a"));
+    }
+
+    @Test
+    public void andThenProperties_addsLayer_readableThroughHierarchy() {
+        Properties overlay = new Properties();
+        overlay.setProperty("o.k", "o.v");
+        WritableSettings settings = HierarchicalSettings.from(new HashMap<>())
+            .andThen(overlay)
+            .build();
+        assertEquals("o.v", settings.getProperty("o.k"));
+    }
+
+    @Test
+    public void andThenProperties_acceptsNull_silentlySkipped() {
+        WritableSettings settings = HierarchicalSettings.from(new HashMap<>())
+            .andThen((Properties) null)
+            .build();
+        assertFalse(settings.containsKey("anything"));
+    }
+
+    @Test
+    public void andThenProperties_routesThroughPropertiesStringApi_consistentForMisbehavingSubclass() {
+        // A Properties subclass that only honors the string API (Camel-shaped). The convenience
+        // overload routes through WritableSettings.from(Properties), so the layer reads stay
+        // consistent.
+        Properties misbehaving = new Properties() {
+            private final Map<String, String> store = new HashMap<>(Map.of("camel.k", "v"));
+            @Override public String getProperty(String key) { return store.get(key); }
+            @Override public Set<String> stringPropertyNames() { return new HashSet<>(store.keySet()); }
+            @Override public synchronized Object setProperty(String key, String value) {
+                return store.put(key, value);
+            }
+        };
+        WritableSettings settings = HierarchicalSettings.from(new HashMap<>())
+            .andThen(misbehaving)
+            .build();
+        assertTrue(settings.containsKey("camel.k"));
+        assertEquals("v", settings.getProperty("camel.k"));
     }
 
     @Test
@@ -221,7 +392,7 @@ public class HierarchicalSettingsTest {
     @Test
     public void andThenNull_isSkipped() {
         WritableSettings settings = HierarchicalSettings.from(backing(map("a", "1")))
-            .andThen(null).withName("ignored")
+            .andThen((ReadOnlySettings) null).withName("ignored")
             .andThen(backing(map("b", "2")))
             .build();
 
