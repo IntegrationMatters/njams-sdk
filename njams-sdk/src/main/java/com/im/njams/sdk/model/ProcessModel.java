@@ -355,7 +355,7 @@ public class ProcessModel {
      * The transitionModelId is given from outside.
      *
      * @param fromActivityModelId The ID of the transition's start activity.
-     * @param toActivityModelId The ID of the transition's start activity.
+     * @param toActivityModelId The ID of the transition's next activity.
      * @param transitionModelId The ID of the new {@link TransitionModel}.
      * @return the created {@link TransitionModel}
      */
@@ -369,7 +369,7 @@ public class ProcessModel {
         if (toActivityModel == null) {
             throw new NjamsSdkRuntimeException("ToActivityModel with id " + toActivityModelId + " does not exist");
         }
-        TransitionModel transition = new TransitionModel(this, transitionModelId, transitionModelId);
+        TransitionModel transition = new TransitionModel(this, transitionModelId);
         transition.setFromActivity(fromActivityModel);
         transition.setToActivity(toActivityModel);
         addTransition(transition);

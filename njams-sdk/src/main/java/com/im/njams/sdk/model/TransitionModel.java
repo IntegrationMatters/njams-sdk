@@ -69,6 +69,10 @@ public class TransitionModel {
         this.name = name;
     }
 
+    public TransitionModel(ProcessModel processModel, String id) {
+        this(processModel, id, null);
+    }
+
     Transition getSerializableTransition() {
         Transition transition = new Transition();
         transition.setId(id);
