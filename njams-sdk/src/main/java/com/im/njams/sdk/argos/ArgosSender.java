@@ -33,7 +33,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Properties;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -43,7 +42,6 @@ import com.fasterxml.jackson.databind.ObjectWriter;
 import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.common.JsonSerializerFactory;
 import com.im.njams.sdk.settings.ClientSettings;
-import com.im.njams.sdk.utils.PropertyUtil;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -112,26 +110,24 @@ public class ArgosSender implements Closeable {
             return;
         }
         LOG.debug("Initialize ArgosSender.");
-        Properties properties = PropertyUtil.toProperties(settings);
-        enabled = Boolean
-            .parseBoolean(getProperty(properties, NjamsSettings.PROPERTY_ARGOS_SUBAGENT_ENABLED, DEFAULT_ENABLED));
-        host = getProperty(properties, NjamsSettings.PROPERTY_ARGOS_SUBAGENT_HOST, DEFAULT_HOST);
+        enabled = Boolean.parseBoolean(settings.getPropertyWithDeprecationWarning(
+            NjamsSettings.PROPERTY_ARGOS_SUBAGENT_ENABLED, DEFAULT_ENABLED,
+            NjamsSettings.PROPERTY_ARGOS_SUBAGENT_ENABLED.replace(".sdk.", ".client.")));
+        host = settings.getPropertyWithDeprecationWarning(
+            NjamsSettings.PROPERTY_ARGOS_SUBAGENT_HOST, DEFAULT_HOST,
+            NjamsSettings.PROPERTY_ARGOS_SUBAGENT_HOST.replace(".sdk.", ".client."));
+        final String portStr = settings.getPropertyWithDeprecationWarning(
+            NjamsSettings.PROPERTY_ARGOS_SUBAGENT_PORT, String.valueOf(DEFAULT_PORT),
+            NjamsSettings.PROPERTY_ARGOS_SUBAGENT_PORT.replace(".sdk.", ".client."));
         try {
-            port =
-                Integer.parseInt(getProperty(properties, NjamsSettings.PROPERTY_ARGOS_SUBAGENT_PORT,
-                    String.valueOf(DEFAULT_PORT)));
+            port = Integer.parseInt(portStr);
         } catch (NumberFormatException e) {
             LOG.debug("Could not parse property: ", e);
-            LOG.warn("Could not parse property " + NjamsSettings.PROPERTY_ARGOS_SUBAGENT_PORT + " to an Integer. "
-                + "Using default Port " + DEFAULT_PORT + " instead");
+            LOG.warn("Could not parse property {} to an Integer. Using default port {} instead.",
+                NjamsSettings.PROPERTY_ARGOS_SUBAGENT_PORT, DEFAULT_PORT);
             port = DEFAULT_PORT;
         }
         isInitialized = true;
-    }
-
-    private String getProperty(Properties properties, String key, String defaultValue) {
-        // SDK-175: njams.client.* parameters are deprecated
-        return properties.getProperty(key, properties.getProperty(key.replace("\\.sdk\\.", ".client."), defaultValue));
     }
 
     /**

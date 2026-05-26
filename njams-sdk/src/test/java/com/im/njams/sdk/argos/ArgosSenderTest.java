@@ -29,6 +29,8 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.*;
 
 public class ArgosSenderTest {
@@ -54,6 +56,30 @@ public class ArgosSenderTest {
     @After
     public void tearDown() {
         argosSender.close();
+    }
+
+    @Test
+    public void initWithDeprecatedKeys() throws Exception {
+        ArgosSender sender = new ArgosSender();
+        Settings settings = new Settings();
+        // use the old .client. key names instead of the current .sdk. ones
+        settings.put("njams.client.subagent.host", "legacy-host");
+        settings.put("njams.client.subagent.port", "4711");
+        settings.put("njams.client.subagent.enabled", "true");
+
+        sender.init(settings);
+
+        // verify via reflection
+        java.lang.reflect.Field hostField = ArgosSender.class.getDeclaredField("host");
+        hostField.setAccessible(true);
+        java.lang.reflect.Field portField = ArgosSender.class.getDeclaredField("port");
+        portField.setAccessible(true);
+        java.lang.reflect.Field enabledField = ArgosSender.class.getDeclaredField("enabled");
+        enabledField.setAccessible(true);
+
+        assertEquals("legacy-host", hostField.get(sender));
+        assertEquals(4711, portField.get(sender));
+        assertTrue((Boolean) enabledField.get(sender));
     }
 
     @Test
