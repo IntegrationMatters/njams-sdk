@@ -479,7 +479,7 @@ public class NjamsProcessDiagramFactory implements ProcessDiagramFactory {
         Element line = context.getDoc().createElementNS(context.getSvgNS(), "line");
         line.setAttributeNS(null, "markerId", markerId);
         line.setAttributeNS(null, "modelId", transitionModel.getId());
-        line.setAttributeNS(null, "name", transitionModel.getName());
+        line.setAttributeNS(null, "name", transitionModel.getName() != null ? transitionModel.getName() : "");
         line.setAttributeNS(null, "x1", String.valueOf(fromPoint.getX()));
         line.setAttributeNS(null, "y1", String.valueOf(fromPoint.getY()));
         line.setAttributeNS(null, "x2", String.valueOf(toPoint.getX()));

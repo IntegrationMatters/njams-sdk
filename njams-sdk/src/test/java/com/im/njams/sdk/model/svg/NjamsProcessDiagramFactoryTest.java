@@ -29,6 +29,8 @@ import java.nio.charset.StandardCharsets;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.transform.stream.StreamSource;
 
+import com.im.njams.sdk.model.ActivityModel;
+import com.im.njams.sdk.model.TransitionModel;
 import org.junit.Assert;
 import org.junit.Test;
 import org.w3c.dom.Document;
@@ -70,6 +72,26 @@ public class NjamsProcessDiagramFactoryTest {
         ByteArrayInputStream in = new ByteArrayInputStream(getMarkingXslt().getBytes(StandardCharsets.UTF_8));
         String result = factory.withXslt(in).serializeDocument(createSimpleContext());
         Assert.assertTrue(result.contains("data-postprocessed=\"yes\""));
+    }
+
+    @Test
+    public void testDrawTransitionWithoutNameProducesNoTextLabel() throws Exception {
+        NjamsProcessDiagramFactory factory = new NjamsProcessDiagramFactory(false);
+        NjamsProcessDiagramContext context = createSimpleContext();
+        context.setContainerElement(context.getDoc().getDocumentElement());
+
+        ActivityModel from = new ActivityModel(null, "a", "Activity A", "step");
+        ActivityModel to = new ActivityModel(null, "b", "Activity B", "step");
+
+        TransitionModel transition = new TransitionModel(null, "a_b"); // no name constructor
+        transition.setFromActivity(from);
+        transition.setToActivity(to);
+
+        // non-provided name in transition
+        factory.drawTransition(context, transition);
+
+        final String svg = factory.serializeDocument(context);
+        Assert.assertFalse(svg.contains("a_b_label"));
     }
 
     private static NjamsProcessDiagramContext createSimpleContext() throws Exception {

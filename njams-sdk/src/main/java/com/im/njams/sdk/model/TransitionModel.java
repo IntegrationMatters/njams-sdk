@@ -69,6 +69,13 @@ public class TransitionModel {
         this.name = name;
     }
 
+    /**
+     * Create a new TransitionModel without a display name.
+     * The transition will not render a label in the SVG.
+     *
+     * @param processModel ProcessModel which should contain this TransitionModel
+     * @param id Id of this TransitionModel
+     */
     public TransitionModel(ProcessModel processModel, String id) {
         this(processModel, id, null);
     }
