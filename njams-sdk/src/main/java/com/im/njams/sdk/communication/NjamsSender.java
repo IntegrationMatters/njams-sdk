@@ -25,7 +25,6 @@ package com.im.njams.sdk.communication;
 
 import static com.im.njams.sdk.NjamsSettings.*;
 
-import java.util.Properties;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -39,7 +38,6 @@ import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.factories.ThreadFactoryBuilder;
 import com.im.njams.sdk.settings.ClientSettings;
-import com.im.njams.sdk.utils.PropertyUtil;
 
 /**
  * This class enforces the maxQueueLength setting. It uses the
@@ -118,7 +116,7 @@ public class NjamsSender {
     public NjamsSender(ClientSettings settings) {
         this.settings = settings;
         name = settings.getProperty(NjamsSettings.PROPERTY_COMMUNICATION);
-        init(PropertyUtil.toProperties(settings));
+        init();
     }
 
     /**
@@ -144,12 +142,9 @@ public class NjamsSender {
 
     /**
      * This method initializes a CommunicationFactory, a ThreadPoolExecutor and
-     * a SenderPool.
-     *
-     * @param properties the properties for MIN_QUEUE_LENGTH, MAX_QUEUE_LENGTH
-     *                   and IDLE_TIME for the sender threads.
+     * a SenderPool using the settings provided at construction time.
      */
-    public void init(Properties properties) {
+    public void init() {
         int minSenderThreads =
             (int) settings.getLongWithDeprecationWarning(PROPERTY_MIN_SENDER_THREADS, 1, OLD_MIN_SENDER_THREADS);
         int maxSenderThreads =
@@ -167,7 +162,7 @@ public class NjamsSender {
         senderPool = new SenderPool(communicationFactory);
         executor = new ThreadPoolExecutor(minSenderThreads, maxSenderThreads, idleTime, TimeUnit.MILLISECONDS,
             new ArrayBlockingQueue<>(maxQueueLength), threadFactory,
-            new MaxQueueLengthHandler(properties, senderPool::isConnectionFailure));
+            new MaxQueueLengthHandler(settings, senderPool::isConnectionFailure));
     }
 
     private void validateThreadPool(int minThreads, int maxThreads, int maxQueueLen, long idleTime) {
