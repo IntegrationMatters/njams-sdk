@@ -38,7 +38,9 @@ Every commit must reference the related Jira ticket using the Jira Smart Commits
 SDK-XXX #comment <description>
 ```
 
-The `#comment` token causes the commit message to be posted automatically as a comment on the Jira ticket. There is no exception — commits without a ticket reference are not acceptable. If no ticket exists for the work being committed, ask the user to provide one before committing.
+The `#comment` token causes the commit message to be posted automatically as a comment on the Jira ticket. If no ticket exists for the work being committed, ask the user to provide one before committing.
+
+**Exception:** Commits that touch only `CLAUDE.md` or files under `docs/` (e.g. plans, notes) do not need a Jira ticket reference. Use a plain commit message for those.
 
 ## Branching and Committing
 
