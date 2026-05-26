@@ -71,7 +71,8 @@ public class TransitionModel {
 
     /**
      * Create a new TransitionModel without a display name.
-     * The transition will not render a label in the SVG.
+     * Initializes the transition name to {@code null}. SVG renderers may omit
+     * labels when the name is blank.
      *
      * @param processModel ProcessModel which should contain this TransitionModel
      * @param id Id of this TransitionModel
