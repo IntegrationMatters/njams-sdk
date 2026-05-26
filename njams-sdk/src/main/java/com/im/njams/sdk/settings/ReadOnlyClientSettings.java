@@ -23,20 +23,15 @@
  */
 package com.im.njams.sdk.settings;
 
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Map;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.Properties;
-import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Read-only view of the nJAMS SDK settings. Exposes only operations that retrieve or report
@@ -59,7 +54,7 @@ import org.slf4j.LoggerFactory;
  * vice versa. Default methods on this interface rely on this consistency; violating it produces
  * silently wrong results, not exceptions.
  */
-public interface ReadOnlyClientSettings extends Iterable<Entry<String, String>> {
+interface ReadOnlyClientSettings extends Iterable<Entry<String, String>> {
 
     /**
      * Returns a {@link ReadOnlyClientSettings} backed by the given map. Subsequent changes to the map are
@@ -307,22 +302,6 @@ public interface ReadOnlyClientSettings extends Iterable<Entry<String, String>> 
                 logger.info("***      {} = {}", entry.getKey(), entry.getValue());
             }
         }
-    }
-
-    /**
-     * Returns a copy of the properties whose keys start with the given prefix.
-     *
-     * @param prefix the prefix used to select properties
-     * @return new {@link Properties} containing the matching entries
-     */
-    default Properties filter(String prefix) {
-        Properties result = new Properties();
-        for (Entry<String, String> entry : this) {
-            if (entry.getKey().startsWith(prefix)) {
-                result.setProperty(entry.getKey(), entry.getValue());
-            }
-        }
-        return result;
     }
 
     /**

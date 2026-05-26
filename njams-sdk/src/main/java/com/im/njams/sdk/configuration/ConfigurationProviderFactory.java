@@ -23,9 +23,11 @@
  */
 package com.im.njams.sdk.configuration;
 
+import java.util.Map;
 import java.util.Properties;
 import java.util.stream.Collectors;
 
+import com.im.njams.sdk.utils.PropertyUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -77,10 +79,10 @@ public class ConfigurationProviderFactory {
         final String name = settings.getProperty(CONFIGURATION_PROVIDER);
         if (StringUtils.isBlank(name)) {
             throw new IllegalArgumentException(
-                    "Unable to find " + CONFIGURATION_PROVIDER + " in configuration properties");
+                "Unable to find " + CONFIGURATION_PROVIDER + " in configuration properties");
         }
         final ServiceLoaderSupport<ConfigurationProvider> serviceLoader =
-                new ServiceLoaderSupport<>(ConfigurationProvider.class);
+            new ServiceLoaderSupport<>(ConfigurationProvider.class);
         final ConfigurationProvider configurationProvider = serviceLoader.find(s -> name.equals(s.getName()));
         if (configurationProvider != null) {
             LOG.info("Create ConfigurationProvider {}", configurationProvider.getName());
@@ -89,9 +91,9 @@ public class ConfigurationProviderFactory {
             return configurationProvider;
         }
         throw new IllegalArgumentException(
-                "Unable to find ConfigurationProvider implementation with name " + name + ", available are: "
-                        + serviceLoader.stream().map(ConfigurationProvider::getName).sorted()
-                                .collect(Collectors.toList()));
+            "Unable to find ConfigurationProvider implementation with name " + name + ", available are: "
+                + serviceLoader.stream().map(ConfigurationProvider::getName).sorted()
+                .collect(Collectors.toList()));
     }
 
     private void validate(ConfigurationProvider cfg) {
@@ -100,8 +102,8 @@ public class ConfigurationProviderFactory {
             return;
         }
         final String errors =
-                result.hasErrors() ? result.getErrors().stream().map(Object::toString).collect(Collectors.joining(", "))
-                        : "";
+            result.hasErrors() ? result.getErrors().stream().map(Object::toString).collect(Collectors.joining(", "))
+                : "";
         if (!result.isReadable()) {
             throw new IllegalStateException("Configuration is not readable: " + errors);
         }
@@ -110,19 +112,20 @@ public class ConfigurationProviderFactory {
     }
 
     private Properties createProviderProperties(ConfigurationProvider configurationProvider) {
-        final Properties props = settings.filter(configurationProvider.getPropertyPrefix());
+        final Properties props = PropertyUtil.toProperties(
+            settings.filteredStream(configurationProvider.getPropertyPrefix(), false));
         if (configurationProvider instanceof AbstractConfigurationProvider) {
             if (settings.containsKey(NjamsSettings.PROPERTY_BOOSTRAP_RECORDING)) {
                 props.put(AbstractConfigurationProvider.DEFAULT_RECORDING_CONFIG,
-                        settings.getProperty(NjamsSettings.PROPERTY_BOOSTRAP_RECORDING));
+                    settings.getProperty(NjamsSettings.PROPERTY_BOOSTRAP_RECORDING));
             }
             if (settings.containsKey(NjamsSettings.PROPERTY_LOG_MODE_DEFAULT)) {
                 props.put(AbstractConfigurationProvider.DEFAULT_LOG_MODE_CONFIG,
-                        settings.getProperty(NjamsSettings.PROPERTY_LOG_MODE_DEFAULT));
+                    settings.getProperty(NjamsSettings.PROPERTY_LOG_MODE_DEFAULT));
             }
             if (settings.containsKey(NjamsSettings.PROPERTY_LOG_LEVEL_DEFAULT)) {
                 props.put(AbstractConfigurationProvider.DEFAULT_LOG_LEVEL_CONFIG,
-                        settings.getProperty(NjamsSettings.PROPERTY_LOG_LEVEL_DEFAULT));
+                    settings.getProperty(NjamsSettings.PROPERTY_LOG_LEVEL_DEFAULT));
             }
         }
         return props;
