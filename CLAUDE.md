@@ -22,7 +22,13 @@ Issues and tasks for this project are tracked in Jira: **https://salesfive.atlas
 
 **When working on a Jira ticket, manage the `breaking-change` label.** If the work introduces a breaking change to public or protected API (signature / return-type / parameter-type change, removal, observable behaviour change), add the `breaking-change` label to the ticket. If the work does not break public API, remove the label if present. Adding new methods, classes, or overloads is not breaking. Check the label at the start of working on the ticket and again before declaring it done.
 
-**When starting work on a Jira ticket, transition it to `In Progress`** (unless it is already in a started or done state). Do this after the ticket key is confirmed and before making any code changes. For tickets created on the spot, transition immediately after creation.
+**When starting work on a Jira ticket, transition it to `In Progress`** (unless it is already in a started or done state) and **assign it to the current Atlassian plugin user** (call `atlassianUserInfo` to get the `account_id`, then set that as the assignee). Do this after the ticket key is confirmed and before making any code changes. For tickets created on the spot, transition and assign immediately after creation.
+
+**Jira ticket descriptions** focus on WHAT is needed, not HOW it is implemented. No design decisions or implementation details belong in the description, even when the ticket is created after the work is done. Structure every description in two parts:
+1. **Brief summary** — a short abstract readable in ~30 seconds.
+2. **Detail section** — context, constraints, and acceptance criteria needed to understand the task; still no implementation decisions.
+
+**Closing comments** should be brief: state that the issue is resolved and optionally note the root cause. Do not include deep technical detail about how the solution was implemented — that belongs in commit messages or PR descriptions.
 
 ## Commit Message Convention
 
@@ -193,6 +199,20 @@ Apply best practices and maintain clean architecture in all production code. Cod
 ## API Design Principles
 
 This SDK is a **public API** consumed by nJAMS client implementations. Client implementations must use SDK functionality whenever it is available rather than reimplementing it themselves.
+
+### What Counts as Public API
+
+Not all `public` code in this project is intended as public API. Some code is `public` only to satisfy internal cross-package access needs, not because it is meant for third-party use.
+
+**The following are NOT public API, regardless of Java visibility:**
+
+- **Communication layer** (`communication/`) — transports, senders, receivers, message formats, and fragmentation are internal infrastructure. SDK users should not need to know or care which transport is active, how messages are structured on the wire, or how chunking works. These details must remain fully transparent to SDK users and must not leak into the public API surface.
+- Any other code that is `public` solely to enable internal cross-package access.
+
+**Practical implications:**
+- Do not expose communication types, message formats, or transport details through any public API surface.
+- When assessing whether a change is a `breaking-change`, only consider the intended public API — changes to communication internals that are technically `public` in Java are not breaking changes in the API sense.
+- Do not implement or change anything about the public API boundary without asking first.
 
 ### Visibility and Scoping
 
