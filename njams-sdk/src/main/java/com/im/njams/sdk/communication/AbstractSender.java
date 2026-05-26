@@ -23,12 +23,9 @@
  */
 package com.im.njams.sdk.communication;
 
-import static com.im.njams.sdk.utils.PropertyUtil.getPropertyWithDeprecationWarning;
-
 import java.util.Collection;
 import java.util.Collections;
 import java.util.IdentityHashMap;
-import java.util.Properties;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -41,6 +38,7 @@ import com.faizsiegeln.njams.messageformat.v4.projectmessage.ProjectMessage;
 import com.faizsiegeln.njams.messageformat.v4.tracemessage.TraceMessage;
 import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
+import com.im.njams.sdk.settings.ClientSettings;
 
 /**
  * Superclass for all Senders. When writing your own Sender, extend this class
@@ -56,7 +54,7 @@ public abstract class AbstractSender implements Sender {
 
     private ConnectionStatus connectionStatus;
     protected DiscardPolicy discardPolicy = DiscardPolicy.DEFAULT;
-    protected Properties properties;
+    protected ClientSettings settings;
     protected boolean hasConnectionFailure = false;
     private Thread reconnector = null;
     private Collection<SenderExceptionListener> exceptionListeners = Collections.newSetFromMap(new IdentityHashMap<>());
@@ -78,9 +76,9 @@ public abstract class AbstractSender implements Sender {
     }
 
     @Override
-    public void init(Properties properties) {
-        this.properties = properties;
-        discardPolicy = DiscardPolicy.byValue(getPropertyWithDeprecationWarning(properties,
+    public void init(ClientSettings settings) {
+        this.settings = settings;
+        discardPolicy = DiscardPolicy.byValue(settings.getPropertyWithDeprecationWarning(
             NjamsSettings.PROPERTY_DISCARD_POLICY, NjamsSettings.OLD_DISCARD_POLICY));
     }
 

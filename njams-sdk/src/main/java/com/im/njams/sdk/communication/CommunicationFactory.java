@@ -25,8 +25,8 @@ package com.im.njams.sdk.communication;
 
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.Properties;
 import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
@@ -36,7 +36,6 @@ import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.settings.ClientSettings;
 import com.im.njams.sdk.utils.ClasspathValidator;
-import com.im.njams.sdk.utils.PropertyUtil;
 import com.im.njams.sdk.utils.ServiceLoaderSupport;
 
 /**
@@ -125,8 +124,10 @@ public class CommunicationFactory {
 
     private Receiver createReceiver(Class<? extends Receiver> clazz, Njams njams, boolean shared, String name) {
         try {
-            Properties properties = PropertyUtil.toProperties(settings);
-            properties.setProperty(INTERNAL_PROPERTY_CLIENTPATH, njams.getClientPath().toString());
+            Map<String, String> copy = new LinkedHashMap<>();
+            settings.forEach(e -> copy.put(e.getKey(), e.getValue()));
+            ClientSettings receiverSettings = ClientSettings.from(copy);
+            receiverSettings.put(INTERNAL_PROPERTY_CLIENTPATH, njams.getClientPath().toString());
             Receiver receiver;
             if (shared && ShareableReceiver.class.isAssignableFrom(clazz)) {
                 synchronized (sharedReceivers) {
@@ -141,7 +142,7 @@ public class CommunicationFactory {
                         ((ClasspathValidator) receiver).validate();
                     }
                     sharedReceivers.put(clazz, (ShareableReceiver<?>) receiver);
-                    receiver.init(properties);
+                    receiver.init(receiverSettings);
                     return receiver;
                 }
             }
@@ -150,7 +151,7 @@ public class CommunicationFactory {
             if (receiver instanceof ClasspathValidator) {
                 ((ClasspathValidator) receiver).validate();
             }
-            receiver.init(properties);
+            receiver.init(receiverSettings);
             return receiver;
         } catch (Exception e) {
             throw new IllegalStateException("Unable to create new receiver " + name + " instance.", e);
@@ -180,7 +181,7 @@ public class CommunicationFactory {
                     ((ClasspathValidator) newInstance).validate();
                 }
 
-                newInstance.init(PropertyUtil.toProperties(settings));
+                newInstance.init(settings);
                 newInstance.startup();
                 return newInstance;
             } catch (Exception e) {

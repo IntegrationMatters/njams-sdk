@@ -23,10 +23,9 @@
  */
 package com.im.njams.sdk.communication;
 
-import java.util.Properties;
-
 import com.faizsiegeln.njams.messageformat.v4.common.CommonMessage;
 import com.im.njams.sdk.Njams;
+import com.im.njams.sdk.settings.ClientSettings;
 
 /**
  * This interface must be implemented to create a nJAMS sender implementation
@@ -37,11 +36,11 @@ import com.im.njams.sdk.Njams;
 public interface Sender {
 
     /**
-     * This implementation should initialize itself via the given properties.
+     * This implementation should initialize itself via the given settings.
      *
-     * @param properties to be used for initialization
+     * @param settings the settings to be used for initialization
      */
-    public void init(Properties properties);
+    public void init(ClientSettings settings);
 
     /**
      * Send the given message to the new communication layer
