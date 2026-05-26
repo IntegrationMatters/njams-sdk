@@ -31,6 +31,7 @@ import com.im.njams.sdk.communication.http.HttpSender;
 import com.im.njams.sdk.communication.jms.factory.JmsFactory;
 import com.im.njams.sdk.communication.jms.factory.JndiJmsFactory;
 import com.im.njams.sdk.communication.kafka.KafkaUtil;
+import com.im.njams.sdk.settings.ClientSettings;
 
 /**
  * This class is a list and documentation for all settings, which can be used in SDK.
@@ -546,7 +547,7 @@ public class NjamsSettings {
      * {@link JmsFactory} implementation which defaults to {@link JndiJmsFactory}
      * if no match was found. In the second step, the {@link JndiJmsFactory} uses the value
      * for a JNDI lookup to obtain a {@link ConnectionFactory}.
-     * @see JmsFactory#find(java.util.Properties)
+     * @see JmsFactory#find(ClientSettings)
      * @see #PROPERTY_JMS_JMSFACTORY
      */
     public static final String PROPERTY_JMS_CONNECTION_FACTORY = "njams.sdk.communication.jms.connectionFactory";
