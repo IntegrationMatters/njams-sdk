@@ -146,7 +146,7 @@ public class KafkaReceiver extends AbstractReceiver {
     private void tryToConnect() {
         LOG.debug("Try subscribing KafkaReceiver to topic {}", topicName);
         try {
-            commandConsumer = new CommandsConsumer(PropertyUtil.toProperties(settings), topicName, kafkaClientId, this);
+            commandConsumer = new CommandsConsumer(settings, topicName, kafkaClientId, this);
             commandConsumer.start();
         } catch (final Exception e) {
             closeAll();

@@ -229,7 +229,7 @@ public class Settings implements ClientSettings {
      * @return the properties.
      */
     public Properties getAllProperties() {
-        return Transformer.decode(properties);
+        return PropertyUtil.toProperties(this);
     }
 
     /**
@@ -238,14 +238,8 @@ public class Settings implements ClientSettings {
      * @param prefix prefix
      * @return new filtered Properties
      */
-    @Override
     public Properties filter(String prefix) {
-        Properties response = new Properties();
-        properties.stringPropertyNames()
-            .stream()
-            .filter(k -> k.startsWith(prefix))
-            .forEach(k -> response.setProperty(k, properties.getProperty(k)));
-        return Transformer.decode(response);
+        return PropertyUtil.toProperties(filteredStream(prefix, false));
     }
 
     /**
@@ -256,14 +250,7 @@ public class Settings implements ClientSettings {
      * @return new filtered and stripped Properties
      */
     public Properties filterAndCut(String prefix) {
-        Properties response = new Properties();
-        properties.stringPropertyNames()
-            .stream()
-            .filter(k -> k.startsWith(prefix))
-            .forEach(k -> response.setProperty(
-                k.substring(k.indexOf(prefix) + prefix.length()),
-                properties.getProperty(k)));
-        return Transformer.decode(response);
+        return PropertyUtil.toProperties(filteredStream(prefix, true));
     }
 
     public void addAll(Properties properties) {

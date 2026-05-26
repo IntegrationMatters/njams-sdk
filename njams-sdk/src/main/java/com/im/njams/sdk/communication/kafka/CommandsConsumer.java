@@ -25,6 +25,8 @@ package com.im.njams.sdk.communication.kafka;
 
 import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.communication.kafka.KafkaUtil.ClientType;
+import com.im.njams.sdk.settings.ClientSettings;
+import com.im.njams.sdk.utils.PropertyUtil;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
@@ -58,20 +60,22 @@ public class CommandsConsumer extends Thread {
     private boolean doStop = false;
 
     /**
-     * This constructor saves the given properties and creates a KafkaConsumer
+     * This constructor saves the given settings and creates a KafkaConsumer
      *
-     * @param properties the nJAMS properties that are used for connecting
-     * @param topic      topic to subscribe to
-     * @param clientId   The client id to be used for the consumer
-     * @param receiver   the {@link KafkaReceiver} that uses this consumer instance
+     * @param settings the nJAMS settings that are used for connecting
+     * @param topic    topic to subscribe to
+     * @param clientId The client id to be used for the consumer
+     * @param receiver the {@link KafkaReceiver} that uses this consumer instance
      */
-    protected CommandsConsumer(final Properties properties, final String topic, final String clientId,
+    protected CommandsConsumer(final ClientSettings settings, final String topic, final String clientId,
                                final KafkaReceiver receiver) {
         super("kafka_commands_consumer");
-        idleProducerTimeout = getProducerIdleTime(properties);
+        idleProducerTimeout = settings.getLong(NjamsSettings.PROPERTY_KAFKA_REPLY_PRODUCER_IDLE_TIME,
+            DEFAULT_PRODUCER_IDLE_TIME_MS);
         this.receiver = receiver;
 
-        final Properties kafkaProperties = KafkaUtil.filterKafkaProperties(properties, ClientType.CONSUMER, clientId);
+        final Properties kafkaProperties =
+            KafkaUtil.filterKafkaProperties(PropertyUtil.toProperties(settings), ClientType.CONSUMER, clientId);
         // transient group; we are only interested in new messages
         kafkaProperties.remove(ConsumerConfig.GROUP_ID_CONFIG);
         try {
@@ -115,17 +119,6 @@ public class CommandsConsumer extends Thread {
         LOG.debug("Assigned partition set {}", assignedPartitions);
         return assignedPartitions.stream().map(TopicPartition::topic).collect(Collectors.toSet());
 
-    }
-
-    private long getProducerIdleTime(final Properties properties) {
-        if (properties.containsKey(NjamsSettings.PROPERTY_KAFKA_REPLY_PRODUCER_IDLE_TIME)) {
-            try {
-                return Long.parseLong(properties.getProperty(NjamsSettings.PROPERTY_KAFKA_REPLY_PRODUCER_IDLE_TIME));
-            } catch (final Exception e) {
-                LOG.error("Failed to parse timeout from properties", e);
-            }
-        }
-        return DEFAULT_PRODUCER_IDLE_TIME_MS;
     }
 
     /**
