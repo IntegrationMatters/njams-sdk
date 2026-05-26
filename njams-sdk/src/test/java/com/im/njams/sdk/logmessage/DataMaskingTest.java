@@ -32,6 +32,7 @@ import static org.mockito.Mockito.doAnswer;
 
 import java.util.Properties;
 
+import com.im.njams.sdk.settings.Settings;
 import org.junit.After;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -146,6 +147,18 @@ public class DataMaskingTest {
         assertEquals("************************", maskedString1);
         assertEquals("Anything else", maskedString2);
 
+    }
+
+    @Test
+    public void addPatternsFromSettings() {
+        DataMasking.removePatterns();
+        Settings settings = new Settings();
+        settings.put(NjamsSettings.PROPERTY_DATA_MASKING_REGEX_PREFIX + "ssn", "\\d{3}-\\d{2}-\\d{4}");
+        settings.put("njams.sdk.other.key", "irrelevant");
+
+        DataMasking.addPatterns(settings);
+
+        assertEquals(1, DataMasking.getPatterns().size());
     }
 
 }

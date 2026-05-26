@@ -88,7 +88,6 @@ import com.im.njams.sdk.model.svg.ProcessDiagramFactory;
 import com.im.njams.sdk.serializer.Serializer;
 import com.im.njams.sdk.serializer.StringSerializer;
 import com.im.njams.sdk.settings.ClientSettings;
-import com.im.njams.sdk.utils.PropertyUtil;
 import com.im.njams.sdk.utils.StringUtils;
 
 /**
@@ -1390,7 +1389,7 @@ public class Njams implements InstructionListener {
 
         boolean dataMaskingEnabled = settings.getBool(NjamsSettings.PROPERTY_DATA_MASKING_ENABLED, true);
         if (dataMaskingEnabled) {
-            DataMasking.addPatterns(PropertyUtil.toProperties(settings));
+            DataMasking.addPatterns(settings);
         } else {
             LOG.info("DataMasking is disabled.");
         }

@@ -25,11 +25,14 @@ package com.im.njams.sdk.logmessage;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 import java.util.regex.Matcher;
 
 import com.im.njams.sdk.NjamsSettings;
+import com.im.njams.sdk.settings.ClientSettings;
 import com.im.njams.sdk.utils.StringUtils;
 
 import org.slf4j.Logger;
@@ -111,17 +114,45 @@ public class DataMasking {
     }
 
     /**
-     * This method reads all key-value pairs where the key starts with
-     * {@link com.im.njams.sdk.NjamsSettings#PROPERTY_DATA_MASKING_REGEX_PREFIX} and
-     * adds them to a data masking list.
+     * Reads all properties whose key starts with
+     * {@value com.im.njams.sdk.NjamsSettings#PROPERTY_DATA_MASKING_REGEX_PREFIX}
+     * from the given settings and adds them to the data masking list.
      *
-     * @param properties the properties to provide
+     * @param settings the settings to read masking patterns from
      */
+    public static void addPatterns(ClientSettings settings) {
+        for (Map.Entry<String, String> entry : settings) {
+            if (entry.getKey().startsWith(NjamsSettings.PROPERTY_DATA_MASKING_REGEX_PREFIX)) {
+                addPattern(
+                    entry.getKey().substring(NjamsSettings.PROPERTY_DATA_MASKING_REGEX_PREFIX.length()),
+                    entry.getValue());
+            }
+        }
+    }
+
+    /**
+     * Reads all properties whose key starts with
+     * {@value com.im.njams.sdk.NjamsSettings#PROPERTY_DATA_MASKING_REGEX_PREFIX}
+     * from the given properties and adds them to the data masking list.
+     *
+     * @param properties the properties to read masking patterns from
+     * @deprecated Use {@link #addPatterns(ClientSettings)} instead.
+     */
+    @Deprecated
     public static void addPatterns(Properties properties) {
         properties.stringPropertyNames().stream()
             .filter(k -> k.startsWith(NjamsSettings.PROPERTY_DATA_MASKING_REGEX_PREFIX))
             .forEach(k -> addPattern(k.substring(NjamsSettings.PROPERTY_DATA_MASKING_REGEX_PREFIX.length()),
                 properties.getProperty(k)));
+    }
+
+    /**
+     * Returns an unmodifiable view of the currently registered data masking patterns.
+     *
+     * @return the list of registered masking patterns
+     */
+    public static List<DataMaskingType> getPatterns() {
+        return Collections.unmodifiableList(DATA_MASKING_TYPES);
     }
 
     /**
