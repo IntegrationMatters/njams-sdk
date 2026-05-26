@@ -33,7 +33,7 @@ import java.util.Set;
 import com.im.njams.sdk.settings.encoding.Transformer;
 
 /**
- * A {@link WritableSettings} backed by a live {@link Properties} instance. Every operation is
+ * A {@link ClientSettings} backed by a live {@link Properties} instance. Every operation is
  * routed exclusively through the public Properties string API ({@link Properties#getProperty},
  * {@link Properties#setProperty}, {@link Properties#stringPropertyNames}) — the inherited
  * {@link java.util.Hashtable}-typed Map methods on Properties are never touched. This keeps the
@@ -41,7 +41,7 @@ import com.im.njams.sdk.settings.encoding.Transformer;
  * inherited Map methods stale relative to their own storage (e.g. Camel's
  * {@code OrderedLocationProperties}).
  */
-class PropertiesBackedSettings extends AbstractReadOnlySettings implements WritableSettings {
+class PropertiesBackedSettings extends AbstractReadOnlySettings implements ClientSettings {
 
     private final Properties properties;
 

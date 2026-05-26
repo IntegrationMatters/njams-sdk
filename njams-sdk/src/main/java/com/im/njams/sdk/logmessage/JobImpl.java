@@ -64,7 +64,7 @@ import com.im.njams.sdk.model.ActivityModel;
 import com.im.njams.sdk.model.GroupModel;
 import com.im.njams.sdk.model.ProcessModel;
 import com.im.njams.sdk.model.SubProcessActivityModel;
-import com.im.njams.sdk.settings.WritableSettings;
+import com.im.njams.sdk.settings.ClientSettings;
 import com.im.njams.sdk.utils.StringUtils;
 
 /**
@@ -231,7 +231,7 @@ public class JobImpl implements Job {
     }
 
     private void initPayloadLimit() {
-        final WritableSettings settings = njams.getSettings();
+        final ClientSettings settings = njams.getSettings();
         // truncate, discard
         final String mode = settings.getProperty(NjamsSettings.PROPERTY_PAYLOAD_LIMIT_MODE);
         if (StringUtils.isBlank(mode)) {

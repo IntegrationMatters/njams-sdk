@@ -87,7 +87,7 @@ import com.im.njams.sdk.model.svg.NjamsProcessDiagramFactory;
 import com.im.njams.sdk.model.svg.ProcessDiagramFactory;
 import com.im.njams.sdk.serializer.Serializer;
 import com.im.njams.sdk.serializer.StringSerializer;
-import com.im.njams.sdk.settings.WritableSettings;
+import com.im.njams.sdk.settings.ClientSettings;
 import com.im.njams.sdk.utils.PropertyUtil;
 import com.im.njams.sdk.utils.StringUtils;
 
@@ -229,7 +229,7 @@ public class Njams implements InstructionListener {
     private final String clientSessionId;
 
     // The settings of the client
-    private final WritableSettings settings;
+    private final ClientSettings settings;
 
     // The start time of the engine
     private final LocalDateTime startTime;
@@ -280,7 +280,7 @@ public class Njams implements InstructionListener {
      *                 technology
      * @param settings needed settings for client eg. for communication
      */
-    public Njams(Path path, String version, String category, WritableSettings settings) {
+    public Njams(Path path, String version, String category, ClientSettings settings) {
         this(path, version, null, category, settings);
     }
 
@@ -294,7 +294,7 @@ public class Njams implements InstructionListener {
      *                       technology
      * @param settings       needed settings for client eg. for communication
      */
-    public Njams(Path path, String version, String runtimeVersion, String category, WritableSettings settings) {
+    public Njams(Path path, String version, String runtimeVersion, String category, ClientSettings settings) {
         treeElements = new ArrayList<>();
         clientPath = path;
         this.category = category == null ? null : category.toUpperCase();
@@ -370,7 +370,7 @@ public class Njams implements InstructionListener {
     /**
      * @return the current nJAMS settings
      */
-    public WritableSettings getSettings() {
+    public ClientSettings getSettings() {
         return settings;
     }
 

@@ -41,11 +41,11 @@ import com.im.njams.sdk.settings.SettingsProvider;
  * Settings to a specified file.
  *
  * @author pnientiedt
- * @deprecated Use {@link com.im.njams.sdk.settings.WritableSettings} instead. Load the file
+ * @deprecated Use {@link com.im.njams.sdk.settings.ClientSettings} instead. Load the file
  *     contents with the standard library (e.g. {@link java.util.Properties#load} or Jackson) and
  *     pass the result to
- *     {@link com.im.njams.sdk.settings.WritableSettings#from(java.util.Properties)} or
- *     {@link com.im.njams.sdk.settings.WritableSettings#from(java.util.Map)}. The
+ *     {@link com.im.njams.sdk.settings.ClientSettings#from(java.util.Properties)} or
+ *     {@link com.im.njams.sdk.settings.ClientSettings#from(java.util.Map)}. The
  *     provider/factory layer is no longer needed.
  */
 @Deprecated

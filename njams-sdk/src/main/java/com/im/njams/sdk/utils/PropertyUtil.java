@@ -49,7 +49,7 @@ public class PropertyUtil {
      * Builds a {@link Properties} snapshot from the entries of the given {@link ReadOnlyClientSetting}.
      * Provided as a bridge for third-party APIs (e.g. Kafka, JMS, HTTP clients) that require a
      * {@link Properties} instance for configuration. SDK code should otherwise operate on
-     * {@link com.im.njams.sdk.settings.WritableSettings} directly.
+     * {@link com.im.njams.sdk.settings.ClientSettings} directly.
      *
      * @param settings the settings to copy entries from
      * @return a new {@link Properties} containing every entry of {@code settings}

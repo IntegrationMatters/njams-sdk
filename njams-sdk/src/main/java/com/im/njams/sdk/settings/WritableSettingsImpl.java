@@ -25,7 +25,7 @@ package com.im.njams.sdk.settings;
 
 import java.util.Map;
 
-class WritableSettingsImpl extends ReadOnlySettingsImpl implements WritableSettings {
+class WritableSettingsImpl extends ReadOnlySettingsImpl implements ClientSettings {
 
     WritableSettingsImpl(Map<String, String> map) {
         super(map);

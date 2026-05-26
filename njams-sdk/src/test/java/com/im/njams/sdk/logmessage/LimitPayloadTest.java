@@ -29,7 +29,7 @@ import org.junit.Test;
 
 import com.im.njams.sdk.AbstractTest;
 import com.im.njams.sdk.NjamsSettings;
-import com.im.njams.sdk.settings.WritableSettings;
+import com.im.njams.sdk.settings.ClientSettings;
 
 public class LimitPayloadTest extends AbstractTest {
 
@@ -40,7 +40,7 @@ public class LimitPayloadTest extends AbstractTest {
     }
 
     public void init(String mode, String limit) {
-        WritableSettings settings = njams.getSettings();
+        ClientSettings settings = njams.getSettings();
         settings.put(NjamsSettings.PROPERTY_PAYLOAD_LIMIT_MODE, mode);
         settings.put(NjamsSettings.PROPERTY_PAYLOAD_LIMIT_SIZE, limit);
         JobImpl job = createDefaultJob();

@@ -43,13 +43,13 @@ import org.slf4j.LoggerFactory;
  * configuration values without mutating them. Implementations are {@link Iterable} over the
  * registered key/value pairs.
  * <p>
- * <strong>When to use this interface vs. {@link WritableSettings}.</strong> The split between
+ * <strong>When to use this interface vs. {@link ClientSettings}.</strong> The split between
  * read-only and writable settings is a technical concession for settings sources that are
  * inherently read-only from inside the JVM — chiefly process environment variables (see
  * {@link #fromEnvironment(Predicate)}). Every other source the SDK works with — files loaded
  * into {@link Properties}, in-memory maps, system properties, layered configurations — is
  * writable. Settings consumed by the SDK (passed into {@code Njams}, {@code HierarchicalSettings}
- * builders, etc.) are almost always {@link WritableSettings}. Prefer the writable interface in
+ * builders, etc.) are almost always {@link ClientSettings}. Prefer the writable interface in
  * new code unless you specifically need to model a read-only source.
  * <p>
  * <strong>Implementation contract.</strong> Implementations must keep

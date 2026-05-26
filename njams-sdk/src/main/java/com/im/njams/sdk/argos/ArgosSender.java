@@ -42,7 +42,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectWriter;
 import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.common.JsonSerializerFactory;
-import com.im.njams.sdk.settings.WritableSettings;
+import com.im.njams.sdk.settings.ClientSettings;
 import com.im.njams.sdk.utils.PropertyUtil;
 
 import org.slf4j.Logger;
@@ -106,7 +106,7 @@ public class ArgosSender implements Closeable {
      *
      * @param settings the settings for connection establishment
      */
-    public synchronized void init(WritableSettings settings) {
+    public synchronized void init(ClientSettings settings) {
         if (isInitialized) {
             LOG.debug("ArgosSender already initialized.");
             return;

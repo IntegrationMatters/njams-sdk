@@ -26,8 +26,8 @@ import com.im.njams.sdk.utils.StringUtils;
 
 public class HierarchicalSettingsTest {
 
-    private static WritableSettings backing(Map<String, String> map) {
-        return WritableSettings.from(map);
+    private static ClientSettings backing(Map<String, String> map) {
+        return ClientSettings.from(map);
     }
 
     // ---------- builder validation ----------
@@ -35,7 +35,7 @@ public class HierarchicalSettingsTest {
     @Test
     public void from_rejectsNullBase() {
         assertThrows(NullPointerException.class,
-            () -> HierarchicalSettings.from((WritableSettings) null));
+            () -> HierarchicalSettings.from((ClientSettings) null));
     }
 
     // ---------- from(Map) / from(Properties) convenience factories ----------
@@ -44,7 +44,7 @@ public class HierarchicalSettingsTest {
     public void fromMap_buildsBaseAndAcceptsWrites() {
         Map<String, String> base = new HashMap<>();
         base.put("a", "1");
-        WritableSettings settings = HierarchicalSettings.from(base).build();
+        ClientSettings settings = HierarchicalSettings.from(base).build();
         assertEquals("1", settings.getProperty("a"));
         settings.put("b", "2");
         assertEquals("2", base.get("b"));
@@ -81,7 +81,7 @@ public class HierarchicalSettingsTest {
     public void fromProperties_buildsBaseAndAcceptsWrites() {
         Properties base = new Properties();
         base.setProperty("a", "1");
-        WritableSettings settings = HierarchicalSettings.from(base).build();
+        ClientSettings settings = HierarchicalSettings.from(base).build();
         assertEquals("1", settings.getProperty("a"));
         settings.put("b", "2");
         assertEquals("2", base.getProperty("b"));
@@ -146,7 +146,7 @@ public class HierarchicalSettingsTest {
     public void andThenMap_addsLayer_readableThroughHierarchy() {
         Map<String, String> overlay = new HashMap<>();
         overlay.put("o.k", "o.v");
-        WritableSettings settings = HierarchicalSettings.from(new HashMap<>())
+        ClientSettings settings = HierarchicalSettings.from(new HashMap<>())
             .andThen(overlay)
             .build();
         assertEquals("o.v", settings.getProperty("o.k"));
@@ -154,7 +154,7 @@ public class HierarchicalSettingsTest {
 
     @Test
     public void andThenMap_acceptsNull_silentlySkipped() {
-        WritableSettings settings = HierarchicalSettings.from(new HashMap<>())
+        ClientSettings settings = HierarchicalSettings.from(new HashMap<>())
             .andThen((Map<String, String>) null)
             .build();
         assertFalse(settings.containsKey("anything"));
@@ -163,7 +163,7 @@ public class HierarchicalSettingsTest {
     @Test
     public void andThenMap_immutableMapAccepted_nonBaseLayerNeedNotBeWritable() {
         // Only the base layer must be writable; overlay layers may be immutable.
-        WritableSettings settings = HierarchicalSettings.from(new HashMap<>())
+        ClientSettings settings = HierarchicalSettings.from(new HashMap<>())
             .andThen(Map.of("a", "1"))
             .build();
         assertEquals("1", settings.getProperty("a"));
@@ -173,7 +173,7 @@ public class HierarchicalSettingsTest {
     public void andThenProperties_addsLayer_readableThroughHierarchy() {
         Properties overlay = new Properties();
         overlay.setProperty("o.k", "o.v");
-        WritableSettings settings = HierarchicalSettings.from(new HashMap<>())
+        ClientSettings settings = HierarchicalSettings.from(new HashMap<>())
             .andThen(overlay)
             .build();
         assertEquals("o.v", settings.getProperty("o.k"));
@@ -181,7 +181,7 @@ public class HierarchicalSettingsTest {
 
     @Test
     public void andThenProperties_acceptsNull_silentlySkipped() {
-        WritableSettings settings = HierarchicalSettings.from(new HashMap<>())
+        ClientSettings settings = HierarchicalSettings.from(new HashMap<>())
             .andThen((Properties) null)
             .build();
         assertFalse(settings.containsKey("anything"));
@@ -190,7 +190,7 @@ public class HierarchicalSettingsTest {
     @Test
     public void andThenProperties_routesThroughPropertiesStringApi_consistentForMisbehavingSubclass() {
         // A Properties subclass that only honors the string API (Camel-shaped). The convenience
-        // overload routes through WritableSettings.from(Properties), so the layer reads stay
+        // overload routes through ClientSettings.from(Properties), so the layer reads stay
         // consistent.
         Properties misbehaving = new Properties() {
             private final Map<String, String> store = new HashMap<>(Map.of("camel.k", "v"));
@@ -200,7 +200,7 @@ public class HierarchicalSettingsTest {
                 return store.put(key, value);
             }
         };
-        WritableSettings settings = HierarchicalSettings.from(new HashMap<>())
+        ClientSettings settings = HierarchicalSettings.from(new HashMap<>())
             .andThen(misbehaving)
             .build();
         assertTrue(settings.containsKey("camel.k"));
@@ -209,7 +209,7 @@ public class HierarchicalSettingsTest {
 
     @Test
     public void fromEmpty_buildsUsableSettingsWithEmptyBase() {
-        WritableSettings settings = HierarchicalSettings.fromEmpty().build();
+        ClientSettings settings = HierarchicalSettings.fromEmpty().build();
 
         assertFalse(settings.containsKey("anything"));
         assertNull(settings.getProperty("anything"));
@@ -217,7 +217,7 @@ public class HierarchicalSettingsTest {
 
     @Test
     public void fromEmpty_writesGoToTransientBase() {
-        WritableSettings settings = HierarchicalSettings.fromEmpty().build();
+        ClientSettings settings = HierarchicalSettings.fromEmpty().build();
 
         settings.put("k", "v");
 
@@ -227,7 +227,7 @@ public class HierarchicalSettingsTest {
 
     @Test
     public void fromEmpty_overlayLayerStillReadable() {
-        WritableSettings settings = HierarchicalSettings.fromEmpty()
+        ClientSettings settings = HierarchicalSettings.fromEmpty()
             .andThen(backing(map("overlay-key", "overlay-value")))
             .build();
 
@@ -239,8 +239,8 @@ public class HierarchicalSettingsTest {
 
     @Test
     public void fromEmpty_isolatesBaseBetweenCalls() {
-        WritableSettings first = HierarchicalSettings.fromEmpty().build();
-        WritableSettings second = HierarchicalSettings.fromEmpty().build();
+        ClientSettings first = HierarchicalSettings.fromEmpty().build();
+        ClientSettings second = HierarchicalSettings.fromEmpty().build();
 
         first.put("k", "v");
 
@@ -257,7 +257,7 @@ public class HierarchicalSettingsTest {
         Map<String, String> overlayMap = new HashMap<>();
         overlayMap.put("k", "from-overlay");
 
-        WritableSettings settings = HierarchicalSettings.from(backing(baseMap))
+        ClientSettings settings = HierarchicalSettings.from(backing(baseMap))
             .andThen(backing(overlayMap))
             .build();
 
@@ -271,7 +271,7 @@ public class HierarchicalSettingsTest {
         Map<String, String> overlayMap = new HashMap<>();
         overlayMap.put("only-overlay", "2");
 
-        WritableSettings settings = HierarchicalSettings.from(backing(baseMap))
+        ClientSettings settings = HierarchicalSettings.from(backing(baseMap))
             .andThen(backing(overlayMap))
             .build();
 
@@ -282,7 +282,7 @@ public class HierarchicalSettingsTest {
 
     @Test
     public void containsKey_anyLayerCounts() {
-        WritableSettings settings = HierarchicalSettings.from(backing(map("a", "1")))
+        ClientSettings settings = HierarchicalSettings.from(backing(map("a", "1")))
             .andThen(backing(map("b", "2")))
             .build();
 
@@ -297,9 +297,9 @@ public class HierarchicalSettingsTest {
     public void put_writesOnlyToBaseLayer() {
         Map<String, String> baseMap = new HashMap<>();
         Map<String, String> overlayMap = new HashMap<>();
-        WritableSettings overlay = backing(overlayMap);
+        ClientSettings overlay = backing(overlayMap);
 
-        WritableSettings settings = HierarchicalSettings.from(backing(baseMap))
+        ClientSettings settings = HierarchicalSettings.from(backing(baseMap))
             .andThen(overlay)
             .build();
 
@@ -314,7 +314,7 @@ public class HierarchicalSettingsTest {
         Map<String, String> baseMap = new HashMap<>();
         Map<String, String> overlayMap = new HashMap<>();
 
-        WritableSettings settings = HierarchicalSettings.from(backing(baseMap))
+        ClientSettings settings = HierarchicalSettings.from(backing(baseMap))
             .andThen(backing(overlayMap))
             .build();
 
@@ -332,10 +332,10 @@ public class HierarchicalSettingsTest {
     public void addSecureProperties_writesOnlyToBaseLayer() {
         Map<String, String> baseMap = new HashMap<>();
         Map<String, String> overlayMap = new HashMap<>();
-        WritableSettings base = backing(baseMap);
-        WritableSettings overlay = backing(overlayMap);
+        ClientSettings base = backing(baseMap);
+        ClientSettings overlay = backing(overlayMap);
 
-        WritableSettings settings = HierarchicalSettings.from(base).andThen(overlay).build();
+        ClientSettings settings = HierarchicalSettings.from(base).andThen(overlay).build();
 
         Set<String> extra = new HashSet<>();
         extra.add("ApiKey");
@@ -347,11 +347,11 @@ public class HierarchicalSettingsTest {
 
     @Test
     public void getSecuredProperties_returnsBaseLayerOnly() {
-        WritableSettings base = backing(new HashMap<>());
-        WritableSettings overlay = backing(new HashMap<>());
+        ClientSettings base = backing(new HashMap<>());
+        ClientSettings overlay = backing(new HashMap<>());
         overlay.addSecureProperties(Set.of("overlay-only"));
 
-        WritableSettings settings = HierarchicalSettings.from(base).andThen(overlay).build();
+        ClientSettings settings = HierarchicalSettings.from(base).andThen(overlay).build();
 
         assertTrue(settings.getSecuredProperties().contains("password"));
         assertFalse(settings.getSecuredProperties().contains("overlay-only"));
@@ -361,7 +361,7 @@ public class HierarchicalSettingsTest {
 
     @Test
     public void iterator_unionFirstWinsValues() {
-        WritableSettings settings = HierarchicalSettings.from(backing(map("a", "from-base", "b", "from-base")))
+        ClientSettings settings = HierarchicalSettings.from(backing(map("a", "from-base", "b", "from-base")))
             .andThen(backing(map("b", "from-overlay", "c", "from-overlay")))
             .build();
 
@@ -377,7 +377,7 @@ public class HierarchicalSettingsTest {
 
     @Test
     public void keySet_unionAcrossLayers() {
-        WritableSettings settings = HierarchicalSettings.from(backing(map("a", "1")))
+        ClientSettings settings = HierarchicalSettings.from(backing(map("a", "1")))
             .andThen(backing(map("b", "2")))
             .build();
 
@@ -391,7 +391,7 @@ public class HierarchicalSettingsTest {
 
     @Test
     public void andThenNull_isSkipped() {
-        WritableSettings settings = HierarchicalSettings.from(backing(map("a", "1")))
+        ClientSettings settings = HierarchicalSettings.from(backing(map("a", "1")))
             .andThen((ReadOnlyClientSetting) null).withName("ignored")
             .andThen(backing(map("b", "2")))
             .build();
@@ -402,8 +402,8 @@ public class HierarchicalSettingsTest {
 
     @Test
     public void defaultName_forCommonLayer_isClassNameAtIdentityHash() {
-        WritableSettings base = backing(map("a", "1"));
-        WritableSettings settings = HierarchicalSettings.from(base).build();
+        ClientSettings base = backing(map("a", "1"));
+        ClientSettings settings = HierarchicalSettings.from(base).build();
         List<String> records = new ArrayList<>();
         settings.printPropertiesWithoutPasswords(newRecordingLogger(records));
         assertEquals(1, records.size());
@@ -417,7 +417,7 @@ public class HierarchicalSettingsTest {
 
     @Test
     public void withName_setsLayerName_visibleInPrint() {
-        WritableSettings settings = HierarchicalSettings.from(backing(map("a", "1")))
+        ClientSettings settings = HierarchicalSettings.from(backing(map("a", "1")))
             .withName("my-base")
             .build();
         List<String> records = new ArrayList<>();
@@ -434,7 +434,7 @@ public class HierarchicalSettingsTest {
         String key = "njams.test.hsys." + System.nanoTime();
         System.setProperty(key, "v");
         try {
-            WritableSettings settings = HierarchicalSettings.from(backing(new HashMap<>()))
+            ClientSettings settings = HierarchicalSettings.from(backing(new HashMap<>()))
                 .andThenSystemProperties()
                 .build();
             assertEquals("v", settings.getProperty(key));
@@ -450,7 +450,7 @@ public class HierarchicalSettingsTest {
         System.setProperty(allowed, "a");
         System.setProperty(blocked, "b");
         try {
-            WritableSettings settings = HierarchicalSettings.from(backing(new HashMap<>()))
+            ClientSettings settings = HierarchicalSettings.from(backing(new HashMap<>()))
                 .andThenSystemProperties().withPrefixFilter("njams.test.")
                 .build();
             assertEquals("a", settings.getProperty(allowed));
@@ -470,7 +470,7 @@ public class HierarchicalSettingsTest {
         System.setProperty(matchPrefixOnly, "2");
         System.setProperty(matchRegexOnly, "3");
         try {
-            WritableSettings settings = HierarchicalSettings.from(backing(new HashMap<>()))
+            ClientSettings settings = HierarchicalSettings.from(backing(new HashMap<>()))
                 .andThenSystemProperties()
                 .withPrefixFilter("njams.test.")
                 .withRegexFilter(".*\\.A\\..*")
@@ -496,7 +496,7 @@ public class HierarchicalSettingsTest {
         if (sample == null) {
             return; // no suitable env var in this JVM
         }
-        WritableSettings settings = HierarchicalSettings.from(backing(new HashMap<>()))
+        ClientSettings settings = HierarchicalSettings.from(backing(new HashMap<>()))
             .andThenEnvironmentVariables()
             .build();
         assertEquals(sample.getValue(), settings.getProperty(sample.getKey()));
@@ -506,7 +506,7 @@ public class HierarchicalSettingsTest {
 
     @Test
     public void print_prependsLayerNameAndSortsKeys() {
-        WritableSettings settings = HierarchicalSettings.from(backing(map("b", "B"))).withName("base")
+        ClientSettings settings = HierarchicalSettings.from(backing(map("b", "B"))).withName("base")
             .andThen(backing(map("a", "A", "c", "C"))).withName("overlay")
             .build();
 
@@ -522,12 +522,12 @@ public class HierarchicalSettingsTest {
     @Test
     public void print_masksSecuredKeysUsingSourceLayerTokens() {
         // base layer: default tokens include "password"
-        WritableSettings base = backing(map("user.password", "secret-base"));
+        ClientSettings base = backing(map("user.password", "secret-base"));
         // overlay: no extra tokens, but key still hits the default "password" token
-        WritableSettings overlay = backing(map("api.token", "t"));
+        ClientSettings overlay = backing(map("api.token", "t"));
         overlay.addSecureProperties(Set.of("token"));
 
-        WritableSettings settings = HierarchicalSettings.from(base).withName("base")
+        ClientSettings settings = HierarchicalSettings.from(base).withName("base")
             .andThen(overlay).withName("overlay")
             .build();
 
@@ -543,7 +543,7 @@ public class HierarchicalSettingsTest {
     public void print_abbreviatesLayerNamesLongerThan20Chars() {
         // 25-char name exceeds the 20-char cap and gets abbreviated to "first19chars…" (20 chars total)
         String longName = "very-long-layer-name-1234"; // 25 chars
-        WritableSettings settings = HierarchicalSettings.from(backing(map("k", "v")))
+        ClientSettings settings = HierarchicalSettings.from(backing(map("k", "v")))
             .withName(longName)
             .build();
 
@@ -557,11 +557,11 @@ public class HierarchicalSettingsTest {
     @Test
     public void print_securedDecisionUsesSourceLayer_notHierarchicalBase() {
         // The key lives only in the overlay; overlay has a custom secured token; base does not.
-        WritableSettings base = backing(new HashMap<>());
-        WritableSettings overlay = backing(map("special.thing", "secret"));
+        ClientSettings base = backing(new HashMap<>());
+        ClientSettings overlay = backing(map("special.thing", "secret"));
         overlay.addSecureProperties(Set.of("special"));
 
-        WritableSettings settings = HierarchicalSettings.from(base).withName("base")
+        ClientSettings settings = HierarchicalSettings.from(base).withName("base")
             .andThen(overlay).withName("overlay")
             .build();
 
@@ -577,7 +577,7 @@ public class HierarchicalSettingsTest {
     @Test
     public void toString_returnsLookupChainInPrecedenceOrder() {
         // chain lists layers in the same order they are consulted (first added = highest precedence)
-        WritableSettings settings = HierarchicalSettings.from(backing(new HashMap<>())).withName("first")
+        ClientSettings settings = HierarchicalSettings.from(backing(new HashMap<>())).withName("first")
             .andThen(backing(new HashMap<>())).withName("second")
             .andThen(backing(new HashMap<>())).withName("third")
             .build();
@@ -587,7 +587,7 @@ public class HierarchicalSettingsTest {
 
     @Test
     public void toString_singleLayer_omitsArrow() {
-        WritableSettings settings = HierarchicalSettings.from(backing(new HashMap<>())).withName("only")
+        ClientSettings settings = HierarchicalSettings.from(backing(new HashMap<>())).withName("only")
             .build();
 
         assertEquals("[only]", settings.toString());

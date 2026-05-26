@@ -34,7 +34,7 @@ import org.slf4j.LoggerFactory;
 
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.NjamsSettings;
-import com.im.njams.sdk.settings.WritableSettings;
+import com.im.njams.sdk.settings.ClientSettings;
 import com.im.njams.sdk.utils.ClasspathValidator;
 import com.im.njams.sdk.utils.PropertyUtil;
 import com.im.njams.sdk.utils.ServiceLoaderSupport;
@@ -54,7 +54,7 @@ public class CommunicationFactory {
      */
     public static final String INTERNAL_PROPERTY_CLIENTPATH = "njams.$clientPath";
 
-    private final WritableSettings settings;
+    private final ClientSettings settings;
     private static final Map<Class<? extends Receiver>, ShareableReceiver<?>> sharedReceivers = new HashMap<>();
 
     /**
@@ -62,7 +62,7 @@ public class CommunicationFactory {
      *
      * @param settings Settings to add
      */
-    public CommunicationFactory(WritableSettings settings) {
+    public CommunicationFactory(ClientSettings settings) {
         this.settings = settings;
     }
 

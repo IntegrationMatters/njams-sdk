@@ -25,19 +25,19 @@ import org.junit.Test;
 import org.slf4j.Logger;
 
 /**
- * Covers the default methods on {@link ReadOnlyClientSetting} / {@link WritableSettings} and the
+ * Covers the default methods on {@link ReadOnlyClientSetting} / {@link ClientSettings} and the
  * {@code from(...)} factories. Exercises the {@code ReadOnlySettingsImpl} / {@code WritableSettingsImpl}
  * behavior indirectly through the factories.
  */
 public class ReadOnlyClientSettingTest {
 
     private Map<String, String> backing;
-    private WritableSettings settings;
+    private ClientSettings settings;
 
     @Before
     public void setUp() {
         backing = new HashMap<>();
-        settings = WritableSettings.from(backing);
+        settings = ClientSettings.from(backing);
     }
 
     // ---------- factories ----------
@@ -59,7 +59,7 @@ public class ReadOnlyClientSettingTest {
     @Test
     public void fromProperties_isLiveView() {
         Properties props = new Properties();
-        WritableSettings s = WritableSettings.from(props);
+        ClientSettings s = ClientSettings.from(props);
         props.setProperty("a", "1");
         assertEquals("1", s.getProperty("a"));
         s.put("b", "2");
@@ -70,7 +70,7 @@ public class ReadOnlyClientSettingTest {
     public void fromProperties_removalOnSource_isVisibleThroughWrapper() {
         Properties props = new Properties();
         props.setProperty("a", "1");
-        WritableSettings s = WritableSettings.from(props);
+        ClientSettings s = ClientSettings.from(props);
         assertTrue(s.containsKey("a"));
         props.remove("a");
         assertFalse(s.containsKey("a"));
@@ -99,7 +99,7 @@ public class ReadOnlyClientSettingTest {
             }
         };
 
-        WritableSettings s = WritableSettings.from(props);
+        ClientSettings s = ClientSettings.from(props);
 
         // All four SDK read paths must see the entry.
         assertTrue("containsKey must see entries reported by stringPropertyNames", s.containsKey("camel.k"));
@@ -236,7 +236,7 @@ public class ReadOnlyClientSettingTest {
         String key = "njams.test.fromSystemProperties." + System.nanoTime();
         System.setProperty(key, "value");
         try {
-            WritableSettings ws = WritableSettings.fromSystemProperties(null);
+            ClientSettings ws = ClientSettings.fromSystemProperties(null);
             assertEquals("value", ws.getProperty(key));
         } finally {
             System.clearProperty(key);
@@ -250,8 +250,8 @@ public class ReadOnlyClientSettingTest {
         System.setProperty(allowed, "1");
         System.setProperty(blocked, "2");
         try {
-            WritableSettings ws =
-                WritableSettings.fromSystemProperties(k -> k.startsWith("njams.test.allowed"));
+            ClientSettings ws =
+                ClientSettings.fromSystemProperties(k -> k.startsWith("njams.test.allowed"));
             assertEquals("1", ws.getProperty(allowed));
             assertNull(ws.getProperty(blocked));
             assertTrue(ws.containsKey(allowed));
@@ -266,7 +266,7 @@ public class ReadOnlyClientSettingTest {
     public void fromSystemProperties_putWritesThroughToSystemProperties() {
         String key = "njams.test.writeThrough." + System.nanoTime();
         try {
-            WritableSettings ws = WritableSettings.fromSystemProperties(null);
+            ClientSettings ws = ClientSettings.fromSystemProperties(null);
             ws.put(key, "v");
             assertEquals("v", System.getProperty(key));
         } finally {
@@ -298,7 +298,7 @@ public class ReadOnlyClientSettingTest {
         };
         try {
             System.setProperties(custom);
-            WritableSettings ws = WritableSettings.fromSystemProperties(k -> k.startsWith("njams.test"));
+            ClientSettings ws = ClientSettings.fromSystemProperties(k -> k.startsWith("njams.test"));
             assertTrue(ws.containsKey("njams.test.camel.k"));
             assertEquals("v", ws.getProperty("njams.test.camel.k"));
             assertTrue(ws.keySet().contains("njams.test.camel.k"));
@@ -318,7 +318,7 @@ public class ReadOnlyClientSettingTest {
         // must be visible on the next read through the wrapper. Confirms there is no stale
         // cache between the filter and the inner.
         Map<String, String> backing = new HashMap<>();
-        WritableSettings inner = WritableSettings.from(backing);
+        ClientSettings inner = ClientSettings.from(backing);
         FilteringWritableSettings ws = new FilteringWritableSettings(inner, k -> k.startsWith("a"));
         inner.put("a.x", "1");
         inner.put("b.y", "2");
@@ -331,7 +331,7 @@ public class ReadOnlyClientSettingTest {
     @Test
     public void filteringWritable_putWritesToBacking() {
         Map<String, String> backing = new HashMap<>();
-        FilteringWritableSettings ws = new FilteringWritableSettings(WritableSettings.from(backing), key -> true);
+        FilteringWritableSettings ws = new FilteringWritableSettings(ClientSettings.from(backing), key -> true);
         ws.put("FOO", "1");
         assertEquals("1", backing.get("FOO"));
     }
@@ -340,7 +340,7 @@ public class ReadOnlyClientSettingTest {
     public void filteringWritable_filterAppliesToReadsNotWrites() {
         Map<String, String> backing = new HashMap<>();
         FilteringWritableSettings ws =
-            new FilteringWritableSettings(WritableSettings.from(backing), key -> !key.equals("FOO"));
+            new FilteringWritableSettings(ClientSettings.from(backing), key -> !key.equals("FOO"));
         ws.put("FOO", "1");
         assertEquals("1", backing.get("FOO"));
         assertNull(ws.getProperty("FOO"));
@@ -351,7 +351,7 @@ public class ReadOnlyClientSettingTest {
     public void filteringWritable_putAllWritesAllUnfiltered() {
         Map<String, String> backing = new HashMap<>();
         FilteringWritableSettings ws =
-            new FilteringWritableSettings(WritableSettings.from(backing), key -> key.startsWith("A"));
+            new FilteringWritableSettings(ClientSettings.from(backing), key -> key.startsWith("A"));
         Map<String, String> extra = new HashMap<>();
         extra.put("AAA", "1");
         extra.put("BBB", "2");
@@ -365,7 +365,7 @@ public class ReadOnlyClientSettingTest {
     @Test
     public void filteringWritable_nullFilterAcceptsAllReads() {
         Map<String, String> backing = new HashMap<>();
-        FilteringWritableSettings ws = new FilteringWritableSettings(WritableSettings.from(backing), null);
+        FilteringWritableSettings ws = new FilteringWritableSettings(ClientSettings.from(backing), null);
         ws.put("FOO", "1");
         assertEquals("1", ws.getProperty("FOO"));
     }
@@ -477,7 +477,7 @@ public class ReadOnlyClientSettingTest {
     public void keyTransformer_putAppliesTransformer() {
         Map<String, String> backing = new HashMap<>();
         FilteringWritableSettings ws = new FilteringWritableSettings(
-            WritableSettings.from(backing), null, ReadOnlyFilteringSettings.ENVIRONMENT_KEY_TRANSFORMER);
+            ClientSettings.from(backing), null, ReadOnlyFilteringSettings.ENVIRONMENT_KEY_TRANSFORMER);
         ws.put("Hello.world", "value");
         assertEquals("value", backing.get("HELLO_WORLD"));
         assertNull(backing.get("Hello.world"));
@@ -487,7 +487,7 @@ public class ReadOnlyClientSettingTest {
     public void keyTransformer_putAllAppliesTransformer() {
         Map<String, String> backing = new HashMap<>();
         FilteringWritableSettings ws = new FilteringWritableSettings(
-            WritableSettings.from(backing), null, ReadOnlyFilteringSettings.ENVIRONMENT_KEY_TRANSFORMER);
+            ClientSettings.from(backing), null, ReadOnlyFilteringSettings.ENVIRONMENT_KEY_TRANSFORMER);
         Map<String, String> extra = new HashMap<>();
         extra.put("foo", "1");
         extra.put("bar.baz", "2");
@@ -500,7 +500,7 @@ public class ReadOnlyClientSettingTest {
     public void keyTransformer_writeAndReadRoundTrip() {
         Map<String, String> backing = new HashMap<>();
         FilteringWritableSettings ws = new FilteringWritableSettings(
-            WritableSettings.from(backing), null, ReadOnlyFilteringSettings.ENVIRONMENT_KEY_TRANSFORMER);
+            ClientSettings.from(backing), null, ReadOnlyFilteringSettings.ENVIRONMENT_KEY_TRANSFORMER);
         ws.put("Hello.world", "value");
         assertEquals("value", ws.getProperty("Hello.world"));
         assertEquals("value", ws.getProperty("hello.WORLD"));

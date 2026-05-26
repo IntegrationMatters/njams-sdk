@@ -42,15 +42,15 @@ import org.slf4j.LoggerFactory;
 import com.im.njams.sdk.utils.StringUtils;
 
 /**
- * A {@link WritableSettings} that composes an ordered list of named layers. Each read operation
+ * A {@link ClientSettings} that composes an ordered list of named layers. Each read operation
  * consults the layers in order and returns the result from the first layer that contains the
  * requested key. Write operations ({@link #put(String, String)}, {@link #putAll(Map)},
  * {@link #addSecureProperties(Set)}) are applied exclusively to the base layer supplied to
- * {@link #from(WritableSettings)}.
+ * {@link #from(ClientSettings)}.
  * <p>
  * Construction goes through a fluent builder:
  * <pre>{@code
- * WritableSettings settings = HierarchicalSettings.from(myDefaults).withName("defaults")
+ * ClientSettings settings = HierarchicalSettings.from(myDefaults).withName("defaults")
  *     .andThen(fileSettings).withName(fileName)
  *     .andThenSystemProperties().withPrefixFilter("njams.")
  *     .andThenEnvironmentVariables().withPrefixFilter("NJAMS_")
@@ -60,7 +60,7 @@ import com.im.njams.sdk.utils.StringUtils;
  * entry to its source. Each layer carries its own secured-keys configuration; a value is masked
  * based on the source layer's tokens, not on a global union.
  */
-public final class HierarchicalSettings implements WritableSettings {
+public final class HierarchicalSettings implements ClientSettings {
 
     private static final Logger LOG = LoggerFactory.getLogger(HierarchicalSettings.class);
 
@@ -96,13 +96,13 @@ public final class HierarchicalSettings implements WritableSettings {
      * @return a builder for adding further layers
      * @throws NullPointerException if {@code base} is {@code null}
      */
-    public static Builder from(WritableSettings base) {
+    public static Builder from(ClientSettings base) {
         Objects.requireNonNull(base, "base settings must not be null");
         return new Builder(base);
     }
 
     /**
-     * Convenience factory that wraps the given map in {@link WritableSettings#from(Map)} and
+     * Convenience factory that wraps the given map in {@link ClientSettings#from(Map)} and
      * uses it as the base layer.
      * <p>
      * <strong>The map must accept write operations.</strong> Writes through the hierarchical
@@ -121,12 +121,12 @@ public final class HierarchicalSettings implements WritableSettings {
     public static Builder from(Map<String, String> base) {
         Objects.requireNonNull(base, "base map must not be null");
         requireWritable(base);
-        return from(WritableSettings.from(base));
+        return from(ClientSettings.from(base));
     }
 
     /**
      * Convenience factory that wraps the given properties in
-     * {@link WritableSettings#from(Properties)} and uses them as the base layer.
+     * {@link ClientSettings#from(Properties)} and uses them as the base layer.
      * <p>
      * <strong>The properties must accept write operations.</strong> Writes through the
      * hierarchical settings are dispatched to the base layer, so a {@link Properties} subclass
@@ -145,12 +145,12 @@ public final class HierarchicalSettings implements WritableSettings {
     public static Builder from(Properties base) {
         Objects.requireNonNull(base, "base properties must not be null");
         requireWritable(base);
-        return from(WritableSettings.from(base));
+        return from(ClientSettings.from(base));
     }
 
     /**
      * Starts a new hierarchical settings chain with an in-memory, initially empty base layer.
-     * The base is a {@link WritableSettings} backed by a fresh {@link LinkedHashMap}; writes
+     * The base is a {@link ClientSettings} backed by a fresh {@link LinkedHashMap}; writes
      * through the resulting hierarchical settings are stored there and discarded when the
      * instance becomes unreachable. The base layer is named {@code <in-memory>} by default;
      * override with {@link Builder#withName(String)} if needed.
@@ -158,7 +158,7 @@ public final class HierarchicalSettings implements WritableSettings {
      * @return a builder for adding further layers
      */
     public static Builder fromEmpty() {
-        return new Builder(WritableSettings.from(new LinkedHashMap<>())).withName("<in-memory>");
+        return new Builder(ClientSettings.from(new LinkedHashMap<>())).withName("<in-memory>");
     }
 
     private static void requireWritable(Map<String, String> map) {
@@ -183,8 +183,8 @@ public final class HierarchicalSettings implements WritableSettings {
         }
     }
 
-    private WritableSettings base() {
-        return (WritableSettings) layers.get(0).settings;
+    private ClientSettings base() {
+        return (ClientSettings) layers.get(0).settings;
     }
 
     @Override
@@ -341,7 +341,7 @@ public final class HierarchicalSettings implements WritableSettings {
             Predicate<String> filter = makeFilter();
             ReadOnlyClientSetting settings = kind == LayerKind.ENVIRONMENT
                 ? ReadOnlyClientSetting.fromEnvironment(filter)
-                : WritableSettings.fromSystemProperties(filter);
+                : ClientSettings.fromSystemProperties(filter);
             return new NamedLayer(name != null ? name : kind.defaultName, settings);
         }
 
@@ -362,7 +362,7 @@ public final class HierarchicalSettings implements WritableSettings {
 
     /**
      * Fluent builder for a {@link HierarchicalSettings} instance. Returned by
-     * {@link HierarchicalSettings#from(WritableSettings)} and from the common {@code andThen(...)}
+     * {@link HierarchicalSettings#from(ClientSettings)} and from the common {@code andThen(...)}
      * step. After adding a system-properties or environment-variables layer, the chain narrows to
      * {@link FilterableLayerBuilder} which adds filter configuration methods.
      */
@@ -371,7 +371,7 @@ public final class HierarchicalSettings implements WritableSettings {
         private final List<NamedLayer> committed = new ArrayList<>();
         private Pending pending;
 
-        private Builder(WritableSettings base) {
+        private Builder(ClientSettings base) {
             pending = new CommonPending(base);
         }
 
@@ -420,10 +420,10 @@ public final class HierarchicalSettings implements WritableSettings {
 
         /**
          * Convenience overload that wraps the given properties via
-         * {@link WritableSettings#from(Properties)} and appends them as the next layer.
+         * {@link ClientSettings#from(Properties)} and appends them as the next layer.
          * {@code null} is accepted and silently skipped. The properties do not need to be
          * writable — non-base layers are consulted read-only by the hierarchical view. Routing
-         * through {@link WritableSettings#from(Properties)} keeps the wrapper safe with
+         * through {@link ClientSettings#from(Properties)} keeps the wrapper safe with
          * {@link Properties} subclasses that override only a subset of the inherited
          * {@link java.util.Hashtable}-typed methods.
          *
@@ -431,7 +431,7 @@ public final class HierarchicalSettings implements WritableSettings {
          * @return this builder
          */
         public Builder andThen(Properties properties) {
-            return andThen(properties == null ? null : WritableSettings.from(properties));
+            return andThen(properties == null ? null : ClientSettings.from(properties));
         }
 
         /**
@@ -461,10 +461,10 @@ public final class HierarchicalSettings implements WritableSettings {
         /**
          * Finalises the builder and returns the configured hierarchical settings.
          *
-         * @return a {@link WritableSettings} delegating reads across the configured layers and
+         * @return a {@link ClientSettings} delegating reads across the configured layers and
          *     writes to the base layer
          */
-        public WritableSettings build() {
+        public ClientSettings build() {
             commit();
             return new HierarchicalSettings(committed);
         }
@@ -581,9 +581,9 @@ public final class HierarchicalSettings implements WritableSettings {
         /**
          * See {@link Builder#build()}.
          *
-         * @return the configured {@link WritableSettings}
+         * @return the configured {@link ClientSettings}
          */
-        public WritableSettings build() {
+        public ClientSettings build() {
             return builder.build();
         }
     }

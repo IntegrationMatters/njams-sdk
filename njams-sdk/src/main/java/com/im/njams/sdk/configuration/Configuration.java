@@ -32,7 +32,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.LogMode;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.im.njams.sdk.common.Path;
-import com.im.njams.sdk.settings.WritableSettings;
+import com.im.njams.sdk.settings.ClientSettings;
 
 /**
  * The configuration contains all configuration of the client, which are not part of the
@@ -149,7 +149,7 @@ public class Configuration {
     }
 
     /**
-     * @deprecated Should be provided by the {@link WritableSettings}
+     * @deprecated Should be provided by the {@link ClientSettings}
      * @return the dataMasking
      */
     @Deprecated
@@ -158,7 +158,7 @@ public class Configuration {
     }
 
     /**
-     * @deprecated Should be provided by the {@link WritableSettings}
+     * @deprecated Should be provided by the {@link ClientSettings}
      *
      * @param dataMasking the dataMasking to set
      */

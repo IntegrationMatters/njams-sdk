@@ -26,15 +26,15 @@ package com.im.njams.sdk.settings;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
-class FilteringWritableSettings extends ReadOnlyFilteringSettings implements WritableSettings {
+class FilteringWritableSettings extends ReadOnlyFilteringSettings implements ClientSettings {
 
-    private final WritableSettings writableInner;
+    private final ClientSettings writableInner;
 
-    FilteringWritableSettings(WritableSettings inner, Predicate<String> filter) {
+    FilteringWritableSettings(ClientSettings inner, Predicate<String> filter) {
         this(inner, filter, null);
     }
 
-    FilteringWritableSettings(WritableSettings inner, Predicate<String> filter,
+    FilteringWritableSettings(ClientSettings inner, Predicate<String> filter,
         Function<String, String> keyTransformer) {
         super(inner, filter, keyTransformer);
         this.writableInner = inner;

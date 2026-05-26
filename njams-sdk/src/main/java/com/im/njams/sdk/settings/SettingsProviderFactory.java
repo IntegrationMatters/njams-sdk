@@ -41,10 +41,10 @@ import com.im.njams.sdk.NjamsSettings;
  * <p>
  * It is used in ADR3 Client for example.
  *
- * @deprecated Use {@link WritableSettings} factory methods directly instead:
- *     {@link WritableSettings#from(java.util.Map)},
- *     {@link WritableSettings#from(java.util.Properties)},
- *     {@link WritableSettings#fromSystemProperties(java.util.function.Predicate)}, or
+ * @deprecated Use {@link ClientSettings} factory methods directly instead:
+ *     {@link ClientSettings#from(java.util.Map)},
+ *     {@link ClientSettings#from(java.util.Properties)},
+ *     {@link ClientSettings#fromSystemProperties(java.util.function.Predicate)}, or
  *     {@link ReadOnlyClientSetting#fromEnvironment(java.util.function.Predicate)} for a read-only
  *     environment-backed view. The provider/factory layer is no longer needed.
  */

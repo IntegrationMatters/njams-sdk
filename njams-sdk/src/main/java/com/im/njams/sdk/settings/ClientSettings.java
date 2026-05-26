@@ -32,22 +32,22 @@ import java.util.function.Predicate;
  * modify the registered properties. This is the interface most SDK consumers work with — see
  * {@link ReadOnlyClientSetting} for context on when the read-only restriction is meaningful.
  */
-public interface WritableSettings extends ReadOnlyClientSetting {
+public interface ClientSettings extends ReadOnlyClientSetting {
 
     /**
-     * Returns a {@link WritableSettings} backed by the given map. Subsequent changes to the map are
+     * Returns a {@link ClientSettings} backed by the given map. Subsequent changes to the map are
      * visible through the returned instance, and writes through the instance are reflected in the
      * map.
      *
      * @param map the map to wrap
-     * @return a {@link WritableSettings} view of the given map
+     * @return a {@link ClientSettings} view of the given map
      */
-    static WritableSettings from(Map<String, String> map) {
+    static ClientSettings from(Map<String, String> map) {
         return new WritableSettingsImpl(map);
     }
 
     /**
-     * Returns a {@link WritableSettings} backed by the given properties. Subsequent changes to the
+     * Returns a {@link ClientSettings} backed by the given properties. Subsequent changes to the
      * properties are visible through the returned instance, and writes through the instance are
      * reflected in the properties. Reads and writes go exclusively through the public Properties
      * string API ({@link Properties#getProperty}, {@link Properties#setProperty},
@@ -57,14 +57,14 @@ public interface WritableSettings extends ReadOnlyClientSetting {
      * {@code OrderedLocationProperties}).
      *
      * @param properties the properties to wrap
-     * @return a {@link WritableSettings} view of the given properties
+     * @return a {@link ClientSettings} view of the given properties
      */
-    static WritableSettings from(Properties properties) {
+    static ClientSettings from(Properties properties) {
         return new PropertiesBackedSettings(properties);
     }
 
     /**
-     * Returns a {@link WritableSettings} backed by the current JVM system properties. The
+     * Returns a {@link ClientSettings} backed by the current JVM system properties. The
      * {@code filter} predicate is applied on every read access ({@link #getProperty(String)},
      * {@link #containsKey(String)}, iteration, and methods derived from them): a setting is only
      * visible if the predicate accepts its key. Writes via {@link #put(String, String)} or
@@ -77,9 +77,9 @@ public interface WritableSettings extends ReadOnlyClientSetting {
      * overrides only a subset of the inherited {@link java.util.Hashtable}-typed methods.
      *
      * @param filter optional key filter; {@code null} accepts all keys
-     * @return a {@link WritableSettings} view over the (read-filtered) system properties
+     * @return a {@link ClientSettings} view over the (read-filtered) system properties
      */
-    static WritableSettings fromSystemProperties(Predicate<String> filter) {
+    static ClientSettings fromSystemProperties(Predicate<String> filter) {
         return new FilteringWritableSettings(from(System.getProperties()), filter);
     }
 

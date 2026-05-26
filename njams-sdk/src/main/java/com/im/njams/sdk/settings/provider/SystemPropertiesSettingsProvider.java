@@ -34,7 +34,7 @@ import java.util.Properties;
  *
  * @author cwinkler
  * @deprecated Use
- *     {@link com.im.njams.sdk.settings.WritableSettings#fromSystemProperties(java.util.function.Predicate)}
+ *     {@link com.im.njams.sdk.settings.ClientSettings#fromSystemProperties(java.util.function.Predicate)}
  *     instead. The provider/factory layer is no longer needed.
  */
 @Deprecated
