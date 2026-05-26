@@ -389,12 +389,13 @@
             <scope>provided</scope>
         </dependency>
         
-        <!-- This is only needed in a JDK11 (openJDK) environment
-             JDK8 will contain the needed classes.-->
+        <!-- SDK-429: the SDK references javax.xml.bind annotations on core public classes
+             (e.g. ActivityModel, ActivityImpl, TracepointExt) and registers a legacy
+             JaxbAnnotationIntrospector in JsonSerializerFactory, so this API is required
+             at runtime for every consumer, not just JDK 11+ environments. -->
         <dependency>
             <groupId>javax.xml.bind</groupId>
             <artifactId>jaxb-api</artifactId>
-            <scope>provided</scope>
         </dependency>
 		<dependency>
 		    <groupId>jakarta.xml.bind</groupId>
