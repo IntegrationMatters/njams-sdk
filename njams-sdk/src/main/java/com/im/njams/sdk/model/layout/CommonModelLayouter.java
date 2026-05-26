@@ -214,7 +214,12 @@ public class CommonModelLayouter implements ProcessModelLayouter {
             ActivityModel from = t.getFromActivity();
             ActivityModel to = t.getToActivity();
             if (from != null && to != null) {
-                successors.computeIfAbsent(from.getId(), k -> new ArrayList<ActivityModel>()).add(to);
+                List<ActivityModel> list = successors.get(from.getId());
+                if (list == null) {
+                    list = new ArrayList<ActivityModel>();
+                    successors.put(from.getId(), list);
+                }
+                list.add(to);
             }
         }
         Map<String, Integer> columnOf = new LinkedHashMap<String, Integer>();
@@ -230,7 +235,13 @@ public class CommonModelLayouter implements ProcessModelLayouter {
         }
         Map<Integer, List<String>> byColumn = new LinkedHashMap<Integer, List<String>>();
         for (ActivityModel a : traversal) {
-            byColumn.computeIfAbsent(columnOf.get(a.getId()), k -> new ArrayList<String>()).add(a.getId());
+            Integer col = columnOf.get(a.getId());
+            List<String> colList = byColumn.get(col);
+            if (colList == null) {
+                colList = new ArrayList<String>();
+                byColumn.put(col, colList);
+            }
+            colList.add(a.getId());
         }
         Map<String, Integer> rowOf = new HashMap<String, Integer>();
         for (List<String> ids : byColumn.values()) {

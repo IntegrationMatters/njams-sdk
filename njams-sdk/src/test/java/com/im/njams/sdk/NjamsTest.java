@@ -47,6 +47,7 @@ import com.im.njams.sdk.communication.TestSender;
 import com.im.njams.sdk.logmessage.DataMasking;
 import com.im.njams.sdk.logmessage.Job;
 import com.im.njams.sdk.model.ProcessModel;
+import com.im.njams.sdk.model.layout.CommonModelLayouter;
 import com.im.njams.sdk.serializer.Serializer;
 import com.im.njams.sdk.settings.Settings;
 
@@ -236,6 +237,14 @@ public class NjamsTest {
         njams.start();
 
         assertEquals("Hello", DataMasking.maskString("Hello"));
+    }
+
+    @Test
+    public void defaultLayouter_isCommonModelLayouter() {
+        Settings settings = TestSender.getSettings();
+        Njams njams = new Njams(Path.of("TEST"), "1.0", "TEST", settings);
+        assertTrue("Default layouter must be CommonModelLayouter",
+            njams.getProcessModelLayouter() instanceof CommonModelLayouter);
     }
 
     @Test
