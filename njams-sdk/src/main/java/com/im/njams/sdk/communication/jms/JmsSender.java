@@ -25,8 +25,6 @@ package com.im.njams.sdk.communication.jms;
 
 import static com.im.njams.sdk.communication.MessageHeaders.*;
 
-import java.util.Properties;
-
 import javax.jms.Connection;
 import javax.jms.ConnectionFactory;
 import javax.jms.DeliveryMode;
@@ -51,6 +49,7 @@ import com.faizsiegeln.njams.messageformat.v4.tracemessage.TraceMessage;
 import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.communication.AbstractSender;
+import com.im.njams.sdk.settings.ClientSettings;
 import com.im.njams.sdk.communication.ConnectionStatus;
 import com.im.njams.sdk.communication.DiscardMonitor;
 import com.im.njams.sdk.communication.DiscardPolicy;
@@ -84,19 +83,19 @@ public class JmsSender extends AbstractSender implements ExceptionListener, Clas
     private boolean useProjectQueue = false;
 
     /**
-     * Initializes this Sender via the given Properties.
+     * Initializes this Sender via the given settings.
      *
-     * @param properties the properties needed to initialize
+     * @param settings the settings needed to initialize
      */
     @Override
-    public void init(Properties properties) {
-        super.init(properties);
+    public void init(ClientSettings settings) {
+        super.init(settings);
         useProjectQueue =
-            "false".equalsIgnoreCase(properties.getProperty(NjamsSettings.PROPERTY_JMS_SUPPORTS_MESSAGE_SELECTOR));
+            "false".equalsIgnoreCase(settings.getProperty(NjamsSettings.PROPERTY_JMS_SUPPORTS_MESSAGE_SELECTOR));
         if (useProjectQueue) {
             LOG.info("Using separate project queue.");
         }
-        splitSupport = new SplitSupport(properties, -1);
+        splitSupport = new SplitSupport(settings, -1);
         LOG.debug("Initialized sender {} (useProjectQueue={})", getName(), useProjectQueue);
     }
 
@@ -105,13 +104,13 @@ public class JmsSender extends AbstractSender implements ExceptionListener, Clas
         if (isConnected()) {
             return;
         }
-        try (JmsFactory jmsFactory = JmsFactory.find(properties)) {
+        try (JmsFactory jmsFactory = JmsFactory.find(settings)) {
             setConnectionStatus(ConnectionStatus.CONNECTING);
             ConnectionFactory factory = jmsFactory.createConnectionFactory();
-            if (StringUtils.isNotBlank(properties.getProperty(NjamsSettings.PROPERTY_JMS_USERNAME))
-                && StringUtils.isNotBlank(properties.getProperty(NjamsSettings.PROPERTY_JMS_PASSWORD))) {
-                connection = factory.createConnection(properties.getProperty(NjamsSettings.PROPERTY_JMS_USERNAME),
-                    properties.getProperty(NjamsSettings.PROPERTY_JMS_PASSWORD));
+            if (StringUtils.isNotBlank(settings.getProperty(NjamsSettings.PROPERTY_JMS_USERNAME))
+                && StringUtils.isNotBlank(settings.getProperty(NjamsSettings.PROPERTY_JMS_PASSWORD))) {
+                connection = factory.createConnection(settings.getProperty(NjamsSettings.PROPERTY_JMS_USERNAME),
+                    settings.getProperty(NjamsSettings.PROPERTY_JMS_PASSWORD));
             } else {
                 connection = factory.createConnection();
             }
@@ -146,7 +145,8 @@ public class JmsSender extends AbstractSender implements ExceptionListener, Clas
     }
 
     private void createProducers(JmsFactory jmsFactory, Session session) throws NamingException, JMSException {
-        final String prefix = properties.getProperty(NjamsSettings.PROPERTY_JMS_DESTINATION, "njams");
+        final String destination = settings.getProperty(NjamsSettings.PROPERTY_JMS_DESTINATION);
+        final String prefix = destination != null ? destination : "njams";
         eventProducer = createProducer(jmsFactory, session, prefix + ".event");
         if (useProjectQueue) {
             // separate one for project/trace messages
@@ -167,7 +167,7 @@ public class JmsSender extends AbstractSender implements ExceptionListener, Clas
     }
 
     private int getDeliveryMode() {
-        final String deliveryMode = properties.getProperty(NjamsSettings.PROPERTY_JMS_DELIVERY_MODE);
+        final String deliveryMode = settings.getProperty(NjamsSettings.PROPERTY_JMS_DELIVERY_MODE);
         if ("NON_PERSISTENT".equalsIgnoreCase(deliveryMode) || "NONPERSISTENT".equalsIgnoreCase(deliveryMode)) {
             LOG.debug("Set JMS delivery mode to NON_PERSISTENT.");
             return DeliveryMode.NON_PERSISTENT;

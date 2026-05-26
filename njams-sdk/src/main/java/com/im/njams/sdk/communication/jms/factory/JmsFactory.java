@@ -38,6 +38,7 @@ import org.slf4j.LoggerFactory;
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.settings.ClientSettings;
+import com.im.njams.sdk.utils.PropertyUtil;
 import com.im.njams.sdk.utils.ServiceLoaderSupport;
 import com.im.njams.sdk.utils.StringUtils;
 
@@ -81,6 +82,28 @@ public interface JmsFactory extends AutoCloseable {
      */
     public static JmsFactory find(Properties settings) {
         return find(settings, true);
+    }
+
+    /**
+     * Tries to find a {@link JmsFactory} from SPI according to the given settings.
+     * See {@link #find(Properties)} for full documentation.
+     *
+     * @param settings Settings specifying what provider to use.
+     * @return Found instance or {@link JndiJmsFactory} as a default.
+     */
+    public static JmsFactory find(ClientSettings settings) {
+        return find(PropertyUtil.toProperties(settings));
+    }
+
+    /**
+     * Variant of {@link #find(ClientSettings)} that allows getting an uninitialized instance.
+     *
+     * @param settings Settings specifying what provider to use.
+     * @param init Whether to initialize the returned instance.
+     * @return Found instance or {@link JndiJmsFactory} as a default.
+     */
+    public static JmsFactory find(ClientSettings settings, boolean init) {
+        return find(PropertyUtil.toProperties(settings), init);
     }
 
     /**
