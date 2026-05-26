@@ -63,7 +63,9 @@ import com.im.njams.sdk.communication.fragments.SplitSupport;
 import com.im.njams.sdk.communication.fragments.SplitSupport.SplitIterator;
 import com.im.njams.sdk.communication.kafka.KafkaHeadersUtil.HeadersUpdater;
 import com.im.njams.sdk.communication.kafka.KafkaUtil.ClientType;
+import com.im.njams.sdk.settings.ClientSettings;
 import com.im.njams.sdk.utils.JsonUtils;
+import com.im.njams.sdk.utils.PropertyUtil;
 import com.im.njams.sdk.utils.StringUtils;
 
 /**
@@ -87,22 +89,22 @@ public class KafkaSender extends AbstractSender {
     private int requestTimeoutMs = 6000;
 
     /**
-     * Initializes this Sender via the given Properties.
+     * Initializes this Sender via the given settings.
      * <p>
      * See all valid properties in KafkaConstants
      *
-     * @param properties the properties needed to initialize
+     * @param settings the settings needed to initialize
      */
     @Override
-    public void init(final Properties properties) {
-        super.init(properties);
-        kafkaProperties = KafkaUtil.filterKafkaProperties(properties, ClientType.PRODUCER);
+    public void init(final ClientSettings settings) {
+        super.init(settings);
+        kafkaProperties = KafkaUtil.filterKafkaProperties(PropertyUtil.toProperties(settings), ClientType.PRODUCER);
         if (discardPolicy != DiscardPolicy.NONE && !kafkaProperties.containsKey(ProducerConfig.RETRIES_CONFIG)) {
             // disable internal retries, if policy is set to discard, unless explicitly specified
             kafkaProperties.setProperty(ProducerConfig.RETRIES_CONFIG, "0");
         }
 
-        String topicPrefix = properties.getProperty(NjamsSettings.PROPERTY_KAFKA_TOPIC_PREFIX);
+        String topicPrefix = settings.getProperty(NjamsSettings.PROPERTY_KAFKA_TOPIC_PREFIX);
         if (StringUtils.isBlank(topicPrefix)) {
             LOG.warn("Property {} is not set. Using '{}' as default.", NjamsSettings.PROPERTY_KAFKA_TOPIC_PREFIX,
                 KafkaConstants.DEFAULT_TOPIC_PREFIX);
@@ -111,7 +113,7 @@ public class KafkaSender extends AbstractSender {
         topicEvent = topicPrefix + EVENT_SUFFIX;
         topicProject = topicPrefix + PROJECT_SUFFIX;
         initMaxMessageSizeAndTimeout();
-        splitSupport = new SplitSupport(properties, getProducerLimit(properties));
+        splitSupport = new SplitSupport(settings, getProducerLimit(kafkaProperties));
         LOG.debug("Initialized sender {}", KafkaConstants.COMMUNICATION_NAME);
     }
 
@@ -162,7 +164,7 @@ public class KafkaSender extends AbstractSender {
     private void validateTopics() {
         final Collection<String> requiredTopics = new ArrayList<>(Arrays.asList(topicEvent, topicProject));
         final Collection<String> foundTopics =
-            KafkaUtil.testTopics(properties, requiredTopics.toArray(new String[requiredTopics.size()]));
+            KafkaUtil.testTopics(PropertyUtil.toProperties(settings), requiredTopics.toArray(new String[requiredTopics.size()]));
         LOG.debug("Found topics: {}", foundTopics);
         requiredTopics.removeAll(foundTopics);
         if (!requiredTopics.isEmpty()) {

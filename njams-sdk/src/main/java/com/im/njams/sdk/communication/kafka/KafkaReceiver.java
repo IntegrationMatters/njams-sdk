@@ -31,7 +31,6 @@ import static com.im.njams.sdk.communication.kafka.KafkaUtil.getProducerLimit;
 
 import java.util.Collection;
 import java.util.Map;
-import java.util.Properties;
 import java.util.TreeMap;
 import java.util.UUID;
 
@@ -58,6 +57,8 @@ import com.im.njams.sdk.communication.fragments.SplitSupport;
 import com.im.njams.sdk.communication.fragments.SplitSupport.SplitIterator;
 import com.im.njams.sdk.communication.kafka.KafkaHeadersUtil.HeadersUpdater;
 import com.im.njams.sdk.communication.kafka.KafkaUtil.ClientType;
+import com.im.njams.sdk.settings.ClientSettings;
+import com.im.njams.sdk.utils.PropertyUtil;
 import com.im.njams.sdk.utils.StringUtils;
 
 /**
@@ -76,7 +77,6 @@ public class KafkaReceiver extends AbstractReceiver {
 
     private KafkaProducer<String, String> producer;
     private CommandsConsumer commandConsumer;
-    private Properties njamsProperties;
     private ObjectMapper mapper;
     private String topicName = null;
     private String kafkaClientId;
@@ -85,18 +85,18 @@ public class KafkaReceiver extends AbstractReceiver {
     protected final KafkaChunkAssembly chunkAssembly = new KafkaChunkAssembly();
 
     /**
-     * Initializes this receiver via the given properties.
+     * Initializes this receiver via the given settings.
      *
-     * @param properties the properties needed to initialize
+     * @param settings the settings needed to initialize
      */
     @Override
-    public void init(final Properties properties) {
-        njamsProperties = properties;
+    public void init(final ClientSettings settings) {
+        super.init(settings);
         connectionStatus = ConnectionStatus.DISCONNECTED;
         mapper = JsonSerializerFactory.getFastMapper();
-        final String clientPath = properties.getProperty(CommunicationFactory.INTERNAL_PROPERTY_CLIENTPATH);
+        final String clientPath = settings.getProperty(CommunicationFactory.INTERNAL_PROPERTY_CLIENTPATH);
         kafkaClientId = getClientId(clientPath.substring(1, clientPath.length() - 1).replace('>', '_'));
-        String prefix = properties.getProperty(NjamsSettings.PROPERTY_KAFKA_TOPIC_PREFIX);
+        String prefix = settings.getProperty(NjamsSettings.PROPERTY_KAFKA_TOPIC_PREFIX);
         if (StringUtils.isBlank(prefix)) {
             LOG.warn("Property {} is not set. Using '{}' as default.", NjamsSettings.PROPERTY_KAFKA_TOPIC_PREFIX,
                 KafkaConstants.DEFAULT_TOPIC_PREFIX);
@@ -104,7 +104,7 @@ public class KafkaReceiver extends AbstractReceiver {
         }
         topicName = prefix + COMMANDS_SUFFIX;
 
-        splitSupport = new SplitSupport(properties, getProducerLimit(properties));
+        splitSupport = new SplitSupport(settings, getProducerLimit(PropertyUtil.toProperties(settings)));
         if (splitSupport.isSplitting()) {
             LOG.debug("Init with message fragmentation support (max={} bytes).", splitSupport.getMaxMessageSize());
         }
@@ -146,7 +146,7 @@ public class KafkaReceiver extends AbstractReceiver {
     private void tryToConnect() {
         LOG.debug("Try subscribing KafkaReceiver to topic {}", topicName);
         try {
-            commandConsumer = new CommandsConsumer(njamsProperties, topicName, kafkaClientId, this);
+            commandConsumer = new CommandsConsumer(PropertyUtil.toProperties(settings), topicName, kafkaClientId, this);
             commandConsumer.start();
         } catch (final Exception e) {
             closeAll();
@@ -175,7 +175,7 @@ public class KafkaReceiver extends AbstractReceiver {
     }
 
     private void validateTopics() {
-        final Collection<String> foundTopics = KafkaUtil.testTopics(njamsProperties, topicName);
+        final Collection<String> foundTopics = KafkaUtil.testTopics(PropertyUtil.toProperties(settings), topicName);
         LOG.debug("Found topics: {}", foundTopics);
         if (foundTopics.isEmpty()) {
             throw new NjamsSdkRuntimeException("Commands topic [" + topicName + "] not found.");
@@ -302,7 +302,7 @@ public class KafkaReceiver extends AbstractReceiver {
                     LOG.debug("Creating new Kafka producer.");
                     producer =
                         new KafkaProducer<>(
-                            filterKafkaProperties(njamsProperties, ClientType.PRODUCER, kafkaClientId),
+                            filterKafkaProperties(PropertyUtil.toProperties(settings), ClientType.PRODUCER, kafkaClientId),
                             new StringSerializer(), new StringSerializer());
                 }
                 LOG.debug("Sending reply {} (part {}/{}): {}", responseId, chunkNo, totalChunks, response);
