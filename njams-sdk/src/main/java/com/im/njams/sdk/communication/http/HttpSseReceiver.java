@@ -31,7 +31,6 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.Map;
-import java.util.Properties;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
@@ -46,6 +45,7 @@ import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.Path;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.communication.AbstractReceiver;
+import com.im.njams.sdk.settings.ClientSettings;
 import com.im.njams.sdk.communication.ConnectionStatus;
 import com.im.njams.sdk.communication.fragments.HttpSseChunkAssembly;
 import com.im.njams.sdk.communication.fragments.RawMessage;
@@ -90,21 +90,32 @@ public class HttpSseReceiver extends AbstractReceiver implements BackgroundEvent
     private SplitSupport splitSupport = null;
     protected final HttpSseChunkAssembly chunkAssembly = new HttpSseChunkAssembly();
 
+    /**
+     * Initializes this receiver via the given settings.
+     * <p>
+     * Valid settings are:
+     * <ul>
+     * <li>{@value NjamsSettings#PROPERTY_HTTP_BASE_URL}
+     * </ul>
+     *
+     * @param settings the settings needed to initialize
+     */
     @Override
-    public void init(final Properties properties) {
+    public void init(final ClientSettings settings) {
+        super.init(settings);
         try {
-            subscribeUri = createUri(properties, "subscribe");
-            replyUrl = createUri(properties, "reply").toURL();
-            clientFactory = new HttpClientFactory(properties, subscribeUri);
+            subscribeUri = createUri(settings, "subscribe");
+            replyUrl = createUri(settings, "reply").toURL();
+            clientFactory = new HttpClientFactory(settings, subscribeUri);
         } catch (final Exception ex) {
             throw new NjamsSdkRuntimeException("Unable to init HTTP receiver", ex);
         }
-        splitSupport = new SplitSupport(properties, 0);
+        splitSupport = new SplitSupport(settings, 0);
         LOG.debug("URI subscription={}; reply={}", subscribeUri, replyUrl);
     }
 
-    private URI createUri(final Properties properties, String path) throws URISyntaxException {
-        String base = properties.getProperty(NjamsSettings.PROPERTY_HTTP_BASE_URL);
+    private URI createUri(final ClientSettings settings, String path) throws URISyntaxException {
+        String base = settings.getProperty(NjamsSettings.PROPERTY_HTTP_BASE_URL);
         if (StringUtils.isBlank(base)) {
             throw new NjamsSdkRuntimeException(
                 "Required parameter " + NjamsSettings.PROPERTY_HTTP_BASE_URL + " is missing.");

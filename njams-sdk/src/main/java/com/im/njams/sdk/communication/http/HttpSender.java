@@ -28,8 +28,6 @@ import static com.im.njams.sdk.NjamsSettings.PROPERTY_HTTP_CONNECTION_TEST;
 import static com.im.njams.sdk.NjamsSettings.PROPERTY_HTTP_DATAPROVIDER_PREFIX;
 import static com.im.njams.sdk.NjamsSettings.PROPERTY_HTTP_DATAPROVIDER_SUFFIX;
 import static com.im.njams.sdk.communication.MessageHeaders.*;
-import static com.im.njams.sdk.utils.PropertyUtil.getPropertyBool;
-import static com.im.njams.sdk.utils.PropertyUtil.getPropertyWithDeprecationWarning;
 
 import java.io.IOException;
 import java.net.MalformedURLException;
@@ -37,7 +35,6 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.Map;
-import java.util.Properties;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
@@ -54,6 +51,7 @@ import com.faizsiegeln.njams.messageformat.v4.tracemessage.TraceMessage;
 import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.communication.AbstractSender;
+import com.im.njams.sdk.settings.ClientSettings;
 import com.im.njams.sdk.communication.ConnectionStatus;
 import com.im.njams.sdk.communication.DiscardMonitor;
 import com.im.njams.sdk.communication.DiscardPolicy;
@@ -147,23 +145,22 @@ public class HttpSender extends AbstractSender {
     private static ConnectionTest connectionTest = null;
 
     /**
-     * Initializes this Sender via the given Properties.
+     * Initializes this sender via the given settings.
      * <p>
-     * Valid properties are:
+     * Valid settings are:
      * <ul>
      * <li>{@value NjamsSettings#PROPERTY_HTTP_BASE_URL}
-     * <li>{@value NjamsSettings#PROPERTY_HTTP_DATAPROVIDER_PREFIX}
+     * <li>{@value NjamsSettings#PROPERTY_HTTP_DATAPROVIDER_SUFFIX}
      * </ul>
      *
-     * @param properties the properties needed to initialize
+     * @param settings the settings needed to initialize
      */
-    @SuppressWarnings("removal")
     @Override
-    public void init(Properties properties) {
-        this.properties = properties;
+    public void init(ClientSettings settings) {
+        super.init(settings);
         try {
             final String suffix =
-                getPropertyWithDeprecationWarning(properties, PROPERTY_HTTP_DATAPROVIDER_SUFFIX,
+                settings.getPropertyWithDeprecationWarning(PROPERTY_HTTP_DATAPROVIDER_SUFFIX,
                     PROPERTY_HTTP_DATAPROVIDER_PREFIX);
             if (StringUtils.isBlank(suffix)) {
                 throw new NjamsSdkRuntimeException(
@@ -171,14 +168,14 @@ public class HttpSender extends AbstractSender {
             }
             final URI uri = createUri(INGEST_API_PATH + suffix);
             url = uri.toURL();
-            final boolean legacy = "legacy".equalsIgnoreCase(properties.getProperty(PROPERTY_HTTP_CONNECTION_TEST));
+            final boolean legacy = "legacy".equalsIgnoreCase(settings.getProperty(PROPERTY_HTTP_CONNECTION_TEST));
             if (legacy) {
                 synchronized (HttpSender.class) {
                     connectionTest = getConnectionTest(ConnectionTestMode.LEGACY);
                 }
             }
-            splitSupport = new SplitSupport(properties, getMaxMessageSize(properties));
-            clientFactory = new HttpClientFactory(properties, uri);
+            splitSupport = new SplitSupport(settings, getMaxMessageSize(settings));
+            clientFactory = new HttpClientFactory(settings, uri);
             LOG.debug("Initialized sender with URL {}", uri);
         } catch (final Exception e) {
             LOG.debug("Could not initialize sender with URL {}", url, e);
@@ -186,8 +183,8 @@ public class HttpSender extends AbstractSender {
         }
     }
 
-    private int getMaxMessageSize(final Properties properties) {
-        if (!getPropertyBool(properties, NjamsSettings.PROPERTY_HTTP_COMPRESSION_ENABLED, false)) {
+    private int getMaxMessageSize(final ClientSettings settings) {
+        if (!settings.getBool(NjamsSettings.PROPERTY_HTTP_COMPRESSION_ENABLED, false)) {
             return -1;
         }
         // only applies to compressed messages
@@ -200,7 +197,7 @@ public class HttpSender extends AbstractSender {
     }
 
     private String createBaseUri() {
-        String base = properties.getProperty(PROPERTY_HTTP_BASE_URL);
+        String base = settings.getProperty(PROPERTY_HTTP_BASE_URL);
         if (StringUtils.isBlank(base)) {
             throw new NjamsSdkRuntimeException("Required parameter " + PROPERTY_HTTP_BASE_URL + " is missing.");
         }

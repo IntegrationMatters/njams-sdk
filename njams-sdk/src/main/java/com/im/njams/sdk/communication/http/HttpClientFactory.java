@@ -45,7 +45,6 @@ import java.security.cert.X509Certificate;
 import java.util.AbstractMap.SimpleImmutableEntry;
 import java.util.Arrays;
 import java.util.Map.Entry;
-import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 
 import javax.net.ssl.HostnameVerifier;
@@ -59,6 +58,7 @@ import javax.net.ssl.X509TrustManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.im.njams.sdk.settings.ClientSettings;
 import com.im.njams.sdk.utils.StringUtils;
 
 import okhttp3.Authenticator;
@@ -68,7 +68,7 @@ import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
 
 /**
- * Factory that provides configured http client instances according to the configuration given as properties.
+ * Factory that provides configured http client instances according to the configuration given as settings.
  */
 public class HttpClientFactory {
 
@@ -87,9 +87,16 @@ public class HttpClientFactory {
     private final HostnameVerifier hostnameVerifier;
     private final boolean compression;
 
-    public HttpClientFactory(final Properties properties, final URI uri) throws Exception {
-        requestAuthenticator = createBasicAuth(properties);
-        final Entry<Proxy, Authenticator> proxyEntry = createProxy(properties);
+    /**
+     * Creates a new factory configured from the given settings and URI.
+     *
+     * @param settings the settings to read HTTP client configuration from
+     * @param uri      the target URI, used to determine whether SSL/TLS is required
+     * @throws Exception if the SSL context or other configuration cannot be initialised
+     */
+    public HttpClientFactory(final ClientSettings settings, final URI uri) throws Exception {
+        requestAuthenticator = createBasicAuth(settings);
+        final Entry<Proxy, Authenticator> proxyEntry = createProxy(settings);
         if (proxyEntry != null) {
             proxy = proxyEntry.getKey();
             proxyAuthenticator = proxyEntry.getValue();
@@ -99,12 +106,12 @@ public class HttpClientFactory {
         }
 
         if (isSslUri(uri)) {
-            final Entry<SSLContext, X509TrustManager> sslEntry = createSSLContext(properties);
+            final Entry<SSLContext, X509TrustManager> sslEntry = createSSLContext(settings);
             sslContext = sslEntry.getKey();
             trustManager = sslEntry.getValue();
 
             // accept all hostnames?
-            if ("true".equalsIgnoreCase(properties.getProperty(PROPERTY_HTTP_DISABLE_HOSTNAME_VERIFICATION))) {
+            if ("true".equalsIgnoreCase(settings.getProperty(PROPERTY_HTTP_DISABLE_HOSTNAME_VERIFICATION))) {
                 hostnameVerifier = (hostname, session) -> true;
                 LOG.warn("Using unsafe option: disable-hostname-verification");
             } else {
@@ -116,7 +123,7 @@ public class HttpClientFactory {
             hostnameVerifier = null;
         }
 
-        compression = "true".equalsIgnoreCase(properties.getProperty(PROPERTY_HTTP_COMPRESSION_ENABLED));
+        compression = "true".equalsIgnoreCase(settings.getProperty(PROPERTY_HTTP_COMPRESSION_ENABLED));
     }
 
     /**
@@ -192,37 +199,37 @@ public class HttpClientFactory {
 
     /**
      * NOTE: Authentication is supported since nJAMS server 6.0.1 only (SER-5068)
-     * @param properties
+     * @param settings the settings to read credentials from
      * @return SDK-372: Instead of building an {@link Authenticator} which leads to duplicated requests for any reason,
      * return an {@link Interceptor} that adds the according <code>Authorization</code> header.
      */
-    private Interceptor createBasicAuth(final Properties properties) {
-        final String user = properties.getProperty(PROPERTY_HTTP_USER);
+    private Interceptor createBasicAuth(final ClientSettings settings) {
+        final String user = settings.getProperty(PROPERTY_HTTP_USER);
         if (StringUtils.isBlank(user)) {
             return null;
         }
         final String credential =
-            Credentials.basic(user, properties.getProperty(PROPERTY_HTTP_PASSWORD), StandardCharsets.UTF_8);
+            Credentials.basic(user, settings.getProperty(PROPERTY_HTTP_PASSWORD), StandardCharsets.UTF_8);
         LOG.debug("Created basic-auth with user: {}", user);
         return chain -> chain.proceed(chain.request().newBuilder().header("Authorization", credential).build());
     }
 
-    private Entry<Proxy, Authenticator> createProxy(final Properties properties) {
-        final String proxyHost = properties.getProperty(PROPERTY_HTTP_PROXY_HOST);
+    private Entry<Proxy, Authenticator> createProxy(final ClientSettings settings) {
+        final String proxyHost = settings.getProperty(PROPERTY_HTTP_PROXY_HOST);
 
         // init proxy
         if (StringUtils.isBlank(proxyHost)) {
             return null;
         }
-        final int proxyPort = Integer.parseInt(properties.getProperty(PROPERTY_HTTP_PROXY_PORT, "80"));
+        final int proxyPort = settings.getInt(PROPERTY_HTTP_PROXY_PORT, 80);
         final Proxy proxy = new Proxy(Proxy.Type.HTTP, new InetSocketAddress(proxyHost, proxyPort));
 
         // init proxy authenticator
-        final String proxyUser = properties.getProperty(PROPERTY_HTTP_PROXY_USER);
+        final String proxyUser = settings.getProperty(PROPERTY_HTTP_PROXY_USER);
         Authenticator proxyAuthenticator = null;
         if (StringUtils.isNotBlank(proxyUser)) {
             final String credential =
-                Credentials.basic(proxyUser, properties.getProperty(PROPERTY_HTTP_PROXY_PASSWORD),
+                Credentials.basic(proxyUser, settings.getProperty(PROPERTY_HTTP_PROXY_PASSWORD),
                     StandardCharsets.UTF_8);
             proxyAuthenticator = (route, response) -> response.request().newBuilder()
                 .header("Proxy-Authorization", credential)
@@ -232,20 +239,21 @@ public class HttpClientFactory {
         return new SimpleImmutableEntry<>(proxy, proxyAuthenticator);
     }
 
-    private Entry<SSLContext, X509TrustManager> createSSLContext(final Properties properties) throws Exception {
+    private Entry<SSLContext, X509TrustManager> createSSLContext(final ClientSettings settings) throws Exception {
 
         final SSLContext sslContext = SSLContext.getInstance("SSL");
         TrustManager trustManagers[] = null;
         KeyManager keyManagers[] = null;
 
         // truststore?
-        final String truststorePath = properties.getProperty(PROPERTY_HTTP_TRUSTSTORE_PATH);
-        final String certificateFile = properties.getProperty(PROPERTY_HTTP_SSL_CERTIFICATE_FILE);
+        final String truststorePath = settings.getProperty(PROPERTY_HTTP_TRUSTSTORE_PATH);
+        final String certificateFile = settings.getProperty(PROPERTY_HTTP_SSL_CERTIFICATE_FILE);
         if (StringUtils.isNotBlank(truststorePath)) {
             LOG.debug("Load truststore from: {}", truststorePath);
-            final String truststoreType = properties.getProperty(PROPERTY_HTTP_TRUSTSTORE_TYPE, "jks");
-            final String truststorePassword = properties.getProperty(PROPERTY_HTTP_TRUSTSTORE_PASSWORD);
-            final KeyStore truststore = readKeyStore(truststorePath, truststoreType, truststorePassword);
+            final String truststoreType = settings.getProperty(PROPERTY_HTTP_TRUSTSTORE_TYPE);
+            final String truststoreTypeOrDefault = truststoreType != null ? truststoreType : "jks";
+            final String truststorePassword = settings.getProperty(PROPERTY_HTTP_TRUSTSTORE_PASSWORD);
+            final KeyStore truststore = readKeyStore(truststorePath, truststoreTypeOrDefault, truststorePassword);
             final TrustManagerFactory trustManagerFactory =
                 TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
             trustManagerFactory.init(truststore);
@@ -266,7 +274,7 @@ public class HttpClientFactory {
             trustStore.setCertificateEntry("cert-alias", cert);
             trustManagerFactory.init(trustStore);
             trustManagers = trustManagerFactory.getTrustManagers();
-        } else if ("true".equalsIgnoreCase(properties.getProperty(PROPERTY_HTTP_TRUST_ALL_CERTIFICATES))) {
+        } else if ("true".equalsIgnoreCase(settings.getProperty(PROPERTY_HTTP_TRUST_ALL_CERTIFICATES))) {
             LOG.warn("Using unsafe option: trust-all-certificates");
             // accept all certificates
             trustManagers = new TrustManager[] { new X509TrustManager() {
@@ -296,12 +304,13 @@ public class HttpClientFactory {
         }
 
         // keystore?
-        final String keystorePath = properties.getProperty(PROPERTY_HTTP_KEYSTORE_PATH);
+        final String keystorePath = settings.getProperty(PROPERTY_HTTP_KEYSTORE_PATH);
         if (StringUtils.isNotBlank(keystorePath)) {
             LOG.debug("Load keystore from: {}", keystorePath);
-            final String keystoreType = properties.getProperty(PROPERTY_HTTP_KEYSTORE_TYPE, "jks");
-            final String keystorePassword = properties.getProperty(PROPERTY_HTTP_KEYSTORE_PASSWORD);
-            final KeyStore keystore = readKeyStore(keystorePath, keystoreType, keystorePassword);
+            final String keystoreType = settings.getProperty(PROPERTY_HTTP_KEYSTORE_TYPE);
+            final String keystorePassword = settings.getProperty(PROPERTY_HTTP_KEYSTORE_PASSWORD);
+            final KeyStore keystore = readKeyStore(keystorePath,
+                keystoreType != null ? keystoreType : "jks", keystorePassword);
             final KeyManagerFactory keyManagerFactory =
                 KeyManagerFactory.getInstance(KeyManagerFactory
                     .getDefaultAlgorithm());
