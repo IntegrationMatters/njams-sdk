@@ -23,11 +23,10 @@
  */
 package com.im.njams.sdk.communication;
 
-import java.util.Properties;
-
 import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.NjamsSettings;
+import com.im.njams.sdk.settings.ClientSettings;
 
 /**
  * This interface must be implenmented by a new Receiver for a given
@@ -55,11 +54,11 @@ public interface Receiver {
     String getName();
 
     /**
-     * This implementation will initialize itself via the given Properties
+     * Initializes the receiver with the given settings.
      *
-     * @param properties to be used for initialization
+     * @param settings the settings to be used for initialization
      */
-    void init(Properties properties);
+    void init(ClientSettings settings);
 
     /**
      * This function should be called by a implementation of the Receiver class

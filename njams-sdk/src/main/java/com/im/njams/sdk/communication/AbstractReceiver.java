@@ -39,6 +39,7 @@ import com.im.njams.sdk.Njams.Feature;
 import com.im.njams.sdk.common.JsonSerializerFactory;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.communication.fragments.RawMessage;
+import com.im.njams.sdk.settings.ClientSettings;
 
 /**
  * This class should be extended when implementing an new Receiver for a new
@@ -73,6 +74,11 @@ public abstract class AbstractReceiver implements Receiver {
     protected Njams njams;
 
     /**
+     * The settings used to initialize this receiver.
+     */
+    protected ClientSettings settings;
+
+    /**
      * This constructor sets the njams instance for getting the instruction
      * listeners.
      *
@@ -81,6 +87,16 @@ public abstract class AbstractReceiver implements Receiver {
     @Override
     public void setNjams(Njams njams) {
         this.njams = njams;
+    }
+
+    /**
+     * Initializes this receiver with the given settings.
+     *
+     * @param settings the settings to be used for initialization
+     */
+    @Override
+    public void init(ClientSettings settings) {
+        this.settings = settings;
     }
 
     /**
