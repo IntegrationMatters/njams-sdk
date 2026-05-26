@@ -35,8 +35,6 @@ import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
-
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -55,6 +53,7 @@ import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.Path;
 import com.im.njams.sdk.communication.Sender;
 import com.im.njams.sdk.communication.TestSender;
+import com.im.njams.sdk.settings.ClientSettings;
 import com.im.njams.sdk.configuration.ActivityConfiguration;
 import com.im.njams.sdk.configuration.ProcessConfiguration;
 import com.im.njams.sdk.configuration.TracepointExt;
@@ -289,11 +288,9 @@ public class CleanTracepointsTaskTest extends AbstractTest {
 
         /**
          * This method does nothing
-         *
-         * @param properties nothing to do with these
          */
         @Override
-        public void init(Properties properties) {
+        public void init(ClientSettings settings) {
             //Do nothing
         }
 

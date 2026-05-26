@@ -23,8 +23,6 @@
  */
 package com.im.njams.sdk.communication;
 
-import java.util.Properties;
-
 import com.faizsiegeln.njams.messageformat.v4.common.CommonMessage;
 import com.faizsiegeln.njams.messageformat.v4.logmessage.LogMessage;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.ProjectMessage;
@@ -32,6 +30,7 @@ import com.faizsiegeln.njams.messageformat.v4.tracemessage.TraceMessage;
 import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.configuration.ConfigurationProviderFactory;
+import com.im.njams.sdk.settings.ClientSettings;
 import com.im.njams.sdk.settings.Settings;
 
 /**
@@ -69,9 +68,9 @@ public class TestSender extends AbstractSender {
     }
 
     @Override
-    public void init(Properties properties) {
+    public void init(ClientSettings settings) {
         if (sender != null) {
-            sender.init(properties);
+            sender.init(settings);
         }
 
     }

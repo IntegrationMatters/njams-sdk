@@ -46,6 +46,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.common.JsonSerializerFactory;
+import com.im.njams.sdk.settings.ClientSettings;
 
 /**
  * This class tests if the JmsSender works correctly.
@@ -75,7 +76,7 @@ public class JmsSenderTest {
 
         Properties props = new Properties();
         props.put(NjamsSettings.PROPERTY_COMMUNICATION, JmsSender.COMMUNICATION_NAME);
-        sender.init(props);
+        sender.init(ClientSettings.from(props));
     }
 
     /**

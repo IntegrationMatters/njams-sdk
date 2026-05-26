@@ -29,7 +29,6 @@ import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Properties;
 
 import org.junit.Test;
 
@@ -38,6 +37,7 @@ import com.faizsiegeln.njams.messageformat.v4.command.Request;
 import com.faizsiegeln.njams.messageformat.v4.command.Response;
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
+import com.im.njams.sdk.settings.ClientSettings;
 
 /**
  * This class tests the AbstractReceiver methods.
@@ -552,7 +552,7 @@ public class AbstractReceiverTest {
 
         //This method should be tested by the real subclass of the AbstractReceiver
         @Override
-        public void init(Properties properties) {
+        public void init(ClientSettings settings) {
         }
 
         @Override

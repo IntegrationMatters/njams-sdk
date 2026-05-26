@@ -31,7 +31,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.lang.reflect.Field;
-import java.util.Properties;
 
 import javax.jms.Connection;
 import javax.jms.MessageConsumer;
@@ -44,6 +43,7 @@ import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.Path;
 import com.im.njams.sdk.communication.ConnectionStatus;
+import com.im.njams.sdk.settings.ClientSettings;
 
 /**
  * This class is a extended version of the JmsReceiver to get its fields.
@@ -74,8 +74,8 @@ class JmsReceiverMock extends JmsReceiver {
         return (Session) getThisObjectPrivateField("session");
     }
 
-    public Properties getProperties() {
-        return (Properties) getThisObjectPrivateField("properties");
+    public ClientSettings getSettings() {
+        return (ClientSettings) getThisObjectPrivateField("settings");
     }
 
     public MessageConsumer getConsumer() {
@@ -99,52 +99,57 @@ class JmsReceiverMock extends JmsReceiver {
     }
 
     /**
-     * This method gets a private field of this class
+     * This method gets a private field of this class or any of its superclasses.
      *
      * @param fieldName the name of the field
      */
     private Object getThisObjectPrivateField(String fieldName) {
-        try {
-            Class clazz = JmsReceiver.class;
-            Field privateField = clazz.getDeclaredField(fieldName);
-            privateField.setAccessible(true);
-            return privateField.get(this);
-        } catch (NullPointerException | NoSuchFieldException | SecurityException | IllegalArgumentException
-            | IllegalAccessException ex) {
-            return null;
+        Class<?> clazz = JmsReceiver.class;
+        while (clazz != null) {
+            try {
+                Field privateField = clazz.getDeclaredField(fieldName);
+                privateField.setAccessible(true);
+                return privateField.get(this);
+            } catch (NoSuchFieldException ex) {
+                clazz = clazz.getSuperclass();
+            } catch (NullPointerException | SecurityException | IllegalArgumentException | IllegalAccessException ex) {
+                return null;
+            }
         }
+        return null;
     }
 
     /**
-     * This method tests if the properties that are set in init are null.
+     * This method tests if the settings that are set in init are null.
      *
      * @param impl the instance to look in
      */
     public static void testBeforeInit(JmsReceiverMock impl) {
-        assertNull(impl.getProperties());
+        assertNull(impl.getSettings());
         assertNull(impl.getTopicName());
         assertNull(impl.getMapper());
         testBeforeConnect(impl);
     }
 
     /**
-     * This method tests if the properties that are set in init are filled,
-     * that the status is DISCONNECTED and that the properties that are set in
+     * This method tests if the settings that are set in init are filled,
+     * that the status is DISCONNECTED and that the settings that are set in
      * connect() are null.
      *
-     * @param impl  the instance to look in
-     * @param props the properties to compare with
+     * @param impl     the instance to look in
+     * @param settings the settings to compare with
      */
-    public static void testAfterInit(JmsReceiverMock impl, Properties props) {
+    public static void testAfterInit(JmsReceiverMock impl, ClientSettings settings) {
         assertTrue(impl.isDisconnected());
         testBeforeConnect(impl);
         //Stays the same
         assertNotNull(impl.getMapper());
-        assertEquals(props, impl.getProperties());
-        if (props.containsKey(NjamsSettings.PROPERTY_JMS_COMMANDS_DESTINATION)) {
-            assertEquals(props.getProperty(NjamsSettings.PROPERTY_JMS_COMMANDS_DESTINATION), impl.getTopicName());
+        assertEquals(settings, impl.getSettings());
+        if (settings.containsKey(NjamsSettings.PROPERTY_JMS_COMMANDS_DESTINATION)) {
+            assertEquals(settings.getProperty(NjamsSettings.PROPERTY_JMS_COMMANDS_DESTINATION), impl.getTopicName());
         } else {
-            assertEquals(props.getProperty(NjamsSettings.PROPERTY_JMS_DESTINATION) + ".commands", impl.getTopicName());
+            assertEquals(settings.getProperty(NjamsSettings.PROPERTY_JMS_DESTINATION) + ".commands",
+                impl.getTopicName());
         }
         assertEquals(MESSAGESELECTORSTRING, impl.getMessageSelector());
     }

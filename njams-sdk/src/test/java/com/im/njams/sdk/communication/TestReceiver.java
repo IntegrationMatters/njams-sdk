@@ -23,10 +23,9 @@
  */
 package com.im.njams.sdk.communication;
 
-import java.util.Properties;
-
 import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
 import com.im.njams.sdk.Njams;
+import com.im.njams.sdk.settings.ClientSettings;
 import com.im.njams.sdk.settings.Settings;
 
 /**
@@ -76,9 +75,9 @@ public class TestReceiver implements Receiver {
     }
 
     @Override
-    public void init(Properties properties) {
+    public void init(ClientSettings settings) {
         if (receiver != null) {
-            receiver.init(properties);
+            receiver.init(settings);
         }
 
     }
