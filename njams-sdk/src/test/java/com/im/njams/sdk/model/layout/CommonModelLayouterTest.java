@@ -27,9 +27,12 @@ public class CommonModelLayouterTest {
     @Test
     public void noStartActivity_doesNothing() {
         ProcessModel model = createProcess();
-        model.createActivity("A", "A", null); // not marked as starter
+        ActivityModel a = model.createActivity("A", "A", null); // not marked as starter
+        a.setX(999);
+        a.setY(999);
         layouter.layout(model);
-        assertEquals(0, model.getActivity("A").getX());
+        assertEquals("x must be unchanged when no start activity", 999, a.getX());
+        assertEquals("y must be unchanged when no start activity", 999, a.getY());
     }
 
     @Test
