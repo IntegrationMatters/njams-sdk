@@ -24,8 +24,6 @@
 package com.im.njams.sdk.communication.fragments;
 
 import static com.im.njams.sdk.communication.MessageHeaders.*;
-import static com.im.njams.sdk.utils.PropertyUtil.getPropertyBool;
-import static com.im.njams.sdk.utils.PropertyUtil.getPropertyInt;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -41,7 +39,6 @@ import org.slf4j.LoggerFactory;
 import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.communication.http.HttpSender;
 import com.im.njams.sdk.settings.ClientSettings;
-import com.im.njams.sdk.utils.PropertyUtil;
 
 /**
  * Splits large messages according to the configuration setting {@link NjamsSettings#PROPERTY_MAX_MESSAGE_SIZE} or
@@ -191,31 +188,21 @@ public class SplitSupport {
 
     /**
      * Constructor that initializes this instance from the given {@link ClientSettings}.
-     * @param settings {@link ClientSettings} to be used for initializing this instance.
-     * @param techLimit Technical limitation of the maximum message size enforced by the transport implementation,
-     * if any. This works as an upper limit. Set to 0 or less if there is no such limit.
+     *
+     * @param settings  the settings for this instance
+     * @param techLimit technical maximum message size imposed by the transport, or &lt;= 0 if none
      */
     public SplitSupport(final ClientSettings settings, final int techLimit) {
-        this(PropertyUtil.toProperties(settings), techLimit);
-    }
+        final String transport = settings.getProperty(NjamsSettings.PROPERTY_COMMUNICATION);
 
-    /**
-     * Constructor that initializes this instance from the given {@link Properties}.
-     * @param properties {@link Properties} to be used for initializing this instance.
-     * @param techLimit Technical limitation of the maximum message size enforced by the transport implementation,
-     * if any. This works as an upper limit. Set to 0 or less if there is no such limit.
-     */
-    public SplitSupport(final Properties properties, final int techLimit) {
-        final String transport = properties.getProperty(NjamsSettings.PROPERTY_COMMUNICATION);
-
-        final int configuredLimit = getPropertyInt(properties, NjamsSettings.PROPERTY_MAX_MESSAGE_SIZE, -1);
-        if (getPropertyBool(properties, TESTING_NO_LIMIT_CHECKS, false)) {
+        final int configuredLimit = settings.getInt(NjamsSettings.PROPERTY_MAX_MESSAGE_SIZE, -1);
+        if (settings.getBool(TESTING_NO_LIMIT_CHECKS, false)) {
             maxMessageBytes = configuredLimit;
         } else {
             maxMessageBytes = Math.max(0, resolveLimit(configuredLimit, techLimit));
         }
         if (maxMessageBytes > 0) {
-            LOG.info("Limitting max message size to {} bytes", maxMessageBytes);
+            LOG.info("Limiting max message size to {} bytes", maxMessageBytes);
         }
 
         if (HttpSender.NAME.equalsIgnoreCase(transport) || "HTTPS".equalsIgnoreCase(transport)) {
@@ -229,6 +216,18 @@ public class SplitSupport {
             chunkMessageKeyHeader = NJAMS_CHUNK_MESSAGE_KEY_HEADER;
             LOG.debug("Using common message properties.");
         }
+    }
+
+    /**
+     * Constructor that initializes this instance from the given {@link Properties}.
+     * Used by transport implementations that receive a {@link Properties} object from
+     * their {@code init(Properties)} method.
+     *
+     * @param properties the properties for this instance
+     * @param techLimit  technical maximum message size imposed by the transport, or &lt;= 0 if none
+     */
+    public SplitSupport(final Properties properties, final int techLimit) {
+        this(ClientSettings.from(properties), techLimit);
     }
 
     private static int resolveLimit(int configuredLimit, int techLimit) {
