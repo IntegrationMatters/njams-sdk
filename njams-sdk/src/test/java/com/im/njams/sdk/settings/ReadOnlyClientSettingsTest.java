@@ -189,9 +189,10 @@ public class ReadOnlyClientSettingsTest {
         env.put("BAR_X", "2");
         ReadOnlyFilteringSettings ro =
             new ReadOnlyFilteringSettings(ReadOnlyClientSettings.from(env), key -> key.startsWith("FOO"));
-        Properties result = ro.filter("");
+        Map<String, String> result = ro.filteredStream("", false)
+            .collect(java.util.stream.Collectors.toMap(Entry::getKey, Entry::getValue));
         assertEquals(1, result.size());
-        assertEquals("1", result.getProperty("FOO_X"));
+        assertEquals("1", result.get("FOO_X"));
     }
 
     @Test
@@ -734,23 +735,46 @@ public class ReadOnlyClientSettingsTest {
         assertFalse(settings.getBoolWithDeprecationWarning("new", true, "old"));
     }
 
-    // ---------- filter ----------
+    // ---------- filteredStream ----------
 
     @Test
-    public void filter_returnsEntriesWithPrefix() {
+    public void filteredStream_keepsPrefix_returnsMatchingEntries() {
         settings.put("a.x", "1");
         settings.put("a.y", "2");
         settings.put("b.x", "3");
-        Properties result = settings.filter("a.");
+        Map<String, String> result = settings.filteredStream("a.", false)
+            .collect(java.util.stream.Collectors.toMap(Entry::getKey, Entry::getValue));
         assertEquals(2, result.size());
-        assertEquals("1", result.getProperty("a.x"));
-        assertEquals("2", result.getProperty("a.y"));
+        assertEquals("1", result.get("a.x"));
+        assertEquals("2", result.get("a.y"));
     }
 
     @Test
-    public void filter_returnsEmptyWhenNoMatches() {
+    public void filteredStream_keepsPrefix_returnsEmptyWhenNoMatches() {
         settings.put("a.x", "1");
-        Properties result = settings.filter("z.");
+        Map<String, String> result = settings.filteredStream("z.", false)
+            .collect(java.util.stream.Collectors.toMap(Entry::getKey, Entry::getValue));
+        assertTrue(result.isEmpty());
+    }
+
+    @Test
+    public void filteredStream_cutPrefix_stripsPrefix() {
+        settings.put("a.x", "1");
+        settings.put("a.y", "2");
+        settings.put("b.x", "3");
+        Map<String, String> result = settings.filteredStream("a.", true)
+            .collect(java.util.stream.Collectors.toMap(Entry::getKey, Entry::getValue));
+        assertEquals(2, result.size());
+        assertEquals("1", result.get("x"));
+        assertEquals("2", result.get("y"));
+        assertFalse(result.containsKey("a.x"));
+    }
+
+    @Test
+    public void filteredStream_cutPrefix_returnsEmptyWhenNoMatches() {
+        settings.put("a.x", "1");
+        Map<String, String> result = settings.filteredStream("z.", true)
+            .collect(java.util.stream.Collectors.toMap(Entry::getKey, Entry::getValue));
         assertTrue(result.isEmpty());
     }
 
