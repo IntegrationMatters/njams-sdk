@@ -33,7 +33,7 @@ import java.util.Properties;
  *     methods on {@link WritableSettings} ({@link WritableSettings#from(java.util.Map)},
  *     {@link WritableSettings#from(java.util.Properties)},
  *     {@link WritableSettings#fromSystemProperties(java.util.function.Predicate)}) or via
- *     {@link ReadOnlySettings#fromEnvironment(java.util.function.Predicate)} for a read-only
+ *     {@link ReadOnlyClientSetting#fromEnvironment(java.util.function.Predicate)} for a read-only
  *     environment-backed view. The provider/factory layer is no longer needed.
  */
 @Deprecated

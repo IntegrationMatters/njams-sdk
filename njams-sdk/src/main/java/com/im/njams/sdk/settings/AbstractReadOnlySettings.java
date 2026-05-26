@@ -28,7 +28,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 /**
- * Skeletal base for {@link ReadOnlySettings} implementations. Provides the standard secured-keys
+ * Skeletal base for {@link ReadOnlyClientSetting} implementations. Provides the standard secured-keys
  * handling: a mutable per-instance set of case-insensitive substring tokens used to decide whether
  * a property key's value should be masked in log output. The set is seeded with the default tokens
  * {@code password}, {@code credentials}, {@code secret}, and {@code keystore.key}, and can be
@@ -37,7 +37,7 @@ import java.util.Set;
  * Subclasses provide the actual storage operations ({@link #getProperty(String)},
  * {@link #containsKey(String)}, and {@link #iterator()}); the secured-keys behavior is inherited.
  */
-public abstract class AbstractReadOnlySettings implements ReadOnlySettings {
+public abstract class AbstractReadOnlySettings implements ReadOnlyClientSetting {
 
     private static final Set<String> DEFAULT_SECURED =
         Set.of("password", "credentials", "secret", "keystore.key");

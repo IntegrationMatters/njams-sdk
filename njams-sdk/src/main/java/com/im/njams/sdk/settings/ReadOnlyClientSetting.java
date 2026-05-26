@@ -59,44 +59,44 @@ import org.slf4j.LoggerFactory;
  * vice versa. Default methods on this interface rely on this consistency; violating it produces
  * silently wrong results, not exceptions.
  */
-public interface ReadOnlySettings extends Iterable<Entry<String, String>> {
+public interface ReadOnlyClientSetting extends Iterable<Entry<String, String>> {
 
     /**
-     * Returns a {@link ReadOnlySettings} backed by the given map. Subsequent changes to the map are
+     * Returns a {@link ReadOnlyClientSetting} backed by the given map. Subsequent changes to the map are
      * visible through the returned instance.
      *
      * @param map the map to wrap
-     * @return a {@link ReadOnlySettings} view of the given map
+     * @return a {@link ReadOnlyClientSetting} view of the given map
      */
-    static ReadOnlySettings from(Map<String, String> map) {
+    static ReadOnlyClientSetting from(Map<String, String> map) {
         return new ReadOnlySettingsImpl(map);
     }
 
     /**
-     * Returns a {@link ReadOnlySettings} backed by the given properties. Subsequent changes to the
+     * Returns a {@link ReadOnlyClientSetting} backed by the given properties. Subsequent changes to the
      * properties are visible through the returned instance. Assumes that all keys and values are
      * strings.
      *
      * @param properties the properties to wrap
-     * @return a {@link ReadOnlySettings} view of the given properties
+     * @return a {@link ReadOnlyClientSetting} view of the given properties
      */
     @SuppressWarnings({"unchecked", "rawtypes"})
-    static ReadOnlySettings from(Properties properties) {
+    static ReadOnlyClientSetting from(Properties properties) {
         return from((Map) properties);
     }
 
     /**
-     * Returns a {@link ReadOnlySettings} backed by the current process environment variables. The
+     * Returns a {@link ReadOnlyClientSetting} backed by the current process environment variables. The
      * {@code filter} predicate is applied on every key access: {@link #getProperty(String)},
      * {@link #containsKey(String)}, and iteration only expose entries whose key the predicate
      * accepts. If {@code filter} is {@code null}, all keys are accepted.
      *
      * @param filter optional key filter; {@code null} accepts all keys
-     * @return a {@link ReadOnlySettings} view over the filtered environment variables
+     * @return a {@link ReadOnlyClientSetting} view over the filtered environment variables
      */
-    static ReadOnlySettings fromEnvironment(Predicate<String> filter) {
+    static ReadOnlyClientSetting fromEnvironment(Predicate<String> filter) {
         return new ReadOnlyFilteringSettings(
-            ReadOnlySettings.from(System.getenv()),
+            ReadOnlyClientSetting.from(System.getenv()),
             filter,
             ReadOnlyFilteringSettings.ENVIRONMENT_KEY_TRANSFORMER);
     }
@@ -229,7 +229,7 @@ public interface ReadOnlySettings extends Iterable<Entry<String, String>> {
         try {
             return Integer.parseInt(value);
         } catch (NumberFormatException e) {
-            LoggerFactory.getLogger(ReadOnlySettings.class).warn(
+            LoggerFactory.getLogger(ReadOnlyClientSetting.class).warn(
                 "Setting [{}] has invalid integer value [{}]; using default [{}]", key, value, defaultValue);
             return defaultValue;
         }
@@ -242,7 +242,7 @@ public interface ReadOnlySettings extends Iterable<Entry<String, String>> {
         try {
             return Long.parseLong(value);
         } catch (NumberFormatException e) {
-            LoggerFactory.getLogger(ReadOnlySettings.class).warn(
+            LoggerFactory.getLogger(ReadOnlyClientSetting.class).warn(
                 "Setting [{}] has invalid long value [{}]; using default [{}]", key, value, defaultValue);
             return defaultValue;
         }
@@ -258,7 +258,7 @@ public interface ReadOnlySettings extends Iterable<Entry<String, String>> {
         if ("false".equalsIgnoreCase(value)) {
             return false;
         }
-        LoggerFactory.getLogger(ReadOnlySettings.class).warn(
+        LoggerFactory.getLogger(ReadOnlyClientSetting.class).warn(
             "Setting [{}] has invalid boolean value [{}]; using default [{}]", key, value, defaultValue);
         return defaultValue;
     }
@@ -335,7 +335,7 @@ public interface ReadOnlySettings extends Iterable<Entry<String, String>> {
             return getProperty(expectedKey);
         }
         if (containsKey(deprecatedKey)) {
-            LoggerFactory.getLogger(ReadOnlySettings.class)
+            LoggerFactory.getLogger(ReadOnlyClientSetting.class)
                 .warn("Setting [{}] is outdated. Use [{}] instead.", deprecatedKey, expectedKey);
             return getProperty(deprecatedKey);
         }

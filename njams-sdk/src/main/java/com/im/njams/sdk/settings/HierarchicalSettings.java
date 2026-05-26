@@ -285,9 +285,9 @@ public final class HierarchicalSettings implements WritableSettings {
 
     private static final class NamedLayer {
         final String name;
-        final ReadOnlySettings settings;
+        final ReadOnlyClientSetting settings;
 
-        NamedLayer(String name, ReadOnlySettings settings) {
+        NamedLayer(String name, ReadOnlyClientSetting settings) {
             this.name = name;
             this.settings = settings;
         }
@@ -310,9 +310,9 @@ public final class HierarchicalSettings implements WritableSettings {
     }
 
     private static final class CommonPending extends Pending {
-        final ReadOnlySettings settings;
+        final ReadOnlyClientSetting settings;
 
-        CommonPending(ReadOnlySettings settings) {
+        CommonPending(ReadOnlyClientSetting settings) {
             this.settings = settings;
         }
 
@@ -321,7 +321,7 @@ public final class HierarchicalSettings implements WritableSettings {
             return new NamedLayer(name != null ? name : defaultName(settings), settings);
         }
 
-        private static String defaultName(ReadOnlySettings settings) {
+        private static String defaultName(ReadOnlyClientSetting settings) {
             return "<" + settings.getClass().getSimpleName() + "@"
                 + Integer.toHexString(System.identityHashCode(settings)) + ">";
         }
@@ -339,8 +339,8 @@ public final class HierarchicalSettings implements WritableSettings {
         @Override
         NamedLayer materialize() {
             Predicate<String> filter = makeFilter();
-            ReadOnlySettings settings = kind == LayerKind.ENVIRONMENT
-                ? ReadOnlySettings.fromEnvironment(filter)
+            ReadOnlyClientSetting settings = kind == LayerKind.ENVIRONMENT
+                ? ReadOnlyClientSetting.fromEnvironment(filter)
                 : WritableSettings.fromSystemProperties(filter);
             return new NamedLayer(name != null ? name : kind.defaultName, settings);
         }
@@ -377,7 +377,7 @@ public final class HierarchicalSettings implements WritableSettings {
 
         /**
          * Sets the name of the most recently added layer. For system-properties and environment
-         * layers this overrides the default name. If the previous {@link #andThen(ReadOnlySettings)}
+         * layers this overrides the default name. If the previous {@link #andThen(ReadOnlyClientSetting)}
          * call received {@code null}, this is a no-op.
          *
          * @param name layer name
@@ -397,7 +397,7 @@ public final class HierarchicalSettings implements WritableSettings {
          * @param settings the next layer, may be {@code null}
          * @return this builder
          */
-        public Builder andThen(ReadOnlySettings settings) {
+        public Builder andThen(ReadOnlyClientSetting settings) {
             commit();
             if (settings != null) {
                 pending = new CommonPending(settings);
@@ -406,7 +406,7 @@ public final class HierarchicalSettings implements WritableSettings {
         }
 
         /**
-         * Convenience overload that wraps the given map via {@link ReadOnlySettings#from(Map)} and
+         * Convenience overload that wraps the given map via {@link ReadOnlyClientSetting#from(Map)} and
          * appends it as the next layer. {@code null} is accepted and silently skipped. The map
          * does not need to be writable — non-base layers are consulted read-only by the
          * hierarchical view.
@@ -415,7 +415,7 @@ public final class HierarchicalSettings implements WritableSettings {
          * @return this builder
          */
         public Builder andThen(Map<String, String> map) {
-            return andThen(map == null ? null : ReadOnlySettings.from(map));
+            return andThen(map == null ? null : ReadOnlyClientSetting.from(map));
         }
 
         /**
@@ -531,12 +531,12 @@ public final class HierarchicalSettings implements WritableSettings {
         }
 
         /**
-         * See {@link Builder#andThen(ReadOnlySettings)}.
+         * See {@link Builder#andThen(ReadOnlyClientSetting)}.
          *
          * @param settings the next layer, may be {@code null}
          * @return the common builder
          */
-        public Builder andThen(ReadOnlySettings settings) {
+        public Builder andThen(ReadOnlyClientSetting settings) {
             return builder.andThen(settings);
         }
 

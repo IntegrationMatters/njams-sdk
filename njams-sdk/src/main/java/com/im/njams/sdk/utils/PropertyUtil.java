@@ -29,7 +29,7 @@ import java.util.Properties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.im.njams.sdk.settings.ReadOnlySettings;
+import com.im.njams.sdk.settings.ReadOnlyClientSetting;
 import com.im.njams.sdk.settings.encoding.Transformer;
 
 /**
@@ -46,7 +46,7 @@ public class PropertyUtil {
     }
 
     /**
-     * Builds a {@link Properties} snapshot from the entries of the given {@link ReadOnlySettings}.
+     * Builds a {@link Properties} snapshot from the entries of the given {@link ReadOnlyClientSetting}.
      * Provided as a bridge for third-party APIs (e.g. Kafka, JMS, HTTP clients) that require a
      * {@link Properties} instance for configuration. SDK code should otherwise operate on
      * {@link com.im.njams.sdk.settings.WritableSettings} directly.
@@ -54,7 +54,7 @@ public class PropertyUtil {
      * @param settings the settings to copy entries from
      * @return a new {@link Properties} containing every entry of {@code settings}
      */
-    public static Properties toProperties(ReadOnlySettings settings) {
+    public static Properties toProperties(ReadOnlyClientSetting settings) {
         Properties result = new Properties();
         for (Map.Entry<String, String> entry : settings) {
             result.setProperty(entry.getKey(), entry.getValue());
