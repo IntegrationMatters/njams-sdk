@@ -220,8 +220,8 @@ public class SplitSupport {
 
     /**
      * Constructor that initializes this instance from the given {@link Properties}.
-     * Used by transport implementations that receive a {@link Properties} object from
-     * their {@code init(Properties)} method.
+     * Provided as a bridge for callers that have settings in {@link Properties} form
+     * (e.g., external {@link com.im.njams.sdk.communication.AbstractSender} implementations).
      *
      * @param properties the properties for this instance
      * @param techLimit  technical maximum message size imposed by the transport, or &lt;= 0 if none
