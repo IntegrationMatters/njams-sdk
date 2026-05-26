@@ -323,7 +323,7 @@ public class ActivityModel {
 
     private TransitionModel createTransition(ActivityModel to) {
         String transitionModelId = IdUtil.getTransitionModelId(getId(), to.getId());
-        TransitionModel transition = new TransitionModel(processModel, transitionModelId, transitionModelId);
+        TransitionModel transition = new TransitionModel(processModel, transitionModelId);
         transition.setFromActivity(this);
         transition.setToActivity(to);
         transition.linkObjects();

@@ -481,7 +481,7 @@ public class NjamsProcessDiagramFactory implements ProcessDiagramFactory {
         Element line = context.getDoc().createElementNS(context.getSvgNS(), "line");
         line.setAttributeNS(null, "markerId", markerId);
         line.setAttributeNS(null, "modelId", transitionModel.getId());
-        line.setAttributeNS(null, "name", transitionModel.getName());
+        line.setAttributeNS(null, "name", transitionModel.getName() != null ? transitionModel.getName() : "");
         line.setAttributeNS(null, "x1", String.valueOf(fromPoint.getX()));
         line.setAttributeNS(null, "y1", String.valueOf(fromPoint.getY()));
         line.setAttributeNS(null, "x2", String.valueOf(toPoint.getX()));
@@ -490,9 +490,8 @@ public class NjamsProcessDiagramFactory implements ProcessDiagramFactory {
         line.setAttributeNS(null, "style", "cursor: pointer; stroke:#000; fill:#000");
         context.getContainerElement().appendChild(line);
 
-        if (StringUtils.isNotBlank(transitionModel.getName()) && !Objects.equals(transitionModel.getName(),
-            transitionModel.getId())) {
-            // create text under transition on half way to next activity
+        if (StringUtils.isNotBlank(transitionModel.getName())) {
+            // create text under transition on halfway to next activity
             double x = (fromPoint.getX() + toPoint.getX()) / 2;
             double y = (fromPoint.getY() + toPoint.getY()) / 2 + DEFAULT_TEXT_SIZE;
             Element bwTransitionText = context.getDoc().createElementNS(context.getSvgNS(), "text");

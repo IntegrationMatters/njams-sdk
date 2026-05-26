@@ -69,6 +69,18 @@ public class TransitionModel {
         this.name = name;
     }
 
+    /**
+     * Create a new TransitionModel without a display name.
+     * Initializes the transition name to {@code null}. SVG renderers may omit
+     * labels when the name is blank.
+     *
+     * @param processModel ProcessModel which should contain this TransitionModel
+     * @param id Id of this TransitionModel
+     */
+    public TransitionModel(ProcessModel processModel, String id) {
+        this(processModel, id, null);
+    }
+
     Transition getSerializableTransition() {
         Transition transition = new Transition();
         transition.setId(id);
