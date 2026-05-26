@@ -92,6 +92,17 @@ Checkstyle is enforced by the CI pipeline (`mvn checkstyle:check`). It validates
 mvn checkstyle:check -pl njams-sdk
 ```
 
+## Javadoc Validation
+
+**Javadoc must build without errors before any commit.** Run locally with:
+
+```bash
+mvn javadoc:javadoc -pl njams-sdk
+```
+
+A broken `{@link}` or `@see` reference (e.g. pointing to a renamed or removed method) is a hard error that fails the 
+Javadoc build — it is not a warning. Always fix errors before committing; warnings are tolerated but errors are not.
+
 ## Build Commands
 
 ```bash
