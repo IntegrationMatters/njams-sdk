@@ -23,8 +23,6 @@
  */
 package com.im.njams.sdk.communication.jms.factory;
 
-import java.util.Properties;
-
 import javax.jms.ConnectionFactory;
 import javax.jms.JMSException;
 import javax.jms.Queue;
@@ -38,13 +36,12 @@ import org.slf4j.LoggerFactory;
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.settings.ClientSettings;
-import com.im.njams.sdk.utils.PropertyUtil;
 import com.im.njams.sdk.utils.ServiceLoaderSupport;
 import com.im.njams.sdk.utils.StringUtils;
 
 /**
  * A named factory loaded via SPI for creating JMS related instances.<br>
- * Use {@link #find(Properties)} for getting an instance.<br>
+ * Use {@link #find(ClientSettings)} for getting an instance.<br>
  * <br>
  * <b>Implementation Notes:</b> Make sure that implementations use the
  * {@link Thread#getContextClassLoader() context classloader} like JNDI or SPI does for looking up JMS implementations
@@ -76,59 +73,30 @@ public interface JmsFactory extends AutoCloseable {
      * {@link JmsFactory} that still needs the common {@value NjamsSettings#PROPERTY_JMS_CONNECTION_FACTORY} key
      * for looking the {@link ConnectionFactory} in the JNDI context as second step.
      *
-     * @param settings Settings specifying what provider to use. Obtained from nJAMS' {@link ClientSettings}.
-     * @return Found instance or {@link JndiJmsFactory} as a default. The returned instance
-     * is {@link JmsFactory#init(Properties) initialized} with the given settings.
+     * @param settings Settings specifying what provider to use.
+     * @return Found instance or {@link JndiJmsFactory} as a default, initialized with the given settings.
      */
-    public static JmsFactory find(Properties settings) {
+    public static JmsFactory find(ClientSettings settings) {
         return find(settings, true);
     }
 
     /**
-     * Tries to find a {@link JmsFactory} from SPI according to the given settings.
-     * See {@link #find(Properties)} for full documentation.
-     *
-     * @param settings Settings specifying what provider to use.
-     * @return Found instance or {@link JndiJmsFactory} as a default.
-     */
-    public static JmsFactory find(ClientSettings settings) {
-        return find(PropertyUtil.toProperties(settings));
-    }
-
-    /**
      * Variant of {@link #find(ClientSettings)} that allows getting an uninitialized instance.
+     * This is only needed in rare cases. Most common cases should use {@link #find(ClientSettings)} instead.
      *
      * @param settings Settings specifying what provider to use.
-     * @param init Whether to initialize the returned instance.
+     * @param init     Whether to initialize the returned instance by calling {@link #init(ClientSettings)}.
+     *                 If {@code false}, the returned instance still needs to be initialized before using.
      * @return Found instance or {@link JndiJmsFactory} as a default.
      */
     public static JmsFactory find(ClientSettings settings, boolean init) {
-        return find(PropertyUtil.toProperties(settings), init);
-    }
-
-    /**
-     * This is a variant of {@link #find(Properties)} that allows to get an <b>un</b>initialized instance of
-     * {@link JmsFactory}.<br>
-     * This is only needed in rare cases. Most common cases should use {@link #find(Properties)} instead.
-     *
-     * @param settings Settings specifying what provider to use. Obtained from nJAMS' {@link ClientSettings}.
-     * @param init Whether the returned instance shall be initialize by calling {@link JmsFactory#init(Properties)}.
-     * If <code>false</code>, the returned instance still needs to be initialized before using.
-     * @return Found instance or {@link JndiJmsFactory} as a default. The returned instance
-     * is only {@link JmsFactory#init(Properties) initialized} with the given settings, if the <code>init</code>
-     * argument is <code>true</code>.
-     * @see #find(Properties)
-     */
-    public static JmsFactory find(Properties settings, boolean init) {
         String toFind = settings.getProperty(NjamsSettings.PROPERTY_JMS_JMSFACTORY);
         JmsFactory found = find(toFind);
         if (found == null) {
             toFind = settings.getProperty(NjamsSettings.PROPERTY_JMS_CONNECTION_FACTORY);
             found = find(toFind);
         }
-
         if (found == null) {
-            // default/fallback
             found = new JndiJmsFactory();
             LOG.debug("Using default JMS factory implementation: {}", found);
         }
@@ -153,7 +121,7 @@ public interface JmsFactory extends AutoCloseable {
         return null;
     }
 
-    private static void initFactory(JmsFactory factory, Properties settings) {
+    private static void initFactory(JmsFactory factory, ClientSettings settings) {
         try {
             LOG.trace("Init {} with {}", factory, factory.getClass().getClassLoader());
             factory.init(settings);
@@ -174,11 +142,11 @@ public interface JmsFactory extends AutoCloseable {
      * Is called to initialize this factory. After calling this, the factory is usable until {@link #close()} is
      * called.<br>
      * Implementations have to handle that this method could be invoked multiple times.
-     * @param settings The {@link Njams} instance's settings that uses this factory.
+     * @param settings The settings of the {@link Njams} instance using this factory.
      * @throws JMSException If creating a JMS object failed
      * @throws NamingException If a JNDI related error occurred
      */
-    public void init(Properties settings) throws JMSException, NamingException;
+    public void init(ClientSettings settings) throws JMSException, NamingException;
 
     /**
      * Is called for obtaining a {@link ConnectionFactory} instance. Once created, a factory should be reusable.
@@ -214,7 +182,7 @@ public interface JmsFactory extends AutoCloseable {
     }
 
     /**
-     * Is called when the factory is no longer used. Before using the same instance again, {@link #init(Properties)}
+     * Is called when the factory is no longer used. Before using the same instance again, {@link #init(ClientSettings)}
      * has to be called again.<br>
      * The default does nothing.
      */

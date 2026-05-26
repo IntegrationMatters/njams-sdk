@@ -42,14 +42,15 @@ import org.junit.Test;
 
 import com.im.njams.sdk.communication.jms.factory.JmsFactory;
 import com.im.njams.sdk.communication.jms.factory.JndiJmsFactory;
+import com.im.njams.sdk.settings.ClientSettings;
 
 public class AMQInitTest {
 
-    private Properties props = null;
+    private ClientSettings props = null;
 
     @Before
     public void setup() {
-        props = new Properties();
+        props = ClientSettings.from(new Properties());
         props.put("njams.sdk.communication.jms.connectionFactory", "QueueConnectionFactory");
         props.put("njams.sdk.communication.jms.username", "njams");
         props.put("njams.sdk.communication.jms.password", "njams");

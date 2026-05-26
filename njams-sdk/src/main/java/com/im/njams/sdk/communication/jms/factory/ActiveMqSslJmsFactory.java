@@ -23,8 +23,6 @@
  */
 package com.im.njams.sdk.communication.jms.factory;
 
-import java.util.Properties;
-
 import javax.jms.ConnectionFactory;
 import javax.jms.JMSException;
 import javax.naming.NamingException;
@@ -33,6 +31,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.im.njams.sdk.NjamsSettings;
+import com.im.njams.sdk.settings.ClientSettings;
 import com.im.njams.sdk.utils.ReflectionWrapper;
 
 /**
@@ -55,21 +54,20 @@ public class ActiveMqSslJmsFactory extends JndiJmsFactory implements JmsFactory 
     }
 
     @Override
-    protected void initFactory(Properties properties) throws NamingException, JMSException {
+    protected void initFactory(ClientSettings settings) throws NamingException, JMSException {
         try {
-
             final ReflectionWrapper amqSsl =
                     new ReflectionWrapper("org.apache.activemq.ActiveMQSslConnectionFactory", null);
 
-            setProperty(amqSsl, properties, "setKeyStore", NjamsSettings.PROPERTY_JMS_KEYSTORE);
-            setProperty(amqSsl, properties, "setKeyStorePassword", NjamsSettings.PROPERTY_JMS_KEYSTOREPASSWORD);
-            setProperty(amqSsl, properties, "setKeyStoreType", NjamsSettings.PROPERTY_JMS_KEYSTORETYPE);
-            setProperty(amqSsl, properties, "setTrustStore", NjamsSettings.PROPERTY_JMS_TRUSTSTORE);
-            setProperty(amqSsl, properties, "setTrustStorePassword", NjamsSettings.PROPERTY_JMS_TRUSTSTOREPASSWORD);
-            setProperty(amqSsl, properties, "setTrustStoreType", NjamsSettings.PROPERTY_JMS_TRUSTSTORETYPE);
-            setProperty(amqSsl, properties, "setPassword", NjamsSettings.PROPERTY_JMS_PASSWORD);
-            setProperty(amqSsl, properties, "setUserName", NjamsSettings.PROPERTY_JMS_USERNAME);
-            setProperty(amqSsl, properties, "setBrokerURL", NjamsSettings.PROPERTY_JMS_PROVIDER_URL);
+            setProperty(amqSsl, settings, "setKeyStore", NjamsSettings.PROPERTY_JMS_KEYSTORE);
+            setProperty(amqSsl, settings, "setKeyStorePassword", NjamsSettings.PROPERTY_JMS_KEYSTOREPASSWORD);
+            setProperty(amqSsl, settings, "setKeyStoreType", NjamsSettings.PROPERTY_JMS_KEYSTORETYPE);
+            setProperty(amqSsl, settings, "setTrustStore", NjamsSettings.PROPERTY_JMS_TRUSTSTORE);
+            setProperty(amqSsl, settings, "setTrustStorePassword", NjamsSettings.PROPERTY_JMS_TRUSTSTOREPASSWORD);
+            setProperty(amqSsl, settings, "setTrustStoreType", NjamsSettings.PROPERTY_JMS_TRUSTSTORETYPE);
+            setProperty(amqSsl, settings, "setPassword", NjamsSettings.PROPERTY_JMS_PASSWORD);
+            setProperty(amqSsl, settings, "setUserName", NjamsSettings.PROPERTY_JMS_USERNAME);
+            setProperty(amqSsl, settings, "setBrokerURL", NjamsSettings.PROPERTY_JMS_PROVIDER_URL);
             factory = (ConnectionFactory) amqSsl.getTarget();
 
             LOG.debug("Created ActiveMQSslConnectionFactory");
@@ -81,15 +79,15 @@ public class ActiveMqSslJmsFactory extends JndiJmsFactory implements JmsFactory 
         }
     }
 
-    private void setProperty(ReflectionWrapper target, Properties source, String setter, String property) {
-        if (!source.containsKey(property)) {
+    private void setProperty(ReflectionWrapper target, ClientSettings settings, String setter, String property) {
+        if (!settings.containsKey(property)) {
             return;
         }
         try {
-            target.setObject(setter, source.getProperty(property));
+            target.setObject(setter, settings.getProperty(property));
         } catch (Exception e) {
             LOG.error("Failed to invoke {}(String) on {} with property {}={}", setter, target.getClass(),
-                    property, source.getProperty(property), e);
+                    property, settings.getProperty(property), e);
         }
     }
 

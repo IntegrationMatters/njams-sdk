@@ -101,6 +101,25 @@ public class PropertyUtil {
     }
 
     /**
+     * Returns a new {@link Properties} containing only the entries from {@code settings} whose key starts with
+     * {@code prefix}, with the prefix stripped from each key.
+     *
+     * @param settings settings to be filtered
+     * @param prefix   prefix to filter and strip
+     * @return new filtered and stripped Properties
+     */
+    public static Properties filterAndCut(ReadOnlyClientSetting settings, String prefix) {
+        Properties result = new Properties();
+        for (Map.Entry<String, String> entry : settings) {
+            String key = entry.getKey();
+            if (key.startsWith(prefix)) {
+                result.setProperty(key.substring(prefix.length()), entry.getValue());
+            }
+        }
+        return result;
+    }
+
+    /**
      * Returns the value for the given key from the given {@link Properties} and converts it to an integer.
      * @param properties The {@link Properties} to read from.
      * @param key The key to read from the properties.
