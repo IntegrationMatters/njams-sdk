@@ -23,6 +23,7 @@
  */
 package com.im.njams.sdk.model.layout;
 
+import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.model.ActivityModel;
 import com.im.njams.sdk.model.GroupModel;
 import com.im.njams.sdk.model.ProcessModel;
@@ -38,8 +39,11 @@ import org.slf4j.LoggerFactory;
  * attributes.
  *
  * @author hsiegeln
- *
+ * @deprecated Use {@link CommonModelLayouter} instead. {@code CommonModelLayouter} supports
+ *             parallel branches, convergence, and nested groups correctly, and is the default
+ *             layouter used by {@link Njams} since 6.0.
  */
+@Deprecated
 public class SimpleProcessModelLayouter implements ProcessModelLayouter {
 
     private static final Logger LOG = LoggerFactory.getLogger(SimpleProcessModelLayouter.class);
