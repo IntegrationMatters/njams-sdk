@@ -50,16 +50,16 @@ class ReadOnlyFilteringSettings extends AbstractReadOnlySettings {
         return sb.toString();
     };
 
-    final ReadOnlyClientSetting inner;
+    final ReadOnlyClientSettings inner;
     private final Predicate<String> filter;
     private final Function<String, String> keyTransformer;
     private final Map<String, String> keyCache;
 
-    ReadOnlyFilteringSettings(ReadOnlyClientSetting inner, Predicate<String> filter) {
+    ReadOnlyFilteringSettings(ReadOnlyClientSettings inner, Predicate<String> filter) {
         this(inner, filter, null);
     }
 
-    ReadOnlyFilteringSettings(ReadOnlyClientSetting inner, Predicate<String> filter,
+    ReadOnlyFilteringSettings(ReadOnlyClientSettings inner, Predicate<String> filter,
         Function<String, String> keyTransformer) {
         this.inner = inner;
         this.filter = filter == null ? key -> true : filter;

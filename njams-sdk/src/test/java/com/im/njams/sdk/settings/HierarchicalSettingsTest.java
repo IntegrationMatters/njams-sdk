@@ -392,7 +392,7 @@ public class HierarchicalSettingsTest {
     @Test
     public void andThenNull_isSkipped() {
         ClientSettings settings = HierarchicalSettings.from(backing(map("a", "1")))
-            .andThen((ReadOnlyClientSetting) null).withName("ignored")
+            .andThen((ReadOnlyClientSettings) null).withName("ignored")
             .andThen(backing(map("b", "2")))
             .build();
 

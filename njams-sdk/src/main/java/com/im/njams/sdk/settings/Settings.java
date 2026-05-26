@@ -51,11 +51,11 @@ import com.im.njams.sdk.utils.StringUtils;
  * @deprecated This class is preserved only as a legacy implementation of {@link ClientSettings}
  *     for backwards compatibility with existing client code. The SDK itself no longer uses it
  *     internally — all internal settings handling now goes through the {@link ClientSettings}
- *     and {@link ReadOnlyClientSetting} interfaces. Obtain settings instances via one of the factory
+ *     and {@link ReadOnlyClientSettings} interfaces. Obtain settings instances via one of the factory
  *     methods on those interfaces: {@link ClientSettings#from(java.util.Map)},
  *     {@link ClientSettings#from(java.util.Properties)},
  *     {@link ClientSettings#fromSystemProperties(java.util.function.Predicate)}, or
- *     {@link ReadOnlyClientSetting#fromEnvironment(java.util.function.Predicate)} for a read-only
+ *     {@link ReadOnlyClientSettings#fromEnvironment(java.util.function.Predicate)} for a read-only
  *     environment-backed view.
  */
 @Deprecated

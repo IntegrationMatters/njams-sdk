@@ -25,6 +25,8 @@ package com.im.njams.sdk.communication.jms.factory;
 
 import static com.im.njams.sdk.NjamsSettings.PROPERTY_JMS_CONNECTION_FACTORY;
 
+import java.util.Properties;
+
 import javax.jms.ConnectionFactory;
 import javax.jms.JMSException;
 import javax.jms.Queue;
@@ -40,7 +42,6 @@ import org.slf4j.LoggerFactory;
 
 import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.settings.ClientSettings;
-import com.im.njams.sdk.utils.PropertyUtil;
 import com.im.njams.sdk.utils.StringUtils;
 
 /**
@@ -69,7 +70,10 @@ public class JndiJmsFactory implements JmsFactory {
             // assuming that config does not change
             return;
         }
-        context = new InitialContext(PropertyUtil.filterAndCut(settings, NjamsSettings.PROPERTY_JMS_PREFIX));
+        final Properties jndiProperties = new Properties();
+        settings.filteredStream(NjamsSettings.PROPERTY_JMS_PREFIX, true)
+            .forEach(e -> jndiProperties.setProperty(e.getKey(), e.getValue()));
+        context = new InitialContext(jndiProperties);
         initFactory(settings);
     }
 

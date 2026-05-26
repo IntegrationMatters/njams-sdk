@@ -28,11 +28,11 @@ import java.util.Properties;
 import java.util.function.Predicate;
 
 /**
- * Read/write view of the nJAMS SDK settings. Extends {@link ReadOnlyClientSetting} with operations that
+ * Read/write view of the nJAMS SDK settings. Extends {@link ReadOnlyClientSettings} with operations that
  * modify the registered properties. This is the interface most SDK consumers work with — see
- * {@link ReadOnlyClientSetting} for context on when the read-only restriction is meaningful.
+ * {@link ReadOnlyClientSettings} for context on when the read-only restriction is meaningful.
  */
-public interface ClientSettings extends ReadOnlyClientSetting {
+public interface ClientSettings extends ReadOnlyClientSettings {
 
     /**
      * Returns a {@link ClientSettings} backed by the given map. Subsequent changes to the map are

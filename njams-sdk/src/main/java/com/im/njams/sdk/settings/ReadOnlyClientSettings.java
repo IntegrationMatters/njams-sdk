@@ -59,44 +59,44 @@ import org.slf4j.LoggerFactory;
  * vice versa. Default methods on this interface rely on this consistency; violating it produces
  * silently wrong results, not exceptions.
  */
-public interface ReadOnlyClientSetting extends Iterable<Entry<String, String>> {
+public interface ReadOnlyClientSettings extends Iterable<Entry<String, String>> {
 
     /**
-     * Returns a {@link ReadOnlyClientSetting} backed by the given map. Subsequent changes to the map are
+     * Returns a {@link ReadOnlyClientSettings} backed by the given map. Subsequent changes to the map are
      * visible through the returned instance.
      *
      * @param map the map to wrap
-     * @return a {@link ReadOnlyClientSetting} view of the given map
+     * @return a {@link ReadOnlyClientSettings} view of the given map
      */
-    static ReadOnlyClientSetting from(Map<String, String> map) {
+    static ReadOnlyClientSettings from(Map<String, String> map) {
         return new ReadOnlySettingsImpl(map);
     }
 
     /**
-     * Returns a {@link ReadOnlyClientSetting} backed by the given properties. Subsequent changes to the
+     * Returns a {@link ReadOnlyClientSettings} backed by the given properties. Subsequent changes to the
      * properties are visible through the returned instance. Assumes that all keys and values are
      * strings.
      *
      * @param properties the properties to wrap
-     * @return a {@link ReadOnlyClientSetting} view of the given properties
+     * @return a {@link ReadOnlyClientSettings} view of the given properties
      */
     @SuppressWarnings({"unchecked", "rawtypes"})
-    static ReadOnlyClientSetting from(Properties properties) {
+    static ReadOnlyClientSettings from(Properties properties) {
         return from((Map) properties);
     }
 
     /**
-     * Returns a {@link ReadOnlyClientSetting} backed by the current process environment variables. The
+     * Returns a {@link ReadOnlyClientSettings} backed by the current process environment variables. The
      * {@code filter} predicate is applied on every key access: {@link #getProperty(String)},
      * {@link #containsKey(String)}, and iteration only expose entries whose key the predicate
      * accepts. If {@code filter} is {@code null}, all keys are accepted.
      *
      * @param filter optional key filter; {@code null} accepts all keys
-     * @return a {@link ReadOnlyClientSetting} view over the filtered environment variables
+     * @return a {@link ReadOnlyClientSettings} view over the filtered environment variables
      */
-    static ReadOnlyClientSetting fromEnvironment(Predicate<String> filter) {
+    static ReadOnlyClientSettings fromEnvironment(Predicate<String> filter) {
         return new ReadOnlyFilteringSettings(
-            ReadOnlyClientSetting.from(System.getenv()),
+            ReadOnlyClientSettings.from(System.getenv()),
             filter,
             ReadOnlyFilteringSettings.ENVIRONMENT_KEY_TRANSFORMER);
     }
@@ -125,6 +125,22 @@ public interface ReadOnlyClientSetting extends Iterable<Entry<String, String>> {
      */
     default Stream<Entry<String, String>> stream() {
         return StreamSupport.stream(spliterator(), false);
+    }
+
+    /**
+     * Returns a stream of entries whose key starts with the given {@code prefix}.
+     * When {@code cutPrefix} is {@code true}, the prefix is stripped from each key in the returned entries.
+     *
+     * @param prefix    the key prefix to filter by
+     * @param cutPrefix whether to strip the prefix from the keys of returned entries
+     * @return a stream of matching entries, optionally with the prefix stripped from keys
+     */
+    default Stream<Entry<String, String>> filteredStream(String prefix, boolean cutPrefix) {
+        final Stream<Entry<String, String>> filtered = stream().filter(e -> e.getKey().startsWith(prefix));
+        if (!cutPrefix) {
+            return filtered;
+        }
+        return filtered.map(e -> Map.entry(e.getKey().substring(prefix.length()), e.getValue()));
     }
 
     /**
@@ -229,7 +245,7 @@ public interface ReadOnlyClientSetting extends Iterable<Entry<String, String>> {
         try {
             return Integer.parseInt(value);
         } catch (NumberFormatException e) {
-            LoggerFactory.getLogger(ReadOnlyClientSetting.class).warn(
+            LoggerFactory.getLogger(ReadOnlyClientSettings.class).warn(
                 "Setting [{}] has invalid integer value [{}]; using default [{}]", key, value, defaultValue);
             return defaultValue;
         }
@@ -242,7 +258,7 @@ public interface ReadOnlyClientSetting extends Iterable<Entry<String, String>> {
         try {
             return Long.parseLong(value);
         } catch (NumberFormatException e) {
-            LoggerFactory.getLogger(ReadOnlyClientSetting.class).warn(
+            LoggerFactory.getLogger(ReadOnlyClientSettings.class).warn(
                 "Setting [{}] has invalid long value [{}]; using default [{}]", key, value, defaultValue);
             return defaultValue;
         }
@@ -258,7 +274,7 @@ public interface ReadOnlyClientSetting extends Iterable<Entry<String, String>> {
         if ("false".equalsIgnoreCase(value)) {
             return false;
         }
-        LoggerFactory.getLogger(ReadOnlyClientSetting.class).warn(
+        LoggerFactory.getLogger(ReadOnlyClientSettings.class).warn(
             "Setting [{}] has invalid boolean value [{}]; using default [{}]", key, value, defaultValue);
         return defaultValue;
     }
@@ -335,7 +351,7 @@ public interface ReadOnlyClientSetting extends Iterable<Entry<String, String>> {
             return getProperty(expectedKey);
         }
         if (containsKey(deprecatedKey)) {
-            LoggerFactory.getLogger(ReadOnlyClientSetting.class)
+            LoggerFactory.getLogger(ReadOnlyClientSettings.class)
                 .warn("Setting [{}] is outdated. Use [{}] instead.", deprecatedKey, expectedKey);
             return getProperty(deprecatedKey);
         }

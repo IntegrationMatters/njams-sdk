@@ -45,7 +45,7 @@ import com.im.njams.sdk.NjamsSettings;
  *     {@link ClientSettings#from(java.util.Map)},
  *     {@link ClientSettings#from(java.util.Properties)},
  *     {@link ClientSettings#fromSystemProperties(java.util.function.Predicate)}, or
- *     {@link ReadOnlyClientSetting#fromEnvironment(java.util.function.Predicate)} for a read-only
+ *     {@link ReadOnlyClientSettings#fromEnvironment(java.util.function.Predicate)} for a read-only
  *     environment-backed view. The provider/factory layer is no longer needed.
  */
 @Deprecated
