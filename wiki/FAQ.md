@@ -46,11 +46,11 @@ Uses `System.getProperties()` as the settings source. `configure(props)` has no 
 
 | Property | Default | Description | Tags |
 |---|---|---|---|
-| `njams.sdk.settings.provider` | — | Selects the settings provider implementation. Values: `file`, `propertiesFile`, `memory`, `systemProperties` | `deprecated` |
-| `njams.sdk.settings.file` | `config.json` | Path to the JSON settings file used by the `file` provider. | `deprecated` |
-| `njams.sdk.settings.properties.file` | `config.properties` | Path to the properties file used by the `propertiesFile` provider. | `deprecated` |
-| `njams.sdk.settings.properties.parent` | — | Path to the parent properties file for the `propertiesFile` provider. Properties in the child file override those in the parent. | `deprecated` |
-| `njams.sdk.settings.properties.parentKey` | `njams.sdk.settings.properties.parent` | Overrides the key used to look up the parent file path. When set to `MY_KEY`, the provider reads the parent path from the property `MY_KEY` instead of `njams.sdk.settings.properties.parent`. | `deprecated` |
+| `njams.sdk.settings.provider` | — | Selects the settings provider implementation. Values: `file`, `propertiesFile`, `memory`, `systemProperties` | <kbd style="background-color:#cf222e;color:#fff;border-color:#cf222e">deprecated 6.0.0</kbd> |
+| `njams.sdk.settings.file` | `config.json` | Path to the JSON settings file used by the `file` provider. | <kbd style="background-color:#cf222e;color:#fff;border-color:#cf222e">deprecated 6.0.0</kbd> |
+| `njams.sdk.settings.properties.file` | `config.properties` | Path to the properties file used by the `propertiesFile` provider. | <kbd style="background-color:#cf222e;color:#fff;border-color:#cf222e">deprecated 6.0.0</kbd> |
+| `njams.sdk.settings.properties.parent` | — | Path to the parent properties file for the `propertiesFile` provider. Properties in the child file override those in the parent. | <kbd style="background-color:#cf222e;color:#fff;border-color:#cf222e">deprecated 6.0.0</kbd> |
+| `njams.sdk.settings.properties.parentKey` | `njams.sdk.settings.properties.parent` | Overrides the key used to look up the parent file path. When set to `MY_KEY`, the provider reads the parent path from the property `MY_KEY` instead of `njams.sdk.settings.properties.parent`. | <kbd style="background-color:#cf222e;color:#fff;border-color:#cf222e">deprecated 6.0.0</kbd> |
 
 ## Configuration
 
