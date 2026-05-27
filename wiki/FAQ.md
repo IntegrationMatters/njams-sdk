@@ -42,7 +42,7 @@ Uses `System.getProperties()` as the settings source. `configure(props)` has no 
 
 # Which settings can I use?
 
-## Settings Providers
+## Settings Providers <kbd style="background-color:#cf222e;color:#fff;border-color:#cf222e">deprecated 6.0.0</kbd>
 
 | Property | Default | Description | Tags |
 |---|---|---|---|
