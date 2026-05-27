@@ -60,45 +60,45 @@ Uses `System.getProperties()` as the settings source. `configure(props)` has no 
 
 | Property | Default | Description | Tags |
 |---|---|---|---|
-| `njams.client.sdk.discardpolicy` | `none` | Replaced by `njams.sdk.discardpolicy`. | deprecated since 5.0.0 |
-| `njams.client.sdk.disable.secure.processing` | `false` | Replaced by `njams.sdk.disable.secure.processing`. | deprecated since 5.0.0 |
-| `njams.client.sdk.disable.startdata` | `false` | Replaced by `njams.sdk.disable.startdata`. | deprecated since 5.0.0 |
-| `njams.client.sdk.flush_interval` | `30` | Replaced by `njams.sdk.flush_interval`. | deprecated since 5.0.0 |
-| `njams.client.sdk.flushsize` | `5242880` | Replaced by `njams.sdk.flushsize`. | deprecated since 5.0.0 |
-| `njams.client.sdk.maxqueuelength` | `8` | Replaced by `njams.sdk.maxqueuelength`. | deprecated since 5.0.0 |
-| `njams.client.sdk.maxsenderthreads` | `8` | Replaced by `njams.sdk.maxsenderthreads`. | deprecated since 5.0.0 |
-| `njams.client.sdk.minsenderthreads` | `1` | Replaced by `njams.sdk.minsenderthreads`. | deprecated since 5.0.0 |
-| `njams.client.sdk.senderthreadidletime` | `10000` | Replaced by `njams.sdk.senderthreadidletime`. | deprecated since 5.0.0 |
-| `njams.sdk.bootstrap.recording` | `true` | Initial default for client-wide start-data recording. Applied only once when a fresh client configuration is created. Set to `false` to start with recording disabled. | since 5.0.0 |
-| `njams.sdk.disable.secure.processing` | `false` | When `true`, disables the XML secure-processing feature (`XMLConstants.FEATURE_SECURE_PROCESSING`). Useful when the environment contains an old XML library that does not support this feature. | since 5.0.0 |
-| `njams.sdk.disable.startdata` | `false` | When `true`, globally disables collecting job start-data. Also disables replay functionality. Use `njams.sdk.bootstrap.recording` instead. | deprecated since 5.0.0 |
+| `njams.client.sdk.discardpolicy` | `none` | Replaced by `njams.sdk.discardpolicy`. | <kbd>deprecated since 5.0.0</kbd> |
+| `njams.client.sdk.disable.secure.processing` | `false` | Replaced by `njams.sdk.disable.secure.processing`. | <kbd>since 4.2.0</kbd> <kbd>deprecated since 5.0.0</kbd> |
+| `njams.client.sdk.disable.startdata` | `false` | Replaced by `njams.sdk.disable.startdata`. | <kbd>since 4.2.3</kbd> <kbd>deprecated since 5.0.0</kbd> |
+| `njams.client.sdk.flush_interval` | `30` | Replaced by `njams.sdk.flush_interval`. | <kbd>deprecated since 5.0.0</kbd> |
+| `njams.client.sdk.flushsize` | `5242880` | Replaced by `njams.sdk.flushsize`. | <kbd>deprecated since 5.0.0</kbd> |
+| `njams.client.sdk.maxqueuelength` | `8` | Replaced by `njams.sdk.maxqueuelength`. | <kbd>since 4.1.0</kbd> <kbd>deprecated since 5.0.0</kbd> |
+| `njams.client.sdk.maxsenderthreads` | `8` | Replaced by `njams.sdk.maxsenderthreads`. | <kbd>since 4.1.0</kbd> <kbd>deprecated since 5.0.0</kbd> |
+| `njams.client.sdk.minsenderthreads` | `1` | Replaced by `njams.sdk.minsenderthreads`. | <kbd>since 4.1.0</kbd> <kbd>deprecated since 5.0.0</kbd> |
+| `njams.client.sdk.senderthreadidletime` | `10000` | Replaced by `njams.sdk.senderthreadidletime`. | <kbd>since 4.0.4</kbd> <kbd>deprecated since 5.0.0</kbd> |
+| `njams.sdk.bootstrap.recording` | `true` | Initial default for client-wide start-data recording. Applied only once when a fresh client configuration is created. Set to `false` to start with recording disabled. | <kbd>since 5.0.0</kbd> |
+| `njams.sdk.disable.secure.processing` | `false` | When `true`, disables the XML secure-processing feature (`XMLConstants.FEATURE_SECURE_PROCESSING`). Useful when the environment contains an old XML library that does not support this feature. | <kbd>since 5.0.0</kbd> |
+| `njams.sdk.disable.startdata` | `false` | When `true`, globally disables collecting job start-data. Also disables replay functionality. Use `njams.sdk.bootstrap.recording` instead. | <kbd>since 5.0.0</kbd> <kbd>deprecated since 5.0.0</kbd> |
 | `njams.sdk.discardpolicy` | `none` | What to do with a log message that cannot be delivered (connection loss, full queue, etc.). Values: `none`, `onconnectionloss`, `discard` | |
 | `njams.sdk.flush_interval` | `30` | Flush interval in seconds. The current log message is flushed if no message has been sent within this interval. | |
 | `njams.sdk.flushsize` | `5242880` | Maximum log message body size in bytes. The message is flushed when this threshold is exceeded. | |
-| `njams.sdk.logAllErrors` | `false` | When `true`, error events are created for both unhandled and handled errors. By default, error events are only created for errors not handled by the execution engine. | |
-| `njams.sdk.logLevel.default` | `INFO` | Default log level applied to processes until a process-specific configuration overrides it. Values: `INFO`, `SUCCESS`, `WARNING`, `ERROR` | since 5.0.0 |
-| `njams.sdk.logMode.default` | `COMPLETE` | Default log mode applied to the client until a configuration-specific value is set. Values: `COMPLETE`, `EXCLUSIVE`, `NONE` | since 5.0.0 |
+| `njams.sdk.logAllErrors` | `false` | When `true`, error events are created for both unhandled and handled errors. By default, error events are only created for errors not handled by the execution engine. | <kbd>since 4.0.12</kbd> |
+| `njams.sdk.logLevel.default` | `INFO` | Default log level applied to processes until a process-specific configuration overrides it. Values: `INFO`, `SUCCESS`, `WARNING`, `ERROR` | <kbd>since 5.0.0</kbd> |
+| `njams.sdk.logMode.default` | `COMPLETE` | Default log mode applied to the client until a configuration-specific value is set. Values: `COMPLETE`, `EXCLUSIVE`, `NONE` | <kbd>since 5.0.0</kbd> |
 | `njams.sdk.maxqueuelength` | `8` | Maximum number of messages held in the internal send queue before processing blocks or messages are discarded (according to `njams.sdk.discardpolicy`). | |
 | `njams.sdk.maxsenderthreads` | `8` | Maximum number of sender threads. New threads are started when the queue has pending messages and the current thread count is below this limit. | |
 | `njams.sdk.minsenderthreads` | `1` | Minimum (core) number of sender threads. Core threads are not removed even when idle. | |
-| `njams.sdk.payload.limit.mode` | `none` | Limits the size of large payload fields (trace input/output, event payload, event stack trace, attribute values). Values: `truncate` (cut at limit), `discard` (remove entirely), `none` (no limit). Requires `njams.sdk.payload.limit.size` when set to `truncate` or `discard`. | since 5.0.0 |
-| `njams.sdk.payload.limit.size` | — | Maximum payload size in characters. Required when `njams.sdk.payload.limit.mode` is `truncate` or `discard`. | since 5.0.0 |
+| `njams.sdk.payload.limit.mode` | `none` | Limits the size of large payload fields (trace input/output, event payload, event stack trace, attribute values). Values: `truncate` (cut at limit), `discard` (remove entirely), `none` (no limit). Requires `njams.sdk.payload.limit.size` when set to `truncate` or `discard`. | <kbd>since 5.0.0</kbd> |
+| `njams.sdk.payload.limit.size` | — | Maximum payload size in characters. Required when `njams.sdk.payload.limit.mode` is `truncate` or `discard`. | <kbd>since 5.0.0</kbd> |
 | `njams.sdk.senderthreadidletime` | `10000` | Time in milliseconds after which an idle non-core sender thread is removed. | |
-| `njams.sdk.truncateActivitiesLimit` | `0` | When set to a positive number, the client stops sending detailed activity and transition data once this many activities have been recorded in a job. Job status and event data continue to be sent. The smaller of client and server settings takes effect. Requires nJAMS server 5.1 or later. | since 4.1.0 |
-| `njams.sdk.truncateOnSuccess` | `false` | When `true`, detailed activity and transition data is omitted for jobs that complete successfully. Job status and event data are still sent. Only affects the last message of a multi-message job. Requires nJAMS server 5.1 or later. | since 4.1.0 |
-| — | — | *Removed settings* | — |
-| `njams.client.sdk.deprecatedsubprocesspathfield` | `false` | Must be `true` when sending data to nJAMS server older than 5.1.0. Remove or set to `false` when using server 5.1.0 or later. | removed since 5.0.0 |
-| `njams.client.sdk.minqueuelength` | `1` | Replaced by `njams.client.sdk.minsenderthreads`. | removed since 4.1.0 |
+| `njams.sdk.truncateActivitiesLimit` | `0` | When set to a positive number, the client stops sending detailed activity and transition data once this many activities have been recorded in a job. Job status and event data continue to be sent. The smaller of client and server settings takes effect. Requires nJAMS server 5.1 or later. | <kbd>since 4.1.0</kbd> |
+| `njams.sdk.truncateOnSuccess` | `false` | When `true`, detailed activity and transition data is omitted for jobs that complete successfully. Job status and event data are still sent. Only affects the last message of a multi-message job. Requires nJAMS server 5.1 or later. | <kbd>since 4.1.0</kbd> |
+| — | — | *Removed settings* | |
+| `njams.client.sdk.deprecatedsubprocesspathfield` | `false` | Must be `true` when sending data to nJAMS server older than 5.1.0. Remove or set to `false` when using server 5.1.0 or later. | <kbd>since 4.1.0</kbd> <kbd>removed since 5.0.0</kbd> |
+| `njams.client.sdk.minqueuelength` | `1` | Replaced by `njams.client.sdk.minsenderthreads`. | <kbd>since 4.0.4</kbd> <kbd>removed since 4.1.0</kbd> |
 
 ## Communication
 
 | Property | Default | Description | Tags |
 |---|---|---|---|
-| `njams.client.sdk.sharedcommunications` | `false` | Replaced by `njams.sdk.communication.shared`. | deprecated since 5.0.0 |
+| `njams.client.sdk.sharedcommunications` | `false` | Replaced by `njams.sdk.communication.shared`. | <kbd>since 4.1.3</kbd> <kbd>deprecated since 5.0.0</kbd> |
 | `njams.sdk.communication` | — | Selects the communication transport. Values: `HTTP`, `JMS`, `KAFKA`, or a custom implementation name. | |
-| `njams.sdk.communication.containerMode` | `true` | Enables container/cluster mode. When `true`, the SDK generates a unique client ID per instance so that targeted commands (e.g. replay) are routed to the correct node in a load-balanced setup. Disable only in confirmed single-node deployments. | since 5.0.0 |
-| `njams.sdk.communication.maxMessageSize` | `0` | Maximum message body size in bytes. Messages exceeding this size are split into chunks before sending. A value of `0` or less disables splitting. The minimum allowed value is 10240 bytes. For Kafka, the smaller of this value and the Kafka producer's `max.request.size` is used. Requires nJAMS server 6.1.2 or later for transports other than Kafka. | since 5.0.3 |
-| `njams.sdk.communication.shared` | `false` | When `true`, a single sender/receiver pool is shared across all `Njams` instances in the same JVM. By default each instance has its own dedicated pool. Has no effect when only one `Njams` instance is used. | since 5.0.0 |
+| `njams.sdk.communication.containerMode` | `true` | Enables container/cluster mode. When `true`, the SDK generates a unique client ID per instance so that targeted commands (e.g. replay) are routed to the correct node in a load-balanced setup. Disable only in confirmed single-node deployments. | <kbd>since 5.0.0</kbd> |
+| `njams.sdk.communication.maxMessageSize` | `0` | Maximum message body size in bytes. Messages exceeding this size are split into chunks before sending. A value of `0` or less disables splitting. The minimum allowed value is 10240 bytes. For Kafka, the smaller of this value and the Kafka producer's `max.request.size` is used. Requires nJAMS server 6.1.2 or later for transports other than Kafka. | <kbd>since 5.0.3</kbd> |
+| `njams.sdk.communication.shared` | `false` | When `true`, a single sender/receiver pool is shared across all `Njams` instances in the same JVM. By default each instance has its own dedicated pool. Has no effect when only one `Njams` instance is used. | <kbd>since 5.0.0</kbd> |
 
 ## HTTP / HTTPS
 
@@ -106,27 +106,27 @@ Set `njams.sdk.communication=HTTP`. HTTPS is used automatically when the base UR
 
 | Property | Default | Description | Tags |
 |---|---|---|---|
-| `njams.sdk.communication.http.base.url` | — | Base URL of the nJAMS server (e.g. `http://localhost:8080/njams/`). | |
-| `njams.sdk.communication.http.compression.enabled` | `false` | When `true`, HTTP request bodies are compressed with GZIP. Requires nJAMS server support. | since 5.0.3 |
-| `njams.sdk.communication.http.connection.test` | — | Set to `legacy` to skip the initial connection test and use the legacy fallback immediately. Only needed for nJAMS server versions older than 5.3.4. | deprecated since 5.0.0 |
-| `njams.sdk.communication.http.dataprovider.suffix` | — | Path suffix of the nJAMS dataprovider to send events to (e.g. `dp1`). | since 5.0.0 |
-| `njams.sdk.communication.http.password` | — | Password for nJAMS server authentication. The account must have the `ingest-service` system privilege. | since 5.0.0 |
-| `njams.sdk.communication.http.proxy.host` | — | Proxy host name or IP address. | since 5.0.0 |
-| `njams.sdk.communication.http.proxy.password` | — | Password for proxy authentication. | since 5.0.0 |
-| `njams.sdk.communication.http.proxy.port` | `80` | Proxy port. | since 5.0.0 |
-| `njams.sdk.communication.http.proxy.user` | — | User name for proxy authentication. | since 5.0.0 |
+| `njams.sdk.communication.http.base.url` | — | Base URL of the nJAMS server (e.g. `http://localhost:8080/njams/`). | <kbd>since 4.2.0</kbd> |
+| `njams.sdk.communication.http.compression.enabled` | `false` | When `true`, HTTP request bodies are compressed with GZIP. Requires nJAMS server support. | <kbd>since 5.0.3</kbd> |
+| `njams.sdk.communication.http.connection.test` | — | Set to `legacy` to skip the initial connection test and use the legacy fallback immediately. Only needed for nJAMS server versions older than 5.3.4. | <kbd>since 5.0.0</kbd> <kbd>deprecated since 5.0.0</kbd> |
+| `njams.sdk.communication.http.dataprovider.suffix` | — | Path suffix of the nJAMS dataprovider to send events to (e.g. `dp1`). | <kbd>since 5.0.0</kbd> |
+| `njams.sdk.communication.http.password` | — | Password for nJAMS server authentication. The account must have the `ingest-service` system privilege. | <kbd>since 5.0.0</kbd> |
+| `njams.sdk.communication.http.proxy.host` | — | Proxy host name or IP address. | <kbd>since 5.0.0</kbd> |
+| `njams.sdk.communication.http.proxy.password` | — | Password for proxy authentication. | <kbd>since 5.0.0</kbd> |
+| `njams.sdk.communication.http.proxy.port` | `80` | Proxy port. | <kbd>since 5.0.0</kbd> |
+| `njams.sdk.communication.http.proxy.user` | — | User name for proxy authentication. | <kbd>since 5.0.0</kbd> |
 | `njams.sdk.communication.http.ssl.certificate.file` | — | Full path to a PEM certificate file for SSL. | |
-| `njams.sdk.communication.http.ssl.keyStore` | — | Full path to a keystore file for SSL. | since 5.0.0 |
-| `njams.sdk.communication.http.ssl.keyStorePassword` | — | Password for the keystore. | since 5.0.0 |
-| `njams.sdk.communication.http.ssl.keyStoreType` | `jks` | Keystore format. | since 5.0.0 |
-| `njams.sdk.communication.http.ssl.trustStore` | — | Full path to a truststore file for SSL certificate verification. | since 5.0.0 |
-| `njams.sdk.communication.http.ssl.trustStorePassword` | — | Password for the truststore. | since 5.0.0 |
-| `njams.sdk.communication.http.ssl.trustStoreType` | `jks` | Truststore format. | since 5.0.0 |
-| `njams.sdk.communication.http.ssl.unsafe.disableHostnameVerification` | `false` | When `true`, host name verification is skipped during SSL handshake. **Reduces security — use only in controlled environments.** | since 5.0.0 |
-| `njams.sdk.communication.http.ssl.unsafe.trustAllCertificates` | `false` | When `true`, all SSL certificates are accepted without validation. **Reduces security — use only in controlled environments.** | since 5.0.0 |
-| `njams.sdk.communication.http.user` | — | User name for nJAMS server authentication. The account must have the `ingest-service` system privilege. | since 5.0.0 |
-| — | — | *Removed settings* | — |
-| `njams.sdk.communication.http.dataprovider.prefix` | — | Replaced by `njams.sdk.communication.http.dataprovider.suffix`. | removed since 5.0.0 |
+| `njams.sdk.communication.http.ssl.keyStore` | — | Full path to a keystore file for SSL. | <kbd>since 5.0.0</kbd> |
+| `njams.sdk.communication.http.ssl.keyStorePassword` | — | Password for the keystore. | <kbd>since 5.0.0</kbd> |
+| `njams.sdk.communication.http.ssl.keyStoreType` | `jks` | Keystore format. | <kbd>since 5.0.0</kbd> |
+| `njams.sdk.communication.http.ssl.trustStore` | — | Full path to a truststore file for SSL certificate verification. | <kbd>since 5.0.0</kbd> |
+| `njams.sdk.communication.http.ssl.trustStorePassword` | — | Password for the truststore. | <kbd>since 5.0.0</kbd> |
+| `njams.sdk.communication.http.ssl.trustStoreType` | `jks` | Truststore format. | <kbd>since 5.0.0</kbd> |
+| `njams.sdk.communication.http.ssl.unsafe.disableHostnameVerification` | `false` | When `true`, host name verification is skipped during SSL handshake. **Reduces security — use only in controlled environments.** | <kbd>since 5.0.0</kbd> |
+| `njams.sdk.communication.http.ssl.unsafe.trustAllCertificates` | `false` | When `true`, all SSL certificates are accepted without validation. **Reduces security — use only in controlled environments.** | <kbd>since 5.0.0</kbd> |
+| `njams.sdk.communication.http.user` | — | User name for nJAMS server authentication. The account must have the `ingest-service` system privilege. | <kbd>since 5.0.0</kbd> |
+| — | — | *Removed settings* | |
+| `njams.sdk.communication.http.dataprovider.prefix` | — | Replaced by `njams.sdk.communication.http.dataprovider.suffix`. | <kbd>removed since 5.0.0</kbd> |
 
 ## JMS
 
@@ -134,8 +134,8 @@ Set `njams.sdk.communication=JMS`.
 
 | Property | Default | Description | Tags |
 |---|---|---|---|
-| `njams.sdk.communication.jms.connectionFactory` | — | Name used to look up the JMS `ConnectionFactory`. Since 5.0.3 this is also used as a two-step lookup: first for an SDK-internal `JmsFactory` (via SPI), then falling back to a JNDI lookup if no factory was found. | |
-| `njams.sdk.communication.jms.delivery.mode` | `PERSISTENT` | JMS delivery mode for outbound messages. Values: `PERSISTENT`, `NON_PERSISTENT` / `NONPERSISTENT`, `RELIABLE` (Tibco EMS only, since 5.0.3). **Note:** Non-persistent mode can lead to message loss and inconsistent data in nJAMS. | |
+| `njams.sdk.communication.jms.connectionFactory` | — | Name used to look up the JMS `ConnectionFactory`. As of 5.0.3, also used for a two-step `JmsFactory` SPI lookup before falling back to JNDI. | |
+| `njams.sdk.communication.jms.delivery.mode` | `PERSISTENT` | JMS delivery mode for outbound messages. Values: `PERSISTENT`, `NON_PERSISTENT` / `NONPERSISTENT`, `RELIABLE` (Tibco EMS only, since 5.0.3). **Note:** Non-persistent mode can lead to message loss and inconsistent data in nJAMS. | <kbd>since 4.2.0</kbd> |
 | `njams.sdk.communication.jms.destination` | — | Common prefix for the event, command, and error queues / topics (e.g. `njams`). | |
 | `njams.sdk.communication.jms.destination.commands` | — | Overrides the commands topic name when it does not follow the default convention (`<destination>.commands`). | |
 | `njams.sdk.communication.jms.java.naming.factory.initial` | — | JNDI initial context factory class (e.g. `com.tibco.tibjms.naming.TibjmsInitialContextFactory`). | |
@@ -148,9 +148,9 @@ Set `njams.sdk.communication=JMS`.
 | `njams.sdk.communication.jms.javax.net.ssl.trustStore` | — | Path to the JMS SSL truststore. | |
 | `njams.sdk.communication.jms.javax.net.ssl.trustStorePassword` | — | Password for the JMS SSL truststore. | |
 | `njams.sdk.communication.jms.javax.net.ssl.trustStoreType` | — | Type of the JMS SSL truststore (e.g. `jks`). | |
-| `njams.sdk.communication.jms.jmsFactory` | — | Explicitly selects a `JmsFactory` SPI implementation by name. Only needed when the desired `JmsFactory` also uses the `connectionFactory` key internally (e.g. a custom JNDI variant), making disambiguation necessary. | since 5.0.3 |
+| `njams.sdk.communication.jms.jmsFactory` | — | Explicitly selects a `JmsFactory` SPI implementation by name. Only needed when the desired `JmsFactory` also uses the `connectionFactory` key internally (e.g. a custom JNDI variant), making disambiguation necessary. | <kbd>since 5.0.3</kbd> |
 | `njams.sdk.communication.jms.password` | — | JMS connection password. | |
-| `njams.sdk.communication.jms.supportsMessageSelector` | `true` | When `false`, the JMS implementation does not support message selectors. The SDK then uses a workaround that requires an additional queue with the `.project` suffix. | since 5.0.3 |
+| `njams.sdk.communication.jms.supportsMessageSelector` | `true` | When `false`, the JMS implementation does not support message selectors. The SDK then uses a workaround that requires an additional queue with the `.project` suffix. | <kbd>since 5.0.3</kbd> |
 | `njams.sdk.communication.jms.username` | — | JMS connection user name. | |
 
 ## Kafka
@@ -159,31 +159,31 @@ Set `njams.sdk.communication=KAFKA`.
 
 | Property | Default | Description | Tags |
 |---|---|---|---|
-| `njams.sdk.communication.kafka.admin.*` | — | Properties passed directly to the Kafka admin client. | |
-| `njams.sdk.communication.kafka.client.*` | — | Properties passed to all Kafka client types (consumer, producer, and admin). Acts as a shortcut for setting a property on all three at once. | |
-| `njams.sdk.communication.kafka.client.bootstrap.servers` | — | **Required.** Comma-separated list of Kafka bootstrap servers (e.g. `host1:9092,host2:9092`). | |
-| `njams.sdk.communication.kafka.consumer.*` | — | Properties passed directly to the Kafka consumer client. | |
-| `njams.sdk.communication.kafka.producer.*` | — | Properties passed directly to the Kafka producer client. | |
-| `njams.sdk.communication.kafka.replyProducerIdleTime` | `30000` | Time in milliseconds after which an idle reply producer is closed. | |
-| `njams.sdk.communication.kafka.topicPrefix` | `njams` | Prefix for the event, project, commands, and optional error topics. The topics must exist in the Kafka cluster. | |
-| — | — | *Removed settings* | — |
-| `njams.sdk.communication.kafka.commandsTopic` | — | Overrode the commands topic name. Replaced by the standard topic naming convention based on `topicPrefix`. | removed since 5.0.0 |
-| `njams.sdk.communication.kafka.largeMessageMode` | — | Controlled how messages larger than the Kafka limit were handled (`split` or `discard`). Splitting is now the standard behavior; `discard` was a compatibility option for nJAMS server 5.2.0 and 5.2.1. | removed since 5.0.0 |
+| `njams.sdk.communication.kafka.admin.*` | — | Properties passed directly to the Kafka admin client. | <kbd>since 4.2.0</kbd> |
+| `njams.sdk.communication.kafka.client.*` | — | Properties passed to all Kafka client types (consumer, producer, and admin). Acts as a shortcut for setting a property on all three at once. | <kbd>since 4.2.0</kbd> |
+| `njams.sdk.communication.kafka.client.bootstrap.servers` | — | **Required.** Comma-separated list of Kafka bootstrap servers (e.g. `host1:9092,host2:9092`). | <kbd>since 4.2.0</kbd> |
+| `njams.sdk.communication.kafka.consumer.*` | — | Properties passed directly to the Kafka consumer client. | <kbd>since 4.2.0</kbd> |
+| `njams.sdk.communication.kafka.producer.*` | — | Properties passed directly to the Kafka producer client. | <kbd>since 4.2.0</kbd> |
+| `njams.sdk.communication.kafka.replyProducerIdleTime` | `30000` | Time in milliseconds after which an idle reply producer is closed. | <kbd>since 4.2.0</kbd> |
+| `njams.sdk.communication.kafka.topicPrefix` | `njams` | Prefix for the event, project, commands, and optional error topics. The topics must exist in the Kafka cluster. | <kbd>since 4.2.0</kbd> |
+| — | — | *Removed settings* | |
+| `njams.sdk.communication.kafka.commandsTopic` | — | Overrode the commands topic name. Replaced by the standard topic naming convention based on `topicPrefix`. | <kbd>since 4.2.0</kbd> <kbd>removed since 5.0.0</kbd> |
+| `njams.sdk.communication.kafka.largeMessageMode` | — | Controlled how messages larger than the Kafka limit were handled (`split` or `discard`). Splitting is now the standard behavior; `discard` was a compatibility option for nJAMS server 5.2.0 and 5.2.1. | <kbd>since 4.2.2</kbd> <kbd>removed since 5.0.0</kbd> |
 
 ## Argos / Metrics
 
 | Property | Default | Description | Tags |
 |---|---|---|---|
-| `njams.sdk.subagent.enabled` | `true` | Enables the Argos subagent component. Has no effect if the client does not implement the Argos feature. | |
-| `njams.sdk.subagent.host` | `localhost` | Host name or IP address of the nJAMS Agent instance to send Argos metrics to. | |
-| `njams.sdk.subagent.port` | `6450` | Port of the nJAMS Agent instance. | |
+| `njams.sdk.subagent.enabled` | `true` | Enables the Argos subagent component. Has no effect if the client does not implement the Argos feature. | <kbd>since 4.1.0</kbd> |
+| `njams.sdk.subagent.host` | `localhost` | Host name or IP address of the nJAMS Agent instance to send Argos metrics to. | <kbd>since 4.1.0</kbd> |
+| `njams.sdk.subagent.port` | `6450` | Port of the nJAMS Agent instance. | <kbd>since 4.1.0</kbd> |
 
 ## Data Masking
 
 | Property | Default | Description | Tags |
 |---|---|---|---|
-| `njams.sdk.datamasking.enabled` | `true` | Enables data masking. When `false`, masking is disabled for all regex rules defined in both settings and `configuration.json`. | |
-| `njams.sdk.datamasking.regex.<name>` | — | Defines a data-masking regex rule. `<name>` is an arbitrary label; the value is a Java regex pattern (`java.util.regex.Pattern`). Multiple rules can be defined with different names. Example: `njams.sdk.datamasking.regex.maskPasswords=password:\s*\S+` | |
+| `njams.sdk.datamasking.enabled` | `true` | Enables data masking. When `false`, masking is disabled for all regex rules defined in both settings and `configuration.json`. | <kbd>since 4.0.16</kbd> |
+| `njams.sdk.datamasking.regex.<name>` | — | Defines a data-masking regex rule. `<name>` is an arbitrary label; the value is a Java regex pattern (`java.util.regex.Pattern`). Multiple rules can be defined with different names. Example: `njams.sdk.datamasking.regex.maskPasswords=password:\s*\S+` | <kbd>since 4.0.16</kbd> |
 
 # How can I use a custom ProcessModelLayouter?
 
