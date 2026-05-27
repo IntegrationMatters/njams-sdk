@@ -198,7 +198,7 @@ public class NjamsProcessDiagramFactory implements ProcessDiagramFactory {
             createSvg(context, processModel);
 
             String svg = serializeDocument(context);
-            LOG.trace("Created ProcessDiagram from ProcessModel: {}", svg);
+            LOG.trace("Created ProcessDiagram for model '{}'\n{}",processModel.getPath(), svg);
             return svg;
         } catch (Exception e) {
             throw new NjamsSdkRuntimeException("Error in NjamsProcessDiagramFactory", e);
@@ -386,6 +386,7 @@ public class NjamsProcessDiagramFactory implements ProcessDiagramFactory {
 
         int iconSize = 16;
         Element groupIcon = context.getDoc().createElementNS(context.getSvgNS(), "image");
+        groupIcon.setAttributeNS(null, "activity", "true");
         groupIcon.setAttributeNS(null, "modelId", groupModel.getId());
         groupIcon.setAttributeNS(null, "x", String.valueOf(headerX));
         groupIcon.setAttributeNS(null, "y", String.valueOf(headerY));
