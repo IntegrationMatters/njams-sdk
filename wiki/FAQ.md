@@ -360,24 +360,23 @@ The following activity fields are subject to data masking:
 - `BusinessObject`, `BusinessService`
 - All other attributes
 
-## Howto use Argos Feature to send metrics from SDK
+## How to use the Argos feature <kbd style="background-color:#cf222e;color:#fff;border-color:#cf222e">deprecated 6.0.0</kbd> <kbd style="background-color:#2da44e;color:#fff;border-color:#2da44e">since 4.11.0</kbd>
 
-After `Njams.start()` the Argos sender is active and sends collected metrics to an nJAMS Agent every 10 seconds. Configure the agent connection via the settings properties (see [Argos / Metrics](#argos--metrics) above).
+The Argos feature allows the SDK to send JVM and custom application metrics to an nJAMS Agent. After `Njams.start()`, the Argos sender starts automatically and transmits collected metrics every 10 seconds. Configure the agent connection via the settings properties (see [Argos / Metrics](#argos--metrics) above).
 
-By default the Argos sender is enabled but no collectors are active. The SDK ships with a `JVMCollector`. Register it in your client code:
+By default the Argos sender is enabled but no collectors are registered. The SDK ships with a built-in `JVMCollector` for standard JVM metrics. Register it before or after starting the `Njams` instance:
 
 ```java
-JVMCollector jvmCollector = new JVMCollector("testId", "testName", "testType");
+JVMCollector jvmCollector = new JVMCollector("myId", "JVM Metrics", "jvm");
 njams.addArgosCollector(jvmCollector);
 ```
 
-To create custom metrics, implement two classes:
-- A metric class extending `ArgosMetric` that holds your metric attributes as a POJO.
-- A collector class extending `ArgosCollector` that implements the `create()` method to produce your metric.
+To send custom metrics, implement two classes:
 
-Register the collector via `njams.addArgosCollector(yourCollector)`. See the built-in `JVMCollector` as an example. The implementation is in package `com.im.njams.sdk.argos`.
+- A metric class extending `ArgosMetric` — holds your metric values as a POJO.
+- A collector class extending `ArgosCollector` — implements the `create()` method to produce a metric instance on each collection cycle.
 
-`since njams4-sdk-4.11.0`
+Register your collector via `njams.addArgosCollector(yourCollector)`. Use the built-in `JVMCollector` in package `com.im.njams.sdk.argos` as a reference implementation.
 
 ## How to fill Input Mapping field
 
