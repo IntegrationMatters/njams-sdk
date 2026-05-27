@@ -1,44 +1,69 @@
-# How can I provide startup settings to njams?
+# How to provide startup settings to nJAMS
 
-To set which settings provider to use, create a `Properties` object with one property:
+nJAMS is configured at startup through a `ClientSettings` instance that you pass to the `Njams` constructor. `ClientSettings` is a key/value view over your configuration (transport selection, flush tuning, data masking, Argos, …); the available keys are listed in the tables further down.
 
+## Obtaining a ClientSettings instance from a single source
+
+`ClientSettings` provides static factory methods — pick the one matching where your configuration comes from:
+
+| Factory method | Use when your configuration is… |
+|---|---|
+| `ClientSettings.from(Map<String, String>)` | held in an in-memory map |
+| `ClientSettings.from(Properties)` | a `java.util.Properties` object (e.g. one you loaded from a file or resource) |
+| `ClientSettings.fromSystemProperties(Predicate<String>)` | taken from JVM system properties; the predicate selects which keys are visible (pass `null` to accept all) |
+
+All three return a live view: changes to the backing map/properties remain visible through the returned `ClientSettings`.
+
+## Combining multiple sources (HierarchicalSettings)
+
+When configuration comes from several places — a config file, system properties, environment variables, built-in defaults — use `HierarchicalSettings`. It is a `ClientSettings` that consults an ordered list of named layers and, for each key, returns the value from the **first** layer that defines it. Writes are applied only to the base (first) layer.
+
+Build it with the fluent builder. List layers from highest priority to lowest, with defaults last so they only apply when no other layer provides the key:
+
+```java
+ClientSettings settings = HierarchicalSettings.from(fileProperties).withName("config.properties")
+    .andThenSystemProperties().withPrefixFilter("njams.")
+    .andThenEnvironmentVariables().withPrefixFilter("NJAMS_")
+    .andThen(defaultProperties).withName("defaults")
+    .build();
 ```
-njams.sdk.settings.provider=NAME_OF_THE_SETTINGS_PROVIDER
+
+- Start the chain with `from(ClientSettings)`, `from(Map)`, `from(Properties)`, or `fromEmpty()` for an in-memory base. The base layer is the only one that receives writes.
+- Add further layers with `andThen(...)` (a `ClientSettings`, `Map`, or `Properties`), `andThenSystemProperties()`, or `andThenEnvironmentVariables()`.
+- System-property and environment layers can be narrowed with `withPrefixFilter(...)` and/or `withRegexFilter(...)` (combined with AND); filters match the actual storage key (the system-property or environment-variable name).
+- Earlier layers win, so list your most specific overrides first and the defaults layer last as a fallback.
+
+**Environment variables.** The environment layer resolves the SDK's dotted property keys from their upper-snake-case environment equivalents — e.g. reading `njams.sdk.communication` looks up the environment variable `NJAMS_SDK_COMMUNICATION` — so you keep using the same `njams.sdk.*` keys throughout your code regardless of source.
+
+## Starting nJAMS with it
+
+```java
+// 1. Assemble the configuration as key/value pairs.
+Properties props = new Properties();
+props.setProperty(NjamsSettings.PROPERTY_COMMUNICATION, "HTTP");
+// … further transport and SDK settings (see the tables below) …
+
+// 2. Wrap them in a ClientSettings instance.
+ClientSettings settings = ClientSettings.from(props);
+
+// 3. Pass the settings to the Njams constructor and start the client.
+Njams njams = new Njams(new Path("Domain", "Deployment", "MyClient"), "1.0.0", "BW6", settings);
+njams.start();
 ```
 
-Then call `SettingsProviderFactory.getSettingsProvider(props)` to obtain a provider object.
+## Migrating from the deprecated provider/factory mechanism
 
-> **Deprecated (for removal in 6.0.0):** The settings provider/factory mechanism — `SettingsProviderFactory`, the `SettingsProvider` interface and its implementations, and the `njams.sdk.settings.*` provider properties listed below — is deprecated. Obtain a `ClientSettings` directly via its factory methods instead, e.g. `ClientSettings.from(Map)`, `ClientSettings.from(Properties)`, or `ClientSettings.fromSystemProperties(Predicate)`.
+> <kbd style="background-color:#cf222e;color:#fff;border-color:#cf222e">deprecated 6.0.0</kbd> The settings *provider/factory* mechanism is deprecated and will be removed. This includes `SettingsProviderFactory`, the `SettingsProvider` interface and its built-in implementations (`file`, `propertiesFile`, `memory`, `systemProperties`), and the `njams.sdk.settings.*` provider properties (see the **Settings Providers** table below).
 
-# Which settings providers are available?
+Previously you selected a provider via the `njams.sdk.settings.provider` property and called `SettingsProviderFactory.getSettingsProvider(props)`, then `loadSettings()`. Replace that with a `ClientSettings` obtained from the factory methods above:
 
-There are four built-in settings providers. You can also implement your own by using the `SettingsProvider` interface.
+| Deprecated provider | Replacement |
+|---|---|
+| `memory` | `ClientSettings.from(map)` or `ClientSettings.from(properties)` |
+| `systemProperties` | `ClientSettings.fromSystemProperties(filter)`, or an `andThenSystemProperties()` layer in `HierarchicalSettings` |
+| `file` / `propertiesFile` | load the file yourself (e.g. `Properties.load(...)`) and wrap it with `ClientSettings.from(properties)`; combine with other sources via `HierarchicalSettings` if needed |
 
-## FileSettingsProvider
-
-**Provider name:** `file`
-
-Reads a JSON file. Configure the file path either by setting `njams.sdk.settings.file` or by calling `configure(props)` with that property. If neither is provided, the file defaults to `config.json` in the working directory.
-
-## MemorySettingsProvider
-
-**Provider name:** `memory`
-
-Holds properties in memory only. Settings are passed via `configure(props)` and returned by `loadSettings()`.
-
-> **Note:** A client restart will lose all settings stored by this provider.
-
-## PropertiesFileSettingsProvider
-
-**Provider name:** `propertiesFile`
-
-Loads and saves settings in standard Java Properties format. Supports recursive loading of parent property files via a parent key. Configure the file path with `njams.sdk.settings.properties.file`, or call `setFile(File)`, or let it default to `config.properties`. When `loadSettings()` is called, the file and all its parent files are read; child properties override ancestor properties in the resulting `Settings` object (the files themselves are not modified).
-
-## SystemPropertiesSettingsProvider
-
-**Provider name:** `systemProperties`
-
-Uses `System.getProperties()` as the settings source. `configure(props)` has no effect.
+The legacy `Settings` and `SettingsProvider` types remain only as deprecated aliases so existing code keeps compiling; new code should use `ClientSettings` directly.
 
 # Which settings can I use?
 
