@@ -28,6 +28,7 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.not;
 import static org.junit.Assert.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.doAnswer;
 
 import java.util.Properties;
@@ -60,6 +61,7 @@ public class DataMaskingTest {
         doAnswer(invocation -> NJAMS).when(JOB).getNjams();
         doAnswer(invocation -> invocation.getArgument(0, String.class)).when(JOB).limitPayload(any());
         doAnswer(invocation -> invocation.getArguments()[0]).when(NJAMS).serialize(any());
+        doAnswer(invocation -> invocation.getArguments()[0]).when(NJAMS).serialize(any(), anyInt());
         IMPL = new ActivityImpl(JOB, Mockito.mock(ActivityModel.class));
         IMPL.start();
     }

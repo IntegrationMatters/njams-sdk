@@ -241,7 +241,8 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
     public void processInput(Object input) {
         final String serializedData;
         if (isTracing() || needsData(extract)) {
-            serializedData = DataMasking.maskString(job.getNjams().serialize(input));
+            final int sizeLimit = needsData(extract) ? 0 : job.getSerializeSizeHint();
+            serializedData = DataMasking.maskString(job.getNjams().serialize(input, sizeLimit));
         } else {
             serializedData = null;
         }
@@ -306,7 +307,8 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
     public void processOutput(Object output) {
         final String serializedData;
         if (isTracing() || needsData(extract)) {
-            serializedData = DataMasking.maskString(job.getNjams().serialize(output));
+            final int sizeLimit = needsData(extract) ? 0 : job.getSerializeSizeHint();
+            serializedData = DataMasking.maskString(job.getNjams().serialize(output, sizeLimit));
         } else {
             serializedData = null;
         }

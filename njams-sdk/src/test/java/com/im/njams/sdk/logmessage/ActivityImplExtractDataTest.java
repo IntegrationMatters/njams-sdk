@@ -78,4 +78,78 @@ public class ActivityImplExtractDataTest extends AbstractTest {
         // the full untruncated string, since the needle is located well beyond the payload limit.
         assertEquals(NEEDLE, activity.getAttributes().get("needleAttribute"));
     }
+
+    @Test
+    public void processInputPassesSizeHintWhenExtractDoesNotNeedData() {
+        ClientSettings settings = njams.getSettings();
+        settings.put(NjamsSettings.PROPERTY_PAYLOAD_LIMIT_MODE, "truncate");
+        settings.put(NjamsSettings.PROPERTY_PAYLOAD_LIMIT_SIZE, "10");
+
+        // Custom serializer that records the sizeLimit it is invoked with.
+        final int[] capturedLimit = {-1};
+        njams.addSerializer(String.class, (value, sizeLimit) -> {
+            capturedLimit[0] = sizeLimit;
+            return value;
+        });
+
+        // VALUE rule does NOT need data -> needsData(extract) == false -> size hint must be applied.
+        ExtractRule rule = new ExtractRule();
+        rule.setRuleType(RuleType.VALUE);
+        rule.setInout("in");
+        rule.setAttribute("constant");
+        rule.setRule("fixed-value");
+        Extract extract = new Extract();
+        extract.setName("constantExtract");
+        extract.getExtractRules().add(rule);
+
+        ActivityConfiguration activityConfig = njams.getConfiguration().getProcess(process.getPath().toString())
+            .getOrCreateActivity(ACTIVITYMODELID);
+        activityConfig.setExtract(extract);
+
+        JobImpl job = createDefaultJob();
+        job.setDeepTrace(true); // ensure isTracing() so serialization happens
+        job.start();
+        ActivityImpl activity = (ActivityImpl) createDefaultActivity(job);
+
+        activity.processInput("a-long-input-string-well-over-ten-chars");
+
+        // payloadLimit (10) + 1 = 11
+        assertEquals(11, capturedLimit[0]);
+    }
+
+    @Test
+    public void processInputUsesNoLimitWhenExtractNeedsData() {
+        ClientSettings settings = njams.getSettings();
+        settings.put(NjamsSettings.PROPERTY_PAYLOAD_LIMIT_MODE, "truncate");
+        settings.put(NjamsSettings.PROPERTY_PAYLOAD_LIMIT_SIZE, "10");
+
+        final int[] capturedLimit = {-1};
+        njams.addSerializer(String.class, (value, sizeLimit) -> {
+            capturedLimit[0] = sizeLimit;
+            return value;
+        });
+
+        // REGEXP rule DOES need data -> needsData(extract) == true -> sizeLimit must be 0 (no limit).
+        ExtractRule rule = new ExtractRule();
+        rule.setRuleType(RuleType.REGEXP);
+        rule.setInout("in");
+        rule.setAttribute("matched");
+        rule.setRule("(foo)");
+        Extract extract = new Extract();
+        extract.setName("regexExtract");
+        extract.getExtractRules().add(rule);
+
+        ActivityConfiguration activityConfig = njams.getConfiguration().getProcess(process.getPath().toString())
+            .getOrCreateActivity(ACTIVITYMODELID);
+        activityConfig.setExtract(extract);
+
+        JobImpl job = createDefaultJob();
+        job.setDeepTrace(true);
+        job.start();
+        ActivityImpl activity = (ActivityImpl) createDefaultActivity(job);
+
+        activity.processInput("some-long-input-foo-string");
+
+        assertEquals(0, capturedLimit[0]);
+    }
 }
