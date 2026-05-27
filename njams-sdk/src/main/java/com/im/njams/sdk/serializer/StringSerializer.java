@@ -45,4 +45,15 @@ public class StringSerializer<T> implements Serializer<T> {
         return t == null ? "" : t.toString();
     }
 
+    /**
+     * {@inheritDoc}
+     *
+     * <p>This minimal implementation ignores {@code sizeLimit}; size-aware serialization is added
+     * in a follow-up step.</p>
+     */
+    @Override
+    public String serialize(final T t, final int sizeLimit) throws NjamsSdkRuntimeException {
+        return serialize(t);
+    }
+
 }

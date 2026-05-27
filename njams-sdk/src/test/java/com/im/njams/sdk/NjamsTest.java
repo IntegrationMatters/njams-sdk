@@ -67,9 +67,9 @@ public class NjamsTest {
     @Test
     public void testSerializer() {
         System.out.println("addSerializer");
-        final Serializer<List> expResult = l -> "list";
+        final Serializer<List> expResult = (l, sizeLimit) -> "list";
 
-        instance.addSerializer(ArrayList.class, a -> a.getClass().getSimpleName());
+        instance.addSerializer(ArrayList.class, (a, sizeLimit) -> a.getClass().getSimpleName());
         instance.addSerializer(List.class, expResult);
 
         String serialized;

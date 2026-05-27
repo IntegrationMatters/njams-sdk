@@ -204,7 +204,7 @@ public class Njams implements InstructionListener {
     public static final String BUILD_YEAR = "sdk.buildYear";
 
     private static final Serializer<Object> DEFAULT_SERIALIZER = new StringSerializer<>();
-    private static final Serializer<Object> NO_SERIALIZER = o -> null;
+    private static final Serializer<Object> NO_SERIALIZER = (o, sizeLimit) -> null;
 
     private final String category;
 

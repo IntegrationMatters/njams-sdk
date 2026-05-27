@@ -61,4 +61,15 @@ public class JsonSerializer<T> implements Serializer<T> {
         }
     }
 
+    /**
+     * {@inheritDoc}
+     *
+     * <p>This minimal implementation ignores {@code sizeLimit}; size-aware serialization is added
+     * in a follow-up step.</p>
+     */
+    @Override
+    public String serialize(final T object, final int sizeLimit) throws NjamsSdkRuntimeException {
+        return serialize(object);
+    }
+
 }
