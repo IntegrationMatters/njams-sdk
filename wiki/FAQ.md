@@ -215,13 +215,73 @@ Set `njams.sdk.communication=KAFKA`.
 | `njams.sdk.datamasking.enabled` | `true` | Enables data masking. When `false`, masking is disabled for all regex rules defined in both settings and `configuration.json`. | <kbd style="background-color:#2da44e;color:#fff;border-color:#2da44e">since 4.0.16</kbd> |
 | `njams.sdk.datamasking.regex.<name>` | — | Defines a data-masking regex rule. `<name>` is an arbitrary label; the value is a Java regex pattern (`java.util.regex.Pattern`). Multiple rules can be defined with different names. Example: `njams.sdk.datamasking.regex.maskPasswords=password:\s*\S+` | <kbd style="background-color:#2da44e;color:#fff;border-color:#2da44e">since 4.0.16</kbd> |
 
-## How can I use a custom ProcessModelLayouter?
+## How to modify the process model view (SVG)
 
-If you don't want to use the default `ProcessModelLayouter` (`SimpleProcessModelLayouter`), you have two options:
+nJAMS renders each process as an SVG diagram shown in the server UI. Producing that diagram is split into two independent steps:
 
-**Use the built-in NoopLayouter** (`since njams4-sdk-4.0.3`): The `NoopLayouter` does nothing — you set the x/y coordinates and width/height of every `ActivityModel` yourself. Create a `NoopLayouter` instance and call `setProcessModelLayouter(noopLayouter)` on your `Njams` object.
+1. **Layout** — a `ProcessModelLayouter` assigns x/y coordinates and dimensions to every `ActivityModel`.
+2. **Rendering** — a `ProcessDiagramFactory` converts the laid-out `ProcessModel` into SVG markup.
 
-**Implement your own layouter** (`since njams4-sdk-4.0.0`): Implement the interface `com.im.njams.sdk.model.layout.ProcessModelLayouter`. Override the `layout(ProcessModel processModel)` method. Create an instance of your layouter and call `setProcessModelLayouter(yourLayouter)` on your `Njams` object.
+Both can be customised independently on the `Njams` instance.
+
+### Layout
+
+The default layouter since 6.0 is `CommonModelLayouter`. It performs a two-pass algorithm — a bottom-up sizing pass that computes group dimensions from their contents, followed by a top-down placement pass using per-column widths — and correctly handles parallel branches, convergence nodes, and nested groups.
+
+`SimpleProcessModelLayouter`, the previous default, is deprecated. It does not correctly handle parallel branches, multiple start activities, or groups with more than one start activity. If you relied on the default, no code change is needed — `CommonModelLayouter` is now used automatically.
+
+**Custom layouter** — the standard way to control layout is to implement `com.im.njams.sdk.model.layout.ProcessModelLayouter`. The interface has a single method:
+
+```java
+public class MyLayouter implements ProcessModelLayouter {
+    @Override
+    public void layout(ProcessModel processModel) {
+        // set x, y, width, height on each ActivityModel and GroupModel
+    }
+}
+```
+
+Register it on the `Njams` instance before starting:
+
+```java
+njams.setProcessModelLayouter(new MyLayouter());
+```
+
+If the `ActivityModel` elements in your process model are already populated with coordinates and dimensions — for example, when coordinates are imported from an external source — use `NoopLayouter` instead to skip the layout step entirely:
+
+```java
+njams.setProcessModelLayouter(new NoopLayouter());
+```
+
+### Modifying the SVG output
+
+The built-in `NjamsProcessDiagramFactory` generates SVG that meets the structural and formatting requirements of the nJAMS server. **Replacing it with a completely custom `ProcessDiagramFactory` implementation is not recommended** — the server relies on specific SVG conventions that `NjamsProcessDiagramFactory` encodes. Instead, extend or configure the existing factory.
+
+**XSLT post-processing** — supply an XSLT stylesheet to be applied to the SVG DOM just before it is serialised to a string. Use this to restyle, reorder, or augment the generated SVG without touching the drawing logic:
+
+```java
+NjamsProcessDiagramFactory factory = new NjamsProcessDiagramFactory(njams)
+    .withXslt(MyClass.class.getResourceAsStream("/my-svg-transform.xsl"));
+njams.setProcessDiagramFactory(factory);
+```
+
+Three `withXslt()` overloads are available: `withXslt(Source)`, `withXslt(String)`, and `withXslt(InputStream)`.
+
+**Extra elements hook** — subclass `NjamsProcessDiagramFactory` and override the empty `drawExtraElements(NjamsProcessDiagramContext)` method to append additional SVG elements after all activities, transitions, and groups have been drawn:
+
+```java
+public class MyDiagramFactory extends NjamsProcessDiagramFactory {
+    public MyDiagramFactory(Njams njams) { super(njams); }
+
+    @Override
+    protected void drawExtraElements(NjamsProcessDiagramContext context) {
+        // append custom nodes to context.getDoc()
+    }
+}
+njams.setProcessDiagramFactory(new MyDiagramFactory(njams));
+```
+
+**Fine-grained drawing overrides** — `NjamsProcessDiagramFactory` also exposes `drawActivity()`, `drawGroup()`, and `drawTransition()` as `protected` methods. Override these in a subclass to alter how individual element types are rendered.
 
 ## How can I use password encoding for configuration files?
 
