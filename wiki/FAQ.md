@@ -462,56 +462,44 @@ The following example maps the structure of an XSLT stylesheet, where the `entri
 }
 ```
 
-## How to fill configuration field
+## How to set the activity configuration
 
-`ActivityModel` has an attribute named `config`. It is displayed in nJAMS UI when you click on an activity in the lower **Config** tab.
+`ActivityModel` has a `config` attribute displayed in the nJAMS UI when you click on an activity, in the lower **Config** tab.
 
-It is a String attribute and should contain JSON or plain text. If it contains JSON, the UI shows a tree structure. Additionally, properties surrounded by double percent signs like `%%MyGlobalVariable%%` can be resolved by clicking the **resolve global variables** button in the UI. The available global variables are stored as a `String`-to-`String` map in the `Njams` class via `getGlobalVariables()`.
+The attribute accepts either plain text or JSON. JSON content is rendered as an interactive tree in the UI; plain text is shown in a text editor.
 
-Sample JSON:
+### Global variable references
+
+Values can contain global variable references in the form `%%VariableName%%`. When a user clicks **Resolve global variables** in the UI, these placeholders are replaced with the corresponding values. Global variables are defined as a `String`-to-`String` map on the `Njams` instance and accessed via `njams.getGlobalVariables()`.
+
+### Example
+
+The following example shows a typical JMS activity configuration with session attributes, configurable headers, and a global variable reference for the destination queue:
 
 ```json
 {
-  "PermittedMessageType ": {
-    "PermittedMessageType ": "XML Text "
+  "PermittedMessageType": {
+    "PermittedMessageType": "XML Text"
   },
-  "SessionAttributes ": {
-    "SessionAttributes ": {
-      "transacted ": {
-        "transacted ": "false "
-      },
-      "acknowledgeMode ": {
-        "acknowledgeMode ": "1 "
-      },
-      "maxSessions ": {
-        "maxSessions ": "1 "
-      },
-      "destination ": {
-        "destination ": "%%Connections/OrderService_C1/Queue_OrderEntry_C1%% "
-      }
+  "SessionAttributes": {
+    "SessionAttributes": {
+      "transacted": { "transacted": "false" },
+      "acknowledgeMode": { "acknowledgeMode": "1" },
+      "maxSessions": { "maxSessions": "1" },
+      "destination": { "destination": "%%Connections/OrderService_C1/Queue_OrderEntry_C1%%" }
     }
   },
-  "ConfigurableHeaders ": {
-    "ConfigurableHeaders ": {
-      "JMSDeliveryMode ": {
-        "JMSDeliveryMode ": "PERSISTENT "
-      },
-      "JMSExpiration ": {
-        "JMSExpiration ": "0 "
-      },
-      "JMSPriority ": {
-        "JMSPriority ": "4 "
-      }
+  "ConfigurableHeaders": {
+    "ConfigurableHeaders": {
+      "JMSDeliveryMode": { "JMSDeliveryMode": "PERSISTENT" },
+      "JMSExpiration": { "JMSExpiration": "0" },
+      "JMSPriority": { "JMSPriority": "4" }
     }
   },
-  "ConnectionReference ": {
-    "ConnectionReference ": "/Connections/JMS Connection.sharedjmscon "
-  },
-  "OutDataxsdString ": {
-    "OutDataxsdString ": {
-      "ref ": {
-        "ref ": "pfx3:order "
-      }
+  "ConnectionReference": { "ConnectionReference": "/Connections/JMS Connection.sharedjmscon" },
+  "OutDataxsdString": {
+    "OutDataxsdString": {
+      "ref": { "ref": "pfx3:order" }
     }
   }
 }
