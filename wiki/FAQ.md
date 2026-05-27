@@ -69,6 +69,10 @@ The legacy `Settings` and `SettingsProvider` types remain only as deprecated ali
 
 ## Which settings can I use?
 
+The tables below cover all settings recognised by the nJAMS SDK itself. Settings are passed to the SDK through a `ClientSettings` instance (see the section above) as plain key/value pairs. Each key is defined as a constant in `NjamsSettings`.
+
+> **Note:** nJAMS client implementations built on top of this SDK may define additional settings of their own. Consult the documentation of the specific client for those.
+
 ### Settings Providers <kbd style="background-color:#cf222e;color:#fff;border-color:#cf222e">deprecated 6.0.0</kbd>
 
 | Property | Default | Description | Tags |
