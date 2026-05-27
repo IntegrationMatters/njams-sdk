@@ -378,16 +378,36 @@ To send custom metrics, implement two classes:
 
 Register your collector via `njams.addArgosCollector(yourCollector)`. Use the built-in `JVMCollector` in package `com.im.njams.sdk.argos` as a reference implementation.
 
-## How to fill Input Mapping field
+## How to set the activity mapping
 
-`ActivityModel` has an attribute named `mapping`. It is displayed in nJAMS UI when you click on an activity.
-The attribute is a String and can contain three different types of content:
+`ActivityModel` has a `mapping` attribute that is displayed in the nJAMS UI when you click on an activity. The content can take three forms; the UI selects the appropriate viewer automatically:
 
-1. A special JSON structure that opens a tree viewer in the UI
-2. Custom JSON that is displayed in a JSON viewer
-3. A plain string shown in a text editor
+| Content | UI viewer |
+|---|---|
+| JSON object with `name` and `entries` at the root | Interactive tree viewer |
+| Any other valid JSON | JSON viewer |
+| Plain text | Text editor |
 
-The JSON structure for the tree must contain an `entries` array with `name` and `value` fields. Entries can be nested:
+### Tree viewer format
+
+To trigger the tree viewer the root object must have a `name` (the root node label) and an `entries` array. Each entry is either a **leaf** — carrying a `name` and a `value` — or a **branch** — carrying a `name` and its own nested `entries` array:
+
+```json
+{
+  "name": "root",
+  "entries": [
+    { "name": "leafNode", "value": "someValue" },
+    {
+      "name": "branchNode",
+      "entries": [
+        { "name": "child", "value": "childValue" }
+      ]
+    }
+  ]
+}
+```
+
+The following example maps the structure of an XSLT stylesheet, where the `entries` hierarchy mirrors the XML element nesting:
 
 ```json
 {
