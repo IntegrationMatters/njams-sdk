@@ -1221,32 +1221,44 @@ public class Njams implements InstructionListener {
     }
 
     /**
-     * Serializes a given object using {@link #findSerializer(java.lang.Class) }
+     * Serializes a given object using {@link #findSerializer(java.lang.Class)} with no effective
+     * size limit.
      *
      * @param <T> type of the class
-     * @param t   Object to be serialied.
-     * @return a string representation of the object.
+     * @param t   Object to be serialized
+     * @return a string representation of the object, or {@code null} if {@code t} is {@code null},
+     *         or {@code ""} when the serializer threw
      */
     public <T> String serialize(final T t) {
+        return serialize(t, Integer.MAX_VALUE);
+    }
 
+    /**
+     * Serializes a given object using {@link #findSerializer(java.lang.Class)}, passing
+     * {@code sizeLimit} through to the resolved {@link Serializer}.
+     *
+     * <p>The returned string may slightly exceed {@code sizeLimit} due to serializer-specific
+     * buffering. {@code sizeLimit <= 0} or {@link Integer#MAX_VALUE} mean "no limit".</p>
+     *
+     * @param <T>       type of the class
+     * @param t         Object to be serialized
+     * @param sizeLimit Approximate maximum length of the returned string
+     * @return a string representation of the object, or {@code null} if {@code t} is {@code null},
+     *         or {@code ""} when the serializer threw
+     */
+    public <T> String serialize(final T t, final int sizeLimit) {
         if (t == null) {
             return null;
         }
-
         final Class<? super T> clazz = (Class) t.getClass();
         synchronized (cachedSerializers) {
-
-            // search serializer
             Serializer<? super T> serializer = this.findSerializer(clazz);
-
-            // user default serializer
             if (serializer == null) {
                 serializer = DEFAULT_SERIALIZER;
                 cachedSerializers.put(clazz, serializer);
             }
-
             try {
-                return serializer.serialize(t);
+                return serializer.serialize(t, sizeLimit);
             } catch (final Exception ex) {
                 LOG.error("could not serialize object " + t, ex);
                 return "";

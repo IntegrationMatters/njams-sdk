@@ -260,4 +260,29 @@ public class NjamsTest {
 
         assertEquals("Hello", DataMasking.maskString("Hello"));
     }
+
+    @Test
+    public void serializeWithSizeLimitForwardsLimitToRegisteredSerializer() {
+        final int[] capturedLimit = {-1};
+        instance.addSerializer(String.class, (value, sizeLimit) -> {
+            capturedLimit[0] = sizeLimit;
+            return value;
+        });
+
+        String result = instance.serialize("hello", 7);
+        assertEquals("hello", result);
+        assertEquals(7, capturedLimit[0]);
+    }
+
+    @Test
+    public void serializeWithoutSizeLimitStillUsesMaxValue() {
+        final int[] capturedLimit = {-1};
+        instance.addSerializer(String.class, (value, sizeLimit) -> {
+            capturedLimit[0] = sizeLimit;
+            return value;
+        });
+
+        instance.serialize("hello");
+        assertEquals(Integer.MAX_VALUE, capturedLimit[0]);
+    }
 }
