@@ -301,27 +301,48 @@ public class NjamsSettings {
      * <li>memory
      * <li>systemProperties
      * </ul>
+     *
+     * @deprecated The settings provider/factory layer is replaced by the {@link ClientSettings}
+     *     factory methods such as {@link ClientSettings#from(java.util.Map)} and
+     *     {@link ClientSettings#from(java.util.Properties)}; no provider needs to be selected.
      */
+    @Deprecated(since = "6.0.0", forRemoval = true)
     public static final String PROPERTY_SETTINGS_PROVIDER = "njams.sdk.settings.provider";
 
     /**
      * Specifies the path to the settings file for "file" settings provider.
+     *
+     * @deprecated Part of the deprecated settings provider layer. Load the file yourself and pass
+     *     the resulting properties to {@link ClientSettings#from(java.util.Properties)} instead.
      */
+    @Deprecated(since = "6.0.0", forRemoval = true)
     public static final String PROPERTY_FILE_SETTINGS_FILE = "njams.sdk.settings.file";
 
     /**
      * Property key for the propertiesFile provider, specifying the path to the properties file to be used.
+     *
+     * @deprecated Part of the deprecated settings provider layer. Load the file yourself and pass
+     *     the resulting properties to {@link ClientSettings#from(java.util.Properties)} instead.
      */
+    @Deprecated(since = "6.0.0", forRemoval = true)
     public static final String PROPERTY_PROPERTIES_FILE_SETTINGS_FILE = "njams.sdk.settings.properties.file";
     /**
      * Default property key for loading parent (default) configuration file for the propertiesFile provider.
      * See {@link #PROPERTY_PROPERTIES_FILE_SETTINGS_PARENT_KEY} for using an alternative key.
+     *
+     * @deprecated Part of the deprecated settings provider layer. Load the file yourself and pass
+     *     the resulting properties to {@link ClientSettings#from(java.util.Properties)} instead.
      */
+    @Deprecated(since = "6.0.0", forRemoval = true)
     public static final String PROPERTY_PROPERTIES_FILE_SETTINGS_PARENT_FILE = "njams.sdk.settings.properties.parent";
     /**
      * Allows to override the default parent file key for the propertiesFile provider.
      * ({@value #PROPERTY_PROPERTIES_FILE_SETTINGS_PARENT_FILE}).
+     *
+     * @deprecated Part of the deprecated settings provider layer. Load the file yourself and pass
+     *     the resulting properties to {@link ClientSettings#from(java.util.Properties)} instead.
      */
+    @Deprecated(since = "6.0.0", forRemoval = true)
     public static final String PROPERTY_PROPERTIES_FILE_SETTINGS_PARENT_KEY = "njams.sdk.settings.properties.parentKey";
 
     //

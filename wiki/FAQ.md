@@ -8,6 +8,8 @@ njams.sdk.settings.provider=NAME_OF_THE_SETTINGS_PROVIDER
 
 Then call `SettingsProviderFactory.getSettingsProvider(props)` to obtain a provider object.
 
+> **Deprecated (for removal in 6.0.0):** The settings provider/factory mechanism — `SettingsProviderFactory`, the `SettingsProvider` interface and its implementations, and the `njams.sdk.settings.*` provider properties listed below — is deprecated. Obtain a `ClientSettings` directly via its factory methods instead, e.g. `ClientSettings.from(Map)`, `ClientSettings.from(Properties)`, or `ClientSettings.fromSystemProperties(Predicate)`.
+
 # Which settings providers are available?
 
 There are four built-in settings providers. You can also implement your own by using the `SettingsProvider` interface.
@@ -44,11 +46,11 @@ Uses `System.getProperties()` as the settings source. `configure(props)` has no 
 
 | Property | Default | Description | Tags |
 |---|---|---|---|
-| `njams.sdk.settings.provider` | — | Selects the settings provider implementation. Values: `file`, `propertiesFile`, `memory`, `systemProperties` | |
-| `njams.sdk.settings.file` | `config.json` | Path to the JSON settings file used by the `file` provider. | |
-| `njams.sdk.settings.properties.file` | `config.properties` | Path to the properties file used by the `propertiesFile` provider. | |
-| `njams.sdk.settings.properties.parent` | — | Path to the parent properties file for the `propertiesFile` provider. Properties in the child file override those in the parent. | |
-| `njams.sdk.settings.properties.parentKey` | `njams.sdk.settings.properties.parent` | Overrides the key used to look up the parent file path. When set to `MY_KEY`, the provider reads the parent path from the property `MY_KEY` instead of `njams.sdk.settings.properties.parent`. | |
+| `njams.sdk.settings.provider` | — | Selects the settings provider implementation. Values: `file`, `propertiesFile`, `memory`, `systemProperties` | `deprecated` |
+| `njams.sdk.settings.file` | `config.json` | Path to the JSON settings file used by the `file` provider. | `deprecated` |
+| `njams.sdk.settings.properties.file` | `config.properties` | Path to the properties file used by the `propertiesFile` provider. | `deprecated` |
+| `njams.sdk.settings.properties.parent` | — | Path to the parent properties file for the `propertiesFile` provider. Properties in the child file override those in the parent. | `deprecated` |
+| `njams.sdk.settings.properties.parentKey` | `njams.sdk.settings.properties.parent` | Overrides the key used to look up the parent file path. When set to `MY_KEY`, the provider reads the parent path from the property `MY_KEY` instead of `njams.sdk.settings.properties.parent`. | `deprecated` |
 
 ## Configuration
 
