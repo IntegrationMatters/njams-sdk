@@ -67,9 +67,9 @@ Previously you selected a provider via the `njams.sdk.settings.provider` propert
 
 The legacy `Settings` and `SettingsProvider` types remain only as deprecated aliases so existing code keeps compiling; new code should use `ClientSettings` directly.
 
-## Which settings can I use?
+## Which settings can I use
 
-The tables below cover all settings recognised by the nJAMS SDK itself. Settings are passed to the SDK through a `ClientSettings` instance (see the section above) as plain key/value pairs. Each key is defined as a constant in `NjamsSettings`.
+The tables below cover all settings recognized by the nJAMS SDK itself. Settings are passed to the SDK through a `ClientSettings` instance (see the section above) as plain key/value pairs. Each key is defined as a constant in `NjamsSettings`.
 
 > **Note:** nJAMS client implementations built on top of this SDK may define additional settings of their own. Consult the documentation of the specific client for those.
 
@@ -222,7 +222,7 @@ nJAMS renders each process as an SVG diagram shown in the server UI. Producing t
 1. **Layout** — a `ProcessModelLayouter` assigns x/y coordinates and dimensions to every `ActivityModel`.
 2. **Rendering** — a `ProcessDiagramFactory` converts the laid-out `ProcessModel` into SVG markup.
 
-Both can be customised independently on the `Njams` instance.
+Both can be customized independently on the `Njams` instance.
 
 ### Layout
 
@@ -230,7 +230,7 @@ The default layouter since 6.0 is `CommonModelLayouter`. It performs a two-pass 
 
 `SimpleProcessModelLayouter`, the previous default, is deprecated. It does not correctly handle parallel branches, 
 multiple start activities, or groups with more than one start activity. If you relied on the default, no code change 
-is needed — `CommonModelLayouter` is now used automatically. However, the view of or model might look different due to the improved layout.
+is needed — `CommonModelLayouter` is now used automatically. However, your model may look different due to the improved layout.
 
 **Custom layouter** — the standard way to control layout is to implement `com.im.njams.sdk.model.layout.ProcessModelLayouter`. The interface has a single method:
 
@@ -259,7 +259,7 @@ njams.setProcessModelLayouter(new NoopLayouter());
 
 The built-in `NjamsProcessDiagramFactory` generates SVG that meets the structural and formatting requirements of the nJAMS server. **Replacing it with a completely custom `ProcessDiagramFactory` implementation is not recommended** — the server relies on specific SVG conventions that `NjamsProcessDiagramFactory` encodes. Instead, extend or configure the existing factory.
 
-**XSLT post-processing** — supply an XSLT stylesheet to be applied to the SVG DOM just before it is serialised to a string. Use this to restyle, reorder, or augment the generated SVG without touching the drawing logic:
+**XSLT post-processing** — supply an XSLT stylesheet to be applied to the SVG DOM just before it is serialized to a string. Use this to restyle, reorder, or augment the generated SVG without touching the drawing logic:
 
 ```java
 NjamsProcessDiagramFactory factory = new NjamsProcessDiagramFactory(njams)
@@ -285,7 +285,7 @@ njams.setProcessDiagramFactory(new MyDiagramFactory(njams));
 
 **Fine-grained drawing overrides** — `NjamsProcessDiagramFactory` also exposes `drawActivity()`, `drawGroup()`, and `drawTransition()` as `protected` methods. Override these in a subclass to alter how individual element types are rendered.
 
-## How can I use password encoding for configuration files?
+## How can I use password encoding for configuration files <kbd style="background-color:#2da44e;color:#fff;border-color:#2da44e">since 4.0.1</kbd>
 
 1. Run: `java -jar njams-sdk-4.x.x.jar YOUR_NOT_ENCODED_VALUE`
 2. The output will show something like:
@@ -299,11 +299,9 @@ njams.setProcessDiagramFactory(new MyDiagramFactory(njams));
 
 3. Replace the corresponding value in your configuration file with the encoded value. The SDK decodes it automatically when needed.
 
-`since njams4-sdk-4.0.1`
+## Does the client path need to be unique
 
-## Does the client path need to be unique?
-
-Yes. The client path uniquely identifies a `Njams` instance in the nJAMS infrastructure. The server and the SDK's communication layer use it as an address to route commands back to the correct client. Every `Njams` instance must be initialised with a path that is unique across all connected clients.
+Yes. The client path uniquely identifies a `Njams` instance in the nJAMS infrastructure. The server and the SDK's communication layer use it as an address to route commands back to the correct client. Every `Njams` instance must be initialized with a path that is unique across all connected clients.
 
 ## How to use data masking
 
@@ -349,7 +347,7 @@ Any activity field value containing a substring like `password=secret123` will h
 > }
 > ```
 
-### Which fields are masked?
+### Which fields are masked
 
 The following activity fields are subject to data masking:
 
@@ -364,7 +362,7 @@ The following activity fields are subject to data masking:
 
 The Argos feature allows the SDK to send JVM and custom application metrics to an nJAMS Agent. After `Njams.start()`, the Argos sender starts automatically and transmits collected metrics every 10 seconds. Configure the agent connection via the settings properties (see [Argos / Metrics](#argos--metrics) above).
 
-By default the Argos sender is enabled but no collectors are registered. The SDK ships with a built-in `JVMCollector` for standard JVM metrics. Register it before or after starting the `Njams` instance:
+By default, the Argos sender is enabled but no collectors are registered. The SDK ships with a built-in `JVMCollector` for standard JVM metrics. Register it before or after starting the `Njams` instance:
 
 ```java
 JVMCollector jvmCollector = new JVMCollector("myId", "JVM Metrics", "jvm");
@@ -390,7 +388,7 @@ Register your collector via `njams.addArgosCollector(yourCollector)`. Use the bu
 
 ### Tree viewer format
 
-To trigger the tree viewer the root object must have a `name` (the root node label) and an `entries` array. Each entry is either a **leaf** — carrying a `name` and a `value` — or a **branch** — carrying a `name` and its own nested `entries` array:
+To trigger the tree viewer, the root object must have a `name` (the root node label) and an `entries` array. Each entry is either a **leaf** — carrying a `name` and a `value` — or a **branch** — carrying a `name` and its own nested `entries` array:
 
 ```json
 {
