@@ -58,4 +58,44 @@ public class JsonSerializerTest implements Serializable {
         assertNotEquals(serialized1, serialized2);
     }
 
+    @Test
+    public void serializeWithLimitReturnsAtMostRoughlyLimit() {
+        JsonSerializer<int[]> ser = new JsonSerializer<>();
+        int[] data = new int[10_000]; // serializes to a long JSON array
+        for (int i = 0; i < data.length; i++) {
+            data[i] = i;
+        }
+        String full = ser.serialize(data);
+        String limited = ser.serialize(data, 100);
+
+        // size-aware result is much shorter than the full result
+        assertTrue("full length should be much greater than 100, got " + full.length(), full.length() > 1000);
+        assertTrue("limited length should not exceed ~limit + small Jackson buffering, got "
+                + limited.length(), limited.length() <= 200);
+        // and it is a prefix of (the start of) the full string
+        assertTrue("limited result should be a prefix of the full result",
+                full.startsWith(limited.substring(0, Math.min(limited.length(), 50))));
+    }
+
+    @Test
+    public void serializeWithMaxValueLimitMatchesUnlimited() {
+        JsonSerializer<String[]> ser = new JsonSerializer<>();
+        String[] words = {"alpha", "beta", "gamma"};
+        assertEquals(ser.serialize(words), ser.serialize(words, Integer.MAX_VALUE));
+    }
+
+    @Test
+    public void serializeWithZeroOrNegativeLimitMatchesUnlimited() {
+        JsonSerializer<String[]> ser = new JsonSerializer<>();
+        String[] words = {"alpha", "beta", "gamma"};
+        assertEquals(ser.serialize(words), ser.serialize(words, 0));
+        assertEquals(ser.serialize(words), ser.serialize(words, -1));
+    }
+
+    @Test
+    public void serializeWithNullObjectReturnsEmptyJsonObject() {
+        JsonSerializer<Object> ser = new JsonSerializer<>();
+        assertEquals("{}", ser.serialize(null, 50));
+    }
+
 }
