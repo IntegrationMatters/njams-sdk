@@ -48,6 +48,8 @@ SDK-XXX #comment <description>
 
 The `#comment` token causes the commit message to be posted automatically as a comment on the Jira ticket. If no ticket exists for the work being committed, ask the user to provide one before committing.
 
+**Before every commit, verify that the referenced ticket actually matches the change.** Check the ticket's summary (and description if needed) against the diff. If the ticket does not describe what is being committed, propose a recent ticket that better fits. If no suitable ticket exists, ask the user before committing.
+
 **Exception:** Commits that touch only `CLAUDE.md` or files under `docs/` (e.g. plans, notes) do not need a Jira ticket reference. Use a plain commit message for those.
 
 ## Branching and Committing
