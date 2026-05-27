@@ -1,8 +1,10 @@
-# How to provide startup settings to nJAMS
+# nJAMS SDK FAQs
+
+## How to provide startup settings to nJAMS
 
 nJAMS is configured at startup through a `ClientSettings` instance that you pass to the `Njams` constructor. `ClientSettings` is a key/value view over your configuration (transport selection, flush tuning, data masking, Argos, …); the available keys are listed in the tables further down.
 
-## Obtaining a ClientSettings instance from a single source
+### Obtaining a ClientSettings instance from a single source
 
 `ClientSettings` provides static factory methods — pick the one matching where your configuration comes from:
 
@@ -14,7 +16,7 @@ nJAMS is configured at startup through a `ClientSettings` instance that you pass
 
 All three return a live view: changes to the backing map/properties remain visible through the returned `ClientSettings`.
 
-## Combining multiple sources (HierarchicalSettings)
+### Combining multiple sources (HierarchicalSettings)
 
 When configuration comes from several places — a config file, system properties, environment variables, built-in defaults — use `HierarchicalSettings`. It is a `ClientSettings` that consults an ordered list of named layers and, for each key, returns the value from the **first** layer that defines it. Writes are applied only to the base (first) layer.
 
@@ -35,7 +37,7 @@ ClientSettings settings = HierarchicalSettings.from(fileProperties).withName("co
 
 **Environment variables.** The environment layer resolves the SDK's dotted property keys from their upper-snake-case environment equivalents — e.g. reading `njams.sdk.communication` looks up the environment variable `NJAMS_SDK_COMMUNICATION` — so you keep using the same `njams.sdk.*` keys throughout your code regardless of source.
 
-## Starting nJAMS with it
+### Starting nJAMS with it
 
 ```java
 // 1. Assemble the configuration as key/value pairs.
@@ -51,7 +53,7 @@ Njams njams = new Njams(new Path("Domain", "Deployment", "MyClient"), "1.0.0", "
 njams.start();
 ```
 
-## Migrating from the deprecated provider/factory mechanism
+### Migrating from the deprecated provider/factory mechanism
 
 > <kbd style="background-color:#cf222e;color:#fff;border-color:#cf222e">deprecated 6.0.0</kbd> The settings *provider/factory* mechanism is deprecated and will be removed. This includes `SettingsProviderFactory`, the `SettingsProvider` interface and its built-in implementations (`file`, `propertiesFile`, `memory`, `systemProperties`), and the `njams.sdk.settings.*` provider properties (see the **Settings Providers** table below).
 
@@ -65,9 +67,9 @@ Previously you selected a provider via the `njams.sdk.settings.provider` propert
 
 The legacy `Settings` and `SettingsProvider` types remain only as deprecated aliases so existing code keeps compiling; new code should use `ClientSettings` directly.
 
-# Which settings can I use?
+## Which settings can I use?
 
-## Settings Providers <kbd style="background-color:#cf222e;color:#fff;border-color:#cf222e">deprecated 6.0.0</kbd>
+### Settings Providers <kbd style="background-color:#cf222e;color:#fff;border-color:#cf222e">deprecated 6.0.0</kbd>
 
 | Property | Default | Description | Tags |
 |---|---|---|---|
@@ -77,13 +79,13 @@ The legacy `Settings` and `SettingsProvider` types remain only as deprecated ali
 | `njams.sdk.settings.properties.parent` | — | Path to the parent properties file for the `propertiesFile` provider. Properties in the child file override those in the parent. | <kbd style="background-color:#cf222e;color:#fff;border-color:#cf222e">deprecated 6.0.0</kbd> |
 | `njams.sdk.settings.properties.parentKey` | `njams.sdk.settings.properties.parent` | Overrides the key used to look up the parent file path. When set to `MY_KEY`, the provider reads the parent path from the property `MY_KEY` instead of `njams.sdk.settings.properties.parent`. | <kbd style="background-color:#cf222e;color:#fff;border-color:#cf222e">deprecated 6.0.0</kbd> |
 
-## Configuration
+### Configuration
 
 | Property | Default | Description | Tags |
 |---|---|---|---|
 | `njams.sdk.configuration.provider` | `file` | Selects the configuration provider used for persisting runtime settings such as tracepoints and data-masking rules. Values: `file`, `memory` | |
 
-## General SDK Settings
+### General SDK Settings
 
 | Property | Default | Description | Tags |
 |---|---|---|---|
@@ -116,7 +118,7 @@ The legacy `Settings` and `SettingsProvider` types remain only as deprecated ali
 | `njams.client.sdk.deprecatedsubprocesspathfield` | `false` | Must be `true` when sending data to nJAMS server older than 5.1.0. Remove or set to `false` when using server 5.1.0 or later. | <kbd style="background-color:#2da44e;color:#fff;border-color:#2da44e">since 4.1.0</kbd><br><kbd style="background-color:#24292f;color:#fff;border-color:#24292f">removed 5.0.0</kbd> |
 | `njams.client.sdk.minqueuelength` | `1` | Replaced by `njams.client.sdk.minsenderthreads`. | <kbd style="background-color:#2da44e;color:#fff;border-color:#2da44e">since 4.0.4</kbd><br><kbd style="background-color:#24292f;color:#fff;border-color:#24292f">removed 4.1.0</kbd> |
 
-## Communication
+### Communication
 
 | Property | Default | Description | Tags |
 |---|---|---|---|
@@ -126,7 +128,7 @@ The legacy `Settings` and `SettingsProvider` types remain only as deprecated ali
 | `njams.sdk.communication.maxMessageSize` | `0` | Maximum message body size in bytes. Messages exceeding this size are split into chunks before sending. A value of `0` or less disables splitting. The minimum allowed value is 10240 bytes. For Kafka, the smaller of this value and the Kafka producer's `max.request.size` is used. Requires nJAMS server 6.1.2 or later for transports other than Kafka. | <kbd style="background-color:#2da44e;color:#fff;border-color:#2da44e">since 5.0.3</kbd> |
 | `njams.sdk.communication.shared` | `false` | When `true`, a single sender/receiver pool is shared across all `Njams` instances in the same JVM. By default each instance has its own dedicated pool. Has no effect when only one `Njams` instance is used. | <kbd style="background-color:#2da44e;color:#fff;border-color:#2da44e">since 5.0.0</kbd> |
 
-## HTTP / HTTPS
+### HTTP / HTTPS
 
 Set `njams.sdk.communication=HTTP`. HTTPS is used automatically when the base URL uses the `https` scheme; the separate `HTTPS` communication value is deprecated since 5.0.0.
 
@@ -153,7 +155,7 @@ Set `njams.sdk.communication=HTTP`. HTTPS is used automatically when the base UR
 | `njams.sdk.communication.http.user` | — | User name for nJAMS server authentication. The account must have the `ingest-service` system privilege. | <kbd style="background-color:#2da44e;color:#fff;border-color:#2da44e">since 5.0.0</kbd> |
 | `njams.sdk.communication.http.dataprovider.prefix` | — | Replaced by `njams.sdk.communication.http.dataprovider.suffix`. | <kbd style="background-color:#24292f;color:#fff;border-color:#24292f">removed 5.0.0</kbd> |
 
-## JMS
+### JMS
 
 Set `njams.sdk.communication=JMS`.
 
@@ -178,7 +180,7 @@ Set `njams.sdk.communication=JMS`.
 | `njams.sdk.communication.jms.supportsMessageSelector` | `true` | When `false`, the JMS implementation does not support message selectors. The SDK then uses a workaround that requires an additional queue with the `.project` suffix. | <kbd style="background-color:#2da44e;color:#fff;border-color:#2da44e">since 5.0.3</kbd> |
 | `njams.sdk.communication.jms.username` | — | JMS connection user name. | |
 
-## Kafka
+### Kafka
 
 Set `njams.sdk.communication=KAFKA`.
 
@@ -194,7 +196,7 @@ Set `njams.sdk.communication=KAFKA`.
 | `njams.sdk.communication.kafka.commandsTopic` | — | Overrode the commands topic name. Replaced by the standard topic naming convention based on `topicPrefix`. | <kbd style="background-color:#2da44e;color:#fff;border-color:#2da44e">since 4.2.0</kbd><br><kbd style="background-color:#24292f;color:#fff;border-color:#24292f">removed 5.0.0</kbd> |
 | `njams.sdk.communication.kafka.largeMessageMode` | — | Controlled how messages larger than the Kafka limit were handled (`split` or `discard`). Splitting is now the standard behavior; `discard` was a compatibility option for nJAMS server 5.2.0 and 5.2.1. | <kbd style="background-color:#2da44e;color:#fff;border-color:#2da44e">since 4.2.2</kbd><br><kbd style="background-color:#24292f;color:#fff;border-color:#24292f">removed 5.0.0</kbd> |
 
-## Argos / Metrics
+### Argos / Metrics
 
 | Property | Default | Description | Tags |
 |---|---|---|---|
@@ -202,14 +204,14 @@ Set `njams.sdk.communication=KAFKA`.
 | `njams.sdk.subagent.host` | `localhost` | Host name or IP address of the nJAMS Agent instance to send Argos metrics to. | <kbd style="background-color:#2da44e;color:#fff;border-color:#2da44e">since 4.1.0</kbd> |
 | `njams.sdk.subagent.port` | `6450` | Port of the nJAMS Agent instance. | <kbd style="background-color:#2da44e;color:#fff;border-color:#2da44e">since 4.1.0</kbd> |
 
-## Data Masking
+### Data Masking
 
 | Property | Default | Description | Tags |
 |---|---|---|---|
 | `njams.sdk.datamasking.enabled` | `true` | Enables data masking. When `false`, masking is disabled for all regex rules defined in both settings and `configuration.json`. | <kbd style="background-color:#2da44e;color:#fff;border-color:#2da44e">since 4.0.16</kbd> |
 | `njams.sdk.datamasking.regex.<name>` | — | Defines a data-masking regex rule. `<name>` is an arbitrary label; the value is a Java regex pattern (`java.util.regex.Pattern`). Multiple rules can be defined with different names. Example: `njams.sdk.datamasking.regex.maskPasswords=password:\s*\S+` | <kbd style="background-color:#2da44e;color:#fff;border-color:#2da44e">since 4.0.16</kbd> |
 
-# How can I use a custom ProcessModelLayouter?
+## How can I use a custom ProcessModelLayouter?
 
 If you don't want to use the default `ProcessModelLayouter` (`SimpleProcessModelLayouter`), you have two options:
 
@@ -217,7 +219,7 @@ If you don't want to use the default `ProcessModelLayouter` (`SimpleProcessModel
 
 **Implement your own layouter** (`since njams4-sdk-4.0.0`): Implement the interface `com.im.njams.sdk.model.layout.ProcessModelLayouter`. Override the `layout(ProcessModel processModel)` method. Create an instance of your layouter and call `setProcessModelLayouter(yourLayouter)` on your `Njams` object.
 
-# How can I use password encoding for configuration files?
+## How can I use password encoding for configuration files?
 
 1. Run: `java -jar njams-sdk-4.x.x.jar YOUR_NOT_ENCODED_VALUE`
 2. The output will show something like:
@@ -233,11 +235,11 @@ If you don't want to use the default `ProcessModelLayouter` (`SimpleProcessModel
 
 `since njams4-sdk-4.0.1`
 
-# Does the ClientPath need to be unique?
+## Does the ClientPath need to be unique?
 
 Yes. Multiple processes in the SDK and the server rely on the uniqueness of the ClientPath for each individual `Njams` instance.
 
-# How can I use Datamasking feature and which values are masked by that?
+## How can I use Datamasking feature and which values are masked by that?
 
 Data masking is configured via settings properties (see [Data Masking](#data-masking) above) and/or via `configuration.json`. Regex rules defined in settings take precedence over rules defined in `configuration.json`.
 
@@ -262,7 +264,7 @@ To configure data masking via `configuration.json`:
 > }
 > ```
 
-## Which values are masked?
+### Which values are masked?
 
 `since njams4-sdk-4.0.0`:
 * TraceInput
@@ -283,7 +285,7 @@ To configure data masking via `configuration.json`:
 * BusinessService
 * All other attributes
 
-# Howto use Argos Feature to send metrics from SDK
+## Howto use Argos Feature to send metrics from SDK
 
 After `Njams.start()` the Argos sender is active and sends collected metrics to an nJAMS Agent every 10 seconds. Configure the agent connection via the settings properties (see [Argos / Metrics](#argos--metrics) above).
 
@@ -302,7 +304,7 @@ Register the collector via `njams.addArgosCollector(yourCollector)`. See the bui
 
 `since njams4-sdk-4.11.0`
 
-# How to fill Input Mapping field
+## How to fill Input Mapping field
 
 `ActivityModel` has an attribute named `mapping`. It is displayed in nJAMS UI when you click on an activity.
 The attribute is a String and can contain three different types of content:
@@ -366,7 +368,7 @@ The JSON structure for the tree must contain an `entries` array with `name` and 
 }
 ```
 
-# How to fill configuration field
+## How to fill configuration field
 
 `ActivityModel` has an attribute named `config`. It is displayed in nJAMS UI when you click on an activity in the lower **Config** tab.
 
