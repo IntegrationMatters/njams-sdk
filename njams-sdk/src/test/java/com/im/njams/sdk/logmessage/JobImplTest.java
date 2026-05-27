@@ -52,6 +52,7 @@ import com.faizsiegeln.njams.messageformat.v4.logmessage.ActivityStatus;
 import com.faizsiegeln.njams.messageformat.v4.logmessage.LogMessage;
 import com.im.njams.sdk.AbstractTest;
 import com.im.njams.sdk.Njams;
+import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.common.DateTimeUtility;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.Path;
@@ -538,5 +539,27 @@ public class JobImplTest extends AbstractTest {
         assertTrue(job.hasOrHadStartActivity);
 
         getStartedActivityForJob(job);
+    }
+
+    @Test
+    public void getSerializeSizeHintReturnsZeroWhenNoLimitConfigured() {
+        JobImpl job = createDefaultJob();
+        assertEquals(0, job.getSerializeSizeHint());
+    }
+
+    @Test
+    public void getSerializeSizeHintReturnsLimitPlusOneInTruncateMode() {
+        njams.getSettings().put(NjamsSettings.PROPERTY_PAYLOAD_LIMIT_MODE, "truncate");
+        njams.getSettings().put(NjamsSettings.PROPERTY_PAYLOAD_LIMIT_SIZE, "100");
+        JobImpl job = createDefaultJob();
+        assertEquals(101, job.getSerializeSizeHint());
+    }
+
+    @Test
+    public void getSerializeSizeHintReturnsLimitPlusOneInDiscardMode() {
+        njams.getSettings().put(NjamsSettings.PROPERTY_PAYLOAD_LIMIT_MODE, "discard");
+        njams.getSettings().put(NjamsSettings.PROPERTY_PAYLOAD_LIMIT_SIZE, "50");
+        JobImpl job = createDefaultJob();
+        assertEquals(51, job.getSerializeSizeHint());
     }
 }

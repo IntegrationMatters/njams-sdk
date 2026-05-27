@@ -1430,6 +1430,25 @@ public class JobImpl implements Job {
     }
 
     /**
+     * Returns the size hint to pass to {@link com.im.njams.sdk.serializer.Serializer#serialize(Object, int)}
+     * for payloads that will be fed through {@link #limitPayload(String)} afterwards.
+     *
+     * <p>The hint is one character above the configured payload limit so that
+     * {@code limitPayload} still observes the overrun and applies the correct
+     * truncate / discard behaviour. Returns {@code 0} (= no limit) when no
+     * payload limit is configured.</p>
+     *
+     * @return effective size hint, or {@code 0} when no payload limit is configured
+     */
+    int getSerializeSizeHint() {
+        if (payloadLimit == null) {
+            return 0;
+        }
+        final int limit = payloadLimit.getValue();
+        return limit <= 0 ? 0 : limit + 1;
+    }
+
+    /**
      * If limiting payload size is enabled, this method ensures that the given payload is handled accordingly.
      * @param payload The payload to limit.
      * @return The given payload adjusted to the configured limits.
