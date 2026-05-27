@@ -393,6 +393,7 @@ public class NjamsProcessDiagramFactory implements ProcessDiagramFactory {
         groupIcon.setAttributeNS(null, "width", String.valueOf(iconSize));
         groupIcon.setAttributeNS(null, "height", String.valueOf(iconSize));
         groupIcon.setAttributeNS(null, "group-type", context.getCategory() + "." + groupModel.getType());
+        groupIcon.setAttributeNS(null, "activity-type", context.getCategory() + "." + groupModel.getType());
         context.getContainerElement().appendChild(groupIcon);
 
         // general container sizing

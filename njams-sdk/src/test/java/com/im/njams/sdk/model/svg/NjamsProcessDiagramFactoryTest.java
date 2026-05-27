@@ -197,6 +197,8 @@ public class NjamsProcessDiagramFactoryTest {
         Assert.assertNotNull(
             "Expected the group icon image to carry a 'group-type' attribute analogous to activity-type", icon);
         Assert.assertEquals("cat.loop", icon.getAttributeNS(null, "group-type"));
+        Assert.assertEquals("Group icon must also carry 'activity-type' with the same value as 'group-type'",
+            "cat.loop", icon.getAttributeNS(null, "activity-type"));
         Assert.assertFalse("Group icon must not hardcode an xlink:href",
             icon.hasAttributeNS(XLINK_NS, "href"));
     }
