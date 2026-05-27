@@ -305,22 +305,41 @@ njams.setProcessDiagramFactory(new MyDiagramFactory(njams));
 
 Yes. The client path uniquely identifies a `Njams` instance in the nJAMS infrastructure. The server and the SDK's communication layer use it as an address to route commands back to the correct client. Every `Njams` instance must be initialised with a path that is unique across all connected clients.
 
-## How can I use Datamasking feature and which values are masked by that?
+## How to use data masking
 
-Data masking is configured via settings properties (see [Data Masking](#data-masking) above) and/or via `configuration.json`. Regex rules defined in settings take precedence over rules defined in `configuration.json`.
+Data masking applies Java regex patterns (`java.util.regex.Pattern`) to activity payload fields before they are sent to the nJAMS server. Any substring matching a rule is replaced with asterisks.
 
-`since njams4-sdk-4.0.16`
+Masking rules can come from two sources:
 
-To configure data masking via `configuration.json`:
+- **Settings properties** — rules defined via `njams.sdk.datamasking.regex.<name>` (see [Data Masking](#data-masking) above) are static and active for the lifetime of the process.
+- **Dynamic configuration** — rules stored in `configuration.json` can be updated at runtime through the nJAMS server UI without restarting the client.
+
+Rules from settings take precedence over rules from the dynamic configuration.
+
+### Configuring rules via settings properties
+
+Add one property per rule. The name after the last `.` is a free-form label used to identify the rule:
+
+```properties
+njams.sdk.datamasking.regex.maskPasswords=password\s*=\s*\S+
+njams.sdk.datamasking.regex.maskTokens=token\s*=\s*\S+
+```
+
+Any activity field value containing a substring like `password=secret123` will have that part replaced with asterisks.
+
+### Configuring rules via configuration.json
 
 1. Stop the client.
-2. Open the JSON file where the client stores its dynamic configuration (e.g. tracepoints). By default this file is named `configuration.json`. You can change the path and name by setting the property `njams.sdk.configuration.file.file` to `YOURPATH/YOURFILENAME.json`.
-3. Add your masking patterns as Java regex strings (`java.util.regex.Pattern`) in the `dataMasking` array:
+2. Open the JSON file used for dynamic configuration (tracepoints, log modes, etc.). By default this is `configuration.json`. The path can be changed via `njams.sdk.configuration.file.file`.
+3. Add your masking patterns in the `dataMasking` array:
    ```json
-   "dataMasking": [ "<requesturi>(\\p{Alpha}|/|\\p{Digit})*</requesturi>", "<requesturl>(\\p{Alpha}|/|\\p{Digit}|:|-)*</requesturl>" ]
+   "dataMasking": [
+     "<requesturi>(\\p{Alpha}|/|\\p{Digit})*</requesturi>",
+     "<requesturl>(\\p{Alpha}|/|\\p{Digit}|:|-)*</requesturl>"
+   ]
    ```
 
-> **Note:** If the client has not been started yet or no server-side configuration changes have been made, the configuration file may not exist. Create it manually with this content:
+> **Note:** If the client has not been started yet or no server-side configuration changes have been made, the file may not exist. Create it manually with this minimum content:
 > ```json
 > {
 >   "logMode": "COMPLETE",
@@ -330,26 +349,16 @@ To configure data masking via `configuration.json`:
 > }
 > ```
 
-### Which values are masked?
+### Which fields are masked?
 
-`since njams4-sdk-4.0.0`:
-* TraceInput
-* TraceOutput
+The following activity fields are subject to data masking:
 
-`since njams4-sdk-4.0.4`:
-* TraceInput
-* TraceOutput
-* EventMessage
-* EventCode
-* EventPayload
-* EventStackTrace
-* StartData
-* CorrelationLogId
-* ExternalLogId
-* BusinessObject
-* ParentLogId
-* BusinessService
-* All other attributes
+- `TraceInput`, `TraceOutput`
+- `EventMessage`, `EventCode`, `EventPayload`, `EventStackTrace`
+- `StartData`
+- `CorrelationLogId`, `ExternalLogId`, `ParentLogId`
+- `BusinessObject`, `BusinessService`
+- All other attributes
 
 ## Howto use Argos Feature to send metrics from SDK
 
