@@ -228,7 +228,9 @@ Both can be customised independently on the `Njams` instance.
 
 The default layouter since 6.0 is `CommonModelLayouter`. It performs a two-pass algorithm — a bottom-up sizing pass that computes group dimensions from their contents, followed by a top-down placement pass using per-column widths — and correctly handles parallel branches, convergence nodes, and nested groups.
 
-`SimpleProcessModelLayouter`, the previous default, is deprecated. It does not correctly handle parallel branches, multiple start activities, or groups with more than one start activity. If you relied on the default, no code change is needed — `CommonModelLayouter` is now used automatically.
+`SimpleProcessModelLayouter`, the previous default, is deprecated. It does not correctly handle parallel branches, 
+multiple start activities, or groups with more than one start activity. If you relied on the default, no code change 
+is needed — `CommonModelLayouter` is now used automatically. However, the view of or model might look different due to the improved layout.
 
 **Custom layouter** — the standard way to control layout is to implement `com.im.njams.sdk.model.layout.ProcessModelLayouter`. The interface has a single method:
 
@@ -299,9 +301,9 @@ njams.setProcessDiagramFactory(new MyDiagramFactory(njams));
 
 `since njams4-sdk-4.0.1`
 
-## Does the ClientPath need to be unique?
+## Does the client path need to be unique?
 
-Yes. Multiple processes in the SDK and the server rely on the uniqueness of the ClientPath for each individual `Njams` instance.
+Yes. The client path uniquely identifies a `Njams` instance in the nJAMS infrastructure. The server and the SDK's communication layer use it as an address to route commands back to the correct client. Every `Njams` instance must be initialised with a path that is unique across all connected clients.
 
 ## How can I use Datamasking feature and which values are masked by that?
 
