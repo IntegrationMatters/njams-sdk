@@ -46,14 +46,25 @@ public class StringSerializer<T> implements Serializer<T> {
     }
 
     /**
-     * {@inheritDoc}
+     * Serialize via {@link Object#toString()} and substring the result to {@code sizeLimit}
+     * characters when a positive, less-than-{@link Integer#MAX_VALUE} limit is given.
      *
-     * <p>This minimal implementation ignores {@code sizeLimit}; size-aware serialization is added
-     * in a follow-up step.</p>
+     * @param t         Object to serialize, may be {@code null}
+     * @param sizeLimit Maximum length of the returned string when positive and less than
+     *                  {@link Integer#MAX_VALUE}; otherwise the limit is ignored
+     * @return {@code t.toString()} clipped to {@code sizeLimit} characters, or {@code ""} when
+     *         {@code t} is {@code null}
      */
     @Override
     public String serialize(final T t, final int sizeLimit) throws NjamsSdkRuntimeException {
-        return serialize(t);
+        if (t == null) {
+            return "";
+        }
+        final String s = t.toString();
+        if (sizeLimit <= 0 || sizeLimit == Integer.MAX_VALUE || sizeLimit >= s.length()) {
+            return s;
+        }
+        return s.substring(0, sizeLimit);
     }
 
 }
