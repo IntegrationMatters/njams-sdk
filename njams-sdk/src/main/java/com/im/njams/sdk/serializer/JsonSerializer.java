@@ -144,6 +144,12 @@ public class JsonSerializer<T> implements Serializer<T> {
         /** Sentinel thrown when the size limit has been reached. */
         static final class SizeLimitReached extends IOException {
             private static final long serialVersionUID = 1L;
+
+            @Override
+            public synchronized Throwable fillInStackTrace() {
+                // control-flow signal, not a real error: skip the costly stack walk
+                return this;
+            }
         }
     }
 }
