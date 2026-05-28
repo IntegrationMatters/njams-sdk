@@ -26,6 +26,7 @@ package com.im.njams.sdk.model.svg;
 import java.io.InputStream;
 import java.io.StringReader;
 import java.io.StringWriter;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -44,7 +45,6 @@ import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 import javax.xml.transform.stream.StreamSource;
 
-import com.im.njams.sdk.utils.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.w3c.dom.DOMImplementation;
@@ -96,6 +96,16 @@ public class NjamsProcessDiagramFactory implements ProcessDiagramFactory {
      * default marker size
      */
     protected static final int DEFAULT_MARKER_SIZE = 10;
+
+    /**
+     * default maximum number of lines for transition labels
+     */
+    protected static final int DEFAULT_MAX_LABEL_LINES = 3;
+
+    /**
+     * estimated character width as a fraction of the font size, used for transition label wrapping
+     */
+    protected static final double DEFAULT_CHAR_WIDTH_FACTOR = 0.6;
 
     /**
      * default secure processing
@@ -492,17 +502,24 @@ public class NjamsProcessDiagramFactory implements ProcessDiagramFactory {
         line.setAttributeNS(null, "style", "cursor: pointer; stroke:#000; fill:#000");
         context.getContainerElement().appendChild(line);
 
-        if (StringUtils.isNotBlank(transitionModel.getName())) {
-            // create text under transition on halfway to next activity
-            double x = (fromPoint.getX() + toPoint.getX()) / 2;
-            double y = (fromPoint.getY() + toPoint.getY()) / 2 + DEFAULT_TEXT_SIZE;
-            Element bwTransitionText = context.getDoc().createElementNS(context.getSvgNS(), "text");
-            bwTransitionText.setAttributeNS(null, "id", transitionModel.getId() + "_label");
-            bwTransitionText.setAttributeNS(null, "x", String.valueOf(x));
-            bwTransitionText.setAttributeNS(null, "y", String.valueOf(y));
-            bwTransitionText.setAttributeNS(null, "text-anchor", "middle");
-            bwTransitionText.setTextContent(transitionModel.getName());
-            context.getContainerElement().appendChild(bwTransitionText);
+        double lineWidth = Math.abs(toPoint.getX() - fromPoint.getX());
+        String[] labelLines = wrapLabel(transitionModel.getName(), lineWidth);
+        if (labelLines.length > 0) {
+            double midX = (fromPoint.getX() + toPoint.getX()) / 2;
+            double midY = (fromPoint.getY() + toPoint.getY()) / 2 + DEFAULT_TEXT_SIZE;
+            Element textElem = context.getDoc().createElementNS(context.getSvgNS(), "text");
+            textElem.setAttributeNS(null, "id", transitionModel.getId() + "_label");
+            textElem.setAttributeNS(null, "x", String.valueOf(midX));
+            textElem.setAttributeNS(null, "y", String.valueOf(midY));
+            textElem.setAttributeNS(null, "text-anchor", "middle");
+            for (int i = 0; i < labelLines.length; i++) {
+                Element tspan = context.getDoc().createElementNS(context.getSvgNS(), "tspan");
+                tspan.setAttributeNS(null, "x", String.valueOf(midX));
+                tspan.setAttributeNS(null, "dy", i == 0 ? "0" : String.valueOf(DEFAULT_TEXT_SIZE));
+                tspan.setTextContent(labelLines[i]);
+                textElem.appendChild(tspan);
+            }
+            context.getContainerElement().appendChild(textElem);
         }
     }
 
@@ -561,6 +578,65 @@ public class NjamsProcessDiagramFactory implements ProcessDiagramFactory {
             LOG.debug("new toPoint for Group {} is {}:{}", toActivity.getName(), toPoint.getX(), toPoint.getY());
         }
         return new Point[] { fromPoint, toPoint };
+    }
+
+    String[] wrapLabel(String text, double lineWidth) {
+        if (text == null) {
+            return new String[0];
+        }
+        String normalized = text.trim().replaceAll("\\s+", " ");
+        if (normalized.isEmpty()) {
+            return new String[0];
+        }
+        double effectiveWidth = lineWidth > 0 ? lineWidth : DEFAULT_ACTIVITY_SIZE;
+        int maxChars = Math.max(1, (int) (effectiveWidth / (DEFAULT_TEXT_SIZE * DEFAULT_CHAR_WIDTH_FACTOR)));
+        String[] result = new String[DEFAULT_MAX_LABEL_LINES];
+        int count = 0;
+        int pos = 0;
+        while (pos < normalized.length() && count < DEFAULT_MAX_LABEL_LINES) {
+            boolean isLastLine = count == DEFAULT_MAX_LABEL_LINES - 1;
+            if (normalized.length() - pos <= maxChars) {
+                result[count++] = normalized.substring(pos);
+                break;
+            }
+            if (isLastLine) {
+                int budget = maxChars - 3;
+                if (budget <= 0) {
+                    result[count++] = "...".substring(0, maxChars);
+                } else {
+                    int lineEnd = lastSplitInWindow(normalized, pos, budget);
+                    result[count++] = normalized.substring(pos, pos + lineEnd) + "...";
+                }
+                break;
+            }
+            int[] split = splitWindow(normalized, pos, maxChars);
+            result[count++] = normalized.substring(pos, pos + split[0]);
+            pos += split[1];
+            while (pos < normalized.length() && normalized.charAt(pos) == ' ') {
+                pos++;
+            }
+        }
+        return Arrays.copyOf(result, count);
+    }
+
+    private int[] splitWindow(String text, int pos, int maxChars) {
+        for (int i = maxChars - 1; i >= 0; i--) {
+            char c = text.charAt(pos + i);
+            if (!Character.isLetterOrDigit(c)) {
+                return c == ' ' ? new int[]{ i, i + 1 } : new int[]{ i + 1, i + 1 };
+            }
+        }
+        return new int[]{ maxChars, maxChars };
+    }
+
+    private int lastSplitInWindow(String text, int pos, int budget) {
+        for (int i = budget - 1; i >= 0; i--) {
+            char c = text.charAt(pos + i);
+            if (!Character.isLetterOrDigit(c)) {
+                return c == ' ' ? i : i + 1;
+            }
+        }
+        return budget;
     }
 
     /**

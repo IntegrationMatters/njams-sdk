@@ -203,6 +203,154 @@ public class NjamsProcessDiagramFactoryTest {
             icon.hasAttributeNS(XLINK_NS, "href"));
     }
 
+    private static double widthFor(int maxChars) {
+        return maxChars * NjamsProcessDiagramFactory.DEFAULT_TEXT_SIZE
+            * NjamsProcessDiagramFactory.DEFAULT_CHAR_WIDTH_FACTOR;
+    }
+
+    @Test
+    public void wrapLabel_nullReturnsEmpty() {
+        NjamsProcessDiagramFactory factory = new NjamsProcessDiagramFactory(false);
+        Assert.assertArrayEquals(new String[0], factory.wrapLabel(null, widthFor(10)));
+    }
+
+    @Test
+    public void wrapLabel_blankReturnsEmpty() {
+        NjamsProcessDiagramFactory factory = new NjamsProcessDiagramFactory(false);
+        Assert.assertArrayEquals(new String[0], factory.wrapLabel("   \t\n  ", widthFor(10)));
+    }
+
+    @Test
+    public void wrapLabel_shortTextReturnsSingleLine() {
+        NjamsProcessDiagramFactory factory = new NjamsProcessDiagramFactory(false);
+        Assert.assertArrayEquals(new String[]{"Hello"}, factory.wrapLabel("Hello", widthFor(10)));
+    }
+
+    @Test
+    public void wrapLabel_normalizesWhitespace() {
+        NjamsProcessDiagramFactory factory = new NjamsProcessDiagramFactory(false);
+        Assert.assertArrayEquals(new String[]{"Hello World"}, factory.wrapLabel("Hello  \t\n  World", widthFor(20)));
+    }
+
+    @Test
+    public void wrapLabel_splitsOnSpace() {
+        NjamsProcessDiagramFactory factory = new NjamsProcessDiagramFactory(false);
+        // maxChars=6: "Hello " has space at index 5 → line="Hello", next="World"
+        Assert.assertArrayEquals(new String[]{"Hello", "World"}, factory.wrapLabel("Hello World", widthFor(6)));
+    }
+
+    @Test
+    public void wrapLabel_splitsOnNonAlnumKeepingChar() {
+        NjamsProcessDiagramFactory factory = new NjamsProcessDiagramFactory(false);
+        // maxChars=2: "A.B" → window "A." has '.' at index 1 → line="A." (kept), next="B"
+        Assert.assertArrayEquals(new String[]{"A.", "B"}, factory.wrapLabel("A.B", widthFor(2)));
+    }
+
+    @Test
+    public void wrapLabel_hardSplitWhenNoSplitChar() {
+        NjamsProcessDiagramFactory factory = new NjamsProcessDiagramFactory(false);
+        // maxChars=3: "ABCDE" → hard split at 3 → "ABC", "DE"
+        Assert.assertArrayEquals(new String[]{"ABC", "DE"}, factory.wrapLabel("ABCDE", widthFor(3)));
+    }
+
+    @Test
+    public void wrapLabel_threeLines() {
+        NjamsProcessDiagramFactory factory = new NjamsProcessDiagramFactory(false);
+        // maxChars=5: "Hello World Greet" → "Hello", "World", "Greet"
+        Assert.assertArrayEquals(new String[]{"Hello", "World", "Greet"},
+            factory.wrapLabel("Hello World Greet", widthFor(5)));
+    }
+
+    @Test
+    public void wrapLabel_truncatesOnFourthLine() {
+        NjamsProcessDiagramFactory factory = new NjamsProcessDiagramFactory(false);
+        // maxChars=5, budget=2: line 3 hard-truncates "Greet Again" to "Gr..."
+        Assert.assertArrayEquals(new String[]{"Hello", "World", "Gr..."},
+            factory.wrapLabel("Hello World Greet Again", widthFor(5)));
+    }
+
+    @Test
+    public void wrapLabel_truncatesWithNonAlnumSplitInLastLine() {
+        NjamsProcessDiagramFactory factory = new NjamsProcessDiagramFactory(false);
+        // maxChars=6, budget=3: lines 1-2 split at trailing space, line 3 budget window "K!M"
+        // has '!' at index 1 → include it → "K!..."
+        Assert.assertArrayEquals(new String[]{"ABCDE", "FGHIJ", "K!..."},
+            factory.wrapLabel("ABCDE FGHIJ K!MNOP QR", widthFor(6)));
+    }
+
+    @Test
+    public void wrapLabel_noLineLongerThanMaxChars() {
+        NjamsProcessDiagramFactory factory = new NjamsProcessDiagramFactory(false);
+        int maxChars = 8;
+        String[] lines = factory.wrapLabel("Hello World This Is Very Long Text Indeed", widthFor(maxChars));
+        Assert.assertTrue("Expected at least one line", lines.length > 0);
+        for (String line : lines) {
+            Assert.assertTrue("Line '" + line + "' exceeds maxChars=" + maxChars, line.length() <= maxChars);
+        }
+    }
+
+    @Test
+    public void wrapLabel_zeroWidthFallsBackToDefaultActivitySize() {
+        NjamsProcessDiagramFactory factory = new NjamsProcessDiagramFactory(false);
+        // lineWidth=0 should not throw and should produce at least one line
+        String[] lines = factory.wrapLabel("Some label", 0);
+        Assert.assertTrue("Expected at least one line for zero-width fallback", lines.length > 0);
+    }
+
+    @Test
+    public void drawTransition_namedTransitionProducesTspanElements() throws Exception {
+        NjamsProcessDiagramFactory factory = new NjamsProcessDiagramFactory(false);
+        NjamsProcessDiagramContext context = createSimpleContext();
+        context.setContainerElement(context.getDoc().getDocumentElement());
+        context.setStartX(0);
+        context.setStartY(0);
+
+        ActivityModel from = new ActivityModel(null, "a", "A", "step");
+        from.setX(0);
+        from.setY(0);
+        ActivityModel to = new ActivityModel(null, "b", "B", "step");
+        to.setX(200);
+        to.setY(0);
+
+        TransitionModel transition = new TransitionModel(null, "a_b");
+        transition.setFromActivity(from);
+        transition.setToActivity(to);
+        transition.setName("My Label");
+
+        factory.drawTransition(context, transition);
+
+        NodeList tspans = context.getDoc().getElementsByTagNameNS(SVG_NS, "tspan");
+        Assert.assertTrue("Expected at least one tspan for named transition", tspans.getLength() >= 1);
+    }
+
+    @Test
+    public void drawTransition_multilineNameProducesMultipleTspans() throws Exception {
+        NjamsProcessDiagramFactory factory = new NjamsProcessDiagramFactory(false);
+        NjamsProcessDiagramContext context = createSimpleContext();
+        context.setContainerElement(context.getDoc().getDocumentElement());
+        context.setStartX(0);
+        context.setStartY(0);
+
+        // Activities 200px apart horizontally → lineWidth ≈ 130px after radius adjustment → ~14 chars
+        // "Very Long Transition" is 20 chars → needs wrapping
+        ActivityModel from = new ActivityModel(null, "a", "A", "step");
+        from.setX(0);
+        from.setY(0);
+        ActivityModel to = new ActivityModel(null, "b", "B", "step");
+        to.setX(200);
+        to.setY(0);
+
+        TransitionModel transition = new TransitionModel(null, "a_b");
+        transition.setFromActivity(from);
+        transition.setToActivity(to);
+        transition.setName("Very Long Transition Name");
+
+        factory.drawTransition(context, transition);
+
+        NodeList tspans = context.getDoc().getElementsByTagNameNS(SVG_NS, "tspan");
+        Assert.assertTrue("Expected multiple tspans for long transition name", tspans.getLength() > 1);
+    }
+
     private static String getMarkingXslt() {
         return "<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
             + "<xsl:stylesheet version=\"1.0\" xmlns:xsl=\"http://www.w3.org/1999/XSL/Transform\" "
