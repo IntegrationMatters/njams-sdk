@@ -108,4 +108,58 @@ public class CommonModelLayouterTest {
         assertTrue("group height >= activity + header + padding",
             group.getHeight() >= expectedMinHeight);
     }
+
+    @Test
+    public void group_widthIncludesHorizontalMarginOnBothSides() {
+        ProcessModel model = createProcess();
+        GroupModel group = model.createGroup("G", "G", null);
+        ActivityModel child = group.createChildActivity("ch", "ch", null);
+        child.setStarter(true);
+        group.addStartActivity(child);
+        group.setStarter(true);
+
+        layouter.layout(model);
+
+        int expectedMinWidth = CommonModelLayouter.ACTIVITY_SIZE
+            + 2 * CommonModelLayouter.GROUP_PADDING
+            + 2 * CommonModelLayouter.GROUP_MARGIN_HORIZONTAL;
+        assertTrue("group width must include horizontal margins on both sides",
+            group.getWidth() >= expectedMinWidth);
+    }
+
+    @Test
+    public void group_heightIncludesBottomMargin() {
+        ProcessModel model = createProcess();
+        GroupModel group = model.createGroup("G", "G", null);
+        ActivityModel child = group.createChildActivity("ch", "ch", null);
+        child.setStarter(true);
+        group.addStartActivity(child);
+        group.setStarter(true);
+
+        layouter.layout(model);
+
+        int expectedMinHeight = CommonModelLayouter.ACTIVITY_SIZE
+            + CommonModelLayouter.GROUP_HEADER_HEIGHT
+            + 2 * CommonModelLayouter.GROUP_PADDING
+            + CommonModelLayouter.GROUP_MARGIN_BOTTOM;
+        assertTrue("group height must include bottom margin",
+            group.getHeight() >= expectedMinHeight);
+    }
+
+    @Test
+    public void group_childrenStartPastHorizontalMargin() {
+        ProcessModel model = createProcess();
+        GroupModel group = model.createGroup("G", "G", null);
+        ActivityModel child = group.createChildActivity("ch", "ch", null);
+        child.setStarter(true);
+        group.addStartActivity(child);
+        group.setStarter(true);
+
+        layouter.layout(model);
+
+        int expectedMinChildX = group.getX() + CommonModelLayouter.GROUP_PADDING
+            + CommonModelLayouter.GROUP_MARGIN_HORIZONTAL;
+        assertTrue("child x must be at least padding + horizontal margin from group left edge",
+            child.getX() >= expectedMinChildX);
+    }
 }

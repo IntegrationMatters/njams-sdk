@@ -62,6 +62,10 @@ public class CommonModelLayouter implements ProcessModelLayouter {
     static final int GROUP_PADDING = 20;
     /** Header band height drawn above the child area of a group. */
     static final int GROUP_HEADER_HEIGHT = 20;
+    /** Additional horizontal margin on each side between the group border and its children. */
+    static final int GROUP_MARGIN_HORIZONTAL = 50;
+    /** Additional bottom margin between the last child row and the group's lower border. */
+    static final int GROUP_MARGIN_BOTTOM = 10;
     /** Visual width/height of a plain activity. */
     static final int ACTIVITY_SIZE = 50;
 
@@ -108,11 +112,11 @@ public class CommonModelLayouter implements ProcessModelLayouter {
         int width;
         int height;
         if (group.getChildActivities().isEmpty()) {
-            width = HORIZONTAL_STEP + 2 * GROUP_PADDING;
-            height = VERTICAL_STEP + GROUP_HEADER_HEIGHT + 2 * GROUP_PADDING;
+            width = HORIZONTAL_STEP + 2 * GROUP_PADDING + 2 * GROUP_MARGIN_HORIZONTAL;
+            height = VERTICAL_STEP + GROUP_HEADER_HEIGHT + 2 * GROUP_PADDING + GROUP_MARGIN_BOTTOM;
         } else {
-            width = grid.totalWidth() + 2 * GROUP_PADDING;
-            height = grid.totalHeight() + GROUP_HEADER_HEIGHT + 2 * GROUP_PADDING;
+            width = grid.totalWidth() + 2 * GROUP_PADDING + 2 * GROUP_MARGIN_HORIZONTAL;
+            height = grid.totalHeight() + GROUP_HEADER_HEIGHT + 2 * GROUP_PADDING + GROUP_MARGIN_BOTTOM;
         }
         group.setWidth(width);
         group.setHeight(height);
@@ -142,7 +146,7 @@ public class CommonModelLayouter implements ProcessModelLayouter {
         for (ActivityModel a : children) {
             if (a instanceof GroupModel) {
                 GroupModel g = (GroupModel) a;
-                int childOriginX = g.getX() + GROUP_PADDING;
+                int childOriginX = g.getX() + GROUP_PADDING + GROUP_MARGIN_HORIZONTAL;
                 int childOriginY = g.getY() + GROUP_HEADER_HEIGHT + GROUP_PADDING;
                 placeContainer(g.getChildActivities(), childTransitions(g),
                     firstStartActivity(g), childOriginX, childOriginY);
