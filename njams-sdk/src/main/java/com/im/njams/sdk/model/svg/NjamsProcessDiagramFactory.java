@@ -23,34 +23,6 @@
  */
 package com.im.njams.sdk.model.svg;
 
-import java.io.InputStream;
-import java.io.StringReader;
-import java.io.StringWriter;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Objects;
-import java.util.stream.Collectors;
-
-import javax.xml.XMLConstants;
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.transform.OutputKeys;
-import javax.xml.transform.Source;
-import javax.xml.transform.Templates;
-import javax.xml.transform.Transformer;
-import javax.xml.transform.TransformerConfigurationException;
-import javax.xml.transform.TransformerException;
-import javax.xml.transform.TransformerFactory;
-import javax.xml.transform.dom.DOMSource;
-import javax.xml.transform.stream.StreamResult;
-import javax.xml.transform.stream.StreamSource;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.w3c.dom.DOMImplementation;
-import org.w3c.dom.Document;
-import org.w3c.dom.Element;
-
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
@@ -58,6 +30,27 @@ import com.im.njams.sdk.model.ActivityModel;
 import com.im.njams.sdk.model.GroupModel;
 import com.im.njams.sdk.model.ProcessModel;
 import com.im.njams.sdk.model.TransitionModel;
+import com.im.njams.sdk.utils.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.w3c.dom.DOMImplementation;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+
+import javax.xml.XMLConstants;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.transform.*;
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.stream.StreamResult;
+import javax.xml.transform.stream.StreamSource;
+import java.io.InputStream;
+import java.io.StringReader;
+import java.io.StringWriter;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
 /**
  * This is the default SDK ProcessDiagramFactory. It converts a ProcessModel
@@ -100,12 +93,12 @@ public class NjamsProcessDiagramFactory implements ProcessDiagramFactory {
     /**
      * default maximum number of lines for transition labels
      */
-    protected static final int DEFAULT_MAX_LABEL_LINES = 3;
+    protected static final int DEFAULT_MAX_LABEL_LINES = 2;
 
     /**
      * estimated character width as a fraction of the font size, used for transition label wrapping
      */
-    protected static final double DEFAULT_CHAR_WIDTH_FACTOR = 0.6;
+    protected static final double DEFAULT_CHAR_WIDTH_FACTOR = 0.4;
 
     /**
      * default secure processing
@@ -208,7 +201,7 @@ public class NjamsProcessDiagramFactory implements ProcessDiagramFactory {
             createSvg(context, processModel);
 
             String svg = serializeDocument(context);
-            LOG.trace("Created ProcessDiagram for model '{}'\n{}",processModel.getPath(), svg);
+            LOG.trace("Created ProcessDiagram for model '{}'\n{}", processModel.getPath(), svg);
             return svg;
         } catch (Exception e) {
             throw new NjamsSdkRuntimeException("Error in NjamsProcessDiagramFactory", e);
@@ -346,6 +339,7 @@ public class NjamsProcessDiagramFactory implements ProcessDiagramFactory {
         activityText.setTextContent(activityModel.getName());
         context.getContainerElement().appendChild(activityText);
 
+        /*
         // create text for activity stats
         Element activityStats = context.getDoc().createElementNS(context.getSvgNS(), "text");
         activityStats.setAttributeNS(null, "id", activityModel.getId() + "_stats_text");
@@ -353,6 +347,8 @@ public class NjamsProcessDiagramFactory implements ProcessDiagramFactory {
         activityStats.setAttributeNS(null, "y", String.valueOf(statxY));
         activityStats.setAttributeNS(null, "text-anchor", "middle");
         context.getContainerElement().appendChild(activityStats);
+
+         */
     }
 
     /**
@@ -398,8 +394,8 @@ public class NjamsProcessDiagramFactory implements ProcessDiagramFactory {
         Element groupIcon = context.getDoc().createElementNS(context.getSvgNS(), "image");
         groupIcon.setAttributeNS(null, "activity", "true");
         groupIcon.setAttributeNS(null, "modelId", groupModel.getId());
-        groupIcon.setAttributeNS(null, "x", String.valueOf(headerX));
-        groupIcon.setAttributeNS(null, "y", String.valueOf(headerY));
+        groupIcon.setAttributeNS(null, "x", String.valueOf(headerX + 1));
+        groupIcon.setAttributeNS(null, "y", String.valueOf(headerY + 1));
         groupIcon.setAttributeNS(null, "width", String.valueOf(iconSize));
         groupIcon.setAttributeNS(null, "height", String.valueOf(iconSize));
         groupIcon.setAttributeNS(null, "group-type", context.getCategory() + "." + groupModel.getType());
@@ -507,19 +503,18 @@ public class NjamsProcessDiagramFactory implements ProcessDiagramFactory {
         if (labelLines.length > 0) {
             double midX = (fromPoint.getX() + toPoint.getX()) / 2;
             double midY = (fromPoint.getY() + toPoint.getY()) / 2 + DEFAULT_TEXT_SIZE;
-            Element textElem = context.getDoc().createElementNS(context.getSvgNS(), "text");
-            textElem.setAttributeNS(null, "id", transitionModel.getId() + "_label");
-            textElem.setAttributeNS(null, "x", String.valueOf(midX));
-            textElem.setAttributeNS(null, "y", String.valueOf(midY));
-            textElem.setAttributeNS(null, "text-anchor", "middle");
             for (int i = 0; i < labelLines.length; i++) {
-                Element tspan = context.getDoc().createElementNS(context.getSvgNS(), "tspan");
-                tspan.setAttributeNS(null, "x", String.valueOf(midX));
-                tspan.setAttributeNS(null, "dy", i == 0 ? "0" : String.valueOf(DEFAULT_TEXT_SIZE));
-                tspan.setTextContent(labelLines[i]);
-                textElem.appendChild(tspan);
+                Element textElem = context.getDoc().createElementNS(context.getSvgNS(), "text");
+                String elemId = i == 0
+                    ? transitionModel.getId() + "_label"
+                    : transitionModel.getId() + "_label_" + (i + 1);
+                textElem.setAttributeNS(null, "id", elemId);
+                textElem.setAttributeNS(null, "x", String.valueOf(midX));
+                textElem.setAttributeNS(null, "y", String.valueOf(midY + i * DEFAULT_TEXT_SIZE));
+                textElem.setAttributeNS(null, "text-anchor", "middle");
+                textElem.setTextContent(labelLines[i]);
+                context.getContainerElement().appendChild(textElem);
             }
-            context.getContainerElement().appendChild(textElem);
         }
     }
 
@@ -600,12 +595,12 @@ public class NjamsProcessDiagramFactory implements ProcessDiagramFactory {
                 break;
             }
             if (isLastLine) {
-                int budget = maxChars - 3;
+                int budget = maxChars - 1;
                 if (budget <= 0) {
-                    result[count++] = "...".substring(0, maxChars);
+                    result[count++] = String.valueOf(StringUtils.ELLIPSIS);
                 } else {
                     int lineEnd = lastSplitInWindow(normalized, pos, budget);
-                    result[count++] = normalized.substring(pos, pos + lineEnd) + "...";
+                    result[count++] = normalized.substring(pos, pos + lineEnd) + StringUtils.ELLIPSIS;
                 }
                 break;
             }
@@ -623,10 +618,10 @@ public class NjamsProcessDiagramFactory implements ProcessDiagramFactory {
         for (int i = maxChars - 1; i >= 0; i--) {
             char c = text.charAt(pos + i);
             if (!Character.isLetterOrDigit(c)) {
-                return c == ' ' ? new int[]{ i, i + 1 } : new int[]{ i + 1, i + 1 };
+                return c == ' ' ? new int[] { i, i + 1 } : new int[] { i + 1, i + 1 };
             }
         }
-        return new int[]{ maxChars, maxChars };
+        return new int[] { maxChars, maxChars };
     }
 
     private int lastSplitInWindow(String text, int pos, int budget) {

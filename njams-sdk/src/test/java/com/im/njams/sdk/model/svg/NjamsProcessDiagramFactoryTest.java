@@ -40,6 +40,7 @@ import org.w3c.dom.NodeList;
 import com.im.njams.sdk.Path;
 import com.im.njams.sdk.model.GroupModel;
 import com.im.njams.sdk.model.ProcessModel;
+import com.im.njams.sdk.utils.StringUtils;
 
 public class NjamsProcessDiagramFactoryTest {
 
@@ -254,28 +255,27 @@ public class NjamsProcessDiagramFactoryTest {
     }
 
     @Test
-    public void wrapLabel_threeLines() {
+    public void wrapLabel_longTextTruncatesOnSecondLine() {
         NjamsProcessDiagramFactory factory = new NjamsProcessDiagramFactory(false);
-        // maxChars=5: "Hello World Greet" → "Hello", "World", "Greet"
-        Assert.assertArrayEquals(new String[]{"Hello", "World", "Greet"},
+        // maxChars=5, 2-line limit: line 2 budget=4, "Worl" all alnum → hard truncate
+        Assert.assertArrayEquals(new String[]{"Hello", "Worl" + StringUtils.ELLIPSIS},
             factory.wrapLabel("Hello World Greet", widthFor(5)));
     }
 
     @Test
-    public void wrapLabel_truncatesOnFourthLine() {
+    public void wrapLabel_truncationSplitsOnSpaceInBudget() {
         NjamsProcessDiagramFactory factory = new NjamsProcessDiagramFactory(false);
-        // maxChars=5, budget=2: line 3 hard-truncates "Greet Again" to "Gr..."
-        Assert.assertArrayEquals(new String[]{"Hello", "World", "Gr..."},
-            factory.wrapLabel("Hello World Greet Again", widthFor(5)));
+        // maxChars=6: line 1 "AAAA" (space at 4); line 2 budget=5, "BB CC" has space at 2 → "BB" + ELLIPSIS
+        Assert.assertArrayEquals(new String[]{"AAAA", "BB" + StringUtils.ELLIPSIS},
+            factory.wrapLabel("AAAA BB CCCC", widthFor(6)));
     }
 
     @Test
     public void wrapLabel_truncatesWithNonAlnumSplitInLastLine() {
         NjamsProcessDiagramFactory factory = new NjamsProcessDiagramFactory(false);
-        // maxChars=6, budget=3: lines 1-2 split at trailing space, line 3 budget window "K!M"
-        // has '!' at index 1 → include it → "K!..."
-        Assert.assertArrayEquals(new String[]{"ABCDE", "FGHIJ", "K!..."},
-            factory.wrapLabel("ABCDE FGHIJ K!MNOP QR", widthFor(6)));
+        // maxChars=6, 2-line limit: line 2 budget=5, window "K!MNO" has '!' at index 1 → "K!" + ELLIPSIS
+        Assert.assertArrayEquals(new String[]{"ABCDE", "K!" + StringUtils.ELLIPSIS},
+            factory.wrapLabel("ABCDE K!MNOPQR", widthFor(6)));
     }
 
     @Test
@@ -298,7 +298,7 @@ public class NjamsProcessDiagramFactoryTest {
     }
 
     @Test
-    public void drawTransition_namedTransitionProducesTspanElements() throws Exception {
+    public void drawTransition_namedTransitionProducesTextElementWithDirectContent() throws Exception {
         NjamsProcessDiagramFactory factory = new NjamsProcessDiagramFactory(false);
         NjamsProcessDiagramContext context = createSimpleContext();
         context.setContainerElement(context.getDoc().getDocumentElement());
@@ -319,36 +319,57 @@ public class NjamsProcessDiagramFactoryTest {
 
         factory.drawTransition(context, transition);
 
-        NodeList tspans = context.getDoc().getElementsByTagNameNS(SVG_NS, "tspan");
-        Assert.assertTrue("Expected at least one tspan for named transition", tspans.getLength() >= 1);
+        NodeList texts = context.getDoc().getElementsByTagNameNS(SVG_NS, "text");
+        Element labelElem = null;
+        for (int i = 0; i < texts.getLength(); i++) {
+            Element t = (Element) texts.item(i);
+            if ("a_b_label".equals(t.getAttributeNS(null, "id"))) {
+                labelElem = t;
+                break;
+            }
+        }
+        Assert.assertNotNull("Expected a text element with id 'a_b_label'", labelElem);
+        // Label text must be a direct text node child — no tspan wrapper
+        Assert.assertEquals(org.w3c.dom.Node.TEXT_NODE, labelElem.getFirstChild().getNodeType());
+        Assert.assertEquals("My Label", labelElem.getFirstChild().getNodeValue());
     }
 
     @Test
-    public void drawTransition_multilineNameProducesMultipleTspans() throws Exception {
+    public void drawTransition_multilineNameProducesMultipleTextElements() throws Exception {
         NjamsProcessDiagramFactory factory = new NjamsProcessDiagramFactory(false);
         NjamsProcessDiagramContext context = createSimpleContext();
         context.setContainerElement(context.getDoc().getDocumentElement());
         context.setStartX(0);
         context.setStartY(0);
 
-        // Activities 200px apart horizontally → lineWidth ≈ 130px after radius adjustment → ~14 chars
-        // "Very Long Transition" is 20 chars → needs wrapping
+        // Force wrapping: narrow line width gives maxChars=5; "Hello World" needs two lines
         ActivityModel from = new ActivityModel(null, "a", "A", "step");
         from.setX(0);
         from.setY(0);
         ActivityModel to = new ActivityModel(null, "b", "B", "step");
-        to.setX(200);
+        // small horizontal gap so wrapLabel produces 2+ lines
+        to.setX(50);
         to.setY(0);
 
         TransitionModel transition = new TransitionModel(null, "a_b");
         transition.setFromActivity(from);
         transition.setToActivity(to);
-        transition.setName("Very Long Transition Name");
+        transition.setName("Hello World");
 
         factory.drawTransition(context, transition);
 
-        NodeList tspans = context.getDoc().getElementsByTagNameNS(SVG_NS, "tspan");
-        Assert.assertTrue("Expected multiple tspans for long transition name", tspans.getLength() > 1);
+        // First text element carries the _label id; at least one more text element for line 2
+        NodeList texts = context.getDoc().getElementsByTagNameNS(SVG_NS, "text");
+        long labelTexts = 0;
+        for (int i = 0; i < texts.getLength(); i++) {
+            Element t = (Element) texts.item(i);
+            String id = t.getAttributeNS(null, "id");
+            if (id.startsWith("a_b_label")) {
+                labelTexts++;
+                Assert.assertEquals(org.w3c.dom.Node.TEXT_NODE, t.getFirstChild().getNodeType());
+            }
+        }
+        Assert.assertTrue("Expected multiple text elements for wrapped label, got " + labelTexts, labelTexts > 1);
     }
 
     private static String getMarkingXslt() {
