@@ -24,7 +24,8 @@
 package com.im.njams.sdk.serializer;
 
 import java.io.Serializable;
-
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.junit.Test;
@@ -93,9 +94,37 @@ public class JsonSerializerTest implements Serializable {
     }
 
     @Test
-    public void serializeWithNullObjectReturnsEmptyJsonObject() {
+    public void serializeWithNullObjectReturnsNull() {
         JsonSerializer<Object> ser = new JsonSerializer<>();
-        assertEquals("{}", ser.serialize(null, 50));
+        assertNull(ser.serialize(null));
+        assertNull(ser.serialize(null, 50));
+    }
+
+    @Test
+    public void noArgConstructorProducesCompactOutput() {
+        JsonSerializer<String[]> ser = new JsonSerializer<>();
+        String result = ser.serialize(new String[]{"a", "b"});
+        assertFalse("no-arg constructor should produce compact JSON without newlines",
+                result.contains("\n"));
+    }
+
+    @Test
+    public void prettyFalseConstructorProducesCompactOutput() {
+        JsonSerializer<String[]> ser = new JsonSerializer<>(false);
+        String result = ser.serialize(new String[]{"a", "b"});
+        assertFalse("pretty=false should produce compact JSON without newlines",
+                result.contains("\n"));
+    }
+
+    @Test
+    public void prettyTrueConstructorProducesIndentedOutput() {
+        JsonSerializer<Map<String, String>> ser = new JsonSerializer<>(true);
+        Map<String, String> data = new LinkedHashMap<>();
+        data.put("key1", "value1");
+        data.put("key2", "value2");
+        String result = ser.serialize(data);
+        assertTrue("pretty=true should produce indented JSON with newlines",
+                result.contains("\n"));
     }
 
 }

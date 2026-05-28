@@ -33,26 +33,56 @@ import java.io.StringWriter;
 import java.io.Writer;
 
 /**
- * Json Serializer
- * @author stkniep
- * @param <T> generic
+ * {@link Serializer} implementation that converts objects to their JSON string representation
+ * using Jackson.
+ *
+ * <p>By default, the serializer produces compact output. Pass {@code true} to
+ * {@link #JsonSerializer(boolean)} to obtain indented, human-readable output instead.</p>
+ *
+ * <p>Both {@code serialize} methods return {@code null} when the object is {@code null}.</p>
+ *
+ * @param <T> the type of object to serialize
  */
 public class JsonSerializer<T> implements Serializer<T> {
 
-    private final ObjectMapper objectMapper = JsonSerializerFactory.getDefaultMapper();
-    private final ObjectWriter objectWriter = this.objectMapper.writer();
+    private final ObjectWriter objectWriter;
+
+    /**
+     * Creates a serializer that produces compact (non-pretty-printed) JSON output.
+     */
+    public JsonSerializer() {
+        this(false);
+    }
+
+    /**
+     * Creates a serializer with the given pretty-printing setting.
+     *
+     * <p>When {@code pretty} is {@code true}, the default mapper from
+     * {@link JsonSerializerFactory#getDefaultMapper()} is used, which produces indented,
+     * human-readable JSON with entries ordered by key. When {@code false}, the fast mapper
+     * from {@link JsonSerializerFactory#getFastMapper()} is used, producing compact output
+     * optimized for performance.</p>
+     *
+     * @param pretty {@code true} for indented, human-readable JSON; {@code false} for compact output
+     */
+    public JsonSerializer(final boolean pretty) {
+        final ObjectMapper mapper = pretty
+                ? JsonSerializerFactory.getDefaultMapper()
+                : JsonSerializerFactory.getFastMapper();
+        this.objectWriter = mapper.writer();
+    }
 
     /**
      * Serialize the given object to a JSON string, with no effective size limit.
      *
      * @param object Object to serialize, may be {@code null}
-     * @return JSON representation, or {@code "{}"} if {@code object} is {@code null}
+     * @return JSON representation, or {@code null} if {@code object} is {@code null}
      * @throws NjamsSdkRuntimeException if Jackson fails to serialize the object
      */
     @Override
     public String serialize(final T object) throws NjamsSdkRuntimeException {
         if (object == null) {
-            return "{}";
+            return null;
         }
         try {
             final StringWriter writer = new StringWriter();
@@ -72,13 +102,13 @@ public class JsonSerializer<T> implements Serializer<T> {
      *
      * @param object    Object to serialize, may be {@code null}
      * @param sizeLimit Approximate maximum length of the returned string
-     * @return JSON representation, possibly clipped near {@code sizeLimit}
+     * @return JSON representation, possibly clipped near {@code sizeLimit}, or {@code null} if {@code object} is {@code null}
      * @throws NjamsSdkRuntimeException if Jackson fails for a reason other than the size limit
      */
     @Override
     public String serialize(final T object, final int sizeLimit) throws NjamsSdkRuntimeException {
         if (object == null) {
-            return "{}";
+            return null;
         }
         if (sizeLimit <= 0 || sizeLimit == Integer.MAX_VALUE) {
             return serialize(object);
