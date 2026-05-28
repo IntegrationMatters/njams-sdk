@@ -101,6 +101,11 @@ public class NjamsProcessDiagramFactory implements ProcessDiagramFactory {
     protected static final double DEFAULT_CHAR_WIDTH_FACTOR = 0.4;
 
     /**
+     * Width reserved at the right edge of the group header for nJAMS Server controls.
+     */
+    protected static final int GROUP_HEADER_RESERVED_END = 50;
+
+    /**
      * default secure processing
      */
     protected static final String DEFAULT_DISABLE_SECURE_PROCESSING = "false";
@@ -422,13 +427,14 @@ public class NjamsProcessDiagramFactory implements ProcessDiagramFactory {
         int labelGap = 4;
         int groupTextX = headerX + iconSize + labelGap;
         int groupTextY = headerY + DEFAULT_TEXT_SIZE;
+        double labelAvailableWidth = headerWidth - iconSize - labelGap - GROUP_HEADER_RESERVED_END;
 
         Element groupText = context.getDoc().createElementNS(context.getSvgNS(), "text");
         groupText.setAttributeNS(null, "id", groupModel.getId() + "_label");
         groupText.setAttributeNS(null, "x", String.valueOf(groupTextX));
         groupText.setAttributeNS(null, "y", String.valueOf(groupTextY));
         groupText.setAttributeNS(null, "text-anchor", "start");
-        groupText.setTextContent(groupModel.getName());
+        groupText.setTextContent(truncateLabel(groupModel.getName(), labelAvailableWidth));
         context.getContainerElement().appendChild(groupText);
 
         // draw root activities
@@ -612,6 +618,26 @@ public class NjamsProcessDiagramFactory implements ProcessDiagramFactory {
             }
         }
         return Arrays.copyOf(result, count);
+    }
+
+    String truncateLabel(String text, double availableWidth) {
+        if (text == null) {
+            return "";
+        }
+        String normalized = text.trim().replaceAll("\\s+", " ");
+        if (normalized.isEmpty()) {
+            return "";
+        }
+        double effective = availableWidth > 0 ? availableWidth : DEFAULT_ACTIVITY_SIZE;
+        int maxChars = Math.max(1, (int) (effective / (DEFAULT_TEXT_SIZE * DEFAULT_CHAR_WIDTH_FACTOR)));
+        if (normalized.length() <= maxChars) {
+            return normalized;
+        }
+        int budget = maxChars - 1;
+        if (budget <= 0) {
+            return String.valueOf(StringUtils.ELLIPSIS);
+        }
+        return normalized.substring(0, budget) + StringUtils.ELLIPSIS;
     }
 
     private int[] splitWindow(String text, int pos, int maxChars) {

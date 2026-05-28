@@ -183,6 +183,27 @@ public class NjamsProcessDiagramFactoryTest {
     }
 
     @Test
+    public void drawGroup_labelTextIsFullGroupName() throws Exception {
+        NjamsProcessDiagramContext context = createDrawableContext("cat");
+        NjamsProcessDiagramFactory factory = new NjamsProcessDiagramFactory(true);
+
+        GroupModel group = buildGroup("g1", "MyGroup", "loop", 0, 0, 400, 100);
+        factory.drawGroup(context, group);
+
+        NodeList texts = context.getDoc().getElementsByTagNameNS(SVG_NS, "text");
+        String labelText = null;
+        for (int i = 0; i < texts.getLength(); i++) {
+            Element t = (Element) texts.item(i);
+            if ("g1_label".equals(t.getAttributeNS(null, "id"))) {
+                labelText = t.getTextContent();
+                break;
+            }
+        }
+        Assert.assertNotNull("Expected label text element", labelText);
+        Assert.assertEquals("Label text must equal the group name", "MyGroup", labelText);
+    }
+
+    @Test
     public void drawGroup_iconUsesTypeBasedAttribute_andDoesNotHardcodeHref() throws Exception {
         NjamsProcessDiagramContext context = createDrawableContext("cat");
         NjamsProcessDiagramFactory factory = new NjamsProcessDiagramFactory(true);
@@ -202,6 +223,65 @@ public class NjamsProcessDiagramFactoryTest {
             "cat.loop", icon.getAttributeNS(null, "activity-type"));
         Assert.assertFalse("Group icon must not hardcode an xlink:href",
             icon.hasAttributeNS(XLINK_NS, "href"));
+    }
+
+    @Test
+    public void drawGroup_longLabelTruncatedWhenHeaderTooNarrow() throws Exception {
+        NjamsProcessDiagramContext context = createDrawableContext("cat");
+        NjamsProcessDiagramFactory factory = new NjamsProcessDiagramFactory(true);
+        // header width 100: available = 100 - 16 (icon) - 4 (gap) - 50 (reserved) = 30px
+        // maxChars = 30 / (15 * 0.4) = 5; "A very long name" won't fit
+        GroupModel group = buildGroup("g1", "A very long name", "loop", 0, 0, 100, 100);
+        factory.drawGroup(context, group);
+
+        NodeList texts = context.getDoc().getElementsByTagNameNS(SVG_NS, "text");
+        String labelText = null;
+        for (int i = 0; i < texts.getLength(); i++) {
+            Element t = (Element) texts.item(i);
+            if ("g1_label".equals(t.getAttributeNS(null, "id"))) {
+                labelText = t.getTextContent();
+                break;
+            }
+        }
+        Assert.assertNotNull("Expected label text element", labelText);
+        Assert.assertTrue("Truncated label must end with ellipsis",
+            labelText.endsWith(String.valueOf(StringUtils.ELLIPSIS)));
+        Assert.assertTrue("Truncated label must be shorter than full name",
+            labelText.length() < "A very long name".length());
+    }
+
+    @Test
+    public void truncateLabel_nullReturnsEmpty() {
+        NjamsProcessDiagramFactory factory = new NjamsProcessDiagramFactory(false);
+        Assert.assertEquals("", factory.truncateLabel(null, 200));
+    }
+
+    @Test
+    public void truncateLabel_blankReturnsEmpty() {
+        NjamsProcessDiagramFactory factory = new NjamsProcessDiagramFactory(false);
+        Assert.assertEquals("", factory.truncateLabel("   ", 200));
+    }
+
+    @Test
+    public void truncateLabel_shortTextReturnedUnchanged() {
+        NjamsProcessDiagramFactory factory = new NjamsProcessDiagramFactory(false);
+        Assert.assertEquals("Hello", factory.truncateLabel("Hello", 500));
+    }
+
+    @Test
+    public void truncateLabel_longTextTruncatedWithEllipsis() {
+        NjamsProcessDiagramFactory factory = new NjamsProcessDiagramFactory(false);
+        String result = factory.truncateLabel("A very long group name indeed", 20);
+        Assert.assertTrue("Must end with ellipsis", result.endsWith(String.valueOf(StringUtils.ELLIPSIS)));
+        Assert.assertTrue("Must be shorter than input", result.length() < "A very long group name indeed".length());
+    }
+
+    @Test
+    public void truncateLabel_zeroWidthFallsBackToDefault() {
+        NjamsProcessDiagramFactory factory = new NjamsProcessDiagramFactory(false);
+        String result = factory.truncateLabel("Hello", 0);
+        Assert.assertNotNull(result);
+        Assert.assertFalse(result.isEmpty());
     }
 
     private static double widthFor(int maxChars) {
