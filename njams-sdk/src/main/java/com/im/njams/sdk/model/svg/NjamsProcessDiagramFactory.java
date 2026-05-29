@@ -106,6 +106,12 @@ public class NjamsProcessDiagramFactory implements ProcessDiagramFactory {
     protected static final int GROUP_HEADER_RESERVED_END = 120;
 
     /**
+     * Maximum activity label width expressed as a multiple of {@link #DEFAULT_ACTIVITY_SIZE}.
+     * Labels wider than this limit are truncated with an ellipsis.
+     */
+    protected static final int ACTIVITY_LABEL_MAX_WIDTH_FACTOR = 2;
+
+    /**
      * default secure processing
      */
     protected static final String DEFAULT_DISABLE_SECURE_PROCESSING = "false";
@@ -341,7 +347,8 @@ public class NjamsProcessDiagramFactory implements ProcessDiagramFactory {
         activityText.setAttributeNS(null, "x", String.valueOf(labelX));
         activityText.setAttributeNS(null, "y", String.valueOf(labelY));
         activityText.setAttributeNS(null, "text-anchor", "middle");
-        activityText.setTextContent(activityModel.getName());
+        activityText.setTextContent(
+            truncateLabel(activityModel.getName(), (double) ACTIVITY_LABEL_MAX_WIDTH_FACTOR * DEFAULT_ACTIVITY_SIZE));
         context.getContainerElement().appendChild(activityText);
 
         /*

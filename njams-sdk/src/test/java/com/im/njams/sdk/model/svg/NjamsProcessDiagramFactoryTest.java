@@ -452,6 +452,56 @@ public class NjamsProcessDiagramFactoryTest {
         Assert.assertTrue("Expected multiple text elements for wrapped label, got " + labelTexts, labelTexts > 1);
     }
 
+    @Test
+    public void drawActivity_shortLabelRetainedUnchanged() throws Exception {
+        NjamsProcessDiagramContext context = createDrawableContext("cat");
+        NjamsProcessDiagramFactory factory = new NjamsProcessDiagramFactory(false);
+
+        ActivityModel activity = new ActivityModel(null, "a1", "Short", "step");
+        activity.setX(0);
+        activity.setY(0);
+        factory.drawActivity(context, activity);
+
+        NodeList texts = context.getDoc().getElementsByTagNameNS(SVG_NS, "text");
+        String labelText = null;
+        for (int i = 0; i < texts.getLength(); i++) {
+            Element t = (Element) texts.item(i);
+            if ("a1_label".equals(t.getAttributeNS(null, "id"))) {
+                labelText = t.getTextContent();
+                break;
+            }
+        }
+        Assert.assertEquals("Short label must be unchanged", "Short", labelText);
+    }
+
+    @Test
+    public void drawActivity_longLabelTruncatedToTwoActivityWidths() throws Exception {
+        NjamsProcessDiagramContext context = createDrawableContext("cat");
+        NjamsProcessDiagramFactory factory = new NjamsProcessDiagramFactory(false);
+
+        // maxWidth = ACTIVITY_LABEL_MAX_WIDTH_FACTOR(2) * DEFAULT_ACTIVITY_SIZE(50) = 100px
+        // maxChars = floor(100 / (15 * 0.4)) = 16; "A very long activity name here" (30 chars) must be truncated
+        ActivityModel activity = new ActivityModel(null, "a1", "A very long activity name here", "step");
+        activity.setX(0);
+        activity.setY(0);
+        factory.drawActivity(context, activity);
+
+        NodeList texts = context.getDoc().getElementsByTagNameNS(SVG_NS, "text");
+        String labelText = null;
+        for (int i = 0; i < texts.getLength(); i++) {
+            Element t = (Element) texts.item(i);
+            if ("a1_label".equals(t.getAttributeNS(null, "id"))) {
+                labelText = t.getTextContent();
+                break;
+            }
+        }
+        Assert.assertNotNull("Expected label text element", labelText);
+        Assert.assertTrue("Truncated label must end with ellipsis",
+            labelText.endsWith(String.valueOf(StringUtils.ELLIPSIS)));
+        Assert.assertTrue("Truncated label must be shorter than full name",
+            labelText.length() < "A very long activity name here".length());
+    }
+
     private static String getMarkingXslt() {
         return "<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
             + "<xsl:stylesheet version=\"1.0\" xmlns:xsl=\"http://www.w3.org/1999/XSL/Transform\" "
