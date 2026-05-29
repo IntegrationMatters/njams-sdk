@@ -147,6 +147,51 @@ public class CommonModelLayouterTest {
     }
 
     @Test
+    public void chainAfterBranch_staysOnSameRow() {
+        // Start → A (row 0) and Start → B → C → D (row 1)
+        // B, C, D must all have the same Y — the chain must not fall back to row 0
+        ProcessModel model = createProcess();
+        ActivityModel start = model.createActivity("Start", "Start", null);
+        ActivityModel a = model.createActivity("A", "A", null);
+        ActivityModel b = model.createActivity("B", "B", null);
+        ActivityModel c = model.createActivity("C", "C", null);
+        ActivityModel d = model.createActivity("D", "D", null);
+        start.setStarter(true);
+        model.createTransition("Start", "A");
+        model.createTransition("Start", "B");
+        model.createTransition("B", "C");
+        model.createTransition("C", "D");
+
+        layouter.layout(model);
+
+        assertEquals("B and C must share the same row", b.getY(), c.getY());
+        assertEquals("C and D must share the same row", c.getY(), d.getY());
+        assertNotEquals("A and B must be on different rows", a.getY(), b.getY());
+    }
+
+    @Test
+    public void branch_prefersAboveWhenSpaceAvailable() {
+        // Start → A (row 0), Start → B (row 1). B → C (row 1 continuation), B → D (branch).
+        // D must land above C (lower Y) because B is on row 1 and row 0 is free above it.
+        ProcessModel model = createProcess();
+        ActivityModel start = model.createActivity("Start", "Start", null);
+        ActivityModel a = model.createActivity("A", "A", null);
+        ActivityModel b = model.createActivity("B", "B", null);
+        ActivityModel c = model.createActivity("C", "C", null);
+        ActivityModel d = model.createActivity("D", "D", null);
+        start.setStarter(true);
+        model.createTransition("Start", "A");
+        model.createTransition("Start", "B");
+        model.createTransition("B", "C");
+        model.createTransition("B", "D");
+
+        layouter.layout(model);
+
+        assertTrue("D must be above C (lower Y) since B is on row 1 and row 0 is free",
+            d.getY() < c.getY());
+    }
+
+    @Test
     public void group_childrenStartPastHorizontalMargin() {
         ProcessModel model = createProcess();
         GroupModel group = model.createGroup("G", "G", null);

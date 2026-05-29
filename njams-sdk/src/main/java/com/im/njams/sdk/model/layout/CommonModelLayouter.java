@@ -247,11 +247,33 @@ public class CommonModelLayouter implements ProcessModelLayouter {
             }
             colList.add(a.getId());
         }
-        Map<String, Integer> rowOf = new HashMap<String, Integer>();
-        for (List<String> ids : byColumn.values()) {
-            for (int i = 0; i < ids.size(); i++) {
-                rowOf.put(ids.get(i), i);
+        Map<String, List<ActivityModel>> predecessors = new LinkedHashMap<String, List<ActivityModel>>();
+        for (TransitionModel t : transitions) {
+            ActivityModel from = t.getFromActivity();
+            ActivityModel to = t.getToActivity();
+            if (from != null && to != null) {
+                List<ActivityModel> predList = predecessors.get(to.getId());
+                if (predList == null) {
+                    predList = new ArrayList<ActivityModel>();
+                    predecessors.put(to.getId(), predList);
+                }
+                predList.add(from);
             }
+        }
+        Map<String, Integer> rowOf = new HashMap<String, Integer>();
+        Map<Integer, Set<Integer>> occupiedByCol = new HashMap<Integer, Set<Integer>>();
+        for (ActivityModel a : traversal) {
+            String id = a.getId();
+            int col = columnOf.get(id);
+            int desired = inheritedRow(id, predecessors, rowOf);
+            Set<Integer> occupied = occupiedByCol.get(col);
+            if (occupied == null) {
+                occupied = new HashSet<Integer>();
+                occupiedByCol.put(col, occupied);
+            }
+            int assigned = nearestFreeRow(desired, occupied);
+            rowOf.put(id, assigned);
+            occupied.add(assigned);
         }
         Map<String, ActivityModel> byId = new HashMap<String, ActivityModel>();
         for (ActivityModel a : children) {
@@ -309,6 +331,37 @@ public class CommonModelLayouter implements ProcessModelLayouter {
                 if (enqueued.add(succ.getId())) {
                     queue.add(succ);
                 }
+            }
+        }
+    }
+
+    private static int inheritedRow(String id, Map<String, List<ActivityModel>> predecessors,
+        Map<String, Integer> rowOf) {
+        List<ActivityModel> preds = predecessors.get(id);
+        if (preds == null) {
+            return 0;
+        }
+        int min = Integer.MAX_VALUE;
+        for (ActivityModel pred : preds) {
+            Integer predRow = rowOf.get(pred.getId());
+            if (predRow != null && predRow < min) {
+                min = predRow;
+            }
+        }
+        return min == Integer.MAX_VALUE ? 0 : min;
+    }
+
+    private static int nearestFreeRow(int desired, Set<Integer> occupied) {
+        if (!occupied.contains(desired)) {
+            return desired;
+        }
+        for (int delta = 1; ; delta++) {
+            int above = desired - delta;
+            if (above >= 0 && !occupied.contains(above)) {
+                return above;
+            }
+            if (!occupied.contains(desired + delta)) {
+                return desired + delta;
             }
         }
     }
