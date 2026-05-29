@@ -229,9 +229,9 @@ public class NjamsProcessDiagramFactoryTest {
     public void drawGroup_longLabelTruncatedWhenHeaderTooNarrow() throws Exception {
         NjamsProcessDiagramContext context = createDrawableContext("cat");
         NjamsProcessDiagramFactory factory = new NjamsProcessDiagramFactory(true);
-        // header width 100: available = 100 - 16 (icon) - 4 (gap) - 50 (reserved) = 30px
-        // maxChars = 30 / (15 * 0.4) = 5; "A very long name" won't fit
-        GroupModel group = buildGroup("g1", "A very long name", "loop", 0, 0, 100, 100);
+        // header width 200: available = 200 - 16 (icon) - 4 (gap) - 100 (reserved) = 80px
+        // maxChars = floor(80 / (15 * 0.4)) = 13; "A very long name" won't fit
+        GroupModel group = buildGroup("g1", "A very long name", "loop", 0, 0, 200, 100);
         factory.drawGroup(context, group);
 
         NodeList texts = context.getDoc().getElementsByTagNameNS(SVG_NS, "text");

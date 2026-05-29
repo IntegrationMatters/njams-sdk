@@ -55,7 +55,8 @@ public class IdUtil {
      * @return the constructed id
      */
     public static String getTransitionModelId(String fromActivityModelId, String toActivityModelId) {
-        return new StringBuilder().append(fromActivityModelId).append("::").append(toActivityModelId).toString();
+        // in modern JVM, it's more efficient to concat strings than use StringBuilder when the number is small
+        return fromActivityModelId + "::" + toActivityModelId;
     }
 
     /**
@@ -68,6 +69,6 @@ public class IdUtil {
      * @return the constructed id
      */
     public static String getActivityInstanceId(String modelId, long sequence) {
-        return new StringBuilder().append(modelId).append("$").append(sequence).toString();
+        return modelId + "$" + sequence;
     }
 }

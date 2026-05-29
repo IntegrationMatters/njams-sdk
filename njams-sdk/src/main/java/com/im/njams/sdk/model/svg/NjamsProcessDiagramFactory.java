@@ -103,7 +103,7 @@ public class NjamsProcessDiagramFactory implements ProcessDiagramFactory {
     /**
      * Width reserved at the right edge of the group header for nJAMS Server controls.
      */
-    protected static final int GROUP_HEADER_RESERVED_END = 120;
+    protected static final int GROUP_HEADER_RESERVED_END = 100;
 
     /**
      * default secure processing
