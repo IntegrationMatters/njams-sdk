@@ -195,9 +195,9 @@ public class NjamsSettings {
      * This property decides what to do with a logmessage that couldn't be delivered (because of connection loss, full queue, etc.)
      * Possible values are:
      * <ul>
-     * <li>none (Default)
+     * <li>none
      * <li>onconnectionloss
-     * <li>discard
+     * <li>discard (Default since 6.0.0; was none in earlier versions)
      * </ul>
      */
     public static final String PROPERTY_DISCARD_POLICY = "njams.sdk.discardpolicy";

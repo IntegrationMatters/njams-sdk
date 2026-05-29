@@ -145,6 +145,7 @@ public class NjamsSenderTest extends AbstractTest {
         settings.put(NjamsSettings.PROPERTY_MIN_SENDER_THREADS, "3");
         settings.put(NjamsSettings.PROPERTY_MAX_SENDER_THREADS, "10");
         settings.put(NjamsSettings.PROPERTY_SENDER_THREAD_IDLE_TIME, "5000");
+        settings.put(NjamsSettings.PROPERTY_DISCARD_POLICY, "none");
 
         NjamsSender sender = new NjamsSender(settings);
         ThreadPoolExecutor executor = sender.getExecutor();

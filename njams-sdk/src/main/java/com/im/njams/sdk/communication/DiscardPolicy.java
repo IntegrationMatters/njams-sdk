@@ -35,7 +35,7 @@ import java.util.Arrays;
 public enum DiscardPolicy {
     //none|onconnectionloss|discard
     /**
-     * Default. Never discard. Processing blocks if messages cannot be sent. (property value=none)
+     * Never discard. Processing blocks if messages cannot be sent. (property value=none)
      */
     NONE,
     /**
@@ -49,9 +49,9 @@ public enum DiscardPolicy {
     DISCARD;
 
     /**
-     * The default policy, i.e. {@link DiscardPolicy#NONE}.
+     * The default policy, i.e. {@link DiscardPolicy#DISCARD}.
      */
-    public static final DiscardPolicy DEFAULT = NONE;
+    public static final DiscardPolicy DEFAULT = DISCARD;
 
     private final String value;
 
