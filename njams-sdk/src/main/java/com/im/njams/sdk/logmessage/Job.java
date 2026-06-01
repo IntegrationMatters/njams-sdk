@@ -90,9 +90,11 @@ public interface Job {
     public void end(boolean normalCompletion);
 
     /**
-     * Return all Activities
+     * Returns a snapshot of all activities currently recorded in this job. The returned collection
+     * is independent of the job's internal state and can be iterated freely without risk of
+     * {@link java.util.ConcurrentModificationException}.
      *
-     * @return all Activities
+     * @return a snapshot of all activities at the time of the call
      */
     public Collection<Activity> getActivities();
 

@@ -542,6 +542,36 @@ public class JobImplTest extends AbstractTest {
     }
 
     @Test
+    public void testGetActivityByInstanceIdReturnsActivity() {
+        JobImpl job = createDefaultStartedJob();
+        Activity activity = createDefaultActivity(job);
+        String instanceId = activity.getInstanceId();
+
+        assertEquals(activity, job.getActivityByInstanceId(instanceId));
+    }
+
+    @Test
+    public void testGetActivityByInstanceIdReturnsNullForUnknownId() {
+        JobImpl job = createDefaultStartedJob();
+        createDefaultActivity(job);
+
+        assertNull(job.getActivityByInstanceId("nonexistent-id"));
+    }
+
+    @Test
+    public void testGetActivitiesReturnsAllAddedActivities() {
+        JobImpl job = createDefaultStartedJob();
+        Activity act1 = createDefaultActivity(job);
+        ActivityModel model2 = process.createActivity("act2", "Act2", null);
+        Activity act2 = job.createActivity(model2).build();
+
+        Collection<Activity> activities = job.getActivities();
+        assertEquals(2, activities.size());
+        assertTrue(activities.contains(act1));
+        assertTrue(activities.contains(act2));
+    }
+
+    @Test
     public void getSerializeSizeHintReturnsZeroWhenNoLimitConfigured() {
         JobImpl job = createDefaultJob();
         assertEquals(0, job.getSerializeSizeHint());

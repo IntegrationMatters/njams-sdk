@@ -23,14 +23,11 @@
  */
 package com.im.njams.sdk.logmessage;
 
-import static java.util.Collections.unmodifiableCollection;
-
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -115,8 +112,8 @@ public class JobImpl implements Job {
      */
     private JobStatus maxSeverity = JobStatus.SUCCESS;
 
-    // instanceId -> activity
-    private final Map<String, Activity> activities = Collections.synchronizedMap(new LinkedHashMap<>());
+    // instanceId -> activity; all access must be guarded by synchronized(activities)
+    private final Map<String, Activity> activities = new LinkedHashMap<>();
 
     /*
      * activity sequence counter
@@ -366,7 +363,9 @@ public class JobImpl implements Job {
      */
     @Override
     public Activity getActivityByInstanceId(String activityInstanceId) {
-        return activities.get(activityInstanceId);
+        synchronized (activities) {
+            return activities.get(activityInstanceId);
+        }
     }
 
     /**
@@ -445,14 +444,12 @@ public class JobImpl implements Job {
     }
 
     /**
-     * Return all Activities
-     *
-     * @return all Activities
+     * {@inheritDoc}
      */
     @Override
     public Collection<Activity> getActivities() {
         synchronized (activities) {
-            return unmodifiableCollection(activities.values());
+            return new ArrayList<>(activities.values());
         }
     }
 
