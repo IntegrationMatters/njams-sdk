@@ -81,7 +81,7 @@ import com.im.njams.sdk.logmessage.Job;
 import com.im.njams.sdk.model.ProcessModel;
 import com.im.njams.sdk.model.image.ImageSupplier;
 import com.im.njams.sdk.model.image.ResourceImageSupplier;
-import com.im.njams.sdk.model.layout.CommonModelLayouter;
+import com.im.njams.sdk.model.layout.CommonBfsModelLayouter;
 import com.im.njams.sdk.model.layout.ProcessModelLayouter;
 import com.im.njams.sdk.model.svg.NjamsProcessDiagramFactory;
 import com.im.njams.sdk.model.svg.ProcessDiagramFactory;
@@ -302,7 +302,7 @@ public class Njams implements InstructionListener {
         clientSessionId = UUID.randomUUID().toString();
         initContainerMode();
         processDiagramFactory = new NjamsProcessDiagramFactory(this);
-        processModelLayouter = new CommonModelLayouter();
+        processModelLayouter = new CommonBfsModelLayouter();
         argosSender = ArgosSender.getInstance();
         argosSender.init(settings);
         loadConfigurationProvider();

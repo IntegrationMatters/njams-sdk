@@ -1,6 +1,6 @@
-# CommonModelLayouter — Algorithm Documentation
+# CommonBfsModelLayouter — Algorithm Documentation
 
-`CommonModelLayouter` assigns absolute `x`/`y` coordinates to every `ActivityModel` and sizes every `GroupModel` to contain its children. It runs in two passes: a depth-first group-sizing pass followed by a top-down placement pass.
+`CommonBfsModelLayouter` assigns absolute `x`/`y` coordinates to every `ActivityModel` and sizes every `GroupModel` to contain its children. It runs in two passes: a depth-first group-sizing pass followed by a top-down placement pass.
 
 ---
 
@@ -487,3 +487,29 @@ The algorithm recurses naturally: a `GroupModel` that itself contains child grou
   <line x1="382" y1="107" x2="388" y2="107" stroke="#444" stroke-width="1.5" marker-end="url(#ng)"/>
   <text x="200" y="210" text-anchor="middle" font-size="9" fill="#888" font-family="sans-serif">Inner group sized first → used to size outer group → outer placed → inner placed → X placed</text>
 </svg>
+
+---
+
+## Limitations
+
+`CommonBfsModelLayouter` is designed for **acyclic, single-entry process graphs**. The following model shapes are not correctly handled:
+
+### Feedback loops (back-edges)
+
+Transitions that point backward in the flow — from a later activity to an earlier one, forming a loop — are not supported. The BFS traversal visits each activity at most once. A back-edge causes the target activity's column to be updated after it has already been placed, which shifts it to a higher column than intended. The visual result does not represent the loop structure.
+
+**Workaround:** Use `NoopLayouter` and supply coordinates from an external source, or implement a custom `ProcessModelLayouter` that understands your loop structure.
+
+### Self-loops
+
+A transition from an activity to itself is a degenerate cycle. BFS processes the activity and then, when iterating its successors, attempts to update the activity's own column to `column + 1`. Because the activity is already in the visited set it is not re-enqueued, but its column assignment is still incremented — placing it one column further right than intended. Activities after a self-loop may also be shifted.
+
+### Multiple independent entry points
+
+The algorithm roots its BFS at the **first** declared start activity. Activities not reachable from that root are assigned to column 0 as a fallback. If a process has two truly independent execution paths (e.g., two parallel event listeners with no shared start), the second path's activities pile up at column 0 and may overlap with the first path.
+
+**Workaround:** Ensure the model has a single designated start activity that connects (directly or transitively) to every other activity, or use a custom layouter.
+
+### Groups with multiple independent entry points
+
+The same restriction applies inside groups: only the first declared start activity of a group seeds the BFS for that group's interior. If a group has multiple independent entry activities, the secondary entries are treated as unreachable from the BFS root and fall back to column 0 within the group.

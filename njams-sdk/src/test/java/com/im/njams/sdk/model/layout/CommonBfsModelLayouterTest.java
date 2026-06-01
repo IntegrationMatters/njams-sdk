@@ -8,13 +8,13 @@ import org.junit.Test;
 
 import static org.junit.Assert.*;
 
-public class CommonModelLayouterTest {
+public class CommonBfsModelLayouterTest {
 
-    private CommonModelLayouter layouter;
+    private CommonBfsModelLayouter layouter;
 
     @Before
     public void setUp() {
-        layouter = new CommonModelLayouter();
+        layouter = new CommonBfsModelLayouter();
     }
 
     private ProcessModel createProcess() {
@@ -100,11 +100,11 @@ public class CommonModelLayouterTest {
 
         layouter.layout(model);
 
-        int expectedMinWidth = CommonModelLayouter.ACTIVITY_SIZE + 2 * CommonModelLayouter.GROUP_PADDING;
+        int expectedMinWidth = CommonBfsModelLayouter.ACTIVITY_SIZE + 2 * CommonBfsModelLayouter.GROUP_PADDING;
         assertTrue("group width >= activity + padding",
             group.getWidth() >= expectedMinWidth);
-        int expectedMinHeight = CommonModelLayouter.ACTIVITY_SIZE
-            + CommonModelLayouter.GROUP_HEADER_HEIGHT + 2 * CommonModelLayouter.GROUP_PADDING;
+        int expectedMinHeight = CommonBfsModelLayouter.ACTIVITY_SIZE
+            + CommonBfsModelLayouter.GROUP_HEADER_HEIGHT + 2 * CommonBfsModelLayouter.GROUP_PADDING;
         assertTrue("group height >= activity + header + padding",
             group.getHeight() >= expectedMinHeight);
     }
@@ -120,9 +120,9 @@ public class CommonModelLayouterTest {
 
         layouter.layout(model);
 
-        int expectedMinWidth = CommonModelLayouter.ACTIVITY_SIZE
-            + 2 * CommonModelLayouter.GROUP_PADDING
-            + 2 * CommonModelLayouter.GROUP_MARGIN_HORIZONTAL;
+        int expectedMinWidth = CommonBfsModelLayouter.ACTIVITY_SIZE
+            + 2 * CommonBfsModelLayouter.GROUP_PADDING
+            + 2 * CommonBfsModelLayouter.GROUP_MARGIN_HORIZONTAL;
         assertTrue("group width must include horizontal margins on both sides",
             group.getWidth() >= expectedMinWidth);
     }
@@ -138,10 +138,10 @@ public class CommonModelLayouterTest {
 
         layouter.layout(model);
 
-        int expectedMinHeight = CommonModelLayouter.ACTIVITY_SIZE
-            + CommonModelLayouter.GROUP_HEADER_HEIGHT
-            + 2 * CommonModelLayouter.GROUP_PADDING
-            + CommonModelLayouter.GROUP_MARGIN_BOTTOM;
+        int expectedMinHeight = CommonBfsModelLayouter.ACTIVITY_SIZE
+            + CommonBfsModelLayouter.GROUP_HEADER_HEIGHT
+            + 2 * CommonBfsModelLayouter.GROUP_PADDING
+            + CommonBfsModelLayouter.GROUP_MARGIN_BOTTOM;
         assertTrue("group height must include bottom margin",
             group.getHeight() >= expectedMinHeight);
     }
@@ -202,8 +202,8 @@ public class CommonModelLayouterTest {
 
         layouter.layout(model);
 
-        int expectedMinChildX = group.getX() + CommonModelLayouter.GROUP_PADDING
-            + CommonModelLayouter.GROUP_MARGIN_HORIZONTAL;
+        int expectedMinChildX = group.getX() + CommonBfsModelLayouter.GROUP_PADDING
+            + CommonBfsModelLayouter.GROUP_MARGIN_HORIZONTAL;
         assertTrue("child x must be at least padding + horizontal margin from group left edge",
             child.getX() >= expectedMinChildX);
     }

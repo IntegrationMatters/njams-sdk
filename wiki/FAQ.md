@@ -227,11 +227,11 @@ Both can be customized independently on the `Njams` instance.
 
 ### Layout
 
-The default layouter since 6.0 is `CommonModelLayouter`. It performs a two-pass algorithm — a bottom-up sizing pass that computes group dimensions from their contents, followed by a top-down placement pass using per-column widths — and correctly handles parallel branches, convergence nodes, and nested groups.
+The default layouter since 6.0 is `CommonBfsModelLayouter`. It performs a two-pass algorithm — a bottom-up sizing pass that computes group dimensions from their contents, followed by a top-down placement pass using per-column widths — and correctly handles parallel branches, convergence nodes, and nested groups. For a detailed description of the algorithm and its known limitations, see [CommonBfsModelLayouter Algorithm](CommonBfsModelLayouter-Algorithm).
 
-`SimpleProcessModelLayouter`, the previous default, is deprecated. It does not correctly handle parallel branches, 
-multiple start activities, or groups with more than one start activity. If you relied on the default, no code change 
-is needed — `CommonModelLayouter` is now used automatically. However, your model may look different due to the improved layout.
+`SimpleProcessModelLayouter`, the previous default, is deprecated. It does not correctly handle parallel branches,
+multiple start activities, or groups with more than one start activity. If you relied on the default, no code change
+is needed — `CommonBfsModelLayouter` is now used automatically. However, your model may look different due to the improved layout.
 
 **Custom layouter** — the standard way to control layout is to implement `com.im.njams.sdk.model.layout.ProcessModelLayouter`. The interface has a single method:
 

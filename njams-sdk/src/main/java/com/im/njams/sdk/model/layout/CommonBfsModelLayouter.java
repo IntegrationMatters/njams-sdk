@@ -42,17 +42,22 @@ import java.util.Queue;
 import java.util.Set;
 
 /**
- * General-purpose layouter for nJAMS process models. Coordinates are absolute; groups are sized to
- * contain their children; nested groups recurse correctly. The algorithm runs in two passes: a
- * depth-first sizing pass that computes each group's width/height from its contents bottom-up, and a
+ * BFS-based general-purpose layouter for nJAMS process models. Coordinates are absolute; groups are
+ * sized to contain their children; nested groups recurse correctly. The algorithm runs in two passes:
+ * a depth-first sizing pass that computes each group's width/height from its contents bottom-up, and a
  * top-down placement pass that assigns absolute coordinates to every activity using per-column widths
- * (so a wide group forces subsequent siblings past its right edge).
+ * (so a wide group forces subsequent siblings past its right edge). Column assignment uses BFS with
+ * the max-column rule to handle convergence correctly.
  *
  * <p>This is the default {@link ProcessModelLayouter} used by {@link com.im.njams.sdk.Njams}.
+ *
+ * <p><b>Limitations:</b> This layouter is designed for acyclic process graphs. It does not correctly
+ * handle feedback loops (back-edges), self-loops, or processes with multiple independent start
+ * activities. See the nJAMS SDK wiki for a full description of supported and unsupported model shapes.
  */
-public class CommonModelLayouter implements ProcessModelLayouter {
+public class CommonBfsModelLayouter implements ProcessModelLayouter {
 
-    private static final Logger LOG = LoggerFactory.getLogger(CommonModelLayouter.class);
+    private static final Logger LOG = LoggerFactory.getLogger(CommonBfsModelLayouter.class);
 
     /** Horizontal distance between activity centres in adjacent columns. */
     static final int HORIZONTAL_STEP = 150;

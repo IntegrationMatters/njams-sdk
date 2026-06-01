@@ -39,7 +39,7 @@ import org.slf4j.LoggerFactory;
  * attributes.
  *
  * @author hsiegeln
- * @deprecated Use {@link CommonModelLayouter} instead. {@code CommonModelLayouter} supports
+ * @deprecated Use {@link CommonBfsModelLayouter} instead. {@code CommonBfsModelLayouter} supports
  *             parallel branches, convergence, and nested groups correctly, and is the default
  *             layouter used by {@link Njams} since 6.0.
  */
