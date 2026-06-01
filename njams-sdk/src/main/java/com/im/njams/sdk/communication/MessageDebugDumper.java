@@ -106,7 +106,7 @@ class MessageDebugDumper {
     }
 
     private static String buildContent(CommonMessage msg, String clientSessionId) throws Exception {
-        ObjectMapper mapper = JsonSerializerFactory.getFastMapper();
+        ObjectMapper mapper = JsonSerializerFactory.getDefaultMapper();
         ObjectNode root = mapper.createObjectNode();
 
         ObjectNode headers = root.putObject("headers");
@@ -122,7 +122,7 @@ class MessageDebugDumper {
 
         root.set("body", mapper.readTree(JsonUtils.serialize(msg)));
 
-        return mapper.writerWithDefaultPrettyPrinter().writeValueAsString(root);
+        return mapper.writeValueAsString(root);
     }
 
     private static String messageType(CommonMessage msg) {
