@@ -283,6 +283,19 @@ public class NjamsSettings {
      */
     public static final String PROPERTY_LOG_LEVEL_DEFAULT = "njams.sdk.logLevel.default";
 
+    /**
+     * Optional path to a directory where outbound messages are written as individual files for debug purposes.
+     * When set, each message submitted to the sender is written to a per-run subdirectory named after the
+     * start time of the current JVM run ({@code yyyyMMdd-HHmmss}). Filenames include a zero-padded sequence
+     * counter, the message type, and a message identifier.
+     * <p>
+     * <b>For development and debug use only.</b> When this property is not set, the feature is completely inactive
+     * with negligible overhead on the send path.
+     *
+     * @since 6.0.0
+     */
+    public static final String PROPERTY_DEBUG_MESSAGE_DIR = "njams.sdk.debug.messagedir";
+
     //     _____      _   _   _
     //    / ____|    | | | | (_)
     //   | (___   ___| |_| |_ _ _ __   __ _ ___

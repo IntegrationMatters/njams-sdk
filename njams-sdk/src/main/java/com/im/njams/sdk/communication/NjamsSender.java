@@ -101,6 +101,8 @@ public class NjamsSender {
     //The name for the executor threads.
     protected final String name;
 
+    private MessageDebugDumper debugDumper = new MessageDebugDumper();
+
     public NjamsSender() {
         settings = null;
         name = "defaultSender";
@@ -163,6 +165,7 @@ public class NjamsSender {
         executor = new ThreadPoolExecutor(minSenderThreads, maxSenderThreads, idleTime, TimeUnit.MILLISECONDS,
             new ArrayBlockingQueue<>(maxQueueLength), threadFactory,
             new MaxQueueLengthHandler(settings, senderPool::isConnectionFailure));
+        debugDumper = new MessageDebugDumper(settings);
     }
 
     private void validateThreadPool(int minThreads, int maxThreads, int maxQueueLen, long idleTime) {
@@ -189,6 +192,7 @@ public class NjamsSender {
             return;
         }
         LOG.trace("Sending {}", msg);
+        debugDumper.dump(msg, clientSessionId);
         executor.execute(() -> {
             AbstractSender sender = null;
             try {
