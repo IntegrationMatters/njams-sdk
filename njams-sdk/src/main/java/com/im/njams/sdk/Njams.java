@@ -452,11 +452,6 @@ public class Njams implements InstructionListener {
             removeFeature(Feature.REPLAY);
         } else {
             addFeature(Feature.REPLAY);
-            if (settings.getBoolWithDeprecationWarning(
-                    NjamsSettings.PROPERTY_DISABLE_STARTDATA, false, NjamsSettings.OLD_DISABLE_STARTDATA)) {
-                LOG.warn("Replay functionality is limited because collecting start-data "
-                        + "is disabled by configuration {}=true", NjamsSettings.PROPERTY_DISABLE_STARTDATA);
-            }
         }
     }
 
@@ -521,8 +516,7 @@ public class Njams implements InstructionListener {
      */
     public NjamsSender getSender() {
         if (sender == null) {
-            if (settings.getBoolWithDeprecationWarning(
-                    NjamsSettings.PROPERTY_SHARED_COMMUNICATIONS, false, NjamsSettings.OLD_SHARED_COMMUNICATIONS)) {
+            if (settings.getBool(NjamsSettings.PROPERTY_SHARED_COMMUNICATIONS, false)) {
                 LOG.debug("Using shared sender pool for {}", getClientPath());
                 sender = NjamsSender.takeSharedSender(settings);
             } else {

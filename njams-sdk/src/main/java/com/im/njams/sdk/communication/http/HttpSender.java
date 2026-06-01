@@ -24,8 +24,6 @@
 package com.im.njams.sdk.communication.http;
 
 import static com.im.njams.sdk.NjamsSettings.PROPERTY_HTTP_BASE_URL;
-import static com.im.njams.sdk.NjamsSettings.PROPERTY_HTTP_CONNECTION_TEST;
-import static com.im.njams.sdk.NjamsSettings.PROPERTY_HTTP_DATAPROVIDER_PREFIX;
 import static com.im.njams.sdk.NjamsSettings.PROPERTY_HTTP_DATAPROVIDER_SUFFIX;
 import static com.im.njams.sdk.communication.MessageHeaders.*;
 
@@ -159,21 +157,13 @@ public class HttpSender extends AbstractSender {
     public void init(ClientSettings settings) {
         super.init(settings);
         try {
-            final String suffix =
-                settings.getPropertyWithDeprecationWarning(PROPERTY_HTTP_DATAPROVIDER_SUFFIX,
-                    PROPERTY_HTTP_DATAPROVIDER_PREFIX);
+            final String suffix = settings.getProperty(PROPERTY_HTTP_DATAPROVIDER_SUFFIX);
             if (StringUtils.isBlank(suffix)) {
                 throw new NjamsSdkRuntimeException(
                     "Required parameter " + PROPERTY_HTTP_DATAPROVIDER_SUFFIX + " is missing.");
             }
             final URI uri = createUri(INGEST_API_PATH + suffix);
             url = uri.toURL();
-            final boolean legacy = "legacy".equalsIgnoreCase(settings.getProperty(PROPERTY_HTTP_CONNECTION_TEST));
-            if (legacy) {
-                synchronized (HttpSender.class) {
-                    connectionTest = getConnectionTest(ConnectionTestMode.LEGACY);
-                }
-            }
             splitSupport = new SplitSupport(settings, getMaxMessageSize(settings));
             clientFactory = new HttpClientFactory(settings, uri);
             LOG.debug("Initialized sender with URL {}", uri);

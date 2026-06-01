@@ -45,10 +45,8 @@ public class MaxQueueLengthHandler implements RejectedExecutionHandler {
     private final DiscardPolicy discardPolicy;
     private final Supplier<Boolean> isConnectionLost;
 
-    @SuppressWarnings("removal")
     public MaxQueueLengthHandler(final ClientSettings settings, final Supplier<Boolean> isConnectionLost) {
-        discardPolicy = DiscardPolicy.byValue(settings.getPropertyWithDeprecationWarning(
-            NjamsSettings.PROPERTY_DISCARD_POLICY, NjamsSettings.OLD_DISCARD_POLICY));
+        discardPolicy = DiscardPolicy.byValue(settings.getProperty(NjamsSettings.PROPERTY_DISCARD_POLICY));
         this.isConnectionLost = isConnectionLost;
     }
 

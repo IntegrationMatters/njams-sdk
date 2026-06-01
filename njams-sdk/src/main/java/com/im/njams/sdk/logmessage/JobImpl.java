@@ -267,24 +267,17 @@ public class JobImpl implements Job {
         logMode = configuration.getLogMode();
         LOG.debug("Set LogMode for {} to {}", processModel.getPath(), logMode);
 
-        boolean disableStartData = "true"
-                .equalsIgnoreCase(getNjams().getSettings().getPropertyWithDeprecationWarning(
-                        NjamsSettings.PROPERTY_DISABLE_STARTDATA, NjamsSettings.OLD_DISABLE_STARTDATA));
-
-        recording = !disableStartData && configuration.isRecording();
-        LOG.debug(
-                "Set recording for {} to {} based on client settings {} and disable-start-data setting {}",
-                processModel.getPath(), recording, configuration.isRecording(), disableStartData);
+        recording = configuration.isRecording();
+        LOG.debug("Set recording for {} to {} based on client settings {}",
+                processModel.getPath(), recording, configuration.isRecording());
 
         ProcessConfiguration process = configuration.getProcess(processModel.getPath().toString());
         if (process != null) {
             logLevel = process.getLogLevel();
             LOG.debug("Set LogLevel for {} to {}", processModel.getPath(), logLevel);
-            recording = !disableStartData && process.isRecording();
-            LOG.debug(
-                    "Set recording for {} to {} based on process settings {} and client setting {} and disable-start-data setting {}",
-                    processModel.getPath(), recording, process.isRecording(),
-                    configuration.isRecording(), disableStartData);
+            recording = process.isRecording();
+            LOG.debug("Set recording for {} to {} based on process settings {} and client setting {}",
+                    processModel.getPath(), recording, process.isRecording(), configuration.isRecording());
         }
         exclude = njams.isExcluded(processModel.getPath());
         LOG.debug("Set Exclude for {} to {}", processModel.getPath(), exclude);

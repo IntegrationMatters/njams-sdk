@@ -129,10 +129,9 @@ public class NjamsProcessDiagramFactory implements ProcessDiagramFactory {
      * @param njams Initialize this entry with this Njams
      */
     public NjamsProcessDiagramFactory(Njams njams) {
-        this(njams.getSettings().getBoolWithDeprecationWarning(
+        this(njams.getSettings().getBool(
             NjamsSettings.PROPERTY_DISABLE_SECURE_PROCESSING,
-            Boolean.parseBoolean(DEFAULT_DISABLE_SECURE_PROCESSING),
-            NjamsSettings.OLD_DISABLE_SECURE_PROCESSING));
+            Boolean.parseBoolean(DEFAULT_DISABLE_SECURE_PROCESSING)));
     }
 
     NjamsProcessDiagramFactory(boolean disableSecureProcessing) {

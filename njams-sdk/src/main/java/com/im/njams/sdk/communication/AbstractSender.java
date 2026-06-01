@@ -78,8 +78,7 @@ public abstract class AbstractSender implements Sender {
     @Override
     public void init(ClientSettings settings) {
         this.settings = settings;
-        discardPolicy = DiscardPolicy.byValue(settings.getPropertyWithDeprecationWarning(
-            NjamsSettings.PROPERTY_DISCARD_POLICY, NjamsSettings.OLD_DISCARD_POLICY));
+        discardPolicy = DiscardPolicy.byValue(settings.getProperty(NjamsSettings.PROPERTY_DISCARD_POLICY));
     }
 
     /**

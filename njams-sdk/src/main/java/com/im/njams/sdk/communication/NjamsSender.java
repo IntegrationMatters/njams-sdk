@@ -147,14 +147,10 @@ public class NjamsSender {
      * a SenderPool using the settings provided at construction time.
      */
     public void init() {
-        int minSenderThreads =
-            (int) settings.getLongWithDeprecationWarning(PROPERTY_MIN_SENDER_THREADS, 1, OLD_MIN_SENDER_THREADS);
-        int maxSenderThreads =
-            (int) settings.getLongWithDeprecationWarning(PROPERTY_MAX_SENDER_THREADS, 8, OLD_MAX_SENDER_THREADS);
-        int maxQueueLength =
-            (int) settings.getLongWithDeprecationWarning(PROPERTY_MAX_QUEUE_LENGTH, 8, OLD_MAX_QUEUE_LENGTH);
-        long idleTime =
-            settings.getLongWithDeprecationWarning(PROPERTY_SENDER_THREAD_IDLE_TIME, 10000, OLD_SENDER_THREAD_IDLE_TIME);
+        int minSenderThreads = (int) settings.getLong(PROPERTY_MIN_SENDER_THREADS, 1);
+        int maxSenderThreads = (int) settings.getLong(PROPERTY_MAX_SENDER_THREADS, 8);
+        int maxQueueLength = (int) settings.getLong(PROPERTY_MAX_QUEUE_LENGTH, 8);
+        long idleTime = settings.getLong(PROPERTY_SENDER_THREAD_IDLE_TIME, 10000);
         LOG.debug("Init thread pool (min={}, max={}, queue={}, idle={})", minSenderThreads, maxSenderThreads,
             maxQueueLength, idleTime);
         validateThreadPool(minSenderThreads, maxSenderThreads, maxQueueLength, idleTime);
