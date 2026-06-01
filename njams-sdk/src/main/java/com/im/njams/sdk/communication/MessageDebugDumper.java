@@ -41,7 +41,10 @@ import com.faizsiegeln.njams.messageformat.v4.common.CommonMessage;
 import com.faizsiegeln.njams.messageformat.v4.common.MessageVersion;
 import com.faizsiegeln.njams.messageformat.v4.logmessage.LogMessage;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.ProjectMessage;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.im.njams.sdk.NjamsSettings;
+import com.im.njams.sdk.common.JsonSerializerFactory;
 import com.im.njams.sdk.settings.ClientSettings;
 import com.im.njams.sdk.utils.JsonUtils;
 import com.im.njams.sdk.utils.StringUtils;
@@ -102,20 +105,24 @@ class MessageDebugDumper {
         return String.format("%08d_%s_%s.json", seq, messageType(msg), sanitize(messageId(msg)));
     }
 
-    private static String buildContent(CommonMessage msg, String clientSessionId) {
-        StringBuilder sb = new StringBuilder();
-        sb.append("NJAMS_MESSAGETYPE: ").append(messageType(msg)).append('\n');
-        sb.append("NJAMS_PATH: ").append(msg.getPath()).append('\n');
+    private static String buildContent(CommonMessage msg, String clientSessionId) throws Exception {
+        ObjectMapper mapper = JsonSerializerFactory.getFastMapper();
+        ObjectNode root = mapper.createObjectNode();
+
+        ObjectNode headers = root.putObject("headers");
+        headers.put("NJAMS_MESSAGETYPE", messageType(msg));
+        headers.put("NJAMS_PATH", msg.getPath());
         if (msg instanceof LogMessage) {
-            sb.append("NJAMS_LOGID: ").append(((LogMessage) msg).getLogId()).append('\n');
+            headers.put("NJAMS_LOGID", ((LogMessage) msg).getLogId());
         }
-        sb.append("NJAMS_MESSAGEVERSION: ").append(MessageVersion.V4).append('\n');
+        headers.put("NJAMS_MESSAGEVERSION", MessageVersion.V4.toString());
         if (clientSessionId != null) {
-            sb.append("NJAMS_CLIENTSESSIONID: ").append(clientSessionId).append('\n');
+            headers.put("NJAMS_CLIENTSESSIONID", clientSessionId);
         }
-        sb.append("---\n");
-        sb.append(JsonUtils.serialize(msg));
-        return sb.toString();
+
+        root.set("body", mapper.readTree(JsonUtils.serialize(msg)));
+
+        return mapper.writerWithDefaultPrettyPrinter().writeValueAsString(root);
     }
 
     private static String messageType(CommonMessage msg) {

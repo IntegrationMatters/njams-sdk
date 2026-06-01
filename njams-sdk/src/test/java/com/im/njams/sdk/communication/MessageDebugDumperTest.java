@@ -16,10 +16,15 @@ import org.junit.rules.TemporaryFolder;
 import com.faizsiegeln.njams.messageformat.v4.logmessage.LogMessage;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.ProjectMessage;
 import com.faizsiegeln.njams.messageformat.v4.tracemessage.TraceMessage;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.settings.ClientSettings;
 
 public class MessageDebugDumperTest {
+
+    private static final ObjectMapper MAPPER = new ObjectMapper();
 
     @Rule
     public TemporaryFolder tmpFolder = new TemporaryFolder();
@@ -35,6 +40,19 @@ public class MessageDebugDumperTest {
             .filter(Files::isRegularFile)
             .sorted()
             .collect(Collectors.toList());
+    }
+
+    @Test
+    public void testFileIsValidJson() throws IOException {
+        MessageDebugDumper dumper = new MessageDebugDumper(settingsWithDir(tmpFolder.getRoot().getAbsolutePath()));
+        LogMessage msg = new LogMessage();
+        msg.setPath(">test>");
+        msg.setLogId("abc");
+
+        dumper.dump(msg, "sess");
+
+        String content = Files.readString(dumpedFiles().get(0));
+        MAPPER.readTree(content); // throws JsonProcessingException if content is not valid JSON
     }
 
     @Test
@@ -153,13 +171,13 @@ public class MessageDebugDumperTest {
 
         dumper.dump(msg, "session-42");
 
-        String content = Files.readString(dumpedFiles().get(0));
-        assertTrue(content.contains("NJAMS_MESSAGETYPE: event\n"));
-        assertTrue(content.contains("NJAMS_PATH: >domain>process>\n"));
-        assertTrue(content.contains("NJAMS_LOGID: log-999\n"));
-        assertTrue(content.contains("NJAMS_MESSAGEVERSION:"));
-        assertTrue(content.contains("NJAMS_CLIENTSESSIONID: session-42\n"));
-        assertTrue(content.contains("---\n"));
+        ObjectNode root = (ObjectNode) MAPPER.readTree(Files.readString(dumpedFiles().get(0)));
+        ObjectNode headers = (ObjectNode) root.get("headers");
+        assertEquals("event", headers.get("NJAMS_MESSAGETYPE").asText());
+        assertEquals(">domain>process>", headers.get("NJAMS_PATH").asText());
+        assertEquals("log-999", headers.get("NJAMS_LOGID").asText());
+        assertNotNull(headers.get("NJAMS_MESSAGEVERSION"));
+        assertEquals("session-42", headers.get("NJAMS_CLIENTSESSIONID").asText());
     }
 
     @Test
@@ -171,12 +189,11 @@ public class MessageDebugDumperTest {
 
         dumper.dump(msg, null);
 
-        String content = Files.readString(dumpedFiles().get(0));
-        String[] parts = content.split("---\n", 2);
-        assertEquals(2, parts.length);
-        String body = parts[1].trim();
-        assertTrue("body should be JSON", body.startsWith("{") && body.endsWith("}"));
-        assertTrue(body.contains("log-body-test"));
+        ObjectNode root = (ObjectNode) MAPPER.readTree(Files.readString(dumpedFiles().get(0)));
+        JsonNode body = root.get("body");
+        assertNotNull(body);
+        assertTrue(body.isObject());
+        assertTrue(body.toString().contains("log-body-test"));
     }
 
     @Test
@@ -188,7 +205,7 @@ public class MessageDebugDumperTest {
 
         dumper.dump(msg, null);
 
-        String content = Files.readString(dumpedFiles().get(0));
-        assertFalse(content.contains("NJAMS_CLIENTSESSIONID"));
+        ObjectNode root = (ObjectNode) MAPPER.readTree(Files.readString(dumpedFiles().get(0)));
+        assertNull(root.get("headers").get("NJAMS_CLIENTSESSIONID"));
     }
 }
