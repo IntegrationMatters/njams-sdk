@@ -24,7 +24,12 @@
 package com.im.njams.sdk.model;
 
 import com.im.njams.sdk.AbstractTest;
+import com.im.njams.sdk.Njams;
+import com.im.njams.sdk.NjamsSettings;
+import com.im.njams.sdk.Path;
+import com.im.njams.sdk.communication.TestSender;
 import com.im.njams.sdk.logmessage.Job;
+import com.im.njams.sdk.settings.Settings;
 import org.junit.Test;
 
 import static org.junit.Assert.*;
@@ -77,5 +82,27 @@ public class ProcessModelTest extends AbstractTest {
         Job job = process.createJobWithExplicitLogId(testJobId, testLogId);
         assertEquals(testLogId, job.getLogId());
         assertEquals(testJobId, job.getJobId());
+    }
+
+    @Test
+    public void testCreateTransition_withoutExplicitName_nameIsNull() {
+        process.createActivity("baseFrom", "From", "step");
+        process.createActivity("baseTo", "To", "step");
+        TransitionModel t = process.createTransition("baseFrom", "baseTo", "baseFrom_baseTo");
+        assertNull("Transition created without explicit name must have null name", t.getName());
+    }
+
+    @Test
+    public void testCreateTransition_withServerCompatibility61_usesIdAsName() {
+        Settings settings = TestSender.getSettings();
+        settings.put(NjamsSettings.PROPERTY_SERVER_COMPATIBILITY, "6.1");
+        Njams compatNjams = new Njams(Path.of("SDK4", "COMPAT61"), "TEST", "SDK4", settings);
+        ProcessModel compatProcess = compatNjams.createProcess(Path.of("COMPAT_PROC"));
+        compatNjams.start();
+
+        compatProcess.createActivity("cfrom", "From", "step");
+        compatProcess.createActivity("cto", "To", "step");
+        TransitionModel t = compatProcess.createTransition("cfrom", "cto", "cfrom_cto");
+        assertEquals("6.1 compat mode: transition name must equal its ID", "cfrom_cto", t.getName());
     }
 }

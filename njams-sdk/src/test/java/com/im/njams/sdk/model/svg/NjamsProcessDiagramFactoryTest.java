@@ -415,6 +415,84 @@ public class NjamsProcessDiagramFactoryTest {
     }
 
     @Test
+    public void drawTransition_nameEqualToId_producesLabelInDefaultMode() throws Exception {
+        NjamsProcessDiagramFactory factory = new NjamsProcessDiagramFactory(false);
+        NjamsProcessDiagramContext context = createSimpleContext();
+        context.setContainerElement(context.getDoc().getDocumentElement());
+        context.setStartX(0);
+        context.setStartY(0);
+
+        ActivityModel from = new ActivityModel(null, "a", "A", "step");
+        from.setX(0);
+        from.setY(0);
+        ActivityModel to = new ActivityModel(null, "b", "B", "step");
+        to.setX(200);
+        to.setY(0);
+
+        TransitionModel transition = new TransitionModel(null, "a_b");
+        transition.setFromActivity(from);
+        transition.setToActivity(to);
+        transition.setName("a_b"); // name == id — no suppression without compat mode
+
+        factory.drawTransition(context, transition);
+
+        final String svg = factory.serializeDocument(context);
+        Assert.assertTrue("Default mode: name==id must still produce a label", svg.contains("a_b_label"));
+    }
+
+    @Test
+    public void drawTransition_withCompatMode_nameEqualToId_suppressesLabel() throws Exception {
+        NjamsProcessDiagramFactory factory = new NjamsProcessDiagramFactory(false, true);
+        NjamsProcessDiagramContext context = createSimpleContext();
+        context.setContainerElement(context.getDoc().getDocumentElement());
+        context.setStartX(0);
+        context.setStartY(0);
+
+        ActivityModel from = new ActivityModel(null, "a", "A", "step");
+        from.setX(0);
+        from.setY(0);
+        ActivityModel to = new ActivityModel(null, "b", "B", "step");
+        to.setX(200);
+        to.setY(0);
+
+        TransitionModel transition = new TransitionModel(null, "a_b");
+        transition.setFromActivity(from);
+        transition.setToActivity(to);
+        transition.setName("a_b"); // name == id — must be suppressed in compat mode
+
+        factory.drawTransition(context, transition);
+
+        final String svg = factory.serializeDocument(context);
+        Assert.assertFalse("Compat mode: name==id must not produce a label", svg.contains("a_b_label"));
+    }
+
+    @Test
+    public void drawTransition_withCompatMode_explicitNameDifferentFromId_producesLabel() throws Exception {
+        NjamsProcessDiagramFactory factory = new NjamsProcessDiagramFactory(false, true);
+        NjamsProcessDiagramContext context = createSimpleContext();
+        context.setContainerElement(context.getDoc().getDocumentElement());
+        context.setStartX(0);
+        context.setStartY(0);
+
+        ActivityModel from = new ActivityModel(null, "a", "A", "step");
+        from.setX(0);
+        from.setY(0);
+        ActivityModel to = new ActivityModel(null, "b", "B", "step");
+        to.setX(200);
+        to.setY(0);
+
+        TransitionModel transition = new TransitionModel(null, "a_b");
+        transition.setFromActivity(from);
+        transition.setToActivity(to);
+        transition.setName("My Condition"); // explicit name != id
+
+        factory.drawTransition(context, transition);
+
+        final String svg = factory.serializeDocument(context);
+        Assert.assertTrue("Compat mode with explicit name != id must still produce a label", svg.contains("a_b_label"));
+    }
+
+    @Test
     public void drawTransition_multilineNameProducesMultipleTextElements() throws Exception {
         NjamsProcessDiagramFactory factory = new NjamsProcessDiagramFactory(false);
         NjamsProcessDiagramContext context = createSimpleContext();

@@ -582,4 +582,24 @@ public class NjamsSettings {
      */
     public static final String PROPERTY_DATA_MASKING_REGEX_PREFIX = "njams.sdk.datamasking.regex.";
 
+    /**
+     * Server version compatibility switch. When set to a server version string (e.g., {@code "6.1"}),
+     * the SDK restores behavioral compatibility with that server version and earlier.
+     * Leave unset (or blank) to use current SDK behavior.
+     *
+     * <p>Effects when set to {@code "6.1"}:
+     * <ul>
+     *   <li>Transitions created without an explicit name carry the transition ID as their name,
+     *       matching the behavior prior to the SDK 6.0 fix for SDK-427. This is required when
+     *       sending process models to nJAMS server versions that do not yet support nameless transitions.</li>
+     * </ul>
+     *
+     * <p>Remove this setting once the deployed nJAMS server supports all current SDK behaviors.
+     *
+     * @deprecated Transitional bridge only. Will be removed from the SDK in a future release
+     *             once support for older server versions is dropped.
+     */
+    @Deprecated
+    public static final String PROPERTY_SERVER_COMPATIBILITY = "njams.sdk.server.compatibility";
+
 }

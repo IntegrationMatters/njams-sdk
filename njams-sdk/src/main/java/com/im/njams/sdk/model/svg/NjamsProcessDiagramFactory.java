@@ -120,6 +120,8 @@ public class NjamsProcessDiagramFactory implements ProcessDiagramFactory {
 
     protected boolean disableSecureProcessing = false;
 
+    private boolean legacyServerCompat = false;
+
     private volatile Templates postProcessXsltTemplates;
 
     /**
@@ -129,13 +131,21 @@ public class NjamsProcessDiagramFactory implements ProcessDiagramFactory {
      * @param njams Initialize this entry with this Njams
      */
     public NjamsProcessDiagramFactory(Njams njams) {
-        this(njams.getSettings().getBool(
-            NjamsSettings.PROPERTY_DISABLE_SECURE_PROCESSING,
-            Boolean.parseBoolean(DEFAULT_DISABLE_SECURE_PROCESSING)));
+        this(
+            njams.getSettings().getBool(
+                NjamsSettings.PROPERTY_DISABLE_SECURE_PROCESSING,
+                Boolean.parseBoolean(DEFAULT_DISABLE_SECURE_PROCESSING)),
+            "6.1".equals(njams.getSettings().getProperty(NjamsSettings.PROPERTY_SERVER_COMPATIBILITY))
+        );
     }
 
     NjamsProcessDiagramFactory(boolean disableSecureProcessing) {
+        this(disableSecureProcessing, false);
+    }
+
+    NjamsProcessDiagramFactory(boolean disableSecureProcessing, boolean legacyServerCompat) {
         this.disableSecureProcessing = disableSecureProcessing;
+        this.legacyServerCompat = legacyServerCompat;
         if (disableSecureProcessing) {
             LOG.debug("Disabled secure XML processing by configuration switch.");
         } else {
@@ -512,7 +522,8 @@ public class NjamsProcessDiagramFactory implements ProcessDiagramFactory {
 
         double lineWidth = Math.abs(toPoint.getX() - fromPoint.getX());
         String[] labelLines = wrapLabel(transitionModel.getName(), lineWidth);
-        if (labelLines.length > 0) {
+        boolean suppressLabel = legacyServerCompat && Objects.equals(transitionModel.getName(), transitionModel.getId());
+        if (labelLines.length > 0 && !suppressLabel) {
             double midX = (fromPoint.getX() + toPoint.getX()) / 2;
             double midY = (fromPoint.getY() + toPoint.getY()) / 2 + DEFAULT_TEXT_SIZE;
             for (int i = 0; i < labelLines.length; i++) {

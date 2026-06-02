@@ -35,6 +35,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.im.njams.sdk.Njams;
+import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.common.IdUtil;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.Path;
@@ -370,6 +371,9 @@ public class ProcessModel {
             throw new NjamsSdkRuntimeException("ToActivityModel with id " + toActivityModelId + " does not exist");
         }
         TransitionModel transition = new TransitionModel(this, transitionModelId);
+        if (njams != null && "6.1".equals(njams.getSettings().getProperty(NjamsSettings.PROPERTY_SERVER_COMPATIBILITY))) {
+            transition.setName(transitionModelId);
+        }
         transition.setFromActivity(fromActivityModel);
         transition.setToActivity(toActivityModel);
         addTransition(transition);
