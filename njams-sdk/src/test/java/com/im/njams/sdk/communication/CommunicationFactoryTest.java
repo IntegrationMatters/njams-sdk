@@ -57,7 +57,7 @@ public class CommunicationFactoryTest {
 
     @Test
     public void testCreateAndInit() {
-        Sender sender = mock(Sender.class);
+        AbstractSender sender = mock(AbstractSender.class);
         TestSender.setSenderMock(sender);
         CommunicationFactory factory = new CommunicationFactory(createSettings(TestSender.NAME));
         assertTrue(factory.getSender() instanceof TestSender);

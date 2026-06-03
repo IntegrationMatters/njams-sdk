@@ -43,7 +43,7 @@ import com.im.njams.sdk.settings.Settings;
 public class TestSender extends AbstractSender {
 
     public static final String NAME = "TEST_COMMUNICATION";
-    private static Sender sender = null;
+    private static AbstractSender sender = null;
 
     /**
      * Delegates all request to the given sender.<br>
@@ -51,7 +51,7 @@ public class TestSender extends AbstractSender {
      *
      * @param sender
      */
-    public static void setSenderMock(Sender sender) {
+    public static void setSenderMock(AbstractSender sender) {
         TestSender.sender = sender;
     }
 

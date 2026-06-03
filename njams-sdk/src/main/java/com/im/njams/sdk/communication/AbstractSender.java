@@ -41,14 +41,15 @@ import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.settings.ClientSettings;
 
 /**
- * Superclass for all Senders. When writing your own Sender, extend this class
- * and overwrite methods, when needed. All Sender will be automatically pooled
- * by the SDK; you must not implement your own connection pooling!
+ * Superclass for all Senders. Extend this class to create a nJAMS sender implementation that can send
+ * project- and log-messages to the nJAMS server. When writing your own Sender, extend this class and
+ * override methods when needed. All Senders are automatically pooled by the SDK; you must not implement
+ * your own connection pooling!
  *
  * @author hsiegeln
  * @version 4.0.6
  */
-public abstract class AbstractSender implements Sender {
+public abstract class AbstractSender {
 
     private static final Logger LOG = LoggerFactory.getLogger(AbstractSender.class);
 
@@ -75,11 +76,22 @@ public abstract class AbstractSender implements Sender {
         setConnectionStatus(ConnectionStatus.DISCONNECTED);
     }
 
-    @Override
+    /**
+     * Initializes this sender via the given settings.
+     *
+     * @param settings the settings to be used for initialization
+     */
     public void init(ClientSettings settings) {
         this.settings = settings;
         discardPolicy = DiscardPolicy.byValue(settings.getProperty(NjamsSettings.PROPERTY_DISCARD_POLICY));
     }
+
+    /**
+     * Each implementation must provide a unique name identifying this sender.
+     *
+     * @return this implementation's name
+     */
+    public abstract String getName();
 
     /**
      * Set Exception listener with special handling on exceptions.
@@ -223,8 +235,8 @@ public abstract class AbstractSender implements Sender {
      * discardPolicy onConnectionLoss, if set
      *
      * @param msg the message to send
+     * @param clientSessionId the session ID of the {@link com.im.njams.sdk.Njams} instance that sends the message
      */
-    @Override
     public void send(CommonMessage msg, String clientSessionId) {
         LOG.trace("Sending message {}, state={}", msg, getConnectionStatus());
         // do this until message is sent or discard policy onConnectionLoss is satisfied
@@ -313,7 +325,9 @@ public abstract class AbstractSender implements Sender {
      */
     protected abstract void send(TraceMessage msg, String clientSessionId) throws NjamsSdkRuntimeException;
 
-    @Override
+    /**
+     * Closes this sender. Override to release any resources held by your implementation.
+     */
     public void close() {
         // nothing by default
         LOG.debug("Called close on AbstractSender.");

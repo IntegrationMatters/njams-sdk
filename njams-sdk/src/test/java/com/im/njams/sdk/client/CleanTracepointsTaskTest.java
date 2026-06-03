@@ -40,8 +40,10 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import com.faizsiegeln.njams.messageformat.v4.common.CommonMessage;
+import com.faizsiegeln.njams.messageformat.v4.logmessage.LogMessage;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.Extract;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.LogLevel;
+import com.faizsiegeln.njams.messageformat.v4.projectmessage.ProjectMessage;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.Tracepoint;
 import com.faizsiegeln.njams.messageformat.v4.tracemessage.Activity;
 import com.faizsiegeln.njams.messageformat.v4.tracemessage.ProcessModel;
@@ -51,7 +53,7 @@ import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.common.DateTimeUtility;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.Path;
-import com.im.njams.sdk.communication.Sender;
+import com.im.njams.sdk.communication.AbstractSender;
 import com.im.njams.sdk.communication.TestSender;
 import com.im.njams.sdk.settings.ClientSettings;
 import com.im.njams.sdk.configuration.ActivityConfiguration;
@@ -284,7 +286,7 @@ public class CleanTracepointsTaskTest extends AbstractTest {
     /**
      * This class is for fetching the messages that would be sent out.
      */
-    private static class SenderMock implements Sender {
+    private static class SenderMock extends AbstractSender {
 
         /**
          * This method does nothing
@@ -304,6 +306,21 @@ public class CleanTracepointsTaskTest extends AbstractTest {
             if (msg instanceof TraceMessage) {
                 message = (TraceMessage) msg;
             }
+        }
+
+        @Override
+        protected void send(LogMessage msg, String clientId) {
+            //Do nothing
+        }
+
+        @Override
+        protected void send(ProjectMessage msg, String clientId) {
+            //Do nothing
+        }
+
+        @Override
+        protected void send(TraceMessage msg, String clientId) {
+            //Do nothing
         }
 
         /**

@@ -125,8 +125,8 @@ public class NjamsSender {
      * Returns the one shared sender instance. On first access, the instance is lazily created. All later access will
      * get the same instance until the instance has closed. Then a new instance is created if required.
      * Calling this method tracks usage of the sender instance. I.e., after <i>taking</i> a sender, it must be
-     * {@link Sender#close()}d to return the instance and allow the implementation to keep track of usage. Calling
-     * {@link Sender#close()} does not really close the actual sender as long as it is still being used.
+     * {@link #close()}d to return the instance and allow the implementation to keep track of usage. Calling
+     * {@link #close()} does not really close the actual sender as long as it is still being used.
      * Only when it is no longer used (close has been called as often as it has been taken), the real sender instance
      * will be closed finally.
      *
