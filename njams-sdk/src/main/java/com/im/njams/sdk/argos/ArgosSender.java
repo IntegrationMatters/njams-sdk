@@ -231,7 +231,13 @@ public class ArgosSender implements Closeable {
             try {
                 final Collection<ArgosMetric> allCollectedStatistics = collector.collectAll();
                 for (ArgosMetric collectedStatistics : allCollectedStatistics) {
+                    if (collectedStatistics == null) {
+                        continue;
+                    }
                     final String data = serializeStatistics(collectedStatistics);
+                    if (data == null || data.isEmpty()) {
+                        continue;
+                    }
                     LOG.trace("Publishing metric:\n{}", data);
                     final byte[] buf = data.getBytes();
                     final DatagramPacket packet = new DatagramPacket(buf, buf.length, ip, port);
