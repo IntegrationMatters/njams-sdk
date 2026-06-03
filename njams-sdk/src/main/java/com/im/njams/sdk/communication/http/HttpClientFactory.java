@@ -241,7 +241,7 @@ public class HttpClientFactory {
 
     private Entry<SSLContext, X509TrustManager> createSSLContext(final ClientSettings settings) throws Exception {
 
-        final SSLContext sslContext = SSLContext.getInstance("SSL");
+        final SSLContext sslContext = SSLContext.getInstance("TLS");
         TrustManager trustManagers[] = null;
         KeyManager keyManagers[] = null;
 
