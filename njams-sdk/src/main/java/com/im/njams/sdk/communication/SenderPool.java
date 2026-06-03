@@ -96,52 +96,33 @@ public class SenderPool {
     }
 
     public synchronized AbstractSender get() {
-        return get(-1);
-    }
-
-    /**
-     * TODO: SDK-355: revision required!
-     *
-     * get an object from the pool. Timeout controls for how long to wait for an object becoming available.
-     * a timeout is less than 0 results in an endless wait
-     * a timeout equals 0 results in a singly try; if no object is available, null is returned
-     *
-     * @param timeout timeout in milliseconds
-     * @return T T
-     */
-    private synchronized AbstractSender get(long timeout) {
         LOG.trace("Get locked={}, unlocked={}", locked.size(), unlocked.size());
-        AbstractSender sender = null;
-        final long now = System.currentTimeMillis();
-        // try to get an object, until timeout expires
-        do {
-            if (!unlocked.isEmpty()) {
-                final Iterator<AbstractSender> it = unlocked.iterator();
-                while (it.hasNext()) {
-                    sender = it.next();
-                    if (validate(sender)) {
-                        it.remove();
-                        locked.add(sender);
-                        LOG.trace("Got sender: {}", sender);
-                        return sender;
-                    }
-                    // object failed validation
-                    LOG.debug("Sender {} failed validation!", sender);
+        // hand out an existing, still valid sender if one is available
+        if (!unlocked.isEmpty()) {
+            final Iterator<AbstractSender> it = unlocked.iterator();
+            while (it.hasNext()) {
+                final AbstractSender sender = it.next();
+                if (validate(sender)) {
                     it.remove();
-                    destroy(sender);
-                    sender = null;
+                    locked.add(sender);
+                    LOG.trace("Got sender: {}", sender);
+                    return sender;
                 }
+                // object failed validation
+                LOG.debug("Sender {} failed validation!", sender);
+                it.remove();
+                destroy(sender);
             }
-            // no objects available, create a new one
-            LOG.trace("Creating new sender, locked={}, unlocked={}", locked.size(), unlocked.size());
-            sender = create();
-            if (sender != null) {
-                if (shutdown) {
-                    sender.setShouldShutdown(true);
-                }
-                locked.add(sender);
+        }
+        // no objects available, create a new one
+        LOG.trace("Creating new sender, locked={}, unlocked={}", locked.size(), unlocked.size());
+        final AbstractSender sender = create();
+        if (sender != null) {
+            if (shutdown) {
+                sender.setShouldShutdown(true);
             }
-        } while (sender == null && !shutdown && (timeout < 0 || System.currentTimeMillis() - now < timeout));
+            locked.add(sender);
+        }
         LOG.debug("Created sender: {} (shouldShutdown={})", sender, shutdown);
         LOG.trace("Create locked={}, unlocked={}", locked.size(), unlocked.size());
         return sender;

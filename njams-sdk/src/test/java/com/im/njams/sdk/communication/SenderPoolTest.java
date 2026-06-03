@@ -24,9 +24,15 @@
 package com.im.njams.sdk.communication;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.junit.Test;
 
@@ -64,5 +70,38 @@ public class SenderPoolTest {
         verify(get2, times(1)).close();
         //This hasn't been closed again, because it isn't in the maps anymore
         verify(get1, times(1)).close();
+    }
+
+    @Test
+    public void getReusesUnlockedSenderInsteadOfCreatingNew() {
+        CommunicationFactory mockedCF = mock(CommunicationFactory.class);
+        AbstractSender first = mock(AbstractSender.class);
+        AbstractSender second = mock(AbstractSender.class);
+        AtomicInteger created = new AtomicInteger();
+        SenderPool op = new SenderPool(mockedCF) {
+            @Override
+            protected AbstractSender create() {
+                return created.getAndIncrement() == 0 ? first : second;
+            }
+        };
+        AbstractSender s1 = op.get();
+        assertSame(first, s1);
+        //Returning it to the pool makes it available again
+        op.close(s1);
+        AbstractSender s2 = op.get();
+        //The unlocked sender is reused, no new one is created
+        assertSame(first, s2);
+        assertEquals(1, created.get());
+    }
+
+    @Test
+    public void getReturnsNullAfterShutdownDeclared() {
+        CommunicationFactory mockedCF = mock(CommunicationFactory.class);
+        when(mockedCF.getSender()).thenReturn(mock(AbstractSender.class));
+        SenderPool op = new SenderPool(mockedCF);
+        assertNotNull(op.get());
+        op.declareShutdown();
+        //Once shutdown is declared, no further senders are handed out
+        assertNull(op.get());
     }
 }
