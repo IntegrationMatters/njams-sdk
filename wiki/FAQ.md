@@ -130,6 +130,7 @@ The tables below cover all settings recognized by the nJAMS SDK itself. Settings
 |---|---|---|---|
 | `njams.client.sdk.sharedcommunications` | `false` | Replaced by `njams.sdk.communication.shared`. | <kbd style="background-color:#2da44e;color:#fff;border-color:#2da44e">since 4.1.3</kbd><br><kbd style="background-color:#cf222e;color:#fff;border-color:#cf222e">deprecated 5.0.0</kbd> |
 | `njams.sdk.communication` | — | Selects the communication transport. Values: `HTTP`, `JMS`, `KAFKA`, or a custom implementation name. | |
+| `njams.sdk.communication.connect.timeout` | `30000` | Maximum time in milliseconds the SDK waits for the initial communication connection during `Njams.start()`. On timeout, `start()` returns `false` and the SDK instance stays inactive. Applies to all transports. See [What happens when the communication backend is unreachable at startup](#what-happens-when-the-communication-backend-is-unreachable-at-startup). | <kbd style="background-color:#2da44e;color:#fff;border-color:#2da44e">since 6.0.0</kbd> |
 | `njams.sdk.communication.containerMode` | `true` | Enables container/cluster mode. When `true`, the SDK generates a unique client ID per instance so that targeted commands (e.g. replay) are routed to the correct node in a load-balanced setup. Disable only in confirmed single-node deployments. | <kbd style="background-color:#2da44e;color:#fff;border-color:#2da44e">since 5.0.0</kbd> |
 | `njams.sdk.communication.maxMessageSize` | `0` | Maximum message body size in bytes. Messages exceeding this size are split into chunks before sending. A value of `0` or less disables splitting. The minimum allowed value is 10240 bytes. For Kafka, the smaller of this value and the Kafka producer's `max.request.size` is used. Requires nJAMS server 6.1.2 or later for transports other than Kafka. | <kbd style="background-color:#2da44e;color:#fff;border-color:#2da44e">since 5.0.3</kbd> |
 | `njams.sdk.communication.shared` | `false` | When `true`, a single sender/receiver pool is shared across all `Njams` instances in the same JVM. By default each instance has its own dedicated pool. Has no effect when only one `Njams` instance is used. | <kbd style="background-color:#2da44e;color:#fff;border-color:#2da44e">since 5.0.0</kbd> |
@@ -216,6 +217,35 @@ Set `njams.sdk.communication=KAFKA`.
 |---|---|---|---|
 | `njams.sdk.datamasking.enabled` | `true` | Enables data masking. When `false`, masking is disabled for all regex rules defined in both settings and `configuration.json`. | <kbd style="background-color:#2da44e;color:#fff;border-color:#2da44e">since 4.0.16</kbd> |
 | `njams.sdk.datamasking.regex.<name>` | — | Defines a data-masking regex rule. `<name>` is an arbitrary label; the value is a Java regex pattern (`java.util.regex.Pattern`). Multiple rules can be defined with different names. Example: `njams.sdk.datamasking.regex.maskPasswords=password:\s*\S+` | <kbd style="background-color:#2da44e;color:#fff;border-color:#2da44e">since 4.0.16</kbd> |
+
+## What happens when the communication backend is unreachable at startup
+
+`Njams.start()` does not block indefinitely when the communication backend cannot be reached. The
+maximum wait is bounded by the [`njams.sdk.communication.connect.timeout`](#communication) setting
+(default `30000` ms). If the connection is not established within this time, `start()` logs an error
+and returns `false`. The SDK instance is then completely inactive; **no reconnect thread is started**.
+It is the client application's responsibility to check the return value of `start()` and handle the
+failure accordingly.
+
+This applies to all transports (HTTP, JMS, Kafka). For JMS in particular, the JMS API provides no
+standard connection timeout; without this bound a startup attempt against an unreachable broker
+could silently block for 60–120 seconds at the OS TCP level.
+
+**Overlap with application setup.** The SDK starts the connection attempt in the background
+automatically when the `Njams` instance is constructed. When `start()` is subsequently called, it
+awaits the already-running connection, applying the timeout only for the remaining wait. If the
+connection completes during application setup (model registration, Argos collectors, etc.),
+`start()` returns immediately without blocking.
+
+```java
+Njams njams = new Njams(path, version, category, settings);
+// connection attempt starts in background automatically
+// ... register process models, add collectors, etc. ...
+boolean started = njams.start(); // awaits connection; may return immediately if already done
+if (!started) {
+    // connection could not be established within the timeout — handle inactive SDK
+}
+```
 
 ## How to modify the process model view (SVG)
 
