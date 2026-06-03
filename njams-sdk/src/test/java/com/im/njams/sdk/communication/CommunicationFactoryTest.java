@@ -36,6 +36,7 @@ import org.junit.Test;
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.Path;
+import com.im.njams.sdk.communication.http.HttpSseReceiver;
 import com.im.njams.sdk.communication.jms.FailingJmsFactory;
 import com.im.njams.sdk.settings.Settings;
 
@@ -67,6 +68,23 @@ public class CommunicationFactoryTest {
         TestReceiver.setReceiverMock(receiver);
         assertTrue(factory.getReceiver(njams) instanceof TestReceiver);
         verify(receiver).init(any());
+    }
+
+    @Test
+    public void httpReceiverWithoutSharingIsAnHttpSseReceiver() {
+        Settings settings = createSettings("HTTP");
+        settings.put(NjamsSettings.PROPERTY_HTTP_BASE_URL, "http://localhost:8080/njams/");
+        CommunicationFactory factory = new CommunicationFactory(settings);
+        assertTrue(factory.getReceiver(njams) instanceof HttpSseReceiver);
+    }
+
+    @Test
+    public void httpReceiverWithSharingRequestedFallsBackToHttpSseReceiver() {
+        Settings settings = createSettings("HTTP");
+        settings.put(NjamsSettings.PROPERTY_HTTP_BASE_URL, "http://localhost:8080/njams/");
+        settings.put(NjamsSettings.PROPERTY_SHARED_COMMUNICATIONS, "true");
+        CommunicationFactory factory = new CommunicationFactory(settings);
+        assertTrue(factory.getReceiver(njams) instanceof HttpSseReceiver);
     }
 
     @Test
