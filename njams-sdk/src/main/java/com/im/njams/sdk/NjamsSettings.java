@@ -112,6 +112,24 @@ public class NjamsSettings {
     public static final String PROPERTY_CONTAINER_MODE = "njams.sdk.communication.containerMode";
 
     /**
+     * Maximum time in milliseconds the SDK waits for the initial communication connection to be
+     * established during {@link com.im.njams.sdk.Njams#start()}. If the connection is not ready within
+     * this time, {@code start()} returns {@code false} and the SDK instance remains inactive — no
+     * reconnect thread is started.
+     * <p>
+     * The connection attempt is started automatically in the background when the
+     * {@link com.im.njams.sdk.Njams} instance is constructed, so that it overlaps with application
+     * setup. {@code start()} then awaits the already-running attempt and applies this timeout only for
+     * the remaining wait.
+     * <p>
+     * The default is 30000 ms.
+     *
+     * @since 6.0.0
+     */
+    public static final String PROPERTY_COMMUNICATION_CONNECT_TIMEOUT =
+            "njams.sdk.communication.connect.timeout";
+
+    /**
      * This property is a flush criteria with a default of 5mb.
      * <p>
      * If the flush size of the @{@link com.faizsiegeln.njams.messageformat.v4.logmessage.LogMessage}
