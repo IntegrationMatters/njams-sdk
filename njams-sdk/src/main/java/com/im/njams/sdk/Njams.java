@@ -61,6 +61,7 @@ import com.im.njams.sdk.client.CleanTracepointsTask;
 import com.im.njams.sdk.client.LogMessageFlushTask;
 import com.im.njams.sdk.common.DateTimeUtility;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
+import com.im.njams.sdk.communication.AbstractReceiver;
 import com.im.njams.sdk.communication.AbstractReplayHandler;
 import com.im.njams.sdk.communication.CommunicationFactory;
 import com.im.njams.sdk.communication.InstructionListener;
@@ -110,6 +111,8 @@ public class Njams implements InstructionListener {
     private static final String DEFAULT_TAXONOMY_PROCESS_ICON = "images/process.png";
 
     private static final String DEFAULT_CACHE_PROVIDER = FileConfigurationProvider.NAME;
+
+    private static final long DEFAULT_CONNECT_TIMEOUT_MS = 30_000L;
 
     /**
      * Defines the standard set of optional features that an nJAMS client may support.
@@ -256,6 +259,9 @@ public class Njams implements InstructionListener {
     private NjamsSender sender;
     private Receiver receiver;
 
+    /** Receiver pre-created at construction time, transferred to {@link #receiver} inside {@link #startReceiver()}. */
+    private Receiver earlyReceiver;
+
     private Configuration configuration;
     private String machine;
     private String runtimeVersion;
@@ -312,6 +318,7 @@ public class Njams implements InstructionListener {
 
         printStartupBanner();
         setMachine();
+        beginConnect();
     }
 
     private void initContainerMode() {
@@ -528,12 +535,40 @@ public class Njams implements InstructionListener {
     }
 
     /**
+     * Pre-creates the receiver and starts its connection attempt in the background, so that the
+     * connection overlaps with the remaining application setup. Called automatically at construction
+     * time. Idempotent and best-effort: any failure is swallowed and {@link #startReceiver()} will
+     * retry creating the receiver.
+     */
+    private void beginConnect() {
+        if (earlyReceiver != null || started) {
+            return;
+        }
+        try {
+            earlyReceiver = new CommunicationFactory(settings).getReceiver(this);
+            if (earlyReceiver instanceof AbstractReceiver) {
+                ((AbstractReceiver) earlyReceiver).beginConnect();
+            }
+        } catch (Exception e) {
+            LOG.warn("beginConnect() failed to pre-initialize receiver; start() will retry.", e);
+            earlyReceiver = null;
+        }
+    }
+
+    /**
      * Start the receiver, which is used to retrieve instructions
      */
     private void startReceiver() {
         try {
-            receiver = new CommunicationFactory(settings).getReceiver(this);
-            receiver.start();
+            if (earlyReceiver != null) {
+                receiver = earlyReceiver;
+                earlyReceiver = null;
+            } else {
+                receiver = new CommunicationFactory(settings).getReceiver(this);
+            }
+            long timeoutMs = settings.getLong(
+                    NjamsSettings.PROPERTY_COMMUNICATION_CONNECT_TIMEOUT, DEFAULT_CONNECT_TIMEOUT_MS);
+            receiver.startWithTimeout(timeoutMs);
             if (receiver instanceof SenderExceptionListener) {
                 final NjamsSender sender = getSender();
                 if (sender != null) {
@@ -541,13 +576,16 @@ public class Njams implements InstructionListener {
                 }
             }
         } catch (Exception e) {
-            LOG.error("Error starting Receiver", e);
-            try {
-                receiver.stop();
-            } catch (Exception ex) {
-                LOG.debug("Unable to stop receiver", ex);
+            LOG.error("SDK startup failed: could not establish communication connection. "
+                    + "The SDK instance is inactive.", e);
+            if (receiver != null) {
+                try {
+                    receiver.stop();
+                } catch (Exception ex) {
+                    LOG.debug("Unable to stop receiver after startup failure", ex);
+                }
+                receiver = null;
             }
-            receiver = null;
         }
     }
 

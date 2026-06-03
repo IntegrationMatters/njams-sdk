@@ -39,11 +39,13 @@ import com.faizsiegeln.njams.messageformat.v4.command.Request;
 import com.faizsiegeln.njams.messageformat.v4.command.Response;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.Path;
+import com.im.njams.sdk.communication.Receiver;
 import com.im.njams.sdk.communication.ReplayHandler;
 import com.im.njams.sdk.communication.ReplayRequest;
 import com.im.njams.sdk.communication.ReplayResponse;
 import com.im.njams.sdk.communication.TestReceiver;
 import com.im.njams.sdk.communication.TestSender;
+import com.im.njams.sdk.settings.ClientSettings;
 import com.im.njams.sdk.logmessage.DataMasking;
 import com.im.njams.sdk.logmessage.Job;
 import com.im.njams.sdk.model.ProcessModel;
@@ -108,6 +110,82 @@ public class NjamsTest {
         instance.start();
         instance.stop();
         instance.start();
+    }
+
+    @Test
+    public void testStartReturnsFalseWhenReceiverTimesOut() {
+        Receiver hangingReceiver = new Receiver() {
+            @Override public String getName() { return "HangingReceiver"; }
+            @Override public void init(ClientSettings settings) {}
+            @Override public void setNjams(Njams njams) {}
+            @Override public void onInstruction(Instruction i) {}
+            @Override public void start() {}
+            @Override public void stop() {}
+            @Override public void startWithTimeout(long timeoutMs) {
+                throw new NjamsSdkRuntimeException("Simulated startup timeout");
+            }
+        };
+        TestReceiver.setReceiverMock(hangingReceiver);
+        try {
+            boolean result = instance.start();
+            assertFalse("start() must return false when receiver times out", result);
+            assertFalse("SDK must not be started after receiver timeout", instance.isStarted());
+        } finally {
+            TestReceiver.setReceiverMock(null);
+        }
+    }
+
+    @Test
+    public void testStartReturnsFalseWhenReceiverThrows() {
+        Receiver failingReceiver = new Receiver() {
+            @Override public String getName() { return "FailingReceiver"; }
+            @Override public void init(ClientSettings settings) {}
+            @Override public void setNjams(Njams njams) {}
+            @Override public void onInstruction(Instruction i) {}
+            @Override public void start() {}
+            @Override public void stop() {}
+            @Override public void startWithTimeout(long timeoutMs) {
+                throw new NjamsSdkRuntimeException("Simulated connect error");
+            }
+        };
+        TestReceiver.setReceiverMock(failingReceiver);
+        try {
+            boolean result = instance.start();
+            assertFalse("start() must return false when receiver throws on connect", result);
+            assertFalse("SDK must not be started when receiver connect fails", instance.isStarted());
+        } finally {
+            TestReceiver.setReceiverMock(null);
+        }
+    }
+
+    @Test
+    public void testBeginConnectBeforeStartDoesNotBreakStart() {
+        // The connection is pre-started at construction time; start() must still complete normally
+        // and must drive the connection through startWithTimeout (not the plain start()).
+        final boolean[] startWithTimeoutCalled = {false};
+        Receiver okReceiver = new Receiver() {
+            @Override public String getName() { return "OkReceiver"; }
+            @Override public void init(ClientSettings settings) {}
+            @Override public void setNjams(Njams njams) {}
+            @Override public void onInstruction(Instruction i) {}
+            @Override public void start() {}
+            @Override public void stop() {}
+            @Override public void startWithTimeout(long timeoutMs) {
+                startWithTimeoutCalled[0] = true;
+            }
+        };
+        TestReceiver.setReceiverMock(okReceiver);
+        try {
+            boolean result = instance.start();
+            assertTrue("start() must succeed when the receiver connects", result);
+            assertTrue("startReceiver() must use startWithTimeout", startWithTimeoutCalled[0]);
+            assertTrue(instance.isStarted());
+        } finally {
+            if (instance.isStarted()) {
+                instance.stop();
+            }
+            TestReceiver.setReceiverMock(null);
+        }
     }
 
     @Test

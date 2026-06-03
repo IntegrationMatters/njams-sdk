@@ -99,6 +99,13 @@ public class TestReceiver implements Receiver {
     }
 
     @Override
+    public void startWithTimeout(long timeoutMs) {
+        if (receiver != null) {
+            receiver.startWithTimeout(timeoutMs);
+        }
+    }
+
+    @Override
     public void stop() {
         if (receiver != null) {
             receiver.stop();
