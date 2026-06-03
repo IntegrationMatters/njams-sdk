@@ -26,6 +26,8 @@ Update any other affected `wiki/` page when a feature or fix that changes docume
 
 Issues and tasks for this project are tracked in Jira: **https://salesfive.atlassian.net** — space key **SDK**.
 
+**When inspecting a Jira ticket, always follow its linked issues.** Read not only the explicitly linked tickets (the issue-link relationships such as "relates to", "blocks", "is caused by"), but also any tickets referenced inline in the ticket's text — summary, description, and comments (e.g. an `SDK-123` mentioned in a sentence). Both inline references and formal links may carry context, constraints, or prior decisions essential to the current work.
+
 **When creating a new Jira ticket, always set the `fix version` field** to the current working copy's version with the `-SNAPSHOT` suffix stripped. Read the version from the root `pom.xml`. Example: working on `6.0.0-SNAPSHOT` → fix version `6.0.0`.
 
 **When working on a Jira ticket, manage the `breaking-change` label.** If the work introduces a breaking change to public or protected API (signature / return-type / parameter-type change, removal, observable behaviour change), add the `breaking-change` label to the ticket. If the work does not break public API, remove the label if present. Adding new methods, classes, or overloads is not breaking. Check the label at the start of working on the ticket and again before declaring it done.
@@ -189,6 +191,8 @@ The sender thread pool (`maxSenderThreads`, default 8) asynchronously dispatches
 
 `Settings` object is created with transport-specific properties before instantiating `Njams`. Key settings are defined as constants in `NjamsSettings`. The `njams-sdk-sample-client/src/main/resources/settings_full.properties` file is the canonical reference for all available settings.
 
+**`NjamsSettings` is exclusively for setting-key `String` constants (`PROPERTY_*`).** Do not put default values or any other kind of constant in it. A setting's default value belongs as a `private` constant in the class that consumes the setting (e.g. `Njams.DEFAULT_CONNECT_TIMEOUT_MS`), not in `NjamsSettings`.
+
 Configuration providers (`ConfigurationProvider` implementations) allow loading settings from files, classpath resources, or in-memory properties.
 
 ### Process Diagram Generation (`model/svg/`)
@@ -208,6 +212,7 @@ Apply best practices and maintain clean architecture in all production code. Cod
 - **Prefer imports over fully qualified class names.** Always import a class and use the simple name. Reach for fully qualified names only when a same-simple-name conflict in the file leaves no other option — for example, during the legacy-to-new `Path` migration where both `com.im.njams.sdk.Path` and `com.im.njams.sdk.common.Path` appear. In that case, **import the new type and fully qualify the legacy one**.
 - **SOLID.** Single responsibility per class and method. Depend on abstractions, not implementations. Keep interfaces focused.
 - **Self-documenting code.** Names for classes, methods, and variables should express intent clearly enough that comments are rarely needed. A comment is warranted only when the *why* is non-obvious from the code.
+- **Keep comments truthful when changing code.** Whenever you modify code, double-check that every nearby comment is still correct — both Javadoc (on the changed member and on any member that references it) and inline comments inside method bodies. Update or remove anything that the change has made inaccurate. Never leave a stale comment that describes the old behavior.
 - **No unnecessary complexity.** Solve the problem at hand. Do not introduce abstractions, patterns, or generalisations that have no current use.
 - **DRY within reason.** Eliminate duplication, but do not create premature abstractions to unify code that merely looks similar.
 - **Delegate, don't duplicate.** When adding an overload, alternative entry point, or deprecated alias for an existing method, have the new method adapt its input and call through to the canonical implementation. Never copy an algorithm into a second method just because the signature differs.
