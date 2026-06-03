@@ -423,6 +423,23 @@ public class AbstractReceiverTest {
         assertTrue(impl.isConnected());
     }
 
+    @Test
+    public void testStartWithTimeoutDefaultDelegatesToStart() {
+        // Receiver implementations that do not extend AbstractReceiver get the default
+        // startWithTimeout which calls start().
+        final boolean[] startCalled = {false};
+        Receiver simpleReceiver = new Receiver() {
+            @Override public String getName() { return "simple"; }
+            @Override public void init(ClientSettings settings) {}
+            @Override public void setNjams(Njams njams) {}
+            @Override public void onInstruction(Instruction i) {}
+            @Override public void start() { startCalled[0] = true; }
+            @Override public void stop() {}
+        };
+        simpleReceiver.startWithTimeout(100L);
+        assertTrue("default startWithTimeout must delegate to start()", startCalled[0]);
+    }
+
     //onException tests
 
     /**
