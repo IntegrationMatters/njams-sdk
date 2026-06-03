@@ -34,6 +34,8 @@ Issues and tasks for this project are tracked in Jira: **https://salesfive.atlas
 
 **When starting work on a Jira ticket, transition it to `In Progress`** (unless it is already in a started or done state) and **assign it to the current Atlassian plugin user** (call `atlassianUserInfo` to get the `account_id`, then set that as the assignee). If the ticket is already assigned to a different user, ask before changing the assignee. Do this after the ticket key is confirmed and before making any code changes. For tickets created on the spot, transition and assign immediately after creation.
 
+**When resolving a Jira ticket, set the assignee to unassigned.** As part of transitioning a ticket to a resolved/done state, clear the assignee field.
+
 **Jira ticket descriptions** focus on WHAT is needed, not HOW it is implemented. No design decisions or implementation details belong in the description, even when the ticket is created after the work is done. Structure every description in two parts:
 1. **Brief summary** — a short abstract readable in ~30 seconds.
 2. **Detail section** — context, constraints, and acceptance criteria needed to understand the task; still no implementation decisions.
