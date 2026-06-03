@@ -24,8 +24,11 @@
 package com.im.njams.sdk.communication;
 
 import java.io.IOException;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -67,6 +70,11 @@ public abstract class AbstractReceiver implements Receiver {
     private static final AtomicInteger connecting = new AtomicInteger(0);
 
     private AtomicInteger reconnectIntervalIncreasing = new AtomicInteger(INIT_RECONNECT_INTERVAL * 10 + 1);
+
+    private final AtomicBoolean connectBegun = new AtomicBoolean(false);
+    private volatile CountDownLatch startupLatch;
+    private final AtomicReference<Exception> startupError = new AtomicReference<>();
+    private final AtomicBoolean startupTimedOut = new AtomicBoolean(false);
 
     /**
      * Njams to hold
@@ -181,11 +189,97 @@ public abstract class AbstractReceiver implements Receiver {
 
     /**
      * This method should be used to create a connection, and if the startup
-     * fails, close all resources. It will be called by the
-     * {@link #reconnect(Exception) reconnect} method. It should throw an
-     * Exception if anything unexpected or unwanted happens.
+     * fails, close all resources. It is called by the
+     * {@link #reconnect(Exception) reconnect} method as well as during the initial
+     * startup connection ({@link #beginConnect()} / {@link #startWithTimeout(long)}).
+     * It should throw an Exception if anything unexpected or unwanted happens.
      */
     public abstract void connect();
+
+    /**
+     * Starts the background connect thread immediately. Idempotent — subsequent calls on the same
+     * instance have no effect. Call this before {@link #startWithTimeout(long)} to overlap the
+     * connection attempt with other application setup work.
+     * <p>
+     * This method is intended for internal SDK use only.
+     *
+     * @since 6.0.0
+     */
+    public void beginConnect() {
+        if (!connectBegun.compareAndSet(false, true)) {
+            return;
+        }
+        startupLatch = new CountDownLatch(1);
+        LOG.debug("Receiver {}: starting connection attempt.", getName());
+        Thread connectThread = new Thread(() -> {
+            try {
+                connect();
+            } catch (Exception e) {
+                LOG.debug("Receiver {}: connection attempt failed.", getName(), e);
+                startupError.set(e);
+                startupLatch.countDown();
+                return;
+            }
+            if (startupTimedOut.get()) {
+                LOG.debug("Receiver {}: connection established after the startup timeout had already "
+                    + "elapsed; releasing resources.", getName());
+                try {
+                    stop();
+                } catch (Exception e) {
+                    LOG.debug("Failed to clean up {} resources after startup timeout", getName(), e);
+                }
+            } else {
+                LOG.debug("Receiver {}: connection established.", getName());
+                startupLatch.countDown();
+            }
+        });
+        connectThread.setDaemon(true);
+        connectThread.setName("Receiver-Startup-" + getName());
+        connectThread.start();
+    }
+
+    /**
+     * Starts this receiver for the initial connection, waiting at most {@code timeoutMs} milliseconds
+     * for {@link #connect()} to complete.
+     * <p>
+     * Calls {@link #beginConnect()} as its first step (idempotent — a no-op if already called).
+     * If the deadline passes before {@link #connect()} completes, or if {@link #connect()} throws,
+     * this method sets the connection status to {@link ConnectionStatus#DISCONNECTED}, throws a
+     * {@link NjamsSdkRuntimeException}, and returns without triggering the reconnect mechanism.
+     * The SDK becomes inactive; it is the caller's responsibility to handle the failure.
+     * <p>
+     * If the background thread eventually establishes a connection after the timeout has already been
+     * signalled, {@link #stop()} is called to release any acquired resources.
+     *
+     * @param timeoutMs maximum time in milliseconds to wait for the connection
+     * @throws NjamsSdkRuntimeException if the timeout elapses before the connection is established,
+     *         if {@link #connect()} throws, or if the calling thread is interrupted
+     * @since 6.0.0
+     */
+    @Override
+    public void startWithTimeout(long timeoutMs) {
+        beginConnect();
+        try {
+            if (!startupLatch.await(timeoutMs, TimeUnit.MILLISECONDS)) {
+                startupTimedOut.set(true);
+                connectionStatus = ConnectionStatus.DISCONNECTED;
+                LOG.debug("Receiver {}: connection timed out after {} ms.", getName(), timeoutMs);
+                throw new NjamsSdkRuntimeException(
+                        "Startup timeout: " + getName() + " did not connect within " + timeoutMs + " ms");
+            }
+        } catch (InterruptedException e) {
+            startupTimedOut.set(true);
+            Thread.currentThread().interrupt();
+            connectionStatus = ConnectionStatus.DISCONNECTED;
+            throw new NjamsSdkRuntimeException(
+                    "Interrupted while waiting for " + getName() + " to connect", e);
+        }
+        Exception error = startupError.get();
+        if (error != null) {
+            connectionStatus = ConnectionStatus.DISCONNECTED;
+            throw new NjamsSdkRuntimeException("Failed to connect " + getName() + " during startup", error);
+        }
+    }
 
     /**
      * This method tries to establish the connection over and over as long as it
