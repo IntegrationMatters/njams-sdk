@@ -36,6 +36,18 @@ import org.slf4j.LoggerFactory;
 
 /**
  * Pool for {@link AbstractSender} implementations.
+ * <p>
+ * The pool itself imposes no upper limit: {@link #get()} hands out an idle sender if one is available and
+ * otherwise creates a new one. In isolation this would allow the number of senders to grow without bound.
+ * In practice it cannot, because the pool is only ever accessed from the bounded
+ * {@link java.util.concurrent.ThreadPoolExecutor} in {@link NjamsSender}. That executor runs at most
+ * {@link com.im.njams.sdk.NjamsSettings#PROPERTY_MAX_SENDER_THREADS} worker threads concurrently, and each
+ * worker borrows a sender via {@link #get()}, sends, and returns it via {@link #close(AbstractSender)} before
+ * picking up the next task. Therefore the number of senders simultaneously checked out (held in {@code locked})
+ * never exceeds the executor's maximum thread count; the rest are recycled through {@code unlocked}.
+ * <p>
+ * In other words, the pool is <em>virtually</em> bounded to {@code maxSenderThreads} by its single caller, so its
+ * size cannot explode even though it enforces no limit of its own.
  *
  * @author hsiegeln
  */
