@@ -673,6 +673,26 @@ public class JobImplTest extends AbstractTest {
     }
 
     @Test
+    public void stackTraceIncreasesEstimatedSize() {
+        JobImpl job = createDefaultStartedJob();
+        ActivityImpl act = (ActivityImpl) job.createActivity(
+                process.createActivity("stackAct", "StackAct", null)).build();
+        long before = job.getEstimatedSize();
+        act.setStackTrace("0123456789"); // 10 chars
+        assertEquals(before + 10, job.getEstimatedSize());
+    }
+
+    @Test
+    public void startDataIncreasesEstimatedSize() {
+        JobImpl job = createDefaultStartedJob();
+        ActivityImpl act = (ActivityImpl) job.createActivity(
+                process.createActivity("startDataAct", "StartDataAct", null)).build();
+        long before = job.getEstimatedSize();
+        act.setStartData("ABCDE"); // 5 chars
+        assertEquals(before + 5, job.getEstimatedSize());
+    }
+
+    @Test
     public void timerFlushTriggersOnSizeFromActivitiesAlone() {
         JobImpl job = spy(createDefaultStartedJob());
         job.setStatus(JobStatus.ERROR); // ensure the job is eligible to flush

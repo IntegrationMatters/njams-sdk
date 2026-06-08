@@ -341,7 +341,6 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
             setOutput(data);
         }
         addToEstimatedSize(data.length());
-        job.addToEstimatedSize(data.length());
         setExecutionIfNotSet();
         job.setTraces(true);
     }
@@ -506,12 +505,13 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
     }
 
     /**
-     * Add to estimated size
+     * Adds to this activity's estimated size and, in turn, to the owning job's estimated size.
      *
      * @param estimatedSize estimated size to add
      */
     public void addToEstimatedSize(long estimatedSize) {
         this.estimatedSize += estimatedSize;
+        job.addToEstimatedSize(estimatedSize);
     }
 
     /**
@@ -560,7 +560,6 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
         if (StringUtils.isNotBlank(message)) {
             final int size = limited == null ? 0 : limited.length();
             addToEstimatedSize(size);
-            job.addToEstimatedSize(size);
             job.setInstrumented();
         }
     }
@@ -578,7 +577,6 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
         if (StringUtils.isNotBlank(code)) {
             final int size = limited == null ? 0 : limited.length();
             addToEstimatedSize(size);
-            job.addToEstimatedSize(size);
             job.setInstrumented();
         }
     }
@@ -599,7 +597,6 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
         if (StringUtils.isNotBlank(eventPayload)) {
             final int payloadSize = limited == null ? 0 : limited.length();
             addToEstimatedSize(payloadSize);
-            job.addToEstimatedSize(payloadSize);
             job.setInstrumented();
         }
     }
@@ -620,7 +617,6 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
         if (StringUtils.isNotBlank(stackTrace)) {
             int stackTraceSize = limited == null ? 0 : limited.length();
             addToEstimatedSize(stackTraceSize);
-            job.addToEstimatedSize(stackTraceSize);
             job.setInstrumented();
         }
     }
@@ -639,7 +635,6 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
         if (maskedStartData != null) {
             int startDataSize = maskedStartData.length();
             addToEstimatedSize(startDataSize);
-            job.addToEstimatedSize(startDataSize);
         }
     }
 
