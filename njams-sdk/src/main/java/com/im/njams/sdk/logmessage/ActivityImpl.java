@@ -80,7 +80,9 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
     private boolean executionRequired = false;
 
     // Base size estimate (in characters) attributed to every activity regardless of content.
-    static final long BASE_ESTIMATED_SIZE = 700L;
+    // Approximates the serialized structural fields of a typical activity (modelId, instanceId,
+    // sequence, iteration, execution timestamp and a single predecessor), with a little headroom.
+    static final long BASE_ESTIMATED_SIZE = 400L;
 
     private long estimatedSize = BASE_ESTIMATED_SIZE;
     private boolean ended = false;
