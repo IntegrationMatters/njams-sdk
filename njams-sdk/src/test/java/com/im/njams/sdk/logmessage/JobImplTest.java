@@ -61,6 +61,7 @@ import com.im.njams.sdk.communication.TestReceiver;
 import com.im.njams.sdk.model.ActivityModel;
 import com.im.njams.sdk.model.GroupModel;
 import com.im.njams.sdk.model.ProcessModel;
+import com.im.njams.sdk.model.SubProcessActivityModel;
 import com.im.njams.sdk.utils.StringUtils;
 
 /**
@@ -707,5 +708,21 @@ public class JobImplTest extends AbstractTest {
                 job.getEstimatedSize() > smallFlushSize);
         job.timerFlush(DateTimeUtility.now(), smallFlushSize);
         Mockito.verify(job, Mockito.atLeastOnce()).flush();
+    }
+
+    @Test
+    public void subProcessActivityAddsConstantToEstimatedSize() {
+        JobImpl job = createDefaultStartedJob();
+        ActivityModel startModel = process.createActivity("spCallerStart", "Start", null);
+        SubProcessActivityModel spModel =
+                startModel.transitionToSubProcess("spCaller", "SubProcess", "stepType");
+        SubProcessActivityImpl sp = new SubProcessActivityImpl(job, spModel);
+        long before = job.getEstimatedSize();
+        sp.setSubProcess("SubName", "PROCESSES>SubProcess", "log-123");
+        // A flat constant is added for the subprocess reference fields.
+        assertEquals(before + SubProcessActivityImpl.SUBPROCESS_ESTIMATED_SIZE, job.getEstimatedSize());
+        // re-setting the subprocess must not count the constant again
+        sp.setSubProcess("Other", "Other>Path", "log-456");
+        assertEquals(before + SubProcessActivityImpl.SUBPROCESS_ESTIMATED_SIZE, job.getEstimatedSize());
     }
 }
