@@ -95,7 +95,7 @@ node('master') {
             publishHTML([allowMissing         : false,
                          alwaysLinkToLastBuild: true,
                          keepAll              : false,
-                         reportDir            : 'target/site/apidocs/',
+                         reportDir            : 'target/reports/apidocs/',
                          reportFiles          : 'index.html',
                          reportName           : 'Javadoc',
                          reportTitles         : ''])
