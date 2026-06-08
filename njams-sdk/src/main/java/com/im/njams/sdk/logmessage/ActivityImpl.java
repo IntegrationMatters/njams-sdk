@@ -555,8 +555,12 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
     @Override
     public void setEventMessage(String message) {
         setExecutionIfNotSet();
-        super.setEventMessage(DataMasking.maskString(limitLength("eventMessage", message, MAX_VALUE_LIMIT)));
+        final String limited = DataMasking.maskString(limitLength("eventMessage", message, MAX_VALUE_LIMIT));
+        super.setEventMessage(limited);
         if (StringUtils.isNotBlank(message)) {
+            final int size = limited == null ? 0 : limited.length();
+            addToEstimatedSize(size);
+            job.addToEstimatedSize(size);
             job.setInstrumented();
         }
     }
@@ -569,8 +573,12 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
     @Override
     public void setEventCode(String code) {
         setExecutionIfNotSet();
-        super.setEventCode(DataMasking.maskString(limitLength("eventCode", code, MAX_VALUE_LIMIT)));
+        final String limited = DataMasking.maskString(limitLength("eventCode", code, MAX_VALUE_LIMIT));
+        super.setEventCode(limited);
         if (StringUtils.isNotBlank(code)) {
+            final int size = limited == null ? 0 : limited.length();
+            addToEstimatedSize(size);
+            job.addToEstimatedSize(size);
             job.setInstrumented();
         }
     }

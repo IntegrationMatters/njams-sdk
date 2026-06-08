@@ -639,4 +639,24 @@ public class JobImplTest extends AbstractTest {
         // *before* any flush recompute.
         assertEquals(before + 2 * ActivityImpl.BASE_ESTIMATED_SIZE, job.getEstimatedSize());
     }
+
+    @Test
+    public void eventMessageIncreasesEstimatedSize() {
+        JobImpl job = createDefaultStartedJob();
+        ActivityImpl act = (ActivityImpl) job.createActivity(
+                process.createActivity("evtMsgAct", "EvtMsgAct", null)).build();
+        long before = job.getEstimatedSize();
+        act.setEventMessage("0123456789"); // 10 chars
+        assertEquals(before + 10, job.getEstimatedSize());
+    }
+
+    @Test
+    public void eventCodeIncreasesEstimatedSize() {
+        JobImpl job = createDefaultStartedJob();
+        ActivityImpl act = (ActivityImpl) job.createActivity(
+                process.createActivity("evtCodeAct", "EvtCodeAct", null)).build();
+        long before = job.getEstimatedSize();
+        act.setEventCode("ABCDE"); // 5 chars
+        assertEquals(before + 5, job.getEstimatedSize());
+    }
 }
