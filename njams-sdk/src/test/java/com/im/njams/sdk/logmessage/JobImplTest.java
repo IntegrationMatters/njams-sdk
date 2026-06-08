@@ -626,4 +626,17 @@ public class JobImplTest extends AbstractTest {
         job.timerFlush(DateTimeUtility.now().minusSeconds(1), 5_000_000L);
         Mockito.verify(job, Mockito.never()).flush();
     }
+
+    @Test
+    public void addingActivitiesGrowsRunningEstimateByBase() {
+        JobImpl job = createDefaultStartedJob();
+        long before = job.getEstimatedSize(); // 1000
+        ActivityModel m1 = process.createActivity("growA1", "GrowA1", null);
+        ActivityModel m2 = process.createActivity("growA2", "GrowA2", null);
+        job.createActivity(m1).build();
+        job.createActivity(m2).build();
+        // Each plain activity must contribute its base size to the running estimate
+        // *before* any flush recompute.
+        assertEquals(before + 2 * ActivityImpl.BASE_ESTIMATED_SIZE, job.getEstimatedSize());
+    }
 }

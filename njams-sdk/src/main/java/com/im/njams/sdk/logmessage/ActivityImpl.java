@@ -79,7 +79,10 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
     private LocalDateTime tmpExecution = null;
     private boolean executionRequired = false;
 
-    private long estimatedSize = 700L;
+    // Base size estimate (in characters) attributed to every activity regardless of content.
+    static final long BASE_ESTIMATED_SIZE = 700L;
+
+    private long estimatedSize = BASE_ESTIMATED_SIZE;
     private boolean ended = false;
     private boolean inputProcessecd = false;
     private boolean outputProcessed = false;

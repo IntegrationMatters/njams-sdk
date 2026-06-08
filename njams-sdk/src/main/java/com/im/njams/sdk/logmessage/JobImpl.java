@@ -336,7 +336,15 @@ public class JobImpl implements Job {
                 throw new NjamsSdkRuntimeException(
                         "The method start() must be called before activities can be added to the job!");
             }
-            activities.put(activity.getInstanceId(), activity);
+            final Activity previous = activities.put(activity.getInstanceId(), activity);
+            if (previous == null) {
+                // Count the per-activity base size in the running estimate as soon as the activity
+                // is added, so flush-by-size reflects activity-heavy jobs between flushes. Content
+                // (payload, stack trace, etc.) is already counted by the activity's own setters, so
+                // only the fixed base is added here to avoid double counting. Reused activities
+                // (loop iterations) re-enter addActivity with previous != null and must not re-add it.
+                addToEstimatedSize(ActivityImpl.BASE_ESTIMATED_SIZE);
+            }
             if (activity.isStarter()) {
                 if (hasOrHadStartActivity) {
                     throw new NjamsSdkRuntimeException("A job must not have more than one start activity "
