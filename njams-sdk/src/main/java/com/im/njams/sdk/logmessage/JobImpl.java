@@ -1393,9 +1393,13 @@ public class JobImpl implements Job {
             return;
         }
         String limitKey = limitLength("attributeName", key, 500);
+        String maskedValue = DataMasking.maskString(limitPayload(value));
         synchronized (attributes) {
-            attributes.put(limitKey, DataMasking.maskString(limitPayload(value)));
+            attributes.put(limitKey, maskedValue);
         }
+        final int size = (limitKey == null ? 0 : limitKey.length())
+                + (maskedValue == null ? 0 : maskedValue.length());
+        addToEstimatedSize(size);
     }
 
     public Njams getNjams() {

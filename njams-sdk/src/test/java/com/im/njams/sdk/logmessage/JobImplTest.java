@@ -604,8 +604,9 @@ public class JobImplTest extends AbstractTest {
     @Test
     public void freshJobHasBaseEstimatedSize() {
         JobImpl job = createDefaultStartedJob();
-        // A job with no activities starts at the message base of 1000.
-        assertEquals(1000L, job.getEstimatedSize());
+        // Message base of 1000 plus the "$njams_recorded"="true" attribute that recording adds at
+        // job start; that attribute now counts toward the estimate.
+        assertEquals(1000L + "$njams_recorded".length() + "true".length(), job.getEstimatedSize());
     }
 
     @Test
@@ -620,10 +621,13 @@ public class JobImplTest extends AbstractTest {
 
     @Test
     public void timerFlushDoesNotFlushBeforeSizeOrIntervalReached() {
+        // Capture a timestamp before the job exists; the job's lastFlush is set at construction and
+        // is therefore at or after this, so the interval clause cannot trigger regardless of timing.
+        LocalDateTime beforeJob = DateTimeUtility.now();
         JobImpl job = spy(createDefaultStartedJob());
         job.createActivity(getDefaultActivityModelForTest()).build();
-        // last flush just happened; size well below limit -> no flush
-        job.timerFlush(DateTimeUtility.now().minusSeconds(1), 5_000_000L);
+        // interval not reached and size well below limit -> no flush
+        job.timerFlush(beforeJob, 5_000_000L);
         Mockito.verify(job, Mockito.never()).flush();
     }
 
@@ -658,5 +662,13 @@ public class JobImplTest extends AbstractTest {
         long before = job.getEstimatedSize();
         act.setEventCode("ABCDE"); // 5 chars
         assertEquals(before + 5, job.getEstimatedSize());
+    }
+
+    @Test
+    public void attributeIncreasesEstimatedSize() {
+        JobImpl job = createDefaultStartedJob();
+        long before = job.getEstimatedSize();
+        job.addAttribute("key", "value"); // 3 + 5 = 8 chars
+        assertEquals(before + 8, job.getEstimatedSize());
     }
 }
