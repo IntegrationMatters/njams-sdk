@@ -592,4 +592,38 @@ public class JobImplTest extends AbstractTest {
         JobImpl job = createDefaultJob();
         assertEquals(51, job.getSerializeSizeHint());
     }
+
+    private ActivityModel getDefaultActivityModelForTest() {
+        ActivityModel model = process.getActivity("baseSizeAct");
+        if (model == null) {
+            model = process.createActivity("baseSizeAct", "BaseSizeAct", null);
+        }
+        return model;
+    }
+
+    @Test
+    public void freshJobHasBaseEstimatedSize() {
+        JobImpl job = createDefaultStartedJob();
+        // A job with no activities starts at the message base of 1000.
+        assertEquals(1000L, job.getEstimatedSize());
+    }
+
+    @Test
+    public void eventPayloadIncreasesEstimatedSize() {
+        JobImpl job = createDefaultStartedJob();
+        ActivityImpl act = (ActivityImpl) job.createActivity(getDefaultActivityModelForTest()).build();
+        long before = job.getEstimatedSize();
+        act.setEventPayload("0123456789"); // 10 chars
+        assertTrue("event payload must increase the estimate",
+                job.getEstimatedSize() >= before + 10);
+    }
+
+    @Test
+    public void timerFlushDoesNotFlushBeforeSizeOrIntervalReached() {
+        JobImpl job = spy(createDefaultStartedJob());
+        job.createActivity(getDefaultActivityModelForTest()).build();
+        // last flush just happened; size well below limit -> no flush
+        job.timerFlush(DateTimeUtility.now().minusSeconds(1), 5_000_000L);
+        Mockito.verify(job, Mockito.never()).flush();
+    }
 }
