@@ -671,4 +671,21 @@ public class JobImplTest extends AbstractTest {
         job.addAttribute("key", "value"); // 3 + 5 = 8 chars
         assertEquals(before + 8, job.getEstimatedSize());
     }
+
+    @Test
+    public void timerFlushTriggersOnSizeFromActivitiesAlone() {
+        JobImpl job = spy(createDefaultStartedJob());
+        job.setStatus(JobStatus.ERROR); // ensure the job is eligible to flush
+        // Add enough plain activities that the running estimate crosses a small flush size,
+        // even though none of them carry payloads/traces.
+        for (int i = 0; i < 5; i++) {
+            job.createActivity(process.createActivity("sizeAct" + i, "SizeAct" + i, null)).build();
+        }
+        // Flush size below the accumulated base sizes; interval not yet due.
+        long smallFlushSize = 1000L + 2 * ActivityImpl.BASE_ESTIMATED_SIZE;
+        assertTrue("estimate must exceed the small flush size after the fix",
+                job.getEstimatedSize() > smallFlushSize);
+        job.timerFlush(DateTimeUtility.now(), smallFlushSize);
+        Mockito.verify(job, Mockito.atLeastOnce()).flush();
+    }
 }
