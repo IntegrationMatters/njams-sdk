@@ -486,15 +486,19 @@ public class JobImpl implements Job {
         LOG.trace("Job {}: lastPush: {}, age: {}, size: {}", this, getLastFlush(),
                 Duration.between(getLastFlush(), DateTimeUtility.now()), getEstimatedSize());
         if ((getLastFlush().isBefore(sentBefore) || getEstimatedSize() > flushSize)
-                && (!attributes.isEmpty() || getEndTime() != null || hasUnsentActivity())) {
+                && (!attributes.isEmpty() || getEndTime() != null || hasActivityToSend())) {
             LOG.debug("Flush by timer: {}", this);
             flush();
         }
     }
 
-    private boolean hasUnsentActivity() {
+    private boolean hasActivityToSend() {
         synchronized (activities) {
-            return activities.keySet().stream().anyMatch(i -> !flushedActivities.contains(i));
+            // Mirror the per-activity decision made when assembling the message: an activity must be
+            // sent if it has never been flushed, or if it was already streamed while running and has
+            // since completed. Checking only "never flushed" here would leave a completed activity of
+            // an otherwise-idle running job unsent until the next flush triggered by another change.
+            return activities.values().stream().anyMatch(this::shouldFlush);
         }
     }
 

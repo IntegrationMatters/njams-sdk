@@ -711,6 +711,32 @@ public class JobImplTest extends AbstractTest {
     }
 
     @Test
+    public void timerFlushSendsCompletedActivityOfOtherwiseIdleRunningJob() {
+        JobImpl job = spy(createDefaultStartedJob());
+        job.setStatus(JobStatus.ERROR); // ensure the job is eligible to flush
+
+        Activity activity = job.createActivity(getDefaultActivityModelForTest()).build();
+
+        // First flush streams the still-RUNNING activity; it is now marked as already flushed.
+        job.flush();
+
+        // The activity completes, but nothing else about the job changes: no new activity is
+        // added, no attribute changes, and the job has not ended.
+        activity.setActivityStatus(ActivityStatus.SUCCESS);
+
+        // Disregard the setup flush; only flushes triggered from here on matter.
+        Mockito.clearInvocations(job);
+
+        // Interval reached (sentBefore is after the last flush), size far below the limit, so the
+        // flush can only be driven by the job having a completed-but-unsent activity to send.
+        LocalDateTime sentBefore = DateTimeUtility.now().plusSeconds(60);
+        job.timerFlush(sentBefore, 5_000_000L);
+
+        // The completed activity's final state must be sent by the periodic flush.
+        Mockito.verify(job, Mockito.atLeastOnce()).flush();
+    }
+
+    @Test
     public void subProcessActivityAddsConstantToEstimatedSize() {
         JobImpl job = createDefaultStartedJob();
         ActivityModel startModel = process.createActivity("spCallerStart", "Start", null);
