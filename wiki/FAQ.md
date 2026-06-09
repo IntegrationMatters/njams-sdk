@@ -572,12 +572,6 @@ nesting:
 The attribute accepts either plain text or JSON. JSON content is rendered as an interactive tree in the UI; plain text
 is shown in a text editor.
 
-### Global variable references
-
-Values can contain global variable references in the form `%%VariableName%%`. When a user clicks **Resolve global
-variables** in the UI, these placeholders are replaced with the corresponding values. Global variables are defined as a
-`String`-to-`String` map on the `Njams` instance and accessed via `njams.getGlobalVariables()`.
-
 ### Example
 
 The following example shows a typical JMS activity configuration with session attributes, configurable headers, and a
@@ -629,3 +623,40 @@ global variable reference for the destination queue:
   }
 }
 ```
+
+### Global variable references
+
+Activity configurations can contain global variable references and the nJAMS server UI can offer to show either the
+variables or the resolved values if the client provides that. To enable this, the client must provide global
+variable values to the SDK.
+
+#### Customizing the matching pattern
+
+The reference syntax for variables is not fixed. A client can define its own matching pattern as a
+regular expression via `njams.setGlobalVariablesPattern(String)`. The pattern is transported to the nJAMS server with
+the project message and used there to detect and replace references; when no pattern is set, showing values instead
+of variables is not supported.
+
+The pattern must use named groups:
+
+| Group      | Required | Meaning                                                                                  |
+|------------|----------|------------------------------------------------------------------------------------------|
+| `full`     | yes      | the entire reference, including delimiters                                                |
+| `name`     | yes      | the variable name to look up                                                              |
+| `default`  | no       | a fallback value when the variable is unset                                               |
+| `optional` | no       | marks the reference as optional: any non-blank match means optional, otherwise mandatory |
+
+A pattern for references such as `{{name}}`, `{{?name}}`, `{{sys:name}}`, or `{{name:fallback}}` could look like:
+
+```
+(?<full>\{\{(?<optional>\?)?(?<name>(?:(?:sys|env):)?[^}:]+)(?::(?<default>[^}]+))?\}\})
+```
+
+Here the leading `?` in `{{?name}}` is captured into the `optional` group, so the reference is treated as optional;
+references without it leave the group empty and are mandatory.
+
+`setGlobalVariablesPattern` validates the argument immediately: it must be a compilable regular expression that
+declares at least the `full` and `name` groups, otherwise an `NjamsSdkRuntimeException` is thrown. Passing `null`
+clears the pattern.
+
+

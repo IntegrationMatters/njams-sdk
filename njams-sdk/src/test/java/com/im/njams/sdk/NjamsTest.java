@@ -29,6 +29,9 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -37,8 +40,13 @@ import com.faizsiegeln.njams.messageformat.v4.command.Command;
 import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
 import com.faizsiegeln.njams.messageformat.v4.command.Request;
 import com.faizsiegeln.njams.messageformat.v4.command.Response;
+import com.faizsiegeln.njams.messageformat.v4.common.CommonMessage;
+import com.faizsiegeln.njams.messageformat.v4.logmessage.LogMessage;
+import com.faizsiegeln.njams.messageformat.v4.projectmessage.ProjectMessage;
+import com.faizsiegeln.njams.messageformat.v4.tracemessage.TraceMessage;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.Path;
+import com.im.njams.sdk.communication.AbstractSender;
 import com.im.njams.sdk.communication.Receiver;
 import com.im.njams.sdk.communication.ReplayHandler;
 import com.im.njams.sdk.communication.ReplayRequest;
@@ -362,5 +370,129 @@ public class NjamsTest {
 
         instance.serialize("hello");
         assertEquals(Integer.MAX_VALUE, capturedLimit[0]);
+    }
+
+    @Test
+    public void sendProjectMessage_propagatesGlobalVariables() throws InterruptedException {
+        Njams njams = new Njams(Path.of("TEST"), "1.0", "TEST", TestSender.getSettings());
+        try {
+            Map<String, String> vars = new HashMap<>();
+            vars.put("Connections/Queue", "queue-value");
+            njams.addGlobalVariables(vars);
+            njams.start();
+
+            // Set the capturing mock only after start(), so we capture our explicit message, not the startup one.
+            CapturingSender capturing = new CapturingSender();
+            TestSender.setSenderMock(capturing);
+            njams.sendProjectMessage();
+
+            ProjectMessage sent = capturing.awaitProjectMessage();
+            assertNotNull("A project message must have been sent", sent);
+            assertEquals("queue-value", sent.getGlobalVariables().get("Connections/Queue"));
+        } finally {
+            if (njams.isStarted()) {
+                njams.stop();
+            }
+            TestSender.setSenderMock(null);
+        }
+    }
+
+    @Test
+    public void setGlobalVariablesPattern_acceptsValidPatternAndIsReturnedByGetter() {
+        String pattern = "(?<full>%%(?<name>[^%]+)%%)";
+        instance.setGlobalVariablesPattern(pattern);
+        assertEquals(pattern, instance.getGlobalVariablesPattern());
+    }
+
+    @Test
+    public void setGlobalVariablesPattern_acceptsPatternWithOptionalDefaultGroup() {
+        String pattern = "(?<full>\\{\\{\\??(?<name>(?:(?:sys|env):)?[^}:]+)(?::(?<default>[^}]+))?\\}\\})";
+        instance.setGlobalVariablesPattern(pattern);
+        assertEquals(pattern, instance.getGlobalVariablesPattern());
+    }
+
+    @Test
+    public void setGlobalVariablesPattern_nullClearsThePattern() {
+        instance.setGlobalVariablesPattern("(?<full>%%(?<name>[^%]+)%%)");
+        instance.setGlobalVariablesPattern(null);
+        assertNull(instance.getGlobalVariablesPattern());
+    }
+
+    @Test(expected = NjamsSdkRuntimeException.class)
+    public void setGlobalVariablesPattern_rejectsInvalidRegex() {
+        // Unbalanced group -> not a compilable regex.
+        instance.setGlobalVariablesPattern("(?<full>(?<name>[^%]+");
+    }
+
+    @Test(expected = NjamsSdkRuntimeException.class)
+    public void setGlobalVariablesPattern_rejectsMissingNameGroup() {
+        instance.setGlobalVariablesPattern("(?<full>%%[^%]+%%)");
+    }
+
+    @Test(expected = NjamsSdkRuntimeException.class)
+    public void setGlobalVariablesPattern_rejectsMissingFullGroup() {
+        instance.setGlobalVariablesPattern("%%(?<name>[^%]+)%%");
+    }
+
+    @Test
+    public void sendProjectMessage_propagatesGlobalVariablesPattern() throws InterruptedException {
+        String pattern = "(?<full>%%(?<name>[^%]+)%%)";
+        Njams njams = new Njams(Path.of("TEST"), "1.0", "TEST", TestSender.getSettings());
+        try {
+            njams.setGlobalVariablesPattern(pattern);
+            njams.start();
+
+            CapturingSender capturing = new CapturingSender();
+            TestSender.setSenderMock(capturing);
+            njams.sendProjectMessage();
+
+            ProjectMessage sent = capturing.awaitProjectMessage();
+            assertNotNull("A project message must have been sent", sent);
+            assertEquals(pattern, sent.getGlobalVariablesPattern());
+        } finally {
+            if (njams.isStarted()) {
+                njams.stop();
+            }
+            TestSender.setSenderMock(null);
+        }
+    }
+
+    /**
+     * Captures the last {@link ProjectMessage} passed to the sender, bypassing the connection-loss dispatch loop.
+     * Sending happens asynchronously on the sender thread pool, so callers wait via {@link #awaitProjectMessage()}.
+     */
+    private static final class CapturingSender extends AbstractSender {
+        private final CountDownLatch latch = new CountDownLatch(1);
+        private volatile ProjectMessage lastProjectMessage;
+
+        @Override
+        public String getName() {
+            return "CAPTURING";
+        }
+
+        @Override
+        public void send(CommonMessage msg, String clientSessionId) {
+            if (msg instanceof ProjectMessage) {
+                lastProjectMessage = (ProjectMessage) msg;
+                latch.countDown();
+            }
+        }
+
+        ProjectMessage awaitProjectMessage() throws InterruptedException {
+            latch.await(5, TimeUnit.SECONDS);
+            return lastProjectMessage;
+        }
+
+        @Override
+        protected void send(LogMessage msg, String clientSessionId) {
+        }
+
+        @Override
+        protected void send(ProjectMessage msg, String clientSessionId) {
+        }
+
+        @Override
+        protected void send(TraceMessage msg, String clientSessionId) {
+        }
     }
 }

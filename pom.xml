@@ -45,7 +45,7 @@
         <jacoco-maven-plugin.version>0.8.13</jacoco-maven-plugin.version>
 
         <!-- Dependency versions -->
-        <njams-messageformat.version>5.0.0</njams-messageformat.version>
+        <njams-messageformat.version>5.0.1-SNAPSHOT</njams-messageformat.version>
 
         <jms-api.version>1.1-rev-1</jms-api.version>
         <jakarta.xml.bind-api>4.0.2</jakarta.xml.bind-api>
