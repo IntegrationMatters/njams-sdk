@@ -140,21 +140,35 @@ introduce new exceptions into working client code. Old methods that already thro
 
 ## Migration plan
 
+0. **Establish full baseline test coverage before any refactoring.** Every public
+   `Njams` method that will be migrated must be covered by tests that pin its current
+   observable behavior — including current phase behavior (what throws today, what is
+   silently accepted today) and edge cases (`null` arguments, duplicate registration,
+   unknown lookups). Gaps in the existing suite are closed with new tests against the
+   *unmodified* class. Refactoring starts only when this baseline suite is green.
 1. **Extract facets, delegate internally.** Move state and logic into the facet
    classes; every existing `Njams` method body becomes a one-line delegation. No public
-   API change yet. The full existing test suite must pass unchanged — this proves the
+   API change yet. The full baseline suite must pass unchanged — this proves the
    delegation is behavior-preserving.
 2. **Expose accessors and new API.** Add the nine accessors and the new method names
    (with phase guards and full Javadoc), plus per-facet unit tests including guard
    tests.
-3. **Deprecate old methods.** Add `@Deprecated` and `@deprecated` Javadoc referencing
-   the replacement on every migrated `Njams` method.
+3. **Deprecate old methods.** Add `@Deprecated` plus a `@deprecated` Javadoc tag on
+   every migrated `Njams` method. Each deprecation comment must do more than point at
+   the new member: it explains the replacement *usage* — the accessor chain and call,
+   e.g. "Use {@code njams.jobs().add(job)} via {@link #jobs()} and
+   {@link NjamsJobs#add(Job)} instead", including any contract difference the caller
+   should know (e.g. the new method throws after {@code start()} where this method
+   only logs a warning).
 
-Steps 2 and 3 may land in one commit; step 1 stands alone and is verifiable
-independently.
+Steps 2 and 3 may land in one commit; steps 0 and 1 each stand alone and are
+verifiable independently.
 
 ## Testing
 
+- **Baseline first:** before any code is touched, the existing suite is audited for
+  coverage of every `Njams` public method that will be migrated, and missing coverage
+  is added against the unmodified class (migration plan step 0).
 - Existing tests are not modified; they keep exercising the deprecated API and thereby
   pin the delegation behavior.
 - New per-facet unit tests cover the new method names, the phase guards (throw after
