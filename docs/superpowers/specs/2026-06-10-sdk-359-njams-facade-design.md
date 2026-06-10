@@ -171,6 +171,17 @@ verifiable independently.
   is added against the unmodified class (migration plan step 0).
 - Existing tests are not modified; they keep exercising the deprecated API and thereby
   pin the delegation behavior.
+- **Behavioral parity:** every new facet method is covered by tests asserting the
+  *same observable behavior* that the baseline suite pins for the corresponding
+  deprecated method — same return values, same exceptions, same edge-case handling
+  (null arguments, duplicates, unknown lookups, copy/unmodifiable semantics). The
+  practical mechanism is mirroring: each baseline test relevant to a facet is repeated
+  against the new API with identical assertions. The only permitted deviations are the
+  contract changes this design makes *by intent* — the phase guards (strict throw in
+  the new API vs lenient WARN in the deprecated method) and the unified
+  `getClientSessionId()`. Every intentional deviation is covered by an explicit pair
+  of tests (new-API-throws + deprecated-stays-lenient) so the divergence itself is
+  pinned.
 - New per-facet unit tests cover the new method names, the phase guards (throw after
   start where contracted; lenient WARN path of the corresponding deprecated method),
   and `processes().announce(...)`.

@@ -1413,6 +1413,23 @@ Rules for Tasks 12–21:
 
 - New public members get full Javadoc (checkstyle enforces it).
 - Phase guards go ONLY into the facet's public methods. The deprecated `Njams` methods bypass them via package-private facet internals and log a WARN instead (lenient legacy contract — pinned by the baseline tests, which must keep passing untouched).
+- **Behavioral parity rule:** every new facet method must be covered by tests asserting the SAME observable behavior the baseline suite pins for the corresponding deprecated method — same return values, same exceptions, same edge cases (null arguments, duplicates, unknown lookups, copy/unmodifiable semantics). Mechanism: *mirror* the relevant `NjamsFacadeBaselineTest`/`NjamsTest` tests in `NjamsFacetApiTest`, replacing only the call path (`njams.getX()` → `njams.<facet>().getX()`) and the test name (suffix `_viaFacet`), keeping the assertions identical. Each task below lists exactly which tests to mirror. The ONLY permitted deviations are the intentional contract changes (phase guards; unified `getClientSessionId()`), and each deviation is pinned by its own explicit test pair (`new*ThrowsAfterStart` + `deprecated*StaysLenientAfterStart`). Example mirror:
+
+```java
+@Test
+public void addGlobalVariablesMergesIntoExisting_viaFacet() {
+    Map<String, String> first = new HashMap<>();
+    first.put("a", "1");
+    njams.metadata().addGlobalVariables(first);
+    Map<String, String> second = new HashMap<>();
+    second.put("b", "2");
+    second.put("a", "overwritten");
+    njams.metadata().addGlobalVariables(second);
+    assertEquals("overwritten", njams.metadata().getGlobalVariables().get("a"));
+    assertEquals("2", njams.metadata().getGlobalVariables().get("b"));
+}
+```
+
 - Every deprecation comment must explain the replacement **usage** (accessor chain + call) and any contract difference. Template:
 
 ```java
@@ -1652,12 +1669,29 @@ public Path getClientPath() { return metadata.getClientPath(); }
 
 Deprecate this way: `getCategory`, `getClientPath`, `getClientVersion`, `getSdkVersion`, `getRuntimeVersion`, `getMachine`, `getGlobalVariables`, `getGlobalVariablesPattern`, `getClientSessionId`, and `getCommunicationSessionId` (both point to `NjamsMetadata#getClientSessionId()`; the comment for `getCommunicationSessionId` additionally notes it was a duplicate of `getClientSessionId`).
 
-- [ ] **Step 4: Run the tests**
+- [ ] **Step 4: Add behavioral-parity mirror tests** (assertions identical to the source test, call path via `njams.metadata()`, name suffixed `_viaFacet`):
+
+| Mirror of | Facet call path |
+|---|---|
+| `NjamsFacadeBaselineTest.categoryIsUppercased` | `metadata().getCategory()` |
+| `NjamsFacadeBaselineTest.clientPathIsReturned` | `metadata().getClientPath()` |
+| `NjamsFacadeBaselineTest.clientVersionComesFromConstructorWhenNoVersionFile` | `metadata().getClientVersion()` |
+| `NjamsFacadeBaselineTest.sdkVersionIsNeverNull` | `metadata().getSdkVersion()` |
+| `NjamsFacadeBaselineTest.machineIsNeverNull` | `metadata().getMachine()` |
+| `NjamsFacadeBaselineTest.runtimeVersionIsSettable` | `metadata().setRuntimeVersion(...)` / `.getRuntimeVersion()` (before start) |
+| `NjamsFacadeBaselineTest.addGlobalVariablesMergesIntoExisting` | `metadata().addGlobalVariables(...)` / `.getGlobalVariables()` (example above) |
+| `NjamsFacadeBaselineTest.clientSessionIdAndCommunicationSessionIdAreTheSame` | `metadata().getClientSessionId()` equals both legacy getters (pins the intentional unification) |
+| `NjamsTest.setGlobalVariablesPattern_acceptsValidPatternAndIsReturnedByGetter` | `metadata().setGlobalVariablesPattern(...)` / `.getGlobalVariablesPattern()` |
+| `NjamsTest.setGlobalVariablesPattern_acceptsPatternWithOptionalDefaultGroup` | `metadata().setGlobalVariablesPattern(...)` |
+| `NjamsTest.setGlobalVariablesPattern_nullClearsThePattern` | `metadata().setGlobalVariablesPattern(null)` |
+| `NjamsTest.setGlobalVariablesPattern_rejectsInvalidRegex` (+ `_rejectsMissingNameGroup`, `_rejectsMissingFullGroup`) | `metadata().setGlobalVariablesPattern(...)` — same `NjamsSdkRuntimeException` expected (validation must run on the guarded path too) |
+
+- [ ] **Step 5: Run the tests**
 
 Run: `mvn test -pl njams-sdk`
-Expected: ALL pass — including `NjamsFacadeBaselineTest.addGlobalVariablesAfterStartIsLenient` etc. (lenient path preserved) and the new guard tests.
+Expected: ALL pass — including `NjamsFacadeBaselineTest.addGlobalVariablesAfterStartIsLenient` etc. (lenient path preserved), the new guard tests, and all `_viaFacet` mirrors.
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 6: Commit**
 
 ```bash
 git add njams-sdk/src/main/java/com/im/njams/sdk/NjamsMetadata.java njams-sdk/src/main/java/com/im/njams/sdk/Njams.java njams-sdk/src/test/java/com/im/njams/sdk/NjamsFacetApiTest.java
@@ -1700,9 +1734,21 @@ Run: `mvn test -Dtest=NjamsFacetApiTest -pl njams-sdk` — Expected: the two new
 
 - [ ] **Step 3: Deprecate on `Njams`** — `getFeatures` → `features().list()`, `addFeature` → `features().add(...)` (lenient: `warnIfStarted("addFeature", "features().add(...)"); features.addInternal(feature);`), `removeFeature` → `features().remove(...)` (lenient analog), `hasFeature` → `features().has(...)`, `isContainerMode` → `features().isContainerMode()`, `setContainerMode` → `features().setContainerMode(...)` (no contract difference — it already throws; the deprecation tag says so). Each tag follows the Task 13 template with the accessor chain and `{@link NjamsFeatures#...}` reference.
 
-- [ ] **Step 4: Run all tests** — `mvn test -pl njams-sdk` — Expected: all PASS.
+- [ ] **Step 4: Add behavioral-parity mirror tests** (`_viaFacet`, identical assertions, all before start where the new API is guarded):
 
-- [ ] **Step 5: Commit**
+| Mirror of | Facet call path |
+|---|---|
+| `NjamsFacadeBaselineTest.inherentFeaturesArePresentByDefault` | `features().has(...)` |
+| `NjamsFacadeBaselineTest.addFeatureIsIdempotent` | `features().add(...)` / `.list()` |
+| `NjamsFacadeBaselineTest.removeFeatureRemoves` | `features().remove(...)` / `.has(...)` |
+| `NjamsFacadeBaselineTest.removingInherentFeatureThrows` | `features().remove(Feature.PING)` — same exception (inherent check must also run on the guarded path) |
+| `NjamsFacadeBaselineTest.getFeaturesReturnsACopy` | `features().list()` |
+| `NjamsFacadeBaselineTest.containerModeIsOnByDefaultAndSettableBeforeStart` | `features().isContainerMode()` / `.setContainerMode(false)` |
+| `NjamsFacadeBaselineTest.setContainerModeAfterStartThrows` | `features().setContainerMode(false)` after start — same exception, same message contract |
+
+- [ ] **Step 5: Run all tests** — `mvn test -pl njams-sdk` — Expected: all PASS.
+
+- [ ] **Step 6: Commit**
 
 ```bash
 git add njams-sdk/src/main/java/com/im/njams/sdk/NjamsFeatures.java njams-sdk/src/main/java/com/im/njams/sdk/Njams.java njams-sdk/src/test/java/com/im/njams/sdk/NjamsFacetApiTest.java
@@ -1738,9 +1784,16 @@ Run: `mvn test -Dtest=NjamsFacetApiTest -pl njams-sdk` — Expected: guard test 
 
 - [ ] **Step 3: Deprecate on `Njams`** — `getReplayHandler` → `replay().getHandler()`; `setReplayHandler` → lenient: `warnIfStarted("setReplayHandler", "replay().setHandler(...)"); replay.setHandlerInternal(replayHandler);` with the template tag noting the new method throws after start because the REPLAY feature is announced at start.
 
-- [ ] **Step 4: Run all tests** — `mvn test -pl njams-sdk` — Expected: all PASS.
+- [ ] **Step 4: Add behavioral-parity mirror tests** (`_viaFacet`, before start):
 
-- [ ] **Step 5: Commit**
+| Mirror of | Facet call path |
+|---|---|
+| `NjamsFacadeBaselineTest.setReplayHandlerTogglesReplayFeature` | `replay().setHandler(...)` / `.getHandler()`, feature check via `features().has(Feature.REPLAY)` — including the `setHandler(null)` clear branch |
+| `NjamsTest.testOnCorrectReplayMessageInstruction` | register via `replay().setHandler(...)` (before start), then dispatch the replay instruction via `njams.onInstruction(...)` — same response code/message |
+
+- [ ] **Step 5: Run all tests** — `mvn test -pl njams-sdk` — Expected: all PASS.
+
+- [ ] **Step 6: Commit**
 
 ```bash
 git add njams-sdk/src/main/java/com/im/njams/sdk/NjamsReplay.java njams-sdk/src/main/java/com/im/njams/sdk/Njams.java njams-sdk/src/test/java/com/im/njams/sdk/NjamsFacetApiTest.java
@@ -1788,9 +1841,26 @@ Run: `mvn test -Dtest=NjamsFacetApiTest -pl njams-sdk` — Expected: the two ima
 
 - [ ] **Step 3: Deprecate on `Njams`** — all 14 process-related methods listed in Task 10 Step 2 get `@Deprecated` + template tag: `createProcess`→`processes().create(path)`, `addProcessModel`→`processes().add(model)`, `getProcessModel`→`processes().get(path)`, `hasProcessModel`→`processes().has(path)`, `getProcessModels`→`processes().getAll()`, `addImage` (both)→`processes().addImage(...)` (lenient via `addImageInternal` + `warnIfStarted`; tag notes the new method throws after start), `setTreeElementType`→`processes().setTreeElementType(...)` (lenient analog), `getProcessModelLayouter`/`setProcessModelLayouter`→`processes().getLayouter()`/`.setLayouter(...)`, `getProcessDiagramFactory`/`setProcessDiagramFactory`→`processes().getDiagramFactory()`/`.setDiagramFactory(...)`, `sendProjectMessage`→`processes().send()` (tag notes: new method requires a started instance), `sendAdditionalProcess`→`processes().announce(model)`.
 
-- [ ] **Step 4: Run all tests** — `mvn test -pl njams-sdk` — Expected: all PASS (baseline `addImageAfterStartIsLenient` proves the lenient legacy path).
+- [ ] **Step 4: Add behavioral-parity mirror tests** (`_viaFacet`; image/tree mutations before start since the new API is guarded):
 
-- [ ] **Step 5: Commit**
+| Mirror of | Facet call path |
+|---|---|
+| `NjamsFacadeBaselineTest.getProcessModelThrowsWhenAbsent` | `processes().get(...)` — same exception |
+| `NjamsFacadeBaselineTest.createProcessRegistersModelUnderAbsolutePath` | `processes().create(...)` / `.get(...)` / `.getAll()` |
+| `NjamsFacadeBaselineTest.getProcessModelsIsUnmodifiable` | `processes().getAll()` — same `UnsupportedOperationException` |
+| `NjamsFacadeBaselineTest.addProcessModelOfForeignInstanceThrows` | `processes().add(foreign)` — same exception |
+| `NjamsFacadeBaselineTest.addProcessModelIgnoresNull` | `processes().add(null)` — no throw |
+| `NjamsFacadeBaselineTest.setTreeElementTypeForUnknownPathThrows` | `processes().setTreeElementType(...)` (before start) — same exception |
+| `NjamsFacadeBaselineTest.setTreeElementTypeForClientPathWorks` | `processes().setTreeElementType(...)` (before start) |
+| `NjamsFacadeBaselineTest.layouterAndDiagramFactoryAreReplaceable` | `processes().setLayouter(...)`/`.getLayouter()`/`.setDiagramFactory(...)`/`.getDiagramFactory()` |
+| `NjamsFacadeBaselineTest.sendProjectMessageContainsAddedImage` | image via `processes().addImage(...)` (before start), send via `processes().send()` — same captured content |
+| `NjamsFacadeBaselineTest.sendAdditionalProcessSendsProjectMessageWithThatProcess` | `processes().announce(model)` — same captured content (already partly covered by `newProcessCreateIsAllowedAfterStartAndAnnouncable`; the mirror additionally asserts the message content) |
+| `NjamsFacadeBaselineTest.sendAdditionalProcessBeforeStartThrows` | `processes().announce(model)` before start — same exception (= `newAnnounceBeforeStartThrows` from Step 1; no duplicate needed, just verify it asserts the same exception type) |
+| `NjamsTest.defaultLayouter_isCommonBfsModelLayouter` | `processes().getLayouter()` — same default type |
+
+- [ ] **Step 5: Run all tests** — `mvn test -pl njams-sdk` — Expected: all PASS (baseline `addImageAfterStartIsLenient` proves the lenient legacy path).
+
+- [ ] **Step 6: Commit**
 
 ```bash
 git add njams-sdk/src/main/java/com/im/njams/sdk/NjamsProcesses.java njams-sdk/src/main/java/com/im/njams/sdk/Njams.java njams-sdk/src/test/java/com/im/njams/sdk/NjamsFacetApiTest.java
@@ -1824,6 +1894,8 @@ public void newJobsAddBeforeStartThrows() {
 }
 ```
 
+- [ ] **Step 1b: Add behavioral-parity mirror tests** (`_viaFacet`): mirror `NjamsFacadeBaselineTest.getJobsIsUnmodifiable` as `getJobsIsUnmodifiable_viaFacet` against `jobs().getAll()` (same `UnsupportedOperationException`); job add/get/remove parity is already covered by `newJobsApiMatchesLegacyBehavior`, and the not-started throw by `newJobsAddBeforeStartThrows` — both assert the same behavior as the legacy methods (no intentional deviation in this facet).
+
 - [ ] **Step 2: Deprecate** `addJob`/`removeJob`/`getJobById`/`getJobs` with template tags (`jobs().add(job)`, `jobs().remove(jobId)`, `jobs().get(jobId)`, `jobs().getAll()`); no contract difference, tags state "The replacement has the same contract." `JobImpl`/`ProcessModel` internal callers of `njams.addJob(...)`/`removeJob(...)` are switched to `njams.jobs().add(...)`/`njams.jobs().remove(...)` to keep the SDK free of deprecation warnings (search: `Grep` for `addJob|removeJob|getJobById|getJobs()` in `njams-sdk/src/main/java`, update each production call site to the facet call).
 
 - [ ] **Step 3: Run all tests** — `mvn test -pl njams-sdk` — Expected: all PASS.
@@ -1851,6 +1923,14 @@ public void newSerializersApiWorks() {
     assertNotNull(njams.serializers().remove(String.class));
 }
 ```
+
+- [ ] **Step 1b: Add behavioral-parity mirror tests** (`_viaFacet`, identical assertions):
+
+| Mirror of | Facet call path |
+|---|---|
+| `NjamsTest.testSerializer` (class-hierarchy resolution: exact match, default string serializer, interface fallback) | `serializers().add(...)` / `.serialize(...)` |
+| `NjamsTest.serializeWithSizeLimitForwardsLimitToRegisteredSerializer` | `serializers().serialize("hello", 7)` |
+| `NjamsTest.serializeWithoutSizeLimitStillUsesMaxValue` | `serializers().serialize("hello")` |
 
 - [ ] **Step 2: Deprecate** `addSerializer`, `removeSerializer`, `getSerializer`, `findSerializer`, `serialize(T)`, `serialize(T,int)` with template tags pointing at `serializers().add(...)` etc.; no contract differences. Update internal production callers of `njams.serialize(...)` (search `Grep` for `\.serialize\(` in `njams-sdk/src/main/java` — e.g. `ActivityImpl`/`JobImpl`) to `njams.serializers().serialize(...)`.
 
@@ -1890,6 +1970,18 @@ public void newConfigurationApiWorks() {
     assertFalse(njams.configuration().isExcluded(Path.of("P1")));
 }
 ```
+
+- [ ] **Step 1b: Add behavioral-parity mirror tests** (`_viaFacet`, identical assertions):
+
+| Mirror of | Facet call path |
+|---|---|
+| `NjamsFacadeBaselineTest.getInstructionListenersReturnsACopy` | `commands().list()` — clearing the returned list must not affect the registry |
+| `NjamsFacadeBaselineTest.logModeDefaultsToComplete` | `configuration().getLogMode()` |
+| `NjamsFacadeBaselineTest.isExcludedIsFalseByDefaultAndNullSafe` | `configuration().isExcluded(...)` — including the `null` path |
+| `NjamsFacadeBaselineTest.configurationIsNeverNull` | `configuration().get()` |
+| `NjamsFacadeBaselineTest.argosCollectorAddAndRemoveDoNotThrow` | `argos().add(...)` / `.remove(...)` |
+
+(`newCommandsApiWorks` from Step 1 already mirrors `instructionListenersAreAddableAndRemovable`.)
 
 - [ ] **Step 2: Deprecate** with template tags, no contract differences:
 `getInstructionListeners`→`commands().list()`, `addInstructionListener`→`commands().add(listener)`, `removeInstructionListener`→`commands().remove(listener)`, `addArgosCollector`→`argos().add(collector)`, `removeArgosCollector`→`argos().remove(collector)`, `getConfiguration`→`configuration().get()`, `getLogMode`→`configuration().getLogMode()`, `isExcluded`→`configuration().isExcluded(path)`. Also deprecate `getSender()` pointing to nothing public: its tag states the sender is communication-internal and not part of the public API (no replacement offered), per the design doc. `onInstruction` gets a tag pointing out it is SDK-internal dispatch (`NjamsCommands`) and not meant to be called by clients. Update internal production callers (`CleanTracepointsTask` etc. — `Grep` for `getConfiguration\(\)|getInstructionListeners\(\)` in `njams-sdk/src/main/java`) to the facet calls.
@@ -1945,6 +2037,10 @@ mvn javadoc:javadoc -pl njams-sdk
 ```
 Checkstyle validates Javadoc on all new public members; the Javadoc build hard-fails on any broken `{@link}` in the ~60 new deprecation tags — fix every error.
 
+- [ ] **Step 1b: Behavioral-parity completeness check**
+
+Go through `NjamsFacadeBaselineTest` test by test. Every test must fall into exactly one of three buckets: (a) it has a `_viaFacet` mirror in `NjamsFacetApiTest` with identical assertions, (b) it pins an intentional deviation and is paired with a `new*ThrowsAfterStart`/`deprecated*StaysLenientAfterStart` test pair, or (c) it pins legacy-only behavior with no facet counterpart (only `getSenderReturnsNonNullAndIsCached` and the lenient `*AfterStartIsLenient` tests qualify). Any baseline test in none of the buckets means a parity gap — add the missing mirror before proceeding.
+
 - [ ] **Step 2: Wiki draft check**
 
 `Grep` `wiki/*.md` for migrated method names (`setProcessModelLayouter`, `addSerializer`, `setReplayHandler`, `addImage`, ...). Update each example to the facet API (keep a one-line note that the old methods still exist but are deprecated). No settings changed, so no FAQ settings entries are touched.
@@ -1968,5 +2064,6 @@ git commit -m "SDK-359 #comment Update wiki examples and design doc status for f
 
 - Spec coverage: design-doc sections map to tasks — baseline (Task 1 = migration step 0), extraction (Tasks 2–11 = step 1), accessors/guards/deprecations (Tasks 12–19 = steps 2+3), internal/sample migration + docs (Tasks 20–21). The deferred items (typestate, images-in-announce, Job refactoring, removal) are intentionally absent.
 - Lenient-legacy vs strict-new is enforced by paired tests: `NjamsFacadeBaselineTest.*Lenient*` (never modified) + `NjamsFacetApiTest.*ThrowsAfterStart`.
+- Behavioral parity of new vs old API is enforced by the `_viaFacet` mirror tests listed per task (Tasks 13–19) and the completeness check in Task 21 Step 1b: every baseline test is either mirrored, paired as an intentional deviation, or explicitly legacy-only.
 - Type names used consistently: `LifecycleState`, `NjamsSerializers`, `NjamsArgos`, `NjamsFeatures`, `NjamsMetadata`, `NjamsJobs`, `NjamsReplay`, `NjamsConfiguration`, `NjamsProcesses`, `NjamsCommands`; facet methods per the design-doc mapping table.
 - Known judgment calls for the implementer: exact constructor signatures of Argos test helpers (Task 1 note), and JaCoCo report path may vary with the `sonar` profile config — if `target/site/jacoco` is absent, check the profile in the root `pom.xml` for the configured output directory.
