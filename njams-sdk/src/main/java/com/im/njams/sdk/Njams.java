@@ -52,7 +52,6 @@ import com.im.njams.sdk.model.layout.ProcessModelLayouter;
 import com.im.njams.sdk.model.svg.NjamsProcessDiagramFactory;
 import com.im.njams.sdk.model.svg.ProcessDiagramFactory;
 import com.im.njams.sdk.serializer.Serializer;
-import com.im.njams.sdk.serializer.StringSerializer;
 import com.im.njams.sdk.settings.ClientSettings;
 import com.im.njams.sdk.utils.StringUtils;
 import org.slf4j.LoggerFactory;
@@ -186,9 +185,6 @@ public class Njams implements InstructionListener {
      */
     public static final String BUILD_YEAR = "sdk.buildYear";
 
-    private static final Serializer<Object> DEFAULT_SERIALIZER = new StringSerializer<>();
-    private static final Serializer<Object> NO_SERIALIZER = (o, sizeLimit) -> null;
-
     private final String category;
 
     // Also used for synchronizing access to the project message resources:
@@ -233,11 +229,7 @@ public class Njams implements InstructionListener {
 
     private final List<InstructionListener> instructionListeners = new ArrayList<>();
 
-    // serializers
-    private final HashMap<Class<?>, Serializer<?>> serializers = new HashMap<>();
-
-    // serializers
-    private final HashMap<Class<?>, Serializer<?>> cachedSerializers = new HashMap<>();
+    private final NjamsSerializers serializers = new NjamsSerializers();
 
     // features
     private final List<Feature> features = new CopyOnWriteArrayList<>(Feature.INHERENT_FEATURES);
@@ -1243,13 +1235,7 @@ public class Njams implements InstructionListener {
      * the former registered serializer is returned. Otherwise <code>null</code> is returned.
      */
     public <T> Serializer<T> addSerializer(final Class<T> key, final Serializer<? super T> serializer) {
-        synchronized (cachedSerializers) {
-            if (key != null && serializer != null) {
-                cachedSerializers.clear();
-                return (Serializer) serializers.put(key, serializer);
-            }
-            return null;
-        }
+        return serializers.add(key, serializer);
     }
 
     /**
@@ -1261,13 +1247,7 @@ public class Njams implements InstructionListener {
      * @return Registered serializer or <b>null</b>
      */
     public <T> Serializer<T> removeSerializer(final Class<T> key) {
-        synchronized (cachedSerializers) {
-            if (key != null) {
-                cachedSerializers.clear();
-                return (Serializer) serializers.remove(key);
-            }
-            return null;
-        }
+        return serializers.remove(key);
     }
 
     /**
@@ -1281,10 +1261,7 @@ public class Njams implements InstructionListener {
      * @see #findSerializer(Class)
      */
     public <T> Serializer<T> getSerializer(final Class<T> key) {
-        if (key != null) {
-            return (Serializer) serializers.get(key);
-        }
-        return null;
+        return serializers.get(key);
     }
 
     /**
@@ -1297,7 +1274,7 @@ public class Njams implements InstructionListener {
      *         or {@code ""} when the serializer threw
      */
     public <T> String serialize(final T t) {
-        return serialize(t, Integer.MAX_VALUE);
+        return serializers.serialize(t);
     }
 
     /**
@@ -1314,23 +1291,7 @@ public class Njams implements InstructionListener {
      *         or {@code ""} when the serializer threw
      */
     public <T> String serialize(final T t, final int sizeLimit) {
-        if (t == null) {
-            return null;
-        }
-        final Class<? super T> clazz = (Class) t.getClass();
-        synchronized (cachedSerializers) {
-            Serializer<? super T> serializer = this.findSerializer(clazz);
-            if (serializer == null) {
-                serializer = DEFAULT_SERIALIZER;
-                cachedSerializers.put(clazz, serializer);
-            }
-            try {
-                return serializer.serialize(t, sizeLimit);
-            } catch (final Exception ex) {
-                LOG.error("could not serialize object " + t, ex);
-                return "";
-            }
-        }
+        return serializers.serialize(t, sizeLimit);
     }
 
     /**
@@ -1345,35 +1306,7 @@ public class Njams implements InstructionListener {
      * @return Serializer or <b>null</b>.
      */
     public <T> Serializer<? super T> findSerializer(final Class<T> clazz) {
-        Serializer<? super T> serializer = getSerializer(clazz);
-        if (serializer == null) {
-            Serializer<?> cached = cachedSerializers.get(clazz);
-            if (cached == NO_SERIALIZER) {
-                return null;
-            }
-            if (cached != null) {
-                return (Serializer) cached;
-            }
-            final Class<? super T> superclass = clazz.getSuperclass();
-            if (superclass != null) {
-                serializer = findSerializer(superclass);
-            }
-        }
-        if (serializer == null) {
-            final Class<?>[] interfaces = clazz.getInterfaces();
-            for (int i = 0; i < interfaces.length && serializer == null; i++) {
-                final Class<? super T> anInterface = (Class) interfaces[i];
-                serializer = findSerializer(anInterface);
-            }
-        }
-        if (serializer != null) {
-            if (!cachedSerializers.containsKey(clazz)) {
-                cachedSerializers.put(clazz, serializer);
-            }
-        } else {
-            cachedSerializers.put(clazz, NO_SERIALIZER);
-        }
-        return serializer;
+        return serializers.find(clazz);
     }
 
     /**
