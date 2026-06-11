@@ -351,11 +351,22 @@ public class Njams implements InstructionListener {
      * Adds a collector that will create statistics.
      *
      * @param collector The collector that collects statistics
+     * @deprecated Use {@code njams.argos().add(collector)} instead — obtain the facet via
+     *             {@link #argos()} and call {@link NjamsArgos#add(ArgosMultiCollector)}.
      */
+    @Deprecated
     public void addArgosCollector(ArgosMultiCollector collector) {
         argos.add(collector);
     }
 
+    /**
+     * Removes the given collector.
+     *
+     * @param collector The collector to remove
+     * @deprecated Use {@code njams.argos().remove(collector)} instead — obtain the facet via
+     *             {@link #argos()} and call {@link NjamsArgos#remove(ArgosMultiCollector)}.
+     */
+    @Deprecated
     public void removeArgosCollector(ArgosMultiCollector collector) {
         argos.remove(collector);
     }
@@ -616,7 +627,12 @@ public class Njams implements InstructionListener {
      * the settings.
      *
      * @return the Sender
+     * @deprecated The sender belongs to the communication layer, which is internal SDK
+     *             infrastructure and not part of the public API. There is no replacement: client
+     *             code should not access the sender directly — message dispatch is handled
+     *             transparently by the SDK.
      */
+    @Deprecated
     public NjamsSender getSender() {
         if (sender == null) {
             if (settings.getBool(NjamsSettings.PROPERTY_SHARED_COMMUNICATIONS, false)) {
@@ -797,7 +813,10 @@ public class Njams implements InstructionListener {
      *
      * @param jobId the jobId to search for
      * @return the Job or null if not found
+     * @deprecated Use {@code njams.jobs().get(jobId)} instead — obtain the facet via
+     *             {@link #jobs()} and call {@link NjamsJobs#get(String)}.
      */
+    @Deprecated
     public Job getJobById(final String jobId) {
         return jobs.get(jobId);
     }
@@ -807,7 +826,10 @@ public class Njams implements InstructionListener {
      * changed.
      *
      * @return Unmodifiable collection of jobs.
+     * @deprecated Use {@code njams.jobs().getAll()} instead — obtain the facet via
+     *             {@link #jobs()} and call {@link NjamsJobs#getAll()}.
      */
+    @Deprecated
     public Collection<Job> getJobs() {
         return jobs.getAll();
     }
@@ -929,7 +951,12 @@ public class Njams implements InstructionListener {
      * added to the list.
      *
      * @param job to add to the instances job list.
+     * @deprecated Use {@code njams.jobs().add(job)} instead — obtain the facet via
+     *             {@link #jobs()} and call {@link NjamsJobs#add(Job)}. The replacement has the
+     *             same contract: it throws an exception if this instance has not been started
+     *             yet.
      */
+    @Deprecated
     public void addJob(Job job) {
         jobs.add(job);
     }
@@ -938,7 +965,10 @@ public class Njams implements InstructionListener {
      * Remove a job from the joblist
      *
      * @param jobId of the Job to be removed
+     * @deprecated Use {@code njams.jobs().remove(jobId)} instead — obtain the facet via
+     *             {@link #jobs()} and call {@link NjamsJobs#remove(String)}.
      */
+    @Deprecated
     public void removeJob(String jobId) {
         jobs.remove(jobId);
     }
@@ -951,7 +981,10 @@ public class Njams implements InstructionListener {
      */
     /**
      * @return the instructionListeners
+     * @deprecated Use {@code njams.commands().list()} instead — obtain the facet via
+     *             {@link #commands()} and call {@link NjamsCommands#list()}.
      */
+    @Deprecated
     public List<InstructionListener> getInstructionListeners() {
         return commands.list();
     }
@@ -961,7 +994,10 @@ public class Njams implements InstructionListener {
      * will be received.
      *
      * @param listener the new listener to be called
+     * @deprecated Use {@code njams.commands().add(listener)} instead — obtain the facet via
+     *             {@link #commands()} and call {@link NjamsCommands#add(InstructionListener)}.
      */
+    @Deprecated
     public void addInstructionListener(InstructionListener listener) {
         commands.add(listener);
     }
@@ -970,7 +1006,10 @@ public class Njams implements InstructionListener {
      * Removes a InstructionListener from the Receiver.
      *
      * @param listener the listener to remove
+     * @deprecated Use {@code njams.commands().remove(listener)} instead — obtain the facet via
+     *             {@link #commands()} and call {@link NjamsCommands#remove(InstructionListener)}.
      */
+    @Deprecated
     public void removeInstructionListener(InstructionListener listener) {
         commands.remove(listener);
     }
@@ -990,7 +1029,10 @@ public class Njams implements InstructionListener {
      * sendProjectMessage, ping, replay and getRequestHandler.
      *
      * @param instruction The instruction which should be handled
+     * @deprecated This is SDK-internal command dispatch (handled by the commands facet, see
+     *             {@link #commands()}) and is not meant to be called by client code.
      */
+    @Deprecated
     @Override
     public void onInstruction(Instruction instruction) {
         commands.dispatch(instruction);
@@ -1008,7 +1050,11 @@ public class Njams implements InstructionListener {
      *                   to strings.
      * @return If a serializer for the same type was already registered before,
      * the former registered serializer is returned. Otherwise <code>null</code> is returned.
+     * @deprecated Use {@code njams.serializers().add(key, serializer)} instead — obtain the facet
+     *             via {@link #serializers()} and call
+     *             {@link NjamsSerializers#add(Class, Serializer)}.
      */
+    @Deprecated
     public <T> Serializer<T> addSerializer(final Class<T> key, final Serializer<? super T> serializer) {
         return serializers.add(key, serializer);
     }
@@ -1020,7 +1066,10 @@ public class Njams implements InstructionListener {
      * @param <T> type of the class
      * @param key a class
      * @return Registered serializer or <b>null</b>
+     * @deprecated Use {@code njams.serializers().remove(key)} instead — obtain the facet via
+     *             {@link #serializers()} and call {@link NjamsSerializers#remove(Class)}.
      */
+    @Deprecated
     public <T> Serializer<T> removeSerializer(final Class<T> key) {
         return serializers.remove(key);
     }
@@ -1034,7 +1083,10 @@ public class Njams implements InstructionListener {
      * @param key a class
      * @return Registered serializer or <b>null</b>
      * @see #findSerializer(Class)
+     * @deprecated Use {@code njams.serializers().get(key)} instead — obtain the facet via
+     *             {@link #serializers()} and call {@link NjamsSerializers#get(Class)}.
      */
+    @Deprecated
     public <T> Serializer<T> getSerializer(final Class<T> key) {
         return serializers.get(key);
     }
@@ -1047,7 +1099,10 @@ public class Njams implements InstructionListener {
      * @param t   Object to be serialized
      * @return a string representation of the object, or {@code null} if {@code t} is {@code null},
      *         or {@code ""} when the serializer threw
+     * @deprecated Use {@code njams.serializers().serialize(t)} instead — obtain the facet via
+     *             {@link #serializers()} and call {@link NjamsSerializers#serialize(Object)}.
      */
+    @Deprecated
     public <T> String serialize(final T t) {
         return serializers.serialize(t);
     }
@@ -1064,7 +1119,11 @@ public class Njams implements InstructionListener {
      * @param sizeLimit Approximate maximum length of the returned string
      * @return a string representation of the object, or {@code null} if {@code t} is {@code null},
      *         or {@code ""} when the serializer threw
+     * @deprecated Use {@code njams.serializers().serialize(t, sizeLimit)} instead — obtain the
+     *             facet via {@link #serializers()} and call
+     *             {@link NjamsSerializers#serialize(Object, int)}.
      */
+    @Deprecated
     public <T> String serialize(final T t, final int sizeLimit) {
         return serializers.serialize(t, sizeLimit);
     }
@@ -1079,21 +1138,30 @@ public class Njams implements InstructionListener {
      * @param <T>   Type of the class
      * @param clazz Class for which a serializer will be searched.
      * @return Serializer or <b>null</b>.
+     * @deprecated Use {@code njams.serializers().find(clazz)} instead — obtain the facet via
+     *             {@link #serializers()} and call {@link NjamsSerializers#find(Class)}.
      */
+    @Deprecated
     public <T> Serializer<? super T> findSerializer(final Class<T> clazz) {
         return serializers.find(clazz);
     }
 
     /**
      * @return LogMode of this client
+     * @deprecated Use {@code njams.configuration().getLogMode()} instead — obtain the facet via
+     *             {@link #configuration()} and call {@link NjamsConfiguration#getLogMode()}.
      */
+    @Deprecated
     public LogMode getLogMode() {
         return configuration.getLogMode();
     }
 
     /**
      * @return the configuration
+     * @deprecated Use {@code njams.configuration().get()} instead — obtain the facet via
+     *             {@link #configuration()} and call {@link NjamsConfiguration#get()}.
      */
+    @Deprecated
     public Configuration getConfiguration() {
         return configuration.get();
     }
@@ -1176,7 +1244,11 @@ public class Njams implements InstructionListener {
      *
      * @param processPath for the process which should be checked
      * @return true if the process is excluded, or false if not
+     * @deprecated Use {@code njams.configuration().isExcluded(processPath)} instead — obtain the
+     *             facet via {@link #configuration()} and call
+     *             {@link NjamsConfiguration#isExcluded(Path)}.
      */
+    @Deprecated
     public boolean isExcluded(Path processPath) {
         return configuration.isExcluded(processPath);
     }

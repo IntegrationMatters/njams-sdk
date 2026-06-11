@@ -434,6 +434,122 @@ public class NjamsFacetApiTest {
         }
     }
 
+    // --- jobs parity ---
+
+    @Test
+    public void newJobsApiMatchesLegacyBehavior() {
+        njams.start();
+        com.im.njams.sdk.model.ProcessModel model = njams.processes().create(Path.of("P1"));
+        com.im.njams.sdk.logmessage.Job job = model.createJob();
+        assertSame(job, njams.jobs().get(job.getJobId()));
+        assertEquals(1, njams.jobs().getAll().size());
+        njams.jobs().remove(job.getJobId());
+        assertNull(njams.jobs().get(job.getJobId()));
+    }
+
+    @Test(expected = NjamsSdkRuntimeException.class)
+    public void newJobsAddBeforeStartThrows() {
+        com.im.njams.sdk.model.ProcessModel model = njams.processes().create(Path.of("P1"));
+        model.createJob(); // createJob registers the job and requires a started instance
+    }
+
+    @Test(expected = UnsupportedOperationException.class)
+    public void getJobsIsUnmodifiable_viaFacet() {
+        njams.start();
+        njams.jobs().getAll().clear();
+    }
+
+    // --- serializers parity ---
+
+    @Test
+    public void serializerHierarchyResolution_viaFacet() {
+        final com.im.njams.sdk.serializer.Serializer<java.util.List> listSerializer = (l, sizeLimit) -> "list";
+        njams.serializers().add(java.util.ArrayList.class, (a, sizeLimit) -> a.getClass().getSimpleName());
+        njams.serializers().add(java.util.List.class, listSerializer);
+
+        // found ArrayList serializer
+        assertEquals("ArrayList", njams.serializers().serialize(new java.util.ArrayList<>()));
+        // found default string serializer
+        assertEquals("{}", njams.serializers().serialize(new HashMap<>()));
+        // found list serializer via interface hierarchy
+        assertEquals("list", njams.serializers().serialize(new java.util.LinkedList<>()));
+    }
+
+    @Test
+    public void serializeWithSizeLimitForwardsLimitToRegisteredSerializer_viaFacet() {
+        final int[] capturedLimit = { -1 };
+        njams.serializers().add(String.class, (value, sizeLimit) -> {
+            capturedLimit[0] = sizeLimit;
+            return value;
+        });
+        assertEquals("hello", njams.serializers().serialize("hello", 7));
+        assertEquals(7, capturedLimit[0]);
+    }
+
+    @Test
+    public void serializeWithoutSizeLimitStillUsesMaxValue_viaFacet() {
+        final int[] capturedLimit = { -1 };
+        njams.serializers().add(String.class, (value, sizeLimit) -> {
+            capturedLimit[0] = sizeLimit;
+            return value;
+        });
+        njams.serializers().serialize("hello");
+        assertEquals(Integer.MAX_VALUE, capturedLimit[0]);
+    }
+
+    @Test
+    public void newSerializersApiWorks() {
+        njams.serializers().add(String.class, (value, sizeLimit) -> "X" + value);
+        assertEquals("Xhello", njams.serializers().serialize("hello"));
+        assertNotNull(njams.serializers().remove(String.class));
+    }
+
+    // --- commands / configuration / argos parity ---
+
+    @Test
+    public void newCommandsApiWorks() {
+        com.im.njams.sdk.communication.InstructionListener listener = instruction -> {
+        };
+        int before = njams.commands().list().size();
+        njams.commands().add(listener);
+        assertEquals(before + 1, njams.commands().list().size());
+        njams.commands().remove(listener);
+        assertEquals(before, njams.commands().list().size());
+    }
+
+    @Test
+    public void getInstructionListenersReturnsACopy_viaFacet() {
+        com.im.njams.sdk.communication.InstructionListener listener = instruction -> {
+        };
+        njams.commands().add(listener);
+        njams.commands().list().clear();
+        assertTrue(njams.commands().list().contains(listener));
+    }
+
+    @Test
+    public void newConfigurationApiWorks() {
+        assertNotNull(njams.configuration().get());
+        assertEquals(com.faizsiegeln.njams.messageformat.v4.projectmessage.LogMode.COMPLETE,
+            njams.configuration().getLogMode());
+        assertFalse(njams.configuration().isExcluded(Path.of("P1")));
+    }
+
+    @Test
+    public void isExcludedIsFalseByDefaultAndTrueForNull_viaFacet() {
+        assertFalse(njams.configuration().isExcluded(Path.of("P1")));
+        // null is not selected by the process filter -> reported as excluded
+        assertTrue(njams.configuration().isExcluded(null));
+    }
+
+    @Test
+    public void argosCollectorAddAndRemoveDoNotThrow_viaFacet() {
+        com.im.njams.sdk.argos.ArgosMultiCollector<?> collector =
+            new com.im.njams.sdk.argos.jvm.JVMCollector(
+                new com.im.njams.sdk.argos.ArgosComponent("id", "name", "container", "measurement", "type"));
+        njams.argos().add(collector);
+        njams.argos().remove(collector);
+    }
+
     /** Same pattern as NjamsFacadeBaselineTest.CapturingSender. */
     private static final class CapturingSender extends com.im.njams.sdk.communication.AbstractSender {
         private final java.util.concurrent.CountDownLatch latch = new java.util.concurrent.CountDownLatch(1);
