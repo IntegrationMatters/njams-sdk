@@ -27,9 +27,10 @@ import javax.xml.transform.sax.SAXSource;
 import javax.xml.xpath.XPath;
 import javax.xml.xpath.XPathExpression;
 import javax.xml.xpath.XPathFactory;
-import net.sf.saxon.om.NodeInfo;
+import javax.xml.transform.Source;
 
 /**
+ * Holds the Saxon XPath evaluation state used by {@link ExtractHandler}.
  *
  * @author pnientiedt
  */
@@ -39,7 +40,7 @@ public class XpathContext {
     private XPath xpath = null;
     private XPathExpression expr = null;
     private SAXSource ss = null;
-    private NodeInfo doc = null;
+    private Source doc = null;
 
     /**
      * @return the xpf
@@ -100,14 +101,14 @@ public class XpathContext {
     /**
      * @return the doc
      */
-    public NodeInfo getDoc() {
+    public Source getDoc() {
         return doc;
     }
 
     /**
      * @param doc the doc to set
      */
-    public void setDoc(NodeInfo doc) {
+    public void setDoc(Source doc) {
         this.doc = doc;
     }
 }
