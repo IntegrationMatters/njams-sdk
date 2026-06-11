@@ -214,7 +214,7 @@ public class Njams implements InstructionListener {
 
     private Configuration configuration;
 
-    private ReplayHandler replayHandler = null;
+    private final NjamsReplay replay;
 
     private final NjamsArgos argos;
 
@@ -245,6 +245,7 @@ public class Njams implements InstructionListener {
         treeElements = new ArrayList<>();
         this.settings = settings;
         jobs = new NjamsJobs(lifecycle);
+        replay = new NjamsReplay(features, jobs);
         metadata = new NjamsMetadata(path, version, category, projectMessageLock);
         metadata.setRuntimeVersion(runtimeVersion);
         initContainerMode();
@@ -402,7 +403,7 @@ public class Njams implements InstructionListener {
      * @return Current replay handler if present or null otherwise.
      */
     public ReplayHandler getReplayHandler() {
-        return replayHandler;
+        return replay.getHandler();
     }
 
     /**
@@ -412,12 +413,7 @@ public class Njams implements InstructionListener {
      * @see AbstractReplayHandler
      */
     public void setReplayHandler(final ReplayHandler replayHandler) {
-        this.replayHandler = replayHandler;
-        if (replayHandler == null) {
-            removeFeature(Feature.REPLAY);
-        } else {
-            addFeature(Feature.REPLAY);
-        }
+        replay.setHandler(replayHandler);
     }
 
     /**
@@ -1007,7 +1003,7 @@ public class Njams implements InstructionListener {
             instruction.setResponse(createPingResponse());
             break;
         case REPLAY:
-            handleReplayRequest(instruction);
+            replay.handleReplayRequest(instruction);
             break;
         case GET_REQUEST_HANDLER:
             instruction.setResponseResultCode(0);
@@ -1017,27 +1013,6 @@ public class Njams implements InstructionListener {
             // skip all others
             break;
 
-        }
-    }
-
-    private void handleReplayRequest(Instruction instruction) {
-        if (replayHandler != null) {
-            try {
-                final ReplayRequest replayRequest = new ReplayRequest(instruction);
-                final ReplayResponse replayResponse = replayHandler.replay(replayRequest);
-                replayResponse.addParametersToInstruction(instruction);
-                if (!replayRequest.getTest()) {
-                    jobs.setReplayMarker(replayResponse.getMainLogId(), replayRequest.getDeepTrace());
-                    LOG.debug("Processed replay response {}", replayResponse.getMainLogId());
-                }
-            } catch (final Exception ex) {
-                instruction.setResponseResultCode(2);
-                instruction.setResponseResultMessage("Error while executing replay: " + ex.getMessage());
-                instruction.setResponseParameter("Exception", String.valueOf(ex));
-            }
-        } else {
-            instruction.setResponseResultCode(1);
-            instruction.setResponseResultMessage("No replay handler registered.");
         }
     }
 
