@@ -31,10 +31,8 @@ import com.faizsiegeln.njams.messageformat.v4.common.TreeElementType;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.LogMode;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.ProjectMessage;
 import com.im.njams.sdk.argos.ArgosMultiCollector;
-import com.im.njams.sdk.argos.ArgosSender;
 import com.im.njams.sdk.client.CleanTracepointsTask;
 import com.im.njams.sdk.client.LogMessageFlushTask;
-import com.im.njams.sdk.common.DateTimeUtility;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.communication.*;
 import com.im.njams.sdk.configuration.Configuration;
@@ -56,18 +54,10 @@ import com.im.njams.sdk.settings.ClientSettings;
 import com.im.njams.sdk.utils.StringUtils;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.URL;
-import java.time.LocalDateTime;
 import java.util.*;
-import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-import java.util.regex.PatternSyntaxException;
 import java.util.stream.Collectors;
 
 /**
@@ -164,8 +154,6 @@ public class Njams implements InstructionListener {
         }
     }
 
-    private static final String[] VERSION_FILES = { "njams.version", "msg.version", "client.version" };
-
     /**
      * Key for clientVersion
      */
@@ -185,38 +173,20 @@ public class Njams implements InstructionListener {
      */
     public static final String BUILD_YEAR = "sdk.buildYear";
 
-    private final String category;
-
-    // Also used for synchronizing access to the project message resources:
+    // Synchronizes access to the project message resources:
     // process-models, images, global-variables, tree-elements
+    final Object projectMessageLock = new Object();
+
     // Path -> ProcessModel
     private final Map<Path, ProcessModel> processModels = new HashMap<>();
 
     // Images
     private final Collection<ImageSupplier> images = new HashSet<>();
 
-    // Matches a named-group declaration, e.g. "(?<name>"; deliberately excludes look-behind "(?<=" / "(?<!".
-    private static final Pattern NAMED_GROUP_DECLARATION = Pattern.compile("\\(\\?<([a-zA-Z][a-zA-Z0-9]*)>");
-
-    // Name -> Value
-    private final Map<String, String> globalVariables = new HashMap<>();
-
-    // Regex defining how global-variable references are matched; null means the server applies its default.
-    private String globalVariablesPattern;
-
-    private final Map<String, String> versions = new HashMap<>();
-
-    // The path of the client
-    private final Path clientPath;
-
-    // The unique client id, will be generated as UUID on startup
-    private final String clientSessionId;
+    private final NjamsMetadata metadata;
 
     // The settings of the client
     private final ClientSettings settings;
-
-    // The start time of the engine
-    private final LocalDateTime startTime;
 
     // tree representation for the client
     private final List<TreeElement> treeElements;
@@ -243,8 +213,6 @@ public class Njams implements InstructionListener {
     private Receiver earlyReceiver;
 
     private Configuration configuration;
-    private String machine;
-    private String runtimeVersion;
 
     private ReplayHandler replayHandler = null;
     // logId of replayed job -> deep-trace flag from the replay request
@@ -277,22 +245,16 @@ public class Njams implements InstructionListener {
      */
     public Njams(Path path, String version, String runtimeVersion, String category, ClientSettings settings) {
         treeElements = new ArrayList<>();
-        clientPath = path;
-        this.category = category == null ? null : category.toUpperCase();
-        startTime = DateTimeUtility.now();
         this.settings = settings;
-        clientSessionId = UUID.randomUUID().toString();
+        metadata = new NjamsMetadata(path, version, category, projectMessageLock);
+        metadata.setRuntimeVersion(runtimeVersion);
         initContainerMode();
         processDiagramFactory = new NjamsProcessDiagramFactory(this);
         processModelLayouter = new CommonBfsModelLayouter();
         argos = new NjamsArgos(settings);
         loadConfigurationProvider();
         createTreeElements(path, TreeElementType.CLIENT);
-        readVersionsFromVersionFile(version);
-        this.runtimeVersion = runtimeVersion;
-
-        printStartupBanner();
-        setMachine();
+        metadata.printStartupBanner(settings);
         beginConnect();
     }
 
@@ -343,7 +305,7 @@ public class Njams implements InstructionListener {
      * technology
      */
     public String getCategory() {
-        return category;
+        return metadata.getCategory();
     }
 
     /**
@@ -357,7 +319,7 @@ public class Njams implements InstructionListener {
      * @return the clientPath
      */
     public Path getClientPath() {
-        return clientPath;
+        return metadata.getClientPath();
     }
 
     /**
@@ -365,39 +327,39 @@ public class Njams implements InstructionListener {
      * @return A random ID generated during initialization.
      */
     public String getCommunicationSessionId() {
-        return clientSessionId;
+        return metadata.getClientSessionId();
     }
 
     /**
      * @return the clientVersion
      */
     public String getClientVersion() {
-        return versions.get(CLIENT_VERSION_KEY);
+        return metadata.getClientVersion();
     }
 
     /**
      * @return the sdkVersion
      */
     public String getSdkVersion() {
-        return versions.get(SDK_VERSION_KEY);
+        return metadata.getSdkVersion();
     }
 
     /**
      * @return the runtimeVersion
      */
     public String getRuntimeVersion() {
-        return runtimeVersion;
+        return metadata.getRuntimeVersion();
     }
 
     public void setRuntimeVersion(String runtimeVersion) {
-        this.runtimeVersion = runtimeVersion;
+        metadata.setRuntimeVersion(runtimeVersion);
     }
 
     /**
      * @return the globalVariables
      */
     public Map<String, String> getGlobalVariables() {
-        return globalVariables;
+        return metadata.getGlobalVariables();
     }
 
     /**
@@ -406,9 +368,7 @@ public class Njams implements InstructionListener {
      * @param globalVariables The global variables to be added to this instance.
      */
     public void addGlobalVariables(Map<String, String> globalVariables) {
-        synchronized (processModels) {
-            this.globalVariables.putAll(globalVariables);
-        }
+        metadata.addGlobalVariables(globalVariables);
     }
 
     /**
@@ -418,7 +378,7 @@ public class Njams implements InstructionListener {
      * @return the global-variable matching pattern, or {@code null} if none was set
      */
     public String getGlobalVariablesPattern() {
-        return globalVariablesPattern;
+        return metadata.getGlobalVariablesPattern();
     }
 
     /**
@@ -434,33 +394,7 @@ public class Njams implements InstructionListener {
      *                                  required named groups {@code full} and {@code name}
      */
     public void setGlobalVariablesPattern(String globalVariablesPattern) {
-        if (globalVariablesPattern != null) {
-            validateGlobalVariablesPattern(globalVariablesPattern);
-        }
-        this.globalVariablesPattern = globalVariablesPattern;
-    }
-
-    private static void validateGlobalVariablesPattern(String regex) {
-        try {
-            Pattern.compile(regex);
-        } catch (PatternSyntaxException e) {
-            throw new NjamsSdkRuntimeException("Invalid global-variables pattern: " + regex, e);
-        }
-        boolean hasFull = false;
-        boolean hasName = false;
-        final Matcher declarations = NAMED_GROUP_DECLARATION.matcher(regex);
-        while (declarations.find()) {
-            final String group = declarations.group(1);
-            if ("full".equals(group)) {
-                hasFull = true;
-            } else if ("name".equals(group)) {
-                hasName = true;
-            }
-        }
-        if (!hasFull || !hasName) {
-            throw new NjamsSdkRuntimeException(
-                "Global-variables pattern must declare the named groups 'full' and 'name': " + regex);
-        }
+        metadata.setGlobalVariablesPattern(globalVariablesPattern);
     }
 
     /**
@@ -520,7 +454,7 @@ public class Njams implements InstructionListener {
      * @param imageSupplier the supplier used by SDK to find the image
      */
     public void addImage(final ImageSupplier imageSupplier) {
-        synchronized (processModels) {
+        synchronized (projectMessageLock) {
             images.add(imageSupplier);
         }
     }
@@ -628,7 +562,7 @@ public class Njams implements InstructionListener {
             CleanTracepointsTask.start(this);
             lifecycle.setStarted(true);
             sendProjectMessage();
-            LOG.info("SDK instance {} started (client-session={})", getClientPath(), clientSessionId);
+            LOG.info("SDK instance {} started (client-session={})", getClientPath(), metadata.getClientSessionId());
         }
         return isStarted();
     }
@@ -639,7 +573,7 @@ public class Njams implements InstructionListener {
      * @return The current ID of this client.
      */
     public String getClientSessionId() {
-        return clientSessionId;
+        return metadata.getClientSessionId();
     }
 
     /**
@@ -677,9 +611,9 @@ public class Njams implements InstructionListener {
      * @return the ProcessModel or {@link NjamsSdkRuntimeException}
      */
     public ProcessModel getProcessModel(final Path relativePath) {
-        final Path absolutePath = clientPath.resolveChild(relativePath.toString());
+        final Path absolutePath = metadata.getClientPath().resolveChild(relativePath.toString());
         final ProcessModel pm;
-        synchronized (processModels) {
+        synchronized (projectMessageLock) {
             pm = absolutePath == null ? null : processModels.get(absolutePath);
         }
         if (pm == null) {
@@ -698,11 +632,11 @@ public class Njams implements InstructionListener {
         if (relativePath == null) {
             return false;
         }
-        final Path absolutePath = clientPath.resolveChild(relativePath.toString());
+        final Path absolutePath = metadata.getClientPath().resolveChild(relativePath.toString());
         if (absolutePath == null) {
             return false;
         }
-        synchronized (processModels) {
+        synchronized (projectMessageLock) {
             return processModels.containsKey(absolutePath);
         }
     }
@@ -713,7 +647,7 @@ public class Njams implements InstructionListener {
      * @return Collection of all process models
      */
     public Collection<ProcessModel> getProcessModels() {
-        synchronized (processModels) {
+        synchronized (projectMessageLock) {
             return Collections.unmodifiableCollection(processModels.values());
         }
     }
@@ -746,9 +680,9 @@ public class Njams implements InstructionListener {
      * @return the new ProcessModel or a {@link NjamsSdkRuntimeException}
      */
     public ProcessModel createProcess(final Path path) {
-        final Path fullClientPath = clientPath.resolveOrCreateChild(path.toString());
+        final Path fullClientPath = metadata.getClientPath().resolveOrCreateChild(path.toString());
         final ProcessModel model = new ProcessModel(fullClientPath, this);
-        synchronized (processModels) {
+        synchronized (projectMessageLock) {
             createTreeElements(fullClientPath, TreeElementType.PROCESS);
             processModels.put(fullClientPath, model);
         }
@@ -770,13 +704,13 @@ public class Njams implements InstructionListener {
         }
         final Path modelPath = processModel.getPath();
         Path ancestor = modelPath;
-        while (ancestor != null && ancestor != clientPath) {
+        while (ancestor != null && ancestor != metadata.getClientPath()) {
             ancestor = ancestor.getParent();
         }
         if (ancestor == null) {
             throw new NjamsSdkRuntimeException("Process model path does not match this nJAMS instance.");
         }
-        synchronized (processModels) {
+        synchronized (projectMessageLock) {
             createTreeElements(modelPath, TreeElementType.PROCESS);
             processModels.put(modelPath, processModel);
         }
@@ -788,16 +722,16 @@ public class Njams implements InstructionListener {
      */
     private ProjectMessage prepareProjectMessage() {
         final ProjectMessage msg = new ProjectMessage();
-        msg.setPath(clientPath.toString());
-        msg.setClientVersion(versions.get(CLIENT_VERSION_KEY));
-        msg.setSdkVersion(versions.get(SDK_VERSION_KEY));
-        msg.setRuntimeVersion(runtimeVersion);
-        msg.setCategory(getCategory());
-        msg.setStartTime(startTime);
-        msg.setMachine(getMachine());
+        msg.setPath(metadata.getClientPath().toString());
+        msg.setClientVersion(metadata.getClientVersion());
+        msg.setSdkVersion(metadata.getSdkVersion());
+        msg.setRuntimeVersion(metadata.getRuntimeVersion());
+        msg.setCategory(metadata.getCategory());
+        msg.setStartTime(metadata.getStartTime());
+        msg.setMachine(metadata.getMachine());
         msg.setFeatures(features.list().stream().map(Feature::key).collect(Collectors.toList()));
         msg.setLogMode(configuration.getLogMode());
-        msg.setClientId(clientSessionId);
+        msg.setClientId(metadata.getClientSessionId());
         msg.setRecording(getConfiguration().isRecording());
         return msg;
     }
@@ -811,16 +745,16 @@ public class Njams implements InstructionListener {
         setStarters();
         final ProjectMessage msg = prepareProjectMessage();
         msg.getTreeElements().addAll(treeElements);
-        synchronized (processModels) {
+        synchronized (projectMessageLock) {
             processModels.values().stream().map(ProcessModel::getSerializableProcessModel)
                 .forEach(ipm -> msg.getProcesses().add(ipm));
             images.forEach(i -> msg.getImages().put(i.getName(), i.getBase64Image()));
-            msg.getGlobalVariables().putAll(globalVariables);
-            msg.setGlobalVariablesPattern(globalVariablesPattern);
+            msg.getGlobalVariables().putAll(metadata.getGlobalVariables());
+            msg.setGlobalVariablesPattern(metadata.getGlobalVariablesPattern());
             LOG.debug("Sending project message with {} process-models, {} images, {} global-variables.",
-                processModels.size(), images.size(), globalVariables.size());
+                processModels.size(), images.size(), metadata.getGlobalVariables().size());
         }
-        getSender().send(msg, clientSessionId);
+        getSender().send(msg, metadata.getClientSessionId());
     }
 
     /**
@@ -837,7 +771,7 @@ public class Njams implements InstructionListener {
         addTreeElements(msg.getTreeElements(), getClientPath(), TreeElementType.CLIENT, false);
         addTreeElements(msg.getTreeElements(), model.getPath(), TreeElementType.PROCESS, model.isStarter());
         msg.getProcesses().add(model.getSerializableProcessModel());
-        getSender().send(msg, clientSessionId);
+        getSender().send(msg, metadata.getClientSessionId());
     }
 
     /**
@@ -859,7 +793,7 @@ public class Njams implements InstructionListener {
      * @param treeDefaultIcon icon which should be added if needed
      */
     private void addDefaultImagesIfNeededAndAbsent(String treeDefaultType, String treeDefaultIcon) {
-        synchronized (processModels) {
+        synchronized (projectMessageLock) {
             boolean found = treeElements.stream().anyMatch(te -> te.getType().equals(treeDefaultType));
             if (found && images.stream().noneMatch(i -> i.getName().equals(treeDefaultType))) {
                 addImage(treeDefaultType, treeDefaultIcon);
@@ -872,7 +806,7 @@ public class Njams implements InstructionListener {
      * client
      */
     private void createTreeElements(Path path, TreeElementType targetDomainObjectType) {
-        synchronized (processModels) {
+        synchronized (projectMessageLock) {
             final List<String> parts = path.getSegments();
             String currentPath = ">";
             for (int i = 0; i < parts.size(); i++) {
@@ -916,7 +850,7 @@ public class Njams implements InstructionListener {
      * @param type icon type of the tree element
      */
     public void setTreeElementType(Path path, String type) {
-        synchronized (processModels) {
+        synchronized (projectMessageLock) {
             TreeElement dos = treeElements.stream().filter(d -> d.getPath().equals(path.toString())).findAny()
                 .orElse(null);
             if (dos == null) {
@@ -974,7 +908,7 @@ public class Njams implements InstructionListener {
     @Override
     public int hashCode() {
         int hash = 5;
-        return 83 * hash + Objects.hashCode(clientPath);
+        return 83 * hash + Objects.hashCode(metadata.getClientPath());
     }
 
     @Override
@@ -986,7 +920,8 @@ public class Njams implements InstructionListener {
             return false;
         }
         final Njams other = (Njams) obj;
-        return Objects.equals(clientPath, other.clientPath);
+        // use the getter on other: mocked instances have no metadata facet
+        return Objects.equals(metadata.getClientPath(), other.getClientPath());
     }
 
     /**
@@ -1025,56 +960,6 @@ public class Njams implements InstructionListener {
      *
      * @param version
      */
-    private void readVersionsFromVersionFile(String version) {
-        final Collection<URL> urls =
-            Arrays.stream(VERSION_FILES)
-                .map(v -> {
-                    try {
-                        return Collections.list(getClass().getClassLoader().getResources(v));
-                    } catch (IOException e) {
-                        LOG.error("Unable to list version files: {}", v, e);
-                        return null;
-                    }
-                }).filter(Objects::nonNull)
-                .flatMap(Collection::stream).collect(Collectors.toList());
-        for (URL url : urls) {
-            LOG.debug("Reading {}", url);
-            final Properties prop = new Properties();
-            try (InputStream is = url.openStream()) {
-                prop.load(is);
-                prop.entrySet()
-                    .forEach(e -> versions.put(String.valueOf(e.getKey()), String.valueOf(e.getValue())));
-            } catch (Exception e) {
-                LOG.error("Unable to load versions from {}", url, e);
-            }
-        }
-        if (version != null && !versions.containsKey(CLIENT_VERSION_KEY)) {
-            LOG.debug("No version file for {} found!", CLIENT_VERSION_KEY);
-            versions.put(CLIENT_VERSION_KEY, version);
-        }
-        if (!versions.containsKey(SDK_VERSION_KEY)) {
-            LOG.debug("No version file for {} found!", SDK_VERSION_KEY);
-            versions.put(SDK_VERSION_KEY, "5.0.0.dev");
-        }
-    }
-
-    private void printStartupBanner() {
-        LOG.info("************************************************************");
-        LOG.info(
-            "***      nJAMS SDK: Copyright (c) " + versions.get(BUILD_YEAR) + " Salesfive Integration Services GmbH");
-        LOG.info("*** ");
-        LOG.info("***      Version Info:");
-        versions.entrySet().stream().filter(e -> !e.getKey().toLowerCase().contains("buildyear"))
-            .sorted(Comparator.comparing(Entry::getKey))
-            .forEach(e -> LOG.info("***      {}: {}", e.getKey(), e.getValue()));
-        LOG.info("*** ");
-        LOG.info("***      Settings:");
-
-        settings.printPropertiesWithoutPasswords(LOG);
-        LOG.info("************************************************************");
-
-    }
-
     /**
      * @return the instructionListeners
      */
@@ -1138,7 +1023,7 @@ public class Njams implements InstructionListener {
             break;
         case GET_REQUEST_HANDLER:
             instruction.setResponseResultCode(0);
-            instruction.setResponseParameter("clientId", clientSessionId);
+            instruction.setResponseParameter("clientId", metadata.getClientSessionId());
             break;
         default:
             // skip all others
@@ -1173,9 +1058,9 @@ public class Njams implements InstructionListener {
         response.setResultCode(0);
         response.setResultMessage("Pong");
         final Map<String, String> params = response.getParameters();
-        params.put("clientPath", clientPath.toString());
+        params.put("clientPath", metadata.getClientPath().toString());
         params.put("clientVersion", getClientVersion());
-        params.put("clientId", clientSessionId);
+        params.put("clientId", metadata.getClientSessionId());
         params.put("sdkVersion", getSdkVersion());
         params.put("runtimeVersion", getRuntimeVersion());
         params.put("category", getCategory());
@@ -1297,18 +1182,6 @@ public class Njams implements InstructionListener {
     }
 
     /**
-     * Set the machine name
-     */
-    private void setMachine() {
-        try {
-            machine = java.net.InetAddress.getLocalHost().getHostName();
-        } catch (Exception e) {
-            LOG.debug("Error getting machine name", e);
-            machine = "unknown";
-        }
-    }
-
-    /**
      * @return LogMode of this client
      */
     public LogMode getLogMode() {
@@ -1326,7 +1199,7 @@ public class Njams implements InstructionListener {
      * @return the machine name
      */
     public String getMachine() {
-        return machine;
+        return metadata.getMachine();
     }
 
     /**
