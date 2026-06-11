@@ -112,13 +112,10 @@ public class JobImpl implements Job {
      */
     private JobStatus maxSeverity = JobStatus.SUCCESS;
 
-    // instanceId -> activity; all access must be guarded by synchronized(activities)
-    private final Map<String, Activity> activities = new LinkedHashMap<>();
+    // guards the activity registry and the truncation state
+    final Object activitiesLock = new Object();
 
-    /*
-     * activity sequence counter
-     */
-    private final AtomicInteger sequenceCounter;
+    private final JobActivities activities = new JobActivities(this, activitiesLock);
 
     /*
      * job level attributes
@@ -135,8 +132,7 @@ public class JobImpl implements Job {
      */
     private final AtomicInteger flushCounter;
 
-    private Activity startActivity;
-
+    // kept on JobImpl (not in JobActivities): frozen tests access this field directly
     boolean hasOrHadStartActivity;
 
     private boolean finished = false;
@@ -163,10 +159,8 @@ public class JobImpl implements Job {
 
     private final JobErrorHandling errorHandling;
     private final JobSettings jobSettings;
-    // access to truncation state is synchronized on activities!
+    // access to truncation state is synchronized on the activities lock!
     private final JobTruncation truncation;
-    // IDs of activities that have been flushed but are not complete yet; for checking timer-flush
-    private Set<String> flushedActivities = ConcurrentHashMap.newKeySet();
 
     /**
      * Create a job with a givenModelId, a jobId and a logId
@@ -186,7 +180,6 @@ public class JobImpl implements Job {
         jobSettings = JobSettings.of(njams.getSettings());
         errorHandling = new JobErrorHandling(this, jobSettings);
         truncation = new JobTruncation(this, jobSettings);
-        sequenceCounter = new AtomicInteger();
         flushCounter = new AtomicInteger();
         lastFlush = DateTimeUtility.now();
         pluginDataItems = new ArrayList<>();
@@ -249,29 +242,7 @@ public class JobImpl implements Job {
      */
     @Override
     public void addActivity(final Activity activity) {
-        synchronized (activities) {
-            if (!hasStarted()) {
-                throw new NjamsSdkRuntimeException(
-                        "The method start() must be called before activities can be added to the job!");
-            }
-            final Activity previous = activities.put(activity.getInstanceId(), activity);
-            if (previous == null) {
-                // Count the per-activity base size in the running estimate as soon as the activity
-                // is added, so flush-by-size reflects activity-heavy jobs between flushes. Content
-                // (payload, stack trace, etc.) is already counted by the activity's own setters, so
-                // only the fixed base is added here to avoid double counting. Reused activities
-                // (loop iterations) re-enter addActivity with previous != null and must not re-add it.
-                addToEstimatedSize(ActivityImpl.BASE_ESTIMATED_SIZE);
-            }
-            if (activity.isStarter()) {
-                if (hasOrHadStartActivity) {
-                    throw new NjamsSdkRuntimeException("A job must not have more than one start activity "
-                            + getJobId());
-                }
-                startActivity = activity;
-                hasOrHadStartActivity = true;
-            }
-        }
+        activities.add(activity, this);
     }
 
     /**
@@ -282,9 +253,7 @@ public class JobImpl implements Job {
      */
     @Override
     public Activity getActivityByInstanceId(String activityInstanceId) {
-        synchronized (activities) {
-            return activities.get(activityInstanceId);
-        }
+        return activities.getByInstanceId(activityInstanceId);
     }
 
     /**
@@ -295,17 +264,7 @@ public class JobImpl implements Job {
      */
     @Override
     public Activity getActivityByModelId(String activityModelId) {
-        synchronized (activities) {
-            List<String> reverseOrderedKeys = new ArrayList<>(activities.keySet());
-            ListIterator<String> iterator = reverseOrderedKeys.listIterator(reverseOrderedKeys.size());
-            while (iterator.hasPrevious()) {
-                Activity _activity = activities.get(iterator.previous());
-                if (_activity != null && _activity.getModelId().equals(activityModelId)) {
-                    return _activity;
-                }
-            }
-            return null;
-        }
+        return activities.getByModelId(activityModelId);
     }
 
     /**
@@ -316,18 +275,7 @@ public class JobImpl implements Job {
      */
     @Override
     public Activity getRunningActivityByModelId(String activityModelId) {
-        synchronized (activities) {
-            List<String> reverseOrderedKeys = new ArrayList<>(activities.keySet());
-            ListIterator<String> iterator = reverseOrderedKeys.listIterator(reverseOrderedKeys.size());
-            while (iterator.hasPrevious()) {
-                Activity _activity = activities.get(iterator.previous());
-                if (_activity.getActivityStatus() == ActivityStatus.RUNNING
-                        && _activity.getModelId().equals(activityModelId)) {
-                    return _activity;
-                }
-            }
-            return null;
-        }
+        return activities.getRunningByModelId(activityModelId);
     }
 
     /**
@@ -338,18 +286,7 @@ public class JobImpl implements Job {
      */
     @Override
     public Activity getCompletedActivityByModelId(String activityModelId) {
-        synchronized (activities) {
-            List<String> reverseOrderedKeys = new ArrayList<>(activities.keySet());
-            ListIterator<String> iterator = reverseOrderedKeys.listIterator(reverseOrderedKeys.size());
-            while (iterator.hasPrevious()) {
-                Activity _activity = activities.get(iterator.previous());
-                if (_activity.getActivityStatus().ordinal() > ActivityStatus.RUNNING.ordinal()
-                        && _activity.getModelId().equals(activityModelId)) {
-                    return _activity;
-                }
-            }
-            return null;
-        }
+        return activities.getCompletedByModelId(activityModelId);
     }
 
     /**
@@ -359,7 +296,7 @@ public class JobImpl implements Job {
      */
     @Override
     public Activity getStartActivity() {
-        return startActivity;
+        return activities.getStart();
     }
 
     /**
@@ -367,9 +304,7 @@ public class JobImpl implements Job {
      */
     @Override
     public Collection<Activity> getActivities() {
-        synchronized (activities) {
-            return new ArrayList<>(activities.values());
-        }
+        return activities.getAll();
     }
 
     /**
@@ -378,7 +313,7 @@ public class JobImpl implements Job {
      * @return the next one
      */
     long getNextSequence() {
-        return sequenceCounter.incrementAndGet();
+        return activities.getNextSequence();
     }
 
     /**
@@ -397,19 +332,9 @@ public class JobImpl implements Job {
         LOG.trace("Job {}: lastPush: {}, age: {}, size: {}", this, getLastFlush(),
                 Duration.between(getLastFlush(), DateTimeUtility.now()), getEstimatedSize());
         if ((getLastFlush().isBefore(sentBefore) || getEstimatedSize() > flushSize)
-                && (!attributes.isEmpty() || getEndTime() != null || hasActivityToSend())) {
+                && (!attributes.isEmpty() || getEndTime() != null || activities.hasActivityToSend())) {
             LOG.debug("Flush by timer: {}", this);
             flush();
-        }
-    }
-
-    private boolean hasActivityToSend() {
-        synchronized (activities) {
-            // Mirror the per-activity decision made when assembling the message: an activity must be
-            // sent if it has never been flushed, or if it was already streamed while running and has
-            // since completed. Checking only "never flushed" here would leave a completed activity of
-            // an otherwise-idle running job unsent until the next flush triggered by another change.
-            return activities.values().stream().anyMatch(this::shouldFlush);
         }
     }
 
@@ -420,7 +345,7 @@ public class JobImpl implements Job {
      */
     public void flush() {
 
-        synchronized (activities) {
+        synchronized (activitiesLock) {
             boolean suppressed = mustBeSuppressed();
             boolean started = hasStarted();
             if (!suppressed) {
@@ -441,7 +366,7 @@ public class JobImpl implements Job {
     }
 
     private boolean mustBeSuppressed() {
-        synchronized (activities) {
+        synchronized (activitiesLock) {
             // Do not send if one of the conditions is true.
             if (isLogModeNone() || isLogModeExclusiveAndNotInstrumented() || isExcludedProcess()
                     || isLogLevelHigherAsJobStateAndHasNoTraces()) {
@@ -449,7 +374,7 @@ public class JobImpl implements Job {
                         + "configured level: {} // is excluded: {} // has traces: {}", runtimeConfig.logMode,
                         getStatus(), runtimeConfig.logLevel, runtimeConfig.exclude, tracing.isTraces());
                 //delete not running activities
-                removeNotRunningActivities();
+                activities.removeNotRunning();
                 calculateEstimatedSize();
                 LOG.debug("mustBeSuppressed: true");
                 return true;
@@ -530,14 +455,14 @@ public class JobImpl implements Job {
 
     private void addToLogMessageAndCleanup(LogMessage logMessage) {
         attributes.flushInto(logMessage);
-        synchronized (activities) {
+        synchronized (activitiesLock) {
             // If this is the final message being sent, and truncate-on-success is selected and this job was
             // successful, truncate all activities w/o events.
             boolean finishedWithSuccess = logMessage.getJobEnd() != null && getStatus() == JobStatus.SUCCESS;
 
             //add all to logMessage
-            for (Activity activity : activities.values()) {
-                if (shouldFlush(activity)) {
+            for (Activity activity : activities.internalValues()) {
+                if (activities.shouldFlush(activity)) {
                     if (checkTruncating(activity, finishedWithSuccess)) {
                         logMessage.addActivity(activity);
                     } else {
@@ -546,15 +471,8 @@ public class JobImpl implements Job {
                 }
             }
             //remove finished
-            removeNotRunningActivities();
+            activities.removeNotRunning();
         }
-    }
-
-    private boolean shouldFlush(Activity activity) {
-        if (!flushedActivities.contains(activity.getInstanceId())) {
-            return true;
-        }
-        return activity.getActivityStatus() != ActivityStatus.RUNNING;
     }
 
     /**
@@ -569,9 +487,9 @@ public class JobImpl implements Job {
     }
 
     private void calculateEstimatedSize() {
-        synchronized (activities) {
-            estimatedSize =
-                    1000 + activities.values().stream().mapToLong(a -> ((ActivityImpl) a).getEstimatedSize()).sum();
+        synchronized (activitiesLock) {
+            estimatedSize = 1000 + activities.internalValues().stream()
+                    .mapToLong(a -> ((ActivityImpl) a).getEstimatedSize()).sum();
         }
     }
 
@@ -598,7 +516,7 @@ public class JobImpl implements Job {
         if (finished) {
             throw new NjamsSdkRuntimeException("Job already finished");
         }
-        synchronized (activities) {
+        synchronized (activitiesLock) {
             if (!normalCompletion) {
                 // unhandled error
                 lastStatus = JobStatus.ERROR;
@@ -608,7 +526,7 @@ public class JobImpl implements Job {
                 lastStatus = JobStatus.SUCCESS;
             }
             //end all not ended activities
-            activities.values().stream()
+            activities.internalValues().stream()
                     .filter(a -> a.getActivityStatus() == null || a.getActivityStatus() == ActivityStatus.RUNNING)
                     .forEach(Activity::end);
             if (getEndTime() == null) {
@@ -1019,38 +937,6 @@ public class JobImpl implements Job {
     @Override
     public Object removeProperty(final String key) {
         return properties.remove(key);
-    }
-
-    /**
-     * This method removes all not running activities from the activities map if
-     * the activity has a parent, remove the activity from the childActivity map
-     * of the parent.
-     */
-    private void removeNotRunningActivities() {
-        int loggingSum = 0;
-        synchronized (activities) {
-            Iterator<Activity> iterator = activities.values().iterator();
-            while (iterator.hasNext()) {
-                Activity a = iterator.next();
-                if (a.getActivityStatus() != ActivityStatus.RUNNING) {
-                    flushedActivities.remove(a.getInstanceId());
-                    loggingSum++;
-                    iterator.remove();
-                    GroupImpl parent = (GroupImpl) a.getParent();
-                    if (parent != null) {
-                        parent.removeChildActivity(a.getInstanceId());
-                    }
-                    if (a == startActivity) {
-                        startActivity = null;
-                    }
-                } else {
-                    flushedActivities.add(a.getInstanceId());
-                }
-
-            }
-            LOG.trace("{} activities have been removed from {}. Still running: {}", loggingSum, getLogId(),
-                    activities.size());
-        }
     }
 
     /**
