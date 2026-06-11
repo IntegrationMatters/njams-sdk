@@ -195,7 +195,7 @@ public class Njams implements InstructionListener {
 
     private ProcessModelLayouter processModelLayouter;
 
-    private final ConcurrentMap<String, Job> jobs = new ConcurrentHashMap<>();
+    private final NjamsJobs jobs;
 
     private final List<InstructionListener> instructionListeners = new ArrayList<>();
 
@@ -215,8 +215,6 @@ public class Njams implements InstructionListener {
     private Configuration configuration;
 
     private ReplayHandler replayHandler = null;
-    // logId of replayed job -> deep-trace flag from the replay request
-    private final Map<String, Boolean> replayedLogIds = new HashMap<>();
 
     private final NjamsArgos argos;
 
@@ -246,6 +244,7 @@ public class Njams implements InstructionListener {
     public Njams(Path path, String version, String runtimeVersion, String category, ClientSettings settings) {
         treeElements = new ArrayList<>();
         this.settings = settings;
+        jobs = new NjamsJobs(lifecycle);
         metadata = new NjamsMetadata(path, version, category, projectMessageLock);
         metadata.setRuntimeVersion(runtimeVersion);
         initContainerMode();
@@ -669,7 +668,7 @@ public class Njams implements InstructionListener {
      * @return Unmodifiable collection of jobs.
      */
     public Collection<Job> getJobs() {
-        return Collections.unmodifiableCollection(jobs.values());
+        return jobs.getAll();
     }
 
     /**
@@ -931,17 +930,7 @@ public class Njams implements InstructionListener {
      * @param job to add to the instances job list.
      */
     public void addJob(Job job) {
-        lifecycle.requireStarted();
-        synchronized (replayedLogIds) {
-            final Boolean deepTrace = replayedLogIds.remove(job.getLogId());
-            if (deepTrace != null) {
-                ReplayHandler.markAsReplayed(job);
-                if (deepTrace) {
-                    job.setDeepTrace(true);
-                }
-            }
-        }
-        jobs.put(job.getJobId(), job);
+        jobs.add(job);
     }
 
     /**
@@ -951,7 +940,6 @@ public class Njams implements InstructionListener {
      */
     public void removeJob(String jobId) {
         jobs.remove(jobId);
-        LOG.debug("Job {} removed", jobId);
     }
 
     /**
@@ -1039,7 +1027,7 @@ public class Njams implements InstructionListener {
                 final ReplayResponse replayResponse = replayHandler.replay(replayRequest);
                 replayResponse.addParametersToInstruction(instruction);
                 if (!replayRequest.getTest()) {
-                    setReplayMarker(replayResponse.getMainLogId(), replayRequest.getDeepTrace());
+                    jobs.setReplayMarker(replayResponse.getMainLogId(), replayRequest.getDeepTrace());
                     LOG.debug("Processed replay response {}", replayResponse.getMainLogId());
                 }
             } catch (final Exception ex) {
@@ -1067,30 +1055,6 @@ public class Njams implements InstructionListener {
         params.put("machine", getMachine());
         params.put("features", features.list().stream().map(Feature::key).collect(Collectors.joining(",")));
         return response;
-    }
-
-    /**
-     * SDK-197
-     *
-     * @param logId
-     */
-    private void setReplayMarker(final String logId, boolean deepTrace) {
-        if (StringUtils.isBlank(logId)) {
-            return;
-        }
-        synchronized (replayedLogIds) {
-            final Job job = getJobs().stream().filter(j -> j.getLogId().equals(logId)).findAny().orElse(null);
-            if (job != null) {
-                // if the job is already known, set the marker
-                ReplayHandler.markAsReplayed(job);
-                if (deepTrace) {
-                    job.setDeepTrace(true);
-                }
-            } else {
-                // remember the log ID for when the job is added later -> consumed by addJob(...)
-                replayedLogIds.put(logId, deepTrace);
-            }
-        }
     }
 
     /**
