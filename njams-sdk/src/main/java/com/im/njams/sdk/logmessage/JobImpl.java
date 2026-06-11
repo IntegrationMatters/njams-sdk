@@ -179,11 +179,8 @@ public class JobImpl implements Job {
 
     private final JobErrorHandling errorHandling;
     private final JobSettings jobSettings;
-    private boolean isTruncatingActivities = false;
-    private boolean isTruncatingEvents = false;
-    // access to truncate fields is synchronized on activities!
-    // activity-instance-ID --> hasEvent(activity)
-    private final Map<String, Boolean> activityIds = new HashMap<>();
+    // access to truncation state is synchronized on activities!
+    private final JobTruncation truncation;
     // IDs of activities that have been flushed but are not complete yet; for checking timer-flush
     private Set<String> flushedActivities = ConcurrentHashMap.newKeySet();
 
@@ -204,6 +201,7 @@ public class JobImpl implements Job {
         // must be set before initFromConfiguration: addAttribute already applies payload limits
         jobSettings = JobSettings.of(njams.getSettings());
         errorHandling = new JobErrorHandling(this, jobSettings);
+        truncation = new JobTruncation(this, jobSettings);
         sequenceCounter = new AtomicInteger();
         flushCounter = new AtomicInteger();
         lastFlush = DateTimeUtility.now();
@@ -290,13 +288,6 @@ public class JobImpl implements Job {
                 hasOrHadStartActivity = true;
             }
         }
-    }
-
-    private boolean hasEvent(final Activity activity) {
-        return activity.getEventStatus() != null || StringUtils.isNotBlank(activity.getEventCode())
-                || StringUtils.isNotBlank(activity.getEventMessage())
-                || StringUtils.isNotBlank(activity.getEventPayload())
-                || StringUtils.isNotBlank(activity.getStackTrace());
     }
 
     /**
@@ -596,41 +587,7 @@ public class JobImpl implements Job {
      * @return <code>true</code> if the given activity shall be added, <code>false</code> if not.
      */
     boolean checkTruncating(final Activity activity, boolean finishedSuccess) {
-        if (!jobSettings.truncateOnSuccess && jobSettings.truncateLimit >= Integer.MAX_VALUE) {
-            // truncating is disabled
-            return true;
-        }
-        if (isTruncatingEvents) {
-            // already truncating completely
-            return false;
-        }
-        // collect IDs
-        final boolean hasEvent = hasEvent(activity);
-        if (!isTruncatingActivities) {
-            activityIds.put(activity.getInstanceId(), hasEvent);
-            // check limit reached
-            if (jobSettings.truncateOnSuccess && finishedSuccess || activityIds.size() > jobSettings.truncateLimit) {
-                isTruncatingActivities = true;
-                activityIds.values().removeIf(b -> !b);
-                LOG.debug("Start truncating activities for {}", this);
-            }
-        }
-        if (isTruncatingActivities && hasEvent && !isTruncatingEvents) {
-            activityIds.put(activity.getInstanceId(), true);
-            // check limit reached again
-            if (activityIds.size() > jobSettings.truncateLimit) {
-                isTruncatingEvents = true;
-                activityIds.clear();
-                LOG.debug("Start truncating events for {}", this);
-            }
-        }
-        // result for the given activity
-        if (isTruncatingEvents) {
-            // full stop
-            return false;
-        }
-        // no truncating, or truncating activities but not events
-        return !isTruncatingActivities || hasEvent;
+        return truncation.checkTruncating(activity, finishedSuccess);
     }
 
     private void calculateEstimatedSize() {
