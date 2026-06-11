@@ -106,12 +106,13 @@ final class JobFlusher {
      */
     void flush(JobImpl owner) {
         synchronized (lock) {
+            if (!owner.hasStarted()) {
+                LOG.warn("Not flushing job with logId: {}: the job has not been started"
+                        + " - a job that was never started is never sent to the nJAMS server.", owner.getLogId());
+                return;
+            }
             boolean suppressed = mustBeSuppressed(owner);
-            boolean started = owner.hasStarted();
             if (!suppressed) {
-                if (!started) {
-                    LOG.warn("The job with logId: {} will be flushed, but hasn't started yet.", owner.getLogId());
-                }
                 flushCounter.incrementAndGet();
                 lastFlush = DateTimeUtility.now();
                 LogMessage logMessage = createLogMessage(owner);

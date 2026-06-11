@@ -357,6 +357,8 @@ public class JobImpl implements Job {
             throw new NjamsSdkRuntimeException("Job already finished");
         }
         synchronized (activitiesLock) {
+            // must be captured before the final status is set below, which makes hasStarted() true
+            final boolean neverStarted = !hasStarted();
             if (!normalCompletion) {
                 // unhandled error
                 lastStatus = JobStatus.ERROR;
@@ -372,12 +374,14 @@ public class JobImpl implements Job {
             if (getEndTime() == null) {
                 setEndTime(DateTimeUtility.now());
             }
-            if (!hasStarted()) {
-                LOG.warn("Job has been finished before it started.");
-            }
             finished = true;
             processModel.getNjams().removeJob(getJobId());
-            flush();
+            if (neverStarted) {
+                LOG.error("Job {} has been finished before it was started"
+                        + " - it will NOT be sent to the nJAMS server.", getLogId());
+            } else {
+                flush();
+            }
         }
     }
 

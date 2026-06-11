@@ -413,4 +413,72 @@ public class JobFacadeBaselineTest {
         assertTrue(job.toString().contains(job.getLogId()));
         assertTrue(job.toString().contains(job.getJobId()));
     }
+
+    // --- flush invariant: fixed behavior (SDK-448 approved contract change) ---
+
+    @Test
+    public void flushOnNeverStartedJobSendsNothing() throws InterruptedException {
+        JobImpl job = createJob();
+        CapturingLogMessageSender capturing = new CapturingLogMessageSender();
+        TestSender.setSenderMock(capturing);
+        try {
+            job.flush(); // WARN + skip; previously sent a status -1 message
+            assertNull(capturing.poll(500));
+        } finally {
+            TestSender.setSenderMock(null);
+        }
+    }
+
+    @Test
+    public void endOnNeverStartedJobLogsErrorAndSendsNothing() throws InterruptedException {
+        JobImpl job = createJob();
+        CapturingLogMessageSender capturing = new CapturingLogMessageSender();
+        TestSender.setSenderMock(capturing);
+        try {
+            job.end(true); // ERROR log, no throw, nothing sent
+            assertTrue(job.isFinished());
+            assertNull(capturing.poll(500));
+        } finally {
+            TestSender.setSenderMock(null);
+        }
+    }
+
+    /** Captures the first LogMessage passed to the sender, with an await-with-timeout. */
+    private static final class CapturingLogMessageSender extends com.im.njams.sdk.communication.AbstractSender {
+        private final java.util.concurrent.CountDownLatch latch = new java.util.concurrent.CountDownLatch(1);
+        private volatile com.faizsiegeln.njams.messageformat.v4.logmessage.LogMessage lastLogMessage;
+
+        @Override
+        public String getName() {
+            return "CAPTURING";
+        }
+
+        @Override
+        public void send(com.faizsiegeln.njams.messageformat.v4.common.CommonMessage msg, String clientSessionId) {
+            if (msg instanceof com.faizsiegeln.njams.messageformat.v4.logmessage.LogMessage) {
+                lastLogMessage = (com.faizsiegeln.njams.messageformat.v4.logmessage.LogMessage) msg;
+                latch.countDown();
+            }
+        }
+
+        com.faizsiegeln.njams.messageformat.v4.logmessage.LogMessage poll(long millis) throws InterruptedException {
+            latch.await(millis, java.util.concurrent.TimeUnit.MILLISECONDS);
+            return lastLogMessage;
+        }
+
+        @Override
+        protected void send(com.faizsiegeln.njams.messageformat.v4.logmessage.LogMessage msg,
+                String clientSessionId) {
+        }
+
+        @Override
+        protected void send(com.faizsiegeln.njams.messageformat.v4.projectmessage.ProjectMessage msg,
+                String clientSessionId) {
+        }
+
+        @Override
+        protected void send(com.faizsiegeln.njams.messageformat.v4.tracemessage.TraceMessage msg,
+                String clientSessionId) {
+        }
+    }
 }
