@@ -5,7 +5,7 @@
 (`2026-06-10-sdk-359-njams-facade-refactoring.md`) — this design applies the same pattern
 and constraints.
 **Date:** 2026-06-11
-**Status:** Draft for review
+**Status:** Implemented (see plan 2026-06-11-sdk-448-jobimpl-facade-refactoring.md)
 
 ## Goal
 
