@@ -84,6 +84,7 @@ public final class Path {
     private final String segment;
     private final String pathString;
     private final int cachedHashCode;
+    private final int depth;
     private final ConcurrentHashMap<String, Path> children = new ConcurrentHashMap<>();
 
     private Path(Path parent, String segment) {
@@ -91,6 +92,7 @@ public final class Path {
         this.segment = segment;
         this.pathString = parent == null ? ">" : parent.toString() + segment + ">";
         this.cachedHashCode = pathString.hashCode();
+        this.depth = parent == null ? 0 : parent.depth + 1;
     }
 
     /**
@@ -245,6 +247,16 @@ public final class Path {
     }
 
     /**
+     * Returns this path's depth in the tree, i.e., the number of segments it consists of.
+     * {@link #ROOT} has depth {@code 0}; every other node has the depth of its parent plus one.
+     *
+     * @return the segment depth of this path; {@code 0} for root
+     */
+    public int getDepth() {
+        return depth;
+    }
+
+    /**
      * Returns this node's own segment name (the last component of its path), or
      * {@code null} if this is the {@link #ROOT}.
      *
@@ -264,13 +276,15 @@ public final class Path {
      * @return an ordered list of segment names; never {@code null}
      */
     public List<String> getSegments() {
-        ArrayList<String> segments = new ArrayList<>();
+        final String[] segments = new String[depth];
         Path current = this;
-        while (current != null && !current.isRoot()) {
-            segments.add(0, current.segment);
+        for (int i = depth - 1; i >= 0; i--) {
+            segments[i] = current.segment;
             current = current.parent;
         }
-        return segments;
+        final ArrayList<String> result = new ArrayList<>(depth);
+        Collections.addAll(result, segments);
+        return result;
     }
 
     /**
@@ -516,9 +530,10 @@ public final class Path {
     /**
      * Returns {@code true} if this path is the given {@code prefix} itself or a descendant of it.
      *
-     * <p>Because paths are unique singleton nodes, the test is a parent-chain walk using identity
-     * comparison; it allocates nothing. {@link #ROOT} is a prefix of every path, and every path is
-     * a prefix of itself.
+     * <p>Because paths are unique singleton nodes, the test walks the parent chain up to the
+     * prefix's depth and compares by identity; it allocates nothing. {@link #ROOT} is a prefix of
+     * every path, and every path is a prefix of itself. A prefix deeper than this path can never
+     * be an ancestor, so the depth check fails fast without any walking.
      *
      * @param prefix the candidate ancestor path; {@code null} returns {@code false}
      * @return {@code true} if this path starts with {@code prefix}
@@ -527,14 +542,17 @@ public final class Path {
         if (prefix == null) {
             return false;
         }
+        if (prefix == ROOT) {
+            return true;
+        }
+        if (prefix.depth > depth) {
+            return false;
+        }
         Path current = this;
-        while (current != null) {
-            if (current == prefix) {
-                return true;
-            }
+        while (current.depth > prefix.depth) {
             current = current.parent;
         }
-        return false;
+        return current == prefix;
     }
 
     /**

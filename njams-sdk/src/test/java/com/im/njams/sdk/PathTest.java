@@ -859,4 +859,24 @@ public class PathTest {
     public void startsWithNullIsFalse() {
         assertFalse(Path.of("a").startsWith(null));
     }
+
+    // --- depth ---
+
+    @Test
+    public void rootDepthIsZero() {
+        assertEquals(0, Path.ROOT.getDepth());
+    }
+
+    @Test
+    public void childDepthIsParentDepthPlusOne() {
+        assertEquals(1, Path.of("a").getDepth());
+        assertEquals(2, Path.of("a", "b").getDepth());
+        assertEquals(3, Path.of("a", "b", "c").getDepth());
+    }
+
+    @Test
+    public void depthEqualsSegmentCount() {
+        Path p = Path.of("x", "y", "z");
+        assertEquals(p.getSegments().size(), p.getDepth());
+    }
 }
