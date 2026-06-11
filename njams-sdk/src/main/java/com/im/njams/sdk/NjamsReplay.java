@@ -69,9 +69,9 @@ public final class NjamsReplay {
     public void setHandler(final ReplayHandler replayHandler) {
         this.replayHandler = replayHandler;
         if (replayHandler == null) {
-            features.remove(Feature.REPLAY);
+            features.removeInternal(Feature.REPLAY);
         } else {
-            features.add(Feature.REPLAY);
+            features.addInternal(Feature.REPLAY);
         }
     }
 

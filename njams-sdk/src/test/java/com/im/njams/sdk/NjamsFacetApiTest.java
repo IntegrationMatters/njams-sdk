@@ -193,4 +193,75 @@ public class NjamsFacetApiTest {
     public void setGlobalVariablesPattern_rejectsMissingFullGroup_viaFacet() {
         njams.metadata().setGlobalVariablesPattern("%%(?<name>[^%]+)%%");
     }
+
+    // --- features guards ---
+
+    @Test(expected = NjamsSdkRuntimeException.class)
+    public void newFeatureAddThrowsAfterStart() {
+        njams.start();
+        njams.features().add(Njams.Feature.INJECTION);
+    }
+
+    @Test(expected = NjamsSdkRuntimeException.class)
+    public void newFeatureRemoveThrowsAfterStart() {
+        njams.features().add(Njams.Feature.INJECTION);
+        njams.start();
+        njams.features().remove(Njams.Feature.INJECTION);
+    }
+
+    @Test
+    public void deprecatedFeatureAddStaysLenientAfterStart() {
+        njams.start();
+        njams.addFeature(Njams.Feature.INJECTION); // WARN, no throw
+        assertTrue(njams.hasFeature(Njams.Feature.INJECTION));
+    }
+
+    // --- features parity mirrors ---
+
+    @Test
+    public void inherentFeaturesArePresentByDefault_viaFacet() {
+        assertTrue(njams.features().has(Njams.Feature.EXPRESSION_TEST));
+        assertTrue(njams.features().has(Njams.Feature.PING));
+        assertTrue(njams.features().has(Njams.Feature.COMMANDS_SPLIT));
+    }
+
+    @Test
+    public void addFeatureIsIdempotent_viaFacet() {
+        njams.features().add(Njams.Feature.INJECTION);
+        njams.features().add(Njams.Feature.INJECTION);
+        assertEquals(1, njams.features().list().stream()
+            .filter(f -> f == Njams.Feature.INJECTION).count());
+    }
+
+    @Test
+    public void removeFeatureRemoves_viaFacet() {
+        njams.features().add(Njams.Feature.INJECTION);
+        njams.features().remove(Njams.Feature.INJECTION);
+        assertFalse(njams.features().has(Njams.Feature.INJECTION));
+    }
+
+    @Test(expected = NjamsSdkRuntimeException.class)
+    public void removingInherentFeatureThrows_viaFacet() {
+        njams.features().remove(Njams.Feature.PING);
+    }
+
+    @Test
+    public void getFeaturesReturnsACopy_viaFacet() {
+        njams.features().list().clear();
+        assertTrue(njams.features().has(Njams.Feature.PING));
+    }
+
+    @Test
+    public void containerModeIsOnByDefaultAndSettableBeforeStart_viaFacet() {
+        assertTrue(njams.features().isContainerMode());
+        njams.features().setContainerMode(false);
+        assertFalse(njams.features().isContainerMode());
+        assertFalse(njams.features().has(Njams.Feature.CONTAINER_MODE));
+    }
+
+    @Test(expected = NjamsSdkRuntimeException.class)
+    public void setContainerModeAfterStartThrows_viaFacet() {
+        njams.start();
+        njams.features().setContainerMode(false);
+    }
 }

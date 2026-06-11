@@ -55,11 +55,19 @@ public final class NjamsFeatures {
     }
 
     /**
-     * Adds a feature to the feature list.
+     * Adds a feature to the feature list. Features are announced to the nJAMS server in the
+     * project message when the client starts.
      *
      * @param feature to add
+     * @throws NjamsSdkRuntimeException if the client has already been started — a later change
+     *                                  would never reach the server
      */
     public void add(Feature feature) {
+        lifecycle.requireNotStarted("NjamsFeatures.add");
+        addInternal(feature);
+    }
+
+    void addInternal(Feature feature) {
         if (!has(feature)) {
             features.add(feature);
         }
@@ -69,8 +77,15 @@ public final class NjamsFeatures {
      * Removes a feature from the feature list. Inherent SDK features cannot be removed.
      *
      * @param feature to remove
+     * @throws NjamsSdkRuntimeException if the feature is inherent, or if the client has already
+     *                                  been started — a later change would never reach the server
      */
     public void remove(Feature feature) {
+        lifecycle.requireNotStarted("NjamsFeatures.remove");
+        removeInternal(feature);
+    }
+
+    void removeInternal(Feature feature) {
         if (Feature.INHERENT_FEATURES.contains(feature)) {
             throw new NjamsSdkRuntimeException("Cannot remove inherent feature " + feature);
         }
@@ -107,9 +122,9 @@ public final class NjamsFeatures {
         }
         containerMode = enabled;
         if (containerMode) {
-            add(Feature.CONTAINER_MODE);
+            addInternal(Feature.CONTAINER_MODE);
         } else {
-            remove(Feature.CONTAINER_MODE);
+            removeInternal(Feature.CONTAINER_MODE);
         }
     }
 }

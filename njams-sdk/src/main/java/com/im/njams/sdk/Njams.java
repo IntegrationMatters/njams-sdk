@@ -534,7 +534,10 @@ public class Njams implements InstructionListener {
     /**
      * Returns whether or not container-mode is enabled.
      * @return Returns whether or not container-mode is enabled.
+     * @deprecated Use {@code njams.features().isContainerMode()} instead — obtain the facet via
+     *             {@link #features()} and call {@link NjamsFeatures#isContainerMode()}.
      */
+    @Deprecated
     public boolean isContainerMode() {
         return features.isContainerMode();
     }
@@ -543,7 +546,12 @@ public class Njams implements InstructionListener {
      * Allows overriding the container-mode support setting.
      * This can only be changed before the client is started.
      * @param enabled <code>true</code> for enabling container-mode, <code>false</code> for disabling.
+     * @deprecated Use {@code njams.features().setContainerMode(enabled)} instead — obtain the
+     *             facet via {@link #features()} and call
+     *             {@link NjamsFeatures#setContainerMode(boolean)}. The replacement has the same
+     *             contract: it throws an exception when called after {@link #start()}.
      */
+    @Deprecated
     public void setContainerMode(boolean enabled) {
         features.setContainerMode(enabled);
     }
@@ -1029,7 +1037,10 @@ public class Njams implements InstructionListener {
 
     /**
      * @return the list of features this client has
+     * @deprecated Use {@code njams.features().list()} instead — obtain the facet via
+     *             {@link #features()} and call {@link NjamsFeatures#list()}.
      */
+    @Deprecated
     public List<Feature> getFeatures() {
         return features.list();
     }
@@ -1038,20 +1049,43 @@ public class Njams implements InstructionListener {
      * Adds a new feature to the feature list
      *
      * @param feature to set
+     * @deprecated Use {@code njams.features().add(feature)} instead — obtain the facet via
+     *             {@link #features()} and call {@link NjamsFeatures#add(Feature)}. Unlike this
+     *             method, the replacement throws an {@link NjamsSdkRuntimeException} when called
+     *             after {@link #start()}, because features are announced to the nJAMS server at
+     *             start and a later change is never sent.
      */
+    @Deprecated
     public void addFeature(Feature feature) {
-        features.add(feature);
+        warnIfStarted("addFeature", "features().add(...)");
+        features.addInternal(feature);
     }
 
     /**
      * Remove a feature from the feature list
      *
      * @param feature to remove
+     * @deprecated Use {@code njams.features().remove(feature)} instead — obtain the facet via
+     *             {@link #features()} and call {@link NjamsFeatures#remove(Feature)}. Unlike this
+     *             method, the replacement throws an {@link NjamsSdkRuntimeException} when called
+     *             after {@link #start()}, because features are announced to the nJAMS server at
+     *             start and a later change is never sent.
      */
+    @Deprecated
     public void removeFeature(final Feature feature) {
-        features.remove(feature);
+        warnIfStarted("removeFeature", "features().remove(...)");
+        features.removeInternal(feature);
     }
 
+    /**
+     * Returns whether the given feature is set for this client.
+     *
+     * @param feature to check
+     * @return true if present
+     * @deprecated Use {@code njams.features().has(feature)} instead — obtain the facet via
+     *             {@link #features()} and call {@link NjamsFeatures#has(Feature)}.
+     */
+    @Deprecated
     public boolean hasFeature(final Feature feature) {
         return features.has(feature);
     }
