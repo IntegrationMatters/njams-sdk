@@ -184,9 +184,7 @@ public class JobImpl implements Job {
     private final Object errorLock = new Object();
     private ActivityImpl errorActivity = null;
     private ErrorEvent errorEvent = null;
-    private final boolean allErrors;
-    private final int truncateLimit;
-    private final boolean truncateOnSuccess;
+    private final JobSettings jobSettings;
     private boolean isTruncatingActivities = false;
     private boolean isTruncatingEvents = false;
     // access to truncate fields is synchronized on activities!
@@ -194,8 +192,6 @@ public class JobImpl implements Job {
     private final Map<String, Boolean> activityIds = new HashMap<>();
     // IDs of activities that have been flushed but are not complete yet; for checking timer-flush
     private Set<String> flushedActivities = ConcurrentHashMap.newKeySet();
-
-    private Entry<Boolean, Integer> payloadLimit = null;
 
     /**
      * Create a job with a givenModelId, a jobId and a logId
@@ -211,6 +207,8 @@ public class JobImpl implements Job {
         setStatusAndSeverity(JobStatus.CREATED);
         this.processModel = processModel;
         njams = processModel.getNjams();
+        // must be set before initFromConfiguration: addAttribute already applies payload limits
+        jobSettings = JobSettings.of(njams.getSettings());
         sequenceCounter = new AtomicInteger();
         flushCounter = new AtomicInteger();
         lastFlush = DateTimeUtility.now();
@@ -221,33 +219,6 @@ public class JobImpl implements Job {
         //will be set to true.
         startTime = DateTimeUtility.now();
         startTimeExplicitlySet = false;
-        allErrors = njams.getSettings().getBool(NjamsSettings.PROPERTY_LOG_ALL_ERRORS, false);
-        truncateOnSuccess = njams.getSettings().getBool(NjamsSettings.PROPERTY_TRUNCATE_ON_SUCCESS, false);
-        truncateLimit = getTruncateLimit();
-        initPayloadLimit();
-    }
-
-    private void initPayloadLimit() {
-        final ClientSettings settings = njams.getSettings();
-        // truncate, discard
-        final String mode = settings.getProperty(NjamsSettings.PROPERTY_PAYLOAD_LIMIT_MODE);
-        if (StringUtils.isBlank(mode)) {
-            return;
-        }
-        final int limit = settings.getInt(NjamsSettings.PROPERTY_PAYLOAD_LIMIT_SIZE, -1);
-        if (limit < 0) {
-            return;
-        }
-        if (limit == 0 || "discard".equalsIgnoreCase(mode)) {
-            payloadLimit = new AbstractMap.SimpleImmutableEntry<>(false, limit);
-        } else if ("truncate".equalsIgnoreCase(mode)) {
-            payloadLimit = new AbstractMap.SimpleImmutableEntry<>(true, limit);
-        }
-    }
-
-    private int getTruncateLimit() {
-        int i = njams.getSettings().getInt(NjamsSettings.PROPERTY_TRUNCATE_LIMIT, Integer.MAX_VALUE);
-        return i > 0 ? i : Integer.MAX_VALUE;
     }
 
     /**
@@ -660,7 +631,7 @@ public class JobImpl implements Job {
      * @return <code>true</code> if the given activity shall be added, <code>false</code> if not.
      */
     boolean checkTruncating(final Activity activity, boolean finishedSuccess) {
-        if (!truncateOnSuccess && truncateLimit >= Integer.MAX_VALUE) {
+        if (!jobSettings.truncateOnSuccess && jobSettings.truncateLimit >= Integer.MAX_VALUE) {
             // truncating is disabled
             return true;
         }
@@ -673,7 +644,7 @@ public class JobImpl implements Job {
         if (!isTruncatingActivities) {
             activityIds.put(activity.getInstanceId(), hasEvent);
             // check limit reached
-            if (truncateOnSuccess && finishedSuccess || activityIds.size() > truncateLimit) {
+            if (jobSettings.truncateOnSuccess && finishedSuccess || activityIds.size() > jobSettings.truncateLimit) {
                 isTruncatingActivities = true;
                 activityIds.values().removeIf(b -> !b);
                 LOG.debug("Start truncating activities for {}", this);
@@ -682,7 +653,7 @@ public class JobImpl implements Job {
         if (isTruncatingActivities && hasEvent && !isTruncatingEvents) {
             activityIds.put(activity.getInstanceId(), true);
             // check limit reached again
-            if (activityIds.size() > truncateLimit) {
+            if (activityIds.size() > jobSettings.truncateLimit) {
                 isTruncatingEvents = true;
                 activityIds.clear();
                 LOG.debug("Start truncating events for {}", this);
@@ -758,7 +729,7 @@ public class JobImpl implements Job {
      * event on this activity.
      */
     private void commitActivityError() {
-        if (allErrors) {
+        if (jobSettings.allErrors) {
             // all errors have already been added to their activities.
             return;
         }
@@ -787,7 +758,7 @@ public class JobImpl implements Job {
      */
     public void setActivityErrorEvent(Activity errorActivity, ErrorEvent errorEvent) {
         if (errorActivity != null && errorEvent != null) {
-            if (allErrors) {
+            if (jobSettings.allErrors) {
                 // add all errors directly to the activity
                 LOG.debug("Adding error event to {}", errorActivity);
                 updateActivityErrorEvent((ActivityImpl) errorActivity, errorEvent);
@@ -1447,10 +1418,10 @@ public class JobImpl implements Job {
      * @return effective size hint, or {@code 0} when no payload limit is configured
      */
     int getSerializeSizeHint() {
-        if (payloadLimit == null) {
+        if (jobSettings.payloadLimit == null) {
             return 0;
         }
-        final int limit = payloadLimit.getValue();
+        final int limit = jobSettings.payloadLimit.getValue();
         return limit <= 0 ? 0 : limit + 1;
     }
 
@@ -1460,11 +1431,12 @@ public class JobImpl implements Job {
      * @return The given payload adjusted to the configured limits.
      */
     String limitPayload(String payload) {
-        if (payload == null || payloadLimit == null || payload.length() <= payloadLimit.getValue()) {
+        if (payload == null || jobSettings.payloadLimit == null
+                || payload.length() <= jobSettings.payloadLimit.getValue()) {
             return payload;
         }
-        final int limit = payloadLimit.getValue();
-        if (limit > 0 && payloadLimit.getKey()) {
+        final int limit = jobSettings.payloadLimit.getValue();
+        if (limit > 0 && jobSettings.payloadLimit.getKey()) {
             // truncate
             final String suffix = PAYLOAD_TRUNCATED_SUFFIX;
             return payload.substring(0, limit) + suffix;
