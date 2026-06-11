@@ -305,10 +305,11 @@ public class MyLayouter implements ProcessModelLayouter {
 }
 ```
 
-Register it on the `Njams` instance before starting:
+Register it on the `Njams` instance before starting (since 6.0.0 via the `processes()` facet; the former
+`njams.setProcessModelLayouter(...)` still works but is deprecated):
 
 ```java
-njams.setProcessModelLayouter(new MyLayouter());
+njams.processes().setLayouter(new MyLayouter());
 ```
 
 If the `ActivityModel` elements in your process model are already populated with coordinates and dimensions — for
@@ -316,7 +317,7 @@ example, when coordinates are imported from an external source — use `NoopLayo
 entirely:
 
 ```java
-njams.setProcessModelLayouter(new NoopLayouter());
+njams.processes().setLayouter(new NoopLayouter());
 ```
 
 ### Modifying the SVG output
@@ -456,9 +457,7 @@ for standard JVM metrics. Register it before or after starting the `Njams` insta
 
 ```java
 JVMCollector jvmCollector = new JVMCollector("myId", "JVM Metrics", "jvm");
-njams.
-
-addArgosCollector(jvmCollector);
+njams.argos().add(jvmCollector);
 ```
 
 To send custom metrics, implement two classes:
@@ -467,7 +466,8 @@ To send custom metrics, implement two classes:
 - A collector class extending `ArgosCollector` — implements the `create()` method to produce a metric instance on each
   collection cycle.
 
-Register your collector via `njams.addArgosCollector(yourCollector)`. Use the built-in `JVMCollector` in package
+Register your collector via `njams.argos().add(yourCollector)` (since 6.0.0; the former
+`njams.addArgosCollector(...)` still works but is deprecated). Use the built-in `JVMCollector` in package
 `com.im.njams.sdk.argos` as a reference implementation.
 
 ## How to set the activity mapping
@@ -633,9 +633,10 @@ variable values to the SDK.
 #### Customizing the matching pattern
 
 The reference syntax for variables is not fixed. A client can define its own matching pattern as a
-regular expression via `njams.setGlobalVariablesPattern(String)`. The pattern is transported to the nJAMS server with
-the project message and used there to detect and replace references; when no pattern is set, showing values instead
-of variables is not supported.
+regular expression via `njams.metadata().setGlobalVariablesPattern(String)` (since 6.0.0; the former
+`njams.setGlobalVariablesPattern(...)` still works but is deprecated). The pattern is transported to the nJAMS server
+with the project message and used there to detect and replace references; when no pattern is set, showing values
+instead of variables is not supported. The pattern must be set before `start()`.
 
 The pattern must use named groups:
 

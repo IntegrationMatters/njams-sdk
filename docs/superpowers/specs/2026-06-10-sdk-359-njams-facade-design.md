@@ -2,7 +2,7 @@
 
 **Ticket:** [SDK-359](https://salesfive.atlassian.net/browse/SDK-359) — Refactor Njams class
 **Date:** 2026-06-10
-**Status:** Draft for review
+**Status:** Implemented (see plan 2026-06-10-sdk-359-njams-facade-refactoring.md)
 
 ## Goal
 
@@ -162,6 +162,13 @@ introduce new exceptions into working client code. Old methods that already thro
   `CleanTracepointsTask`, `ConfigurationInstructionListener`,
   `NjamsProcessDiagramFactory`) keep working against the public accessors or
   package-private facet methods; no new public surface is added for them.
+- **Implementation note:** internal SDK callers (tasks, receivers, `JobImpl`,
+  `ProcessModel`, …) deliberately keep calling the deprecated facade methods instead of
+  the facet API. The frozen test suite mocks `Njams` with Mockito and stubs the legacy
+  surface (`getClientPath()`, `getConfiguration()`, `getSender()`, …); on such mocks the
+  facet accessors return `null`, so internally migrated callers would break those tests.
+  The deprecated methods are delegating one-liners, so no logic is duplicated. Internal
+  callers migrate together with the eventual removal of the deprecated methods.
 - The synchronization currently piggybacking on the `processModels` map (project
   message resources) moves into `NjamsProcesses` as an explicit lock object. Lock
   granularity and semantics stay as today; no new synchronization is introduced.
