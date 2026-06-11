@@ -44,7 +44,12 @@ public interface Job {
      * Adds a new Activity to the Job.
      *
      * @param activity to add
+     * @deprecated Use {@code job.activities().add(activity)} instead — obtain the facet via
+     *             {@link #activities()} and call {@link JobActivities#add(Activity)}. Unlike this
+     *             method, the replacement does NOT require the job to be started: activities
+     *             created before start are sent with the first log message after the job starts.
      */
+    @Deprecated
     public void addActivity(final Activity activity);
 
     /**
@@ -52,7 +57,12 @@ public interface Job {
      *
      * @param activityModel to create
      * @return a builder
+     * @deprecated Use {@code job.activities().create(activityModel)} instead — obtain the facet
+     *             via {@link #activities()} and call {@link JobActivities#create(ActivityModel)}.
+     *             Unlike this method, building via the replacement does NOT require the job to be
+     *             started.
      */
+    @Deprecated
     public ActivityBuilder createActivity(ActivityModel activityModel);
 
     /**
@@ -60,7 +70,12 @@ public interface Job {
      *
      * @param groupModel to create
      * @return a builder
+     * @deprecated Use {@code job.activities().createGroup(groupModel)} instead — obtain the facet
+     *             via {@link #activities()} and call {@link JobActivities#createGroup(GroupModel)}.
+     *             Unlike this method, building via the replacement does NOT require the job to be
+     *             started.
      */
+    @Deprecated
     public GroupBuilder createGroup(GroupModel groupModel);
 
     /**
@@ -68,7 +83,12 @@ public interface Job {
      *
      * @param groupModel to create
      * @return a builder
+     * @deprecated Use {@code job.activities().createSubProcess(subProcessModel)} instead — obtain
+     *             the facet via {@link #activities()} and call
+     *             {@link JobActivities#createSubProcess(SubProcessActivityModel)}. Unlike this
+     *             method, building via the replacement does NOT require the job to be started.
      */
+    @Deprecated
     public SubProcessActivityBuilder createSubProcess(SubProcessActivityModel groupModel);
 
     /**
@@ -95,7 +115,10 @@ public interface Job {
      * {@link java.util.ConcurrentModificationException}.
      *
      * @return a snapshot of all activities at the time of the call
+     * @deprecated Use {@code job.activities().getAll()} instead — obtain the facet via
+     *             {@link #activities()} and call {@link JobActivities#getAll()}.
      */
+    @Deprecated
     public Collection<Activity> getActivities();
 
     /**
@@ -103,7 +126,11 @@ public interface Job {
      *
      * @param activityInstanceId to get
      * @return the {@link Activity}
+     * @deprecated Use {@code job.activities().getByInstanceId(activityInstanceId)} instead —
+     *             obtain the facet via {@link #activities()} and call
+     *             {@link JobActivities#getByInstanceId(String)}.
      */
+    @Deprecated
     public Activity getActivityByInstanceId(String activityInstanceId);
 
     /**
@@ -111,7 +138,11 @@ public interface Job {
      *
      * @param activityModelId to get
      * @return the {@link Activity}
+     * @deprecated Use {@code job.activities().getByModelId(activityModelId)} instead — obtain the
+     *             facet via {@link #activities()} and call
+     *             {@link JobActivities#getByModelId(String)}.
      */
+    @Deprecated
     public Activity getActivityByModelId(String activityModelId);
 
     /**
@@ -119,38 +150,56 @@ public interface Job {
      *
      * @param name attribute name
      * @return attribute value
+     * @deprecated Use {@code job.attributes().get(name)} instead — obtain the facet via
+     *             {@link #attributes()} and call {@link JobAttributes#get(String)}.
      */
+    @Deprecated
     public String getAttribute(final String name);
 
     /**
      * Return all attributes for this job
      *
      * @return unmodifiable list of attributes
+     * @deprecated Use {@code job.attributes().getAll()} instead — obtain the facet via
+     *             {@link #attributes()} and call {@link JobAttributes#getAll()}.
      */
+    @Deprecated
     public Map<String, String> getAttributes();
 
     /**
      * @return the businessEnd
+     * @deprecated Use {@code job.metadata().getBusinessEnd()} instead — obtain the facet via
+     *             {@link #metadata()} and call {@link JobMetadata#getBusinessEnd()}.
      */
+    @Deprecated
     public LocalDateTime getBusinessEnd();
 
     /**
      * Return the businessObject
      *
      * @return the businessObject
+     * @deprecated Use {@code job.metadata().getBusinessObject()} instead — obtain the facet via
+     *             {@link #metadata()} and call {@link JobMetadata#getBusinessObject()}.
      */
+    @Deprecated
     public String getBusinessObject();
 
     /**
      * Return the businessService
      *
      * @return the businessService
+     * @deprecated Use {@code job.metadata().getBusinessService()} instead — obtain the facet via
+     *             {@link #metadata()} and call {@link JobMetadata#getBusinessService()}.
      */
+    @Deprecated
     public String getBusinessService();
 
     /**
      * @return the businessStart
+     * @deprecated Use {@code job.metadata().getBusinessStart()} instead — obtain the facet via
+     *             {@link #metadata()} and call {@link JobMetadata#getBusinessStart()}.
      */
+    @Deprecated
     public LocalDateTime getBusinessStart();
 
     /**
@@ -158,14 +207,21 @@ public interface Job {
      *
      * @param activityModelId to get
      * @return the {@link Activity}
+     * @deprecated Use {@code job.activities().getCompletedByModelId(activityModelId)} instead —
+     *             obtain the facet via {@link #activities()} and call
+     *             {@link JobActivities#getCompletedByModelId(String)}.
      */
+    @Deprecated
     public Activity getCompletedActivityByModelId(String activityModelId);
 
     /**
      * Returns the correlation log id of this job.
      *
      * @return collreation log id
+     * @deprecated Use {@code job.metadata().getCorrelationLogId()} instead — obtain the facet via
+     *             {@link #metadata()} and call {@link JobMetadata#getCorrelationLogId()}.
      */
+    @Deprecated
     public String getCorrelationLogId();
 
     /**
@@ -179,7 +235,10 @@ public interface Job {
      * Return the externalLogId
      *
      * @return the externalLogId
+     * @deprecated Use {@code job.metadata().getExternalLogId()} instead — obtain the facet via
+     *             {@link #metadata()} and call {@link JobMetadata#getExternalLogId()}.
      */
+    @Deprecated
     public String getExternalLogId();
 
     /**
@@ -207,7 +266,10 @@ public interface Job {
      * Return the parentLogId
      *
      * @return the parentLogId
+     * @deprecated Use {@code job.metadata().getParentLogId()} instead — obtain the facet via
+     *             {@link #metadata()} and call {@link JobMetadata#getParentLogId()}.
      */
+    @Deprecated
     public String getParentLogId();
 
     /**
@@ -216,7 +278,10 @@ public interface Job {
      *
      * @param key name of the property
      * @return Properties value of <b>null</b>
+     * @deprecated Use {@code job.properties().get(key)} instead — obtain the facet via
+     *             {@link #properties()} and call {@link JobProperties#get(String)}.
      */
+    @Deprecated
     public Object getProperty(final String key);
 
     /**
@@ -224,14 +289,21 @@ public interface Job {
      *
      * @param activityModelId to get
      * @return the {@link Activity}
+     * @deprecated Use {@code job.activities().getRunningByModelId(activityModelId)} instead —
+     *             obtain the facet via {@link #activities()} and call
+     *             {@link JobActivities#getRunningByModelId(String)}.
      */
+    @Deprecated
     public Activity getRunningActivityByModelId(String activityModelId);
 
     /**
      * Return the start activity
      *
      * @return the start activity
+     * @deprecated Use {@code job.activities().getStart()} instead — obtain the facet via
+     *             {@link #activities()} and call {@link JobActivities#getStart()}.
      */
+    @Deprecated
     public Activity getStartActivity();
 
     /**
@@ -253,7 +325,10 @@ public interface Job {
      *
      * @param name attribute name to check
      * @return true if found, false if not found
+     * @deprecated Use {@code job.attributes().has(name)} instead — obtain the facet via
+     *             {@link #attributes()} and call {@link JobAttributes#has(String)}.
      */
+    @Deprecated
     public boolean hasAttribute(final String name);
 
     /**
@@ -261,7 +336,10 @@ public interface Job {
      *
      * @param key name of the property
      * @return <b>true</b> if and only if a property with the given name exists.
+     * @deprecated Use {@code job.properties().has(key)} instead — obtain the facet via
+     *             {@link #properties()} and call {@link JobProperties#has(String)}.
      */
+    @Deprecated
     public boolean hasProperty(final String key);
 
     /**
@@ -269,7 +347,10 @@ public interface Job {
      * this job (including sub processes).
      *
      * @return <b>true</b> if and only if deep trace is enabled.
+     * @deprecated Use {@code job.tracing().isDeepTrace()} instead — obtain the facet via
+     *             {@link #tracing()} and call {@link JobTracing#isDeepTrace()}.
      */
+    @Deprecated
     public boolean isDeepTrace();
 
     /**
@@ -278,7 +359,10 @@ public interface Job {
      *
      * @param deepTrace
      * <b>true</b> if deep trace shall be activiated.
+     * @deprecated Use {@code job.tracing().setDeepTrace(deepTrace)} instead — obtain the facet via
+     *             {@link #tracing()} and call {@link JobTracing#setDeepTrace(boolean)}.
      */
+    @Deprecated
     public void setDeepTrace(boolean deepTrace);
 
     /**
@@ -291,7 +375,10 @@ public interface Job {
 
     /**
      * @return the traces
+     * @deprecated Use {@code job.tracing().isTraces()} instead — obtain the facet via
+     *             {@link #tracing()} and call {@link JobTracing#isTraces()}.
      */
+    @Deprecated
     public boolean isTraces();
 
     /**
@@ -300,7 +387,10 @@ public interface Job {
      * @param key name of the property
      * @return Previous value of the property (if it existed) or else
      * <b>null</b>.
+     * @deprecated Use {@code job.properties().remove(key)} instead — obtain the facet via
+     *             {@link #properties()} and call {@link JobProperties#remove(String)}.
      */
+    @Deprecated
     public Object removeProperty(final String key);
 
     /**
@@ -308,56 +398,99 @@ public interface Job {
      *
      * @param name the name of the attribute
      * @param value the value of the attribute
+     * @deprecated Use {@code job.attributes().add(name, value)} instead — obtain the facet via
+     *             {@link #attributes()} and call {@link JobAttributes#add(String, String)}. Unlike
+     *             this method, the replacement throws an exception when called after
+     *             {@link #end(boolean)}, because the final log message has already been sent and
+     *             a later change is never sent.
      */
+    @Deprecated
     public void addAttribute(final String name, final String value);
 
     /**
      * Set the businessObject as String
      *
      * @param businessObject businessObject to set
+     * @deprecated Use {@code job.metadata().setBusinessObject(businessObject)} instead — obtain
+     *             the facet via {@link #metadata()} and call
+     *             {@link JobMetadata#setBusinessObject(String)}. Unlike this method, the
+     *             replacement throws an exception when called after {@link #end(boolean)},
+     *             because the final log message has already been sent and a later change is
+     *             never sent.
      */
+    @Deprecated
     public void setBusinessObject(String businessObject);
 
     /**
      * Set the binsessObject as Path
      *
      * @param businessObject businessObject to set
+     * @deprecated Use {@code job.metadata().setBusinessObject(businessObject)} instead — obtain
+     *             the facet via {@link #metadata()} and call
+     *             {@link JobMetadata#setBusinessObject(Path)}. Unlike this method, the replacement
+     *             throws an exception when called after {@link #end(boolean)}.
      */
+    @Deprecated
     public void setBusinessObject(Path businessObject);
 
     /**
      * Set the businessObject's start
      *
      * @param businessStart startTime to set
+     * @deprecated Use {@code job.metadata().setBusinessStart(businessStart)} instead — obtain the
+     *             facet via {@link #metadata()} and call
+     *             {@link JobMetadata#setBusinessStart(LocalDateTime)}. Unlike this method, the
+     *             replacement throws an exception when called after {@link #end(boolean)}.
      */
+    @Deprecated
     public void setBusinessStart(LocalDateTime businessStart);
 
     /**
      * Set the businessObject's end
      *
      * @param businessEnd endTime to set
+     * @deprecated Use {@code job.metadata().setBusinessEnd(businessEnd)} instead — obtain the
+     *             facet via {@link #metadata()} and call
+     *             {@link JobMetadata#setBusinessEnd(LocalDateTime)}. Unlike this method, the
+     *             replacement throws an exception when called after {@link #end(boolean)}.
      */
+    @Deprecated
     public void setBusinessEnd(LocalDateTime businessEnd);
 
     /**
      * Set the businessService as String
      *
      * @param businessService businessService to set
+     * @deprecated Use {@code job.metadata().setBusinessService(businessService)} instead — obtain
+     *             the facet via {@link #metadata()} and call
+     *             {@link JobMetadata#setBusinessService(String)}. Unlike this method, the
+     *             replacement throws an exception when called after {@link #end(boolean)}.
      */
+    @Deprecated
     public void setBusinessService(String businessService);
 
     /**
      * Set the businessService as Path
      *
      * @param businessService businessService to set
+     * @deprecated Use {@code job.metadata().setBusinessService(businessService)} instead — obtain
+     *             the facet via {@link #metadata()} and call
+     *             {@link JobMetadata#setBusinessService(Path)}. Unlike this method, the
+     *             replacement throws an exception when called after {@link #end(boolean)}.
      */
+    @Deprecated
     public void setBusinessService(Path businessService);
 
     /**
      * Sets the correlation log id of this job.
      *
      * @param correlationLogId collreation log id
+     * @deprecated Use {@code job.metadata().setCorrelationLogId(correlationLogId)} instead —
+     *             obtain the facet via {@link #metadata()} and call
+     *             {@link JobMetadata#setCorrelationLogId(String)}. Unlike this method, the
+     *             replacement throws an exception when called after {@link #end(boolean)}.
      */
+    @Deprecated
     public void setCorrelationLogId(final String correlationLogId);
 
     /**
@@ -371,14 +504,24 @@ public interface Job {
      * Set the externalLogId
      *
      * @param externalLogId texternalLogId to set
+     * @deprecated Use {@code job.metadata().setExternalLogId(externalLogId)} instead — obtain the
+     *             facet via {@link #metadata()} and call
+     *             {@link JobMetadata#setExternalLogId(String)}. Unlike this method, the
+     *             replacement throws an exception when called after {@link #end(boolean)}.
      */
+    @Deprecated
     public void setExternalLogId(String externalLogId);
 
     /**
      * Set the parentLogId
      *
      * @param parentLogId parentLogId to set
+     * @deprecated Use {@code job.metadata().setParentLogId(parentLogId)} instead — obtain the
+     *             facet via {@link #metadata()} and call
+     *             {@link JobMetadata#setParentLogId(String)}. Unlike this method, the replacement
+     *             throws an exception when called after {@link #end(boolean)}.
      */
+    @Deprecated
     public void setParentLogId(String parentLogId);
 
     /**
@@ -387,7 +530,10 @@ public interface Job {
      *
      * @param key name of the property
      * @param value value of the property
+     * @deprecated Use {@code job.properties().set(key, value)} instead — obtain the facet via
+     *             {@link #properties()} and call {@link JobProperties#set(String, Object)}.
      */
+    @Deprecated
     public void setProperty(final String key, final Object value);
 
     /**

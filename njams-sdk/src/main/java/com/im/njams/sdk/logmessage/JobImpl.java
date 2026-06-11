@@ -301,7 +301,10 @@ public class JobImpl implements Job {
      *
      * @param sentBefore Send if the last flush was before this timestamp
      * @param flushSize  Send if message size is greater than this size
+     * @deprecated SDK-internal flush mechanics, not part of the public API; there is no
+     *             replacement — periodic flushing is handled transparently by the SDK.
      */
+    @Deprecated
     public void timerFlush(LocalDateTime sentBefore, long flushSize) {
         flusher.timerFlush(this, sentBefore, flushSize);
     }
@@ -310,7 +313,11 @@ public class JobImpl implements Job {
      * This method is called by {@link #timerFlush(LocalDateTime, long)}
      * and when {@link #end(boolean)} is called. It flushes a logMessage to the
      * server if all the preconditions are fulfilled.
+     *
+     * @deprecated SDK-internal flush mechanics, not part of the public API; there is no
+     *             replacement — log messages are flushed transparently by the SDK.
      */
+    @Deprecated
     public void flush() {
         flusher.flush(this);
     }
@@ -387,7 +394,10 @@ public class JobImpl implements Job {
      * @param errorActivity The activity instance on that the given error occurred.
      * @param errorEvent    Information about the error that occurred. This information is used for
      *                      generating an according event if required.
+     * @deprecated SDK-internal error handling, not part of the public API; there is no
+     *             replacement — error events are recorded by the SDK's activity processing.
      */
+    @Deprecated
     public void setActivityErrorEvent(Activity errorActivity, ErrorEvent errorEvent) {
         errorHandling.setActivityErrorEvent(errorActivity, errorEvent);
     }
@@ -732,14 +742,21 @@ public class JobImpl implements Job {
      * Return the last push LocalDateTime
      *
      * @return the last push LocalDateTime
+     * @deprecated SDK-internal flush bookkeeping, not part of the public API; there is no
+     *             replacement.
      */
+    @Deprecated
     public LocalDateTime getLastFlush() {
         return flusher.getLastFlush();
     }
 
     /**
      * Marks this job instance as instrumented.
+     *
+     * @deprecated SDK-internal tracing mechanics, not part of the public API; there is no
+     *             replacement — instrumentation is flagged by the SDK's tracing handling.
      */
+    @Deprecated
     public void setInstrumented() {
         tracing.setInstrumented();
     }
@@ -754,7 +771,10 @@ public class JobImpl implements Job {
 
     /**
      * @param traces the traces to set
+     * @deprecated SDK-internal tracing mechanics, not part of the public API; there is no
+     *             replacement — the traces flag is maintained by the SDK's tracepoint handling.
      */
+    @Deprecated
     public void setTraces(boolean traces) {
         tracing.setTraces(traces);
     }
@@ -808,7 +828,10 @@ public class JobImpl implements Job {
 
     /**
      * @return the estimatedSize
+     * @deprecated SDK-internal flush bookkeeping, not part of the public API; there is no
+     *             replacement.
      */
+    @Deprecated
     public long getEstimatedSize() {
         return flusher.getEstimatedSize();
     }
@@ -817,7 +840,10 @@ public class JobImpl implements Job {
      * Add estimatedSize to the estimatedSize of the activity
      *
      * @param estimatedSize estimatedSize to add
+     * @deprecated SDK-internal flush bookkeeping, not part of the public API; there is no
+     *             replacement.
      */
+    @Deprecated
     public void addToEstimatedSize(long estimatedSize) {
         flusher.addToEstimatedSize(estimatedSize);
     }
@@ -839,7 +865,10 @@ public class JobImpl implements Job {
      *
      * @param tracepoint The tracepoint to check
      * @return <code>true</code> if the given tracepoint configuration is currently active.
+     * @deprecated SDK-internal tracing mechanics, not part of the public API; there is no
+     *             replacement — tracepoints are evaluated by the SDK's activity processing.
      */
+    @Deprecated
     public boolean isActiveTracepoint(TracepointExt tracepoint) {
         return runtimeConfig.isActiveTracepoint(tracepoint);
     }
@@ -849,7 +878,10 @@ public class JobImpl implements Job {
      *
      * @param activityModel The model for that configuration shall be returned.
      * @return May be <code>null</code> if no configuration exists.
+     * @deprecated SDK-internal configuration lookup, not part of the public API; there is no
+     *             replacement — activity configurations are resolved by the SDK.
      */
+    @Deprecated
     public ActivityConfiguration getActivityConfiguration(ActivityModel activityModel) {
         return runtimeConfig.getActivityConfiguration(activityModel);
     }
@@ -858,7 +890,10 @@ public class JobImpl implements Job {
      * Return if recording is activated for this job
      *
      * @return true if activated, false if not
+     * @deprecated SDK-internal configuration state, not part of the public API; there is no
+     *             replacement.
      */
+    @Deprecated
     public boolean isRecording() {
         return runtimeConfig.recording;
     }
@@ -988,6 +1023,15 @@ public class JobImpl implements Job {
         attributes.addInternal(key, value);
     }
 
+    /**
+     * Returns the {@link Njams} client instance owning this job.
+     *
+     * @return the owning client instance
+     * @deprecated SDK-internal back-reference, not part of the public API; there is no
+     *             replacement — client code should keep its own reference to its {@link Njams}
+     *             instance.
+     */
+    @Deprecated
     public Njams getNjams() {
         return njams;
     }
@@ -1007,7 +1051,10 @@ public class JobImpl implements Job {
      * @param value     The input value that is returned but possibly truncated
      * @param maxLength Maximum length for the returned string
      * @return The given input but no longer than the given maximum length
+     * @deprecated SDK-internal helper, not part of the public API; there is no replacement —
+     *             field values are limited transparently by the SDK.
      */
+    @Deprecated
     public static String limitLength(String fieldName, String value, int maxLength) {
         if (value != null && value.length() > maxLength) {
             LOG.warn("Value of field '{}' exceeds max length of {} characters. Value will be truncated.", fieldName,
