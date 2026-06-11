@@ -70,15 +70,6 @@ public class Njams implements InstructionListener {
 
     private static final org.slf4j.Logger LOG = LoggerFactory.getLogger(Njams.class);
 
-    private static final String DEFAULT_TAXONOMY_ROOT_TYPE = "njams.taxonomy.root";
-    private static final String DEFAULT_TAXONOMY_FOLDER_TYPE = "njams.taxonomy.folder";
-    private static final String DEFAULT_TAXONOMY_CLIENT_TYPE = "njams.taxonomy.client";
-    private static final String DEFAULT_TAXONOMY_PROCESS_TYPE = "njams.taxonomy.process";
-    private static final String DEFAULT_TAXONOMY_ROOT_ICON = "images/root.png";
-    private static final String DEFAULT_TAXONOMY_FOLDER_ICON = "images/folder.png";
-    private static final String DEFAULT_TAXONOMY_CLIENT_ICON = "images/client.png";
-    private static final String DEFAULT_TAXONOMY_PROCESS_ICON = "images/process.png";
-
     private static final long DEFAULT_CONNECT_TIMEOUT_MS = 30_000L;
 
     /**
@@ -175,23 +166,12 @@ public class Njams implements InstructionListener {
     // process-models, images, global-variables, tree-elements
     final Object projectMessageLock = new Object();
 
-    // Path -> ProcessModel
-    private final Map<Path, ProcessModel> processModels = new HashMap<>();
-
-    // Images
-    private final Collection<ImageSupplier> images = new HashSet<>();
-
     private final NjamsMetadata metadata;
+
+    private final NjamsProcesses processes;
 
     // The settings of the client
     private final ClientSettings settings;
-
-    // tree representation for the client
-    private final List<TreeElement> treeElements;
-
-    private ProcessDiagramFactory processDiagramFactory;
-
-    private ProcessModelLayouter processModelLayouter;
 
     private final NjamsJobs jobs;
 
@@ -240,18 +220,16 @@ public class Njams implements InstructionListener {
      * @param settings       needed settings for client eg. for communication
      */
     public Njams(Path path, String version, String runtimeVersion, String category, ClientSettings settings) {
-        treeElements = new ArrayList<>();
         this.settings = settings;
         jobs = new NjamsJobs(lifecycle);
         replay = new NjamsReplay(features, jobs);
         metadata = new NjamsMetadata(path, version, category, projectMessageLock);
         metadata.setRuntimeVersion(runtimeVersion);
         initContainerMode();
-        processDiagramFactory = new NjamsProcessDiagramFactory(this);
-        processModelLayouter = new CommonBfsModelLayouter();
         argos = new NjamsArgos(settings);
         configuration = new NjamsConfiguration(settings, this);
-        createTreeElements(path, TreeElementType.CLIENT);
+        processes = new NjamsProcesses(this, lifecycle, metadata, features, configuration, projectMessageLock);
+        processes.createTreeElements(path, TreeElementType.CLIENT);
         metadata.printStartupBanner(settings);
         beginConnect();
     }
@@ -413,7 +391,7 @@ public class Njams implements InstructionListener {
      * @param resourcePath the path where to find the image
      */
     public void addImage(final String key, final String resourcePath) {
-        addImage(new ResourceImageSupplier(key, resourcePath));
+        processes.addImage(key, resourcePath);
     }
 
     /**
@@ -422,16 +400,14 @@ public class Njams implements InstructionListener {
      * @param imageSupplier the supplier used by SDK to find the image
      */
     public void addImage(final ImageSupplier imageSupplier) {
-        synchronized (projectMessageLock) {
-            images.add(imageSupplier);
-        }
+        processes.addImage(imageSupplier);
     }
 
     /**
      * @param processDiagramFactory the processDiagramFactory to set
      */
     public void setProcessDiagramFactory(ProcessDiagramFactory processDiagramFactory) {
-        this.processDiagramFactory = processDiagramFactory;
+        processes.setDiagramFactory(processDiagramFactory);
     }
 
     /**
@@ -579,15 +555,7 @@ public class Njams implements InstructionListener {
      * @return the ProcessModel or {@link NjamsSdkRuntimeException}
      */
     public ProcessModel getProcessModel(final Path relativePath) {
-        final Path absolutePath = metadata.getClientPath().resolveChild(relativePath.toString());
-        final ProcessModel pm;
-        synchronized (projectMessageLock) {
-            pm = absolutePath == null ? null : processModels.get(absolutePath);
-        }
-        if (pm == null) {
-            throw new NjamsSdkRuntimeException("ProcessModel not found for path " + relativePath);
-        }
-        return pm;
+        return processes.get(relativePath);
     }
 
     /**
@@ -597,16 +565,7 @@ public class Njams implements InstructionListener {
      * @return true if found else false
      */
     public boolean hasProcessModel(final Path relativePath) {
-        if (relativePath == null) {
-            return false;
-        }
-        final Path absolutePath = metadata.getClientPath().resolveChild(relativePath.toString());
-        if (absolutePath == null) {
-            return false;
-        }
-        synchronized (projectMessageLock) {
-            return processModels.containsKey(absolutePath);
-        }
+        return processes.has(relativePath);
     }
 
     /**
@@ -615,9 +574,7 @@ public class Njams implements InstructionListener {
      * @return Collection of all process models
      */
     public Collection<ProcessModel> getProcessModels() {
-        synchronized (projectMessageLock) {
-            return Collections.unmodifiableCollection(processModels.values());
-        }
+        return processes.getAll();
     }
 
     /**
@@ -648,13 +605,7 @@ public class Njams implements InstructionListener {
      * @return the new ProcessModel or a {@link NjamsSdkRuntimeException}
      */
     public ProcessModel createProcess(final Path path) {
-        final Path fullClientPath = metadata.getClientPath().resolveOrCreateChild(path.toString());
-        final ProcessModel model = new ProcessModel(fullClientPath, this);
-        synchronized (projectMessageLock) {
-            createTreeElements(fullClientPath, TreeElementType.PROCESS);
-            processModels.put(fullClientPath, model);
-        }
-        return model;
+        return processes.create(path, this);
     }
 
     /**
@@ -664,44 +615,7 @@ public class Njams implements InstructionListener {
      *                     created for another instance than this.
      */
     public void addProcessModel(final ProcessModel processModel) {
-        if (processModel == null) {
-            return;
-        }
-        if (processModel.getNjams() != this) {
-            throw new NjamsSdkRuntimeException("Process model has been created for a different nJAMS instance.");
-        }
-        final Path modelPath = processModel.getPath();
-        Path ancestor = modelPath;
-        while (ancestor != null && ancestor != metadata.getClientPath()) {
-            ancestor = ancestor.getParent();
-        }
-        if (ancestor == null) {
-            throw new NjamsSdkRuntimeException("Process model path does not match this nJAMS instance.");
-        }
-        synchronized (projectMessageLock) {
-            createTreeElements(modelPath, TreeElementType.PROCESS);
-            processModels.put(modelPath, processModel);
-        }
-    }
-
-    /**
-     * Initializes the common body of a project message.
-     * @return
-     */
-    private ProjectMessage prepareProjectMessage() {
-        final ProjectMessage msg = new ProjectMessage();
-        msg.setPath(metadata.getClientPath().toString());
-        msg.setClientVersion(metadata.getClientVersion());
-        msg.setSdkVersion(metadata.getSdkVersion());
-        msg.setRuntimeVersion(metadata.getRuntimeVersion());
-        msg.setCategory(metadata.getCategory());
-        msg.setStartTime(metadata.getStartTime());
-        msg.setMachine(metadata.getMachine());
-        msg.setFeatures(features.list().stream().map(Feature::key).collect(Collectors.toList()));
-        msg.setLogMode(configuration.getLogMode());
-        msg.setClientId(metadata.getClientSessionId());
-        msg.setRecording(getConfiguration().isRecording());
-        return msg;
+        processes.add(processModel, this);
     }
 
     /**
@@ -709,20 +623,7 @@ public class Njams implements InstructionListener {
      * can only be flushed when the instance was started.
      */
     public void sendProjectMessage() {
-        addDefaultImagesIfNeededAndAbsent();
-        setStarters();
-        final ProjectMessage msg = prepareProjectMessage();
-        msg.getTreeElements().addAll(treeElements);
-        synchronized (projectMessageLock) {
-            processModels.values().stream().map(ProcessModel::getSerializableProcessModel)
-                .forEach(ipm -> msg.getProcesses().add(ipm));
-            images.forEach(i -> msg.getImages().put(i.getName(), i.getBase64Image()));
-            msg.getGlobalVariables().putAll(metadata.getGlobalVariables());
-            msg.setGlobalVariablesPattern(metadata.getGlobalVariablesPattern());
-            LOG.debug("Sending project message with {} process-models, {} images, {} global-variables.",
-                processModels.size(), images.size(), metadata.getGlobalVariables().size());
-        }
-        getSender().send(msg, metadata.getClientSessionId());
+        processes.send();
     }
 
     /**
@@ -732,83 +633,7 @@ public class Njams implements InstructionListener {
      * @param model the additional model to send
      */
     public void sendAdditionalProcess(final ProcessModel model) {
-        if (!isStarted()) {
-            throw new NjamsSdkRuntimeException("Njams is not started. Please use createProcess Method instead");
-        }
-        final ProjectMessage msg = prepareProjectMessage();
-        addTreeElements(msg.getTreeElements(), getClientPath(), TreeElementType.CLIENT, false);
-        addTreeElements(msg.getTreeElements(), model.getPath(), TreeElementType.PROCESS, model.isStarter());
-        msg.getProcesses().add(model.getSerializableProcessModel());
-        getSender().send(msg, metadata.getClientSessionId());
-    }
-
-    /**
-     * Adds imgages for the default keys, if they are used and no image has benn
-     * added for them
-     */
-    private void addDefaultImagesIfNeededAndAbsent() {
-        addDefaultImagesIfNeededAndAbsent(DEFAULT_TAXONOMY_FOLDER_TYPE, DEFAULT_TAXONOMY_FOLDER_ICON);
-        addDefaultImagesIfNeededAndAbsent(DEFAULT_TAXONOMY_ROOT_TYPE, DEFAULT_TAXONOMY_ROOT_ICON);
-        addDefaultImagesIfNeededAndAbsent(DEFAULT_TAXONOMY_CLIENT_TYPE, DEFAULT_TAXONOMY_CLIENT_ICON);
-        addDefaultImagesIfNeededAndAbsent(DEFAULT_TAXONOMY_PROCESS_TYPE, DEFAULT_TAXONOMY_PROCESS_ICON);
-    }
-
-    /**
-     * Checks all tree elements if the given treeDefaultType has been used, and
-     * adds the treeDefaultIcon if not images has been added yet
-     *
-     * @param treeDefaultType type of the tree element
-     * @param treeDefaultIcon icon which should be added if needed
-     */
-    private void addDefaultImagesIfNeededAndAbsent(String treeDefaultType, String treeDefaultIcon) {
-        synchronized (projectMessageLock) {
-            boolean found = treeElements.stream().anyMatch(te -> te.getType().equals(treeDefaultType));
-            if (found && images.stream().noneMatch(i -> i.getName().equals(treeDefaultType))) {
-                addImage(treeDefaultType, treeDefaultIcon);
-            }
-        }
-    }
-
-    /**
-     * Create DomainObjectStructure which is the tree representation for the
-     * client
-     */
-    private void createTreeElements(Path path, TreeElementType targetDomainObjectType) {
-        synchronized (projectMessageLock) {
-            final List<String> parts = path.getSegments();
-            String currentPath = ">";
-            for (int i = 0; i < parts.size(); i++) {
-                String part = parts.get(i);
-                currentPath += part + ">";
-                final String finalPath = currentPath;
-                boolean found = treeElements.stream().filter(d -> d.getPath().equals(finalPath)).findAny().isPresent();
-                if (!found) {
-                    TreeElementType domainObjectType = i == parts.size() - 1 ? targetDomainObjectType : null;
-                    String type = getTreeElementDefaultType(i == 0, domainObjectType);
-                    treeElements.add(new TreeElement(currentPath, part, type, domainObjectType));
-                }
-            }
-        }
-    }
-
-    /**
-     * Returns the default icon type for a TreeElement, based on the criterias
-     * first and TreeElementType
-     *
-     * @param first          Is this the root element
-     * @param treeElmentType The treeElementType
-     * @return the icon type
-     */
-    private String getTreeElementDefaultType(boolean first, TreeElementType treeElmentType) {
-        String type = DEFAULT_TAXONOMY_FOLDER_TYPE;
-        if (first) {
-            type = DEFAULT_TAXONOMY_ROOT_TYPE;
-        } else if (treeElmentType == TreeElementType.CLIENT) {
-            type = DEFAULT_TAXONOMY_CLIENT_TYPE;
-        } else if (treeElmentType == TreeElementType.PROCESS) {
-            type = DEFAULT_TAXONOMY_PROCESS_TYPE;
-        }
-        return type;
+        processes.announce(model);
     }
 
     /**
@@ -818,59 +643,21 @@ public class Njams implements InstructionListener {
      * @param type icon type of the tree element
      */
     public void setTreeElementType(Path path, String type) {
-        synchronized (projectMessageLock) {
-            TreeElement dos = treeElements.stream().filter(d -> d.getPath().equals(path.toString())).findAny()
-                .orElse(null);
-            if (dos == null) {
-                throw new NjamsSdkRuntimeException("Unable to find DomainObjectStructure for path " + path);
-            }
-            dos.setType(type);
-        }
-    }
-
-    /**
-     * Sets the TreeElements starter flag according to the corresponding processModel
-     */
-    private void setStarters() {
-        treeElements.stream().filter(t -> t.getTreeElementType() == TreeElementType.PROCESS)
-            .forEach(t -> t.setStarter(
-                Optional.ofNullable(
-                    processModels.get(Path.resolve(t.getPath()))).map(ProcessModel::isStarter).orElse(false)));
-    }
-
-    private List<TreeElement> addTreeElements(List<TreeElement> treeElements, Path processPath,
-        TreeElementType targetDomainObjectType, boolean isStarter) {
-        final List<String> parts = processPath.getSegments();
-        String currentPath = ">";
-        for (int i = 0; i < parts.size(); i++) {
-            String part = parts.get(i);
-            currentPath += part + ">";
-            final String finalPath = currentPath;
-            boolean found = treeElements.stream().filter(d -> d.getPath().equals(finalPath)).findAny().isPresent();
-            if (!found) {
-                TreeElementType domainObjectType =
-                    i == parts.size() - 1 ? targetDomainObjectType : null;
-                String type = getTreeElementDefaultType(i == 0, domainObjectType);
-                treeElements.add(new TreeElement(currentPath, part, type, domainObjectType));
-            }
-        }
-        treeElements.stream().filter(te -> te.getTreeElementType() == TreeElementType.PROCESS)
-            .forEach(te -> te.setStarter(isStarter));
-        return treeElements;
+        processes.setTreeElementType(path, type);
     }
 
     /**
      * @return the processModelLayouter
      */
     public ProcessModelLayouter getProcessModelLayouter() {
-        return processModelLayouter;
+        return processes.getLayouter();
     }
 
     /**
      * @param processModelLayouter the processModelLayouter to set
      */
     public void setProcessModelLayouter(ProcessModelLayouter processModelLayouter) {
-        this.processModelLayouter = processModelLayouter;
+        processes.setLayouter(processModelLayouter);
     }
 
     @Override
@@ -947,7 +734,7 @@ public class Njams implements InstructionListener {
      * @return the ProcessDiagramFactory
      */
     public ProcessDiagramFactory getProcessDiagramFactory() {
-        return processDiagramFactory;
+        return processes.getDiagramFactory();
     }
 
     /**
