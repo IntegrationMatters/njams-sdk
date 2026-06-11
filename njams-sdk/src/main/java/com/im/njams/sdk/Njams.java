@@ -250,8 +250,7 @@ public class Njams implements InstructionListener {
     // logId of replayed job -> deep-trace flag from the replay request
     private final Map<String, Boolean> replayedLogIds = new HashMap<>();
 
-    private ArgosSender argosSender = null;
-    private final Collection<ArgosMultiCollector<?>> argosCollectors = new ArrayList<>();
+    private final NjamsArgos argos;
 
     /**
      * Create a nJAMS client without the information about the runtimeVersion of the client.
@@ -286,8 +285,7 @@ public class Njams implements InstructionListener {
         initContainerMode();
         processDiagramFactory = new NjamsProcessDiagramFactory(this);
         processModelLayouter = new CommonBfsModelLayouter();
-        argosSender = ArgosSender.getInstance();
-        argosSender.init(settings);
+        argos = new NjamsArgos(settings);
         loadConfigurationProvider();
         createTreeElements(path, TreeElementType.CLIENT);
         readVersionsFromVersionFile(version);
@@ -308,13 +306,11 @@ public class Njams implements InstructionListener {
      * @param collector The collector that collects statistics
      */
     public void addArgosCollector(ArgosMultiCollector collector) {
-        argosCollectors.add(collector);
-        argosSender.addArgosCollector(collector);
+        argos.add(collector);
     }
 
     public void removeArgosCollector(ArgosMultiCollector collector) {
-        argosCollectors.remove(collector);
-        argosSender.removeArgosCollector(collector);
+        argos.remove(collector);
     }
 
     /**
@@ -665,8 +661,7 @@ public class Njams implements InstructionListener {
         LogMessageFlushTask.stop(this);
         CleanTracepointsTask.stop(this);
 
-        argosCollectors.forEach(argosSender::removeArgosCollector);
-        argosCollectors.clear();
+        argos.stop();
 
         if (sender != null) {
             sender.close();
