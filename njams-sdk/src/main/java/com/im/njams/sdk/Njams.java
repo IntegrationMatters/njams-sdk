@@ -79,8 +79,6 @@ public class Njams implements InstructionListener {
     private static final String DEFAULT_TAXONOMY_CLIENT_ICON = "images/client.png";
     private static final String DEFAULT_TAXONOMY_PROCESS_ICON = "images/process.png";
 
-    private static final String DEFAULT_CACHE_PROVIDER = FileConfigurationProvider.NAME;
-
     private static final long DEFAULT_CONNECT_TIMEOUT_MS = 30_000L;
 
     /**
@@ -212,7 +210,7 @@ public class Njams implements InstructionListener {
     /** Receiver pre-created at construction time, transferred to {@link #receiver} inside {@link #startReceiver()}. */
     private Receiver earlyReceiver;
 
-    private Configuration configuration;
+    private NjamsConfiguration configuration;
 
     private final NjamsReplay replay;
 
@@ -252,7 +250,7 @@ public class Njams implements InstructionListener {
         processDiagramFactory = new NjamsProcessDiagramFactory(this);
         processModelLayouter = new CommonBfsModelLayouter();
         argos = new NjamsArgos(settings);
-        loadConfigurationProvider();
+        configuration = new NjamsConfiguration(settings, this);
         createTreeElements(path, TreeElementType.CLIENT);
         metadata.printStartupBanner(settings);
         beginConnect();
@@ -273,31 +271,6 @@ public class Njams implements InstructionListener {
 
     public void removeArgosCollector(ArgosMultiCollector collector) {
         argos.remove(collector);
-    }
-
-    /**
-     * Load the ConfigurationProvider via the provided Properties
-     */
-    private void loadConfigurationProvider() {
-        if (!settings.containsKey(ConfigurationProviderFactory.CONFIGURATION_PROVIDER)) {
-            settings.put(ConfigurationProviderFactory.CONFIGURATION_PROVIDER, DEFAULT_CACHE_PROVIDER);
-        }
-        ConfigurationProvider configurationProvider = new ConfigurationProviderFactory(settings, this)
-            .getConfigurationProvider();
-        configuration = new Configuration();
-        configuration.setConfigurationProvider(configurationProvider);
-        settings.addSecureProperties(configurationProvider.getSecureProperties());
-
-    }
-
-    /**
-     * load and apply configuration from configuration provider
-     */
-    private void loadConfiguration() {
-        ConfigurationProvider configurationProvider = configuration.getConfigurationProvider();
-        if (configurationProvider != null) {
-            configuration = configurationProvider.loadConfiguration();
-        }
     }
 
     /**
@@ -545,8 +518,8 @@ public class Njams implements InstructionListener {
             if (settings == null) {
                 throw new NjamsSdkRuntimeException("Settings not set");
             }
-            loadConfiguration();
-            initializeDataMasking();
+            configuration.load();
+            configuration.initializeDataMasking();
             instructionListeners.add(this);
             instructionListeners.add(new ConfigurationInstructionListener(this));
             startReceiver();
@@ -1124,14 +1097,14 @@ public class Njams implements InstructionListener {
      * @return LogMode of this client
      */
     public LogMode getLogMode() {
-        return getConfiguration().getLogMode();
+        return configuration.getLogMode();
     }
 
     /**
      * @return the configuration
      */
     public Configuration getConfiguration() {
-        return configuration;
+        return configuration.get();
     }
 
     /**
@@ -1185,26 +1158,6 @@ public class Njams implements InstructionListener {
      * @return true if the process is excluded, or false if not
      */
     public boolean isExcluded(Path processPath) {
-        return configuration.isProcessExcluded(processPath == null ? null : processPath.toLegacyPath());
-    }
-
-    /**
-     * Initialize the datamasking feature
-     */
-    private void initializeDataMasking() {
-
-        boolean dataMaskingEnabled = settings.getBool(NjamsSettings.PROPERTY_DATA_MASKING_ENABLED, true);
-        if (dataMaskingEnabled) {
-            DataMasking.addPatterns(settings);
-        } else {
-            LOG.info("DataMasking is disabled.");
-        }
-        if (dataMaskingEnabled && !configuration.getDataMasking().isEmpty()) {
-            LOG.warn("DataMasking via the configuration is deprecated but will be used as well. Use settings " +
-                    "with the properties \n{} = " +
-                    "\"true\" \nand multiple \n{}<YOUR-REGEX-NAME> = <YOUR-REGEX> \nfor this.",
-                NjamsSettings.PROPERTY_DATA_MASKING_ENABLED, NjamsSettings.PROPERTY_DATA_MASKING_REGEX_PREFIX);
-            DataMasking.addPatterns(configuration.getDataMasking());
-        }
+        return configuration.isExcluded(processPath);
     }
 }
