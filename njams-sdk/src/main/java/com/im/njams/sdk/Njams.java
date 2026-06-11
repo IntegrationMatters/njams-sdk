@@ -240,6 +240,95 @@ public class Njams implements InstructionListener {
     }
 
     /**
+     * Provides access to the identifying metadata of this client: path, category, versions,
+     * machine, session id, and the global variables announced to the nJAMS server at start.
+     *
+     * @return the metadata facet of this client, never <code>null</code>
+     */
+    public NjamsMetadata metadata() {
+        return metadata;
+    }
+
+    /**
+     * Provides access to the optional-feature list and the container-mode flag of this client.
+     * Features are announced to the nJAMS server at start.
+     *
+     * @return the features facet of this client, never <code>null</code>
+     */
+    public NjamsFeatures features() {
+        return features;
+    }
+
+    /**
+     * Provides access to the process models, taxonomy tree, images and process diagram tooling
+     * of this client, including sending project messages.
+     *
+     * @return the processes facet of this client, never <code>null</code>
+     */
+    public NjamsProcesses processes() {
+        return processes;
+    }
+
+    /**
+     * Provides access to the jobs of this client: the registry of currently running
+     * {@link Job} instances.
+     *
+     * @return the jobs facet of this client, never <code>null</code>
+     */
+    public NjamsJobs jobs() {
+        return jobs;
+    }
+
+    /**
+     * Provides access to the {@link Serializer} registry of this client, used to serialize
+     * activity data to strings.
+     *
+     * @return the serializers facet of this client, never <code>null</code>
+     */
+    public NjamsSerializers serializers() {
+        return serializers;
+    }
+
+    /**
+     * Provides access to the replay handling of this client: registering a
+     * {@link ReplayHandler} enables the replay feature.
+     *
+     * @return the replay facet of this client, never <code>null</code>
+     */
+    public NjamsReplay replay() {
+        return replay;
+    }
+
+    /**
+     * Provides access to the {@link InstructionListener} registry of this client, which is
+     * called for commands received from the nJAMS server.
+     *
+     * @return the commands facet of this client, never <code>null</code>
+     */
+    public NjamsCommands commands() {
+        return commands;
+    }
+
+    /**
+     * Provides access to the Argos metric collector registration of this client.
+     *
+     * @return the Argos facet of this client, never <code>null</code>
+     */
+    public NjamsArgos argos() {
+        return argos;
+    }
+
+    /**
+     * Provides access to the server-driven runtime configuration of this client: log mode,
+     * process exclusions, and the underlying {@link Configuration}.
+     *
+     * @return the configuration facet of this client, never <code>null</code>
+     */
+    public NjamsConfiguration configuration() {
+        return configuration;
+    }
+
+    /**
      * Adds a collector that will create statistics.
      *
      * @param collector The collector that collects statistics
