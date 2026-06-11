@@ -139,14 +139,11 @@ public class JobImpl implements Job {
 
     boolean hasOrHadStartActivity;
 
-    private boolean deepTrace;
-
     private boolean finished = false;
 
     private final JobRuntimeConfig runtimeConfig;
 
-    private boolean instrumented = false;
-    private boolean traces;
+    private final JobTracing tracing = new JobTracing();
 
     // internal properties, shall not go to any message
     private final JobProperties properties = new JobProperties();
@@ -450,7 +447,7 @@ public class JobImpl implements Job {
                     || isLogLevelHigherAsJobStateAndHasNoTraces()) {
                 LOG.debug("Job not flushed: Engine Mode: {} // Job's log level: {}, "
                         + "configured level: {} // is excluded: {} // has traces: {}", runtimeConfig.logMode,
-                        getStatus(), runtimeConfig.logLevel, runtimeConfig.exclude, traces);
+                        getStatus(), runtimeConfig.logLevel, runtimeConfig.exclude, tracing.isTraces());
                 //delete not running activities
                 removeNotRunningActivities();
                 calculateEstimatedSize();
@@ -471,7 +468,7 @@ public class JobImpl implements Job {
     }
 
     private boolean isLogModeExclusiveAndNotInstrumented() {
-        if (runtimeConfig.logMode == LogMode.EXCLUSIVE && !instrumented) {
+        if (runtimeConfig.logMode == LogMode.EXCLUSIVE && !tracing.isInstrumented()) {
             LOG.debug("isLogModeExclusiveAndNotInstrumented: true");
             return true;
         }
@@ -487,11 +484,11 @@ public class JobImpl implements Job {
     }
 
     private boolean isLogLevelHigherAsJobStateAndHasNoTraces() {
-        boolean b = hasStarted() && maxSeverity.getValue() < runtimeConfig.logLevel.value() && !traces;
+        boolean b = hasStarted() && maxSeverity.getValue() < runtimeConfig.logLevel.value() && !tracing.isTraces();
 
         if (LOG.isDebugEnabled()) {
             LOG.debug("hasStarted[{}] && maxSeverity[{}] < logLevel[{}] && !traces[{}] == {}", hasStarted(),
-                    maxSeverity.getValue(), runtimeConfig.logLevel.value(), traces, b);
+                    maxSeverity.getValue(), runtimeConfig.logLevel.value(), tracing.isTraces(), b);
         }
         return b;
     }
@@ -932,7 +929,7 @@ public class JobImpl implements Job {
      */
     @Override
     public void setDeepTrace(boolean deepTrace) {
-        this.deepTrace = deepTrace;
+        tracing.setDeepTrace(deepTrace);
     }
 
     /**
@@ -943,7 +940,7 @@ public class JobImpl implements Job {
      */
     @Override
     public boolean isDeepTrace() {
-        return deepTrace;
+        return tracing.isDeepTrace();
     }
 
     /**
@@ -959,7 +956,7 @@ public class JobImpl implements Job {
      * Marks this job instance as instrumented.
      */
     public void setInstrumented() {
-        instrumented = true;
+        tracing.setInstrumented();
     }
 
     /**
@@ -967,14 +964,14 @@ public class JobImpl implements Job {
      */
     @Override
     public boolean isTraces() {
-        return traces;
+        return tracing.isTraces();
     }
 
     /**
      * @param traces the traces to set
      */
     public void setTraces(boolean traces) {
-        this.traces = traces;
+        tracing.setTraces(traces);
     }
 
     /**
@@ -1074,7 +1071,7 @@ public class JobImpl implements Job {
 
     @Override
     public boolean needsData(ActivityModel activityModel) {
-        if (deepTrace || activityModel.isStarter()) {
+        if (tracing.isDeepTrace() || activityModel.isStarter()) {
             return true;
         }
         ActivityConfiguration activityConfig = getActivityConfiguration(activityModel);
