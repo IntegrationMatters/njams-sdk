@@ -122,15 +122,7 @@ public class JobImpl implements Job {
      */
     private final JobAttributes attributes = new JobAttributes(this);
 
-    /*
-     * Plugin data items
-     */
-    private final List<PluginDataItem> pluginDataItems;
-
-    /*
-     * counts how many flushes have been made. Used in LogMessage as messageNo
-     */
-    private final AtomicInteger flushCounter;
+    private final JobFlusher flusher;
 
     // kept on JobImpl (not in JobActivities): frozen tests access this field directly
     boolean hasOrHadStartActivity;
@@ -144,9 +136,6 @@ public class JobImpl implements Job {
     // internal properties, shall not go to any message
     private final JobProperties properties = new JobProperties();
 
-    //1000 for headers and co
-    private long estimatedSize = 1000L;
-
     private final JobMetadata metadata;
 
     private LocalDateTime startTime;
@@ -154,8 +143,6 @@ public class JobImpl implements Job {
     private boolean startTimeExplicitlySet;
 
     private LocalDateTime endTime;
-
-    private LocalDateTime lastFlush;
 
     private final JobErrorHandling errorHandling;
     private final JobSettings jobSettings;
@@ -180,10 +167,9 @@ public class JobImpl implements Job {
         jobSettings = JobSettings.of(njams.getSettings());
         errorHandling = new JobErrorHandling(this, jobSettings);
         truncation = new JobTruncation(this, jobSettings);
-        flushCounter = new AtomicInteger();
-        lastFlush = DateTimeUtility.now();
-        pluginDataItems = new ArrayList<>();
         runtimeConfig = new JobRuntimeConfig(processModel);
+        flusher = new JobFlusher(processModel, activities, attributes, metadata, tracing, runtimeConfig,
+                truncation, activitiesLock);
         if (runtimeConfig.addRecordedAttribute) {
             addAttribute("$njams_recorded", "true");
         }
@@ -323,19 +309,7 @@ public class JobImpl implements Job {
      * @param flushSize  Send if message size is greater than this size
      */
     public void timerFlush(LocalDateTime sentBefore, long flushSize) {
-        if (!hasStarted()) {
-            LOG.trace("Skip timer flush. Job {} is not started.", this);
-            return;
-        }
-        // only send updates automatically, if a change has been
-        // made to the job between individual send events.
-        LOG.trace("Job {}: lastPush: {}, age: {}, size: {}", this, getLastFlush(),
-                Duration.between(getLastFlush(), DateTimeUtility.now()), getEstimatedSize());
-        if ((getLastFlush().isBefore(sentBefore) || getEstimatedSize() > flushSize)
-                && (!attributes.isEmpty() || getEndTime() != null || activities.hasActivityToSend())) {
-            LOG.debug("Flush by timer: {}", this);
-            flush();
-        }
+        flusher.timerFlush(this, sentBefore, flushSize);
     }
 
     /**
@@ -344,135 +318,7 @@ public class JobImpl implements Job {
      * server if all the preconditions are fulfilled.
      */
     public void flush() {
-
-        synchronized (activitiesLock) {
-            boolean suppressed = mustBeSuppressed();
-            boolean started = hasStarted();
-            if (!suppressed) {
-                if (!started) {
-                    LOG.warn("The job with logId: {} will be flushed, but hasn't started yet.", logId);
-                }
-                flushCounter.incrementAndGet();
-                lastFlush = DateTimeUtility.now();
-                LogMessage logMessage = createLogMessage();
-                addToLogMessageAndCleanup(logMessage);
-                logMessage.setSentAt(lastFlush);
-                processModel.getNjams().getSender().send(logMessage, njams.getClientSessionId());
-                // clean up jobImpl
-                pluginDataItems.clear();
-                calculateEstimatedSize();
-            }
-        }
-    }
-
-    private boolean mustBeSuppressed() {
-        synchronized (activitiesLock) {
-            // Do not send if one of the conditions is true.
-            if (isLogModeNone() || isLogModeExclusiveAndNotInstrumented() || isExcludedProcess()
-                    || isLogLevelHigherAsJobStateAndHasNoTraces()) {
-                LOG.debug("Job not flushed: Engine Mode: {} // Job's log level: {}, "
-                        + "configured level: {} // is excluded: {} // has traces: {}", runtimeConfig.logMode,
-                        getStatus(), runtimeConfig.logLevel, runtimeConfig.exclude, tracing.isTraces());
-                //delete not running activities
-                activities.removeNotRunning();
-                calculateEstimatedSize();
-                LOG.debug("mustBeSuppressed: true");
-                return true;
-            }
-            LOG.debug("mustBeSuppressed: false");
-            return false;
-        }
-    }
-
-    private boolean isLogModeNone() {
-        if (runtimeConfig.logMode == LogMode.NONE) {
-            LOG.debug("isLogModeNone: true");
-            return true;
-        }
-        return false;
-    }
-
-    private boolean isLogModeExclusiveAndNotInstrumented() {
-        if (runtimeConfig.logMode == LogMode.EXCLUSIVE && !tracing.isInstrumented()) {
-            LOG.debug("isLogModeExclusiveAndNotInstrumented: true");
-            return true;
-        }
-        return false;
-    }
-
-    private boolean isExcludedProcess() {
-        if (runtimeConfig.exclude) {
-            LOG.debug("isExcludedProcess: true");
-            return true;
-        }
-        return false;
-    }
-
-    private boolean isLogLevelHigherAsJobStateAndHasNoTraces() {
-        boolean b = hasStarted() && maxSeverity.getValue() < runtimeConfig.logLevel.value() && !tracing.isTraces();
-
-        if (LOG.isDebugEnabled()) {
-            LOG.debug("hasStarted[{}] && maxSeverity[{}] < logLevel[{}] && !traces[{}] == {}", hasStarted(),
-                    maxSeverity.getValue(), runtimeConfig.logLevel.value(), tracing.isTraces(), b);
-        }
-        return b;
-    }
-
-    /**
-     * This method creates the LogMessage that will be send to the server and
-     * fills it with the attributes of the job.
-     *
-     * @return the created and with the job's information filled logMessage
-     */
-    private LogMessage createLogMessage() {
-        LOG.trace("Creating LogMessage for job with logId: {}", logId);
-        LogMessage logMessage = new LogMessage();
-        logMessage.setBusinessEnd(metadata.getBusinessEnd());
-        logMessage.setBusinessStart(metadata.getBusinessStart());
-        logMessage.setCategory(processModel.getNjams().getCategory());
-        logMessage.setCorrelationLogId(metadata.getCorrelationLogId());
-        logMessage.setExternalLogId(metadata.getExternalLogId());
-        logMessage.setJobEnd(endTime);
-        logMessage.setJobId(jobId);
-        logMessage.setJobStart(startTime);
-        logMessage.setLogId(logId);
-        logMessage.setMachineName(processModel.getNjams().getMachine());
-        logMessage.setMaxSeverity(maxSeverity.getValue());
-        logMessage.setMessageNo(flushCounter.get());
-        logMessage.setObjectName(metadata.getBusinessObject());
-        logMessage.setParentLogId(metadata.getParentLogId());
-        logMessage.setPath(processModel.getPath().toString());
-        logMessage.setProcessName(processModel.getName());
-        logMessage.setStatus(getStatus().getValue());
-        logMessage.setServiceName(metadata.getBusinessService());
-        logMessage.setClientVersion(njams.getClientVersion());
-        logMessage.setSdkVersion(njams.getSdkVersion());
-        logMessage.setRuntimeVersion(njams.getRuntimeVersion());
-
-        pluginDataItems.forEach(i -> logMessage.addPluginDataItem(i));
-        return logMessage;
-    }
-
-    private void addToLogMessageAndCleanup(LogMessage logMessage) {
-        attributes.flushInto(logMessage);
-        synchronized (activitiesLock) {
-            // If this is the final message being sent, and truncate-on-success is selected and this job was
-            // successful, truncate all activities w/o events.
-            boolean finishedWithSuccess = logMessage.getJobEnd() != null && getStatus() == JobStatus.SUCCESS;
-
-            //add all to logMessage
-            for (Activity activity : activities.internalValues()) {
-                if (activities.shouldFlush(activity)) {
-                    if (checkTruncating(activity, finishedWithSuccess)) {
-                        logMessage.addActivity(activity);
-                    } else {
-                        logMessage.setTruncated(true);
-                    }
-                }
-            }
-            //remove finished
-            activities.removeNotRunning();
-        }
+        flusher.flush(this);
     }
 
     /**
@@ -486,12 +332,6 @@ public class JobImpl implements Job {
         return truncation.checkTruncating(activity, finishedSuccess);
     }
 
-    private void calculateEstimatedSize() {
-        synchronized (activitiesLock) {
-            estimatedSize = 1000 + activities.internalValues().stream()
-                    .mapToLong(a -> ((ActivityImpl) a).getEstimatedSize()).sum();
-        }
-    }
 
     /**
      * Starts the job, i.e., sets status to RUNNING, job start date to now if
@@ -867,7 +707,7 @@ public class JobImpl implements Job {
      * @return the last push LocalDateTime
      */
     public LocalDateTime getLastFlush() {
-        return lastFlush;
+        return flusher.getLastFlush();
     }
 
     /**
@@ -943,7 +783,7 @@ public class JobImpl implements Job {
      * @return the estimatedSize
      */
     public long getEstimatedSize() {
-        return estimatedSize;
+        return flusher.getEstimatedSize();
     }
 
     /**
@@ -952,7 +792,7 @@ public class JobImpl implements Job {
      * @param estimatedSize estimatedSize to add
      */
     public void addToEstimatedSize(long estimatedSize) {
-        this.estimatedSize += estimatedSize;
+        flusher.addToEstimatedSize(estimatedSize);
     }
 
     @Override
@@ -1009,7 +849,7 @@ public class JobImpl implements Job {
     @Override
     public void addPluginDataItem(
             com.faizsiegeln.njams.messageformat.v4.logmessage.interfaces.IPluginDataItem pluginDataItem) {
-        pluginDataItems.add((PluginDataItem) pluginDataItem);
+        flusher.addPluginDataItem((PluginDataItem) pluginDataItem);
     }
 
     /**
