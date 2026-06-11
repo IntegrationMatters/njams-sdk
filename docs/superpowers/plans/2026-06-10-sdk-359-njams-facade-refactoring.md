@@ -8,7 +8,7 @@
 
 **Tech Stack:** Java 11, Maven, JUnit 4 + Mockito, existing `TestSender`/`TestReceiver` mock transports.
 
-**Jira:** Every commit message uses `SDK-359 #comment <description>`.
+**Jira:** Every commit message references the ticket as `SDK-359 <description>` — WITHOUT the `#comment` tag. Per the project convention, `#comment` is reserved for significant commits (e.g. finalizing a ticket); the intermediate commits of this plan must not post to the Jira comment history. The only `#comment` commit is the finalizing one in Task 21.
 
 **Validation commands (used throughout):**
 - Full module tests: `mvn test -pl njams-sdk`
@@ -533,7 +533,7 @@ Open `njams-sdk/target/site/jacoco/com.im.njams.sdk/Njams.java.html`. Every *pub
 
 ```bash
 git add njams-sdk/src/test/java/com/im/njams/sdk/NjamsFacadeBaselineTest.java
-git commit -m "SDK-359 #comment Pin baseline behavior of all Njams methods before facade refactoring"
+git commit -m "SDK-359 Pin baseline behavior of all Njams methods before facade refactoring"
 ```
 
 ---
@@ -621,7 +621,7 @@ Expected: all PASS.
 
 ```bash
 git add njams-sdk/src/main/java/com/im/njams/sdk/LifecycleState.java njams-sdk/src/main/java/com/im/njams/sdk/Njams.java
-git commit -m "SDK-359 #comment Introduce LifecycleState as shared phase-guard for the facade split"
+git commit -m "SDK-359 Introduce LifecycleState as shared phase-guard for the facade split"
 ```
 
 ### Task 3: Extract `NjamsSerializers`
@@ -713,7 +713,7 @@ Expected: all PASS — `NjamsTest.testSerializer`, `serializeWithSizeLimit*` and
 
 ```bash
 git add njams-sdk/src/main/java/com/im/njams/sdk/NjamsSerializers.java njams-sdk/src/main/java/com/im/njams/sdk/Njams.java
-git commit -m "SDK-359 #comment Extract NjamsSerializers facet, Njams delegates"
+git commit -m "SDK-359 Extract NjamsSerializers facet, Njams delegates"
 ```
 
 ### Task 4: Extract `NjamsArgos`
@@ -790,7 +790,7 @@ Run: `mvn test -pl njams-sdk` — Expected: all PASS.
 
 ```bash
 git add njams-sdk/src/main/java/com/im/njams/sdk/NjamsArgos.java njams-sdk/src/main/java/com/im/njams/sdk/Njams.java
-git commit -m "SDK-359 #comment Extract NjamsArgos facet, Njams delegates"
+git commit -m "SDK-359 Extract NjamsArgos facet, Njams delegates"
 ```
 
 ### Task 5: Extract `NjamsFeatures`
@@ -910,7 +910,7 @@ Run: `mvn test -pl njams-sdk` — Expected: all PASS (baseline pins idempotent a
 
 ```bash
 git add njams-sdk/src/main/java/com/im/njams/sdk/NjamsFeatures.java njams-sdk/src/main/java/com/im/njams/sdk/Njams.java
-git commit -m "SDK-359 #comment Extract NjamsFeatures facet, Njams delegates"
+git commit -m "SDK-359 Extract NjamsFeatures facet, Njams delegates"
 ```
 
 ### Task 6: Extract `NjamsMetadata`
@@ -1010,7 +1010,7 @@ Run: `mvn test -pl njams-sdk` — Expected: all PASS.
 
 ```bash
 git add njams-sdk/src/main/java/com/im/njams/sdk/NjamsMetadata.java njams-sdk/src/main/java/com/im/njams/sdk/Njams.java
-git commit -m "SDK-359 #comment Extract NjamsMetadata facet incl. global variables, Njams delegates"
+git commit -m "SDK-359 Extract NjamsMetadata facet incl. global variables, Njams delegates"
 ```
 
 ### Task 7: Extract `NjamsJobs`
@@ -1080,7 +1080,7 @@ Run: `mvn test -pl njams-sdk` — Expected: all PASS.
 
 ```bash
 git add njams-sdk/src/main/java/com/im/njams/sdk/NjamsJobs.java njams-sdk/src/main/java/com/im/njams/sdk/Njams.java
-git commit -m "SDK-359 #comment Extract NjamsJobs facet with replay markers, Njams delegates"
+git commit -m "SDK-359 Extract NjamsJobs facet with replay markers, Njams delegates"
 ```
 
 ### Task 8: Extract `NjamsReplay`
@@ -1140,7 +1140,7 @@ Run: `mvn test -pl njams-sdk` — Expected: all PASS (`NjamsTest.testOn*ReplayMe
 
 ```bash
 git add njams-sdk/src/main/java/com/im/njams/sdk/NjamsReplay.java njams-sdk/src/main/java/com/im/njams/sdk/Njams.java
-git commit -m "SDK-359 #comment Extract NjamsReplay facet, Njams delegates"
+git commit -m "SDK-359 Extract NjamsReplay facet, Njams delegates"
 ```
 
 ### Task 9: Extract `NjamsConfiguration`
@@ -1209,7 +1209,7 @@ Run: `mvn test -pl njams-sdk` — Expected: all PASS (data-masking tests in `Nja
 
 ```bash
 git add njams-sdk/src/main/java/com/im/njams/sdk/NjamsConfiguration.java njams-sdk/src/main/java/com/im/njams/sdk/Njams.java
-git commit -m "SDK-359 #comment Extract NjamsConfiguration facet, Njams delegates"
+git commit -m "SDK-359 Extract NjamsConfiguration facet, Njams delegates"
 ```
 
 ### Task 10: Extract `NjamsProcesses`
@@ -1334,7 +1334,7 @@ Run: `mvn test -pl njams-sdk` — Expected: all PASS. This is the highest-risk t
 
 ```bash
 git add njams-sdk/src/main/java/com/im/njams/sdk/NjamsProcesses.java njams-sdk/src/main/java/com/im/njams/sdk/Njams.java
-git commit -m "SDK-359 #comment Extract NjamsProcesses facet incl. project message assembly, Njams delegates"
+git commit -m "SDK-359 Extract NjamsProcesses facet incl. project message assembly, Njams delegates"
 ```
 
 ### Task 11: Extract `NjamsCommands`
@@ -1414,7 +1414,7 @@ Run: `mvn clean install -DskipTests` — Expected: BUILD SUCCESS (sample modules
 
 ```bash
 git add njams-sdk/src/main/java/com/im/njams/sdk/NjamsCommands.java njams-sdk/src/main/java/com/im/njams/sdk/Njams.java
-git commit -m "SDK-359 #comment Extract NjamsCommands facet, Njams becomes a pure facade"
+git commit -m "SDK-359 Extract NjamsCommands facet, Njams becomes a pure facade"
 ```
 
 ---
@@ -1500,7 +1500,7 @@ Expected: tests PASS, Javadoc builds without errors.
 
 ```bash
 git add njams-sdk/src/main/java/com/im/njams/sdk/Njams.java
-git commit -m "SDK-359 #comment Expose the nine facade facet accessors on Njams"
+git commit -m "SDK-359 Expose the nine facade facet accessors on Njams"
 ```
 
 ### Task 13: Guards + deprecations — metadata
@@ -1752,7 +1752,7 @@ Expected: ALL pass — including `NjamsFacadeBaselineTest.addGlobalVariablesAfte
 
 ```bash
 git add njams-sdk/src/main/java/com/im/njams/sdk/NjamsMetadata.java njams-sdk/src/main/java/com/im/njams/sdk/Njams.java njams-sdk/src/test/java/com/im/njams/sdk/NjamsFacetApiTest.java
-git commit -m "SDK-359 #comment Guard metadata mutators in new API, deprecate legacy metadata methods and runtimeVersion constructor"
+git commit -m "SDK-359 Guard metadata mutators in new API, deprecate legacy metadata methods and runtimeVersion constructor"
 ```
 
 ### Task 14: Guards + deprecations — features
@@ -1809,7 +1809,7 @@ Run: `mvn test -Dtest=NjamsFacetApiTest -pl njams-sdk` — Expected: the two new
 
 ```bash
 git add njams-sdk/src/main/java/com/im/njams/sdk/NjamsFeatures.java njams-sdk/src/main/java/com/im/njams/sdk/Njams.java njams-sdk/src/test/java/com/im/njams/sdk/NjamsFacetApiTest.java
-git commit -m "SDK-359 #comment Guard feature mutators in new API, deprecate legacy feature methods"
+git commit -m "SDK-359 Guard feature mutators in new API, deprecate legacy feature methods"
 ```
 
 ### Task 15: Guards + deprecations — replay
@@ -1854,7 +1854,7 @@ Run: `mvn test -Dtest=NjamsFacetApiTest -pl njams-sdk` — Expected: guard test 
 
 ```bash
 git add njams-sdk/src/main/java/com/im/njams/sdk/NjamsReplay.java njams-sdk/src/main/java/com/im/njams/sdk/Njams.java njams-sdk/src/test/java/com/im/njams/sdk/NjamsFacetApiTest.java
-git commit -m "SDK-359 #comment Guard replay handler in new API, deprecate legacy replay methods"
+git commit -m "SDK-359 Guard replay handler in new API, deprecate legacy replay methods"
 ```
 
 ### Task 16: Guards + deprecations — processes
@@ -1921,7 +1921,7 @@ Run: `mvn test -Dtest=NjamsFacetApiTest -pl njams-sdk` — Expected: the two ima
 
 ```bash
 git add njams-sdk/src/main/java/com/im/njams/sdk/NjamsProcesses.java njams-sdk/src/main/java/com/im/njams/sdk/Njams.java njams-sdk/src/test/java/com/im/njams/sdk/NjamsFacetApiTest.java
-git commit -m "SDK-359 #comment Guard image/tree mutators in new API, deprecate legacy process methods"
+git commit -m "SDK-359 Guard image/tree mutators in new API, deprecate legacy process methods"
 ```
 
 ### Task 17: Deprecations — jobs
@@ -1961,7 +1961,7 @@ public void newJobsAddBeforeStartThrows() {
 
 ```bash
 git add -A njams-sdk/src/main/java njams-sdk/src/test/java/com/im/njams/sdk/NjamsFacetApiTest.java
-git commit -m "SDK-359 #comment Deprecate legacy job methods, internal callers use jobs() facet"
+git commit -m "SDK-359 Deprecate legacy job methods, internal callers use jobs() facet"
 ```
 
 ### Task 18: Deprecations — serializers
@@ -1997,7 +1997,7 @@ public void newSerializersApiWorks() {
 
 ```bash
 git add -A njams-sdk/src/main/java njams-sdk/src/test/java/com/im/njams/sdk/NjamsFacetApiTest.java
-git commit -m "SDK-359 #comment Deprecate legacy serializer methods, internal callers use serializers() facet"
+git commit -m "SDK-359 Deprecate legacy serializer methods, internal callers use serializers() facet"
 ```
 
 ### Task 19: Deprecations — commands, argos, configuration
@@ -2049,7 +2049,7 @@ public void newConfigurationApiWorks() {
 
 ```bash
 git add -A njams-sdk/src/main/java njams-sdk/src/test/java/com/im/njams/sdk/NjamsFacetApiTest.java
-git commit -m "SDK-359 #comment Deprecate legacy command/argos/configuration methods on Njams"
+git commit -m "SDK-359 Deprecate legacy command/argos/configuration methods on Njams"
 ```
 
 ### Task 20: Migrate internal SDK and sample-client callers
@@ -2075,7 +2075,7 @@ Expected: BUILD SUCCESS, all tests PASS, no deprecation warnings from `njams-sdk
 
 ```bash
 git add -A
-git commit -m "SDK-359 #comment Migrate internal SDK and sample clients to the facet API"
+git commit -m "SDK-359 Migrate internal SDK and sample clients to the facet API"
 ```
 
 ### Task 21: Final validation, docs, wiki
@@ -2110,7 +2110,7 @@ Change `**Status:** Draft for review` to `**Status:** Implemented (see plan 2026
 
 ```bash
 git add wiki docs
-git commit -m "SDK-359 #comment Update wiki examples and design doc status for facade refactoring"
+git commit -m "SDK-359 #comment Finalize Njams facade refactoring: facets, guards, deprecations, docs and wiki updated"
 ```
 
 - [ ] **Step 5: Jira hygiene** — verify the `breaking-change` label is absent on SDK-359 (the change is additive + deprecations only). Do NOT resolve the ticket or post a closing comment — that happens only when the user resolves it.
