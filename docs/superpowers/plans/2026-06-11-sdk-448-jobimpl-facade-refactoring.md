@@ -8,7 +8,7 @@
 
 **Tech Stack:** Java 11, Maven, JUnit 4 + Mockito, `TestSender`/`TestReceiver` mock transports, `AbstractTest` helper.
 
-**Jira:** Every commit message references the ticket as `SDK-448 <description>` — WITHOUT the `#comment` tag (reserved for significant commits). The only `#comment` commit is the finalizing one in Task 16.
+**Jira:** Every commit message references the ticket as `SDK-448 <description>` — WITHOUT the `#comment` tag (reserved for significant commits). The only `#comment` commit is the finalizing one in Task 17.
 
 **Validation commands:**
 - Full module tests: `mvn test -pl njams-sdk`
@@ -18,9 +18,9 @@
 - Javadoc (must be error-free): `mvn javadoc:javadoc -pl njams-sdk`
 
 **Hard rules carried over from SDK-359 execution (read before starting):**
-1. **Frozen tests are immutable.** If a refactoring step fails an existing test, the step is wrong — except the two approved contract changes in Task 8 (flush invariant), whose old behavior the baseline deliberately does not pin.
+1. **Frozen tests are immutable.** If a refactoring step fails an existing test, the step is wrong — except the two approved contract changes in Task 9 (flush invariant), whose old behavior the baseline deliberately does not pin.
 2. **Mockito constraint:** tests spy/mock `Njams` and construct `JobImpl` directly. Internal SDK callers (`ActivityImpl`, builders, `ExtractHandler`, `LogMessageFlushTask`) keep calling the legacy `JobImpl` surface — do NOT migrate them to the facet API (that happens with the deprecated-API removal ticket).
-3. **Owner threading:** facade methods that construct objects holding a `JobImpl` back-reference (the builders) must pass `this` through, so Mockito spies stay the owner (`ActivityBuilder(this, model)` pattern — see Task 12).
+3. **Owner threading:** facade methods that construct objects holding a `JobImpl` back-reference (the builders) must pass `this` through, so Mockito spies stay the owner (`ActivityBuilder(this, model)` pattern — see Task 13).
 4. **Watch line endings:** never use `sed` for bulk edits on files stored with CRLF (`git diff --stat` showing a whole-file change = EOL accident; restore with `sed -i 's/$/\r/'`).
 5. **Hot path:** moved bodies stay literal; no streams/allocation added to per-activity code; facets are final fields, accessors are field reads.
 
@@ -46,7 +46,7 @@ New production files in `njams-sdk/src/main/java/com/im/njams/sdk/logmessage/` (
 | `JobSettings.java` | package-private | immutable per-client settings snapshot (allErrors, truncate, payload limits) with a static per-`ClientSettings` cache |
 
 Modified: `Job.java` (accessors + `hasStarted()`, deprecations), `JobImpl.java` (shrinks to facade).
-New test files (no copyright header): `JobFacadeBaselineTest.java` (Task 1), `JobFacetApiTest.java` (Tasks 10–15), both in `njams-sdk/src/test/java/com/im/njams/sdk/logmessage/`.
+New test files (no copyright header): `JobFacadeBaselineTest.java` (Task 1), `JobFacetApiTest.java` (Tasks 10–16), both in `njams-sdk/src/test/java/com/im/njams/sdk/logmessage/`.
 
 **Lock structure (unchanged semantics):** the `activities` monitor becomes one explicit `final Object activitiesLock = new Object();` on `JobImpl` (package-private), shared by `JobActivities`, `JobFlusher`, and `JobTruncation`. The `attributes` monitor (the map object itself) moves with the maps into `JobAttributes`; `errorLock` moves into `JobErrorHandling`. No new synchronization.
 
@@ -63,7 +63,7 @@ New test files (no copyright header): `JobFacadeBaselineTest.java` (Task 1), `Jo
 
 - [ ] **Step 1: Write the baseline test class**
 
-Pins every public `Job`/`JobImpl` method migrated by Tasks 2–15 that `JobImplTest` does not already cover. **Deliberately NOT pinned** (approved contract changes, Task 8): the warn-and-send behavior of `flush()`/`end(boolean)` on a never-started job.
+Pins every public `Job`/`JobImpl` method migrated by Tasks 2–16 that `JobImplTest` does not already cover. **Deliberately NOT pinned** (approved contract changes, Task 9): the warn-and-send behavior of `flush()`/`end(boolean)` on a never-started job.
 
 ```java
 package com.im.njams.sdk.logmessage;
@@ -450,7 +450,7 @@ Expected: all PASS. Failures mean the test mis-pins behavior — read the produc
 
 - [ ] **Step 3: Coverage check**
 
-Run the JaCoCo command from the header; parse `jacoco.xml` for `com/im/njams/sdk/logmessage/JobImpl` and list public methods with zero covered instructions (combined coverage from this class + `JobImplTest` + the rest of the suite). Add pinning tests for any uncovered migrated public method — EXCEPT the two unpinned-by-design paths (`flush`/`end` on never-started jobs).
+Run the JaCoCo command from the header; parse `jacoco.xml` for `com/im/njams/sdk/logmessage/JobImpl` and list public methods with zero covered instructions (combined coverage from this class + `JobImplTest` + the rest of the suite). Add pinning tests for any uncovered migrated public method — EXCEPT the two unpinned-by-design paths (`flush`/`end` on never-started jobs, fixed in Task 9).
 
 - [ ] **Step 4: Commit**
 
@@ -569,19 +569,33 @@ final class JobRuntimeConfig {
 - [ ] **Step 2:** `JobImpl.checkTruncating` stays package-private delegating (it is test-relevant), internal caller in `addToLogMessageAndCleanup` switches to `truncation.checkTruncating(...)`.
 - [ ] **Step 3:** full suite green. **Step 4: Commit** `SDK-448 Extract JobTruncation collaborator`.
 
-### Task 6: `JobAttributes` + `JobProperties`
+### Task 6: `JobAttributes`
 
-- [ ] **Step 1:** `JobAttributes`: move `attributes`/`flushedAttributes` maps (126–127), bodies of `addAttribute` (1394–1407, renamed `add`; the `addToEstimatedSize` call goes through the `JobImpl` reference), `getAttribute` → `get` (1087–1094), `getAttributes` → `getAll` (1102–1107), `hasAttribute` → `has` (1115–1118); package-private `flushInto(LogMessage)` taking over the attributes part of `addToLogMessageAndCleanup` (621–627). `JobProperties`: move `properties` map (155) and the four methods (1180–1218) as `get`/`has`/`set`/`remove`.
-- [ ] **Step 2:** `JobImpl` delegates all eight legacy methods; `addToLogMessageAndCleanup` calls `attributes.flushInto(logMessage)`; `timerFlush`'s `!attributes.isEmpty()` check → package-private `attributes.isEmpty()`.
-- [ ] **Step 3:** full suite green. **Step 4: Commit** `SDK-448 Extract JobAttributes and JobProperties facets, JobImpl delegates`.
+`JobAttributes` is **wire data**: attributes are sent to the nJAMS server with the next
+log message. Its class Javadoc must state this purpose explicitly — it is deliberately
+a different facet from `JobProperties` (Task 7), which is client-local only.
 
-### Task 7: `JobMetadata`, `JobTracing`, `JobActivities`, `JobFlusher`
+- [ ] **Step 1:** Move `attributes`/`flushedAttributes` maps (126–127), bodies of `addAttribute` (1394–1407, renamed `add`; the `addToEstimatedSize` call goes through the `JobImpl` reference), `getAttribute` → `get` (1087–1094), `getAttributes` → `getAll` (1102–1107), `hasAttribute` → `has` (1115–1118); package-private `flushInto(LogMessage)` taking over the attributes part of `addToLogMessageAndCleanup` (621–627).
+- [ ] **Step 2:** `JobImpl` delegates the four legacy attribute methods; `addToLogMessageAndCleanup` calls `attributes.flushInto(logMessage)`; `timerFlush`'s `!attributes.isEmpty()` check → package-private `attributes.isEmpty()`.
+- [ ] **Step 3:** full suite green. **Step 4: Commit** `SDK-448 Extract JobAttributes facet, JobImpl delegates`.
+
+### Task 7: `JobProperties`
+
+`JobProperties` is **client-local only**: properties are never transmitted to the nJAMS
+server — arbitrary key/value storage for the instrumenting client. Its class Javadoc
+must state this purpose explicitly and reference the contrast to `attributes()`.
+
+- [ ] **Step 1:** Move the `properties` map (155) and the four methods (1180–1218) as `get`/`has`/`set`/`remove`.
+- [ ] **Step 2:** `JobImpl` delegates the four legacy property methods.
+- [ ] **Step 3:** full suite green. **Step 4: Commit** `SDK-448 Extract JobProperties facet, JobImpl delegates`.
+
+### Task 8: `JobMetadata`, `JobTracing`, `JobActivities`, `JobFlusher`
 
 Largest extraction step — may be split into four commits, one per class, each with a green suite:
 
 - [ ] **Step 1: `JobMetadata`** — move fields `correlationLogId`/`parentLogId`/`externalLogId`/`businessService`/`businessObject`/`businessStart`/`businessEnd` (162–171, 180–182) and their getters/setters (893–1010, 1353–1376). Setter bodies stay literal (incl. `limitLength` calls); signatures already in final chainable form `JobMetadata setCorrelationLogId(String)` returning `this` (the facade delegates ignore the return). `getJobId()`/`getLogId()` are exposed read-only (fields stay on `JobImpl`, the facet reads via the back-reference).
 - [ ] **Step 2: `JobTracing`** — move `deepTrace` (143), `traces` (152), `instrumented` (151); public `setDeepTrace`/`isDeepTrace`/`isTraces`; package-private `setTraces`/`setInstrumented`/`isInstrumented`. `JobImpl` delegates the five legacy methods; suppression checks read via the collaborator.
-- [ ] **Step 3: `JobActivities`** — move the `activities` map (116, lock note above), `sequenceCounter` (121), `startActivity`/`hasOrHadStartActivity` (139–141), `flushedActivities` (196); methods `addActivity` → `add` (332–357), the four lookups → `getByInstanceId`/`getByModelId`/`getRunningByModelId`/`getCompletedByModelId` (372–442), `getStartActivity` → `getStart` (449–452), `getActivities` → `getAll` (457–462), `getNextSequence` (469–471, package-private), `removeNotRunningActivities` (1225–1250, package-private), `hasActivityToSend`/`shouldFlush` (495–503, 648–653, package-private). Builder factories stay on `JobImpl` for now (they need owner threading — Task 12). The started-check inside `add` reads `jobImpl.hasStarted()`.
+- [ ] **Step 3: `JobActivities`** — move the `activities` map (116, lock note above), `sequenceCounter` (121), `startActivity`/`hasOrHadStartActivity` (139–141), `flushedActivities` (196); methods `addActivity` → `add` (332–357), the four lookups → `getByInstanceId`/`getByModelId`/`getRunningByModelId`/`getCompletedByModelId` (372–442), `getStartActivity` → `getStart` (449–452), `getActivities` → `getAll` (457–462), `getNextSequence` (469–471, package-private), `removeNotRunningActivities` (1225–1250, package-private), `hasActivityToSend`/`shouldFlush` (495–503, 648–653, package-private). Builder factories stay on `JobImpl` for now (they need owner threading — Task 13). The started-check inside `add` reads `jobImpl.hasStarted()`.
 - [ ] **Step 4: `JobFlusher`** — move `flushCounter` (137), `lastFlush` (178), `estimatedSize` (158), `pluginDataItems` (132); methods `flush` (510–530), `timerFlush` (479–493), `createLogMessage` (591–618), `addToLogMessageAndCleanup` (620–646), the suppression checks (532–583), `calculateEstimatedSize` (700–705), `getLastFlush`/`getEstimatedSize`/`addToEstimatedSize` (1147–1149, 1255–1266), `addPluginDataItem` (1342–1346). The sender call stays `processModel.getNjams().getSender().send(logMessage, njams.getClientSessionId())` — legacy surface, required by the `JobImplTest` spy (hard rule 3 of SDK-359: mock-safe).
 - [ ] **Step 5:** All `JobImpl` originals are one-line delegates; full suite green after each class. **Commits:** `SDK-448 Extract JobMetadata facet` / `... JobTracing facet` / `... JobActivities facet` / `... JobFlusher collaborator, JobImpl becomes a facade`.
 
@@ -589,7 +603,7 @@ Largest extraction step — may be split into four commits, one per class, each 
 
 ## Stage 1b — Approved flush-invariant fix
 
-### Task 8: Never-started jobs are never flushed
+### Task 9: Never-started jobs are never flushed
 
 **Files:** Modify `JobFlusher.java`, `JobImpl.java`; extend `JobFacadeBaselineTest.java` (new tests pinning the FIXED behavior — allowed, since the old behavior was deliberately left unpinned).
 
@@ -647,13 +661,13 @@ In `JobImpl.end(boolean)`, replace the `LOG.warn("Job has been finished before i
 
 Rules: identical to SDK-359 Stage 2+3 — new public members fully documented; guards ONLY in the new facet methods (legacy delegates use package-private internals + `warnIfFinished` helper on `JobImpl`); every deprecation comment names the accessor chain, target method, and contract difference; parity mirrors `_viaFacet` with identical assertions; deviations as explicit test pairs. New tests in `JobFacetApiTest` (same package).
 
-### Task 9: Accessors on `Job` and `JobImpl`
+### Task 10: Accessors on `Job` and `JobImpl`
 
 - [ ] **Step 1:** Add to the `Job` interface (full Javadoc each): `JobActivities activities();`, `JobAttributes attributes();`, `JobMetadata metadata();`, `JobProperties properties();`, `JobTracing tracing();`, and `boolean hasStarted();` (lifted, undeprecated — Javadoc moved from `JobImpl`). `JobImpl` implements the accessors as final-field reads (`hasStarted()` already exists).
 - [ ] **Step 2:** `JobFacetApiTest` with `accessorsReturnTheSameInstanceEveryTime` (assertSame on all five, via a `Job`-typed reference) and `hasStartedIsOnTheInterface` (call through `Job` without cast).
 - [ ] **Step 3:** tests + `mvn javadoc:javadoc -pl njams-sdk` green. **Step 4: Commit** `SDK-448 Expose job facet accessors and hasStarted on the Job interface`.
 
-### Task 10: Guards + deprecations — metadata
+### Task 11: Guards + deprecations — metadata
 
 - [ ] **Step 1: Failing tests:** `newMetadataSettersThrowAfterEnd` (each mutator after `end(true)` → `NjamsSdkRuntimeException` via `requireNotFinished`), `metadataMutatorsAreChainable` (assertSame on the full chain), `deprecatedMetadataSettersStayLenientAfterEnd` (legacy setters WARN + still store).
 - [ ] **Step 2: Implement:** each `JobMetadata` mutator gains the guard `jobImpl.requireNotFinished("JobMetadata.setX")` (new package-private helper on `JobImpl`: throws `NjamsSdkRuntimeException` when `finished`, message pattern as in SDK-359's `LifecycleState.requireNotStarted`) + package-private `setXInternal` variants; the public methods return `this`.
@@ -661,14 +675,14 @@ Rules: identical to SDK-359 Stage 2+3 — new public members fully documented; g
 - [ ] **Step 4: Parity mirrors** `_viaFacet`: `correlationLogIdDefaultsToLogIdAndIsSettable`, `parentAndExternalLogIdAreSettable`, `businessServiceAndObjectAcceptStringAndPath`, `businessStartAndEndAreSettable`, `overlongFieldValueIsTruncated` (truncation must run on the guarded path too).
 - [ ] **Step 5:** full suite green. **Commit** `SDK-448 Guard metadata mutators after end, deprecate legacy metadata methods`.
 
-### Task 11: Guards + deprecations — attributes
+### Task 12: Guards + deprecations — attributes
 
 - [ ] **Step 1: Failing tests:** `newAttributesAddThrowsAfterEnd`, `deprecatedAddAttributeStaysLenientAfterEnd` (WARN + stores). Plus mirrors: `attributesArePutAndQueried_viaFacet`, `nullAttributeValueIsIgnored_viaFacet`.
 - [ ] **Step 2: Implement:** `JobAttributes.add` = `jobImpl.requireNotFinished("JobAttributes.add"); addInternal(...)`. The extract path (`ExtractHandler`/`ActivityImpl` call `job.addAttribute` during end-processing) keeps working through the legacy lenient delegate — verify with a Grep for `addAttribute` callers in `njams-sdk/src/main/java` that all internal callers use the `JobImpl` method, not the facet.
 - [ ] **Step 3: Deprecate** `addAttribute`/`getAttribute`/`getAttributes`/`hasAttribute` with template tags (add notes the after-`end` difference).
 - [ ] **Step 4:** full suite green. **Commit** `SDK-448 Guard attribute mutation after end, deprecate legacy attribute methods`.
 
-### Task 12: Deprecations + inverted deviation — activities
+### Task 13: Deprecations + inverted deviation — activities
 
 - [ ] **Step 1: Tests:** `newActivitiesAddWorksBeforeStart` — THE inverted deviation: `job.activities().add(activity)` (and builder-based creation via `activities().create(model).build()` once builders route through the facet) succeeds on a CREATED job; paired with the pinned `addActivityBeforeStartThrows` baseline test for the deprecated method. Plus `prestartActivityIsFlushedAfterStart` (create pre-start, then `start()`, `end(true)`, capture the log message, assert the activity is contained) and mirrors: `activityLifecycleAfterStart_viaFacet`, `getActivitiesReturnsDetachedCopy_viaFacet`, `secondStartActivityThrows_viaFacet` (the second-starter check must hold on the new path).
 - [ ] **Step 2: Implement:** `JobActivities.add` loses the started-check (it lives only in the deprecated `JobImpl.addActivity`, which keeps throwing — pinned); the second-start-activity check stays in the shared internal path. **Builder factories move to the facet with owner threading:** `JobActivities.create(ActivityModel)` → `create(model, jobImpl)` package-private variant constructing `new ActivityBuilder(owner, model)`; deprecated `JobImpl.createActivity(model)` calls `activities.create(model, this)` so spies stay the owner (hard rule 3). Same for `createGroup`/`createSubProcess`.
@@ -676,26 +690,26 @@ Rules: identical to SDK-359 Stage 2+3 — new public members fully documented; g
 - [ ] **Step 4: Deprecate** the 10 legacy activity methods with template tags; `addActivity`'s tag explicitly states the inverted difference ("the replacement does NOT require the job to be started; activities created before start are flushed with the first log message after the job starts").
 - [ ] **Step 5:** full suite green. **Commit** `SDK-448 Allow pre-start activities in new API, deprecate legacy activity methods`.
 
-### Task 13: Deprecations — properties + tracing
+### Task 14: Deprecations — properties + tracing (two separate facets, one deprecation pass)
 
 - [ ] **Step 1: Mirrors:** `propertiesRoundTrip_viaFacet`, `deepTraceFlag_viaFacet` (no guards — both facets are phase-free).
 - [ ] **Step 2: Deprecate** `getProperty`/`hasProperty`/`setProperty`/`removeProperty` → `properties().get/has/set/remove` and `setDeepTrace`/`isDeepTrace`/`isTraces` → `tracing().…` with template tags (no contract differences).
 - [ ] **Step 3:** full suite green. **Commit** `SDK-448 Deprecate legacy property and tracing methods`.
 
-### Task 14: Deprecations — internal mechanics on `JobImpl`
+### Task 15: Deprecations — internal mechanics on `JobImpl`
 
 - [ ] **Step 1: Deprecate** as SDK-internal (template: "SDK-internal mechanics, not part of the public API; there is no replacement — <one sentence what handles it now>"): `flush`, `timerFlush`, `setActivityErrorEvent`, `setInstrumented`, `setTraces`, `getLastFlush`, `getEstimatedSize`, `addToEstimatedSize`, `isActiveTracepoint`, `getActivityConfiguration`, `isRecording`, `getNjams`, `limitLength`. NOT deprecated: `hasStarted` (lifted to `Job`), `checkTruncating`/`getNextSequence`/`getSerializeSizeHint`/`limitPayload` (already package-private). Internal callers (`LogMessageFlushTask`, `ActivityImpl`, `ExtractHandler`, builders) intentionally keep calling them (hard rule 2).
 - [ ] **Step 2:** full suite green + `mvn javadoc:javadoc -pl njams-sdk` error-free. **Commit** `SDK-448 Deprecate SDK-internal JobImpl mechanics`.
 
-### Task 15: Migrate sample clients
+### Task 16: Migrate sample clients
 
 - [ ] **Step 1:** Grep `njams-sdk-sample-client/src/main/java` and `njams-sdk-sample-app/src/main/java` for the deprecated `Job` method names (`createActivity`, `addAttribute`, `setBusinessService`, …); replace per the mapping table in the design doc (e.g. `job.createActivity(m)` → `job.activities().create(m)`, `job.addAttribute(k, v)` → `job.attributes().add(k, v)`, `job.setBusinessService(s)` → `job.metadata().setBusinessService(s)`). Use Edit per file, NOT sed (hard rule 4). Samples must compile without deprecation warnings in their main code.
 - [ ] **Step 2:** `mvn clean install -DskipTests` → BUILD SUCCESS. **Commit** `SDK-448 Migrate sample clients to the job facet API`.
 
-### Task 16: Final validation, docs, wiki
+### Task 17: Final validation, docs, wiki
 
 - [ ] **Step 1: Quality gates** — all must succeed: `mvn clean install -pl njams-sdk`, `mvn validate -Pcheckstyle -pl njams-sdk`, `mvn javadoc:javadoc -pl njams-sdk`.
-- [ ] **Step 2: Parity completeness check** — every `JobFacadeBaselineTest` test falls into one of: (a) `_viaFacet` mirror exists, (b) intentional-deviation pair (`addActivityBeforeStartThrows` ↔ `newActivitiesAddWorksBeforeStart`; the after-`end` guard pairs; the Task 8 flush-invariant tests), or (c) explicitly legacy-only (`getNjamsReturnsOwner`, `limitLengthTruncatesToMaxMinusOne`, `timerFlushBeforeStartIsSkippedSilently`, `estimatedSizeGrowsWithContent`, `lastFlushIsInitialized`, `noPayloadLimitConfiguredMeansPassThrough`, `toStringContainsLogAndJobId` — all deprecated-internal or facade-level). Any unclassified test = parity gap, add the mirror.
+- [ ] **Step 2: Parity completeness check** — every `JobFacadeBaselineTest` test falls into one of: (a) `_viaFacet` mirror exists, (b) intentional-deviation pair (`addActivityBeforeStartThrows` ↔ `newActivitiesAddWorksBeforeStart`; the after-`end` guard pairs; the Task 9 flush-invariant tests), or (c) explicitly legacy-only (`getNjamsReturnsOwner`, `limitLengthTruncatesToMaxMinusOne`, `timerFlushBeforeStartIsSkippedSilently`, `estimatedSizeGrowsWithContent`, `lastFlushIsInitialized`, `noPayloadLimitConfiguredMeansPassThrough`, `toStringContainsLogAndJobId` — all deprecated-internal or facade-level). Any unclassified test = parity gap, add the mirror.
 - [ ] **Step 3: Wiki check** — Grep `wiki/*.md` for migrated `Job` method names; update examples to the facet API with a one-line "old methods deprecated" note (pattern from SDK-359). No settings changed → no FAQ settings entries.
 - [ ] **Step 4: Design doc status** — set to `Implemented (see plan 2026-06-11-sdk-448-jobimpl-facade-refactoring.md)`.
 - [ ] **Step 5: Jira hygiene** — verify the `breaking-change` label is ABSENT (the flush-invariant change is classified as a fix per the design review). Do NOT resolve the ticket or post a closing comment.
@@ -710,8 +724,8 @@ git commit -m "SDK-448 #comment Finalize JobImpl facade refactoring: job facets,
 
 ## Self-review notes
 
-- Spec coverage: design sections map to tasks — baseline (Task 1 = step 0), collaborators/facets extraction (Tasks 2–7 = step 1), flush-invariant fix (Task 8, the approved contract change), accessors/guards/deprecations/parity (Tasks 9–14 = steps 2+3), samples + gates (Tasks 15–16). Deferred items (internal-caller migration, JobImpl sealing, lazy maps, ActivityImpl) intentionally absent.
-- The inverted deviation (legacy strict / new lenient on `activities().add`) is enforced by the pinned `addActivityBeforeStartThrows` + new `newActivitiesAddWorksBeforeStart` pair; the builder dual-path (`requireStarted` flag) is the one structurally delicate spot — Task 12 Step 3 spells it out.
+- Spec coverage: design sections map to tasks — baseline (Task 1 = step 0), collaborators/facets extraction (Tasks 2–8 = step 1; attributes and properties deliberately split into Tasks 6 and 7 — different purposes: wire data vs. client-local state), flush-invariant fix (Task 9, the approved contract change), accessors/guards/deprecations/parity (Tasks 10–15 = steps 2+3), samples + gates (Tasks 16–17). Deferred items (internal-caller migration, JobImpl sealing, lazy maps, ActivityImpl) intentionally absent.
+- The inverted deviation (legacy strict / new lenient on `activities().add`) is enforced by the pinned `addActivityBeforeStartThrows` + new `newActivitiesAddWorksBeforeStart` pair; the builder dual-path (`requireStarted` flag) is the one structurally delicate spot — Task 13 Step 3 spells it out.
 - After-`end` guards exist on `JobMetadata` and `JobAttributes` only (review decision 2); `properties()`/`tracing()` are phase-free.
 - Chainability: `JobMetadata` mutators only (review decision 4 + SDK-359 precedent) — do not add `return this` elsewhere.
 - `JobSettings` static cache keyed by `ClientSettings`: no eviction by design (few long-lived instances); flagged here so the reviewer sees the trade-off.

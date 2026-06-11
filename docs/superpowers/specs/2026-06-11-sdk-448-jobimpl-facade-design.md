@@ -93,9 +93,9 @@ client-relevant now that pre-start activity creation is legal; today it requires
 | Accessor | Facet type | Owns |
 |---|---|---|
 | `job.activities()` | `JobActivities` | builders (`create(ActivityModel)`, `createGroup(GroupModel)`, `createSubProcess(SubProcessActivityModel)`), `add(Activity)`, `getByInstanceId`, `getByModelId`, `getRunningByModelId`, `getCompletedByModelId`, `getStart()`, `getAll()`; internal: sequence counter, flushed-activity bookkeeping, `removeNotRunning` |
-| `job.attributes()` | `JobAttributes` | `add(key, value)`, `get(name)`, `getAll()`, `has(name)`; internal: flushed-attributes interplay with the flusher |
+| `job.attributes()` | `JobAttributes` | **Wire data:** attributes are transmitted to the nJAMS server with the next log message. `add(key, value)`, `get(name)`, `getAll()`, `has(name)`; internal: flushed-attributes interplay with the flusher |
 | `job.metadata()` | `JobMetadata` | `correlationLogId`, `parentLogId`, `externalLogId`, `businessService` (String/Path), `businessObject` (String/Path), `businessStart`, `businessEnd` (get/set each); read-only `getJobId()`, `getLogId()`. **Setters are chainable** (return the facet) — the same single-facet chainability decision as `NjamsMetadata` in SDK-359; all other facets stay non-chainable. |
-| `job.properties()` | `JobProperties` | `get(key)`, `has(key)`, `set(key, value)`, `remove(key)` |
+| `job.properties()` | `JobProperties` | **Client-local only:** properties are never transmitted to the nJAMS server — arbitrary key/value storage for the instrumenting client. `get(key)`, `has(key)`, `set(key, value)`, `remove(key)`. Deliberately a separate facet from `attributes()`: the two have completely different purposes (wire data vs. local state), and the facet boundary makes that visible in the API. |
 | `job.tracing()` | `JobTracing` | `setDeepTrace`/`isDeepTrace`, `isTraces`; internal: `setTraces`, `setInstrumented`, tracepoint/extract checks (`isActiveTracepoint`, `getActivityConfiguration` become internal — see mapping) |
 
 Internal only — package-private collaborators in `com.im.njams.sdk.logmessage`, no
