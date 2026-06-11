@@ -879,4 +879,36 @@ public class PathTest {
         Path p = Path.of("x", "y", "z");
         assertEquals(p.getSegments().size(), p.getDepth());
     }
+
+    // --- print ---
+
+    @Test
+    public void printNullReturnsEmptyString() {
+        assertEquals("", Path.print(null));
+    }
+
+    @Test
+    public void printLeafRendersSingleLine() {
+        assertEquals("printSolo\n", Path.print(Path.of("printSolo")));
+    }
+
+    @Test
+    public void printRendersSortedAsciiTree() {
+        Path root = Path.of("printRoot");
+        root.getOrCreateChild("a", "b");
+        root.getOrCreateChild("a", "c");
+        root.getOrCreateChild("d");
+        String expected =
+            "printRoot\n"
+            + "+- a\n"
+            + "|  +- b\n"
+            + "|  `- c\n"
+            + "`- d\n";
+        assertEquals(expected, Path.print(root));
+    }
+
+    @Test
+    public void printRootStartsWithRootMarker() {
+        assertTrue(Path.print(Path.ROOT).startsWith(">\n"));
+    }
 }

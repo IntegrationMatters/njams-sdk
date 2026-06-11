@@ -26,6 +26,7 @@ package com.im.njams.sdk;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -553,6 +554,46 @@ public final class Path {
             current = current.parent;
         }
         return current == prefix;
+    }
+
+    /**
+     * Returns an ASCII-art rendering of the path subtree rooted at the given node, one line per
+     * node and with children sorted by segment name for stable output. Intended for diagnostics
+     * and debugging; pass {@link #ROOT} to render the entire tree.
+     *
+     * <p>Example for a node {@code root} with children {@code a} (containing {@code b} and
+     * {@code c}) and {@code d}:
+     * <pre>
+     * root
+     * +- a
+     * |  +- b
+     * |  `- c
+     * `- d
+     * </pre>
+     *
+     * @param root the subtree root to render; {@code null} yields an empty string
+     * @return a multi-line ASCII representation of the subtree, terminated by a newline per node;
+     *     an empty string if {@code root} is {@code null}
+     */
+    public static String print(Path root) {
+        if (root == null) {
+            return "";
+        }
+        final StringBuilder sb = new StringBuilder();
+        sb.append(root.isRoot() ? ">" : root.segment).append('\n');
+        appendChildren(sb, root, "");
+        return sb.toString();
+    }
+
+    private static void appendChildren(StringBuilder sb, Path node, String prefix) {
+        final List<Path> ordered = new ArrayList<>(node.children.values());
+        ordered.sort(Comparator.comparing(child -> child.segment));
+        for (int i = 0; i < ordered.size(); i++) {
+            final Path child = ordered.get(i);
+            final boolean last = i == ordered.size() - 1;
+            sb.append(prefix).append(last ? "`- " : "+- ").append(child.segment).append('\n');
+            appendChildren(sb, child, prefix + (last ? "   " : "|  "));
+        }
     }
 
     /**
