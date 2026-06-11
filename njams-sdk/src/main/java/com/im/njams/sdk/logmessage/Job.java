@@ -23,15 +23,15 @@
  */
 package com.im.njams.sdk.logmessage;
 
-import java.time.LocalDateTime;
-import java.util.Collection;
-import java.util.Map;
-
 import com.faizsiegeln.njams.messageformat.v4.logmessage.interfaces.IPluginDataItem;
 import com.im.njams.sdk.Path;
 import com.im.njams.sdk.model.ActivityModel;
 import com.im.njams.sdk.model.GroupModel;
 import com.im.njams.sdk.model.SubProcessActivityModel;
+
+import java.time.LocalDateTime;
+import java.util.Collection;
+import java.util.Map;
 
 /**
  * This represents an instance of a process/flow etc in engine to monitor.
@@ -49,7 +49,7 @@ public interface Job {
      *             method, the replacement does NOT require the job to be started: activities
      *             created before start are sent with the first log message after the job starts.
      */
-    @Deprecated
+    @Deprecated(since = "6.0.0", forRemoval = true)
     public void addActivity(final Activity activity);
 
     /**
@@ -62,7 +62,7 @@ public interface Job {
      *             Unlike this method, building via the replacement does NOT require the job to be
      *             started.
      */
-    @Deprecated
+    @Deprecated(since = "6.0.0", forRemoval = true)
     public ActivityBuilder createActivity(ActivityModel activityModel);
 
     /**
@@ -75,7 +75,7 @@ public interface Job {
      *             Unlike this method, building via the replacement does NOT require the job to be
      *             started.
      */
-    @Deprecated
+    @Deprecated(since = "6.0.0", forRemoval = true)
     public GroupBuilder createGroup(GroupModel groupModel);
 
     /**
@@ -88,7 +88,7 @@ public interface Job {
      *             {@link JobActivities#createSubProcess(SubProcessActivityModel)}. Unlike this
      *             method, building via the replacement does NOT require the job to be started.
      */
-    @Deprecated
+    @Deprecated(since = "6.0.0", forRemoval = true)
     public SubProcessActivityBuilder createSubProcess(SubProcessActivityModel groupModel);
 
     /**
@@ -118,7 +118,7 @@ public interface Job {
      * @deprecated Use {@code job.activities().getAll()} instead — obtain the facet via
      *             {@link #activities()} and call {@link JobActivities#getAll()}.
      */
-    @Deprecated
+    @Deprecated(since = "6.0.0", forRemoval = true)
     public Collection<Activity> getActivities();
 
     /**
@@ -130,7 +130,7 @@ public interface Job {
      *             obtain the facet via {@link #activities()} and call
      *             {@link JobActivities#getByInstanceId(String)}.
      */
-    @Deprecated
+    @Deprecated(since = "6.0.0", forRemoval = true)
     public Activity getActivityByInstanceId(String activityInstanceId);
 
     /**
@@ -142,7 +142,7 @@ public interface Job {
      *             facet via {@link #activities()} and call
      *             {@link JobActivities#getByModelId(String)}.
      */
-    @Deprecated
+    @Deprecated(since = "6.0.0", forRemoval = true)
     public Activity getActivityByModelId(String activityModelId);
 
     /**
@@ -153,7 +153,7 @@ public interface Job {
      * @deprecated Use {@code job.attributes().get(name)} instead — obtain the facet via
      *             {@link #attributes()} and call {@link JobAttributes#get(String)}.
      */
-    @Deprecated
+    @Deprecated(since = "6.0.0", forRemoval = true)
     public String getAttribute(final String name);
 
     /**
@@ -163,7 +163,7 @@ public interface Job {
      * @deprecated Use {@code job.attributes().getAll()} instead — obtain the facet via
      *             {@link #attributes()} and call {@link JobAttributes#getAll()}.
      */
-    @Deprecated
+    @Deprecated(since = "6.0.0", forRemoval = true)
     public Map<String, String> getAttributes();
 
     /**
@@ -171,7 +171,7 @@ public interface Job {
      * @deprecated Use {@code job.metadata().getBusinessEnd()} instead — obtain the facet via
      *             {@link #metadata()} and call {@link JobMetadata#getBusinessEnd()}.
      */
-    @Deprecated
+    @Deprecated(since = "6.0.0", forRemoval = true)
     public LocalDateTime getBusinessEnd();
 
     /**
@@ -181,7 +181,7 @@ public interface Job {
      * @deprecated Use {@code job.metadata().getBusinessObject()} instead — obtain the facet via
      *             {@link #metadata()} and call {@link JobMetadata#getBusinessObject()}.
      */
-    @Deprecated
+    @Deprecated(since = "6.0.0", forRemoval = true)
     public String getBusinessObject();
 
     /**
@@ -191,7 +191,7 @@ public interface Job {
      * @deprecated Use {@code job.metadata().getBusinessService()} instead — obtain the facet via
      *             {@link #metadata()} and call {@link JobMetadata#getBusinessService()}.
      */
-    @Deprecated
+    @Deprecated(since = "6.0.0", forRemoval = true)
     public String getBusinessService();
 
     /**
@@ -199,7 +199,7 @@ public interface Job {
      * @deprecated Use {@code job.metadata().getBusinessStart()} instead — obtain the facet via
      *             {@link #metadata()} and call {@link JobMetadata#getBusinessStart()}.
      */
-    @Deprecated
+    @Deprecated(since = "6.0.0", forRemoval = true)
     public LocalDateTime getBusinessStart();
 
     /**
@@ -211,7 +211,7 @@ public interface Job {
      *             obtain the facet via {@link #activities()} and call
      *             {@link JobActivities#getCompletedByModelId(String)}.
      */
-    @Deprecated
+    @Deprecated(since = "6.0.0", forRemoval = true)
     public Activity getCompletedActivityByModelId(String activityModelId);
 
     /**
@@ -221,7 +221,7 @@ public interface Job {
      * @deprecated Use {@code job.metadata().getCorrelationLogId()} instead — obtain the facet via
      *             {@link #metadata()} and call {@link JobMetadata#getCorrelationLogId()}.
      */
-    @Deprecated
+    @Deprecated(since = "6.0.0", forRemoval = true)
     public String getCorrelationLogId();
 
     /**
@@ -238,7 +238,7 @@ public interface Job {
      * @deprecated Use {@code job.metadata().getExternalLogId()} instead — obtain the facet via
      *             {@link #metadata()} and call {@link JobMetadata#getExternalLogId()}.
      */
-    @Deprecated
+    @Deprecated(since = "6.0.0", forRemoval = true)
     public String getExternalLogId();
 
     /**
@@ -269,7 +269,7 @@ public interface Job {
      * @deprecated Use {@code job.metadata().getParentLogId()} instead — obtain the facet via
      *             {@link #metadata()} and call {@link JobMetadata#getParentLogId()}.
      */
-    @Deprecated
+    @Deprecated(since = "6.0.0", forRemoval = true)
     public String getParentLogId();
 
     /**
@@ -281,7 +281,7 @@ public interface Job {
      * @deprecated Use {@code job.properties().get(key)} instead — obtain the facet via
      *             {@link #properties()} and call {@link JobProperties#get(String)}.
      */
-    @Deprecated
+    @Deprecated(since = "6.0.0", forRemoval = true)
     public Object getProperty(final String key);
 
     /**
@@ -293,7 +293,7 @@ public interface Job {
      *             obtain the facet via {@link #activities()} and call
      *             {@link JobActivities#getRunningByModelId(String)}.
      */
-    @Deprecated
+    @Deprecated(since = "6.0.0", forRemoval = true)
     public Activity getRunningActivityByModelId(String activityModelId);
 
     /**
@@ -303,7 +303,7 @@ public interface Job {
      * @deprecated Use {@code job.activities().getStart()} instead — obtain the facet via
      *             {@link #activities()} and call {@link JobActivities#getStart()}.
      */
-    @Deprecated
+    @Deprecated(since = "6.0.0", forRemoval = true)
     public Activity getStartActivity();
 
     /**
@@ -328,7 +328,7 @@ public interface Job {
      * @deprecated Use {@code job.attributes().has(name)} instead — obtain the facet via
      *             {@link #attributes()} and call {@link JobAttributes#has(String)}.
      */
-    @Deprecated
+    @Deprecated(since = "6.0.0", forRemoval = true)
     public boolean hasAttribute(final String name);
 
     /**
@@ -339,7 +339,7 @@ public interface Job {
      * @deprecated Use {@code job.properties().has(key)} instead — obtain the facet via
      *             {@link #properties()} and call {@link JobProperties#has(String)}.
      */
-    @Deprecated
+    @Deprecated(since = "6.0.0", forRemoval = true)
     public boolean hasProperty(final String key);
 
     /**
@@ -350,7 +350,7 @@ public interface Job {
      * @deprecated Use {@code job.tracing().isDeepTrace()} instead — obtain the facet via
      *             {@link #tracing()} and call {@link JobTracing#isDeepTrace()}.
      */
-    @Deprecated
+    @Deprecated(since = "6.0.0", forRemoval = true)
     public boolean isDeepTrace();
 
     /**
@@ -362,7 +362,7 @@ public interface Job {
      * @deprecated Use {@code job.tracing().setDeepTrace(deepTrace)} instead — obtain the facet via
      *             {@link #tracing()} and call {@link JobTracing#setDeepTrace(boolean)}.
      */
-    @Deprecated
+    @Deprecated(since = "6.0.0", forRemoval = true)
     public void setDeepTrace(boolean deepTrace);
 
     /**
@@ -378,7 +378,7 @@ public interface Job {
      * @deprecated Use {@code job.tracing().isTraces()} instead — obtain the facet via
      *             {@link #tracing()} and call {@link JobTracing#isTraces()}.
      */
-    @Deprecated
+    @Deprecated(since = "6.0.0", forRemoval = true)
     public boolean isTraces();
 
     /**
@@ -390,7 +390,7 @@ public interface Job {
      * @deprecated Use {@code job.properties().remove(key)} instead — obtain the facet via
      *             {@link #properties()} and call {@link JobProperties#remove(String)}.
      */
-    @Deprecated
+    @Deprecated(since = "6.0.0", forRemoval = true)
     public Object removeProperty(final String key);
 
     /**
@@ -404,7 +404,7 @@ public interface Job {
      *             {@link #end(boolean)}, because the final log message has already been sent and
      *             a later change is never sent.
      */
-    @Deprecated
+    @Deprecated(since = "6.0.0", forRemoval = true)
     public void addAttribute(final String name, final String value);
 
     /**
@@ -418,7 +418,7 @@ public interface Job {
      *             because the final log message has already been sent and a later change is
      *             never sent.
      */
-    @Deprecated
+    @Deprecated(since = "6.0.0", forRemoval = true)
     public void setBusinessObject(String businessObject);
 
     /**
@@ -430,7 +430,7 @@ public interface Job {
      *             {@link JobMetadata#setBusinessObject(Path)}. Unlike this method, the replacement
      *             throws an exception when called after {@link #end(boolean)}.
      */
-    @Deprecated
+    @Deprecated(since = "6.0.0", forRemoval = true)
     public void setBusinessObject(Path businessObject);
 
     /**
@@ -442,7 +442,7 @@ public interface Job {
      *             {@link JobMetadata#setBusinessStart(LocalDateTime)}. Unlike this method, the
      *             replacement throws an exception when called after {@link #end(boolean)}.
      */
-    @Deprecated
+    @Deprecated(since = "6.0.0", forRemoval = true)
     public void setBusinessStart(LocalDateTime businessStart);
 
     /**
@@ -454,7 +454,7 @@ public interface Job {
      *             {@link JobMetadata#setBusinessEnd(LocalDateTime)}. Unlike this method, the
      *             replacement throws an exception when called after {@link #end(boolean)}.
      */
-    @Deprecated
+    @Deprecated(since = "6.0.0", forRemoval = true)
     public void setBusinessEnd(LocalDateTime businessEnd);
 
     /**
@@ -466,7 +466,7 @@ public interface Job {
      *             {@link JobMetadata#setBusinessService(String)}. Unlike this method, the
      *             replacement throws an exception when called after {@link #end(boolean)}.
      */
-    @Deprecated
+    @Deprecated(since = "6.0.0", forRemoval = true)
     public void setBusinessService(String businessService);
 
     /**
@@ -478,7 +478,7 @@ public interface Job {
      *             {@link JobMetadata#setBusinessService(Path)}. Unlike this method, the
      *             replacement throws an exception when called after {@link #end(boolean)}.
      */
-    @Deprecated
+    @Deprecated(since = "6.0.0", forRemoval = true)
     public void setBusinessService(Path businessService);
 
     /**
@@ -490,7 +490,7 @@ public interface Job {
      *             {@link JobMetadata#setCorrelationLogId(String)}. Unlike this method, the
      *             replacement throws an exception when called after {@link #end(boolean)}.
      */
-    @Deprecated
+    @Deprecated(since = "6.0.0", forRemoval = true)
     public void setCorrelationLogId(final String correlationLogId);
 
     /**
@@ -509,7 +509,7 @@ public interface Job {
      *             {@link JobMetadata#setExternalLogId(String)}. Unlike this method, the
      *             replacement throws an exception when called after {@link #end(boolean)}.
      */
-    @Deprecated
+    @Deprecated(since = "6.0.0", forRemoval = true)
     public void setExternalLogId(String externalLogId);
 
     /**
@@ -521,7 +521,7 @@ public interface Job {
      *             {@link JobMetadata#setParentLogId(String)}. Unlike this method, the replacement
      *             throws an exception when called after {@link #end(boolean)}.
      */
-    @Deprecated
+    @Deprecated(since = "6.0.0", forRemoval = true)
     public void setParentLogId(String parentLogId);
 
     /**
@@ -533,7 +533,7 @@ public interface Job {
      * @deprecated Use {@code job.properties().set(key, value)} instead — obtain the facet via
      *             {@link #properties()} and call {@link JobProperties#set(String, Object)}.
      */
-    @Deprecated
+    @Deprecated(since = "6.0.0", forRemoval = true)
     public void setProperty(final String key, final Object value);
 
     /**

@@ -304,7 +304,7 @@ public class JobImpl implements Job {
      * @deprecated SDK-internal flush mechanics, not part of the public API; there is no
      *             replacement — periodic flushing is handled transparently by the SDK.
      */
-    @Deprecated
+    @Deprecated(since = "6.0.0", forRemoval = true)
     public void timerFlush(LocalDateTime sentBefore, long flushSize) {
         flusher.timerFlush(this, sentBefore, flushSize);
     }
@@ -317,7 +317,7 @@ public class JobImpl implements Job {
      * @deprecated SDK-internal flush mechanics, not part of the public API; there is no
      *             replacement — log messages are flushed transparently by the SDK.
      */
-    @Deprecated
+    @Deprecated(since = "6.0.0", forRemoval = true)
     public void flush() {
         flusher.flush(this);
     }
@@ -397,7 +397,7 @@ public class JobImpl implements Job {
      * @deprecated SDK-internal error handling, not part of the public API; there is no
      *             replacement — error events are recorded by the SDK's activity processing.
      */
-    @Deprecated
+    @Deprecated(since = "6.0.0", forRemoval = true)
     public void setActivityErrorEvent(Activity errorActivity, ErrorEvent errorEvent) {
         errorHandling.setActivityErrorEvent(errorActivity, errorEvent);
     }
@@ -745,7 +745,7 @@ public class JobImpl implements Job {
      * @deprecated SDK-internal flush bookkeeping, not part of the public API; there is no
      *             replacement.
      */
-    @Deprecated
+    @Deprecated(since = "6.0.0", forRemoval = true)
     public LocalDateTime getLastFlush() {
         return flusher.getLastFlush();
     }
@@ -756,7 +756,7 @@ public class JobImpl implements Job {
      * @deprecated SDK-internal tracing mechanics, not part of the public API; there is no
      *             replacement — instrumentation is flagged by the SDK's tracing handling.
      */
-    @Deprecated
+    @Deprecated(since = "6.0.0", forRemoval = true)
     public void setInstrumented() {
         tracing.setInstrumented();
     }
@@ -774,7 +774,7 @@ public class JobImpl implements Job {
      * @deprecated SDK-internal tracing mechanics, not part of the public API; there is no
      *             replacement — the traces flag is maintained by the SDK's tracepoint handling.
      */
-    @Deprecated
+    @Deprecated(since = "6.0.0", forRemoval = true)
     public void setTraces(boolean traces) {
         tracing.setTraces(traces);
     }
@@ -831,7 +831,7 @@ public class JobImpl implements Job {
      * @deprecated SDK-internal flush bookkeeping, not part of the public API; there is no
      *             replacement.
      */
-    @Deprecated
+    @Deprecated(since = "6.0.0", forRemoval = true)
     public long getEstimatedSize() {
         return flusher.getEstimatedSize();
     }
@@ -843,7 +843,7 @@ public class JobImpl implements Job {
      * @deprecated SDK-internal flush bookkeeping, not part of the public API; there is no
      *             replacement.
      */
-    @Deprecated
+    @Deprecated(since = "6.0.0", forRemoval = true)
     public void addToEstimatedSize(long estimatedSize) {
         flusher.addToEstimatedSize(estimatedSize);
     }
@@ -868,7 +868,7 @@ public class JobImpl implements Job {
      * @deprecated SDK-internal tracing mechanics, not part of the public API; there is no
      *             replacement — tracepoints are evaluated by the SDK's activity processing.
      */
-    @Deprecated
+    @Deprecated(since = "6.0.0", forRemoval = true)
     public boolean isActiveTracepoint(TracepointExt tracepoint) {
         return runtimeConfig.isActiveTracepoint(tracepoint);
     }
@@ -881,7 +881,7 @@ public class JobImpl implements Job {
      * @deprecated SDK-internal configuration lookup, not part of the public API; there is no
      *             replacement — activity configurations are resolved by the SDK.
      */
-    @Deprecated
+    @Deprecated(since = "6.0.0", forRemoval = true)
     public ActivityConfiguration getActivityConfiguration(ActivityModel activityModel) {
         return runtimeConfig.getActivityConfiguration(activityModel);
     }
@@ -893,7 +893,7 @@ public class JobImpl implements Job {
      * @deprecated SDK-internal configuration state, not part of the public API; there is no
      *             replacement.
      */
-    @Deprecated
+    @Deprecated(since = "6.0.0", forRemoval = true)
     public boolean isRecording() {
         return runtimeConfig.recording;
     }
@@ -1031,7 +1031,7 @@ public class JobImpl implements Job {
      *             replacement — client code should keep its own reference to its {@link Njams}
      *             instance.
      */
-    @Deprecated
+    @Deprecated(since = "6.0.0", forRemoval = true)
     public Njams getNjams() {
         return njams;
     }
@@ -1054,7 +1054,7 @@ public class JobImpl implements Job {
      * @deprecated SDK-internal helper, not part of the public API; there is no replacement —
      *             field values are limited transparently by the SDK.
      */
-    @Deprecated
+    @Deprecated(since = "6.0.0", forRemoval = true)
     public static String limitLength(String fieldName, String value, int maxLength) {
         if (value != null && value.length() > maxLength) {
             LOG.warn("Value of field '{}' exceeds max length of {} characters. Value will be truncated.", fieldName,
