@@ -56,11 +56,11 @@ public class GroupClient {
         Njams njams = new Njams(clientPath, "1.0.0", technology, settings);
 
         //add custom image for your technology
-        njams.addImage(technology, "images/njams_java_sdk_process_step.png");
+        njams.processes().addImage(technology, "images/njams_java_sdk_process_step.png");
         //add custom images for your activites
-        njams.addImage("startType", "images/njams_java_sdk_process_start.png");
-        njams.addImage("stepType", "images/njams_java_sdk_process_step.png");
-        njams.addImage("endType", "images/njams_java_sdk_process_end.png");
+        njams.processes().addImage("startType", "images/njams_java_sdk_process_start.png");
+        njams.processes().addImage("stepType", "images/njams_java_sdk_process_step.png");
+        njams.processes().addImage("endType", "images/njams_java_sdk_process_end.png");
 
         /**
          * Creating a process by adding a ProcessModel
@@ -69,7 +69,7 @@ public class GroupClient {
         Path processPath = Path.of("Processes", "GroupProcess");
 
         //Create an new empty process model
-        ProcessModel process = njams.createProcess(processPath);
+        ProcessModel process = njams.processes().create(processPath);
 
         //start the model with a start activity by id, name and type, where type should match one of your previously registered images
         ActivityModel startModel = process.createActivity("start", "Start", "startType");
@@ -91,17 +91,17 @@ public class GroupClient {
         ActivityModel endModel = groupEndModel.getParent().transitionTo("end", "End", "endType");
 
         //optional: register custom images for the tree
-        njams.addImage("first", "images/root.png");
-        njams.addImage("second", "images/folder.png");
-        njams.addImage("third", "images/client.png");
-        njams.addImage("fourth", "images/folder.png");
-        njams.addImage("fifth", "images/process.png");
+        njams.processes().addImage("first", "images/root.png");
+        njams.processes().addImage("second", "images/folder.png");
+        njams.processes().addImage("third", "images/client.png");
+        njams.processes().addImage("fourth", "images/folder.png");
+        njams.processes().addImage("fifth", "images/process.png");
         //optional: and set the type of the tree elements to the image keys
-        njams.setTreeElementType(Path.of("SDK4"), "first");
-        njams.setTreeElementType(Path.of("SDK4", "Client"), "second");
-        njams.setTreeElementType(Path.of("SDK4", "Client", "Group"), "third");
-        njams.setTreeElementType(Path.of("SDK4", "Client", "Group", "Processes"), "fourth");
-        njams.setTreeElementType(Path.of("SDK4", "Client", "Group", "Processes", "GroupProcess"), "fifth");
+        njams.processes().setTreeElementType(Path.of("SDK4"), "first");
+        njams.processes().setTreeElementType(Path.of("SDK4", "Client"), "second");
+        njams.processes().setTreeElementType(Path.of("SDK4", "Client", "Group"), "third");
+        njams.processes().setTreeElementType(Path.of("SDK4", "Client", "Group", "Processes"), "fourth");
+        njams.processes().setTreeElementType(Path.of("SDK4", "Client", "Group", "Processes", "GroupProcess"), "fifth");
 
         // Start client and flush resources, which will create a projectmessage to send all resources to the server
         njams.start();

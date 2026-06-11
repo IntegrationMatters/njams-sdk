@@ -57,11 +57,11 @@ public class SubProcessSpawnedClient {
         Njams njams = new Njams(clientPath, "1.0.0", technology, settings);
 
         //add custom image for your technology
-        njams.addImage(technology, "images/njams_java_sdk_process_step.png");
+        njams.processes().addImage(technology, "images/njams_java_sdk_process_step.png");
         //add custom images for your activites
-        njams.addImage("startType", "images/njams_java_sdk_process_start.png");
-        njams.addImage("stepType", "images/njams_java_sdk_process_step.png");
-        njams.addImage("endType", "images/njams_java_sdk_process_end.png");
+        njams.processes().addImage("startType", "images/njams_java_sdk_process_start.png");
+        njams.processes().addImage("stepType", "images/njams_java_sdk_process_step.png");
+        njams.processes().addImage("endType", "images/njams_java_sdk_process_end.png");
 
         /**
          * Creating a process by adding a ProcessModel
@@ -70,7 +70,7 @@ public class SubProcessSpawnedClient {
         Path processPath = Path.of("Processes", "TheProcess");
 
         //Create an new empty process model for the main process
-        ProcessModel process = njams.createProcess(processPath);
+        ProcessModel process = njams.processes().create(processPath);
 
         //start model
         ActivityModel startModel = process.createActivity("start", "Start", "startType");
@@ -84,7 +84,7 @@ public class SubProcessSpawnedClient {
 
         //Create a new process model for the subprocess
         Path subProcessPath = Path.of("PROCESSES", "SpawnedSubProcess");
-        ProcessModel subProcess = njams.createProcess(subProcessPath);
+        ProcessModel subProcess = njams.processes().create(subProcessPath);
         ActivityModel subProcessStartModel = subProcess.createActivity("subProcessstart", "Start", "startType");
         subProcessStartModel.setStarter(true);
         ActivityModel subProcessLogModel = subProcessStartModel.transitionTo("subProcesslog", "Log", "stepType");

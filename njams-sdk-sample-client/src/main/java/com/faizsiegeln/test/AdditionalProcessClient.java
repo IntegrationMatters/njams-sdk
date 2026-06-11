@@ -49,12 +49,12 @@ public class AdditionalProcessClient {
         Njams njams = new Njams(clientPath, "1.0.0", technology, settings);
 
         //add custom image for your technology
-        njams.addImage(technology, "images/njams_java_sdk_process_step.png");
+        njams.processes().addImage(technology, "images/njams_java_sdk_process_step.png");
 
         //add custom images for your activites
-        njams.addImage("startType", "images/njams_java_sdk_process_start.png");
-        njams.addImage("stepType", "images/njams_java_sdk_process_step.png");
-        njams.addImage("endType", "images/njams_java_sdk_process_end.png");
+        njams.processes().addImage("startType", "images/njams_java_sdk_process_start.png");
+        njams.processes().addImage("stepType", "images/njams_java_sdk_process_step.png");
+        njams.processes().addImage("endType", "images/njams_java_sdk_process_end.png");
 
         /**
          * Creating a process by adding a ProcessModel
@@ -63,7 +63,7 @@ public class AdditionalProcessClient {
         Path processPath = Path.of("Processes", "SimpleProcess");
 
         //Create an new empty process model
-        ProcessModel process = njams.createProcess(processPath);
+        ProcessModel process = njams.processes().create(processPath);
 
         //start the model with a start activity by id, name and type, where type should match one of your previously registered images
         ActivityModel startModel = process.createActivity("start", "Start", "startType");
@@ -83,7 +83,7 @@ public class AdditionalProcessClient {
         Path processPath2 = Path.of("Processes", "AddedProcess");
 
         //Create an new empty process model
-        ProcessModel process2 = njams.createProcess(processPath2);
+        ProcessModel process2 = njams.processes().create(processPath2);
 
         //start the model with a start activity by id, name and type, where type should match one of your previously registered images
         ActivityModel startModel2 = process2.createActivity("start", "Start", "startType");
@@ -94,7 +94,7 @@ public class AdditionalProcessClient {
         ActivityModel endModel2 = logModel2.transitionTo("end", "End", "endType");
 
         // Send this additional process to the server.
-        njams.sendAdditionalProcess(process2);
+        njams.processes().announce(process2);
 
         Thread.sleep(1000);
 
