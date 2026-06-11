@@ -236,7 +236,7 @@ public class Njams implements InstructionListener {
      *             {@link NjamsMetadata#setRuntimeVersion(String)} before {@link #start()};
      *             {@link NjamsMetadata#getRuntimeVersion()} is the corresponding getter.
      */
-    @Deprecated
+    @Deprecated(since = "6.0.0", forRemoval = true)
     public Njams(Path path, String version, String runtimeVersion, String category, ClientSettings settings) {
         this(path, version, category, settings);
         metadata.setRuntimeVersionInternal(runtimeVersion);
@@ -354,7 +354,7 @@ public class Njams implements InstructionListener {
      * @deprecated Use {@code njams.argos().add(collector)} instead — obtain the facet via
      *             {@link #argos()} and call {@link NjamsArgos#add(ArgosMultiCollector)}.
      */
-    @Deprecated
+    @Deprecated(since = "6.0.0", forRemoval = true)
     public void addArgosCollector(ArgosMultiCollector collector) {
         argos.add(collector);
     }
@@ -366,7 +366,7 @@ public class Njams implements InstructionListener {
      * @deprecated Use {@code njams.argos().remove(collector)} instead — obtain the facet via
      *             {@link #argos()} and call {@link NjamsArgos#remove(ArgosMultiCollector)}.
      */
-    @Deprecated
+    @Deprecated(since = "6.0.0", forRemoval = true)
     public void removeArgosCollector(ArgosMultiCollector collector) {
         argos.remove(collector);
     }
@@ -377,7 +377,7 @@ public class Njams implements InstructionListener {
      * @deprecated Use {@code njams.metadata().getCategory()} instead — obtain the facet via
      *             {@link #metadata()} and call {@link NjamsMetadata#getCategory()}.
      */
-    @Deprecated
+    @Deprecated(since = "6.0.0", forRemoval = true)
     public String getCategory() {
         return metadata.getCategory();
     }
@@ -394,7 +394,7 @@ public class Njams implements InstructionListener {
      * @deprecated Use {@code njams.metadata().getClientPath()} instead — obtain the facet via
      *             {@link #metadata()} and call {@link NjamsMetadata#getClientPath()}.
      */
-    @Deprecated
+    @Deprecated(since = "6.0.0", forRemoval = true)
     public Path getClientPath() {
         return metadata.getClientPath();
     }
@@ -406,7 +406,7 @@ public class Njams implements InstructionListener {
      *             {@code njams.metadata().getClientSessionId()} instead — obtain the facet via
      *             {@link #metadata()} and call {@link NjamsMetadata#getClientSessionId()}.
      */
-    @Deprecated
+    @Deprecated(since = "6.0.0", forRemoval = true)
     public String getCommunicationSessionId() {
         return metadata.getClientSessionId();
     }
@@ -416,7 +416,7 @@ public class Njams implements InstructionListener {
      * @deprecated Use {@code njams.metadata().getClientVersion()} instead — obtain the facet via
      *             {@link #metadata()} and call {@link NjamsMetadata#getClientVersion()}.
      */
-    @Deprecated
+    @Deprecated(since = "6.0.0", forRemoval = true)
     public String getClientVersion() {
         return metadata.getClientVersion();
     }
@@ -426,7 +426,7 @@ public class Njams implements InstructionListener {
      * @deprecated Use {@code njams.metadata().getSdkVersion()} instead — obtain the facet via
      *             {@link #metadata()} and call {@link NjamsMetadata#getSdkVersion()}.
      */
-    @Deprecated
+    @Deprecated(since = "6.0.0", forRemoval = true)
     public String getSdkVersion() {
         return metadata.getSdkVersion();
     }
@@ -436,7 +436,7 @@ public class Njams implements InstructionListener {
      * @deprecated Use {@code njams.metadata().getRuntimeVersion()} instead — obtain the facet via
      *             {@link #metadata()} and call {@link NjamsMetadata#getRuntimeVersion()}.
      */
-    @Deprecated
+    @Deprecated(since = "6.0.0", forRemoval = true)
     public String getRuntimeVersion() {
         return metadata.getRuntimeVersion();
     }
@@ -452,7 +452,7 @@ public class Njams implements InstructionListener {
      *             {@link #start()}, because the runtime version is announced to the nJAMS server
      *             at start and a later change is never sent.
      */
-    @Deprecated
+    @Deprecated(since = "6.0.0", forRemoval = true)
     public void setRuntimeVersion(String runtimeVersion) {
         warnIfStarted("setRuntimeVersion", "metadata().setRuntimeVersion(...)");
         metadata.setRuntimeVersionInternal(runtimeVersion);
@@ -463,7 +463,7 @@ public class Njams implements InstructionListener {
      * @deprecated Use {@code njams.metadata().getGlobalVariables()} instead — obtain the facet via
      *             {@link #metadata()} and call {@link NjamsMetadata#getGlobalVariables()}.
      */
-    @Deprecated
+    @Deprecated(since = "6.0.0", forRemoval = true)
     public Map<String, String> getGlobalVariables() {
         return metadata.getGlobalVariables();
     }
@@ -479,7 +479,7 @@ public class Njams implements InstructionListener {
      *             {@link #start()}, because global variables are announced to the nJAMS server at
      *             start and a later change is never sent.
      */
-    @Deprecated
+    @Deprecated(since = "6.0.0", forRemoval = true)
     public void addGlobalVariables(Map<String, String> globalVariables) {
         warnIfStarted("addGlobalVariables", "metadata().addGlobalVariables(...)");
         metadata.addGlobalVariablesInternal(globalVariables);
@@ -494,7 +494,7 @@ public class Njams implements InstructionListener {
      *             facet via {@link #metadata()} and call
      *             {@link NjamsMetadata#getGlobalVariablesPattern()}.
      */
-    @Deprecated
+    @Deprecated(since = "6.0.0", forRemoval = true)
     public String getGlobalVariablesPattern() {
         return metadata.getGlobalVariablesPattern();
     }
@@ -517,7 +517,7 @@ public class Njams implements InstructionListener {
      *             {@link #start()}, because the pattern is announced to the nJAMS server at start
      *             and a later change is never sent.
      */
-    @Deprecated
+    @Deprecated(since = "6.0.0", forRemoval = true)
     public void setGlobalVariablesPattern(String globalVariablesPattern) {
         warnIfStarted("setGlobalVariablesPattern", "metadata().setGlobalVariablesPattern(...)");
         metadata.setGlobalVariablesPatternInternal(globalVariablesPattern);
@@ -530,7 +530,7 @@ public class Njams implements InstructionListener {
      * @deprecated Use {@code njams.replay().getHandler()} instead — obtain the facet via
      *             {@link #replay()} and call {@link NjamsReplay#getHandler()}.
      */
-    @Deprecated
+    @Deprecated(since = "6.0.0", forRemoval = true)
     public ReplayHandler getReplayHandler() {
         return replay.getHandler();
     }
@@ -546,7 +546,7 @@ public class Njams implements InstructionListener {
      *             when called after {@link #start()}, because the replay feature is announced to
      *             the nJAMS server at start and a later change is never sent.
      */
-    @Deprecated
+    @Deprecated(since = "6.0.0", forRemoval = true)
     public void setReplayHandler(final ReplayHandler replayHandler) {
         warnIfStarted("setReplayHandler", "replay().setHandler(...)");
         replay.setHandlerInternal(replayHandler);
@@ -558,7 +558,7 @@ public class Njams implements InstructionListener {
      * @deprecated Use {@code njams.features().isContainerMode()} instead — obtain the facet via
      *             {@link #features()} and call {@link NjamsFeatures#isContainerMode()}.
      */
-    @Deprecated
+    @Deprecated(since = "6.0.0", forRemoval = true)
     public boolean isContainerMode() {
         return features.isContainerMode();
     }
@@ -572,7 +572,7 @@ public class Njams implements InstructionListener {
      *             {@link NjamsFeatures#setContainerMode(boolean)}. The replacement has the same
      *             contract: it throws an exception when called after {@link #start()}.
      */
-    @Deprecated
+    @Deprecated(since = "6.0.0", forRemoval = true)
     public void setContainerMode(boolean enabled) {
         features.setContainerMode(enabled);
     }
@@ -589,7 +589,7 @@ public class Njams implements InstructionListener {
      *             {@link #start()}, because images added later are never sent to the nJAMS
      *             server.
      */
-    @Deprecated
+    @Deprecated(since = "6.0.0", forRemoval = true)
     public void addImage(final String key, final String resourcePath) {
         addImage(new ResourceImageSupplier(key, resourcePath));
     }
@@ -605,7 +605,7 @@ public class Njams implements InstructionListener {
      *             {@link #start()}, because images added later are never sent to the nJAMS
      *             server.
      */
-    @Deprecated
+    @Deprecated(since = "6.0.0", forRemoval = true)
     public void addImage(final ImageSupplier imageSupplier) {
         warnIfStarted("addImage", "processes().addImage(...)");
         processes.addImageInternal(imageSupplier);
@@ -617,7 +617,7 @@ public class Njams implements InstructionListener {
      *             obtain the facet via {@link #processes()} and call
      *             {@link NjamsProcesses#setDiagramFactory(ProcessDiagramFactory)}.
      */
-    @Deprecated
+    @Deprecated(since = "6.0.0", forRemoval = true)
     public void setProcessDiagramFactory(ProcessDiagramFactory processDiagramFactory) {
         processes.setDiagramFactory(processDiagramFactory);
     }
@@ -632,7 +632,7 @@ public class Njams implements InstructionListener {
      *             code should not access the sender directly — message dispatch is handled
      *             transparently by the SDK.
      */
-    @Deprecated
+    @Deprecated(since = "6.0.0", forRemoval = true)
     public NjamsSender getSender() {
         if (sender == null) {
             if (settings.getBool(NjamsSettings.PROPERTY_SHARED_COMMUNICATIONS, false)) {
@@ -735,7 +735,7 @@ public class Njams implements InstructionListener {
      * @deprecated Use {@code njams.metadata().getClientSessionId()} instead — obtain the facet via
      *             {@link #metadata()} and call {@link NjamsMetadata#getClientSessionId()}.
      */
-    @Deprecated
+    @Deprecated(since = "6.0.0", forRemoval = true)
     public String getClientSessionId() {
         return metadata.getClientSessionId();
     }
@@ -783,7 +783,7 @@ public class Njams implements InstructionListener {
      *             {@code processes().get(metadata().getClientPath().getChild(...))} or use the
      *             single-segment convenience {@link NjamsProcesses#get(String)}.
      */
-    @Deprecated
+    @Deprecated(since = "6.0.0", forRemoval = true)
     public ProcessModel getProcessModel(final com.im.njams.sdk.common.Path relativePath) {
         return processes.get(metadata.getClientPath().getChild(relativePath.getParts()));
     }
@@ -802,7 +802,7 @@ public class Njams implements InstructionListener {
      *             {@code processes().has(metadata().getClientPath().getChild(...))} or use the
      *             single-segment convenience {@link NjamsProcesses#has(String)}.
      */
-    @Deprecated
+    @Deprecated(since = "6.0.0", forRemoval = true)
     public boolean hasProcessModel(final com.im.njams.sdk.common.Path relativePath) {
         if (relativePath == null) {
             return false;
@@ -817,7 +817,7 @@ public class Njams implements InstructionListener {
      * @deprecated Use {@code njams.processes().getAll()} instead — obtain the facet via
      *             {@link #processes()} and call {@link NjamsProcesses#getAll()}.
      */
-    @Deprecated
+    @Deprecated(since = "6.0.0", forRemoval = true)
     public Collection<ProcessModel> getProcessModels() {
         return processes.getAll();
     }
@@ -830,7 +830,7 @@ public class Njams implements InstructionListener {
      * @deprecated Use {@code njams.jobs().get(jobId)} instead — obtain the facet via
      *             {@link #jobs()} and call {@link NjamsJobs#get(String)}.
      */
-    @Deprecated
+    @Deprecated(since = "6.0.0", forRemoval = true)
     public Job getJobById(final String jobId) {
         return jobs.get(jobId);
     }
@@ -843,7 +843,7 @@ public class Njams implements InstructionListener {
      * @deprecated Use {@code njams.jobs().getAll()} instead — obtain the facet via
      *             {@link #jobs()} and call {@link NjamsJobs#getAll()}.
      */
-    @Deprecated
+    @Deprecated(since = "6.0.0", forRemoval = true)
     public Collection<Job> getJobs() {
         return jobs.getAll();
     }
@@ -863,7 +863,7 @@ public class Njams implements InstructionListener {
      *             {@code processes().create(metadata().getClientPath().getOrCreateChild(...))} or
      *             use the single-segment convenience {@link NjamsProcesses#create(String)}.
      */
-    @Deprecated
+    @Deprecated(since = "6.0.0", forRemoval = true)
     public ProcessModel createProcess(final com.im.njams.sdk.common.Path relativePath) {
         return processes.create(metadata.getClientPath().getOrCreateChild(relativePath.getParts()), this);
     }
@@ -876,7 +876,7 @@ public class Njams implements InstructionListener {
      * @deprecated Use {@code njams.processes().add(processModel)} instead — obtain the facet via
      *             {@link #processes()} and call {@link NjamsProcesses#add(ProcessModel)}.
      */
-    @Deprecated
+    @Deprecated(since = "6.0.0", forRemoval = true)
     public void addProcessModel(final ProcessModel processModel) {
         processes.add(processModel, this);
     }
@@ -888,7 +888,7 @@ public class Njams implements InstructionListener {
      * @deprecated Use {@code njams.processes().send()} instead — obtain the facet via
      *             {@link #processes()} and call {@link NjamsProcesses#send()}.
      */
-    @Deprecated
+    @Deprecated(since = "6.0.0", forRemoval = true)
     public void sendProjectMessage() {
         processes.send();
     }
@@ -903,7 +903,7 @@ public class Njams implements InstructionListener {
      *             replacement has the same contract: it throws an exception when the instance has
      *             not been started yet.
      */
-    @Deprecated
+    @Deprecated(since = "6.0.0", forRemoval = true)
     public void sendAdditionalProcess(final ProcessModel model) {
         processes.announce(model);
     }
@@ -920,7 +920,7 @@ public class Njams implements InstructionListener {
      *             {@link #start()}, because tree-element types are announced to the nJAMS server
      *             at start and a later change is never sent.
      */
-    @Deprecated
+    @Deprecated(since = "6.0.0", forRemoval = true)
     public void setTreeElementType(Path path, String type) {
         warnIfStarted("setTreeElementType", "processes().setTreeElementType(...)");
         processes.setTreeElementTypeInternal(path, type);
@@ -931,7 +931,7 @@ public class Njams implements InstructionListener {
      * @deprecated Use {@code njams.processes().getLayouter()} instead — obtain the facet via
      *             {@link #processes()} and call {@link NjamsProcesses#getLayouter()}.
      */
-    @Deprecated
+    @Deprecated(since = "6.0.0", forRemoval = true)
     public ProcessModelLayouter getProcessModelLayouter() {
         return processes.getLayouter();
     }
@@ -942,7 +942,7 @@ public class Njams implements InstructionListener {
      *             the facet via {@link #processes()} and call
      *             {@link NjamsProcesses#setLayouter(ProcessModelLayouter)}.
      */
-    @Deprecated
+    @Deprecated(since = "6.0.0", forRemoval = true)
     public void setProcessModelLayouter(ProcessModelLayouter processModelLayouter) {
         processes.setLayouter(processModelLayouter);
     }
@@ -976,7 +976,7 @@ public class Njams implements InstructionListener {
      *             same contract: it throws an exception if this instance has not been started
      *             yet.
      */
-    @Deprecated
+    @Deprecated(since = "6.0.0", forRemoval = true)
     public void addJob(Job job) {
         jobs.add(job);
     }
@@ -988,7 +988,7 @@ public class Njams implements InstructionListener {
      * @deprecated Use {@code njams.jobs().remove(jobId)} instead — obtain the facet via
      *             {@link #jobs()} and call {@link NjamsJobs#remove(String)}.
      */
-    @Deprecated
+    @Deprecated(since = "6.0.0", forRemoval = true)
     public void removeJob(String jobId) {
         jobs.remove(jobId);
     }
@@ -1004,7 +1004,7 @@ public class Njams implements InstructionListener {
      * @deprecated Use {@code njams.commands().list()} instead — obtain the facet via
      *             {@link #commands()} and call {@link NjamsCommands#list()}.
      */
-    @Deprecated
+    @Deprecated(since = "6.0.0", forRemoval = true)
     public List<InstructionListener> getInstructionListeners() {
         return commands.list();
     }
@@ -1017,7 +1017,7 @@ public class Njams implements InstructionListener {
      * @deprecated Use {@code njams.commands().add(listener)} instead — obtain the facet via
      *             {@link #commands()} and call {@link NjamsCommands#add(InstructionListener)}.
      */
-    @Deprecated
+    @Deprecated(since = "6.0.0", forRemoval = true)
     public void addInstructionListener(InstructionListener listener) {
         commands.add(listener);
     }
@@ -1029,7 +1029,7 @@ public class Njams implements InstructionListener {
      * @deprecated Use {@code njams.commands().remove(listener)} instead — obtain the facet via
      *             {@link #commands()} and call {@link NjamsCommands#remove(InstructionListener)}.
      */
-    @Deprecated
+    @Deprecated(since = "6.0.0", forRemoval = true)
     public void removeInstructionListener(InstructionListener listener) {
         commands.remove(listener);
     }
@@ -1039,7 +1039,7 @@ public class Njams implements InstructionListener {
      * @deprecated Use {@code njams.processes().getDiagramFactory()} instead — obtain the facet via
      *             {@link #processes()} and call {@link NjamsProcesses#getDiagramFactory()}.
      */
-    @Deprecated
+    @Deprecated(since = "6.0.0", forRemoval = true)
     public ProcessDiagramFactory getProcessDiagramFactory() {
         return processes.getDiagramFactory();
     }
@@ -1052,7 +1052,7 @@ public class Njams implements InstructionListener {
      * @deprecated This is SDK-internal command dispatch (handled by the commands facet, see
      *             {@link #commands()}) and is not meant to be called by client code.
      */
-    @Deprecated
+    @Deprecated(since = "6.0.0", forRemoval = true)
     @Override
     public void onInstruction(Instruction instruction) {
         commands.dispatch(instruction);
@@ -1074,7 +1074,7 @@ public class Njams implements InstructionListener {
      *             via {@link #serializers()} and call
      *             {@link NjamsSerializers#add(Class, Serializer)}.
      */
-    @Deprecated
+    @Deprecated(since = "6.0.0", forRemoval = true)
     public <T> Serializer<T> addSerializer(final Class<T> key, final Serializer<? super T> serializer) {
         return serializers.add(key, serializer);
     }
@@ -1089,7 +1089,7 @@ public class Njams implements InstructionListener {
      * @deprecated Use {@code njams.serializers().remove(key)} instead — obtain the facet via
      *             {@link #serializers()} and call {@link NjamsSerializers#remove(Class)}.
      */
-    @Deprecated
+    @Deprecated(since = "6.0.0", forRemoval = true)
     public <T> Serializer<T> removeSerializer(final Class<T> key) {
         return serializers.remove(key);
     }
@@ -1106,7 +1106,7 @@ public class Njams implements InstructionListener {
      * @deprecated Use {@code njams.serializers().get(key)} instead — obtain the facet via
      *             {@link #serializers()} and call {@link NjamsSerializers#get(Class)}.
      */
-    @Deprecated
+    @Deprecated(since = "6.0.0", forRemoval = true)
     public <T> Serializer<T> getSerializer(final Class<T> key) {
         return serializers.get(key);
     }
@@ -1122,7 +1122,7 @@ public class Njams implements InstructionListener {
      * @deprecated Use {@code njams.serializers().serialize(t)} instead — obtain the facet via
      *             {@link #serializers()} and call {@link NjamsSerializers#serialize(Object)}.
      */
-    @Deprecated
+    @Deprecated(since = "6.0.0", forRemoval = true)
     public <T> String serialize(final T t) {
         return serializers.serialize(t);
     }
@@ -1143,7 +1143,7 @@ public class Njams implements InstructionListener {
      *             facet via {@link #serializers()} and call
      *             {@link NjamsSerializers#serialize(Object, int)}.
      */
-    @Deprecated
+    @Deprecated(since = "6.0.0", forRemoval = true)
     public <T> String serialize(final T t, final int sizeLimit) {
         return serializers.serialize(t, sizeLimit);
     }
@@ -1161,7 +1161,7 @@ public class Njams implements InstructionListener {
      * @deprecated Use {@code njams.serializers().find(clazz)} instead — obtain the facet via
      *             {@link #serializers()} and call {@link NjamsSerializers#find(Class)}.
      */
-    @Deprecated
+    @Deprecated(since = "6.0.0", forRemoval = true)
     public <T> Serializer<? super T> findSerializer(final Class<T> clazz) {
         return serializers.find(clazz);
     }
@@ -1171,7 +1171,7 @@ public class Njams implements InstructionListener {
      * @deprecated Use {@code njams.configuration().getLogMode()} instead — obtain the facet via
      *             {@link #configuration()} and call {@link NjamsConfiguration#getLogMode()}.
      */
-    @Deprecated
+    @Deprecated(since = "6.0.0", forRemoval = true)
     public LogMode getLogMode() {
         return configuration.getLogMode();
     }
@@ -1181,7 +1181,7 @@ public class Njams implements InstructionListener {
      * @deprecated Use {@code njams.configuration().get()} instead — obtain the facet via
      *             {@link #configuration()} and call {@link NjamsConfiguration#get()}.
      */
-    @Deprecated
+    @Deprecated(since = "6.0.0", forRemoval = true)
     public Configuration getConfiguration() {
         return configuration.get();
     }
@@ -1191,7 +1191,7 @@ public class Njams implements InstructionListener {
      * @deprecated Use {@code njams.metadata().getMachine()} instead — obtain the facet via
      *             {@link #metadata()} and call {@link NjamsMetadata#getMachine()}.
      */
-    @Deprecated
+    @Deprecated(since = "6.0.0", forRemoval = true)
     public String getMachine() {
         return metadata.getMachine();
     }
@@ -1201,7 +1201,7 @@ public class Njams implements InstructionListener {
      * @deprecated Use {@code njams.features().list()} instead — obtain the facet via
      *             {@link #features()} and call {@link NjamsFeatures#list()}.
      */
-    @Deprecated
+    @Deprecated(since = "6.0.0", forRemoval = true)
     public List<Feature> getFeatures() {
         return features.list();
     }
@@ -1216,7 +1216,7 @@ public class Njams implements InstructionListener {
      *             after {@link #start()}, because features are announced to the nJAMS server at
      *             start and a later change is never sent.
      */
-    @Deprecated
+    @Deprecated(since = "6.0.0", forRemoval = true)
     public void addFeature(Feature feature) {
         warnIfStarted("addFeature", "features().add(...)");
         features.addInternal(feature);
@@ -1232,7 +1232,7 @@ public class Njams implements InstructionListener {
      *             after {@link #start()}, because features are announced to the nJAMS server at
      *             start and a later change is never sent.
      */
-    @Deprecated
+    @Deprecated(since = "6.0.0", forRemoval = true)
     public void removeFeature(final Feature feature) {
         warnIfStarted("removeFeature", "features().remove(...)");
         features.removeInternal(feature);
@@ -1246,7 +1246,7 @@ public class Njams implements InstructionListener {
      * @deprecated Use {@code njams.features().has(feature)} instead — obtain the facet via
      *             {@link #features()} and call {@link NjamsFeatures#has(Feature)}.
      */
-    @Deprecated
+    @Deprecated(since = "6.0.0", forRemoval = true)
     public boolean hasFeature(final Feature feature) {
         return features.has(feature);
     }
@@ -1268,7 +1268,7 @@ public class Njams implements InstructionListener {
      *             facet via {@link #configuration()} and call
      *             {@link NjamsConfiguration#isExcluded(Path)}.
      */
-    @Deprecated
+    @Deprecated(since = "6.0.0", forRemoval = true)
     public boolean isExcluded(Path processPath) {
         return configuration.isExcluded(processPath);
     }
