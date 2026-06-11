@@ -30,6 +30,13 @@ implementation.
 
 `Njams` keeps: constructors, `start()`, `stop()`, `isStarted()`, `getSettings()`,
 `equals`/`hashCode`, the nested `Feature` enum, and the public `String` constants.
+Constructors carry only *required* parameters: the variant taking the optional
+`runtimeVersion` argument is deprecated; the runtime version is set via
+`metadata().setRuntimeVersion(...)` (before `start()`), with
+`metadata().getRuntimeVersion()` as its getter. The 4-arg constructor
+(`Njams(Path, String, String, ClientSettings)`) becomes the canonical one and owns the
+full construction logic; the deprecated 5-arg variant delegates to it and then applies
+the runtime version.
 Everything else moves into one of nine facets, reachable through no-prefix accessors
 (the no-prefix style deliberately distinguishes facet accessors from legacy getters and
 avoids clashes such as `getJobs()`):
@@ -99,6 +106,7 @@ indirection minimal.
 | `getGlobalVariables()` / `addGlobalVariables(m)` / `getGlobalVariablesPattern()` / `setGlobalVariablesPattern(p)` | `metadata().getGlobalVariables()` / `.addGlobalVariables(m)` / `.getGlobalVariablesPattern()` / `.setGlobalVariablesPattern(p)` |
 | `getClientPath()` / `getCategory()` / `getClientVersion()` / `getSdkVersion()` / `getRuntimeVersion()` / `setRuntimeVersion(v)` / `getMachine()` | `metadata().…` |
 | `getClientSessionId()` / `getCommunicationSessionId()` (duplicates) | `metadata().getClientSessionId()` (single method) |
+| `Njams(Path, String, String, String, ClientSettings)` (the `runtimeVersion` variant) | `Njams(Path, String, String, ClientSettings)` + `metadata().setRuntimeVersion(...)` |
 | `getReplayHandler()` / `setReplayHandler(h)` | `replay().getHandler()` / `.setHandler(h)` |
 | `getInstructionListeners()` / `addInstructionListener(l)` / `removeInstructionListener(l)` | `commands().…` |
 | `addArgosCollector(c)` / `removeArgosCollector(c)` | `argos().add(c)` / `.remove(c)` |

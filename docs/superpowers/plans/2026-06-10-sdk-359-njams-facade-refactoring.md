@@ -155,6 +155,12 @@ public class NjamsFacadeBaselineTest {
     }
 
     @Test
+    public void runtimeVersionConstructorArgumentIsApplied() {
+        Njams withRt = new Njams(Path.of("RT"), "1.0", "rt-2.5", "X", TestReceiver.getSettings());
+        assertEquals("rt-2.5", withRt.getRuntimeVersion());
+    }
+
+    @Test
     public void addGlobalVariablesMergesIntoExisting() {
         Map<String, String> first = new HashMap<>();
         first.put("a", "1");
@@ -936,17 +942,18 @@ public final class NjamsMetadata {
     //               globalVariables, globalVariablesPattern, machine, runtimeVersion
     private final Object projectMessageLock;
 
-    NjamsMetadata(Path clientPath, String version, String runtimeVersion, String category,
-        Object projectMessageLock) {
+    NjamsMetadata(Path clientPath, String version, String category, Object projectMessageLock) {
         this.clientPath = clientPath;
         this.category = category == null ? null : category.toUpperCase();
-        this.runtimeVersion = runtimeVersion;
         this.projectMessageLock = projectMessageLock;
         startTime = DateTimeUtility.now();
         clientSessionId = UUID.randomUUID().toString();
         readVersionsFromVersionFile(version);
         setMachine();
     }
+    // runtimeVersion is NOT a constructor parameter — the field starts null and is set via
+    // setRuntimeVersion(...) (the optional-parameter decision; the deprecated 5-arg Njams
+    // constructor applies it after construction, see Task 13)
 
     // public: getClientPath(), getCategory(), getClientVersion(), getSdkVersion(),
     //         getRuntimeVersion(), getMachine(), getClientSessionId(),
@@ -967,10 +974,11 @@ public final class NjamsMetadata {
 
 - [ ] **Step 2: Wire in `Njams`**
 
-Add field `final Object projectMessageLock = new Object();` (package-private — `NjamsProcesses` reuses it in Task 10). Add `private final NjamsMetadata metadata;` constructed early in the `Njams` constructor:
+Add field `final Object projectMessageLock = new Object();` (package-private — `NjamsProcesses` reuses it in Task 10). Add `private final NjamsMetadata metadata;` constructed early in the `Njams` constructor (the 5-arg constructor still owns the full body in this task — restructuring the constructors happens in Task 13):
 
 ```java
-metadata = new NjamsMetadata(path, version, runtimeVersion, category, projectMessageLock);
+metadata = new NjamsMetadata(path, version, category, projectMessageLock);
+metadata.setRuntimeVersion(runtimeVersion); // unguarded at this stage; guard split comes in Task 13
 ```
 
 Remove the moved fields/constants/methods, then delegate (every old method keeps its exact signature and Javadoc):
@@ -1688,6 +1696,36 @@ public Path getClientPath() { return metadata.getClientPath(); }
 
 Deprecate this way: `getCategory`, `getClientPath`, `getClientVersion`, `getSdkVersion`, `getRuntimeVersion`, `getMachine`, `getGlobalVariables`, `getGlobalVariablesPattern`, `getClientSessionId`, and `getCommunicationSessionId` (both point to `NjamsMetadata#getClientSessionId()`; the comment for `getCommunicationSessionId` additionally notes it was a duplicate of `getClientSessionId`).
 
+- [ ] **Step 3b: Deprecate the runtimeVersion constructor**
+
+Constructors must only carry required parameters; `runtimeVersion` is optional. Reverse the current delegation direction: today the 4-arg constructor delegates to the 5-arg one — now the 4-arg constructor receives the full construction body (everything the 5-arg body does, minus any `runtimeVersion` handling; the `metadata.setRuntimeVersion(runtimeVersion)` line from Task 6 is removed), and the 5-arg variant becomes a deprecated wrapper:
+
+```java
+/**
+ * Create a nJAMS client.
+ *
+ * @param path           the path in the tree
+ * @param version        the version of the nNJAMS client
+ * @param runtimeVersion the version of the underlying runtime (eg. Mule, BW6...)
+ * @param category       the category of the nJAMS client, should describe the
+ *                       technology
+ * @param settings       needed settings for client eg. for communication
+ * @deprecated The runtime version is optional and therefore no longer a constructor
+ *             parameter. Use {@link #Njams(Path, String, String, ClientSettings)} and set the
+ *             runtime version via {@code njams.metadata().setRuntimeVersion(runtimeVersion)} —
+ *             obtain the facet via {@link #metadata()} and call
+ *             {@link NjamsMetadata#setRuntimeVersion(String)} before {@link #start()};
+ *             {@link NjamsMetadata#getRuntimeVersion()} is the corresponding getter.
+ */
+@Deprecated
+public Njams(Path path, String version, String runtimeVersion, String category, ClientSettings settings) {
+    this(path, version, category, settings);
+    metadata.setRuntimeVersionInternal(runtimeVersion);
+}
+```
+
+The wrapper uses `setRuntimeVersionInternal` (ungated, no WARN — construction always happens before start, so the lenient warning logic does not apply). The 4-arg constructor's Javadoc stays as-is; it is NOT deprecated. The baseline test `runtimeVersionConstructorArgumentIsApplied` pins that the deprecated wrapper still applies the value; the new-API path is covered by `newMetadataMutatorsWorkBeforeStart` and `metadataMutatorsAreChainable`.
+
 - [ ] **Step 4: Add behavioral-parity mirror tests** (assertions identical to the source test, call path via `njams.metadata()`, name suffixed `_viaFacet`):
 
 | Mirror of | Facet call path |
@@ -1714,7 +1752,7 @@ Expected: ALL pass — including `NjamsFacadeBaselineTest.addGlobalVariablesAfte
 
 ```bash
 git add njams-sdk/src/main/java/com/im/njams/sdk/NjamsMetadata.java njams-sdk/src/main/java/com/im/njams/sdk/Njams.java njams-sdk/src/test/java/com/im/njams/sdk/NjamsFacetApiTest.java
-git commit -m "SDK-359 #comment Guard metadata mutators in new API, deprecate legacy metadata methods"
+git commit -m "SDK-359 #comment Guard metadata mutators in new API, deprecate legacy metadata methods and runtimeVersion constructor"
 ```
 
 ### Task 14: Guards + deprecations — features
@@ -2026,7 +2064,7 @@ Run: `mvn clean compile -pl njams-sdk 2>&1 | findstr /i deprecat` (or build and 
 
 - [ ] **Step 2: Migrate the sample clients**
 
-`Grep` in `njams-sdk-sample-client/src/main/java` and `njams-sdk-sample-app/src/main/java` for the deprecated method names; replace each with the facet call per the mapping table (e.g. `njams.addSerializer(...)` → `njams.serializers().add(...)`, `njams.setReplayHandler(...)` → `njams.replay().setHandler(...)`). Samples are documentation — they must show the new API.
+`Grep` in `njams-sdk-sample-client/src/main/java` and `njams-sdk-sample-app/src/main/java` for the deprecated method names; replace each with the facet call per the mapping table (e.g. `njams.addSerializer(...)` → `njams.serializers().add(...)`, `njams.setReplayHandler(...)` → `njams.replay().setHandler(...)`). Also search for uses of the deprecated 5-arg constructor (`new Njams(` with five arguments) and replace with the 4-arg constructor + `njams.metadata().setRuntimeVersion(...)`. Samples are documentation — they must show the new API.
 
 - [ ] **Step 3: Full build incl. samples**
 
@@ -2085,5 +2123,6 @@ git commit -m "SDK-359 #comment Update wiki examples and design doc status for f
 - Lenient-legacy vs strict-new is enforced by paired tests: `NjamsFacadeBaselineTest.*Lenient*` (never modified) + `NjamsFacetApiTest.*ThrowsAfterStart`.
 - Behavioral parity of new vs old API is enforced by the `_viaFacet` mirror tests listed per task (Tasks 13–19) and the completeness check in Task 21 Step 1b: every baseline test is either mirrored, paired as an intentional deviation, or explicitly legacy-only.
 - Chainable setters exist on `NjamsMetadata` ONLY (`setRuntimeVersion`, `addGlobalVariables`, `setGlobalVariablesPattern` return `this`; signatures introduced in Task 6, pinned by `metadataMutatorsAreChainable` in Task 13). All other facet mutators keep their design-doc return types — do not add `return this` elsewhere.
+- Constructor policy: the 4-arg `Njams` constructor is canonical and owns the construction body (delegation direction reversed in Task 13 Step 3b); the 5-arg `runtimeVersion` variant is deprecated, pinned by `runtimeVersionConstructorArgumentIsApplied` (Task 1), and applies the value via `setRuntimeVersionInternal`.
 - Type names used consistently: `LifecycleState`, `NjamsSerializers`, `NjamsArgos`, `NjamsFeatures`, `NjamsMetadata`, `NjamsJobs`, `NjamsReplay`, `NjamsConfiguration`, `NjamsProcesses`, `NjamsCommands`; facet methods per the design-doc mapping table.
 - Known judgment calls for the implementer: exact constructor signatures of Argos test helpers (Task 1 note), and JaCoCo report path may vary with the `sonar` profile config — if `target/site/jacoco` is absent, check the profile in the root `pom.xml` for the configured output directory.
