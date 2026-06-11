@@ -108,7 +108,7 @@ public class SubProcessSpawnedClient {
         // Starts the job, i.e., sets the according status, job start date if not set before, and flags the job to begin flushing.
         job.start();
 
-        Activity start = job.createActivity(startModel).build();
+        Activity start = job.activities().create(startModel).build();
         SubProcessActivity subProcessCaller = start.stepToSubProcess(subProcessActivityModel).build();
         subProcessCaller.setSubProcess(subProcess.getName(), subProcess.getPath().toString(), subProcessJob.getLogId());
         subProcessCaller.stepTo(endModel).build();
@@ -118,7 +118,7 @@ public class SubProcessSpawnedClient {
 
 
         subProcessJob.start();
-        Activity subStart = subProcessJob.createActivity(subProcessStartModel).build();
+        Activity subStart = subProcessJob.activities().create(subProcessStartModel).build();
         Activity subLog = subStart.stepTo(subProcessLogModel).build();
         subLog.stepTo(subProcessEndModel).build();
         subProcessJob.end();

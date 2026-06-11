@@ -106,7 +106,7 @@ public class SubProcessClient {
         // Starts the job, i.e., sets the according status, job start date if not set before, and flags the job to begin flushing.
         job.start();
 
-        Activity start = job.createActivity(startModel).build();
+        Activity start = job.activities().create(startModel).build();
         start.processInput("testdata");
         start.processOutput("testdata");
 

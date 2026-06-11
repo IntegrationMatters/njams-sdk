@@ -116,7 +116,7 @@ public class GroupClient {
         job.start();
 
         //Create the start activity from the previously creates startModel
-        Activity start = job.createActivity(startModel).build();
+        Activity start = job.activities().create(startModel).build();
         //step to the next activity, which is a group
         Group group = start.stepToGroup(groupModel).build();
         //create the groupStart as child activity of the group

@@ -30,7 +30,7 @@ public class LogMessageResource {
         // flushing.
         job.start();
         ActivityModel startModel = process.getStartActivities().get(0);
-        job.createActivity(startModel).build();
+        job.activities().create(startModel).build();
         LOG.info("Start Logmessage with ID " + job.getJobId());
 
         return job.getJobId();

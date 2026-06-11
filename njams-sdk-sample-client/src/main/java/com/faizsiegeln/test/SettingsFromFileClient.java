@@ -111,7 +111,7 @@ public class SettingsFromFileClient {
         job.start();
 
         // Create the start activity from the previously creates startModel
-        Activity start = job.createActivity(startModel).build();
+        Activity start = job.activities().create(startModel).build();
         // add input and output data to the activity
         start.processInput("startInput");
         start.processOutput("startOutput");
