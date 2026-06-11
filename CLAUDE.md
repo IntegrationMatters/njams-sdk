@@ -256,6 +256,17 @@ Not all `public` code in this project is intended as public API. Some code is `p
 - When assessing whether a change is a `breaking-change`, only consider the intended public API — changes to communication internals that are technically `public` in Java are not breaking changes in the API sense.
 - Do not implement or change anything about the public API boundary without asking first.
 
+### Relocated (Shaded) Third-Party Dependencies
+
+The shaded SDK artifact relocates several third-party libraries into the `com.im.*` namespace at packaging time via the Maven Shade plugin (e.g. `com.fasterxml` → `com.im.fasterxml`, `net.sf.saxon` → `com.im.saxon`, and likewise Woodstox, jmespath, oshi, and others — see the `<relocations>` in the build).
+
+**Hard constraint: types or functionality from a relocated third-party API must never appear on the public API surface and must not become available to SDK users.** This means:
+
+- No `public` or `protected` method signature, return type, parameter type, public field, type parameter, thrown exception, or annotation may reference a type that gets relocated during packaging.
+- Do not expose such types indirectly either (e.g. returning a collection of them, or a public type that extends/implements one).
+
+The reason is twofold: after relocation these types no longer exist under their original coordinates, so a consumer cannot name them — and even if they could, it would leak an internal packaging detail and couple clients to the SDK's bundled, relocated copy. Keep relocated third-party types strictly internal (use `private`/package-private, wrap or adapt them behind SDK-owned types, and convert to/from SDK or JDK types at the boundary).
+
 ### Visibility and Scoping
 
 Access control is critical. Users of the SDK will use everything that is accessible, so anything not intended for external use must be actively hidden:
