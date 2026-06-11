@@ -949,9 +949,13 @@ public final class NjamsMetadata {
     }
 
     // public: getClientPath(), getCategory(), getClientVersion(), getSdkVersion(),
-    //         getRuntimeVersion(), setRuntimeVersion(String), getMachine(),
-    //         getClientSessionId(), getGlobalVariables(), addGlobalVariables(Map),
-    //         getGlobalVariablesPattern(), setGlobalVariablesPattern(String)
+    //         getRuntimeVersion(), getMachine(), getClientSessionId(),
+    //         getGlobalVariables(), getGlobalVariablesPattern()
+    // public CHAINABLE mutators (return this, type NjamsMetadata — the only facet with
+    //         chainable setters, see design doc):
+    //         setRuntimeVersion(String), addGlobalVariables(Map),
+    //         setGlobalVariablesPattern(String)
+    //         (moved bodies unchanged, just append "return this;")
     // package-private: getStartTime(), getVersions() (for project message + banner + ping),
     //                  printStartupBanner(ClientSettings)
     // private: readVersionsFromVersionFile(String), setMachine(),
@@ -1581,6 +1585,19 @@ public class NjamsFacetApiTest {
     }
 
     @Test
+    public void metadataMutatorsAreChainable() {
+        Map<String, String> vars = new HashMap<>();
+        vars.put("a", "1");
+        NjamsMetadata result = njams.metadata()
+            .setRuntimeVersion("rt")
+            .addGlobalVariables(vars)
+            .setGlobalVariablesPattern("(?<full>%%(?<name>[^%]+)%%)");
+        assertSame(njams.metadata(), result);
+        assertEquals("rt", njams.metadata().getRuntimeVersion());
+        assertEquals("1", njams.metadata().getGlobalVariables().get("a"));
+    }
+
+    @Test
     public void deprecatedMetadataMutatorsStayLenientAfterStart() {
         njams.start();
         njams.setRuntimeVersion("late"); // WARN, no throw
@@ -1594,7 +1611,7 @@ public class NjamsFacetApiTest {
 ```
 
 Run: `mvn test -Dtest=NjamsFacetApiTest -pl njams-sdk`
-Expected: FAIL — guard tests fail (no guards yet); `accessorsReturnTheSameInstanceEveryTime` passes already.
+Expected: FAIL — guard tests fail (no guards yet); `accessorsReturnTheSameInstanceEveryTime` and `metadataMutatorsAreChainable` pass already (the chainable signatures exist since Task 6).
 
 - [ ] **Step 2: Implement guards in `NjamsMetadata`**
 
@@ -1606,12 +1623,14 @@ Expected: FAIL — guard tests fail (no guards yet); `accessorsReturnTheSameInst
  * announced to the nJAMS server in the project message when the client starts.
  *
  * @param globalVariables The global variables to be added to this instance.
+ * @return this facet, for call chaining
  * @throws NjamsSdkRuntimeException if the client has already been started — a later change
  *                                  would never reach the server
  */
-public void addGlobalVariables(Map<String, String> globalVariables) {
+public NjamsMetadata addGlobalVariables(Map<String, String> globalVariables) {
     lifecycle.requireNotStarted("NjamsMetadata.addGlobalVariables");
     addGlobalVariablesInternal(globalVariables);
+    return this;
 }
 
 void addGlobalVariablesInternal(Map<String, String> globalVariables) {
@@ -1621,7 +1640,7 @@ void addGlobalVariablesInternal(Map<String, String> globalVariables) {
 }
 ```
 
-Same pattern for `setRuntimeVersion`/`setRuntimeVersionInternal` and `setGlobalVariablesPattern`/`setGlobalVariablesPatternInternal` (validation stays in the internal method so both paths validate).
+Same pattern for `setRuntimeVersion`/`setRuntimeVersionInternal` and `setGlobalVariablesPattern`/`setGlobalVariablesPatternInternal` (validation stays in the internal method so both paths validate; the guarded public methods return `this`, the package-private internals stay `void`). The deprecated `Njams` methods keep returning `void` and simply ignore the facet's return value where they delegate.
 
 - [ ] **Step 3: Deprecate the `Njams` legacy methods (lenient path + WARN)**
 
@@ -2065,5 +2084,6 @@ git commit -m "SDK-359 #comment Update wiki examples and design doc status for f
 - Spec coverage: design-doc sections map to tasks — baseline (Task 1 = migration step 0), extraction (Tasks 2–11 = step 1), accessors/guards/deprecations (Tasks 12–19 = steps 2+3), internal/sample migration + docs (Tasks 20–21). The deferred items (typestate, images-in-announce, Job refactoring, removal) are intentionally absent.
 - Lenient-legacy vs strict-new is enforced by paired tests: `NjamsFacadeBaselineTest.*Lenient*` (never modified) + `NjamsFacetApiTest.*ThrowsAfterStart`.
 - Behavioral parity of new vs old API is enforced by the `_viaFacet` mirror tests listed per task (Tasks 13–19) and the completeness check in Task 21 Step 1b: every baseline test is either mirrored, paired as an intentional deviation, or explicitly legacy-only.
+- Chainable setters exist on `NjamsMetadata` ONLY (`setRuntimeVersion`, `addGlobalVariables`, `setGlobalVariablesPattern` return `this`; signatures introduced in Task 6, pinned by `metadataMutatorsAreChainable` in Task 13). All other facet mutators keep their design-doc return types — do not add `return this` elsewhere.
 - Type names used consistently: `LifecycleState`, `NjamsSerializers`, `NjamsArgos`, `NjamsFeatures`, `NjamsMetadata`, `NjamsJobs`, `NjamsReplay`, `NjamsConfiguration`, `NjamsProcesses`, `NjamsCommands`; facet methods per the design-doc mapping table.
 - Known judgment calls for the implementer: exact constructor signatures of Argos test helpers (Task 1 note), and JaCoCo report path may vary with the `sonar` profile config — if `target/site/jacoco` is absent, check the profile in the root `pom.xml` for the configured output directory.

@@ -36,7 +36,7 @@ avoids clashes such as `getJobs()`):
 
 | Accessor | Facet type | Owns |
 |---|---|---|
-| `njams.metadata()` | `NjamsMetadata` | client path, category, client/SDK version, runtime version (get/set), machine, client session id, global variables (get/add), global-variables pattern (get/set) |
+| `njams.metadata()` | `NjamsMetadata` | client path, category, client/SDK version, runtime version (get/set), machine, client session id, global variables (get/add), global-variables pattern (get/set); mutators return the facet for call chaining |
 | `njams.features()` | `NjamsFeatures` | feature list (add/remove/has/list), container mode (get/set) |
 | `njams.processes()` | `NjamsProcesses` | model registry (create/add/get/has/getAll), images, tree-element types, layouter (get/set), diagram factory (get/set), `send()` (full project message), `announce(model)` (additional project message) |
 | `njams.jobs()` | `NjamsJobs` | job registry (add/remove/get/getAll), replay-marker bookkeeping (internal) |
@@ -55,6 +55,26 @@ Internal only — no facet, hidden behind the facade:
 - Data masking initialization (consumed by `start()`).
 - Tree-element bookkeeping (inside `NjamsProcesses`).
 - Version-file reading and startup banner (inside `NjamsMetadata`).
+
+### Chainable setters — metadata only
+
+The three mutators of `NjamsMetadata` (`setRuntimeVersion`, `addGlobalVariables`,
+`setGlobalVariablesPattern`) return the facet itself, allowing the typical setup block
+to be written fluently:
+
+```java
+njams.metadata()
+    .setRuntimeVersion("1.4")
+    .addGlobalVariables(vars)
+    .setGlobalVariablesPattern(pattern);
+```
+
+No other facet gets chainable setters: `serializers().add/remove` have informative
+return values (previous/removed serializer), `processes().create` returns the model,
+`send()`/`announce()` are actions rather than configuration, `jobs()` is the runtime
+path and never used fluently, and `replay()` has only a single mutator. The deprecated
+`Njams` methods keep returning `void` — changing their return type would be breaking —
+so the fluent style is a property of the new API only.
 
 ### Facet visibility
 
