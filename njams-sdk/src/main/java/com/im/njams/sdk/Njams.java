@@ -197,7 +197,7 @@ public class Njams implements InstructionListener {
     private final NjamsArgos argos;
 
     /**
-     * Create a nJAMS client without the information about the runtimeVersion of the client.
+     * Create a nJAMS client.
      *
      * @param path     the path in the tree
      * @param version  the version of the nNJAMS client
@@ -206,7 +206,18 @@ public class Njams implements InstructionListener {
      * @param settings needed settings for client eg. for communication
      */
     public Njams(Path path, String version, String category, ClientSettings settings) {
-        this(path, version, null, category, settings);
+        this.settings = settings;
+        jobs = new NjamsJobs(lifecycle);
+        replay = new NjamsReplay(features, jobs);
+        metadata = new NjamsMetadata(path, version, category, lifecycle, projectMessageLock);
+        initContainerMode();
+        argos = new NjamsArgos(settings);
+        configuration = new NjamsConfiguration(settings, this);
+        processes = new NjamsProcesses(this, lifecycle, metadata, features, configuration, projectMessageLock);
+        commands = new NjamsCommands(processes, replay, metadata, features);
+        processes.createTreeElements(path, TreeElementType.CLIENT);
+        metadata.printStartupBanner(settings);
+        beginConnect();
     }
 
     /**
@@ -218,25 +229,33 @@ public class Njams implements InstructionListener {
      * @param category       the category of the nJAMS client, should describe the
      *                       technology
      * @param settings       needed settings for client eg. for communication
+     * @deprecated The runtime version is optional and therefore no longer a constructor
+     *             parameter. Use {@link #Njams(Path, String, String, ClientSettings)} and set the
+     *             runtime version via {@code njams.metadata().setRuntimeVersion(runtimeVersion)} —
+     *             obtain the facet via {@link #metadata()} and call
+     *             {@link NjamsMetadata#setRuntimeVersion(String)} before {@link #start()};
+     *             {@link NjamsMetadata#getRuntimeVersion()} is the corresponding getter.
      */
+    @Deprecated
     public Njams(Path path, String version, String runtimeVersion, String category, ClientSettings settings) {
-        this.settings = settings;
-        jobs = new NjamsJobs(lifecycle);
-        replay = new NjamsReplay(features, jobs);
-        metadata = new NjamsMetadata(path, version, category, projectMessageLock);
-        metadata.setRuntimeVersion(runtimeVersion);
-        initContainerMode();
-        argos = new NjamsArgos(settings);
-        configuration = new NjamsConfiguration(settings, this);
-        processes = new NjamsProcesses(this, lifecycle, metadata, features, configuration, projectMessageLock);
-        commands = new NjamsCommands(processes, replay, metadata, features);
-        processes.createTreeElements(path, TreeElementType.CLIENT);
-        metadata.printStartupBanner(settings);
-        beginConnect();
+        this(path, version, category, settings);
+        metadata.setRuntimeVersionInternal(runtimeVersion);
     }
 
     private void initContainerMode() {
         setContainerMode(settings.getBool(NjamsSettings.PROPERTY_CONTAINER_MODE, true));
+    }
+
+    /**
+     * Lenient-legacy guard: where the new facet API rejects a call after start(), the deprecated
+     * facade method only logs a warning and proceeds, so that existing client code keeps working
+     * throughout the deprecation period.
+     */
+    private void warnIfStarted(String oldMethod, String replacement) {
+        if (lifecycle.isStarted()) {
+            LOG.warn("{} was called after start(); the change will not be sent to the nJAMS server."
+                + " The replacement API {} rejects this call.", oldMethod, replacement);
+        }
     }
 
     /**
@@ -344,7 +363,10 @@ public class Njams implements InstructionListener {
     /**
      * @return the category of the nJAMS client, which should describe the
      * technology
+     * @deprecated Use {@code njams.metadata().getCategory()} instead — obtain the facet via
+     *             {@link #metadata()} and call {@link NjamsMetadata#getCategory()}.
      */
+    @Deprecated
     public String getCategory() {
         return metadata.getCategory();
     }
@@ -358,7 +380,10 @@ public class Njams implements InstructionListener {
 
     /**
      * @return the clientPath
+     * @deprecated Use {@code njams.metadata().getClientPath()} instead — obtain the facet via
+     *             {@link #metadata()} and call {@link NjamsMetadata#getClientPath()}.
      */
+    @Deprecated
     public Path getClientPath() {
         return metadata.getClientPath();
     }
@@ -366,39 +391,68 @@ public class Njams implements InstructionListener {
     /**
      * This is ID is used in container mode for identifying this client instance in commands.
      * @return A random ID generated during initialization.
+     * @deprecated This method was a duplicate of {@link #getClientSessionId()}. Use
+     *             {@code njams.metadata().getClientSessionId()} instead — obtain the facet via
+     *             {@link #metadata()} and call {@link NjamsMetadata#getClientSessionId()}.
      */
+    @Deprecated
     public String getCommunicationSessionId() {
         return metadata.getClientSessionId();
     }
 
     /**
      * @return the clientVersion
+     * @deprecated Use {@code njams.metadata().getClientVersion()} instead — obtain the facet via
+     *             {@link #metadata()} and call {@link NjamsMetadata#getClientVersion()}.
      */
+    @Deprecated
     public String getClientVersion() {
         return metadata.getClientVersion();
     }
 
     /**
      * @return the sdkVersion
+     * @deprecated Use {@code njams.metadata().getSdkVersion()} instead — obtain the facet via
+     *             {@link #metadata()} and call {@link NjamsMetadata#getSdkVersion()}.
      */
+    @Deprecated
     public String getSdkVersion() {
         return metadata.getSdkVersion();
     }
 
     /**
      * @return the runtimeVersion
+     * @deprecated Use {@code njams.metadata().getRuntimeVersion()} instead — obtain the facet via
+     *             {@link #metadata()} and call {@link NjamsMetadata#getRuntimeVersion()}.
      */
+    @Deprecated
     public String getRuntimeVersion() {
         return metadata.getRuntimeVersion();
     }
 
+    /**
+     * Sets the version of the underlying runtime (eg. Mule, BW6, ...).
+     *
+     * @param runtimeVersion the runtime version to set
+     * @deprecated Use {@code njams.metadata().setRuntimeVersion(runtimeVersion)} instead — obtain
+     *             the facet via {@link #metadata()} and call
+     *             {@link NjamsMetadata#setRuntimeVersion(String)}. Unlike this method, the
+     *             replacement throws an {@link NjamsSdkRuntimeException} when called after
+     *             {@link #start()}, because the runtime version is announced to the nJAMS server
+     *             at start and a later change is never sent.
+     */
+    @Deprecated
     public void setRuntimeVersion(String runtimeVersion) {
-        metadata.setRuntimeVersion(runtimeVersion);
+        warnIfStarted("setRuntimeVersion", "metadata().setRuntimeVersion(...)");
+        metadata.setRuntimeVersionInternal(runtimeVersion);
     }
 
     /**
      * @return the globalVariables
+     * @deprecated Use {@code njams.metadata().getGlobalVariables()} instead — obtain the facet via
+     *             {@link #metadata()} and call {@link NjamsMetadata#getGlobalVariables()}.
      */
+    @Deprecated
     public Map<String, String> getGlobalVariables() {
         return metadata.getGlobalVariables();
     }
@@ -407,9 +461,17 @@ public class Njams implements InstructionListener {
      * Adds the given global variables to this instance's global variables.
      *
      * @param globalVariables The global variables to be added to this instance.
+     * @deprecated Use {@code njams.metadata().addGlobalVariables(globalVariables)} instead —
+     *             obtain the facet via {@link #metadata()} and call
+     *             {@link NjamsMetadata#addGlobalVariables(Map)}. Unlike this method, the
+     *             replacement throws an {@link NjamsSdkRuntimeException} when called after
+     *             {@link #start()}, because global variables are announced to the nJAMS server at
+     *             start and a later change is never sent.
      */
+    @Deprecated
     public void addGlobalVariables(Map<String, String> globalVariables) {
-        metadata.addGlobalVariables(globalVariables);
+        warnIfStarted("addGlobalVariables", "metadata().addGlobalVariables(...)");
+        metadata.addGlobalVariablesInternal(globalVariables);
     }
 
     /**
@@ -417,7 +479,11 @@ public class Njams implements InstructionListener {
      * client's configurations. When {@code null}, the nJAMS server applies its own default matching behavior.
      *
      * @return the global-variable matching pattern, or {@code null} if none was set
+     * @deprecated Use {@code njams.metadata().getGlobalVariablesPattern()} instead — obtain the
+     *             facet via {@link #metadata()} and call
+     *             {@link NjamsMetadata#getGlobalVariablesPattern()}.
      */
+    @Deprecated
     public String getGlobalVariablesPattern() {
         return metadata.getGlobalVariablesPattern();
     }
@@ -433,9 +499,17 @@ public class Njams implements InstructionListener {
      *                               default behavior
      * @throws NjamsSdkRuntimeException if the pattern is not a valid regular expression or does not declare the
      *                                  required named groups {@code full} and {@code name}
+     * @deprecated Use {@code njams.metadata().setGlobalVariablesPattern(pattern)} instead — obtain
+     *             the facet via {@link #metadata()} and call
+     *             {@link NjamsMetadata#setGlobalVariablesPattern(String)}. Unlike this method, the
+     *             replacement throws an {@link NjamsSdkRuntimeException} when called after
+     *             {@link #start()}, because the pattern is announced to the nJAMS server at start
+     *             and a later change is never sent.
      */
+    @Deprecated
     public void setGlobalVariablesPattern(String globalVariablesPattern) {
-        metadata.setGlobalVariablesPattern(globalVariablesPattern);
+        warnIfStarted("setGlobalVariablesPattern", "metadata().setGlobalVariablesPattern(...)");
+        metadata.setGlobalVariablesPatternInternal(globalVariablesPattern);
     }
 
     /**
@@ -605,7 +679,10 @@ public class Njams implements InstructionListener {
      * Returns a transient UUID that identifies this {@link Njams} client instance during its JVM lifetime.
      * This is internally used for (container-mode) communications.
      * @return The current ID of this client.
+     * @deprecated Use {@code njams.metadata().getClientSessionId()} instead — obtain the facet via
+     *             {@link #metadata()} and call {@link NjamsMetadata#getClientSessionId()}.
      */
+    @Deprecated
     public String getClientSessionId() {
         return metadata.getClientSessionId();
     }
@@ -942,7 +1019,10 @@ public class Njams implements InstructionListener {
 
     /**
      * @return the machine name
+     * @deprecated Use {@code njams.metadata().getMachine()} instead — obtain the facet via
+     *             {@link #metadata()} and call {@link NjamsMetadata#getMachine()}.
      */
+    @Deprecated
     public String getMachine() {
         return metadata.getMachine();
     }

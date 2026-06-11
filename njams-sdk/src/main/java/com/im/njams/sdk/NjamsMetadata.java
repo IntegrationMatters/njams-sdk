@@ -78,11 +78,14 @@ public final class NjamsMetadata {
     private String machine;
     private String runtimeVersion;
 
+    private final LifecycleState lifecycle;
     private final Object projectMessageLock;
 
-    NjamsMetadata(Path clientPath, String version, String category, Object projectMessageLock) {
+    NjamsMetadata(Path clientPath, String version, String category, LifecycleState lifecycle,
+        Object projectMessageLock) {
         this.clientPath = clientPath;
         this.category = category == null ? null : category.toUpperCase();
+        this.lifecycle = lifecycle;
         this.projectMessageLock = projectMessageLock;
         startTime = DateTimeUtility.now();
         clientSessionId = UUID.randomUUID().toString();
@@ -151,10 +154,17 @@ public final class NjamsMetadata {
      *
      * @param runtimeVersion the runtime version to set
      * @return this facet, for call chaining
+     * @throws NjamsSdkRuntimeException if the client has already been started — a later change
+     *                                  would never reach the server
      */
     public NjamsMetadata setRuntimeVersion(String runtimeVersion) {
-        this.runtimeVersion = runtimeVersion;
+        lifecycle.requireNotStarted("NjamsMetadata.setRuntimeVersion");
+        setRuntimeVersionInternal(runtimeVersion);
         return this;
+    }
+
+    void setRuntimeVersionInternal(String runtimeVersion) {
+        this.runtimeVersion = runtimeVersion;
     }
 
     /**
@@ -181,12 +191,19 @@ public final class NjamsMetadata {
      *
      * @param globalVariables The global variables to be added to this instance.
      * @return this facet, for call chaining
+     * @throws NjamsSdkRuntimeException if the client has already been started — a later change
+     *                                  would never reach the server
      */
     public NjamsMetadata addGlobalVariables(Map<String, String> globalVariables) {
+        lifecycle.requireNotStarted("NjamsMetadata.addGlobalVariables");
+        addGlobalVariablesInternal(globalVariables);
+        return this;
+    }
+
+    void addGlobalVariablesInternal(Map<String, String> globalVariables) {
         synchronized (projectMessageLock) {
             this.globalVariables.putAll(globalVariables);
         }
-        return this;
     }
 
     /**
@@ -210,14 +227,20 @@ public final class NjamsMetadata {
      *                               default behavior
      * @return this facet, for call chaining
      * @throws NjamsSdkRuntimeException if the pattern is not a valid regular expression or does not declare the
-     *                                  required named groups {@code full} and {@code name}
+     *                                  required named groups {@code full} and {@code name}, or if the client has
+     *                                  already been started — a later change would never reach the server
      */
     public NjamsMetadata setGlobalVariablesPattern(String globalVariablesPattern) {
+        lifecycle.requireNotStarted("NjamsMetadata.setGlobalVariablesPattern");
+        setGlobalVariablesPatternInternal(globalVariablesPattern);
+        return this;
+    }
+
+    void setGlobalVariablesPatternInternal(String globalVariablesPattern) {
         if (globalVariablesPattern != null) {
             validateGlobalVariablesPattern(globalVariablesPattern);
         }
         this.globalVariablesPattern = globalVariablesPattern;
-        return this;
     }
 
     private static void validateGlobalVariablesPattern(String regex) {
