@@ -177,9 +177,7 @@ public class JobImpl implements Job {
 
     private LocalDateTime businessStart;
 
-    private final Object errorLock = new Object();
-    private ActivityImpl errorActivity = null;
-    private ErrorEvent errorEvent = null;
+    private final JobErrorHandling errorHandling;
     private final JobSettings jobSettings;
     private boolean isTruncatingActivities = false;
     private boolean isTruncatingEvents = false;
@@ -205,6 +203,7 @@ public class JobImpl implements Job {
         njams = processModel.getNjams();
         // must be set before initFromConfiguration: addAttribute already applies payload limits
         jobSettings = JobSettings.of(njams.getSettings());
+        errorHandling = new JobErrorHandling(this, jobSettings);
         sequenceCounter = new AtomicInteger();
         flushCounter = new AtomicInteger();
         lastFlush = DateTimeUtility.now();
@@ -668,7 +667,7 @@ public class JobImpl implements Job {
             if (!normalCompletion) {
                 // unhandled error
                 lastStatus = JobStatus.ERROR;
-                commitActivityError();
+                errorHandling.commitActivityError();
             } else if (lastStatus == null || lastStatus.getValue() <= JobStatus.RUNNING.getValue()) {
                 // if we never had a status update, we are setting SUCCESS
                 lastStatus = JobStatus.SUCCESS;
@@ -690,30 +689,6 @@ public class JobImpl implements Job {
     }
 
     /**
-     * If the job has failed, there was an unhandled error that should have been recorded by
-     * {@link #setActivityErrorEvent(Activity, ErrorEvent)}. If so, the error is now committed to an according error
-     * event on this activity.
-     */
-    private void commitActivityError() {
-        if (jobSettings.allErrors) {
-            // all errors have already been added to their activities.
-            return;
-        }
-        synchronized (errorLock) {
-            if (errorActivity != null) {
-                LOG.debug("Committing error event to {}", errorActivity);
-                updateActivityErrorEvent(errorActivity, errorEvent);
-                if (getActivityByInstanceId(errorActivity.getInstanceId()) == null) {
-                    // the activity is already sent, i.e., re-send
-                    addActivity(errorActivity);
-                }
-                errorActivity = null;
-                errorEvent = null;
-            }
-        }
-    }
-
-    /**
      * Records that an error occurred for the given activity. Whether or not an according event is
      * generated depends on the {@value NjamsSettings#PROPERTY_LOG_ALL_ERRORS} setting, or the job's end status
      * reported by the executing engine.
@@ -723,40 +698,7 @@ public class JobImpl implements Job {
      *                      generating an according event if required.
      */
     public void setActivityErrorEvent(Activity errorActivity, ErrorEvent errorEvent) {
-        if (errorActivity != null && errorEvent != null) {
-            if (jobSettings.allErrors) {
-                // add all errors directly to the activity
-                LOG.debug("Adding error event to {}", errorActivity);
-                updateActivityErrorEvent((ActivityImpl) errorActivity, errorEvent);
-            } else {
-                // store as last error until job-end; then we know whether to add or ignore it
-                LOG.debug("Storing error event for {}", errorActivity);
-                synchronized (errorLock) {
-                    this.errorActivity = (ActivityImpl) errorActivity;
-                    this.errorEvent = errorEvent;
-                }
-            }
-        }
-    }
-
-    /**
-     * Update the event information on the given activity, based on the given error information.
-     *
-     * @param activity
-     * @param errorEvent
-     */
-    private void updateActivityErrorEvent(ActivityImpl activity, ErrorEvent errorEvent) {
-        EventStatus status = errorEvent.getStatus() == null ? EventStatus.ERROR : errorEvent.getStatus();
-        activity.setActivityStatus(status.mapToActivityStatus());
-        activity.setEventStatus(status);
-        if (activity.getExecution() == null) {
-            activity.setExecution(
-                    errorEvent.getEventTime() == null ? DateTimeUtility.now() : errorEvent.getEventTime());
-        }
-        activity.setEventCode(errorEvent.getCode());
-        activity.setEventMessage(errorEvent.getMessage());
-        activity.setEventPayload(errorEvent.getPayload());
-        activity.setStackTrace(errorEvent.getStacktrace());
+        errorHandling.setActivityErrorEvent(errorActivity, errorEvent);
     }
 
     /**
