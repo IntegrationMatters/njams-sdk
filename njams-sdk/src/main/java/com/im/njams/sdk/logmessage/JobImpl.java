@@ -144,9 +144,7 @@ public class JobImpl implements Job {
 
     private boolean finished = false;
 
-    private LogMode logMode = LogMode.COMPLETE;
-    private LogLevel logLevel = LogLevel.INFO;
-    private boolean exclude = false;
+    private final JobRuntimeConfig runtimeConfig;
 
     private boolean instrumented = false;
     private boolean traces;
@@ -156,8 +154,6 @@ public class JobImpl implements Job {
 
     //1000 for headers and co
     private long estimatedSize = 1000L;
-
-    private boolean recording = true;
 
     private String correlationLogId;
 
@@ -213,45 +209,15 @@ public class JobImpl implements Job {
         flushCounter = new AtomicInteger();
         lastFlush = DateTimeUtility.now();
         pluginDataItems = new ArrayList<>();
-        initFromConfiguration(processModel);
+        runtimeConfig = new JobRuntimeConfig(processModel);
+        if (runtimeConfig.addRecordedAttribute) {
+            addAttribute("$njams_recorded", "true");
+        }
         //It is used as the default startTime, if no other startTime will be set.
         //If a startTime is set afterwards with setStartTime, startTimeExplicitlySet
         //will be set to true.
         startTime = DateTimeUtility.now();
         startTimeExplicitlySet = false;
-    }
-
-    /**
-     * This method initializes the processConfiguration and the
-     * activityConfigurations.
-     */
-    private void initFromConfiguration(ProcessModel processModel) {
-        Configuration configuration = processModel.getNjams().getConfiguration();
-        if (configuration == null) {
-            LOG.error("Unable to set LogMode, LogLevel and Exclude for {}, configuration is null",
-                    processModel.getPath());
-            return;
-        }
-        logMode = configuration.getLogMode();
-        LOG.debug("Set LogMode for {} to {}", processModel.getPath(), logMode);
-
-        recording = configuration.isRecording();
-        LOG.debug("Set recording for {} to {} based on client settings {}",
-                processModel.getPath(), recording, configuration.isRecording());
-
-        ProcessConfiguration process = configuration.getProcess(processModel.getPath().toString());
-        if (process != null) {
-            logLevel = process.getLogLevel();
-            LOG.debug("Set LogLevel for {} to {}", processModel.getPath(), logLevel);
-            recording = process.isRecording();
-            LOG.debug("Set recording for {} to {} based on process settings {} and client setting {}",
-                    processModel.getPath(), recording, process.isRecording(), configuration.isRecording());
-        }
-        exclude = njams.isExcluded(processModel.getPath());
-        LOG.debug("Set Exclude for {} to {}", processModel.getPath(), exclude);
-        if (recording) {
-            addAttribute("$njams_recorded", "true");
-        }
     }
 
     /**
@@ -506,8 +472,8 @@ public class JobImpl implements Job {
             if (isLogModeNone() || isLogModeExclusiveAndNotInstrumented() || isExcludedProcess()
                     || isLogLevelHigherAsJobStateAndHasNoTraces()) {
                 LOG.debug("Job not flushed: Engine Mode: {} // Job's log level: {}, "
-                        + "configured level: {} // is excluded: {} // has traces: {}", logMode, getStatus(), logLevel,
-                        exclude, traces);
+                        + "configured level: {} // is excluded: {} // has traces: {}", runtimeConfig.logMode,
+                        getStatus(), runtimeConfig.logLevel, runtimeConfig.exclude, traces);
                 //delete not running activities
                 removeNotRunningActivities();
                 calculateEstimatedSize();
@@ -520,7 +486,7 @@ public class JobImpl implements Job {
     }
 
     private boolean isLogModeNone() {
-        if (logMode == LogMode.NONE) {
+        if (runtimeConfig.logMode == LogMode.NONE) {
             LOG.debug("isLogModeNone: true");
             return true;
         }
@@ -528,7 +494,7 @@ public class JobImpl implements Job {
     }
 
     private boolean isLogModeExclusiveAndNotInstrumented() {
-        if (logMode == LogMode.EXCLUSIVE && !instrumented) {
+        if (runtimeConfig.logMode == LogMode.EXCLUSIVE && !instrumented) {
             LOG.debug("isLogModeExclusiveAndNotInstrumented: true");
             return true;
         }
@@ -536,7 +502,7 @@ public class JobImpl implements Job {
     }
 
     private boolean isExcludedProcess() {
-        if (exclude) {
+        if (runtimeConfig.exclude) {
             LOG.debug("isExcludedProcess: true");
             return true;
         }
@@ -544,11 +510,11 @@ public class JobImpl implements Job {
     }
 
     private boolean isLogLevelHigherAsJobStateAndHasNoTraces() {
-        boolean b = hasStarted() && maxSeverity.getValue() < logLevel.value() && !traces;
+        boolean b = hasStarted() && maxSeverity.getValue() < runtimeConfig.logLevel.value() && !traces;
 
         if (LOG.isDebugEnabled()) {
             LOG.debug("hasStarted[{}] && maxSeverity[{}] < logLevel[{}] && !traces[{}] == {}", hasStarted(),
-                    maxSeverity.getValue(), logLevel.value(), traces, b);
+                    maxSeverity.getValue(), runtimeConfig.logLevel.value(), traces, b);
         }
         return b;
     }
@@ -1255,14 +1221,7 @@ public class JobImpl implements Job {
      * @return <code>true</code> if the given tracepoint configuration is currently active.
      */
     public boolean isActiveTracepoint(TracepointExt tracepoint) {
-        if (tracepoint != null) {
-            //if tracepoint exists, check timings
-            LocalDateTime now = DateTimeUtility.now();
-            //timing is right, and iterations are less than configured
-            return !now.isBefore(tracepoint.getStarttime()) && now.isBefore(tracepoint.getEndtime())
-                    && !tracepoint.iterationsExceeded();
-        }
-        return false;
+        return runtimeConfig.isActiveTracepoint(tracepoint);
     }
 
     /**
@@ -1272,23 +1231,7 @@ public class JobImpl implements Job {
      * @return May be <code>null</code> if no configuration exists.
      */
     public ActivityConfiguration getActivityConfiguration(ActivityModel activityModel) {
-        if (activityModel == null) {
-            return null;
-        }
-        ProcessModel processModel = activityModel.getProcessModel();
-        if (processModel == null) {
-            return null;
-        }
-        Configuration configuration = processModel.getNjams().getConfiguration();
-        if (configuration == null) {
-            return null;
-        }
-        ProcessConfiguration processConfig = configuration.getProcess(processModel.getPath().toString());
-        if (processConfig == null) {
-            return null;
-        }
-        return processConfig.getActivity(activityModel.getId());
-
+        return runtimeConfig.getActivityConfiguration(activityModel);
     }
 
     /**
@@ -1297,7 +1240,7 @@ public class JobImpl implements Job {
      * @return true if activated, false if not
      */
     public boolean isRecording() {
-        return recording;
+        return runtimeConfig.recording;
     }
 
     @Override
