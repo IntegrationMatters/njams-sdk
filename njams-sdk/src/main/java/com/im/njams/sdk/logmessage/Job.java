@@ -429,4 +429,51 @@ public interface Job {
 
     public void addPluginDataItem(IPluginDataItem pluginDataItem);
 
+    /**
+     * Returns whether this job has already been started.
+     *
+     * @return true, if the job has started already (RUNNING, SUCCESS, WARNING,
+     * ERROR). false, if the job hasn't been started (CREATED)
+     */
+    public boolean hasStarted();
+
+    /**
+     * Provides access to the runtime activities of this job: the activity registry, lookups,
+     * builders, and the start activity.
+     *
+     * @return the activities facet of this job, never <code>null</code>
+     */
+    public JobActivities activities();
+
+    /**
+     * Provides access to the attributes of this job. Attributes are wire data: they are
+     * transmitted to the nJAMS server with the next log message.
+     *
+     * @return the attributes facet of this job, never <code>null</code>
+     */
+    public JobAttributes attributes();
+
+    /**
+     * Provides access to the descriptive metadata of this job: correlation/parent/external
+     * log ids and the business fields. The facet's setters are chainable.
+     *
+     * @return the metadata facet of this job, never <code>null</code>
+     */
+    public JobMetadata metadata();
+
+    /**
+     * Provides access to the internal properties of this job. Properties are client-local
+     * only and never transmitted to the nJAMS server.
+     *
+     * @return the properties facet of this job, never <code>null</code>
+     */
+    public JobProperties properties();
+
+    /**
+     * Provides access to the tracing flags of this job (deep trace, traces).
+     *
+     * @return the tracing facet of this job, never <code>null</code>
+     */
+    public JobTracing tracing();
+
 }
