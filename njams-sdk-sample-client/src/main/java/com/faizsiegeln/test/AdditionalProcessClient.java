@@ -59,8 +59,8 @@ public class AdditionalProcessClient {
         /**
          * Creating a process by adding a ProcessModel
          */
-        //Specify a process path, which is relative to the client path
-        Path processPath = Path.of("Processes", "SimpleProcess");
+        //Build the absolute process path below the client path
+        Path processPath = clientPath.getOrCreateChild("Processes", "SimpleProcess");
 
         //Create an new empty process model
         ProcessModel process = njams.processes().create(processPath);
@@ -79,8 +79,8 @@ public class AdditionalProcessClient {
         /**
          * Creating a process by adding a ProcessModel
          */
-        //Specify a process path, which is relative to the client path
-        Path processPath2 = Path.of("Processes", "AddedProcess");
+        //Build the absolute process path below the client path
+        Path processPath2 = clientPath.getOrCreateChild("Processes", "AddedProcess");
 
         //Create an new empty process model
         ProcessModel process2 = njams.processes().create(processPath2);

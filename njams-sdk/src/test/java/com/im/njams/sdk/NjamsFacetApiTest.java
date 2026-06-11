@@ -328,13 +328,13 @@ public class NjamsFacetApiTest {
     @Test
     public void newProcessCreateIsAllowedAfterStartAndAnnouncable() {
         njams.start();
-        com.im.njams.sdk.model.ProcessModel lazy = njams.processes().create(Path.of("LAZY"));
+        com.im.njams.sdk.model.ProcessModel lazy = njams.processes().create("LAZY");
         njams.processes().announce(lazy); // must not throw
     }
 
     @Test(expected = NjamsSdkRuntimeException.class)
     public void newAnnounceBeforeStartThrows() {
-        com.im.njams.sdk.model.ProcessModel model = njams.processes().create(Path.of("P1"));
+        com.im.njams.sdk.model.ProcessModel model = njams.processes().create("P1");
         njams.processes().announce(model);
     }
 
@@ -342,26 +342,26 @@ public class NjamsFacetApiTest {
 
     @Test(expected = NjamsSdkRuntimeException.class)
     public void getProcessModelThrowsWhenAbsent_viaFacet() {
-        njams.processes().get(Path.of("MISSING"));
+        njams.processes().get("MISSING");
     }
 
     @Test
     public void createProcessRegistersModelUnderAbsolutePath_viaFacet() {
-        com.im.njams.sdk.model.ProcessModel created = njams.processes().create(Path.of("P1"));
-        assertSame(created, njams.processes().get(Path.of("P1")));
+        com.im.njams.sdk.model.ProcessModel created = njams.processes().create("P1");
+        assertSame(created, njams.processes().get("P1"));
         assertEquals(1, njams.processes().getAll().size());
     }
 
     @Test(expected = UnsupportedOperationException.class)
     public void getProcessModelsIsUnmodifiable_viaFacet() {
-        njams.processes().create(Path.of("P1"));
+        njams.processes().create("P1");
         njams.processes().getAll().clear();
     }
 
     @Test(expected = NjamsSdkRuntimeException.class)
     public void addProcessModelOfForeignInstanceThrows_viaFacet() {
         Njams other = new Njams(Path.of("OTHER"), "1.0", "X", TestReceiver.getSettings());
-        com.im.njams.sdk.model.ProcessModel foreign = other.processes().create(Path.of("P1"));
+        com.im.njams.sdk.model.ProcessModel foreign = other.processes().create("P1");
         njams.processes().add(foreign);
     }
 
@@ -369,6 +369,38 @@ public class NjamsFacetApiTest {
     public void addProcessModelIgnoresNull_viaFacet() {
         njams.processes().add(null); // must NOT throw
         assertTrue(njams.processes().getAll().isEmpty());
+    }
+
+    // --- SDK-447: absolute paths and single-segment name convenience ---
+
+    @Test
+    public void createByAbsolutePath_isFoundByItsOwnPath() {
+        Path absolute = njams.metadata().getClientPath().getOrCreateChild("PROC447");
+        com.im.njams.sdk.model.ProcessModel model = njams.processes().create(absolute);
+        // the model is registered under exactly the given absolute path - no re-rooting
+        assertSame(absolute, model.getPath());
+        assertTrue(njams.processes().has(model.getPath()));
+        assertSame(model, njams.processes().get(model.getPath()));
+    }
+
+    @Test
+    public void createByName_isFoundByNameAndByAbsolutePath() {
+        com.im.njams.sdk.model.ProcessModel model = njams.processes().create("PROC447");
+        assertTrue(njams.processes().has("PROC447"));
+        assertSame(model, njams.processes().get("PROC447"));
+        assertSame(njams.metadata().getClientPath().getChild("PROC447"), model.getPath());
+        assertTrue(njams.processes().has(model.getPath()));
+    }
+
+    @Test
+    public void hasByAbsolutePath_isFalseWhenAbsent() {
+        Path absent = njams.metadata().getClientPath().getOrCreateChild("ABSENT447");
+        assertFalse(njams.processes().has(absent));
+    }
+
+    @Test(expected = NjamsSdkRuntimeException.class)
+    public void createPathNotUnderClientPath_throws() {
+        njams.processes().create(Path.of("OUTSIDE", "X"));
     }
 
     @Test(expected = NjamsSdkRuntimeException.class)
@@ -420,7 +452,7 @@ public class NjamsFacetApiTest {
     @Test
     public void sendAdditionalProcessSendsProjectMessageWithThatProcess_viaFacet() throws InterruptedException {
         njams.start();
-        com.im.njams.sdk.model.ProcessModel model = njams.processes().create(Path.of("LAZY"));
+        com.im.njams.sdk.model.ProcessModel model = njams.processes().create("LAZY");
         CapturingSender capturing = new CapturingSender(msg -> !msg.getProcesses().isEmpty());
         com.im.njams.sdk.communication.TestSender.setSenderMock(capturing);
         try {
@@ -439,7 +471,7 @@ public class NjamsFacetApiTest {
     @Test
     public void newJobsApiMatchesLegacyBehavior() {
         njams.start();
-        com.im.njams.sdk.model.ProcessModel model = njams.processes().create(Path.of("P1"));
+        com.im.njams.sdk.model.ProcessModel model = njams.processes().create("P1");
         com.im.njams.sdk.logmessage.Job job = model.createJob();
         assertSame(job, njams.jobs().get(job.getJobId()));
         assertEquals(1, njams.jobs().getAll().size());
@@ -449,7 +481,7 @@ public class NjamsFacetApiTest {
 
     @Test(expected = NjamsSdkRuntimeException.class)
     public void newJobsAddBeforeStartThrows() {
-        com.im.njams.sdk.model.ProcessModel model = njams.processes().create(Path.of("P1"));
+        com.im.njams.sdk.model.ProcessModel model = njams.processes().create("P1");
         model.createJob(); // createJob registers the job and requires a started instance
     }
 

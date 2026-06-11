@@ -263,7 +263,7 @@ public class NjamsTest {
 
     @Test
     public void testHasNoProcessModel() {
-        assertFalse(instance.hasProcessModel(Path.of("PROCESSES")));
+        assertFalse(instance.hasProcessModel(new com.im.njams.sdk.common.Path("PROCESSES")));
     }
 
     @Test
@@ -273,8 +273,8 @@ public class NjamsTest {
 
     @Test
     public void testHasProcessModel() {
-        instance.createProcess(Path.of("PROCESSES"));
-        assertTrue(instance.hasProcessModel(Path.of("PROCESSES")));
+        instance.createProcess(new com.im.njams.sdk.common.Path("PROCESSES"));
+        assertTrue(instance.hasProcessModel(new com.im.njams.sdk.common.Path("PROCESSES")));
     }
 
     @Test

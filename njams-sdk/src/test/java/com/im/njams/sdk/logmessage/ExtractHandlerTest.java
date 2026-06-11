@@ -82,7 +82,7 @@ public class ExtractHandlerTest {
 
         njams = spy(new Njams(clientPath, "1.0.0", "sdk4", config));
 
-        Path processPath = Path.of(PROCESSPATHNAME);
+        com.im.njams.sdk.common.Path processPath = new com.im.njams.sdk.common.Path(PROCESSPATHNAME);
         njams.createProcess(processPath);
         njams.start();
 
@@ -139,7 +139,7 @@ public class ExtractHandlerTest {
      * @return The ActivityImpl with the created extract
      */
     private ActivityImpl testExtract(String activityName, RuleType ruleType, String extractRule) {
-        ProcessModel process = njams.getProcessModel(Path.of(PROCESSPATHNAME));
+        ProcessModel process = njams.getProcessModel(new com.im.njams.sdk.common.Path(PROCESSPATHNAME));
 
         ActivityModel model = process.createActivity(activityName, "Act", null);
 

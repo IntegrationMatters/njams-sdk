@@ -58,10 +58,10 @@ public class JobTest {
 
         Njams njams = new Njams(clientPath, "1.0.0", "sdk4", config);
 
-        Path processPath = Path.of("PROCESSES", "testWithoutModel");
+        Path processPath = clientPath.getOrCreateChild("PROCESSES", "testWithoutModel");
 
         //Creates an empty process model
-        ProcessModel process = njams.createProcess(processPath);
+        ProcessModel process = njams.processes().create(processPath);
         ActivityModel actModelA = process.createActivity("a", "a", "a");
         ActivityModel actModelB = actModelA.transitionTo("b", "b", "b");
         njams.start();

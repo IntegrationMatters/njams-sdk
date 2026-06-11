@@ -57,6 +57,11 @@ public class NjamsFacadeBaselineTest {
         TestSender.setSenderMock(null);
     }
 
+    /** Builds a legacy relative path for the deprecated process facade methods under test. */
+    private static com.im.njams.sdk.common.Path rel(String... parts) {
+        return new com.im.njams.sdk.common.Path(parts);
+    }
+
     // --- metadata ---
 
     @Test
@@ -220,26 +225,26 @@ public class NjamsFacadeBaselineTest {
 
     @Test(expected = NjamsSdkRuntimeException.class)
     public void getProcessModelThrowsWhenAbsent() {
-        njams.getProcessModel(Path.of("MISSING"));
+        njams.getProcessModel(rel("MISSING"));
     }
 
     @Test
     public void createProcessRegistersModelUnderAbsolutePath() {
-        ProcessModel created = njams.createProcess(Path.of("P1"));
-        assertSame(created, njams.getProcessModel(Path.of("P1")));
+        ProcessModel created = njams.createProcess(rel("P1"));
+        assertSame(created, njams.getProcessModel(rel("P1")));
         assertEquals(1, njams.getProcessModels().size());
     }
 
     @Test(expected = UnsupportedOperationException.class)
     public void getProcessModelsIsUnmodifiable() {
-        njams.createProcess(Path.of("P1"));
+        njams.createProcess(rel("P1"));
         njams.getProcessModels().clear();
     }
 
     @Test(expected = NjamsSdkRuntimeException.class)
     public void addProcessModelOfForeignInstanceThrows() {
         Njams other = new Njams(Path.of("OTHER"), "1.0", "X", TestReceiver.getSettings());
-        ProcessModel foreign = other.createProcess(Path.of("P1"));
+        ProcessModel foreign = other.createProcess(rel("P1"));
         njams.addProcessModel(foreign);
     }
 
@@ -278,14 +283,14 @@ public class NjamsFacadeBaselineTest {
 
     @Test(expected = NjamsSdkRuntimeException.class)
     public void sendAdditionalProcessBeforeStartThrows() {
-        ProcessModel model = njams.createProcess(Path.of("P1"));
+        ProcessModel model = njams.createProcess(rel("P1"));
         njams.sendAdditionalProcess(model);
     }
 
     @Test
     public void sendAdditionalProcessSendsProjectMessageWithThatProcess() throws InterruptedException {
         njams.start();
-        ProcessModel model = njams.createProcess(Path.of("LAZY"));
+        ProcessModel model = njams.createProcess(rel("LAZY"));
         // The startup project message (0 processes) may still arrive asynchronously after the
         // mock was installed - capture only the message that carries the additional process.
         CapturingSender capturing = new CapturingSender(msg -> !msg.getProcesses().isEmpty());
@@ -313,7 +318,7 @@ public class NjamsFacadeBaselineTest {
     @Test
     public void jobLifecycleAfterStart() {
         njams.start();
-        ProcessModel model = njams.createProcess(Path.of("P1"));
+        ProcessModel model = njams.createProcess(rel("P1"));
         Job job = model.createJob();
         assertSame(job, njams.getJobById(job.getJobId()));
         assertEquals(1, njams.getJobs().size());

@@ -97,7 +97,7 @@ public class ProcessModelTest extends AbstractTest {
         Settings settings = TestSender.getSettings();
         settings.put(NjamsSettings.PROPERTY_SERVER_COMPATIBILITY, "6.1");
         Njams compatNjams = new Njams(Path.of("SDK4", "COMPAT61"), "TEST", "SDK4", settings);
-        ProcessModel compatProcess = compatNjams.createProcess(Path.of("COMPAT_PROC"));
+        ProcessModel compatProcess = compatNjams.processes().create("COMPAT_PROC");
         compatNjams.start();
 
         compatProcess.createActivity("cfrom", "From", "step");

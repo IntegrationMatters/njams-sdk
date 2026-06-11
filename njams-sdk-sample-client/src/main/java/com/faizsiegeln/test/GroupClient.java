@@ -65,8 +65,8 @@ public class GroupClient {
         /**
          * Creating a process by adding a ProcessModel
          */
-        //Specify a process path, which is relative to the client path
-        Path processPath = Path.of("Processes", "GroupProcess");
+        //Build the absolute process path below the client path
+        Path processPath = clientPath.getOrCreateChild("Processes", "GroupProcess");
 
         //Create an new empty process model
         ProcessModel process = njams.processes().create(processPath);

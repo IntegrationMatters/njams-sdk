@@ -14,7 +14,7 @@ public class SimpleProcessModelLayouterTest {
     @Test
     public void layout_doesNotThrow() {
         Njams njams = new Njams(Path.of("TEST"), "1.0", "TEST", TestSender.getSettings());
-        ProcessModel model = njams.createProcess(Path.of("proc"));
+        ProcessModel model = njams.processes().create("proc");
         ActivityModel a = model.createActivity("A", "A", null);
         a.setStarter(true);
 

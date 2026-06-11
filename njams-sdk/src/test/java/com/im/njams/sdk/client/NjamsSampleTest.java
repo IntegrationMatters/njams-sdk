@@ -77,10 +77,10 @@ public class NjamsSampleTest {
         // Instantiate client for first application
         Njams njams = new Njams(clientPath, "1.0.0", "sdk4", communicationProperties);
 
-        Path processPath = Path.of("PROCESSES", "testWithModel");
+        Path processPath = clientPath.getOrCreateChild("PROCESSES", "testWithModel");
 
         //Creates an empty process model
-        ProcessModel process = njams.createProcess(processPath);
+        ProcessModel process = njams.processes().create(processPath);
 
         //start model
         ActivityModel startModel = process.createActivity("start", "Start", "startType");
@@ -186,10 +186,10 @@ public class NjamsSampleTest {
         // Instantiate client for first application
         Njams njams = new Njams(clientPath, "1.0.0", "sdk4", communicationProperties);
 
-        Path processPath = Path.of("PROCESSES", "testWithModelWithBranches");
+        Path processPath = clientPath.getOrCreateChild("PROCESSES", "testWithModelWithBranches");
 
         //Creates an empty process model
-        ProcessModel process = njams.createProcess(processPath);
+        ProcessModel process = njams.processes().create(processPath);
         process.setStarter(true);
 
         //start model
@@ -308,10 +308,10 @@ public class NjamsSampleTest {
 
         Njams njams = new Njams(clientPath, "1.0.0", "sdk4", communicationProperties);
 
-        Path processPath = Path.of("PROCESSES", "testGroupWithModel");
+        Path processPath = clientPath.getOrCreateChild("PROCESSES", "testGroupWithModel");
 
         //Creates an empty process model
-        ProcessModel process = njams.createProcess(processPath);
+        ProcessModel process = njams.processes().create(processPath);
 
         ActivityModel startModel = process.createActivity("start", "Start", "startType");
         startModel.setStarter(true);
@@ -435,10 +435,10 @@ public class NjamsSampleTest {
 
         Njams njams = new Njams(clientPath, "1.0.0", "sdk4", communicationProperties);
 
-        Path processPath = Path.of("PROCESSES", "testGroupInGroupWithModel");
+        Path processPath = clientPath.getOrCreateChild("PROCESSES", "testGroupInGroupWithModel");
 
         //Creates an empty process model
-        ProcessModel process = njams.createProcess(processPath);
+        ProcessModel process = njams.processes().create(processPath);
 
         ActivityModel startModel = process.createActivity("start", "Start", "startType");
         startModel.setStarter(true);
@@ -596,10 +596,10 @@ public class NjamsSampleTest {
         // Instantiate client for first application
         Njams njams = new Njams(clientPath, "1.0.0", "sdk4", communicationProperties);
 
-        Path processPath = Path.of("PROCESSES", "SubProcessCaller");
+        Path processPath = clientPath.getOrCreateChild("PROCESSES", "SubProcessCaller");
 
         //Creates an empty process model
-        ProcessModel process = njams.createProcess(processPath);
+        ProcessModel process = njams.processes().create(processPath);
 
         //start model
         ActivityModel startModel = process.createActivity("start", "Start", "startType");
@@ -613,8 +613,8 @@ public class NjamsSampleTest {
         ActivityModel endModel = subProcessModel.transitionTo("end", "End", "endType");
 
         //subprocess
-        Path subProcessPath = Path.of("PROCESSES", "SubProcess");
-        ProcessModel subProcess = njams.createProcess(subProcessPath);
+        Path subProcessPath = clientPath.getOrCreateChild("PROCESSES", "SubProcess");
+        ProcessModel subProcess = njams.processes().create(subProcessPath);
 
         ActivityModel subProcessStartModel = subProcess.createActivity("subProcessstart", "Start", "startType");
         subProcessStartModel.setStarter(true);
@@ -682,10 +682,10 @@ public class NjamsSampleTest {
 
         Njams njams = new Njams(clientPath, "1.0.0", "sdk4", communicationProperties);
 
-        Path processPath = Path.of("PROCESSES", "testGroupInGroupWithFlushes");
+        Path processPath = clientPath.getOrCreateChild("PROCESSES", "testGroupInGroupWithFlushes");
 
         //Creates an empty process model
-        ProcessModel process = njams.createProcess(processPath);
+        ProcessModel process = njams.processes().create(processPath);
 
         ActivityModel startModel = process.createActivity("start", "Start", "startType");
         startModel.setStarter(true);
@@ -851,10 +851,10 @@ public class NjamsSampleTest {
         // Instantiate client for first application
         Njams njams = new Njams(clientPath, "1.0.0", "sdk4", communicationProperties);
 
-        Path processPath = Path.of("PROCESSES", "SubProcessSpawner");
+        Path processPath = clientPath.getOrCreateChild("PROCESSES", "SubProcessSpawner");
 
         //Creates an empty process model
-        ProcessModel process = njams.createProcess(processPath);
+        ProcessModel process = njams.processes().create(processPath);
 
         //start model
         ActivityModel startModel = process.createActivity("start", "Start", "startType");
@@ -864,8 +864,8 @@ public class NjamsSampleTest {
         ActivityModel endModel = subProcessModel.transitionTo("end", "End", "endType");
 
         //subprocess
-        Path subProcessPath = Path.of("PROCESSES", "SubProcess");
-        ProcessModel subProcess = njams.createProcess(subProcessPath);
+        Path subProcessPath = clientPath.getOrCreateChild("PROCESSES", "SubProcess");
+        ProcessModel subProcess = njams.processes().create(subProcessPath);
 
         ActivityModel subProcessStartModel = subProcess.createActivity("subProcessstart", "Start", "startType");
         subProcessStartModel.setStarter(true);
@@ -938,10 +938,10 @@ public class NjamsSampleTest {
 
         Njams njams = new Njams(clientPath, "1.0.0", "sdk4", communicationProperties);
 
-        Path processPath = Path.of("PROCESSES", "testGroupInGroupWithFlushesAndEncoded");
+        Path processPath = clientPath.getOrCreateChild("PROCESSES", "testGroupInGroupWithFlushesAndEncoded");
 
         //Creates an empty process model
-        ProcessModel process = njams.createProcess(processPath);
+        ProcessModel process = njams.processes().create(processPath);
 
         ActivityModel startModel = process.createActivity("start", "Start", "startType");
         startModel.setStarter(true);

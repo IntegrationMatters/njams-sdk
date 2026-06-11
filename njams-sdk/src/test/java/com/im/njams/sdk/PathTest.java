@@ -826,4 +826,37 @@ public class PathTest {
             assertSame("All threads must return the same instance", first, ref.get());
         }
     }
+
+    // --- startsWith ---
+
+    @Test
+    public void startsWithSelfIsTrue() {
+        Path p = Path.of("a", "b");
+        assertTrue(p.startsWith(p));
+    }
+
+    @Test
+    public void startsWithAncestorIsTrue() {
+        Path child = Path.of("a", "b", "c");
+        assertTrue(child.startsWith(Path.of("a")));
+        assertTrue(child.startsWith(Path.of("a", "b")));
+    }
+
+    @Test
+    public void startsWithRootIsTrue() {
+        assertTrue(Path.of("a", "b").startsWith(Path.ROOT));
+        assertTrue(Path.ROOT.startsWith(Path.ROOT));
+    }
+
+    @Test
+    public void startsWithNonAncestorIsFalse() {
+        assertFalse(Path.of("a", "b").startsWith(Path.of("a", "x")));
+        assertFalse(Path.of("a").startsWith(Path.of("a", "b")));
+        assertFalse(Path.of("a", "b").startsWith(Path.of("x")));
+    }
+
+    @Test
+    public void startsWithNullIsFalse() {
+        assertFalse(Path.of("a").startsWith(null));
+    }
 }

@@ -21,8 +21,9 @@ public class LogMessageResource {
     @Path("start")
     public String createLogMessage() {
         Njams njams = NjamsStartup.njams;
-        com.im.njams.sdk.Path processPath = com.im.njams.sdk.Path.of("Processes", "SimpleProcess");
-        ProcessModel process = njams.getProcessModel(processPath);
+        com.im.njams.sdk.Path processPath =
+            njams.metadata().getClientPath().getChild("Processes", "SimpleProcess");
+        ProcessModel process = njams.processes().get(processPath);
 
         Job job = process.createJob();
         // Starts the job, i.e., sets the according status, job start date if not set before, and flags the job to begin
@@ -41,8 +42,9 @@ public class LogMessageResource {
                                    @PathParam("toActivity") String toActivity) {
 
         Njams njams = NjamsStartup.njams;
-        com.im.njams.sdk.Path processPath = com.im.njams.sdk.Path.of("Processes", "SimpleProcess");
-        ProcessModel process = njams.getProcessModel(processPath);
+        com.im.njams.sdk.Path processPath =
+            njams.metadata().getClientPath().getChild("Processes", "SimpleProcess");
+        ProcessModel process = njams.processes().get(processPath);
 
         Job job = njams.getJobById(jobId);
         if(job == null) {

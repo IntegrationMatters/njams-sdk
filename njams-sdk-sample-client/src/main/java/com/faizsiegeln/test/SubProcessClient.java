@@ -66,8 +66,8 @@ public class SubProcessClient {
         /**
          * Creating a process by adding a ProcessModel
          */
-        //Specify a process path, which is relative to the client path
-        Path processPath = Path.of("Processes", "TheProcess");
+        //Build the absolute process path below the client path
+        Path processPath = clientPath.getOrCreateChild("Processes", "TheProcess");
 
         //Create an new empty process model for the main process
         ProcessModel process = njams.processes().create(processPath);
@@ -83,7 +83,7 @@ public class SubProcessClient {
         ActivityModel endModel = subProcessActivityModel.transitionTo("end", "End", "endType");
 
         //Create a new process model for the subprocess
-        Path subProcessPath = Path.of("PROCESSES", "SubProcess");
+        Path subProcessPath = clientPath.getOrCreateChild("PROCESSES", "SubProcess");
         ProcessModel subProcess = njams.processes().create(subProcessPath);
         ActivityModel subProcessStartModel = subProcess.createActivity("subProcessstart", "Start", "startType");
         subProcessStartModel.setStarter(true);

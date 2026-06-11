@@ -165,13 +165,13 @@ public class JobImplTest extends AbstractTest {
         Path clientPath = Path.of("SDK4", "TEST");
 
         Njams mockedNjams = spy(new Njams(clientPath, "1.0.0", "sdk4", TestReceiver.getSettings()));
-        Path processPath = Path.of("PROCESSES");
+        com.im.njams.sdk.common.Path processPath = new com.im.njams.sdk.common.Path("PROCESSES");
         mockedNjams.createProcess(processPath);
         mockedNjams.start();
         //add DataMasking
         DataMasking.addPattern(".*");
         //Create a job
-        ProcessModel process = mockedNjams.getProcessModel(Path.of(PROCESSPATHNAME));
+        ProcessModel process = mockedNjams.getProcessModel(new com.im.njams.sdk.common.Path(PROCESSPATHNAME));
         process.createActivity("id", "name", null);
         JobImpl job = (JobImpl) process.createJob();
 

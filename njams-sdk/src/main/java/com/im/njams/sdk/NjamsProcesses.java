@@ -102,12 +102,28 @@ public final class NjamsProcesses {
     /**
      * Create a process and add it to this instance.
      *
-     * @param path Relative path to the client of the process which should be
-     *             created
-     * @return the new ProcessModel or a {@link NjamsSdkRuntimeException}
+     * @param absoluteProcessPath the absolute path of the process to create. It must start with
+     *                            this client's path (see {@link NjamsMetadata#getClientPath()}); a
+     *                            path relative to the client can be built with
+     *                            {@code getClientPath().getOrCreateChild(...)}.
+     * @return the new ProcessModel
+     * @throws NjamsSdkRuntimeException if the path does not start with the client path
      */
-    public ProcessModel create(final Path path) {
-        return create(path, njams);
+    public ProcessModel create(final Path absoluteProcessPath) {
+        return create(absoluteProcessPath, njams);
+    }
+
+    /**
+     * Create a process directly below this client's path and add it to this instance. Convenience
+     * for the common single-element case; equivalent to
+     * {@code create(getClientPath().getOrCreateChild(processName))}.
+     *
+     * @param processName the name of the process as a single path segment directly below the
+     *                    client path; must not be {@code null}, blank, or contain {@code >}
+     * @return the new ProcessModel
+     */
+    public ProcessModel create(final String processName) {
+        return create(metadata.getClientPath().getOrCreateChild(processName), njams);
     }
 
     /**
@@ -115,14 +131,22 @@ public final class NjamsProcesses {
      * facade method: when the {@link Njams} instance is proxied (e.g. a test spy), the model must
      * reference the proxy the caller is working with, not this facet's plain backreference.
      */
-    ProcessModel create(final Path path, final Njams owner) {
-        final Path fullClientPath = metadata.getClientPath().resolveOrCreateChild(path.toString());
-        final ProcessModel model = new ProcessModel(fullClientPath, owner);
+    ProcessModel create(final Path absoluteProcessPath, final Njams owner) {
+        requireUnderClientPath(absoluteProcessPath);
+        final ProcessModel model = new ProcessModel(absoluteProcessPath, owner);
         synchronized (projectMessageLock) {
-            createTreeElements(fullClientPath, TreeElementType.PROCESS);
-            processModels.put(fullClientPath, model);
+            createTreeElements(absoluteProcessPath, TreeElementType.PROCESS);
+            processModels.put(absoluteProcessPath, model);
         }
         return model;
+    }
+
+    private void requireUnderClientPath(final Path processPath) {
+        if (processPath == null || !processPath.startsWith(metadata.getClientPath())) {
+            throw new NjamsSdkRuntimeException(
+                "Process path " + processPath + " must start with the client path "
+                    + metadata.getClientPath());
+        }
     }
 
     /**
@@ -144,11 +168,7 @@ public final class NjamsProcesses {
             throw new NjamsSdkRuntimeException("Process model has been created for a different nJAMS instance.");
         }
         final Path modelPath = processModel.getPath();
-        Path ancestor = modelPath;
-        while (ancestor != null && ancestor != metadata.getClientPath()) {
-            ancestor = ancestor.getParent();
-        }
-        if (ancestor == null) {
+        if (!modelPath.startsWith(metadata.getClientPath())) {
             throw new NjamsSdkRuntimeException("Process model path does not match this nJAMS instance.");
         }
         synchronized (projectMessageLock) {
@@ -158,40 +178,62 @@ public final class NjamsProcesses {
     }
 
     /**
-     * Return the ProcessModel to the path;
+     * Return the ProcessModel for the given absolute path.
      *
-     * @param relativePath The relative path of the process model to get
-     * @return the ProcessModel or {@link NjamsSdkRuntimeException}
+     * @param absoluteProcessPath the absolute path of the process model to get
+     * @return the ProcessModel
+     * @throws NjamsSdkRuntimeException if no process model exists for the given path
      */
-    public ProcessModel get(final Path relativePath) {
-        final Path absolutePath = metadata.getClientPath().resolveChild(relativePath.toString());
+    public ProcessModel get(final Path absoluteProcessPath) {
         final ProcessModel pm;
         synchronized (projectMessageLock) {
-            pm = absolutePath == null ? null : processModels.get(absolutePath);
+            pm = absoluteProcessPath == null ? null : processModels.get(absoluteProcessPath);
         }
         if (pm == null) {
-            throw new NjamsSdkRuntimeException("ProcessModel not found for path " + relativePath);
+            throw new NjamsSdkRuntimeException("ProcessModel not found for path " + absoluteProcessPath);
         }
         return pm;
     }
 
     /**
-     * Check for a process model under that path
+     * Return the ProcessModel for a process directly below this client's path. Convenience for the
+     * common single-element case; equivalent to {@code get(getClientPath().getChild(processName))}.
      *
-     * @param relativePath The relative path of the process model to check
+     * @param processName the name of the process as a single path segment directly below the
+     *                    client path
+     * @return the ProcessModel
+     * @throws NjamsSdkRuntimeException if no process model exists for the given name
+     */
+    public ProcessModel get(final String processName) {
+        return get(metadata.getClientPath().getChild(processName));
+    }
+
+    /**
+     * Check for a process model under the given absolute path.
+     *
+     * @param absoluteProcessPath the absolute path of the process model to check
      * @return true if found else false
      */
-    public boolean has(final Path relativePath) {
-        if (relativePath == null) {
-            return false;
-        }
-        final Path absolutePath = metadata.getClientPath().resolveChild(relativePath.toString());
-        if (absolutePath == null) {
+    public boolean has(final Path absoluteProcessPath) {
+        if (absoluteProcessPath == null) {
             return false;
         }
         synchronized (projectMessageLock) {
-            return processModels.containsKey(absolutePath);
+            return processModels.containsKey(absoluteProcessPath);
         }
+    }
+
+    /**
+     * Check for a process model for a process directly below this client's path. Convenience for
+     * the common single-element case; equivalent to
+     * {@code has(getClientPath().getChild(processName))}.
+     *
+     * @param processName the name of the process as a single path segment directly below the
+     *                    client path
+     * @return true if found else false
+     */
+    public boolean has(final String processName) {
+        return has(metadata.getClientPath().getChild(processName));
     }
 
     /**

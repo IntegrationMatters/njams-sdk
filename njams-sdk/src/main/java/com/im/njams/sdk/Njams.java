@@ -771,29 +771,43 @@ public class Njams implements InstructionListener {
     /**
      * Return the ProcessModel to the path;
      *
-     * @param relativePath The relative path of the process model to get
+     * @param relativePath The relative path (below the client path) of the process model to get
      * @return the ProcessModel or {@link NjamsSdkRuntimeException}
-     * @deprecated Use {@code njams.processes().get(relativePath)} instead — obtain the facet via
-     *             {@link #processes()} and call {@link NjamsProcesses#get(Path)}. The replacement
-     *             has the same contract: it throws an exception when no model exists for the
-     *             given path.
+     * @deprecated Use {@code njams.processes().get(absoluteProcessPath)} instead — obtain the facet
+     *             via {@link #processes()} and call {@link NjamsProcesses#get(Path)}.
+     *             <p><b>Behavior change:</b> this legacy method treats its argument as a path
+     *             <i>relative</i> to the client path and prepends the client path before looking
+     *             up the model. The replacement {@link NjamsProcesses#get(Path)} expects the
+     *             <i>absolute</i> process path (it must start with the client path) and does not
+     *             prepend anything; build it with
+     *             {@code processes().get(metadata().getClientPath().getChild(...))} or use the
+     *             single-segment convenience {@link NjamsProcesses#get(String)}.
      */
     @Deprecated
-    public ProcessModel getProcessModel(final Path relativePath) {
-        return processes.get(relativePath);
+    public ProcessModel getProcessModel(final com.im.njams.sdk.common.Path relativePath) {
+        return processes.get(metadata.getClientPath().getChild(relativePath.getParts()));
     }
 
     /**
      * Check for a process model under that path
      *
-     * @param relativePath The relative path of the process model to check
+     * @param relativePath The relative path (below the client path) of the process model to check
      * @return true if found else false
-     * @deprecated Use {@code njams.processes().has(relativePath)} instead — obtain the facet via
-     *             {@link #processes()} and call {@link NjamsProcesses#has(Path)}.
+     * @deprecated Use {@code njams.processes().has(absoluteProcessPath)} instead — obtain the facet
+     *             via {@link #processes()} and call {@link NjamsProcesses#has(Path)}.
+     *             <p><b>Behavior change:</b> this legacy method treats its argument as a path
+     *             <i>relative</i> to the client path and prepends the client path before checking.
+     *             The replacement {@link NjamsProcesses#has(Path)} expects the <i>absolute</i>
+     *             process path and does not prepend anything; build it with
+     *             {@code processes().has(metadata().getClientPath().getChild(...))} or use the
+     *             single-segment convenience {@link NjamsProcesses#has(String)}.
      */
     @Deprecated
-    public boolean hasProcessModel(final Path relativePath) {
-        return processes.has(relativePath);
+    public boolean hasProcessModel(final com.im.njams.sdk.common.Path relativePath) {
+        if (relativePath == null) {
+            return false;
+        }
+        return processes.has(metadata.getClientPath().getChild(relativePath.getParts()));
     }
 
     /**
@@ -837,15 +851,21 @@ public class Njams implements InstructionListener {
     /**
      * Create a process and add it to this instance.
      *
-     * @param path Relative path to the client of the process which should be
+     * @param relativePath Relative path (below the client path) of the process which should be
      *             created
      * @return the new ProcessModel or a {@link NjamsSdkRuntimeException}
-     * @deprecated Use {@code njams.processes().create(path)} instead — obtain the facet via
-     *             {@link #processes()} and call {@link NjamsProcesses#create(Path)}.
+     * @deprecated Use {@code njams.processes().create(absoluteProcessPath)} instead — obtain the
+     *             facet via {@link #processes()} and call {@link NjamsProcesses#create(Path)}.
+     *             <p><b>Behavior change:</b> this legacy method treats its argument as a path
+     *             <i>relative</i> to the client path and prepends the client path. The replacement
+     *             {@link NjamsProcesses#create(Path)} expects the <i>absolute</i> process path (it
+     *             must start with the client path) and does not prepend anything; build it with
+     *             {@code processes().create(metadata().getClientPath().getOrCreateChild(...))} or
+     *             use the single-segment convenience {@link NjamsProcesses#create(String)}.
      */
     @Deprecated
-    public ProcessModel createProcess(final Path path) {
-        return processes.create(path, this);
+    public ProcessModel createProcess(final com.im.njams.sdk.common.Path relativePath) {
+        return processes.create(metadata.getClientPath().getOrCreateChild(relativePath.getParts()), this);
     }
 
     /**

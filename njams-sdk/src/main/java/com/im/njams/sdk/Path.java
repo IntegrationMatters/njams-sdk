@@ -514,6 +514,30 @@ public final class Path {
     }
 
     /**
+     * Returns {@code true} if this path is the given {@code prefix} itself or a descendant of it.
+     *
+     * <p>Because paths are unique singleton nodes, the test is a parent-chain walk using identity
+     * comparison; it allocates nothing. {@link #ROOT} is a prefix of every path, and every path is
+     * a prefix of itself.
+     *
+     * @param prefix the candidate ancestor path; {@code null} returns {@code false}
+     * @return {@code true} if this path starts with {@code prefix}
+     */
+    public boolean startsWith(Path prefix) {
+        if (prefix == null) {
+            return false;
+        }
+        Path current = this;
+        while (current != null) {
+            if (current == prefix) {
+                return true;
+            }
+            current = current.parent;
+        }
+        return false;
+    }
+
+    /**
      * Returns a legacy {@link com.im.njams.sdk.common.Path} equivalent to this path,
      * constructed from this path's full string representation.
      *
