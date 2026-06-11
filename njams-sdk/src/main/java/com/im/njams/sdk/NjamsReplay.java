@@ -41,11 +41,13 @@ public final class NjamsReplay {
 
     private static final Logger LOG = LoggerFactory.getLogger(NjamsReplay.class);
 
+    private final LifecycleState lifecycle;
     private final NjamsFeatures features;
     private final NjamsJobs jobs;
     private ReplayHandler replayHandler = null;
 
-    NjamsReplay(NjamsFeatures features, NjamsJobs jobs) {
+    NjamsReplay(LifecycleState lifecycle, NjamsFeatures features, NjamsJobs jobs) {
+        this.lifecycle = lifecycle;
         this.features = features;
         this.jobs = jobs;
     }
@@ -64,9 +66,17 @@ public final class NjamsReplay {
      * nJAMS server in the project message at start.
      *
      * @param replayHandler Replay handler to be set.
+     * @throws com.im.njams.sdk.common.NjamsSdkRuntimeException if the client has already been
+     *         started — the replay feature is announced at start and a later change would never
+     *         reach the server
      * @see AbstractReplayHandler
      */
     public void setHandler(final ReplayHandler replayHandler) {
+        lifecycle.requireNotStarted("NjamsReplay.setHandler");
+        setHandlerInternal(replayHandler);
+    }
+
+    void setHandlerInternal(final ReplayHandler replayHandler) {
         this.replayHandler = replayHandler;
         if (replayHandler == null) {
             features.removeInternal(Feature.REPLAY);

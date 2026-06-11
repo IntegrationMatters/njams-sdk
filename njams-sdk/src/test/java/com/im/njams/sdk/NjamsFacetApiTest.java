@@ -264,4 +264,50 @@ public class NjamsFacetApiTest {
         njams.start();
         njams.features().setContainerMode(false);
     }
+
+    // --- replay guards + parity ---
+
+    @Test(expected = NjamsSdkRuntimeException.class)
+    public void newReplaySetHandlerThrowsAfterStart() {
+        njams.start();
+        njams.replay().setHandler(request -> new com.im.njams.sdk.communication.ReplayResponse());
+    }
+
+    @Test
+    public void newReplaySetHandlerWorksBeforeStart() {
+        njams.replay().setHandler(request -> new com.im.njams.sdk.communication.ReplayResponse());
+        assertNotNull(njams.replay().getHandler());
+        assertTrue(njams.features().has(Njams.Feature.REPLAY));
+    }
+
+    @Test
+    public void setReplayHandlerTogglesReplayFeature_viaFacet() {
+        assertFalse(njams.features().has(Njams.Feature.REPLAY));
+        njams.replay().setHandler(request -> new com.im.njams.sdk.communication.ReplayResponse());
+        assertTrue(njams.features().has(Njams.Feature.REPLAY));
+        assertNotNull(njams.replay().getHandler());
+        njams.replay().setHandler(null);
+        assertFalse(njams.features().has(Njams.Feature.REPLAY));
+        assertNull(njams.replay().getHandler());
+    }
+
+    @Test
+    public void replayInstructionIsAnswered_viaFacet() {
+        njams.replay().setHandler(request -> {
+            com.im.njams.sdk.communication.ReplayResponse resp =
+                new com.im.njams.sdk.communication.ReplayResponse();
+            resp.setResultCode(0);
+            resp.setResultMessage("TestWorked");
+            return resp;
+        });
+        com.faizsiegeln.njams.messageformat.v4.command.Instruction inst =
+            new com.faizsiegeln.njams.messageformat.v4.command.Instruction();
+        com.faizsiegeln.njams.messageformat.v4.command.Request req =
+            new com.faizsiegeln.njams.messageformat.v4.command.Request();
+        req.setCommand(com.faizsiegeln.njams.messageformat.v4.command.Command.REPLAY.commandString());
+        inst.setRequest(req);
+        njams.onInstruction(inst);
+        assertEquals(0, inst.getResponse().getResultCode());
+        assertEquals("TestWorked", inst.getResponse().getResultMessage());
+    }
 }

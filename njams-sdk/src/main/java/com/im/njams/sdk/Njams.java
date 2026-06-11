@@ -208,7 +208,7 @@ public class Njams implements InstructionListener {
     public Njams(Path path, String version, String category, ClientSettings settings) {
         this.settings = settings;
         jobs = new NjamsJobs(lifecycle);
-        replay = new NjamsReplay(features, jobs);
+        replay = new NjamsReplay(lifecycle, features, jobs);
         metadata = new NjamsMetadata(path, version, category, lifecycle, projectMessageLock);
         initContainerMode();
         argos = new NjamsArgos(settings);
@@ -516,7 +516,10 @@ public class Njams implements InstructionListener {
      * Gets the current replay handler if present.
      *
      * @return Current replay handler if present or null otherwise.
+     * @deprecated Use {@code njams.replay().getHandler()} instead — obtain the facet via
+     *             {@link #replay()} and call {@link NjamsReplay#getHandler()}.
      */
+    @Deprecated
     public ReplayHandler getReplayHandler() {
         return replay.getHandler();
     }
@@ -526,9 +529,16 @@ public class Njams implements InstructionListener {
      *
      * @param replayHandler Replay handler to be set.
      * @see AbstractReplayHandler
+     * @deprecated Use {@code njams.replay().setHandler(replayHandler)} instead — obtain the facet
+     *             via {@link #replay()} and call {@link NjamsReplay#setHandler(ReplayHandler)}.
+     *             Unlike this method, the replacement throws an {@link NjamsSdkRuntimeException}
+     *             when called after {@link #start()}, because the replay feature is announced to
+     *             the nJAMS server at start and a later change is never sent.
      */
+    @Deprecated
     public void setReplayHandler(final ReplayHandler replayHandler) {
-        replay.setHandler(replayHandler);
+        warnIfStarted("setReplayHandler", "replay().setHandler(...)");
+        replay.setHandlerInternal(replayHandler);
     }
 
     /**
