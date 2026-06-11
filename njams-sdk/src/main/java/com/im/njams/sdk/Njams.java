@@ -125,7 +125,7 @@ public class Njams implements InstructionListener {
         /**
          * Inherent features implemented in this SDK that are always active.
          */
-        private static final Collection<Feature> INHERENT_FEATURES = Collections.unmodifiableCollection(
+        static final Collection<Feature> INHERENT_FEATURES = Collections.unmodifiableCollection(
             Arrays.asList(Feature.EXPRESSION_TEST, Feature.PING, Feature.COMMANDS_SPLIT));
 
         private final String key;
@@ -231,8 +231,10 @@ public class Njams implements InstructionListener {
 
     private final NjamsSerializers serializers = new NjamsSerializers();
 
-    // features
-    private final List<Feature> features = new CopyOnWriteArrayList<>(Feature.INHERENT_FEATURES);
+    // must be declared before all facets that receive it in their field initializer
+    private final LifecycleState lifecycle = new LifecycleState();
+
+    private final NjamsFeatures features = new NjamsFeatures(lifecycle);
 
     private NjamsSender sender;
     private Receiver receiver;
@@ -243,8 +245,6 @@ public class Njams implements InstructionListener {
     private Configuration configuration;
     private String machine;
     private String runtimeVersion;
-    private final LifecycleState lifecycle = new LifecycleState();
-    private boolean containerMode = true;
 
     private ReplayHandler replayHandler = null;
     // logId of replayed job -> deep-trace flag from the replay request
@@ -492,7 +492,7 @@ public class Njams implements InstructionListener {
      * @return Returns whether or not container-mode is enabled.
      */
     public boolean isContainerMode() {
-        return containerMode;
+        return features.isContainerMode();
     }
 
     /**
@@ -501,15 +501,7 @@ public class Njams implements InstructionListener {
      * @param enabled <code>true</code> for enabling container-mode, <code>false</code> for disabling.
      */
     public void setContainerMode(boolean enabled) {
-        if (isStarted()) {
-            throw new NjamsSdkRuntimeException("Client is already started.");
-        }
-        containerMode = enabled;
-        if (containerMode) {
-            addFeature(Feature.CONTAINER_MODE);
-        } else {
-            removeFeature(Feature.CONTAINER_MODE);
-        }
+        features.setContainerMode(enabled);
     }
 
     /**
@@ -803,7 +795,7 @@ public class Njams implements InstructionListener {
         msg.setCategory(getCategory());
         msg.setStartTime(startTime);
         msg.setMachine(getMachine());
-        msg.setFeatures(features.stream().map(Feature::key).collect(Collectors.toList()));
+        msg.setFeatures(features.list().stream().map(Feature::key).collect(Collectors.toList()));
         msg.setLogMode(configuration.getLogMode());
         msg.setClientId(clientSessionId);
         msg.setRecording(getConfiguration().isRecording());
@@ -1188,7 +1180,7 @@ public class Njams implements InstructionListener {
         params.put("runtimeVersion", getRuntimeVersion());
         params.put("category", getCategory());
         params.put("machine", getMachine());
-        params.put("features", features.stream().map(Feature::key).collect(Collectors.joining(",")));
+        params.put("features", features.list().stream().map(Feature::key).collect(Collectors.joining(",")));
         return response;
     }
 
@@ -1341,7 +1333,7 @@ public class Njams implements InstructionListener {
      * @return the list of features this client has
      */
     public List<Feature> getFeatures() {
-        return new ArrayList<>(features);
+        return features.list();
     }
 
     /**
@@ -1350,9 +1342,7 @@ public class Njams implements InstructionListener {
      * @param feature to set
      */
     public void addFeature(Feature feature) {
-        if (!hasFeature(feature)) {
-            features.add(feature);
-        }
+        features.add(feature);
     }
 
     /**
@@ -1361,14 +1351,11 @@ public class Njams implements InstructionListener {
      * @param feature to remove
      */
     public void removeFeature(final Feature feature) {
-        if (Feature.INHERENT_FEATURES.contains(feature)) {
-            throw new NjamsSdkRuntimeException("Cannot remove inherent feature " + feature);
-        }
         features.remove(feature);
     }
 
     public boolean hasFeature(final Feature feature) {
-        return features.contains(feature);
+        return features.has(feature);
     }
 
     /**
