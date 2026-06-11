@@ -154,15 +154,7 @@ public class JobImpl implements Job {
     //1000 for headers and co
     private long estimatedSize = 1000L;
 
-    private String correlationLogId;
-
-    private String parentLogId;
-
-    private String externalLogId;
-
-    private String businessService;
-
-    private String businessObject;
+    private final JobMetadata metadata;
 
     private LocalDateTime startTime;
 
@@ -171,10 +163,6 @@ public class JobImpl implements Job {
     private LocalDateTime endTime;
 
     private LocalDateTime lastFlush;
-
-    private LocalDateTime businessEnd;
-
-    private LocalDateTime businessStart;
 
     private final JobErrorHandling errorHandling;
     private final JobSettings jobSettings;
@@ -193,7 +181,7 @@ public class JobImpl implements Job {
     public JobImpl(ProcessModel processModel, String jobId, String logId) {
         this.jobId = jobId;
         this.logId = logId;
-        correlationLogId = logId;
+        metadata = new JobMetadata(this, logId);
         setStatusAndSeverity(JobStatus.CREATED);
         this.processModel = processModel;
         njams = processModel.getNjams();
@@ -517,11 +505,11 @@ public class JobImpl implements Job {
     private LogMessage createLogMessage() {
         LOG.trace("Creating LogMessage for job with logId: {}", logId);
         LogMessage logMessage = new LogMessage();
-        logMessage.setBusinessEnd(businessEnd);
-        logMessage.setBusinessStart(businessStart);
+        logMessage.setBusinessEnd(metadata.getBusinessEnd());
+        logMessage.setBusinessStart(metadata.getBusinessStart());
         logMessage.setCategory(processModel.getNjams().getCategory());
-        logMessage.setCorrelationLogId(correlationLogId);
-        logMessage.setExternalLogId(externalLogId);
+        logMessage.setCorrelationLogId(metadata.getCorrelationLogId());
+        logMessage.setExternalLogId(metadata.getExternalLogId());
         logMessage.setJobEnd(endTime);
         logMessage.setJobId(jobId);
         logMessage.setJobStart(startTime);
@@ -529,12 +517,12 @@ public class JobImpl implements Job {
         logMessage.setMachineName(processModel.getNjams().getMachine());
         logMessage.setMaxSeverity(maxSeverity.getValue());
         logMessage.setMessageNo(flushCounter.get());
-        logMessage.setObjectName(businessObject);
-        logMessage.setParentLogId(parentLogId);
+        logMessage.setObjectName(metadata.getBusinessObject());
+        logMessage.setParentLogId(metadata.getParentLogId());
         logMessage.setPath(processModel.getPath().toString());
         logMessage.setProcessName(processModel.getName());
         logMessage.setStatus(getStatus().getValue());
-        logMessage.setServiceName(businessService);
+        logMessage.setServiceName(metadata.getBusinessService());
         logMessage.setClientVersion(njams.getClientVersion());
         logMessage.setSdkVersion(njams.getSdkVersion());
         logMessage.setRuntimeVersion(njams.getRuntimeVersion());
@@ -721,7 +709,7 @@ public class JobImpl implements Job {
      */
     @Override
     public void setCorrelationLogId(final String correlationLogId) {
-        this.correlationLogId = limitLength("correlationLogId", correlationLogId, MAX_VALUE_LIMIT);
+        metadata.setCorrelationLogId(correlationLogId);
     }
 
     /**
@@ -731,7 +719,7 @@ public class JobImpl implements Job {
      */
     @Override
     public String getCorrelationLogId() {
-        return correlationLogId;
+        return metadata.getCorrelationLogId();
     }
 
     /**
@@ -741,7 +729,7 @@ public class JobImpl implements Job {
      */
     @Override
     public void setParentLogId(String parentLogId) {
-        this.parentLogId = limitLength("parentLogId", parentLogId, MAX_VALUE_LIMIT);
+        metadata.setParentLogId(parentLogId);
     }
 
     /**
@@ -751,7 +739,7 @@ public class JobImpl implements Job {
      */
     @Override
     public String getParentLogId() {
-        return parentLogId;
+        return metadata.getParentLogId();
     }
 
     /**
@@ -761,7 +749,7 @@ public class JobImpl implements Job {
      */
     @Override
     public void setExternalLogId(String externalLogId) {
-        this.externalLogId = limitLength("externalLogId", externalLogId, MAX_VALUE_LIMIT);
+        metadata.setExternalLogId(externalLogId);
     }
 
     /**
@@ -771,7 +759,7 @@ public class JobImpl implements Job {
      */
     @Override
     public String getExternalLogId() {
-        return externalLogId;
+        return metadata.getExternalLogId();
     }
 
     /**
@@ -781,7 +769,7 @@ public class JobImpl implements Job {
      */
     @Override
     public void setBusinessService(String businessService) {
-        setBusinessService(Path.resolve(businessService));
+        metadata.setBusinessService(businessService);
     }
 
     /**
@@ -791,9 +779,7 @@ public class JobImpl implements Job {
      */
     @Override
     public void setBusinessService(Path businessService) {
-        if (businessService != null) {
-            this.businessService = limitLength("businessService", businessService.toString(), MAX_VALUE_LIMIT);
-        }
+        metadata.setBusinessService(businessService);
     }
 
     /**
@@ -803,7 +789,7 @@ public class JobImpl implements Job {
      */
     @Override
     public String getBusinessService() {
-        return businessService;
+        return metadata.getBusinessService();
     }
 
     /**
@@ -813,7 +799,7 @@ public class JobImpl implements Job {
      */
     @Override
     public void setBusinessObject(String businessObject) {
-        setBusinessObject(Path.resolve(businessObject));
+        metadata.setBusinessObject(businessObject);
     }
 
     /**
@@ -823,9 +809,7 @@ public class JobImpl implements Job {
      */
     @Override
     public void setBusinessObject(Path businessObject) {
-        if (businessObject != null) {
-            this.businessObject = limitLength("businessObject", businessObject.toString(), MAX_VALUE_LIMIT);
-        }
+        metadata.setBusinessObject(businessObject);
     }
 
     /**
@@ -835,7 +819,7 @@ public class JobImpl implements Job {
      */
     @Override
     public String getBusinessObject() {
-        return businessObject;
+        return metadata.getBusinessObject();
     }
 
     /**
@@ -1152,12 +1136,12 @@ public class JobImpl implements Job {
      */
     @Override
     public void setBusinessStart(LocalDateTime businessStart) {
-        this.businessStart = businessStart;
+        metadata.setBusinessStart(businessStart);
     }
 
     @Override
     public LocalDateTime getBusinessStart() {
-        return businessStart;
+        return metadata.getBusinessStart();
     }
 
     /**
@@ -1167,12 +1151,12 @@ public class JobImpl implements Job {
      */
     @Override
     public void setBusinessEnd(LocalDateTime businessEnd) {
-        this.businessEnd = businessEnd;
+        metadata.setBusinessEnd(businessEnd);
     }
 
     @Override
     public LocalDateTime getBusinessEnd() {
-        return businessEnd;
+        return metadata.getBusinessEnd();
     }
 
     /**
