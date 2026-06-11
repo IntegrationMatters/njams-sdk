@@ -251,9 +251,8 @@ public class Njams implements InstructionListener {
     private Configuration configuration;
     private String machine;
     private String runtimeVersion;
-    private boolean started = false;
+    private final LifecycleState lifecycle = new LifecycleState();
     private boolean containerMode = true;
-    private static final String NOT_STARTED_EXCEPTION_MESSAGE = "The instance needs to be started first!";
 
     private ReplayHandler replayHandler = null;
     // logId of replayed job -> deep-trace flag from the replay request
@@ -579,7 +578,7 @@ public class Njams implements InstructionListener {
      * retry creating the receiver.
      */
     private void beginConnect() {
-        if (earlyReceiver != null || started) {
+        if (earlyReceiver != null || lifecycle.isStarted()) {
             return;
         }
         try {
@@ -647,7 +646,7 @@ public class Njams implements InstructionListener {
             }
             LogMessageFlushTask.start(this);
             CleanTracepointsTask.start(this);
-            started = true;
+            lifecycle.setStarted(true);
             sendProjectMessage();
             LOG.info("SDK instance {} started (client-session={})", getClientPath(), clientSessionId);
         }
@@ -670,9 +669,7 @@ public class Njams implements InstructionListener {
      * @return true is stopping was successful.
      */
     public boolean stop() {
-        if (!isStarted()) {
-            throw new NjamsSdkRuntimeException(NOT_STARTED_EXCEPTION_MESSAGE);
-        }
+        lifecycle.requireStarted();
         LogMessageFlushTask.stop(this);
         CleanTracepointsTask.stop(this);
 
@@ -690,7 +687,7 @@ public class Njams implements InstructionListener {
             }
         }
         instructionListeners.clear();
-        started = false;
+        lifecycle.setStarted(false);
         return !isStarted();
     }
 
@@ -1020,9 +1017,7 @@ public class Njams implements InstructionListener {
      * @param job to add to the instances job list.
      */
     public void addJob(Job job) {
-        if (!isStarted()) {
-            throw new NjamsSdkRuntimeException(NOT_STARTED_EXCEPTION_MESSAGE);
-        }
+        lifecycle.requireStarted();
         synchronized (replayedLogIds) {
             final Boolean deepTrace = replayedLogIds.remove(job.getLogId());
             if (deepTrace != null) {
@@ -1452,7 +1447,7 @@ public class Njams implements InstructionListener {
      * @return if this client instance is started
      */
     public boolean isStarted() {
-        return started;
+        return lifecycle.isStarted();
     }
 
     /**
