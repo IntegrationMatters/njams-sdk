@@ -39,6 +39,9 @@ import org.slf4j.LoggerFactory;
 
 import com.faizsiegeln.njams.messageformat.v4.logmessage.ActivityStatus;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
+import com.im.njams.sdk.model.ActivityModel;
+import com.im.njams.sdk.model.GroupModel;
+import com.im.njams.sdk.model.SubProcessActivityModel;
 
 /**
  * Owns the runtime activities of a {@link Job}: the activity registry, lookups, and the
@@ -71,24 +74,94 @@ public final class JobActivities {
     }
 
     /**
-     * Adds a new Activity to the Job. If the activity is a start
-     * activity, but not the only one in this job, a NjamsSdkRuntimeException
-     * will be thrown.
+     * Adds a new Activity to the Job. Unlike the deprecated {@link Job#addActivity(Activity)},
+     * activities may be added BEFORE the job is started — they are sent with the first log
+     * message after the job starts. If the activity is a start activity, but not the only one
+     * in this job, a NjamsSdkRuntimeException will be thrown.
      *
      * @param activity to add to this job.
      */
     public void add(final Activity activity) {
-        add(activity, jobImpl);
+        add(activity, jobImpl, false);
     }
 
     /**
-     * Owner-aware variant: when the {@link JobImpl} is proxied (e.g. a test spy), state updates
-     * (estimated size, start-activity flag) must hit the instance the caller is working with,
-     * not this facet's plain backreference.
+     * Creates an ActivityBuilder for the given ActivityModel. Unlike the deprecated
+     * {@link Job#createActivity(ActivityModel)}, the built activity may be added before the
+     * job is started.
+     *
+     * @param activityModel to create an activity for
+     * @return a builder
      */
-    void add(final Activity activity, final JobImpl owner) {
+    public ActivityBuilder create(ActivityModel activityModel) {
+        final ActivityBuilder builder = create(activityModel, jobImpl);
+        builder.relaxStartedRequirement();
+        return builder;
+    }
+
+    /**
+     * Creates a GroupBuilder for the given GroupModel. Unlike the deprecated
+     * {@link Job#createGroup(GroupModel)}, the built group may be added before the
+     * job is started.
+     *
+     * @param groupModel to create a group for
+     * @return a builder
+     */
+    public GroupBuilder createGroup(GroupModel groupModel) {
+        final GroupBuilder builder = createGroup(groupModel, jobImpl);
+        builder.relaxStartedRequirement();
+        return builder;
+    }
+
+    /**
+     * Creates a SubProcessActivityBuilder for the given SubProcessActivityModel. Unlike the
+     * deprecated {@link Job#createSubProcess(SubProcessActivityModel)}, the built activity may
+     * be added before the job is started.
+     *
+     * @param subProcessModel to create a sub-process activity for
+     * @return a builder
+     */
+    public SubProcessActivityBuilder createSubProcess(SubProcessActivityModel subProcessModel) {
+        final SubProcessActivityBuilder builder = createSubProcess(subProcessModel, jobImpl);
+        builder.relaxStartedRequirement();
+        return builder;
+    }
+
+    /**
+     * Owner-aware builder factory used by the deprecated facade methods: when the
+     * {@link JobImpl} is proxied (e.g. a test spy), the builder must reference the proxy the
+     * caller is working with, not this facet's plain backreference. Keeps the legacy
+     * requires-started contract.
+     */
+    ActivityBuilder create(ActivityModel activityModel, JobImpl owner) {
+        if (activityModel instanceof GroupModel) {
+            return createGroup((GroupModel) activityModel, owner);
+        }
+        if (activityModel instanceof SubProcessActivityModel) {
+            return createSubProcess((SubProcessActivityModel) activityModel, owner);
+        }
+        return new ActivityBuilder(owner, activityModel);
+    }
+
+    /** Owner-aware variant, see {@link #create(ActivityModel, JobImpl)}. */
+    GroupBuilder createGroup(GroupModel groupModel, JobImpl owner) {
+        return new GroupBuilder(owner, groupModel);
+    }
+
+    /** Owner-aware variant, see {@link #create(ActivityModel, JobImpl)}. */
+    SubProcessActivityBuilder createSubProcess(SubProcessActivityModel subProcessModel, JobImpl owner) {
+        return new SubProcessActivityBuilder(owner, subProcessModel);
+    }
+
+    /**
+     * Owner-aware add: when the {@link JobImpl} is proxied (e.g. a test spy), state updates
+     * (estimated size, start-activity flag) must hit the instance the caller is working with,
+     * not this facet's plain backreference. The requireStarted flag carries the legacy
+     * contract of the deprecated entry points.
+     */
+    void add(final Activity activity, final JobImpl owner, final boolean requireStarted) {
         synchronized (lock) {
-            if (!owner.hasStarted()) {
+            if (requireStarted && !owner.hasStarted()) {
                 throw new NjamsSdkRuntimeException(
                         "The method start() must be called before activities can be added to the job!");
             }

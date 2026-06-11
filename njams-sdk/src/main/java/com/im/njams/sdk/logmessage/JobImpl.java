@@ -188,13 +188,7 @@ public class JobImpl implements Job {
      */
     @Override
     public ActivityBuilder createActivity(ActivityModel activityModel) {
-        if (activityModel instanceof GroupModel) {
-            return createGroup((GroupModel) activityModel);
-        }
-        if (activityModel instanceof SubProcessActivityModel) {
-            return createSubProcess((SubProcessActivityModel) activityModel);
-        }
-        return new ActivityBuilder(this, activityModel);
+        return activities.create(activityModel, this);
     }
 
     /**
@@ -205,7 +199,7 @@ public class JobImpl implements Job {
      */
     @Override
     public GroupBuilder createGroup(GroupModel groupModel) {
-        return new GroupBuilder(this, groupModel);
+        return activities.createGroup(groupModel, this);
     }
 
     /**
@@ -216,7 +210,7 @@ public class JobImpl implements Job {
      */
     @Override
     public SubProcessActivityBuilder createSubProcess(SubProcessActivityModel groupModel) {
-        return new SubProcessActivityBuilder(this, groupModel);
+        return activities.createSubProcess(groupModel, this);
     }
 
     /**
@@ -228,7 +222,7 @@ public class JobImpl implements Job {
      */
     @Override
     public void addActivity(final Activity activity) {
-        activities.add(activity, this);
+        activities.add(activity, this, true);
     }
 
     /**
@@ -468,7 +462,8 @@ public class JobImpl implements Job {
      */
     @Override
     public void setCorrelationLogId(final String correlationLogId) {
-        metadata.setCorrelationLogId(correlationLogId);
+        warnIfFinished("setCorrelationLogId", "metadata().setCorrelationLogId(...)");
+        metadata.setCorrelationLogIdInternal(correlationLogId);
     }
 
     /**
@@ -488,7 +483,8 @@ public class JobImpl implements Job {
      */
     @Override
     public void setParentLogId(String parentLogId) {
-        metadata.setParentLogId(parentLogId);
+        warnIfFinished("setParentLogId", "metadata().setParentLogId(...)");
+        metadata.setParentLogIdInternal(parentLogId);
     }
 
     /**
@@ -508,7 +504,8 @@ public class JobImpl implements Job {
      */
     @Override
     public void setExternalLogId(String externalLogId) {
-        metadata.setExternalLogId(externalLogId);
+        warnIfFinished("setExternalLogId", "metadata().setExternalLogId(...)");
+        metadata.setExternalLogIdInternal(externalLogId);
     }
 
     /**
@@ -528,7 +525,7 @@ public class JobImpl implements Job {
      */
     @Override
     public void setBusinessService(String businessService) {
-        metadata.setBusinessService(businessService);
+        setBusinessService(Path.resolve(businessService));
     }
 
     /**
@@ -538,7 +535,8 @@ public class JobImpl implements Job {
      */
     @Override
     public void setBusinessService(Path businessService) {
-        metadata.setBusinessService(businessService);
+        warnIfFinished("setBusinessService", "metadata().setBusinessService(...)");
+        metadata.setBusinessServiceInternal(businessService);
     }
 
     /**
@@ -558,7 +556,7 @@ public class JobImpl implements Job {
      */
     @Override
     public void setBusinessObject(String businessObject) {
-        metadata.setBusinessObject(businessObject);
+        setBusinessObject(Path.resolve(businessObject));
     }
 
     /**
@@ -568,7 +566,8 @@ public class JobImpl implements Job {
      */
     @Override
     public void setBusinessObject(Path businessObject) {
-        metadata.setBusinessObject(businessObject);
+        warnIfFinished("setBusinessObject", "metadata().setBusinessObject(...)");
+        metadata.setBusinessObjectInternal(businessObject);
     }
 
     /**
@@ -648,6 +647,30 @@ public class JobImpl implements Job {
     @Override
     public boolean isFinished() {
         return finished;
+    }
+
+    /**
+     * Guard for the new facet API: data changed after end() is never sent to the nJAMS server,
+     * because the final log message has already been flushed.
+     */
+    void requireNotFinished(String operation) {
+        if (finished) {
+            throw new NjamsSdkRuntimeException(
+                    operation + " is not allowed after end(): the final log message of the job has already"
+                            + " been sent to the nJAMS server and a later change is never sent.");
+        }
+    }
+
+    /**
+     * Lenient-legacy guard: where the new facet API rejects a call after end(), the deprecated
+     * facade method only logs a warning and proceeds, so that existing client code keeps working
+     * throughout the deprecation period.
+     */
+    private void warnIfFinished(String oldMethod, String replacement) {
+        if (finished) {
+            LOG.warn("{} was called after end(); the change will not be sent to the nJAMS server."
+                    + " The replacement API {} rejects this call.", oldMethod, replacement);
+        }
     }
 
     /**
@@ -863,7 +886,8 @@ public class JobImpl implements Job {
      */
     @Override
     public void setBusinessStart(LocalDateTime businessStart) {
-        metadata.setBusinessStart(businessStart);
+        warnIfFinished("setBusinessStart", "metadata().setBusinessStart(...)");
+        metadata.setBusinessStartInternal(businessStart);
     }
 
     @Override
@@ -878,7 +902,8 @@ public class JobImpl implements Job {
      */
     @Override
     public void setBusinessEnd(LocalDateTime businessEnd) {
-        metadata.setBusinessEnd(businessEnd);
+        warnIfFinished("setBusinessEnd", "metadata().setBusinessEnd(...)");
+        metadata.setBusinessEndInternal(businessEnd);
     }
 
     @Override
@@ -959,7 +984,8 @@ public class JobImpl implements Job {
      */
     @Override
     public void addAttribute(final String key, String value) {
-        attributes.add(key, value);
+        warnIfFinished("addAttribute", "attributes().add(...)");
+        attributes.addInternal(key, value);
     }
 
     public Njams getNjams() {

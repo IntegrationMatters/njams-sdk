@@ -53,8 +53,15 @@ public final class JobAttributes {
      *
      * @param key   the key to set
      * @param value the value to set; <code>null</code> values are ignored
+     * @throws com.im.njams.sdk.common.NjamsSdkRuntimeException if the job has already ended —
+     *         the final log message has been sent and a later change is never sent
      */
     public void add(final String key, String value) {
+        jobImpl.requireNotFinished("JobAttributes.add");
+        addInternal(key, value);
+    }
+
+    void addInternal(final String key, String value) {
         if (value == null) {
             return;
         }

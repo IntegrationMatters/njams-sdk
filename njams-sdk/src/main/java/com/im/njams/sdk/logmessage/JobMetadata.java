@@ -79,10 +79,17 @@ public final class JobMetadata {
      *
      * @param correlationLogId correlation log id
      * @return this facet, for call chaining
+     * @throws com.im.njams.sdk.common.NjamsSdkRuntimeException if the job has already ended —
+     *         the final log message has been sent and a later change is never sent
      */
     public JobMetadata setCorrelationLogId(final String correlationLogId) {
-        this.correlationLogId = JobImpl.limitLength("correlationLogId", correlationLogId, JobImpl.MAX_VALUE_LIMIT);
+        jobImpl.requireNotFinished("JobMetadata.setCorrelationLogId");
+        setCorrelationLogIdInternal(correlationLogId);
         return this;
+    }
+
+    void setCorrelationLogIdInternal(final String correlationLogId) {
+        this.correlationLogId = JobImpl.limitLength("correlationLogId", correlationLogId, JobImpl.MAX_VALUE_LIMIT);
     }
 
     /**
@@ -99,10 +106,17 @@ public final class JobMetadata {
      *
      * @param parentLogId parentLogId to set
      * @return this facet, for call chaining
+     * @throws com.im.njams.sdk.common.NjamsSdkRuntimeException if the job has already ended —
+     *         the final log message has been sent and a later change is never sent
      */
     public JobMetadata setParentLogId(String parentLogId) {
-        this.parentLogId = JobImpl.limitLength("parentLogId", parentLogId, JobImpl.MAX_VALUE_LIMIT);
+        jobImpl.requireNotFinished("JobMetadata.setParentLogId");
+        setParentLogIdInternal(parentLogId);
         return this;
+    }
+
+    void setParentLogIdInternal(String parentLogId) {
+        this.parentLogId = JobImpl.limitLength("parentLogId", parentLogId, JobImpl.MAX_VALUE_LIMIT);
     }
 
     /**
@@ -119,10 +133,17 @@ public final class JobMetadata {
      *
      * @param externalLogId externalLogId to set
      * @return this facet, for call chaining
+     * @throws com.im.njams.sdk.common.NjamsSdkRuntimeException if the job has already ended —
+     *         the final log message has been sent and a later change is never sent
      */
     public JobMetadata setExternalLogId(String externalLogId) {
-        this.externalLogId = JobImpl.limitLength("externalLogId", externalLogId, JobImpl.MAX_VALUE_LIMIT);
+        jobImpl.requireNotFinished("JobMetadata.setExternalLogId");
+        setExternalLogIdInternal(externalLogId);
         return this;
+    }
+
+    void setExternalLogIdInternal(String externalLogId) {
+        this.externalLogId = JobImpl.limitLength("externalLogId", externalLogId, JobImpl.MAX_VALUE_LIMIT);
     }
 
     /**
@@ -139,6 +160,8 @@ public final class JobMetadata {
      *
      * @param businessService businessService to set
      * @return this facet, for call chaining
+     * @throws com.im.njams.sdk.common.NjamsSdkRuntimeException if the job has already ended —
+     *         the final log message has been sent and a later change is never sent
      */
     public JobMetadata setBusinessService(String businessService) {
         return setBusinessService(Path.resolve(businessService));
@@ -149,13 +172,20 @@ public final class JobMetadata {
      *
      * @param businessService businessService to set
      * @return this facet, for call chaining
+     * @throws com.im.njams.sdk.common.NjamsSdkRuntimeException if the job has already ended —
+     *         the final log message has been sent and a later change is never sent
      */
     public JobMetadata setBusinessService(Path businessService) {
+        jobImpl.requireNotFinished("JobMetadata.setBusinessService");
+        setBusinessServiceInternal(businessService);
+        return this;
+    }
+
+    void setBusinessServiceInternal(Path businessService) {
         if (businessService != null) {
             this.businessService =
                 JobImpl.limitLength("businessService", businessService.toString(), JobImpl.MAX_VALUE_LIMIT);
         }
-        return this;
     }
 
     /**
@@ -172,6 +202,8 @@ public final class JobMetadata {
      *
      * @param businessObject businessObject to set
      * @return this facet, for call chaining
+     * @throws com.im.njams.sdk.common.NjamsSdkRuntimeException if the job has already ended —
+     *         the final log message has been sent and a later change is never sent
      */
     public JobMetadata setBusinessObject(String businessObject) {
         return setBusinessObject(Path.resolve(businessObject));
@@ -182,13 +214,20 @@ public final class JobMetadata {
      *
      * @param businessObject businessObject to set
      * @return this facet, for call chaining
+     * @throws com.im.njams.sdk.common.NjamsSdkRuntimeException if the job has already ended —
+     *         the final log message has been sent and a later change is never sent
      */
     public JobMetadata setBusinessObject(Path businessObject) {
+        jobImpl.requireNotFinished("JobMetadata.setBusinessObject");
+        setBusinessObjectInternal(businessObject);
+        return this;
+    }
+
+    void setBusinessObjectInternal(Path businessObject) {
         if (businessObject != null) {
             this.businessObject =
                 JobImpl.limitLength("businessObject", businessObject.toString(), JobImpl.MAX_VALUE_LIMIT);
         }
-        return this;
     }
 
     /**
@@ -205,10 +244,17 @@ public final class JobMetadata {
      *
      * @param businessStart the businessStart to set
      * @return this facet, for call chaining
+     * @throws com.im.njams.sdk.common.NjamsSdkRuntimeException if the job has already ended —
+     *         the final log message has been sent and a later change is never sent
      */
     public JobMetadata setBusinessStart(LocalDateTime businessStart) {
-        this.businessStart = businessStart;
+        jobImpl.requireNotFinished("JobMetadata.setBusinessStart");
+        setBusinessStartInternal(businessStart);
         return this;
+    }
+
+    void setBusinessStartInternal(LocalDateTime businessStart) {
+        this.businessStart = businessStart;
     }
 
     /**
@@ -225,10 +271,17 @@ public final class JobMetadata {
      *
      * @param businessEnd the businessEnd to set
      * @return this facet, for call chaining
+     * @throws com.im.njams.sdk.common.NjamsSdkRuntimeException if the job has already ended —
+     *         the final log message has been sent and a later change is never sent
      */
     public JobMetadata setBusinessEnd(LocalDateTime businessEnd) {
-        this.businessEnd = businessEnd;
+        jobImpl.requireNotFinished("JobMetadata.setBusinessEnd");
+        setBusinessEndInternal(businessEnd);
         return this;
+    }
+
+    void setBusinessEndInternal(LocalDateTime businessEnd) {
+        this.businessEnd = businessEnd;
     }
 
     /**
