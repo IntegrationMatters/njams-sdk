@@ -123,8 +123,7 @@ public class JobImpl implements Job {
     /*
      * job level attributes
      */
-    private final Map<String, String> attributes = new ConcurrentHashMap<>();
-    private final Map<String, String> flushedAttributes = new ConcurrentHashMap<>();
+    private final JobAttributes attributes = new JobAttributes(this);
 
     /*
      * Plugin data items
@@ -149,8 +148,8 @@ public class JobImpl implements Job {
     private boolean instrumented = false;
     private boolean traces;
 
-    // internal properties, shall no go to project message
-    private final Map<String, Object> properties = new LinkedHashMap<>();
+    // internal properties, shall not go to any message
+    private final JobProperties properties = new JobProperties();
 
     //1000 for headers and co
     private long estimatedSize = 1000L;
@@ -545,13 +544,7 @@ public class JobImpl implements Job {
     }
 
     private void addToLogMessageAndCleanup(LogMessage logMessage) {
-        synchronized (attributes) {
-            for (Entry<String, String> e : attributes.entrySet()) {
-                logMessage.addAtribute(e.getKey(), e.getValue());
-                flushedAttributes.put(e.getKey(), e.getValue());
-                attributes.remove(e.getKey());
-            }
-        }
+        attributes.flushInto(logMessage);
         synchronized (activities) {
             // If this is the final message being sent, and truncate-on-success is selected and this job was
             // successful, truncate all activities w/o events.
@@ -922,11 +915,7 @@ public class JobImpl implements Job {
      */
     @Override
     public String getAttribute(final String name) {
-        String val = attributes.get(name);
-        if (val != null) {
-            return val;
-        }
-        return flushedAttributes.get(name);
+        return attributes.get(name);
     }
 
     /**
@@ -937,9 +926,7 @@ public class JobImpl implements Job {
      */
     @Override
     public Map<String, String> getAttributes() {
-        final Map<String, String> attr = new TreeMap<>(flushedAttributes);
-        attr.putAll(attributes);
-        return attr;
+        return attributes.getAll();
     }
 
     /**
@@ -950,7 +937,7 @@ public class JobImpl implements Job {
      */
     @Override
     public boolean hasAttribute(final String name) {
-        return attributes.containsKey(name) || flushedAttributes.containsKey(name);
+        return attributes.has(name);
     }
 
     /**
@@ -1026,7 +1013,7 @@ public class JobImpl implements Job {
      */
     @Override
     public boolean hasProperty(final String key) {
-        return properties.containsKey(key);
+        return properties.has(key);
     }
 
     /**
@@ -1038,7 +1025,7 @@ public class JobImpl implements Job {
      */
     @Override
     public void setProperty(final String key, final Object value) {
-        properties.put(key, value);
+        properties.set(key, value);
     }
 
     /**
@@ -1206,17 +1193,7 @@ public class JobImpl implements Job {
      */
     @Override
     public void addAttribute(final String key, String value) {
-        if (value == null) {
-            return;
-        }
-        String limitKey = limitLength("attributeName", key, 500);
-        String maskedValue = DataMasking.maskString(limitPayload(value));
-        synchronized (attributes) {
-            attributes.put(limitKey, maskedValue);
-        }
-        final int size = (limitKey == null ? 0 : limitKey.length())
-                + (maskedValue == null ? 0 : maskedValue.length());
-        addToEstimatedSize(size);
+        attributes.add(key, value);
     }
 
     public Njams getNjams() {
