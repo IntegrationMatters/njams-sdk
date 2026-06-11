@@ -175,7 +175,7 @@ public class Njams implements InstructionListener {
 
     private final NjamsJobs jobs;
 
-    private final List<InstructionListener> instructionListeners = new ArrayList<>();
+    private final NjamsCommands commands;
 
     private final NjamsSerializers serializers = new NjamsSerializers();
 
@@ -229,6 +229,7 @@ public class Njams implements InstructionListener {
         argos = new NjamsArgos(settings);
         configuration = new NjamsConfiguration(settings, this);
         processes = new NjamsProcesses(this, lifecycle, metadata, features, configuration, projectMessageLock);
+        commands = new NjamsCommands(processes, replay, metadata, features);
         processes.createTreeElements(path, TreeElementType.CLIENT);
         metadata.printStartupBanner(settings);
         beginConnect();
@@ -496,8 +497,8 @@ public class Njams implements InstructionListener {
             }
             configuration.load();
             configuration.initializeDataMasking();
-            instructionListeners.add(this);
-            instructionListeners.add(new ConfigurationInstructionListener(this));
+            commands.add(this);
+            commands.add(new ConfigurationInstructionListener(this));
             startReceiver();
             if (receiver == null) {
                 return false;
@@ -543,7 +544,7 @@ public class Njams implements InstructionListener {
                 receiver.stop();
             }
         }
-        instructionListeners.clear();
+        commands.clear();
         lifecycle.setStarted(false);
         return !isStarted();
     }
@@ -708,7 +709,7 @@ public class Njams implements InstructionListener {
      * @return the instructionListeners
      */
     public List<InstructionListener> getInstructionListeners() {
-        return new ArrayList<>(instructionListeners);
+        return commands.list();
     }
 
     /**
@@ -718,7 +719,7 @@ public class Njams implements InstructionListener {
      * @param listener the new listener to be called
      */
     public void addInstructionListener(InstructionListener listener) {
-        instructionListeners.add(listener);
+        commands.add(listener);
     }
 
     /**
@@ -727,7 +728,7 @@ public class Njams implements InstructionListener {
      * @param listener the listener to remove
      */
     public void removeInstructionListener(InstructionListener listener) {
-        instructionListeners.remove(listener);
+        commands.remove(listener);
     }
 
     /**
@@ -745,51 +746,7 @@ public class Njams implements InstructionListener {
      */
     @Override
     public void onInstruction(Instruction instruction) {
-        final Command command = Command.getFromInstruction(instruction);
-        if (command == null) {
-            LOG.error("Received unsupported command {}", instruction.getCommand());
-            instruction.setResponseResultCode(1);
-            instruction.setResponseResultMessage("Unsupported command: " + instruction.getCommand());
-            return;
-        }
-        switch (command) {
-        case SEND_PROJECTMESSAGE:
-            LOG.debug("Send ProjectMessage requested by nJAMS server.");
-            sendProjectMessage();
-            instruction.setResponseResultCode(0);
-            instruction.setResponseResultMessage("ProjectMessage sent");
-            break;
-        case PING:
-            instruction.setResponse(createPingResponse());
-            break;
-        case REPLAY:
-            replay.handleReplayRequest(instruction);
-            break;
-        case GET_REQUEST_HANDLER:
-            instruction.setResponseResultCode(0);
-            instruction.setResponseParameter("clientId", metadata.getClientSessionId());
-            break;
-        default:
-            // skip all others
-            break;
-
-        }
-    }
-
-    private Response createPingResponse() {
-        final Response response = new Response();
-        response.setResultCode(0);
-        response.setResultMessage("Pong");
-        final Map<String, String> params = response.getParameters();
-        params.put("clientPath", metadata.getClientPath().toString());
-        params.put("clientVersion", getClientVersion());
-        params.put("clientId", metadata.getClientSessionId());
-        params.put("sdkVersion", getSdkVersion());
-        params.put("runtimeVersion", getRuntimeVersion());
-        params.put("category", getCategory());
-        params.put("machine", getMachine());
-        params.put("features", features.list().stream().map(Feature::key).collect(Collectors.joining(",")));
-        return response;
+        commands.dispatch(instruction);
     }
 
     /**
