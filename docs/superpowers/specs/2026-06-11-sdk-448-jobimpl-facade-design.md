@@ -231,11 +231,25 @@ finalizing commit.
 - The same facet treatment for `ActivityImpl`/`GroupImpl` — separate ticket if wanted.
 - Removal of deprecated members — separate (breaking) ticket after the deprecation
   period, shared with SDK-359's removal.
+- **End state: `JobImpl` disappears behind the `Job` interface.** The interface is the
+  intended API boundary, but it leaks today: `JobImpl` is `public` with a public
+  constructor, `LogMessageFlushTask` casts `((JobImpl) job)` to reach `flush()`/
+  `timerFlush()`, and `ExtractHandler.handleExtract(JobImpl, ...)` is public taking
+  the implementation type. This refactoring deprecates the leaked mechanics; the
+  removal ticket then completes the seal: make `JobImpl` package-private (clients only
+  ever receive `Job` from `ProcessModel.createJob`), change `ExtractHandler` to the
+  internal collaborator types, and drop the casts in `LogMessageFlushTask` in favor of
+  package-internal access to the flusher. Each of these is breaking for code that
+  references `JobImpl` directly and therefore belongs to the post-deprecation ticket.
 
 ## Open points for review
 
-1. Facet accessors land on the `Job` interface (treated as additive; external `Job`
-   implementations unsupported) — confirm.
+1. ~~Facet accessors land on the `Job` interface~~ — **confirmed.** Analysis (2026-06-11):
+   `Job` is the actual public surface (`createJob` returns it, all samples and
+   `ReplayHandler` are typed against it, exactly one implementation exists), and it
+   hides ~15 engine-mechanics methods that are public on `JobImpl` only. The interface
+   stays, receives the accessors, and the refactoring works toward sealing it (see the
+   end-state item under Deferred).
 2. `metadata()`-after-`end` strictness (the only intentional contract change) — confirm
    or drop.
 3. `hasStarted()` and `addPluginDataItem(...)` remain undeprecated on the facade —
