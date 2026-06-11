@@ -83,8 +83,12 @@ are produced exclusively by `ProcessModel.createJob()`; external implementations
 
 `Job`/`JobImpl` keep: `start()`, `end(boolean)`, `setStatus`, `getStatus`,
 `getMaxSeverity`, `isFinished`, `getStartTime`/`setStartTime`, `getEndTime`/`setEndTime`,
-`getJobId`, `getLogId`, `needsData(ActivityModel)`, and `toString` — the lifecycle is
-the core of the facade, exactly like `start()`/`stop()` on `Njams`.
+`getJobId`, `getLogId`, `needsData(ActivityModel)`, `addPluginDataItem(...)`, and
+`toString` — the lifecycle is the core of the facade, exactly like `start()`/`stop()`
+on `Njams`. In addition, `hasStarted()` is **lifted onto the `Job` interface**
+(undeprecated): it completes the lifecycle queries next to `isFinished()` and becomes
+client-relevant now that pre-start activity creation is legal; today it requires a
+`JobImpl` cast.
 
 | Accessor | Facet type | Owns |
 |---|---|---|
@@ -113,13 +117,11 @@ that must stay invisible to SDK users):
 `JobImpl`-only public methods that are de-facto internal (`flush`, `timerFlush`,
 `setActivityErrorEvent`, `setInstrumented`, `setTraces`, `getLastFlush`,
 `getEstimatedSize`, `addToEstimatedSize`, `isActiveTracepoint`,
-`getActivityConfiguration`, `isRecording`, `hasStarted`, `getNjams`,
-`limitLength`) remain public-but-deprecated delegates on `JobImpl`, with deprecation
-comments stating they are SDK-internal mechanics (no public replacement) — mirroring
-the `Njams.getSender()` treatment. `hasStarted` is genuinely useful and gets a public
-replacement on the facade: it is referenced by `Job` Javadoc semantics already;
-proposal: keep `hasStarted()` undeprecated on `JobImpl` and add it to `Job`
-*(to confirm in review)*.
+`getActivityConfiguration`, `isRecording`, `getNjams`, `limitLength`) remain
+public-but-deprecated delegates on `JobImpl`, with deprecation comments stating they
+are SDK-internal mechanics (no public replacement) — mirroring the `Njams.getSender()`
+treatment. `hasStarted()` is the exception: it stays undeprecated and moves up to the
+`Job` interface (see above).
 
 ### Old API mapping (excerpt; all migrated members follow the pattern)
 
@@ -134,7 +136,7 @@ proposal: keep `hasStarted()` undeprecated on `JobImpl` and add it to `Job`
 | `getProperty(k)` / `hasProperty(k)` / `setProperty(k, v)` / `removeProperty(k)` | `properties().get(k)` / `.has(k)` / `.set(k, v)` / `.remove(k)` |
 | `setDeepTrace(b)` / `isDeepTrace()` / `isTraces()` | `tracing().setDeepTrace(b)` / `.isDeepTrace()` / `.isTraces()` |
 | `end()` (already deprecated) | unchanged, keeps pointing at `end(boolean)` |
-| `addPluginDataItem(i)` | stays on the facade undeprecated (message content contributed by plugins, analogous to lifecycle) *(to confirm in review)* |
+| `addPluginDataItem(i)` | stays on the facade undeprecated (message content contributed by plugins, analogous to lifecycle) |
 | `flush()`, `timerFlush(...)`, `setActivityErrorEvent(...)`, `setInstrumented()`, `setTraces(...)`, `getLastFlush()`, `getEstimatedSize()`, `addToEstimatedSize(...)`, `isActiveTracepoint(...)`, `getActivityConfiguration(...)`, `isRecording()`, `getNjams()`, `limitLength(...)` | deprecated as SDK-internal, no public replacement (internal collaborators take over) |
 
 ### Facet visibility
@@ -161,12 +163,12 @@ activities before `start()` is legal; the protection moves to the flush boundary
 |---|---|
 | `activities().add` | **unguarded before `start()`** — pre-start activity creation is allowed (sequencing freedom). NOTE: this inverts the SDK-359 deviation direction — the *deprecated* `addActivity` keeps throwing before start (pinned existing behavior), while the *new* API is more lenient. Documented as an intentional deviation with its own test pair. |
 | `activities()` builders, getters | unguarded (as today) |
-| `attributes().add` | unguarded (as today — attributes flushed with the next log message) |
+| `attributes().add` | unguarded before `end`; **after `end(boolean)` the new API throws** (`requireNotFinished`) — same rationale as `metadata()`. The internal extract path (`ExtractHandler` adds attributes during end-processing) uses a package-private unguarded add. Deprecated `addAttribute` keeps silently accepting (WARN log). |
 | `metadata()` mutators | unguarded before `end`; **after `end(boolean)` the new API throws** (`requireNotFinished`), because a change after the final flush is never sent — the deprecated setters keep silently accepting (WARN log) |
 | `properties()`, `tracing()` | unguarded (internal-use data, no wire impact) |
 
-The `metadata()`-after-end guard is the analog of the "never reaches the server" rule
-from SDK-359 and gets the explicit `new*ThrowsAfterEnd` /
+The `metadata()`/`attributes()`-after-end guards are the analog of the "never reaches
+the server" rule from SDK-359 and get the explicit `new*ThrowsAfterEnd` /
 `deprecated*StaysLenientAfterEnd` test pairs.
 
 ### Flush invariant — intentional behavior fixes (not breaking)
@@ -274,17 +276,19 @@ finalizing commit.
   package-internal access to the flusher. Each of these is breaking for code that
   references `JobImpl` directly and therefore belongs to the post-deprecation ticket.
 
-## Open points for review
+## Review decisions (all open points resolved, 2026-06-11)
 
-1. ~~Facet accessors land on the `Job` interface~~ — **confirmed.** Analysis (2026-06-11):
-   `Job` is the actual public surface (`createJob` returns it, all samples and
-   `ReplayHandler` are typed against it, exactly one implementation exists), and it
-   hides ~15 engine-mechanics methods that are public on `JobImpl` only. The interface
-   stays, receives the accessors, and the refactoring works toward sealing it (see the
-   end-state item under Deferred).
-2. `metadata()`-after-`end` strictness (the only intentional contract change) — confirm
-   or drop.
-3. `hasStarted()` and `addPluginDataItem(...)` remain undeprecated on the facade —
-   confirm.
-4. Naming: `tracing()` vs folding deep-trace into the facade; `JobMetadata` vs
-   `JobInfo`.
+1. **Facet accessors land on the `Job` interface** — confirmed. `Job` is the actual
+   public surface (`createJob` returns it, all samples and `ReplayHandler` are typed
+   against it, exactly one implementation exists), and it hides ~15 engine-mechanics
+   methods that are public on `JobImpl` only. The interface stays, receives the
+   accessors, and the refactoring works toward sealing it (see the end-state item
+   under Deferred).
+2. **After-`end` guard applies to `metadata()` AND `attributes()`** — both are dead
+   data after the final flush. The internal extract path bypasses the guard via a
+   package-private add. Deprecated setters stay lenient (WARN).
+3. **`hasStarted()` is lifted onto `Job` (undeprecated); `addPluginDataItem(...)`
+   stays undeprecated on the facade.**
+4. **`tracing()` facet is kept** (smallest facet, but preserves the facade =
+   lifecycle-only rule); **the descriptive facet is named `JobMetadata`** —
+   `job.metadata()` mirrors `njams.metadata()` from SDK-359.
