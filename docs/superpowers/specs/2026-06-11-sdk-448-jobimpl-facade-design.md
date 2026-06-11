@@ -21,7 +21,10 @@ stays in place, deprecated, delegating to the new implementation.
 
 - **No breaking change.** All existing `public` members of `Job` and `JobImpl` keep
   their signatures and observable behavior. New API is additive; the ticket carries no
-  `breaking-change` label.
+  `breaking-change` label. The single approved exception is the flush-invariant fix
+  (see "Flush invariant" below): `flush()`/`end(boolean)` on a *never-started* job stop
+  sending a malformed status `-1` message — classified as a defect fix, not a breaking
+  change.
 - **Baseline coverage before refactoring.** Every public `Job`/`JobImpl` method to be
   migrated is pinned by tests against the *unmodified* class — including lenient
   behaviors (e.g. `setStatus` before `start()` only warns) — verified complete via a
@@ -123,7 +126,7 @@ proposal: keep `hasStarted()` undeprecated on `JobImpl` and add it to `Job`
 | Deprecated on `Job`/`JobImpl` | Replacement |
 |---|---|
 | `createActivity(m)` / `createGroup(m)` / `createSubProcess(m)` | `activities().create(m)` / `.createGroup(m)` / `.createSubProcess(m)` |
-| `addActivity(a)` | `activities().add(a)` — same contract: throws if the job has not been started, or on a second start activity |
+| `addActivity(a)` | `activities().add(a)` — contract difference: the replacement allows adding activities BEFORE `start()` (the deprecated method keeps throwing there); the second-start-activity check is unchanged |
 | `getActivityByInstanceId(id)` / `getActivityByModelId(id)` / `getRunningActivityByModelId(id)` / `getCompletedActivityByModelId(id)` | `activities().getByInstanceId(id)` / `.getByModelId(id)` / `.getRunningByModelId(id)` / `.getCompletedByModelId(id)` |
 | `getStartActivity()` / `getActivities()` | `activities().getStart()` / `.getAll()` |
 | `addAttribute(k, v)` / `getAttribute(n)` / `getAttributes()` / `hasAttribute(n)` | `attributes().add(k, v)` / `.get(n)` / `.getAll()` / `.has(n)` |
@@ -149,18 +152,47 @@ after `end` is silently accepted but only flushed if another flush happens. The
 SDK-359 rule applies: **strictness only in the new API, pinned lenient behavior in the
 deprecated one** — but conservatively:
 
+The governing invariant (decided in review, 2026-06-11): **a job that has not been
+started must never be flushed.** Everything else is sequencing freedom. The
+`addActivity` started-guard is therefore *not* carried into the new API — adding
+activities before `start()` is legal; the protection moves to the flush boundary.
+
 | Facet | Phase contract (new API) |
 |---|---|
-| `activities().add` | requires a started job (as today — same exception) |
+| `activities().add` | **unguarded before `start()`** — pre-start activity creation is allowed (sequencing freedom). NOTE: this inverts the SDK-359 deviation direction — the *deprecated* `addActivity` keeps throwing before start (pinned existing behavior), while the *new* API is more lenient. Documented as an intentional deviation with its own test pair. |
 | `activities()` builders, getters | unguarded (as today) |
 | `attributes().add` | unguarded (as today — attributes flushed with the next log message) |
 | `metadata()` mutators | unguarded before `end`; **after `end(boolean)` the new API throws** (`requireNotFinished`), because a change after the final flush is never sent — the deprecated setters keep silently accepting (WARN log) |
 | `properties()`, `tracing()` | unguarded (internal-use data, no wire impact) |
 
-The only *new* strictness is the `metadata()`-after-end guard; it is the analog of the
-"never reaches the server" rule from SDK-359 and gets the explicit
-`new*ThrowsAfterEnd` / `deprecated*StaysLenientAfterEnd` test pairs.
-*(To confirm in review; dropping it makes the whole refactoring contract-neutral.)*
+The `metadata()`-after-end guard is the analog of the "never reaches the server" rule
+from SDK-359 and gets the explicit `new*ThrowsAfterEnd` /
+`deprecated*StaysLenientAfterEnd` test pairs.
+
+### Flush invariant — intentional behavior fixes (not breaking)
+
+Today the never-flush-unstarted invariant only half-exists: `timerFlush()` skips
+unstarted jobs, but `flush()` itself warns and proceeds — reachable for unstarted jobs
+via `end(boolean)` and via the `Njams.stop()` drain in `LogMessageFlushTask`. Such a
+flush sends a log message with status `CREATED` = `-1` on the wire (the status scale is
+defined from `RUNNING(0)` upward) and bypasses log-level suppression — defective data.
+
+Decided changes (classified as a **fix**, not a breaking change; the ticket does NOT
+get the `breaking-change` label):
+
+1. `flush()` on a never-started job logs a WARN and **skips** sending (previously:
+   warned and sent the malformed message). `timerFlush()` is unchanged (already skips).
+2. `end(boolean)` on a never-started job logs an **ERROR** (previously a warning) and —
+   via change 1 — sends nothing. It does NOT throw: defensive `end()` calls in client
+   `finally` blocks keep working.
+3. Consequence: a job whose `start()` was forgotten never reaches the nJAMS server at
+   all (instead of arriving with status `-1`), and the mistake is visible as an ERROR
+   log entry.
+
+**Baseline interaction:** the baseline suite must deliberately NOT pin the old
+flush/end-unstarted behavior (warn-and-send) — these are the approved contract changes
+of this ticket. Instead, new tests pin the fixed behavior (nothing sent, ERROR logged,
+no exception).
 
 ## Performance budget (hot path)
 
