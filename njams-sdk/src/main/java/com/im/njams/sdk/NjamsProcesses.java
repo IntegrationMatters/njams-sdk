@@ -206,33 +206,54 @@ public final class NjamsProcesses {
     }
 
     /**
-     * Adds an image for a given resource path.
+     * Adds an image for a given resource path. Images must be registered before {@code start()}:
+     * additional project messages sent for lazily added processes do not transport images yet, so
+     * an image added after start would silently never reach the nJAMS server.
      *
      * @param key          the key of the image
      * @param resourcePath the path where to find the image
+     * @throws NjamsSdkRuntimeException if the client has already been started
      */
     public void addImage(final String key, final String resourcePath) {
-        addImage(new ResourceImageSupplier(key, resourcePath));
+        lifecycle.requireNotStarted("NjamsProcesses.addImage");
+        addImageInternal(new ResourceImageSupplier(key, resourcePath));
     }
 
     /**
-     * Add an image with an arbitrary supplier implementation.
+     * Add an image with an arbitrary supplier implementation. Images must be registered before
+     * {@code start()}: additional project messages sent for lazily added processes do not
+     * transport images yet, so an image added after start would silently never reach the nJAMS
+     * server.
      *
      * @param imageSupplier the supplier used by SDK to find the image
+     * @throws NjamsSdkRuntimeException if the client has already been started
      */
     public void addImage(final ImageSupplier imageSupplier) {
+        lifecycle.requireNotStarted("NjamsProcesses.addImage");
+        addImageInternal(imageSupplier);
+    }
+
+    void addImageInternal(final ImageSupplier imageSupplier) {
         synchronized (projectMessageLock) {
             images.add(imageSupplier);
         }
     }
 
     /**
-     * Set the type for a TreeElment given by a path.
+     * Set the type for a TreeElment given by a path. Tree-element types are announced to the
+     * nJAMS server in the project message at start and must be set before {@code start()}.
      *
      * @param path the path of the tree icon
      * @param type icon type of the tree element
+     * @throws NjamsSdkRuntimeException if no tree element exists for the given path, or if the
+     *                                  client has already been started
      */
     public void setTreeElementType(Path path, String type) {
+        lifecycle.requireNotStarted("NjamsProcesses.setTreeElementType");
+        setTreeElementTypeInternal(path, type);
+    }
+
+    void setTreeElementTypeInternal(Path path, String type) {
         synchronized (projectMessageLock) {
             TreeElement dos = treeElements.stream().filter(d -> d.getPath().equals(path.toString())).findAny()
                 .orElse(null);
@@ -360,7 +381,8 @@ public final class NjamsProcesses {
         synchronized (projectMessageLock) {
             boolean found = treeElements.stream().anyMatch(te -> te.getType().equals(treeDefaultType));
             if (found && images.stream().noneMatch(i -> i.getName().equals(treeDefaultType))) {
-                addImage(treeDefaultType, treeDefaultIcon);
+                // runs during send() - after start - so it must bypass the pre-start guard
+                addImageInternal(new ResourceImageSupplier(treeDefaultType, treeDefaultIcon));
             }
         }
     }

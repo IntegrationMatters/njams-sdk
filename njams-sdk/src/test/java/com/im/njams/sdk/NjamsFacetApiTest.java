@@ -310,4 +310,175 @@ public class NjamsFacetApiTest {
         assertEquals(0, inst.getResponse().getResultCode());
         assertEquals("TestWorked", inst.getResponse().getResultMessage());
     }
+
+    // --- processes guards ---
+
+    @Test(expected = NjamsSdkRuntimeException.class)
+    public void newAddImageThrowsAfterStart() {
+        njams.start();
+        njams.processes().addImage("late.image", "images/root.png");
+    }
+
+    @Test(expected = NjamsSdkRuntimeException.class)
+    public void newSetTreeElementTypeThrowsAfterStart() {
+        njams.start();
+        njams.processes().setTreeElementType(Path.of("SDK4", "TEST"), "custom.type");
+    }
+
+    @Test
+    public void newProcessCreateIsAllowedAfterStartAndAnnouncable() {
+        njams.start();
+        com.im.njams.sdk.model.ProcessModel lazy = njams.processes().create(Path.of("LAZY"));
+        njams.processes().announce(lazy); // must not throw
+    }
+
+    @Test(expected = NjamsSdkRuntimeException.class)
+    public void newAnnounceBeforeStartThrows() {
+        com.im.njams.sdk.model.ProcessModel model = njams.processes().create(Path.of("P1"));
+        njams.processes().announce(model);
+    }
+
+    // --- processes parity mirrors ---
+
+    @Test(expected = NjamsSdkRuntimeException.class)
+    public void getProcessModelThrowsWhenAbsent_viaFacet() {
+        njams.processes().get(Path.of("MISSING"));
+    }
+
+    @Test
+    public void createProcessRegistersModelUnderAbsolutePath_viaFacet() {
+        com.im.njams.sdk.model.ProcessModel created = njams.processes().create(Path.of("P1"));
+        assertSame(created, njams.processes().get(Path.of("P1")));
+        assertEquals(1, njams.processes().getAll().size());
+    }
+
+    @Test(expected = UnsupportedOperationException.class)
+    public void getProcessModelsIsUnmodifiable_viaFacet() {
+        njams.processes().create(Path.of("P1"));
+        njams.processes().getAll().clear();
+    }
+
+    @Test(expected = NjamsSdkRuntimeException.class)
+    public void addProcessModelOfForeignInstanceThrows_viaFacet() {
+        Njams other = new Njams(Path.of("OTHER"), "1.0", "X", TestReceiver.getSettings());
+        com.im.njams.sdk.model.ProcessModel foreign = other.processes().create(Path.of("P1"));
+        njams.processes().add(foreign);
+    }
+
+    @Test
+    public void addProcessModelIgnoresNull_viaFacet() {
+        njams.processes().add(null); // must NOT throw
+        assertTrue(njams.processes().getAll().isEmpty());
+    }
+
+    @Test(expected = NjamsSdkRuntimeException.class)
+    public void setTreeElementTypeForUnknownPathThrows_viaFacet() {
+        njams.processes().setTreeElementType(Path.of("DOES", "NOT", "EXIST"), "some.type");
+    }
+
+    @Test
+    public void setTreeElementTypeForClientPathWorks_viaFacet() {
+        njams.processes().setTreeElementType(Path.of("SDK4", "TEST"), "custom.type");
+    }
+
+    @Test
+    public void layouterAndDiagramFactoryAreReplaceable_viaFacet() {
+        com.im.njams.sdk.model.layout.SimpleProcessModelLayouter layouter =
+            new com.im.njams.sdk.model.layout.SimpleProcessModelLayouter();
+        njams.processes().setLayouter(layouter);
+        assertSame(layouter, njams.processes().getLayouter());
+
+        com.im.njams.sdk.model.svg.ProcessDiagramFactory factory =
+            new com.im.njams.sdk.model.svg.NjamsProcessDiagramFactory(njams);
+        njams.processes().setDiagramFactory(factory);
+        assertSame(factory, njams.processes().getDiagramFactory());
+    }
+
+    @Test
+    public void defaultLayouter_isCommonBfsModelLayouter_viaFacet() {
+        assertTrue("Default layouter must be CommonBfsModelLayouter",
+            njams.processes().getLayouter() instanceof com.im.njams.sdk.model.layout.CommonBfsModelLayouter);
+    }
+
+    @Test
+    public void sendProjectMessageContainsAddedImage_viaFacet() throws InterruptedException {
+        njams.processes().addImage("my.image", "images/root.png");
+        njams.start();
+        CapturingSender capturing = new CapturingSender(msg -> msg.getImages().containsKey("my.image"));
+        com.im.njams.sdk.communication.TestSender.setSenderMock(capturing);
+        try {
+            njams.processes().send();
+            com.faizsiegeln.njams.messageformat.v4.projectmessage.ProjectMessage sent =
+                capturing.awaitProjectMessage();
+            assertNotNull(sent);
+            assertTrue(sent.getImages().containsKey("my.image"));
+        } finally {
+            com.im.njams.sdk.communication.TestSender.setSenderMock(null);
+        }
+    }
+
+    @Test
+    public void sendAdditionalProcessSendsProjectMessageWithThatProcess_viaFacet() throws InterruptedException {
+        njams.start();
+        com.im.njams.sdk.model.ProcessModel model = njams.processes().create(Path.of("LAZY"));
+        CapturingSender capturing = new CapturingSender(msg -> !msg.getProcesses().isEmpty());
+        com.im.njams.sdk.communication.TestSender.setSenderMock(capturing);
+        try {
+            njams.processes().announce(model);
+            com.faizsiegeln.njams.messageformat.v4.projectmessage.ProjectMessage sent =
+                capturing.awaitProjectMessage();
+            assertNotNull(sent);
+            assertEquals(1, sent.getProcesses().size());
+        } finally {
+            com.im.njams.sdk.communication.TestSender.setSenderMock(null);
+        }
+    }
+
+    /** Same pattern as NjamsFacadeBaselineTest.CapturingSender. */
+    private static final class CapturingSender extends com.im.njams.sdk.communication.AbstractSender {
+        private final java.util.concurrent.CountDownLatch latch = new java.util.concurrent.CountDownLatch(1);
+        private final java.util.function.Predicate<
+            com.faizsiegeln.njams.messageformat.v4.projectmessage.ProjectMessage> expected;
+        private volatile com.faizsiegeln.njams.messageformat.v4.projectmessage.ProjectMessage lastProjectMessage;
+
+        CapturingSender(java.util.function.Predicate<
+            com.faizsiegeln.njams.messageformat.v4.projectmessage.ProjectMessage> expected) {
+            this.expected = expected;
+        }
+
+        @Override
+        public String getName() {
+            return "CAPTURING";
+        }
+
+        @Override
+        public void send(com.faizsiegeln.njams.messageformat.v4.common.CommonMessage msg, String clientSessionId) {
+            if (msg instanceof com.faizsiegeln.njams.messageformat.v4.projectmessage.ProjectMessage
+                && expected.test((com.faizsiegeln.njams.messageformat.v4.projectmessage.ProjectMessage) msg)) {
+                lastProjectMessage = (com.faizsiegeln.njams.messageformat.v4.projectmessage.ProjectMessage) msg;
+                latch.countDown();
+            }
+        }
+
+        com.faizsiegeln.njams.messageformat.v4.projectmessage.ProjectMessage awaitProjectMessage()
+            throws InterruptedException {
+            latch.await(5, java.util.concurrent.TimeUnit.SECONDS);
+            return lastProjectMessage;
+        }
+
+        @Override
+        protected void send(com.faizsiegeln.njams.messageformat.v4.logmessage.LogMessage msg,
+            String clientSessionId) {
+        }
+
+        @Override
+        protected void send(com.faizsiegeln.njams.messageformat.v4.projectmessage.ProjectMessage msg,
+            String clientSessionId) {
+        }
+
+        @Override
+        protected void send(com.faizsiegeln.njams.messageformat.v4.tracemessage.TraceMessage msg,
+            String clientSessionId) {
+        }
+    }
 }
