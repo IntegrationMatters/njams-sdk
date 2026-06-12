@@ -267,6 +267,8 @@ The shaded SDK artifact relocates several third-party libraries into the `com.im
 
 The reason is twofold: after relocation these types no longer exist under their original coordinates, so a consumer cannot name them — and even if they could, it would leak an internal packaging detail and couple clients to the SDK's bundled, relocated copy. Keep relocated third-party types strictly internal (use `private`/package-private, wrap or adapt them behind SDK-owned types, and convert to/from SDK or JDK types at the boundary).
 
+**When adding or modifying any `public` or `protected` member, always verify its full signature (return type, parameter types, type parameters, thrown exceptions, annotations) against the relocated package list in `checkstyle.xml`. Flag any violation immediately — do not proceed with code that exposes a relocated type.**
+
 ### Visibility and Scoping
 
 Access control is critical. Users of the SDK will use everything that is accessible, so anything not intended for external use must be actively hidden:
