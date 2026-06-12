@@ -385,6 +385,17 @@ public class ActivityModel {
     }
 
     /**
+     * Sets the input mapping for the activity from an {@link ActivityMapping}. This is a convenience overload of
+     * {@link #setMapping(String)} that serializes the given mapping to its tree-viewer JSON string. Build the argument
+     * with {@link ActivityMapping#builder(String)} or {@link ActivityMapping#fromObject(String, Object)}.
+     *
+     * @param mapping the mapping to serialize and set; if {@code null}, the mapping is cleared
+     */
+    public void setMapping(ActivityMapping mapping) {
+        setMapping(mapping == null ? null : mapping.toJson());
+    }
+
+    /**
      * Gets the input mapping for the activity.
      *
      * @return input mapping

@@ -564,6 +564,40 @@ nesting:
 }
 ```
 
+### Building the tree-viewer JSON with the SDK
+
+Rather than assembling and serialising this JSON by hand, use `com.im.njams.sdk.model.ActivityMapping`. It produces the
+correct tree-viewer structure in two ways, and the result can be passed straight to `ActivityModel.setMapping(...)`.
+
+**Builder** — construct the tree node by node. Sibling nodes chain on the same builder; a branch's children are
+populated through the lambda passed to `branch(...)`:
+
+```java
+activity.setMapping(ActivityMapping.builder("stylesheet")
+    .leaf("version", "2.0")
+    .branch("template", t -> t
+        .leaf("match", "/")
+        .branch("ActivityInput", a -> a.leaf("message", "...")))
+    .build());
+```
+
+**From an object** — derive the tree automatically from an arbitrary object, analogous to JSON serialisation: scalar
+values become leaves, nested objects and collections become branches (collection elements are named by their index),
+recursively to arbitrary depth:
+
+```java
+activity.setMapping(ActivityMapping.fromObject("person", myObject));
+```
+
+**From a JSON string** — when you already have arbitrary JSON, `fromPlainJson(...)` derives the tree from it using the
+same rules as `fromObject` (objects and arrays become branches, scalars become leaves):
+
+```java
+activity.setMapping(ActivityMapping.fromPlainJson("person", myJsonString));
+```
+
+Call `toJson()` on any result (or on the builder directly) if you need the raw string for `setMapping(String)`.
+
 ## How to set the activity configuration
 
 `ActivityModel` has a `config` attribute displayed in the nJAMS UI when you click on an activity, in the lower **Config
