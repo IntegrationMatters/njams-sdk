@@ -29,14 +29,9 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Optional;
-import java.util.stream.Collectors;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.faizsiegeln.njams.messageformat.v4.common.TreeElementType;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.ProjectMessage;
-import com.im.njams.sdk.Njams.Feature;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.model.ProcessModel;
 import com.im.njams.sdk.model.image.ImageSupplier;
@@ -52,8 +47,6 @@ import com.im.njams.sdk.model.svg.ProcessDiagramFactory;
  * Obtain via {@code njams.model()}.
  */
 public final class NjamsModel {
-
-    private static final Logger LOG = LoggerFactory.getLogger(NjamsModel.class);
 
     private final Njams njams;
     private final LifecycleState lifecycle;
@@ -71,6 +64,8 @@ public final class NjamsModel {
     // tree representation for the client
     private final TaxonomyTree taxonomy;
 
+    private final ProjectMessageAssembler assembler;
+
     private ProcessDiagramFactory processDiagramFactory;
 
     private ProcessModelLayouter processModelLayouter;
@@ -84,6 +79,7 @@ public final class NjamsModel {
         this.configuration = configuration;
         this.projectMessageLock = projectMessageLock;
         taxonomy = new TaxonomyTree(projectMessageLock);
+        assembler = new ProjectMessageAssembler(metadata, features, configuration, projectMessageLock);
         processDiagramFactory = new NjamsProcessDiagramFactory(njams);
         processModelLayouter = new CommonBfsModelLayouter();
     }
@@ -334,17 +330,7 @@ public final class NjamsModel {
         addDefaultImagesIfNeededAndAbsent();
         taxonomy.markStarters(path -> Optional.ofNullable(processModels.get(path))
             .map(ProcessModel::isStarter).orElse(false));
-        final ProjectMessage msg = prepareProjectMessage();
-        taxonomy.copyInto(msg.getTreeElements());
-        synchronized (projectMessageLock) {
-            processModels.values().stream().map(ProcessModel::getSerializableProcessModel)
-                .forEach(ipm -> msg.getProcesses().add(ipm));
-            images.forEach(i -> msg.getImages().put(i.getName(), i.getBase64Image()));
-            msg.getGlobalVariables().putAll(metadata.getGlobalVariables());
-            msg.setGlobalVariablesPattern(metadata.getGlobalVariablesPattern());
-            LOG.debug("Sending project message with {} process-models, {} images, {} global-variables.",
-                processModels.size(), images.size(), metadata.getGlobalVariables().size());
-        }
+        final ProjectMessage msg = assembler.buildFull(processModels.values(), images, taxonomy);
         njams.getSender().send(msg, metadata.getClientSessionId());
     }
 
@@ -358,30 +344,8 @@ public final class NjamsModel {
         if (!lifecycle.isStarted()) {
             throw new NjamsSdkRuntimeException("Njams is not started. Please use createProcess Method instead");
         }
-        final ProjectMessage msg = prepareProjectMessage();
-        taxonomy.buildInto(msg.getTreeElements(), metadata.getClientPath(), TreeElementType.CLIENT, false);
-        taxonomy.buildInto(msg.getTreeElements(), model.getPath(), TreeElementType.PROCESS, model.isStarter());
-        msg.getProcesses().add(model.getSerializableProcessModel());
+        final ProjectMessage msg = assembler.buildAdditional(model, taxonomy);
         njams.getSender().send(msg, metadata.getClientSessionId());
-    }
-
-    /**
-     * Initializes the common body of a project message.
-     */
-    private ProjectMessage prepareProjectMessage() {
-        final ProjectMessage msg = new ProjectMessage();
-        msg.setPath(metadata.getClientPath().toString());
-        msg.setClientVersion(metadata.getClientVersion());
-        msg.setSdkVersion(metadata.getSdkVersion());
-        msg.setRuntimeVersion(metadata.getRuntimeVersion());
-        msg.setCategory(metadata.getCategory());
-        msg.setStartTime(metadata.getStartTime());
-        msg.setMachine(metadata.getMachine());
-        msg.setFeatures(features.list().stream().map(Feature::key).collect(Collectors.toList()));
-        msg.setLogMode(configuration.getLogMode());
-        msg.setClientId(metadata.getClientSessionId());
-        msg.setRecording(configuration.get().isRecording());
-        return msg;
     }
 
     /**
