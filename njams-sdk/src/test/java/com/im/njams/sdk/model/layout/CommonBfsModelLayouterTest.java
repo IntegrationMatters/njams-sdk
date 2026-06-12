@@ -21,7 +21,7 @@ public class CommonBfsModelLayouterTest {
         com.im.njams.sdk.settings.Settings settings = com.im.njams.sdk.communication.TestSender.getSettings();
         com.im.njams.sdk.Njams njams = new com.im.njams.sdk.Njams(
             com.im.njams.sdk.Path.of("TEST"), "1.0", "TEST", settings);
-        return njams.processes().create("proc");
+        return njams.model().create("proc");
     }
 
     @Test

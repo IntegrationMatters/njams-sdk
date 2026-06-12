@@ -46,14 +46,14 @@ public final class NjamsCommands {
 
     private static final Logger LOG = LoggerFactory.getLogger(NjamsCommands.class);
 
-    private final NjamsProcesses processes;
+    private final NjamsModel model;
     private final NjamsReplay replay;
     private final NjamsMetadata metadata;
     private final NjamsFeatures features;
     private final List<InstructionListener> instructionListeners = new ArrayList<>();
 
-    NjamsCommands(NjamsProcesses processes, NjamsReplay replay, NjamsMetadata metadata, NjamsFeatures features) {
-        this.processes = processes;
+    NjamsCommands(NjamsModel model, NjamsReplay replay, NjamsMetadata metadata, NjamsFeatures features) {
+        this.model = model;
         this.replay = replay;
         this.metadata = metadata;
         this.features = features;
@@ -108,7 +108,7 @@ public final class NjamsCommands {
         switch (command) {
         case SEND_PROJECTMESSAGE:
             LOG.debug("Send ProjectMessage requested by nJAMS server.");
-            processes.send();
+            model.send();
             instruction.setResponseResultCode(0);
             instruction.setResponseResultMessage("ProjectMessage sent");
             break;

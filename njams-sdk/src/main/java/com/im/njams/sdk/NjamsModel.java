@@ -52,11 +52,11 @@ import com.im.njams.sdk.model.svg.ProcessDiagramFactory;
 /**
  * Owns the process models, taxonomy tree, images and process diagram tooling of an
  * {@link Njams} client, and assembles and sends project messages.
- * Obtain via {@code njams.processes()}.
+ * Obtain via {@code njams.model()}.
  */
-public final class NjamsProcesses {
+public final class NjamsModel {
 
-    private static final Logger LOG = LoggerFactory.getLogger(NjamsProcesses.class);
+    private static final Logger LOG = LoggerFactory.getLogger(NjamsModel.class);
 
     private static final String DEFAULT_TAXONOMY_ROOT_TYPE = "njams.taxonomy.root";
     private static final String DEFAULT_TAXONOMY_FOLDER_TYPE = "njams.taxonomy.folder";
@@ -87,7 +87,7 @@ public final class NjamsProcesses {
 
     private ProcessModelLayouter processModelLayouter;
 
-    NjamsProcesses(Njams njams, LifecycleState lifecycle, NjamsMetadata metadata, NjamsFeatures features,
+    NjamsModel(Njams njams, LifecycleState lifecycle, NjamsMetadata metadata, NjamsFeatures features,
         NjamsConfiguration configuration, Object projectMessageLock) {
         this.njams = njams;
         this.lifecycle = lifecycle;
@@ -249,7 +249,7 @@ public final class NjamsProcesses {
 
     /**
      * Adds an image for a given resource path. Images must be registered before {@code start()}:
-     * additional project messages sent for lazily added processes do not transport images yet, so
+     * additional project messages sent for lazily added model do not transport images yet, so
      * an image added after start would silently never reach the nJAMS server.
      *
      * @param key          the key of the image
@@ -257,13 +257,13 @@ public final class NjamsProcesses {
      * @throws NjamsSdkRuntimeException if the client has already been started
      */
     public void addImage(final String key, final String resourcePath) {
-        lifecycle.requireNotStarted("NjamsProcesses.addImage");
+        lifecycle.requireNotStarted("NjamsModel.addImage");
         addImageInternal(new ResourceImageSupplier(key, resourcePath));
     }
 
     /**
      * Add an image with an arbitrary supplier implementation. Images must be registered before
-     * {@code start()}: additional project messages sent for lazily added processes do not
+     * {@code start()}: additional project messages sent for lazily added model do not
      * transport images yet, so an image added after start would silently never reach the nJAMS
      * server.
      *
@@ -271,7 +271,7 @@ public final class NjamsProcesses {
      * @throws NjamsSdkRuntimeException if the client has already been started
      */
     public void addImage(final ImageSupplier imageSupplier) {
-        lifecycle.requireNotStarted("NjamsProcesses.addImage");
+        lifecycle.requireNotStarted("NjamsModel.addImage");
         addImageInternal(imageSupplier);
     }
 
@@ -291,7 +291,7 @@ public final class NjamsProcesses {
      *                                  client has already been started
      */
     public void setTreeElementType(Path path, String type) {
-        lifecycle.requireNotStarted("NjamsProcesses.setTreeElementType");
+        lifecycle.requireNotStarted("NjamsModel.setTreeElementType");
         setTreeElementTypeInternal(path, type);
     }
 

@@ -37,7 +37,7 @@ public class NjamsFacetApiTest {
     public void accessorsReturnTheSameInstanceEveryTime() {
         assertSame(njams.metadata(), njams.metadata());
         assertSame(njams.jobs(), njams.jobs());
-        assertSame(njams.processes(), njams.processes());
+        assertSame(njams.model(), njams.model());
         assertSame(njams.features(), njams.features());
         assertSame(njams.serializers(), njams.serializers());
         assertSame(njams.replay(), njams.replay());
@@ -316,59 +316,59 @@ public class NjamsFacetApiTest {
     @Test(expected = NjamsSdkRuntimeException.class)
     public void newAddImageThrowsAfterStart() {
         njams.start();
-        njams.processes().addImage("late.image", "images/root.png");
+        njams.model().addImage("late.image", "images/root.png");
     }
 
     @Test(expected = NjamsSdkRuntimeException.class)
     public void newSetTreeElementTypeThrowsAfterStart() {
         njams.start();
-        njams.processes().setTreeElementType(Path.of("SDK4", "TEST"), "custom.type");
+        njams.model().setTreeElementType(Path.of("SDK4", "TEST"), "custom.type");
     }
 
     @Test
     public void newProcessCreateIsAllowedAfterStartAndAnnouncable() {
         njams.start();
-        com.im.njams.sdk.model.ProcessModel lazy = njams.processes().create("LAZY");
-        njams.processes().announce(lazy); // must not throw
+        com.im.njams.sdk.model.ProcessModel lazy = njams.model().create("LAZY");
+        njams.model().announce(lazy); // must not throw
     }
 
     @Test(expected = NjamsSdkRuntimeException.class)
     public void newAnnounceBeforeStartThrows() {
-        com.im.njams.sdk.model.ProcessModel model = njams.processes().create("P1");
-        njams.processes().announce(model);
+        com.im.njams.sdk.model.ProcessModel model = njams.model().create("P1");
+        njams.model().announce(model);
     }
 
     // --- processes parity mirrors ---
 
     @Test(expected = NjamsSdkRuntimeException.class)
     public void getProcessModelThrowsWhenAbsent_viaFacet() {
-        njams.processes().get("MISSING");
+        njams.model().get("MISSING");
     }
 
     @Test
     public void createProcessRegistersModelUnderAbsolutePath_viaFacet() {
-        com.im.njams.sdk.model.ProcessModel created = njams.processes().create("P1");
-        assertSame(created, njams.processes().get("P1"));
-        assertEquals(1, njams.processes().getAll().size());
+        com.im.njams.sdk.model.ProcessModel created = njams.model().create("P1");
+        assertSame(created, njams.model().get("P1"));
+        assertEquals(1, njams.model().getAll().size());
     }
 
     @Test(expected = UnsupportedOperationException.class)
     public void getProcessModelsIsUnmodifiable_viaFacet() {
-        njams.processes().create("P1");
-        njams.processes().getAll().clear();
+        njams.model().create("P1");
+        njams.model().getAll().clear();
     }
 
     @Test(expected = NjamsSdkRuntimeException.class)
     public void addProcessModelOfForeignInstanceThrows_viaFacet() {
         Njams other = new Njams(Path.of("OTHER"), "1.0", "X", TestReceiver.getSettings());
-        com.im.njams.sdk.model.ProcessModel foreign = other.processes().create("P1");
-        njams.processes().add(foreign);
+        com.im.njams.sdk.model.ProcessModel foreign = other.model().create("P1");
+        njams.model().add(foreign);
     }
 
     @Test
     public void addProcessModelIgnoresNull_viaFacet() {
-        njams.processes().add(null); // must NOT throw
-        assertTrue(njams.processes().getAll().isEmpty());
+        njams.model().add(null); // must NOT throw
+        assertTrue(njams.model().getAll().isEmpty());
     }
 
     // --- SDK-447: absolute paths and single-segment name convenience ---
@@ -376,70 +376,70 @@ public class NjamsFacetApiTest {
     @Test
     public void createByAbsolutePath_isFoundByItsOwnPath() {
         Path absolute = njams.metadata().getClientPath().getOrCreateChild("PROC447");
-        com.im.njams.sdk.model.ProcessModel model = njams.processes().create(absolute);
+        com.im.njams.sdk.model.ProcessModel model = njams.model().create(absolute);
         // the model is registered under exactly the given absolute path - no re-rooting
         assertSame(absolute, model.getPath());
-        assertTrue(njams.processes().has(model.getPath()));
-        assertSame(model, njams.processes().get(model.getPath()));
+        assertTrue(njams.model().has(model.getPath()));
+        assertSame(model, njams.model().get(model.getPath()));
     }
 
     @Test
     public void createByName_isFoundByNameAndByAbsolutePath() {
-        com.im.njams.sdk.model.ProcessModel model = njams.processes().create("PROC447");
-        assertTrue(njams.processes().has("PROC447"));
-        assertSame(model, njams.processes().get("PROC447"));
+        com.im.njams.sdk.model.ProcessModel model = njams.model().create("PROC447");
+        assertTrue(njams.model().has("PROC447"));
+        assertSame(model, njams.model().get("PROC447"));
         assertSame(njams.metadata().getClientPath().getChild("PROC447"), model.getPath());
-        assertTrue(njams.processes().has(model.getPath()));
+        assertTrue(njams.model().has(model.getPath()));
     }
 
     @Test
     public void hasByAbsolutePath_isFalseWhenAbsent() {
         Path absent = njams.metadata().getClientPath().getOrCreateChild("ABSENT447");
-        assertFalse(njams.processes().has(absent));
+        assertFalse(njams.model().has(absent));
     }
 
     @Test(expected = NjamsSdkRuntimeException.class)
     public void createPathNotUnderClientPath_throws() {
-        njams.processes().create(Path.of("OUTSIDE", "X"));
+        njams.model().create(Path.of("OUTSIDE", "X"));
     }
 
     @Test(expected = NjamsSdkRuntimeException.class)
     public void setTreeElementTypeForUnknownPathThrows_viaFacet() {
-        njams.processes().setTreeElementType(Path.of("DOES", "NOT", "EXIST"), "some.type");
+        njams.model().setTreeElementType(Path.of("DOES", "NOT", "EXIST"), "some.type");
     }
 
     @Test
     public void setTreeElementTypeForClientPathWorks_viaFacet() {
-        njams.processes().setTreeElementType(Path.of("SDK4", "TEST"), "custom.type");
+        njams.model().setTreeElementType(Path.of("SDK4", "TEST"), "custom.type");
     }
 
     @Test
     public void layouterAndDiagramFactoryAreReplaceable_viaFacet() {
         com.im.njams.sdk.model.layout.SimpleProcessModelLayouter layouter =
             new com.im.njams.sdk.model.layout.SimpleProcessModelLayouter();
-        njams.processes().setLayouter(layouter);
-        assertSame(layouter, njams.processes().getLayouter());
+        njams.model().setLayouter(layouter);
+        assertSame(layouter, njams.model().getLayouter());
 
         com.im.njams.sdk.model.svg.ProcessDiagramFactory factory =
             new com.im.njams.sdk.model.svg.NjamsProcessDiagramFactory(njams);
-        njams.processes().setDiagramFactory(factory);
-        assertSame(factory, njams.processes().getDiagramFactory());
+        njams.model().setDiagramFactory(factory);
+        assertSame(factory, njams.model().getDiagramFactory());
     }
 
     @Test
     public void defaultLayouter_isCommonBfsModelLayouter_viaFacet() {
         assertTrue("Default layouter must be CommonBfsModelLayouter",
-            njams.processes().getLayouter() instanceof com.im.njams.sdk.model.layout.CommonBfsModelLayouter);
+            njams.model().getLayouter() instanceof com.im.njams.sdk.model.layout.CommonBfsModelLayouter);
     }
 
     @Test
     public void sendProjectMessageContainsAddedImage_viaFacet() throws InterruptedException {
-        njams.processes().addImage("my.image", "images/root.png");
+        njams.model().addImage("my.image", "images/root.png");
         njams.start();
         CapturingSender capturing = new CapturingSender(msg -> msg.getImages().containsKey("my.image"));
         com.im.njams.sdk.communication.TestSender.setSenderMock(capturing);
         try {
-            njams.processes().send();
+            njams.model().send();
             com.faizsiegeln.njams.messageformat.v4.projectmessage.ProjectMessage sent =
                 capturing.awaitProjectMessage();
             assertNotNull(sent);
@@ -452,11 +452,11 @@ public class NjamsFacetApiTest {
     @Test
     public void sendAdditionalProcessSendsProjectMessageWithThatProcess_viaFacet() throws InterruptedException {
         njams.start();
-        com.im.njams.sdk.model.ProcessModel model = njams.processes().create("LAZY");
+        com.im.njams.sdk.model.ProcessModel model = njams.model().create("LAZY");
         CapturingSender capturing = new CapturingSender(msg -> !msg.getProcesses().isEmpty());
         com.im.njams.sdk.communication.TestSender.setSenderMock(capturing);
         try {
-            njams.processes().announce(model);
+            njams.model().announce(model);
             com.faizsiegeln.njams.messageformat.v4.projectmessage.ProjectMessage sent =
                 capturing.awaitProjectMessage();
             assertNotNull(sent);
@@ -471,7 +471,7 @@ public class NjamsFacetApiTest {
     @Test
     public void newJobsApiMatchesLegacyBehavior() {
         njams.start();
-        com.im.njams.sdk.model.ProcessModel model = njams.processes().create("P1");
+        com.im.njams.sdk.model.ProcessModel model = njams.model().create("P1");
         com.im.njams.sdk.logmessage.Job job = model.createJob();
         assertSame(job, njams.jobs().get(job.getJobId()));
         assertEquals(1, njams.jobs().getAll().size());
@@ -481,7 +481,7 @@ public class NjamsFacetApiTest {
 
     @Test(expected = NjamsSdkRuntimeException.class)
     public void newJobsAddBeforeStartThrows() {
-        com.im.njams.sdk.model.ProcessModel model = njams.processes().create("P1");
+        com.im.njams.sdk.model.ProcessModel model = njams.model().create("P1");
         model.createJob(); // createJob registers the job and requires a started instance
     }
 

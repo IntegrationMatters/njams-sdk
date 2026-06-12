@@ -31,7 +31,7 @@ public class JobFacadeBaselineTest {
     @Before
     public void setUp() {
         njams = new Njams(Path.of("SDK4", "TEST"), "1.0", "sdk4", TestReceiver.getSettings());
-        process = njams.processes().create(Path.of("SDK4", "TEST", "PROCESSES"));
+        process = njams.model().create(Path.of("SDK4", "TEST", "PROCESSES"));
         process.createActivity("act", "Act", null);
         njams.start();
     }

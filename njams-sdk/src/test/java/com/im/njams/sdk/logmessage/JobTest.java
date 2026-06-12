@@ -61,7 +61,7 @@ public class JobTest {
         Path processPath = clientPath.getOrCreateChild("PROCESSES", "testWithoutModel");
 
         //Creates an empty process model
-        ProcessModel process = njams.processes().create(processPath);
+        ProcessModel process = njams.model().create(processPath);
         ActivityModel actModelA = process.createActivity("a", "a", "a");
         ActivityModel actModelB = actModelA.transitionTo("b", "b", "b");
         njams.start();

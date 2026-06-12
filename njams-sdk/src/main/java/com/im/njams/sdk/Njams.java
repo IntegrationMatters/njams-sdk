@@ -168,7 +168,7 @@ public class Njams implements InstructionListener {
 
     private final NjamsMetadata metadata;
 
-    private final NjamsProcesses processes;
+    private final NjamsModel model;
 
     // The settings of the client
     private final ClientSettings settings;
@@ -213,9 +213,9 @@ public class Njams implements InstructionListener {
         initContainerMode();
         argos = new NjamsArgos(settings);
         configuration = new NjamsConfiguration(settings, this);
-        processes = new NjamsProcesses(this, lifecycle, metadata, features, configuration, projectMessageLock);
-        commands = new NjamsCommands(processes, replay, metadata, features);
-        processes.createTreeElements(path, TreeElementType.CLIENT);
+        model = new NjamsModel(this, lifecycle, metadata, features, configuration, projectMessageLock);
+        commands = new NjamsCommands(model, replay, metadata, features);
+        model.createTreeElements(path, TreeElementType.CLIENT);
         metadata.printStartupBanner(settings);
         beginConnect();
     }
@@ -282,10 +282,10 @@ public class Njams implements InstructionListener {
      * Provides access to the process models, taxonomy tree, images and process diagram tooling
      * of this client, including sending project messages.
      *
-     * @return the processes facet of this client, never <code>null</code>
+     * @return the model facet of this client, never <code>null</code>
      */
-    public NjamsProcesses processes() {
-        return processes;
+    public NjamsModel model() {
+        return model;
     }
 
     /**
@@ -582,9 +582,9 @@ public class Njams implements InstructionListener {
      *
      * @param key          the key of the image
      * @param resourcePath the path where to find the image
-     * @deprecated Use {@code njams.processes().addImage(key, resourcePath)} instead — obtain the
-     *             facet via {@link #processes()} and call
-     *             {@link NjamsProcesses#addImage(String, String)}. Unlike this method, the
+     * @deprecated Use {@code njams.model().addImage(key, resourcePath)} instead — obtain the
+     *             facet via {@link #model()} and call
+     *             {@link NjamsModel#addImage(String, String)}. Unlike this method, the
      *             replacement throws an {@link NjamsSdkRuntimeException} when called after
      *             {@link #start()}, because images added later are never sent to the nJAMS
      *             server.
@@ -598,28 +598,28 @@ public class Njams implements InstructionListener {
      * Add an image with an arbitrary supplier implementation.
      *
      * @param imageSupplier the supplier used by SDK to find the image
-     * @deprecated Use {@code njams.processes().addImage(imageSupplier)} instead — obtain the facet
-     *             via {@link #processes()} and call
-     *             {@link NjamsProcesses#addImage(ImageSupplier)}. Unlike this method, the
+     * @deprecated Use {@code njams.model().addImage(imageSupplier)} instead — obtain the facet
+     *             via {@link #model()} and call
+     *             {@link NjamsModel#addImage(ImageSupplier)}. Unlike this method, the
      *             replacement throws an {@link NjamsSdkRuntimeException} when called after
      *             {@link #start()}, because images added later are never sent to the nJAMS
      *             server.
      */
     @Deprecated(since = "6.0.0", forRemoval = true)
     public void addImage(final ImageSupplier imageSupplier) {
-        warnIfStarted("addImage", "processes().addImage(...)");
-        processes.addImageInternal(imageSupplier);
+        warnIfStarted("addImage", "model().addImage(...)");
+        model.addImageInternal(imageSupplier);
     }
 
     /**
      * @param processDiagramFactory the processDiagramFactory to set
-     * @deprecated Use {@code njams.processes().setDiagramFactory(processDiagramFactory)} instead —
-     *             obtain the facet via {@link #processes()} and call
-     *             {@link NjamsProcesses#setDiagramFactory(ProcessDiagramFactory)}.
+     * @deprecated Use {@code njams.model().setDiagramFactory(processDiagramFactory)} instead —
+     *             obtain the facet via {@link #model()} and call
+     *             {@link NjamsModel#setDiagramFactory(ProcessDiagramFactory)}.
      */
     @Deprecated(since = "6.0.0", forRemoval = true)
     public void setProcessDiagramFactory(ProcessDiagramFactory processDiagramFactory) {
-        processes.setDiagramFactory(processDiagramFactory);
+        model.setDiagramFactory(processDiagramFactory);
     }
 
     /**
@@ -773,19 +773,19 @@ public class Njams implements InstructionListener {
      *
      * @param relativePath The relative path (below the client path) of the process model to get
      * @return the ProcessModel or {@link NjamsSdkRuntimeException}
-     * @deprecated Use {@code njams.processes().get(absoluteProcessPath)} instead — obtain the facet
-     *             via {@link #processes()} and call {@link NjamsProcesses#get(Path)}.
+     * @deprecated Use {@code njams.model().get(absoluteProcessPath)} instead — obtain the facet
+     *             via {@link #model()} and call {@link NjamsModel#get(Path)}.
      *             <p><b>Behavior change:</b> this legacy method treats its argument as a path
      *             <i>relative</i> to the client path and prepends the client path before looking
-     *             up the model. The replacement {@link NjamsProcesses#get(Path)} expects the
+     *             up the model. The replacement {@link NjamsModel#get(Path)} expects the
      *             <i>absolute</i> process path (it must start with the client path) and does not
      *             prepend anything; build it with
-     *             {@code processes().get(metadata().getClientPath().getChild(...))} or use the
-     *             single-segment convenience {@link NjamsProcesses#get(String)}.
+     *             {@code model().get(metadata().getClientPath().getChild(...))} or use the
+     *             single-segment convenience {@link NjamsModel#get(String)}.
      */
     @Deprecated(since = "6.0.0", forRemoval = true)
     public ProcessModel getProcessModel(final com.im.njams.sdk.common.Path relativePath) {
-        return processes.get(metadata.getClientPath().getChild(relativePath.getParts()));
+        return model.get(metadata.getClientPath().getChild(relativePath.getParts()));
     }
 
     /**
@@ -793,33 +793,33 @@ public class Njams implements InstructionListener {
      *
      * @param relativePath The relative path (below the client path) of the process model to check
      * @return true if found else false
-     * @deprecated Use {@code njams.processes().has(absoluteProcessPath)} instead — obtain the facet
-     *             via {@link #processes()} and call {@link NjamsProcesses#has(Path)}.
+     * @deprecated Use {@code njams.model().has(absoluteProcessPath)} instead — obtain the facet
+     *             via {@link #model()} and call {@link NjamsModel#has(Path)}.
      *             <p><b>Behavior change:</b> this legacy method treats its argument as a path
      *             <i>relative</i> to the client path and prepends the client path before checking.
-     *             The replacement {@link NjamsProcesses#has(Path)} expects the <i>absolute</i>
+     *             The replacement {@link NjamsModel#has(Path)} expects the <i>absolute</i>
      *             process path and does not prepend anything; build it with
-     *             {@code processes().has(metadata().getClientPath().getChild(...))} or use the
-     *             single-segment convenience {@link NjamsProcesses#has(String)}.
+     *             {@code model().has(metadata().getClientPath().getChild(...))} or use the
+     *             single-segment convenience {@link NjamsModel#has(String)}.
      */
     @Deprecated(since = "6.0.0", forRemoval = true)
     public boolean hasProcessModel(final com.im.njams.sdk.common.Path relativePath) {
         if (relativePath == null) {
             return false;
         }
-        return processes.has(metadata.getClientPath().getChild(relativePath.getParts()));
+        return model.has(metadata.getClientPath().getChild(relativePath.getParts()));
     }
 
     /**
      * Returns a collection of all process models
      *
      * @return Collection of all process models
-     * @deprecated Use {@code njams.processes().getAll()} instead — obtain the facet via
-     *             {@link #processes()} and call {@link NjamsProcesses#getAll()}.
+     * @deprecated Use {@code njams.model().getAll()} instead — obtain the facet via
+     *             {@link #model()} and call {@link NjamsModel#getAll()}.
      */
     @Deprecated(since = "6.0.0", forRemoval = true)
     public Collection<ProcessModel> getProcessModels() {
-        return processes.getAll();
+        return model.getAll();
     }
 
     /**
@@ -854,18 +854,18 @@ public class Njams implements InstructionListener {
      * @param relativePath Relative path (below the client path) of the process which should be
      *             created
      * @return the new ProcessModel or a {@link NjamsSdkRuntimeException}
-     * @deprecated Use {@code njams.processes().create(absoluteProcessPath)} instead — obtain the
-     *             facet via {@link #processes()} and call {@link NjamsProcesses#create(Path)}.
+     * @deprecated Use {@code njams.model().create(absoluteProcessPath)} instead — obtain the
+     *             facet via {@link #model()} and call {@link NjamsModel#create(Path)}.
      *             <p><b>Behavior change:</b> this legacy method treats its argument as a path
      *             <i>relative</i> to the client path and prepends the client path. The replacement
-     *             {@link NjamsProcesses#create(Path)} expects the <i>absolute</i> process path (it
+     *             {@link NjamsModel#create(Path)} expects the <i>absolute</i> process path (it
      *             must start with the client path) and does not prepend anything; build it with
-     *             {@code processes().create(metadata().getClientPath().getOrCreateChild(...))} or
-     *             use the single-segment convenience {@link NjamsProcesses#create(String)}.
+     *             {@code model().create(metadata().getClientPath().getOrCreateChild(...))} or
+     *             use the single-segment convenience {@link NjamsModel#create(String)}.
      */
     @Deprecated(since = "6.0.0", forRemoval = true)
     public ProcessModel createProcess(final com.im.njams.sdk.common.Path relativePath) {
-        return processes.create(metadata.getClientPath().getOrCreateChild(relativePath.getParts()), this);
+        return model.create(metadata.getClientPath().getOrCreateChild(relativePath.getParts()), this);
     }
 
     /**
@@ -873,24 +873,24 @@ public class Njams implements InstructionListener {
      *
      * @param processModel The model to be added. A {@link NjamsSdkRuntimeException} is thrown if the given model was
      *                     created for another instance than this.
-     * @deprecated Use {@code njams.processes().add(processModel)} instead — obtain the facet via
-     *             {@link #processes()} and call {@link NjamsProcesses#add(ProcessModel)}.
+     * @deprecated Use {@code njams.model().add(processModel)} instead — obtain the facet via
+     *             {@link #model()} and call {@link NjamsModel#add(ProcessModel)}.
      */
     @Deprecated(since = "6.0.0", forRemoval = true)
     public void addProcessModel(final ProcessModel processModel) {
-        processes.add(processModel, this);
+        model.add(processModel, this);
     }
 
     /**
      * Flush all resources to the server by creating a new ProjectMessage. It
      * can only be flushed when the instance was started.
      *
-     * @deprecated Use {@code njams.processes().send()} instead — obtain the facet via
-     *             {@link #processes()} and call {@link NjamsProcesses#send()}.
+     * @deprecated Use {@code njams.model().send()} instead — obtain the facet via
+     *             {@link #model()} and call {@link NjamsModel#send()}.
      */
     @Deprecated(since = "6.0.0", forRemoval = true)
     public void sendProjectMessage() {
-        processes.send();
+        model.send();
     }
 
     /**
@@ -898,14 +898,14 @@ public class Njams implements InstructionListener {
      * This will create a small ProjectMessage only containing the new process.
      *
      * @param model the additional model to send
-     * @deprecated Use {@code njams.processes().announce(model)} instead — obtain the facet via
-     *             {@link #processes()} and call {@link NjamsProcesses#announce(ProcessModel)}. The
+     * @deprecated Use {@code njams.model().announce(model)} instead — obtain the facet via
+     *             {@link #model()} and call {@link NjamsModel#announce(ProcessModel)}. The
      *             replacement has the same contract: it throws an exception when the instance has
      *             not been started yet.
      */
     @Deprecated(since = "6.0.0", forRemoval = true)
     public void sendAdditionalProcess(final ProcessModel model) {
-        processes.announce(model);
+        this.model.announce(model);
     }
 
     /**
@@ -913,38 +913,38 @@ public class Njams implements InstructionListener {
      *
      * @param path the path of the tree icon
      * @param type icon type of the tree element
-     * @deprecated Use {@code njams.processes().setTreeElementType(path, type)} instead — obtain
-     *             the facet via {@link #processes()} and call
-     *             {@link NjamsProcesses#setTreeElementType(Path, String)}. Unlike this method, the
+     * @deprecated Use {@code njams.model().setTreeElementType(path, type)} instead — obtain
+     *             the facet via {@link #model()} and call
+     *             {@link NjamsModel#setTreeElementType(Path, String)}. Unlike this method, the
      *             replacement throws an {@link NjamsSdkRuntimeException} when called after
      *             {@link #start()}, because tree-element types are announced to the nJAMS server
      *             at start and a later change is never sent.
      */
     @Deprecated(since = "6.0.0", forRemoval = true)
     public void setTreeElementType(Path path, String type) {
-        warnIfStarted("setTreeElementType", "processes().setTreeElementType(...)");
-        processes.setTreeElementTypeInternal(path, type);
+        warnIfStarted("setTreeElementType", "model().setTreeElementType(...)");
+        model.setTreeElementTypeInternal(path, type);
     }
 
     /**
      * @return the processModelLayouter
-     * @deprecated Use {@code njams.processes().getLayouter()} instead — obtain the facet via
-     *             {@link #processes()} and call {@link NjamsProcesses#getLayouter()}.
+     * @deprecated Use {@code njams.model().getLayouter()} instead — obtain the facet via
+     *             {@link #model()} and call {@link NjamsModel#getLayouter()}.
      */
     @Deprecated(since = "6.0.0", forRemoval = true)
     public ProcessModelLayouter getProcessModelLayouter() {
-        return processes.getLayouter();
+        return model.getLayouter();
     }
 
     /**
      * @param processModelLayouter the processModelLayouter to set
-     * @deprecated Use {@code njams.processes().setLayouter(processModelLayouter)} instead — obtain
-     *             the facet via {@link #processes()} and call
-     *             {@link NjamsProcesses#setLayouter(ProcessModelLayouter)}.
+     * @deprecated Use {@code njams.model().setLayouter(processModelLayouter)} instead — obtain
+     *             the facet via {@link #model()} and call
+     *             {@link NjamsModel#setLayouter(ProcessModelLayouter)}.
      */
     @Deprecated(since = "6.0.0", forRemoval = true)
     public void setProcessModelLayouter(ProcessModelLayouter processModelLayouter) {
-        processes.setLayouter(processModelLayouter);
+        model.setLayouter(processModelLayouter);
     }
 
     @Override
@@ -1036,12 +1036,12 @@ public class Njams implements InstructionListener {
 
     /**
      * @return the ProcessDiagramFactory
-     * @deprecated Use {@code njams.processes().getDiagramFactory()} instead — obtain the facet via
-     *             {@link #processes()} and call {@link NjamsProcesses#getDiagramFactory()}.
+     * @deprecated Use {@code njams.model().getDiagramFactory()} instead — obtain the facet via
+     *             {@link #model()} and call {@link NjamsModel#getDiagramFactory()}.
      */
     @Deprecated(since = "6.0.0", forRemoval = true)
     public ProcessDiagramFactory getProcessDiagramFactory() {
-        return processes.getDiagramFactory();
+        return model.getDiagramFactory();
     }
 
     /**

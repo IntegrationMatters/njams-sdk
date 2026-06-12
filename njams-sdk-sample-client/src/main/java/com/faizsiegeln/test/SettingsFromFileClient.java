@@ -72,12 +72,12 @@ public class SettingsFromFileClient {
         Njams njams = new Njams(clientPath, "1.0.0", technology, settings);
 
         // add custom image for your technology
-        njams.processes().addImage(technology, "images/njams_java_sdk_process_step.png");
+        njams.model().addImage(technology, "images/njams_java_sdk_process_step.png");
 
         // add custom images for your activites
-        njams.processes().addImage("startType", "images/njams_java_sdk_process_start.png");
-        njams.processes().addImage("stepType", "images/njams_java_sdk_process_step.png");
-        njams.processes().addImage("endType", "images/njams_java_sdk_process_end.png");
+        njams.model().addImage("startType", "images/njams_java_sdk_process_start.png");
+        njams.model().addImage("stepType", "images/njams_java_sdk_process_step.png");
+        njams.model().addImage("endType", "images/njams_java_sdk_process_end.png");
 
         /**
          * Creating a process by adding a ProcessModel
@@ -86,7 +86,7 @@ public class SettingsFromFileClient {
         Path processPath = clientPath.getOrCreateChild("Processes", "SimpleProcess");
 
         // Create an new empty process model
-        ProcessModel process = njams.processes().create(processPath);
+        ProcessModel process = njams.model().create(processPath);
 
         // start the model with a start activity by id, name and type, where type should match one of your previously
         // registered images
