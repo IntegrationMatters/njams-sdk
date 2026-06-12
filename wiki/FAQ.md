@@ -305,11 +305,11 @@ public class MyLayouter implements ProcessModelLayouter {
 }
 ```
 
-Register it on the `Njams` instance before starting (since 6.0.0 via the `processes()` facet; the former
+Register it on the `Njams` instance before starting (since 6.0.0 via the `model()` facet; the former
 `njams.setProcessModelLayouter(...)` still works but is deprecated):
 
 ```java
-njams.processes().setLayouter(new MyLayouter());
+njams.model().setLayouter(new MyLayouter());
 ```
 
 If the `ActivityModel` elements in your process model are already populated with coordinates and dimensions — for
@@ -317,7 +317,7 @@ example, when coordinates are imported from an external source — use `NoopLayo
 entirely:
 
 ```java
-njams.processes().setLayouter(new NoopLayouter());
+njams.model().setLayouter(new NoopLayouter());
 ```
 
 ### Modifying the SVG output
@@ -633,7 +633,7 @@ variable values to the SDK.
 #### Customizing the matching pattern
 
 The reference syntax for variables is not fixed. A client can define its own matching pattern as a
-regular expression via `njams.metadata().setGlobalVariablesPattern(String)` (since 6.0.0; the former
+regular expression via `njams.model().setGlobalVariablesPattern(String)` (since 6.0.0; the former
 `njams.setGlobalVariablesPattern(...)` still works but is deprecated). The pattern is transported to the nJAMS server
 with the project message and used there to detect and replace references; when no pattern is set, showing values
 instead of variables is not supported. The pattern must be set before `start()`.
