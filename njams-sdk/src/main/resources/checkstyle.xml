@@ -3,6 +3,52 @@
     "-//Puppy Crawl//DTD Check Configuration 1.2//EN"
     "http://www.puppycrawl.com/dtds/configuration_1_2.dtd">
 
+<!--
+  ============================================================
+  MANUAL CODE REVIEW RULES
+  (not auto-enforced by Checkstyle — must be verified by code
+  review on every change to public or protected API members)
+  ============================================================
+
+  1. No relocated (shaded) third-party types on the public API
+     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+     The SDK artifact relocates several third-party libraries into the
+     com.im.* namespace at packaging time (see the Maven Shade plugin
+     configuration in pom.xml). Types from these libraries are therefore
+     not reachable by SDK consumers under their original coordinates.
+
+     RULE: No public or protected method signature, return type,
+     parameter type, public field, type parameter, thrown exception,
+     or annotation may reference a type that is relocated during
+     packaging. This includes indirect exposure (returning a collection
+     of them, or a public type that extends/implements one).
+
+     Packages currently relocated (verify against pom.xml <relocations>):
+       com.fasterxml.*       (Jackson)
+       net.sf.saxon.*        (Saxon)
+       com.ctc.wstx.*        (Woodstox)
+       org.codehaus.*        (Woodstox/Stax2)
+       io.burt.jmespath.*    (JMESPath)
+       net.jpountz.*         (LZ4)
+       org.jboss.*           (Resteasy internals)
+       io.smallrye.*         (Resteasy internals)
+       okhttp3.*             (OkHttp)
+       com.launchdarkly.*    (LaunchDarkly)
+
+     Internal uses of these types (private/package-private code) are
+     permitted. Classes in the communication/ layer are explicitly
+     excluded from the public-API boundary.
+
+     Violation indicator: a class outside communication/ imports a
+     relocated package AND the importing type or one of its methods
+     is public or protected.
+
+     Current known exceptions (deprecated, pending SDK-450):
+       JsonSerializerFactory — deprecated methods expose Jackson types.
+
+  ============================================================
+-->
+
 <module name="Checker">
     <module name="TreeWalker">
         <module name="JavadocMethod">
