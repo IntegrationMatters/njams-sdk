@@ -42,7 +42,7 @@ import com.im.njams.sdk.communication.InstructionListener;
  * the SDK built-in server commands (send-project-message, ping, replay, get-request-handler).
  * Obtain via {@code njams.commands()}.
  */
-public final class NjamsCommands {
+public class NjamsCommands {
 
     private static final Logger LOG = LoggerFactory.getLogger(NjamsCommands.class);
 

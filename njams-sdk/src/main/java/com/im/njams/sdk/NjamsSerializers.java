@@ -35,7 +35,7 @@ import com.im.njams.sdk.serializer.StringSerializer;
  * Owns the {@link Serializer} registry of an {@link Njams} client and serializes
  * arbitrary objects to strings for activity data. Obtain via {@code njams.serializers()}.
  */
-public final class NjamsSerializers {
+public class NjamsSerializers {
 
     private static final Logger LOG = LoggerFactory.getLogger(NjamsSerializers.class);
 

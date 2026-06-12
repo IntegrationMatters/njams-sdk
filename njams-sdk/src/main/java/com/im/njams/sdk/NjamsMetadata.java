@@ -50,7 +50,7 @@ import com.im.njams.sdk.settings.ClientSettings;
  * Owns the identifying metadata of an {@link Njams} client: path, category, versions,
  * machine and session id. Obtain via {@code njams.metadata()}.
  */
-public final class NjamsMetadata {
+public class NjamsMetadata {
 
     private static final Logger LOG = LoggerFactory.getLogger(NjamsMetadata.class);
 

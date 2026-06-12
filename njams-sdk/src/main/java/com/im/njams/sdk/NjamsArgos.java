@@ -34,7 +34,7 @@ import com.im.njams.sdk.settings.ClientSettings;
  * Owns Argos metric collector registration for an {@link Njams} client.
  * Obtain via {@code njams.argos()}.
  */
-public final class NjamsArgos {
+public class NjamsArgos {
 
     private final ArgosSender argosSender;
     private final Collection<ArgosMultiCollector<?>> collectors = new ArrayList<>();

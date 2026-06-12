@@ -37,7 +37,7 @@ import com.im.njams.sdk.communication.ReplayResponse;
  * Owns the {@link ReplayHandler} of an {@link Njams} client and processes replay
  * instructions from the nJAMS server. Obtain via {@code njams.replay()}.
  */
-public final class NjamsReplay {
+public class NjamsReplay {
 
     private static final Logger LOG = LoggerFactory.getLogger(NjamsReplay.class);
 

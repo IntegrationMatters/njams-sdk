@@ -35,7 +35,7 @@ import com.im.njams.sdk.common.NjamsSdkRuntimeException;
  * The feature list is announced to the nJAMS server in the project message at start.
  * Obtain via {@code njams.features()}.
  */
-public final class NjamsFeatures {
+public class NjamsFeatures {
 
     private final LifecycleState lifecycle;
     private final List<Feature> features = new CopyOnWriteArrayList<>(Feature.INHERENT_FEATURES);

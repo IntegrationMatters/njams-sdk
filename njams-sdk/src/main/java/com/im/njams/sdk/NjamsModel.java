@@ -46,7 +46,7 @@ import com.im.njams.sdk.model.svg.ProcessDiagramFactory;
  * {@link Njams} client, and assembles and sends project messages.
  * Obtain via {@code njams.model()}.
  */
-public final class NjamsModel {
+public class NjamsModel {
 
     private final Njams njams;
     private final LifecycleState lifecycle;

@@ -39,7 +39,7 @@ import com.im.njams.sdk.settings.ClientSettings;
  * (log mode, process exclusions, tracepoints) and its provider.
  * Obtain via {@code njams.configuration()}.
  */
-public final class NjamsConfiguration {
+public class NjamsConfiguration {
 
     private static final Logger LOG = LoggerFactory.getLogger(NjamsConfiguration.class);
 

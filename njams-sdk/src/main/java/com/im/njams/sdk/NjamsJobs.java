@@ -41,7 +41,7 @@ import com.im.njams.sdk.utils.StringUtils;
  * Owns the registry of currently running {@link Job}s of an {@link Njams} client.
  * Obtain via {@code njams.jobs()}. This facet is part of the runtime monitoring path.
  */
-public final class NjamsJobs {
+public class NjamsJobs {
 
     private static final Logger LOG = LoggerFactory.getLogger(NjamsJobs.class);
 
