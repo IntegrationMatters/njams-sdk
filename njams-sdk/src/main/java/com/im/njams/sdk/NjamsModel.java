@@ -23,12 +23,10 @@
  */
 package com.im.njams.sdk;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -36,7 +34,6 @@ import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.faizsiegeln.njams.messageformat.v4.common.TreeElement;
 import com.faizsiegeln.njams.messageformat.v4.common.TreeElementType;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.ProjectMessage;
 import com.im.njams.sdk.Njams.Feature;
@@ -58,15 +55,6 @@ public final class NjamsModel {
 
     private static final Logger LOG = LoggerFactory.getLogger(NjamsModel.class);
 
-    private static final String DEFAULT_TAXONOMY_ROOT_TYPE = "njams.taxonomy.root";
-    private static final String DEFAULT_TAXONOMY_FOLDER_TYPE = "njams.taxonomy.folder";
-    private static final String DEFAULT_TAXONOMY_CLIENT_TYPE = "njams.taxonomy.client";
-    private static final String DEFAULT_TAXONOMY_PROCESS_TYPE = "njams.taxonomy.process";
-    private static final String DEFAULT_TAXONOMY_ROOT_ICON = "images/root.png";
-    private static final String DEFAULT_TAXONOMY_FOLDER_ICON = "images/folder.png";
-    private static final String DEFAULT_TAXONOMY_CLIENT_ICON = "images/client.png";
-    private static final String DEFAULT_TAXONOMY_PROCESS_ICON = "images/process.png";
-
     private final Njams njams;
     private final LifecycleState lifecycle;
     private final NjamsMetadata metadata;
@@ -81,7 +69,7 @@ public final class NjamsModel {
     private final Collection<ImageSupplier> images = new HashSet<>();
 
     // tree representation for the client
-    private final List<TreeElement> treeElements = new ArrayList<>();
+    private final TaxonomyTree taxonomy;
 
     private ProcessDiagramFactory processDiagramFactory;
 
@@ -95,6 +83,7 @@ public final class NjamsModel {
         this.features = features;
         this.configuration = configuration;
         this.projectMessageLock = projectMessageLock;
+        taxonomy = new TaxonomyTree(projectMessageLock);
         processDiagramFactory = new NjamsProcessDiagramFactory(njams);
         processModelLayouter = new CommonBfsModelLayouter();
     }
@@ -296,14 +285,7 @@ public final class NjamsModel {
     }
 
     void setTreeElementTypeInternal(Path path, String type) {
-        synchronized (projectMessageLock) {
-            TreeElement dos = treeElements.stream().filter(d -> d.getPath().equals(path.toString())).findAny()
-                .orElse(null);
-            if (dos == null) {
-                throw new NjamsSdkRuntimeException("Unable to find DomainObjectStructure for path " + path);
-            }
-            dos.setType(type);
-        }
+        taxonomy.setType(path, type);
     }
 
     /**
@@ -350,9 +332,10 @@ public final class NjamsModel {
      */
     public void send() {
         addDefaultImagesIfNeededAndAbsent();
-        setStarters();
+        taxonomy.markStarters(path -> Optional.ofNullable(processModels.get(path))
+            .map(ProcessModel::isStarter).orElse(false));
         final ProjectMessage msg = prepareProjectMessage();
-        msg.getTreeElements().addAll(treeElements);
+        taxonomy.copyInto(msg.getTreeElements());
         synchronized (projectMessageLock) {
             processModels.values().stream().map(ProcessModel::getSerializableProcessModel)
                 .forEach(ipm -> msg.getProcesses().add(ipm));
@@ -376,8 +359,8 @@ public final class NjamsModel {
             throw new NjamsSdkRuntimeException("Njams is not started. Please use createProcess Method instead");
         }
         final ProjectMessage msg = prepareProjectMessage();
-        addTreeElements(msg.getTreeElements(), metadata.getClientPath(), TreeElementType.CLIENT, false);
-        addTreeElements(msg.getTreeElements(), model.getPath(), TreeElementType.PROCESS, model.isStarter());
+        taxonomy.buildInto(msg.getTreeElements(), metadata.getClientPath(), TreeElementType.CLIENT, false);
+        taxonomy.buildInto(msg.getTreeElements(), model.getPath(), TreeElementType.PROCESS, model.isStarter());
         msg.getProcesses().add(model.getSerializableProcessModel());
         njams.getSender().send(msg, metadata.getClientSessionId());
     }
@@ -402,30 +385,17 @@ public final class NjamsModel {
     }
 
     /**
-     * Adds imgages for the default keys, if they are used and no image has benn
-     * added for them
+     * Adds images for the default taxonomy keys that are used by the tree, if no image has been
+     * added for them yet.
      */
     private void addDefaultImagesIfNeededAndAbsent() {
-        addDefaultImagesIfNeededAndAbsent(DEFAULT_TAXONOMY_FOLDER_TYPE, DEFAULT_TAXONOMY_FOLDER_ICON);
-        addDefaultImagesIfNeededAndAbsent(DEFAULT_TAXONOMY_ROOT_TYPE, DEFAULT_TAXONOMY_ROOT_ICON);
-        addDefaultImagesIfNeededAndAbsent(DEFAULT_TAXONOMY_CLIENT_TYPE, DEFAULT_TAXONOMY_CLIENT_ICON);
-        addDefaultImagesIfNeededAndAbsent(DEFAULT_TAXONOMY_PROCESS_TYPE, DEFAULT_TAXONOMY_PROCESS_ICON);
-    }
-
-    /**
-     * Checks all tree elements if the given treeDefaultType has been used, and
-     * adds the treeDefaultIcon if not images has been added yet
-     *
-     * @param treeDefaultType type of the tree element
-     * @param treeDefaultIcon icon which should be added if needed
-     */
-    private void addDefaultImagesIfNeededAndAbsent(String treeDefaultType, String treeDefaultIcon) {
         synchronized (projectMessageLock) {
-            boolean found = treeElements.stream().anyMatch(te -> te.getType().equals(treeDefaultType));
-            if (found && images.stream().noneMatch(i -> i.getName().equals(treeDefaultType))) {
-                // runs during send() - after start - so it must bypass the pre-start guard
-                addImageInternal(new ResourceImageSupplier(treeDefaultType, treeDefaultIcon));
-            }
+            taxonomy.defaultImagesInUse().forEach((type, icon) -> {
+                if (images.stream().noneMatch(i -> i.getName().equals(type))) {
+                    // runs during send() - after start - so it must bypass the pre-start guard
+                    addImageInternal(new ResourceImageSupplier(type, icon));
+                }
+            });
         }
     }
 
@@ -434,71 +404,6 @@ public final class NjamsModel {
      * client
      */
     void createTreeElements(Path path, TreeElementType targetDomainObjectType) {
-        synchronized (projectMessageLock) {
-            final List<String> parts = path.getSegments();
-            String currentPath = ">";
-            for (int i = 0; i < parts.size(); i++) {
-                String part = parts.get(i);
-                currentPath += part + ">";
-                final String finalPath = currentPath;
-                boolean found = treeElements.stream().filter(d -> d.getPath().equals(finalPath)).findAny().isPresent();
-                if (!found) {
-                    TreeElementType domainObjectType = i == parts.size() - 1 ? targetDomainObjectType : null;
-                    String type = getTreeElementDefaultType(i == 0, domainObjectType);
-                    treeElements.add(new TreeElement(currentPath, part, type, domainObjectType));
-                }
-            }
-        }
-    }
-
-    /**
-     * Returns the default icon type for a TreeElement, based on the criterias
-     * first and TreeElementType
-     *
-     * @param first          Is this the root element
-     * @param treeElmentType The treeElementType
-     * @return the icon type
-     */
-    private String getTreeElementDefaultType(boolean first, TreeElementType treeElmentType) {
-        String type = DEFAULT_TAXONOMY_FOLDER_TYPE;
-        if (first) {
-            type = DEFAULT_TAXONOMY_ROOT_TYPE;
-        } else if (treeElmentType == TreeElementType.CLIENT) {
-            type = DEFAULT_TAXONOMY_CLIENT_TYPE;
-        } else if (treeElmentType == TreeElementType.PROCESS) {
-            type = DEFAULT_TAXONOMY_PROCESS_TYPE;
-        }
-        return type;
-    }
-
-    /**
-     * Sets the TreeElements starter flag according to the corresponding processModel
-     */
-    private void setStarters() {
-        treeElements.stream().filter(t -> t.getTreeElementType() == TreeElementType.PROCESS)
-            .forEach(t -> t.setStarter(
-                Optional.ofNullable(
-                    processModels.get(Path.resolve(t.getPath()))).map(ProcessModel::isStarter).orElse(false)));
-    }
-
-    private List<TreeElement> addTreeElements(List<TreeElement> treeElements, Path processPath,
-        TreeElementType targetDomainObjectType, boolean isStarter) {
-        final List<String> parts = processPath.getSegments();
-        String currentPath = ">";
-        for (int i = 0; i < parts.size(); i++) {
-            String part = parts.get(i);
-            currentPath += part + ">";
-            final String finalPath = currentPath;
-            boolean found = treeElements.stream().filter(d -> d.getPath().equals(finalPath)).findAny().isPresent();
-            if (!found) {
-                TreeElementType domainObjectType =
-                    i == parts.size() - 1 ? targetDomainObjectType : null;
-                String type = getTreeElementDefaultType(i == 0, domainObjectType);
-                treeElements.add(new TreeElement(currentPath, part, type, domainObjectType));
-            }
-        }
-        treeElements.stream().filter(te -> te.getTreeElementType() == TreeElementType.PROCESS)
-            .forEach(te -> te.setStarter(isStarter));
-        return treeElements;
+        taxonomy.register(path, targetDomainObjectType);
     }
 }
