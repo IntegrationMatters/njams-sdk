@@ -64,6 +64,8 @@ public final class NjamsModel {
     // tree representation for the client
     private final TaxonomyTree taxonomy;
 
+    private final GlobalVariables globalVariables;
+
     private final ProjectMessageAssembler assembler;
 
     private ProcessDiagramFactory processDiagramFactory;
@@ -79,7 +81,9 @@ public final class NjamsModel {
         this.configuration = configuration;
         this.projectMessageLock = projectMessageLock;
         taxonomy = new TaxonomyTree(projectMessageLock);
-        assembler = new ProjectMessageAssembler(metadata, features, configuration, projectMessageLock);
+        globalVariables = new GlobalVariables(projectMessageLock);
+        assembler = new ProjectMessageAssembler(metadata, features, configuration, globalVariables,
+            projectMessageLock);
         processDiagramFactory = new NjamsProcessDiagramFactory(njams);
         processModelLayouter = new CommonBfsModelLayouter();
     }
@@ -282,6 +286,68 @@ public final class NjamsModel {
 
     void setTreeElementTypeInternal(Path path, String type) {
         taxonomy.setType(path, type);
+    }
+
+    /**
+     * Returns the global variables of this client.
+     *
+     * @return the globalVariables
+     */
+    public Map<String, String> getGlobalVariables() {
+        return globalVariables.getAll();
+    }
+
+    /**
+     * Adds the given global variables to this instance's global variables. Global variables are
+     * announced to the nJAMS server in the project message when the client starts.
+     *
+     * @param globalVariables The global variables to be added to this instance.
+     * @return this facet, for call chaining
+     * @throws NjamsSdkRuntimeException if the client has already been started — a later change
+     *                                  would never reach the server
+     */
+    public NjamsModel addGlobalVariables(Map<String, String> globalVariables) {
+        lifecycle.requireNotStarted("NjamsModel.addGlobalVariables");
+        addGlobalVariablesInternal(globalVariables);
+        return this;
+    }
+
+    void addGlobalVariablesInternal(Map<String, String> globalVariables) {
+        this.globalVariables.add(globalVariables);
+    }
+
+    /**
+     * Returns the regular expression that defines how global-variable references are detected and replaced in this
+     * client's configurations. When {@code null}, the nJAMS server applies its own default matching behavior.
+     *
+     * @return the global-variable matching pattern, or {@code null} if none was set
+     */
+    public String getGlobalVariablesPattern() {
+        return globalVariables.getPattern();
+    }
+
+    /**
+     * Sets the regular expression that defines how global-variable references are detected and replaced in this
+     * client's configurations, overriding the nJAMS server's default matching. The pattern must use named groups:
+     * {@code full} (the entire reference, e.g. {@code %%var%%}) and {@code name} (the variable name) are required;
+     * {@code default} (a fallback value) and {@code optional} (any non-blank match marks the reference as optional)
+     * are optional. The pattern is transported to the server with the project message.
+     *
+     * @param globalVariablesPattern the regex pattern, or {@code null} to clear it and let the server apply its
+     *                               default behavior
+     * @return this facet, for call chaining
+     * @throws NjamsSdkRuntimeException if the pattern is not a valid regular expression or does not declare the
+     *                                  required named groups {@code full} and {@code name}, or if the client has
+     *                                  already been started — a later change would never reach the server
+     */
+    public NjamsModel setGlobalVariablesPattern(String globalVariablesPattern) {
+        lifecycle.requireNotStarted("NjamsModel.setGlobalVariablesPattern");
+        setGlobalVariablesPatternInternal(globalVariablesPattern);
+        return this;
+    }
+
+    void setGlobalVariablesPatternInternal(String globalVariablesPattern) {
+        globalVariables.setPattern(globalVariablesPattern);
     }
 
     /**

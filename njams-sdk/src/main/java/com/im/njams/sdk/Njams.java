@@ -209,7 +209,7 @@ public class Njams implements InstructionListener {
         this.settings = settings;
         jobs = new NjamsJobs(lifecycle);
         replay = new NjamsReplay(lifecycle, features, jobs);
-        metadata = new NjamsMetadata(path, version, category, lifecycle, projectMessageLock);
+        metadata = new NjamsMetadata(path, version, category, lifecycle);
         initContainerMode();
         argos = new NjamsArgos(settings);
         configuration = new NjamsConfiguration(settings, this);
@@ -460,29 +460,29 @@ public class Njams implements InstructionListener {
 
     /**
      * @return the globalVariables
-     * @deprecated Use {@code njams.metadata().getGlobalVariables()} instead — obtain the facet via
-     *             {@link #metadata()} and call {@link NjamsMetadata#getGlobalVariables()}.
+     * @deprecated Use {@code njams.model().getGlobalVariables()} instead — obtain the facet via
+     *             {@link #model()} and call {@link NjamsModel#getGlobalVariables()}.
      */
     @Deprecated(since = "6.0.0", forRemoval = true)
     public Map<String, String> getGlobalVariables() {
-        return metadata.getGlobalVariables();
+        return model.getGlobalVariables();
     }
 
     /**
      * Adds the given global variables to this instance's global variables.
      *
      * @param globalVariables The global variables to be added to this instance.
-     * @deprecated Use {@code njams.metadata().addGlobalVariables(globalVariables)} instead —
-     *             obtain the facet via {@link #metadata()} and call
-     *             {@link NjamsMetadata#addGlobalVariables(Map)}. Unlike this method, the
+     * @deprecated Use {@code njams.model().addGlobalVariables(globalVariables)} instead —
+     *             obtain the facet via {@link #model()} and call
+     *             {@link NjamsModel#addGlobalVariables(Map)}. Unlike this method, the
      *             replacement throws an {@link NjamsSdkRuntimeException} when called after
      *             {@link #start()}, because global variables are announced to the nJAMS server at
      *             start and a later change is never sent.
      */
     @Deprecated(since = "6.0.0", forRemoval = true)
     public void addGlobalVariables(Map<String, String> globalVariables) {
-        warnIfStarted("addGlobalVariables", "metadata().addGlobalVariables(...)");
-        metadata.addGlobalVariablesInternal(globalVariables);
+        warnIfStarted("addGlobalVariables", "model().addGlobalVariables(...)");
+        model.addGlobalVariablesInternal(globalVariables);
     }
 
     /**
@@ -490,13 +490,13 @@ public class Njams implements InstructionListener {
      * client's configurations. When {@code null}, the nJAMS server applies its own default matching behavior.
      *
      * @return the global-variable matching pattern, or {@code null} if none was set
-     * @deprecated Use {@code njams.metadata().getGlobalVariablesPattern()} instead — obtain the
-     *             facet via {@link #metadata()} and call
-     *             {@link NjamsMetadata#getGlobalVariablesPattern()}.
+     * @deprecated Use {@code njams.model().getGlobalVariablesPattern()} instead — obtain the
+     *             facet via {@link #model()} and call
+     *             {@link NjamsModel#getGlobalVariablesPattern()}.
      */
     @Deprecated(since = "6.0.0", forRemoval = true)
     public String getGlobalVariablesPattern() {
-        return metadata.getGlobalVariablesPattern();
+        return model.getGlobalVariablesPattern();
     }
 
     /**
@@ -510,17 +510,17 @@ public class Njams implements InstructionListener {
      *                               default behavior
      * @throws NjamsSdkRuntimeException if the pattern is not a valid regular expression or does not declare the
      *                                  required named groups {@code full} and {@code name}
-     * @deprecated Use {@code njams.metadata().setGlobalVariablesPattern(pattern)} instead — obtain
-     *             the facet via {@link #metadata()} and call
-     *             {@link NjamsMetadata#setGlobalVariablesPattern(String)}. Unlike this method, the
+     * @deprecated Use {@code njams.model().setGlobalVariablesPattern(pattern)} instead — obtain
+     *             the facet via {@link #model()} and call
+     *             {@link NjamsModel#setGlobalVariablesPattern(String)}. Unlike this method, the
      *             replacement throws an {@link NjamsSdkRuntimeException} when called after
      *             {@link #start()}, because the pattern is announced to the nJAMS server at start
      *             and a later change is never sent.
      */
     @Deprecated(since = "6.0.0", forRemoval = true)
     public void setGlobalVariablesPattern(String globalVariablesPattern) {
-        warnIfStarted("setGlobalVariablesPattern", "metadata().setGlobalVariablesPattern(...)");
-        metadata.setGlobalVariablesPatternInternal(globalVariablesPattern);
+        warnIfStarted("setGlobalVariablesPattern", "model().setGlobalVariablesPattern(...)");
+        model.setGlobalVariablesPatternInternal(globalVariablesPattern);
     }
 
     /**

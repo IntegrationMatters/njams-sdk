@@ -37,9 +37,6 @@ import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Properties;
 import java.util.UUID;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-import java.util.regex.PatternSyntaxException;
 import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
@@ -51,8 +48,7 @@ import com.im.njams.sdk.settings.ClientSettings;
 
 /**
  * Owns the identifying metadata of an {@link Njams} client: path, category, versions,
- * machine, session id, and the global variables announced in the project message.
- * Obtain via {@code njams.metadata()}.
+ * machine and session id. Obtain via {@code njams.metadata()}.
  */
 public final class NjamsMetadata {
 
@@ -60,33 +56,21 @@ public final class NjamsMetadata {
 
     private static final String[] VERSION_FILES = { "njams.version", "msg.version", "client.version" };
 
-    // Matches a named-group declaration, e.g. "(?<name>"; deliberately excludes look-behind "(?<=" / "(?<!".
-    private static final Pattern NAMED_GROUP_DECLARATION = Pattern.compile("\\(\\?<([a-zA-Z][a-zA-Z0-9]*)>");
-
     private final String category;
     private final Path clientPath;
     private final String clientSessionId;
     private final LocalDateTime startTime;
     private final Map<String, String> versions = new HashMap<>();
 
-    // Name -> Value
-    private final Map<String, String> globalVariables = new HashMap<>();
-
-    // Regex defining how global-variable references are matched; null means the server applies its default.
-    private String globalVariablesPattern;
-
     private String machine;
     private String runtimeVersion;
 
     private final LifecycleState lifecycle;
-    private final Object projectMessageLock;
 
-    NjamsMetadata(Path clientPath, String version, String category, LifecycleState lifecycle,
-        Object projectMessageLock) {
+    NjamsMetadata(Path clientPath, String version, String category, LifecycleState lifecycle) {
         this.clientPath = clientPath;
         this.category = category == null ? null : category.toUpperCase();
         this.lifecycle = lifecycle;
-        this.projectMessageLock = projectMessageLock;
         startTime = DateTimeUtility.now();
         clientSessionId = UUID.randomUUID().toString();
         readVersionsFromVersionFile(version);
@@ -174,96 +158,6 @@ public final class NjamsMetadata {
      */
     public String getMachine() {
         return machine;
-    }
-
-    /**
-     * Returns the global variables of this client.
-     *
-     * @return the globalVariables
-     */
-    public Map<String, String> getGlobalVariables() {
-        return globalVariables;
-    }
-
-    /**
-     * Adds the given global variables to this instance's global variables. Global variables are
-     * announced to the nJAMS server in the project message when the client starts.
-     *
-     * @param globalVariables The global variables to be added to this instance.
-     * @return this facet, for call chaining
-     * @throws NjamsSdkRuntimeException if the client has already been started — a later change
-     *                                  would never reach the server
-     */
-    public NjamsMetadata addGlobalVariables(Map<String, String> globalVariables) {
-        lifecycle.requireNotStarted("NjamsMetadata.addGlobalVariables");
-        addGlobalVariablesInternal(globalVariables);
-        return this;
-    }
-
-    void addGlobalVariablesInternal(Map<String, String> globalVariables) {
-        synchronized (projectMessageLock) {
-            this.globalVariables.putAll(globalVariables);
-        }
-    }
-
-    /**
-     * Returns the regular expression that defines how global-variable references are detected and replaced in this
-     * client's configurations. When {@code null}, the nJAMS server applies its own default matching behavior.
-     *
-     * @return the global-variable matching pattern, or {@code null} if none was set
-     */
-    public String getGlobalVariablesPattern() {
-        return globalVariablesPattern;
-    }
-
-    /**
-     * Sets the regular expression that defines how global-variable references are detected and replaced in this
-     * client's configurations, overriding the nJAMS server's default matching. The pattern must use named groups:
-     * {@code full} (the entire reference, e.g. {@code %%var%%}) and {@code name} (the variable name) are required;
-     * {@code default} (a fallback value) and {@code optional} (any non-blank match marks the reference as optional)
-     * are optional. The pattern is transported to the server with the project message.
-     *
-     * @param globalVariablesPattern the regex pattern, or {@code null} to clear it and let the server apply its
-     *                               default behavior
-     * @return this facet, for call chaining
-     * @throws NjamsSdkRuntimeException if the pattern is not a valid regular expression or does not declare the
-     *                                  required named groups {@code full} and {@code name}, or if the client has
-     *                                  already been started — a later change would never reach the server
-     */
-    public NjamsMetadata setGlobalVariablesPattern(String globalVariablesPattern) {
-        lifecycle.requireNotStarted("NjamsMetadata.setGlobalVariablesPattern");
-        setGlobalVariablesPatternInternal(globalVariablesPattern);
-        return this;
-    }
-
-    void setGlobalVariablesPatternInternal(String globalVariablesPattern) {
-        if (globalVariablesPattern != null) {
-            validateGlobalVariablesPattern(globalVariablesPattern);
-        }
-        this.globalVariablesPattern = globalVariablesPattern;
-    }
-
-    private static void validateGlobalVariablesPattern(String regex) {
-        try {
-            Pattern.compile(regex);
-        } catch (PatternSyntaxException e) {
-            throw new NjamsSdkRuntimeException("Invalid global-variables pattern: " + regex, e);
-        }
-        boolean hasFull = false;
-        boolean hasName = false;
-        final Matcher declarations = NAMED_GROUP_DECLARATION.matcher(regex);
-        while (declarations.find()) {
-            final String group = declarations.group(1);
-            if ("full".equals(group)) {
-                hasFull = true;
-            } else if ("name".equals(group)) {
-                hasName = true;
-            }
-        }
-        if (!hasFull || !hasName) {
-            throw new NjamsSdkRuntimeException(
-                "Global-variables pattern must declare the named groups 'full' and 'name': " + regex);
-        }
     }
 
     /** The start time of the engine; sent in the project message. */

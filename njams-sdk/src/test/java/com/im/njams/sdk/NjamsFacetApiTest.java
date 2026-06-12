@@ -46,20 +46,20 @@ public class NjamsFacetApiTest {
         assertSame(njams.configuration(), njams.configuration());
     }
 
-    // --- metadata guards ---
+    // --- metadata + model global-variable guards ---
 
     @Test(expected = NjamsSdkRuntimeException.class)
     public void newAddGlobalVariablesThrowsAfterStart() {
         njams.start();
         Map<String, String> vars = new HashMap<>();
         vars.put("late", "x");
-        njams.metadata().addGlobalVariables(vars);
+        njams.model().addGlobalVariables(vars);
     }
 
     @Test(expected = NjamsSdkRuntimeException.class)
     public void newSetGlobalVariablesPatternThrowsAfterStart() {
         njams.start();
-        njams.metadata().setGlobalVariablesPattern("(?<full>%%(?<name>[^%]+)%%)");
+        njams.model().setGlobalVariablesPattern("(?<full>%%(?<name>[^%]+)%%)");
     }
 
     @Test(expected = NjamsSdkRuntimeException.class)
@@ -73,23 +73,24 @@ public class NjamsFacetApiTest {
         njams.metadata().setRuntimeVersion("rt");
         Map<String, String> vars = new HashMap<>();
         vars.put("a", "1");
-        njams.metadata().addGlobalVariables(vars);
-        njams.metadata().setGlobalVariablesPattern("(?<full>%%(?<name>[^%]+)%%)");
+        njams.model().addGlobalVariables(vars);
+        njams.model().setGlobalVariablesPattern("(?<full>%%(?<name>[^%]+)%%)");
         assertEquals("rt", njams.metadata().getRuntimeVersion());
-        assertEquals("1", njams.metadata().getGlobalVariables().get("a"));
+        assertEquals("1", njams.model().getGlobalVariables().get("a"));
     }
 
     @Test
-    public void metadataMutatorsAreChainable() {
+    public void facetMutatorsAreChainable() {
         Map<String, String> vars = new HashMap<>();
         vars.put("a", "1");
-        NjamsMetadata result = njams.metadata()
-            .setRuntimeVersion("rt")
+        NjamsMetadata metadataResult = njams.metadata().setRuntimeVersion("rt");
+        assertSame(njams.metadata(), metadataResult);
+        NjamsModel modelResult = njams.model()
             .addGlobalVariables(vars)
             .setGlobalVariablesPattern("(?<full>%%(?<name>[^%]+)%%)");
-        assertSame(njams.metadata(), result);
+        assertSame(njams.model(), modelResult);
         assertEquals("rt", njams.metadata().getRuntimeVersion());
-        assertEquals("1", njams.metadata().getGlobalVariables().get("a"));
+        assertEquals("1", njams.model().getGlobalVariables().get("a"));
     }
 
     @Test
@@ -103,7 +104,7 @@ public class NjamsFacetApiTest {
         assertEquals("x", njams.getGlobalVariables().get("late"));
     }
 
-    // --- metadata parity mirrors ---
+    // --- metadata + model global-variable parity mirrors ---
 
     @Test
     public void categoryIsUppercased_viaFacet() {
@@ -141,13 +142,13 @@ public class NjamsFacetApiTest {
     public void addGlobalVariablesMergesIntoExisting_viaFacet() {
         Map<String, String> first = new HashMap<>();
         first.put("a", "1");
-        njams.metadata().addGlobalVariables(first);
+        njams.model().addGlobalVariables(first);
         Map<String, String> second = new HashMap<>();
         second.put("b", "2");
         second.put("a", "overwritten");
-        njams.metadata().addGlobalVariables(second);
-        assertEquals("overwritten", njams.metadata().getGlobalVariables().get("a"));
-        assertEquals("2", njams.metadata().getGlobalVariables().get("b"));
+        njams.model().addGlobalVariables(second);
+        assertEquals("overwritten", njams.model().getGlobalVariables().get("a"));
+        assertEquals("2", njams.model().getGlobalVariables().get("b"));
     }
 
     @Test
@@ -161,37 +162,37 @@ public class NjamsFacetApiTest {
     @Test
     public void setGlobalVariablesPattern_acceptsValidPatternAndIsReturnedByGetter_viaFacet() {
         String pattern = "(?<full>%%(?<name>[^%]+)%%)";
-        njams.metadata().setGlobalVariablesPattern(pattern);
-        assertEquals(pattern, njams.metadata().getGlobalVariablesPattern());
+        njams.model().setGlobalVariablesPattern(pattern);
+        assertEquals(pattern, njams.model().getGlobalVariablesPattern());
     }
 
     @Test
     public void setGlobalVariablesPattern_acceptsPatternWithOptionalDefaultGroup_viaFacet() {
         String pattern = "(?<full>\\{\\{\\??(?<name>(?:(?:sys|env):)?[^}:]+)(?::(?<default>[^}]+))?\\}\\})";
-        njams.metadata().setGlobalVariablesPattern(pattern);
-        assertEquals(pattern, njams.metadata().getGlobalVariablesPattern());
+        njams.model().setGlobalVariablesPattern(pattern);
+        assertEquals(pattern, njams.model().getGlobalVariablesPattern());
     }
 
     @Test
     public void setGlobalVariablesPattern_nullClearsThePattern_viaFacet() {
-        njams.metadata().setGlobalVariablesPattern("(?<full>%%(?<name>[^%]+)%%)");
-        njams.metadata().setGlobalVariablesPattern(null);
-        assertNull(njams.metadata().getGlobalVariablesPattern());
+        njams.model().setGlobalVariablesPattern("(?<full>%%(?<name>[^%]+)%%)");
+        njams.model().setGlobalVariablesPattern(null);
+        assertNull(njams.model().getGlobalVariablesPattern());
     }
 
     @Test(expected = NjamsSdkRuntimeException.class)
     public void setGlobalVariablesPattern_rejectsInvalidRegex_viaFacet() {
-        njams.metadata().setGlobalVariablesPattern("(?<full>(?<name>[^%]+");
+        njams.model().setGlobalVariablesPattern("(?<full>(?<name>[^%]+");
     }
 
     @Test(expected = NjamsSdkRuntimeException.class)
     public void setGlobalVariablesPattern_rejectsMissingNameGroup_viaFacet() {
-        njams.metadata().setGlobalVariablesPattern("(?<full>%%[^%]+%%)");
+        njams.model().setGlobalVariablesPattern("(?<full>%%[^%]+%%)");
     }
 
     @Test(expected = NjamsSdkRuntimeException.class)
     public void setGlobalVariablesPattern_rejectsMissingFullGroup_viaFacet() {
-        njams.metadata().setGlobalVariablesPattern("%%(?<name>[^%]+)%%");
+        njams.model().setGlobalVariablesPattern("%%(?<name>[^%]+)%%");
     }
 
     // --- features guards ---

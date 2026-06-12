@@ -48,13 +48,15 @@ final class ProjectMessageAssembler {
     private final NjamsMetadata metadata;
     private final NjamsFeatures features;
     private final NjamsConfiguration configuration;
+    private final GlobalVariables globalVariables;
     private final Object projectMessageLock;
 
     ProjectMessageAssembler(NjamsMetadata metadata, NjamsFeatures features, NjamsConfiguration configuration,
-        Object projectMessageLock) {
+        GlobalVariables globalVariables, Object projectMessageLock) {
         this.metadata = metadata;
         this.features = features;
         this.configuration = configuration;
+        this.globalVariables = globalVariables;
         this.projectMessageLock = projectMessageLock;
     }
 
@@ -70,10 +72,10 @@ final class ProjectMessageAssembler {
             processModels.stream().map(ProcessModel::getSerializableProcessModel)
                 .forEach(ipm -> msg.getProcesses().add(ipm));
             images.forEach(i -> msg.getImages().put(i.getName(), i.getBase64Image()));
-            msg.getGlobalVariables().putAll(metadata.getGlobalVariables());
-            msg.setGlobalVariablesPattern(metadata.getGlobalVariablesPattern());
+            msg.getGlobalVariables().putAll(globalVariables.getAll());
+            msg.setGlobalVariablesPattern(globalVariables.getPattern());
             LOG.debug("Sending project message with {} process-models, {} images, {} global-variables.",
-                processModels.size(), images.size(), metadata.getGlobalVariables().size());
+                processModels.size(), images.size(), globalVariables.getAll().size());
         }
         return msg;
     }
