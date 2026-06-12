@@ -28,7 +28,7 @@ package com.im.njams.sdk.logmessage;
  * activity including sub processes) and the trace/instrumentation markers maintained by
  * the SDK. Obtain via {@code job.tracing()}.
  */
-public final class JobTracing {
+public class JobTracing {
 
     private boolean deepTrace;
 

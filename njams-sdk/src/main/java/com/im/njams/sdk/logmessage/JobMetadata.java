@@ -33,7 +33,7 @@ import com.im.njams.sdk.Path;
  * messages. Mutators return this facet for call chaining.
  * Obtain via {@code job.metadata()}.
  */
-public final class JobMetadata {
+public class JobMetadata {
 
     private final JobImpl jobImpl;
 

@@ -33,7 +33,7 @@ import java.util.Map;
  * whose content is sent to the server with the job's log messages.
  * Obtain via {@code job.properties()}.
  */
-public final class JobProperties {
+public class JobProperties {
 
     // internal properties, shall not go to any message
     private final Map<String, Object> properties = new LinkedHashMap<>();

@@ -36,7 +36,7 @@ import com.faizsiegeln.njams.messageformat.v4.logmessage.LogMessage;
  * deliberately a different facet than {@link JobProperties}, which is client-local
  * key/value storage that is never transmitted. Obtain via {@code job.attributes()}.
  */
-public final class JobAttributes {
+public class JobAttributes {
 
     private final JobImpl jobImpl;
 

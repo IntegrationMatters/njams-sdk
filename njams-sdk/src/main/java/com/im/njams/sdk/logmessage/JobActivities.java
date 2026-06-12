@@ -48,7 +48,7 @@ import com.im.njams.sdk.model.SubProcessActivityModel;
  * start activity. Obtain via {@code job.activities()}. This facet is part of the runtime
  * monitoring path.
  */
-public final class JobActivities {
+public class JobActivities {
 
     private static final Logger LOG = LoggerFactory.getLogger(JobActivities.class);
 
