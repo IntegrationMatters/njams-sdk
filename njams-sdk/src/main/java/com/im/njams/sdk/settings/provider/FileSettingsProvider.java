@@ -62,6 +62,8 @@ public class FileSettingsProvider implements SettingsProvider {
     /**
      * Create new instance
      */
+    // @Deprecated flags external API consumers only; internal use of Jackson factory is intentional.
+    @SuppressWarnings("deprecation")
     public FileSettingsProvider() {
         file = new File("config.json");
         objectMapper = JsonSerializerFactory.getDefaultMapper();

@@ -60,7 +60,8 @@ public class ArgosSender implements Closeable {
     private static final int DEFAULT_PORT = 6450;
     private static final String DEFAULT_ENABLED = "true";
 
-    //For serializing the metrics
+    // @Deprecated flags external API consumers only; internal use of Jackson factory is intentional.
+    @SuppressWarnings("deprecation")
     private final ObjectWriter writer = JsonSerializerFactory.createWriter(true, true);
 
     private static final long INITIAL_DELAY = 10;

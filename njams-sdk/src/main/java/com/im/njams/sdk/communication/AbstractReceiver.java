@@ -183,6 +183,8 @@ public abstract class AbstractReceiver implements Receiver {
      * instruction was found or it could be parsed to an instruction object.
      * @throws IOException if the {@link Instruction} could not be extracted.
      */
+    // @Deprecated flags external API consumers only; internal use of Jackson factory is intentional.
+    @SuppressWarnings("deprecation")
     protected Instruction parseInstruction(final RawMessage message) throws IOException {
         return JsonSerializerFactory.getFastMapper().readValue(message.getBody(), Instruction.class);
     }

@@ -123,6 +123,8 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
      * @param settings the settings needed to init
      */
     @Override
+    // @Deprecated flags external API consumers only; internal use of Jackson factory is intentional.
+    @SuppressWarnings("deprecation")
     public void init(ClientSettings settings) {
         super.init(settings);
         connectionStatus = ConnectionStatus.DISCONNECTED;

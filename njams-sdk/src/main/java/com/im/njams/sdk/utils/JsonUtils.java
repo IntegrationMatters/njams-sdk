@@ -53,6 +53,8 @@ public class JsonUtils {
      * @throws NjamsSdkRuntimeException
      *             If parsing the given JSON into the target type failed.
      */
+    // @Deprecated flags external API consumers only; internal use of Jackson factory is intentional.
+    @SuppressWarnings("deprecation")
     public static <T> T parse(String json, Class<T> type) throws NjamsSdkRuntimeException {
         try {
             return JsonSerializerFactory.getFastMapper().readValue(json, type);
@@ -75,6 +77,8 @@ public class JsonUtils {
      * @throws NjamsSdkRuntimeException
      *             If parsing the given JSON into the target type failed.
      */
+    // @Deprecated flags external API consumers only; internal use of Jackson factory is intentional.
+    @SuppressWarnings("deprecation")
     public static <T> T parse(InputStream stream, Class<T> type) throws NjamsSdkRuntimeException {
         try {
             return JsonSerializerFactory.getFastMapper().readValue(stream, type);
@@ -108,6 +112,8 @@ public class JsonUtils {
      * @throws NjamsSdkRuntimeException
      *             If serializing the object to JSON failed.
      */
+    // @Deprecated flags external API consumers only; internal use of Jackson factory is intentional.
+    @SuppressWarnings("deprecation")
     public static String serialize(Object object, boolean prettyPrint) throws NjamsSdkRuntimeException {
         try {
             return (prettyPrint ? JsonSerializerFactory.getDefaultMapper() : JsonSerializerFactory.getFastMapper())

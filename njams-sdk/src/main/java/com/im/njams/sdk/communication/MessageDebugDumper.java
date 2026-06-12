@@ -105,6 +105,8 @@ class MessageDebugDumper {
         return String.format("%08d_%s_%s.json", seq, messageType(msg), sanitize(messageId(msg)));
     }
 
+    // @Deprecated flags external API consumers only; internal use of Jackson factory is intentional.
+    @SuppressWarnings("deprecation")
     private static String buildContent(CommonMessage msg, String clientSessionId) throws Exception {
         ObjectMapper mapper = JsonSerializerFactory.getDefaultMapper();
         ObjectNode root = mapper.createObjectNode();

@@ -65,6 +65,8 @@ public class JsonSerializer<T> implements Serializer<T> {
      *
      * @param pretty {@code true} for indented, human-readable JSON; {@code false} for compact output
      */
+    // @Deprecated flags external API consumers only; internal use of Jackson factory is intentional.
+    @SuppressWarnings("deprecation")
     public JsonSerializer(final boolean pretty) {
         final ObjectMapper mapper = pretty
                 ? JsonSerializerFactory.getDefaultMapper()
