@@ -33,7 +33,7 @@ SDK-123 #comment <description>
 
 Then ask the user for permission. If permission is denied, find an alternative fix that satisfies all existing tests.
 
-**Reproducing the bug with a test comes before fixing it.** Write or identify a failing test that demonstrates the bug first. This test becomes the target: the fix is complete when it passes and nothing else breaks.
+**Always create a reproducer test first.** Before changing any production code, write a *new* test that asserts the expected (correct) behaviour and therefore fails because of the current bug. Run it and confirm it fails for the right reason (the bug itself, not a compile error or wrong setup). This test is three things at once: proof that the bug exists, proof that the fix works (it must pass afterwards), and a permanent regression guard. Always add a dedicated reproducer even when an existing test already happens to fail — do not rely on a pre-existing failure in place of a purpose-written reproducer. The fix is complete only when this test passes and nothing else breaks. All other test-coverage rules (see `njams-safe-modification`) still apply in addition to this one.
 
 ## Workflow
 
@@ -43,8 +43,9 @@ digraph bug_fix {
     "Jira ticket confirmed?" [shape=diamond];
     "Ask user for SDK-XXX ticket key" [shape=box, style=filled, fillcolor=orange];
     "Understand the bug" [shape=box];
-    "Existing test already fails?" [shape=diamond];
-    "Write a test that reproduces the bug" [shape=box];
+    "Write a NEW reproducer test (asserts correct behavior)" [shape=box];
+    "Reproducer fails for the right reason?" [shape=diamond];
+    "Fix the reproducer test itself" [shape=box];
     "Run full test suite baseline" [shape=box];
     "Unexpected existing failures?" [shape=diamond];
     "Investigate pre-existing failures before proceeding" [shape=box];
@@ -65,10 +66,11 @@ digraph bug_fix {
     "Jira ticket confirmed?" -> "Understand the bug" [label="yes"];
     "Jira ticket confirmed?" -> "Ask user for SDK-XXX ticket key" [label="no"];
     "Ask user for SDK-XXX ticket key" -> "Understand the bug";
-    "Understand the bug" -> "Existing test already fails?";
-    "Existing test already fails?" -> "Run full test suite baseline" [label="yes — use it"];
-    "Existing test already fails?" -> "Write a test that reproduces the bug" [label="no"];
-    "Write a test that reproduces the bug" -> "Run full test suite baseline";
+    "Understand the bug" -> "Write a NEW reproducer test (asserts correct behavior)";
+    "Write a NEW reproducer test (asserts correct behavior)" -> "Reproducer fails for the right reason?";
+    "Reproducer fails for the right reason?" -> "Fix the reproducer test itself" [label="no — wrong reason / passes"];
+    "Fix the reproducer test itself" -> "Write a NEW reproducer test (asserts correct behavior)";
+    "Reproducer fails for the right reason?" -> "Run full test suite baseline" [label="yes"];
     "Run full test suite baseline" -> "Unexpected existing failures?";
     "Unexpected existing failures?" -> "Investigate pre-existing failures before proceeding" [label="yes"];
     "Unexpected existing failures?" -> "Fix the code" [label="no"];
@@ -98,8 +100,8 @@ Every bug fix must have a corresponding ticket in the SDK Jira project (https://
 **2. Understand and reproduce the bug.**
 Before touching any code, clearly identify: what is the unexpected behavior, what is the expected behavior, and under what conditions it occurs.
 
-**3. Find or write a failing test.**
-Check whether an existing test already captures the failure. If not, write one that fails in the way the bug manifests. Run it to confirm it fails for the right reason.
+**3. Always write a reproducer test first.**
+Write a *new* test that asserts the expected, correct behaviour — so it fails against the current code, demonstrating the bug. Run it and confirm it fails for the *right* reason (the bug), not for an unrelated one (compile error, wrong setup). Write this dedicated reproducer even if some existing test already fails because of the bug; the reproducer is the proof of the fix and the lasting regression guard. Do not write any production fix before this test exists and fails. (This is in addition to — not a replacement for — the coverage rules in `njams-safe-modification` for any existing code the fix touches.)
 
 **4. Establish a full baseline.**
 ```bash
@@ -148,7 +150,8 @@ Vague reasons ("the test seems outdated") are not sufficient. If you cannot arti
 | Mistake | Correct Approach |
 |---------|-----------------|
 | Changing a test to make the fix pass | Stop — the fix is wrong; revise the implementation |
-| Fixing without a reproducing test first | Write the failing test before writing any fix |
+| Fixing without a reproducer test first | Always write a new reproducer that fails first — it is the proof and the regression guard |
+| Relying on an existing failing test instead of a reproducer | Still add a dedicated reproducer test for this specific bug |
 | Assuming a pre-existing test failure is unrelated | Understand all failures before proceeding |
 | "The test was probably written incorrectly" | Articulate exactly why and ask the user |
 | Fixing the symptom without understanding the cause | Understand root cause before changing code |
