@@ -156,6 +156,66 @@ public class ProcessFilterTest {
         assertTrue(filter.hasExcludeFilter(new Path(">a>b>d>")));
     }
 
+    /**
+     * Serializes the given configuration and loads it back exactly as the (default)
+     * FileConfigurationProvider does at startup, so the resulting configuration's process filter is
+     * exercised the same way it is at runtime (built only after the filter list is populated).
+     */
+    private static Configuration loadRoundTrip(Configuration source) throws Exception {
+        final String json = JsonSerializerFactory.getDefaultMapper().writeValueAsString(source);
+        final Configuration loaded = JsonSerializerFactory.getDefaultMapper().readValue(json, Configuration.class);
+        loaded.setConfigurationProvider(new MemoryConfigurationProvider());
+        return loaded;
+    }
+
+    @Test
+    public void testExcludeFiltersFromLoadedConfigurationAreApplied() throws Exception {
+        // Reproducer for SDK-451: exclude filters present in a configuration that is loaded the way
+        // it happens at runtime must take effect. This must NOT use the Builder, which constructs
+        // the ProcessFilter only AFTER the filters have been added and therefore hides the bug.
+        final Configuration source = new Configuration();
+        source.addProcessFilter(new ProcessFilterEntry(FilterType.EXCLUDE, MatcherType.VALUE, ">a>b>c>"));
+        source.addProcessFilter(new ProcessFilterEntry(FilterType.EXCLUDE, MatcherType.REGEX, ">x>.*"));
+        final Configuration loaded = loadRoundTrip(source);
+
+        assertTrue("literal exclude from loaded configuration must be applied",
+            loaded.isProcessExcluded(new Path(">a>b>c>")));
+        assertTrue("regex exclude from loaded configuration must be applied",
+            loaded.isProcessExcluded(new Path(">x>y>")));
+        assertFalse("a non-matching process must not be excluded",
+            loaded.isProcessExcluded(new Path(">q>r>")));
+    }
+
+    @Test
+    public void testIncludeFiltersFromLoadedConfigurationAreApplied() throws Exception {
+        // Include filters switch the filter into whitelist mode; this must also survive loading.
+        final Configuration source = new Configuration();
+        source.addProcessFilter(new ProcessFilterEntry(FilterType.INCLUDE, MatcherType.VALUE, ">a>b>c>"));
+        source.addProcessFilter(new ProcessFilterEntry(FilterType.INCLUDE, MatcherType.REGEX, ">in>.*"));
+        final Configuration loaded = loadRoundTrip(source);
+
+        assertFalse("explicitly included process must be selected", loaded.isProcessExcluded(new Path(">a>b>c>")));
+        assertFalse("regex-included process must be selected", loaded.isProcessExcluded(new Path(">in>x>")));
+        assertTrue("non-included process must be excluded in whitelist mode",
+            loaded.isProcessExcluded(new Path(">a>b>d>")));
+    }
+
+    @Test
+    public void testFilterAddedAfterFirstAccessTakesEffect() throws Exception {
+        // A server command may exclude a process during a running session, after the filter has
+        // already been built. The change must take effect (the cached filter is invalidated).
+        final Configuration loaded = loadRoundTrip(new Configuration());
+        assertFalse("no filters yet -> nothing excluded", loaded.isProcessExcluded(new Path(">a>b>c>")));
+
+        loaded.setProcessExcluded(new Path(">a>b>c>"), true);
+        assertTrue("exclude added during the session must take effect",
+            loaded.isProcessExcluded(new Path(">a>b>c>")));
+
+        loaded.setProcessExcluded(new Path(">a>b>c>"), false);
+        assertFalse("removing the exclude during the session must take effect",
+            loaded.isProcessExcluded(new Path(">a>b>c>")));
+    }
+
     @Test
     public void testConvertOldConfig() {
         ProcessFilter filter = new Builder().oldConfig(">a>b>c>", true).oldConfig(">a>b>d>", false).build();
