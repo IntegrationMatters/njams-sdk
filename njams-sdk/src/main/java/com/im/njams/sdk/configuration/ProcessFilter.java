@@ -25,6 +25,8 @@ package com.im.njams.sdk.configuration;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
@@ -36,9 +38,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.LogMode;
+import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.common.Path;
 import com.im.njams.sdk.configuration.ProcessFilterEntry.FilterType;
 import com.im.njams.sdk.configuration.ProcessFilterEntry.MatcherType;
+import com.im.njams.sdk.settings.ClientSettings;
 import com.im.njams.sdk.utils.StringUtils;
 
 /**
@@ -51,6 +55,10 @@ public class ProcessFilter {
     private final Collection<Pattern> excludePatterns = new ArrayList<>();
     private final Collection<String> includes = new ArrayList<>();
     private final Collection<String> excludes = new ArrayList<>();
+    // Additional exclude patterns read directly from the client settings. Kept separate from the
+    // configuration-derived patterns so they can be carried over when the filter is rebuilt after a
+    // configuration change, without re-reading the settings.
+    private final Collection<Pattern> settingsExcludePatterns;
     // cached decisions for faster results
     private final Map<Path, Boolean> decisions = new ConcurrentHashMap<>();
 
@@ -59,8 +67,38 @@ public class ProcessFilter {
 
     private final Configuration config;
 
+    /**
+     * Creates a process filter based on the given configuration only (no settings-based patterns).
+     * @param config The runtime configuration providing the server-managed process filters.
+     */
     public ProcessFilter(final Configuration config) {
+        this(config, (ClientSettings) null);
+    }
+
+    /**
+     * Creates a process filter that, in addition to the configuration filters, applies the
+     * process-exclusion regular expressions read directly from the given client settings (keys
+     * starting with {@link NjamsSettings#PROPERTY_PROCESS_EXCLUDE_REGEX_PREFIX}). The settings-based
+     * patterns are treated exactly like configured EXCLUDE/REGEX filters.
+     * @param config The runtime configuration providing the server-managed process filters.
+     * @param settings The client settings to read additional exclude patterns from, or
+     * <code>null</code> for none.
+     */
+    ProcessFilter(final Configuration config, final ClientSettings settings) {
+        this(config, compileSettingsExcludePatterns(settings));
+    }
+
+    /**
+     * Creates a process filter with pre-compiled settings-based exclude patterns. Used to rebuild the
+     * filter after a configuration change while preserving the settings-based patterns.
+     * @param config The runtime configuration providing the server-managed process filters.
+     * @param settingsExcludePatterns Pre-compiled settings-based exclude patterns, or
+     * <code>null</code> for none.
+     */
+    ProcessFilter(final Configuration config, final Collection<Pattern> settingsExcludePatterns) {
         this.config = config;
+        this.settingsExcludePatterns =
+            settingsExcludePatterns == null ? Collections.emptyList() : settingsExcludePatterns;
         convertProcessExcludes();
         if (config.getProcessFilters() != null) {
             for (final ProcessFilterEntry filter : config.getProcessFilters()) {
@@ -91,7 +129,39 @@ public class ProcessFilter {
             }
         }
         includeAll = includes.isEmpty() && includePatterns.isEmpty();
-        excludeNone = excludes.isEmpty() && excludePatterns.isEmpty();
+        excludeNone = excludes.isEmpty() && excludePatterns.isEmpty() && this.settingsExcludePatterns.isEmpty();
+    }
+
+    /**
+     * Reads and compiles the process-exclusion regular expressions directly from the given settings
+     * (keys starting with {@link NjamsSettings#PROPERTY_PROCESS_EXCLUDE_REGEX_PREFIX}). Invalid
+     * expressions are skipped (logged as a warning).
+     */
+    private static Collection<Pattern> compileSettingsExcludePatterns(final ClientSettings settings) {
+        if (settings == null) {
+            return Collections.emptyList();
+        }
+        final List<Pattern> patterns = new ArrayList<>();
+        for (final Entry<String, String> entry : settings) {
+            if (entry.getKey().startsWith(NjamsSettings.PROPERTY_PROCESS_EXCLUDE_REGEX_PREFIX)
+                && StringUtils.isNotBlank(entry.getValue())) {
+                final Pattern c = compilePattern(entry.getValue().trim());
+                if (c != null) {
+                    patterns.add(c);
+                    LOG.debug("Added setting-based exclude pattern: {}", entry.getValue());
+                }
+            }
+        }
+        return patterns;
+    }
+
+    /**
+     * Returns the compiled settings-based exclude patterns, so they can be carried over when the
+     * filter is rebuilt after a configuration change.
+     * @return the compiled settings-based exclude patterns, never <code>null</code>
+     */
+    Collection<Pattern> settingsExcludePatterns() {
+        return settingsExcludePatterns;
     }
 
     private static Pattern compilePattern(final String regex) {
@@ -145,7 +215,8 @@ public class ProcessFilter {
             decisions.put(processPath, true);
             return true;
         }
-        if (excludePatterns.stream().anyMatch(r -> r.matcher(pathString).matches())) {
+        if (excludePatterns.stream().anyMatch(r -> r.matcher(pathString).matches())
+            || settingsExcludePatterns.stream().anyMatch(r -> r.matcher(pathString).matches())) {
             decisions.put(processPath, false);
             return false;
         }
@@ -171,7 +242,10 @@ public class ProcessFilter {
         final String pathString = processPath.toString();
         if (excluded) {
             if (config.getProcessFilters().stream().noneMatch(excludeProcessPredicate(pathString))) {
-                config.addProcessFilter(new ProcessFilterEntry(FilterType.EXCLUDE, MatcherType.VALUE, pathString));
+                // Add directly to the list (not via Configuration.addProcessFilter) to avoid
+                // triggering a filter rebuild while this filter is mutating.
+                config.getProcessFilters()
+                    .add(new ProcessFilterEntry(FilterType.EXCLUDE, MatcherType.VALUE, pathString));
                 config.save();
                 LOG.debug("Process {} excluded explicitly.", pathString);
             }
@@ -211,7 +285,10 @@ public class ProcessFilter {
         boolean needsSave = false;
         for (Entry<String, ProcessConfiguration> e : config.getProcesses().entrySet()) {
             if (Boolean.TRUE.equals(e.getValue().isExclude())) {
-                config.addProcessFilter(new ProcessFilterEntry(FilterType.EXCLUDE, MatcherType.VALUE, e.getKey()));
+                // Add directly to the list (not via Configuration.addProcessFilter) to avoid
+                // triggering a filter rebuild during construction of this filter.
+                config.getProcessFilters()
+                    .add(new ProcessFilterEntry(FilterType.EXCLUDE, MatcherType.VALUE, e.getKey()));
                 LOG.debug("Converted old exclude: {}={}", e.getKey(), e.getValue().isExclude());
                 e.getValue().setExclude(null);
                 needsSave = true;

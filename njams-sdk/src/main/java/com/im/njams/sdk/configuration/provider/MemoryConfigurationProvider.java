@@ -63,6 +63,7 @@ public class MemoryConfigurationProvider extends AbstractConfigurationProvider {
             configuration.setRecording(getDefaultRecording());
             configuration.setLogMode(getDefaultLogMode());
         }
+        configuration.initFilter(getSettings());
         return configuration;
     }
 

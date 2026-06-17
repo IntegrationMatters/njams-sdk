@@ -118,6 +118,16 @@ public abstract class AbstractConfigurationProvider implements ConfigurationProv
         return njams;
     }
 
+    /**
+     * Returns the client settings of the associated {@link Njams} instance, or <code>null</code> if
+     * this provider was not configured with one. Used by {@link #loadConfiguration()} implementations
+     * to initialize the loaded configuration's process filter.
+     * @return the client settings, or <code>null</code>.
+     */
+    protected ClientSettings getSettings() {
+        return njams == null ? null : njams.getSettings();
+    }
+
     protected boolean getDefaultRecording() {
         return defaultRecording;
     }

@@ -26,16 +26,21 @@ package com.im.njams.sdk.configuration;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.common.JsonSerializerFactory;
 import com.im.njams.sdk.common.Path;
 import com.im.njams.sdk.configuration.ProcessFilterEntry.FilterType;
 import com.im.njams.sdk.configuration.ProcessFilterEntry.MatcherType;
 import com.im.njams.sdk.configuration.provider.MemoryConfigurationProvider;
+import com.im.njams.sdk.settings.HierarchicalSettings;
 
 public class ProcessFilterTest {
 
@@ -43,6 +48,7 @@ public class ProcessFilterTest {
 
     private static class Builder {
         final Configuration config;
+        final Map<String, String> settingsProps = new HashMap<>();
 
         public Builder() {
             config = new Configuration() {
@@ -89,9 +95,14 @@ public class ProcessFilterTest {
             return this;
         }
 
+        public Builder settingExclude(String regex) {
+            settingsProps.put(NjamsSettings.PROPERTY_PROCESS_EXCLUDE_REGEX_PREFIX + "p" + settingsProps.size(), regex);
+            return this;
+        }
+
         public ProcessFilter build() {
             config.setConfigurationProvider(new MemoryConfigurationProvider());
-            return new ProcessFilter(config);
+            return new ProcessFilter(config, HierarchicalSettings.from(settingsProps).build());
         }
     }
 
@@ -214,6 +225,90 @@ public class ProcessFilterTest {
         loaded.setProcessExcluded(new Path(">a>b>c>"), false);
         assertFalse("removing the exclude during the session must take effect",
             loaded.isProcessExcluded(new Path(">a>b>c>")));
+    }
+
+    @Test
+    public void testSettingPatternExcludesMatchingProcess() {
+        ProcessFilter filter = new Builder().settingExclude(">a>b>.*").build();
+        assertFalse(filter.isSelected(new Path(">a>b>c>")));
+        assertTrue(filter.isSelected(new Path(">a>x>c>")));
+    }
+
+    @Test
+    public void testSettingPatternWorksWithNoOtherFilters() {
+        // Regression for the excludeNone short-circuit: with ONLY a setting pattern and no server
+        // filters, the pattern must still be evaluated.
+        ProcessFilter filter = new Builder().settingExclude(">a>b>c>").build();
+        assertFalse(filter.isSelected(new Path(">a>b>c>")));
+        assertTrue(filter.isSelected(new Path(">a>b>d>")));
+    }
+
+    @Test
+    public void testSettingPatternOredWithServerExclude() {
+        ProcessFilter filter = new Builder().exValue(">x>y>z>").settingExclude(">a>.*").build();
+        assertFalse(filter.isSelected(new Path(">x>y>z>")));
+        assertFalse(filter.isSelected(new Path(">a>b>c>")));
+        assertTrue(filter.isSelected(new Path(">q>r>s>")));
+    }
+
+    @Test
+    public void testExplicitIncludeOverridesSettingPattern() {
+        // Documented precedence: an exact-value include wins over the setting exclude pattern.
+        ProcessFilter filter = new Builder().settingExclude(">a>b>.*").inValue(">a>b>c>").build();
+        assertTrue(filter.isSelected(new Path(">a>b>c>")));
+        assertFalse(filter.isSelected(new Path(">a>b>d>")));
+    }
+
+    @Test
+    public void testInvalidSettingPatternIsIgnored() {
+        ProcessFilter filter = new Builder().settingExclude("[invalid(").build();
+        assertTrue(filter.isSelected(new Path(">a>b>c>")));
+    }
+
+    @Test
+    public void testSettingPatternCaseSensitivity() {
+        assertTrue(new Builder().settingExclude(">A>B>.*").build().isSelected(new Path(">a>b>c>")));
+        assertFalse(new Builder().settingExclude("(?i)>A>B>.*").build().isSelected(new Path(">a>b>c>")));
+    }
+
+    @Test
+    public void testInitFilterAppliesSettingPatterns() {
+        Map<String, String> props = new HashMap<>();
+        props.put(NjamsSettings.PROPERTY_PROCESS_EXCLUDE_REGEX_PREFIX + "x", ">a>b>.*");
+        Configuration config = new Configuration();
+        config.setConfigurationProvider(new MemoryConfigurationProvider());
+        config.initFilter(HierarchicalSettings.from(props).build());
+        assertFalse(config.isProcessExcluded(new Path(">a>x>")));
+        assertTrue(config.isProcessExcluded(new Path(">a>b>c>")));
+    }
+
+    @Test
+    public void testInitFilterAfterFirstAccessRebuildsFilter() {
+        Configuration config = new Configuration();
+        config.setConfigurationProvider(new MemoryConfigurationProvider());
+        // first access builds the filter lazily without settings patterns
+        assertFalse(config.isProcessExcluded(new Path(">a>b>c>")));
+
+        Map<String, String> props = new HashMap<>();
+        props.put(NjamsSettings.PROPERTY_PROCESS_EXCLUDE_REGEX_PREFIX + "x", ">a>b>.*");
+        config.initFilter(HierarchicalSettings.from(props).build());
+        assertTrue(config.isProcessExcluded(new Path(">a>b>c>")));
+    }
+
+    @Test
+    public void testSettingPatternSurvivesConfigMutation() {
+        Map<String, String> props = new HashMap<>();
+        props.put(NjamsSettings.PROPERTY_PROCESS_EXCLUDE_REGEX_PREFIX + "x", ">a>b>.*");
+        Configuration config = new Configuration();
+        config.setConfigurationProvider(new MemoryConfigurationProvider());
+        config.initFilter(HierarchicalSettings.from(props).build());
+        assertTrue(config.isProcessExcluded(new Path(">a>b>c>")));
+
+        // a server command mutates the filter list; the filter is rebuilt and the settings-based
+        // pattern must be preserved (not re-read from settings, but carried over)
+        config.setProcessExcluded(new Path(">z>z>"), true);
+        assertTrue(config.isProcessExcluded(new Path(">z>z>")));
+        assertTrue(config.isProcessExcluded(new Path(">a>b>c>")));
     }
 
     @Test

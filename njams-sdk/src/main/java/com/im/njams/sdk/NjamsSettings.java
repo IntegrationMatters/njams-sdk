@@ -601,6 +601,33 @@ public class NjamsSettings {
     public static final String PROPERTY_DATA_MASKING_REGEX_PREFIX = "njams.sdk.datamasking.regex.";
 
     /**
+     * Prefix for defining process-exclusion regular expressions. Append an arbitrary name to the
+     * prefix and set a Java regular expression as the value; multiple patterns may be defined using
+     * different names:
+     * <ul>
+     *     <li>njams.sdk.process.exclude.regex.NAME_FOR_REGEX_1=THE_REGEX_1
+     *     <li>njams.sdk.process.exclude.regex.NAME_FOR_REGEX_2=THE_REGEX_2
+     * </ul>
+     * <p>
+     * A process is excluded from processing when its path matches any of these patterns. Matching is
+     * a full match (the whole path must match) and is case-sensitive; prefix the expression with
+     * {@code (?i)} for case-insensitive matching. The path is matched in its canonical form, e.g.
+     * {@code >MyApp>MyProcess>}.
+     * <p>
+     * These patterns are applied <em>in addition</em> to the process filters configured via the
+     * nJAMS server: a process is excluded if it is excluded by either mechanism. An explicit
+     * <em>include</em> filter for a process takes precedence and re-includes it. Invalid expressions
+     * are ignored (logged as a warning).
+     * <p>
+     * Example:
+     * <pre>
+     * "njams.sdk.process.exclude.regex.internal = &gt;MyApp&gt;internal&gt;.*"
+     * excludes every process whose path starts with "&gt;MyApp&gt;internal&gt;".
+     * </pre>
+     */
+    public static final String PROPERTY_PROCESS_EXCLUDE_REGEX_PREFIX = "njams.sdk.process.exclude.regex.";
+
+    /**
      * Server version compatibility switch. When set to a server version string (e.g., {@code "6.1"}),
      * the SDK restores behavioral compatibility with that server version and earlier.
      * Leave unset (or blank) to use current SDK behavior.

@@ -120,6 +120,7 @@ public class FileConfigurationProvider extends AbstractConfigurationProvider {
             }
         }
         configuration.setConfigurationProvider(this);
+        configuration.initFilter(getSettings());
         return configuration;
     }
 
