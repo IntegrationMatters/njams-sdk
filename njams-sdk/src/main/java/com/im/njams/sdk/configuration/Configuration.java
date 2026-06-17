@@ -56,8 +56,32 @@ public class Configuration {
     private List<String> dataMasking = new ArrayList<>();
     private boolean recording = true;
 
-    private final ProcessFilter processFilter = new ProcessFilter(this);
+    // Lazily built from processFilters on first access; rebuilt whenever the filter list changes.
+    // Must not be built eagerly: this instance is typically populated by deserialization, where the
+    // filter list is set only after construction.
+    @JsonIgnore
+    private volatile ProcessFilter processFilter;
     private Collection<ProcessFilterEntry> processFilters = new ArrayList<>();
+
+    /**
+     * Returns the process filter, building it lazily on first access so that it reflects the
+     * fully-populated {@link #processFilters} list (e.g. after deserialization). The cached
+     * instance is discarded by {@link #setProcessFilters(Collection)} and
+     * {@link #addProcessFilter(ProcessFilterEntry)} so it is rebuilt against the current filters.
+     */
+    private ProcessFilter processFilter() {
+        ProcessFilter filter = processFilter;
+        if (filter == null) {
+            synchronized (this) {
+                filter = processFilter;
+                if (filter == null) {
+                    filter = new ProcessFilter(this);
+                    processFilter = filter;
+                }
+            }
+        }
+        return filter;
+    }
 
     /**
      * @param configurationProvider to be set
@@ -194,6 +218,7 @@ public class Configuration {
      */
     public void setProcessFilters(Collection<ProcessFilterEntry> processFilters) {
         this.processFilters = processFilters;
+        processFilter = null;
     }
 
     /**
@@ -202,6 +227,7 @@ public class Configuration {
      */
     public void addProcessFilter(ProcessFilterEntry processFilter) {
         processFilters.add(processFilter);
+        this.processFilter = null;
     }
 
     /**
@@ -211,7 +237,7 @@ public class Configuration {
      * @see ProcessFilter#isSelected(Path)
      */
     public boolean isProcessExcluded(Path processPath) {
-        return !processFilter.isSelected(processPath);
+        return !processFilter().isSelected(processPath);
     }
 
     /**
@@ -224,7 +250,7 @@ public class Configuration {
      * @see ProcessFilter#hasExcludeFilter(Path)
      */
     public boolean hasProcessExcludeFilter(Path processPath) {
-        return processFilter.hasExcludeFilter(processPath);
+        return processFilter().hasExcludeFilter(processPath);
     }
 
     /**
@@ -235,6 +261,9 @@ public class Configuration {
      * @see ProcessFilter#setExcluded(Path, boolean)
      */
     public void setProcessExcluded(Path processPath, boolean excluded) {
-        processFilter.setExcluded(processPath, excluded);
+        processFilter().setExcluded(processPath, excluded);
+        // setExcluded may remove a filter directly from the list (without going through
+        // addProcessFilter); invalidate so the filter is rebuilt against the updated list.
+        processFilter = null;
     }
 }
