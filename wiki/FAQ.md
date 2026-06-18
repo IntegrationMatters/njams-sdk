@@ -365,6 +365,17 @@ setProcessDiagramFactory(new MyDiagramFactory(njams));
 `drawTransition()` as `protected` methods. Override these in a subclass to alter how individual element types are
 rendered.
 
+**Routed (poly-line) transitions** — as an opt-in alternative, `PolylineProcessDiagramFactory` (a subclass of
+`NjamsProcessDiagramFactory`) draws transitions as routed poly-lines instead of straight lines, so arrows do not overlap
+activities, labels, or each other — useful for stepless bypass edges, choice fan-out, and convergence. Enable it per
+client:
+
+```java
+njams.model().setDiagramFactory(new PolylineProcessDiagramFactory(njams));
+```
+
+See [Poly-line process-diagram routing](Polyline-Process-Diagram-Routing) for details and examples.
+
 ## How can I use password encoding for configuration files <kbd style="background-color:#2da44e;color:#fff;border-color:#2da44e">since 4.0.1</kbd>
 
 1. Run: `java -jar njams-sdk-4.x.x.jar YOUR_NOT_ENCODED_VALUE`

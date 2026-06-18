@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="460" height="340" viewBox="0 0 460 340" font-family="sans-serif">
+  <defs>
+    <marker id="arr" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L7,3 L0,6 z" fill="#333"/>
+    </marker>
+  </defs>
+
+  <text x="10" y="22" font-size="14" font-weight="bold">Current rendering &#8212; choice fan-out as straight diagonals</text>
+
+  <!-- X -> A,B,C -->
+  <line x1="78" y1="158" x2="190" y2="83" stroke="#333" stroke-width="1.6" marker-end="url(#arr)"/>
+  <line x1="82" y1="170" x2="186" y2="170" stroke="#333" stroke-width="1.6" marker-end="url(#arr)"/>
+  <line x1="78" y1="182" x2="190" y2="257" stroke="#333" stroke-width="1.6" marker-end="url(#arr)"/>
+  <!-- A,B,C -> Y -->
+  <line x1="228" y1="83" x2="340" y2="158" stroke="#333" stroke-width="1.6" marker-end="url(#arr)"/>
+  <line x1="232" y1="170" x2="336" y2="170" stroke="#333" stroke-width="1.6" marker-end="url(#arr)"/>
+  <line x1="228" y1="257" x2="340" y2="182" stroke="#333" stroke-width="1.6" marker-end="url(#arr)"/>
+  <!-- labels at diagonal midpoints: they sit on slanted lines and bunch near the same column -->
+  <text x="134" y="116" font-size="11" text-anchor="middle" fill="#333">case 1</text>
+  <text x="120" y="165" font-size="11" text-anchor="middle" fill="#333">case 2</text>
+  <text x="134" y="228" font-size="11" text-anchor="middle" fill="#333">case 3</text>
+
+  <!-- activities -->
+  <g><circle cx="60" cy="170" r="22" fill="#dbe2ff" stroke="#4459b0" stroke-width="1.6"/><text x="60" y="174" font-size="12" text-anchor="middle">X</text><text x="60" y="208" font-size="11" text-anchor="middle" fill="#555">choice</text></g>
+  <g><circle cx="210" cy="70" r="22" fill="#dbe2ff" stroke="#4459b0" stroke-width="1.6"/><text x="210" y="74" font-size="12" text-anchor="middle">A</text></g>
+  <g><circle cx="210" cy="170" r="22" fill="#dbe2ff" stroke="#4459b0" stroke-width="1.6"/><text x="210" y="174" font-size="12" text-anchor="middle">B</text></g>
+  <g><circle cx="210" cy="270" r="22" fill="#dbe2ff" stroke="#4459b0" stroke-width="1.6"/><text x="210" y="274" font-size="12" text-anchor="middle">C</text></g>
+  <g><circle cx="360" cy="170" r="22" fill="#dbe2ff" stroke="#4459b0" stroke-width="1.6"/><text x="360" y="174" font-size="12" text-anchor="middle">Y</text><text x="360" y="208" font-size="11" text-anchor="middle" fill="#555">merge</text></g>
+
+  <text x="230" y="318" font-size="12" fill="#555" text-anchor="middle">diagonals work for equal-length branches, but labels and crossings get cluttered as branches grow</text>
+</svg>

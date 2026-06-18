@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="460" height="215" viewBox="0 0 460 215" font-family="sans-serif">
+  <defs>
+    <marker id="arr" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L7,3 L0,6 z" fill="#333"/>
+    </marker>
+    <marker id="arrRed" markerWidth="10" markerHeight="10" refX="7" refY="3.5" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L8,3.5 L0,7 z" fill="#c0392b"/>
+    </marker>
+  </defs>
+
+  <text x="10" y="22" font-size="14" font-weight="bold">Current rendering &#8212; stepless bypass overlaps the main path</text>
+
+  <!-- main path edges (black), drawn first so they sit under the nodes -->
+  <line x1="82" y1="90" x2="188" y2="90" stroke="#333" stroke-width="1.6" marker-end="url(#arr)"/>
+  <line x1="232" y1="90" x2="338" y2="90" stroke="#333" stroke-width="1.6" marker-end="url(#arr)"/>
+  <!-- main path transition labels at line midpoints -->
+  <text x="135" y="80" font-size="11" text-anchor="middle" fill="#333">pass</text>
+  <text x="285" y="80" font-size="11" text-anchor="middle" fill="#333">pass</text>
+
+  <!-- activities -->
+  <g>
+    <circle cx="60" cy="90" r="22" fill="#dbe2ff" stroke="#4459b0" stroke-width="1.6"/>
+    <text x="60" y="94" font-size="12" text-anchor="middle">X</text>
+    <text x="60" y="136" font-size="11" text-anchor="middle" fill="#555">fork</text>
+  </g>
+  <g>
+    <circle cx="210" cy="90" r="22" fill="#dbe2ff" stroke="#4459b0" stroke-width="1.6"/>
+    <text x="210" y="86" font-size="12" text-anchor="middle">A</text>
+    <text x="210" y="136" font-size="11" text-anchor="middle" fill="#555">branch step</text>
+  </g>
+  <g>
+    <circle cx="360" cy="90" r="22" fill="#dbe2ff" stroke="#4459b0" stroke-width="1.6"/>
+    <text x="360" y="94" font-size="12" text-anchor="middle">Y</text>
+    <text x="360" y="136" font-size="11" text-anchor="middle" fill="#555">convergence</text>
+  </g>
+
+  <!-- bypass edge X -> Y drawn LAST (on top), SOLID, slightly lowered so it reads as a
+       distinct arrow that cuts straight through A while the black main edges stay visible -->
+  <line x1="82" y1="100" x2="336" y2="100" stroke="#c0392b" stroke-width="2.8" marker-end="url(#arrRed)"/>
+  <!-- its label, placed at the straight-line midpoint, lands on node A -->
+  <text x="210" y="116" font-size="11" text-anchor="middle" fill="#c0392b" font-weight="bold">skip</text>
+
+  <text x="230" y="178" font-size="12" fill="#c0392b" text-anchor="middle">bypass X&#8594;Y (red) runs straight through A and along both main-path arrows;</text>
+  <text x="230" y="196" font-size="12" fill="#c0392b" text-anchor="middle">its &#8220;skip&#8221; label collides with A &#8212; arrow and label have nowhere clear to go</text>
+</svg>

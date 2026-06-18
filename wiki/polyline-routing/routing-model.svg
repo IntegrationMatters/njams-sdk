@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="520" height="300" viewBox="0 0 520 300" font-family="sans-serif">
+  <text x="10" y="22" font-size="14" font-weight="bold">Routing model: columns, rows, gutters, channels and lanes</text>
+
+  <!-- column bands -->
+  <rect x="40" y="45" width="50" height="210" fill="#eef2ff" stroke="#c3ccf0"/>
+  <rect x="190" y="45" width="50" height="210" fill="#eef2ff" stroke="#c3ccf0"/>
+  <rect x="340" y="45" width="50" height="210" fill="#eef2ff" stroke="#c3ccf0"/>
+  <text x="65" y="58" font-size="10" text-anchor="middle" fill="#7a86c2">col 0</text>
+  <text x="215" y="58" font-size="10" text-anchor="middle" fill="#7a86c2">col 1</text>
+  <text x="365" y="58" font-size="10" text-anchor="middle" fill="#7a86c2">col 2</text>
+
+  <!-- vertical gutter highlight -->
+  <rect x="90" y="45" width="100" height="210" fill="#fff7e6" stroke="#f0d9a8"/>
+  <text x="140" y="248" font-size="10" text-anchor="middle" fill="#b8860b">vertical gutter (edge lanes)</text>
+  <!-- lanes inside the gutter -->
+  <line x1="115" y1="70" x2="115" y2="230" stroke="#e0b050" stroke-width="1" stroke-dasharray="3 3"/>
+  <line x1="140" y1="70" x2="140" y2="230" stroke="#e0b050" stroke-width="1" stroke-dasharray="3 3"/>
+  <line x1="165" y1="70" x2="165" y2="230" stroke="#e0b050" stroke-width="1" stroke-dasharray="3 3"/>
+
+  <!-- horizontal channel between rows -->
+  <rect x="40" y="135" width="350" height="30" fill="#eaf7ee" stroke="#bfe3c9"/>
+  <text x="395" y="153" font-size="10" fill="#3f9a5b">horizontal channel</text>
+
+  <!-- activities on two rows -->
+  <circle cx="65" cy="100" r="20" fill="#dbe2ff" stroke="#4459b0" stroke-width="1.6"/>
+  <text x="65" y="104" font-size="11" text-anchor="middle">S</text>
+  <circle cx="215" cy="100" r="20" fill="#dbe2ff" stroke="#4459b0" stroke-width="1.6"/>
+  <text x="215" y="104" font-size="11" text-anchor="middle">A</text>
+  <circle cx="365" cy="100" r="20" fill="#dbe2ff" stroke="#4459b0" stroke-width="1.6"/>
+  <text x="365" y="104" font-size="11" text-anchor="middle">T</text>
+  <circle cx="215" cy="200" r="20" fill="#dbe2ff" stroke="#4459b0" stroke-width="1.6"/>
+  <text x="215" y="204" font-size="11" text-anchor="middle">B</text>
+
+  <text x="20" y="104" font-size="10" text-anchor="end" fill="#7a86c2">row 0</text>
+  <text x="20" y="204" font-size="10" text-anchor="end" fill="#7a86c2">row 1</text>
+
+  <defs>
+    <marker id="arrG" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L7,3 L0,6 z" fill="#1f7a3d"/>
+    </marker>
+  </defs>
+  <!-- example routed edge S -> T through the channel, drawn on top, with its label on the clear run -->
+  <polyline points="65,122 65,150 365,150 365,122" fill="none" stroke="#1f7a3d" stroke-width="2" marker-end="url(#arrG)"/>
+  <text x="215" y="165" font-size="11" text-anchor="middle" fill="#1f7a3d" font-weight="bold">edge label</text>
+  <text x="395" y="138" font-size="10" fill="#3f9a5b">label sits on the run</text>
+
+  <text x="10" y="288" font-size="11" fill="#555">Edges run horizontally on their row and change rows inside a gutter lane / channel, never across a node; labels go on the clear run.</text>
+</svg>

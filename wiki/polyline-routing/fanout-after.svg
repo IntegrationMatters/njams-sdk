@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="460" height="340" viewBox="0 0 460 340" font-family="sans-serif">
+  <defs>
+    <marker id="arr" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L7,3 L0,6 z" fill="#1f7a3d"/>
+    </marker>
+  </defs>
+
+  <text x="10" y="22" font-size="14" font-weight="bold">Poly-line rendering &#8212; choice fan-out routed on orthogonal rails</text>
+
+  <!-- fan-out bus at x=135 -->
+  <polyline points="82,170 135,170 135,70 188,70" fill="none" stroke="#1f7a3d" stroke-width="1.8" marker-end="url(#arr)"/>
+  <polyline points="135,170 188,170" fill="none" stroke="#1f7a3d" stroke-width="1.8" marker-end="url(#arr)"/>
+  <polyline points="135,170 135,270 188,270" fill="none" stroke="#1f7a3d" stroke-width="1.8" marker-end="url(#arr)"/>
+  <!-- branch labels right-aligned just before each target, growing left into the approach run -->
+  <text x="184" y="84" font-size="11" text-anchor="end" fill="#1f7a3d">case 1</text>
+  <text x="184" y="184" font-size="11" text-anchor="end" fill="#1f7a3d">case 2</text>
+  <text x="184" y="284" font-size="11" text-anchor="end" fill="#1f7a3d">case 3</text>
+
+  <!-- fan-in bus at x=285 -->
+  <polyline points="232,70 285,70 285,170 338,170" fill="none" stroke="#1f7a3d" stroke-width="1.8" marker-end="url(#arr)"/>
+  <polyline points="232,170 338,170" fill="none" stroke="#1f7a3d" stroke-width="1.8" marker-end="url(#arr)"/>
+  <polyline points="232,270 285,270 285,170 338,170" fill="none" stroke="#1f7a3d" stroke-width="1.8" marker-end="url(#arr)"/>
+
+  <!-- activities -->
+  <g><circle cx="60" cy="170" r="22" fill="#dbe2ff" stroke="#4459b0" stroke-width="1.6"/><text x="60" y="174" font-size="12" text-anchor="middle">X</text><text x="60" y="208" font-size="11" text-anchor="middle" fill="#555">choice</text></g>
+  <g><circle cx="210" cy="70" r="22" fill="#dbe2ff" stroke="#4459b0" stroke-width="1.6"/><text x="210" y="74" font-size="12" text-anchor="middle">A</text></g>
+  <g><circle cx="210" cy="170" r="22" fill="#dbe2ff" stroke="#4459b0" stroke-width="1.6"/><text x="210" y="174" font-size="12" text-anchor="middle">B</text></g>
+  <g><circle cx="210" cy="270" r="22" fill="#dbe2ff" stroke="#4459b0" stroke-width="1.6"/><text x="210" y="274" font-size="12" text-anchor="middle">C</text></g>
+  <g><circle cx="360" cy="170" r="22" fill="#dbe2ff" stroke="#4459b0" stroke-width="1.6"/><text x="360" y="174" font-size="12" text-anchor="middle">Y</text><text x="360" y="208" font-size="11" text-anchor="middle" fill="#555">merge</text></g>
+
+  <text x="230" y="318" font-size="12" fill="#1f7a3d" text-anchor="middle">shared vertical rails carry each branch in its own lane &#8212; uniform, no diagonal crossings</text>
+</svg>
