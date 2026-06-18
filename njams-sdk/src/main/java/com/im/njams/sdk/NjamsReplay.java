@@ -23,6 +23,8 @@
  */
 package com.im.njams.sdk;
 
+import java.util.Map;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -87,8 +89,8 @@ public class NjamsReplay {
 
     /** Processes a replay instruction received from the nJAMS server. */
     void handleReplayRequest(Instruction instruction) {
-        if (replayHandler != null) {
-            try {
+        try {
+            if (replayHandler != null) {
                 final ReplayRequest replayRequest = new ReplayRequest(instruction);
                 final ReplayResponse replayResponse = replayHandler.replay(replayRequest);
                 replayResponse.addParametersToInstruction(instruction);
@@ -96,14 +98,33 @@ public class NjamsReplay {
                     jobs.setReplayMarker(replayResponse.getMainLogId(), replayRequest.getDeepTrace());
                     LOG.debug("Processed replay response {}", replayResponse.getMainLogId());
                 }
-            } catch (final Exception ex) {
-                instruction.setResponseResultCode(2);
-                instruction.setResponseResultMessage("Error while executing replay: " + ex.getMessage());
-                instruction.setResponseParameter("Exception", String.valueOf(ex));
+            } else {
+                instruction.setResponseResultCode(1);
+                instruction.setResponseResultMessage("No replay handler registered.");
             }
-        } else {
-            instruction.setResponseResultCode(1);
-            instruction.setResponseResultMessage("No replay handler registered.");
+        } catch (final Exception ex) {
+            instruction.setResponseResultCode(2);
+            instruction.setResponseResultMessage("Error while executing replay: " + ex.getMessage());
+            instruction.setResponseParameter("Exception", String.valueOf(ex));
+        } finally {
+            removeStartData(instruction);
         }
+    }
+
+    /**
+     * Removes the (potentially large) replay start-data from the request so that it is not echoed back
+     * in the reply. The reply reuses the request structure, but the server retains the start-data from
+     * the inbound request and does not need it returned (SDK-422). The parameter is matched
+     * case-insensitively, consistent with how request parameters are looked up.
+     */
+    private static void removeStartData(Instruction instruction) {
+        if (instruction.getRequest() == null) {
+            return;
+        }
+        final Map<String, String> parameters = instruction.getRequest().getParameters();
+        if (parameters == null || parameters.isEmpty()) {
+            return;
+        }
+        parameters.keySet().removeIf(ReplayRequest.PARAM_PAYLOAD::equalsIgnoreCase);
     }
 }

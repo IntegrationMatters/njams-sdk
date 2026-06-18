@@ -37,7 +37,11 @@ public class ReplayRequest {
 
     private static final String PARAM_TEST = "Test";
     private static final String PARAM_DEEPTRACE = "Deeptrace";
-    private static final String PARAM_PAYLOAD = "Payload";
+    /**
+     * Name of the request parameter that carries the replay start-data. This is the potentially large
+     * payload that is removed from the request before the reply is returned to the server.
+     */
+    public static final String PARAM_PAYLOAD = "Payload";
     private static final String PARAM_PROCESS = "Process";
 
     private String process;
