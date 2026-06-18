@@ -244,10 +244,11 @@ public class Configuration {
 
     /**
      * Sets (overwrites) all process (-path) filters.
-     * @param processFilters New filters to set
+     * @param processFilters New filters to set; <code>null</code> is treated as an empty list so the
+     * filter list is never <code>null</code>.
      */
     public synchronized void setProcessFilters(Collection<ProcessFilterEntry> processFilters) {
-        this.processFilters = processFilters;
+        this.processFilters = processFilters != null ? processFilters : new ArrayList<>();
         rebuildFilter();
     }
 

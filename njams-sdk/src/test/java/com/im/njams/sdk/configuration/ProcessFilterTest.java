@@ -25,6 +25,7 @@ package com.im.njams.sdk.configuration;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
@@ -382,6 +383,37 @@ public class ProcessFilterTest {
         }
         assertEquals("every concurrently added filter must be retained",
             writerThreads * addsPerThread, config.getProcessFilters().size());
+    }
+
+    @Test
+    public void testSetProcessFiltersNullIsTreatedAsEmpty() {
+        // Reproducer for SDK-454: passing null to setProcessFilters must not leave the filter list
+        // null, otherwise filter operations that read the list (setExcluded / hasExcludeFilter) throw
+        // NullPointerException.
+        final Configuration config = new Configuration();
+        config.setConfigurationProvider(new MemoryConfigurationProvider());
+
+        config.setProcessFilters(null);
+
+        assertNotNull("filter list must never be null", config.getProcessFilters());
+        assertTrue("null filters must be treated as empty", config.getProcessFilters().isEmpty());
+        // operations that read the list must not throw
+        assertFalse(config.hasProcessExcludeFilter(new Path(">a>b>c>")));
+        config.setProcessExcluded(new Path(">a>b>c>"), true);
+        assertTrue(config.isProcessExcluded(new Path(">a>b>c>")));
+    }
+
+    @Test
+    public void testLoadedConfigurationWithNullFilterListIsTreatedAsEmpty() throws Exception {
+        // A persisted configuration may contain an explicit null for the filter list; loading it must
+        // not leave the list null.
+        final Configuration loaded = JsonSerializerFactory.getDefaultMapper()
+            .readValue("{\"processFilters\":null}", Configuration.class);
+        loaded.setConfigurationProvider(new MemoryConfigurationProvider());
+
+        assertNotNull("filter list must never be null after loading", loaded.getProcessFilters());
+        assertTrue(loaded.getProcessFilters().isEmpty());
+        assertFalse(loaded.isProcessExcluded(new Path(">a>b>c>")));
     }
 
     @Test
