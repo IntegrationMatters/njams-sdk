@@ -23,11 +23,17 @@
  */
 package com.im.njams.sdk.configuration;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -309,6 +315,73 @@ public class ProcessFilterTest {
         config.setProcessExcluded(new Path(">z>z>"), true);
         assertTrue(config.isProcessExcluded(new Path(">z>z>")));
         assertTrue(config.isProcessExcluded(new Path(">a>b>c>")));
+    }
+
+    @Test
+    public void testConcurrentFilterMutationAndAccessIsThreadSafe() throws Exception {
+        // Reproducer for SDK-453: a configuration command mutates the filter list and rebuilds the
+        // cached filter while other threads do the same and the runtime path reads it. Without
+        // synchronization the rebuild iterates the filter list while another thread mutates it,
+        // throwing ConcurrentModificationException (or silently losing a mutation).
+        final Configuration config = new Configuration();
+        config.setConfigurationProvider(new MemoryConfigurationProvider());
+        // Build the filter once so every later mutation triggers a rebuild that iterates the list.
+        config.isProcessExcluded(new Path(">warmup>"));
+
+        final int writerThreads = 6;
+        final int addsPerThread = 60;
+        final int readerThreads = 4;
+        final CountDownLatch start = new CountDownLatch(1);
+        final List<Throwable> failures = Collections.synchronizedList(new ArrayList<>());
+        final AtomicBoolean readersRun = new AtomicBoolean(true);
+        final List<Thread> writers = new ArrayList<>();
+        final List<Thread> readers = new ArrayList<>();
+
+        for (int t = 0; t < writerThreads; t++) {
+            final int base = t;
+            final Thread w = new Thread(() -> {
+                try {
+                    start.await();
+                    for (int i = 0; i < addsPerThread; i++) {
+                        config.addProcessFilter(new ProcessFilterEntry(
+                            FilterType.EXCLUDE, MatcherType.VALUE, ">p" + base + ">" + i + ">"));
+                    }
+                } catch (final Throwable e) {
+                    failures.add(e);
+                }
+            });
+            writers.add(w);
+        }
+        for (int t = 0; t < readerThreads; t++) {
+            final Thread r = new Thread(() -> {
+                try {
+                    start.await();
+                    while (readersRun.get()) {
+                        config.isProcessExcluded(new Path(">p0>1>"));
+                    }
+                } catch (final Throwable e) {
+                    failures.add(e);
+                }
+            });
+            readers.add(r);
+        }
+
+        writers.forEach(Thread::start);
+        readers.forEach(Thread::start);
+        start.countDown();
+        for (final Thread w : writers) {
+            w.join();
+        }
+        readersRun.set(false);
+        for (final Thread r : readers) {
+            r.join();
+        }
+
+        if (!failures.isEmpty()) {
+            throw new AssertionError("concurrent filter access threw: " + failures.get(0), failures.get(0));
+        }
+        assertEquals("every concurrently added filter must be retained",
+            writerThreads * addsPerThread, config.getProcessFilters().size());
     }
 
     @Test

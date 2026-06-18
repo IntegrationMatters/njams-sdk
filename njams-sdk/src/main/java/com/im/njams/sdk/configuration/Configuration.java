@@ -61,6 +61,10 @@ public class Configuration {
     // Built lazily without settings if accessed before initialization. Must not be built eagerly:
     // this instance is typically populated by deserialization, where the filter list is set only
     // after construction.
+    // Concurrency: every (re)build and every mutation of processFilters happens under
+    // synchronized(this), so the filter list is never iterated while being modified. The field is
+    // volatile so the runtime read path (processFilter()) can return the cached instance without
+    // locking once it has been built.
     @JsonIgnore
     private volatile ProcessFilter processFilter;
     private Collection<ProcessFilterEntry> processFilters = new ArrayList<>();
@@ -73,7 +77,7 @@ public class Configuration {
      * @param settings The client settings to read additional exclude patterns from, or
      * <code>null</code> for none.
      */
-    public void initFilter(ClientSettings settings) {
+    public synchronized void initFilter(ClientSettings settings) {
         processFilter = new ProcessFilter(this, settings);
     }
 
@@ -102,7 +106,7 @@ public class Configuration {
      * here). Does nothing if the filter has not been built yet — it is then built lazily on next
      * access.
      */
-    private void rebuildFilter() {
+    private synchronized void rebuildFilter() {
         final ProcessFilter current = processFilter;
         if (current != null) {
             processFilter = new ProcessFilter(this, current.settingsExcludePatterns());
@@ -242,7 +246,7 @@ public class Configuration {
      * Sets (overwrites) all process (-path) filters.
      * @param processFilters New filters to set
      */
-    public void setProcessFilters(Collection<ProcessFilterEntry> processFilters) {
+    public synchronized void setProcessFilters(Collection<ProcessFilterEntry> processFilters) {
         this.processFilters = processFilters;
         rebuildFilter();
     }
@@ -251,7 +255,7 @@ public class Configuration {
      * Adds a process filter to the current list of filters.
      * @param processFilter The filter to add.
      */
-    public void addProcessFilter(ProcessFilterEntry processFilter) {
+    public synchronized void addProcessFilter(ProcessFilterEntry processFilter) {
         processFilters.add(processFilter);
         rebuildFilter();
     }
@@ -286,7 +290,7 @@ public class Configuration {
      * @param excluded If <code>true</code>, an exclude filter is set, otherwise it's removed.
      * @see ProcessFilter#setExcluded(Path, boolean)
      */
-    public void setProcessExcluded(Path processPath, boolean excluded) {
+    public synchronized void setProcessExcluded(Path processPath, boolean excluded) {
         processFilter().setExcluded(processPath, excluded);
         // setExcluded changes the filter list directly; rebuild so the filter reflects the update
         // (preserving the settings-based exclude patterns).
