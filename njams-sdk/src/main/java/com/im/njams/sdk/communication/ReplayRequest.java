@@ -27,6 +27,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
+import com.im.njams.sdk.Path;
+import com.im.njams.sdk.utils.StringUtils;
 
 /**
  * Request for the replay command
@@ -43,8 +45,10 @@ public class ReplayRequest {
      */
     public static final String PARAM_PAYLOAD = "Payload";
     private static final String PARAM_PROCESS = "Process";
+    private static final String PARAM_PROCESS_PATH = "processPath";
 
     private String process;
+    private Path processPath;
     private String payload;
     private boolean deepTrace;
     private boolean test;
@@ -57,6 +61,8 @@ public class ReplayRequest {
      */
     public ReplayRequest(Instruction instruction) {
         process = instruction.getRequestParameterByName(PARAM_PROCESS);
+        final String pathParam = instruction.getRequestParameterByName(PARAM_PROCESS_PATH);
+        processPath = StringUtils.isNotBlank(pathParam) ? Path.resolve(pathParam) : null;
         payload = instruction.getRequestParameterByName(PARAM_PAYLOAD);
         String param = instruction.getRequestParameterByName(PARAM_TEST);
         test = param == null ? false : Boolean.valueOf(param);
@@ -77,6 +83,29 @@ public class ReplayRequest {
      */
     public void setProcess(String process) {
         this.process = process;
+    }
+
+    /**
+     * Returns the full path of the process to replay, if the server provided one.
+     * <p>
+     * The path unambiguously identifies the process model, whereas {@link #getProcess()} is only the
+     * process name (the last path segment) and may be ambiguous when several processes share the same
+     * name. Prefer this path over the name whenever it is non-{@code null}.
+     *
+     * @return the process path, or {@code null} if the request did not contain a {@code processPath}
+     *     parameter
+     */
+    public Path getProcessPath() {
+        return processPath;
+    }
+
+    /**
+     * Sets the full path of the process to replay.
+     *
+     * @param processPath the process path to set; may be {@code null}
+     */
+    public void setProcessPath(Path processPath) {
+        this.processPath = processPath;
     }
 
     /**
