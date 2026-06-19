@@ -95,7 +95,7 @@ public class ProcessModel {
 
         // set meta data
         internalProcessModel.setPath(path.toString());
-        internalProcessModel.setName(path.getSegmentName());
+        internalProcessModel.setName(path.getName());
 
         // set configuration data
         ProcessConfiguration processConfiguration = njams.getConfiguration().getProcess(path.toString());
@@ -157,7 +157,7 @@ public class ProcessModel {
      * @return Name of this ProcessModel
      */
     public String getName() {
-        return path.getSegmentName();
+        return path.getName();
     }
 
     /**

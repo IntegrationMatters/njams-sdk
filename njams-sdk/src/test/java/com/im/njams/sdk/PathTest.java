@@ -609,7 +609,24 @@ public class PathTest {
         assertEquals(java.util.Arrays.asList("a", "b", "c"), Path.of("a", "b", "c").getSegments());
     }
 
-    // --- getSegmentName ---
+    // --- getName ---
+
+    @Test
+    public void nameOfRootIsNull() {
+        assertNull(Path.ROOT.getName());
+    }
+
+    @Test
+    public void nameOfRootChild() {
+        assertEquals("seg", Path.of("seg").getName());
+    }
+
+    @Test
+    public void nameAtDepthTwo() {
+        assertEquals("leaf", Path.of("branch", "leaf").getName());
+    }
+
+    // --- getSegmentName (deprecated) ---
 
     @Test
     public void segmentNameOfRootIsNull() {
