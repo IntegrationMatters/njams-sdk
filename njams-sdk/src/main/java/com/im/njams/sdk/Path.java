@@ -267,17 +267,6 @@ public final class Path {
         return segment;
     }
 
-    /**
-     * Returns this node's own segment name (the last component of its path), or
-     * {@code null} if this is the {@link #ROOT}.
-     *
-     * @return the segment name, or {@code null} for root
-     * @deprecated Use {@link #getName()} instead.
-     */
-    @Deprecated
-    public String getSegmentName() {
-        return getName();
-    }
 
     /**
      * Returns the ordered list of segment names that make up this path, root first.

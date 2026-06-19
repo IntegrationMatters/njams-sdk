@@ -626,23 +626,6 @@ public class PathTest {
         assertEquals("leaf", Path.of("branch", "leaf").getName());
     }
 
-    // --- getSegmentName (deprecated) ---
-
-    @Test
-    public void segmentNameOfRootIsNull() {
-        assertNull(Path.ROOT.getSegmentName());
-    }
-
-    @Test
-    public void segmentNameOfRootChild() {
-        assertEquals("seg", Path.of("seg").getSegmentName());
-    }
-
-    @Test
-    public void segmentNameAtDepthTwo() {
-        assertEquals("leaf", Path.of("branch", "leaf").getSegmentName());
-    }
-
     // --- hasChild ---
 
     @Test
