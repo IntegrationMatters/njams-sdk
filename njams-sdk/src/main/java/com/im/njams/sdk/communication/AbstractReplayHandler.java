@@ -26,13 +26,15 @@ package com.im.njams.sdk.communication;
 import com.im.njams.sdk.Path;
 import com.im.njams.sdk.common.DateTimeUtility;
 import com.im.njams.sdk.utils.StringUtils;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
  * A base implementation of the {@link ReplayHandler} interface that hides request/response handling from the
  * actual implementation.
+ * <p>
+ * Implementations have to override {@link #executeReplay(Path, String, String)} and
+ * {@link #testReplay(Path, String, String)} to provide the actual replay logic.
  *
  * @author cwinkler
  * @since 4.1.3
@@ -160,7 +162,7 @@ public abstract class AbstractReplayHandler implements ReplayHandler {
      * process {@link Path}. This method is still invoked by the default implementation of that overload for
      * backward compatibility.
      */
-    @Deprecated
+    @Deprecated(since = "6.0", forRemoval = true)
     public String executeReplay(final String processName, final String startData) throws Exception {
         throw new UnsupportedOperationException(
             "Override executeReplay(Path, String, String) or the deprecated executeReplay(String, String)");
@@ -177,7 +179,7 @@ public abstract class AbstractReplayHandler implements ReplayHandler {
      * process {@link Path}. This method is still invoked by the default implementation of that overload for
      * backward compatibility.
      */
-    @Deprecated
+    @Deprecated(since = "6.0", forRemoval = true)
     public void testReplay(final String processName, final String startData) throws Exception {
         throw new UnsupportedOperationException(
             "Override testReplay(Path, String, String) or the deprecated testReplay(String, String)");
