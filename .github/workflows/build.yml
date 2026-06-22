@@ -13,7 +13,7 @@ jobs:
     # njams-messageformat, which is only available from the internal Nexus
     # (not reachable from GitHub-hosted runners). overwrite-settings: false
     # keeps the runner's Nexus-pointing settings.xml in place.
-    runs-on: os0015
+    runs-on: self-hosted
     steps:
       - uses: actions/checkout@v4
 
