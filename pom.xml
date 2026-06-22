@@ -401,39 +401,14 @@
             </build>
         </profile>
         <profile>
-            <id>svn-check</id>
-            <activation>
-                <os>
-                    <family>unix</family>
-                </os>
-            </activation>
-            <build>
-                <plugins>
-                    <plugin>
-                        <groupId>com.google.code.maven-svn-revision-number-plugin</groupId>
-                        <artifactId>svn-revision-number-maven-plugin</artifactId>
-                        <executions>
-                            <execution>
-                                <goals>
-                                    <goal>revision</goal>
-                                </goals>
-                            </execution>
-                        </executions>
-                        <configuration>
-                            <entries>
-                                <entry>
-                                    <path>${project.basedir}</path>
-                                    <prefix>revisionNumberPlugin</prefix>
-                                    <depth>infinity</depth>
-                                    <reportUnversioned>false</reportUnversioned>
-                                    <reportIgnored>false</reportIgnored>
-                                    <reportOutOfDate>false</reportOutOfDate>
-                                </entry>
-                            </entries>
-                        </configuration>
-                    </plugin>
-                </plugins>
-            </build>
+            <id>github</id>
+            <distributionManagement>
+                <repository>
+                    <id>github</id>
+                    <name>GitHub Packages</name>
+                    <url>https://maven.pkg.github.com/IntegrationMatters/njams-sdk</url>
+                </repository>
+            </distributionManagement>
         </profile>
     </profiles>
 
