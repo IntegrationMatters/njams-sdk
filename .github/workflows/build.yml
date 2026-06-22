@@ -9,16 +9,20 @@ on:
 jobs:
 
   build:
-    runs-on: ubuntu-latest
+    # Runs on the internal self-hosted runner: the build depends on
+    # njams-messageformat, which is only available from the internal Nexus
+    # (not reachable from GitHub-hosted runners). overwrite-settings: false
+    # keeps the runner's Nexus-pointing settings.xml in place.
+    runs-on: os0015
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up JDK 11
+      - name: Set up JDK 11 (keep runner's Nexus settings.xml)
         uses: actions/setup-java@v4
         with:
           java-version: '11'
           distribution: 'temurin'
-          cache: maven
+          overwrite-settings: 'false'
 
       - name: Build and test all modules (with coverage)
         run: >

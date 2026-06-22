@@ -4,7 +4,7 @@
 
 **Goal:** Replace the Jenkins build with two GitHub Actions workflows — a CI workflow (build, test, coverage, scan, snapshot-deploy to Nexus) and a manual release workflow (publish to GitHub Packages + versioned Javadoc to GitHub Pages).
 
-**Architecture:** A single reactor build at the repo root compiles and tests all three modules in dependency order, so no artifacts are passed between jobs and no Maven coordinates are extracted. CI is two jobs: `build` on `ubuntu-latest` (the gate), and `publish-snapshot` on the self-hosted runner `os0015` (which has Nexus network access and a `settings.xml` carrying the Nexus credentials). The release workflow uses `mvn release:prepare release:perform` with a `github` profile that redirects `distributionManagement` to GitHub Packages, then publishes Javadoc to a per-version subdirectory on the `gh-pages` branch.
+**Architecture:** A single reactor build at the repo root compiles and tests all three modules in dependency order, so no artifacts are passed between jobs and no Maven coordinates are extracted. CI is two jobs, both on the self-hosted internal runner `os0015`: `build` (the gate) and `publish-snapshot`. Both must run there because the build depends on `njams-messageformat`, which is published only to the internal Nexus (not reachable from GitHub-hosted runners); `os0015` has Nexus network access and a `settings.xml` carrying the Nexus repositories and credentials. The release workflow uses `mvn release:prepare release:perform` with a `github` profile that redirects `distributionManagement` to GitHub Packages, then publishes Javadoc to a per-version subdirectory on the `gh-pages` branch.
 
 **Tech Stack:** GitHub Actions, Maven 3.8+, Java 11 (Temurin), `actions/checkout@v4`, `actions/setup-java@v4`, `actions/upload-artifact@v4`, `aquasecurity/trivy-action@master`, SonarCloud scanner, JaCoCo (`-Psonar`), `gh` CLI (preinstalled on runners).
 
@@ -127,7 +127,7 @@ git commit -m "SDK-381 Add github Maven profile for GitHub Packages; remove dead
 - Consumes: repo secret `SONAR_TOKEN`; Nexus credentials from `settings.xml` on the `os0015` runner.
 - Produces: CI status check on `6.0-dev`; root-pom + `njams-sdk` snapshots in Nexus (on push only).
 
-**Design:** Two jobs. `build` runs the full reactor (`install` builds all three modules so the samples are compile-verified), with checkstyle and JaCoCo via profiles, then a Sonar analysis scoped to the SDK, a Javadoc-builds-clean check, and a Trivy filesystem scan. `publish-snapshot` rebuilds on `os0015` and deploys only the root pom + SDK to Nexus (`-pl njams-sdk -am`), skipping tests (already run in `build`). No artifact passing — a reactor build is self-contained and the Maven cache keeps re-runs fast.
+**Design:** Two jobs, both on `os0015` (the build needs internal Nexus to resolve `njams-messageformat`). `build` runs the full reactor (`install` builds all three modules so the samples are compile-verified), with checkstyle and JaCoCo via profiles, then a Sonar analysis scoped to the SDK, a Javadoc-builds-clean check, and a Trivy filesystem scan. `publish-snapshot` rebuilds and deploys only the root pom + SDK to Nexus (`-pl njams-sdk -am`), skipping tests (already run in `build`). Both use `overwrite-settings: false` to preserve the runner's Nexus `settings.xml`. No artifact passing — a reactor build is self-contained.
 
 - [ ] **Step 1: Create `.github/workflows/build.yml`**
 
@@ -143,16 +143,20 @@ on:
 jobs:
 
   build:
-    runs-on: ubuntu-latest
+    # Runs on the internal self-hosted runner: the build depends on
+    # njams-messageformat, which is only available from the internal Nexus
+    # (not reachable from GitHub-hosted runners). overwrite-settings: false
+    # keeps the runner's Nexus-pointing settings.xml in place.
+    runs-on: os0015
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up JDK 11
+      - name: Set up JDK 11 (keep runner's Nexus settings.xml)
         uses: actions/setup-java@v4
         with:
           java-version: '11'
           distribution: 'temurin'
-          cache: maven
+          overwrite-settings: 'false'
 
       - name: Build and test all modules (with coverage)
         run: >
