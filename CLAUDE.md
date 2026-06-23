@@ -238,6 +238,14 @@ Apply best practices and maintain clean architecture in all production code. Cod
 - **Transport independence.** Business logic must not depend on a specific transport. Communication-specific code belongs in `communication/http`, `communication/jms`, or `communication/kafka`.
 - **Performance overrides elegance in hot paths.** In the runtime monitoring path (`logmessage/`, `communication/`, `argos/`), a simpler and faster implementation is preferred over a more elegant but heavier abstraction. Raise the trade-off with the user if the two goals conflict.
 
+### Job / Activity / Group thread-safety contract (since 6.0.0, SDK-457)
+
+A documented thread-safety contract holds for the runtime classes and **must be preserved** by any change to `logmessage/`:
+
+- **A `Job` is the shared concurrency unit.** Multiple threads may concurrently create activities/groups in one job and record into their *own* instances. The job-level state that recording updates as a side effect — status/maximum severity, the `JobTracing` flags, the `JobFlusher` estimated size, attributes, the captured activity error, and `JobMetadata` — is synchronized internally (the single job lock is `JobImpl.activitiesLock`, also used by `JobFlusher`; independent flags use `volatile`). Keep new shared job-level state safe the same way.
+- **An `Activity`/`Group` instance is thread-confined.** One instance is used by one thread; the SDK does **not** synchronize mutation of a single instance (data setters, `addPredecessor`, `Group.iterate()`). Do not add per-instance locking — it adds hot-path cost for a case that does not occur.
+- When changing this contract or anything it covers, update the Javadoc on the `Job`/`Activity`/`Group` interfaces and the "Can a single job be used from multiple threads" FAQ entry to match.
+
 ## API Design Principles
 
 This SDK is a **public API** consumed by nJAMS client implementations. Client implementations must use SDK functionality whenever it is available rather than reimplementing it themselves.

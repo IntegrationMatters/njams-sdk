@@ -702,9 +702,18 @@ A pattern for references such as `{{name}}`, `{{?name}}`, `{{sys:name}}`, or `{{
 Here the leading `?` in `{{?name}}` is captured into the `optional` group, so the reference is treated as optional;
 references without it leave the group empty and are mandatory.
 
-## Can a single job be used from multiple threads <kbd style="background-color:#2da44e;color:#fff;border-color:#2da44e">since 6.0.0</kbd>
+`setGlobalVariablesPattern` validates the argument immediately: it must be a compilable regular expression that
+declares at least the `full` and `name` groups, otherwise an `NjamsSdkRuntimeException` is thrown. Passing `null`
+clears the pattern.
 
-Yes, with one rule about granularity. A `Job` is the shared unit of concurrency: several threads may
+## Can a single job be used from multiple threads
+
+Yes, with one rule about granularity — but note that this is a contract **guaranteed only since
+6.0.0**. Before 6.0.0 there was no thread-safety guarantee for `Job`, `Activity`, or `Group` at all:
+concurrent use of a single job from multiple threads could lose updates or corrupt state, so callers
+had to confine each job to one thread or synchronize externally. From 6.0.0 onward the following holds.
+
+A `Job` is the shared unit of concurrency: several threads may
 concurrently create activities and groups in the **same** job — for example when monitoring parallel
 branch execution (parallel split, multicast, recipient list, …) under one job — and record into their
 **own** `Activity` / `Group` instances. The job-level state that recording updates as a side effect
@@ -730,9 +739,5 @@ for (Branch branch : parallelBranches) {
 
 If you genuinely need to share a single activity or group instance across threads (including calling
 `Group.iterate()` on the same group from several threads), you must synchronize those calls yourself.
-
-`setGlobalVariablesPattern` validates the argument immediately: it must be a compilable regular expression that
-declares at least the `full` and `name` groups, otherwise an `NjamsSdkRuntimeException` is thrown. Passing `null`
-clears the pattern.
 
 
