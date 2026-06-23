@@ -92,9 +92,10 @@ final class JobFlusher {
         }
         // only send updates automatically, if a change has been
         // made to the job between individual send events.
+        final long currentSize = getEstimatedSize();
         LOG.trace("Job {}: lastPush: {}, age: {}, size: {}", owner, lastFlush,
-                Duration.between(lastFlush, DateTimeUtility.now()), estimatedSize);
-        if ((lastFlush.isBefore(sentBefore) || estimatedSize > flushSize)
+                Duration.between(lastFlush, DateTimeUtility.now()), currentSize);
+        if ((lastFlush.isBefore(sentBefore) || currentSize > flushSize)
                 && (!attributes.isEmpty() || owner.getEndTime() != null || activities.hasActivityToSend())) {
             LOG.debug("Flush by timer: {}", owner);
             owner.flush();
@@ -248,11 +249,17 @@ final class JobFlusher {
     }
 
     long getEstimatedSize() {
-        return estimatedSize;
+        synchronized (lock) {
+            return estimatedSize;
+        }
     }
 
     void addToEstimatedSize(long estimatedSize) {
-        this.estimatedSize += estimatedSize;
+        // Guarded by the same lock as every other access to estimatedSize. Parallel activities in a
+        // shared job add concurrently; an unsynchronized += loses increments and undercounts the size.
+        synchronized (lock) {
+            this.estimatedSize += estimatedSize;
+        }
     }
 
     void addPluginDataItem(PluginDataItem pluginDataItem) {

@@ -37,19 +37,21 @@ public class JobMetadata {
 
     private final JobImpl jobImpl;
 
-    private String correlationLogId;
+    // A Job is shared across threads. Each metadata field is independent (no cross-field invariant),
+    // so volatile is sufficient: it gives correct visibility of concurrent writes without locking.
+    private volatile String correlationLogId;
 
-    private String parentLogId;
+    private volatile String parentLogId;
 
-    private String externalLogId;
+    private volatile String externalLogId;
 
-    private String businessService;
+    private volatile String businessService;
 
-    private String businessObject;
+    private volatile String businessObject;
 
-    private LocalDateTime businessStart;
+    private volatile LocalDateTime businessStart;
 
-    private LocalDateTime businessEnd;
+    private volatile LocalDateTime businessEnd;
 
     JobMetadata(JobImpl jobImpl, String initialCorrelationLogId) {
         this.jobImpl = jobImpl;

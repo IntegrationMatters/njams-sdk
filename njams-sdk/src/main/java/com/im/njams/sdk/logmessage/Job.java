@@ -35,6 +35,20 @@ import java.util.Map;
 
 /**
  * This represents an instance of a process/flow etc in engine to monitor.
+ * <p>
+ * <b>Thread safety.</b> A {@code Job} is the shared unit of concurrency. Multiple threads may
+ * concurrently create activities and groups in the same job (e.g. when monitoring parallel branch
+ * execution under one job) and record into their <em>own</em> {@link Activity} / {@link Group}
+ * instances. The job-level state that such recording updates as a side effect — status and maximum
+ * severity, the instrumentation and trace flags, the estimated message size, attributes, the
+ * captured activity error, and the {@linkplain #metadata() metadata} fields — is synchronized
+ * internally and safe for concurrent use.
+ * <p>
+ * An individual {@link Activity} or {@link Group} instance, in contrast, is <b>thread-confined</b>:
+ * it is expected to be accessed by a single thread. The SDK does not synchronize mutation of one
+ * activity/group instance, because parallel threads are expected to work on separate instances. A
+ * caller that genuinely shares a single activity or group instance across threads must synchronize
+ * those calls itself. See {@link Activity} and {@link Group} for details.
  *
  * @author pnientiedt
  */

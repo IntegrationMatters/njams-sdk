@@ -103,16 +103,18 @@ public class JobImpl implements Job {
 
     private final String logId;
     /*
-     * the latest status of the job, set by any event
+     * The latest status of the job, set by any event. Mutated under activitiesLock (see
+     * setStatusAndSeverity and end); volatile so that readers see updates without locking.
      */
-    private JobStatus lastStatus = JobStatus.CREATED;
+    private volatile JobStatus lastStatus = JobStatus.CREATED;
 
     /*
-     * maximum severity recorded
+     * Maximum severity recorded. Mutated under activitiesLock (the update is a read-modify-write
+     * that must be atomic); volatile so that readers see updates without locking.
      */
-    private JobStatus maxSeverity = JobStatus.SUCCESS;
+    private volatile JobStatus maxSeverity = JobStatus.SUCCESS;
 
-    // guards the activity registry and the truncation state
+    // guards the activity registry, the truncation state and the job status (lastStatus/maxSeverity)
     final Object activitiesLock = new Object();
 
     private final JobActivities activities = new JobActivities(this, activitiesLock);
@@ -127,7 +129,9 @@ public class JobImpl implements Job {
     // kept on JobImpl (not in JobActivities): frozen tests access this field directly
     boolean hasOrHadStartActivity;
 
-    private boolean finished = false;
+    // volatile: read without locking by requireNotFinished/getStatus on any thread; written under
+    // activitiesLock in end(). A reader observing finished==true also observes the final lastStatus.
+    private volatile boolean finished = false;
 
     private final JobRuntimeConfig runtimeConfig;
 
@@ -447,9 +451,13 @@ public class JobImpl implements Job {
     }
 
     private void setStatusAndSeverity(JobStatus status) {
-        lastStatus = status;
-        if (maxSeverity == null || maxSeverity.getValue() < lastStatus.getValue()) {
-            maxSeverity = status;
+        // Atomic read-modify-write: parallel threads recording into the same job may escalate the
+        // status concurrently; without the lock an escalation (e.g. ERROR) can be lost.
+        synchronized (activitiesLock) {
+            lastStatus = status;
+            if (maxSeverity == null || maxSeverity.getValue() < status.getValue()) {
+                maxSeverity = status;
+            }
         }
     }
 

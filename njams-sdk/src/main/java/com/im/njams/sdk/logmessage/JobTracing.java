@@ -30,10 +30,12 @@ package com.im.njams.sdk.logmessage;
  */
 public class JobTracing {
 
-    private boolean deepTrace;
+    // volatile: a Job is shared across threads (parallel activities update these flags); volatile
+    // gives correct visibility without locking. Each flag is independent, so no atomicity is needed.
+    private volatile boolean deepTrace;
 
-    private boolean instrumented = false;
-    private boolean traces;
+    private volatile boolean instrumented = false;
+    private volatile boolean traces;
 
     JobTracing() {
         // created by JobImpl only

@@ -32,6 +32,13 @@ import com.im.njams.sdk.model.SubProcessActivityModel;
 /**
  * Activity which represents a group in a process. A group can have child
  * activities.
+ * <p>
+ * <b>Thread safety.</b> Like any {@link Activity}, a {@code Group} instance is <b>thread-confined</b>:
+ * it is expected to be accessed by a single thread, and the SDK does not synchronize mutation of an
+ * individual instance — including {@link #iterate()} and child-activity creation on this group. A
+ * caller that genuinely shares one group instance across threads (for example, iterating it from
+ * several threads at once) must synchronize those calls itself. The enclosing {@link Job} remains
+ * safe for concurrent activity creation; see {@link Job} for the overall contract.
  *
  * @author pnientiedt
  */

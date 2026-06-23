@@ -702,6 +702,35 @@ A pattern for references such as `{{name}}`, `{{?name}}`, `{{sys:name}}`, or `{{
 Here the leading `?` in `{{?name}}` is captured into the `optional` group, so the reference is treated as optional;
 references without it leave the group empty and are mandatory.
 
+## Can a single job be used from multiple threads <kbd style="background-color:#2da44e;color:#fff;border-color:#2da44e">since 6.0.0</kbd>
+
+Yes, with one rule about granularity. A `Job` is the shared unit of concurrency: several threads may
+concurrently create activities and groups in the **same** job — for example when monitoring parallel
+branch execution (parallel split, multicast, recipient list, …) under one job — and record into their
+**own** `Activity` / `Group` instances. The job-level state that recording updates as a side effect
+(status and maximum severity, the instrumentation and trace flags, the estimated message size, attributes,
+the captured activity error, and the `metadata()` fields) is synchronized internally and safe for
+concurrent use.
+
+An individual `Activity` or `Group` instance, however, is **thread-confined**: it is meant to be used by a
+single thread, and the SDK does not synchronize mutation of one instance. The intended pattern for parallel
+monitoring is therefore *one activity/group instance per thread within a shared job*:
+
+```java
+// one shared job; each parallel branch records into its own activity instance
+for (Branch branch : parallelBranches) {
+    executor.submit(() -> {
+        Activity activity = job.createActivity(branch.model()).build(); // safe: creation is synchronized
+        activity.processInput(branch.input());                          // safe: activity is thread-confined
+        // ... record this branch ...
+        activity.end();
+    });
+}
+```
+
+If you genuinely need to share a single activity or group instance across threads (including calling
+`Group.iterate()` on the same group from several threads), you must synchronize those calls yourself.
+
 `setGlobalVariablesPattern` validates the argument immediately: it must be a compilable regular expression that
 declares at least the `full` and `name` groups, otherwise an `NjamsSdkRuntimeException` is thrown. Passing `null`
 clears the pattern.
