@@ -345,6 +345,13 @@ Tests use JUnit 4 + Mockito. The `AbstractTest` base class provides common test 
 
 Test reports are generated in `njams-sdk/target/surefire-reports/`.
 
+### Test support tooling
+
+Prefer the existing in-repo test infrastructure over reinventing it when a test needs a working `Njams` instance or needs to inspect what would be sent:
+
+- **No-op / capturing sender (`TestSender`).** `com.im.njams.sdk.communication.TestSender` (in `src/test`) is a transport that is registered via SPI and selected by `TestSender.getSettings()` (it sets `PROPERTY_COMMUNICATION=TEST_COMMUNICATION` and the in-memory configuration provider). By default it **discards** all messages, so a real `Njams` can be started and exercised with no server and no real I/O — this is exactly what `AbstractTest` does. When a test needs to assert on the outbound messages, inject a delegate with `TestSender.setSenderMock(AbstractSender)` (e.g. a Mockito mock or spy) and capture the `CommonMessage` passed to `send(...)`. Reach for a real `Njams` over the no-op sender when the facet under test is tightly coupled to `Njams`/`ProcessModel`; use plain mocks for isolated collaborators.
+- **Message dump for debugging (`njams.sdk.debug.messagedir`).** Setting `NjamsSettings.PROPERTY_DEBUG_MESSAGE_DIR` makes `MessageDebugDumper` write every outbound message (project/log/trace) as an individual `.json` file (headers + body) under a per-run timestamped subdirectory. Useful when diagnosing what the SDK actually emits without standing up a server. It is inert when the setting is absent — do not enable it in normal unit tests; use a captured/mocked `TestSender` for assertions instead.
+
 When fixing bugs, always use the `njams-bug-fix` skill. Every bug fix must be linked to a Jira ticket in the SDK project — confirm the ticket key (e.g. `SDK-123`) before starting and reference it in commit messages. Once a fix is confirmed successful, post a short comment on the Jira ticket describing the root cause and the fix. Existing test cases must never be modified without explicit user permission — if a fix causes a test to fail, the fix is wrong. If there is a genuine reason to believe a test is incorrect, explain the specific conflict and ask the user before changing anything.
 
 All content posted to Jira by Claude Code must end with the following signature:
