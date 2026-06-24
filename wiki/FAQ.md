@@ -740,4 +740,22 @@ for (Branch branch : parallelBranches) {
 If you genuinely need to share a single activity or group instance across threads (including calling
 `Group.iterate()` on the same group from several threads), you must synchronize those calls yourself.
 
+## How can I test my instrumented application or inspect what the SDK sends
+
+Two lightweight options let you exercise instrumented code without a running nJAMS server.
+
+**Dump every outbound message to disk.** Set `njams.sdk.debug.messagedir` to a directory path. Every
+message the SDK sends — project, log and trace messages — is then written as an individual `.json` file
+(its logical headers plus the JSON body) into a per-run subdirectory named `yyyyMMdd-HHmmss` under that
+path. This is the simplest way to verify *what* the client would emit. It is for development and debugging
+only and is completely inert when the setting is absent, so it can be left unset in production.
+
+**Run against a no-op transport in unit tests.** For automated tests you usually want no real connection
+at all. A communication transport is selected via `njams.sdk.communication` and resolved through the Java
+service loader (SPI), so a test can provide a minimal `AbstractSender` implementation that simply discards
+(or records) the messages handed to its `send(...)` method and select it via that setting. A real `Njams`
+instance can then be started and driven end to end — creating jobs, activities and groups — without a
+server. The SDK's own test suite uses exactly this approach (a no-op `TestSender`); inject a mock or spy
+into it to assert on the messages your application produces.
+
 
