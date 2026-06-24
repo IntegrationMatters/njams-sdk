@@ -394,6 +394,96 @@ public class PolylineProcessDiagramFactoryTest {
         Assert.assertEquals("fan-out labels must not stack on the same row", 3, distinctY);
     }
 
+    /**
+     * A horizontal segment of one transition properly crosses a vertical segment of another when the
+     * vertical's x lies strictly inside the horizontal's x-range and the horizontal's y lies strictly
+     * inside the vertical's y-range. Endpoint touches (shared trunks at a fork, merges at a join) are
+     * excluded by the strict comparison.
+     */
+    private static boolean transitionsCross(Element a, Element b) {
+        double eps = 0.01;
+        List<double[]> pa = points(a);
+        List<double[]> pb = points(b);
+        for (int i = 0; i + 1 < pa.size(); i++) {
+            for (int j = 0; j + 1 < pb.size(); j++) {
+                if (properCross(pa.get(i), pa.get(i + 1), pb.get(j), pb.get(j + 1), eps)
+                    || properCross(pb.get(j), pb.get(j + 1), pa.get(i), pa.get(i + 1), eps)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    /** True if axis-aligned horizontal segment h0->h1 strictly crosses axis-aligned vertical v0->v1. */
+    private static boolean properCross(double[] h0, double[] h1, double[] v0, double[] v1, double eps) {
+        boolean horizontal = Math.abs(h0[1] - h1[1]) < eps;
+        boolean vertical = Math.abs(v0[0] - v1[0]) < eps;
+        if (!horizontal || !vertical) {
+            return false;
+        }
+        double hy = h0[1];
+        double vx = v0[0];
+        double hxMin = Math.min(h0[0], h1[0]);
+        double hxMax = Math.max(h0[0], h1[0]);
+        double vyMin = Math.min(v0[1], v1[1]);
+        double vyMax = Math.max(v0[1], v1[1]);
+        return vx > hxMin + eps && vx < hxMax - eps && hy > vyMin + eps && hy < vyMax - eps;
+    }
+
+    private static void assertNoTransitionsCrossEachOther(Document doc) {
+        List<Element> polys = transitionPolylines(doc);
+        for (int i = 0; i < polys.size(); i++) {
+            for (int k = i + 1; k < polys.size(); k++) {
+                Assert.assertFalse(
+                    "transitions '" + polys.get(i).getAttribute("modelId") + "' and '"
+                        + polys.get(k).getAttribute("modelId") + "' cross each other",
+                    transitionsCross(polys.get(i), polys.get(k)));
+            }
+        }
+    }
+
+    @Test
+    public void fanOut_branchesDoNotCrossEachOther() throws Exception {
+        // X forks to three targets on three rows. The branch to the farthest target must take the
+        // gutter nearest the source so the nearer branches nest inside it without being crossed.
+        ProcessModel model = createProcess();
+        ActivityModel x = model.createActivity("X", "X", null);
+        model.createActivity("A", "A", null);
+        model.createActivity("B", "B", null);
+        model.createActivity("C", "C", null);
+        x.setStarter(true);
+        model.createTransition("X", "A");
+        model.createTransition("X", "B");
+        model.createTransition("X", "C");
+
+        Document doc = parse(render(model));
+
+        assertNoTransitionsCrossEachOther(doc);
+    }
+
+    @Test
+    public void convergence_branchesDoNotCrossEachOther() throws Exception {
+        // Three branches reconverge on Y; the fan-in elbows must nest so no branch crosses another.
+        ProcessModel model = createProcess();
+        ActivityModel x = model.createActivity("X", "X", null);
+        model.createActivity("A", "A", null);
+        model.createActivity("B", "B", null);
+        model.createActivity("C", "C", null);
+        model.createActivity("Y", "Y", null);
+        x.setStarter(true);
+        model.createTransition("X", "A");
+        model.createTransition("X", "B");
+        model.createTransition("X", "C");
+        model.createTransition("A", "Y");
+        model.createTransition("B", "Y");
+        model.createTransition("C", "Y");
+
+        Document doc = parse(render(model));
+
+        assertNoTransitionsCrossEachOther(doc);
+    }
+
     @Test
     public void parallelBranches_shareGutterButGetDistinctLanes() throws Exception {
         // X -> A (row 0) and X -> B (row 1): both leave column 0; their vertical runs must differ in x.

@@ -261,21 +261,43 @@ public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
                 elbowByCol.computeIfAbsent(e.colS, k -> new ArrayList<>()).add(e);
             }
         }
-        Comparator<Edge> order = Comparator.comparingDouble((Edge e) -> e.tcy)
+        Comparator<Edge> bypassOrder = Comparator.comparingDouble((Edge e) -> e.tcy)
             .thenComparingDouble(e -> e.tcx)
             .thenComparing(e -> e.transition.getId());
         for (List<Edge> group : bypassByRow.values()) {
-            group.sort(order);
+            group.sort(bypassOrder);
             for (int i = 0; i < group.size(); i++) {
                 group.get(i).lane = i;
             }
         }
+        // Elbow lanes must nest so fan-out / fan-in branches never cross. The gutter sits just right
+        // of the source column and lane 0 is closest to it; higher lanes step rightwards. An edge with
+        // a longer vertical run has to sit where shorter branches can pass it without interception:
+        // for a fan-out (shared source) the farthest target takes the lane nearest the source (longest
+        // run outermost); for a fan-in (shared target) the nearest source takes that lane (longest run
+        // innermost, hugging the convergence). Ordering by the signed span achieves both.
+        Comparator<Edge> elbowOrder = Comparator
+            .comparingDouble(PolylineProcessDiagramFactory::elbowLaneKey)
+            .thenComparingDouble((Edge e) -> e.tcy)
+            .thenComparingDouble(e -> e.tcx)
+            .thenComparing(e -> e.transition.getId());
         for (List<Edge> group : elbowByCol.values()) {
-            group.sort(order);
+            group.sort(elbowOrder);
             for (int i = 0; i < group.size(); i++) {
                 group.get(i).lane = i;
             }
         }
+    }
+
+    /**
+     * Lane-ordering key for an elbow edge: a fan-in edge (shared target, not also a fork) nests its
+     * longer runs innermost (ascending span), every other edge nests its longer runs outermost
+     * (descending span). Sorting ascending by this key then assigns lane 0 to the run that must hug
+     * the gutter base.
+     */
+    private static double elbowLaneKey(Edge e) {
+        double span = Math.abs(e.tcy - e.scy);
+        return e.targetFanIn && !e.sourceFanOut ? span : -span;
     }
 
     private Route buildRoute(Edge e) {
