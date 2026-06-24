@@ -485,6 +485,30 @@ public class PolylineProcessDiagramFactoryTest {
     }
 
     @Test
+    public void longJoin_doesNotBendUpEarlyAcrossIntermediateNodesOrPath() throws Exception {
+        // Main path A -> X -> Y -> B on one row; a lower branch A -> Z rejoins the path at B.
+        // The Z -> B join spans several columns: it must run along Z's (lower) row until just before
+        // B and only then bend up, so it neither crosses Y nor overlaps the X->Y / Y->B segments.
+        ProcessModel model = createProcess();
+        ActivityModel a = model.createActivity("A", "A", null);
+        model.createActivity("X", "X", null);
+        model.createActivity("Y", "Y", null);
+        model.createActivity("B", "B", null);
+        model.createActivity("Z", "Z", null);
+        a.setStarter(true);
+        model.createTransition("A", "X");
+        model.createTransition("X", "Y");
+        model.createTransition("Y", "B");
+        model.createTransition("A", "Z");
+        model.createTransition("Z", "B");
+
+        Document doc = parse(render(model));
+
+        assertNoTransitionCrossesAnyActivity(doc);
+        assertNoTransitionsCrossEachOther(doc);
+    }
+
+    @Test
     public void parallelBranches_shareGutterButGetDistinctLanes() throws Exception {
         // X -> A (row 0) and X -> B (row 1): both leave column 0; their vertical runs must differ in x.
         ProcessModel model = createProcess();

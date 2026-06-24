@@ -196,6 +196,9 @@ public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
             Edge e = classify(t, sortedX, sortedY);
             e.sourceFanOut = outDegree.getOrDefault(t.getFromActivity().getId(), 0) > 1;
             e.targetFanIn = inDegree.getOrDefault(t.getToActivity().getId(), 0) > 1;
+            if (e.type == Type.ELBOW) {
+                assignElbowGutter(e, sortedX);
+            }
             edges.add(e);
         }
         assignLanes(edges);
@@ -219,6 +222,7 @@ public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
         int rowT = sortedY.indexOf(to.getY());
         e.rowS = rowS;
         e.colS = colS;
+        e.colT = colT;
 
         if (colS == colT || colT < colS || (rowS == rowT && Math.abs(colT - colS) < 2)) {
             e.type = Type.STRAIGHT;
@@ -242,23 +246,44 @@ public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
                 : to.getX() - (DEFAULT_COLUMN_SPACING - DEFAULT_ACTIVITY_SIZE) / 2.0;
         } else {
             e.type = Type.ELBOW;
-            int colRight = from.getX() + DEFAULT_ACTIVITY_SIZE;
-            e.laneBase = colS + 1 < sortedX.size()
-                ? (colRight + sortedX.get(colS + 1)) / 2.0
-                : colRight + (DEFAULT_COLUMN_SPACING - DEFAULT_ACTIVITY_SIZE) / 2.0;
+            // The gutter the vertical run uses depends on the fan role, decided in assignElbowGutter
+            // once the fan-out / fan-in flags are known.
         }
         return e;
+    }
+
+    /**
+     * Places an elbow's vertical run in the right gutter once its fan role is known. A plain elbow or
+     * a fan-out exits on the source's right and runs in the gutter just right of the source column, so
+     * each branch turns early. A pure fan-in instead runs along the (free) source row and bends in the
+     * gutter just left of the target column, so a long join only turns towards the target at the end
+     * and does not cut back across intermediate nodes on the target's row.
+     */
+    private void assignElbowGutter(Edge e, List<Integer> sortedX) {
+        if (e.targetFanIn && !e.sourceFanOut) {
+            double targetLeft = e.tcx - DEFAULT_HALF_ACTIVITY_SIZE;
+            e.laneBase = e.colT - 1 >= 0
+                ? (sortedX.get(e.colT - 1) + DEFAULT_ACTIVITY_SIZE + targetLeft) / 2.0
+                : targetLeft - (DEFAULT_COLUMN_SPACING - DEFAULT_ACTIVITY_SIZE) / 2.0;
+            e.gutterCol = e.colT - 1;
+        } else {
+            double sourceRight = e.scx + DEFAULT_HALF_ACTIVITY_SIZE;
+            e.laneBase = e.colS + 1 < sortedX.size()
+                ? (sourceRight + sortedX.get(e.colS + 1)) / 2.0
+                : sourceRight + (DEFAULT_COLUMN_SPACING - DEFAULT_ACTIVITY_SIZE) / 2.0;
+            e.gutterCol = e.colS;
+        }
     }
 
     /** Gives each edge sharing a gutter (elbow) or channel (bypass) a distinct lateral offset. */
     private void assignLanes(List<Edge> edges) {
         Map<Integer, List<Edge>> bypassByRow = new LinkedHashMap<>();
-        Map<Integer, List<Edge>> elbowByCol = new LinkedHashMap<>();
+        Map<Integer, List<Edge>> elbowByGutter = new LinkedHashMap<>();
         for (Edge e : edges) {
             if (e.type == Type.BYPASS) {
                 bypassByRow.computeIfAbsent(e.rowS, k -> new ArrayList<>()).add(e);
             } else if (e.type == Type.ELBOW) {
-                elbowByCol.computeIfAbsent(e.colS, k -> new ArrayList<>()).add(e);
+                elbowByGutter.computeIfAbsent(e.gutterCol, k -> new ArrayList<>()).add(e);
             }
         }
         Comparator<Edge> bypassOrder = Comparator.comparingDouble((Edge e) -> e.tcy)
@@ -270,18 +295,18 @@ public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
                 group.get(i).lane = i;
             }
         }
-        // Elbow lanes must nest so fan-out / fan-in branches never cross. The gutter sits just right
-        // of the source column and lane 0 is closest to it; higher lanes step rightwards. An edge with
-        // a longer vertical run has to sit where shorter branches can pass it without interception:
-        // for a fan-out (shared source) the farthest target takes the lane nearest the source (longest
-        // run outermost); for a fan-in (shared target) the nearest source takes that lane (longest run
-        // innermost, hugging the convergence). Ordering by the signed span achieves both.
+        // Elbow lanes must nest so branches sharing a gutter never cross. Lane 0 hugs the gutter base
+        // and higher lanes step away from it. An edge with a longer vertical run has to sit where
+        // shorter branches can pass it without interception: for a fan-out (shared source) the
+        // farthest target takes the lane nearest the source (longest run outermost); for a fan-in
+        // (shared target) the nearest source takes the base lane (longest run innermost, hugging the
+        // convergence). Ordering by the signed span achieves both.
         Comparator<Edge> elbowOrder = Comparator
             .comparingDouble(PolylineProcessDiagramFactory::elbowLaneKey)
             .thenComparingDouble((Edge e) -> e.tcy)
             .thenComparingDouble(e -> e.tcx)
             .thenComparing(e -> e.transition.getId());
-        for (List<Edge> group : elbowByCol.values()) {
+        for (List<Edge> group : elbowByGutter.values()) {
             group.sort(elbowOrder);
             for (int i = 0; i < group.size(); i++) {
                 group.get(i).lane = i;
@@ -464,6 +489,8 @@ public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
         private double tcy;
         private int colS;
         private int rowS;
+        private int colT;
+        private int gutterCol;
         private double laneBase;
         private double exitX;
         private double approachX;
