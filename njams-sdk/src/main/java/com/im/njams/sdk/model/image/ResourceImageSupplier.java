@@ -23,6 +23,10 @@
  */
 package com.im.njams.sdk.model.image;
 
+import java.net.URL;
+
+import com.im.njams.sdk.common.NjamsSdkRuntimeException;
+
 /**
  * Image supplier implementation that loads an image as classpath resource.
  * @author cwinkler
@@ -35,18 +39,34 @@ public class ResourceImageSupplier extends URLImageSupplier {
      * @param name The name that is used to access the image.
      * @param classLoader The classLoader used for loading the resource with the given resource path.
      * @param resourcePath The path of the resource file to load.
+     * @throws NjamsSdkRuntimeException if the resource cannot be found on the classpath
      */
     public ResourceImageSupplier(String name, ClassLoader classLoader, String resourcePath) {
-        super(name, classLoader.getResource(resourcePath));
+        super(name, requireResource(classLoader, resourcePath));
     }
 
     /**
      * Constructor for loading a resource file using the default classloader.
      * @param name The name that is used to access the image.
      * @param resourcePath The path of the resource file to load.
+     * @throws NjamsSdkRuntimeException if the resource cannot be found on the classpath
      */
     public ResourceImageSupplier(String name, String resourcePath) {
-        super(name, Thread.currentThread().getContextClassLoader().getResource(resourcePath));
+        this(name, Thread.currentThread().getContextClassLoader(), resourcePath);
+    }
+
+    /**
+     * Resolves the classpath resource and fails with a descriptive exception when it is missing.
+     * A missing resource is a packaging/programming error (the resource is expected to be shipped
+     * with the product), so it is reported clearly rather than failing later with an opaque
+     * {@link NullPointerException}.
+     */
+    private static URL requireResource(ClassLoader classLoader, String resourcePath) {
+        final URL url = classLoader.getResource(resourcePath);
+        if (url == null) {
+            throw new NjamsSdkRuntimeException("Image resource not found on classpath: " + resourcePath);
+        }
+        return url;
     }
 
 }
