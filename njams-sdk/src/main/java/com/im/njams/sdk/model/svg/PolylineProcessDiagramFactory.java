@@ -308,8 +308,23 @@ public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
             .thenComparing(e -> e.transition.getId());
         for (List<Edge> group : elbowByGutter.values()) {
             group.sort(elbowOrder);
-            for (int i = 0; i < group.size(); i++) {
-                group.get(i).lane = i;
+            int n = group.size();
+            for (int i = 0; i < n; i++) {
+                Edge e = group.get(i);
+                e.lane = i;
+                // Stagger direction must follow the elbow's travel direction so the staggered exit/entry
+                // y stays strictly between scy and tcy, keeping the vertical segment clear of any
+                // straight edge from the same source (or to the same target) at y=scy (or y=tcy).
+                // For fan-out, the inner lane (lane 0, smallest gx) gets the LARGEST stagger so that
+                // the outer lane's horizontal — at a smaller y — never falls inside the inner lane's
+                // vertical range. For fan-in the roles reverse: inner lane gets the SMALLEST stagger
+                // so the inner's final horizontal stays below the outer's vertical.
+                double direction = Math.signum(e.tcy - e.scy);
+                if (e.targetFanIn && !e.sourceFanOut) {
+                    e.nodeStagger = -direction * (i + 1) * (LANE_GAP / 2.0);
+                } else {
+                    e.nodeStagger = direction * (n - i) * (LANE_GAP / 2.0);
+                }
             }
         }
     }
@@ -348,10 +363,16 @@ public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
             }
             case ELBOW: {
                 double gx = e.laneBase + e.lane * LANE_GAP;
-                wp.add(new Point(e.scx, e.scy));
-                wp.add(new Point(gx, e.scy));
-                wp.add(new Point(gx, e.tcy));
-                wp.add(new Point(e.tcx, e.tcy));
+                // Stagger exit/entry y at the node so sibling branches do not share a collinear
+                // horizontal segment — which would hide a server-coloured (green) executed transition
+                // behind unexecuted siblings drawn on top of it. Pure fan-in elbows stagger at the
+                // target; all other elbows (fan-out or plain) stagger at the source.
+                double exitY = (e.targetFanIn && !e.sourceFanOut) ? e.scy : e.scy + e.nodeStagger;
+                double entryY = (e.targetFanIn && !e.sourceFanOut) ? e.tcy + e.nodeStagger : e.tcy;
+                wp.add(new Point(e.scx, exitY));
+                wp.add(new Point(gx, exitY));
+                wp.add(new Point(gx, entryY));
+                wp.add(new Point(e.tcx, entryY));
                 // Anchor the label on the side that is NOT shared with sibling edges, hugging the node
                 // and growing into the free run space: fan-out labels are right-aligned just left of the
                 // target (so they use the long approach), fan-in labels are left-aligned just right of
@@ -495,6 +516,7 @@ public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
         private double exitX;
         private double approachX;
         private int lane;
+        private double nodeStagger;
         private boolean sourceFanOut;
         private boolean targetFanIn;
     }

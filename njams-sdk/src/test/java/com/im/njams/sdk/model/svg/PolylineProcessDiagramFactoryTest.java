@@ -509,6 +509,77 @@ public class PolylineProcessDiagramFactoryTest {
     }
 
     @Test
+    public void fanOut_elbowExitYsAtSourceAreStaggeredToPreventColorOcclusion() throws Exception {
+        // When nJAMS Server colours an executed transition green, sibling branches that share the same
+        // exit horizontal segment occlude it. Fan-out elbows must leave the source at distinct y-coordinates
+        // so each segment is individually visible regardless of draw order.
+        ProcessModel model = createProcess();
+        ActivityModel x = model.createActivity("X", "X", null);
+        model.createActivity("A", "A", null);
+        model.createActivity("B", "B", null);
+        model.createActivity("C", "C", null);
+        x.setStarter(true);
+        model.createTransition("X", "A");
+        model.createTransition("X", "B");
+        model.createTransition("X", "C");
+
+        Document doc = parse(render(model));
+
+        // Elbow transitions have more than 2 waypoints; their first waypoint y is the exit y at source.
+        List<Double> exitYs = new ArrayList<>();
+        for (Element poly : transitionPolylines(doc)) {
+            List<double[]> pts = points(poly);
+            if (pts.size() > 2) {
+                exitYs.add(pts.get(0)[1]);
+            }
+        }
+        Assert.assertTrue("fan-out must produce at least two elbow transitions", exitYs.size() >= 2);
+        long distinct = exitYs.stream().mapToLong(y -> Math.round(y)).distinct().count();
+        Assert.assertEquals("fan-out elbow transitions must exit the source at distinct y-coordinates",
+            exitYs.size(), distinct);
+    }
+
+    @Test
+    public void fanIn_elbowEntryYsAtTargetAreStaggeredToPreventColorOcclusion() throws Exception {
+        // Mirror of the fan-out case: fan-in elbows must arrive at the target at distinct y-coordinates.
+        ProcessModel model = createProcess();
+        ActivityModel x = model.createActivity("X", "X", null);
+        model.createActivity("A", "A", null);
+        model.createActivity("B", "B", null);
+        model.createActivity("C", "C", null);
+        model.createActivity("Y", "Y", null);
+        x.setStarter(true);
+        model.createTransition("X", "A");
+        model.createTransition("X", "B");
+        model.createTransition("X", "C");
+        model.createTransition("A", "Y");
+        model.createTransition("B", "Y");
+        model.createTransition("C", "Y");
+
+        Document doc = parse(render(model));
+
+        // Collect last-waypoint y for all elbow transitions ending at Y (those with >2 waypoints).
+        List<Double> entryYs = new ArrayList<>();
+        for (TransitionModel t : model.getTransitionModels()) {
+            if (t.getToActivity() == null || !"Y".equals(t.getToActivity().getId())) {
+                continue;
+            }
+            Element poly = findTransitionPolyline(doc,
+                transitionId(model, t.getFromActivity().getId(), "Y"));
+            if (poly != null) {
+                List<double[]> pts = points(poly);
+                if (pts.size() > 2) {
+                    entryYs.add(pts.get(pts.size() - 1)[1]);
+                }
+            }
+        }
+        Assert.assertTrue("fan-in must produce at least two elbow transitions", entryYs.size() >= 2);
+        long distinct = entryYs.stream().mapToLong(y -> Math.round(y)).distinct().count();
+        Assert.assertEquals("fan-in elbow transitions must enter the target at distinct y-coordinates",
+            entryYs.size(), distinct);
+    }
+
+    @Test
     public void parallelBranches_shareGutterButGetDistinctLanes() throws Exception {
         // X -> A (row 0) and X -> B (row 1): both leave column 0; their vertical runs must differ in x.
         ProcessModel model = createProcess();
