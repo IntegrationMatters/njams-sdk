@@ -536,9 +536,16 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
      */
     @Override
     public void processStartData(Object startData) {
-        if (job.isRecording()) {
-            setStartData(job.getNjams().serialize(startData));
+        if (!job.isRecording()) {
+            return;
         }
+        // SDK-462: a job carries a single start data; skip serialization if it is already set.
+        if (job.isStartDataSet()) {
+            LOG.warn("Start data was already set for job {}; ignoring this processStartData call "
+                + "(the first start data wins).", job.getLogId());
+            return;
+        }
+        setStartData(job.getNjams().serialize(startData));
     }
 
     /**
@@ -640,11 +647,20 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
      * it adds the size of the masked startData to the estimatedSize of this and
      * of the job.
      *
+     * <p>Start data belongs to the job: only the first start data set for a job is kept (SDK-462).
+     * A later call (on this or any other activity of the same job) is ignored and logged, so a job
+     * transmits at most one start data. A <code>null</code> value does not consume the slot.</p>
+     *
      * @param startData the startData to mask and set to the Activity.
      */
     @Override
     public void setStartData(String startData) {
         String maskedStartData = DataMasking.maskString(startData);
+        if (maskedStartData != null && !job.claimStartData()) {
+            LOG.warn("Start data was already set for job {}; ignoring this call (the first start data wins).",
+                job.getLogId());
+            return;
+        }
         super.setStartData(maskedStartData);
         if (maskedStartData != null) {
             int startDataSize = maskedStartData.length();

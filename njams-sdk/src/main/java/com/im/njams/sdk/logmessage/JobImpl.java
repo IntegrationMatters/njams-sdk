@@ -38,6 +38,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.slf4j.Logger;
@@ -136,6 +137,10 @@ public class JobImpl implements Job {
     private final JobRuntimeConfig runtimeConfig;
 
     private final JobTracing tracing = new JobTracing();
+
+    // SDK-462: a job carries a single start data; the first caller claims it, later ones are ignored.
+    // Lock-free because a job is the shared concurrency unit and start data may be set from any thread.
+    private final AtomicBoolean startDataClaimed = new AtomicBoolean(false);
 
     // internal properties, shall not go to any message
     private final JobProperties properties = new JobProperties();
@@ -904,6 +909,26 @@ public class JobImpl implements Job {
     @Deprecated(since = "6.0.0", forRemoval = true)
     public boolean isRecording() {
         return runtimeConfig.recording;
+    }
+
+    /**
+     * Claims this job's single start-data slot (SDK-462). The first caller gets <code>true</code>
+     * and may set the start data; every later caller gets <code>false</code>. Lock-free: a job is
+     * shared across threads, so the claim must be atomic.
+     *
+     * @return <code>true</code> only for the first caller
+     */
+    boolean claimStartData() {
+        return startDataClaimed.compareAndSet(false, true);
+    }
+
+    /**
+     * Returns whether this job's start data has already been set.
+     *
+     * @return <code>true</code> if start data was already set for this job
+     */
+    boolean isStartDataSet() {
+        return startDataClaimed.get();
     }
 
     @Override
