@@ -153,15 +153,16 @@ public class NamespaceResolver implements NamespaceContext {
      */
     private void storeAttribute(Attr attribute) {
         // examine the attributes in namespace xmlns
-        if (attribute.getName() != null && attribute.getName().startsWith("xmlns:")) {
-            // Default namespace xmlns="uri goes here"
-            String pre = attribute.getName().substring(6);
-            if (attribute.getNodeName().equals(XMLConstants.XMLNS_ATTRIBUTE)) {
-                putInCache(DEFAULT_NS, attribute.getValue());
-            } else {
-                // The defined prefixes are stored here
-                putInCache(pre, attribute.getValue());
-            }
+        final String name = attribute.getName();
+        if (name == null) {
+            return;
+        }
+        if (name.equals(XMLConstants.XMLNS_ATTRIBUTE)) {
+            // Default namespace declaration: xmlns="uri goes here"
+            putInCache(DEFAULT_NS, attribute.getValue());
+        } else if (name.startsWith(XMLConstants.XMLNS_ATTRIBUTE + ":")) {
+            // Prefixed namespace declaration: xmlns:prefix="uri goes here"
+            putInCache(name.substring(XMLConstants.XMLNS_ATTRIBUTE.length() + 1), attribute.getValue());
         }
     }
 

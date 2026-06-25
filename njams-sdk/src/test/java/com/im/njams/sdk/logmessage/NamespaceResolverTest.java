@@ -39,6 +39,22 @@ public class NamespaceResolverTest {
     }
 
     @Test
+    public void resolvesDefaultNamespaceDeclaredInDocument() {
+        NamespaceResolver resolver =
+                new NamespaceResolver("<root xmlns=\"urn:default\"><child/></root>", true);
+        assertEquals("urn:default", resolver.getNamespaceURI(""));
+        assertEquals("urn:default", resolver.getNamespaceURI(null));
+    }
+
+    @Test
+    public void resolvesDefaultAndPrefixedNamespacesTogether() {
+        NamespaceResolver resolver =
+                new NamespaceResolver("<root xmlns=\"urn:default\" xmlns:a=\"urn:a\"/>", true);
+        assertEquals("urn:default", resolver.getNamespaceURI(""));
+        assertEquals("urn:a", resolver.getNamespaceURI("a"));
+    }
+
+    @Test
     public void topLevelOnlyIgnoresNestedDeclarations() {
         String xml = "<a:root xmlns:a=\"urn:a\"><a:child xmlns:b=\"urn:b\"/></a:root>";
 
