@@ -50,6 +50,7 @@ import com.im.njams.sdk.model.layout.ProcessModelLayouter;
 import com.im.njams.sdk.model.svg.NjamsProcessDiagramFactory;
 import com.im.njams.sdk.model.svg.ProcessDiagramFactory;
 import com.im.njams.sdk.serializer.Serializer;
+import com.im.njams.sdk.serializer.SerializerResult;
 import com.im.njams.sdk.settings.ClientSettings;
 import com.im.njams.sdk.utils.StringUtils;
 import org.slf4j.LoggerFactory;
@@ -1145,7 +1146,8 @@ public class Njams implements InstructionListener {
      */
     @Deprecated(since = "6.0.0", forRemoval = true)
     public <T> String serialize(final T t, final int sizeLimit) {
-        return serializers.serialize(t, sizeLimit);
+        final SerializerResult result = serializers.serialize(t, sizeLimit);
+        return result == null ? null : result.value();
     }
 
     /**

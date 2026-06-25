@@ -12,7 +12,7 @@ public class SerializerDefaultTest {
         final int[] capturedLimit = {-1};
         Serializer<String> s = (value, sizeLimit) -> {
             capturedLimit[0] = sizeLimit;
-            return value;
+            return new SerializerResult(value, false);
         };
         String result = s.serialize("hello");
         assertEquals("hello", result);

@@ -42,6 +42,7 @@ import com.faizsiegeln.njams.messageformat.v4.projectmessage.Extract;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.RuleType;
 import com.im.njams.sdk.common.DateTimeUtility;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
+import com.im.njams.sdk.serializer.SerializerResult;
 import com.im.njams.sdk.configuration.ActivityConfiguration;
 import com.im.njams.sdk.configuration.TracepointExt;
 import com.im.njams.sdk.logmessage.ExtractHandler.ExtractSource;
@@ -245,15 +246,19 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
     @Override
     public void processInput(Object input) {
         final String serializedData;
+        final boolean truncated;
         final boolean needsData = needsData(extract);
         if (isTracing() || needsData) {
             final int sizeLimit = needsData ? 0 : job.getSerializeSizeHint();
-            serializedData = DataMasking.maskString(job.getNjams().serialize(input, sizeLimit));
+            final SerializerResult result = job.getNjams().serializers().serialize(input, sizeLimit);
+            serializedData = DataMasking.maskString(result == null ? null : result.value());
+            truncated = result != null && result.truncated();
         } else {
             serializedData = null;
+            truncated = false;
         }
         if (serializedData != null && isTracing()) {
-            handleTracing(serializedData, true);
+            handleTracing(serializedData, truncated, true);
         }
 
         if (extract != null) {
@@ -312,15 +317,19 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
     @Override
     public void processOutput(Object output) {
         final String serializedData;
+        final boolean truncated;
         final boolean needsData = needsData(extract);
         if (isTracing() || needsData) {
             final int sizeLimit = needsData ? 0 : job.getSerializeSizeHint();
-            serializedData = DataMasking.maskString(job.getNjams().serialize(output, sizeLimit));
+            final SerializerResult result = job.getNjams().serializers().serialize(output, sizeLimit);
+            serializedData = DataMasking.maskString(result == null ? null : result.value());
+            truncated = result != null && result.truncated();
         } else {
             serializedData = null;
+            truncated = false;
         }
         if (serializedData != null && isTracing()) {
-            handleTracing(serializedData, false);
+            handleTracing(serializedData, truncated, false);
 
         }
         if (extract != null) {
@@ -331,16 +340,19 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
     }
 
     /**
-     * handle tracing
+     * Stores the serialized trace data on this activity, applying the configured payload limit
+     * using the serializer's truncation flag.
      *
-     * @param data
-     * @param input
+     * @param data                the already-masked serialized data
+     * @param serializerTruncated whether the serializer truncated the data at the size limit
+     * @param input               <code>true</code> for input, <code>false</code> for output
      */
-    private void handleTracing(String data, boolean input) {
+    private void handleTracing(String data, boolean serializerTruncated, boolean input) {
+        final String stored = job.applyLimit(data, serializerTruncated);
         if (input) {
-            setInput(data);
+            super.setInput(stored);
         } else {
-            setOutput(data);
+            super.setOutput(stored);
         }
         addToEstimatedSize(data.length());
         setExecutionIfNotSet();

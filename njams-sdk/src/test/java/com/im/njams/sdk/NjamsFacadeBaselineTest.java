@@ -417,7 +417,8 @@ public class NjamsFacadeBaselineTest {
 
     @Test
     public void removeSerializerReturnsTheRegisteredOneAndRestoresDefault() {
-        com.im.njams.sdk.serializer.Serializer<String> custom = (value, sizeLimit) -> "custom:" + value;
+        com.im.njams.sdk.serializer.Serializer<String> custom =
+                (value, sizeLimit) -> new com.im.njams.sdk.serializer.SerializerResult("custom:" + value, false);
         njams.addSerializer(String.class, custom);
         assertEquals("custom:x", njams.serialize("x"));
         assertSame(custom, njams.removeSerializer(String.class));

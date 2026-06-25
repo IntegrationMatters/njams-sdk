@@ -89,7 +89,7 @@ public class ActivityImplExtractDataTest extends AbstractTest {
         final int[] capturedLimit = {-1};
         njams.addSerializer(String.class, (value, sizeLimit) -> {
             capturedLimit[0] = sizeLimit;
-            return value;
+            return new com.im.njams.sdk.serializer.SerializerResult(value, false);
         });
 
         // VALUE rule does NOT need data -> needsData(extract) == false -> size hint must be applied.
@@ -113,8 +113,9 @@ public class ActivityImplExtractDataTest extends AbstractTest {
 
         activity.processInput("a-long-input-string-well-over-ten-chars");
 
-        // payloadLimit (10) + 1 = 11
-        assertEquals(11, capturedLimit[0]);
+        // SDK-463: the configured payload limit (10) is passed directly; the previous +1 offset
+        // is no longer needed because the serializer reports truncation explicitly.
+        assertEquals(10, capturedLimit[0]);
     }
 
     @Test
@@ -126,7 +127,7 @@ public class ActivityImplExtractDataTest extends AbstractTest {
         final int[] capturedLimit = {-1};
         njams.addSerializer(String.class, (value, sizeLimit) -> {
             capturedLimit[0] = sizeLimit;
-            return value;
+            return new com.im.njams.sdk.serializer.SerializerResult(value, false);
         });
 
         // REGEXP rule DOES need data -> needsData(extract) == true -> sizeLimit must be 0 (no limit).

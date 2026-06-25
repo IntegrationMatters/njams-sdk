@@ -49,22 +49,27 @@ public class StringSerializer<T> implements Serializer<T> {
      * Serialize via {@link Object#toString()} and substring the result to {@code sizeLimit}
      * characters when a positive, less-than-{@link Integer#MAX_VALUE} limit is given.
      *
+     * <p>Because the full {@code toString()} is built before it can be clipped, this serializer
+     * cannot save work or memory; it reports {@link SerializerResult#truncated()} from the length
+     * comparison, i.e. {@code true} exactly when the {@code toString()} result was longer than
+     * {@code sizeLimit}.</p>
+     *
      * @param t         Object to serialize, may be {@code null}
      * @param sizeLimit Maximum length of the returned string when positive and less than
      *                  {@link Integer#MAX_VALUE}; otherwise the limit is ignored
-     * @return {@code t.toString()} clipped to {@code sizeLimit} characters, or {@code ""} when
-     *         {@code t} is {@code null}
+     * @return {@code t.toString()} clipped to {@code sizeLimit} characters with the truncation flag,
+     *         or an empty, non-truncated result when {@code t} is {@code null}
      */
     @Override
-    public String serialize(final T t, final int sizeLimit) throws NjamsSdkRuntimeException {
+    public SerializerResult serialize(final T t, final int sizeLimit) throws NjamsSdkRuntimeException {
         if (t == null) {
-            return "";
+            return new SerializerResult("", false);
         }
         final String s = t.toString();
         if (sizeLimit <= 0 || sizeLimit == Integer.MAX_VALUE || sizeLimit >= s.length()) {
-            return s;
+            return new SerializerResult(s, false);
         }
-        return s.substring(0, sizeLimit);
+        return new SerializerResult(s.substring(0, sizeLimit), true);
     }
 
 }

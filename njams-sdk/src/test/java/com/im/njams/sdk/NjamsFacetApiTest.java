@@ -496,8 +496,10 @@ public class NjamsFacetApiTest {
 
     @Test
     public void serializerHierarchyResolution_viaFacet() {
-        final com.im.njams.sdk.serializer.Serializer<java.util.List> listSerializer = (l, sizeLimit) -> "list";
-        njams.serializers().add(java.util.ArrayList.class, (a, sizeLimit) -> a.getClass().getSimpleName());
+        final com.im.njams.sdk.serializer.Serializer<java.util.List> listSerializer =
+                (l, sizeLimit) -> new com.im.njams.sdk.serializer.SerializerResult("list", false);
+        njams.serializers().add(java.util.ArrayList.class,
+                (a, sizeLimit) -> new com.im.njams.sdk.serializer.SerializerResult(a.getClass().getSimpleName(), false));
         njams.serializers().add(java.util.List.class, listSerializer);
 
         // found ArrayList serializer
@@ -513,9 +515,9 @@ public class NjamsFacetApiTest {
         final int[] capturedLimit = { -1 };
         njams.serializers().add(String.class, (value, sizeLimit) -> {
             capturedLimit[0] = sizeLimit;
-            return value;
+            return new com.im.njams.sdk.serializer.SerializerResult(value, false);
         });
-        assertEquals("hello", njams.serializers().serialize("hello", 7));
+        assertEquals("hello", njams.serializers().serialize("hello", 7).value());
         assertEquals(7, capturedLimit[0]);
     }
 
@@ -524,7 +526,7 @@ public class NjamsFacetApiTest {
         final int[] capturedLimit = { -1 };
         njams.serializers().add(String.class, (value, sizeLimit) -> {
             capturedLimit[0] = sizeLimit;
-            return value;
+            return new com.im.njams.sdk.serializer.SerializerResult(value, false);
         });
         njams.serializers().serialize("hello");
         assertEquals(Integer.MAX_VALUE, capturedLimit[0]);
@@ -532,7 +534,8 @@ public class NjamsFacetApiTest {
 
     @Test
     public void newSerializersApiWorks() {
-        njams.serializers().add(String.class, (value, sizeLimit) -> "X" + value);
+        njams.serializers().add(String.class,
+                (value, sizeLimit) -> new com.im.njams.sdk.serializer.SerializerResult("X" + value, false));
         assertEquals("Xhello", njams.serializers().serialize("hello"));
         assertNotNull(njams.serializers().remove(String.class));
     }

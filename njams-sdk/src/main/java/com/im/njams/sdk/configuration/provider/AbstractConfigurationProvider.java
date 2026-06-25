@@ -23,11 +23,6 @@
  */
 package com.im.njams.sdk.configuration.provider;
 
-import java.util.Properties;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.LogLevel;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.LogMode;
 import com.im.njams.sdk.Njams;
@@ -35,6 +30,10 @@ import com.im.njams.sdk.configuration.ConfigurationProvider;
 import com.im.njams.sdk.configuration.ProcessConfiguration;
 import com.im.njams.sdk.settings.ClientSettings;
 import com.im.njams.sdk.utils.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.Properties;
 
 /**
  * A base implementation for {@link ConfigurationProvider} that manages common default that are provided via
@@ -68,7 +67,7 @@ public abstract class AbstractConfigurationProvider implements ConfigurationProv
         if (properties.containsKey(DEFAULT_LOG_LEVEL_CONFIG)) {
             initLogLevel(properties.getProperty(DEFAULT_LOG_LEVEL_CONFIG));
         }
-        LOG.debug("Initialized: defaultRecording{}, defailtLogMode={}, defaultLogLevel={}", defaultRecording,
+        LOG.debug("Initialized: defaultRecording{}, defaultLogMode={}, defaultLogLevel={}", defaultRecording,
             defaultLogMode, defaultLogLevel);
     }
 

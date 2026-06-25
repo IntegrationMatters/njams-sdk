@@ -1073,39 +1073,54 @@ public class JobImpl implements Job {
     }
 
     /**
-     * Returns the size hint to pass to {@link com.im.njams.sdk.serializer.Serializer#serialize(Object, int)}
-     * for payloads that will be fed through {@link #limitPayload(String)} afterwards.
+     * Returns the size limit to pass to
+     * {@link com.im.njams.sdk.serializer.Serializer#serialize(Object, int)} for payloads whose
+     * truncation is then resolved via {@link #applyLimit(String, boolean)} using the serializer's
+     * truncation flag.
      *
-     * <p>The hint is one character above the configured payload limit so that
-     * {@code limitPayload} still observes the overrun and applies the correct
-     * truncate / discard behaviour. Returns {@code 0} (= no limit) when no
-     * payload limit is configured.</p>
-     *
-     * @return effective size hint, or {@code 0} when no payload limit is configured
+     * @return the configured payload limit, or {@code 0} when no payload limit is configured
      */
     int getSerializeSizeHint() {
         if (jobSettings.payloadLimit == null) {
             return 0;
         }
         final int limit = jobSettings.payloadLimit.getValue();
-        return limit <= 0 ? 0 : limit + 1;
+        return limit <= 0 ? 0 : limit;
     }
 
     /**
-     * If limiting payload size is enabled, this method ensures that the given payload is handled accordingly.
+     * If limiting payload size is enabled, this method ensures that the given payload is handled
+     * accordingly. Truncation is decided purely from the payload length, for fields that are not
+     * produced by a size-limited serializer (event payload, stack trace, attributes, ...).
      * @param payload The payload to limit.
      * @return The given payload adjusted to the configured limits.
      */
     String limitPayload(String payload) {
-        if (payload == null || jobSettings.payloadLimit == null
-                || payload.length() <= jobSettings.payloadLimit.getValue()) {
+        return applyLimit(payload, false);
+    }
+
+    /**
+     * Applies the configured payload limit to an already-serialized payload, honouring an explicit
+     * serializer truncation flag. The payload is considered truncated if the serializer already
+     * truncated it, or if it still exceeds the configured limit; in that case it is truncated (with
+     * the truncated-suffix) or discarded according to the configured mode.
+     *
+     * @param payload            The serialized payload to limit.
+     * @param serializerTruncated Whether the serializer already had to truncate the value at the limit.
+     * @return The payload adjusted to the configured limits.
+     */
+    String applyLimit(String payload, boolean serializerTruncated) {
+        if (payload == null || jobSettings.payloadLimit == null) {
             return payload;
         }
         final int limit = jobSettings.payloadLimit.getValue();
+        final boolean truncated = serializerTruncated || payload.length() > limit;
+        if (!truncated) {
+            return payload;
+        }
         if (limit > 0 && jobSettings.payloadLimit.getKey()) {
             // truncate
-            final String suffix = PAYLOAD_TRUNCATED_SUFFIX;
-            return payload.substring(0, limit) + suffix;
+            return payload.substring(0, Math.min(payload.length(), limit)) + PAYLOAD_TRUNCATED_SUFFIX;
         }
         // discard
         return PAYLOAD_DISCARDED_MESSAGE;

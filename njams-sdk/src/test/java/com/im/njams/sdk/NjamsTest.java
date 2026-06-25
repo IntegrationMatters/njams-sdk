@@ -77,9 +77,11 @@ public class NjamsTest {
     @Test
     public void testSerializer() {
         System.out.println("addSerializer");
-        final Serializer<List> expResult = (l, sizeLimit) -> "list";
+        final Serializer<List> expResult =
+                (l, sizeLimit) -> new com.im.njams.sdk.serializer.SerializerResult("list", false);
 
-        instance.addSerializer(ArrayList.class, (a, sizeLimit) -> a.getClass().getSimpleName());
+        instance.addSerializer(ArrayList.class,
+                (a, sizeLimit) -> new com.im.njams.sdk.serializer.SerializerResult(a.getClass().getSimpleName(), false));
         instance.addSerializer(List.class, expResult);
 
         String serialized;
@@ -352,7 +354,7 @@ public class NjamsTest {
         final int[] capturedLimit = {-1};
         instance.addSerializer(String.class, (value, sizeLimit) -> {
             capturedLimit[0] = sizeLimit;
-            return value;
+            return new com.im.njams.sdk.serializer.SerializerResult(value, false);
         });
 
         String result = instance.serialize("hello", 7);
@@ -365,7 +367,7 @@ public class NjamsTest {
         final int[] capturedLimit = {-1};
         instance.addSerializer(String.class, (value, sizeLimit) -> {
             capturedLimit[0] = sizeLimit;
-            return value;
+            return new com.im.njams.sdk.serializer.SerializerResult(value, false);
         });
 
         instance.serialize("hello");

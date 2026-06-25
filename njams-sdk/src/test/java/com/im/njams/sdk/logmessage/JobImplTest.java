@@ -579,19 +579,21 @@ public class JobImplTest extends AbstractTest {
     }
 
     @Test
-    public void getSerializeSizeHintReturnsLimitPlusOneInTruncateMode() {
+    public void getSerializeSizeHintReturnsLimitInTruncateMode() {
         njams.getSettings().put(NjamsSettings.PROPERTY_PAYLOAD_LIMIT_MODE, "truncate");
         njams.getSettings().put(NjamsSettings.PROPERTY_PAYLOAD_LIMIT_SIZE, "100");
         JobImpl job = createDefaultJob();
-        assertEquals(101, job.getSerializeSizeHint());
+        // SDK-463: the configured limit is passed directly; the former +1 offset is obsolete now
+        // that the serializer reports truncation explicitly.
+        assertEquals(100, job.getSerializeSizeHint());
     }
 
     @Test
-    public void getSerializeSizeHintReturnsLimitPlusOneInDiscardMode() {
+    public void getSerializeSizeHintReturnsLimitInDiscardMode() {
         njams.getSettings().put(NjamsSettings.PROPERTY_PAYLOAD_LIMIT_MODE, "discard");
         njams.getSettings().put(NjamsSettings.PROPERTY_PAYLOAD_LIMIT_SIZE, "50");
         JobImpl job = createDefaultJob();
-        assertEquals(51, job.getSerializeSizeHint());
+        assertEquals(50, job.getSerializeSizeHint());
     }
 
     private ActivityModel getDefaultActivityModelForTest() {

@@ -29,6 +29,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.im.njams.sdk.serializer.Serializer;
+import com.im.njams.sdk.serializer.SerializerResult;
 import com.im.njams.sdk.serializer.StringSerializer;
 
 /**
@@ -117,23 +118,25 @@ public class NjamsSerializers {
      *         or {@code ""} when the serializer threw
      */
     public <T> String serialize(final T t) {
-        return serialize(t, Integer.MAX_VALUE);
+        final SerializerResult result = serialize(t, Integer.MAX_VALUE);
+        return result == null ? null : result.value();
     }
 
     /**
      * Serializes a given object using {@link #find(java.lang.Class)}, passing
-     * {@code sizeLimit} through to the resolved {@link Serializer}.
+     * {@code sizeLimit} through to the resolved {@link Serializer}, and reporting whether the
+     * output was truncated.
      *
-     * <p>The returned string may slightly exceed {@code sizeLimit} due to serializer-specific
-     * buffering. {@code sizeLimit <= 0} or {@link Integer#MAX_VALUE} mean "no limit".</p>
+     * <p>The value may slightly exceed {@code sizeLimit} due to serializer-specific buffering.
+     * {@code sizeLimit <= 0} or {@link Integer#MAX_VALUE} mean "no limit" (never truncated).</p>
      *
      * @param <T>       type of the class
      * @param t         Object to be serialized
-     * @param sizeLimit Approximate maximum length of the returned string
-     * @return a string representation of the object, or {@code null} if {@code t} is {@code null},
-     *         or {@code ""} when the serializer threw
+     * @param sizeLimit Approximate maximum length of the produced string
+     * @return the serialized value and its truncation flag, {@code null} if {@code t} is
+     *         {@code null}, or an empty, non-truncated result when the serializer threw
      */
-    public <T> String serialize(final T t, final int sizeLimit) {
+    public <T> SerializerResult serialize(final T t, final int sizeLimit) {
         if (t == null) {
             return null;
         }
@@ -148,7 +151,7 @@ public class NjamsSerializers {
                 return serializer.serialize(t, sizeLimit);
             } catch (final Exception ex) {
                 LOG.error("could not serialize object " + t, ex);
-                return "";
+                return new SerializerResult("", false);
             }
         }
     }

@@ -67,30 +67,43 @@ public class JsonSerializerTest implements Serializable {
             data[i] = i;
         }
         String full = ser.serialize(data);
-        String limited = ser.serialize(data, 100);
+        SerializerResult limited = ser.serialize(data, 100);
 
         // size-aware result is much shorter than the full result
         assertTrue("full length should be much greater than 100, got " + full.length(), full.length() > 1000);
         assertTrue("limited length should not exceed ~limit + small Jackson buffering, got "
-                + limited.length(), limited.length() <= 200);
+                + limited.value().length(), limited.value().length() <= 200);
         // and it is a prefix of (the start of) the full string
         assertTrue("limited result should be a prefix of the full result",
-                full.startsWith(limited.substring(0, Math.min(limited.length(), 50))));
+                full.startsWith(limited.value().substring(0, Math.min(limited.value().length(), 50))));
+        // the size-aware result must report itself as truncated
+        assertTrue("limited result must be reported as truncated", limited.truncated());
+    }
+
+    @Test
+    public void serializeWithinLimitReportsNotTruncated() {
+        JsonSerializer<String[]> ser = new JsonSerializer<>();
+        String[] words = {"alpha", "beta", "gamma"};
+        SerializerResult result = ser.serialize(words, 10_000);
+        assertEquals(ser.serialize(words), result.value());
+        assertFalse("result that fits within the limit must not be truncated", result.truncated());
     }
 
     @Test
     public void serializeWithMaxValueLimitMatchesUnlimited() {
         JsonSerializer<String[]> ser = new JsonSerializer<>();
         String[] words = {"alpha", "beta", "gamma"};
-        assertEquals(ser.serialize(words), ser.serialize(words, Integer.MAX_VALUE));
+        SerializerResult result = ser.serialize(words, Integer.MAX_VALUE);
+        assertEquals(ser.serialize(words), result.value());
+        assertFalse(result.truncated());
     }
 
     @Test
     public void serializeWithZeroOrNegativeLimitMatchesUnlimited() {
         JsonSerializer<String[]> ser = new JsonSerializer<>();
         String[] words = {"alpha", "beta", "gamma"};
-        assertEquals(ser.serialize(words), ser.serialize(words, 0));
-        assertEquals(ser.serialize(words), ser.serialize(words, -1));
+        assertEquals(ser.serialize(words), ser.serialize(words, 0).value());
+        assertEquals(ser.serialize(words), ser.serialize(words, -1).value());
     }
 
     @Test

@@ -28,6 +28,7 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.not;
 import static org.junit.Assert.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.doAnswer;
 
@@ -40,9 +41,11 @@ import org.junit.Test;
 import org.mockito.Mockito;
 
 import com.im.njams.sdk.Njams;
+import com.im.njams.sdk.NjamsSerializers;
 import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.model.ActivityModel;
 import com.im.njams.sdk.model.ProcessModel;
+import com.im.njams.sdk.serializer.SerializerResult;
 
 /**
  * @author pnientiedt
@@ -52,6 +55,7 @@ public class DataMaskingTest {
     private static JobImpl JOB = Mockito.mock(JobImpl.class);
     private static ProcessModel MODEL = Mockito.mock(ProcessModel.class);
     private static Njams NJAMS = Mockito.mock(Njams.class);
+    private static NjamsSerializers SERIALIZERS = Mockito.mock(NjamsSerializers.class);
     private static ActivityImpl IMPL = null;
 
     @BeforeClass
@@ -59,9 +63,14 @@ public class DataMaskingTest {
         doAnswer(invocation -> true).when(JOB).isDeepTrace();
         doAnswer(invocation -> NJAMS).when(MODEL).getNjams();
         doAnswer(invocation -> NJAMS).when(JOB).getNjams();
+        // input/output truncation no longer applies a limit in these masking tests: pass values through
         doAnswer(invocation -> invocation.getArgument(0, String.class)).when(JOB).limitPayload(any());
+        doAnswer(invocation -> invocation.getArgument(0, String.class)).when(JOB).applyLimit(any(), anyBoolean());
+        // ActivityImpl serializes input/output via the serializers facet, returning a SerializerResult
+        doAnswer(invocation -> SERIALIZERS).when(NJAMS).serializers();
+        doAnswer(invocation -> new SerializerResult((String) invocation.getArguments()[0], false))
+                .when(SERIALIZERS).serialize(any(), anyInt());
         doAnswer(invocation -> invocation.getArguments()[0]).when(NJAMS).serialize(any());
-        doAnswer(invocation -> invocation.getArguments()[0]).when(NJAMS).serialize(any(), anyInt());
         IMPL = new ActivityImpl(JOB, Mockito.mock(ActivityModel.class));
         IMPL.start();
     }

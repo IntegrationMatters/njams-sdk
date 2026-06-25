@@ -96,34 +96,41 @@ public class JsonSerializer<T> implements Serializer<T> {
     }
 
     /**
-     * Serialize the given object to a JSON string, stopping near {@code sizeLimit} characters.
+     * Serialize the given object to a JSON string, stopping near {@code sizeLimit} characters and
+     * reporting whether the output was truncated.
      *
-     * <p>The returned string may slightly exceed {@code sizeLimit} due to Jackson's internal
-     * buffering. {@code sizeLimit <= 0} or {@code sizeLimit == Integer.MAX_VALUE} mean
-     * "no limit" and route to the unlimited fast path.</p>
+     * <p>The value may slightly exceed {@code sizeLimit} due to Jackson's internal buffering.
+     * {@code sizeLimit <= 0} or {@code sizeLimit == Integer.MAX_VALUE} mean "no limit" and route to
+     * the unlimited fast path (never truncated). Otherwise the stream is aborted once the limit is
+     * reached, and {@link SerializerResult#truncated()} is {@code true} exactly when that happened
+     * (i.e. the object was larger than {@code sizeLimit}).</p>
      *
      * @param object    Object to serialize, may be {@code null}
-     * @param sizeLimit Approximate maximum length of the returned string
-     * @return JSON representation, possibly clipped near {@code sizeLimit}, or {@code null} if {@code object} is {@code null}
+     * @param sizeLimit Approximate maximum length of the produced string
+     * @return the JSON value (possibly clipped) and its truncation flag, or {@code null} if
+     *         {@code object} is {@code null}
      * @throws NjamsSdkRuntimeException if Jackson fails for a reason other than the size limit
      */
     @Override
-    public String serialize(final T object, final int sizeLimit) throws NjamsSdkRuntimeException {
+    public SerializerResult serialize(final T object, final int sizeLimit) throws NjamsSdkRuntimeException {
         if (object == null) {
             return null;
         }
         if (sizeLimit <= 0 || sizeLimit == Integer.MAX_VALUE) {
-            return serialize(object);
+            return new SerializerResult(serialize(object), false);
         }
         final StringWriter buffer = new StringWriter();
+        boolean truncated = false;
         try (LimitedWriter limited = new LimitedWriter(buffer, sizeLimit)) {
             objectWriter.writeValue(limited, object);
         } catch (Exception e) {
-            if (!containsSizeLimitReached(e)) {
+            if (containsSizeLimitReached(e)) {
+                truncated = true;
+            } else {
                 throw new NjamsSdkRuntimeException("Could not serialize object " + object, e);
             }
         }
-        return buffer.toString();
+        return new SerializerResult(buffer.toString(), truncated);
     }
 
     private static boolean containsSizeLimitReached(Throwable t) {
