@@ -46,6 +46,8 @@ final class JobSettings {
     final int truncateLimit;
     /** null = no payload limit; key true = truncate, false = discard; value = limit */
     final Entry<Boolean, Integer> payloadLimit;
+    /** SDK-420: whether the payload limit is also applied to start data (default false). */
+    final boolean applyPayloadLimitToStartData;
 
     static JobSettings of(ClientSettings settings) {
         return CACHE.computeIfAbsent(settings, JobSettings::new);
@@ -57,6 +59,8 @@ final class JobSettings {
         final int limit = settings.getInt(NjamsSettings.PROPERTY_TRUNCATE_LIMIT, Integer.MAX_VALUE);
         truncateLimit = limit > 0 ? limit : Integer.MAX_VALUE;
         payloadLimit = parsePayloadLimit(settings);
+        applyPayloadLimitToStartData =
+            settings.getBool(NjamsSettings.PROPERTY_APPLY_PAYLOAD_LIMIT_TO_START_DATA, false);
     }
 
     private static Entry<Boolean, Integer> parsePayloadLimit(ClientSettings settings) {

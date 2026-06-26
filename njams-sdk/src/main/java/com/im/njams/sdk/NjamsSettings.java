@@ -225,6 +225,18 @@ public class NjamsSettings {
     public static final String PROPERTY_PAYLOAD_LIMIT_SIZE = "njams.sdk.payload.limit.size";
 
     /**
+     * Since 6.0.0
+     * When set to <code>true</code>, the payload limit configured via {@value #PROPERTY_PAYLOAD_LIMIT_MODE} and
+     * {@value #PROPERTY_PAYLOAD_LIMIT_SIZE} is also applied to a job's start data. Start data that is truncated or
+     * discarded this way makes the job non-replayable (the <code>$njams_recorded</code> flag is cleared).<br>
+     * By default (<code>false</code>) start data is never limited, preserving replay.<br>
+     * Note: to actually bound memory while serializing large start data, a payload-size-honouring serializer (e.g.
+     * the JSON serializer) must be registered for the start-data type; the default <code>toString</code>-based
+     * serializer builds the full representation first, so this option then only bounds the transmitted/stored size.
+     */
+    public static final String PROPERTY_APPLY_PAYLOAD_LIMIT_TO_START_DATA = "njams.sdk.payload.limit.applyToStartData";
+
+    /**
      * Since 5.0.0
      * Defines the default log-mode that is used until the client's configuration contains a specific setting for that.
      */

@@ -23,6 +23,16 @@
  */
 package com.im.njams.sdk.configuration.provider;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectWriter;
+import com.im.njams.sdk.Njams;
+import com.im.njams.sdk.common.JsonSerializerFactory;
+import com.im.njams.sdk.common.NjamsSdkRuntimeException;
+import com.im.njams.sdk.configuration.Configuration;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -30,19 +40,13 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.util.Properties;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.ObjectWriter;
-import com.im.njams.sdk.Njams;
-import com.im.njams.sdk.common.JsonSerializerFactory;
-import com.im.njams.sdk.common.NjamsSdkRuntimeException;
-import com.im.njams.sdk.configuration.Configuration;
-
 /**
  * ConfigurationProvider implementation which saves the configuration as a JSON file.
  *
  * @author pnientiedt
  */
 public class FileConfigurationProvider extends AbstractConfigurationProvider {
+    private static final Logger LOG = LoggerFactory.getLogger(FileConfigurationProvider.class);
 
     private static final String PROPERTY_PREFIX = "njams.sdk.configuration.file";
 
@@ -85,6 +89,10 @@ public class FileConfigurationProvider extends AbstractConfigurationProvider {
         super.configure(properties, njams);
         if (properties.containsKey(FILE_CONFIGURATION)) {
             file = new File(properties.getProperty(FILE_CONFIGURATION));
+            LOG.debug("Using configuration file at {}.", file.getAbsolutePath());
+        } else {
+            LOG.debug("No configuration file set (key missing: {}). Using default at {}", FILE_CONFIGURATION,
+                file.getAbsolutePath());
         }
     }
 
@@ -106,14 +114,15 @@ public class FileConfigurationProvider extends AbstractConfigurationProvider {
      */
     @Override
     public Configuration loadConfiguration() {
+        LOG.debug("Reading configuration from {}", file);
         Configuration configuration;
         if (!file.exists()) {
             configuration = new Configuration();
             configuration.setLogMode(getDefaultLogMode());
             configuration.setRecording(getDefaultRecording());
         } else {
-            try {
-                configuration = objectMapper.readValue(new FileInputStream(file), Configuration.class);
+            try (FileInputStream fis = new FileInputStream(file)) {
+                configuration = objectMapper.readValue(fis, Configuration.class);
 
             } catch (Exception e) {
                 throw new NjamsSdkRuntimeException("Unable to load file " + file, e);
@@ -121,6 +130,13 @@ public class FileConfigurationProvider extends AbstractConfigurationProvider {
         }
         configuration.setConfigurationProvider(this);
         configuration.initFilter(getSettings());
+        if (LOG.isTraceEnabled()) {
+            try {
+                LOG.trace("Loaded {} configuration.", objectMapper.writeValueAsString(configuration));
+            } catch (JsonProcessingException e) {
+                LOG.error("Unable to serialize configuration for logging.", e);
+            }
+        }
         return configuration;
     }
 
@@ -131,6 +147,7 @@ public class FileConfigurationProvider extends AbstractConfigurationProvider {
      */
     @Override
     public void saveConfiguration(Configuration configuration) {
+        LOG.debug("Writing configuration to {}", file);
         try {
             objectWriter.writeValue(file, configuration);
         } catch (Exception e) {

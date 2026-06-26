@@ -545,7 +545,19 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
                 + "(the first start data wins).", job.getLogId());
             return;
         }
-        setStartData(job.getNjams().serialize(startData));
+        final String serialized;
+        final boolean truncated;
+        if (job.isStartDataLimited()) {
+            // SDK-420: serialize with the configured size limit so the truncation flag is reliable
+            final SerializerResult result =
+                job.getNjams().serializers().serialize(startData, job.getSerializeSizeHint());
+            serialized = result == null ? null : result.value();
+            truncated = result != null && result.truncated();
+        } else {
+            serialized = job.getNjams().serializers().serialize(startData);
+            truncated = false;
+        }
+        storeStartData(serialized, truncated);
     }
 
     /**
@@ -655,16 +667,38 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
      */
     @Override
     public void setStartData(String startData) {
-        String maskedStartData = DataMasking.maskString(startData);
-        if (maskedStartData != null && !job.claimStartData()) {
+        // no serializer truncation flag for an already-serialized string: limiting (if enabled) is length-based
+        storeStartData(startData, false);
+    }
+
+    /**
+     * Stores the (single) start data for the owning job, claiming the job's start-data slot (SDK-462) and,
+     * when start-data limiting is enabled (SDK-420), applying the configured payload limit and clearing the
+     * job's recorded flag if the start data was actually truncated or discarded.
+     *
+     * @param serialized          the serialized start data, may be <code>null</code>
+     * @param serializerTruncated whether the serializer already truncated the value at the configured limit
+     */
+    private void storeStartData(String serialized, boolean serializerTruncated) {
+        final String masked = DataMasking.maskString(serialized);
+        if (masked != null && !job.claimStartData()) {
             LOG.warn("Start data was already set for job {}; ignoring this call (the first start data wins).",
                 job.getLogId());
             return;
         }
-        super.setStartData(maskedStartData);
-        if (maskedStartData != null) {
-            int startDataSize = maskedStartData.length();
-            addToEstimatedSize(startDataSize);
+        final String stored;
+        if (job.isStartDataLimited()) {
+            if (job.exceedsStartDataLimit(masked, serializerTruncated)) {
+                // truncated or discarded -> this job can no longer be replayed
+                job.revokeRecorded();
+            }
+            stored = job.applyLimit(masked, serializerTruncated);
+        } else {
+            stored = masked;
+        }
+        super.setStartData(stored);
+        if (stored != null) {
+            addToEstimatedSize(stored.length());
         }
     }
 

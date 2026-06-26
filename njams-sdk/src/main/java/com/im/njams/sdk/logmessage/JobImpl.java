@@ -97,6 +97,9 @@ public class JobImpl implements Job {
      */
     public static final int MAX_VALUE_LIMIT = 2000;
 
+    // Job attribute that marks a job as replayable; cleared to "false" when start data is dropped (SDK-420).
+    private static final String RECORDED_ATTRIBUTE = "$njams_recorded";
+
     private final ProcessModel processModel;
     private final Njams njams;
 
@@ -180,7 +183,7 @@ public class JobImpl implements Job {
         flusher = new JobFlusher(processModel, activities, attributes, metadata, tracing, runtimeConfig,
                 truncation, activitiesLock);
         if (runtimeConfig.addRecordedAttribute) {
-            addAttribute("$njams_recorded", "true");
+            addAttribute(RECORDED_ATTRIBUTE, "true");
         }
         //It is used as the default startTime, if no other startTime will be set.
         //If a startTime is set afterwards with setStartTime, startTimeExplicitlySet
@@ -929,6 +932,42 @@ public class JobImpl implements Job {
      */
     boolean isStartDataSet() {
         return startDataClaimed.get();
+    }
+
+    /**
+     * Returns whether the configured payload limit should also be applied to start data (SDK-420).
+     *
+     * @return <code>true</code> if start data is subject to the payload limit
+     */
+    boolean isStartDataLimited() {
+        return jobSettings.applyPayloadLimitToStartData;
+    }
+
+    /**
+     * Returns whether the given (already-serialized) start data would be truncated or discarded by the
+     * configured payload limit, either because the serializer already truncated it or because it still
+     * exceeds the limit.
+     *
+     * @param payload             the serialized start data, may be <code>null</code>
+     * @param serializerTruncated whether the serializer already truncated the value at the limit
+     * @return <code>true</code> if applying the limit would truncate or discard the value
+     */
+    boolean exceedsStartDataLimit(String payload, boolean serializerTruncated) {
+        if (payload == null || jobSettings.payloadLimit == null) {
+            return false;
+        }
+        return serializerTruncated || payload.length() > jobSettings.payloadLimit.getValue();
+    }
+
+    /**
+     * Marks this job as not replayable because its start data was truncated or discarded (SDK-420), by
+     * clearing the recorded flag to <code>false</code> (last value wins, overriding the earlier
+     * <code>true</code>). Only applied to jobs that were recordable to begin with.
+     */
+    void revokeRecorded() {
+        if (runtimeConfig.addRecordedAttribute) {
+            addAttribute(RECORDED_ATTRIBUTE, "false");
+        }
     }
 
     @Override
