@@ -23,60 +23,63 @@
  */
 package com.im.njams.sdk.serializer;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.annotation.JsonInclude.Include;
+import com.fasterxml.jackson.databind.AnnotationIntrospector;
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectWriter;
-import com.im.njams.sdk.common.JsonSerializerFactory;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.databind.introspect.JacksonAnnotationIntrospector;
+import com.fasterxml.jackson.dataformat.xml.XmlMapper;
+import com.fasterxml.jackson.module.jakarta.xmlbind.JakartaXmlBindAnnotationIntrospector;
+import com.fasterxml.jackson.module.jaxb.JaxbAnnotationIntrospector;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 
 import java.io.StringWriter;
 
 /**
- * {@link Serializer} implementation that converts objects to their JSON string representation
- * using Jackson.
+ * {@link Serializer} implementation that converts objects to their XML string representation
+ * using Jackson's XML data format.
  *
  * <p>By default, the serializer produces compact output. Pass {@code true} to
- * {@link #JsonSerializer(boolean)} to obtain indented, human-readable output instead.</p>
+ * {@link #XmlSerializer(boolean)} to obtain indented, human-readable output instead. No XML prolog
+ * ({@code <?xml ...?>}) is emitted.</p>
  *
  * <p>Both {@code serialize} methods return {@code null} when the object is {@code null}.</p>
  *
  * @param <T> the type of object to serialize
  */
-public class JsonSerializer<T> implements Serializer<T> {
+public class XmlSerializer<T> implements Serializer<T> {
+
+    private static final XmlMapper COMPACT_MAPPER = createXmlMapper(false);
+    private static final XmlMapper PRETTY_MAPPER = createXmlMapper(true);
 
     private final ObjectWriter objectWriter;
 
     /**
-     * Creates a serializer that produces compact (non-pretty-printed) JSON output.
+     * Creates a serializer that produces compact (non-pretty-printed) XML output.
      */
-    public JsonSerializer() {
+    public XmlSerializer() {
         this(false);
     }
 
     /**
      * Creates a serializer with the given pretty-printing setting.
      *
-     * <p>When {@code pretty} is {@code true}, the default mapper from
-     * {@link JsonSerializerFactory#getDefaultMapper()} is used, which produces indented,
-     * human-readable JSON with entries ordered by key. When {@code false}, the fast mapper
-     * from {@link JsonSerializerFactory#getFastMapper()} is used, producing compact output
-     * optimized for performance.</p>
+     * <p>When {@code pretty} is {@code true}, the output is indented, human-readable XML; when
+     * {@code false}, compact output optimized for performance is produced. No XML prolog is emitted
+     * in either case.</p>
      *
-     * @param pretty {@code true} for indented, human-readable JSON; {@code false} for compact output
+     * @param pretty {@code true} for indented, human-readable XML; {@code false} for compact output
      */
-    // @Deprecated flags external API consumers only; internal use of Jackson factory is intentional.
-    @SuppressWarnings("deprecation")
-    public JsonSerializer(final boolean pretty) {
-        final ObjectMapper mapper = pretty
-                ? JsonSerializerFactory.getDefaultMapper()
-                : JsonSerializerFactory.getFastMapper();
-        this.objectWriter = mapper.writer();
+    public XmlSerializer(final boolean pretty) {
+        this.objectWriter = (pretty ? PRETTY_MAPPER : COMPACT_MAPPER).writer();
     }
 
     /**
-     * Serialize the given object to a JSON string, with no effective size limit.
+     * Serialize the given object to an XML string, with no effective size limit.
      *
      * @param object Object to serialize, may be {@code null}
-     * @return JSON representation, or {@code null} if {@code object} is {@code null}
+     * @return XML representation, or {@code null} if {@code object} is {@code null}
      * @throws NjamsSdkRuntimeException if Jackson fails to serialize the object
      */
     @Override
@@ -94,18 +97,19 @@ public class JsonSerializer<T> implements Serializer<T> {
     }
 
     /**
-     * Serialize the given object to a JSON string, stopping near {@code sizeLimit} characters and
+     * Serialize the given object to an XML string, stopping near {@code sizeLimit} characters and
      * reporting whether the output was truncated.
      *
-     * <p>The value may slightly exceed {@code sizeLimit} due to Jackson's internal buffering.
-     * {@code sizeLimit <= 0} or {@code sizeLimit == Integer.MAX_VALUE} mean "no limit" and route to
-     * the unlimited fast path (never truncated). Otherwise the stream is aborted once the limit is
-     * reached, and {@link SerializerResult#truncated()} is {@code true} exactly when that happened
-     * (i.e. the object was larger than {@code sizeLimit}).</p>
+     * <p>The value may slightly exceed {@code sizeLimit} due to internal buffering. {@code sizeLimit
+     * <= 0} or {@code sizeLimit == Integer.MAX_VALUE} mean "no limit" and route to the unlimited fast
+     * path (never truncated). Otherwise the stream is aborted once the limit is reached, and
+     * {@link SerializerResult#truncated()} is {@code true} exactly when that happened (i.e. the object
+     * was larger than {@code sizeLimit}). A truncated value may be incomplete and therefore not
+     * well-formed XML.</p>
      *
      * @param object    Object to serialize, may be {@code null}
      * @param sizeLimit Approximate maximum length of the produced string
-     * @return the JSON value (possibly clipped) and its truncation flag, or {@code null} if
+     * @return the XML value (possibly clipped) and its truncation flag, or {@code null} if
      *         {@code object} is {@code null}
      * @throws NjamsSdkRuntimeException if Jackson fails for a reason other than the size limit
      */
@@ -129,5 +133,24 @@ public class JsonSerializer<T> implements Serializer<T> {
             }
         }
         return new SerializerResult(buffer.toString(), truncated);
+    }
+
+    /**
+     * Builds the configured XML mapper. Kept private (and intentionally mirrored in
+     * {@code com.im.njams.sdk.utils.XmlUtils}) because {@link XmlMapper} is a Jackson type relocated
+     * during packaging and must not be shared across packages on any exposed API surface.
+     */
+    private static XmlMapper createXmlMapper(final boolean pretty) {
+        final XmlMapper mapper = new XmlMapper();
+        final AnnotationIntrospector jackson = new JacksonAnnotationIntrospector();
+        final AnnotationIntrospector jaxb = new JaxbAnnotationIntrospector(mapper.getTypeFactory());
+        final AnnotationIntrospector jakarta = new JakartaXmlBindAnnotationIntrospector(mapper.getTypeFactory());
+        mapper.setAnnotationIntrospector(
+            AnnotationIntrospector.pair(AnnotationIntrospector.pair(jackson, jaxb), jakarta));
+        mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+        mapper.configure(DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES, false);
+        mapper.setSerializationInclusion(Include.NON_NULL);
+        mapper.configure(SerializationFeature.INDENT_OUTPUT, pretty);
+        return mapper;
     }
 }
