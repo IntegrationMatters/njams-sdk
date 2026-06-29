@@ -46,6 +46,32 @@ public class NjamsProcessDiagramFactoryTest {
 
     private static final String SVG_NS = "http://www.w3.org/2000/svg";
     private static final String XLINK_NS = "http://www.w3.org/1999/xlink";
+    private static final String TOOLTIP_ATTR = "nj-sdk-tooltip";
+
+    private static Element findLabelById(Document doc, String id) {
+        return findByTagAndAttr(doc, "text", "id", id);
+    }
+
+    private static Element findByTagAndAttr(Document doc, String tag, String attr, String value) {
+        NodeList list = doc.getElementsByTagNameNS(SVG_NS, tag);
+        for (int i = 0; i < list.getLength(); i++) {
+            Element e = (Element) list.item(i);
+            if (value.equals(e.getAttributeNS(null, attr))) {
+                return e;
+            }
+        }
+        return null;
+    }
+
+    private static boolean anyTextHasTooltip(Document doc) {
+        NodeList texts = doc.getElementsByTagNameNS(SVG_NS, "text");
+        for (int i = 0; i < texts.getLength(); i++) {
+            if (((Element) texts.item(i)).hasAttributeNS(null, TOOLTIP_ATTR)) {
+                return true;
+            }
+        }
+        return false;
+    }
 
     @Test
     public void testSecureProcessingEnabled() {
@@ -253,35 +279,54 @@ public class NjamsProcessDiagramFactoryTest {
     @Test
     public void truncateLabel_nullReturnsEmpty() {
         NjamsProcessDiagramFactory factory = new NjamsProcessDiagramFactory(false);
-        Assert.assertEquals("", factory.truncateLabel(null, 200));
+        NjamsProcessDiagramFactory.FittedLabel result = factory.truncateLabel(null, 200);
+        Assert.assertEquals("", result.singleLine());
+        Assert.assertFalse(result.isTruncated());
     }
 
     @Test
     public void truncateLabel_blankReturnsEmpty() {
         NjamsProcessDiagramFactory factory = new NjamsProcessDiagramFactory(false);
-        Assert.assertEquals("", factory.truncateLabel("   ", 200));
+        NjamsProcessDiagramFactory.FittedLabel result = factory.truncateLabel("   ", 200);
+        Assert.assertEquals("", result.singleLine());
+        Assert.assertFalse(result.isTruncated());
     }
 
     @Test
     public void truncateLabel_shortTextReturnedUnchanged() {
         NjamsProcessDiagramFactory factory = new NjamsProcessDiagramFactory(false);
-        Assert.assertEquals("Hello", factory.truncateLabel("Hello", 500));
+        NjamsProcessDiagramFactory.FittedLabel result = factory.truncateLabel("Hello", 500);
+        Assert.assertEquals("Hello", result.singleLine());
+        Assert.assertFalse("Short text must not be flagged truncated", result.isTruncated());
     }
 
     @Test
     public void truncateLabel_longTextTruncatedWithEllipsis() {
         NjamsProcessDiagramFactory factory = new NjamsProcessDiagramFactory(false);
-        String result = factory.truncateLabel("A very long group name indeed", 20);
-        Assert.assertTrue("Must end with ellipsis", result.endsWith(String.valueOf(StringUtils.ELLIPSIS)));
-        Assert.assertTrue("Must be shorter than input", result.length() < "A very long group name indeed".length());
+        NjamsProcessDiagramFactory.FittedLabel result = factory.truncateLabel("A very long group name indeed", 20);
+        Assert.assertTrue("Must end with ellipsis",
+            result.singleLine().endsWith(String.valueOf(StringUtils.ELLIPSIS)));
+        Assert.assertTrue("Must be shorter than input",
+            result.singleLine().length() < "A very long group name indeed".length());
+        Assert.assertTrue("Truncated text must be flagged truncated", result.isTruncated());
+        Assert.assertEquals("Full text must be the normalized original",
+            "A very long group name indeed", result.getFull());
+    }
+
+    @Test
+    public void truncateLabel_fullTextNormalizesWhitespace() {
+        NjamsProcessDiagramFactory factory = new NjamsProcessDiagramFactory(false);
+        NjamsProcessDiagramFactory.FittedLabel result = factory.truncateLabel("A   very \t long   name", 20);
+        Assert.assertTrue(result.isTruncated());
+        Assert.assertEquals("Full text must be whitespace-normalized", "A very long name", result.getFull());
     }
 
     @Test
     public void truncateLabel_zeroWidthFallsBackToDefault() {
         NjamsProcessDiagramFactory factory = new NjamsProcessDiagramFactory(false);
-        String result = factory.truncateLabel("Hello", 0);
+        NjamsProcessDiagramFactory.FittedLabel result = factory.truncateLabel("Hello", 0);
         Assert.assertNotNull(result);
-        Assert.assertFalse(result.isEmpty());
+        Assert.assertFalse(result.singleLine().isEmpty());
     }
 
     private static double widthFor(int maxChars) {
@@ -292,54 +337,65 @@ public class NjamsProcessDiagramFactoryTest {
     @Test
     public void wrapLabel_nullReturnsEmpty() {
         NjamsProcessDiagramFactory factory = new NjamsProcessDiagramFactory(false);
-        Assert.assertArrayEquals(new String[0], factory.wrapLabel(null, widthFor(10)));
+        NjamsProcessDiagramFactory.FittedLabel result = factory.wrapLabel(null, widthFor(10));
+        Assert.assertArrayEquals(new String[0], result.getLines());
+        Assert.assertFalse(result.isTruncated());
     }
 
     @Test
     public void wrapLabel_blankReturnsEmpty() {
         NjamsProcessDiagramFactory factory = new NjamsProcessDiagramFactory(false);
-        Assert.assertArrayEquals(new String[0], factory.wrapLabel("   \t\n  ", widthFor(10)));
+        NjamsProcessDiagramFactory.FittedLabel result = factory.wrapLabel("   \t\n  ", widthFor(10));
+        Assert.assertArrayEquals(new String[0], result.getLines());
+        Assert.assertFalse(result.isTruncated());
     }
 
     @Test
     public void wrapLabel_shortTextReturnsSingleLine() {
         NjamsProcessDiagramFactory factory = new NjamsProcessDiagramFactory(false);
-        Assert.assertArrayEquals(new String[]{"Hello"}, factory.wrapLabel("Hello", widthFor(10)));
+        NjamsProcessDiagramFactory.FittedLabel result = factory.wrapLabel("Hello", widthFor(10));
+        Assert.assertArrayEquals(new String[]{"Hello"}, result.getLines());
+        Assert.assertFalse(result.isTruncated());
     }
 
     @Test
     public void wrapLabel_normalizesWhitespace() {
         NjamsProcessDiagramFactory factory = new NjamsProcessDiagramFactory(false);
-        Assert.assertArrayEquals(new String[]{"Hello World"}, factory.wrapLabel("Hello  \t\n  World", widthFor(20)));
+        Assert.assertArrayEquals(new String[]{"Hello World"},
+            factory.wrapLabel("Hello  \t\n  World", widthFor(20)).getLines());
     }
 
     @Test
     public void wrapLabel_splitsOnSpace() {
         NjamsProcessDiagramFactory factory = new NjamsProcessDiagramFactory(false);
         // maxChars=6: "Hello " has space at index 5 → line="Hello", next="World"
-        Assert.assertArrayEquals(new String[]{"Hello", "World"}, factory.wrapLabel("Hello World", widthFor(6)));
+        NjamsProcessDiagramFactory.FittedLabel result = factory.wrapLabel("Hello World", widthFor(6));
+        Assert.assertArrayEquals(new String[]{"Hello", "World"}, result.getLines());
+        Assert.assertFalse("Two complete lines must not be flagged truncated", result.isTruncated());
     }
 
     @Test
     public void wrapLabel_splitsOnNonAlnumKeepingChar() {
         NjamsProcessDiagramFactory factory = new NjamsProcessDiagramFactory(false);
         // maxChars=2: "A.B" → window "A." has '.' at index 1 → line="A." (kept), next="B"
-        Assert.assertArrayEquals(new String[]{"A.", "B"}, factory.wrapLabel("A.B", widthFor(2)));
+        Assert.assertArrayEquals(new String[]{"A.", "B"}, factory.wrapLabel("A.B", widthFor(2)).getLines());
     }
 
     @Test
     public void wrapLabel_hardSplitWhenNoSplitChar() {
         NjamsProcessDiagramFactory factory = new NjamsProcessDiagramFactory(false);
         // maxChars=3: "ABCDE" → hard split at 3 → "ABC", "DE"
-        Assert.assertArrayEquals(new String[]{"ABC", "DE"}, factory.wrapLabel("ABCDE", widthFor(3)));
+        Assert.assertArrayEquals(new String[]{"ABC", "DE"}, factory.wrapLabel("ABCDE", widthFor(3)).getLines());
     }
 
     @Test
     public void wrapLabel_longTextTruncatesOnSecondLine() {
         NjamsProcessDiagramFactory factory = new NjamsProcessDiagramFactory(false);
         // maxChars=5, 2-line limit: line 2 budget=4, "Worl" all alnum → hard truncate
-        Assert.assertArrayEquals(new String[]{"Hello", "Worl" + StringUtils.ELLIPSIS},
-            factory.wrapLabel("Hello World Greet", widthFor(5)));
+        NjamsProcessDiagramFactory.FittedLabel result = factory.wrapLabel("Hello World Greet", widthFor(5));
+        Assert.assertArrayEquals(new String[]{"Hello", "Worl" + StringUtils.ELLIPSIS}, result.getLines());
+        Assert.assertTrue("Dropped content must be flagged truncated", result.isTruncated());
+        Assert.assertEquals("Full text must be the normalized original", "Hello World Greet", result.getFull());
     }
 
     @Test
@@ -347,7 +403,7 @@ public class NjamsProcessDiagramFactoryTest {
         NjamsProcessDiagramFactory factory = new NjamsProcessDiagramFactory(false);
         // maxChars=6: line 1 "AAAA" (space at 4); line 2 budget=5, "BB CC" has space at 2 → "BB" + ELLIPSIS
         Assert.assertArrayEquals(new String[]{"AAAA", "BB" + StringUtils.ELLIPSIS},
-            factory.wrapLabel("AAAA BB CCCC", widthFor(6)));
+            factory.wrapLabel("AAAA BB CCCC", widthFor(6)).getLines());
     }
 
     @Test
@@ -355,14 +411,14 @@ public class NjamsProcessDiagramFactoryTest {
         NjamsProcessDiagramFactory factory = new NjamsProcessDiagramFactory(false);
         // maxChars=6, 2-line limit: line 2 budget=5, window "K!MNO" has '!' at index 1 → "K!" + ELLIPSIS
         Assert.assertArrayEquals(new String[]{"ABCDE", "K!" + StringUtils.ELLIPSIS},
-            factory.wrapLabel("ABCDE K!MNOPQR", widthFor(6)));
+            factory.wrapLabel("ABCDE K!MNOPQR", widthFor(6)).getLines());
     }
 
     @Test
     public void wrapLabel_noLineLongerThanMaxChars() {
         NjamsProcessDiagramFactory factory = new NjamsProcessDiagramFactory(false);
         int maxChars = 8;
-        String[] lines = factory.wrapLabel("Hello World This Is Very Long Text Indeed", widthFor(maxChars));
+        String[] lines = factory.wrapLabel("Hello World This Is Very Long Text Indeed", widthFor(maxChars)).getLines();
         Assert.assertTrue("Expected at least one line", lines.length > 0);
         for (String line : lines) {
             Assert.assertTrue("Line '" + line + "' exceeds maxChars=" + maxChars, line.length() <= maxChars);
@@ -373,7 +429,7 @@ public class NjamsProcessDiagramFactoryTest {
     public void wrapLabel_zeroWidthFallsBackToDefaultActivitySize() {
         NjamsProcessDiagramFactory factory = new NjamsProcessDiagramFactory(false);
         // lineWidth=0 should not throw and should produce at least one line
-        String[] lines = factory.wrapLabel("Some label", 0);
+        String[] lines = factory.wrapLabel("Some label", 0).getLines();
         Assert.assertTrue("Expected at least one line for zero-width fallback", lines.length > 0);
     }
 
@@ -578,6 +634,127 @@ public class NjamsProcessDiagramFactoryTest {
             labelText.endsWith(String.valueOf(StringUtils.ELLIPSIS)));
         Assert.assertTrue("Truncated label must be shorter than full name",
             labelText.length() < "A very long activity name here".length());
+    }
+
+    @Test
+    public void drawActivity_truncatedLabelPutsFullTooltipOnImage() throws Exception {
+        NjamsProcessDiagramContext context = createDrawableContext("cat");
+        NjamsProcessDiagramFactory factory = new NjamsProcessDiagramFactory(false);
+
+        ActivityModel activity = new ActivityModel(null, "a1", "A very long activity name here", "step");
+        activity.setX(0);
+        activity.setY(0);
+        factory.drawActivity(context, activity);
+
+        Element image = findByTagAndAttr(context.getDoc(), "image", "modelId", "a1");
+        Assert.assertNotNull("Expected activity image element", image);
+        Assert.assertEquals("Tooltip must sit on the image and hold the full label",
+            "A very long activity name here", image.getAttributeNS(null, TOOLTIP_ATTR));
+        Assert.assertFalse("Label text element must not carry the tooltip",
+            findLabelById(context.getDoc(), "a1_label").hasAttributeNS(null, TOOLTIP_ATTR));
+    }
+
+    @Test
+    public void drawActivity_shortLabelHasNoTooltip() throws Exception {
+        NjamsProcessDiagramContext context = createDrawableContext("cat");
+        NjamsProcessDiagramFactory factory = new NjamsProcessDiagramFactory(false);
+
+        ActivityModel activity = new ActivityModel(null, "a1", "Short", "step");
+        activity.setX(0);
+        activity.setY(0);
+        factory.drawActivity(context, activity);
+
+        Element image = findByTagAndAttr(context.getDoc(), "image", "modelId", "a1");
+        Assert.assertNotNull("Expected activity image element", image);
+        Assert.assertFalse("Non-truncated activity must not carry the tooltip attribute",
+            image.hasAttributeNS(null, TOOLTIP_ATTR));
+    }
+
+    @Test
+    public void drawGroup_truncatedLabelPutsFullTooltipOnHeader() throws Exception {
+        NjamsProcessDiagramContext context = createDrawableContext("cat");
+        NjamsProcessDiagramFactory factory = new NjamsProcessDiagramFactory(true);
+        // header width 100 forces truncation (see drawGroup_longLabelTruncatedWhenHeaderTooNarrow)
+        GroupModel group = buildGroup("g1", "A very long name", "loop", 0, 0, 100, 100);
+        factory.drawGroup(context, group);
+
+        Element header = findByTagAndAttr(context.getDoc(), "rect", "id", "g1_group_header");
+        Assert.assertNotNull("Expected group header rect", header);
+        Assert.assertEquals("Tooltip must sit on the group header and hold the full label",
+            "A very long name", header.getAttributeNS(null, TOOLTIP_ATTR));
+        Assert.assertFalse("Label text element must not carry the tooltip",
+            findLabelById(context.getDoc(), "g1_label").hasAttributeNS(null, TOOLTIP_ATTR));
+    }
+
+    @Test
+    public void drawGroup_shortLabelHasNoTooltip() throws Exception {
+        NjamsProcessDiagramContext context = createDrawableContext("cat");
+        NjamsProcessDiagramFactory factory = new NjamsProcessDiagramFactory(true);
+        GroupModel group = buildGroup("g1", "MyGroup", "loop", 0, 0, 400, 100);
+        factory.drawGroup(context, group);
+
+        Element header = findByTagAndAttr(context.getDoc(), "rect", "id", "g1_group_header");
+        Assert.assertNotNull("Expected group header rect", header);
+        Assert.assertFalse("Non-truncated group must not carry the tooltip attribute",
+            header.hasAttributeNS(null, TOOLTIP_ATTR));
+    }
+
+    @Test
+    public void drawTransition_truncatedLabelPutsFullTooltipOnLine() throws Exception {
+        NjamsProcessDiagramFactory factory = new NjamsProcessDiagramFactory(false);
+        NjamsProcessDiagramContext context = createSimpleContext();
+        context.setContainerElement(context.getDoc().getDocumentElement());
+        context.setStartX(0);
+        context.setStartY(0);
+
+        ActivityModel from = new ActivityModel(null, "a", "A", "step");
+        from.setX(0);
+        from.setY(0);
+        ActivityModel to = new ActivityModel(null, "b", "B", "step");
+        to.setX(50); // narrow gap → small maxChars → forces wrap and truncation
+        to.setY(0);
+
+        TransitionModel transition = new TransitionModel(null, "a_b");
+        transition.setFromActivity(from);
+        transition.setToActivity(to);
+        transition.setName("Alpha Beta Gamma Delta");
+
+        factory.drawTransition(context, transition);
+
+        Element line = findByTagAndAttr(context.getDoc(), "line", "modelId", "a_b");
+        Assert.assertNotNull("Expected transition line element", line);
+        Assert.assertEquals("Tooltip must sit on the line and hold the full label",
+            "Alpha Beta Gamma Delta", line.getAttributeNS(null, TOOLTIP_ATTR));
+        Assert.assertFalse("No label text element may carry the tooltip", anyTextHasTooltip(context.getDoc()));
+    }
+
+    @Test
+    public void drawTransition_wrappedButCompleteLabelHasNoTooltip() throws Exception {
+        NjamsProcessDiagramFactory factory = new NjamsProcessDiagramFactory(false);
+        NjamsProcessDiagramContext context = createSimpleContext();
+        context.setContainerElement(context.getDoc().getDocumentElement());
+        context.setStartX(0);
+        context.setStartY(0);
+
+        ActivityModel from = new ActivityModel(null, "a", "A", "step");
+        from.setX(0);
+        from.setY(0);
+        ActivityModel to = new ActivityModel(null, "b", "B", "step");
+        to.setX(50);
+        to.setY(0);
+
+        TransitionModel transition = new TransitionModel(null, "a_b");
+        transition.setFromActivity(from);
+        transition.setToActivity(to);
+        transition.setName("Hi Yo"); // fully fits across the wrapped lines, nothing dropped
+
+        factory.drawTransition(context, transition);
+
+        Element line = findByTagAndAttr(context.getDoc(), "line", "modelId", "a_b");
+        Assert.assertNotNull("Expected transition line element", line);
+        Assert.assertFalse("Fully-visible wrapped label must not put a tooltip on the line",
+            line.hasAttributeNS(null, TOOLTIP_ATTR));
+        Assert.assertFalse("No label text element may carry the tooltip", anyTextHasTooltip(context.getDoc()));
     }
 
     private static String getMarkingXslt() {

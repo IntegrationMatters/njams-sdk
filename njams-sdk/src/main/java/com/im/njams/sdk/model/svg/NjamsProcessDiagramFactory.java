@@ -116,6 +116,12 @@ public class NjamsProcessDiagramFactory implements ProcessDiagramFactory {
      */
     protected static final String DEFAULT_DISABLE_SECURE_PROCESSING = "false";
 
+    /**
+     * Attribute carrying the full label text on an SVG element whose rendered label was truncated.
+     * The nJAMS Server UI presents this as a tooltip.
+     */
+    static final String TOOLTIP_ATTRIBUTE = "nj-sdk-tooltip";
+
     private static final Logger LOG = LoggerFactory.getLogger(NjamsProcessDiagramFactory.class);
 
     protected boolean disableSecureProcessing = false;
@@ -221,7 +227,6 @@ public class NjamsProcessDiagramFactory implements ProcessDiagramFactory {
             createSvg(context, processModel);
 
             String svg = serializeDocument(context);
-            LOG.trace("Created ProcessDiagram for model '{}'\n{}", processModel.getPath(), svg);
             return svg;
         } catch (Exception e) {
             throw new NjamsSdkRuntimeException("Error in NjamsProcessDiagramFactory", e);
@@ -356,8 +361,12 @@ public class NjamsProcessDiagramFactory implements ProcessDiagramFactory {
         activityText.setAttributeNS(null, "x", String.valueOf(labelX));
         activityText.setAttributeNS(null, "y", String.valueOf(labelY));
         activityText.setAttributeNS(null, "text-anchor", "middle");
-        activityText.setTextContent(
-            truncateLabel(activityModel.getName(), (double) ACTIVITY_LABEL_MAX_WIDTH_FACTOR * DEFAULT_ACTIVITY_SIZE));
+        FittedLabel activityLabel =
+            truncateLabel(activityModel.getName(), (double) ACTIVITY_LABEL_MAX_WIDTH_FACTOR * DEFAULT_ACTIVITY_SIZE);
+        activityText.setTextContent(activityLabel.singleLine());
+        if (activityLabel.isTruncated()) {
+            image.setAttributeNS(null, TOOLTIP_ATTRIBUTE, activityLabel.getFull());
+        }
         context.getContainerElement().appendChild(activityText);
 
         /*
@@ -450,7 +459,11 @@ public class NjamsProcessDiagramFactory implements ProcessDiagramFactory {
         groupText.setAttributeNS(null, "x", String.valueOf(groupTextX));
         groupText.setAttributeNS(null, "y", String.valueOf(groupTextY));
         groupText.setAttributeNS(null, "text-anchor", "start");
-        groupText.setTextContent(truncateLabel(groupModel.getName(), labelAvailableWidth));
+        FittedLabel groupLabel = truncateLabel(groupModel.getName(), labelAvailableWidth);
+        groupText.setTextContent(groupLabel.singleLine());
+        if (groupLabel.isTruncated()) {
+            rectHeader.setAttributeNS(null, TOOLTIP_ATTRIBUTE, groupLabel.getFull());
+        }
         context.getContainerElement().appendChild(groupText);
 
         // draw root activities
@@ -521,9 +534,13 @@ public class NjamsProcessDiagramFactory implements ProcessDiagramFactory {
         context.getContainerElement().appendChild(line);
 
         double lineWidth = Math.abs(toPoint.getX() - fromPoint.getX());
-        String[] labelLines = wrapLabel(transitionModel.getName(), lineWidth);
+        FittedLabel label = wrapLabel(transitionModel.getName(), lineWidth);
+        String[] labelLines = label.getLines();
         boolean suppressLabel = legacyServerCompat && Objects.equals(transitionModel.getName(), transitionModel.getId());
         if (labelLines.length > 0 && !suppressLabel) {
+            if (label.isTruncated()) {
+                line.setAttributeNS(null, TOOLTIP_ATTRIBUTE, label.getFull());
+            }
             double midX = (fromPoint.getX() + toPoint.getX()) / 2;
             double midY = (fromPoint.getY() + toPoint.getY()) / 2 + DEFAULT_TEXT_SIZE;
             for (int i = 0; i < labelLines.length; i++) {
@@ -598,19 +615,20 @@ public class NjamsProcessDiagramFactory implements ProcessDiagramFactory {
         return new Point[] { fromPoint, toPoint };
     }
 
-    String[] wrapLabel(String text, double lineWidth) {
+    FittedLabel wrapLabel(String text, double lineWidth) {
         if (text == null) {
-            return new String[0];
+            return FittedLabel.empty();
         }
         String normalized = text.trim().replaceAll("\\s+", " ");
         if (normalized.isEmpty()) {
-            return new String[0];
+            return FittedLabel.empty();
         }
         double effectiveWidth = lineWidth > 0 ? lineWidth : DEFAULT_ACTIVITY_SIZE;
         int maxChars = Math.max(1, (int) (effectiveWidth / (DEFAULT_TEXT_SIZE * DEFAULT_CHAR_WIDTH_FACTOR)));
         String[] result = new String[DEFAULT_MAX_LABEL_LINES];
         int count = 0;
         int pos = 0;
+        boolean truncated = false;
         while (pos < normalized.length() && count < DEFAULT_MAX_LABEL_LINES) {
             boolean isLastLine = count == DEFAULT_MAX_LABEL_LINES - 1;
             if (normalized.length() - pos <= maxChars) {
@@ -625,6 +643,7 @@ public class NjamsProcessDiagramFactory implements ProcessDiagramFactory {
                     int lineEnd = lastSplitInWindow(normalized, pos, budget);
                     result[count++] = normalized.substring(pos, pos + lineEnd) + StringUtils.ELLIPSIS;
                 }
+                truncated = true;
                 break;
             }
             int[] split = splitWindow(normalized, pos, maxChars);
@@ -634,27 +653,67 @@ public class NjamsProcessDiagramFactory implements ProcessDiagramFactory {
                 pos++;
             }
         }
-        return Arrays.copyOf(result, count);
+        return new FittedLabel(Arrays.copyOf(result, count), truncated, normalized);
     }
 
-    String truncateLabel(String text, double availableWidth) {
+    FittedLabel truncateLabel(String text, double availableWidth) {
         if (text == null) {
-            return "";
+            return FittedLabel.empty();
         }
         String normalized = text.trim().replaceAll("\\s+", " ");
         if (normalized.isEmpty()) {
-            return "";
+            return FittedLabel.empty();
         }
         double effective = availableWidth > 0 ? availableWidth : DEFAULT_ACTIVITY_SIZE;
         int maxChars = Math.max(1, (int) (effective / (DEFAULT_TEXT_SIZE * DEFAULT_CHAR_WIDTH_FACTOR)));
         if (normalized.length() <= maxChars) {
-            return normalized;
+            return new FittedLabel(new String[] { normalized }, false, normalized);
         }
         int budget = maxChars - 1;
-        if (budget <= 0) {
-            return String.valueOf(StringUtils.ELLIPSIS);
+        String line = budget <= 0
+            ? String.valueOf(StringUtils.ELLIPSIS)
+            : normalized.substring(0, budget) + StringUtils.ELLIPSIS;
+        return new FittedLabel(new String[] { line }, true, normalized);
+    }
+
+    /**
+     * Outcome of fitting a label into the available space: the rendered display line(s), whether
+     * content had to be dropped to make it fit, and the full whitespace-normalized label used as the
+     * tooltip text when truncated.
+     */
+    static final class FittedLabel {
+
+        private static final FittedLabel EMPTY = new FittedLabel(new String[0], false, "");
+
+        private final String[] lines;
+        private final boolean truncated;
+        private final String full;
+
+        FittedLabel(String[] lines, boolean truncated, String full) {
+            this.lines = lines;
+            this.truncated = truncated;
+            this.full = full;
         }
-        return normalized.substring(0, budget) + StringUtils.ELLIPSIS;
+
+        static FittedLabel empty() {
+            return EMPTY;
+        }
+
+        String[] getLines() {
+            return lines;
+        }
+
+        String singleLine() {
+            return lines.length == 0 ? "" : lines[0];
+        }
+
+        boolean isTruncated() {
+            return truncated;
+        }
+
+        String getFull() {
+            return full;
+        }
     }
 
     private int[] splitWindow(String text, int pos, int maxChars) {

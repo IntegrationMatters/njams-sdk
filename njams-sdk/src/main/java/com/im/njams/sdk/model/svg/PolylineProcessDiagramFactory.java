@@ -437,7 +437,7 @@ public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
         polyline.setAttributeNS(null, "style", "cursor: pointer; stroke:#000; fill:none");
         context.getContainerElement().appendChild(polyline);
 
-        drawLabel(context, t, route);
+        drawLabel(context, t, route, polyline);
     }
 
     private String createArrowMarker(NjamsProcessDiagramContext context, TransitionModel t) {
@@ -461,11 +461,15 @@ public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
         return markerId;
     }
 
-    private void drawLabel(NjamsProcessDiagramContext context, TransitionModel t, Route route) {
-        String[] labelLines = wrapLabel(t.getName(), route.labelWidth);
+    private void drawLabel(NjamsProcessDiagramContext context, TransitionModel t, Route route, Element edge) {
+        FittedLabel label = wrapLabel(t.getName(), route.labelWidth);
+        String[] labelLines = label.getLines();
         boolean suppress = suppressIdLabels && Objects.equals(t.getName(), t.getId());
         if (labelLines.length == 0 || suppress) {
             return;
+        }
+        if (label.isTruncated()) {
+            edge.setAttributeNS(null, TOOLTIP_ATTRIBUTE, label.getFull());
         }
         double midX = context.getStartX() + route.labelX;
         double midY = context.getStartY() + route.labelY;

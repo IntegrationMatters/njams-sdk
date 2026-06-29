@@ -579,6 +579,40 @@ public class PolylineProcessDiagramFactoryTest {
             entryYs.size(), distinct);
     }
 
+    private static Element findText(Document doc, String id) {
+        NodeList texts = doc.getElementsByTagNameNS(SVG_NS, "text");
+        for (int i = 0; i < texts.getLength(); i++) {
+            Element t = (Element) texts.item(i);
+            if (id.equals(t.getAttribute("id"))) {
+                return t;
+            }
+        }
+        return null;
+    }
+
+    @Test
+    public void transition_truncatedLabelCarriesFullTooltipOnPolyline() throws Exception {
+        ProcessModel model = createProcess();
+        ActivityModel x = model.createActivity("X", "X", null);
+        model.createActivity("A", "A", null);
+        x.setStarter(true);
+        String longName = "This Is A Very Long Transition Condition Label That Will Not Fit";
+        model.createTransition("X", "A").setName(longName);
+
+        Document doc = parse(render(model));
+        String tid = transitionId(model, "X", "A");
+
+        Element poly = findTransitionPolyline(doc, tid);
+        Assert.assertNotNull("transition must be rendered as a polyline", poly);
+        Assert.assertEquals("tooltip must sit on the polyline and hold the full label",
+            longName, poly.getAttribute("nj-sdk-tooltip"));
+        Assert.assertNotNull("truncated label must still wrap to a second line", findText(doc, tid + "_label_2"));
+        Assert.assertFalse("first label line must not carry the tooltip",
+            findText(doc, tid + "_label").hasAttribute("nj-sdk-tooltip"));
+        Assert.assertFalse("second label line must not carry the tooltip",
+            findText(doc, tid + "_label_2").hasAttribute("nj-sdk-tooltip"));
+    }
+
     @Test
     public void parallelBranches_shareGutterButGetDistinctLanes() throws Exception {
         // X -> A (row 0) and X -> B (row 1): both leave column 0; their vertical runs must differ in x.

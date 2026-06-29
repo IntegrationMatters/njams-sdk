@@ -124,6 +124,7 @@ public class ProcessModel {
                 njams.getProcessModelLayouter().layout(this);
                 // build SVG
                 svg = njams.getProcessDiagramFactory().getProcessDiagram(this);
+                LOG.trace("Created process diagram for model '{}'\n{}", path, svg);
             }
             internalProcessModel.setSvg(svg);
             internalProcessModel.setSvgStatus(ProcessDiagramFactory.SUCCESS_STATUS);
