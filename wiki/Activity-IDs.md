@@ -37,6 +37,10 @@ an activity across several mechanisms:
   path + activity id**. At runtime the SDK looks up the configuration for a running activity by its model
   id. If the id does not match the id the configuration was stored against, the lookup finds nothing and
   **no input/output data is captured** — silently, with no error.
+- **Process-diagram (SVG) identity.** The generated SVG embeds the activity ids. The nJAMS server detects
+  when a process's SVG is unchanged and skips storing it redundantly, but only when repeated builds produce
+  an identical diagram. Ids that vary between runs make every build's SVG differ and force the server to
+  store a fresh copy each time.
 
 ## Why a stable, well-chosen ID is relevant
 

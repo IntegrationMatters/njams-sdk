@@ -283,6 +283,13 @@ independent steps:
 
 Both can be customized independently on the `Njams` instance.
 
+> **Reproducible SVG.** The nJAMS server detects when a process's SVG is unchanged and skips storing it
+> redundantly. For this to work, repeated builds of the same, unchanged process must produce an **identical**
+> SVG — diagram generation must be deterministic. Anything that injects run-to-run variation into the markup
+> defeats it: a common pitfall is embedding randomly generated element ids, which makes every build's SVG
+> differ and forces the server to store a fresh copy each time. Keep the inputs to diagram generation stable
+> and deterministic — see [Activity IDs](Activity-IDs) for choosing stable activity ids.
+
 ### Layout
 
 The default layouter since 6.0 is `CommonBfsModelLayouter`. It performs a two-pass algorithm — a bottom-up sizing pass

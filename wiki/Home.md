@@ -19,6 +19,7 @@ The nJAMS SDK is a Java library for building nJAMS clients. It instruments your 
 ## Further reading
 
 - **[FAQ](FAQ)** — settings reference, all transport configurations, flush tuning, data masking, Argos metrics, custom layouters
+- **[Activity IDs](Activity-IDs)** — what an activity id is used for, why it must be stable, and how to choose a good one
 - **[CommonBfsModelLayouter Algorithm](CommonBfsModelLayouter-Algorithm)** — how activity coordinates are calculated for process diagrams
 - **[Poly-line process-diagram routing](Polyline-Process-Diagram-Routing)** — opt-in alternative that routes transitions around activity icons
 - **[JavaDoc](https://integrationmatters.github.io/njams-sdk/index-njams-sdk.html)** — full API reference
