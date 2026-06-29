@@ -134,8 +134,14 @@ public class JobImpl implements Job {
     boolean hasOrHadStartActivity;
 
     // volatile: read without locking by requireNotFinished/getStatus on any thread; written under
-    // activitiesLock in end(). A reader observing finished==true also observes the final lastStatus.
+    // activitiesLock in end() and discard(). A reader observing finished==true also observes the
+    // final lastStatus.
     private volatile boolean finished = false;
+
+    // SDK-465: set under activitiesLock by discard(); read by the flusher to guarantee a discarded
+    // job is never sent, even if a timer flush captured the job reference before discard removed it
+    // from the registry. volatile so the flusher sees the update without holding a reference race.
+    private volatile boolean discarded = false;
 
     private final JobRuntimeConfig runtimeConfig;
 
@@ -396,6 +402,37 @@ public class JobImpl implements Job {
                 flush();
             }
         }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void discard() {
+        if (finished) {
+            // idempotent: already ended or already discarded
+            return;
+        }
+        synchronized (activitiesLock) {
+            if (finished) {
+                return;
+            }
+            LOG.warn("Discarding job {} without sending it to the nJAMS server;"
+                    + " any data recorded for this job is dropped.", getLogId());
+            discarded = true;
+            finished = true;
+            processModel.getNjams().removeJob(getJobId());
+        }
+    }
+
+    /**
+     * Indicates whether this job has been discarded (see {@link #discard()}). Read by the flusher
+     * to ensure a discarded job is never sent.
+     *
+     * @return <code>true</code> if and only if this job was discarded
+     */
+    boolean isDiscarded() {
+        return discarded;
     }
 
     /**

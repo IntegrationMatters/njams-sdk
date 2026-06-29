@@ -107,6 +107,12 @@ final class JobFlusher {
      */
     void flush(JobImpl owner) {
         synchronized (lock) {
+            if (owner.isDiscarded()) {
+                // SDK-465: a discarded job is never sent. Belt-and-suspenders with the registry
+                // removal in discard(): covers a timer flush that captured the reference first.
+                LOG.trace("Skip flush. Job {} has been discarded.", owner);
+                return;
+            }
             if (!owner.hasStarted()) {
                 LOG.warn("Not flushing job with logId: {}: the job has not been started"
                         + " - a job that was never started is never sent to the nJAMS server.", owner.getLogId());

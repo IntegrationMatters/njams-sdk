@@ -24,6 +24,7 @@
 package com.im.njams.sdk.logmessage;
 
 import com.faizsiegeln.njams.messageformat.v4.logmessage.interfaces.IPluginDataItem;
+import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.Path;
 import com.im.njams.sdk.model.ActivityModel;
 import com.im.njams.sdk.model.GroupModel;
@@ -112,6 +113,24 @@ public interface Job {
      */
     @Deprecated
     public void end();
+
+    /**
+     * Discards this job: removes it from the SDK's active-job registry <b>without</b> sending any log message to the
+     * nJAMS server.
+     * <p>
+     * Use this to release an abandoned job whose final outcome will never arrive (e.g. a tracking
+     * session evicted on an idle timeout), so that the SDK frees the memory it holds for the job
+     * instead of keeping it alive for periodic flushing and the final flush on
+     * {@link Njams#stop()}. Any data recorded so far is dropped and is never reported.
+     * <p>
+     * After {@code discard()} the job is treated as finished: {@link #isFinished()} returns
+     * {@code true}, and further operations on it behave as they would on an ended job. Discarding a
+     * job that has already ended or already been discarded is a no-op. Discarding an unfinished job
+     * logs a warning, because data recorded for the job is not reported to the server.
+     *
+     * @see #end(boolean)
+     */
+    public void discard();
 
     /**
      * Ends processing for this job instance.
