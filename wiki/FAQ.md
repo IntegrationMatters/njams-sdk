@@ -707,6 +707,22 @@ references without it leave the group empty and are mandatory.
 declares at least the `full` and `name` groups, otherwise an `NjamsSdkRuntimeException` is thrown. Passing `null`
 clears the pattern.
 
+## How do I choose activity IDs
+
+Every activity in a `ProcessModel` carries an **id** that you supply — the SDK never generates it. This id is
+the activity's stable identity: it keys the model, builds transition and instance ids, and — most importantly
+— it is the key under which the SDK's persisted **Configuration** (tracepoints, data extracts, and log modes,
+stored per `process path + activity id`) is matched at runtime. If an activity's id is not reproducible across
+restarts, that persisted configuration becomes orphaned and silently stops taking effect.
+
+This persisted SDK Configuration is **not** the activity's `config` attribute described under
+[How to set the activity configuration](#how-to-set-the-activity-configuration) — that attribute describes the
+activity in your runtime system, whereas the Configuration here controls the SDK's own behaviour for a job and
+its activities.
+
+For what the id is used for, why a stable id matters, and how to pick a good one, see
+[Activity IDs](Activity-IDs).
+
 ## Can a single job be used from multiple threads
 
 Yes, with one rule about granularity — but note that this is a contract **guaranteed only since
