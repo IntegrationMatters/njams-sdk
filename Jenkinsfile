@@ -24,11 +24,12 @@ node('master') {
         echo 'Getting source code...'
         scmInfo = checkout scm
         echo "scm: ${scmInfo}"
-        if (scmInfo.GIT_BRANCH != 'master' && scmInfo.GIT_BRANCH != '4.0.X' && scmInfo.GIT_BRANCH != '4.1.X' && scmInfo.GIT_BRANCH != '4.2.X') {
+        // TEMPORARY: '6.0-dev' is included in the deploy branches so the 6.x development line is published to Nexus.
+        if (scmInfo.GIT_BRANCH != 'master' && scmInfo.GIT_BRANCH != '6.0-dev' && scmInfo.GIT_BRANCH != '4.0.X' && scmInfo.GIT_BRANCH != '4.1.X' && scmInfo.GIT_BRANCH != '4.2.X') {
             echo "Only call install on feature branches"
             buildGoal = "install"
         } else {
-            echo "Call deploy on master and main version branches 4.0.X and 4.1.X"
+            echo "Call deploy on master, the 6.0-dev development branch and main version branches 4.0.X and 4.1.X"
             buildGoal = "deploy"
         }
     }
