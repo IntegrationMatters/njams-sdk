@@ -23,7 +23,7 @@ is high-impact and hard to detect, so the bar for confidence on this branch is r
 ## 3. Branch facts
 
 - **Base branch:** `6.0-dev` (not `master`). Any "is the base ahead?" / merge check is done against
-  `origin/6.0-dev`. At session start (2026-06-30) the branch equalled `origin/6.0-dev`, so no merge was needed.
+  `origin/6.0-dev`. At session start (2026-07-02) the branch equalled `origin/6.0-dev`, so no merge was needed.
 - **Fix version** (for any ticket): version from root `pom.xml` with `-SNAPSHOT` stripped → `6.0.0`.
 
 ## 4. Ticket scope (SDK-375)
@@ -171,7 +171,7 @@ connection.
 - [x] Public-API approach (Decision 1) — resolved above.
 - [x] Baseline test strategy (Decision 2) — resolved above.
 - [x] **Full implementation design spec** — drafted at
-      `docs/superpowers/specs/2026-06-30-sdk-375-sender-lifecycle-design.md` (pending user review → then
+      `docs/superpowers/specs/2026-07-02-sdk-375-sender-lifecycle-design.md` (pending user review → then
       writing-plans). Resolves the D1 deferred sub-point: all transports use separate sender/receiver
       connections, so the shared layer is coordination/phase only.
 - [x] New startup-failure setting named: `njams.sdk.communication.startup.failbehavior` = `fail` (default) |

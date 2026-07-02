@@ -1,8 +1,8 @@
 # SDK-375 Implementation — Decomposition Overview
 
 **Ticket:** SDK-375 — Revise sender lifecycle handling
-**Design spec:** `docs/superpowers/specs/2026-06-30-sdk-375-sender-lifecycle-design.md`
-**Baseline regression net (already in place & green):** `docs/superpowers/plans/2026-06-30-sdk-375-baseline-tests.md`
+**Design spec:** `docs/superpowers/specs/2026-07-02-sdk-375-sender-lifecycle-design.md`
+**Baseline regression net (already in place & green):** `docs/superpowers/plans/2026-07-02-sdk-375-baseline-tests.md`
 **Working agreement:** `docs/SDK-375-working-agreement.md`
 
 ## Why split, and the guiding rule
@@ -58,4 +58,4 @@ Part 1 (foundation) ──▶ Part 2 (sender semantics) ──▶ Part 3 (receiv
 
 ## First plan
 
-`docs/superpowers/plans/2026-06-30-sdk-375-part1-lifecycle-foundation.md` (Part 1).
+`docs/superpowers/plans/2026-07-02-sdk-375-part1-lifecycle-foundation.md` (Part 1).
