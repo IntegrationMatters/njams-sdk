@@ -68,15 +68,17 @@ public class JmsClientEndToEndBaselineIT {
 
         assertTrue("Njams should start against the embedded broker", njams.start());
 
-        Job job = process.createJob();
-        job.start();
-        job.createActivity(start).setStarter().build();
-        job.end(); // flushes a LogMessage
+        try {
+            Job job = process.createJob();
+            job.start();
+            job.createActivity(start).setStarter().build();
+            job.end(); // flushes a LogMessage
 
-        // project message (from start()) and log message (from job.end()) both land on njams.event by default
-        List<String> bodies = drain("njams.event", 1, 10000);
-        assertTrue("at least one message should be delivered end-to-end", bodies.size() >= 1);
-
-        njams.stop();
+            // project message (from start()) and log message (from job.end()) both land on njams.event by default
+            List<String> bodies = drain("njams.event", 1, 10000);
+            assertTrue("at least one message should be delivered end-to-end", bodies.size() >= 1);
+        } finally {
+            njams.stop();
+        }
     }
 }
