@@ -17,39 +17,21 @@ pipeline {
     }
 
     stages {
-        stage('Build Root Pom') {
+        // Build the whole reactor once. This also compiles the sample modules,
+        // which is what verifies they still build against the current SDK. The
+        // samples are not published (maven.deploy.skip=true in their POMs).
+        stage('Build') {
             steps {
-                sh 'mvn clean install -N -Pjenkins-cli'
-            }
-        }
-
-        stage('Build SDK') {
-            steps {
-                dir('njams-sdk') {
-                    sh """mvn clean install -Pjenkins-cli \
-                        -DrevisionNumberPlugin.revision=${env.BUILD_NUMBER} \
-                        -DscmBranch=${env.BRANCH_NAME} \
-                        -DscmCommit=${env.GIT_COMMIT}"""
-                }
+                sh """mvn clean install -Pjenkins-cli \
+                    -DrevisionNumberPlugin.revision=${env.BUILD_NUMBER} \
+                    -DscmBranch=${env.BRANCH_NAME} \
+                    -DscmCommit=${env.GIT_COMMIT}"""
             }
             post {
                 always {
                     junit 'njams-sdk/target/surefire-reports/*.xml'
                     junit allowEmptyResults: true, testResults: 'njams-sdk/target/failsafe-reports/*.xml'
                     archiveArtifacts 'njams-sdk/target/*.jar'
-                }
-            }
-        }
-
-        stage('Build client sample') {
-            steps {
-                dir('njams-sdk-sample-client') {
-                    sh 'mvn clean install -U -Psonar,jenkins-cli'
-                }
-            }
-            post {
-                always {
-                    archiveArtifacts 'njams-sdk-sample-client/target/*.jar'
                 }
             }
         }
@@ -100,6 +82,8 @@ pipeline {
         // Single, self-documenting deploy gate. To change which branches publish
         // to Nexus, edit only the `branch` conditions below. `when { branch }`
         // matches the bare branch name, so it is not broken by an 'origin/' prefix.
+        // Only njams-sdk and the root POM are published; the sample modules are
+        // skipped via maven.deploy.skip in their POMs.
         stage('Deploy to Nexus') {
             when {
                 anyOf {
@@ -111,19 +95,9 @@ pipeline {
                 }
             }
             steps {
-                // Publish the same modules as before (root POM, SDK, client sample),
-                // reusing the artifacts already compiled and tested above: no `clean`
+                // Reuse the artifacts already compiled and tested above: no `clean`
                 // and tests are not re-run.
-                sh 'mvn deploy -N -Pjenkins-cli -DskipTests'
-                dir('njams-sdk') {
-                    sh """mvn deploy -Pjenkins-cli -DskipTests \
-                        -DrevisionNumberPlugin.revision=${env.BUILD_NUMBER} \
-                        -DscmBranch=${env.BRANCH_NAME} \
-                        -DscmCommit=${env.GIT_COMMIT}"""
-                }
-                dir('njams-sdk-sample-client') {
-                    sh 'mvn deploy -Psonar,jenkins-cli -DskipTests'
-                }
+                sh 'mvn deploy -Pjenkins-cli -DskipTests'
             }
         }
     }
