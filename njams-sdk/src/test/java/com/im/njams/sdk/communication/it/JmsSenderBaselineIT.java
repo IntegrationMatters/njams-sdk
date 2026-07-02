@@ -87,4 +87,31 @@ public class JmsSenderBaselineIT {
             sender.close();
         }
     }
+
+    @Test
+    public void deliveryResumesAfterTransientBrokerOutage() throws Exception {
+        NjamsSender sender = new NjamsSender(settings());
+        try {
+            // 1) prove connected: first message arrives
+            sender.send(logMessage("before-outage", ">a>b>"), "session-1");
+            assertEquals(1, consumeEventQueue(1, 5000).size());
+
+            // 2) transient outage
+            broker.stopBroker();
+
+            // 3) enqueue a message during the outage; with DISCARD_POLICY=none the sender blocks and retries
+            //    rather than dropping it
+            sender.send(logMessage("during-outage", ">a>b>"), "session-1");
+
+            // 4) restore the broker
+            broker.startBroker();
+
+            // 5) the buffered message is delivered once reconnected
+            List<String> bodies = consumeEventQueue(1, 15000);
+            assertEquals("message sent during the outage must be delivered after reconnect", 1, bodies.size());
+            assertTrue(bodies.get(0).contains("during-outage"));
+        } finally {
+            sender.close();
+        }
+    }
 }
