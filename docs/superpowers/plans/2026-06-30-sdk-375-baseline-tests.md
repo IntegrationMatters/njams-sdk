@@ -381,7 +381,9 @@ public class JmsSenderBaselineIT {
     List<String> consumeEventQueue(int expectedAtLeast, long timeoutMs) throws Exception {
         List<String> bodies = new ArrayList<>();
         ConnectionFactorySupport cf = new ConnectionFactorySupport(broker.brokerUrl());
-        try (Connection connection = cf.factory().createConnection()) {
+        // NOTE: javax.jms.Connection (JMS 1.1) is NOT AutoCloseable — use try/finally, not try-with-resources.
+        Connection connection = cf.factory().createConnection();
+        try {
             connection.start();
             Session session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
             Queue queue = session.createQueue(EVENT_QUEUE);
@@ -393,6 +395,8 @@ public class JmsSenderBaselineIT {
                     bodies.add(m.getText());
                 }
             }
+        } finally {
+            connection.close();
         }
         return bodies;
     }
@@ -589,7 +593,9 @@ public class JmsClientEndToEndBaselineIT {
 
     private List<String> drain(String queueName, int expectedAtLeast, long timeoutMs) throws Exception {
         List<String> bodies = new ArrayList<>();
-        try (Connection connection = new ConnectionFactorySupport(broker.brokerUrl()).factory().createConnection()) {
+        // NOTE: javax.jms.Connection (JMS 1.1) is NOT AutoCloseable — use try/finally, not try-with-resources.
+        Connection connection = new ConnectionFactorySupport(broker.brokerUrl()).factory().createConnection();
+        try {
             connection.start();
             Session session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
             Queue queue = session.createQueue(queueName);
@@ -601,6 +607,8 @@ public class JmsClientEndToEndBaselineIT {
                     bodies.add(m.getText());
                 }
             }
+        } finally {
+            connection.close();
         }
         return bodies;
     }
