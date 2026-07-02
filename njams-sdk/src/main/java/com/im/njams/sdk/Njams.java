@@ -899,14 +899,15 @@ public class Njams implements InstructionListener {
      * This will create a small ProjectMessage only containing the new process.
      *
      * @param model the additional model to send
-     * @deprecated Use {@code njams.model().announce(model)} instead — obtain the facet via
-     *             {@link #model()} and call {@link NjamsModel#announce(ProcessModel)}. The
-     *             replacement has the same contract: it throws an exception when the instance has
-     *             not been started yet.
+     * @deprecated Use the {@code njams.model().additionalResources()} builder instead — obtain the
+     *             facet via {@link #model()}, then call
+     *             {@link NjamsModel#additionalResources()}.{@code addProcessModel(model).build()}.
+     *             The replacement has the same contract: it throws an exception when the instance
+     *             has not been started yet.
      */
     @Deprecated(since = "6.0.0", forRemoval = true)
     public void sendAdditionalProcess(final ProcessModel model) {
-        this.model.announce(model);
+        this.model.additionalResources(this).addProcessModel(model).build();
     }
 
     /**

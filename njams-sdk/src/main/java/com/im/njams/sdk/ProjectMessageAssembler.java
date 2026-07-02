@@ -24,6 +24,7 @@
 package com.im.njams.sdk;
 
 import java.util.Collection;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
@@ -81,14 +82,20 @@ final class ProjectMessageAssembler {
     }
 
     /**
-     * Builds a small project message containing only the given additional process and the tree
-     * elements leading to it.
+     * Builds an additional project message containing only the given process models, images and
+     * global variables, plus the tree elements leading to each process. Used to announce
+     * resources added after the client has started.
      */
-    ProjectMessage buildAdditional(ProcessModel model, TaxonomyTree taxonomy) {
+    ProjectMessage buildAdditional(Collection<ProcessModel> models, Collection<ImageSupplier> images,
+        Map<String, String> globalVariables, TaxonomyTree taxonomy) {
         final ProjectMessage msg = prepare();
         taxonomy.buildInto(msg.getTreeElements(), metadata.getClientPath(), TreeElementType.CLIENT, false);
-        taxonomy.buildInto(msg.getTreeElements(), model.getPath(), TreeElementType.PROCESS, model.isStarter());
-        msg.getProcesses().add(model.getSerializableProcessModel());
+        for (final ProcessModel model : models) {
+            taxonomy.buildInto(msg.getTreeElements(), model.getPath(), TreeElementType.PROCESS, model.isStarter());
+            msg.getProcesses().add(model.getSerializableProcessModel());
+        }
+        images.forEach(image -> msg.getImages().put(image.getName(), image.getBase64Image()));
+        msg.getGlobalVariables().putAll(globalVariables);
         return msg;
     }
 

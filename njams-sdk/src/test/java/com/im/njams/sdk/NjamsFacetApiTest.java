@@ -330,13 +330,13 @@ public class NjamsFacetApiTest {
     public void newProcessCreateIsAllowedAfterStartAndAnnouncable() {
         njams.start();
         com.im.njams.sdk.model.ProcessModel lazy = njams.model().create("LAZY");
-        njams.model().announce(lazy); // must not throw
+        njams.model().additionalResources().addProcessModel(lazy).build(); // must not throw
     }
 
     @Test(expected = NjamsSdkRuntimeException.class)
     public void newAnnounceBeforeStartThrows() {
         com.im.njams.sdk.model.ProcessModel model = njams.model().create("P1");
-        njams.model().announce(model);
+        njams.model().additionalResources().addProcessModel(model).build();
     }
 
     // --- processes parity mirrors ---
@@ -457,7 +457,7 @@ public class NjamsFacetApiTest {
         CapturingSender capturing = new CapturingSender(msg -> !msg.getProcesses().isEmpty());
         com.im.njams.sdk.communication.TestSender.setSenderMock(capturing);
         try {
-            njams.model().announce(model);
+            njams.model().additionalResources().addProcessModel(model).build();
             com.faizsiegeln.njams.messageformat.v4.projectmessage.ProjectMessage sent =
                 capturing.awaitProjectMessage();
             assertNotNull(sent);
@@ -465,6 +465,68 @@ public class NjamsFacetApiTest {
         } finally {
             com.im.njams.sdk.communication.TestSender.setSenderMock(null);
         }
+    }
+
+    @Test
+    public void additionalResourcesSendsNewImage() throws InterruptedException {
+        njams.start();
+        CapturingSender capturing = new CapturingSender(msg -> msg.getImages().containsKey("extra.image"));
+        com.im.njams.sdk.communication.TestSender.setSenderMock(capturing);
+        try {
+            njams.model().additionalResources().addImage("extra.image", "images/root.png").build();
+            com.faizsiegeln.njams.messageformat.v4.projectmessage.ProjectMessage sent =
+                capturing.awaitProjectMessage();
+            assertNotNull(sent);
+            assertTrue(sent.getImages().containsKey("extra.image"));
+        } finally {
+            com.im.njams.sdk.communication.TestSender.setSenderMock(null);
+        }
+    }
+
+    @Test
+    public void additionalResourcesOmitsResourcesAlreadySent() throws InterruptedException {
+        com.im.njams.sdk.model.ProcessModel first = njams.model().create("FIRST");
+        njams.model().addGlobalVariables(java.util.Collections.singletonMap("gv1", "v1"));
+        njams.start(); // start message announces FIRST and gv1
+        com.im.njams.sdk.model.ProcessModel second = njams.model().create("SECOND");
+        // Match only the delta message (the async start message carries gv1, never gv2).
+        CapturingSender capturing = new CapturingSender(msg -> msg.getGlobalVariables().containsKey("gv2"));
+        com.im.njams.sdk.communication.TestSender.setSenderMock(capturing);
+        try {
+            njams.model().additionalResources()
+                .addProcessModel(first)                                             // already sent -> omitted
+                .addProcessModel(second)                                            // new -> included
+                .addGlobalVariables(java.util.Collections.singletonMap("gv1", "x")) // name already sent -> omitted
+                .addGlobalVariables(java.util.Collections.singletonMap("gv2", "v2")) // new -> included
+                .build();
+            com.faizsiegeln.njams.messageformat.v4.projectmessage.ProjectMessage sent =
+                capturing.awaitProjectMessage();
+            assertNotNull(sent);
+            assertEquals(1, sent.getProcesses().size());
+            assertTrue(sent.getGlobalVariables().containsKey("gv2"));
+            assertFalse(sent.getGlobalVariables().containsKey("gv1"));
+        } finally {
+            com.im.njams.sdk.communication.TestSender.setSenderMock(null);
+        }
+    }
+
+    @Test(expected = NjamsSdkRuntimeException.class)
+    public void additionalResourcesForeignProcessModelThrows() {
+        njams.start();
+        Njams other = new Njams(Path.of("OTHER"), "1.0", "X", TestReceiver.getSettings());
+        com.im.njams.sdk.model.ProcessModel foreign = other.model().create("P1");
+        njams.model().additionalResources().addProcessModel(foreign);
+    }
+
+    @Test
+    public void additionalResourcesIgnoresNullsAndSendsNothingWhenEmpty() {
+        njams.start();
+        // all-null / empty builder must neither throw nor fail
+        njams.model().additionalResources()
+            .addProcessModel(null)
+            .addGlobalVariables(null)
+            .addImage((com.im.njams.sdk.model.image.ImageSupplier) null)
+            .build();
     }
 
     // --- jobs parity ---

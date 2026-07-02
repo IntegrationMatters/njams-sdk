@@ -23,12 +23,16 @@
  */
 package com.im.njams.sdk;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 import com.faizsiegeln.njams.messageformat.v4.common.TreeElementType;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.ProjectMessage;
@@ -60,6 +64,12 @@ public class NjamsModel {
 
     // Images
     private final Collection<ImageSupplier> images = new HashSet<>();
+
+    // Identifiers of resources already announced to the server (start message or an additional
+    // message), so an additional-resources message never repeats data the server already knows.
+    private final Set<Path> announcedProcessPaths = new HashSet<>();
+    private final Set<String> announcedImageNames = new HashSet<>();
+    private final Set<String> announcedGlobalVariableNames = new HashSet<>();
 
     // tree representation for the client
     private final TaxonomyTree taxonomy;
@@ -142,8 +152,8 @@ public class NjamsModel {
      * Adds a process model to this instance. The model must be built for this instance and must be
      * added before {@code start()}: process models are announced to the nJAMS server in the project
      * message assembled at start, so a model added afterwards would silently never reach the server.
-     * To register a process once the client is already started, use {@link #create(Path)} and then
-     * {@link #announce(ProcessModel)}.
+     * To register a process once the client is already started, use {@link #create(Path)} and
+     * announce it with the {@link #additionalResources()} builder.
      *
      * @param processModel The model to be added. A {@link NjamsSdkRuntimeException} is thrown if the given model was
      *                     created for another instance than this.
@@ -402,22 +412,35 @@ public class NjamsModel {
         addDefaultImagesIfNeededAndAbsent();
         taxonomy.markStarters(path -> Optional.ofNullable(processModels.get(path))
             .map(ProcessModel::isStarter).orElse(false));
-        final ProjectMessage msg = assembler.buildFull(processModels.values(), images, taxonomy);
+        final ProjectMessage msg;
+        synchronized (projectMessageLock) {
+            msg = assembler.buildFull(processModels.values(), images, taxonomy);
+            markAllAnnounced();
+        }
         njams.getSender().send(msg, metadata.getClientSessionId());
     }
 
     /**
-     * Announce an additional process for an already started client.
-     * This will create a small ProjectMessage only containing the new process.
+     * Returns a builder for announcing additional project resources — process models, global
+     * variables, and images — to the nJAMS server after the client has started. See
+     * {@link AdditionalResources} for the announce-once semantics.
      *
-     * @param model the additional model to send
+     * @return a new additional-resources builder bound to this instance
      */
-    public void announce(final ProcessModel model) {
-        if (!lifecycle.isStarted()) {
-            throw new NjamsSdkRuntimeException("Njams is not started. Please use createProcess Method instead");
-        }
-        final ProjectMessage msg = assembler.buildAdditional(model, taxonomy);
-        njams.getSender().send(msg, metadata.getClientSessionId());
+    public AdditionalResources additionalResources() {
+        return additionalResources(njams);
+    }
+
+    /** Owner-aware variant, see {@link #create(Path, Njams)}. */
+    AdditionalResources additionalResources(final Njams owner) {
+        return new AdditionalResourcesBuilder(owner);
+    }
+
+    /** Marks every resource currently held by this instance as announced to the server. */
+    private void markAllAnnounced() {
+        announcedProcessPaths.addAll(processModels.keySet());
+        images.forEach(image -> announcedImageNames.add(image.getName()));
+        announcedGlobalVariableNames.addAll(globalVariables.getAll().keySet());
     }
 
     /**
@@ -441,5 +464,95 @@ public class NjamsModel {
      */
     void createTreeElements(Path path, TreeElementType targetDomainObjectType) {
         taxonomy.register(path, targetDomainObjectType);
+    }
+
+    /**
+     * Package-private implementation of {@link AdditionalResources}. Stages resources and, on
+     * {@link #build()}, transmits only those whose identifier (process path, image name, or
+     * global-variable name) has not been announced yet.
+     */
+    private final class AdditionalResourcesBuilder implements AdditionalResources {
+
+        private final Njams owner;
+        private final Map<Path, ProcessModel> stagedModels = new LinkedHashMap<>();
+        private final Map<String, String> stagedGlobalVariables = new LinkedHashMap<>();
+        private final Map<String, ImageSupplier> stagedImages = new LinkedHashMap<>();
+
+        private AdditionalResourcesBuilder(final Njams owner) {
+            this.owner = owner;
+        }
+
+        @Override
+        public AdditionalResources addProcessModel(final ProcessModel processModel) {
+            if (processModel == null) {
+                return this;
+            }
+            if (processModel.getNjams() != owner) {
+                throw new NjamsSdkRuntimeException("Process model has been created for a different nJAMS instance.");
+            }
+            if (!processModel.getPath().startsWith(metadata.getClientPath())) {
+                throw new NjamsSdkRuntimeException("Process model path does not match this nJAMS instance.");
+            }
+            stagedModels.put(processModel.getPath(), processModel);
+            return this;
+        }
+
+        @Override
+        public AdditionalResources addGlobalVariables(final Map<String, String> variables) {
+            if (variables != null) {
+                stagedGlobalVariables.putAll(variables);
+            }
+            return this;
+        }
+
+        @Override
+        public AdditionalResources addImage(final String key, final String resourcePath) {
+            return addImage(new ResourceImageSupplier(key, resourcePath));
+        }
+
+        @Override
+        public AdditionalResources addImage(final ImageSupplier imageSupplier) {
+            if (imageSupplier != null) {
+                stagedImages.put(imageSupplier.getName(), imageSupplier);
+            }
+            return this;
+        }
+
+        @Override
+        public void build() {
+            lifecycle.requireStarted();
+            synchronized (projectMessageLock) {
+                final List<ProcessModel> newModels = new ArrayList<>();
+                for (final ProcessModel model : stagedModels.values()) {
+                    if (announcedProcessPaths.add(model.getPath())) {
+                        createTreeElements(model.getPath(), TreeElementType.PROCESS);
+                        processModels.put(model.getPath(), model);
+                        newModels.add(model);
+                    }
+                }
+                final Map<String, String> newGlobalVariables = new LinkedHashMap<>();
+                stagedGlobalVariables.forEach((name, value) -> {
+                    if (announcedGlobalVariableNames.add(name)) {
+                        newGlobalVariables.put(name, value);
+                    }
+                });
+                final List<ImageSupplier> newImages = new ArrayList<>();
+                for (final ImageSupplier image : stagedImages.values()) {
+                    if (announcedImageNames.add(image.getName())) {
+                        newImages.add(image);
+                    }
+                }
+                if (newModels.isEmpty() && newGlobalVariables.isEmpty() && newImages.isEmpty()) {
+                    return;
+                }
+                if (!newGlobalVariables.isEmpty()) {
+                    addGlobalVariablesInternal(newGlobalVariables);
+                }
+                newImages.forEach(NjamsModel.this::addImageInternal);
+                final ProjectMessage msg =
+                    assembler.buildAdditional(newModels, newImages, newGlobalVariables, taxonomy);
+                njams.getSender().send(msg, metadata.getClientSessionId());
+            }
+        }
     }
 }
