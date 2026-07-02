@@ -201,6 +201,21 @@
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <!-- SDK-375: activemq-client (test scope) pulls in jakarta.jms-api 2.0.x, which defines the
+                         same javax.jms classes (e.g. Message.setJMSDeliveryTime) as the older javax.jms:jms-api
+                         1.1 spec jar used as the "provided" JMS API for main compilation. Both jars end up on the
+                         test runtime classpath; excluding the older one here ensures ActiveMQ's own client code
+                         resolves against the JMS 2.0 classes it was built for, while leaving main compilation
+                         (against the 1.1 API) untouched. -->
+                    <classpathDependencyExcludes>
+                        <classpathDependencyExclude>javax.jms:jms-api</classpathDependencyExclude>
+                    </classpathDependencyExcludes>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-jar-plugin</artifactId>
                 <configuration>
                     <forceCreation>true</forceCreation>
