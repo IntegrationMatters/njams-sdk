@@ -139,12 +139,18 @@ public class NjamsModel {
     }
 
     /**
-     * Adds a process model to this instance. The model must be build for this instance.
+     * Adds a process model to this instance. The model must be built for this instance and must be
+     * added before {@code start()}: process models are announced to the nJAMS server in the project
+     * message assembled at start, so a model added afterwards would silently never reach the server.
+     * To register a process once the client is already started, use {@link #create(Path)} and then
+     * {@link #announce(ProcessModel)}.
      *
      * @param processModel The model to be added. A {@link NjamsSdkRuntimeException} is thrown if the given model was
      *                     created for another instance than this.
+     * @throws NjamsSdkRuntimeException if the client has already been started
      */
     public void add(final ProcessModel processModel) {
+        lifecycle.requireNotStarted("NjamsModel.add");
         add(processModel, njams);
     }
 
