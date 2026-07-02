@@ -81,4 +81,18 @@ public class HttpSenderBaselineIT {
             sender.close();
         }
     }
+
+    @Test
+    public void closeReturnsPromptlyAndDeliversInFlightMessage() {
+        NjamsSender sender = new NjamsSender(settings(server));
+        sender.send(logMessage("final", ">a>b>"), "session-1");
+
+        long startMs = System.currentTimeMillis();
+        sender.close();
+        long elapsed = System.currentTimeMillis() - startMs;
+
+        assertTrue("close() should return promptly when connected, took " + elapsed + " ms", elapsed < 10_000);
+        assertTrue("the in-flight message should have been delivered",
+            Await.until(() -> server.receivedBodies().stream().anyMatch(b -> b.contains("final")), 5000));
+    }
 }
