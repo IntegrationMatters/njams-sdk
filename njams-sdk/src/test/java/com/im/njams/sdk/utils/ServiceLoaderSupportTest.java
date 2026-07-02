@@ -29,12 +29,16 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import java.util.Collection;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
 import com.im.njams.sdk.communication.jms.FailingJmsFactory;
+import com.im.njams.sdk.communication.jms.factory.ActiveMqSslJmsFactory;
+import com.im.njams.sdk.communication.jms.factory.AzureServiceBusJmsFactory;
 import com.im.njams.sdk.communication.jms.factory.JmsFactory;
 import com.im.njams.sdk.communication.jms.factory.JndiJmsFactory;
 
@@ -66,10 +70,17 @@ public class ServiceLoaderSupportTest {
     public void testGetAll() {
         Collection<JmsFactory> all = toTest.getAll();
         assertNotNull(all);
-        assertEquals(4, all.size());
         for (JmsFactory f : all) {
             assertNotNull(f);
         }
+        // Assert the production JmsFactory implementations are discovered. The discovered set also
+        // includes test-only factories (e.g. NoopJmsFactory and EmbeddedActiveMqJmsFactory registered
+        // under src/test), so verify the required implementations are present rather than an exact
+        // count, which would break whenever a test-only SPI factory is added.
+        Set<Class<?>> discovered = all.stream().map(Object::getClass).collect(Collectors.toSet());
+        assertTrue(discovered.contains(JndiJmsFactory.class));
+        assertTrue(discovered.contains(ActiveMqSslJmsFactory.class));
+        assertTrue(discovered.contains(AzureServiceBusJmsFactory.class));
     }
 
     @Test
