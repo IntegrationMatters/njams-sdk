@@ -110,6 +110,11 @@ public class JmsSenderBaselineIT {
             List<String> bodies = consumeEventQueue(1, 15000);
             assertEquals("message sent during the outage must be delivered after reconnect", 1, bodies.size());
             assertTrue(bodies.get(0).contains("during-outage"));
+
+            // 6) prove the sender actually rebuilt its connection: stopBroker() severed the live JMS
+            //    connection, so delivery above could only happen via a freshly (re)established connection.
+            assertTrue("a client connection must be (re)established with the broker after recovery",
+                Await.until(() -> broker.connectionCount() >= 1, 5000));
         } finally {
             sender.close();
         }

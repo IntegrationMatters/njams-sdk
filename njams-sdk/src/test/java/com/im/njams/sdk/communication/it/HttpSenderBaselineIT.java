@@ -64,19 +64,25 @@ public class HttpSenderBaselineIT {
     }
 
     @Test
-    public void deliveryResumesAfterTransientServerOutage() throws Exception {
+    public void deliveryResumesAfterTransientServerOutage() {
         NjamsSender sender = new NjamsSender(settings(server));
         try {
             sender.send(logMessage("before-outage", ">a>b>"), "session-1");
             assertTrue(Await.until(() -> server.postCount() >= 1, 5000));
 
-            server.stopServer();
+            // Transient outage: the endpoint rejects every request with 503 and counts attempts.
+            server.setUnavailable(true);
             sender.send(logMessage("during-outage", ">a>b>"), "session-1");
-            server.startServer();
 
-            assertTrue("message sent during the outage must arrive after the server returns",
-                Await.until(() -> server.postCount() >= 2, 15000));
-            assertTrue(server.receivedBodies().stream().anyMatch(b -> b.contains("during-outage")));
+            // Prove the SDK actually kept contacting the endpoint WHILE it was unavailable,
+            // i.e. the retry/reconnect path is genuinely exercised (not skipped by a fast restart).
+            assertTrue("sender must contact the endpoint while it is unavailable",
+                Await.until(() -> server.attemptsWhileUnavailable() >= 1, 10000));
+
+            // Endpoint recovers; the buffered message must now be delivered.
+            server.setUnavailable(false);
+            assertTrue("during-outage message must be delivered after the endpoint recovers",
+                Await.until(() -> server.receivedBodies().stream().anyMatch(b -> b.contains("during-outage")), 15000));
         } finally {
             sender.close();
         }

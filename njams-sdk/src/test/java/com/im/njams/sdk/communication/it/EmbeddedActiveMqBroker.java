@@ -41,6 +41,15 @@ public class EmbeddedActiveMqBroker extends ExternalResource {
         startBroker();
     }
 
+    /** Number of client connections currently registered with the embedded broker (0 if the broker is down). */
+    public int connectionCount() {
+        try {
+            return broker == null ? 0 : broker.getBroker().getClients().length;
+        } catch (Exception e) {
+            return 0;
+        }
+    }
+
     @Override
     protected void before() throws Throwable {
         startBroker();

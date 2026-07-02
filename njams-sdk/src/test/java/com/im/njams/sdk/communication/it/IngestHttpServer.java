@@ -8,6 +8,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.junit.rules.ExternalResource;
 
@@ -25,6 +26,8 @@ public class IngestHttpServer extends ExternalResource {
     private int port;
     private final List<String> bodies = new CopyOnWriteArrayList<>();
     private final List<Map<String, String>> headers = new CopyOnWriteArrayList<>();
+    private volatile boolean unavailable = false;
+    private final AtomicInteger attemptsWhileUnavailable = new AtomicInteger();
 
     public String baseUrl() {
         return "http://localhost:" + port + "/";
@@ -46,6 +49,16 @@ public class IngestHttpServer extends ExternalResource {
         return bodies.size();
     }
 
+    /** While {@code true}, every request (HEAD/POST/version) fails with HTTP 503 instead of being handled. */
+    public void setUnavailable(boolean value) {
+        this.unavailable = value;
+    }
+
+    /** Number of requests that were rejected with 503 while {@link #setUnavailable(boolean)} was active. */
+    public int attemptsWhileUnavailable() {
+        return attemptsWhileUnavailable.get();
+    }
+
     public void startServer() throws IOException {
         // reuse the previously assigned port on restart; 0 lets the OS pick on first start
         server = HttpServer.create(new InetSocketAddress(port), 0);
@@ -64,6 +77,12 @@ public class IngestHttpServer extends ExternalResource {
     }
 
     private void handleIngest(HttpExchange exchange) throws IOException {
+        if (unavailable) {
+            attemptsWhileUnavailable.incrementAndGet();
+            exchange.sendResponseHeaders(503, -1);
+            exchange.close();
+            return;
+        }
         final String method = exchange.getRequestMethod();
         if ("HEAD".equalsIgnoreCase(method)) {
             exchange.sendResponseHeaders(200, -1);
@@ -85,6 +104,12 @@ public class IngestHttpServer extends ExternalResource {
     }
 
     private void handleVersion(HttpExchange exchange) throws IOException {
+        if (unavailable) {
+            attemptsWhileUnavailable.incrementAndGet();
+            exchange.sendResponseHeaders(503, -1);
+            exchange.close();
+            return;
+        }
         byte[] body = "{}".getBytes(StandardCharsets.UTF_8);
         exchange.sendResponseHeaders(200, body.length);
         try (OutputStream os = exchange.getResponseBody()) {
