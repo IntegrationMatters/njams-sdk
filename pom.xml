@@ -289,6 +289,11 @@
                 <artifactId>activemq-client</artifactId>
                 <version>${activemq-version}</version>
             </dependency>
+            <dependency>
+                <groupId>org.apache.activemq</groupId>
+                <artifactId>activemq-broker</artifactId>
+                <version>${activemq-version}</version>
+            </dependency>
             <!-- Pin transitive snappy-java (via kafka-clients) to a vulnerability-fixed version (SDK-418). -->
             <dependency>
                 <groupId>org.xerial.snappy</groupId>
