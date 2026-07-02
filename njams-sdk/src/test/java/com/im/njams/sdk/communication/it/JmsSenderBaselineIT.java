@@ -114,4 +114,21 @@ public class JmsSenderBaselineIT {
             sender.close();
         }
     }
+
+    @Test
+    public void closeReturnsPromptlyAndDeliversInFlightMessage() throws Exception {
+        NjamsSender sender = new NjamsSender(settings());
+        sender.send(logMessage("final", ">a>b>"), "session-1");
+
+        long start = System.currentTimeMillis();
+        sender.close();
+        long elapsed = System.currentTimeMillis() - start;
+
+        // close() drains with a 10s await; a healthy connection should terminate well within it
+        assertTrue("close() should return promptly when connected, took " + elapsed + " ms", elapsed < 10_000);
+
+        List<String> bodies = consumeEventQueue(1, 5000);
+        assertEquals("the in-flight message should have been delivered before shutdown completed", 1, bodies.size());
+        assertTrue(bodies.get(0).contains("final"));
+    }
 }
