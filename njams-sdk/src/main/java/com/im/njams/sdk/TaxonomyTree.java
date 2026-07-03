@@ -97,13 +97,15 @@ final class TaxonomyTree {
 
     /**
      * Builds the tree elements for a single additional process into the given target list and sets
-     * the starter flag on its process elements (used for the additional-process project message).
+     * the starter flag on the process element at the given path (used for the additional project
+     * message, which may carry several processes with different starter flags).
      */
     void buildInto(List<TreeElement> target, Path processPath, TreeElementType targetDomainObjectType,
         boolean isStarter) {
         addInto(target, processPath, targetDomainObjectType);
-        target.stream().filter(te -> te.getTreeElementType() == TreeElementType.PROCESS)
-            .forEach(te -> te.setStarter(isStarter));
+        final String processPathString = processPath.toString();
+        target.stream().filter(te -> te.getTreeElementType() == TreeElementType.PROCESS
+            && te.getPath().equals(processPathString)).forEach(te -> te.setStarter(isStarter));
     }
 
     /**

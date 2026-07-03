@@ -94,7 +94,7 @@ public class AdditionalProcessClient {
         ActivityModel endModel2 = logModel2.transitionTo("end", "End", "endType");
 
         // Send this additional process to the server.
-        njams.model().announce(process2);
+        njams.model().additionalResources().addProcessModel(process2).build();
 
         Thread.sleep(1000);
 

@@ -81,6 +81,26 @@ public class NjamsModelTest extends AbstractTest {
     }
 
     @Test
+    public void addAfterStartThrows() {
+        // 'process' is a valid model for this instance, so only the phase guard can cause a throw here:
+        // process models must be added before start (post-start additions go through announce()).
+        try {
+            njams.model().add(process);
+            fail("expected NjamsSdkRuntimeException; process models must be added before start");
+        } catch (NjamsSdkRuntimeException expected) {
+            // expected
+        }
+    }
+
+    @Test
+    public void createRemainsAllowedAfterStart() {
+        // create() is intentionally allowed after start: it is the precondition for announce().
+        ProcessModel created = njams.model().create("CREATED_AFTER_START");
+        assertTrue(njams.model().has("CREATED_AFTER_START"));
+        assertSame(created, njams.model().get("CREATED_AFTER_START"));
+    }
+
+    @Test
     public void getGlobalVariablesIsNotNull() {
         assertNotNull(njams.model().getGlobalVariables());
     }
