@@ -26,8 +26,6 @@ package com.im.njams.sdk.communication;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.IdentityHashMap;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -56,7 +54,6 @@ public abstract class AbstractSender {
     private ConnectionStatus connectionStatus;
     protected DiscardPolicy discardPolicy = DiscardPolicy.DEFAULT;
     protected ClientSettings settings;
-    protected boolean hasConnectionFailure = false;
     private Thread reconnector = null;
     private Collection<SenderExceptionListener> exceptionListeners = Collections.newSetFromMap(new IdentityHashMap<>());
 
@@ -71,15 +68,6 @@ public abstract class AbstractSender {
     void setConnectionCoordinator(ConnectionCoordinator coordinator) {
         this.coordinator = coordinator;
     }
-
-    private static final AtomicBoolean hasConnected = new AtomicBoolean(false);
-
-    private static final AtomicInteger connecting = new AtomicInteger(0);
-
-    /**
-     * Should be set to true during shutdown
-     */
-    private final AtomicBoolean shouldShutdown = new AtomicBoolean(false);
 
     /**
      * returns a new AbstractSender
@@ -170,7 +158,7 @@ public abstract class AbstractSender {
      * @param e the exception that initiated the reconnect
      */
     public synchronized void reconnect(Exception e) {
-        if (isConnecting() || isConnected() || shouldShutdown.get()) {
+        if (isConnecting() || isConnected() || coordinator.shouldShutdown()) {
             return;
         }
         if (reconnector != null && reconnector.isAlive()) {
@@ -192,25 +180,18 @@ public abstract class AbstractSender {
      * @param ex the exception that initiated the reconnect
      */
     protected void doReconnect(Exception ex) {
-        synchronized (hasConnected) {
-            hasConnected.set(false);
-            if (LOG.isInfoEnabled() && ex != null) {
-                LOG.info("Initialized reconnect, because of: {}", getExceptionWithCauses(ex));
-            }
-            LOG.debug("{} senders are reconnecting now", connecting.incrementAndGet());
+        int reconnecting = coordinator.beginReconnect();
+        if (LOG.isInfoEnabled() && ex != null) {
+            LOG.info("Initialized reconnect, because of: {}", getExceptionWithCauses(ex));
         }
-        hasConnectionFailure = true;
-        while (!isConnected() && !shouldShutdown.get()) {
+        LOG.debug("{} senders are reconnecting now", reconnecting);
+        while (!isConnected() && !coordinator.shouldShutdown()) {
             try {
                 connect();
-                synchronized (hasConnected) {
-                    if (!hasConnected.get()) {
-                        LOG.info("Reconnected sender {}", getName());
-                        hasConnected.set(true);
-                    }
-                    LOG.debug("{} senders still need to reconnect.", connecting.decrementAndGet());
+                if (coordinator.markConnected()) {
+                    LOG.info("Reconnected sender {}", getName());
                 }
-                hasConnectionFailure = false;
+                LOG.debug("{} senders still need to reconnect.", coordinator.reconnectingCount());
             } catch (Exception e) {
                 try {
                     Thread.sleep(1000);
@@ -297,7 +278,7 @@ public abstract class AbstractSender {
                 onException(new IllegalStateException("Not connected"));
             }
 
-        } while (!isSent && !Thread.currentThread().isInterrupted() && !shouldShutdown.get());
+        } while (!isSent && !Thread.currentThread().isInterrupted() && !coordinator.shouldShutdown());
     }
 
     /**
@@ -372,7 +353,7 @@ public abstract class AbstractSender {
      * @param shutdown if the Sender is in shutdown state
      */
     public void setShouldShutdown(boolean shutdown) {
-        shouldShutdown.set(shutdown);
+        coordinator.setShouldShutdown(shutdown);
     }
 
     /**
@@ -380,7 +361,7 @@ public abstract class AbstractSender {
      * @return <code>true</code> only in case of connection failure.
      */
     public boolean hasConnectionFailure() {
-        return hasConnectionFailure;
+        return coordinator.isConnectionFailure();
     }
 
 }
