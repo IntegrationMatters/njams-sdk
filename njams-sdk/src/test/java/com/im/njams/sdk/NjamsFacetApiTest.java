@@ -529,6 +529,40 @@ public class NjamsFacetApiTest {
             .build();
     }
 
+    @Test
+    public void resendProjectMessageIncludesOriginalAndAdditionalResources() throws InterruptedException {
+        // Original resources, transmitted with the start-time project message.
+        njams.model().create("A");
+        njams.model().addGlobalVariables(java.util.Collections.singletonMap("orig", "1"));
+        njams.model().addImage("orig.image", "images/root.png");
+        njams.start();
+        // Additional resources announced afterwards via the builder.
+        com.im.njams.sdk.model.ProcessModel b = njams.model().create("B");
+        njams.model().additionalResources()
+            .addProcessModel(b)
+            .addGlobalVariables(java.util.Collections.singletonMap("extra", "2"))
+            .addImage("extra.image", "images/root.png")
+            .build();
+        // A SEND_PROJECTMESSAGE command triggers model.send(); the resulting full message must
+        // carry everything - the original resources and all additional ones. The full message is
+        // the only one with two processes (start had A, the additional message had B).
+        CapturingSender capturing = new CapturingSender(msg -> msg.getProcesses().size() >= 2);
+        com.im.njams.sdk.communication.TestSender.setSenderMock(capturing);
+        try {
+            njams.model().send(); // exactly what the SEND_PROJECTMESSAGE command invokes
+            com.faizsiegeln.njams.messageformat.v4.projectmessage.ProjectMessage sent =
+                capturing.awaitProjectMessage();
+            assertNotNull(sent);
+            assertEquals(2, sent.getProcesses().size());
+            assertTrue(sent.getGlobalVariables().containsKey("orig"));
+            assertTrue(sent.getGlobalVariables().containsKey("extra"));
+            assertTrue(sent.getImages().containsKey("orig.image"));
+            assertTrue(sent.getImages().containsKey("extra.image"));
+        } finally {
+            com.im.njams.sdk.communication.TestSender.setSenderMock(null);
+        }
+    }
+
     // --- jobs parity ---
 
     @Test
