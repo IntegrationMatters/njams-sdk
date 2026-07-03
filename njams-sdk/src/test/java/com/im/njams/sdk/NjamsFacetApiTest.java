@@ -563,6 +563,42 @@ public class NjamsFacetApiTest {
         }
     }
 
+    @Test
+    public void additionalResourcesMessageUsesAdditionalDataEvent() throws InterruptedException {
+        njams.start();
+        com.im.njams.sdk.model.ProcessModel p = njams.model().create("EVT");
+        // The start message carries no process (EVT is created after start), so only the additional
+        // message matches this predicate - no race with the async start message.
+        CapturingSender capturing = new CapturingSender(msg -> !msg.getProcesses().isEmpty());
+        com.im.njams.sdk.communication.TestSender.setSenderMock(capturing);
+        try {
+            njams.model().additionalResources().addProcessModel(p).build();
+            com.faizsiegeln.njams.messageformat.v4.projectmessage.ProjectMessage sent =
+                capturing.awaitProjectMessage();
+            assertNotNull(sent);
+            assertEquals("additionalData", sent.getEvent());
+        } finally {
+            com.im.njams.sdk.communication.TestSender.setSenderMock(null);
+        }
+    }
+
+    @Test
+    public void fullProjectMessageKeepsDeploymentEvent() throws InterruptedException {
+        njams.model().create("FULL");
+        njams.start();
+        CapturingSender capturing = new CapturingSender(msg -> !msg.getProcesses().isEmpty());
+        com.im.njams.sdk.communication.TestSender.setSenderMock(capturing);
+        try {
+            njams.model().send();
+            com.faizsiegeln.njams.messageformat.v4.projectmessage.ProjectMessage sent =
+                capturing.awaitProjectMessage();
+            assertNotNull(sent);
+            assertEquals("deployment", sent.getEvent());
+        } finally {
+            com.im.njams.sdk.communication.TestSender.setSenderMock(null);
+        }
+    }
+
     // --- jobs parity ---
 
     @Test

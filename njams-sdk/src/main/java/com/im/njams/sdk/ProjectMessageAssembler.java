@@ -46,6 +46,11 @@ final class ProjectMessageAssembler {
 
     private static final Logger LOG = LoggerFactory.getLogger(ProjectMessageAssembler.class);
 
+    // Event type marking a project message that carries only additional resources, so the server
+    // processes it as an incremental merge instead of a full deployment (see SER-6248). The full
+    // and re-sent messages keep the ProjectMessage default event "deployment".
+    private static final String ADDITIONAL_DATA_EVENT = "additionalData";
+
     private final NjamsMetadata metadata;
     private final NjamsFeatures features;
     private final NjamsConfiguration configuration;
@@ -89,6 +94,7 @@ final class ProjectMessageAssembler {
     ProjectMessage buildAdditional(Collection<ProcessModel> models, Collection<ImageSupplier> images,
         Map<String, String> globalVariables, TaxonomyTree taxonomy) {
         final ProjectMessage msg = prepare();
+        msg.setEvent(ADDITIONAL_DATA_EVENT);
         taxonomy.buildInto(msg.getTreeElements(), metadata.getClientPath(), TreeElementType.CLIENT, false);
         for (final ProcessModel model : models) {
             taxonomy.buildInto(msg.getTreeElements(), model.getPath(), TreeElementType.PROCESS, model.isStarter());
