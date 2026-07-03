@@ -9,28 +9,25 @@ import org.junit.Test;
 public class ConnectionCoordinatorTest {
 
     @Test
-    public void freshCoordinatorIsNotFailedAndNotShuttingDown() {
+    public void freshCoordinatorIsNotShuttingDown() {
         ConnectionCoordinator c = new ConnectionCoordinator();
-        assertFalse(c.isConnectionFailure());
         assertFalse(c.shouldShutdown());
         assertEquals(0, c.reconnectingCount());
     }
 
     @Test
-    public void beginReconnectMarksFailureAndCounts() {
+    public void beginReconnectCounts() {
         ConnectionCoordinator c = new ConnectionCoordinator();
         assertEquals(1, c.beginReconnect());
-        assertTrue(c.isConnectionFailure());
         assertEquals(2, c.beginReconnect());
         assertEquals(2, c.reconnectingCount());
     }
 
     @Test
-    public void markConnectedSignalsTransitionOnceAndClearsFailure() {
+    public void markConnectedSignalsTransitionOnce() {
         ConnectionCoordinator c = new ConnectionCoordinator();
         c.beginReconnect();
         assertTrue("first markConnected is the disconnected->connected transition", c.markConnected());
-        assertFalse(c.isConnectionFailure());
         assertFalse("second markConnected while already connected is not a transition", c.markConnected());
     }
 

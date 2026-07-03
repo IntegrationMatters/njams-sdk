@@ -56,6 +56,7 @@ public abstract class AbstractSender {
     protected ClientSettings settings;
     private Thread reconnector = null;
     private Collection<SenderExceptionListener> exceptionListeners = Collections.newSetFromMap(new IdentityHashMap<>());
+    protected boolean hasConnectionFailure = false;
 
     private ConnectionCoordinator coordinator = new ConnectionCoordinator();
 
@@ -185,6 +186,7 @@ public abstract class AbstractSender {
             LOG.info("Initialized reconnect, because of: {}", getExceptionWithCauses(ex));
         }
         LOG.debug("{} senders are reconnecting now", reconnecting);
+        hasConnectionFailure = true;
         while (!isConnected() && !coordinator.shouldShutdown()) {
             try {
                 connect();
@@ -192,6 +194,7 @@ public abstract class AbstractSender {
                     LOG.info("Reconnected sender {}", getName());
                 }
                 LOG.debug("{} senders still need to reconnect.", coordinator.reconnectingCount());
+                hasConnectionFailure = false;
             } catch (Exception e) {
                 try {
                     Thread.sleep(1000);
@@ -348,7 +351,9 @@ public abstract class AbstractSender {
     }
 
     /**
-     * Set this value to true during shutdown to stop the reconnecting thread
+     * Set this value to true during shutdown to stop the reconnecting thread. This flag is shared with all other
+     * senders in this sender's group (i.e. handed out by the same {@link SenderPool}), so setting it on one
+     * sender stops the reconnect loop for all of them.
      *
      * @param shutdown if the Sender is in shutdown state
      */
@@ -361,7 +366,7 @@ public abstract class AbstractSender {
      * @return <code>true</code> only in case of connection failure.
      */
     public boolean hasConnectionFailure() {
-        return coordinator.isConnectionFailure();
+        return hasConnectionFailure;
     }
 
 }

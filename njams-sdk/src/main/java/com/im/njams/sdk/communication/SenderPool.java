@@ -86,7 +86,7 @@ public class SenderPool {
     }
 
     public boolean isConnectionFailure() {
-        return coordinator.isConnectionFailure();
+        return streamAll().anyMatch(AbstractSender::hasConnectionFailure);
     }
 
     protected AbstractSender create() {
