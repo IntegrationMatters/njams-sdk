@@ -510,6 +510,66 @@ public class NjamsFacetApiTest {
         }
     }
 
+    @Test
+    public void replacementResendsAlreadyAnnouncedProcessModel() throws InterruptedException {
+        com.im.njams.sdk.model.ProcessModel a = njams.model().create("A");
+        njams.start(); // start (deployment) message announces A
+        // Default mode would omit A; replacement mode must re-send it. Only the additional message
+        // carries the additionalData event, so it never races with the async start message.
+        CapturingSender capturing = new CapturingSender(msg -> "additionalData".equals(msg.getEvent()));
+        com.im.njams.sdk.communication.TestSender.setSenderMock(capturing);
+        try {
+            njams.model().additionalResources().addProcessModel(a).asReplacement().build();
+            com.faizsiegeln.njams.messageformat.v4.projectmessage.ProjectMessage sent =
+                capturing.awaitProjectMessage();
+            assertNotNull(sent);
+            assertEquals(1, sent.getProcesses().size());
+        } finally {
+            com.im.njams.sdk.communication.TestSender.setSenderMock(null);
+        }
+    }
+
+    @Test
+    public void replacementResendsGlobalVariableWithNewValueAndUpdatesStoredCopy() throws InterruptedException {
+        njams.model().addGlobalVariables(java.util.Collections.singletonMap("gv", "old"));
+        njams.start(); // announces gv=old
+        CapturingSender capturing = new CapturingSender(
+            msg -> "additionalData".equals(msg.getEvent()) && msg.getGlobalVariables().containsKey("gv"));
+        com.im.njams.sdk.communication.TestSender.setSenderMock(capturing);
+        try {
+            njams.model().additionalResources()
+                .addGlobalVariables(java.util.Collections.singletonMap("gv", "new"))
+                .asReplacement()
+                .build();
+            com.faizsiegeln.njams.messageformat.v4.projectmessage.ProjectMessage sent =
+                capturing.awaitProjectMessage();
+            assertNotNull(sent);
+            assertEquals("new", sent.getGlobalVariables().get("gv"));
+            // stored copy updated -> subsequent messages use the new value
+            assertEquals("new", njams.model().getGlobalVariables().get("gv"));
+        } finally {
+            com.im.njams.sdk.communication.TestSender.setSenderMock(null);
+        }
+    }
+
+    @Test
+    public void replacementResendsAlreadyAnnouncedImage() throws InterruptedException {
+        njams.model().addImage("img", "images/root.png");
+        njams.start(); // announces img
+        CapturingSender capturing = new CapturingSender(
+            msg -> "additionalData".equals(msg.getEvent()) && msg.getImages().containsKey("img"));
+        com.im.njams.sdk.communication.TestSender.setSenderMock(capturing);
+        try {
+            njams.model().additionalResources().addImage("img", "images/root.png").asReplacement().build();
+            com.faizsiegeln.njams.messageformat.v4.projectmessage.ProjectMessage sent =
+                capturing.awaitProjectMessage();
+            assertNotNull(sent);
+            assertTrue(sent.getImages().containsKey("img"));
+        } finally {
+            com.im.njams.sdk.communication.TestSender.setSenderMock(null);
+        }
+    }
+
     @Test(expected = NjamsSdkRuntimeException.class)
     public void additionalResourcesForeignProcessModelThrows() {
         njams.start();

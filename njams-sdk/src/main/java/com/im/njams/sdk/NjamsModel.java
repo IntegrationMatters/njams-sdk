@@ -287,6 +287,18 @@ public class NjamsModel {
     }
 
     /**
+     * Stores the given image, replacing any previously stored image with the same name. Needed for
+     * the replacement mode of {@link AdditionalResources}: {@code images} is a name-keyed set, so a
+     * plain add would keep the existing same-name supplier instead of the new one.
+     */
+    void replaceImageInternal(final ImageSupplier imageSupplier) {
+        synchronized (projectMessageLock) {
+            images.remove(imageSupplier);
+            images.add(imageSupplier);
+        }
+    }
+
+    /**
      * Set the type for a TreeElment given by a path. Tree-element types are announced to the
      * nJAMS server in the project message at start and must be set before {@code start()}.
      *
@@ -423,7 +435,7 @@ public class NjamsModel {
     /**
      * Returns a builder for announcing additional project resources — process models, global
      * variables, and images — to the nJAMS server after the client has started. See
-     * {@link AdditionalResources} for the announce-once semantics.
+     * {@link AdditionalResources} for the announce-once and replacement semantics.
      *
      * @return a new additional-resources builder bound to this instance
      */
@@ -468,8 +480,9 @@ public class NjamsModel {
 
     /**
      * Package-private implementation of {@link AdditionalResources}. Stages resources and, on
-     * {@link #build()}, transmits only those whose identifier (process path, image name, or
-     * global-variable name) has not been announced yet.
+     * {@link #build()}, transmits those whose identifier (process path, image name, or
+     * global-variable name) has not been announced yet — or, in replacement mode, every staged
+     * resource, updating the stored copies.
      */
     private final class AdditionalResourcesBuilder implements AdditionalResources {
 
@@ -477,6 +490,7 @@ public class NjamsModel {
         private final Map<Path, ProcessModel> stagedModels = new LinkedHashMap<>();
         private final Map<String, String> stagedGlobalVariables = new LinkedHashMap<>();
         private final Map<String, ImageSupplier> stagedImages = new LinkedHashMap<>();
+        private boolean replacement = false;
 
         private AdditionalResourcesBuilder(final Njams owner) {
             this.owner = owner;
@@ -519,38 +533,54 @@ public class NjamsModel {
         }
 
         @Override
+        public AdditionalResources asReplacement() {
+            replacement = true;
+            return this;
+        }
+
+        @Override
         public void build() {
             lifecycle.requireStarted();
             synchronized (projectMessageLock) {
-                final List<ProcessModel> newModels = new ArrayList<>();
+                // In replacement mode every staged resource is sent and its stored copy updated;
+                // otherwise only resources whose identifier was not announced before are sent. The
+                // announced-* sets are still updated in both modes so the identifier stays recorded.
+                final List<ProcessModel> modelsToSend = new ArrayList<>();
                 for (final ProcessModel model : stagedModels.values()) {
-                    if (announcedProcessPaths.add(model.getPath())) {
-                        createTreeElements(model.getPath(), TreeElementType.PROCESS);
+                    final boolean firstAnnouncement = announcedProcessPaths.add(model.getPath());
+                    if (firstAnnouncement || replacement) {
+                        if (firstAnnouncement) {
+                            createTreeElements(model.getPath(), TreeElementType.PROCESS);
+                        }
                         processModels.put(model.getPath(), model);
-                        newModels.add(model);
+                        modelsToSend.add(model);
                     }
                 }
-                final Map<String, String> newGlobalVariables = new LinkedHashMap<>();
+                final Map<String, String> variablesToSend = new LinkedHashMap<>();
                 stagedGlobalVariables.forEach((name, value) -> {
-                    if (announcedGlobalVariableNames.add(name)) {
-                        newGlobalVariables.put(name, value);
+                    if (announcedGlobalVariableNames.add(name) || replacement) {
+                        variablesToSend.put(name, value);
                     }
                 });
-                final List<ImageSupplier> newImages = new ArrayList<>();
+                final List<ImageSupplier> imagesToSend = new ArrayList<>();
                 for (final ImageSupplier image : stagedImages.values()) {
-                    if (announcedImageNames.add(image.getName())) {
-                        newImages.add(image);
+                    if (announcedImageNames.add(image.getName()) || replacement) {
+                        imagesToSend.add(image);
                     }
                 }
-                if (newModels.isEmpty() && newGlobalVariables.isEmpty() && newImages.isEmpty()) {
+                if (modelsToSend.isEmpty() && variablesToSend.isEmpty() && imagesToSend.isEmpty()) {
                     return;
                 }
-                if (!newGlobalVariables.isEmpty()) {
-                    addGlobalVariablesInternal(newGlobalVariables);
+                if (!variablesToSend.isEmpty()) {
+                    addGlobalVariablesInternal(variablesToSend);
                 }
-                newImages.forEach(NjamsModel.this::addImageInternal);
+                if (replacement) {
+                    imagesToSend.forEach(NjamsModel.this::replaceImageInternal);
+                } else {
+                    imagesToSend.forEach(NjamsModel.this::addImageInternal);
+                }
                 final ProjectMessage msg =
-                    assembler.buildAdditional(newModels, newImages, newGlobalVariables, taxonomy);
+                    assembler.buildAdditional(modelsToSend, imagesToSend, variablesToSend, taxonomy);
                 njams.getSender().send(msg, metadata.getClientSessionId());
             }
         }
