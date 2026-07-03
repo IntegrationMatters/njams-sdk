@@ -43,7 +43,7 @@ public class SenderPoolTest {
         CommunicationFactory mockedCF = mock(CommunicationFactory.class);
         AbstractSender mockedAC = mock(AbstractSender.class);
         AbstractSender mockedAC2 = mock(AbstractSender.class);
-        SenderPool op = new SenderPool(mockedCF) {
+        SenderPool op = new SenderPool(mockedCF, new ConnectionCoordinator()) {
             public boolean first = true;
 
             @Override
@@ -78,7 +78,7 @@ public class SenderPoolTest {
         AbstractSender first = mock(AbstractSender.class);
         AbstractSender second = mock(AbstractSender.class);
         AtomicInteger created = new AtomicInteger();
-        SenderPool op = new SenderPool(mockedCF) {
+        SenderPool op = new SenderPool(mockedCF, new ConnectionCoordinator()) {
             @Override
             protected AbstractSender create() {
                 return created.getAndIncrement() == 0 ? first : second;
@@ -98,7 +98,7 @@ public class SenderPoolTest {
     public void getReturnsNullAfterShutdownDeclared() {
         CommunicationFactory mockedCF = mock(CommunicationFactory.class);
         when(mockedCF.getSender()).thenReturn(mock(AbstractSender.class));
-        SenderPool op = new SenderPool(mockedCF);
+        SenderPool op = new SenderPool(mockedCF, new ConnectionCoordinator());
         assertNotNull(op.get());
         op.declareShutdown();
         //Once shutdown is declared, no further senders are handed out

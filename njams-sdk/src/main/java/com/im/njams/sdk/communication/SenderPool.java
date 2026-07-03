@@ -55,14 +55,16 @@ public class SenderPool {
     private static final Logger LOG = LoggerFactory.getLogger(SenderPool.class);
 
     private final CommunicationFactory factory;
+    private final ConnectionCoordinator coordinator;
     private final Set<AbstractSender> locked = Collections.newSetFromMap(new ConcurrentHashMap<>());
     private final Set<AbstractSender> unlocked = Collections.newSetFromMap(new ConcurrentHashMap<>());
     private final Collection<SenderExceptionListener> exceptionListeners =
             Collections.newSetFromMap(new IdentityHashMap<>());
     private boolean shutdown = false;
 
-    public SenderPool(CommunicationFactory factory) {
+    public SenderPool(CommunicationFactory factory, ConnectionCoordinator coordinator) {
         this.factory = factory;
+        this.coordinator = coordinator;
     }
 
     /**
@@ -83,6 +85,7 @@ public class SenderPool {
             return null;
         }
         final AbstractSender sender = factory.getSender();
+        sender.setConnectionCoordinator(coordinator);
         if (!exceptionListeners.isEmpty()) {
             exceptionListeners.forEach(sender::addExceptionListener);
         }
