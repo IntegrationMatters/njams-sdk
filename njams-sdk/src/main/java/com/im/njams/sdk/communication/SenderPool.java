@@ -62,6 +62,15 @@ public class SenderPool {
             Collections.newSetFromMap(new IdentityHashMap<>());
     private boolean shutdown = false;
 
+    /**
+     * Creates a pool with its own dedicated {@link ConnectionCoordinator}.
+     *
+     * @param factory the factory used to create new senders
+     */
+    public SenderPool(CommunicationFactory factory) {
+        this(factory, new ConnectionCoordinator());
+    }
+
     public SenderPool(CommunicationFactory factory, ConnectionCoordinator coordinator) {
         this.factory = factory;
         this.coordinator = coordinator;

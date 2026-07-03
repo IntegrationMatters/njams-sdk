@@ -60,11 +60,11 @@ public abstract class AbstractSender {
     private Thread reconnector = null;
     private Collection<SenderExceptionListener> exceptionListeners = Collections.newSetFromMap(new IdentityHashMap<>());
 
-    protected ConnectionCoordinator coordinator = new ConnectionCoordinator();
+    private ConnectionCoordinator coordinator = new ConnectionCoordinator();
 
     /**
      * Injects the shared connection coordinator for this sender's group. Called by the {@link SenderPool} right
-     * after creation. Defaults to a private coordinator so a stand-alone sender still works.
+     * after creation. Defaults to a dedicated coordinator so a stand-alone sender still works.
      *
      * @param coordinator the group coordinator; must not be {@code null}.
      */
