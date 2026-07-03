@@ -301,6 +301,8 @@ git commit -m "SDK-375 Inject a per-group ConnectionCoordinator into pooled send
 - Consumes: `AbstractSender.coordinator` (Task 2), `ConnectionCoordinator` API (Task 1).
 - Produces: `AbstractSender` no longer declares `static hasConnected`, `static connecting`, `hasConnectionFailure`, or `shouldShutdown`; `hasConnectionFailure()` and `setShouldShutdown(boolean)` delegate to the coordinator. `SenderPool.isConnectionFailure()` reads the coordinator.
 
+> **SUPERSEDED (Steps 1–3 below):** the original `SenderInstanceIsolationIT` + `DownBrokerJmsFactory` approach does **not** yield a valid RED→GREEN test — the connection-*failure* flag is already per-instance (per pool), so it never leaked across groups even on the static code; the truly JVM-global state (`hasConnected`/`connecting`) only affects debug logs and isn't observable via public API. Replace Steps 1–3 with a deterministic **structural guard test** `AbstractSenderStaticStateTest` (package `com.im.njams.sdk.communication`) that asserts `AbstractSender` declares no `static` field named `hasConnected` or `connecting` — RED before the refactor (the statics exist), GREEN after they move to the coordinator. No broker/SPI/accessor needed. Steps 4–8 (the refactor + verification) are unchanged; the commit (Step 9) covers `AbstractSender.java`, `SenderPool.java`, and the new guard test only.
+
 - [ ] **Step 1: Write the failing instance-isolation test**
 
 Create `SenderInstanceIsolationIT.java` — two independent (non-shared) sender groups must not share reconnect state. It uses the JMS baseline harness; one group points at a *stopped* broker (so it enters reconnect / connection-failure) while a second group points at a *running* broker (so it must report healthy):
