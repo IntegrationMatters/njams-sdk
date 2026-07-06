@@ -36,6 +36,7 @@ import org.slf4j.LoggerFactory;
 import com.faizsiegeln.njams.messageformat.v4.common.CommonMessage;
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.NjamsSettings;
+import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.factories.ThreadFactoryBuilder;
 import com.im.njams.sdk.settings.ClientSettings;
 
@@ -102,6 +103,9 @@ public class NjamsSender {
     protected final String name;
 
     private MessageDebugDumper debugDumper = new MessageDebugDumper();
+
+    /** The single sender pre-warmed at startup; held until start() awaits it, then returned to the pool. */
+    private volatile AbstractSender startupSender;
 
     public NjamsSender() {
         settings = null;
@@ -205,6 +209,72 @@ public class NjamsSender {
                 }
             }
         });
+    }
+
+    /**
+     * Pre-warms one sender connection in the background so it overlaps application setup. Idempotent.
+     */
+    public void beginConnect() {
+        if (startupSender != null) {
+            return;
+        }
+        final AbstractSender s = senderPool.get();
+        if (s != null) {
+            startupSender = s;
+            s.beginConnect();
+        }
+    }
+
+    /**
+     * Awaits the pre-warmed startup connection up to {@code timeoutMs}, applying the configured
+     * {@link NjamsSettings#PROPERTY_COMMUNICATION_STARTUP_FAILBEHAVIOR}.
+     *
+     * @param timeoutMs maximum time to wait for the initial connect.
+     * @return {@code true} if the SDK may proceed; {@code false} to fail startup (fail-fast policy).
+     */
+    public boolean startWithTimeout(long timeoutMs) {
+        return startWithTimeout(timeoutMs, StartupFailBehavior.fromSettings(settings).reconnectOnStartupFailure());
+    }
+
+    /**
+     * Awaits the pre-warmed startup connection up to {@code timeoutMs}.
+     *
+     * @param timeoutMs          maximum time to wait for the initial connect.
+     * @param reconnectOnFailure {@code true} for the {@code reconnect} startup policy: on failure the group enters
+     *                           the background reconnect loop and this returns {@code true}. {@code false} for
+     *                           fail-fast: on failure the connect is cancelled and this returns {@code false}.
+     * @return {@code true} if the SDK may proceed (connected, or reconnecting in the background); {@code false} to
+     *         fail startup.
+     */
+    public boolean startWithTimeout(long timeoutMs, boolean reconnectOnFailure) {
+        beginConnect();
+        final AbstractSender s = startupSender;
+        if (s == null) {
+            return false;
+        }
+        if (reconnectOnFailure) {
+            senderPool.allowReconnectBeforeConnected();
+        }
+        boolean connected = s.awaitStartup(timeoutMs);
+        try {
+            if (connected) {
+                LOG.debug("Sender connected during startup within {} ms.", timeoutMs);
+                return true;
+            }
+            if (reconnectOnFailure) {
+                LOG.info("Initial connect did not complete within {} ms; retrying in the background "
+                    + "(startup fail-behavior 'reconnect').", timeoutMs);
+                s.reconnect(new NjamsSdkRuntimeException(
+                    "Startup connect did not complete within " + timeoutMs + " ms; reconnecting in background"));
+                return true;
+            }
+            LOG.debug("Sender did not connect within {} ms; cancelling startup connect (fail-fast).", timeoutMs);
+            s.cancelReconnect();
+            return false;
+        } finally {
+            senderPool.close(s);
+            startupSender = null;
+        }
     }
 
     /**

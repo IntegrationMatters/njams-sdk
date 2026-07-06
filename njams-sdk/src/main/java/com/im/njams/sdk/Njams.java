@@ -666,6 +666,14 @@ public class Njams implements InstructionListener {
             LOG.warn("beginConnect() failed to pre-initialize receiver; start() will retry.", e);
             earlyReceiver = null;
         }
+        try {
+            final NjamsSender earlySender = getSender();
+            if (earlySender != null) {
+                earlySender.beginConnect();
+            }
+        } catch (Exception e) {
+            LOG.warn("beginConnect() failed to pre-warm sender; start() will retry.", e);
+        }
     }
 
     /**
@@ -719,6 +727,24 @@ public class Njams implements InstructionListener {
             startReceiver();
             if (receiver == null) {
                 return false;
+            }
+            final NjamsSender activeSender = getSender();
+            if (activeSender != null) {
+                long timeoutMs = settings.getLong(
+                    NjamsSettings.PROPERTY_COMMUNICATION_CONNECT_TIMEOUT, DEFAULT_CONNECT_TIMEOUT_MS);
+                if (!activeSender.startWithTimeout(timeoutMs)) {
+                    LOG.error("SDK startup failed: sender could not connect and startup fail-behavior is 'fail'. "
+                        + "The SDK instance is inactive.");
+                    if (receiver != null) {
+                        try {
+                            receiver.stop();
+                        } catch (Exception ex) {
+                            LOG.debug("Unable to stop receiver after sender startup failure", ex);
+                        }
+                        receiver = null;
+                    }
+                    return false;
+                }
             }
             LogMessageFlushTask.start(this);
             CleanTracepointsTask.start(this);

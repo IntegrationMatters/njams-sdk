@@ -89,6 +89,11 @@ public class SenderPool {
         return streamAll().anyMatch(AbstractSender::hasConnectionFailure);
     }
 
+    /** Permits reconnect before the first successful connect for this group (startup {@code reconnect} policy). */
+    public void allowReconnectBeforeConnected() {
+        coordinator.allowReconnectBeforeConnected();
+    }
+
     protected AbstractSender create() {
         if (shutdown) {
             return null;

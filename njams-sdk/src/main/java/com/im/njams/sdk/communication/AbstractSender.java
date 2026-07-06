@@ -26,6 +26,9 @@ package com.im.njams.sdk.communication;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.IdentityHashMap;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -57,6 +60,11 @@ public abstract class AbstractSender {
     private Thread reconnector = null;
     private Collection<SenderExceptionListener> exceptionListeners = Collections.newSetFromMap(new IdentityHashMap<>());
     protected boolean hasConnectionFailure = false;
+
+    private final AtomicBoolean startupBegun = new AtomicBoolean(false);
+    private volatile CountDownLatch startupLatch;
+    private volatile Thread startupConnector;
+    private volatile Exception startupError;
 
     private ConnectionCoordinator coordinator = new ConnectionCoordinator();
 
@@ -104,32 +112,50 @@ public abstract class AbstractSender {
     }
 
     /**
-     * Triggers initial startup of this sender. I.e., the sender tries to connect, and, if not possible, triggers
-     * the reconnect loop.<br>
-     * This should be called just once for initial connection. Subsequent connection attempts should use the
-     * {@link #reconnect(Exception)} implementation.
+     * Starts one initial connection attempt in the background so a slow connect overlaps application setup, then
+     * marks the group connected on success. Idempotent — subsequent calls have no effect. Mirrors the receiver's
+     * {@code beginConnect()} model. Intended for internal SDK use at {@code Njams.start()}.
      */
-    public void startup() {
-        try {
-            connect();
-        } catch (Exception e) {
-            LOG.error("Startup of sender {} failed. Discard policy is set to '{}'. {}", getName(), discardPolicy,
-                getDiscardPolicyMessage(), e);
-            reconnect(e);
+    public void beginConnect() {
+        if (!startupBegun.compareAndSet(false, true)) {
+            return;
         }
+        startupLatch = new CountDownLatch(1);
+        startupConnector = new Thread(() -> {
+            try {
+                connect();
+                coordinator.markStartupConnected();
+            } catch (Exception e) {
+                startupError = e;
+                LOG.debug("Startup connect of sender {} failed.", getName(), e);
+            } finally {
+                startupLatch.countDown();
+            }
+        });
+        startupConnector.setDaemon(true);
+        startupConnector.setName("Sender-Startup-" + getName());
+        startupConnector.start();
     }
 
-    private String getDiscardPolicyMessage() {
-        switch (discardPolicy) {
-        case NONE:
-            return "Runtime will be blocked until the connection is established.";
-        case DISCARD:
-        case ON_CONNECTION_LOSS:
-            return "Messages will be discarded until the connection is established. "
-                + "This will affect the monitoring with nJAMS.";
-        default:
-            return "Unknown discard policy!";
+    /**
+     * Waits up to {@code timeoutMs} for the {@link #beginConnect()} attempt to complete. Calls
+     * {@link #beginConnect()} first (idempotent). Never throws and never triggers reconnect — the caller decides
+     * how to react to a {@code false} result (fail-fast vs. background reconnect).
+     *
+     * @param timeoutMs maximum time to wait, in milliseconds.
+     * @return {@code true} iff the sender is connected within the timeout.
+     */
+    public boolean awaitStartup(long timeoutMs) {
+        beginConnect();
+        try {
+            if (!startupLatch.await(timeoutMs, TimeUnit.MILLISECONDS)) {
+                return false;
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return false;
         }
+        return isConnected() && startupError == null;
     }
 
     /**
@@ -359,6 +385,21 @@ public abstract class AbstractSender {
      */
     public void setShouldShutdown(boolean shutdown) {
         coordinator.setShouldShutdown(shutdown);
+    }
+
+    /**
+     * Interrupts the startup connect thread and any in-progress reconnect thread of this sender, so a blocking
+     * {@code connect()} is cancelled promptly on shutdown rather than only at the next loop check.
+     */
+    public void cancelReconnect() {
+        final Thread startup = startupConnector;
+        if (startup != null) {
+            startup.interrupt();
+        }
+        final Thread rc = reconnector;
+        if (rc != null) {
+            rc.interrupt();
+        }
     }
 
     /**
