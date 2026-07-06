@@ -257,8 +257,9 @@ whole shared-transport group (sender and receiver share one transport connection
   inactive; **no reconnect thread is started**. It is the client application's responsibility to check
   the return value of `start()` and decide whether to continue without nJAMS.
 - `reconnect`: `start()` returns `true` and the connection is retried in the background until it
-  succeeds. The SDK instance is considered started; messages queued in the meantime are sent once the
-  connection is established.
+  succeeds. The SDK instance is considered started; messages produced before the connection is
+  established are subject to the configured discard policy (`njams.sdk.discardpolicy`), which by default
+  discards them while disconnected.
 
 This applies to all transports (HTTP, JMS, Kafka). For JMS in particular, the JMS API provides no
 standard connection timeout; without this bound a startup attempt against an unreachable broker
