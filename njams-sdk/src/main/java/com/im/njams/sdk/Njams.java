@@ -726,6 +726,7 @@ public class Njams implements InstructionListener {
             commands.add(new ConfigurationInstructionListener(this));
             startReceiver();
             if (receiver == null) {
+                releasePrewarmedSender();
                 return false;
             }
             final NjamsSender activeSender = getSender();
@@ -743,6 +744,7 @@ public class Njams implements InstructionListener {
                         }
                         receiver = null;
                     }
+                    releasePrewarmedSender();
                     return false;
                 }
             }
@@ -753,6 +755,19 @@ public class Njams implements InstructionListener {
             LOG.info("SDK instance {} started (client-session={})", getClientPath(), metadata.getClientSessionId());
         }
         return isStarted();
+    }
+
+    /**
+     * Releases the sender that was pre-warmed at construction time (via {@link #beginConnect()}) when
+     * {@link #start()} fails. This balances the constructor's {@code getSender()} acquisition with a matching
+     * {@code close()} — symmetric with {@link #stop()} — so a shared sender's usage count is not pinned when
+     * startup does not complete. On the success path {@link #stop()} performs the single balancing close instead.
+     */
+    private void releasePrewarmedSender() {
+        if (sender != null) {
+            sender.close();
+            sender = null;
+        }
     }
 
     /**

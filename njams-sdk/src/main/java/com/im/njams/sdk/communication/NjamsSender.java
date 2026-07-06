@@ -212,9 +212,12 @@ public class NjamsSender {
     }
 
     /**
-     * Pre-warms one sender connection in the background so it overlaps application setup. Idempotent.
+     * Pre-warms one sender connection in the background so it overlaps application setup. Idempotent and
+     * thread-safe: the check-and-borrow is done under the instance lock so that when several threads race the
+     * first call (e.g. two {@link Njams} instances sharing one sender), only the first borrows and starts a
+     * sender. Re-arms after {@link #startWithTimeout(long, boolean)} returns the borrowed sender to the pool.
      */
-    public void beginConnect() {
+    public synchronized void beginConnect() {
         if (startupSender != null) {
             return;
         }
