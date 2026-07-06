@@ -179,13 +179,15 @@ public abstract class AbstractSender {
     }
 
     /**
-     * Initiates a reconnect thread if {@link #isConnected()} is <code>false</code> and no other reconnect
-     * is currently running.
+     * Initiates a reconnect thread if {@link #isConnected()} is <code>false</code>, no other reconnect is currently
+     * running, and a reconnect is actually allowed: the sender's group must have connected successfully before, or
+     * the startup {@code reconnect} policy must be active for it (see {@link ConnectionCoordinator#shouldReconnect()}
+     * ), and the group must not be shutting down.
      *
      * @param e the exception that initiated the reconnect
      */
     public synchronized void reconnect(Exception e) {
-        if (isConnecting() || isConnected() || coordinator.shouldShutdown()) {
+        if (isConnecting() || isConnected() || !coordinator.shouldReconnect()) {
             return;
         }
         if (reconnector != null && reconnector.isAlive()) {

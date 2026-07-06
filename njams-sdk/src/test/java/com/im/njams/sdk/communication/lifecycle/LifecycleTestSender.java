@@ -51,4 +51,9 @@ public class LifecycleTestSender extends AbstractSender {
     protected void send(TraceMessage msg, String clientSessionId) {
         // no-op
     }
+
+    /** Test hook: forces DISCONNECTED so reconnect() can be exercised. */
+    public void forceDisconnect() {
+        setConnectionStatus(ConnectionStatus.DISCONNECTED);
+    }
 }

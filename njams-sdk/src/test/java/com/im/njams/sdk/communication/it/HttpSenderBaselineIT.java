@@ -53,6 +53,8 @@ public class HttpSenderBaselineIT {
     public void sendsLogMessageThatArrivesAtTheIngestEndpoint() {
         NjamsSender sender = new NjamsSender(settings(server));
         try {
+            // establish the initial connection explicitly, exactly as Njams.start() does in production
+            sender.startWithTimeout(5000);
             sender.send(logMessage("log-1", ">a>b>"), "session-1");
             assertTrue("a POST should reach the ingest endpoint",
                 Await.until(() -> server.postCount() >= 1, 5000));
@@ -67,6 +69,9 @@ public class HttpSenderBaselineIT {
     public void deliveryResumesAfterTransientServerOutage() {
         NjamsSender sender = new NjamsSender(settings(server));
         try {
+            // establish the initial connection explicitly (as Njams.start() does) before the outage sim, so
+            // wasEverConnected is true and the later Phase-2 reconnect is permitted through the gate
+            sender.startWithTimeout(5000);
             sender.send(logMessage("before-outage", ">a>b>"), "session-1");
             assertTrue(Await.until(() -> server.postCount() >= 1, 5000));
 
@@ -91,6 +96,8 @@ public class HttpSenderBaselineIT {
     @Test
     public void closeReturnsPromptlyAndDeliversInFlightMessage() {
         NjamsSender sender = new NjamsSender(settings(server));
+        // establish the initial connection explicitly, exactly as Njams.start() does in production
+        sender.startWithTimeout(5000);
         sender.send(logMessage("final", ">a>b>"), "session-1");
 
         long startMs = System.currentTimeMillis();

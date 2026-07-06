@@ -79,6 +79,8 @@ public class JmsSenderBaselineIT {
     public void sendsLogMessageThatArrivesOnTheEventQueue() throws Exception {
         NjamsSender sender = new NjamsSender(settings());
         try {
+            // establish the initial connection explicitly, exactly as Njams.start() does in production
+            sender.startWithTimeout(5000);
             sender.send(logMessage("log-1", ">a>b>"), "session-1");
             List<String> bodies = consumeEventQueue(1, 5000);
             assertEquals("exactly one message expected", 1, bodies.size());
@@ -92,6 +94,9 @@ public class JmsSenderBaselineIT {
     public void deliveryResumesAfterTransientBrokerOutage() throws Exception {
         NjamsSender sender = new NjamsSender(settings());
         try {
+            // establish the initial connection explicitly (as Njams.start() does) before the outage sim, so
+            // wasEverConnected is true and the later Phase-2 reconnect is permitted through the gate
+            sender.startWithTimeout(5000);
             // 1) prove connected: first message arrives
             sender.send(logMessage("before-outage", ">a>b>"), "session-1");
             assertEquals(1, consumeEventQueue(1, 5000).size());
@@ -123,6 +128,8 @@ public class JmsSenderBaselineIT {
     @Test
     public void closeReturnsPromptlyAndDeliversInFlightMessage() throws Exception {
         NjamsSender sender = new NjamsSender(settings());
+        // establish the initial connection explicitly, exactly as Njams.start() does in production
+        sender.startWithTimeout(5000);
         sender.send(logMessage("final", ">a>b>"), "session-1");
 
         long start = System.currentTimeMillis();
