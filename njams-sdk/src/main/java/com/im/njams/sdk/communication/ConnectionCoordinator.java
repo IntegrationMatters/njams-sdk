@@ -28,16 +28,18 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * Owns the reconnect-counting and shutdown state for one shared-transport group of senders (all senders handed
- * out by a single {@link SenderPool}). Replaces the former JVM-global {@code static} reconnect state on
- * {@link AbstractSender} so that unrelated {@link com.im.njams.sdk.Njams} instances no longer share connection
- * state. Internal SDK infrastructure — not public API.
+ * Owns the reconnect-counting, shutdown, and "was ever connected" / reconnect-gating state for one shared-transport
+ * group of senders (all senders handed out by a single {@link SenderPool}). Replaces the former JVM-global
+ * {@code static} reconnect state on {@link AbstractSender} so that unrelated {@link com.im.njams.sdk.Njams}
+ * instances no longer share connection state. Internal SDK infrastructure — not public API.
  */
 class ConnectionCoordinator {
 
     private final AtomicBoolean hasConnected = new AtomicBoolean(false);
     private final AtomicInteger connecting = new AtomicInteger(0);
     private final AtomicBoolean shouldShutdown = new AtomicBoolean(false);
+    private volatile boolean wasEverConnected = false;
+    private volatile boolean reconnectBeforeConnected = false;
 
     /**
      * Marks the group as currently disconnected and beginning a reconnect: clears the connected flag and
@@ -58,6 +60,7 @@ class ConnectionCoordinator {
      */
     synchronized boolean markConnected() {
         connecting.decrementAndGet();
+        wasEverConnected = true;
         return hasConnected.compareAndSet(false, true);
     }
 
@@ -74,5 +77,38 @@ class ConnectionCoordinator {
     /** Sets the shutdown flag for the group. */
     void setShouldShutdown(boolean value) {
         shouldShutdown.set(value);
+    }
+
+    /**
+     * Records a successful startup connect (see {@link AbstractSender#beginConnect()}): marks the group connected
+     * and, stickily, that it has connected at least once. Unlike {@link #markConnected()} this does not touch the
+     * reconnect counter, because a startup connect is not preceded by {@link #beginReconnect()}.
+     *
+     * @return {@code true} on the disconnected&rarr;connected transition, {@code false} if already connected.
+     */
+    synchronized boolean markStartupConnected() {
+        wasEverConnected = true;
+        return hasConnected.compareAndSet(false, true);
+    }
+
+    /** @return {@code true} once any connect (startup or reconnect) has succeeded for this group. */
+    boolean wasEverConnected() {
+        return wasEverConnected;
+    }
+
+    /**
+     * Permits reconnect attempts even before the first successful connect. Set when the startup fail-behavior is
+     * {@code reconnect} so a failed initial connect enters the background reconnect loop instead of failing fast.
+     */
+    void allowReconnectBeforeConnected() {
+        reconnectBeforeConnected = true;
+    }
+
+    /**
+     * @return {@code true} if a reconnect may proceed now: the group is not shutting down and it has either
+     *         connected before (Phase 2) or been told to reconnect from startup (Phase 1 {@code reconnect} policy).
+     */
+    boolean shouldReconnect() {
+        return !shouldShutdown() && (wasEverConnected || reconnectBeforeConnected);
     }
 }

@@ -39,4 +39,44 @@ public class ConnectionCoordinatorTest {
         c.setShouldShutdown(false);
         assertFalse(c.shouldShutdown());
     }
+
+    @Test
+    public void freshCoordinatorHasNeverConnectedAndMustNotReconnect() {
+        ConnectionCoordinator c = new ConnectionCoordinator();
+        assertFalse(c.wasEverConnected());
+        assertFalse("no reconnect before a first successful connect", c.shouldReconnect());
+    }
+
+    @Test
+    public void startupConnectMarksEverConnectedAndEnablesReconnect() {
+        ConnectionCoordinator c = new ConnectionCoordinator();
+        assertTrue("first startup connect is the transition", c.markStartupConnected());
+        assertTrue(c.wasEverConnected());
+        assertTrue("reconnect allowed after a prior success", c.shouldReconnect());
+        assertFalse("second markStartupConnected while connected is not a transition", c.markStartupConnected());
+    }
+
+    @Test
+    public void reconnectSuccessAlsoRecordsEverConnected() {
+        ConnectionCoordinator c = new ConnectionCoordinator();
+        c.beginReconnect();
+        assertTrue(c.markConnected());
+        assertTrue(c.wasEverConnected());
+    }
+
+    @Test
+    public void allowReconnectBeforeConnectedEnablesReconnectWithoutPriorSuccess() {
+        ConnectionCoordinator c = new ConnectionCoordinator();
+        assertFalse(c.shouldReconnect());
+        c.allowReconnectBeforeConnected();
+        assertTrue(c.shouldReconnect());
+    }
+
+    @Test
+    public void shutdownDisablesReconnectEvenAfterConnecting() {
+        ConnectionCoordinator c = new ConnectionCoordinator();
+        c.markStartupConnected();
+        c.setShouldShutdown(true);
+        assertFalse("shutdown wins over wasEverConnected", c.shouldReconnect());
+    }
 }
