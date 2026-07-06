@@ -114,8 +114,10 @@ public class NjamsSettings {
     /**
      * Maximum time in milliseconds the SDK waits for the initial communication connection to be
      * established during {@link com.im.njams.sdk.Njams#start()}. If the connection is not ready within
-     * this time, {@code start()} returns {@code false} and the SDK instance remains inactive — no
-     * reconnect thread is started.
+     * this time, the outcome depends on {@link #PROPERTY_COMMUNICATION_STARTUP_FAILBEHAVIOR}: with
+     * {@code fail} (the default) {@code start()} returns {@code false} and the SDK instance remains
+     * inactive with no background reconnect; with {@code reconnect} {@code start()} returns {@code true}
+     * and the connection continues to be retried in the background.
      * <p>
      * The connection attempt is started automatically in the background when the
      * {@link com.im.njams.sdk.Njams} instance is constructed, so that it overlaps with application
