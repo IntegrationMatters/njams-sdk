@@ -36,7 +36,9 @@ import com.im.njams.sdk.model.image.ImageSupplier;
  * Only resources that have not been announced before are transmitted: a process model (by its
  * path), an image (by its name), or a global variable (by its name) that was already sent — with
  * the original start-time project message or an earlier {@code build()} — is omitted, so an
- * additional message never repeats data already known to the server. Obtain an instance via
+ * additional message never repeats data already known to the server. Call {@link #asReplacement()}
+ * to switch this behavior off and force every collected resource to be (re)sent and replace the
+ * SDK's stored copy, even if it was already announced. Obtain an instance via
  * {@link NjamsModel#additionalResources()}.
  */
 public interface AdditionalResources {
@@ -81,9 +83,25 @@ public interface AdditionalResources {
     AdditionalResources addImage(ImageSupplier imageSupplier);
 
     /**
-     * Sends the collected resources that have not been announced yet as a single additional
-     * project message. Resources whose identifier (process path, image name, or global-variable
-     * name) was already announced are omitted. If nothing new remains, no message is sent.
+     * Switches this builder into replacement mode. In replacement mode every resource collected by
+     * this builder is included in the message sent by {@link #build()} even if a resource with the
+     * same identifier (process path, image name, or global-variable name) was already announced —
+     * with the original start-time project message or an earlier {@code build()} — and the SDK's own
+     * stored copy of each such resource is updated to the one supplied here, so subsequent jobs and
+     * messages use the new version. Without this call the builder keeps its default announce-once
+     * behavior, omitting resources already known to the server. The mode applies to the builder as a
+     * whole; the order relative to the {@code add...} calls does not matter.
+     *
+     * @return this builder, for call chaining
+     */
+    AdditionalResources asReplacement();
+
+    /**
+     * Sends the collected resources as a single additional project message. In the default mode
+     * only resources whose identifier (process path, image name, or global-variable name) has not
+     * been announced yet are sent; already-announced resources are omitted and, if nothing new
+     * remains, no message is sent. In replacement mode (see {@link #asReplacement()}) every
+     * collected resource is sent regardless, and the SDK's stored copies are updated.
      *
      * @throws com.im.njams.sdk.common.NjamsSdkRuntimeException if the client has not been started
      */
