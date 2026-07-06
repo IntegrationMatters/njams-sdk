@@ -159,6 +159,7 @@ The tables below cover all settings recognized by the nJAMS SDK itself. Settings
 | `njams.sdk.communication.containerMode`   | `true`  | Enables container/cluster mode. When `true`, the SDK generates a unique client ID per instance so that targeted commands (e.g. replay) are routed to the correct node in a load-balanced setup. Disable only in confirmed single-node deployments.                                                                                                                                                     | <kbd style="background-color:#2da44e;color:#fff;border-color:#2da44e">since 5.0.0</kbd>                                                                                                 |
 | `njams.sdk.communication.maxMessageSize`  | `0`     | Maximum message body size in bytes. Messages exceeding this size are split into chunks before sending. A value of `0` or less disables splitting. The minimum allowed value is 10240 bytes. For Kafka, the smaller of this value and the Kafka producer's `max.request.size` is used. Requires nJAMS server 6.1.2 or later for transports other than Kafka.                                            | <kbd style="background-color:#2da44e;color:#fff;border-color:#2da44e">since 5.0.3</kbd>                                                                                                 |
 | `njams.sdk.communication.shared`          | `false` | When `true`, the sender thread pool is shared across all `Njams` instances in the same JVM, and — for JMS and Kafka — a single receiver is shared as well. HTTP always uses a dedicated receiver per instance, since there are no connection limits to save by sharing. By default each instance has its own dedicated sender pool and receiver. Has no effect when only one `Njams` instance is used. | <kbd style="background-color:#2da44e;color:#fff;border-color:#2da44e">since 5.0.0</kbd>                                                                                                 |
+| `njams.sdk.communication.startup.failbehavior` | `fail` | Controls how `Njams.start()` reacts when the *initial* transport connect attempt does not succeed within `njams.sdk.communication.connect.timeout`. `fail` (default): `start()` returns `false` and the SDK instance stays inactive, leaving it to the client to decide whether to continue without nJAMS. `reconnect`: `start()` returns `true` and the connection is retried in the background until it succeeds. Governs the whole shared-transport group (sender and receiver share one transport connection), not a single component. See [What happens when the communication backend is unreachable at startup](#what-happens-when-the-communication-backend-is-unreachable-at-startup). | <kbd style="background-color:#2da44e;color:#fff;border-color:#2da44e">since 6.0.0</kbd> |
 
 ### HTTP / HTTPS
 
@@ -248,10 +249,16 @@ Set `njams.sdk.communication=KAFKA`.
 
 `Njams.start()` does not block indefinitely when the communication backend cannot be reached. The
 maximum wait is bounded by the [`njams.sdk.communication.connect.timeout`](#communication) setting
-(default `30000` ms). If the connection is not established within this time, `start()` logs an error
-and returns `false`. The SDK instance is then completely inactive; **no reconnect thread is started**.
-It is the client application's responsibility to check the return value of `start()` and handle the
-failure accordingly.
+(default `30000` ms). What happens once that time elapses without a successful connection is
+controlled by [`njams.sdk.communication.startup.failbehavior`](#communication), which governs the
+whole shared-transport group (sender and receiver share one transport connection):
+
+- `fail` (default): `start()` logs an error and returns `false`. The SDK instance is then completely
+  inactive; **no reconnect thread is started**. It is the client application's responsibility to check
+  the return value of `start()` and decide whether to continue without nJAMS.
+- `reconnect`: `start()` returns `true` and the connection is retried in the background until it
+  succeeds. The SDK instance is considered started; messages queued in the meantime are sent once the
+  connection is established.
 
 This applies to all transports (HTTP, JMS, Kafka). For JMS in particular, the JMS API provides no
 standard connection timeout; without this bound a startup attempt against an unreachable broker
