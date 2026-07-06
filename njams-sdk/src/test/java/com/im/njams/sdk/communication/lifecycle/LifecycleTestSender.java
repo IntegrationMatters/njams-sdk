@@ -39,17 +39,34 @@ public class LifecycleTestSender extends AbstractSender {
 
     @Override
     protected void send(LogMessage msg, String clientSessionId) {
-        // no-op: lifecycle tests assert on connection state, not payload delivery
+        failIfArmed();
     }
 
     @Override
     protected void send(ProjectMessage msg, String clientSessionId) {
-        // no-op
+        failIfArmed();
     }
 
     @Override
     protected void send(TraceMessage msg, String clientSessionId) {
-        // no-op
+        failIfArmed();
+    }
+
+    /**
+     * If the block-then-fail send mode is armed, blocks until released and then fails the send the way a real
+     * transport does on a broken connection: drop to DISCONNECTED and throw. Otherwise a no-op (default).
+     */
+    private void failIfArmed() {
+        try {
+            if (LifecycleTestTransport.awaitSendGateIfArmed()) {
+                setConnectionStatus(ConnectionStatus.DISCONNECTED);
+                throw new NjamsSdkRuntimeException("LIFECYCLE_TEST: send configured to fail during drain");
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            setConnectionStatus(ConnectionStatus.DISCONNECTED);
+            throw new NjamsSdkRuntimeException("interrupted during send", e);
+        }
     }
 
     /** Test hook: forces DISCONNECTED so reconnect() can be exercised. */

@@ -22,6 +22,13 @@ public final class LifecycleTestTransport {
     private static volatile CountDownLatch connectAttempted = new CountDownLatch(1);
     private static final AtomicInteger senderConnectCount = new AtomicInteger(0);
 
+    /** When armed, a message send blocks on {@link #sendGate} and then fails, dropping the connection. */
+    private static volatile boolean sendBlocksThenFails = false;
+    /** Fires when a send has entered {@link #awaitSendGateIfArmed()} (so tests know the send is in flight). */
+    private static volatile CountDownLatch sendEntered = new CountDownLatch(1);
+    /** Released to let a blocked send proceed (to fail). Recreated by {@link #reset()}. */
+    private static volatile CountDownLatch sendGate = new CountDownLatch(1);
+
     private LifecycleTestTransport() {
     }
 
@@ -31,6 +38,34 @@ public final class LifecycleTestTransport {
         blockRelease = new CountDownLatch(1);
         connectAttempted = new CountDownLatch(1);
         senderConnectCount.set(0);
+        sendBlocksThenFails = false;
+        sendEntered = new CountDownLatch(1);
+        sendGate = new CountDownLatch(1);
+    }
+
+    /** Arms the block-then-fail send mode: the next message send blocks on the gate, then fails. */
+    public static void armSendBlocksThenFails() {
+        sendBlocksThenFails = true;
+    }
+
+    /** @return the latch that fires when a send has entered the block-then-fail hook. */
+    public static CountDownLatch sendEnteredLatch() {
+        return sendEntered;
+    }
+
+    /** Lets a blocked send proceed (it then fails and drops the connection). */
+    public static void releaseSend() {
+        sendGate.countDown();
+    }
+
+    // called by LifecycleTestSender's send(...) methods
+    static boolean awaitSendGateIfArmed() throws InterruptedException {
+        if (!sendBlocksThenFails) {
+            return false;
+        }
+        sendEntered.countDown();
+        sendGate.await();
+        return true;
     }
 
     public static void setSenderMode(ConnectMode mode) {

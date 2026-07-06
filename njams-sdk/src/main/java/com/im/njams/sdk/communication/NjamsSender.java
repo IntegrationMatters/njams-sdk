@@ -289,6 +289,7 @@ public class NjamsSender {
         final int waitTime = 10;
         final TimeUnit unit = TimeUnit.SECONDS;
         boolean terminated = false;
+        senderPool.beginShutdown(); // set shutdown flag + cancel reconnects BEFORE draining
         try {
             LOG.info("Shutdown the sender's threadpool executor.");
             executor.shutdown();

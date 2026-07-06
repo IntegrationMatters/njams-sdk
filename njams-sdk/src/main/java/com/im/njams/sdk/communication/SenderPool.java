@@ -163,6 +163,18 @@ public class SenderPool {
         LOG.trace("Close locked={}, unlocked={}", locked.size(), unlocked.size());
     }
 
+    /**
+     * Begins shutdown for the group: sets the coordinator's shutdown flag and cancels any in-progress
+     * reconnect/startup threads, so a failing final send during the executor drain does not spawn a reconnect.
+     * Unlike {@link #declareShutdown()} this does <em>not</em> block new-sender creation, so in-flight sends can
+     * still borrow a sender while the executor drains.
+     */
+    public void beginShutdown() {
+        LOG.debug("Beginning sender group shutdown; cancelling reconnects.");
+        coordinator.setShouldShutdown(true);
+        streamAll().forEach(AbstractSender::cancelReconnect);
+    }
+
     public void declareShutdown() {
         shutdown = true;
         streamAll().forEach(s -> s.setShouldShutdown(true));
