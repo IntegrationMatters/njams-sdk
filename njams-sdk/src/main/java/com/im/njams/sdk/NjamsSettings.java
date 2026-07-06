@@ -130,6 +130,17 @@ public class NjamsSettings {
             "njams.sdk.communication.connect.timeout";
 
     /**
+     * Controls how {@code Njams.start()} reacts when the transport cannot be connected on the very first attempt.
+     * Values: {@code fail} (default) — start() returns {@code false} and the SDK stays inactive; {@code reconnect}
+     * — start() returns {@code true} and the connection is retried in the background. Governs the whole
+     * shared-transport group.
+     *
+     * @since 6.0.0
+     */
+    public static final String PROPERTY_COMMUNICATION_STARTUP_FAILBEHAVIOR =
+            "njams.sdk.communication.startup.failbehavior";
+
+    /**
      * This property is a flush criteria with a default of 5mb.
      * <p>
      * If the flush size of the @{@link com.faizsiegeln.njams.messageformat.v4.logmessage.LogMessage}
