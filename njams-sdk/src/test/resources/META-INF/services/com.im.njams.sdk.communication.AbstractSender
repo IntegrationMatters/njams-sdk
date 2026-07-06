@@ -1,1 +1,2 @@
 com.im.njams.sdk.communication.TestSender
+com.im.njams.sdk.communication.lifecycle.LifecycleTestSender
