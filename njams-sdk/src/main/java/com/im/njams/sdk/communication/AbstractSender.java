@@ -128,6 +128,14 @@ public abstract class AbstractSender {
             } catch (Exception e) {
                 startupError = e;
                 LOG.debug("Startup connect of sender {} failed.", getName(), e);
+                // If a reconnect is permitted (startup 'reconnect' policy, or the group connected before), start
+                // the background reconnect loop now that connect() has failed and left this sender DISCONNECTED.
+                // This is what makes the 'reconnect' policy retry even when the initial connect blocked past the
+                // startup timeout: the caller cannot start it via reconnect() while this thread still holds
+                // CONNECTING, but here the status is already DISCONNECTED so reconnect() proceeds.
+                if (coordinator.shouldReconnect()) {
+                    reconnect(e);
+                }
             } finally {
                 startupLatch.countDown();
             }
@@ -147,8 +155,12 @@ public abstract class AbstractSender {
      */
     public boolean awaitStartup(long timeoutMs) {
         beginConnect();
+        final CountDownLatch latch = startupLatch;
+        if (latch == null) {
+            return false;
+        }
         try {
-            if (!startupLatch.await(timeoutMs, TimeUnit.MILLISECONDS)) {
+            if (!latch.await(timeoutMs, TimeUnit.MILLISECONDS)) {
                 return false;
             }
         } catch (InterruptedException e) {

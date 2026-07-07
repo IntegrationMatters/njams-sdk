@@ -267,6 +267,11 @@ public class NjamsSender {
             if (reconnectOnFailure) {
                 LOG.info("Initial connect did not complete within {} ms; retrying in the background "
                     + "(startup fail-behavior 'reconnect').", timeoutMs);
+                // Interrupt a still-blocked initial connect so it fails promptly and, being DISCONNECTED, starts
+                // the reconnect loop from its own thread (see AbstractSender.beginConnect). The reconnect() call
+                // below covers the case where the initial connect already failed fast (sender DISCONNECTED); it is
+                // idempotent when a reconnect is already running.
+                s.cancelReconnect();
                 s.reconnect(new NjamsSdkRuntimeException(
                     "Startup connect did not complete within " + timeoutMs + " ms; reconnecting in background"));
                 return true;
