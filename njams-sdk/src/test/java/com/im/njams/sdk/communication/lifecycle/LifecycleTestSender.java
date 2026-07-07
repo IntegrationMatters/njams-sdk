@@ -1,5 +1,8 @@
 package com.im.njams.sdk.communication.lifecycle;
 
+import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
+
 import com.faizsiegeln.njams.messageformat.v4.logmessage.LogMessage;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.ProjectMessage;
 import com.faizsiegeln.njams.messageformat.v4.tracemessage.TraceMessage;
@@ -12,6 +15,29 @@ import com.im.njams.sdk.communication.ConnectionStatus;
  * {@link LifecycleTestTransport}.
  */
 public class LifecycleTestSender extends AbstractSender {
+
+    /**
+     * Every instance ever created (also the pooled ones spun up by a real {@code NjamsSender}). Lets test
+     * teardown stop any daemon reconnect/startup thread a test spawned, so it cannot survive into a later test
+     * and count down that test's shared latches.
+     */
+    private static final List<LifecycleTestSender> INSTANCES = new CopyOnWriteArrayList<>();
+
+    public LifecycleTestSender() {
+        INSTANCES.add(this);
+    }
+
+    /**
+     * Stops every registered sender's daemon threads (reconnect loop and any blocking startup connect) and clears
+     * the registry. Called from {@link LifecycleTestTransport#shutdownAllSenders()} in test teardown.
+     */
+    static void shutdownAll() {
+        for (LifecycleTestSender s : INSTANCES) {
+            s.setShouldShutdown(true);
+            s.cancelReconnect();
+        }
+        INSTANCES.clear();
+    }
 
     @Override
     public String getName() {

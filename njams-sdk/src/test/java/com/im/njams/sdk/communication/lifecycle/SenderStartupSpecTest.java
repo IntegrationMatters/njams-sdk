@@ -3,18 +3,12 @@ package com.im.njams.sdk.communication.lifecycle;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-import org.junit.Before;
 import org.junit.Test;
 
 import com.im.njams.sdk.communication.AbstractSender;
 import com.im.njams.sdk.settings.ClientSettings;
 
-public class SenderStartupSpecTest {
-
-    @Before
-    public void setUp() {
-        LifecycleTestTransport.reset();
-    }
+public class SenderStartupSpecTest extends AbstractLifecycleSpecTest {
 
     private static AbstractSender freshSender() {
         AbstractSender s = new LifecycleTestSender();

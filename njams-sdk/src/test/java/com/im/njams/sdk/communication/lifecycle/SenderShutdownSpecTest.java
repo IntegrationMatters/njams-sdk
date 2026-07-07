@@ -6,18 +6,12 @@ import static org.junit.Assert.assertTrue;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
-import org.junit.Before;
 import org.junit.Test;
 
 import com.im.njams.sdk.communication.AbstractSender;
 import com.im.njams.sdk.settings.ClientSettings;
 
-public class SenderShutdownSpecTest {
-
-    @Before
-    public void setUp() {
-        LifecycleTestTransport.reset();
-    }
+public class SenderShutdownSpecTest extends AbstractLifecycleSpecTest {
 
     private static AbstractSender connectedSender() {
         AbstractSender s = new LifecycleTestSender();

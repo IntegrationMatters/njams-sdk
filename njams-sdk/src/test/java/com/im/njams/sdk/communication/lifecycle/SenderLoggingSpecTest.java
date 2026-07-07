@@ -28,14 +28,13 @@ import com.im.njams.sdk.settings.ClientSettings;
  * anywhere in the module. This test therefore captures {@link AbstractSender}'s logger with a small custom
  * {@link AppenderSkeleton} instead of a Logback {@code ListAppender}.
  */
-public class SenderLoggingSpecTest {
+public class SenderLoggingSpecTest extends AbstractLifecycleSpecTest {
 
     private Logger senderLogger;
     private CapturingAppender appender;
 
     @Before
     public void setUp() {
-        LifecycleTestTransport.reset();
         senderLogger = Logger.getLogger(AbstractSender.class);
         appender = new CapturingAppender();
         senderLogger.addAppender(appender);

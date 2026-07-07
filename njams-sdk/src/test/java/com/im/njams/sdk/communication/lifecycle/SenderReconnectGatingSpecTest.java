@@ -6,18 +6,12 @@ import static org.junit.Assert.assertTrue;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
-import org.junit.Before;
 import org.junit.Test;
 
 import com.im.njams.sdk.communication.AbstractSender;
 import com.im.njams.sdk.settings.ClientSettings;
 
-public class SenderReconnectGatingSpecTest {
-
-    @Before
-    public void setUp() {
-        LifecycleTestTransport.reset();
-    }
+public class SenderReconnectGatingSpecTest extends AbstractLifecycleSpecTest {
 
     private static AbstractSender freshSender() {
         AbstractSender s = new LifecycleTestSender();

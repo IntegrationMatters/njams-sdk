@@ -3,19 +3,13 @@ package com.im.njams.sdk.communication.lifecycle;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
-import org.junit.Before;
 import org.junit.Test;
 
 import com.im.njams.sdk.communication.AbstractSender;
 import com.im.njams.sdk.communication.CommunicationFactory;
 import com.im.njams.sdk.settings.ClientSettings;
 
-public class LifecycleTransportWiringTest {
-
-    @Before
-    public void setUp() {
-        LifecycleTestTransport.reset();
-    }
+public class LifecycleTransportWiringTest extends AbstractLifecycleSpecTest {
 
     @Test
     public void factoryResolvesTheControllableSender() {

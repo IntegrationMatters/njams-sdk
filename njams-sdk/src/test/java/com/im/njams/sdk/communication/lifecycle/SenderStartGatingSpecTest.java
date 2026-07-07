@@ -4,7 +4,6 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import org.junit.After;
-import org.junit.Before;
 import org.junit.Test;
 
 import com.im.njams.sdk.Njams;
@@ -12,14 +11,9 @@ import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.Path;
 import com.im.njams.sdk.settings.Settings;
 
-public class SenderStartGatingSpecTest {
+public class SenderStartGatingSpecTest extends AbstractLifecycleSpecTest {
 
     private Njams njams;
-
-    @Before
-    public void setUp() {
-        LifecycleTestTransport.reset();
-    }
 
     @After
     public void tearDown() {

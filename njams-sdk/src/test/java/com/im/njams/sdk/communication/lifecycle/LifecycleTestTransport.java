@@ -32,6 +32,16 @@ public final class LifecycleTestTransport {
     private LifecycleTestTransport() {
     }
 
+    /**
+     * Stops every {@link LifecycleTestSender} a test created — sets shutdown, cancels reconnect, and releases the
+     * BLOCK gate so any blocking connect thread can finish — then clears the sender registry. Call in @After so
+     * no daemon reconnect/startup thread survives into a later test where it would count down shared latches.
+     */
+    public static void shutdownAllSenders() {
+        LifecycleTestSender.shutdownAll();
+        releaseBlockedConnect();
+    }
+
     /** Resets all controls to the default (SUCCEED) state. Call in @Before. */
     public static void reset() {
         senderMode = ConnectMode.SUCCEED;
