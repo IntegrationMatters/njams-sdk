@@ -170,7 +170,14 @@ public class NjamsSenderTest extends AbstractTest {
     @Test
     public void testReconnectingSenders() throws InterruptedException {
         //Set static ExceptionSender to redirect calls to the TestSender
-        TestSender.setSenderMock(new ExceptionSender());
+        //The ExceptionSender is a standalone AbstractSender with its own ConnectionCoordinator (never connected
+        //through the pool), so it needs the reconnect-before-connected policy enabled to allow its onException/
+        //reconnect loop to retry connect() instead of being gated off by shouldReconnect().
+        ExceptionSender exceptionSender = new ExceptionSender();
+        ConnectionCoordinator coordinator = new ConnectionCoordinator();
+        coordinator.allowReconnectBeforeConnected();
+        exceptionSender.setConnectionCoordinator(coordinator);
+        TestSender.setSenderMock(exceptionSender);
         NjamsSender sender = new NjamsSender(SETTINGS);
         int messagesToSend = 1000;
         for (int i = 0; i < messagesToSend; i++) {
