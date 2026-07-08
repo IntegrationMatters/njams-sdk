@@ -22,6 +22,16 @@ Update `wiki/FAQ.md` whenever:
 
 Update any other affected `wiki/` page when a feature or fix that changes documented behavior is declared complete.
 
+## No Unsupported Assumptions
+
+**Every decision must rest on verified evidence, not inference.** Before asserting a fact about this codebase, a
+dependency's behavior, or the nJAMS message format, verify it by reading the actual source, running the actual
+command, or checking the actual output — never assume it from general training-data familiarity or what "should"
+be true.
+
+**When genuinely uncertain, stop and ask the user** rather than deciding unilaterally — whether the uncertainty is a
+technical fact, a scope judgment, or a choice between multiple reasonable interpretations.
+
 ## Message Format
 
 The nJAMS message format is defined in a separate project located locally at `../njams-messageformat/` and on GitHub at https://github.com/IntegrationMatters/njams-messageformat. It is the interface for communication with nJAMS Server and must be kept stable or at least backward-compatible.

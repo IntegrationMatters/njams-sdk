@@ -13,6 +13,10 @@ This workflow builds on `njams-safe-modification`: the same test coverage and pu
 
 ## Hard Rules
 
+**Root cause must be verified, not assumed.** Confirm the actual cause by reading the relevant code path or
+reproducing the failure before writing any fix — never fix a guessed cause. Per the "No Unsupported Assumptions"
+rule in `CLAUDE.md`.
+
 **Every bug fix must be linked to a Jira ticket in the SDK project** (https://salesfive.atlassian.net, space key `SDK`). Before starting any fix, confirm the ticket key (e.g. `SDK-123`). If no ticket exists, ask the user to create one or provide the key. All commits for this fix must use the Jira Smart Commits format:
 ```
 SDK-123 #comment <description>
@@ -155,3 +159,4 @@ Vague reasons ("the test seems outdated") are not sufficient. If you cannot arti
 | Assuming a pre-existing test failure is unrelated | Understand all failures before proceeding |
 | "The test was probably written incorrectly" | Articulate exactly why and ask the user |
 | Fixing the symptom without understanding the cause | Understand root cause before changing code |
+| Fixing a guessed cause without confirming it in code | Read the actual code path or reproduce the failure first |
