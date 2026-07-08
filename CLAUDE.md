@@ -22,6 +22,16 @@ Update `wiki/FAQ.md` whenever:
 
 Update any other affected `wiki/` page when a feature or fix that changes documented behavior is declared complete.
 
+## No Unsupported Assumptions
+
+**Every decision must rest on verified evidence, not inference.** Before asserting a fact about this codebase, a
+dependency's behavior, or the nJAMS message format, verify it by reading the actual source, running the actual
+command, or checking the actual output — never assume it from general training-data familiarity or what "should"
+be true.
+
+**When genuinely uncertain, stop and ask the user** rather than deciding unilaterally — whether the uncertainty is a
+technical fact, a scope judgment, or a choice between multiple reasonable interpretations.
+
 ## Message Format
 
 The nJAMS message format is defined in a separate project located locally at `../njams-messageformat/` and on GitHub at https://github.com/IntegrationMatters/njams-messageformat. It is the interface for communication with nJAMS Server and must be kept stable or at least backward-compatible.
@@ -336,6 +346,7 @@ The runtime monitoring path includes:
 - **Do not add synchronisation overhead** beyond what is required for correctness.
 - **Prefer simple data structures.** Avoid heavy frameworks or abstractions where a straightforward implementation suffices.
 - **Do not perform I/O or blocking operations** on threads that process monitoring data.
+- **Never read settings live on the hot path — snapshot once.** `HierarchicalSettings.getProperty` (and any `ClientSettings`/`ReadOnlyClientSettings` read) is a linear scan over the ordered layers: it allocates an iterator, does a double lookup on the hitting layer, scans every layer on a miss, and for system/environment layers adds a filter predicate, key transform, and `System.getenv()`/`System.getProperties()` access. This cost stays off the runtime path only because callers snapshot: `JobSettings.of(settings)` caches an immutable per-client snapshot (the layer scan runs once, at first job), and senders read settings at init, not in `send(...)`. This is an unenforced invariant — `HierarchicalSettings` has no per-key cache. In `logmessage/`, `communication/` send/flush, and `argos/`, always read from a snapshot taken once (the `JobSettings` pattern); never call `njams.getSettings().getX(...)` per job, activity, or message. Flag any live per-execution settings read in review.
 
 When implementing new functionality that touches the runtime monitoring path, consider memory and CPU impact explicitly. If a design choice has a meaningful performance trade-off, raise it before implementing.
 

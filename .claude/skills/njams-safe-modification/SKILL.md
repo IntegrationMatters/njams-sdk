@@ -11,6 +11,10 @@ This SDK is a public API with existing external consumers. All existing behavior
 
 ## Hard Rules
 
+**Verify current behavior by reading the code, not by inferring it from the method name or similar code elsewhere.**
+Confirm behavior by actually reading or running the code before writing baseline tests that assert it. Per the
+"No Unsupported Assumptions" rule in `CLAUDE.md`.
+
 **Never change existing public API without an explicit user request.** This means: no changes to `public` or `protected` method signatures, return types, parameter types, class names, or observable behavior — even if you think the change is safe or an improvement. If you identify a public API issue, raise it with the user instead of fixing it silently.
 
 **Extending the public API is permitted without explicit request.** New `public`/`protected` methods, classes, or overloads may be added freely. Only *changing* or *removing* existing members requires explicit permission.
@@ -126,3 +130,4 @@ If any test fails, revert your implementation change and rethink the approach. T
 | Changing a setting without updating the FAQ | Any change to a setting's behavior, default, deprecation, or removal must be reflected in the wiki FAQ |
 | Treating a passing build as coverage | Compilation proves nothing; tests assert behavior |
 | Writing tests after the change | Tests written post-change just describe what you did, not what the code should do |
+| Assuming current behavior instead of verifying it | Read the code (or run it) to confirm behavior before asserting it in a baseline test |

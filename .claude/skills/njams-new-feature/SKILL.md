@@ -11,6 +11,11 @@ Every `public` or `protected` member you add becomes a permanent commitment to a
 
 ## Hard Rules
 
+**Verify assumptions about existing behavior and dependencies with evidence, not inference.** Before designing
+around how an existing class, library, or the message format behaves, check it in the actual source — never assume
+behavior from a similarly-named API elsewhere or from general familiarity. Per the "No Unsupported Assumptions" rule
+in `CLAUDE.md`.
+
 **All commits must reference the related Jira ticket** using the Smart Commits format: `SDK-XXX #comment <description>`. If no ticket has been provided for the feature, ask before committing.
 
 **When creating a new Jira ticket** (for a feature that has none yet), always set the `fix version` field to the current working copy's version with the `-SNAPSHOT` suffix stripped — read from the root `pom.xml`. Example: working on `6.0.0-SNAPSHOT` → fix version `6.0.0`.
@@ -111,3 +116,4 @@ Before considering the implementation done:
 | New production file missing copyright header | All new production source files must start with the standard Salesfive copyright header (see CLAUDE.md) |
 | Reaching for a new library to solve a problem | Use existing dependencies or the standard library first; if a new one is truly needed, ask before adding and check online for the latest version |
 | Adding allocations or blocking calls to the runtime monitoring path | Raise performance trade-offs before implementing; keep hot paths lean |
+| Assuming how an existing class/library/format behaves instead of checking | Read the actual source before designing around it |
