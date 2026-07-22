@@ -338,6 +338,42 @@ interface ReadOnlyClientSettings extends Iterable<Entry<String, String>> {
     }
 
     /**
+     * Same as {@link #getPropertyWithAlternativeKey(String, String, String)} with {@code null} as default value.
+     *
+     * @param expectedKey    the primary key
+     * @param alternativeKey an equally valid alternative key to try if {@code expectedKey} is not present
+     * @return see {@link #getPropertyWithAlternativeKey(String, String, String)}
+     */
+    default String getPropertyWithAlternativeKey(String expectedKey, String alternativeKey) {
+        return getPropertyWithAlternativeKey(expectedKey, null, alternativeKey);
+    }
+
+    /**
+     * Returns the value for {@code expectedKey} if present. Otherwise, if {@code alternativeKey} is present, its
+     * value is returned. If neither key is present, {@code defaultValue} is returned.
+     * <p>
+     * Unlike {@link #getPropertyWithDeprecationWarning(String, String, String)}, no warning is logged: both keys
+     * are equally valid, permanent spellings of the same setting, and neither is deprecated. This is intended for
+     * settings whose primary key also happens to be a prefix of other settings keys, which makes the primary key
+     * impossible to express in some hierarchical configuration formats (e.g. YAML); the alternative key gives such
+     * sources a collision-free way to set the same value.
+     *
+     * @param expectedKey    the primary key
+     * @param defaultValue   the value to return when neither key is present
+     * @param alternativeKey an equally valid alternative key to try if {@code expectedKey} is not present
+     * @return the resolved value, or {@code defaultValue} if neither key is present
+     */
+    default String getPropertyWithAlternativeKey(String expectedKey, String defaultValue, String alternativeKey) {
+        if (containsKey(expectedKey)) {
+            return getProperty(expectedKey);
+        }
+        if (containsKey(alternativeKey)) {
+            return getProperty(alternativeKey);
+        }
+        return defaultValue;
+    }
+
+    /**
      * Registers additional keys whose values must be treated as secret and masked in log output.
      * Keys are matched case-insensitively as substrings of the actual property keys.
      *

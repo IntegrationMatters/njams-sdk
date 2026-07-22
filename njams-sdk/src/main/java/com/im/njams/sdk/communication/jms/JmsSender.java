@@ -145,7 +145,8 @@ public class JmsSender extends AbstractSender implements ExceptionListener, Clas
     }
 
     private void createProducers(JmsFactory jmsFactory, Session session) throws NamingException, JMSException {
-        final String destination = settings.getProperty(NjamsSettings.PROPERTY_JMS_DESTINATION);
+        final String destination = settings.getPropertyWithAlternativeKey(
+                NjamsSettings.PROPERTY_JMS_DESTINATION, NjamsSettings.PROPERTY_JMS_DESTINATION_PREFIX);
         final String prefix = destination != null ? destination : "njams";
         eventProducer = createProducer(jmsFactory, session, prefix + ".event");
         if (useProjectQueue) {

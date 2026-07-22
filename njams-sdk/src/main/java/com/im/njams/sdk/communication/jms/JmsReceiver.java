@@ -115,7 +115,8 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
      * <li>{@value NjamsSettings#PROPERTY_JMS_CONNECTION_FACTORY}
      * <li>{@value NjamsSettings#PROPERTY_JMS_USERNAME}
      * <li>{@value NjamsSettings#PROPERTY_JMS_PASSWORD}
-     * <li>{@value NjamsSettings#PROPERTY_JMS_DESTINATION}
+     * <li>{@value NjamsSettings#PROPERTY_JMS_DESTINATION} (or its alternative
+     * {@value NjamsSettings#PROPERTY_JMS_DESTINATION_PREFIX})
      * <li>...
      * </ul>
      * For more look in the github FAQ of this project.
@@ -132,7 +133,9 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
         if (StringUtils.isNotBlank(settings.getProperty(NjamsSettings.PROPERTY_JMS_COMMANDS_DESTINATION))) {
             topicName = settings.getProperty(NjamsSettings.PROPERTY_JMS_COMMANDS_DESTINATION);
         } else {
-            topicName = settings.getProperty(NjamsSettings.PROPERTY_JMS_DESTINATION) + ".commands";
+            topicName = settings.getPropertyWithAlternativeKey(
+                    NjamsSettings.PROPERTY_JMS_DESTINATION, NjamsSettings.PROPERTY_JMS_DESTINATION_PREFIX)
+                    + ".commands";
         }
         useMessageselector =
             !"false".equalsIgnoreCase(settings.getProperty(NjamsSettings.PROPERTY_JMS_SUPPORTS_MESSAGE_SELECTOR));

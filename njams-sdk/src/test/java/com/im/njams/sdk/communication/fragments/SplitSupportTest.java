@@ -336,6 +336,33 @@ public class SplitSupportTest {
     }
 
     @Test
+    public void testCommunicationTypeAlternativeKeyResolvesHttpHeaders() {
+        Properties config = new Properties();
+        config.setProperty(NjamsSettings.PROPERTY_MAX_MESSAGE_SIZE, "20");
+        config.setProperty(NjamsSettings.PROPERTY_COMMUNICATION_TYPE, HttpSender.NAME);
+        config.setProperty(SplitSupport.TESTING_NO_LIMIT_CHECKS, "true");
+        splitSupport = new SplitSupport(config, -1);
+
+        Map<String, String> headers = new HashMap<>();
+        splitSupport.addChunkHeaders(headers::put, 5, 10, "uuid");
+        assertEquals("6", headers.get(MessageHeaders.NJAMS_CHUNK_NO_HTTP_HEADER));
+    }
+
+    @Test
+    public void testPrimaryCommunicationKeyTakesPrecedenceOverAlternative() {
+        Properties config = new Properties();
+        config.setProperty(NjamsSettings.PROPERTY_MAX_MESSAGE_SIZE, "20");
+        config.setProperty(NjamsSettings.PROPERTY_COMMUNICATION, JmsSender.COMMUNICATION_NAME);
+        config.setProperty(NjamsSettings.PROPERTY_COMMUNICATION_TYPE, HttpSender.NAME);
+        config.setProperty(SplitSupport.TESTING_NO_LIMIT_CHECKS, "true");
+        splitSupport = new SplitSupport(config, -1);
+
+        Map<String, String> headers = new HashMap<>();
+        splitSupport.addChunkHeaders(headers::put, 5, 10, "uuid");
+        assertEquals("6", headers.get(MessageHeaders.NJAMS_CHUNK_NO_HEADER));
+    }
+
+    @Test
     public void testIterationLoopIndex() {
         init(20);
         String testData45 = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRS";

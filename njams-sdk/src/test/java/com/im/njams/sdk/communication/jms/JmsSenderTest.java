@@ -23,12 +23,14 @@
  */
 package com.im.njams.sdk.communication.jms;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Properties;
 
 import javax.jms.JMSException;
@@ -67,6 +69,7 @@ public class JmsSenderTest {
 
     @Before
     public void beforeEach() {
+        WorkingJmsFactory.reset();
         sender = spy(new JmsSender() {
             @Override
             String serialize(CommonMessage msg) {
@@ -138,5 +141,30 @@ public class JmsSenderTest {
         } finally {
             verify(producer, times(100)).send(any());
         }
+    }
+
+    @Test
+    public void connectUsesDestinationPrefixAlternativeKey() {
+        Properties props = new Properties();
+        props.put(NjamsSettings.PROPERTY_COMMUNICATION, JmsSender.COMMUNICATION_NAME);
+        props.put(NjamsSettings.PROPERTY_JMS_CONNECTION_FACTORY, WorkingJmsFactory.NAME);
+        props.put(NjamsSettings.PROPERTY_JMS_DESTINATION_PREFIX, "njams.alt");
+        JmsSender jmsSender = new JmsSender();
+        jmsSender.init(ClientSettings.from(props));
+        jmsSender.connect();
+        assertEquals(List.of("njams.alt.event"), WorkingJmsFactory.getCreatedQueueNames());
+    }
+
+    @Test
+    public void connectPrefersPrimaryDestinationKeyOverAlternative() {
+        Properties props = new Properties();
+        props.put(NjamsSettings.PROPERTY_COMMUNICATION, JmsSender.COMMUNICATION_NAME);
+        props.put(NjamsSettings.PROPERTY_JMS_CONNECTION_FACTORY, WorkingJmsFactory.NAME);
+        props.put(NjamsSettings.PROPERTY_JMS_DESTINATION, "njams.primary");
+        props.put(NjamsSettings.PROPERTY_JMS_DESTINATION_PREFIX, "njams.alt");
+        JmsSender jmsSender = new JmsSender();
+        jmsSender.init(ClientSettings.from(props));
+        jmsSender.connect();
+        assertEquals(List.of("njams.primary.event"), WorkingJmsFactory.getCreatedQueueNames());
     }
 }

@@ -102,4 +102,45 @@ public class CommunicationFactoryTest {
         }
     }
 
+    @Test
+    public void communicationTypeAlternativeKeyIsAccepted() {
+        Settings settings = new Settings();
+        settings.put(NjamsSettings.PROPERTY_COMMUNICATION_TYPE, TestSender.NAME);
+
+        AbstractSender sender = mock(AbstractSender.class);
+        TestSender.setSenderMock(sender);
+        CommunicationFactory factory = new CommunicationFactory(settings);
+        assertTrue(factory.getSender() instanceof TestSender);
+
+        Receiver receiver = mock(Receiver.class);
+        TestReceiver.setReceiverMock(receiver);
+        assertTrue(factory.getReceiver(njams) instanceof TestReceiver);
+    }
+
+    @Test
+    public void primaryCommunicationKeyTakesPrecedenceOverAlternative() {
+        Settings settings = createSettings(TestSender.NAME);
+        settings.put(NjamsSettings.PROPERTY_COMMUNICATION_TYPE, FailingJmsFactory.NAME);
+
+        AbstractSender sender = mock(AbstractSender.class);
+        TestSender.setSenderMock(sender);
+        CommunicationFactory factory = new CommunicationFactory(settings);
+        assertTrue(factory.getSender() instanceof TestSender);
+    }
+
+    @Test
+    public void missingBothCommunicationKeysThrows() {
+        CommunicationFactory factory = new CommunicationFactory(new Settings());
+        try {
+            factory.getSender();
+            fail("IllegalStateException expected");
+        } catch (IllegalStateException e) {
+        }
+        try {
+            factory.getReceiver(njams);
+            fail("IllegalStateException expected");
+        } catch (IllegalStateException e) {
+        }
+    }
+
 }

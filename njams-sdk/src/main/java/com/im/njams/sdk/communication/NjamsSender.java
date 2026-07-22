@@ -111,13 +111,14 @@ public class NjamsSender {
     /**
      * This constructor initializes a NjamsSender. It saves
      * the settings and gets the name for the executor threads from the settings
-     * with the key: njams.sdk.communication.
+     * with the key: njams.sdk.communication (or its alternative njams.sdk.communication.type).
      *
      * @param settings the setting where some settings will be taken from.
      */
     public NjamsSender(ClientSettings settings) {
         this.settings = settings;
-        name = settings.getProperty(NjamsSettings.PROPERTY_COMMUNICATION);
+        name = settings.getPropertyWithAlternativeKey(
+                NjamsSettings.PROPERTY_COMMUNICATION, NjamsSettings.PROPERTY_COMMUNICATION_TYPE);
         init();
     }
 
@@ -242,7 +243,7 @@ public class NjamsSender {
 
     /**
      * This method returns the name that was set in the settings with the key
-     * njams.sdk.communication.
+     * njams.sdk.communication (or its alternative njams.sdk.communication.type).
      *
      * @return the value to key njams.sdk.communication in the
      * settings

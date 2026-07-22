@@ -74,15 +74,17 @@ public class CommunicationFactory {
     }
 
     /**
-     * Returns the Receiver specified by the value of {@value NjamsSettings#PROPERTY_COMMUNICATION}
-     * specified in the CommunicationProperties in the Settings
+     * Returns the Receiver specified by the value of {@value NjamsSettings#PROPERTY_COMMUNICATION} (or its
+     * alternative {@value NjamsSettings#PROPERTY_COMMUNICATION_TYPE}) specified in the CommunicationProperties
+     * in the Settings
      *
      * @param njams The {@link Njams} client instance for that messages shall be received.
      * @return new initialized Receiver
      */
     public Receiver getReceiver(Njams njams) {
-        if (settings.containsKey(NjamsSettings.PROPERTY_COMMUNICATION)) {
-            String requiredReceiverName = settings.getProperty(NjamsSettings.PROPERTY_COMMUNICATION);
+        String requiredReceiverName = settings.getPropertyWithAlternativeKey(
+                NjamsSettings.PROPERTY_COMMUNICATION, NjamsSettings.PROPERTY_COMMUNICATION_TYPE);
+        if (requiredReceiverName != null) {
             if ("HTTPS".equalsIgnoreCase(requiredReceiverName)) {
                 requiredReceiverName = "HTTP";
             }
@@ -101,7 +103,7 @@ public class CommunicationFactory {
                             + available);
         }
         throw new IllegalStateException("Unable to find " + NjamsSettings.PROPERTY_COMMUNICATION
-                + " in settings properties");
+                + " (or its alternative " + NjamsSettings.PROPERTY_COMMUNICATION_TYPE + ") in settings properties");
     }
 
     private Class<? extends Receiver> findReceiverType(String name, boolean wantsSharable) {
@@ -158,18 +160,20 @@ public class CommunicationFactory {
     }
 
     /**
-     * Returns the Sender specified by the value of {@value NjamsSettings#PROPERTY_COMMUNICATION}
-     * specified in the CommunicationProperties in the Settings
+     * Returns the Sender specified by the value of {@value NjamsSettings#PROPERTY_COMMUNICATION} (or its
+     * alternative {@value NjamsSettings#PROPERTY_COMMUNICATION_TYPE}) specified in the CommunicationProperties
+     * in the Settings
      *
      * @return new initialized Sender
      */
     public AbstractSender getSender() {
-        if (!settings.containsKey(NjamsSettings.PROPERTY_COMMUNICATION)) {
+        final String requiredSenderName = settings.getPropertyWithAlternativeKey(
+                NjamsSettings.PROPERTY_COMMUNICATION, NjamsSettings.PROPERTY_COMMUNICATION_TYPE);
+        if (requiredSenderName == null) {
             throw new IllegalStateException("Unable to find " + NjamsSettings.PROPERTY_COMMUNICATION
                     + " in settings properties");
         }
         final ServiceLoaderSupport<AbstractSender> senders = getSenderLoader();
-        final String requiredSenderName = settings.getProperty(NjamsSettings.PROPERTY_COMMUNICATION);
         final AbstractSender sender = senders.find(s -> s.getName().equalsIgnoreCase(requiredSenderName));
         if (sender != null) {
             try {

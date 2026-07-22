@@ -47,6 +47,9 @@ public class ServiceLoaderSupportTest {
         // However, there is no test for the failing instance since the internal iterator skips that
         // entry except for the very first access. At least there is a DEBUG message printed once
         // for that case.
+        // FailingJmsFactory always fails to construct and is filtered out, leaving: NoopJmsFactory and
+        // WorkingJmsFactory (test), plus JndiJmsFactory, ActiveMqSslJmsFactory, and
+        // AzureServiceBusJmsFactory (production) = 5.
         toTest = new ServiceLoaderSupport<>(JmsFactory.class);
     }
 
@@ -66,7 +69,7 @@ public class ServiceLoaderSupportTest {
     public void testGetAll() {
         Collection<JmsFactory> all = toTest.getAll();
         assertNotNull(all);
-        assertEquals(4, all.size());
+        assertEquals(5, all.size());
         for (JmsFactory f : all) {
             assertNotNull(f);
         }

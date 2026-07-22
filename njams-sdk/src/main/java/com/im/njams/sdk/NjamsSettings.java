@@ -53,6 +53,18 @@ public class NjamsSettings {
     public static final String PROPERTY_COMMUNICATION = "njams.sdk.communication";
 
     /**
+     * Equally valid alternative key for {@value #PROPERTY_COMMUNICATION}. {@value #PROPERTY_COMMUNICATION} is
+     * also the prefix of every transport-specific setting (e.g. {@value #PROPERTY_HTTP_BASE_URL},
+     * {@value #PROPERTY_JMS_DESTINATION}), so it cannot be expressed in a hierarchical configuration format
+     * such as YAML, where a key can be either a scalar value or a parent of nested keys, but never both. This
+     * key provides a collision-free alternative for such sources; either key can be used interchangeably, and
+     * neither is deprecated.
+     *
+     * @since 6.0.0
+     */
+    public static final String PROPERTY_COMMUNICATION_TYPE = "njams.sdk.communication.type";
+
+    /**
      * Limits the message size for messages being sent to the server. The given value is the maximum size in bytes.
      * Only the message body (JSON) is truncated by this value. Message headers are not considered. If the transport's
      * limitation includes the headers, the configured value has to be accordingly smaller. A value of 0 or less
@@ -519,6 +531,17 @@ public class NjamsSettings {
      * This is the prefix of the event, command and error queue, and the commands topic.
      */
     public static final String PROPERTY_JMS_DESTINATION = "njams.sdk.communication.jms.destination";
+
+    /**
+     * Equally valid alternative key for {@value #PROPERTY_JMS_DESTINATION}. {@value #PROPERTY_JMS_DESTINATION}
+     * is also the prefix of {@value #PROPERTY_JMS_COMMANDS_DESTINATION}, so it cannot be expressed in a
+     * hierarchical configuration format such as YAML, where a key can be either a scalar value or a parent of
+     * nested keys, but never both. This key provides a collision-free alternative for such sources; either key
+     * can be used interchangeably, and neither is deprecated.
+     *
+     * @since 6.0.0
+     */
+    public static final String PROPERTY_JMS_DESTINATION_PREFIX = "njams.sdk.communication.jms.destination.prefix";
 
     /**
      * This is the the commands topic to use, if its name does not match the common convention using the

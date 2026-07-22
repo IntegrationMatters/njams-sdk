@@ -219,6 +219,8 @@ The sender thread pool (`maxSenderThreads`, default 8) asynchronously dispatches
 
 Configuration providers (`ConfigurationProvider` implementations) allow loading settings from files, classpath resources, or in-memory properties.
 
+**Never introduce a new setting key that is also the dotted prefix of another setting key.** `ClientSettings` is a flat map of dotted string keys, which some settings sources (e.g. a hypothetical YAML-backed provider) map onto nested structure by splitting on `.`. A key that is simultaneously a leaf value and the prefix of another key (e.g. `njams.sdk.communication` next to `njams.sdk.communication.http.base.url`) cannot be represented that way — a mapping key resolves to either a scalar or a nested mapping, never both. `njams.sdk.communication`/`njams.sdk.communication.type` and `njams.sdk.communication.jms.destination`/`njams.sdk.communication.jms.destination.prefix` are existing collisions worked around with an equally-valid alternative key (via `ReadOnlyClientSettings.getPropertyWithAlternativeKey`, no deprecation warning, since neither spelling is deprecated). When designing a new setting, check its key against the existing prefixes in `NjamsSettings`, and never add a new key that shares this shape.
+
 ### Process Diagram Generation (`model/svg/`)
 
 `ProcessDiagramFactory` generates SVG diagrams from `ProcessModel` definitions. The `model/layout/` package provides automatic layout algorithms for positioning activities. The default factory can be replaced with an XSLT-based variant.

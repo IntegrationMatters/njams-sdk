@@ -193,7 +193,8 @@ public class SplitSupport {
      * @param techLimit technical maximum message size imposed by the transport, or &lt;= 0 if none
      */
     public SplitSupport(final ClientSettings settings, final int techLimit) {
-        final String transport = settings.getProperty(NjamsSettings.PROPERTY_COMMUNICATION);
+        final String transport = settings.getPropertyWithAlternativeKey(
+                NjamsSettings.PROPERTY_COMMUNICATION, NjamsSettings.PROPERTY_COMMUNICATION_TYPE);
 
         final int configuredLimit = settings.getInt(NjamsSettings.PROPERTY_MAX_MESSAGE_SIZE, -1);
         if (settings.getBool(TESTING_NO_LIMIT_CHECKS, false)) {

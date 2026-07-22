@@ -206,6 +206,33 @@ public class JmsReceiverTest {
         assertEquals("njams4.overwritten", impl.getTopicName());
     }
 
+    /**
+     * This method tests if {@value NjamsSettings#PROPERTY_JMS_DESTINATION_PREFIX} is accepted as an
+     * equally valid alternative to {@value NjamsSettings#PROPERTY_JMS_DESTINATION}.
+     */
+    @Test
+    public void testDestinationPrefixAlternativeKey() {
+        JmsReceiverMock.testBeforeInit(impl);
+        Properties p = new Properties();
+        p.put(NjamsSettings.PROPERTY_JMS_DESTINATION_PREFIX, "njams4.alt");
+        impl.init(ClientSettings.from(p));
+        assertEquals("njams4.alt.commands", impl.getTopicName());
+    }
+
+    /**
+     * This method tests that {@value NjamsSettings#PROPERTY_JMS_DESTINATION} takes precedence over its
+     * alternative {@value NjamsSettings#PROPERTY_JMS_DESTINATION_PREFIX} when both are set.
+     */
+    @Test
+    public void testDestinationKeyTakesPrecedenceOverAlternative() {
+        JmsReceiverMock.testBeforeInit(impl);
+        Properties p = new Properties();
+        p.put(NjamsSettings.PROPERTY_JMS_DESTINATION, "njams4.primary");
+        p.put(NjamsSettings.PROPERTY_JMS_DESTINATION_PREFIX, "njams4.alt");
+        impl.init(ClientSettings.from(p));
+        assertEquals("njams4.primary.commands", impl.getTopicName());
+    }
+
     //connect tests
 
     /**
