@@ -35,6 +35,7 @@ import org.junit.Assert;
 import org.junit.Test;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
+import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
 import com.im.njams.sdk.Path;
@@ -726,6 +727,77 @@ public class NjamsProcessDiagramFactoryTest {
         Assert.assertEquals("Tooltip must sit on the line and hold the full label",
             "Alpha Beta Gamma Delta", line.getAttributeNS(null, TOOLTIP_ATTR));
         Assert.assertFalse("No label text element may carry the tooltip", anyTextHasTooltip(context.getDoc()));
+    }
+
+    @Test
+    public void createSvg_groupPrecedesRootTransitionTouchingItsBorder() throws Exception {
+        // SDK-471: a root-level transition into/out of a group's border must not be painted over by
+        // the group's opaque background, which requires the group to precede the transition in the DOM.
+        ProcessModel pm = new ProcessModel(Path.of("PROCESSES"), null);
+        ActivityModel a = pm.createActivity("a", "A", "step");
+        a.setX(0);
+        a.setY(0);
+        GroupModel g = pm.createGroup("g1", "G", "loop");
+        g.setX(200);
+        g.setY(0);
+        g.setWidth(200);
+        g.setHeight(150);
+        TransitionModel t = pm.createTransition("a", "g1");
+
+        NjamsProcessDiagramFactory factory = new NjamsProcessDiagramFactory(false);
+        NjamsProcessDiagramContext context = createSimpleContext();
+        factory.createSvg(context, pm);
+
+        Element groupElement = findByTagAndAttr(context.getDoc(), "g", "modelId", "g1");
+        Element transitionLine = findByTagAndAttr(context.getDoc(), "line", "modelId", t.getId());
+        Assert.assertNotNull("Expected the group's <g> element", groupElement);
+        Assert.assertNotNull("Expected the transition's <line> element", transitionLine);
+
+        int order = groupElement.compareDocumentPosition(transitionLine);
+        Assert.assertTrue(
+            "Group element must precede the transition touching its border, otherwise the group's "
+                + "opaque background paints over the transition",
+            (order & Node.DOCUMENT_POSITION_FOLLOWING) != 0);
+    }
+
+    @Test
+    public void drawGroup_childGroupPrecedesOwnTransitionTouchingItsBorder() throws Exception {
+        // SDK-471: same ordering defect one level down — a group's own transition that touches a
+        // nested subgroup's border must not be hidden behind that subgroup's opaque background.
+        ProcessModel pm = new ProcessModel(Path.of("PROCESSES"), null);
+        GroupModel outer = pm.createGroup("outer", "Outer", "loop");
+        outer.setX(0);
+        outer.setY(0);
+        outer.setWidth(400);
+        outer.setHeight(300);
+
+        ActivityModel act = outer.createChildActivity("act", "Act", "step");
+        act.setX(20);
+        act.setY(50);
+
+        GroupModel inner = outer.createChildGroup("inner", "Inner", "loop");
+        inner.setX(200);
+        inner.setY(50);
+        inner.setWidth(150);
+        inner.setHeight(150);
+
+        TransitionModel t = pm.createTransition("act", "inner");
+        outer.addChildTransition(t);
+
+        NjamsProcessDiagramFactory factory = new NjamsProcessDiagramFactory(false);
+        NjamsProcessDiagramContext context = createDrawableContext("cat");
+        factory.drawGroup(context, outer);
+
+        Element innerGroupElement = findByTagAndAttr(context.getDoc(), "g", "modelId", "inner");
+        Element transitionLine = findByTagAndAttr(context.getDoc(), "line", "modelId", t.getId());
+        Assert.assertNotNull("Expected the inner group's <g> element", innerGroupElement);
+        Assert.assertNotNull("Expected the transition's <line> element", transitionLine);
+
+        int order = innerGroupElement.compareDocumentPosition(transitionLine);
+        Assert.assertTrue(
+            "Inner group element must precede the outer group's transition touching its border, otherwise "
+                + "the inner group's opaque background paints over the transition",
+            (order & Node.DOCUMENT_POSITION_FOLLOWING) != 0);
     }
 
     @Test
