@@ -293,50 +293,6 @@ public abstract class AbstractReceiver implements Receiver {
     }
 
     /**
-     * {@inheritDoc}
-     * <p>
-     * On failure, if {@code reconnectOnFailure} is {@code true}, permits the shared coordinator's reconnect gate
-     * (see {@link ConnectionCoordinator#allowReconnectBeforeConnected()}) and starts the background reconnect loop
-     * instead of leaving the receiver inactive; {@code start()}'s caller may then proceed. The reconnect runs on a
-     * separate background thread, not on the caller's thread. In either case, a startup connect thread still blocked
-     * past {@code timeoutMs} is interrupted via {@link #cancelReconnect()} so it cannot race a subsequently started
-     * reconnect attempt.
-     */
-    @Override
-    public boolean startWithTimeout(long timeoutMs, boolean reconnectOnFailure) {
-        if (reconnectOnFailure) {
-            coordinator.allowReconnectBeforeConnected();
-        }
-        try {
-            startWithTimeout(timeoutMs);
-            return true;
-        } catch (NjamsSdkRuntimeException e) {
-            if (reconnectOnFailure) {
-                // Only start a new reconnect thread if one is not already running. This guards against
-                // duplicating a reconnect that beginConnect() already started (and is retrying) unconditionally
-                // on its own connect() failure. reconnectThread is read once into a local: the
-                // field is volatile and reconnect() (running concurrently on beginConnect()'s startup thread)
-                // may overwrite it at any moment, so re-reading the field for setDaemon()/setName()/start()
-                // below could otherwise apply those calls to a different, already-started Thread object and
-                // make start() throw IllegalThreadStateException.
-                Thread currentReconnectThread = reconnectThread;
-                if (currentReconnectThread == null || !currentReconnectThread.isAlive()) {
-                    cancelReconnect(); // interrupt a startup connect thread still genuinely blocked in connect() past timeout
-                    Thread newReconnectThread = new Thread(() -> reconnect(e));
-                    newReconnectThread.setDaemon(true);
-                    newReconnectThread.setName(String.format("Receiver-Startup-Reconnector-Thread[%s/%d]", getName(),
-                        System.identityHashCode(this)));
-                    reconnectThread = newReconnectThread;
-                    newReconnectThread.start();
-                }
-                return true;
-            }
-            cancelReconnect();
-            return false;
-        }
-    }
-
-    /**
      * This method tries to establish the connection over and over as long as it
      * not connected. If {@link #connect() connect} throws an exception, the
      * reconnection threads sleeps for
@@ -406,11 +362,11 @@ public abstract class AbstractReceiver implements Receiver {
         } finally {
             // Clear the field once the loop exits, but only if it still references this thread. reconnect()
             // itself is synchronized, so no second thread can be executing this method body concurrently — but
-            // onException() and startWithTimeout(long, boolean) both create-and-assign a new reconnect thread
-            // to this same field before starting it, and that new thread may be waiting on this method's
-            // monitor and then run its own "if (doReconnect) { reconnectThread = ... }" assignment after this
-            // thread's loop exits but before (or while) this finally block runs. Clearing unconditionally would
-            // then wrongly un-alias that other, now-current reconnect attempt.
+            // onException() creates-and-assigns a new reconnect thread to this same field before starting it,
+            // and that new thread may be waiting on this method's monitor and then run its own
+            // "if (doReconnect) { reconnectThread = ... }" assignment after this thread's loop exits but before
+            // (or while) this finally block runs. Clearing unconditionally would then wrongly un-alias that
+            // other, now-current reconnect attempt.
             if (reconnectThread == Thread.currentThread()) {
                 reconnectThread = null;
             }

@@ -126,52 +126,6 @@ public class NjamsTest {
         instance.start();
     }
 
-    @Test
-    public void testStartReturnsFalseWhenReceiverTimesOut() {
-        Receiver hangingReceiver = new Receiver() {
-            @Override public String getName() { return "HangingReceiver"; }
-            @Override public void init(ClientSettings settings) {}
-            @Override public void setNjams(Njams njams) {}
-            @Override public void onInstruction(Instruction i) {}
-            @Override public void start() {}
-            @Override public void stop() {}
-            @Override public void startWithTimeout(long timeoutMs) {
-                throw new NjamsSdkRuntimeException("Simulated startup timeout");
-            }
-        };
-        TestReceiver.setReceiverMock(hangingReceiver);
-        try {
-            boolean result = instance.start();
-            assertFalse("start() must return false when receiver times out", result);
-            assertFalse("SDK must not be started after receiver timeout", instance.isStarted());
-        } finally {
-            TestReceiver.setReceiverMock(null);
-        }
-    }
-
-    @Test
-    public void testStartReturnsFalseWhenReceiverThrows() {
-        Receiver failingReceiver = new Receiver() {
-            @Override public String getName() { return "FailingReceiver"; }
-            @Override public void init(ClientSettings settings) {}
-            @Override public void setNjams(Njams njams) {}
-            @Override public void onInstruction(Instruction i) {}
-            @Override public void start() {}
-            @Override public void stop() {}
-            @Override public void startWithTimeout(long timeoutMs) {
-                throw new NjamsSdkRuntimeException("Simulated connect error");
-            }
-        };
-        TestReceiver.setReceiverMock(failingReceiver);
-        try {
-            boolean result = instance.start();
-            assertFalse("start() must return false when receiver throws on connect", result);
-            assertFalse("SDK must not be started when receiver connect fails", instance.isStarted());
-        } finally {
-            TestReceiver.setReceiverMock(null);
-        }
-    }
-
     /**
      * Minimal {@code AbstractReceiver & ShareableReceiver} whose {@link #removeNjams(Njams)} return value is
      * fixed at construction time, and whose {@link #cancelReconnect()} is overridden (instead of touching real
@@ -266,9 +220,8 @@ public class NjamsTest {
 
     @Test
     public void testBeginConnectBeforeStartDoesNotBreakStart() {
-        // The connection is pre-started at construction time; start() must still complete normally
-        // and must drive the connection through startWithTimeout (not the plain start()).
-        final boolean[] startWithTimeoutCalled = {false};
+        // The connection is pre-started at construction time (beginConnect()); start() must still complete
+        // normally regardless — the receiver's own connect outcome no longer gates start() at all.
         Receiver okReceiver = new Receiver() {
             @Override public String getName() { return "OkReceiver"; }
             @Override public void init(ClientSettings settings) {}
@@ -276,15 +229,11 @@ public class NjamsTest {
             @Override public void onInstruction(Instruction i) {}
             @Override public void start() {}
             @Override public void stop() {}
-            @Override public void startWithTimeout(long timeoutMs) {
-                startWithTimeoutCalled[0] = true;
-            }
         };
         TestReceiver.setReceiverMock(okReceiver);
         try {
             boolean result = instance.start();
-            assertTrue("start() must succeed when the receiver connects", result);
-            assertTrue("startReceiver() must use startWithTimeout", startWithTimeoutCalled[0]);
+            assertTrue("start() must succeed regardless of the receiver's own connect outcome", result);
             assertTrue(instance.isStarted());
         } finally {
             if (instance.isStarted()) {

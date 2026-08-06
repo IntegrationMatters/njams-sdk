@@ -188,7 +188,7 @@ public class Njams implements InstructionListener {
     private NjamsSender sender;
     private Receiver receiver;
 
-    /** Receiver pre-created at construction time, transferred to {@link #receiver} inside {@link #startReceiver(boolean)}. */
+    /** Receiver pre-created at construction time, transferred to {@link #receiver} inside {@link #startReceiver()}. */
     private Receiver earlyReceiver;
 
     private NjamsConfiguration configuration;
@@ -649,10 +649,10 @@ public class Njams implements InstructionListener {
 
     /**
      * Pre-creates the sender and receiver and starts both their connection attempts in the background, so the
-     * connections overlap with the remaining application setup. The sender is obtained first so its {@code
-     * ConnectionCoordinator} exists to be shared with the receiver (see {@link NjamsSender#wireReceiver
-     * (Receiver)}) — both then consult the same lifecycle state. Called automatically at construction time.
-     * Idempotent and best-effort: any failure is swallowed and {@link #startReceiver(boolean)} will retry.
+     * connections overlap with the remaining application setup. Called automatically at construction time.
+     * Idempotent and best-effort: any failure is swallowed and {@link #startReceiver()} will retry creating the
+     * receiver. Cross-side connection verification (see {@link NjamsSender#wireReceiver(Receiver)}) is wired
+     * later, in {@link #startReceiver()} — not here — since it depends on nothing this early pre-warming needs.
      */
     private void beginConnect() {
         if (earlyReceiver != null || lifecycle.isStarted()) {
@@ -666,9 +666,6 @@ public class Njams implements InstructionListener {
         }
         try {
             earlyReceiver = new CommunicationFactory(settings).getReceiver(this);
-            if (earlySender != null) {
-                earlySender.wireReceiver(earlyReceiver);
-            }
             if (earlyReceiver instanceof AbstractReceiver) {
                 ((AbstractReceiver) earlyReceiver).beginConnect();
             }
@@ -682,14 +679,14 @@ public class Njams implements InstructionListener {
     }
 
     /**
-     * Start the receiver, which is used to retrieve instructions.
-     *
-     * @param reconnectOnFailure whether a startup connect failure should enter background reconnect (per {@link
-     *         NjamsSettings#PROPERTY_COMMUNICATION_STARTUP_FAILBEHAVIOR}) instead of failing startup.
-     * @return {@code true} if the receiver is connected, or reconnecting in the background under the {@code
-     *         reconnect} policy; {@code false} to fail startup.
+     * Best-effort receiver setup: resolves the receiver (from the pre-warmed {@code earlyReceiver} or newly
+     * created) and wires it to the active sender group for cross-side connection verification (see
+     * {@link NjamsSender#wireReceiver(Receiver)}). The receiver's connection outcome never affects {@code
+     * start()} — a construction or connection failure is logged and the SDK proceeds without a working receiver;
+     * only the sender is critical to startup (see {@link #start()}). The receiver itself was already told to
+     * begin connecting in the background by {@link #beginConnect()}; this method does not wait for it.
      */
-    private boolean startReceiver(boolean reconnectOnFailure) {
+    private void startReceiver() {
         try {
             final NjamsSender activeSender = getSender();
             if (earlyReceiver != null) {
@@ -701,25 +698,13 @@ public class Njams implements InstructionListener {
             if (activeSender != null) {
                 activeSender.wireReceiver(receiver);
             }
-            long timeoutMs = settings.getLong(
-                NjamsSettings.PROPERTY_COMMUNICATION_CONNECT_TIMEOUT, DEFAULT_CONNECT_TIMEOUT_MS);
-            if (!receiver.startWithTimeout(timeoutMs, reconnectOnFailure)) {
-                LOG.error("SDK startup failed: receiver could not connect and startup fail-behavior is 'fail'. "
-                    + "The SDK instance is inactive.");
-                stopReceiverAfterStartupFailure(receiver);
-                receiver = null;
-                return false;
-            }
             if (receiver instanceof SenderExceptionListener && activeSender != null) {
                 activeSender.addSenderExceptionListener((SenderExceptionListener) receiver);
             }
-            return true;
         } catch (Exception e) {
-            LOG.error("SDK startup failed: could not establish communication connection. "
-                + "The SDK instance is inactive.", e);
-            stopReceiverAfterStartupFailure(receiver);
+            LOG.warn("Failed to initialize the receiver; the SDK will operate without receiving server "
+                + "commands until this is resolved.", e);
             receiver = null;
-            return false;
         }
     }
 
@@ -737,16 +722,13 @@ public class Njams implements InstructionListener {
             configuration.initializeDataMasking();
             commands.add(this);
             commands.add(new ConfigurationInstructionListener(this));
-            boolean reconnectOnFailure = NjamsSender.reconnectOnStartupFailure(settings);
-            if (!startReceiver(reconnectOnFailure)) {
-                releasePrewarmedSender();
-                return false;
-            }
+            startReceiver();
             final NjamsSender activeSender = getSender();
             if (activeSender != null) {
                 long timeoutMs = settings.getLong(
                     NjamsSettings.PROPERTY_COMMUNICATION_CONNECT_TIMEOUT, DEFAULT_CONNECT_TIMEOUT_MS);
-                if (!activeSender.startWithTimeout(timeoutMs)) {
+                boolean reconnectOnFailure = NjamsSender.reconnectOnStartupFailure(settings);
+                if (!activeSender.startWithTimeout(timeoutMs, reconnectOnFailure)) {
                     LOG.error("SDK startup failed: sender could not connect and startup fail-behavior is 'fail'. "
                         + "The SDK instance is inactive.");
                     stopReceiverAfterStartupFailure(receiver);
@@ -765,17 +747,15 @@ public class Njams implements InstructionListener {
     }
 
     /**
-     * Stops the given receiver after a startup failure (sender or receiver side), unregistering this instance
-     * from a shared receiver via {@link ShareableReceiver#removeNjams(Njams)} where applicable instead of
-     * stopping it outright for every instance still using it — mirroring {@link #stop()}'s own gating exactly.
-     * Only once that determines this really was the last user (trivially true for a non-{@code ShareableReceiver}
-     * {@link AbstractReceiver}) does this cancel any reconnect the receiver's own shared connection coordinator
-     * may already have self-triggered (see {@link AbstractReceiver#beginConnect()}) purely because that
-     * coordinator's group already permits reconnecting — e.g. because the sender of the same group connected
-     * first — independently of this startup's own fail-fast decision. Without cancelling it, that reconnect could
-     * later succeed on its own, leaving a live connection this {@code Njams} instance no longer references and
-     * never stops. Cancelling unconditionally instead would wrongly kill a reconnect a still-registered sharing
-     * instance depends on.
+     * Stops the given receiver after a sender startup failure, unregistering this instance from a shared receiver
+     * via {@link ShareableReceiver#removeNjams(Njams)} where applicable instead of stopping it outright for every
+     * instance still using it — mirroring {@link #stop()}'s own gating exactly. Only once that determines this
+     * really was the last user (trivially true for a non-{@code ShareableReceiver} {@link AbstractReceiver}) does
+     * this signal shutdown and cancel any reconnect the receiver may already be running on its own — the receiver
+     * always retries its own connection unconditionally in the background (see {@link AbstractReceiver#beginConnect()}),
+     * independently of this startup's sender-side fail-fast decision, so it may already be reconnecting by the
+     * time the sender's own failure is discovered. Signalling/cancelling unconditionally instead would wrongly
+     * stop a reconnect a still-registered sharing instance depends on.
      *
      * @param failedReceiver the receiver to stop; {@code null} is a no-op.
      */
@@ -792,6 +772,7 @@ public class Njams implements InstructionListener {
                 reallyStopped = true;
             }
             if (reallyStopped && failedReceiver instanceof AbstractReceiver) {
+                ((AbstractReceiver) failedReceiver).setShouldShutdown(true);
                 ((AbstractReceiver) failedReceiver).cancelReconnect();
             }
         } catch (Exception ex) {
@@ -828,10 +809,10 @@ public class Njams implements InstructionListener {
      * Stop a client; it stop processing and release the connections. It can't
      * be stopped before it started. (NjamsSdkRuntimeException)
      * <p>
-     * Closing the sender marks its {@code ConnectionCoordinator} as shutting down; since the receiver was wired to
-     * share that same coordinator (see {@link #beginConnect()} / {@link #startReceiver(boolean)}), the receiver's
-     * in-progress reconnect is only cancelled here once it is really stopped — i.e. once the last {@code Njams}
-     * instance using a shared receiver has stopped it (see {@link ShareableReceiver#removeNjams}).
+     * The sender and receiver are signalled independently: closing the sender marks its own {@code
+     * ConnectionCoordinator} as shutting down; separately, once the receiver is really stopped — i.e. once the
+     * last {@code Njams} instance using a shared receiver has stopped it (see {@link ShareableReceiver#removeNjams})
+     * — its own, independent coordinator is told to shut down and its in-progress reconnect is cancelled.
      *
      * @return true is stopping was successful.
      */
@@ -854,6 +835,7 @@ public class Njams implements InstructionListener {
                 reallyStopped = true;
             }
             if (reallyStopped && receiver instanceof AbstractReceiver) {
+                ((AbstractReceiver) receiver).setShouldShutdown(true);
                 ((AbstractReceiver) receiver).cancelReconnect();
             }
         }

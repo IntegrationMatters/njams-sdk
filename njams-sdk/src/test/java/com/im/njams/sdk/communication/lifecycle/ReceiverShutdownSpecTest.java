@@ -63,4 +63,22 @@ public class ReceiverShutdownSpecTest extends AbstractLifecycleSpecTest {
         assertTrue(stopped);
         assertFalse("must not still be started", njams.isStarted());
     }
+
+    @Test
+    public void stopSetsShouldShutdownDirectlyOnTheReceiver() throws Exception {
+        njams = new Njams(Path.of("test", "receiverShutdownDirect"), "1.0", "test", LifecycleTestTransport.settings());
+        assertTrue(njams.start());
+
+        LifecycleTestReceiver receiver = LifecycleTestReceiver.lastCreated();
+        assertNotNull("Njams must have constructed a receiver reachable through the test registry", receiver);
+
+        assertTrue(njams.stop());
+
+        // With independent coordinators, a stray reconnect after stop() can only see shouldShutdown() == true if
+        // Njams.stop() told this receiver directly — there is no shared instance to observe it via a side effect.
+        CountDownLatch attempted = LifecycleTestTransport.receiverConnectAttemptedLatch();
+        receiver.reconnect(new IllegalStateException("late failure observed after stop()"));
+        assertFalse("stop() must have set shouldShutdown directly on this receiver's own coordinator",
+            attempted.await(500, TimeUnit.MILLISECONDS));
+    }
 }
