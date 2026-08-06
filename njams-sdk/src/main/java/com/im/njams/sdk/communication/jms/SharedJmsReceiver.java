@@ -39,6 +39,7 @@ import org.slf4j.LoggerFactory;
 import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.Path;
+import com.im.njams.sdk.communication.AbstractReceiver;
 import com.im.njams.sdk.communication.ShareableReceiver;
 import com.im.njams.sdk.communication.SharedReceiverSupport;
 import com.im.njams.sdk.utils.StringUtils;
@@ -82,10 +83,21 @@ public class SharedJmsReceiver extends JmsReceiver implements ShareableReceiver<
         }
     }
 
+    /**
+     * {@inheritDoc}
+     * <p>
+     * Once really stopped (the last registered instance was just removed), cancels any in-progress reconnect
+     * <em>before</em> re-entering this receiver's monitor below: {@link AbstractReceiver#reconnect(Exception)} is
+     * {@code synchronized} on {@code this} and holds that monitor for its entire retry loop (including a
+     * potentially blocking {@link #connect()} and the backoff sleep between attempts). Without cancelling first,
+     * a reconnect in flight at the exact moment the last instance is removed would otherwise block this call —
+     * and therefore the caller's {@code Njams.stop()} — for the remainder of that reconnect attempt.
+     */
     @Override
     public boolean removeNjams(Njams njamsInstance) {
         boolean reallyStopped = sharingSupport.removeNjams(njamsInstance);
         if (reallyStopped) {
+            cancelReconnect();
             synchronized (this) {
                 updateFilters();
                 if (useMessageselector) {

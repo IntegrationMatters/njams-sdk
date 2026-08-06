@@ -394,6 +394,31 @@ public class AbstractReceiverTest {
     }
 
     @Test
+    public void reconnectDoesNotAliasTheCallingThreadAfterAnEarlyShutdownReturn() throws Exception {
+        AbstractReceiverImpl impl = new AbstractReceiverImpl();
+        impl.setShouldShutdown(true);
+        impl.reconnect(new NjamsSdkRuntimeException("Test")); // returns immediately: shutdown already requested
+        // The calling (JUnit) thread must not have been left referenced as the receiver's reconnect thread —
+        // otherwise a later cancelReconnect() (e.g. from an unrelated test's teardown) would interrupt this
+        // thread instead of being a no-op, corrupting whatever runs on it next (SDK-375 final-review finding #1).
+        impl.cancelReconnect();
+        assertFalse("cancelReconnect() must not interrupt the calling thread after an early-return reconnect() "
+            + "call that never entered the retry loop", Thread.interrupted());
+    }
+
+    @Test
+    public void reconnectClearsTheThreadReferenceOnceTheLoopCompletes() throws Exception {
+        AbstractReceiverImpl impl = new AbstractReceiverImpl();
+        impl.reconnect(new NjamsSdkRuntimeException("Test")); // connects on the first attempt; loop runs and exits
+        assertTrue(impl.isConnected());
+        // A later cancelReconnect() (e.g. Njams.stop(), or an unrelated test's teardown) must be a no-op now —
+        // the thread reference must have been cleared once the retry loop returned (SDK-375 finding #1).
+        impl.cancelReconnect();
+        assertFalse("cancelReconnect() must not interrupt the calling thread once reconnect() already returned",
+            Thread.interrupted());
+    }
+
+    @Test
     public void cancelReconnectInterruptsABlockedStartupConnect() throws Exception {
         // BlockingConnectReceiverImpl.connect() throws on interrupt (unlike SlowConnectReceiverImpl, whose
         // connect() swallows InterruptedException and still succeeds — not suitable for this test).

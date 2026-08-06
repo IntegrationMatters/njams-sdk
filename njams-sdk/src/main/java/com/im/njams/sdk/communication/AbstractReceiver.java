@@ -87,10 +87,12 @@ public abstract class AbstractReceiver implements Receiver {
 
     /**
      * The {@link ConnectionCoordinator} shared with the sender group, if wired via
-     * {@link NjamsSender#wireReceiver(Receiver)}. Package-private. Defaults to a dedicated coordinator so a
-     * stand-alone receiver still works (e.g. in tests that never call {@link #setConnectionCoordinator}).
+     * {@link NjamsSender#wireReceiver(Receiver)}. Defaults to a dedicated coordinator so a stand-alone receiver
+     * still works (e.g. in tests that never call {@link #setConnectionCoordinator}). {@code volatile} because
+     * {@link NjamsSender#wireReceiver(Receiver)} re-wires it from {@code Njams.start()}'s thread while
+     * {@link #beginConnect()}'s startup thread may concurrently read it.
      */
-    ConnectionCoordinator coordinator = new ConnectionCoordinator();
+    private volatile ConnectionCoordinator coordinator = new ConnectionCoordinator();
 
     /**
      * This constructor sets the njams instance for getting the instruction
@@ -329,14 +331,20 @@ public abstract class AbstractReceiver implements Receiver {
             if (reconnectOnFailure) {
                 // Only start a new reconnect thread if one is not already running. This guards against
                 // duplicating a reconnect that beginConnect() already started (and is retrying) once
-                // coordinator.shouldReconnect() became true.
-                if (reconnectThread == null || !reconnectThread.isAlive()) {
+                // coordinator.shouldReconnect() became true. reconnectThread is read once into a local: the
+                // field is volatile and reconnect() (running concurrently on beginConnect()'s startup thread)
+                // may overwrite it at any moment, so re-reading the field for setDaemon()/setName()/start()
+                // below could otherwise apply those calls to a different, already-started Thread object and
+                // make start() throw IllegalThreadStateException.
+                Thread currentReconnectThread = reconnectThread;
+                if (currentReconnectThread == null || !currentReconnectThread.isAlive()) {
                     cancelReconnect(); // interrupt a startup connect thread still genuinely blocked in connect() past timeout
-                    reconnectThread = new Thread(() -> reconnect(e));
-                    reconnectThread.setDaemon(true);
-                    reconnectThread.setName(String.format("Receiver-Startup-Reconnector-Thread[%s/%d]", getName(),
+                    Thread newReconnectThread = new Thread(() -> reconnect(e));
+                    newReconnectThread.setDaemon(true);
+                    newReconnectThread.setName(String.format("Receiver-Startup-Reconnector-Thread[%s/%d]", getName(),
                         System.identityHashCode(this)));
-                    reconnectThread.start();
+                    reconnectThread = newReconnectThread;
+                    newReconnectThread.start();
                 }
                 return true;
             }
@@ -351,14 +359,17 @@ public abstract class AbstractReceiver implements Receiver {
      * reconnection threads sleeps for
      * {@link #INIT_RECONNECT_INTERVAL} second before trying again
      * to reconnect.
+     * <p>
+     * <strong>Blocks the calling thread</strong> for the entire retry duration — unlike
+     * {@link AbstractSender#reconnect(Exception)}, which spawns its own thread and returns immediately, this
+     * method runs the retry loop synchronously and, being a {@code synchronized} instance method, holds this
+     * receiver's monitor for as long as the loop runs (including any blocking {@link #connect()} call and the
+     * backoff sleep between attempts). Callers that need to keep running should invoke this from a background
+     * thread themselves (see {@link #onException(Exception)}).
      *
      * @param ex the exception that initiated the reconnect
      */
     public synchronized void reconnect(Exception ex) {
-        // Track the thread actually running the loop below, not just the wrapper thread onException() spawns:
-        // reconnect() is also called directly (e.g. from beginConnect()'s startup thread, or a caller bypassing
-        // onException()), so cancelReconnect() must be able to interrupt whichever thread is currently in here.
-        reconnectThread = Thread.currentThread();
         if (coordinator.shouldShutdown()) {
             LOG.debug("Receiver {}: shutdown requested; not reconnecting.", getName());
             return;
@@ -383,23 +394,42 @@ public abstract class AbstractReceiver implements Receiver {
             //This is just for debugging.
             LOG.debug("There are to many reconnections at the same time! There are {} method invocations.", got);
         }
-        while (!isConnected() && doReconnect && !coordinator.shouldShutdown()) {
-            LOG.debug("Next try to reconnect receivers.");
-            try {
-                connect();
-                if (coordinator.markConnected()) {
-                    LOG.info("Reconnected receiver {}", getName());
-                    resetReconnectInterval();
-                }
-                LOG.debug("{} receivers still need to reconnect.", coordinator.reconnectingCount());
-            } catch (NjamsSdkRuntimeException e) {
+        if (doReconnect) {
+            // Only assign the field once the loop below is actually about to run (and therefore actually needs
+            // to be interruptible by cancelReconnect()) — not unconditionally at the top of this method. Doing it
+            // unconditionally would leave reconnectThread aliasing the calling thread forever on every early-return
+            // path above (already connecting/connected, or shutting down), including calls that never intended to
+            // start a reconnect loop at all (e.g. a direct test call, or a foreign caller of this public method) —
+            // a stale alias that a later cancelReconnect() would then wrongly interrupt.
+            reconnectThread = Thread.currentThread();
+        }
+        try {
+            while (!isConnected() && doReconnect && !coordinator.shouldShutdown()) {
+                LOG.debug("Next try to reconnect receivers.");
                 try {
-                    //Using Thread.sleep because this.wait would release the lock for this object, Thread.sleep doesn't.
-                    Thread.sleep(nextReconnectInterval());
-                } catch (InterruptedException e1) {
-                    LOG.debug("The reconnecting thread was interrupted.", e1);
-                    doReconnect = false;
+                    connect();
+                    if (coordinator.markConnected()) {
+                        LOG.info("Reconnected receiver {}", getName());
+                        resetReconnectInterval();
+                    }
+                    LOG.debug("{} receivers still need to reconnect.", coordinator.reconnectingCount());
+                } catch (NjamsSdkRuntimeException e) {
+                    try {
+                        //Using Thread.sleep because this.wait would release the lock for this object, Thread.sleep doesn't.
+                        Thread.sleep(nextReconnectInterval());
+                    } catch (InterruptedException e1) {
+                        LOG.debug("The reconnecting thread was interrupted.", e1);
+                        doReconnect = false;
+                    }
                 }
+            }
+        } finally {
+            // Clear the field once the loop exits, but only if it still references this thread: a different
+            // thread may already be running a subsequent reconnect() call by the time this finally block runs
+            // (this method is synchronized, but the field itself is read by cancelReconnect() without holding
+            // the monitor), and clearing it then would wrongly un-alias that other, still-running attempt.
+            if (reconnectThread == Thread.currentThread()) {
+                reconnectThread = null;
             }
         }
         LOG.debug("Receiver reconnect loop ended!");
