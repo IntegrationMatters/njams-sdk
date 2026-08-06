@@ -756,6 +756,48 @@ git commit -m "SDK-375 Repurpose NjamsSender.wireReceiver for bidirectional cros
   `startWithTimeout(long, boolean)` interface default)
 - Modify: `njams-sdk/src/test/java/com/im/njams/sdk/communication/AbstractReceiverTest.java` (delete the four
   remaining 2-arg `startWithTimeout` tests/fixtures Task 2 deliberately left alone)
+- Modify: `njams-sdk/src/test/java/com/im/njams/sdk/NjamsTest.java` — **added during implementation, missed when
+  this plan was first written.** `startReceiver()`'s new body (Step 3 below) never calls `receiver
+  .startWithTimeout(...)` at all (neither arity) — the receiver's own `beginConnect()` already handles connecting
+  in the background, unconditionally, and its outcome no longer gates `start()`. Three pre-existing tests have a
+  premise this directly reverts:
+  - `testStartReturnsFalseWhenReceiverTimesOut` and `testStartReturnsFalseWhenReceiverThrows` — both assert
+    `start()` returns `false` when a mock `Receiver`'s `startWithTimeout(long)` throws. This scenario is retired
+    entirely: **delete both tests.**
+  - `testBeginConnectBeforeStartDoesNotBreakStart` — asserts `startWithTimeoutCalled[0]` becomes `true` (i.e. that
+    `startReceiver()` calls `startWithTimeout`). That specific assertion is now false by design. **Rewrite** it to
+    keep testing what its name still promises (pre-warming via construction-time `beginConnect()` doesn't break a
+    later `start()`) without the now-false mechanism assertion:
+    ```java
+    @Test
+    public void testBeginConnectBeforeStartDoesNotBreakStart() {
+        // The connection is pre-started at construction time (beginConnect()); start() must still complete
+        // normally regardless — the receiver's own connect outcome no longer gates start() at all.
+        Receiver okReceiver = new Receiver() {
+            @Override public String getName() { return "OkReceiver"; }
+            @Override public void init(ClientSettings settings) {}
+            @Override public void setNjams(Njams njams) {}
+            @Override public void onInstruction(Instruction i) {}
+            @Override public void start() {}
+            @Override public void stop() {}
+        };
+        TestReceiver.setReceiverMock(okReceiver);
+        try {
+            boolean result = instance.start();
+            assertTrue("start() must succeed regardless of the receiver's own connect outcome", result);
+            assertTrue(instance.isStarted());
+        } finally {
+            if (instance.isStarted()) {
+                instance.stop();
+            }
+            TestReceiver.setReceiverMock(null);
+        }
+    }
+    ```
+  Two other tests in this same file, `stopReceiverAfterStartupFailureDoesNotCancelReconnectWhileASharedReceiverStillHasOtherUsers`
+  and `...CancelsReconnectOnceRemoveNjamsReportsReallyStopped`, use reflection to call `stopReceiverAfterStartupFailure`
+  directly and only assert on `removeNjamsCalled`/`cancelReconnectCalled` — verified these are unaffected by this
+  task's added `setShouldShutdown(true)` call (Step 4 below) and need no changes. Do not touch them.
 - Test: `njams-sdk/src/test/java/com/im/njams/sdk/communication/lifecycle/ReceiverStartGatingSpecTest.java`
 - Test: `njams-sdk/src/test/java/com/im/njams/sdk/communication/lifecycle/ReceiverShutdownSpecTest.java`
 - Delete: `njams-sdk/src/test/java/com/im/njams/sdk/communication/lifecycle/CoordinatorSharingSpecTest.java`
@@ -1127,7 +1169,7 @@ if it already fails, confirm the failure is exactly the log-wording mismatch and
 - [ ] **Step 6: Commit**
 
 ```bash
-git add njams-sdk/src/main/java/com/im/njams/sdk/Njams.java njams-sdk/src/main/java/com/im/njams/sdk/communication/AbstractReceiver.java njams-sdk/src/main/java/com/im/njams/sdk/communication/Receiver.java njams-sdk/src/test/java/com/im/njams/sdk/communication/AbstractReceiverTest.java njams-sdk/src/test/java/com/im/njams/sdk/communication/lifecycle/ReceiverStartGatingSpecTest.java njams-sdk/src/test/java/com/im/njams/sdk/communication/lifecycle/ReceiverShutdownSpecTest.java
+git add njams-sdk/src/main/java/com/im/njams/sdk/Njams.java njams-sdk/src/main/java/com/im/njams/sdk/communication/AbstractReceiver.java njams-sdk/src/main/java/com/im/njams/sdk/communication/Receiver.java njams-sdk/src/test/java/com/im/njams/sdk/communication/AbstractReceiverTest.java njams-sdk/src/test/java/com/im/njams/sdk/NjamsTest.java njams-sdk/src/test/java/com/im/njams/sdk/communication/lifecycle/ReceiverStartGatingSpecTest.java njams-sdk/src/test/java/com/im/njams/sdk/communication/lifecycle/ReceiverShutdownSpecTest.java
 git rm njams-sdk/src/test/java/com/im/njams/sdk/communication/lifecycle/CoordinatorSharingSpecTest.java
 git commit -m "SDK-375 Make Njams.start() depend only on the sender; signal receiver shutdown independently; remove dead 2-arg startWithTimeout"
 ```
