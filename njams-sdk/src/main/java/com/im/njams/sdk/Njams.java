@@ -706,6 +706,7 @@ public class Njams implements InstructionListener {
             if (!receiver.startWithTimeout(timeoutMs, reconnectOnFailure)) {
                 LOG.error("SDK startup failed: receiver could not connect and startup fail-behavior is 'fail'. "
                     + "The SDK instance is inactive.");
+                stopReceiverAfterStartupFailure(receiver);
                 receiver = null;
                 return false;
             }
@@ -716,14 +717,8 @@ public class Njams implements InstructionListener {
         } catch (Exception e) {
             LOG.error("SDK startup failed: could not establish communication connection. "
                 + "The SDK instance is inactive.", e);
-            if (receiver != null) {
-                try {
-                    receiver.stop();
-                } catch (Exception ex) {
-                    LOG.debug("Unable to stop receiver after startup failure", ex);
-                }
-                receiver = null;
-            }
+            stopReceiverAfterStartupFailure(receiver);
+            receiver = null;
             return false;
         }
     }
@@ -754,14 +749,8 @@ public class Njams implements InstructionListener {
                 if (!activeSender.startWithTimeout(timeoutMs)) {
                     LOG.error("SDK startup failed: sender could not connect and startup fail-behavior is 'fail'. "
                         + "The SDK instance is inactive.");
-                    if (receiver != null) {
-                        try {
-                            receiver.stop();
-                        } catch (Exception ex) {
-                            LOG.debug("Unable to stop receiver after sender startup failure", ex);
-                        }
-                        receiver = null;
-                    }
+                    stopReceiverAfterStartupFailure(receiver);
+                    receiver = null;
                     releasePrewarmedSender();
                     return false;
                 }
@@ -773,6 +762,36 @@ public class Njams implements InstructionListener {
             LOG.info("SDK instance {} started (client-session={})", getClientPath(), metadata.getClientSessionId());
         }
         return isStarted();
+    }
+
+    /**
+     * Stops the given receiver after a startup failure (sender or receiver side), unregistering this instance
+     * from a shared receiver via {@link ShareableReceiver#removeNjams(Njams)} where applicable instead of
+     * stopping it outright for every instance still using it, and cancelling any reconnect the receiver's own
+     * shared connection coordinator may already have self-triggered (see {@link AbstractReceiver#beginConnect()})
+     * purely because that coordinator's group already permits reconnecting — e.g. because the sender of the same
+     * group connected first — independently of this startup's own fail-fast decision. Without cancelling it, that
+     * reconnect could later succeed on its own, leaving a live connection this {@code Njams} instance no longer
+     * references and never stops.
+     *
+     * @param failedReceiver the receiver to stop; {@code null} is a no-op.
+     */
+    private void stopReceiverAfterStartupFailure(Receiver failedReceiver) {
+        if (failedReceiver == null) {
+            return;
+        }
+        try {
+            if (failedReceiver instanceof AbstractReceiver) {
+                ((AbstractReceiver) failedReceiver).cancelReconnect();
+            }
+            if (failedReceiver instanceof ShareableReceiver) {
+                ((ShareableReceiver<?>) failedReceiver).removeNjams(this);
+            } else {
+                failedReceiver.stop();
+            }
+        } catch (Exception ex) {
+            LOG.debug("Unable to stop receiver after startup failure", ex);
+        }
     }
 
     /**
