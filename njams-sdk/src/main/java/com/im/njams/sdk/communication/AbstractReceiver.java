@@ -239,13 +239,7 @@ public abstract class AbstractReceiver implements Receiver {
                 LOG.debug("Receiver {}: connection attempt failed.", getName(), e);
                 startupError.set(e);
                 startupLatch.countDown();
-                if (coordinator.shouldReconnect()) {
-                    // Mirrors AbstractSender.beginConnect(): covers the case where the startup connect blocks past
-                    // the caller's timeout and only fails afterward — startWithTimeout(long, boolean) cannot start
-                    // the reconnect loop itself in that case because this thread still holds CONNECTING at the
-                    // moment the timeout elapses.
-                    reconnect(e);
-                }
+                reconnect(e);
                 return;
             }
             if (startupTimedOut.get()) {
@@ -330,8 +324,8 @@ public abstract class AbstractReceiver implements Receiver {
         } catch (NjamsSdkRuntimeException e) {
             if (reconnectOnFailure) {
                 // Only start a new reconnect thread if one is not already running. This guards against
-                // duplicating a reconnect that beginConnect() already started (and is retrying) once
-                // coordinator.shouldReconnect() became true. reconnectThread is read once into a local: the
+                // duplicating a reconnect that beginConnect() already started (and is retrying) unconditionally
+                // on its own connect() failure. reconnectThread is read once into a local: the
                 // field is volatile and reconnect() (running concurrently on beginConnect()'s startup thread)
                 // may overwrite it at any moment, so re-reading the field for setDaemon()/setName()/start()
                 // below could otherwise apply those calls to a different, already-started Thread object and
@@ -380,13 +374,10 @@ public abstract class AbstractReceiver implements Receiver {
             doReconnect = false;
         } else {
             int reconnecting = coordinator.beginReconnect();
-            if (LOG.isInfoEnabled() && ex != null) {
-                if (ex.getCause() == null) {
-                    LOG.info("Initialized receiver reconnect, because of : {}", ex.toString());
-                } else {
-                    LOG.info("Initialized receiver reconnect, because of : {}, {}", ex.toString(),
-                        ex.getCause().toString());
-                }
+            LOG.warn("Receiver connection lost. The client will not receive any commands from the server "
+                + "until reconnected.");
+            if (LOG.isDebugEnabled() && ex != null) {
+                LOG.debug("Receiver reconnect triggered by: {}", ex.toString());
             }
             LOG.debug("{} receivers are reconnecting now.", reconnecting);
         }
@@ -409,7 +400,7 @@ public abstract class AbstractReceiver implements Receiver {
                 try {
                     connect();
                     if (coordinator.markConnected()) {
-                        LOG.info("Reconnected receiver {}", getName());
+                        LOG.info("Receiver reconnected. Handling server commands resumed.");
                         resetReconnectInterval();
                     }
                     LOG.debug("{} receivers still need to reconnect.", coordinator.reconnectingCount());
@@ -526,6 +517,19 @@ public abstract class AbstractReceiver implements Receiver {
         if (rc != null) {
             rc.interrupt();
         }
+    }
+
+    /**
+     * Registers a callback invoked once when this receiver detects a new connection failure of its own — used to
+     * prompt a wired sender group to verify its own connection too (see
+     * {@link NjamsSender#wireReceiver(Receiver)}). This receiver's own coordinator, reconnect behavior, and
+     * shutdown state remain entirely independent of the sender's; this is a one-way trigger, not shared state.
+     * Add-only, mirroring {@link ConnectionCoordinator#addCrossSideTrigger(Runnable)}.
+     *
+     * @param trigger the callback to add.
+     */
+    void addCrossSideTrigger(Runnable trigger) {
+        coordinator.addCrossSideTrigger(trigger);
     }
 
     /**

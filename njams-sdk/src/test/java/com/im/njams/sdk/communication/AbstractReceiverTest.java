@@ -900,15 +900,6 @@ public class AbstractReceiverTest {
     }
 
     @Test
-    public void startWithTimeoutTwoArgFailFastReturnsFalseAndCancelsOnFailure() throws InterruptedException {
-        SlowConnectReceiverImpl impl = new SlowConnectReceiverImpl(0, true);
-        assertFalse(impl.startWithTimeout(200L, false));
-        assertTrue(impl.isDisconnected());
-        Thread.sleep(300);
-        assertTrue("fail-fast must not leave a reconnect loop running", impl.isDisconnected());
-    }
-
-    @Test
     public void startWithTimeoutTwoArgReconnectPolicyReturnsTrueAndEntersBackgroundReconnect()
             throws InterruptedException {
         // connect() fails once, then subsequent connects succeed
@@ -1008,6 +999,67 @@ public class AbstractReceiverTest {
             int attempt = attemptCount.incrementAndGet();
             if (attempt <= failureCount) {
                 throw new NjamsSdkRuntimeException("attempt " + attempt + " fails");
+            }
+            connectionStatus = ConnectionStatus.CONNECTED;
+        }
+
+        @Override
+        public void stop() {}
+    }
+
+    @Test
+    public void beginConnectSelfTriggersReconnectOnFailureUnconditionally() throws InterruptedException {
+        // No coordinator gating call of any kind — connect() fails once, then the receiver must be found
+        // reconnecting (not just left DISCONNECTED) shortly after, with no fail-behavior setting involved at all.
+        FlakyOnceReceiverImpl impl = new FlakyOnceReceiverImpl();
+        impl.beginConnect();
+        long deadline = System.nanoTime() + java.util.concurrent.TimeUnit.SECONDS.toNanos(5);
+        while (!impl.isConnected() && System.nanoTime() < deadline) {
+            Thread.sleep(20);
+        }
+        assertTrue("receiver must self-trigger reconnect on its own initial connect failure, unconditionally",
+            impl.isConnected());
+    }
+
+    @Test
+    public void addCrossSideTriggerForwardsToTheReceiversOwnCoordinator() throws Exception {
+        // White-box: the only way to observe this is that a reconnect (which internally calls
+        // coordinator.beginReconnect()) fires the registered trigger — proving addCrossSideTrigger(...) actually
+        // reached the receiver's own coordinator instance, not a no-op.
+        AbstractReceiverImpl impl = new AbstractReceiverImpl();
+        java.util.concurrent.atomic.AtomicBoolean triggered = new java.util.concurrent.atomic.AtomicBoolean(false);
+        impl.addCrossSideTrigger(() -> triggered.set(true));
+        impl.throwManyExceptionsForTest = true;
+        Thread t = new Thread(() -> impl.reconnect(new NjamsSdkRuntimeException("test")));
+        t.setDaemon(true);
+        t.start();
+        long deadline = System.nanoTime() + java.util.concurrent.TimeUnit.SECONDS.toNanos(2);
+        while (!triggered.get() && System.nanoTime() < deadline) {
+            Thread.sleep(20);
+        }
+        impl.setShouldShutdown(true);
+        impl.cancelReconnect();
+        t.join(2000);
+        assertTrue("addCrossSideTrigger must reach this receiver's own coordinator", triggered.get());
+    }
+
+    private class FlakyOnceReceiverImpl extends AbstractReceiver {
+        private final java.util.concurrent.atomic.AtomicBoolean failedOnce =
+            new java.util.concurrent.atomic.AtomicBoolean(false);
+
+        @Override
+        public String getName() { return "FlakyOnceReceiver"; }
+
+        @Override
+        public void init(ClientSettings settings) {}
+
+        @Override
+        protected Response extendRequest(Request req) { return null; }
+
+        @Override
+        public void connect() {
+            if (failedOnce.compareAndSet(false, true)) {
+                throw new NjamsSdkRuntimeException("first attempt fails");
             }
             connectionStatus = ConnectionStatus.CONNECTED;
         }
