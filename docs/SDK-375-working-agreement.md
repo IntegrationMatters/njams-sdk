@@ -116,38 +116,56 @@ connection.
 
 ### Decision 1 — Sender lifecycle & connection-state model (public API)
 
-- **D1.1 — Shared connection state.** Sender(s) and receiver share one transport, so connectivity is a property
-  of the *transport connection*, not of an individual `AbstractSender` instance. A single connection
-  coordinator (lifecycle phase, "was ever connected", reconnect loop, failure signal) is consulted/updated by
-  both the receiver and every pooled sender. It replaces the per-`AbstractSender` flags **and** the JVM-global
-  `static hasConnected`/`connecting` on both `AbstractSender` and `AbstractReceiver`.
-- **D1.2 — Scope = per shared-transport group.** With `PROPERTY_SHARED_COMMUNICATIONS=true`, all `Njams`
-  instances sharing the sender pool + receiver share one connection state; otherwise the boundary is the single
-  `Njams` instance. This fixes the cross-instance-coupling defect from the analysis.
-- **D1.3 — One transport, one fate.** A connect failure on either side at startup means the transport is down
-  for the group; a transport error from any one sender flips the whole group to "needs reconnect" and triggers a
-  **single** coordinated reconnect (gated on having been connected before — Phase 2).
-- **D1.4 — Startup-failure policy is configurable (new setting).** On *initial* connect failure the behavior is
-  controlled by a new setting governing the **whole group** (sender + receiver):
-  - **fail-fast (DEFAULT):** `Njams.start()` returns `false`, SDK inactive (preserves the receiver's current
-    6.0-dev behavior; "stop initialization" maps onto today's `return false` — `start()` is **not** changed to
-    throw).
-  - **reconnect:** `start()` succeeds and the group enters the Phase-2 background reconnect loop.
-  - This unifies today's inconsistency (receiver hard fail-fast vs. sender silent infinite reconnect).
-  - Implementation follow-ups: add `PROPERTY_*` key to `NjamsSettings`, default constant in the consuming class,
-    document in `settings_full.properties` and `wiki/FAQ.md`.
-- **D1.5 — Sender/receiver contracts & interfaces MAY change on this branch.** `NjamsSender` / `AbstractSender` /
-  `SenderPool` / `CommunicationFactory` / `AbstractReceiver` / `Receiver` / `SenderExceptionListener` are
-  communication-internal (per `CLAUDE.md`; `Njams.getSender()` is already `@Deprecated(forRemoval=true)`).
-  **Changing their contracts/interfaces (signatures, method sets, abstractions) is explicitly permitted for this
-  branch, provided it supports a clean and safe implementation.** Constraints that still hold: `Njams.start()`’s
-  **public signature stays** (only its connect-gating behavior changes); **no relocated/shaded third-party type**
-  may appear on any `public`/`protected` member; still **manage the `breaking-change` label**; and per
-  `njams-safe-modification`, establish **test coverage before** modifying any existing member (baseline-first).
-- **Deferred to the design spec (not assumed):** whether each side keeps its *own* physical connect (HTTP POST
-  vs. receiver channel; JMS producer vs. consumer session) while sharing only the coordination/phase state, vs.
-  treating the receiver's successful connect as proof the sender can send. To be resolved per-transport with
-  evidence in the design.
+> **Revision note (post-Part 3):** Parts 1-3 implemented D1.1-D1.5 below as first written — sender(s) and
+> receiver shared one connection coordinator ("one fate"). That is now revised: **sender and receiver are not
+> equally critical.** Sender failure remains fatal (client cannot push data to nJAMS — unchanged priority from
+> the original ticket); receiver failure must never be fatal (client keeps working; it only cannot receive
+> commands from the server, which is rare). D1.1-D1.4 are marked **REVISED** below. D1.6 (`start()` depends only
+> on the sender) and D1.7 (a connection failure on either side triggers the other to proactively re-verify its
+> own connection — added because the receiver is idle most of the time and could otherwise miss a real loss for
+> a long time) were introduced later and are not duplicated here — see the design spec's §3 decisions table
+> (`docs/superpowers/specs/2026-07-02-sdk-375-sender-lifecycle-design.md`) for their authoritative text, to avoid
+> the two documents drifting apart again.
+
+- **D1.1 — Connection state, per side (REVISED).** Sender(s) and receiver each own **independent** connectivity
+  state — a connection coordinator (lifecycle phase, "was ever connected", reconnect loop, failure signal) is no
+  longer shared between them; each side consults/updates only its own. It still replaces the per-`AbstractSender`
+  flags **and** the JVM-global `static hasConnected`/`connecting` on both `AbstractSender` and `AbstractReceiver`
+  — that part of the original decision stands, only the *sharing between sides* is reverted.
+- **D1.2 — Scope = per shared-transport group, per side (REVISED).** With `PROPERTY_SHARED_COMMUNICATIONS=true`,
+  all `Njams` instances sharing the sender pool share one connection state, and independently, all instances
+  sharing a receiver share their *own* connection state — the two are no longer the same state. Otherwise the
+  boundary is the single `Njams` instance, for each side independently. This still fixes the
+  cross-instance-coupling defect from the analysis; it no longer also couples the two sides to each other.
+- **D1.3 — Independent fate, one deliberate cross-check (REVISED).** A connect failure on one side no longer
+  flips the other side to "needs reconnect" as a shared fate. Each side runs its own coordinated reconnect,
+  gated on having been connected before (Phase 2), independently. The one remaining coupling is a *trigger, not
+  a shared fate*: either side's failure additionally tells the other side to proactively re-verify its own
+  connection (see D1.7 in the spec) — the notified side may find itself already fine.
+- **D1.4 — Startup-failure policy is configurable, sender-only (REVISED).** On the *sender's* initial connect
+  failure, behavior is controlled by the existing setting:
+  - **fail-fast (DEFAULT):** `Njams.start()` returns `false`, SDK inactive ("stop initialization" maps onto
+    today's `return false` — `start()` is **not** changed to throw).
+  - **reconnect:** `start()` succeeds and the sender enters the Phase-2 background reconnect loop.
+  - The receiver is **not** governed by this setting any more — its behavior is unconditional and hardcoded (see
+    D1.6 in the spec): a connection failure, at startup or later, is logged at WARN and always retried in the
+    background, never fails `start()`. This is a narrower, more accurate fix for the original "receiver hard
+    fail-fast vs. sender silent infinite reconnect" inconsistency than unifying both under one setting.
+- **D1.5 — Sender/receiver contracts & interfaces MAY change on this branch.** Unchanged. `NjamsSender` /
+  `AbstractSender` / `SenderPool` / `CommunicationFactory` / `AbstractReceiver` / `Receiver` /
+  `SenderExceptionListener` are communication-internal (per `CLAUDE.md`; `Njams.getSender()` is already
+  `@Deprecated(forRemoval=true)`). **Changing their contracts/interfaces (signatures, method sets, abstractions)
+  is explicitly permitted for this branch, provided it supports a clean and safe implementation.** Constraints
+  that still hold: `Njams.start()`'s **public signature stays** (only its connect-gating behavior changes, now to
+  depend only on the sender); **no relocated/shaded third-party type** may appear on any `public`/`protected`
+  member; still **manage the `breaking-change` label** (now applied — this revision changes `Njams.start()`'s
+  observable behavior); and per `njams-safe-modification`, establish **test coverage before** modifying any
+  existing member (baseline-first). Note: none of Part 1-3's new public API has shipped in a release yet (still
+  `6.0.0-SNAPSHOT`), so simplifying or removing it for this revision does not need deprecation ceremony.
+- **Resolved (was deferred to the design spec):** each side keeps its *own* physical connect (HTTP POST vs.
+  receiver channel; JMS producer vs. consumer session) — confirmed true for all three transports. This revision
+  goes further than the original deferral anticipated: not only is the physical connection separate, the
+  coordination/phase state is now separate too, for the reasons in the revision note above.
 
 ### Decision 2 — Baseline test strategy
 
@@ -156,9 +174,12 @@ connection.
      send/receive correctness while connected, delivery resumes after a transient mid-processing loss (Phase 2),
      clean shutdown flushes + terminates. **Green now, stays green.**
   2. **Spec / acceptance tests (controllable fake transport, deterministic):** the *changing* behaviors —
-     startup-failure policy (D1.4), reconnect-only-after-prior-success, no-reconnect-during/after-shutdown,
-     shared state scoped per group (D1.2), "logged once", instance isolation. Written **TDD**, red until
-     implemented. **Not** baseline.
+     startup-failure policy, now sender-only (D1.4), reconnect-only-after-prior-success, no-reconnect-during/
+     after-shutdown, state scoped per side per group (D1.2), "logged once" (per side — see the spec's §5.1.1 for
+     the receiver's specific wording), instance isolation, and — added by the post-Part-3 revision — the D1.7
+     cross-side verification trigger (a failure on one side causes the other to re-verify its own connection,
+     including the no-op case where the notified side was fine). Written **TDD**, red until implemented. **Not**
+     baseline.
   3. **Real-transport smoke (JMS + HTTP):** prove real senders honor the observable contract end-to-end after the
      rework.
 - **D2.2 — Baseline pins the stable contract only** (not the to-be-changed Phase-1/3 internals).
@@ -176,3 +197,6 @@ connection.
       connections, so the shared layer is coordination/phase only.
 - [x] New startup-failure setting named: `njams.sdk.communication.startup.failbehavior` = `fail` (default) |
       `reconnect`.
+- [ ] **Post-Part-3 revision:** decouple sender/receiver criticality (D1.1-D1.4 revised above; new D1.6/D1.7 in
+      the design spec) and add cross-side connection verification. Design spec revised; ticket description
+      updated; **implementation plan (Part 4) not yet written.**
