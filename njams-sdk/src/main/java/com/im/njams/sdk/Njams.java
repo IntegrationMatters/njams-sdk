@@ -704,6 +704,8 @@ public class Njams implements InstructionListener {
             long timeoutMs = settings.getLong(
                 NjamsSettings.PROPERTY_COMMUNICATION_CONNECT_TIMEOUT, DEFAULT_CONNECT_TIMEOUT_MS);
             if (!receiver.startWithTimeout(timeoutMs, reconnectOnFailure)) {
+                LOG.error("SDK startup failed: receiver could not connect and startup fail-behavior is 'fail'. "
+                    + "The SDK instance is inactive.");
                 receiver = null;
                 return false;
             }
