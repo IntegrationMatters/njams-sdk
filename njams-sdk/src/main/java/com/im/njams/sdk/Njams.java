@@ -188,7 +188,7 @@ public class Njams implements InstructionListener {
     private NjamsSender sender;
     private Receiver receiver;
 
-    /** Receiver pre-created at construction time, transferred to {@link #receiver} inside {@link #startReceiver()}. */
+    /** Receiver pre-created at construction time, transferred to {@link #receiver} inside {@link #startReceiver(boolean)}. */
     private Receiver earlyReceiver;
 
     private NjamsConfiguration configuration;

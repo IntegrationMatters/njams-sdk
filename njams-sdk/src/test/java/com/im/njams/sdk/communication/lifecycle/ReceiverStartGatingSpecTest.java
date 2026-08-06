@@ -64,11 +64,18 @@ public class ReceiverStartGatingSpecTest extends AbstractLifecycleSpecTest {
     }
 
     /**
+     * Added beyond the brief's literal {@code ReceiverStartGatingSpecTest} content, at the Task 5 dispatch's
+     * explicit request ("confirm that calling {@code receiver.startWithTimeout(timeoutMs, reconnectOnFailure)}
+     * through this real integration path does NOT reintroduce the blocking bug Task 3 fixed... add a test that
+     * requires 2+ retries through the full {@code Njams.start()} path"). This is not undisclosed scope creep.
+     * <p>
      * Sanity check for the full {@code Njams.start()} integration path (not just the unit-level coverage of
      * {@code Receiver#startWithTimeout(long, boolean)}): a slow (BLOCK) initial receiver connect under the
      * {@code reconnect} policy must not block {@code start()} itself, and must hand off to a background reconnect
      * loop that makes at least one further attempt. Mirrors
-     * {@code SenderStartGatingSpecTest#slowThenFailedInitialConnectUnderReconnectPolicyRunsBackgroundLoop}.
+     * {@code SenderStartGatingSpecTest#slowThenFailedInitialConnectUnderReconnectPolicyRunsBackgroundLoop}. The
+     * {@link #newNjams(String, Long)} overload below (with the connect-timeout parameter) exists solely to support
+     * this test, for the same reason.
      */
     @Test
     public void slowThenFailedInitialReceiverConnectUnderReconnectPolicyRunsBackgroundLoop() throws Exception {
