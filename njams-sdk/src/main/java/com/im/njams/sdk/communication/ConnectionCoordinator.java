@@ -78,7 +78,7 @@ class ConnectionCoordinator {
      *
      * @param trigger the callback to add.
      */
-    void addCrossSideTrigger(Runnable trigger) {
+    synchronized void addCrossSideTrigger(Runnable trigger) {
         crossSideTriggers.add(trigger);
     }
 
