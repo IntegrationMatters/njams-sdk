@@ -24,3 +24,4 @@ njams-sdk-sample-client/configuration.json
 build.cmd
 *.stackdump
 .claude/scheduled_tasks.lock
+/.superpowers/
