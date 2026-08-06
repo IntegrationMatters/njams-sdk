@@ -93,29 +93,36 @@ controllable fake transport (already supports independent sender/receiver `Conne
 
 - **Modify** `communication/ConnectionCoordinator.java` — add `addCrossSideTrigger(Runnable)` (add-only, multiple
   callbacks); invoke all of them once per new failure from `beginReconnect()`.
-- **Modify** `communication/AbstractReceiver.java` — `coordinator` field back to `private final`, non-`volatile`,
-  never reassigned; remove `setConnectionCoordinator(...)`; remove `startWithTimeout(long, boolean)` override;
-  remove the `shouldReconnect()` gate in `beginConnect()` (always self-trigger `reconnect(e)` on failure); add
-  `addCrossSideTrigger(Runnable)`; change `reconnect(Exception)`'s log wording/level.
-- **Modify** `communication/Receiver.java` — remove `startWithTimeout(long, boolean)` default method.
+- **Modify** `communication/AbstractReceiver.java` — touched by three tasks in sequence, split so every commit
+  stays green: Task 2 removes the `shouldReconnect()` gate in `beginConnect()` (always self-trigger `reconnect(e)`
+  on failure), adds `addCrossSideTrigger(Runnable)`, and changes `reconnect(Exception)`'s log wording/level —
+  `setConnectionCoordinator`/`startWithTimeout(long, boolean)`/the field's mutability are deliberately left alone
+  since their last callers aren't fixed yet; Task 3 removes `setConnectionCoordinator(...)` (dead once its own
+  `wireReceiver` change lands) and tightens the `coordinator` field to `private final`; Task 4 removes the
+  `startWithTimeout(long, boolean)` override (dead once `Njams.startReceiver()` stops calling it).
+- **Modify** `communication/Receiver.java` — remove `startWithTimeout(long, boolean)` default method (Task 4,
+  once its only caller is gone).
 - **Modify** `communication/SenderPool.java` — remove `getConnectionCoordinator()`; add
-  `addCrossSideTrigger(Runnable)` and `triggerConnectionCheck()`.
-- **Modify** `communication/NjamsSender.java` — repurpose `wireReceiver(Receiver)`'s body.
+  `addCrossSideTrigger(Runnable)` and `triggerConnectionCheck()` (Task 3).
+- **Modify** `communication/NjamsSender.java` — repurpose `wireReceiver(Receiver)`'s body (Task 3).
 - **Modify** `Njams.java` — simplify `startReceiver(boolean)` → `startReceiver()` (void, never fails, and now the
   *only* call site of `wireReceiver`); `beginConnect()` no longer calls `wireReceiver` at all; `start()` no
   longer gates on the receiver; `stop()`/`stopReceiverAfterStartupFailure(...)` call `setShouldShutdown(true)` on
-  the receiver alongside `cancelReconnect()`.
-- **Delete (test)** `communication/lifecycle/CoordinatorSharingSpecTest.java` (premise reverted).
+  the receiver alongside `cancelReconnect()` (Task 4).
+- **Delete (test)** `communication/lifecycle/CoordinatorSharingSpecTest.java` (premise reverted, Task 4).
 - **Modify (test)** `communication/lifecycle/ReceiverStartGatingSpecTest.java` — rewritten: receiver failure never
-  gates `start()`.
-- **Create (test)** `communication/lifecycle/CrossSideVerificationSpecTest.java` — the new D1.7 behavior.
+  gates `start()` (Task 4).
+- **Create (test)** `communication/lifecycle/CrossSideVerificationSpecTest.java` — the new D1.7 behavior (Task 5).
 - **Modify (test)** `communication/lifecycle/ReceiverShutdownSpecTest.java` — add an assertion that
-  `setShouldShutdown(true)` reaches the receiver directly (no longer inferred via a shared coordinator).
-- **Modify (test)** `communication/lifecycle/ReceiverLoggingSpecTest.java` — new WARN/INFO wording and levels.
-- **Modify (test)** `communication/AbstractReceiverTest.java` — remove the 2-arg `startWithTimeout` tests and
-  fixtures; remove the now-dead-gate assertions if any depend on `shouldReconnect()`.
+  `setShouldShutdown(true)` reaches the receiver directly (no longer inferred via a shared coordinator) (Task 4).
+- **Modify (test)** `communication/lifecycle/ReceiverLoggingSpecTest.java` — new WARN/INFO wording and levels
+  (Task 5).
+- **Modify (test)** `communication/AbstractReceiverTest.java` — split across the same three tasks as the
+  production file above: Task 2 adds the new unconditional-retry/trigger tests and deletes exactly the one
+  existing test whose premise the `beginConnect()` change falsifies; Task 4 deletes the remaining four 2-arg
+  `startWithTimeout` tests/fixtures once the method itself is removed.
 - **Modify (test)** `communication/SenderPoolTest.java` — remove the `getConnectionCoordinator()` tests; add
-  `triggerConnectionCheck()`/`addCrossSideTrigger(...)` tests.
+  `triggerConnectionCheck()`/`addCrossSideTrigger(...)` tests (Task 3).
 - **Modify (test)** `communication/NjamsSenderTest.java` — remove the old `wireReceiver` coordinator-sharing
   tests; add tests for the new cross-trigger wiring.
 - **Create (test)** `communication/ConnectionCoordinatorTest.java` additions — `addCrossSideTrigger`/
@@ -267,37 +274,59 @@ git commit -m "SDK-375 Add cross-side connection-verification trigger to Connect
 
 ---
 
-### Task 2: `AbstractReceiver` and `Receiver` — independent coordinator, unconditional retry, new log wording
+### Task 2: `AbstractReceiver` — unconditional retry, new log wording, cross-side trigger (additive only)
+
+**Sequencing note (why this task is additive-only, not a straight port of the design doc):** `AbstractReceiver
+.setConnectionCoordinator(ConnectionCoordinator)` is still called by `NjamsSender.wireReceiver(Receiver)` (removed
+only in Task 3) and `AbstractReceiver`'s `startWithTimeout(long, boolean)` override is still called by
+`Njams.startReceiver(boolean)` (removed only in Task 4). Removing either method here, before its caller is fixed,
+would leave this task's own commit **not compiling** — a direct violation of "baseline stays green at every
+commit." This task therefore only *adds* the new behavior (unconditional retry, new log wording,
+`addCrossSideTrigger`) and leaves `setConnectionCoordinator`/`startWithTimeout(long, boolean)`/the mutable
+`coordinator` field in place, untouched, to be removed later: `setConnectionCoordinator` in Task 3 (once
+`wireReceiver` stops calling it) and `startWithTimeout(long, boolean)` plus the field's final-ification in Task 4
+(once `Njams.java` stops calling it). If you are the implementer and you already deleted these as part of a
+straight reading of the design spec, revert that part and keep only the additive changes below.
 
 **Files:**
 - Modify: `njams-sdk/src/main/java/com/im/njams/sdk/communication/AbstractReceiver.java`
-- Modify: `njams-sdk/src/main/java/com/im/njams/sdk/communication/Receiver.java`
 - Test: `njams-sdk/src/test/java/com/im/njams/sdk/communication/AbstractReceiverTest.java`
 
 **Interfaces:**
 - Consumes: `ConnectionCoordinator.addCrossSideTrigger(Runnable)` (Task 1).
 - Produces: `AbstractReceiver.addCrossSideTrigger(Runnable)` (package-private, forwards to its own coordinator).
-- Removes: `AbstractReceiver.setConnectionCoordinator(ConnectionCoordinator)`; `AbstractReceiver`'s override of
-  `startWithTimeout(long, boolean)`; `Receiver.startWithTimeout(long, boolean)` (interface default method).
+- Leaves in place for now (removed later, see above): `setConnectionCoordinator(ConnectionCoordinator)`,
+  `startWithTimeout(long, boolean)`, the `private volatile ConnectionCoordinator coordinator` field's current
+  mutability.
 
-- [ ] **Step 1: Write/adjust the failing tests**
+- [ ] **Step 1: Write the failing tests**
 
-First, **delete** these existing tests and their supporting fixtures from `AbstractReceiverTest.java` (they
-exercise the method being removed):
-- `startWithTimeoutTwoArgReturnsTrueOnSuccess`
-- `startWithTimeoutTwoArgFailFastReturnsFalseAndCancelsOnFailure`
-- `startWithTimeoutTwoArgReconnectPolicyReturnsTrueAndEntersBackgroundReconnect`
-- `defaultTwoArgStartWithTimeoutOnPlainReceiverIgnoresReconnectOnFailure`
-- `startWithTimeoutTwoArgReconnectPolicyReturnsQuicklyDespiteMultipleRetries`
-- Their supporting fixtures: `FlakyThenSucceedsReceiverImpl`, `MultiFailThenSucceedsReceiverImpl`, and the
-  anonymous plain-`Receiver` inside `defaultTwoArgStartWithTimeoutOnPlainReceiverIgnoresReconnectOnFailure`.
+Do **not** delete `startWithTimeoutTwoArgReturnsTrueOnSuccess`,
+`startWithTimeoutTwoArgReconnectPolicyReturnsTrueAndEntersBackgroundReconnect`,
+`defaultTwoArgStartWithTimeoutOnPlainReceiverIgnoresReconnectOnFailure`,
+`startWithTimeoutTwoArgReconnectPolicyReturnsQuicklyDespiteMultipleRetries`, or their fixtures
+(`FlakyThenSucceedsReceiverImpl`, `MultiFailThenSucceedsReceiverImpl`) — they exercise `startWithTimeout(long,
+boolean)`, which this task does **not** remove, and tracing each one confirms this task's `beginConnect()` change
+does not alter their behavior: for `reconnectOnFailure=true`, `coordinator.allowReconnectBeforeConnected()` is
+already called *before* `startWithTimeout(long)` runs, which already makes `coordinator.shouldReconnect()` return
+`true` regardless of the gate this task removes — so the three `reconnectOnFailure=true`/success-path tests are
+unaffected either way.
 
-Deleting tests for a method this same task removes is not a "modify frozen test" violation — the method itself
-is being deleted, so the tests exercising it must go with it. All other existing tests
-(`testReconnect`, `testReconnectWhileConnecting`, `cancelReconnectInterruptsABlockedReconnectThread`,
-`reconnectDoesNotAliasTheCallingThreadAfterAnEarlyShutdownReturn`, etc.) stay frozen — do not touch them.
+**One test's premise is genuinely falsified by this task's change and must be adjusted now, not left broken:**
+`startWithTimeoutTwoArgFailFastReturnsFalseAndCancelsOnFailure` calls `startWithTimeout(200L, false)` — with
+`reconnectOnFailure=false`, `allowReconnectBeforeConnected()` is never called, so today `coordinator
+.shouldReconnect()` is `false` when `beginConnect()`'s catch block checks it, and no reconnect is ever attempted;
+the test asserts exactly that ("fail-fast must not leave a reconnect loop running"). Once this task removes that
+gate, `beginConnect()`'s catch block calls `reconnect(e)` *unconditionally* — so under the exact same
+`reconnectOnFailure=false` scenario, a reconnect attempt now **does** start (this is the intended, approved
+behavior change: the receiver retries unconditionally, with no fail-fast/reconnect distinction left at all). The
+test's core assertion becomes false by design, not by bug. Delete this one test (and, if `SlowConnectReceiverImpl`
+has no other caller after removing it, its fixture) — do not weaken it to accept the new behavior silently; delete
+it outright, since the concept it tested ("fail-fast prevents any reconnect") no longer exists for the receiver
+after this task. The other four tests/fixtures for `startWithTimeout(long, boolean)` stay, to be removed together
+with the method itself in Task 4.
 
-Then append new tests proving the unconditional-retry behavior and the cross-side trigger wiring:
+Append new tests proving the unconditional-retry behavior and the cross-side trigger wiring:
 
 ```java
     @Test
@@ -373,18 +402,11 @@ by itself cause a failure (deleting tests never causes RED; confirm the *new* te
 
 - [ ] **Step 3: Implement — `AbstractReceiver.java`**
 
-Change the field declaration and remove the setter (currently ~line 88-126):
-
-```java
-    /**
-     * This receiver's own connection lifecycle coordinator: reconnect counting, "was ever connected", and
-     * shutdown state. Independent of any other receiver or sender — see {@link #addCrossSideTrigger(Runnable)}
-     * for the one deliberate, narrow signal shared with a wired sender group.
-     */
-    private final ConnectionCoordinator coordinator = new ConnectionCoordinator();
-```
-
-(Remove the old `setConnectionCoordinator(ConnectionCoordinator)` method entirely — no replacement.)
+**Do not touch** the `coordinator` field declaration or `setConnectionCoordinator(ConnectionCoordinator)` (currently
+~line 88-126) — both stay exactly as they are today (`private volatile ConnectionCoordinator coordinator = new
+ConnectionCoordinator();` plus the package-private setter). Per this task's sequencing note above, they are only
+removed/tightened in Task 3 (the setter) and Task 4 (the field's final-ification), once nothing calls the setter
+any more.
 
 Add, near `cancelReconnect()`:
 
@@ -415,8 +437,8 @@ Replace `beginConnect()`'s catch block (remove the `shouldReconnect()` gate — 
             }
 ```
 
-Remove the `startWithTimeout(long, boolean)` override entirely (the whole `@Override public boolean
-startWithTimeout(long timeoutMs, boolean reconnectOnFailure) { ... }` method, including its Javadoc).
+Leave the `startWithTimeout(long, boolean)` override exactly as it is — do **not** touch it in this task (it is
+removed in Task 4, once `Njams.java` stops calling it).
 
 In `reconnect(Exception ex)`, replace the two `LOG.info` call sites with the new wording/levels:
 
@@ -450,28 +472,21 @@ And the success log:
                     }
 ```
 
-- [ ] **Step 4: Implement — `Receiver.java`**
-
-Remove the `default boolean startWithTimeout(long timeoutMs, boolean reconnectOnFailure) { ... }` method and its
-Javadoc entirely. Check whether the `NjamsSdkRuntimeException` import is still used elsewhere in the file (the
-1-arg `startWithTimeout(long)`'s `@throws` Javadoc tag references it) — if the import becomes unused after this
-removal, remove it; if the `@throws` tag still needs it resolvable for `javadoc:javadoc`, keep the import.
-
-- [ ] **Step 5: Run to verify pass**
+- [ ] **Step 4: Run to verify pass**
 
 Run: `mvn -q -pl njams-sdk test -Dtest=AbstractReceiverTest`
 Expected: PASS — all frozen tests plus the new ones.
 
-- [ ] **Step 6: Regression check**
+- [ ] **Step 5: Regression check**
 
 Run: `mvn -q -pl njams-sdk test -Dtest="AbstractReceiverStaticStateTest,JmsReceiverTest,HttpSseReceiverClassReferencesTest"`
-Expected: PASS (no concrete receiver implementation calls the removed 2-arg method or the removed setter).
+Expected: PASS (no concrete receiver implementation is affected by the `beginConnect()`/logging changes).
 
-- [ ] **Step 7: Commit**
+- [ ] **Step 6: Commit**
 
 ```bash
-git add njams-sdk/src/main/java/com/im/njams/sdk/communication/AbstractReceiver.java njams-sdk/src/main/java/com/im/njams/sdk/communication/Receiver.java njams-sdk/src/test/java/com/im/njams/sdk/communication/AbstractReceiverTest.java
-git commit -m "SDK-375 Give AbstractReceiver back its own independent coordinator; retry unconditionally; new WARN/INFO wording"
+git add njams-sdk/src/main/java/com/im/njams/sdk/communication/AbstractReceiver.java njams-sdk/src/test/java/com/im/njams/sdk/communication/AbstractReceiverTest.java
+git commit -m "SDK-375 Make AbstractReceiver retry unconditionally with new WARN/INFO wording; add cross-side trigger"
 ```
 
 ---
@@ -481,6 +496,8 @@ git commit -m "SDK-375 Give AbstractReceiver back its own independent coordinato
 **Files:**
 - Modify: `njams-sdk/src/main/java/com/im/njams/sdk/communication/SenderPool.java`
 - Modify: `njams-sdk/src/main/java/com/im/njams/sdk/communication/NjamsSender.java`
+- Modify: `njams-sdk/src/main/java/com/im/njams/sdk/communication/AbstractReceiver.java` (remove
+  `setConnectionCoordinator`, now dead — see Step 4b below)
 - Test: `njams-sdk/src/test/java/com/im/njams/sdk/communication/SenderPoolTest.java`
 - Test: `njams-sdk/src/test/java/com/im/njams/sdk/communication/NjamsSenderTest.java`
 
@@ -489,7 +506,8 @@ git commit -m "SDK-375 Give AbstractReceiver back its own independent coordinato
   (Runnable)`, `AbstractReceiver.onException(Exception)` (Task 2, existing/unchanged).
 - Produces: `SenderPool.addCrossSideTrigger(Runnable)` (package-private, add-only), `SenderPool
   .triggerConnectionCheck()` (package-private).
-- Removes: `SenderPool.getConnectionCoordinator()`.
+- Removes: `SenderPool.getConnectionCoordinator()`; `AbstractReceiver.setConnectionCoordinator(ConnectionCoordinator)`
+  (dead once this task's new `wireReceiver` body no longer calls it — see Step 4b).
 
 - [ ] **Step 1: Write/adjust the failing tests**
 
@@ -691,29 +709,53 @@ Replace `wireReceiver(Receiver receiver)` (currently ~line 289-303):
 > normal lifecycle. Confirm this against the live `Njams.java` in Task 4 before assuming it — this note describes
 > the intended fix, not yet-verified live behavior.
 
+- [ ] **Step 4b: Remove the now-dead `AbstractReceiver.setConnectionCoordinator`**
+
+With Step 4's new `wireReceiver` body above, nothing calls `AbstractReceiver.setConnectionCoordinator
+(ConnectionCoordinator)` any more anywhere in the codebase — Task 2 deliberately left it in place only because
+this task's own `wireReceiver` change is what retires its last caller. Grep the whole `njams-sdk` tree for
+`setConnectionCoordinator` to confirm zero remaining call sites (only the method's own declaration and its
+Javadoc `{@link}` cross-references should remain), then remove the method entirely from `AbstractReceiver.java`.
+Once it's gone, tighten the `coordinator` field it used to feed: change
+`private volatile ConnectionCoordinator coordinator = new ConnectionCoordinator();` to
+`private final ConnectionCoordinator coordinator = new ConnectionCoordinator();` (drop `volatile`, add `final`) —
+safe now that nothing ever reassigns it. Update the field's Javadoc (it currently describes being "shared with the
+sender group, if wired via `NjamsSender#wireReceiver(Receiver)`" — that description is now wrong; it is never
+shared, only the narrow `addCrossSideTrigger` signal is) to describe the current reality: an independent,
+never-reassigned coordinator. Do **not** remove `startWithTimeout(long, boolean)` here — `Njams.java` still calls
+it until Task 4.
+
 - [ ] **Step 5: Run to verify pass**
 
-Run: `mvn -q -pl njams-sdk test -Dtest=SenderPoolTest,NjamsSenderTest`
+Run: `mvn -q -pl njams-sdk test -Dtest=SenderPoolTest,NjamsSenderTest,AbstractReceiverTest`
 Expected: PASS.
 
 - [ ] **Step 6: Regression check**
 
-Run: `mvn -q -pl njams-sdk test -Dtest="AbstractSenderStaticStateTest,ConnectionCoordinatorTest,AbstractReceiverTest"`
+Run: `mvn -q -pl njams-sdk test -Dtest="AbstractSenderStaticStateTest,ConnectionCoordinatorTest,AbstractReceiverStaticStateTest"`
 Expected: PASS.
 
 - [ ] **Step 7: Commit**
 
 ```bash
-git add njams-sdk/src/main/java/com/im/njams/sdk/communication/SenderPool.java njams-sdk/src/main/java/com/im/njams/sdk/communication/NjamsSender.java njams-sdk/src/test/java/com/im/njams/sdk/communication/SenderPoolTest.java njams-sdk/src/test/java/com/im/njams/sdk/communication/NjamsSenderTest.java
+git add njams-sdk/src/main/java/com/im/njams/sdk/communication/SenderPool.java njams-sdk/src/main/java/com/im/njams/sdk/communication/NjamsSender.java njams-sdk/src/main/java/com/im/njams/sdk/communication/AbstractReceiver.java njams-sdk/src/test/java/com/im/njams/sdk/communication/SenderPoolTest.java njams-sdk/src/test/java/com/im/njams/sdk/communication/NjamsSenderTest.java
 git commit -m "SDK-375 Repurpose NjamsSender.wireReceiver for bidirectional cross-side connection verification"
 ```
 
 ---
 
-### Task 4: `Njams.java` — `start()` depends only on the sender; independent shutdown signaling
+### Task 4: `Njams.java` — `start()` depends only on the sender; independent shutdown signaling; remove the now-dead 2-arg `startWithTimeout`
 
 **Files:**
 - Modify: `njams-sdk/src/main/java/com/im/njams/sdk/Njams.java`
+- Modify: `njams-sdk/src/main/java/com/im/njams/sdk/communication/AbstractReceiver.java` (remove the
+  `startWithTimeout(long, boolean)` override — its only caller, `Njams.startReceiver(boolean)`, is removed by
+  this same task; the `coordinator` field itself was already tightened to `private final` in Task 3, nothing
+  further to do there)
+- Modify: `njams-sdk/src/main/java/com/im/njams/sdk/communication/Receiver.java` (remove the
+  `startWithTimeout(long, boolean)` interface default)
+- Modify: `njams-sdk/src/test/java/com/im/njams/sdk/communication/AbstractReceiverTest.java` (delete the four
+  remaining 2-arg `startWithTimeout` tests/fixtures Task 2 deliberately left alone)
 - Test: `njams-sdk/src/test/java/com/im/njams/sdk/communication/lifecycle/ReceiverStartGatingSpecTest.java`
 - Test: `njams-sdk/src/test/java/com/im/njams/sdk/communication/lifecycle/ReceiverShutdownSpecTest.java`
 - Delete: `njams-sdk/src/test/java/com/im/njams/sdk/communication/lifecycle/CoordinatorSharingSpecTest.java`
@@ -724,6 +766,7 @@ git commit -m "SDK-375 Repurpose NjamsSender.wireReceiver for bidirectional cros
   `cancelReconnect()` (existing, unchanged).
 - Produces: `Njams.startReceiver()` (was `startReceiver(boolean)`, now no parameter, `void` return — replaces the
   private method entirely, not an overload).
+- Removes: `Receiver.startWithTimeout(long, boolean)` (interface default); `AbstractReceiver`'s override of it.
 
 - [ ] **Step 1: Write the failing/rewritten spec tests**
 
@@ -1048,23 +1091,45 @@ Replace the whole method:
 (This is the exact pre-Part-4 body with only the `earlySender.wireReceiver(earlyReceiver)` line removed from the
 middle `try` block — everything else, including the try/catch structure, is unchanged.)
 
+- [ ] **Step 3b: Remove the now-dead 2-arg `startWithTimeout`**
+
+With `Njams.startReceiver()` above no longer calling `receiver.startWithTimeout(timeoutMs, reconnectOnFailure)`,
+that method has no remaining caller anywhere in the codebase. Grep the whole `njams-sdk` tree for
+`startWithTimeout(` to confirm (you should find only the 1-arg method's declaration/callers, and the 2-arg
+method's own now-orphaned declaration), then:
+
+1. In `AbstractReceiver.java`, remove the entire `@Override public boolean startWithTimeout(long timeoutMs,
+   boolean reconnectOnFailure) { ... }` method and its Javadoc.
+2. In `Receiver.java`, remove the entire `default boolean startWithTimeout(long timeoutMs, boolean
+   reconnectOnFailure) { ... }` method and its Javadoc. Check whether the `NjamsSdkRuntimeException` import is
+   still needed (the 1-arg `startWithTimeout(long)`'s `@throws` tag references it) — keep the import if so, remove
+   it if it becomes genuinely unused.
+3. In `AbstractReceiverTest.java`, delete the four tests/fixtures Task 2 deliberately left in place because the
+   method still existed at that point: `startWithTimeoutTwoArgReturnsTrueOnSuccess`,
+   `startWithTimeoutTwoArgReconnectPolicyReturnsTrueAndEntersBackgroundReconnect`,
+   `defaultTwoArgStartWithTimeoutOnPlainReceiverIgnoresReconnectOnFailure`,
+   `startWithTimeoutTwoArgReconnectPolicyReturnsQuicklyDespiteMultipleRetries`, plus `MultiFailThenSucceedsReceiverImpl`
+   and the anonymous plain-`Receiver` fixture inside the "OnPlainReceiver" test. Leave `FlakyThenSucceedsReceiverImpl`
+   only if something else in the file still uses it after the deletions — check before removing it; `SlowConnectReceiverImpl`
+   is unrelated (used by other, unaffected tests) and must stay regardless.
+
 - [ ] **Step 4: Run to verify pass**
 
-Run: `mvn -q -pl njams-sdk test -Dtest=ReceiverStartGatingSpecTest,ReceiverShutdownSpecTest`
+Run: `mvn -q -pl njams-sdk test -Dtest=ReceiverStartGatingSpecTest,ReceiverShutdownSpecTest,AbstractReceiverTest`
 Expected: PASS.
 
 - [ ] **Step 5: Full baseline + lifecycle + Njams regression run**
 
-Run: `mvn -q -pl njams-sdk test -Dtest="JmsClientEndToEndBaselineIT,JmsSenderBaselineIT,HttpSenderBaselineIT,NjamsTest,NjamsSenderTest,SenderStartGatingSpecTest,SenderStartupSpecTest,SenderReconnectGatingSpecTest,SenderShutdownSpecTest,SenderLoggingSpecTest,AbstractReceiverTest,AbstractReceiverStaticStateTest,ConnectionCoordinatorTest,AbstractSenderStaticStateTest,ReceiverLoggingSpecTest"`
+Run: `mvn -q -pl njams-sdk test -Dtest="JmsClientEndToEndBaselineIT,JmsSenderBaselineIT,HttpSenderBaselineIT,NjamsTest,NjamsSenderTest,SenderStartGatingSpecTest,SenderStartupSpecTest,SenderReconnectGatingSpecTest,SenderShutdownSpecTest,SenderLoggingSpecTest,AbstractReceiverTest,AbstractReceiverStaticStateTest,ConnectionCoordinatorTest,AbstractSenderStaticStateTest,ReceiverLoggingSpecTest,JmsReceiverTest,HttpSseReceiverClassReferencesTest"`
 Expected: PASS across the board. (`ReceiverLoggingSpecTest` is expected to still fail here — that is Task 5's job;
 if it already fails, confirm the failure is exactly the log-wording mismatch and not something else.)
 
 - [ ] **Step 6: Commit**
 
 ```bash
-git add njams-sdk/src/main/java/com/im/njams/sdk/Njams.java njams-sdk/src/test/java/com/im/njams/sdk/communication/lifecycle/ReceiverStartGatingSpecTest.java njams-sdk/src/test/java/com/im/njams/sdk/communication/lifecycle/ReceiverShutdownSpecTest.java
+git add njams-sdk/src/main/java/com/im/njams/sdk/Njams.java njams-sdk/src/main/java/com/im/njams/sdk/communication/AbstractReceiver.java njams-sdk/src/main/java/com/im/njams/sdk/communication/Receiver.java njams-sdk/src/test/java/com/im/njams/sdk/communication/AbstractReceiverTest.java njams-sdk/src/test/java/com/im/njams/sdk/communication/lifecycle/ReceiverStartGatingSpecTest.java njams-sdk/src/test/java/com/im/njams/sdk/communication/lifecycle/ReceiverShutdownSpecTest.java
 git rm njams-sdk/src/test/java/com/im/njams/sdk/communication/lifecycle/CoordinatorSharingSpecTest.java
-git commit -m "SDK-375 Make Njams.start() depend only on the sender; signal receiver shutdown independently"
+git commit -m "SDK-375 Make Njams.start() depend only on the sender; signal receiver shutdown independently; remove dead 2-arg startWithTimeout"
 ```
 
 ---
