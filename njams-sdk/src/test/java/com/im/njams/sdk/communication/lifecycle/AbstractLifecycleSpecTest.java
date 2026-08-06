@@ -18,7 +18,8 @@ public abstract class AbstractLifecycleSpecTest {
     }
 
     @After
-    public void stopLifecycleSenders() {
+    public void stopLifecycleSendersAndReceivers() {
         LifecycleTestTransport.shutdownAllSenders();
+        LifecycleTestTransport.shutdownAllReceivers();
     }
 }

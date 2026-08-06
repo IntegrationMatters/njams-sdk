@@ -22,6 +22,11 @@ public final class LifecycleTestTransport {
     private static volatile CountDownLatch connectAttempted = new CountDownLatch(1);
     private static final AtomicInteger senderConnectCount = new AtomicInteger(0);
 
+    private static volatile ConnectMode receiverMode = ConnectMode.SUCCEED;
+    private static volatile CountDownLatch receiverBlockRelease = new CountDownLatch(1);
+    private static volatile CountDownLatch receiverConnectAttempted = new CountDownLatch(1);
+    private static final AtomicInteger receiverConnectCount = new AtomicInteger(0);
+
     /** When armed, a message send blocks on {@link #sendGate} and then fails, dropping the connection. */
     private static volatile boolean sendBlocksThenFails = false;
     /** Fires when a send has entered {@link #awaitSendGateIfArmed()} (so tests know the send is in flight). */
@@ -51,6 +56,10 @@ public final class LifecycleTestTransport {
         sendBlocksThenFails = false;
         sendEntered = new CountDownLatch(1);
         sendGate = new CountDownLatch(1);
+        receiverMode = ConnectMode.SUCCEED;
+        receiverBlockRelease = new CountDownLatch(1);
+        receiverConnectAttempted = new CountDownLatch(1);
+        receiverConnectCount.set(0);
     }
 
     /** Arms the block-then-fail send mode: the next message send blocks on the gate, then fails. */
@@ -111,6 +120,49 @@ public final class LifecycleTestTransport {
         default:
             return;
         }
+    }
+
+    public static void setReceiverMode(ConnectMode mode) {
+        receiverMode = mode;
+    }
+
+    public static void releaseBlockedReceiverConnect() {
+        receiverBlockRelease.countDown();
+    }
+
+    public static CountDownLatch receiverConnectAttemptedLatch() {
+        return receiverConnectAttempted;
+    }
+
+    public static int receiverConnectCount() {
+        return receiverConnectCount.get();
+    }
+
+    // called by LifecycleTestReceiver.connect()
+    static void onReceiverConnect() throws InterruptedException {
+        receiverConnectCount.incrementAndGet();
+        receiverConnectAttempted.countDown();
+        receiverConnectAttempted = new CountDownLatch(1);
+        switch (receiverMode) {
+        case FAIL:
+            throw new IllegalStateException("LIFECYCLE_TEST: receiver connect configured to FAIL");
+        case BLOCK:
+            receiverBlockRelease.await();
+            return;
+        case SUCCEED:
+        default:
+            return;
+        }
+    }
+
+    /**
+     * Stops every {@link LifecycleTestReceiver} a test created — sets shutdown, cancels reconnect, and releases the
+     * BLOCK gate so any blocking connect thread can finish — then clears the receiver registry. Call in @After so
+     * no daemon reconnect/startup thread survives into a later test where it would count down shared latches.
+     */
+    public static void shutdownAllReceivers() {
+        LifecycleTestReceiver.shutdownAll();
+        releaseBlockedReceiverConnect();
     }
 
     /** Settings selecting this transport with the in-memory configuration provider. */
