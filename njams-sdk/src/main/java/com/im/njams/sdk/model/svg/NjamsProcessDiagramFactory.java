@@ -265,15 +265,16 @@ public class NjamsProcessDiagramFactory implements ProcessDiagramFactory {
                 .filter(a -> !(a instanceof GroupModel)).collect(Collectors.toList());
         rootActivities.forEach(a -> drawActivity(context, a));
 
+        // draw root groups before transitions: a group's opaque background must not be painted on top of
+        // a transition that touches its border (SDK-471)
+        List<GroupModel> rootGroups = processModel.getActivityModels().stream().filter(a -> a.getParent() == null)
+            .filter(a -> a instanceof GroupModel).map(GroupModel.class::cast).collect(Collectors.toList());
+        rootGroups.forEach(a -> drawGroup(context, a));
+
         // draw root transitions
         List<TransitionModel> rootTransition = processModel.getTransitionModels().stream()
             .filter(a -> a.getParent() == null).collect(Collectors.toList());
         rootTransition.forEach(t -> drawTransition(context, t));
-
-        // draw root groups
-        List<GroupModel> rootGroups = processModel.getActivityModels().stream().filter(a -> a.getParent() == null)
-            .filter(a -> a instanceof GroupModel).map(GroupModel.class::cast).collect(Collectors.toList());
-        rootGroups.forEach(a -> drawGroup(context, a));
 
         drawExtraElements(context);
     }
@@ -466,19 +467,20 @@ public class NjamsProcessDiagramFactory implements ProcessDiagramFactory {
         }
         context.getContainerElement().appendChild(groupText);
 
-        // draw root activities
+        // draw child activities
         List<ActivityModel> groupActivities = groupModel.getChildActivities().stream()
             .filter(a -> !(a instanceof GroupModel)).collect(Collectors.toList());
         groupActivities.forEach(a -> drawActivity(context, a));
 
-        // draw root transitions
-        List<TransitionModel> groupTransitions = groupModel.getChildTransitions().stream().collect(Collectors.toList());
-        groupTransitions.forEach(t -> drawTransition(context, t));
-
-        // draw root groups
+        // draw child (sub)groups before this group's own transitions: a subgroup's opaque background must
+        // not be painted on top of a transition that touches its border (SDK-471)
         List<GroupModel> groupGroups = groupModel.getChildActivities().stream().filter(a -> a instanceof GroupModel)
             .map(GroupModel.class::cast).collect(Collectors.toList());
         groupGroups.forEach(a -> drawGroup(context, a));
+
+        // draw this group's own transitions
+        List<TransitionModel> groupTransitions = groupModel.getChildTransitions().stream().collect(Collectors.toList());
+        groupTransitions.forEach(t -> drawTransition(context, t));
 
         // after drawing my childs, set back to the previous parent
         context.setContainerElement(parentContainer);
@@ -536,7 +538,8 @@ public class NjamsProcessDiagramFactory implements ProcessDiagramFactory {
         double lineWidth = Math.abs(toPoint.getX() - fromPoint.getX());
         FittedLabel label = wrapLabel(transitionModel.getName(), lineWidth);
         String[] labelLines = label.getLines();
-        boolean suppressLabel = legacyServerCompat && Objects.equals(transitionModel.getName(), transitionModel.getId());
+        boolean suppressLabel =
+            legacyServerCompat && Objects.equals(transitionModel.getName(), transitionModel.getId());
         if (labelLines.length > 0 && !suppressLabel) {
             if (label.isTruncated()) {
                 line.setAttributeNS(null, TOOLTIP_ATTRIBUTE, label.getFull());

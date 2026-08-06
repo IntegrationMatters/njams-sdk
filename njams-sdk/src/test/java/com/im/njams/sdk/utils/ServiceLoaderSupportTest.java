@@ -50,6 +50,9 @@ public class ServiceLoaderSupportTest {
         // However, there is no test for the failing instance since the internal iterator skips that
         // entry except for the very first access. At least there is a DEBUG message printed once
         // for that case.
+        // FailingJmsFactory always fails to construct and is filtered out, leaving: NoopJmsFactory,
+        // WorkingJmsFactory, and EmbeddedActiveMqJmsFactory (test), plus JndiJmsFactory,
+        // ActiveMqSslJmsFactory, and AzureServiceBusJmsFactory (production).
         toTest = new ServiceLoaderSupport<>(JmsFactory.class);
     }
 

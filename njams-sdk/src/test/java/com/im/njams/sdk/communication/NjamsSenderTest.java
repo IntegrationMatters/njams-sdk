@@ -338,6 +338,23 @@ public class NjamsSenderTest extends AbstractTest {
         verify(maxQueueLengthHandler, times(0)).blockThread(runnable, executor);
     }
 
+    @Test
+    public void communicationTypeAlternativeKeyIsAccepted() {
+        Settings settings = new Settings();
+        settings.put(NjamsSettings.PROPERTY_COMMUNICATION_TYPE, TestSender.NAME);
+        NjamsSender sender = new NjamsSender(settings);
+        assertEquals(TestSender.NAME, sender.getName());
+    }
+
+    @Test
+    public void primaryCommunicationKeyTakesPrecedenceOverAlternative() {
+        Settings settings = new Settings();
+        settings.put(NjamsSettings.PROPERTY_COMMUNICATION, TestSender.NAME);
+        settings.put(NjamsSettings.PROPERTY_COMMUNICATION_TYPE, "SomeOtherName");
+        NjamsSender sender = new NjamsSender(settings);
+        assertEquals(TestSender.NAME, sender.getName());
+    }
+
     private class ExceptionSender extends AbstractSender {
 
         public static final int TRIES = 5;

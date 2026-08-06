@@ -47,7 +47,8 @@ public interface Receiver {
      * The implementation should return its name here, by which it can be
      * identified. This name will be used as value in the
      * CommunicationConfiguration via the Key
-     * {@value NjamsSettings#PROPERTY_COMMUNICATION}
+     * {@value NjamsSettings#PROPERTY_COMMUNICATION} (or its alternative
+     * {@value NjamsSettings#PROPERTY_COMMUNICATION_TYPE})
      *
      * @return the name of the receiver implementation
      */

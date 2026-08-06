@@ -809,6 +809,37 @@ public class ReadOnlyClientSettingsTest {
         assertEquals("x", settings.getPropertyWithDeprecationWarning("new", "old"));
     }
 
+    // ---------- getPropertyWithAlternativeKey ----------
+
+    @Test
+    public void getPropertyWithAlternativeKey_returnsExpectedValue() {
+        settings.put("primary", "v");
+        assertEquals("v", settings.getPropertyWithAlternativeKey("primary", "alternative"));
+    }
+
+    @Test
+    public void getPropertyWithAlternativeKey_returnsAlternativeValueWhenPrimaryMissing() {
+        settings.put("alternative", "v");
+        assertEquals("v", settings.getPropertyWithAlternativeKey("primary", "alternative"));
+    }
+
+    @Test
+    public void getPropertyWithAlternativeKey_returnsNullWhenNeitherPresent() {
+        assertNull(settings.getPropertyWithAlternativeKey("primary", "alternative"));
+    }
+
+    @Test
+    public void getPropertyWithAlternativeKey_returnsDefaultWhenNeitherPresent() {
+        assertEquals("d", settings.getPropertyWithAlternativeKey("primary", "d", "alternative"));
+    }
+
+    @Test
+    public void getPropertyWithAlternativeKey_prefersPrimaryOverAlternative() {
+        settings.put("primary", "x");
+        settings.put("alternative", "y");
+        assertEquals("x", settings.getPropertyWithAlternativeKey("primary", "alternative"));
+    }
+
     // ---------- secured properties ----------
 
     @Test
