@@ -29,6 +29,7 @@ import static org.mockito.Mockito.*;
 import java.util.Properties;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -357,23 +358,40 @@ public class NjamsSenderTest extends AbstractTest {
         assertEquals(TestSender.NAME, sender.getName());
     }
 
-    private static AbstractReceiver newTestAbstractReceiver() {
-        return new AbstractReceiver() {
-            @Override public String getName() { return "wire-test-receiver"; }
-            @Override public void connect() { connectionStatus = ConnectionStatus.CONNECTED; }
-            @Override public void stop() { connectionStatus = ConnectionStatus.DISCONNECTED; }
-        };
-    }
-
     @Test
-    public void wireReceiverSetsCoordinatorOnAbstractReceiver() {
+    public void wireReceiverBidirectionallyTriggersOnExceptionOnBothSides() throws InterruptedException {
         Settings settings = new Settings();
         settings.put(NjamsSettings.PROPERTY_COMMUNICATION, TestSender.NAME);
         NjamsSender sender = new NjamsSender(settings);
-        AbstractReceiver receiver = newTestAbstractReceiver();
+
+        AtomicBoolean receiverStopped = new AtomicBoolean(false);
+        AbstractReceiver receiver = new AbstractReceiver() {
+            @Override public String getName() { return "wire-test-receiver"; }
+            @Override public void connect() { connectionStatus = ConnectionStatus.CONNECTED; }
+            @Override public void stop() { receiverStopped.set(true); connectionStatus = ConnectionStatus.DISCONNECTED; }
+        };
         sender.wireReceiver(receiver);
-        // observable via behavior in Task 2/5's tests; here just assert it doesn't throw and is idempotent
-        sender.wireReceiver(receiver);
+
+        // Sender -> receiver direction: force one pooled sender's coordinator to report a failure directly
+        // (bypassing real transport connect/send), and assert the receiver's onException(...) — which calls
+        // stop() first — was genuinely invoked, not just that nothing threw.
+        AbstractSender pooledSender = sender.senderPool.get();
+        // AbstractSender.reconnect(...) requires isConnected()==false and coordinator.shouldReconnect()==true;
+        // a freshly created sender starts DISCONNECTED with shouldReconnect()==false (never connected before),
+        // so drive it through a real successful startup connect first (TestSender's inherited connect() succeeds
+        // trivially), then force it back to DISCONNECTED (same-package access to the protected
+        // setConnectionStatus(...), mirroring SenderReconnectGatingSpecTest's forceDisconnect() pattern) so the
+        // reconnect(...) call below is actually eligible to reach beginReconnect() and fire the cross trigger.
+        pooledSender.beginConnect();
+        assertTrue("fixture sender must complete a successful startup connect before reconnect() is exercised",
+            pooledSender.awaitStartup(5000));
+        pooledSender.setConnectionStatus(ConnectionStatus.DISCONNECTED);
+        pooledSender.reconnect(new com.im.njams.sdk.common.NjamsSdkRuntimeException("forced failure"));
+        long deadline = System.nanoTime() + java.util.concurrent.TimeUnit.SECONDS.toNanos(2);
+        while (!receiverStopped.get() && System.nanoTime() < deadline) {
+            try { Thread.sleep(20); } catch (InterruptedException ie) { Thread.currentThread().interrupt(); break; }
+        }
+        assertTrue("a sender-side failure must reach the wired receiver's onException(...)", receiverStopped.get());
         sender.close();
     }
 
@@ -382,8 +400,6 @@ public class NjamsSenderTest extends AbstractTest {
         Settings settings = new Settings();
         settings.put(NjamsSettings.PROPERTY_COMMUNICATION, TestSender.NAME);
         NjamsSender sender = new NjamsSender(settings);
-        // TestReceiver (existing fixture, same package) implements Receiver directly, not AbstractReceiver —
-        // exactly the "no reconnect mechanism to coordinate" case wireReceiver must ignore.
         sender.wireReceiver(new TestReceiver()); // must not throw
         sender.close();
     }

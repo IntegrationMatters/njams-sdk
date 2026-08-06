@@ -86,13 +86,12 @@ public abstract class AbstractReceiver implements Receiver {
     protected ClientSettings settings;
 
     /**
-     * The {@link ConnectionCoordinator} shared with the sender group, if wired via
-     * {@link NjamsSender#wireReceiver(Receiver)}. Defaults to a dedicated coordinator so a stand-alone receiver
-     * still works (e.g. in tests that never call {@link #setConnectionCoordinator}). {@code volatile} because
-     * {@link NjamsSender#wireReceiver(Receiver)} re-wires it from {@code Njams.start()}'s thread while
-     * {@link #beginConnect()}'s startup thread may concurrently read it.
+     * This receiver's own connection-lifecycle state (reconnect counting, shutdown, "was ever connected"). Never
+     * shared with the sender group — {@link NjamsSender#wireReceiver(Receiver)} only registers a narrow
+     * cross-side trigger callback on it (see {@link #addCrossSideTrigger(Runnable)}), it never reassigns this
+     * field. Never reassigned after construction, hence {@code final}.
      */
-    private volatile ConnectionCoordinator coordinator = new ConnectionCoordinator();
+    private final ConnectionCoordinator coordinator = new ConnectionCoordinator();
 
     /**
      * This constructor sets the njams instance for getting the instruction
@@ -113,16 +112,6 @@ public abstract class AbstractReceiver implements Receiver {
     @Override
     public void init(ClientSettings settings) {
         this.settings = settings;
-    }
-
-    /**
-     * Sets the {@link ConnectionCoordinator} shared with the sender group. Package-private; used by
-     * {@link NjamsSender#wireReceiver(Receiver)}.
-     *
-     * @param coordinator the coordinator to share with the sender group.
-     */
-    void setConnectionCoordinator(ConnectionCoordinator coordinator) {
-        this.coordinator = coordinator;
     }
 
     /**

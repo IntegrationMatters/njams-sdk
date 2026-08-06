@@ -287,18 +287,26 @@ public class NjamsSender {
     }
 
     /**
-     * Shares this sender group's {@link ConnectionCoordinator} with the given receiver, so both the sender(s) and
-     * the receiver of one transport consult the same lifecycle state (startup fail-behavior, reconnect gating,
-     * shutdown). No-op if {@code receiver} is not an {@link AbstractReceiver} (custom {@link Receiver}
-     * implementations outside {@code AbstractReceiver} have no reconnect mechanism to coordinate). Safe to call
-     * repeatedly with the same receiver — later calls simply re-assign the same coordinator reference.
+     * Wires this sender group and the given receiver together for cross-side connection verification: a failure
+     * detected on either side prompts the other to proactively cycle its own connection ("assume-and-cycle" — no
+     * active probing, just each side's existing reconnect machinery triggered from the other side too). This is
+     * a one-way trigger in each direction, not shared state — the sender group and the receiver keep fully
+     * independent {@code ConnectionCoordinator}s, reconnect loops, and shutdown signaling. No-op if
+     * {@code receiver} is not an {@link AbstractReceiver} (custom {@link Receiver} implementations outside
+     * {@code AbstractReceiver} have no reconnect mechanism to trigger). Safe to call repeatedly, including with
+     * different receivers sharing this same sender group (e.g. {@code njams.sdk.communication.shared=true} on
+     * HTTP, where each {@code Njams} instance has its own receiver but shares one sender pool) — every wired
+     * receiver is notified, not just the most recently wired one.
      *
-     * @param receiver the receiver to wire to this sender's coordinator.
+     * @param receiver the receiver to wire for cross-side verification with this sender group.
      * @since 6.0.0
      */
     public void wireReceiver(Receiver receiver) {
         if (receiver instanceof AbstractReceiver) {
-            ((AbstractReceiver) receiver).setConnectionCoordinator(senderPool.getConnectionCoordinator());
+            AbstractReceiver abstractReceiver = (AbstractReceiver) receiver;
+            senderPool.addCrossSideTrigger(() -> abstractReceiver.onException(new NjamsSdkRuntimeException(
+                "Cross-side connection check: the wired sender group detected a connection failure.")));
+            abstractReceiver.addCrossSideTrigger(senderPool::triggerConnectionCheck);
         }
     }
 
