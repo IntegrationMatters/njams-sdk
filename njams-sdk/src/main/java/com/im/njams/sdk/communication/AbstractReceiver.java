@@ -480,11 +480,13 @@ public abstract class AbstractReceiver implements Receiver {
     }
 
     /**
-     * Sets the shared coordinator's shutdown flag. This flag is shared with this receiver's sender group (i.e. the
-     * {@link NjamsSender} it was wired to via {@link NjamsSender#wireReceiver(Receiver)}), so setting it here also
-     * stops the sender group's reconnect loop, and vice versa.
+     * Sets the shutdown flag on this receiver's own, independent {@link ConnectionCoordinator}, stopping this
+     * receiver's reconnect loop. This coordinator is never shared with a sender group wired via
+     * {@link NjamsSender#wireReceiver(Receiver)} — that wiring only registers a one-way cross-side trigger (see
+     * {@link #addCrossSideTrigger(Runnable)}), not shared shutdown state — so calling this has no effect on any
+     * sender group, and a sender group shutting down has no effect here either.
      *
-     * @param shutdown {@code true} to begin shutdown for the whole group.
+     * @param shutdown {@code true} to begin shutdown for this receiver.
      * @since 6.0.0
      */
     public void setShouldShutdown(boolean shutdown) {
