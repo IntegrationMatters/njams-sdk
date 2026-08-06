@@ -104,4 +104,21 @@ public class SenderPoolTest {
         //Once shutdown is declared, no further senders are handed out
         assertNull(op.get());
     }
+
+    @Test
+    public void exposesItsConnectionCoordinator() {
+        CommunicationFactory mockedCF = mock(CommunicationFactory.class);
+        SenderPool pool = new SenderPool(mockedCF);
+        assertNotNull("SenderPool must expose the coordinator it injects into its senders",
+            pool.getConnectionCoordinator());
+    }
+
+    @Test
+    public void exposesTheSameCoordinatorInstanceGivenAtConstruction() {
+        CommunicationFactory mockedCF = mock(CommunicationFactory.class);
+        // package-private constructor overload already exists: SenderPool(factory, coordinator)
+        ConnectionCoordinator injected = new ConnectionCoordinator();
+        SenderPool pool = new SenderPool(mockedCF, injected);
+        assertSame(injected, pool.getConnectionCoordinator());
+    }
 }

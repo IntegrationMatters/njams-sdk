@@ -287,6 +287,37 @@ public class NjamsSender {
     }
 
     /**
+     * Shares this sender group's {@link ConnectionCoordinator} with the given receiver, so both the sender(s) and
+     * the receiver of one transport consult the same lifecycle state (startup fail-behavior, reconnect gating,
+     * shutdown). No-op if {@code receiver} is not an {@link AbstractReceiver} (custom {@link Receiver}
+     * implementations outside {@code AbstractReceiver} have no reconnect mechanism to coordinate). Safe to call
+     * repeatedly with the same receiver — later calls simply re-assign the same coordinator reference.
+     *
+     * @param receiver the receiver to wire to this sender's coordinator.
+     * @since 6.0.0
+     */
+    public void wireReceiver(Receiver receiver) {
+        if (receiver instanceof AbstractReceiver) {
+            ((AbstractReceiver) receiver).setConnectionCoordinator(senderPool.getConnectionCoordinator());
+        }
+    }
+
+    /**
+     * Resolves whether {@link NjamsSettings#PROPERTY_COMMUNICATION_STARTUP_FAILBEHAVIOR} is set to {@code
+     * reconnect} for the given settings, without exposing the internal {@code StartupFailBehavior} type. Used by
+     * {@link com.im.njams.sdk.Njams#start()} to apply the identical decision to the receiver that {@link
+     * #startWithTimeout(long)} already applies to the sender.
+     *
+     * @param settings the settings to read the setting from.
+     * @return {@code true} if the startup fail-behavior is {@code reconnect}, {@code false} for the default
+     *         {@code fail}.
+     * @since 6.0.0
+     */
+    public static boolean reconnectOnStartupFailure(ClientSettings settings) {
+        return StartupFailBehavior.fromSettings(settings).reconnectOnStartupFailure();
+    }
+
+    /**
      * This method closes the ThreadPoolExecutor safely. It awaits the
      * termination for 10 seconds, after that, an InterruptedException will be
      * thrown and the senders will be closed.

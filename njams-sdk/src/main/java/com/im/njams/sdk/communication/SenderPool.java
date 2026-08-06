@@ -77,6 +77,15 @@ public class SenderPool {
     }
 
     /**
+     * @return the {@link ConnectionCoordinator} shared by every sender this pool hands out. Exposed so the
+     *         receiver of the same transport group can be wired to the identical coordinator instance
+     *         (see {@link NjamsSender#wireReceiver(Receiver)}).
+     */
+    ConnectionCoordinator getConnectionCoordinator() {
+        return coordinator;
+    }
+
+    /**
      * Add a listener that is called whenever an exception occurs on sending a message.
      * @param listener The listener to add
      */

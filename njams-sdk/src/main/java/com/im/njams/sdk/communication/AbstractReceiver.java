@@ -87,6 +87,13 @@ public abstract class AbstractReceiver implements Receiver {
     protected ClientSettings settings;
 
     /**
+     * The {@link ConnectionCoordinator} shared with the sender group, if wired via
+     * {@link NjamsSender#wireReceiver(Receiver)}. Package-private; the actual implementation
+     * and usage is deferred to Task 2 (receiver unification).
+     */
+    ConnectionCoordinator coordinator;
+
+    /**
      * This constructor sets the njams instance for getting the instruction
      * listeners.
      *
@@ -105,6 +112,16 @@ public abstract class AbstractReceiver implements Receiver {
     @Override
     public void init(ClientSettings settings) {
         this.settings = settings;
+    }
+
+    /**
+     * Sets the {@link ConnectionCoordinator} shared with the sender group. Package-private; used by
+     * {@link NjamsSender#wireReceiver(Receiver)}.
+     *
+     * @param coordinator the coordinator to share with the sender group.
+     */
+    void setConnectionCoordinator(ConnectionCoordinator coordinator) {
+        this.coordinator = coordinator;
     }
 
     /**

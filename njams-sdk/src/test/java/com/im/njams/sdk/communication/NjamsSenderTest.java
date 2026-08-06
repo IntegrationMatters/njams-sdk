@@ -26,6 +26,7 @@ package com.im.njams.sdk.communication;
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
 
+import java.util.Properties;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -41,6 +42,7 @@ import com.faizsiegeln.njams.messageformat.v4.tracemessage.TraceMessage;
 import com.im.njams.sdk.AbstractTest;
 import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
+import com.im.njams.sdk.settings.ClientSettings;
 import com.im.njams.sdk.settings.Settings;
 
 /**
@@ -353,6 +355,49 @@ public class NjamsSenderTest extends AbstractTest {
         settings.put(NjamsSettings.PROPERTY_COMMUNICATION_TYPE, "SomeOtherName");
         NjamsSender sender = new NjamsSender(settings);
         assertEquals(TestSender.NAME, sender.getName());
+    }
+
+    private static AbstractReceiver newTestAbstractReceiver() {
+        return new AbstractReceiver() {
+            @Override public String getName() { return "wire-test-receiver"; }
+            @Override public void connect() { connectionStatus = ConnectionStatus.CONNECTED; }
+            @Override public void stop() { connectionStatus = ConnectionStatus.DISCONNECTED; }
+        };
+    }
+
+    @Test
+    public void wireReceiverSetsCoordinatorOnAbstractReceiver() {
+        Settings settings = new Settings();
+        settings.put(NjamsSettings.PROPERTY_COMMUNICATION, TestSender.NAME);
+        NjamsSender sender = new NjamsSender(settings);
+        AbstractReceiver receiver = newTestAbstractReceiver();
+        sender.wireReceiver(receiver);
+        // observable via behavior in Task 2/5's tests; here just assert it doesn't throw and is idempotent
+        sender.wireReceiver(receiver);
+        sender.close();
+    }
+
+    @Test
+    public void wireReceiverIsANoOpForNonAbstractReceiverImplementations() {
+        Settings settings = new Settings();
+        settings.put(NjamsSettings.PROPERTY_COMMUNICATION, TestSender.NAME);
+        NjamsSender sender = new NjamsSender(settings);
+        // TestReceiver (existing fixture, same package) implements Receiver directly, not AbstractReceiver —
+        // exactly the "no reconnect mechanism to coordinate" case wireReceiver must ignore.
+        sender.wireReceiver(new TestReceiver()); // must not throw
+        sender.close();
+    }
+
+    @Test
+    public void reconnectOnStartupFailureDefaultsToFalse() {
+        assertFalse(NjamsSender.reconnectOnStartupFailure(ClientSettings.from(new Properties())));
+    }
+
+    @Test
+    public void reconnectOnStartupFailureReadsTheSetting() {
+        Properties p = new Properties();
+        p.put(NjamsSettings.PROPERTY_COMMUNICATION_STARTUP_FAILBEHAVIOR, "reconnect");
+        assertTrue(NjamsSender.reconnectOnStartupFailure(ClientSettings.from(p)));
     }
 
     private class ExceptionSender extends AbstractSender {
