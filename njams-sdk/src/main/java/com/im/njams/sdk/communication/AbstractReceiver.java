@@ -308,6 +308,44 @@ public abstract class AbstractReceiver implements Receiver {
     }
 
     /**
+     * {@inheritDoc}
+     * <p>
+     * On failure, if {@code reconnectOnFailure} is {@code true}, permits the shared coordinator's reconnect gate
+     * (see {@link ConnectionCoordinator#allowReconnectBeforeConnected()}) and starts the background reconnect loop
+     * instead of leaving the receiver inactive; {@code start()}'s caller may then proceed. The reconnect runs on a
+     * separate background thread, not on the caller's thread. In either case, a startup connect thread still blocked
+     * past {@code timeoutMs} is interrupted via {@link #cancelReconnect()} so it cannot race a subsequently started
+     * reconnect attempt.
+     */
+    @Override
+    public boolean startWithTimeout(long timeoutMs, boolean reconnectOnFailure) {
+        if (reconnectOnFailure) {
+            coordinator.allowReconnectBeforeConnected();
+        }
+        try {
+            startWithTimeout(timeoutMs);
+            return true;
+        } catch (NjamsSdkRuntimeException e) {
+            if (reconnectOnFailure) {
+                // Only start a new reconnect thread if one is not already running. This guards against
+                // duplicating a reconnect that beginConnect() already started (and is retrying) once
+                // coordinator.shouldReconnect() became true.
+                if (reconnectThread == null || !reconnectThread.isAlive()) {
+                    cancelReconnect(); // interrupt a startup connect thread still genuinely blocked in connect() past timeout
+                    reconnectThread = new Thread(() -> reconnect(e));
+                    reconnectThread.setDaemon(true);
+                    reconnectThread.setName(String.format("Receiver-Startup-Reconnector-Thread[%s/%d]", getName(),
+                        System.identityHashCode(this)));
+                    reconnectThread.start();
+                }
+                return true;
+            }
+            cancelReconnect();
+            return false;
+        }
+    }
+
+    /**
      * This method tries to establish the connection over and over as long as it
      * not connected. If {@link #connect() connect} throws an exception, the
      * reconnection threads sleeps for

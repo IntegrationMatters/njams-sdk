@@ -866,4 +866,128 @@ public class AbstractReceiverTest {
         @Override
         public void stop() {}
     }
+
+    @Test
+    public void startWithTimeoutTwoArgReturnsTrueOnSuccess() {
+        SlowConnectReceiverImpl impl = new SlowConnectReceiverImpl(0, false);
+        assertTrue(impl.startWithTimeout(200L, false));
+        assertTrue(impl.isConnected());
+    }
+
+    @Test
+    public void startWithTimeoutTwoArgFailFastReturnsFalseAndCancelsOnFailure() throws InterruptedException {
+        SlowConnectReceiverImpl impl = new SlowConnectReceiverImpl(0, true);
+        assertFalse(impl.startWithTimeout(200L, false));
+        assertTrue(impl.isDisconnected());
+        Thread.sleep(300);
+        assertTrue("fail-fast must not leave a reconnect loop running", impl.isDisconnected());
+    }
+
+    @Test
+    public void startWithTimeoutTwoArgReconnectPolicyReturnsTrueAndEntersBackgroundReconnect()
+            throws InterruptedException {
+        // connect() fails once, then subsequent connects succeed
+        FlakyThenSucceedsReceiverImpl impl = new FlakyThenSucceedsReceiverImpl();
+        assertTrue("reconnect policy: startWithTimeout must return true despite the initial failure",
+            impl.startWithTimeout(200L, true));
+        // poll for the background reconnect to succeed (no fixed sleep-then-assert)
+        long deadline = System.nanoTime() + java.util.concurrent.TimeUnit.SECONDS.toNanos(5);
+        while (!impl.isConnected() && System.nanoTime() < deadline) {
+            Thread.sleep(20);
+        }
+        assertTrue("background reconnect must eventually succeed", impl.isConnected());
+    }
+
+    @Test
+    public void defaultTwoArgStartWithTimeoutOnPlainReceiverIgnoresReconnectOnFailure() {
+        final boolean[] startCalled = {false};
+        Receiver simpleReceiver = new Receiver() {
+            @Override public String getName() { return "simple"; }
+            @Override public void init(ClientSettings settings) {}
+            @Override public void setNjams(Njams njams) {}
+            @Override public void onInstruction(Instruction i) {}
+            @Override public void start() { startCalled[0] = true; }
+            @Override public void stop() {}
+        };
+        assertTrue(simpleReceiver.startWithTimeout(100L, true));
+        assertTrue(startCalled[0]);
+    }
+
+    private class FlakyThenSucceedsReceiverImpl extends AbstractReceiver {
+        private final java.util.concurrent.atomic.AtomicBoolean firstAttempt =
+            new java.util.concurrent.atomic.AtomicBoolean(true);
+
+        @Override
+        public String getName() { return "FlakyReceiver"; }
+
+        @Override
+        public void init(ClientSettings settings) {}
+
+        @Override
+        protected Response extendRequest(Request req) { return null; }
+
+        @Override
+        public void connect() {
+            if (firstAttempt.compareAndSet(true, false)) {
+                throw new NjamsSdkRuntimeException("first attempt fails");
+            }
+            connectionStatus = ConnectionStatus.CONNECTED;
+        }
+
+        @Override
+        public void stop() {}
+    }
+
+    @Test
+    public void startWithTimeoutTwoArgReconnectPolicyReturnsQuicklyDespiteMultipleRetries()
+            throws InterruptedException {
+        // connect() fails 3 times, then succeeds — backoff sleeps will be much longer than startup timeout
+        MultiFailThenSucceedsReceiverImpl impl = new MultiFailThenSucceedsReceiverImpl(3);
+        long before = System.currentTimeMillis();
+        assertTrue("reconnect policy: startWithTimeout must return true quickly despite 3 failures requiring backoff",
+            impl.startWithTimeout(100L, true));
+        long elapsed = System.currentTimeMillis() - before;
+        assertTrue("startWithTimeout must return promptly (within ~500ms) to allow caller to proceed; "
+            + "elapsed=" + elapsed + "ms (large backoff sleeps should run in background, not on caller)",
+            elapsed < 500);
+        assertTrue("receiver must be disconnected after return (not yet reconnected)",
+            impl.isDisconnected());
+        // poll for the background reconnect to succeed
+        long deadline = System.nanoTime() + java.util.concurrent.TimeUnit.SECONDS.toNanos(5);
+        while (!impl.isConnected() && System.nanoTime() < deadline) {
+            Thread.sleep(50);
+        }
+        assertTrue("background reconnect must eventually succeed despite multiple failures", impl.isConnected());
+    }
+
+    private class MultiFailThenSucceedsReceiverImpl extends AbstractReceiver {
+        private final int failureCount;
+        private final java.util.concurrent.atomic.AtomicInteger attemptCount =
+            new java.util.concurrent.atomic.AtomicInteger(0);
+
+        MultiFailThenSucceedsReceiverImpl(int failureCount) {
+            this.failureCount = failureCount;
+        }
+
+        @Override
+        public String getName() { return "MultiFailReceiver"; }
+
+        @Override
+        public void init(ClientSettings settings) {}
+
+        @Override
+        protected Response extendRequest(Request req) { return null; }
+
+        @Override
+        public void connect() {
+            int attempt = attemptCount.incrementAndGet();
+            if (attempt <= failureCount) {
+                throw new NjamsSdkRuntimeException("attempt " + attempt + " fails");
+            }
+            connectionStatus = ConnectionStatus.CONNECTED;
+        }
+
+        @Override
+        public void stop() {}
+    }
 }

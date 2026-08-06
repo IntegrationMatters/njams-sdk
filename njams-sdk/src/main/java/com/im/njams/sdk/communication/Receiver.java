@@ -96,6 +96,33 @@ public interface Receiver {
     }
 
     /**
+     * Starts this receiver for the initial connection like {@link #startWithTimeout(long)}, but instead of
+     * throwing on failure, applies the given policy: if {@code reconnectOnFailure} is {@code true} the
+     * implementation may enter a background reconnect and report success anyway; otherwise this behaves like
+     * {@link #startWithTimeout(long)} except it reports failure via its return value instead of throwing.
+     * <p>
+     * The default implementation has no reconnect mechanism to fall back on (that requires {@link
+     * AbstractReceiver}), so it ignores {@code reconnectOnFailure} and simply reports the outcome of one attempt.
+     * {@link AbstractReceiver} overrides this with a coordinator-aware implementation that honors {@code
+     * reconnectOnFailure}.
+     *
+     * @param timeoutMs maximum time in milliseconds to wait for the connection.
+     * @param reconnectOnFailure whether a failed initial connect should be retried in the background instead of
+     *        failing.
+     * @return {@code true} if the SDK may proceed (connected, or reconnecting in the background); {@code false} to
+     *         fail startup.
+     * @since 6.0.0
+     */
+    default boolean startWithTimeout(long timeoutMs, boolean reconnectOnFailure) {
+        try {
+            startWithTimeout(timeoutMs);
+            return true;
+        } catch (com.im.njams.sdk.common.NjamsSdkRuntimeException e) {
+            return false;
+        }
+    }
+
+    /**
      * Stop the new Receiver
      */
     void stop();
