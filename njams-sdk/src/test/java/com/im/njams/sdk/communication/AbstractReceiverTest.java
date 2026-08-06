@@ -368,6 +368,52 @@ public class AbstractReceiverTest {
         System.out.println("The Thread slept ~ " + diff + "ms.");
     }
 
+    @Test
+    public void reconnectDoesNothingOnceShutdownRequested() throws Exception {
+        AbstractReceiverImpl impl = new AbstractReceiverImpl();
+        impl.setShouldShutdown(true); // public method added to AbstractReceiver in Step 5 below
+        impl.throwManyExceptionsForTest = true; // connect() keeps failing so the loop would otherwise spin
+        assertTrue(impl.isDisconnected());
+        impl.reconnect(new NjamsSdkRuntimeException("Test"));
+        assertTrue("must not have connected (loop must not even attempt connect() once shutdown)",
+            impl.isDisconnected());
+    }
+
+    @Test
+    public void cancelReconnectInterruptsABlockedReconnectThread() throws Exception {
+        BlockingConnectReceiverImpl impl = new BlockingConnectReceiverImpl();
+        Thread reconnector = new Thread(() -> impl.reconnect(new NjamsSdkRuntimeException("lost")));
+        reconnector.setDaemon(true);
+        reconnector.start();
+        assertTrue("reconnect must have entered connect() and blocked",
+            impl.connectEntered.await(2, java.util.concurrent.TimeUnit.SECONDS));
+        impl.cancelReconnect();
+        reconnector.join(2000);
+        assertFalse("reconnect thread must terminate once cancelReconnect() interrupts the blocked connect()",
+            reconnector.isAlive());
+    }
+
+    @Test
+    public void cancelReconnectInterruptsABlockedStartupConnect() throws Exception {
+        // BlockingConnectReceiverImpl.connect() throws on interrupt (unlike SlowConnectReceiverImpl, whose
+        // connect() swallows InterruptedException and still succeeds — not suitable for this test).
+        BlockingConnectReceiverImpl impl = new BlockingConnectReceiverImpl();
+        impl.beginConnect();
+        assertTrue("startup connect must have entered connect() and blocked",
+            impl.connectEntered.await(2, java.util.concurrent.TimeUnit.SECONDS));
+        impl.cancelReconnect();
+        // startWithTimeout must return promptly (throwing) instead of waiting out connect()'s 10s sleep
+        long before = System.currentTimeMillis();
+        try {
+            impl.startWithTimeout(4000L);
+            fail("expected failure after the startup connect thread was interrupted");
+        } catch (NjamsSdkRuntimeException ignored) {
+            // expected
+        }
+        assertTrue("must return promptly, not wait out the full connect delay",
+            System.currentTimeMillis() - before < 4000L);
+    }
+
     //start tests
 
     /**
@@ -640,6 +686,8 @@ public class AbstractReceiverTest {
 
         private boolean throwManyExceptions = false;
 
+        private boolean throwManyExceptionsForTest = false;
+
         private int throwingCounter = 0;
 
         public static final int THROWINGMAXCOUNTER = 10;
@@ -673,6 +721,9 @@ public class AbstractReceiverTest {
         //This method should be tested by the real subclass of the AbstractReceiver
         @Override
         public void connect() {
+            if (throwManyExceptionsForTest) {
+                throw new NjamsSdkRuntimeException("AbstractReceiverTestException");
+            }
             if (throwException) {
                 throwException = false;
                 throw new NjamsSdkRuntimeException("AbstractReceiverTestException");
@@ -786,5 +837,33 @@ public class AbstractReceiverTest {
             stopCalled = true;
             connectionStatus = ConnectionStatus.DISCONNECTED;
         }
+    }
+
+    private class BlockingConnectReceiverImpl extends AbstractReceiver {
+        final java.util.concurrent.CountDownLatch connectEntered = new java.util.concurrent.CountDownLatch(1);
+
+        @Override
+        public String getName() { return "BlockingReceiver"; }
+
+        @Override
+        public void init(ClientSettings settings) {}
+
+        @Override
+        protected Response extendRequest(Request req) { return null; }
+
+        @Override
+        public void connect() {
+            connectEntered.countDown();
+            try {
+                Thread.sleep(10_000); // effectively "blocks" until interrupted by cancelReconnect()
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new NjamsSdkRuntimeException("interrupted");
+            }
+            connectionStatus = ConnectionStatus.CONNECTED;
+        }
+
+        @Override
+        public void stop() {}
     }
 }

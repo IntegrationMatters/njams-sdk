@@ -65,16 +65,15 @@ public abstract class AbstractReceiver implements Receiver {
     //The connection status of the receiver
     protected ConnectionStatus connectionStatus = ConnectionStatus.DISCONNECTED;
 
-    private static final AtomicBoolean hasConnected = new AtomicBoolean(false);
-
-    private static final AtomicInteger connecting = new AtomicInteger(0);
-
     private AtomicInteger reconnectIntervalIncreasing = new AtomicInteger(INIT_RECONNECT_INTERVAL * 10 + 1);
 
     private final AtomicBoolean connectBegun = new AtomicBoolean(false);
     private volatile CountDownLatch startupLatch;
     private final AtomicReference<Exception> startupError = new AtomicReference<>();
     private final AtomicBoolean startupTimedOut = new AtomicBoolean(false);
+
+    private volatile Thread startupConnectThread;
+    private volatile Thread reconnectThread;
 
     /**
      * Njams to hold
@@ -88,10 +87,10 @@ public abstract class AbstractReceiver implements Receiver {
 
     /**
      * The {@link ConnectionCoordinator} shared with the sender group, if wired via
-     * {@link NjamsSender#wireReceiver(Receiver)}. Package-private; the actual implementation
-     * and usage is deferred to Task 2 (receiver unification).
+     * {@link NjamsSender#wireReceiver(Receiver)}. Package-private. Defaults to a dedicated coordinator so a
+     * stand-alone receiver still works (e.g. in tests that never call {@link #setConnectionCoordinator}).
      */
-    ConnectionCoordinator coordinator;
+    ConnectionCoordinator coordinator = new ConnectionCoordinator();
 
     /**
      * This constructor sets the njams instance for getting the instruction
@@ -230,13 +229,21 @@ public abstract class AbstractReceiver implements Receiver {
         }
         startupLatch = new CountDownLatch(1);
         LOG.debug("Receiver {}: starting connection attempt.", getName());
-        Thread connectThread = new Thread(() -> {
+        startupConnectThread = new Thread(() -> {
             try {
                 connect();
+                coordinator.markStartupConnected();
             } catch (Exception e) {
                 LOG.debug("Receiver {}: connection attempt failed.", getName(), e);
                 startupError.set(e);
                 startupLatch.countDown();
+                if (coordinator.shouldReconnect()) {
+                    // Mirrors AbstractSender.beginConnect(): covers the case where the startup connect blocks past
+                    // the caller's timeout and only fails afterward — startWithTimeout(long, boolean) cannot start
+                    // the reconnect loop itself in that case because this thread still holds CONNECTING at the
+                    // moment the timeout elapses.
+                    reconnect(e);
+                }
                 return;
             }
             if (startupTimedOut.get()) {
@@ -252,9 +259,9 @@ public abstract class AbstractReceiver implements Receiver {
                 startupLatch.countDown();
             }
         });
-        connectThread.setDaemon(true);
-        connectThread.setName("Receiver-Startup-" + getName());
-        connectThread.start();
+        startupConnectThread.setDaemon(true);
+        startupConnectThread.setName("Receiver-Startup-" + getName());
+        startupConnectThread.start();
     }
 
     /**
@@ -310,47 +317,49 @@ public abstract class AbstractReceiver implements Receiver {
      * @param ex the exception that initiated the reconnect
      */
     public synchronized void reconnect(Exception ex) {
+        // Track the thread actually running the loop below, not just the wrapper thread onException() spawns:
+        // reconnect() is also called directly (e.g. from beginConnect()'s startup thread, or a caller bypassing
+        // onException()), so cancelReconnect() must be able to interrupt whichever thread is currently in here.
+        reconnectThread = Thread.currentThread();
+        if (coordinator.shouldShutdown()) {
+            LOG.debug("Receiver {}: shutdown requested; not reconnecting.", getName());
+            return;
+        }
         int got = verifyingCounter.incrementAndGet();
         boolean doReconnect = true;
         if (isConnecting() || isConnected()) {
             doReconnect = false;
         } else {
-            synchronized (hasConnected) {
-                hasConnected.set(false);
-                if (LOG.isInfoEnabled() && ex != null) {
-                    if (ex.getCause() == null) {
-                        LOG.info("Initialized receiver reconnect, because of : {}", ex.toString());
-                    } else {
-                        LOG.info("Initialized receiver reconnect, because of : {}, {}", ex.toString(),
-                            ex.getCause().toString());
-                    }
+            int reconnecting = coordinator.beginReconnect();
+            if (LOG.isInfoEnabled() && ex != null) {
+                if (ex.getCause() == null) {
+                    LOG.info("Initialized receiver reconnect, because of : {}", ex.toString());
+                } else {
+                    LOG.info("Initialized receiver reconnect, because of : {}, {}", ex.toString(),
+                        ex.getCause().toString());
                 }
-                LOG.debug("{} receivers are reconnecting now.", connecting.incrementAndGet());
             }
+            LOG.debug("{} receivers are reconnecting now.", reconnecting);
         }
         if (got > 1) {
             //This is just for debugging.
             LOG.debug("There are to many reconnections at the same time! There are {} method invocations.", got);
         }
-        while (!isConnected() && doReconnect) {
+        while (!isConnected() && doReconnect && !coordinator.shouldShutdown()) {
             LOG.debug("Next try to reconnect receivers.");
             try {
                 connect();
-                synchronized (hasConnected) {
-                    if (!hasConnected.get()) {
-                        LOG.info("Reconnected receiver {}", getName());
-                        hasConnected.set(true);
-                        resetReconnectInterval();
-                    }
-                    LOG.debug("{} receivers still need to reconnect.", connecting.decrementAndGet());
+                if (coordinator.markConnected()) {
+                    LOG.info("Reconnected receiver {}", getName());
+                    resetReconnectInterval();
                 }
+                LOG.debug("{} receivers still need to reconnect.", coordinator.reconnectingCount());
             } catch (NjamsSdkRuntimeException e) {
                 try {
                     //Using Thread.sleep because this.wait would release the lock for this object, Thread.sleep doesn't.
-
                     Thread.sleep(nextReconnectInterval());
                 } catch (InterruptedException e1) {
-                    LOG.error("The reconnecting thread was interrupted!", e1);
+                    LOG.debug("The reconnecting thread was interrupted.", e1);
                     doReconnect = false;
                 }
             }
@@ -411,12 +420,41 @@ public abstract class AbstractReceiver implements Receiver {
     public void onException(Exception exception) {
         stop();
         // reconnect
-        Thread reconnector = new Thread(() -> reconnect(exception));
-        reconnector.setDaemon(true);
-        reconnector
+        reconnectThread = new Thread(() -> reconnect(exception));
+        reconnectThread.setDaemon(true);
+        reconnectThread
             .setName(String.format("Receiver-Sender-Reconnector-Thread[%s/%d]", getName(),
                 System.identityHashCode(this)));
-        reconnector.start();
+        reconnectThread.start();
+    }
+
+    /**
+     * Sets the shared coordinator's shutdown flag. This flag is shared with this receiver's sender group (i.e. the
+     * {@link NjamsSender} it was wired to via {@link NjamsSender#wireReceiver(Receiver)}), so setting it here also
+     * stops the sender group's reconnect loop, and vice versa.
+     *
+     * @param shutdown {@code true} to begin shutdown for the whole group.
+     * @since 6.0.0
+     */
+    public void setShouldShutdown(boolean shutdown) {
+        coordinator.setShouldShutdown(shutdown);
+    }
+
+    /**
+     * Interrupts the startup connect thread and any in-progress reconnect thread of this receiver, so a blocking
+     * {@link #connect()} is cancelled promptly on shutdown rather than only at the next loop check.
+     *
+     * @since 6.0.0
+     */
+    public void cancelReconnect() {
+        final Thread startup = startupConnectThread;
+        if (startup != null) {
+            startup.interrupt();
+        }
+        final Thread rc = reconnectThread;
+        if (rc != null) {
+            rc.interrupt();
+        }
     }
 
     /**
