@@ -31,6 +31,17 @@ public class LifecycleTestReceiver extends AbstractReceiver {
         INSTANCES.clear();
     }
 
+    /**
+     * Test-only accessor for specs that need to reach the concrete receiver a real {@link com.im.njams.sdk.Njams}
+     * instance wired internally (there is no public getter on {@code Njams} for its receiver, by design — the
+     * communication layer is not public API). Returns the most recently constructed instance still registered.
+     *
+     * @return the most recently constructed instance, or {@code null} if none is registered.
+     */
+    static LifecycleTestReceiver lastCreated() {
+        return INSTANCES.isEmpty() ? null : INSTANCES.get(INSTANCES.size() - 1);
+    }
+
     @Override
     public String getName() {
         return LifecycleTestTransport.NAME;

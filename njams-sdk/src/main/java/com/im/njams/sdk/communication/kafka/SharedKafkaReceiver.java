@@ -63,8 +63,8 @@ public class SharedKafkaReceiver extends KafkaReceiver implements ShareableRecei
     }
 
     @Override
-    public void removeNjams(final Njams njamsInstance) {
-        sharingSupport.removeNjams(njamsInstance);
+    public boolean removeNjams(final Njams njamsInstance) {
+        return sharingSupport.removeNjams(njamsInstance);
     }
 
     @Override

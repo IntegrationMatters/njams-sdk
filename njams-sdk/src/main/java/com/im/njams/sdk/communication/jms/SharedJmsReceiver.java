@@ -83,8 +83,9 @@ public class SharedJmsReceiver extends JmsReceiver implements ShareableReceiver<
     }
 
     @Override
-    public void removeNjams(Njams njamsInstance) {
-        if (sharingSupport.removeNjams(njamsInstance)) {
+    public boolean removeNjams(Njams njamsInstance) {
+        boolean reallyStopped = sharingSupport.removeNjams(njamsInstance);
+        if (reallyStopped) {
             synchronized (this) {
                 updateFilters();
                 if (useMessageselector) {
@@ -92,6 +93,7 @@ public class SharedJmsReceiver extends JmsReceiver implements ShareableReceiver<
                 }
             }
         }
+        return reallyStopped;
     }
 
     private void updateConsumer() {

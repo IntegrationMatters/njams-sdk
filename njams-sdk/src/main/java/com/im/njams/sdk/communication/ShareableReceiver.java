@@ -39,8 +39,10 @@ public interface ShareableReceiver<M> extends Receiver {
      * Stops the given {@link Njams} instance from receiving messages from this receiver instance.
      *
      * @param njams The {@link Njams} instance to be removed.
+     * @return {@code true} if the actual receiver has been stopped, i.e., when there are no more instances
+     *         registered with this shared receiver; {@code false} if other instances still use it.
      */
-    public void removeNjams(Njams njams);
+    public boolean removeNjams(Njams njams);
 
     @Override
     public void setNjams(Njams njams);
