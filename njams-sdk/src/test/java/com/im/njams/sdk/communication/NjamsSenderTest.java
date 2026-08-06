@@ -386,8 +386,8 @@ public class NjamsSenderTest extends AbstractTest {
         assertTrue("fixture sender must complete a successful startup connect before reconnect() is exercised",
             pooledSender.awaitStartup(5000));
         pooledSender.setConnectionStatus(ConnectionStatus.DISCONNECTED);
-        pooledSender.reconnect(new com.im.njams.sdk.common.NjamsSdkRuntimeException("forced failure"));
-        long deadline = System.nanoTime() + java.util.concurrent.TimeUnit.SECONDS.toNanos(2);
+        pooledSender.reconnect(new NjamsSdkRuntimeException("forced failure"));
+        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(2);
         while (!receiverStopped.get() && System.nanoTime() < deadline) {
             try { Thread.sleep(20); } catch (InterruptedException ie) { Thread.currentThread().interrupt(); break; }
         }

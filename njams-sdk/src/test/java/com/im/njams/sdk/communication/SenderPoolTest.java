@@ -39,6 +39,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.junit.Test;
 
+import com.faizsiegeln.njams.messageformat.v4.logmessage.LogMessage;
+import com.faizsiegeln.njams.messageformat.v4.projectmessage.ProjectMessage;
+import com.faizsiegeln.njams.messageformat.v4.tracemessage.TraceMessage;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 
 public class SenderPoolTest {
@@ -181,18 +184,17 @@ public class SenderPoolTest {
         }
 
         @Override
-        protected void send(com.faizsiegeln.njams.messageformat.v4.logmessage.LogMessage msg, String clientId) {
+        protected void send(LogMessage msg, String clientId) {
             // no-op fixture
         }
 
         @Override
-        protected void send(com.faizsiegeln.njams.messageformat.v4.projectmessage.ProjectMessage msg,
-                String clientId) {
+        protected void send(ProjectMessage msg, String clientId) {
             // no-op fixture
         }
 
         @Override
-        protected void send(com.faizsiegeln.njams.messageformat.v4.tracemessage.TraceMessage msg, String clientId) {
+        protected void send(TraceMessage msg, String clientId) {
             // no-op fixture
         }
 
