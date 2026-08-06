@@ -26,6 +26,7 @@ package com.im.njams.sdk.communication;
 import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.NjamsSettings;
+import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.settings.ClientSettings;
 
 /**
@@ -87,7 +88,7 @@ public interface Receiver {
      * also supports early connection start via {@link AbstractReceiver#beginConnect()}.
      *
      * @param timeoutMs maximum time in milliseconds to wait for the connection
-     * @throws com.im.njams.sdk.common.NjamsSdkRuntimeException if the connection cannot be
+     * @throws NjamsSdkRuntimeException if the connection cannot be
      *         established within {@code timeoutMs} or an error occurs during connection
      * @since 6.0.0
      */
@@ -117,7 +118,7 @@ public interface Receiver {
         try {
             startWithTimeout(timeoutMs);
             return true;
-        } catch (com.im.njams.sdk.common.NjamsSdkRuntimeException e) {
+        } catch (NjamsSdkRuntimeException e) {
             return false;
         }
     }
