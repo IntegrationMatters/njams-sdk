@@ -767,12 +767,15 @@ public class Njams implements InstructionListener {
     /**
      * Stops the given receiver after a startup failure (sender or receiver side), unregistering this instance
      * from a shared receiver via {@link ShareableReceiver#removeNjams(Njams)} where applicable instead of
-     * stopping it outright for every instance still using it, and cancelling any reconnect the receiver's own
-     * shared connection coordinator may already have self-triggered (see {@link AbstractReceiver#beginConnect()})
-     * purely because that coordinator's group already permits reconnecting — e.g. because the sender of the same
-     * group connected first — independently of this startup's own fail-fast decision. Without cancelling it, that
-     * reconnect could later succeed on its own, leaving a live connection this {@code Njams} instance no longer
-     * references and never stops.
+     * stopping it outright for every instance still using it — mirroring {@link #stop()}'s own gating exactly.
+     * Only once that determines this really was the last user (trivially true for a non-{@code ShareableReceiver}
+     * {@link AbstractReceiver}) does this cancel any reconnect the receiver's own shared connection coordinator
+     * may already have self-triggered (see {@link AbstractReceiver#beginConnect()}) purely because that
+     * coordinator's group already permits reconnecting — e.g. because the sender of the same group connected
+     * first — independently of this startup's own fail-fast decision. Without cancelling it, that reconnect could
+     * later succeed on its own, leaving a live connection this {@code Njams} instance no longer references and
+     * never stops. Cancelling unconditionally instead would wrongly kill a reconnect a still-registered sharing
+     * instance depends on.
      *
      * @param failedReceiver the receiver to stop; {@code null} is a no-op.
      */
@@ -781,13 +784,15 @@ public class Njams implements InstructionListener {
             return;
         }
         try {
-            if (failedReceiver instanceof AbstractReceiver) {
-                ((AbstractReceiver) failedReceiver).cancelReconnect();
-            }
+            boolean reallyStopped;
             if (failedReceiver instanceof ShareableReceiver) {
-                ((ShareableReceiver<?>) failedReceiver).removeNjams(this);
+                reallyStopped = ((ShareableReceiver<?>) failedReceiver).removeNjams(this);
             } else {
                 failedReceiver.stop();
+                reallyStopped = true;
+            }
+            if (reallyStopped && failedReceiver instanceof AbstractReceiver) {
+                ((AbstractReceiver) failedReceiver).cancelReconnect();
             }
         } catch (Exception ex) {
             LOG.debug("Unable to stop receiver after startup failure", ex);

@@ -25,6 +25,7 @@ package com.im.njams.sdk;
 
 import static org.junit.Assert.*;
 
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -46,11 +47,14 @@ import com.faizsiegeln.njams.messageformat.v4.projectmessage.ProjectMessage;
 import com.faizsiegeln.njams.messageformat.v4.tracemessage.TraceMessage;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.Path;
+import com.im.njams.sdk.communication.AbstractReceiver;
 import com.im.njams.sdk.communication.AbstractSender;
+import com.im.njams.sdk.communication.ConnectionStatus;
 import com.im.njams.sdk.communication.Receiver;
 import com.im.njams.sdk.communication.ReplayHandler;
 import com.im.njams.sdk.communication.ReplayRequest;
 import com.im.njams.sdk.communication.ReplayResponse;
+import com.im.njams.sdk.communication.ShareableReceiver;
 import com.im.njams.sdk.communication.TestReceiver;
 import com.im.njams.sdk.communication.TestSender;
 import com.im.njams.sdk.settings.ClientSettings;
@@ -166,6 +170,98 @@ public class NjamsTest {
         } finally {
             TestReceiver.setReceiverMock(null);
         }
+    }
+
+    /**
+     * Minimal {@code AbstractReceiver & ShareableReceiver} whose {@link #removeNjams(Njams)} return value is
+     * fixed at construction time, and whose {@link #cancelReconnect()} is overridden (instead of touching real
+     * thread fields) so tests can observe whether it was invoked at all.
+     */
+    private static class FakeGatedShareableReceiver extends AbstractReceiver implements ShareableReceiver<Object> {
+        private final boolean reallyStop;
+        boolean removeNjamsCalled = false;
+        boolean cancelReconnectCalled = false;
+
+        FakeGatedShareableReceiver(boolean reallyStop) {
+            this.reallyStop = reallyStop;
+        }
+
+        @Override
+        public String getName() {
+            return "fake-gated-shareable";
+        }
+
+        @Override
+        public void connect() {
+            connectionStatus = ConnectionStatus.CONNECTED;
+        }
+
+        @Override
+        public void stop() {
+            connectionStatus = ConnectionStatus.DISCONNECTED;
+        }
+
+        @Override
+        public boolean removeNjams(Njams njams) {
+            removeNjamsCalled = true;
+            return reallyStop;
+        }
+
+        @Override
+        public Path getReceiverPath(Object requestMessage, Instruction instruction) {
+            return null;
+        }
+
+        @Override
+        public String getClientId(Object requestMessage, Instruction instruction) {
+            return null;
+        }
+
+        @Override
+        public void sendReply(Object requestMessage, Instruction reply, String clientId) {
+            // not used in this test
+        }
+
+        @Override
+        public void cancelReconnect() {
+            cancelReconnectCalled = true;
+        }
+    }
+
+    private void invokeStopReceiverAfterStartupFailure(Receiver failedReceiver) throws Exception {
+        Method m = Njams.class.getDeclaredMethod("stopReceiverAfterStartupFailure", Receiver.class);
+        m.setAccessible(true);
+        m.invoke(instance, failedReceiver);
+    }
+
+    /**
+     * Regression test for a final-review fix-wave finding: {@code stopReceiverAfterStartupFailure} must consult
+     * {@code removeNjams(Njams)} FIRST and only cancel a reconnect once that determined this really was the
+     * last registered user — exactly mirroring {@code Njams.stop()}'s own gating. An earlier version of the fix
+     * called {@code cancelReconnect()} unconditionally before {@code removeNjams(...)}, which would kill a
+     * shared receiver's in-progress reconnect out from under a <em>different</em>, still-registered {@code
+     * Njams} instance merely because this instance's own startup failed.
+     */
+    @Test
+    public void stopReceiverAfterStartupFailureDoesNotCancelReconnectWhileASharedReceiverStillHasOtherUsers()
+            throws Exception {
+        FakeGatedShareableReceiver fake = new FakeGatedShareableReceiver(false);
+        invokeStopReceiverAfterStartupFailure(fake);
+
+        assertTrue("removeNjams() must have been consulted", fake.removeNjamsCalled);
+        assertFalse("must not cancel a reconnect a still-registered sharing instance depends on",
+            fake.cancelReconnectCalled);
+    }
+
+    @Test
+    public void stopReceiverAfterStartupFailureCancelsReconnectOnceRemoveNjamsReportsReallyStopped()
+            throws Exception {
+        FakeGatedShareableReceiver fake = new FakeGatedShareableReceiver(true);
+        invokeStopReceiverAfterStartupFailure(fake);
+
+        assertTrue("removeNjams() must have been consulted", fake.removeNjamsCalled);
+        assertTrue("must cancel the reconnect once removeNjams() reports this was the last user",
+            fake.cancelReconnectCalled);
     }
 
     @Test

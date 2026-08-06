@@ -424,10 +424,13 @@ public abstract class AbstractReceiver implements Receiver {
                 }
             }
         } finally {
-            // Clear the field once the loop exits, but only if it still references this thread: a different
-            // thread may already be running a subsequent reconnect() call by the time this finally block runs
-            // (this method is synchronized, but the field itself is read by cancelReconnect() without holding
-            // the monitor), and clearing it then would wrongly un-alias that other, still-running attempt.
+            // Clear the field once the loop exits, but only if it still references this thread. reconnect()
+            // itself is synchronized, so no second thread can be executing this method body concurrently — but
+            // onException() and startWithTimeout(long, boolean) both create-and-assign a new reconnect thread
+            // to this same field before starting it, and that new thread may be waiting on this method's
+            // monitor and then run its own "if (doReconnect) { reconnectThread = ... }" assignment after this
+            // thread's loop exits but before (or while) this finally block runs. Clearing unconditionally would
+            // then wrongly un-alias that other, now-current reconnect attempt.
             if (reconnectThread == Thread.currentThread()) {
                 reconnectThread = null;
             }
