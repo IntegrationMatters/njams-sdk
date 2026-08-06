@@ -188,7 +188,7 @@ public class Njams implements InstructionListener {
     private NjamsSender sender;
     private Receiver receiver;
 
-    /** Receiver pre-created at construction time, transferred to {@link #receiver} inside {@link #startReceiver()}. */
+    /** Receiver pre-created at construction time, transferred to {@link #receiver} inside {@link #startReceiver(NjamsSender)}. */
     private Receiver earlyReceiver;
 
     private NjamsConfiguration configuration;
@@ -650,9 +650,10 @@ public class Njams implements InstructionListener {
     /**
      * Pre-creates the sender and receiver and starts both their connection attempts in the background, so the
      * connections overlap with the remaining application setup. Called automatically at construction time.
-     * Idempotent and best-effort: any failure is swallowed and {@link #startReceiver()} will retry creating the
-     * receiver. Cross-side connection verification (see {@link NjamsSender#wireReceiver(Receiver)}) is wired
-     * later, in {@link #startReceiver()} — not here — since it depends on nothing this early pre-warming needs.
+     * Idempotent and best-effort: any failure is swallowed and {@link #startReceiver(NjamsSender)} will retry
+     * creating the receiver. Cross-side connection verification (see {@link NjamsSender#wireReceiver(Receiver)})
+     * is wired later, in {@link #startReceiver(NjamsSender)} — not here — since it depends on nothing this early
+     * pre-warming needs.
      */
     private void beginConnect() {
         if (earlyReceiver != null || lifecycle.isStarted()) {
@@ -680,15 +681,22 @@ public class Njams implements InstructionListener {
 
     /**
      * Best-effort receiver setup: resolves the receiver (from the pre-warmed {@code earlyReceiver} or newly
-     * created) and wires it to the active sender group for cross-side connection verification (see
+     * created) and wires it to the given sender group for cross-side connection verification (see
      * {@link NjamsSender#wireReceiver(Receiver)}). The receiver's connection outcome never affects {@code
      * start()} — a construction or connection failure is logged and the SDK proceeds without a working receiver;
      * only the sender is critical to startup (see {@link #start()}). The receiver itself was already told to
      * begin connecting in the background by {@link #beginConnect()}; this method does not wait for it.
+     * <p>
+     * Only exceptions raised while constructing or wiring the receiver itself are caught and logged here. This
+     * method does not obtain the sender (that is {@link #start()}'s responsibility, before calling this) so that
+     * a sender-construction failure is never misattributed to the receiver, and is left to propagate so
+     * {@link #start()} can report and fail startup on it accurately.
+     *
+     * @param activeSender the sender group to wire the receiver to for cross-side connection verification, or
+     *         {@code null} if none is configured.
      */
-    private void startReceiver() {
+    private void startReceiver(NjamsSender activeSender) {
         try {
-            final NjamsSender activeSender = getSender();
             if (earlyReceiver != null) {
                 receiver = earlyReceiver;
                 earlyReceiver = null;
@@ -722,8 +730,15 @@ public class Njams implements InstructionListener {
             configuration.initializeDataMasking();
             commands.add(this);
             commands.add(new ConfigurationInstructionListener(this));
-            startReceiver();
-            final NjamsSender activeSender = getSender();
+            final NjamsSender activeSender;
+            try {
+                activeSender = getSender();
+            } catch (Exception e) {
+                LOG.error("SDK startup failed: could not obtain a sender. The SDK instance is inactive.", e);
+                releasePrewarmedSender();
+                return false;
+            }
+            startReceiver(activeSender);
             if (activeSender != null) {
                 long timeoutMs = settings.getLong(
                     NjamsSettings.PROPERTY_COMMUNICATION_CONNECT_TIMEOUT, DEFAULT_CONNECT_TIMEOUT_MS);

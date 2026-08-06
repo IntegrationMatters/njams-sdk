@@ -243,6 +243,31 @@ public class NjamsTest {
         }
     }
 
+    /**
+     * Regression test (SDK-375 Part 4 review finding): a sender-construction failure (as opposed to a mere
+     * connection failure) must still make {@code start()} return {@code false} cleanly, never throw. Before Part
+     * 4, {@code startReceiver(boolean)} caught this exact exception (raised from its own {@code getSender()} call)
+     * and returned {@code false}, short-circuiting {@code start()} before it ever reached a second,
+     * unguarded {@code getSender()} call. Forces {@link com.im.njams.sdk.communication.NjamsSender#init()}'s
+     * thread-pool validation to throw by configuring {@code maxSenderThreads < minSenderThreads}.
+     */
+    @Test
+    public void testStartReturnsFalseWhenSenderConstructionFails() {
+        Settings s = TestReceiver.getSettings();
+        s.put(NjamsSettings.PROPERTY_MIN_SENDER_THREADS, "5");
+        s.put(NjamsSettings.PROPERTY_MAX_SENDER_THREADS, "1");
+        Njams njams = new Njams(Path.of("test", "senderConstructionFails"), "1.0", "test", s);
+        try {
+            boolean result = njams.start();
+            assertFalse("start() must return false, not throw, when sender construction fails", result);
+            assertFalse(njams.isStarted());
+        } finally {
+            if (njams.isStarted()) {
+                njams.stop();
+            }
+        }
+    }
+
     @Test
     public void testOnCorrectSendProjectMessageInstruction() {
         Instruction inst = new Instruction();
