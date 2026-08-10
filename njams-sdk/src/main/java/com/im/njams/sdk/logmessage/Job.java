@@ -29,6 +29,7 @@ import com.im.njams.sdk.Path;
 import com.im.njams.sdk.model.ActivityModel;
 import com.im.njams.sdk.model.GroupModel;
 import com.im.njams.sdk.model.SubProcessActivityModel;
+import com.im.njams.sdk.utils.StringUtils;
 
 import java.time.LocalDateTime;
 import java.util.Collection;
@@ -54,6 +55,26 @@ import java.util.Map;
  * @author pnientiedt
  */
 public interface Job {
+
+    /**
+     * Prefix for internal Job attributes that are by default hidden in nJAMS UI.
+     */
+    public static final String INTERNAL_ATTRIBUTES_PREFIX = "$njams";
+
+    /**
+     * Builds a hidden attribute name for the given plain name by prefixing with {@link #INTERNAL_ATTRIBUTES_PREFIX}
+     * @param plainName The actual name.
+     * @return The given name prefixed with {@link #INTERNAL_ATTRIBUTES_PREFIX}
+     */
+    public static String hiddenAttributeName(String plainName) {
+        if (StringUtils.isBlank(plainName)) {
+            throw new IllegalArgumentException("Attribute key must not be null or empty");
+        }
+        if (plainName.startsWith(INTERNAL_ATTRIBUTES_PREFIX)) {
+            return plainName;
+        }
+        return INTERNAL_ATTRIBUTES_PREFIX + "_" + plainName;
+    }
 
     /**
      * Adds a new Activity to the Job.

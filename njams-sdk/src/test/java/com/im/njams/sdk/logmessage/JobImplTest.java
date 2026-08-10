@@ -23,39 +23,15 @@
  */
 package com.im.njams.sdk.logmessage;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.when;
-
-import java.time.LocalDateTime;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.regex.Pattern;
-
-import org.junit.After;
-import org.junit.Test;
-import org.mockito.Mockito;
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.stubbing.Answer;
-
 import com.faizsiegeln.njams.messageformat.v4.common.CommonMessage;
 import com.faizsiegeln.njams.messageformat.v4.logmessage.ActivityStatus;
 import com.faizsiegeln.njams.messageformat.v4.logmessage.LogMessage;
 import com.im.njams.sdk.AbstractTest;
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.NjamsSettings;
+import com.im.njams.sdk.Path;
 import com.im.njams.sdk.common.DateTimeUtility;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
-import com.im.njams.sdk.Path;
 import com.im.njams.sdk.communication.NjamsSender;
 import com.im.njams.sdk.communication.TestReceiver;
 import com.im.njams.sdk.model.ActivityModel;
@@ -63,6 +39,21 @@ import com.im.njams.sdk.model.GroupModel;
 import com.im.njams.sdk.model.ProcessModel;
 import com.im.njams.sdk.model.SubProcessActivityModel;
 import com.im.njams.sdk.utils.StringUtils;
+import org.junit.After;
+import org.junit.Test;
+import org.mockito.Mockito;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
+
+import java.time.LocalDateTime;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.regex.Pattern;
+
+import static org.junit.Assert.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
 
 /**
  * This class tests some methods of the JobImpl.
@@ -267,9 +258,9 @@ public class JobImplTest extends AbstractTest {
         activities.forEach(activity -> assertFalse(onlyAsterisksOrNull(activity.getMaxIterations().toString())));
         activities.forEach(activity -> assertFalse(onlyAsterisksOrNull(activity.getParentInstanceId())));
         activities.forEach(activity -> activity.getPredecessors()
-                .forEach(pred -> assertFalse(onlyAsterisksOrNull(pred.getFromInstanceId()))));
+            .forEach(pred -> assertFalse(onlyAsterisksOrNull(pred.getFromInstanceId()))));
         activities.forEach(activity -> activity.getPredecessors()
-                .forEach(pred -> assertFalse(onlyAsterisksOrNull(pred.getModelId()))));
+            .forEach(pred -> assertFalse(onlyAsterisksOrNull(pred.getModelId()))));
         activities.forEach(activity -> assertFalse(onlyAsterisksOrNull(activity.getSequence().toString())));
         activities.forEach(activity -> assertFalse(onlyAsterisksOrNull(activity.getExecution().toString())));
         activities.forEach(activity -> assertFalse(onlyAsterisksOrNull(((Long) activity.getDuration()).toString())));
@@ -285,9 +276,9 @@ public class JobImplTest extends AbstractTest {
         activities.forEach(activity -> assertTrue(onlyAsterisksOrNull(activity.getEventPayload())));
         activities.forEach(activity -> assertTrue(onlyAsterisksOrNull(activity.getStackTrace())));
         activities.stream().map(com.faizsiegeln.njams.messageformat.v4.logmessage.Activity::getAttributes)
-                .forEachOrdered(actAttr -> {
-                    actAttr.keySet().forEach(key -> assertTrue(onlyAsterisksOrNull(actAttr.get(key))));
-                });
+            .forEachOrdered(actAttr -> {
+                actAttr.keySet().forEach(key -> assertTrue(onlyAsterisksOrNull(actAttr.get(key))));
+            });
 
         //These should be masked, because they should always me masked and they can't be set by the ExtractHandler
         activities.forEach(activity -> assertTrue(onlyAsterisksOrNull(activity.getInput())));
@@ -619,7 +610,7 @@ public class JobImplTest extends AbstractTest {
         long before = job.getEstimatedSize();
         act.setEventPayload("0123456789"); // 10 chars
         assertTrue("event payload must increase the estimate",
-                job.getEstimatedSize() >= before + 10);
+            job.getEstimatedSize() >= before + 10);
     }
 
     @Test
@@ -651,7 +642,7 @@ public class JobImplTest extends AbstractTest {
     public void eventMessageIncreasesEstimatedSize() {
         JobImpl job = createDefaultStartedJob();
         ActivityImpl act = (ActivityImpl) job.createActivity(
-                process.createActivity("evtMsgAct", "EvtMsgAct", null)).build();
+            process.createActivity("evtMsgAct", "EvtMsgAct", null)).build();
         long before = job.getEstimatedSize();
         act.setEventMessage("0123456789"); // 10 chars
         assertEquals(before + 10, job.getEstimatedSize());
@@ -661,7 +652,7 @@ public class JobImplTest extends AbstractTest {
     public void eventCodeIncreasesEstimatedSize() {
         JobImpl job = createDefaultStartedJob();
         ActivityImpl act = (ActivityImpl) job.createActivity(
-                process.createActivity("evtCodeAct", "EvtCodeAct", null)).build();
+            process.createActivity("evtCodeAct", "EvtCodeAct", null)).build();
         long before = job.getEstimatedSize();
         act.setEventCode("ABCDE"); // 5 chars
         assertEquals(before + 5, job.getEstimatedSize());
@@ -679,7 +670,7 @@ public class JobImplTest extends AbstractTest {
     public void stackTraceIncreasesEstimatedSize() {
         JobImpl job = createDefaultStartedJob();
         ActivityImpl act = (ActivityImpl) job.createActivity(
-                process.createActivity("stackAct", "StackAct", null)).build();
+            process.createActivity("stackAct", "StackAct", null)).build();
         long before = job.getEstimatedSize();
         act.setStackTrace("0123456789"); // 10 chars
         assertEquals(before + 10, job.getEstimatedSize());
@@ -689,7 +680,7 @@ public class JobImplTest extends AbstractTest {
     public void startDataIncreasesEstimatedSize() {
         JobImpl job = createDefaultStartedJob();
         ActivityImpl act = (ActivityImpl) job.createActivity(
-                process.createActivity("startDataAct", "StartDataAct", null)).build();
+            process.createActivity("startDataAct", "StartDataAct", null)).build();
         long before = job.getEstimatedSize();
         act.setStartData("ABCDE"); // 5 chars
         assertEquals(before + 5, job.getEstimatedSize());
@@ -707,7 +698,7 @@ public class JobImplTest extends AbstractTest {
         // Flush size below the accumulated base sizes; interval not yet due.
         long smallFlushSize = 1000L + 2 * ActivityImpl.BASE_ESTIMATED_SIZE;
         assertTrue("estimate must exceed the small flush size after the fix",
-                job.getEstimatedSize() > smallFlushSize);
+            job.getEstimatedSize() > smallFlushSize);
         job.timerFlush(DateTimeUtility.now(), smallFlushSize);
         Mockito.verify(job, Mockito.atLeastOnce()).flush();
     }
@@ -743,7 +734,7 @@ public class JobImplTest extends AbstractTest {
         JobImpl job = createDefaultStartedJob();
         ActivityModel startModel = process.createActivity("spCallerStart", "Start", null);
         SubProcessActivityModel spModel =
-                startModel.transitionToSubProcess("spCaller", "SubProcess", "stepType");
+            startModel.transitionToSubProcess("spCaller", "SubProcess", "stepType");
         SubProcessActivityImpl sp = new SubProcessActivityImpl(job, spModel);
         long before = job.getEstimatedSize();
         sp.setSubProcess("SubName", "PROCESSES>SubProcess", "log-123");
@@ -752,5 +743,23 @@ public class JobImplTest extends AbstractTest {
         // re-setting the subprocess must not count the constant again
         sp.setSubProcess("Other", "Other>Path", "log-456");
         assertEquals(before + SubProcessActivityImpl.SUBPROCESS_ESTIMATED_SIZE, job.getEstimatedSize());
+    }
+
+    @Test
+    public void testHiddenAttributeName() {
+        assertEquals("$njams_test", Job.hiddenAttributeName("test"));
+        assertEquals("$njams_test", Job.hiddenAttributeName("$njams_test"));
+        try {
+            Job.hiddenAttributeName("");
+            fail("IllegalArgumentException expected");
+        } catch (IllegalArgumentException e) {
+            // expected
+        }
+        try {
+            Job.hiddenAttributeName(null);
+            fail("IllegalArgumentException expected");
+        } catch (IllegalArgumentException e) {
+            // expected
+        }
     }
 }
