@@ -29,9 +29,12 @@ Sections below are updated in place to reflect the revised decisions (marked **R
 cross-side "assume-and-cycle" trigger where a connection failure detected on either side would proactively cycle
 the *other* side's connection too. A code review found this tears down a healthy sender pool whenever the
 receiver alone hiccups, and further analysis showed it does not actually solve the problem it was designed for.
-D1.7 has been removed from this ticket's scope in its entirety and is deferred to a future, separate
-reconnect-handling design. Remaining mentions of D1.7 below are historical context from when it was designed and
-briefly implemented, not a description of current or planned behavior.
+D1.7 has been removed from this ticket's scope in its entirety and is deferred to separate tickets:
+**SDK-473** (*Failing sender should trigger receiver reconnect*) carries the narrower, one-directional case that
+remains worthwhile, and **SDK-472** (*Single threaded sender reconnect*) covers the related pre-existing gap found
+while reviewing this work — pooled senders each spawn their own reconnect thread, so several can reconnect in
+parallel, which this ticket deliberately leaves unchanged. Remaining mentions of D1.7 below are historical context
+from when it was designed and briefly implemented, not a description of current or planned behavior.
 
 ---
 
@@ -226,7 +229,7 @@ failed its first connect" and "receiver lost its connection later" — both are 
   receiver-only-failure case, per D1.6).
 - Cross-side connection verification (D1.7) — briefly designed and implemented, then cut from this ticket's
   scope after review found it tears down a healthy sender pool on a receiver-only hiccup without solving the
-  problem it targeted; deferred to a future, separate reconnect-handling design (see §0).
+  problem it targeted; deferred to SDK-473 (see §0).
 - No new/second startup-failure setting for the receiver; its behavior is deliberately hardcoded, not
   configurable (D1.6).
 

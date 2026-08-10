@@ -125,8 +125,8 @@ connection.
 > (`docs/superpowers/specs/2026-07-02-sdk-375-sender-lifecycle-design.md`) for its authoritative text, to avoid
 > the two documents drifting apart again. D1.7 (a cross-side "assume-and-cycle" trigger, also introduced later)
 > was briefly designed and implemented in Part 4, then **cut after review**: it tore down a healthy sender pool
-> on a receiver-only hiccup and did not solve the problem it targeted. It is deferred to a future, separate
-> reconnect-handling design — see the design spec's §0 for the full account.
+> on a receiver-only hiccup and did not solve the problem it targeted. It is deferred to SDK-473 (one-directional:
+> failing sender triggers receiver reconnect) — see the design spec's §0 for the full account.
 
 - **D1.1 — Connection state, per side (REVISED).** Sender(s) and receiver each own **independent** connectivity
   state — a connection coordinator (lifecycle phase, "was ever connected", reconnect loop, failure signal) is no
@@ -198,4 +198,4 @@ connection.
       `reconnect`.
 - [ ] **Post-Part-3 revision:** decouple sender/receiver criticality (D1.1-D1.4 revised above; new D1.6 in the
       design spec). D1.7 (cross-side connection verification) was designed, briefly implemented, and then cut
-      after review — see the design spec's §0 — and is deferred to a future, separate reconnect-handling design.
+      after review — see the design spec's §0 — and is deferred to SDK-473.
