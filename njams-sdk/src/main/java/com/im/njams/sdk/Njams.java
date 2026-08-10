@@ -802,9 +802,10 @@ public class Njams implements InstructionListener {
      * independently of this startup's sender-side fail-fast decision, so it may already be reconnecting by the
      * time the sender's own failure is discovered. Signalling/cancelling unconditionally instead would wrongly
      * stop a reconnect a still-registered sharing instance depends on. That same "really the last user" outcome
-     * also evicts a {@link ShareableReceiver} from {@link CommunicationFactory}'s cache (see
-     * {@link CommunicationFactory#evictSharedReceiver(ShareableReceiver)}), so a later {@link Njams} sharing the
-     * same receiver type builds a fresh instance instead of being handed this now-dead one.
+     * also atomically evicts a {@link ShareableReceiver} from {@link CommunicationFactory}'s cache (see
+     * {@link CommunicationFactory#removeNjamsFromSharedReceiver(ShareableReceiver, Njams)}), so a later
+     * {@link Njams} sharing the same receiver type builds a fresh instance instead of being handed this now-dead
+     * one.
      *
      * @param failedReceiver the receiver to stop; {@code null} is a no-op.
      */
@@ -815,19 +816,15 @@ public class Njams implements InstructionListener {
         try {
             boolean reallyStopped;
             if (failedReceiver instanceof ShareableReceiver) {
-                reallyStopped = ((ShareableReceiver<?>) failedReceiver).removeNjams(this);
+                reallyStopped = CommunicationFactory.removeNjamsFromSharedReceiver(
+                    (ShareableReceiver<?>) failedReceiver, this);
             } else {
                 failedReceiver.stop();
                 reallyStopped = true;
             }
-            if (reallyStopped) {
-                if (failedReceiver instanceof AbstractReceiver) {
-                    ((AbstractReceiver) failedReceiver).setShouldShutdown(true);
-                    ((AbstractReceiver) failedReceiver).cancelReconnect();
-                }
-                if (failedReceiver instanceof ShareableReceiver) {
-                    CommunicationFactory.evictSharedReceiver((ShareableReceiver<?>) failedReceiver);
-                }
+            if (reallyStopped && failedReceiver instanceof AbstractReceiver) {
+                ((AbstractReceiver) failedReceiver).setShouldShutdown(true);
+                ((AbstractReceiver) failedReceiver).cancelReconnect();
             }
         } catch (Exception ex) {
             LOG.debug("Unable to stop receiver after startup failure", ex);
@@ -865,10 +862,10 @@ public class Njams implements InstructionListener {
      * <p>
      * The sender and receiver are signalled independently: closing the sender marks its own {@code
      * ConnectionCoordinator} as shutting down; separately, once the receiver is really stopped — i.e. once the
-     * last {@code Njams} instance using a shared receiver has stopped it (see {@link ShareableReceiver#removeNjams})
-     * — its own, independent coordinator is told to shut down, its in-progress reconnect is cancelled, and, if it
-     * is a {@link ShareableReceiver}, it is evicted from {@link CommunicationFactory}'s shared-receiver cache so a
-     * later {@code Njams} sharing the same receiver type is never handed this now-dead instance.
+     * last {@code Njams} instance using a shared receiver has stopped it (see
+     * {@link CommunicationFactory#removeNjamsFromSharedReceiver(ShareableReceiver, Njams)}, which performs the
+     * "last user" check and the shared-receiver cache eviction atomically) — its own, independent coordinator is
+     * told to shut down and its in-progress reconnect is cancelled.
      *
      * @return true is stopping was successful.
      */
@@ -885,19 +882,15 @@ public class Njams implements InstructionListener {
         if (receiver != null) {
             boolean reallyStopped;
             if (receiver instanceof ShareableReceiver) {
-                reallyStopped = ((ShareableReceiver<?>) receiver).removeNjams(this);
+                reallyStopped = CommunicationFactory.removeNjamsFromSharedReceiver(
+                    (ShareableReceiver<?>) receiver, this);
             } else {
                 receiver.stop();
                 reallyStopped = true;
             }
-            if (reallyStopped) {
-                if (receiver instanceof AbstractReceiver) {
-                    ((AbstractReceiver) receiver).setShouldShutdown(true);
-                    ((AbstractReceiver) receiver).cancelReconnect();
-                }
-                if (receiver instanceof ShareableReceiver) {
-                    CommunicationFactory.evictSharedReceiver((ShareableReceiver<?>) receiver);
-                }
+            if (reallyStopped && receiver instanceof AbstractReceiver) {
+                ((AbstractReceiver) receiver).setShouldShutdown(true);
+                ((AbstractReceiver) receiver).cancelReconnect();
             }
         }
         commands.clear();

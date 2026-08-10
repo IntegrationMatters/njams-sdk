@@ -160,8 +160,13 @@ public class CommunicationFactory {
     }
 
     /**
-     * Removes the given receiver from the shared-receiver cache, so that a later {@link #getReceiver(Njams)} call
-     * requesting the same receiver type builds a fresh instance instead of reusing this now-stopped one.
+     * Removes the given {@link Njams} instance from the given shared receiver and, if that was the last user,
+     * evicts the receiver from the shared-receiver cache — both steps performed atomically under this factory's
+     * shared-receiver lock, so that a later {@link Njams} concurrently calling {@link #getReceiver(Njams)} for the
+     * same receiver type can never observe the receiver as still cached after it has genuinely stopped. Without
+     * this atomicity, {@link ShareableReceiver#removeNjams(Njams)} reporting "last user" and the cache eviction
+     * would be two separate, un-synchronized steps, leaving a window in which a concurrently constructing
+     * {@code Njams} is handed the doomed instance right before it is evicted (SDK-375 final-review finding).
      * <p>
      * A stopped {@link AbstractReceiver} cannot be reconnected: its {@code connectBegun} flag is a one-shot,
      * {@code final} field that {@link AbstractReceiver#beginConnect()} never resets, and once {@code
@@ -169,24 +174,42 @@ public class CommunicationFactory {
      * than attempting to reset and reuse it — is therefore the only way a later {@link Njams} sharing the same
      * receiver type can connect at all.
      * <p>
-     * Callers must call this only once a receiver has genuinely, fully stopped — i.e. once the last {@link Njams}
-     * instance sharing it has been removed via {@link ShareableReceiver#removeNjams(Njams)} — never while other
-     * instances still depend on it.
-     * <p>
      * This method is {@code public} because {@link Njams}, which needs to call it, lives in a different package;
      * the communication layer as a whole remains internal SDK infrastructure and not public API (see the
      * project's API design rules).
      *
-     * @param receiver the receiver instance to evict; a no-op if it is {@code null} or is not the instance
-     *         currently cached for its class (e.g. it was already evicted, or replaced by a newer instance).
+     * @param receiver the shared receiver instance the given {@code njams} is being removed from.
+     * @param njams the {@link Njams} instance to remove.
+     * @return {@code true} if this was the last user, i.e., the receiver has genuinely stopped and been evicted;
+     *         {@code false} if other instances still use it.
      * @since 6.0.0
      */
-    public static void evictSharedReceiver(ShareableReceiver<?> receiver) {
-        if (receiver == null) {
-            return;
-        }
+    public static boolean removeNjamsFromSharedReceiver(ShareableReceiver<?> receiver, Njams njams) {
         synchronized (sharedReceivers) {
-            sharedReceivers.remove(receiver.getClass(), receiver);
+            boolean reallyStopped = receiver.removeNjams(njams);
+            if (reallyStopped) {
+                sharedReceivers.remove(receiver.getClass(), receiver);
+            }
+            return reallyStopped;
+        }
+    }
+
+    /**
+     * Test-support only: unconditionally clears the entire shared-receiver cache, regardless of whether any
+     * cached receiver has genuinely stopped. Production code must never call this.
+     * <p>
+     * It exists so lifecycle tests in a different package (e.g. a {@code SharedReceiverRestartSpecTest} under
+     * {@code com.im.njams.sdk.communication.lifecycle}) can reset this static state unconditionally in their
+     * teardown, without depending on every test's {@code Njams.stop()} call having actually run — a test whose
+     * {@code Njams.start()} unexpectedly returns {@code false} would otherwise skip {@code stop()} and leave a
+     * shut-down shared receiver cached, poisoning every later shared-receiver test in the same JVM (SDK-375
+     * final-review finding on test static-state fragility). {@code public} only because that test lives in a
+     * different package ({@code com.im.njams.sdk.communication.lifecycle}); kept to this single, narrow method
+     * rather than exposing the cache itself.
+     */
+    public static void clearSharedReceiversForTesting() {
+        synchronized (sharedReceivers) {
+            sharedReceivers.clear();
         }
     }
 

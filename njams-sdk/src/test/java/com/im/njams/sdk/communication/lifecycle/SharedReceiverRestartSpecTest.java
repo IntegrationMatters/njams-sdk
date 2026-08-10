@@ -13,6 +13,7 @@ import org.junit.Test;
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.Path;
+import com.im.njams.sdk.communication.CommunicationFactory;
 import com.im.njams.sdk.settings.Settings;
 
 /**
@@ -39,6 +40,11 @@ public class SharedReceiverRestartSpecTest extends AbstractLifecycleSpecTest {
         // The instance-tracking registry is test-local bookkeeping only; the shared receivers themselves are
         // expected to already be evicted from CommunicationFactory's cache by the stop() calls above.
         SharedLifecycleTestReceiver.clearInstanceRegistry();
+        // Unconditional safety net (SDK-375 review finding on test static-state fragility): if a start() above
+        // had ever unexpectedly returned false, the isStarted() guards would skip stop() and leave a shut-down
+        // shared receiver cached in CommunicationFactory's static sharedReceivers map, poisoning every later
+        // shared-receiver test in the JVM. Clearing the cache here does not depend on stop() having run at all.
+        CommunicationFactory.clearSharedReceiversForTesting();
     }
 
     private static Settings sharedSettings() {
