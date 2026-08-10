@@ -160,6 +160,37 @@ public class CommunicationFactory {
     }
 
     /**
+     * Removes the given receiver from the shared-receiver cache, so that a later {@link #getReceiver(Njams)} call
+     * requesting the same receiver type builds a fresh instance instead of reusing this now-stopped one.
+     * <p>
+     * A stopped {@link AbstractReceiver} cannot be reconnected: its {@code connectBegun} flag is a one-shot,
+     * {@code final} field that {@link AbstractReceiver#beginConnect()} never resets, and once {@code
+     * shouldShutdown} is set its reconnect loop permanently refuses to run. Evicting the dead instance — rather
+     * than attempting to reset and reuse it — is therefore the only way a later {@link Njams} sharing the same
+     * receiver type can connect at all.
+     * <p>
+     * Callers must call this only once a receiver has genuinely, fully stopped — i.e. once the last {@link Njams}
+     * instance sharing it has been removed via {@link ShareableReceiver#removeNjams(Njams)} — never while other
+     * instances still depend on it.
+     * <p>
+     * This method is {@code public} because {@link Njams}, which needs to call it, lives in a different package;
+     * the communication layer as a whole remains internal SDK infrastructure and not public API (see the
+     * project's API design rules).
+     *
+     * @param receiver the receiver instance to evict; a no-op if it is {@code null} or is not the instance
+     *         currently cached for its class (e.g. it was already evicted, or replaced by a newer instance).
+     * @since 6.0.0
+     */
+    public static void evictSharedReceiver(ShareableReceiver<?> receiver) {
+        if (receiver == null) {
+            return;
+        }
+        synchronized (sharedReceivers) {
+            sharedReceivers.remove(receiver.getClass(), receiver);
+        }
+    }
+
+    /**
      * Returns the Sender specified by the value of {@value NjamsSettings#PROPERTY_COMMUNICATION} (or its
      * alternative {@value NjamsSettings#PROPERTY_COMMUNICATION_TYPE}) specified in the CommunicationProperties
      * in the Settings

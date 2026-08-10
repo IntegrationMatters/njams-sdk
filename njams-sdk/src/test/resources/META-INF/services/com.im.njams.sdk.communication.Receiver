@@ -1,2 +1,3 @@
 com.im.njams.sdk.communication.TestReceiver
 com.im.njams.sdk.communication.lifecycle.LifecycleTestReceiver
+com.im.njams.sdk.communication.lifecycle.SharedLifecycleTestReceiver

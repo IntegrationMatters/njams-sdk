@@ -800,7 +800,10 @@ public class Njams implements InstructionListener {
      * always retries its own connection unconditionally in the background (see {@link AbstractReceiver#beginConnect()}),
      * independently of this startup's sender-side fail-fast decision, so it may already be reconnecting by the
      * time the sender's own failure is discovered. Signalling/cancelling unconditionally instead would wrongly
-     * stop a reconnect a still-registered sharing instance depends on.
+     * stop a reconnect a still-registered sharing instance depends on. That same "really the last user" outcome
+     * also evicts a {@link ShareableReceiver} from {@link CommunicationFactory}'s cache (see
+     * {@link CommunicationFactory#evictSharedReceiver(ShareableReceiver)}), so a later {@link Njams} sharing the
+     * same receiver type builds a fresh instance instead of being handed this now-dead one.
      *
      * @param failedReceiver the receiver to stop; {@code null} is a no-op.
      */
@@ -816,9 +819,14 @@ public class Njams implements InstructionListener {
                 failedReceiver.stop();
                 reallyStopped = true;
             }
-            if (reallyStopped && failedReceiver instanceof AbstractReceiver) {
-                ((AbstractReceiver) failedReceiver).setShouldShutdown(true);
-                ((AbstractReceiver) failedReceiver).cancelReconnect();
+            if (reallyStopped) {
+                if (failedReceiver instanceof AbstractReceiver) {
+                    ((AbstractReceiver) failedReceiver).setShouldShutdown(true);
+                    ((AbstractReceiver) failedReceiver).cancelReconnect();
+                }
+                if (failedReceiver instanceof ShareableReceiver) {
+                    CommunicationFactory.evictSharedReceiver((ShareableReceiver<?>) failedReceiver);
+                }
             }
         } catch (Exception ex) {
             LOG.debug("Unable to stop receiver after startup failure", ex);
@@ -857,7 +865,9 @@ public class Njams implements InstructionListener {
      * The sender and receiver are signalled independently: closing the sender marks its own {@code
      * ConnectionCoordinator} as shutting down; separately, once the receiver is really stopped — i.e. once the
      * last {@code Njams} instance using a shared receiver has stopped it (see {@link ShareableReceiver#removeNjams})
-     * — its own, independent coordinator is told to shut down and its in-progress reconnect is cancelled.
+     * — its own, independent coordinator is told to shut down, its in-progress reconnect is cancelled, and, if it
+     * is a {@link ShareableReceiver}, it is evicted from {@link CommunicationFactory}'s shared-receiver cache so a
+     * later {@code Njams} sharing the same receiver type is never handed this now-dead instance.
      *
      * @return true is stopping was successful.
      */
@@ -879,9 +889,14 @@ public class Njams implements InstructionListener {
                 receiver.stop();
                 reallyStopped = true;
             }
-            if (reallyStopped && receiver instanceof AbstractReceiver) {
-                ((AbstractReceiver) receiver).setShouldShutdown(true);
-                ((AbstractReceiver) receiver).cancelReconnect();
+            if (reallyStopped) {
+                if (receiver instanceof AbstractReceiver) {
+                    ((AbstractReceiver) receiver).setShouldShutdown(true);
+                    ((AbstractReceiver) receiver).cancelReconnect();
+                }
+                if (receiver instanceof ShareableReceiver) {
+                    CommunicationFactory.evictSharedReceiver((ShareableReceiver<?>) receiver);
+                }
             }
         }
         commands.clear();
