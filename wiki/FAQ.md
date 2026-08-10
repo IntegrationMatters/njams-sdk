@@ -156,11 +156,11 @@ The tables below cover all settings recognized by the nJAMS SDK itself. Settings
 | `njams.client.sdk.sharedcommunications`   | `false` | Replaced by `njams.sdk.communication.shared`.                                                                                                                                                                                                                                                                                                                                                          | <kbd style="background-color:#2da44e;color:#fff;border-color:#2da44e">since 4.1.3</kbd><br><kbd style="background-color:#cf222e;color:#fff;border-color:#cf222e">deprecated 5.0.0</kbd> |
 | `njams.sdk.communication`                 | —       | Selects the communication transport. Values: `HTTP`, `JMS`, `KAFKA`, or a custom implementation name. `njams.sdk.communication.type` is an equally valid alternative key (see below); neither is deprecated.                                                                                                                                                                                          |                                                                                                                                                                                         |
 | `njams.sdk.communication.type`            | —       | Equally valid alternative to `njams.sdk.communication`. `njams.sdk.communication` is also the prefix of every transport-specific setting (e.g. `njams.sdk.communication.http.base.url`), so it cannot be expressed in a hierarchical configuration format such as YAML, where a key is either a scalar or a parent of nested keys, never both. Use this key instead in such sources.                | <kbd style="background-color:#2da44e;color:#fff;border-color:#2da44e">since 6.0.0</kbd>                                                                                                 |
-| `njams.sdk.communication.connect.timeout` | `30000` | Maximum time in milliseconds the SDK waits for the initial communication connection during `Njams.start()`. What happens on timeout depends on `njams.sdk.communication.startup.failbehavior`: under the default `fail` policy, `start()` returns `false` and the SDK instance stays inactive; under `reconnect`, `start()` returns `true` instead and the connection is retried in the background. Applies to all transports. See [What happens when the communication backend is unreachable at startup](#what-happens-when-the-communication-backend-is-unreachable-at-startup).                                 | <kbd style="background-color:#2da44e;color:#fff;border-color:#2da44e">since 6.0.0</kbd>                                                                                                 |
+| `njams.sdk.communication.connect.timeout` | `30000` | Maximum time in milliseconds the SDK waits for the *sender's* initial communication connection during `Njams.start()`. What happens on timeout depends on `njams.sdk.communication.startup.failbehavior`: under the default `fail` policy, `start()` returns `false` and the SDK instance stays inactive; under `reconnect`, `start()` returns `true` instead and the connection is retried in the background. Applies to all transports. The receiver's own connection is independent of this timeout — see [What happens when the communication backend is unreachable at startup](#what-happens-when-the-communication-backend-is-unreachable-at-startup).                                 | <kbd style="background-color:#2da44e;color:#fff;border-color:#2da44e">since 6.0.0</kbd>                                                                                                 |
 | `njams.sdk.communication.containerMode`   | `true`  | Enables container/cluster mode. When `true`, the SDK generates a unique client ID per instance so that targeted commands (e.g. replay) are routed to the correct node in a load-balanced setup. Disable only in confirmed single-node deployments.                                                                                                                                                     | <kbd style="background-color:#2da44e;color:#fff;border-color:#2da44e">since 5.0.0</kbd>                                                                                                 |
 | `njams.sdk.communication.maxMessageSize`  | `0`     | Maximum message body size in bytes. Messages exceeding this size are split into chunks before sending. A value of `0` or less disables splitting. The minimum allowed value is 10240 bytes. For Kafka, the smaller of this value and the Kafka producer's `max.request.size` is used. Requires nJAMS server 6.1.2 or later for transports other than Kafka.                                            | <kbd style="background-color:#2da44e;color:#fff;border-color:#2da44e">since 5.0.3</kbd>                                                                                                 |
 | `njams.sdk.communication.shared`          | `false` | When `true`, the sender thread pool is shared across all `Njams` instances in the same JVM, and — for JMS and Kafka — a single receiver is shared as well. HTTP always uses a dedicated receiver per instance, since there are no connection limits to save by sharing. By default each instance has its own dedicated sender pool and receiver. Has no effect when only one `Njams` instance is used. | <kbd style="background-color:#2da44e;color:#fff;border-color:#2da44e">since 5.0.0</kbd>                                                                                                 |
-| `njams.sdk.communication.startup.failbehavior` | `fail` | Controls how `Njams.start()` reacts when the *initial* transport connect attempt does not succeed within `njams.sdk.communication.connect.timeout`. `fail` (default): `start()` returns `false` and the SDK instance stays inactive, leaving it to the client to decide whether to continue without nJAMS. `reconnect`: `start()` returns `true` and the connection is retried in the background until it succeeds. Governs the whole shared-transport group (sender and receiver share one transport connection), not a single component. See [What happens when the communication backend is unreachable at startup](#what-happens-when-the-communication-backend-is-unreachable-at-startup). | <kbd style="background-color:#2da44e;color:#fff;border-color:#2da44e">since 6.0.0</kbd> |
+| `njams.sdk.communication.startup.failbehavior` | `fail` | Controls how `Njams.start()` reacts when the *sender's* initial transport connect attempt does not succeed within `njams.sdk.communication.connect.timeout`. `fail` (default): `start()` returns `false` and the SDK instance stays inactive, leaving it to the client to decide whether to continue without nJAMS. `reconnect`: `start()` returns `true` and the connection is retried in the background until it succeeds. Governs the **sender only** — the receiver's connection outcome never affects `start()`'s return value, at startup or later; it always retries in the background unconditionally. See [What happens when the communication backend is unreachable at startup](#what-happens-when-the-communication-backend-is-unreachable-at-startup). | <kbd style="background-color:#2da44e;color:#fff;border-color:#2da44e">since 6.0.0</kbd> |
 
 ### HTTP / HTTPS
 
@@ -249,44 +249,41 @@ Set `njams.sdk.communication=KAFKA`.
 
 ## What happens when the communication backend is unreachable at startup
 
-`Njams.start()` does not block indefinitely when the communication backend cannot be reached. The
-maximum wait is bounded by the [`njams.sdk.communication.connect.timeout`](#communication) setting
-(default `30000` ms). What happens once that time elapses without a successful connection is
-controlled by [`njams.sdk.communication.startup.failbehavior`](#communication), which governs the
-whole shared-transport group (sender and receiver share one transport connection):
+`Njams.start()`'s success depends only on the **sender**. It does not block indefinitely when the sender's
+communication backend cannot be reached: the maximum wait is bounded by the
+[`njams.sdk.communication.connect.timeout`](#communication) setting (default `30000` ms). What happens once that
+time elapses without a successful sender connection is controlled by
+[`njams.sdk.communication.startup.failbehavior`](#communication):
 
-- `fail` (default): `start()` logs an error and returns `false`. The SDK instance is then completely
-  inactive; in the normal case **no reconnect thread is started**. The one exception: if the sender of
-  the same shared-transport group already connected successfully before the receiver's own attempt
-  failed, the receiver's connection state considers the group already reconnect-eligible and may still
-  start a brief background reconnect on its own — the SDK cancels this once `start()` gives up, so it
-  does not keep the (still inactive) SDK instance connected, but a very short-lived reconnect attempt
-  can occur regardless of the `fail` policy. It is the client application's responsibility to check
-  the return value of `start()` and decide whether to continue without nJAMS.
-- `reconnect`: `start()` returns `true` and the connection is retried in the background until it
-  succeeds. The SDK instance is considered started; messages produced before the connection is
-  established are subject to the configured discard policy (`njams.sdk.discardpolicy`), which by default
-  discards them while disconnected.
+- `fail` (default): `start()` logs an error and returns `false`. The SDK instance is then completely inactive,
+  and no sender reconnect thread is started. It is the client application's responsibility to check the return
+  value of `start()` and decide whether to continue without nJAMS.
+- `reconnect`: `start()` returns `true` and the sender connection is retried in the background until it succeeds.
+  The SDK instance is considered started; messages produced before the connection is established are subject to
+  the configured discard policy (`njams.sdk.discardpolicy`), which by default discards them while disconnected.
 
-This applies to all transports (HTTP, JMS, Kafka). For JMS in particular, the JMS API provides no
-standard connection timeout; without this bound a startup attempt against an unreachable broker
-could silently block for 60–120 seconds at the OS TCP level.
+This applies to all transports (HTTP, JMS, Kafka). For JMS in particular, the JMS API provides no standard
+connection timeout; without this bound a startup attempt against an unreachable broker could silently block for
+60–120 seconds at the OS TCP level.
 
-**Overlap with application setup.** The SDK starts the connection attempt in the background
-automatically when the `Njams` instance is constructed. When `start()` is subsequently called, it
-awaits the already-running connection, applying the timeout only for the remaining wait. If the
-connection completes during application setup (model registration, Argos collectors, etc.),
-`start()` returns immediately without blocking.
+**The receiver is independent and never blocks or fails startup.** Unlike the sender, the receiver's connection
+outcome — whether at startup or later — never affects `start()`'s return value, and is not governed by
+`njams.sdk.communication.startup.failbehavior` or any other setting: it always retries in the background
+unconditionally. This is intentional — if the receiver cannot connect, the client can still push monitoring data
+to nJAMS normally; it can only not receive commands from the server, which is a rare occurrence. On a receiver
+connection loss the SDK logs a warning (`Receiver connection lost. The client will not receive any commands from
+the server until reconnected.`) and an info once it reconnects (`Receiver reconnected. Handling server commands
+resumed.`).
 
-```java
-Njams njams = new Njams(path, version, category, settings);
-// connection attempt starts in background automatically
-// ... register process models, add collectors, etc. ...
-boolean started = njams.start(); // awaits connection; may return immediately if already done
-if(!started){
-    // connection could not be established within the timeout — handle inactive SDK
-    }
-```
+**Cross-side connection verification.** A connection failure detected on either side (sender or receiver)
+prompts the *other* side to proactively cycle its own connection too, even if that side had not itself detected
+any problem. This exists because the receiver is idle most of the time and could otherwise be slow to notice a
+real connection loss on its own; the signal is symmetric and does not affect either side's independent
+startup/shutdown/reconnect-gating behavior described above.
+
+**Overlap with application setup.** The SDK starts both connection attempts in the background automatically when
+the `Njams` instance is constructed. When `start()` is subsequently called, it awaits only the sender's
+already-running connection, applying the timeout to the remaining wait.
 
 ## How to modify the process model view (SVG)
 
