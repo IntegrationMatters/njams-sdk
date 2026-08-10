@@ -26,7 +26,6 @@ package com.im.njams.sdk.communication;
 import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.NjamsSettings;
-import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.settings.ClientSettings;
 
 /**
@@ -74,27 +73,6 @@ public interface Receiver {
      * Start the new Receiver
      */
     void start();
-
-    /**
-     * Starts this receiver for the initial connection, waiting at most {@code timeoutMs} milliseconds
-     * for the connection to be established.
-     * <p>
-     * Unlike {@link #start()}, implementations must <strong>not</strong> trigger the reconnect
-     * mechanism on failure — if the connection cannot be established within the given time,
-     * this method must throw and leave the receiver inactive.
-     * <p>
-     * The default implementation ignores the timeout and delegates to {@link #start()}.
-     * {@link AbstractReceiver} overrides this with a proper timeout-enforced implementation that
-     * also supports early connection start via {@link AbstractReceiver#beginConnect()}.
-     *
-     * @param timeoutMs maximum time in milliseconds to wait for the connection
-     * @throws NjamsSdkRuntimeException if the connection cannot be
-     *         established within {@code timeoutMs} or an error occurs during connection
-     * @since 6.0.0
-     */
-    default void startWithTimeout(long timeoutMs) {
-        start();
-    }
 
     /**
      * Stop the new Receiver

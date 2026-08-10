@@ -232,7 +232,12 @@ failed its first connect" and "receiver lost its connection later" — both are 
 
 ## 11. Open items carried into the implementation plan
 
-- Whether `Receiver.startWithTimeout(long, boolean)` (Part 3) is simplified/removed now that the receiver's
-  `reconnectOnFailure` branch is always the same value, or left as dead-but-harmless API surface.
+- ~~Whether `Receiver.startWithTimeout(long)` (Part 3) is simplified/removed now that the receiver's
+  `reconnectOnFailure` branch is always the same value, or left as dead-but-harmless API surface.~~ Resolved by
+  the SDK-375 final-review fix for finding #1: it had zero production callers and has been removed outright
+  (along with `AbstractReceiver.startWithTimeout(long)` and the startup-timeout bookkeeping — `startupLatch`,
+  `startupError`, `startupTimedOut` — that it alone used), and `AbstractReceiver.beginConnect()`'s success path
+  now also releases a connection that completes after `setShouldShutdown(true)` was already called, closing the
+  leak that the dead `startupTimedOut` branch used to (nominally) guard.
 - Exact wording/placement of the `wiki/FAQ.md` and `settings_full.properties` updates for the narrowed setting
   scope.

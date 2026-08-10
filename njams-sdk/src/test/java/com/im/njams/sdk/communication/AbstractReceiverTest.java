@@ -426,17 +426,16 @@ public class AbstractReceiverTest {
         impl.beginConnect();
         assertTrue("startup connect must have entered connect() and blocked",
             impl.connectEntered.await(2, java.util.concurrent.TimeUnit.SECONDS));
-        impl.cancelReconnect();
-        // startWithTimeout must return promptly (throwing) instead of waiting out connect()'s 10s sleep
         long before = System.currentTimeMillis();
-        try {
-            impl.startWithTimeout(4000L);
-            fail("expected failure after the startup connect thread was interrupted");
-        } catch (NjamsSdkRuntimeException ignored) {
-            // expected
+        impl.cancelReconnect();
+        // the blocked connect() must be interrupted promptly, not wait out its 10s sleep
+        long deadline = System.nanoTime() + java.util.concurrent.TimeUnit.SECONDS.toNanos(2);
+        while (!impl.wasInterrupted && System.nanoTime() < deadline) {
+            Thread.sleep(10);
         }
+        assertTrue("startup connect must be interrupted promptly by cancelReconnect()", impl.wasInterrupted);
         assertTrue("must return promptly, not wait out the full connect delay",
-            System.currentTimeMillis() - before < 4000L);
+            System.currentTimeMillis() - before < 2000L);
     }
 
     //start tests
@@ -495,104 +494,54 @@ public class AbstractReceiverTest {
     }
 
     @Test
-    public void testStartWithTimeoutDefaultDelegatesToStart() {
-        // Receiver implementations that do not extend AbstractReceiver get the default
-        // startWithTimeout which calls start().
-        final boolean[] startCalled = {false};
-        Receiver simpleReceiver = new Receiver() {
-            @Override public String getName() { return "simple"; }
-            @Override public void init(ClientSettings settings) {}
-            @Override public void setNjams(Njams njams) {}
-            @Override public void onInstruction(Instruction i) {}
-            @Override public void start() { startCalled[0] = true; }
-            @Override public void stop() {}
-        };
-        simpleReceiver.startWithTimeout(100L);
-        assertTrue("default startWithTimeout must delegate to start()", startCalled[0]);
-    }
-
-    @Test
-    public void testStartWithTimeout_successWithinTimeout() {
+    public void testBeginConnect_connectsInTheBackground() throws InterruptedException {
         SlowConnectReceiverImpl impl = new SlowConnectReceiverImpl(0, false);
-        impl.startWithTimeout(200L);
-        assertTrue("receiver must be connected after successful startWithTimeout", impl.isConnected());
-    }
-
-    @Test(expected = NjamsSdkRuntimeException.class)
-    public void testStartWithTimeout_throwsOnTimeout() {
-        // connect takes 2 s, timeout is 100 ms
-        SlowConnectReceiverImpl impl = new SlowConnectReceiverImpl(2000, false);
-        impl.startWithTimeout(100L);
+        impl.beginConnect();
+        Thread.sleep(200);
+        assertTrue("receiver must be connected once the background connect completes", impl.isConnected());
     }
 
     @Test
-    public void testStartWithTimeout_disconnectedAfterTimeout() {
-        SlowConnectReceiverImpl impl = new SlowConnectReceiverImpl(2000, false);
-        try {
-            impl.startWithTimeout(100L);
-        } catch (NjamsSdkRuntimeException ignored) {}
-        assertTrue("receiver must be DISCONNECTED after timeout", impl.isDisconnected());
-    }
-
-    @Test(expected = NjamsSdkRuntimeException.class)
-    public void testStartWithTimeout_throwsWhenConnectThrows() {
+    public void testBeginConnect_failureHandsOffToReconnectUnconditionally() throws InterruptedException {
         SlowConnectReceiverImpl impl = new SlowConnectReceiverImpl(0, true);
-        impl.startWithTimeout(500L);
-    }
-
-    @Test
-    public void testStartWithTimeout_disconnectedWhenConnectThrows() {
-        SlowConnectReceiverImpl impl = new SlowConnectReceiverImpl(0, true);
-        try {
-            impl.startWithTimeout(500L);
-        } catch (NjamsSdkRuntimeException ignored) {}
-        assertTrue("receiver must be DISCONNECTED when connect() throws", impl.isDisconnected());
-    }
-
-    @Test
-    public void testStartWithTimeout_noReconnectThreadOnTimeout() throws InterruptedException {
-        SlowConnectReceiverImpl impl = new SlowConnectReceiverImpl(2000, false);
-        try {
-            impl.startWithTimeout(100L);
-        } catch (NjamsSdkRuntimeException ignored) {}
-        // If a reconnect thread had been started it would eventually call connect()
-        // and set status to CONNECTED. Wait briefly and confirm status stays DISCONNECTED.
+        impl.beginConnect();
+        // SlowConnectReceiverImpl always throws when throwOnConnect is true, so the startup thread hands off
+        // to reconnect(), which keeps retrying in the background; the receiver must stay in a consistent,
+        // still-DISCONNECTED state rather than being left in some half-initialized condition.
         Thread.sleep(300);
-        assertTrue("no reconnect thread must be started on timeout", impl.isDisconnected());
+        assertTrue("receiver must remain DISCONNECTED while its unconditional reconnect loop keeps retrying",
+            impl.isDisconnected());
     }
 
     @Test
-    public void testStartWithTimeout_cleansUpAfterLateConnect() throws InterruptedException {
-        // connect takes 400 ms, timeout is 100 ms — background thread eventually connects late
-        SlowConnectReceiverImpl impl = new SlowConnectReceiverImpl(400, false);
-        try {
-            impl.startWithTimeout(100L);
-        } catch (NjamsSdkRuntimeException ignored) {}
-        // wait for background thread to finish connecting
-        Thread.sleep(600);
-        assertTrue("stop() must be called to release resources acquired after timeout", impl.stopCalled);
+    public void testBeginConnect_cleansUpAConnectThatCompletesAfterShutdownWasRequested()
+            throws InterruptedException {
+        // Regression test for the SDK-375 review finding: a connection that completes only after
+        // setShouldShutdown(true) was already called (e.g. because the sender's fail-fast startup gave up on the
+        // receiver first) must still be released via stop(), not leaked.
+        SlowConnectReceiverImpl impl = new SlowConnectReceiverImpl(300, false);
+        impl.beginConnect();
+        impl.setShouldShutdown(true); // shutdown requested while the connect is still in flight
+        Thread.sleep(500); // wait for the background connect to complete
+        assertTrue("stop() must be called to release the connection established after shutdown was requested",
+            impl.stopCalled);
     }
 
     @Test
     public void testBeginConnect_earlyStartOverlapsWithSetup() throws InterruptedException {
-        // connect takes 200 ms; begin early, then wait 250 ms before calling startWithTimeout
+        // connect takes 200 ms; begin early, then wait long enough for it to complete in the background
         SlowConnectReceiverImpl impl = new SlowConnectReceiverImpl(200, false);
         impl.beginConnect();
-        Thread.sleep(250); // connection completes during this sleep
-        long before = System.currentTimeMillis();
-        // timeout of 50 ms would be too short if connect hadn't already finished
-        impl.startWithTimeout(50L);
-        long elapsed = System.currentTimeMillis() - before;
+        Thread.sleep(300); // connection completes during this sleep, overlapping with other setup work
         assertTrue("receiver must be connected", impl.isConnected());
-        assertTrue("startWithTimeout must return nearly immediately when already connected", elapsed < 50);
     }
 
     @Test
-    public void testBeginConnect_idempotent() {
+    public void testBeginConnect_idempotent() throws InterruptedException {
         SlowConnectReceiverImpl impl = new SlowConnectReceiverImpl(0, false);
         impl.beginConnect();
         impl.beginConnect(); // second call must be a no-op, not start a second thread
-        impl.startWithTimeout(200L);
+        Thread.sleep(200);
         assertTrue(impl.isConnected());
     }
 
@@ -866,6 +815,7 @@ public class AbstractReceiverTest {
 
     private class BlockingConnectReceiverImpl extends AbstractReceiver {
         final java.util.concurrent.CountDownLatch connectEntered = new java.util.concurrent.CountDownLatch(1);
+        volatile boolean wasInterrupted = false;
 
         @Override
         public String getName() { return "BlockingReceiver"; }
@@ -882,6 +832,7 @@ public class AbstractReceiverTest {
             try {
                 Thread.sleep(10_000); // effectively "blocks" until interrupted by cancelReconnect()
             } catch (InterruptedException e) {
+                wasInterrupted = true;
                 Thread.currentThread().interrupt();
                 throw new NjamsSdkRuntimeException("interrupted");
             }
