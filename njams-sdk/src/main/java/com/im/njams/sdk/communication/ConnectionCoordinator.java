@@ -24,9 +24,6 @@
 
 package com.im.njams.sdk.communication;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.IdentityHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -35,9 +32,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  * group of senders (all senders handed out by a single {@link SenderPool}), or independently for one receiver
  * group. Replaces the former JVM-global {@code static} reconnect state on {@link AbstractSender} and
  * {@link AbstractReceiver} so that unrelated {@link com.im.njams.sdk.Njams} instances no longer share connection
- * state. Also carries optional cross-side triggers (see {@link #addCrossSideTrigger(Runnable)}) so a failure on
- * one side of a wired sender/receiver pair can prompt the other (or others, for a shared sender pool with
- * multiple per-instance receivers) to verify its own connection, without the two sides sharing any other state.
+ * state. Each sender group and each receiver owns its own instance; the two sides never share state.
  * Internal SDK infrastructure — not public API.
  */
 class ConnectionCoordinator {
@@ -47,39 +42,16 @@ class ConnectionCoordinator {
     private final AtomicBoolean shouldShutdown = new AtomicBoolean(false);
     private volatile boolean wasEverConnected = false;
     private volatile boolean reconnectBeforeConnected = false;
-    private final Collection<Runnable> crossSideTriggers = Collections.newSetFromMap(new IdentityHashMap<>());
 
     /**
      * Marks the group as currently disconnected and beginning a reconnect: clears the connected flag and
-     * increments the reconnecting count. Fires every registered cross-side trigger exactly once — on the
-     * transition into the first concurrently in-progress reconnect for this group, not on every call.
+     * increments the reconnecting count.
      *
      * @return the reconnecting count after incrementing (for logging).
      */
     synchronized int beginReconnect() {
         hasConnected.set(false);
-        int result = connecting.incrementAndGet();
-        if (result == 1) {
-            crossSideTriggers.forEach(Runnable::run);
-        }
-        return result;
-    }
-
-    /**
-     * Registers a callback invoked once per newly detected failure for this group (see {@link #beginReconnect()}).
-     * Used to implement the cross-side connection-verification trigger between a sender group and its wired
-     * receiver(s): when this side detects a failure, every registered side is prompted to proactively cycle its
-     * own connection too, since a mostly-idle side could otherwise be slow to notice a real loss on its own.
-     * Add-only — there is deliberately no corresponding removal, mirroring
-     * {@link SenderPool#addSenderExceptionListener(SenderExceptionListener)}'s existing shape. Multiple triggers
-     * may be registered: with {@code njams.sdk.communication.shared=true} on HTTP, one shared sender pool's
-     * coordinator may need to notify several different per-instance receivers, not just the most recently wired
-     * one.
-     *
-     * @param trigger the callback to add.
-     */
-    synchronized void addCrossSideTrigger(Runnable trigger) {
-        crossSideTriggers.add(trigger);
+        return connecting.incrementAndGet();
     }
 
     /**

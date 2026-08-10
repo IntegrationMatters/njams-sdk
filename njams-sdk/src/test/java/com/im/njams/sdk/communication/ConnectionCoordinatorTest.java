@@ -4,8 +4,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-import java.util.concurrent.atomic.AtomicInteger;
-
 import org.junit.Test;
 
 public class ConnectionCoordinatorTest {
@@ -80,31 +78,6 @@ public class ConnectionCoordinatorTest {
         c.markStartupConnected();
         c.setShouldShutdown(true);
         assertFalse("shutdown wins over wasEverConnected", c.shouldReconnect());
-    }
-
-    @Test
-    public void beginReconnectInvokesEveryRegisteredCrossSideTriggerOnTheFirstConcurrentReconnect() {
-        ConnectionCoordinator coordinator = new ConnectionCoordinator();
-        AtomicInteger firstTrigger = new AtomicInteger();
-        AtomicInteger secondTrigger = new AtomicInteger();
-        coordinator.addCrossSideTrigger(firstTrigger::incrementAndGet);
-        coordinator.addCrossSideTrigger(secondTrigger::incrementAndGet);
-
-        coordinator.beginReconnect();
-        assertEquals("both registered triggers must fire exactly once for the first reconnect", 1, firstTrigger.get());
-        assertEquals("both registered triggers must fire exactly once for the first reconnect", 1, secondTrigger.get());
-    }
-
-    @Test
-    public void beginReconnectDoesNotReinvokeCrossSideTriggersForAConcurrentSecondReconnect() {
-        ConnectionCoordinator coordinator = new ConnectionCoordinator();
-        AtomicInteger invocations = new AtomicInteger();
-        coordinator.addCrossSideTrigger(invocations::incrementAndGet);
-
-        coordinator.beginReconnect();
-        coordinator.beginReconnect(); // e.g. a second pooled sender's independent failure while the first still retries
-        assertEquals("must not fire again while a reconnect from this group is already in flight",
-            1, invocations.get());
     }
 
     @Test

@@ -121,11 +121,12 @@ connection.
 > equally critical.** Sender failure remains fatal (client cannot push data to nJAMS — unchanged priority from
 > the original ticket); receiver failure must never be fatal (client keeps working; it only cannot receive
 > commands from the server, which is rare). D1.1-D1.4 are marked **REVISED** below. D1.6 (`start()` depends only
-> on the sender) and D1.7 (a connection failure on either side triggers the other to proactively re-verify its
-> own connection — added because the receiver is idle most of the time and could otherwise miss a real loss for
-> a long time) were introduced later and are not duplicated here — see the design spec's §3 decisions table
-> (`docs/superpowers/specs/2026-07-02-sdk-375-sender-lifecycle-design.md`) for their authoritative text, to avoid
-> the two documents drifting apart again.
+> on the sender) was introduced later and is not duplicated here — see the design spec's §3 decisions table
+> (`docs/superpowers/specs/2026-07-02-sdk-375-sender-lifecycle-design.md`) for its authoritative text, to avoid
+> the two documents drifting apart again. D1.7 (a cross-side "assume-and-cycle" trigger, also introduced later)
+> was briefly designed and implemented in Part 4, then **cut after review**: it tore down a healthy sender pool
+> on a receiver-only hiccup and did not solve the problem it targeted. It is deferred to a future, separate
+> reconnect-handling design — see the design spec's §0 for the full account.
 
 - **D1.1 — Connection state, per side (REVISED).** Sender(s) and receiver each own **independent** connectivity
   state — a connection coordinator (lifecycle phase, "was ever connected", reconnect loop, failure signal) is no
@@ -137,11 +138,11 @@ connection.
   sharing a receiver share their *own* connection state — the two are no longer the same state. Otherwise the
   boundary is the single `Njams` instance, for each side independently. This still fixes the
   cross-instance-coupling defect from the analysis; it no longer also couples the two sides to each other.
-- **D1.3 — Independent fate, one deliberate cross-check (REVISED).** A connect failure on one side no longer
-  flips the other side to "needs reconnect" as a shared fate. Each side runs its own coordinated reconnect,
-  gated on having been connected before (Phase 2), independently. The one remaining coupling is a *trigger, not
-  a shared fate*: either side's failure additionally tells the other side to proactively re-verify its own
-  connection (see D1.7 in the spec) — the notified side may find itself already fine.
+- **D1.3 — Independent fate (REVISED).** A connect failure on one side no longer flips the other side to "needs
+  reconnect" as a shared fate. Each side runs its own coordinated reconnect, gated on having been connected
+  before (Phase 2), fully independently — neither side's failures affect the other's. (An earlier revision of
+  this design added one deliberate cross-side coupling here, D1.7; it was subsequently cut — see the design
+  spec's §0.)
 - **D1.4 — Startup-failure policy is configurable, sender-only (REVISED).** On the *sender's* initial connect
   failure, behavior is controlled by the existing setting:
   - **fail-fast (DEFAULT):** `Njams.start()` returns `false`, SDK inactive ("stop initialization" maps onto
@@ -176,9 +177,7 @@ connection.
   2. **Spec / acceptance tests (controllable fake transport, deterministic):** the *changing* behaviors —
      startup-failure policy, now sender-only (D1.4), reconnect-only-after-prior-success, no-reconnect-during/
      after-shutdown, state scoped per side per group (D1.2), "logged once" (per side — see the spec's §5.1.1 for
-     the receiver's specific wording), instance isolation, and — added by the post-Part-3 revision — the D1.7
-     cross-side verification trigger (a failure on one side causes the other to re-verify its own connection,
-     including the no-op case where the notified side was fine). Written **TDD**, red until implemented. **Not**
+     the receiver's specific wording), instance isolation. Written **TDD**, red until implemented. **Not**
      baseline.
   3. **Real-transport smoke (JMS + HTTP):** prove real senders honor the observable contract end-to-end after the
      rework.
@@ -197,6 +196,6 @@ connection.
       connections, so the shared layer is coordination/phase only.
 - [x] New startup-failure setting named: `njams.sdk.communication.startup.failbehavior` = `fail` (default) |
       `reconnect`.
-- [ ] **Post-Part-3 revision:** decouple sender/receiver criticality (D1.1-D1.4 revised above; new D1.6/D1.7 in
-      the design spec) and add cross-side connection verification. Design spec revised; ticket description
-      updated; **implementation plan (Part 4) not yet written.**
+- [ ] **Post-Part-3 revision:** decouple sender/receiver criticality (D1.1-D1.4 revised above; new D1.6 in the
+      design spec). D1.7 (cross-side connection verification) was designed, briefly implemented, and then cut
+      after review — see the design spec's §0 — and is deferred to a future, separate reconnect-handling design.

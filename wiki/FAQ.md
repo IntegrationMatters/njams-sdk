@@ -275,12 +275,6 @@ connection loss the SDK logs a warning (`Receiver connection lost. The client wi
 the server until reconnected.`) and an info once it reconnects (`Receiver reconnected. Handling server commands
 resumed.`).
 
-**Cross-side connection verification.** A connection failure detected on either side (sender or receiver)
-prompts the *other* side to proactively cycle its own connection too, even if that side had not itself detected
-any problem. This exists because the receiver is idle most of the time and could otherwise be slow to notice a
-real connection loss on its own; the signal is symmetric and does not affect either side's independent
-startup/shutdown/reconnect-gating behavior described above.
-
 ```java
 Njams njams = new Njams(path, version, category, settings);
 // connection attempt starts in background automatically

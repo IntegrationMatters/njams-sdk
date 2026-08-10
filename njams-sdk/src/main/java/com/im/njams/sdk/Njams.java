@@ -651,9 +651,7 @@ public class Njams implements InstructionListener {
      * Pre-creates the sender and receiver and starts both their connection attempts in the background, so the
      * connections overlap with the remaining application setup. Called automatically at construction time.
      * Idempotent and best-effort: any failure is swallowed and {@link #startReceiver(NjamsSender)} will retry
-     * creating the receiver. Cross-side connection verification (see {@link NjamsSender#wireReceiver(Receiver)})
-     * is wired later, in {@link #startReceiver(NjamsSender)} — not here — since it depends on nothing this early
-     * pre-warming needs.
+     * creating the receiver.
      */
     private void beginConnect() {
         if (earlyReceiver != null || lifecycle.isStarted()) {
@@ -681,19 +679,19 @@ public class Njams implements InstructionListener {
 
     /**
      * Best-effort receiver setup: resolves the receiver (from the pre-warmed {@code earlyReceiver} or newly
-     * created) and wires it to the given sender group for cross-side connection verification (see
-     * {@link NjamsSender#wireReceiver(Receiver)}). The receiver's connection outcome never affects {@code
-     * start()} — a construction or connection failure is logged and the SDK proceeds without a working receiver;
-     * only the sender is critical to startup (see {@link #start()}). The receiver itself was already told to
-     * begin connecting in the background by {@link #beginConnect()}; this method does not wait for it.
+     * created) and, if the receiver reports send exceptions, registers it as a listener on the given sender
+     * group. The receiver's connection outcome never affects {@code start()} — a construction or connection
+     * failure is logged and the SDK proceeds without a working receiver; only the sender is critical to startup
+     * (see {@link #start()}). The receiver itself was already told to begin connecting in the background by
+     * {@link #beginConnect()}; this method does not wait for it.
      * <p>
-     * Only exceptions raised while constructing or wiring the receiver itself are caught and logged here. This
-     * method does not obtain the sender (that is {@link #start()}'s responsibility, before calling this) so that
-     * a sender-construction failure is never misattributed to the receiver, and is left to propagate so
+     * Only exceptions raised while constructing the receiver itself are caught and logged here. This method does
+     * not obtain the sender (that is {@link #start()}'s responsibility, before calling this) so that a
+     * sender-construction failure is never misattributed to the receiver, and is left to propagate so
      * {@link #start()} can report and fail startup on it accurately.
      *
-     * @param activeSender the sender group to wire the receiver to for cross-side connection verification, or
-     *         {@code null} if none is configured.
+     * @param activeSender the sender group to register the receiver's exception listener on, or {@code null} if
+     *         none is configured.
      */
     private void startReceiver(NjamsSender activeSender) {
         try {
@@ -702,9 +700,6 @@ public class Njams implements InstructionListener {
                 earlyReceiver = null;
             } else {
                 receiver = new CommunicationFactory(settings).getReceiver(this);
-            }
-            if (activeSender != null) {
-                activeSender.wireReceiver(receiver);
             }
             if (receiver instanceof SenderExceptionListener && activeSender != null) {
                 activeSender.addSenderExceptionListener((SenderExceptionListener) receiver);

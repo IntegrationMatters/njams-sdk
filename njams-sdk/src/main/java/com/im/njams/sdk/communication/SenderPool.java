@@ -34,8 +34,6 @@ import java.util.stream.Stream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.im.njams.sdk.common.NjamsSdkRuntimeException;
-
 /**
  * Pool for {@link AbstractSender} implementations.
  * <p>
@@ -76,30 +74,6 @@ public class SenderPool {
     public SenderPool(CommunicationFactory factory, ConnectionCoordinator coordinator) {
         this.factory = factory;
         this.coordinator = coordinator;
-    }
-
-    /**
-     * Registers a callback invoked once when this pool's coordinator detects a new failure in any of its pooled
-     * senders — used to prompt a wired receiver to verify its own connection (see
-     * {@link NjamsSender#wireReceiver(Receiver)}). Add-only: multiple callbacks may be registered and all fire —
-     * with {@code njams.sdk.communication.shared=true} on HTTP, one shared pool may be wired to several
-     * different per-{@code Njams}-instance receivers.
-     *
-     * @param trigger the callback to add.
-     */
-    void addCrossSideTrigger(Runnable trigger) {
-        coordinator.addCrossSideTrigger(trigger);
-    }
-
-    /**
-     * Forces every currently pooled sender (locked and unlocked) to cycle its connection, regardless of its
-     * apparent current state — the sender-side half of the cross-side "assume-and-cycle" connection verification
-     * (see {@link NjamsSender#wireReceiver(Receiver)}). Reuses each sender's existing
-     * {@link AbstractSender#onException(Exception)} entry point; no new detection logic.
-     */
-    void triggerConnectionCheck() {
-        streamAll().forEach(s -> s.onException(new NjamsSdkRuntimeException(
-            "Cross-side connection check: the wired receiver detected a connection failure.")));
     }
 
     /**

@@ -86,10 +86,9 @@ public abstract class AbstractReceiver implements Receiver {
     protected ClientSettings settings;
 
     /**
-     * This receiver's own connection-lifecycle state (reconnect counting, shutdown, "was ever connected"). Never
-     * shared with the sender group — {@link NjamsSender#wireReceiver(Receiver)} only registers a narrow
-     * cross-side trigger callback on it (see {@link #addCrossSideTrigger(Runnable)}), it never reassigns this
-     * field. Never reassigned after construction, hence {@code final}.
+     * This receiver's own connection-lifecycle state (reconnect counting, shutdown, "was ever connected").
+     * Entirely independent of any sender group's coordinator — this receiver's connection lifecycle is never
+     * shared with or affected by a sender's. Never reassigned after construction, hence {@code final}.
      */
     private final ConnectionCoordinator coordinator = new ConnectionCoordinator();
 
@@ -437,10 +436,8 @@ public abstract class AbstractReceiver implements Receiver {
 
     /**
      * Sets the shutdown flag on this receiver's own, independent {@link ConnectionCoordinator}, stopping this
-     * receiver's reconnect loop. This coordinator is never shared with a sender group wired via
-     * {@link NjamsSender#wireReceiver(Receiver)} — that wiring only registers a one-way cross-side trigger (see
-     * {@link #addCrossSideTrigger(Runnable)}), not shared shutdown state — so calling this has no effect on any
-     * sender group, and a sender group shutting down has no effect here either.
+     * receiver's reconnect loop. This coordinator is never shared with any sender group, so calling this has no
+     * effect on any sender group, and a sender group shutting down has no effect here either.
      *
      * @param shutdown {@code true} to begin shutdown for this receiver.
      * @since 6.0.0
@@ -464,19 +461,6 @@ public abstract class AbstractReceiver implements Receiver {
         if (rc != null) {
             rc.interrupt();
         }
-    }
-
-    /**
-     * Registers a callback invoked once when this receiver detects a new connection failure of its own — used to
-     * prompt a wired sender group to verify its own connection too (see
-     * {@link NjamsSender#wireReceiver(Receiver)}). This receiver's own coordinator, reconnect behavior, and
-     * shutdown state remain entirely independent of the sender's; this is a one-way trigger, not shared state.
-     * Add-only, mirroring {@link ConnectionCoordinator#addCrossSideTrigger(Runnable)}.
-     *
-     * @param trigger the callback to add.
-     */
-    void addCrossSideTrigger(Runnable trigger) {
-        coordinator.addCrossSideTrigger(trigger);
     }
 
     /**

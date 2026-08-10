@@ -29,7 +29,6 @@ import static org.mockito.Mockito.*;
 import java.util.Properties;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -356,52 +355,6 @@ public class NjamsSenderTest extends AbstractTest {
         settings.put(NjamsSettings.PROPERTY_COMMUNICATION_TYPE, "SomeOtherName");
         NjamsSender sender = new NjamsSender(settings);
         assertEquals(TestSender.NAME, sender.getName());
-    }
-
-    @Test
-    public void wireReceiverBidirectionallyTriggersOnExceptionOnBothSides() throws InterruptedException {
-        Settings settings = new Settings();
-        settings.put(NjamsSettings.PROPERTY_COMMUNICATION, TestSender.NAME);
-        NjamsSender sender = new NjamsSender(settings);
-
-        AtomicBoolean receiverStopped = new AtomicBoolean(false);
-        AbstractReceiver receiver = new AbstractReceiver() {
-            @Override public String getName() { return "wire-test-receiver"; }
-            @Override public void connect() { connectionStatus = ConnectionStatus.CONNECTED; }
-            @Override public void stop() { receiverStopped.set(true); connectionStatus = ConnectionStatus.DISCONNECTED; }
-        };
-        sender.wireReceiver(receiver);
-
-        // Sender -> receiver direction: force one pooled sender's coordinator to report a failure directly
-        // (bypassing real transport connect/send), and assert the receiver's onException(...) — which calls
-        // stop() first — was genuinely invoked, not just that nothing threw.
-        AbstractSender pooledSender = sender.senderPool.get();
-        // AbstractSender.reconnect(...) requires isConnected()==false and coordinator.shouldReconnect()==true;
-        // a freshly created sender starts DISCONNECTED with shouldReconnect()==false (never connected before),
-        // so drive it through a real successful startup connect first (TestSender's inherited connect() succeeds
-        // trivially), then force it back to DISCONNECTED (same-package access to the protected
-        // setConnectionStatus(...), mirroring SenderReconnectGatingSpecTest's forceDisconnect() pattern) so the
-        // reconnect(...) call below is actually eligible to reach beginReconnect() and fire the cross trigger.
-        pooledSender.beginConnect();
-        assertTrue("fixture sender must complete a successful startup connect before reconnect() is exercised",
-            pooledSender.awaitStartup(5000));
-        pooledSender.setConnectionStatus(ConnectionStatus.DISCONNECTED);
-        pooledSender.reconnect(new NjamsSdkRuntimeException("forced failure"));
-        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(2);
-        while (!receiverStopped.get() && System.nanoTime() < deadline) {
-            try { Thread.sleep(20); } catch (InterruptedException ie) { Thread.currentThread().interrupt(); break; }
-        }
-        assertTrue("a sender-side failure must reach the wired receiver's onException(...)", receiverStopped.get());
-        sender.close();
-    }
-
-    @Test
-    public void wireReceiverIsANoOpForNonAbstractReceiverImplementations() {
-        Settings settings = new Settings();
-        settings.put(NjamsSettings.PROPERTY_COMMUNICATION, TestSender.NAME);
-        NjamsSender sender = new NjamsSender(settings);
-        sender.wireReceiver(new TestReceiver()); // must not throw
-        sender.close();
     }
 
     @Test

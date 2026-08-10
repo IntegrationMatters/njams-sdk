@@ -22,11 +22,16 @@ server, which is rare. Sender and receiver can also differ in transport type and
 queue present for one side but missing for the other), so a failure on one side is not always evidence about the
 other.
 
-Sections below are updated in place to reflect the revised decisions (marked **REVISED**); §4.3 (new D1.7) covers
-a requirement introduced by this revision: a connection failure on either side now triggers the *other* side to
-proactively re-verify its own connection, since a passive/idle side (typically the receiver) could otherwise miss
-a real loss for a long time — referenced from §5.1.1 and §5.2 where it applies. Everything not marked **REVISED**
-is unchanged from the original design and already implemented.
+Sections below are updated in place to reflect the revised decisions (marked **REVISED**). Everything not marked
+**REVISED** is unchanged from the original design and already implemented.
+
+**D1.7 cut (post-review, Part 4):** an earlier version of this revision additionally introduced D1.7, a
+cross-side "assume-and-cycle" trigger where a connection failure detected on either side would proactively cycle
+the *other* side's connection too. A code review found this tears down a healthy sender pool whenever the
+receiver alone hiccups, and further analysis showed it does not actually solve the problem it was designed for.
+D1.7 has been removed from this ticket's scope in its entirety and is deferred to a future, separate
+reconnect-handling design. Remaining mentions of D1.7 below are historical context from when it was designed and
+briefly implemented, not a description of current or planned behavior.
 
 ---
 
@@ -50,9 +55,9 @@ An explicit lifecycle model for **each side independently** (sender group; recei
 satisfies all three phases and removes the JVM-global coupling — without breaking public API beyond the accepted,
 intentional change in D1.6. Sender and receiver are not equally critical: the sender's connection failure must
 remain fatal to `Njams.start()` (unchanged priority from the original ticket), while the receiver's must never be
-fatal, at startup or later. The two sides are otherwise independent, except for one deliberate, minimal coupling
-(D1.7): a connection failure on either side triggers the other to proactively re-verify its own connection, so a
-mostly-idle side does not silently miss a real loss.
+fatal, at startup or later. The two sides are otherwise fully independent — neither side's connection state or
+failures affect the other's (an earlier revision of this design introduced one deliberate cross-side coupling,
+D1.7, which was subsequently cut; see §0).
 
 ## 3. Decisions driving this design (from brainstorming; updated per §0)
 
@@ -60,11 +65,10 @@ mostly-idle side does not silently miss a real loss.
 |---|---|
 | D1.1 **(REVISED)** | Connectivity is a property of each **side** (sender group, receiver) independently — each owns its own coordination/phase layer (its own `ConnectionCoordinator`). Physical connections were always separate (see Evidence row); the *coordination* state is no longer shared either. |
 | D1.2 **(REVISED)** | Scope = **per side, per shared-transport group**: the sender group's coordinator scope is unchanged (shared-communications group when sharing is on, else the single `Njams` instance); the receiver now has its own, independently-scoped coordinator at the same granularity, not the sender's instance. |
-| D1.3 **(REVISED)** | Sender and receiver no longer share one fate. Each side's own connection failure triggers only its own reconnect loop, gated on its own prior success. See D1.7 (§ new) for the one deliberate cross-side signal that remains. |
+| D1.3 **(REVISED)** | Sender and receiver no longer share one fate. Each side's own connection failure triggers only its own reconnect loop, gated on its own prior success. |
 | D1.4 **(REVISED — scope narrowed)** | Startup-failure behavior is **configurable, but now governs the sender only**: default **fail-fast** (`Njams.start()` returns `false`, SDK inactive); alternative **reconnect** in background. The receiver is no longer governed by this setting — see D1.6. |
 | D1.5 | Unchanged. Sender/receiver **contracts & interfaces may change** on this branch when it supports a clean, safe implementation (they are communication-internal). Constraints: `Njams.start()` public signature unchanged; no relocated/shaded types on public/protected members; manage `breaking-change`; baseline-first before modifying existing members. Note: as of this revision, none of Part 1-3's new public API has shipped in a release yet (still `6.0.0-SNAPSHOT`), so simplifying or removing it does not need deprecation ceremony. |
 | D1.6 **(REVISED)** | At `start()`, success depends **only** on the sender (at least one, per the existing pooling model). The receiver's connection outcome — at startup or later — never affects `start()`'s return value, unconditionally (not governed by D1.4 or any setting). This is an observable behavior change to `Njams.start()`'s contract (a receiver-only failure that previously failed startup under fail-fast no longer does); accepted as intentional. |
-| D1.7 **(NEW)** | A connection failure on either side additionally signals the other side to proactively cycle (stop + reconnect) its own connection, regardless of that side's own apparent state — "assume-and-cycle." This exists because the receiver is idle most of the time and could otherwise miss a real connection loss for a long time; the signal is symmetric (sender failure also nudges the receiver, and vice versa) and reuses each side's existing reconnect machinery uniformly across transports — no per-transport probing. |
 | Evidence | All three transports use **separate** physical connections for sender vs. receiver (HTTP ingest vs. SSE; JMS queues vs. topic; Kafka producer vs. consumer). This was always true and is unaffected by this revision — it is *why* independent coordinators (D1.1) are viable in the first place. |
 
 ## 4. Architecture
@@ -90,8 +94,8 @@ It **replaces**:
 Senders and the receiver keep their own `connect()`/`close()`/`stop()` and their own `ConnectionStatus`, exactly
 as before; each side **consults its own** coordinator for phase decisions and **reports** connect success/failure
 into it. `NjamsSender.wireReceiver(Receiver)` (built in Part 3 specifically to hand the sender's coordinator
-instance to the receiver) is removed or repurposed per §4.3 below — it must no longer assign the *same*
-coordinator to both sides.
+instance to the receiver) is removed outright, with no replacement cross-side hook — it must no longer assign
+the *same* coordinator to both sides (D1.7, which would have repurposed this hook, was cut; see §0).
 
 ### 4.2 Ownership & scope (D1.2) — **REVISED**
 
@@ -103,19 +107,6 @@ Each side's coordinator is owned at the granularity that side is already shared 
 - **Receiver:** independently, the same granularity rule applies to whichever receiver instance is in play
   (shared `ShareableReceiver` vs. per-instance), but resolved against the receiver's **own** coordinator, never
   against the sender's.
-
-### 4.3 Cross-side connection verification (D1.7) — **NEW**
-
-Each side holds a lightweight reference to the other (repurposing the Part 3 `wireReceiver`-style hook — no
-longer to share a coordinator instance, only to register a notification callback). When a side's own
-failure-detection path fires (`AbstractSender`/`AbstractReceiver`'s existing `onException`-equivalent trigger),
-it additionally invokes the same "cycle the connection" trigger on the other side, unconditionally
-("assume-and-cycle" — no active probing, no per-transport-specific check). The other side's existing reconnect
-machinery handles the rest; no new detection logic is introduced, only a new trigger source for the existing one.
-
-> Open implementation detail (for the plan): the exact hook shape (a listener interface vs. a direct method call
-> mirroring `wireReceiver`'s existing shape); whether the notification is synchronous or fire-and-forget; how this
-> interacts with a receiver that has no wired sender (or vice versa) — must be a no-op, not an error.
 
 ## 5. Phase behavior
 
@@ -142,7 +133,6 @@ failed its first connect" and "receiver lost its connection later" — both are 
   reconnect unconditionally (no setting governs this; see D1.6).
 - On the receiver reconnecting successfully: log once at **INFO** — *"Receiver reconnected. Handling server
   commands resumed."*
-- Additionally triggers D1.7's cross-side signal to the sender (§4.3).
 
 ### 5.2 Processing (Phase 2) — **REVISED**
 
@@ -153,9 +143,6 @@ failed its first connect" and "receiver lost its connection later" — both are 
 - Each side runs its **own** reconnect worker against its **own** coordinator; there is no longer a single
   shared worker. Quiet logging for the sender is unchanged ("logged once" per the original design); the receiver
   uses the wording in §5.1.1 instead of a generic "logged once" info pair.
-- Either side's failure additionally triggers the other side's cross-verification per D1.7 (§4.3) — this is the
-  one remaining coupling, and it is a *trigger*, not a shared fate: the notified side re-evaluates independently
-  and may find itself already fine.
 - Reconnect continues infinitely until connected or shutdown, per side.
 
 ### 5.3 Shutdown (Phase 3) — fixes the ordering bug; **REVISED to be per-side**
@@ -210,9 +197,6 @@ failed its first connect" and "receiver lost its connection later" — both are 
    - Independent shutdown: stopping does not require the sender's coordinator to signal the receiver's, and
      vice versa (§5.3) — replaces the test that proved they *do* share a shutdown flag (that test's premise is
      now false and it must be inverted or deleted, not adjusted).
-   - **New:** a sender-side failure triggers the receiver to cycle its connection, and a receiver-side failure
-     triggers the sender to cycle its connection (D1.7/§4.3), including the case where the notified side was
-     actually fine (no-op cycle, not an error).
    - Instance isolation (two `Njams` instances do not share reconnect state) — unchanged in intent, now also
      covers "receiver of instance A and sender of instance A don't share state either."
    - **No timing-based tests** — unchanged rule.
@@ -222,14 +206,13 @@ failed its first connect" and "receiver lost its connection later" — both are 
 ## 9. Components touched — **REVISED**
 
 - `AbstractSender`, `NjamsSender`, `SenderPool`, `CommunicationFactory` — unchanged from Parts 1-2 (sender
-  lifecycle is not affected by this revision beyond gaining the D1.7 notification trigger/receiver).
+  lifecycle is not affected by this revision).
 - `AbstractReceiver` — keeps its own coordinator (Part 3's static removal stays); no longer receives the
-  sender's coordinator instance; startup/reconnect/shutdown logging and gating per §5.1.1/§5.3; gains the D1.7
-  notification trigger/receiver.
+  sender's coordinator instance; startup/reconnect/shutdown logging and gating per §5.1.1/§5.3.
 - `Njams` — `beginConnect()`/`startReceiver(...)`/`start()`/`stop()` revised so the receiver's outcome never
-  gates `start()` and shutdown signaling is independent per side (§5.1, §5.3); wires the new D1.7 cross-notification
-  hook between sender and receiver instead of (or in addition to, if repurposed) the Part 3 coordinator-sharing
-  call.
+  gates `start()` and shutdown signaling is independent per side (§5.1, §5.3); the Part 3 coordinator-sharing
+  call (`wireReceiver`) is removed with no replacement (D1.7, which would have wired a cross-notification hook
+  in its place, was cut; see §0).
 - `NjamsSettings` — no new key; existing `PROPERTY_COMMUNICATION_STARTUP_FAILBEHAVIOR` scope narrows to sender
   only (documentation/semantic change, not a new constant).
 - Docs: `settings_full.properties`, `wiki/FAQ.md` — reword the "governs the whole shared-transport group"
@@ -241,16 +224,14 @@ failed its first connect" and "receiver lost its connection later" — both are 
 - Kafka behavior parity beyond "still works"; not integration-tested, same as before.
 - No new public API beyond what already exists; `Njams.start()`'s signature unchanged (only its behavior for the
   receiver-only-failure case, per D1.6).
-- No per-transport-specific "verify connection" logic (D1.7 is deliberately transport-uniform, assume-and-cycle;
-  active probing was considered and rejected for this revision).
+- Cross-side connection verification (D1.7) — briefly designed and implemented, then cut from this ticket's
+  scope after review found it tears down a healthy sender pool on a receiver-only hiccup without solving the
+  problem it targeted; deferred to a future, separate reconnect-handling design (see §0).
 - No new/second startup-failure setting for the receiver; its behavior is deliberately hardcoded, not
   configurable (D1.6).
 
 ## 11. Open items carried into the implementation plan
 
-- Exact shape of the D1.7 cross-notification hook (listener interface vs. direct method call) and whether it's
-  synchronous or fire-and-forget.
-- Whether `NjamsSender.wireReceiver(Receiver)` is removed outright or repurposed for D1.7's notification link.
 - Whether `Receiver.startWithTimeout(long, boolean)` (Part 3) is simplified/removed now that the receiver's
   `reconnectOnFailure` branch is always the same value, or left as dead-but-harmless API surface.
 - Exact wording/placement of the `wiki/FAQ.md` and `settings_full.properties` updates for the narrowed setting

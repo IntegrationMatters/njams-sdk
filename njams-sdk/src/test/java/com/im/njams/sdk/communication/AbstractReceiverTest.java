@@ -906,28 +906,6 @@ public class AbstractReceiverTest {
             impl.isConnected());
     }
 
-    @Test
-    public void addCrossSideTriggerForwardsToTheReceiversOwnCoordinator() throws Exception {
-        // White-box: the only way to observe this is that a reconnect (which internally calls
-        // coordinator.beginReconnect()) fires the registered trigger — proving addCrossSideTrigger(...) actually
-        // reached the receiver's own coordinator instance, not a no-op.
-        AbstractReceiverImpl impl = new AbstractReceiverImpl();
-        java.util.concurrent.atomic.AtomicBoolean triggered = new java.util.concurrent.atomic.AtomicBoolean(false);
-        impl.addCrossSideTrigger(() -> triggered.set(true));
-        impl.throwManyExceptionsForTest = true;
-        Thread t = new Thread(() -> impl.reconnect(new NjamsSdkRuntimeException("test")));
-        t.setDaemon(true);
-        t.start();
-        long deadline = System.nanoTime() + java.util.concurrent.TimeUnit.SECONDS.toNanos(2);
-        while (!triggered.get() && System.nanoTime() < deadline) {
-            Thread.sleep(20);
-        }
-        impl.setShouldShutdown(true);
-        impl.cancelReconnect();
-        t.join(2000);
-        assertTrue("addCrossSideTrigger must reach this receiver's own coordinator", triggered.get());
-    }
-
     private class FlakyOnceReceiverImpl extends AbstractReceiver {
         private final java.util.concurrent.atomic.AtomicBoolean failedOnce =
             new java.util.concurrent.atomic.AtomicBoolean(false);
