@@ -39,9 +39,25 @@ public class LifecycleTestSender extends AbstractSender {
         INSTANCES.clear();
     }
 
+    /**
+     * Test-only accessor for specs that need to reach the concrete sender a real {@link com.im.njams.sdk.Njams}
+     * instance wired internally (there is no public getter on {@code Njams} for its sender, by design — the
+     * communication layer is not public API). Returns the most recently constructed instance still registered.
+     *
+     * @return the most recently constructed instance, or {@code null} if none is registered.
+     */
+    static LifecycleTestSender lastCreated() {
+        return INSTANCES.isEmpty() ? null : INSTANCES.get(INSTANCES.size() - 1);
+    }
+
     @Override
     public String getName() {
         return LifecycleTestTransport.NAME;
+    }
+
+    @Override
+    public void close() {
+        setConnectionStatus(ConnectionStatus.DISCONNECTED);
     }
 
     @Override
@@ -93,6 +109,11 @@ public class LifecycleTestSender extends AbstractSender {
             setConnectionStatus(ConnectionStatus.DISCONNECTED);
             throw new NjamsSdkRuntimeException("interrupted during send", e);
         }
+    }
+
+    /** Test hook: exposes the protected onException(Exception) for tests in this package. */
+    public void onExceptionForTest(Exception e) {
+        onException(e);
     }
 
     /** Test hook: forces DISCONNECTED so reconnect() can be exercised. */

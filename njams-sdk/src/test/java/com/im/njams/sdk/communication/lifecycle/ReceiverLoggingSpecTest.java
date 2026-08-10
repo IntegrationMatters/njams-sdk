@@ -62,21 +62,20 @@ public class ReceiverLoggingSpecTest {
     }
 
     @Test
-    public void reconnectLogsOnceOnStartAndOnceOnSuccess() throws Exception {
+    public void reconnectLogsOnceOnLossAndOnceOnRestore() throws Exception {
         FlakyReceiver receiver = new FlakyReceiver();
         receiver.reconnect(new NjamsSdkRuntimeException("lost"));
-        // FlakyReceiver.connect() fails exactly once then succeeds, all within this single reconnect() call.
 
-        long initInfos = appender.events().stream()
-            .filter(e -> e.getLevel().equals(Level.INFO))
-            .filter(e -> String.valueOf(e.getRenderedMessage()).startsWith("Initialized receiver reconnect"))
+        long lossWarnings = appender.events().stream()
+            .filter(e -> e.getLevel().equals(Level.WARN))
+            .filter(e -> String.valueOf(e.getRenderedMessage()).startsWith("Receiver connection lost"))
             .count();
-        long successInfos = appender.events().stream()
+        long restoreInfos = appender.events().stream()
             .filter(e -> e.getLevel().equals(Level.INFO))
-            .filter(e -> String.valueOf(e.getRenderedMessage()).startsWith("Reconnected receiver"))
+            .filter(e -> String.valueOf(e.getRenderedMessage()).startsWith("Receiver reconnected"))
             .count();
-        assertEquals("exactly one reconnect-start info", 1, initInfos);
-        assertEquals("exactly one reconnect-success info", 1, successInfos);
+        assertEquals("exactly one connection-lost warning", 1, lossWarnings);
+        assertEquals("exactly one reconnected info", 1, restoreInfos);
     }
 
     private static class FlakyReceiver extends AbstractReceiver {
