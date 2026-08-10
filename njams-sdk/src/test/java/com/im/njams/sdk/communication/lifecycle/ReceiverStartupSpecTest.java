@@ -1,6 +1,5 @@
 package com.im.njams.sdk.communication.lifecycle;
 
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
@@ -68,11 +67,13 @@ public class ReceiverStartupSpecTest extends AbstractLifecycleSpecTest {
         // CommunicationFactory's SPI lookup constructs-and-discards throwaway probe instances of every
         // registered Receiver class merely to read getName()/check instanceof (see SharedLifecycleTestReceiver's
         // Javadoc), so LifecycleTestReceiver.lastCreated() is not a reliable "did the real earlyReceiver survive"
-        // signal here. receiverConnectCount() is: connect() is only ever invoked on a receiver that was actually
-        // wired into Njams and told to begin connecting, never on a throwaway probe.
-        assertEquals("the constructor's own receiver pre-warm must have failed before ever attempting a "
-                + "connection -- otherwise this test would not exercise startReceiver()'s own (re-)creation path",
-            0, LifecycleTestTransport.receiverConnectCount());
+        // signal here. Asserting the positive invariant -- that the armed one-shot failure actually fired --
+        // rather than the absence of a connect count (which could simply not have incremented yet on a slow
+        // machine, silently turning this into a no-op check) is what actually proves the constructor's own
+        // receiver pre-warm failed before start() ever ran.
+        awaitTrue("the constructor's own receiver pre-warm must have failed before start() -- otherwise this "
+                + "test would not exercise startReceiver()'s own (re-)creation path",
+            2000, LifecycleTestTransport::receiverConstructionFailureFired);
 
         assertTrue("start() must succeed despite the receiver having failed to construct earlier", njams.start());
 

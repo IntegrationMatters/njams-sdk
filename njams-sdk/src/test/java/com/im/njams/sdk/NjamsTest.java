@@ -244,6 +244,36 @@ public class NjamsTest {
     }
 
     /**
+     * Regression test (SDK-375 review finding #2): {@code connectReceiver(Receiver)}'s plain-{@code Receiver}
+     * branch (for a receiver that does not extend {@code AbstractReceiver}) runs {@code Receiver#start()} on a
+     * daemon thread and must swallow any exception it throws — it must never propagate to {@code start()}.
+     * {@code TestReceiver} implements {@code Receiver} directly (not {@code AbstractReceiver}), so it exercises
+     * exactly that branch.
+     */
+    @Test
+    public void testReceiverStartThrowingOnPlainReceiverDoesNotBreakStart() {
+        Receiver throwingReceiver = new Receiver() {
+            @Override public String getName() { return "ThrowingReceiver"; }
+            @Override public void init(ClientSettings settings) {}
+            @Override public void setNjams(Njams njams) {}
+            @Override public void onInstruction(Instruction i) {}
+            @Override public void start() { throw new RuntimeException("boom"); }
+            @Override public void stop() {}
+        };
+        TestReceiver.setReceiverMock(throwingReceiver);
+        try {
+            boolean result = instance.start();
+            assertTrue("start() must succeed even though the plain Receiver's start() throws", result);
+            assertTrue(instance.isStarted());
+        } finally {
+            if (instance.isStarted()) {
+                instance.stop();
+            }
+            TestReceiver.setReceiverMock(null);
+        }
+    }
+
+    /**
      * Regression test (SDK-375 Part 4 review finding): a sender-construction failure (as opposed to a mere
      * connection failure) must still make {@code start()} return {@code false} cleanly, never throw. Before Part
      * 4, {@code startReceiver(boolean)} caught this exact exception (raised from its own {@code getSender()} call)

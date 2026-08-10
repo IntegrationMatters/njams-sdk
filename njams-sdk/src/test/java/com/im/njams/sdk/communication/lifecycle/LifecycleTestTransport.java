@@ -28,9 +28,13 @@ public final class LifecycleTestTransport {
     private static volatile CountDownLatch receiverConnectAttempted = new CountDownLatch(1);
     private static final AtomicInteger receiverConnectCount = new AtomicInteger(0);
 
-    /** When armed, the next {@link LifecycleTestReceiver} construction throws instead of succeeding, then
-     * disarms itself so every subsequent construction succeeds normally. */
+    /** When armed, the next {@link LifecycleTestReceiver#init} call throws instead of succeeding, then disarms
+     * itself so every subsequent {@code init} call succeeds normally. */
     private static final AtomicBoolean receiverConstructionShouldFailOnce = new AtomicBoolean(false);
+    /** Set once the armed one-shot failure above has actually fired (i.e., been consumed). Lets tests observe
+     * that the failure genuinely happened, instead of racing a connect-count that may simply not have
+     * incremented yet. */
+    private static volatile boolean receiverConstructionFailureFired = false;
 
     /** When armed, a message send blocks on {@link #sendGate} and then fails, dropping the connection. */
     private static volatile boolean sendBlocksThenFails = false;
@@ -66,6 +70,7 @@ public final class LifecycleTestTransport {
         receiverConnectAttempted = new CountDownLatch(1);
         receiverConnectCount.set(0);
         receiverConstructionShouldFailOnce.set(false);
+        receiverConstructionFailureFired = false;
     }
 
     /** Arms the block-then-fail send mode: the next message send blocks on the gate, then fails. */
@@ -133,8 +138,8 @@ public final class LifecycleTestTransport {
     }
 
     /**
-     * Arms a one-shot construction failure for the next {@link LifecycleTestReceiver} (or subclass) that gets
-     * constructed. Simulates the SDK-375 scenario where {@code CommunicationFactory.getReceiver(Njams)} throws
+     * Arms a one-shot failure for the next {@link LifecycleTestReceiver#init} call (of that instance or a
+     * subclass). Simulates the SDK-375 scenario where {@code CommunicationFactory.getReceiver(Njams)} throws
      * while resolving {@code earlyReceiver} at {@code Njams} construction time, leaving it {@code null} so
      * {@code startReceiver(...)} must (re-)create the receiver from scratch at {@code start()}.
      */
@@ -142,9 +147,20 @@ public final class LifecycleTestTransport {
         receiverConstructionShouldFailOnce.set(true);
     }
 
-    // called by LifecycleTestReceiver's constructor
+    // called by LifecycleTestReceiver.init(ClientSettings)
     static boolean consumeReceiverConstructionFailure() {
-        return receiverConstructionShouldFailOnce.compareAndSet(true, false);
+        boolean fired = receiverConstructionShouldFailOnce.compareAndSet(true, false);
+        if (fired) {
+            receiverConstructionFailureFired = true;
+        }
+        return fired;
+    }
+
+    /** @return {@code true} once the armed one-shot construction failure (see
+     *         {@link #armReceiverConstructionFailOnce()}) has actually fired. Use this instead of racing a
+     *         connect-count assertion that may simply not have happened yet. */
+    public static boolean receiverConstructionFailureFired() {
+        return receiverConstructionFailureFired;
     }
 
     public static void releaseBlockedReceiverConnect() {
