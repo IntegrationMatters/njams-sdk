@@ -717,8 +717,9 @@ public class Njams implements InstructionListener {
      * An {@link AbstractReceiver} is simply told to {@link AbstractReceiver#beginConnect() begin connecting} in
      * the background; that call is idempotent, so it correctly no-ops when {@code receiverToConnect} is the
      * constructor's already-connecting {@code earlyReceiver}, or a shared receiver a currently active sibling
-     * {@link Njams} instance already connected, and correctly starts a fresh connection for a newly (re-)created
-     * one — in particular after a restart, where the constructor's one-time pre-warm does not run again.
+     * {@link Njams} instance already connected, and correctly starts a fresh connection for a newly created one —
+     * in particular when the constructor's own pre-warm could not create a receiver and left
+     * {@code earlyReceiver} unset, so that {@link #startReceiver(NjamsSender)} had to build a replacement.
      * <p>
      * A plain {@link Receiver} from the SPI that does not extend {@link AbstractReceiver} has no such
      * background-connect hook, so {@link Receiver#start()} is instead run on a dedicated daemon thread; any
