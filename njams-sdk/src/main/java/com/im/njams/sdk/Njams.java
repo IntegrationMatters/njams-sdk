@@ -806,6 +806,13 @@ public class Njams implements InstructionListener {
      * {@link CommunicationFactory#removeNjamsFromSharedReceiver(ShareableReceiver, Njams)}), so a later
      * {@link Njams} sharing the same receiver type builds a fresh instance instead of being handed this now-dead
      * one.
+     * <p>
+     * For a non-{@code ShareableReceiver}, the shutdown flag is set <em>before</em> {@link Receiver#stop()} is
+     * called: {@link AbstractReceiver#beginConnect()}'s background startup connect checks the flag right after
+     * connecting and only releases itself if it is already set, so a connect that completes concurrently with
+     * this shutdown must observe it. A {@code ShareableReceiver} cannot be signalled this early — only once
+     * {@code removeNjamsFromSharedReceiver} confirms this was the last user is it safe to shut down, since
+     * signalling earlier would wrongly affect a receiver other {@code Njams} instances still use.
      *
      * @param failedReceiver the receiver to stop; {@code null} is a no-op.
      */
@@ -819,6 +826,13 @@ public class Njams implements InstructionListener {
                 reallyStopped = CommunicationFactory.removeNjamsFromSharedReceiver(
                     (ShareableReceiver<?>) failedReceiver, this);
             } else {
+                if (failedReceiver instanceof AbstractReceiver) {
+                    // Signal shutdown before tearing down: a startup connect racing in the background
+                    // (AbstractReceiver#beginConnect()) only releases itself if this flag is already set once it
+                    // finishes connecting. Setting it again below is harmless — ConnectionCoordinator.setShouldShutdown
+                    // backs an idempotent AtomicBoolean.
+                    ((AbstractReceiver) failedReceiver).setShouldShutdown(true);
+                }
                 failedReceiver.stop();
                 reallyStopped = true;
             }
@@ -861,11 +875,15 @@ public class Njams implements InstructionListener {
      * be stopped before it started. (NjamsSdkRuntimeException)
      * <p>
      * The sender and receiver are signalled independently: closing the sender marks its own {@code
-     * ConnectionCoordinator} as shutting down; separately, once the receiver is really stopped — i.e. once the
-     * last {@code Njams} instance using a shared receiver has stopped it (see
+     * ConnectionCoordinator} as shutting down; separately, the receiver is signalled and stopped. For a
+     * non-{@code ShareableReceiver}, shutdown is signalled <em>before</em> {@link Receiver#stop()} is called, so
+     * a startup connect racing in the background ({@link AbstractReceiver#beginConnect()}) observes the flag and
+     * releases itself instead of leaking; for a {@code ShareableReceiver}, shutdown can only be signalled once
+     * the receiver is really stopped — i.e. once the last {@code Njams} instance using it has stopped it (see
      * {@link CommunicationFactory#removeNjamsFromSharedReceiver(ShareableReceiver, Njams)}, which performs the
-     * "last user" check and the shared-receiver cache eviction atomically) — its own, independent coordinator is
-     * told to shut down and its in-progress reconnect is cancelled.
+     * "last user" check and the shared-receiver cache eviction atomically) — since signalling any earlier would
+     * wrongly affect a receiver other instances still use. Either way, once shutdown is confirmed the
+     * coordinator's in-progress reconnect is also cancelled.
      *
      * @return true is stopping was successful.
      */
@@ -885,6 +903,13 @@ public class Njams implements InstructionListener {
                 reallyStopped = CommunicationFactory.removeNjamsFromSharedReceiver(
                     (ShareableReceiver<?>) receiver, this);
             } else {
+                if (receiver instanceof AbstractReceiver) {
+                    // Signal shutdown before tearing down: a startup connect racing in the background
+                    // (AbstractReceiver#beginConnect()) only releases itself if this flag is already set once it
+                    // finishes connecting. Setting it again below is harmless — ConnectionCoordinator.setShouldShutdown
+                    // backs an idempotent AtomicBoolean.
+                    ((AbstractReceiver) receiver).setShouldShutdown(true);
+                }
                 receiver.stop();
                 reallyStopped = true;
             }

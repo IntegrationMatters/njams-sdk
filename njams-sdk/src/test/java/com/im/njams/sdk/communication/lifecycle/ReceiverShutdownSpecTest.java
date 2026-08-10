@@ -4,6 +4,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
+import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
@@ -80,5 +81,57 @@ public class ReceiverShutdownSpecTest extends AbstractLifecycleSpecTest {
         receiver.reconnect(new IllegalStateException("late failure observed after stop()"));
         assertFalse("stop() must have set shouldShutdown directly on this receiver's own coordinator",
             attempted.await(500, TimeUnit.MILLISECONDS));
+    }
+
+    /**
+     * Guards the SDK-375 ordering fix: for a non-shareable receiver, {@code Njams.stop()} must signal
+     * {@code setShouldShutdown(true)} <em>before</em> calling {@code receiver.stop()}. Without that ordering, a
+     * startup connect completing concurrently in the background ({@code AbstractReceiver#beginConnect()}) could
+     * observe {@code shouldShutdown() == false} and leave a connection live that {@code stop()} never tears down
+     * (nothing was connected yet when {@code stop()} ran) and the flag-check never catches (not yet set). This
+     * test proves the deterministic part of that contract — the call order — not the race itself.
+     */
+    @Test
+    public void stopSignalsShutdownBeforeStoppingTheReceiver() throws Exception {
+        njams = new Njams(Path.of("test", "receiverShutdownOrdering"), "1.0", "test",
+            LifecycleTestTransport.settings());
+        assertTrue(njams.start());
+
+        LifecycleTestReceiver receiver = LifecycleTestReceiver.lastCreated();
+        assertNotNull("Njams must have constructed a receiver reachable through the test registry", receiver);
+
+        assertTrue(njams.stop());
+
+        assertShutdownSignalledBeforeStop(receiver.callOrder());
+    }
+
+    /**
+     * Same ordering guarantee as {@link #stopSignalsShutdownBeforeStoppingTheReceiver()}, but through the other
+     * entry point that tears down a non-shareable receiver: {@code Njams.stopReceiverAfterStartupFailure(Receiver)},
+     * reached when the sender fails to connect under the default fail-fast startup policy while a receiver has
+     * already been constructed.
+     */
+    @Test
+    public void stopReceiverAfterStartupFailureSignalsShutdownBeforeStoppingTheReceiver() {
+        LifecycleTestTransport.setSenderMode(LifecycleTestTransport.ConnectMode.FAIL);
+        njams = new Njams(Path.of("test", "receiverShutdownOrderingStartupFailure"), "1.0", "test",
+            LifecycleTestTransport.settings());
+
+        assertFalse("sender connect failure must fail start() under the default fail-fast policy", njams.start());
+        assertFalse(njams.isStarted());
+
+        LifecycleTestReceiver receiver = LifecycleTestReceiver.lastCreated();
+        assertNotNull("Njams must have constructed a receiver reachable through the test registry", receiver);
+
+        assertShutdownSignalledBeforeStop(receiver.callOrder());
+    }
+
+    private static void assertShutdownSignalledBeforeStop(List<String> callOrder) {
+        int shutdownIndex = callOrder.indexOf("setShouldShutdown(true)");
+        int stopIndex = callOrder.indexOf("stop()");
+        assertTrue("setShouldShutdown(true) must have been called", shutdownIndex >= 0);
+        assertTrue("stop() must have been called", stopIndex >= 0);
+        assertTrue("setShouldShutdown(true) must be called before stop(), recorded order was " + callOrder,
+            shutdownIndex < stopIndex);
     }
 }

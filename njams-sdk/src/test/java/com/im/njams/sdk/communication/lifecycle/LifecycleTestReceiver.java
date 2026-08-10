@@ -18,8 +18,26 @@ public class LifecycleTestReceiver extends AbstractReceiver {
     /** Mirrors {@link LifecycleTestSender#INSTANCES} — see its Javadoc for why teardown needs this registry. */
     private static final List<LifecycleTestReceiver> INSTANCES = new CopyOnWriteArrayList<>();
 
+    /**
+     * Records the sequence of {@link #setShouldShutdown(boolean)}/{@link #stop()} calls this instance receives, so
+     * ordering-spec tests (e.g. {@code ReceiverShutdownSpecTest}) can assert which one a caller invoked first,
+     * without relying on timing.
+     */
+    private final List<String> callOrder = new CopyOnWriteArrayList<>();
+
     public LifecycleTestReceiver() {
         INSTANCES.add(this);
+    }
+
+    /** @return the recorded call order; see {@link #callOrder}. */
+    public List<String> callOrder() {
+        return callOrder;
+    }
+
+    @Override
+    public void setShouldShutdown(boolean shutdown) {
+        callOrder.add("setShouldShutdown(" + shutdown + ")");
+        super.setShouldShutdown(shutdown);
     }
 
     /**
@@ -87,6 +105,7 @@ public class LifecycleTestReceiver extends AbstractReceiver {
 
     @Override
     public void stop() {
+        callOrder.add("stop()");
         connectionStatus = ConnectionStatus.DISCONNECTED;
     }
 
