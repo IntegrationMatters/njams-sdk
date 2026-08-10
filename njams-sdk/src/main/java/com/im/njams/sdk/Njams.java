@@ -679,11 +679,11 @@ public class Njams implements InstructionListener {
 
     /**
      * Best-effort receiver setup: resolves the receiver (from the pre-warmed {@code earlyReceiver} or newly
-     * created) and, if the receiver reports send exceptions, registers it as a listener on the given sender
-     * group. The receiver's connection outcome never affects {@code start()} — a construction or connection
-     * failure is logged and the SDK proceeds without a working receiver; only the sender is critical to startup
-     * (see {@link #start()}). The receiver itself was already told to begin connecting in the background by
-     * {@link #beginConnect()}; this method does not wait for it.
+     * created), starts its connection, and, if the receiver reports send exceptions, registers it as a listener
+     * on the given sender group. The receiver's connection outcome never affects {@code start()} — a
+     * construction or connection failure is logged and the SDK proceeds without a working receiver; only the
+     * sender is critical to startup (see {@link #start()}). Connecting the receiver here never blocks: see
+     * {@link #connectReceiver(Receiver)}.
      * <p>
      * Only exceptions raised while constructing the receiver itself are caught and logged here. This method does
      * not obtain the sender (that is {@link #start()}'s responsibility, before calling this) so that a
@@ -704,10 +704,45 @@ public class Njams implements InstructionListener {
             if (receiver instanceof SenderExceptionListener && activeSender != null) {
                 activeSender.addSenderExceptionListener((SenderExceptionListener) receiver);
             }
+            connectReceiver(receiver);
         } catch (Exception e) {
             LOG.warn("Failed to initialize the receiver; the SDK will operate without receiving server "
                 + "commands until this is resolved.", e);
             receiver = null;
+        }
+    }
+
+    /**
+     * Starts the given receiver's connection without blocking or otherwise affecting {@link #start()}'s outcome.
+     * An {@link AbstractReceiver} is simply told to {@link AbstractReceiver#beginConnect() begin connecting} in
+     * the background; that call is idempotent, so it correctly no-ops when {@code receiverToConnect} is the
+     * constructor's already-connecting {@code earlyReceiver}, or a shared receiver a currently active sibling
+     * {@link Njams} instance already connected, and correctly starts a fresh connection for a newly (re-)created
+     * one — in particular after a restart, where the constructor's one-time pre-warm does not run again.
+     * <p>
+     * A plain {@link Receiver} from the SPI that does not extend {@link AbstractReceiver} has no such
+     * background-connect hook, so {@link Receiver#start()} is instead run on a dedicated daemon thread; any
+     * exception it throws is logged here and never propagated, so it can never affect {@link #start()} either.
+     *
+     * @param receiverToConnect the receiver to connect; {@code null} is a no-op.
+     */
+    private void connectReceiver(Receiver receiverToConnect) {
+        if (receiverToConnect == null) {
+            return;
+        }
+        if (receiverToConnect instanceof AbstractReceiver) {
+            ((AbstractReceiver) receiverToConnect).beginConnect();
+        } else {
+            Thread starter = new Thread(() -> {
+                try {
+                    receiverToConnect.start();
+                } catch (Exception e) {
+                    LOG.warn("Receiver {} failed to start.", receiverToConnect.getName(), e);
+                }
+            });
+            starter.setDaemon(true);
+            starter.setName("Receiver-Start-" + receiverToConnect.getName());
+            starter.start();
         }
     }
 

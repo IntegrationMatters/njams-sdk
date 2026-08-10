@@ -289,8 +289,9 @@ public class NjamsSender {
     /**
      * Resolves whether {@link NjamsSettings#PROPERTY_COMMUNICATION_STARTUP_FAILBEHAVIOR} is set to {@code
      * reconnect} for the given settings, without exposing the internal {@code StartupFailBehavior} type. Used by
-     * {@link com.im.njams.sdk.Njams#start()} to apply the identical decision to the receiver that {@link
-     * #startWithTimeout(long)} already applies to the sender.
+     * {@link com.im.njams.sdk.Njams#start()} to decide, for the sender only, which policy to pass to {@link
+     * #startWithTimeout(long, boolean)}. The receiver is not governed by this setting at all: its connection
+     * always retries unconditionally in the background, independently of the sender's startup fail-behavior.
      *
      * @param settings the settings to read the setting from.
      * @return {@code true} if the startup fail-behavior is {@code reconnect}, {@code false} for the default

@@ -1,6 +1,7 @@
 package com.im.njams.sdk.communication.lifecycle;
 
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import com.im.njams.sdk.NjamsSettings;
@@ -26,6 +27,10 @@ public final class LifecycleTestTransport {
     private static volatile CountDownLatch receiverBlockRelease = new CountDownLatch(1);
     private static volatile CountDownLatch receiverConnectAttempted = new CountDownLatch(1);
     private static final AtomicInteger receiverConnectCount = new AtomicInteger(0);
+
+    /** When armed, the next {@link LifecycleTestReceiver} construction throws instead of succeeding, then
+     * disarms itself so every subsequent construction succeeds normally. */
+    private static final AtomicBoolean receiverConstructionShouldFailOnce = new AtomicBoolean(false);
 
     /** When armed, a message send blocks on {@link #sendGate} and then fails, dropping the connection. */
     private static volatile boolean sendBlocksThenFails = false;
@@ -60,6 +65,7 @@ public final class LifecycleTestTransport {
         receiverBlockRelease = new CountDownLatch(1);
         receiverConnectAttempted = new CountDownLatch(1);
         receiverConnectCount.set(0);
+        receiverConstructionShouldFailOnce.set(false);
     }
 
     /** Arms the block-then-fail send mode: the next message send blocks on the gate, then fails. */
@@ -124,6 +130,21 @@ public final class LifecycleTestTransport {
 
     public static void setReceiverMode(ConnectMode mode) {
         receiverMode = mode;
+    }
+
+    /**
+     * Arms a one-shot construction failure for the next {@link LifecycleTestReceiver} (or subclass) that gets
+     * constructed. Simulates the SDK-375 scenario where {@code CommunicationFactory.getReceiver(Njams)} throws
+     * while resolving {@code earlyReceiver} at {@code Njams} construction time, leaving it {@code null} so
+     * {@code startReceiver(...)} must (re-)create the receiver from scratch at {@code start()}.
+     */
+    public static void armReceiverConstructionFailOnce() {
+        receiverConstructionShouldFailOnce.set(true);
+    }
+
+    // called by LifecycleTestReceiver's constructor
+    static boolean consumeReceiverConstructionFailure() {
+        return receiverConstructionShouldFailOnce.compareAndSet(true, false);
     }
 
     public static void releaseBlockedReceiverConnect() {

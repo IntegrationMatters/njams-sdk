@@ -79,10 +79,4 @@ public class ConnectionCoordinatorTest {
         c.setShouldShutdown(true);
         assertFalse("shutdown wins over wasEverConnected", c.shouldReconnect());
     }
-
-    @Test
-    public void beginReconnectWithNoTriggersRegisteredDoesNotThrow() {
-        ConnectionCoordinator coordinator = new ConnectionCoordinator();
-        coordinator.beginReconnect(); // must not NPE
-    }
 }

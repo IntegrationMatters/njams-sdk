@@ -6,6 +6,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.communication.AbstractReceiver;
 import com.im.njams.sdk.communication.ConnectionStatus;
+import com.im.njams.sdk.settings.ClientSettings;
 
 /**
  * Controllable fake receiver for deterministic lifecycle tests. Connect behavior is driven by
@@ -19,6 +20,24 @@ public class LifecycleTestReceiver extends AbstractReceiver {
 
     public LifecycleTestReceiver() {
         INSTANCES.add(this);
+    }
+
+    /**
+     * {@inheritDoc}
+     * <p>
+     * Honors {@link LifecycleTestTransport#armReceiverConstructionFailOnce()}. The check lives here rather than
+     * in the constructor because {@code CommunicationFactory}'s SPI lookup constructs-and-discards throwaway
+     * probe instances of every registered {@code Receiver} class just to read {@code getName()}/check {@code
+     * instanceof} (see {@link SharedLifecycleTestReceiver}'s Javadoc for the full explanation) — a constructor
+     * hook would be consumed by one of those probes instead of the real, selected instance. {@code init(...)} is
+     * called only once, on the instance {@code CommunicationFactory.createReceiver} actually puts into service.
+     */
+    @Override
+    public void init(ClientSettings settings) {
+        if (LifecycleTestTransport.consumeReceiverConstructionFailure()) {
+            throw new NjamsSdkRuntimeException("LIFECYCLE_TEST: receiver construction configured to fail");
+        }
+        super.init(settings);
     }
 
     /** Stops every registered receiver's daemon threads and clears the registry. Called from
