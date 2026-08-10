@@ -281,6 +281,16 @@ any problem. This exists because the receiver is idle most of the time and could
 real connection loss on its own; the signal is symmetric and does not affect either side's independent
 startup/shutdown/reconnect-gating behavior described above.
 
+```java
+Njams njams = new Njams(path, version, category, settings);
+// connection attempt starts in background automatically
+// ... register process models, add collectors, etc. ...
+boolean started = njams.start(); // awaits connection; may return immediately if already done
+if(!started){
+    // connection could not be established within the timeout — handle inactive SDK
+}
+```
+
 **Overlap with application setup.** The SDK starts both connection attempts in the background automatically when
 the `Njams` instance is constructed. When `start()` is subsequently called, it awaits only the sender's
 already-running connection, applying the timeout to the remaining wait.
