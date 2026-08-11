@@ -266,15 +266,32 @@ This SDK is a **public API** consumed by nJAMS client implementations. Client im
 
 Not all `public` code in this project is intended as public API. Some code is `public` only to satisfy internal cross-package access needs, not because it is meant for third-party use.
 
-**The following are NOT public API, regardless of Java visibility:**
+The public API that does exist has **two grades**. Both must be kept stable unless an intended change in a major release updates them. All API rules in this section apply to both, and **any change to either requires explicit confirmation from the user**. The grades differ only in impact, not in the discipline they demand.
 
-- **Communication layer** (`communication/`) — transports, senders, receivers, message formats, and fragmentation are internal infrastructure. SDK users should not need to know or care which transport is active, how messages are structured on the wire, or how chunking works. These details must remain fully transparent to SDK users and must not leak into the public API surface.
+**First-grade — the client-facing API.** The contract that nJAMS client users and developers code against: what they call, and what effect it has on the nJAMS server side. This is the API the rest of this section describes. It is the more important of the two — a change here affects every client implementation.
+
+**Second-grade — the SPI extension points.** The `META-INF/services` surface that allows extending the SDK itself, for example by implementing a new transport. This is not a task of a common client; it extends the SDK so it can support a (new) client. The registered SPI types are:
+
+- `com.im.njams.sdk.communication.AbstractSender`
+- `com.im.njams.sdk.communication.Receiver`
+- `com.im.njams.sdk.communication.jms.factory.JmsFactory`
+- `com.im.njams.sdk.configuration.ConfigurationProvider`
+- `com.im.njams.sdk.settings.SettingsProvider`
+
+An SPI type's contract includes the members an implementor overrides or calls, and the members the SDK calls into (template methods). Changing either direction is an SPI change.
+
+**The following are NOT public API of either grade, regardless of Java visibility:**
+
+- **Transport internals and the wire format** — how messages are structured on the wire, how chunking and fragmentation work, message batching and dispatch, and the pooling of senders. SDK users should not need to know or care which transport is active. These details must remain fully transparent to SDK users and must not leak into the first-grade API surface.
 - Any other code that is `public` solely to enable internal cross-package access.
 
 **Practical implications:**
-- Do not expose communication types, message formats, or transport details through any public API surface.
-- When assessing whether a change is a `breaking-change`, only consider the intended public API — changes to communication internals that are technically `public` in Java are not breaking changes in the API sense.
-- Do not implement or change anything about the public API boundary without asking first.
+- Do not expose communication types, message formats, or transport details through the first-grade API surface.
+- When assessing whether a change is a `breaking-change`, judge it against both grades: a broken SPI contract counts. Members that are `public` in Java purely for internal cross-package access do not.
+- Do not implement or change anything about either API boundary without asking first.
+- **Deprecation-with-delegation does not work for SPI template methods** — members the SDK calls into rather than members an implementor calls (e.g. an overridable `doReconnect`). A member that is deprecated but no longer invoked leaves an implementor's override silently dead at runtime, with no compile error and no deprecation warning at the override site. When an SPI change would strip a template method, raise it rather than applying the normal deprecate-and-keep pattern; outright removal in a major release is usually the honest option.
+
+**Note on SDK-375 and its follow-ups.** That ticket family is explicitly about re-designing the sender/receiver lifecycle API. Reshaping the second-grade sender/receiver SPI is therefore in scope for that work — but each concrete change still requires confirmation and must be captured in a design spec first.
 
 ### Relocated (Shaded) Third-Party Dependencies
 
