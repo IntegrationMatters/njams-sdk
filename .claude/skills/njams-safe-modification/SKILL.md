@@ -27,11 +27,11 @@ public void oldMethod() { return newMethod(); }
 ```
 The deprecated member is still existing code being modified — the full test coverage workflow applies before making any changes to it.
 
-**All commits must reference the related Jira ticket** using the Smart Commits format: `SDK-XXX #comment <description>`. If no ticket has been provided, ask before committing.
+**This deprecate-and-delegate pattern does not work for SPI Contract template methods the SDK itself calls into** (e.g. `AbstractSender.doReconnect`) — the SDK just stops calling the old override, silently dropping its behavior instead of continuing to run it as a deprecated path. Raise this with the user instead of applying the normal pattern. See `public-api-design.md` for the API-contract model this rests on.
 
-**Manage the `breaking-change` label on the ticket.** Since this workflow is about modifying existing code, any modification that touches a public or protected member's signature, return type, parameter type, or observable behaviour is breaking — add the `breaking-change` label. Pure refactors of private/internal code, or purely additive new public members, are not breaking — make sure the label is absent. Check at the start of the modification and again before declaring it done.
+**If the modification touches the Wire Contract — njams-messageformat types, `communication/fragments/`, or `MessageHeaders`/properties — it must go through the `message-format-changes.md` confirmation gate before proceeding**, in addition to (not instead of) the usual public-API-immutability check above. That gate, not this skill, decides whether the change is even permitted.
 
-**Transition the ticket to `In Progress` at the start of the modification** (unless it is already started or closed). Do this once the ticket key is confirmed, before establishing the test baseline or making any changes.
+Ticket kickoff (confirming the key, transitioning to In Progress, assigning) is handled by `njams-ticket-start` — run that first if it hasn't run yet. Since this workflow is about modifying existing code, any modification that ends up touching a Client Contract or SPI Contract member's signature, return type, parameter type, or observable behaviour is breaking — decide the `breaking-change` label via `njams-ticket-finish` once the change is done (Wire Contract changes use the message-format gate instead, not this label). Commit formatting is handled by `njams-commit`.
 
 **Tests written during this workflow are frozen.** They document what the code does. If your modification breaks one of these tests, fix your code — never the test.
 
@@ -103,8 +103,8 @@ All tests must be green before you write a single line of modification. If tests
 **5. Make your changes.**
 Implement the requested modification. Do not touch test code. Apply clean code and architecture principles: keep changes focused, respect layer boundaries, use clear naming, and avoid introducing unnecessary complexity. If the change adds or exposes any new `public` or `protected` member in production code, it must have Javadoc. If it deprecates an existing member, the Javadoc must include a `@deprecated` tag referencing the replacement. Documentation and code quality rules do not apply to test code.
 
-**6. Update the FAQ if settings are affected.**
-If the change alters a setting's behavior or default, deprecates a setting, or removes one, update `C:\scm\GitHub\njams-sdk.wiki\FAQ.md` and push the wiki change.
+**6. Sync settings documentation if a setting is affected.**
+If the change alters a setting's behavior or default, deprecates a setting, or removes one, run `njams-settings-sync` — it keeps `NjamsSettings`, `wiki/FAQ.md`, and `settings_full.properties` consistent.
 
 **7. Verify the baseline holds.**
 ```bash
@@ -127,7 +127,10 @@ If any test fails, revert your implementation change and rethink the approach. T
 | Changing or removing a public member without being asked | Raise it with the user — adding new members is fine, changing/removing is not |
 | Removing deprecated old API when adding new replacement | Keep both; mark old one `@Deprecated` with `@deprecated` Javadoc pointing to new |
 | Adding a new public member without Javadoc | All public/protected members must have Javadoc — no exceptions |
-| Changing a setting without updating the FAQ | Any change to a setting's behavior, default, deprecation, or removal must be reflected in the wiki FAQ |
+| Changing a setting without updating its docs | Run njams-settings-sync — any behavior/default/deprecation change must be reflected in NjamsSettings, the wiki FAQ, and settings_full.properties |
+| Skipping njams-ticket-start / njams-commit / njams-ticket-finish | Use them for kickoff, commit formatting, and closeout respectively — don't re-derive that logic here |
+| Modifying message-format types, communication/fragments/, or MessageHeaders without the message-format-changes.md gate | That's the Wire Contract — get human confirmation (and a SER ticket if needed) before proceeding, not just the usual public-API check |
+| Deprecating an SPI template method the SDK calls into (e.g. AbstractSender.doReconnect) with the normal @Deprecated + delegate pattern | That pattern silently drops the old behavior for this kind of member — raise it with the user instead |
 | Treating a passing build as coverage | Compilation proves nothing; tests assert behavior |
 | Writing tests after the change | Tests written post-change just describe what you did, not what the code should do |
 | Assuming current behavior instead of verifying it | Read the code (or run it) to confirm behavior before asserting it in a baseline test |

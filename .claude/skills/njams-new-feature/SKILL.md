@@ -16,13 +16,7 @@ around how an existing class, library, or the message format behaves, check it i
 behavior from a similarly-named API elsewhere or from general familiarity. Per the "No Unsupported Assumptions" rule
 in `CLAUDE.md`.
 
-**All commits must reference the related Jira ticket** using the Smart Commits format: `SDK-XXX #comment <description>`. If no ticket has been provided for the feature, ask before committing.
-
-**When creating a new Jira ticket** (for a feature that has none yet), always set the `fix version` field to the current working copy's version with the `-SNAPSHOT` suffix stripped — read from the root `pom.xml`. Example: working on `6.0.0-SNAPSHOT` → fix version `6.0.0`.
-
-**Manage the `breaking-change` label on the ticket.** Purely additive features (new methods, classes, overloads) are not breaking — make sure the label is absent. If the feature inadvertently requires changing an existing signature, return type, parameter type, or behaviour, add the `breaking-change` label. Check at the start and again before declaring the feature done.
-
-**Transition the ticket to `In Progress` at the start of the work** (unless it is already started or closed). Do this once the ticket key is confirmed, before any planning or implementation. For tickets created on the spot for the feature, transition immediately after creation.
+Ticket kickoff (confirming or creating the ticket, transitioning to In Progress, assigning) is handled by `njams-ticket-start` — run that first. Purely additive features (new methods, classes, overloads) are not breaking; if the feature inadvertently requires changing an existing signature, return type, parameter type, or behaviour, that gets decided via `njams-ticket-finish` once the implementation is done. Commit formatting is handled by `njams-commit`.
 
 **Default scope is private.** Every new field, method, and class starts as `private` or package-private. Promote to `public`/`protected` only when there is a clear, intentional reason for external access.
 
@@ -83,8 +77,8 @@ For any public type, consider whether callers need the concrete class or only a 
 **5. Write Javadoc for all public and protected members.**
 Every `public` and `protected` class, interface, method, constructor, and field in production code must have a Javadoc comment. Write it alongside the code, not as an afterthought. Document what the member does, its parameters, return value, and any exceptions. Internal members (`private`, package-private) do not require Javadoc. Test code is exempt from documentation and code quality rules.
 
-**6. Update the FAQ if settings are involved.**
-If the feature introduces any new settings, update `C:\scm\GitHub\njams-sdk.wiki\FAQ.md` to document the new setting: its purpose, accepted values, and default. Push the wiki change before or alongside the code commit.
+**6. Sync settings documentation if the feature introduces any settings.**
+Run `njams-settings-sync` — it keeps `NjamsSettings`, `wiki/FAQ.md`, and `settings_full.properties` consistent in the same change.
 
 **7. Review before finalising.**
 Before considering the implementation done:
@@ -113,7 +107,8 @@ Before considering the implementation done:
 | Designing internal structure first, then deciding what to expose | Define the public API surface first |
 | Assuming the caller needs access to implementation details | Ask — callers need behavior, not internals |
 | Leaving public/protected members without Javadoc | All public API must be documented — write Javadoc alongside the code |
-| New production file missing copyright header | All new production source files must start with the standard Salesfive copyright header (see CLAUDE.md) |
+| New production file missing copyright header | All new production source files must start with the standard Salesfive copyright header (see `.claude/rules/code-quality-general.md`) |
 | Reaching for a new library to solve a problem | Use existing dependencies or the standard library first; if a new one is truly needed, ask before adding and check online for the latest version |
 | Adding allocations or blocking calls to the runtime monitoring path | Raise performance trade-offs before implementing; keep hot paths lean |
 | Assuming how an existing class/library/format behaves instead of checking | Read the actual source before designing around it |
+| Skipping njams-ticket-start / njams-commit / njams-settings-sync | Use them for kickoff, commit formatting, and settings docs respectively — don't re-derive that logic here |

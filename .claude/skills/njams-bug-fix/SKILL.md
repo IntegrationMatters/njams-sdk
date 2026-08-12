@@ -11,22 +11,15 @@ Existing test cases are the authoritative definition of correct behavior. They m
 
 This workflow builds on `njams-safe-modification`: the same test coverage and public API rules apply. A bug fix is a code change like any other.
 
+Ticket kickoff (confirming the key, transitioning to In Progress, assigning) is handled by `njams-ticket-start` — run that first. Commit formatting is handled by `njams-commit`. Closing the ticket out (deciding the breaking-change label against the real diff, signed comment, resolution) is handled by `njams-ticket-finish` once the fix is verified.
+
 ## Hard Rules
 
 **Root cause must be verified, not assumed.** Confirm the actual cause by reading the relevant code path or
 reproducing the failure before writing any fix — never fix a guessed cause. Per the "No Unsupported Assumptions"
 rule in `CLAUDE.md`.
 
-**Every bug fix must be linked to a Jira ticket in the SDK project** (https://salesfive.atlassian.net, space key `SDK`). Before starting any fix, confirm the ticket key (e.g. `SDK-123`). If no ticket exists, ask the user to create one or provide the key. All commits for this fix must use the Jira Smart Commits format:
-```
-SDK-123 #comment <description>
-```
-
-**When creating a new Jira ticket** (for a bug that has none yet), always set the `fix version` field to the current working copy's version with the `-SNAPSHOT` suffix stripped — read from the root `pom.xml`. Example: working on `6.0.0-SNAPSHOT` → fix version `6.0.0`.
-
-**Manage the `breaking-change` label on the ticket.** If the fix changes any public or protected API signature, return type, parameter type, or observable behaviour, add the `breaking-change` label. If the fix does not break public API, remove the label if present. Check the label at the start of the fix and again before declaring it done.
-
-**Transition the ticket to `In Progress` at the start of the fix** (unless it is already started or closed). Do this right after the ticket key is confirmed — before establishing the test baseline or making any code changes. For tickets created on the spot for the fix, transition immediately after creation.
+**Every bug fix must be linked to a Jira ticket in the SDK project** (https://salesfive.atlassian.net, space key `SDK`). Before starting any fix, confirm the ticket key (e.g. `SDK-123`) via `njams-ticket-start`. If no ticket exists, ask the user to create one or provide the key.
 
 **Never modify an existing test case without explicit user permission.** If your fix causes an existing test to fail, the fix is wrong — not the test. Stop and reconsider the approach.
 
@@ -44,8 +37,8 @@ Then ask the user for permission. If permission is denied, find an alternative f
 ```dot
 digraph bug_fix {
     rankdir=TB;
-    "Jira ticket confirmed?" [shape=diamond];
-    "Ask user for SDK-XXX ticket key" [shape=box, style=filled, fillcolor=orange];
+    "njams-ticket-start already run?" [shape=diamond];
+    "Run njams-ticket-start" [shape=box, style=filled, fillcolor=orange];
     "Understand the bug" [shape=box];
     "Write a NEW reproducer test (asserts correct behavior)" [shape=box];
     "Reproducer fails for the right reason?" [shape=diamond];
@@ -58,7 +51,7 @@ digraph bug_fix {
     "Bug test passes?" [shape=diamond];
     "Revise fix" [shape=box];
     "Any existing test now fails?" [shape=diamond];
-    "Post comment on Jira ticket (signed)" [shape=box];
+    "Hand off to njams-ticket-finish" [shape=box];
     "Done" [shape=box, style=filled, fillcolor=green];
     "Is fix wrong, or is test wrong?" [shape=diamond];
     "Fix is wrong — revise" [shape=box];
@@ -67,9 +60,9 @@ digraph bug_fix {
     "Change test + fix" [shape=box];
     "Find alternative fix that satisfies all tests" [shape=box];
 
-    "Jira ticket confirmed?" -> "Understand the bug" [label="yes"];
-    "Jira ticket confirmed?" -> "Ask user for SDK-XXX ticket key" [label="no"];
-    "Ask user for SDK-XXX ticket key" -> "Understand the bug";
+    "njams-ticket-start already run?" -> "Understand the bug" [label="yes"];
+    "njams-ticket-start already run?" -> "Run njams-ticket-start" [label="no"];
+    "Run njams-ticket-start" -> "Understand the bug";
     "Understand the bug" -> "Write a NEW reproducer test (asserts correct behavior)";
     "Write a NEW reproducer test (asserts correct behavior)" -> "Reproducer fails for the right reason?";
     "Reproducer fails for the right reason?" -> "Fix the reproducer test itself" [label="no — wrong reason / passes"];
@@ -82,8 +75,8 @@ digraph bug_fix {
     "Run tests" -> "Bug test passes?";
     "Bug test passes?" -> "Revise fix" [label="no"];
     "Bug test passes?" -> "Any existing test now fails?" [label="yes"];
-    "Any existing test now fails?" -> "Post comment on Jira ticket (signed)" [label="no"];
-    "Post comment on Jira ticket (signed)" -> "Done";
+    "Any existing test now fails?" -> "Hand off to njams-ticket-finish" [label="no"];
+    "Hand off to njams-ticket-finish" -> "Done";
     "Any existing test now fails?" -> "Is fix wrong, or is test wrong?" [label="yes"];
     "Is fix wrong, or is test wrong?" -> "Fix is wrong — revise" [label="fix is wrong"];
     "Fix is wrong — revise" -> "Fix the code";
@@ -99,7 +92,7 @@ digraph bug_fix {
 ## Steps in Detail
 
 **1. Confirm the Jira ticket.**
-Every bug fix must have a corresponding ticket in the SDK Jira project (https://salesfive.atlassian.net, space key `SDK`). If the user has not provided a ticket key, ask before proceeding. The ticket key (e.g. `SDK-123`) must be referenced in all commit messages for this fix.
+Run `njams-ticket-start` first if it hasn't run yet for this fix. The ticket key (e.g. `SDK-123`) must be referenced in all commit messages for this fix — see `njams-commit`.
 
 **2. Understand and reproduce the bug.**
 Before touching any code, clearly identify: what is the unexpected behavior, what is the expected behavior, and under what conditions it occurs.
@@ -125,20 +118,8 @@ The bug test must now pass. Every test that passed in step 4 must still pass.
 **7. If an existing test fails.**
 Stop. Do not change the test. Analyze: does the test assert behavior your fix genuinely violates, or is the test wrong? Almost always the fix is wrong — revise it. Only if you have a clear, articulable reason why the test is incorrect should you escalate to the user.
 
-**8. Comment on the Jira ticket.**
-Once the fix is confirmed successful, post a short comment on the Jira ticket explaining what was wrong and how it was fixed. Use the Atlassian MCP tool to post the comment. Every comment posted to Jira must end with the Claude Code signature:
-
-```
----
-_Generated by Claude Code_
-```
-
-The comment should cover:
-- Root cause of the bug (what was wrong and why)
-- What was changed to fix it
-- How the fix was verified (test added/used)
-
-Keep it concise — two to five sentences is sufficient.
+**8. Hand off to close the ticket.**
+Once the fix is confirmed successful and the user is ready to resolve the ticket, run `njams-ticket-finish` — it posts the signed closing comment (root cause + fix + how it was verified), reconciles the breaking-change label, and resolves the ticket.
 
 ## When Escalating About a Test
 
@@ -160,3 +141,4 @@ Vague reasons ("the test seems outdated") are not sufficient. If you cannot arti
 | "The test was probably written incorrectly" | Articulate exactly why and ask the user |
 | Fixing the symptom without understanding the cause | Understand root cause before changing code |
 | Fixing a guessed cause without confirming it in code | Read the actual code path or reproduce the failure first |
+| Skipping njams-ticket-start / njams-commit / njams-ticket-finish | Use them for kickoff, commit formatting, and closeout respectively — don't re-derive that logic here |
