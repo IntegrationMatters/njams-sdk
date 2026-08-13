@@ -1,6 +1,6 @@
 ---
 name: njams-ticket-start
-description: Use at the very start of any work tied to a Jira SDK ticket, before any planning, research, or code changes — transitions the ticket to In Progress and assigns it to the current user. Trigger whenever the user gives a ticket key (e.g. "SDK-123"), says "let's work on SDK-123", "pick up SDK-456", "start this ticket", or asks for a fix/feature/change that has an associated ticket — including a ticket just created for this work. Runs before njams-bug-fix, njams-new-feature, or njams-safe-modification, which assume the ticket is already started and assigned.
+description: Use at the very start of any work tied to a Jira SDK ticket, before any planning, research, or code changes — transitions the ticket to In Progress, assigns it to the current user, and gates any spec/plan/code behind a solution approach the user has explicitly confirmed. Trigger whenever the user gives a ticket key (e.g. "SDK-123"), says "let's work on SDK-123", "pick up SDK-456", "start this ticket", or asks for a fix/feature/change that has an associated ticket — including a ticket just created for this work. Runs before njams-bug-fix, njams-new-feature, or njams-safe-modification, which assume the ticket is already started and assigned, and the solution approach already confirmed.
 ---
 
 # Ticket Kickoff for nJAMS SDK
@@ -27,6 +27,10 @@ This skill only covers the kickoff. Once it's done, hand off to whichever of `nj
 
 **If the ticket is being created on the spot**, set its `fix version` to the current `pom.xml` version with `-SNAPSHOT` stripped (e.g. `6.0.0-SNAPSHOT` → `6.0.0`) as part of creation, then run the rest of this kickoff immediately after.
 
+**Draft and confirm a solution approach before writing any document or code.** After the bookkeeping above is done, analyze the ticket and sketch a proposed solution directly in conversation — never as a written spec, plan, or code file — and present it to the user for confirmation. Do not create anything under `docs/superpowers/specs/` or `docs/superpowers/plans/`, and do not begin implementation, until the user has confirmed the drafted approach.
+
+**Once the approach is confirmed, propose the next step by complexity — a design spec, an implementation plan, or direct implementation — and wait for the user's choice.** Never move straight to implementation on your own judgment. This decision (spec vs. plan vs. direct) is separate from and follows approach confirmation; both must happen before handing off to `njams-bug-fix` / `njams-new-feature` / `njams-safe-modification`.
+
 ## Workflow
 
 ```dot
@@ -44,6 +48,11 @@ digraph ticket_kickoff {
     "Breaking change already clear from ticket description?" [shape=diamond];
     "Set breaking-change label" [shape=box];
     "Leave label unset — njams-ticket-finish decides" [shape=box];
+    "Draft solution approach in conversation (no documents yet)" [shape=box];
+    "User confirms approach?" [shape=diamond];
+    "Revise draft" [shape=box];
+    "Propose spec vs. plan vs. direct implementation by complexity" [shape=box];
+    "User picks a path" [shape=box];
     "Hand off to njams-bug-fix / njams-new-feature / njams-safe-modification" [shape=box, style=filled, fillcolor=green];
 
     "Ticket key given?" -> "Read ticket + follow linked/inline references" [label="yes"];
@@ -60,8 +69,14 @@ digraph ticket_kickoff {
     "Assign to current user" -> "Breaking change already clear from ticket description?";
     "Breaking change already clear from ticket description?" -> "Set breaking-change label" [label="yes"];
     "Breaking change already clear from ticket description?" -> "Leave label unset — njams-ticket-finish decides" [label="no"];
-    "Set breaking-change label" -> "Hand off to njams-bug-fix / njams-new-feature / njams-safe-modification";
-    "Leave label unset — njams-ticket-finish decides" -> "Hand off to njams-bug-fix / njams-new-feature / njams-safe-modification";
+    "Set breaking-change label" -> "Draft solution approach in conversation (no documents yet)";
+    "Leave label unset — njams-ticket-finish decides" -> "Draft solution approach in conversation (no documents yet)";
+    "Draft solution approach in conversation (no documents yet)" -> "User confirms approach?";
+    "User confirms approach?" -> "Revise draft" [label="no"];
+    "Revise draft" -> "User confirms approach?";
+    "User confirms approach?" -> "Propose spec vs. plan vs. direct implementation by complexity" [label="yes"];
+    "Propose spec vs. plan vs. direct implementation by complexity" -> "User picks a path";
+    "User picks a path" -> "Hand off to njams-bug-fix / njams-new-feature / njams-safe-modification";
 }
 ```
 
@@ -79,8 +94,14 @@ Skip this if the ticket is already `In Progress` (or further along) — don't bo
 **4. Only set the `breaking-change` label if the ticket description already makes it obvious.**
 If the description explicitly calls for removing or changing an existing public/protected member, set the label now. Otherwise — including whenever you're not sure — leave it alone. `njams-ticket-finish` is the point where this is actually knowable, once the diff exists; setting it here on anything less than certainty just creates a label to un-set later.
 
-**5. Move on.**
-Kickoff is done. Continue with the skill that matches the actual work (fixing a defect, adding functionality, or modifying existing code).
+**5. Draft a solution approach and get it confirmed.**
+Analyze the problem and sketch your proposed approach directly in the conversation — not as a file. Present it to the user and wait for explicit confirmation before creating any document or writing any code. If the user pushes back, revise the draft and re-confirm rather than proceeding on a partial agreement.
+
+**6. Propose the right next step for the confirmed approach.**
+Based on complexity, propose one of: a design spec (e.g. via `superpowers:brainstorming`), an implementation plan (via `superpowers:writing-plans`), or direct implementation for something small enough not to need either. Wait for the user to pick before proceeding — never jump straight into implementation on your own judgment.
+
+**7. Move on.**
+Kickoff is done, the approach is confirmed, and the implementation path is chosen. Continue with the skill that matches the actual work (fixing a defect, adding functionality, or modifying existing code).
 
 ## Common Mistakes
 
@@ -91,3 +112,5 @@ Kickoff is done. Continue with the skill that matches the actual work (fixing a 
 | Guessing at the breaking-change label when it isn't yet knowable | Leave it unset unless the ticket description already makes it obvious; njams-ticket-finish decides for real |
 | Creating a Jira ticket without asking | Propose it and wait for explicit confirmation, every time |
 | Re-transitioning a ticket that's already In Progress or Done | Check current status first; don't move it backwards |
+| Writing a plan or spec file before the user has confirmed the approach | Draft and confirm the approach in conversation first; only then produce a document |
+| Jumping straight to implementation after kickoff | Always propose spec vs. plan vs. direct implementation and wait for the user's pick |
