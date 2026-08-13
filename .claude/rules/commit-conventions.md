@@ -10,7 +10,7 @@ Every commit that references a ticket must include a description. The `#comment`
 
 **Before every commit, verify that the referenced ticket actually matches the change.** Check the ticket's summary (and description if needed) against the diff. If the ticket does not describe what is being committed, propose a recent ticket that better fits. If no suitable ticket exists, ask the user before committing.
 
-**Exception:** Commits that touch only `CLAUDE.md` or files under `docs/` (e.g. plans, notes) do not need a Jira ticket reference. Use a plain commit message for those, though referencing `SDK-XXX` is still appropriate when the doc directly belongs to that ticket (e.g. a plan or spec written for it).
+**Exception:** Commits that touch only `CLAUDE.md` or files under `docs/`, `.claude/skills/`, or `.claude/rules/` (e.g. plans, notes, skill/rule definitions) do not need a Jira ticket reference. Use a plain commit message for those, though referencing `SDK-XXX` is still appropriate when the change obviously relates to that ticket (e.g. a plan or spec written for it, or a skill/rule update made as part of a ticket's work).
 
 ## Branching
 
