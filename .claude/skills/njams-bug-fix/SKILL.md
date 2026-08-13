@@ -11,7 +11,7 @@ Existing test cases are the authoritative definition of correct behavior. They m
 
 This workflow builds on `njams-safe-modification`: the same test coverage and public API rules apply. A bug fix is a code change like any other.
 
-Ticket kickoff (confirming the key, transitioning to In Progress, assigning) is handled by `njams-ticket-start` — run that first. Commit formatting is handled by `njams-commit`. Closing the ticket out (deciding the breaking-change label against the real diff, signed comment, resolution) is handled by `njams-ticket-finish` once the fix is verified.
+Ticket kickoff — confirming the key, transitioning to In Progress, assigning, and drafting/confirming a solution approach (and choosing spec vs. plan vs. direct implementation) before any code is written — is handled by `njams-ticket-start`; run that first. Commit formatting is handled by `njams-commit`. Closing the ticket out (deciding the breaking-change label against the real diff, signed comment, resolution) is handled by `njams-ticket-finish` once the fix is verified.
 
 ## Hard Rules
 
@@ -141,4 +141,4 @@ Vague reasons ("the test seems outdated") are not sufficient. If you cannot arti
 | "The test was probably written incorrectly" | Articulate exactly why and ask the user |
 | Fixing the symptom without understanding the cause | Understand root cause before changing code |
 | Fixing a guessed cause without confirming it in code | Read the actual code path or reproduce the failure first |
-| Skipping njams-ticket-start / njams-commit / njams-ticket-finish | Use them for kickoff, commit formatting, and closeout respectively — don't re-derive that logic here |
+| Skipping njams-ticket-start / njams-commit / njams-ticket-finish | Use them for kickoff (incl. drafting/confirming the approach), commit formatting, and closeout respectively — don't re-derive that logic here |

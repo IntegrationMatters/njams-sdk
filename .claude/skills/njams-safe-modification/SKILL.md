@@ -31,7 +31,7 @@ The deprecated member is still existing code being modified — the full test co
 
 **If the modification touches the Wire Contract — njams-messageformat types, `communication/fragments/`, or `MessageHeaders`/properties — it must go through the `message-format-changes.md` confirmation gate before proceeding**, in addition to (not instead of) the usual public-API-immutability check above. That gate, not this skill, decides whether the change is even permitted.
 
-Ticket kickoff (confirming the key, transitioning to In Progress, assigning) is handled by `njams-ticket-start` — run that first if it hasn't run yet. Since this workflow is about modifying existing code, any modification that ends up touching a Client Contract or SPI Contract member's signature, return type, parameter type, or observable behaviour is breaking — decide the `breaking-change` label via `njams-ticket-finish` once the change is done (Wire Contract changes use the message-format gate instead, not this label). Commit formatting is handled by `njams-commit`.
+Ticket kickoff — confirming the key, transitioning to In Progress, assigning, and drafting/confirming a solution approach (and choosing spec vs. plan vs. direct implementation) before any code is written — is handled by `njams-ticket-start`; run that first if it hasn't run yet. Since this workflow is about modifying existing code, any modification that ends up touching a Client Contract or SPI Contract member's signature, return type, parameter type, or observable behaviour is breaking — decide the `breaking-change` label via `njams-ticket-finish` once the change is done (Wire Contract changes use the message-format gate instead, not this label). Commit formatting is handled by `njams-commit`.
 
 **Tests written during this workflow are frozen.** They document what the code does. If your modification breaks one of these tests, fix your code — never the test.
 
@@ -128,7 +128,7 @@ If any test fails, revert your implementation change and rethink the approach. T
 | Removing deprecated old API when adding new replacement | Keep both; mark old one `@Deprecated` with `@deprecated` Javadoc pointing to new |
 | Adding a new public member without Javadoc | All public/protected members must have Javadoc — no exceptions |
 | Changing a setting without updating its docs | Run njams-settings-sync — any behavior/default/deprecation change must be reflected in NjamsSettings, the wiki FAQ, and settings_full.properties |
-| Skipping njams-ticket-start / njams-commit / njams-ticket-finish | Use them for kickoff, commit formatting, and closeout respectively — don't re-derive that logic here |
+| Skipping njams-ticket-start / njams-commit / njams-ticket-finish | Use them for kickoff (incl. drafting/confirming the approach), commit formatting, and closeout respectively — don't re-derive that logic here |
 | Modifying message-format types, communication/fragments/, or MessageHeaders without the message-format-changes.md gate | That's the Wire Contract — get human confirmation (and a SER ticket if needed) before proceeding, not just the usual public-API check |
 | Deprecating an SPI template method the SDK calls into (e.g. AbstractSender.doReconnect) with the normal @Deprecated + delegate pattern | That pattern silently drops the old behavior for this kind of member — raise it with the user instead |
 | Treating a passing build as coverage | Compilation proves nothing; tests assert behavior |

@@ -16,7 +16,7 @@ around how an existing class, library, or the message format behaves, check it i
 behavior from a similarly-named API elsewhere or from general familiarity. Per the "No Unsupported Assumptions" rule
 in `CLAUDE.md`.
 
-Ticket kickoff (confirming or creating the ticket, transitioning to In Progress, assigning) is handled by `njams-ticket-start` — run that first. Purely additive features (new methods, classes, overloads) are not breaking; if the feature inadvertently requires changing an existing signature, return type, parameter type, or behaviour, that gets decided via `njams-ticket-finish` once the implementation is done. Commit formatting is handled by `njams-commit`.
+Ticket kickoff — confirming or creating the ticket, transitioning to In Progress, assigning, and drafting/confirming a solution approach (and choosing spec vs. plan vs. direct implementation) before any code is written — is handled by `njams-ticket-start`; run that first. Purely additive features (new methods, classes, overloads) are not breaking; if the feature inadvertently requires changing an existing signature, return type, parameter type, or behaviour, that gets decided via `njams-ticket-finish` once the implementation is done. Commit formatting is handled by `njams-commit`.
 
 **Default scope is private.** Every new field, method, and class starts as `private` or package-private. Promote to `public`/`protected` only when there is a clear, intentional reason for external access.
 
@@ -111,4 +111,4 @@ Before considering the implementation done:
 | Reaching for a new library to solve a problem | Use existing dependencies or the standard library first; if a new one is truly needed, ask before adding and check online for the latest version |
 | Adding allocations or blocking calls to the runtime monitoring path | Raise performance trade-offs before implementing; keep hot paths lean |
 | Assuming how an existing class/library/format behaves instead of checking | Read the actual source before designing around it |
-| Skipping njams-ticket-start / njams-commit / njams-settings-sync | Use them for kickoff, commit formatting, and settings docs respectively — don't re-derive that logic here |
+| Skipping njams-ticket-start / njams-commit / njams-settings-sync | Use them for kickoff (incl. drafting/confirming the approach), commit formatting, and settings docs respectively — don't re-derive that logic here |
