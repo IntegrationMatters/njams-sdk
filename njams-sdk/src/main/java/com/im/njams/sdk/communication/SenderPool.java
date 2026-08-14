@@ -188,8 +188,7 @@ public class SenderPool {
         }
         final AbstractSender sender = factory.getSender();
         sender.setConnectionCoordinator(coordinator);
-        // The failure sink (sender.setFailureSink(this::reportFailure)) is wired in the follow-up task that adds
-        // that method to AbstractSender; until then failures still travel the sender's own reconnect path.
+        sender.setFailureSink(this::reportFailure);
         return sender;
     }
 

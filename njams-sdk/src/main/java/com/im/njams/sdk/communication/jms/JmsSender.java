@@ -380,7 +380,7 @@ public class JmsSender extends AbstractSender implements ExceptionListener, Clas
 
     @Override
     public synchronized void onException(JMSException exception) {
-        onException(new NjamsSdkRuntimeException("JMS Exception", exception));
+        notifyConnectionFailure(new NjamsSdkRuntimeException("JMS Exception", exception));
     }
 
     @Override

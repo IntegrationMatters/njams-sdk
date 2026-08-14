@@ -422,4 +422,35 @@ public abstract class AbstractSender {
         return hasConnectionFailure;
     }
 
+    private volatile SenderFailureSink failureSink;
+
+    /**
+     * Injects the callback through which this sender reports connection failures to its owning pool. Called by
+     * {@link SenderPool} right after creation. Package-private: not part of the sender SPI.
+     *
+     * @param failureSink the sink to report failures to.
+     */
+    void setFailureSink(SenderFailureSink failureSink) {
+        this.failureSink = failureSink;
+    }
+
+    /**
+     * Reports a connection failure that was detected outside a {@code send} call, so the owning
+     * {@link SenderPool} can retire this sender and run a single reconnect for its group.
+     * <p>
+     * Implement this call only if your transport can detect a broken connection asynchronously — for example
+     * from a listener callback on a transport-internal thread, with no send in progress. A failure that surfaces
+     * from a {@code send} must simply be thrown: the SDK reports it for you.
+     *
+     * @param cause the failure that was detected; may be {@code null}.
+     */
+    protected final void notifyConnectionFailure(Exception cause) {
+        final SenderFailureSink sink = failureSink;
+        if (sink != null) {
+            sink.onConnectionFailure(this, cause);
+        } else {
+            LOG.debug("No failure sink set on sender {}; connection failure not reported.", getName(), cause);
+        }
+    }
+
 }

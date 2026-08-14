@@ -59,18 +59,12 @@ public class LifecycleTestSender extends AbstractSender {
 
     /**
      * Test hook standing in for a transport that discovers a broken connection asynchronously (outside a
-     * {@code send(...)} call) and reports it to its owning pool.
-     * <p>
-     * Not wired yet: {@code AbstractSender.notifyConnectionFailure(Exception)} — the protected member this must
-     * delegate to — is added together with the failure sink in Task 4 of SDK-472. Throwing keeps the bridge
-     * complete and compiling without pretending the hook works.
+     * {@code send(...)} call) and reports it to its owning pool, mirroring {@code JmsSender.onException}.
      *
      * @param cause the failure to report.
      */
     public void reportAsyncFailure(Exception cause) {
-        throw new UnsupportedOperationException(
-            "Asynchronous failure reporting requires AbstractSender.notifyConnectionFailure(Exception), "
-                + "which SDK-472 Task 4 adds together with the pool's failure sink.");
+        notifyConnectionFailure(cause);
     }
 
     @Override
