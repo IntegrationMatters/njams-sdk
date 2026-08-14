@@ -164,6 +164,25 @@ public class SenderPool {
     }
 
     /**
+     * Temporary stub for {@link SenderConnector}'s thread naming, pending Task 3's rewrite of this pool: derives a
+     * display name for this pool's sender group from the factory by creating (and discarding) one throwaway
+     * instance. Not the pool's real sender-creation path.
+     */
+    String getSenderName() {
+        return factory.getSender().getName();
+    }
+
+    /**
+     * Temporary stub pending Task 3's rewrite of this pool: hands a newly (re)connected sender to the pool by
+     * making it available to the next {@link #get()} caller. Task 3 gives this its real body.
+     *
+     * @param sender the sender that just finished a startup connect or reconnect.
+     */
+    synchronized void onReconnected(AbstractSender sender) {
+        unlocked.add(sender);
+    }
+
+    /**
      * Begins shutdown for the group: sets the coordinator's shutdown flag and cancels any in-progress
      * reconnect/startup threads, so a failing final send during the executor drain does not spawn a reconnect.
      * Unlike {@link #declareShutdown()} this does <em>not</em> block new-sender creation, so in-flight sends can
