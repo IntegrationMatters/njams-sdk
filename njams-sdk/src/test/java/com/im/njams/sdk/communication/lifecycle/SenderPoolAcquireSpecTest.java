@@ -8,6 +8,7 @@ import static org.junit.Assert.assertTrue;
 
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.junit.Test;
@@ -115,6 +116,42 @@ public class SenderPoolAcquireSpecTest extends AbstractLifecycleSpecTest {
         pool.beginShutdown();
         assertTrue("shutdown must wake blocked acquirers", returned.await(5, TimeUnit.SECONDS));
         assertNull("a woken acquirer gets null on shutdown", acquired.get());
+        assertEquals("a shutdown-induced drop is not a policy discard", 0, discardMonitor.count());
+    }
+
+    /**
+     * beginShutdown() only releases callers that would have to <em>wait</em> for a cancelled reconnect. A healthy
+     * group must keep serving, or the in-flight sends the executor is still draining would all be dropped.
+     */
+    @Test
+    public void acquireStillServesAHealthyGroupWhileDraining() {
+        SenderPoolTestAccess pool = SenderPoolTestAccess.create("none");
+        pool.beginShutdown();
+        Object sender = pool.acquire();
+        assertNotNull("a draining but healthy group must still hand out a sender", sender);
+        assertTrue("and it must still be a CONNECTED one", pool.isConnected(sender));
+    }
+
+    /**
+     * The reconnecting/failed state is latched under the lock and only a published reconnect clears it, so a
+     * listener that throws must not be able to prevent the reconnect from starting — that would leave the group
+     * permanently parked or discarding — nor prevent the remaining listeners from being notified.
+     */
+    @Test
+    public void aThrowingListenerNeitherBlocksTheReconnectNorTheOtherListeners() {
+        SenderPoolTestAccess pool = SenderPoolTestAccess.create("none");
+        AtomicInteger healthyListenerCalls = new AtomicInteger();
+        pool.addExceptionListener((e, msg) -> {
+            throw new IllegalStateException("this listener is broken");
+        });
+        pool.addExceptionListener((e, msg) -> healthyListenerCalls.incrementAndGet());
+
+        pool.reportFailure(pool.newUnconnectedSender(), new IllegalStateException("boom"));
+
+        assertNotNull("a broken listener must not prevent the reconnect from starting",
+            pool.publishConnectedSender());
+        assertEquals("the remaining listener must still be notified", 1, healthyListenerCalls.get());
+        assertNotNull("and the group must be usable again", pool.acquire());
     }
 
     @Test

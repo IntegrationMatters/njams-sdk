@@ -221,7 +221,11 @@ public class SenderPool {
         }
     }
 
-    /** Shuts the group down for good: stops reconnecting and closes every sender this pool still holds. */
+    /**
+     * Shuts the group down for good: stops reconnecting, releases anyone parked in {@link #acquire()}, and closes
+     * every sender this pool still holds. Correct standalone, i.e. also when called without a preceding
+     * {@link #beginShutdown()}.
+     */
     public void shutdown() {
         coordinator.setShouldShutdown(true);
         expireAll();
@@ -229,6 +233,11 @@ public class SenderPool {
 
     /**
      * Hands out a connected sender, applying the group's discard policy while a reconnect is in progress.
+     * <p>
+     * A healthy group still serves callers once {@link #beginShutdown()} has run, so in-flight sends can complete
+     * while the executor drains. Only a caller that would have to <em>wait</em> for a reconnect is refused then:
+     * that reconnect is being cancelled, so waiting for it would be pointless. Once {@link #declareShutdown()}
+     * has committed to teardown, every caller is refused.
      *
      * @return a CONNECTED sender, or {@code null} if the group is shutting down or the discard policy chose to
      *         drop the message rather than wait.
@@ -245,13 +254,20 @@ public class SenderPool {
             List<AbstractSender> toDestroy = null;
             List<SenderExceptionListener> toNotify = null;
             synchronized (lock) {
-                if (draining || shutdown) {
+                if (shutdown) {
                     return null;
                 }
                 if (reconnecting) {
                     if (discardsOnFailure) {
                         DiscardMonitor.discard();
                         LOG.debug("Applying discard policy [{}]. Message discarded.", discardPolicy);
+                        return null;
+                    }
+                    if (draining) {
+                        // Refuse rather than park: the reconnect this caller would wait for is being cancelled.
+                        // Deliberately not counted as a discard — the drop is caused by shutdown, not by the
+                        // configured discard policy, and conflating the two would misreport the discard metric.
+                        LOG.debug("Group is shutting down while reconnecting; dropping the message without waiting.");
                         return null;
                     }
                     try {
@@ -376,23 +392,43 @@ public class SenderPool {
     private List<AbstractSender> failGroup() {
         reconnecting = true;
         failed = true;
+        // A new outage invalidates whatever the previous reconnect published.
+        lastPublished = null;
         listenerFireCount++;
+        // Record the loss on the coordinator while still holding lock. It is required at all because
+        // SenderConnector.startReconnect refuses a group it believes to be connected, and it belongs here rather
+        // than after the lock releases: otherwise there is a window - spanning the destroy(...) calls, which can
+        // block inside a real transport's close() - where this pool is already reconnecting while
+        // coordinator.isGroupConnected() still reads true, so a sibling Njams sharing the group would get a stale
+        // "connected" answer from SenderConnector.awaitStartup(...). Safe under the lock: the coordinator
+        // synchronizes on its own monitor and never calls back into the pool.
+        coordinator.beginReconnect();
         final List<AbstractSender> toDestroy = drain(unlocked);
         retired.addAll(locked);
         return toDestroy;
     }
 
     /**
-     * Second half of failing the group, run <em>outside</em> {@link #lock}: notifies the listeners once for the
-     * outage and starts the group's single reconnect loop.
+     * Second half of failing the group, run <em>outside</em> {@link #lock}: starts the group's single reconnect
+     * loop and then notifies the listeners once for the outage.
      */
     private void electReconnector(Exception cause, List<SenderExceptionListener> listeners) {
-        // The connector refuses to reconnect a group it still believes to be connected, so record the loss first.
-        coordinator.beginReconnect();
-        // A per-outage notification has no single message, so the message argument is null: "the group failed",
-        // not "this message failed".
-        listeners.forEach(l -> l.onException(cause, null));
+        // Start the reconnect BEFORE notifying anyone. failGroup() has already latched reconnecting/failed, and
+        // only onReconnected(...) clears them, so a listener throwing ahead of this call would brick the group for
+        // good: every later acquire() would park forever or discard forever. Unlike the legacy per-sender path,
+        // this latch does not self-heal on the next send.
         connector.startReconnect(cause);
+        for (SenderExceptionListener listener : listeners) {
+            try {
+                // A per-outage notification has no single message, so the message argument is null: "the group
+                // failed", not "this message failed".
+                listener.onException(cause, null);
+            } catch (RuntimeException e) {
+                // One misbehaving listener must not stop the others from learning about the outage.
+                LOG.error("Sender exception listener {} failed while handling the group's connection failure.",
+                    listener.getClass().getName(), e);
+            }
+        }
     }
 
     /** Takes an idle sender and marks it checked out. Must be called with {@link #lock} held. */
@@ -487,24 +523,26 @@ public class SenderPool {
     /**
      * Begins shutdown for the group: sets the coordinator's shutdown flag and cancels any in-progress
      * reconnect/startup threads, so a failing final send during the executor drain does not spawn a reconnect.
-     * It also refuses and wakes every {@link #acquire()} caller, so nobody stays parked waiting for a reconnect
-     * that will never complete.
+     * It also wakes every {@link #acquire()} caller parked on a reconnect and hands it {@code null}, so nobody
+     * stays blocked waiting for a reconnect that has just been cancelled.
      * <p>
-     * Unlike {@link #declareShutdown()} this does <em>not</em> block new-sender creation, so in-flight sends can
-     * still borrow a sender through the legacy {@link #get()} path while the executor drains. That is why the
-     * wake uses its own {@code draining} flag rather than the {@code shutdown} flag {@link #declareShutdown()}
-     * sets: the two mean different things and must not share a field.
+     * Unlike {@link #declareShutdown()} this does <em>not</em> block new-sender creation or refuse an
+     * {@link #acquire()} against a still-healthy group, so in-flight sends can complete while the executor drains.
+     * That is why the wake uses its own {@code draining} flag rather than the {@code shutdown} flag
+     * {@link #declareShutdown()} sets: the two mean different things and must not share a field.
      */
     public void beginShutdown() {
         LOG.debug("Beginning sender group shutdown; cancelling reconnects.");
         coordinator.setShouldShutdown(true);
-        connector.cancelReconnect();
         final List<AbstractSender> all;
         synchronized (lock) {
+            // Set before cancelling, so a waiter woken by a reconnect thread that is finishing concurrently
+            // already sees the drain instead of picking the group back up.
             draining = true;
             all = allSenders();
             lock.notifyAll();
         }
+        connector.cancelReconnect();
         all.forEach(AbstractSender::cancelReconnect);
     }
 
@@ -527,6 +565,10 @@ public class SenderPool {
     private void expireAll() {
         final List<AbstractSender> all;
         synchronized (lock) {
+            // Also set here, not only in beginShutdown()/declareShutdown(): shutdown() is public API and may be
+            // called standalone, and without this the notifyAll() below would wake parked acquire() callers only
+            // for them to find neither draining nor a completed reconnect, and park again forever.
+            draining = true;
             // retired is a subset of locked, so allSenders() already covers it.
             all = allSenders();
             locked.clear();

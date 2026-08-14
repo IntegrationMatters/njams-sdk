@@ -83,6 +83,10 @@ public class SenderPoolTestAccess {
         return pool.isConnectionFailure();
     }
 
+    public void addExceptionListener(SenderExceptionListener listener) {
+        pool.addSenderExceptionListener(listener);
+    }
+
     public boolean isConnected(Object sender) {
         return ((AbstractSender) sender).isConnected();
     }
