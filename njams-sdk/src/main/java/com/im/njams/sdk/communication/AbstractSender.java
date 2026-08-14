@@ -221,11 +221,10 @@ public abstract class AbstractSender {
      * @param ex the exception that initiated the reconnect
      */
     protected void doReconnect(Exception ex) {
-        int reconnecting = coordinator.beginReconnect();
+        coordinator.beginReconnect();
         if (LOG.isInfoEnabled() && ex != null) {
             LOG.info("Initialized reconnect, because of: {}", getExceptionWithCauses(ex));
         }
-        LOG.debug("{} senders are reconnecting now", reconnecting);
         hasConnectionFailure = true;
         while (!isConnected() && !coordinator.shouldShutdown()) {
             try {
@@ -233,7 +232,6 @@ public abstract class AbstractSender {
                 if (coordinator.markConnected()) {
                     LOG.info("Reconnected sender {}", getName());
                 }
-                LOG.debug("{} senders still need to reconnect.", coordinator.reconnectingCount());
                 hasConnectionFailure = false;
             } catch (Exception e) {
                 try {

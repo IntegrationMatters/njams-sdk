@@ -12,15 +12,6 @@ public class ConnectionCoordinatorTest {
     public void freshCoordinatorIsNotShuttingDown() {
         ConnectionCoordinator c = new ConnectionCoordinator();
         assertFalse(c.shouldShutdown());
-        assertEquals(0, c.reconnectingCount());
-    }
-
-    @Test
-    public void beginReconnectCounts() {
-        ConnectionCoordinator c = new ConnectionCoordinator();
-        assertEquals(1, c.beginReconnect());
-        assertEquals(2, c.beginReconnect());
-        assertEquals(2, c.reconnectingCount());
     }
 
     @Test
@@ -78,5 +69,17 @@ public class ConnectionCoordinatorTest {
         c.markStartupConnected();
         c.setShouldShutdown(true);
         assertFalse("shutdown wins over wasEverConnected", c.shouldReconnect());
+    }
+
+    @Test
+    public void isGroupConnectedTracksConnectAndReconnect() {
+        ConnectionCoordinator c = new ConnectionCoordinator();
+        assertFalse("a fresh coordinator is not connected", c.isGroupConnected());
+        assertTrue(c.markStartupConnected());
+        assertTrue("connected after a startup connect", c.isGroupConnected());
+        c.beginReconnect();
+        assertFalse("beginReconnect clears the connected flag", c.isGroupConnected());
+        assertTrue(c.markConnected());
+        assertTrue("connected again after a successful reconnect", c.isGroupConnected());
     }
 }

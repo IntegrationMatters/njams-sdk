@@ -269,13 +269,12 @@ public abstract class AbstractReceiver implements Receiver {
         if (isConnecting() || isConnected()) {
             doReconnect = false;
         } else {
-            int reconnecting = coordinator.beginReconnect();
+            coordinator.beginReconnect();
             LOG.warn("Receiver connection lost. The client will not receive any commands from the server "
                 + "until reconnected.");
             if (LOG.isDebugEnabled() && ex != null) {
                 LOG.debug("Receiver reconnect triggered by: {}", ex.toString());
             }
-            LOG.debug("{} receivers are reconnecting now.", reconnecting);
         }
         if (got > 1) {
             //This is just for debugging.
@@ -299,7 +298,6 @@ public abstract class AbstractReceiver implements Receiver {
                         LOG.info("Receiver reconnected. Handling server commands resumed.");
                         resetReconnectInterval();
                     }
-                    LOG.debug("{} receivers still need to reconnect.", coordinator.reconnectingCount());
                 } catch (NjamsSdkRuntimeException e) {
                     try {
                         //Using Thread.sleep because this.wait would release the lock for this object, Thread.sleep doesn't.

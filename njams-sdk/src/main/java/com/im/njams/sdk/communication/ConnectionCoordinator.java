@@ -25,10 +25,9 @@
 package com.im.njams.sdk.communication;
 
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * Owns the reconnect-counting, shutdown, and "was ever connected" / reconnect-gating state for one shared-transport
+ * Owns the connection, shutdown, and "was ever connected" / reconnect-gating state for one shared-transport
  * group of senders (all senders handed out by a single {@link SenderPool}), or independently for one receiver
  * group. Replaces the former JVM-global {@code static} reconnect state on {@link AbstractSender} and
  * {@link AbstractReceiver} so that unrelated {@link com.im.njams.sdk.Njams} instances no longer share connection
@@ -38,37 +37,34 @@ import java.util.concurrent.atomic.AtomicInteger;
 class ConnectionCoordinator {
 
     private final AtomicBoolean hasConnected = new AtomicBoolean(false);
-    private final AtomicInteger connecting = new AtomicInteger(0);
     private final AtomicBoolean shouldShutdown = new AtomicBoolean(false);
     private volatile boolean wasEverConnected = false;
     private volatile boolean reconnectBeforeConnected = false;
 
     /**
-     * Marks the group as currently disconnected and beginning a reconnect: clears the connected flag and
-     * increments the reconnecting count.
+     * Marks the group as currently disconnected and beginning a reconnect.
      *
-     * @return the reconnecting count after incrementing (for logging).
+     * @return {@code true} if this call cleared the connected flag, {@code false} if the group was already
+     *         marked disconnected.
      */
-    synchronized int beginReconnect() {
-        hasConnected.set(false);
-        return connecting.incrementAndGet();
+    synchronized boolean beginReconnect() {
+        return hasConnected.compareAndSet(true, false);
     }
 
     /**
-     * Records a successful (re)connect: decrements the reconnecting count.
+     * Records a successful (re)connect.
      *
      * @return {@code true} exactly once for the disconnected&rarr;connected transition (so the caller can log the
      *         reconnect a single time), {@code false} if the group was already marked connected.
      */
     synchronized boolean markConnected() {
-        connecting.decrementAndGet();
         wasEverConnected = true;
         return hasConnected.compareAndSet(false, true);
     }
 
-    /** @return the current number of in-progress reconnects in this group. */
-    synchronized int reconnectingCount() {
-        return connecting.get();
+    /** @return {@code true} while the group is currently believed to be connected. */
+    boolean isGroupConnected() {
+        return hasConnected.get();
     }
 
     /** @return {@code true} once the group is shutting down. */
