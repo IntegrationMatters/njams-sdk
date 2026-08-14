@@ -202,11 +202,17 @@ public class SenderPool {
      * the background (startup fail-behavior {@code reconnect}).
      * <p>
      * Cancelling comes first, and both cancel and (re)start are needed, for different cases.
-     * {@link SenderConnector#cancelReconnect()} interrupts a startup connect that is <em>still blocked</em>, so it
-     * fails promptly and — being a failed connect with the group disconnected — hands off to the reconnect loop
-     * from its own thread (see {@code SenderConnector.runStartupConnect}). The (re)start below covers the other
-     * case, where the initial connect already failed fast and left no thread to interrupt; it is idempotent when a
-     * reconnect is already running.
+     * {@link SenderConnector#cancelStartupConnect()} interrupts a startup connect that is <em>still blocked</em>,
+     * so it fails promptly and — being a failed connect with the group disconnected — hands off to the reconnect
+     * loop from its own thread (see {@code SenderConnector.runStartupConnect}). The (re)start below covers the
+     * other case, where the initial connect already failed fast and left no thread to interrupt; it is idempotent
+     * when a reconnect is already running.
+     * <p>
+     * The cancel is deliberately the <em>startup-only</em> one, never {@link SenderConnector#cancelReconnect()}.
+     * By the time a startup timeout is handled, the failed startup connect has usually already handed off to a
+     * reconnect loop, and that loop is the group's only reconnector — cancelling it here killed the very recovery
+     * this method exists to guarantee, and the restart below could not replace it while the interrupted thread was
+     * still alive. See {@code SenderConnector.cancelStartupConnect()}.
      * <p>
      * The group is then flipped into the failed/reconnecting state through the same election path a failing sender
      * takes, just without a failing sender to retire. This is not cosmetic bookkeeping: the pool's own
@@ -223,7 +229,7 @@ public class SenderPool {
     void restartConnectInBackground(long timeoutMs) {
         final Exception cause = new NjamsSdkRuntimeException(
             "Startup connect did not complete within " + timeoutMs + " ms; reconnecting in background");
-        connector.cancelReconnect();
+        connector.cancelStartupConnect();
         List<AbstractSender> toDestroy = Collections.emptyList();
         List<SenderExceptionListener> listeners = null;
         synchronized (lock) {
@@ -245,11 +251,16 @@ public class SenderPool {
     }
 
     /**
-     * Cancels the group's in-progress startup connect (and reconnect loop, if any) without shutting the group down.
-     * Used by the fail-fast startup policy, where a connect that has not completed in time must not keep running.
+     * Cancels the group's in-progress startup connect without shutting the group down. Used by the fail-fast
+     * startup policy, where a connect that has not completed in time must not keep running.
+     * <p>
+     * It cancels the startup connect <em>only</em>. This client giving up on its own startup says nothing about
+     * the group: under shared communications a sibling that started under the {@code reconnect} policy may have a
+     * reconnect running that it still depends on, and the group has just the one reconnector. Tearing the group
+     * down is {@link #beginShutdown()}'s job, not this one's.
      */
     void cancelConnect() {
-        connector.cancelReconnect();
+        connector.cancelStartupConnect();
     }
 
     /**

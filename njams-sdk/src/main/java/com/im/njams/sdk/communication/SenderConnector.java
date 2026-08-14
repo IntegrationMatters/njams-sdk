@@ -239,7 +239,34 @@ class SenderConnector {
         return reconnectThread != null && reconnectThread.isAlive();
     }
 
-    /** Interrupts the startup and reconnect threads so a blocking connect is cancelled promptly on shutdown. */
+    /**
+     * Interrupts the startup connect thread only, so a connect still blocked past the startup timeout fails
+     * promptly — and, if a reconnect is permitted, hands off to the reconnect loop from its own thread (see
+     * {@link #runStartupConnect()}).
+     * <p>
+     * Deliberately narrower than {@link #cancelReconnect()}, and the two must not be conflated. A startup timeout
+     * must never touch a reconnect loop that is already running: that loop is the group's <em>only</em>
+     * reconnector, and it has very often been started by this very startup connect failing a moment earlier, or
+     * belongs to another {@link com.im.njams.sdk.Njams} sharing this group. Interrupting it destroys the group's
+     * sole recovery path, and {@link #startReconnect(Exception)} cannot make up for it: the interrupted thread is
+     * still alive for a moment, so {@link #isReconnectInFlight()} refuses to start a replacement and the group is
+     * left permanently unable to reconnect. Only a real shutdown wants both threads stopped.
+     */
+    void cancelStartupConnect() {
+        final Thread startup;
+        synchronized (gate) {
+            startup = startupThread;
+        }
+        if (startup != null) {
+            startup.interrupt();
+        }
+    }
+
+    /**
+     * Interrupts the startup <em>and</em> reconnect threads so a blocking connect is cancelled promptly on
+     * shutdown. Only shutdown may use this; a startup timeout must use {@link #cancelStartupConnect()} instead,
+     * which explains why.
+     */
     void cancelReconnect() {
         final Thread startup;
         final Thread reconnect;
@@ -264,6 +291,11 @@ class SenderConnector {
     private AbstractSender createSender() {
         final AbstractSender sender = factory.getSender();
         sender.setConnectionCoordinator(coordinator);
+        // Every sender the connector publishes ends up serving the group, so it needs the same failure sink
+        // SenderPool.create() installs: without it a transport that detects a broken connection asynchronously
+        // (JmsSender.onException) has nowhere to report it, and after the first reconnect every pooled sender
+        // would be such a sender.
+        sender.setFailureSink(pool::reportFailure);
         return sender;
     }
 
