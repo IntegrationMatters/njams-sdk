@@ -162,7 +162,7 @@ public class NjamsSender {
         ThreadFactory threadFactory = new ThreadFactoryBuilder()
             .setNamePrefix(getName() + "-Sender-Thread").setDaemon(true).build();
         final CommunicationFactory communicationFactory = new CommunicationFactory(settings);
-        senderPool = new SenderPool(communicationFactory, new ConnectionCoordinator());
+        senderPool = new SenderPool(communicationFactory, new ConnectionCoordinator(), settings);
         executor = new ThreadPoolExecutor(minSenderThreads, maxSenderThreads, idleTime, TimeUnit.MILLISECONDS,
             new ArrayBlockingQueue<>(maxQueueLength), threadFactory,
             new MaxQueueLengthHandler(settings, senderPool::isConnectionFailure));

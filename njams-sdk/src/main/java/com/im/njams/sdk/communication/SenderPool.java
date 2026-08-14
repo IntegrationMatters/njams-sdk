@@ -23,31 +23,45 @@
  */
 package com.im.njams.sdk.communication;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.Stream;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.im.njams.sdk.NjamsSettings;
+import com.im.njams.sdk.settings.ClientSettings;
+
 /**
- * Pool for {@link AbstractSender} implementations.
+ * Pool for {@link AbstractSender} implementations, and the owner of connection-failure handling for one sender
+ * group.
  * <p>
- * The pool itself imposes no upper limit: {@link #get()} hands out an idle sender if one is available and
- * otherwise creates a new one. In isolation this would allow the number of senders to grow without bound.
- * In practice it cannot, because the pool is only ever accessed from the bounded
+ * <b>Borrowing.</b> {@link #acquire()} hands out a <em>connected</em> sender — an idle one from the pool if
+ * available, otherwise a freshly created and connected one — and {@link #release(AbstractSender)} returns it. The
+ * pool imposes no upper limit of its own, so in isolation the number of senders could grow without bound. In
+ * practice it cannot, because the pool is only ever borrowed from by the bounded
  * {@link java.util.concurrent.ThreadPoolExecutor} in {@link NjamsSender}. That executor runs at most
- * {@link com.im.njams.sdk.NjamsSettings#PROPERTY_MAX_SENDER_THREADS} worker threads concurrently, and each
- * worker borrows a sender via {@link #get()}, sends, and returns it via {@link #close(AbstractSender)} before
- * picking up the next task. Therefore the number of senders simultaneously checked out (held in {@code locked})
- * never exceeds the executor's maximum thread count; the rest are recycled through {@code unlocked}.
+ * {@link com.im.njams.sdk.NjamsSettings#PROPERTY_MAX_SENDER_THREADS} worker threads concurrently, and each worker
+ * acquires a sender, sends, and releases it before picking up the next task. The number of senders simultaneously
+ * checked out therefore never exceeds the executor's maximum thread count; the rest are recycled. In other words,
+ * the pool is <em>virtually</em> bounded to {@code maxSenderThreads} by its single caller.
  * <p>
- * In other words, the pool is <em>virtually</em> bounded to {@code maxSenderThreads} by its single caller, so its
- * size cannot explode even though it enforces no limit of its own.
+ * <b>Failure handling and retirement.</b> A sender that discovers a broken connection reports it through
+ * {@link #reportFailure(AbstractSender, Exception)}. The first report of an outage <em>elects</em> exactly one
+ * reconnector: the pool flips into the reconnecting state, notifies its exception listeners once for the group
+ * (not once per message), and hands the reconnect to its single {@link SenderConnector}. Every sender that is
+ * checked out at that moment is <em>retired</em> — it stays with its borrowing thread until that thread calls
+ * {@link #release(AbstractSender)}, which then closes it instead of recycling it. This is what keeps a broken
+ * sender from being handed to the next caller without ever closing a sender under a foreign thread. Later reports
+ * for the same outage are absorbed, so a burst of failing worker threads produces one reconnect, not one per
+ * thread. When the connector has a working sender it publishes it via {@link #onReconnected(AbstractSender)},
+ * which clears the failure state and wakes everyone parked in {@link #acquire()}.
  *
  * @author hsiegeln
  */
@@ -56,14 +70,47 @@ public class SenderPool {
 
     private final CommunicationFactory factory;
     private final ConnectionCoordinator coordinator;
-    private final Set<AbstractSender> locked = Collections.newSetFromMap(new ConcurrentHashMap<>());
-    private final Set<AbstractSender> unlocked = Collections.newSetFromMap(new ConcurrentHashMap<>());
-    private final Collection<SenderExceptionListener> exceptionListeners =
-            Collections.newSetFromMap(new IdentityHashMap<>());
-    private boolean shutdown = false;
+    private final SenderConnector connector;
+    private final DiscardPolicy discardPolicy;
 
     /**
-     * Creates a pool with its own dedicated {@link ConnectionCoordinator}.
+     * Guards every mutation of the sets and flags below, and is the monitor blocked {@link #acquire()} callers
+     * park on. Deliberately a dedicated object rather than the pool's own monitor, so a parked {@code acquire()}
+     * cannot stall {@link #release(AbstractSender)}, {@link #reportFailure(AbstractSender, Exception)} or
+     * shutdown by holding {@code this}.
+     */
+    private final Object lock = new Object();
+
+    private final Set<AbstractSender> locked = Collections.newSetFromMap(new IdentityHashMap<>());
+    private final Set<AbstractSender> unlocked = Collections.newSetFromMap(new IdentityHashMap<>());
+    /**
+     * Senders that were checked out when the group failed. Always a subset of {@link #locked}: they remain
+     * borrowed until their thread releases them, and are then closed instead of recycled.
+     */
+    private final Set<AbstractSender> retired = Collections.newSetFromMap(new IdentityHashMap<>());
+    /**
+     * Only ever touched under {@link #lock}, and fired from a copy taken under {@link #lock}. Keeps its
+     * {@link IdentityHashMap} identity semantics — do not switch to a {@code ConcurrentHashMap}-backed set, that
+     * would silently change listener comparison from identity to {@code equals}.
+     */
+    private final Collection<SenderExceptionListener> exceptionListeners =
+        Collections.newSetFromMap(new IdentityHashMap<>());
+
+    private boolean reconnecting = false;
+    /** Read without the lock by {@link #isConnectionFailure()} on the executor's rejection path. */
+    private volatile boolean failed = false;
+    /** Set by {@link #declareShutdown()}: blocks creation of new senders. */
+    private boolean shutdown = false;
+    /** Set by {@link #beginShutdown()}: refuses and wakes {@link #acquire()} callers, but still allows creation. */
+    private boolean draining = false;
+    /** Counts group-failure notifications, i.e. how often a reconnector was elected. Guarded by {@link #lock}. */
+    private int listenerFireCount = 0;
+    /** The sender the connector published most recently, for {@link #awaitPublishedSenderForTest()}. */
+    private AbstractSender lastPublished;
+
+    /**
+     * Creates a pool with its own dedicated {@link ConnectionCoordinator} and no settings, so the default
+     * {@link DiscardPolicy} applies.
      *
      * @param factory the factory used to create new senders
      */
@@ -71,22 +118,58 @@ public class SenderPool {
         this(factory, new ConnectionCoordinator());
     }
 
+    /**
+     * Creates a pool sharing the given coordinator, with no settings, so the default {@link DiscardPolicy}
+     * applies.
+     *
+     * @param factory     the factory used to create new senders
+     * @param coordinator the connection state shared by this pool's sender group
+     */
     public SenderPool(CommunicationFactory factory, ConnectionCoordinator coordinator) {
-        this.factory = factory;
-        this.coordinator = coordinator;
+        this(factory, coordinator, ClientSettings.from(new HashMap<>()));
     }
 
     /**
-     * Add a listener that is called whenever an exception occurs on sending a message.
+     * Creates a pool sharing the given coordinator and reading its group-level configuration from
+     * {@code settings}.
+     *
+     * @param factory     the factory used to create new senders
+     * @param coordinator the connection state shared by this pool's sender group
+     * @param settings    the client settings; the discard policy is read from them once, here, and never per
+     *                    message (the runtime path must not read settings live)
+     */
+    public SenderPool(CommunicationFactory factory, ConnectionCoordinator coordinator, ClientSettings settings) {
+        this.factory = factory;
+        this.coordinator = coordinator;
+        // Read once at construction: acquire() applies this per message and must never touch the settings there.
+        discardPolicy = DiscardPolicy.byValue(settings.getProperty(NjamsSettings.PROPERTY_DISCARD_POLICY));
+        connector = new SenderConnector(factory, coordinator, this, settings);
+    }
+
+    /**
+     * Add a listener that is called whenever the group's connection fails. The listener is notified once per
+     * outage by {@link #reportFailure(AbstractSender, Exception)}, not once per failed message.
+     *
      * @param listener The listener to add
      */
     public void addSenderExceptionListener(SenderExceptionListener listener) {
-        exceptionListeners.add(listener);
-        streamAll().forEach(s -> s.addExceptionListener(listener));
+        synchronized (lock) {
+            exceptionListeners.add(listener);
+        }
     }
 
+    /**
+     * The group's connection-failure flag: {@code true} from the moment a failure is reported until the connector
+     * publishes a working sender again. Feeds {@link MaxQueueLengthHandler}'s {@code ON_CONNECTION_LOSS} branch.
+     * <p>
+     * It is a single group-level flag on purpose. Deriving it by scanning the pooled senders would go blind
+     * exactly when it matters: on failure the broken senders are retired and closed, so a scan over what is left
+     * in the pool would report a healthy group while the reconnect is still running.
+     *
+     * @return {@code true} while the group is known to be disconnected.
+     */
     public boolean isConnectionFailure() {
-        return streamAll().anyMatch(AbstractSender::hasConnectionFailure);
+        return failed;
     }
 
     /** Permits reconnect before the first successful connect for this group (startup {@code reconnect} policy). */
@@ -94,25 +177,43 @@ public class SenderPool {
         coordinator.allowReconnectBeforeConnected();
     }
 
+    /**
+     * Creates a new, not-yet-connected sender.
+     *
+     * @return the new sender, or {@code null} once {@link #declareShutdown()} has been called.
+     */
     protected AbstractSender create() {
         if (shutdown) {
             return null;
         }
         final AbstractSender sender = factory.getSender();
         sender.setConnectionCoordinator(coordinator);
-        if (!exceptionListeners.isEmpty()) {
-            exceptionListeners.forEach(sender::addExceptionListener);
-        }
+        // The failure sink (sender.setFailureSink(this::reportFailure)) is wired in the follow-up task that adds
+        // that method to AbstractSender; until then failures still travel the sender's own reconnect path.
         return sender;
     }
 
+    /**
+     * Kept for the legacy {@link #get()} path.
+     *
+     * @param sender the sender to validate
+     * @return always {@code true}
+     */
     public boolean validate(AbstractSender sender) {
         // TODO: there must be a better solution!
         return true;
     }
 
+    /**
+     * Closes one sender and drops it. Never call this while holding {@link #lock}: a real transport's
+     * {@code close()} can block, which would stall the whole group's acquire/release traffic.
+     * <p>
+     * Deliberately does <em>not</em> set the sender's shutdown flag. That flag lives on the shared
+     * {@link ConnectionCoordinator}, so retiring a single broken sender would otherwise abort the group's elected
+     * reconnect. Group shutdown is set explicitly by {@link #beginShutdown()}, {@link #declareShutdown()} and
+     * {@link #shutdown()}.
+     */
     private void destroy(AbstractSender sender) {
-        sender.setShouldShutdown(true);
         try {
             sender.close();
         } catch (Exception e) {
@@ -120,92 +221,378 @@ public class SenderPool {
         }
     }
 
+    /** Shuts the group down for good: stops reconnecting and closes every sender this pool still holds. */
     public void shutdown() {
+        coordinator.setShouldShutdown(true);
         expireAll();
     }
 
-    public synchronized AbstractSender get() {
-        LOG.trace("Get locked={}, unlocked={}", locked.size(), unlocked.size());
-        // hand out an existing, still valid sender if one is available
-        if (!unlocked.isEmpty()) {
-            final Iterator<AbstractSender> it = unlocked.iterator();
-            while (it.hasNext()) {
-                final AbstractSender sender = it.next();
-                if (validate(sender)) {
-                    it.remove();
-                    locked.add(sender);
-                    LOG.trace("Got sender: {}", sender);
-                    return sender;
+    /**
+     * Hands out a connected sender, applying the group's discard policy while a reconnect is in progress.
+     *
+     * @return a CONNECTED sender, or {@code null} if the group is shutting down or the discard policy chose to
+     *         drop the message rather than wait.
+     */
+    AbstractSender acquire() {
+        final boolean discardsOnFailure =
+            discardPolicy == DiscardPolicy.DISCARD || discardPolicy == DiscardPolicy.ON_CONNECTION_LOSS;
+        while (true) {
+            // Side effects of a failure detected inside the monitor. Collected under the lock, acted on only
+            // after it is released: closing a sender, notifying listeners or starting the reconnect thread while
+            // holding the lock would stall (or re-enter) the whole group.
+            AbstractSender halfBuilt = null;
+            Exception connectFailure = null;
+            List<AbstractSender> toDestroy = null;
+            List<SenderExceptionListener> toNotify = null;
+            synchronized (lock) {
+                if (draining || shutdown) {
+                    return null;
                 }
-                // object failed validation
-                LOG.debug("Sender {} failed validation!", sender);
-                it.remove();
-                destroy(sender);
+                if (reconnecting) {
+                    if (discardsOnFailure) {
+                        DiscardMonitor.discard();
+                        LOG.debug("Applying discard policy [{}]. Message discarded.", discardPolicy);
+                        return null;
+                    }
+                    try {
+                        lock.wait();
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                        return null;
+                    }
+                    // Re-evaluate: the group may now be connected, or shutting down.
+                    continue;
+                }
+                final AbstractSender pooled = takePooled();
+                if (pooled != null) {
+                    return pooled;
+                }
+                final AbstractSender created = create();
+                if (created == null) {
+                    // Shutdown was declared while we were here.
+                    return null;
+                }
+                try {
+                    // B2 (confirmed): the connect deliberately happens inside the monitor. Reserving a slot and
+                    // connecting outside the lock was considered and declined — it reintroduces the parallel-
+                    // connect storm this design removes. The cost is bounded: at most maxSenderThreads callers
+                    // ever reach here, and only while the group is healthy, so the connect is expected to be
+                    // fast. A partially degraded endpoint (accepting some connects, hanging others) can still
+                    // hold the lock for the duration of one connect; that is a known, accepted residual risk,
+                    // not a bug to fix here. Do not "optimize" this out.
+                    created.connect();
+                    locked.add(created);
+                    LOG.debug("Created and connected sender: {}", created);
+                    return created;
+                } catch (Exception e) {
+                    // The group is broken, not just this attempt: fail it inline rather than re-entering
+                    // reportFailure(), which would deadlock on the lock we already hold.
+                    halfBuilt = created;
+                    connectFailure = e;
+                    if (!reconnecting) {
+                        toDestroy = failGroup();
+                        toNotify = new ArrayList<>(exceptionListeners);
+                    }
+                }
             }
-        }
-        // no objects available, create a new one
-        LOG.trace("Creating new sender, locked={}, unlocked={}", locked.size(), unlocked.size());
-        final AbstractSender sender = create();
-        if (sender != null) {
-            if (shutdown) {
-                sender.setShouldShutdown(true);
+            if (halfBuilt != null) {
+                destroy(halfBuilt);
             }
-            locked.add(sender);
+            if (toNotify != null) {
+                toDestroy.forEach(this::destroy);
+                electReconnector(connectFailure, toNotify);
+            }
+            // Loop round and re-evaluate under the new (reconnecting) state.
         }
-        LOG.debug("Created sender: {} (shouldShutdown={})", sender, shutdown);
-        LOG.trace("Create locked={}, unlocked={}", locked.size(), unlocked.size());
-        return sender;
-    }
-
-    public synchronized void close(AbstractSender t) {
-        locked.remove(t);
-        unlocked.add(t);
-        LOG.trace("Close locked={}, unlocked={}", locked.size(), unlocked.size());
     }
 
     /**
-     * Temporary stub for {@link SenderConnector}'s thread naming, pending Task 3's rewrite of this pool: derives a
-     * display name for this pool's sender group from the factory by creating (and discarding) one throwaway
-     * instance. Not the pool's real sender-creation path.
+     * Retires the given sender and, if this is the first report for the current outage, elects the group's single
+     * reconnector and notifies the exception listeners once.
+     *
+     * @param sender the sender that hit the failure; it is closed, never recycled.
+     * @param cause  the failure, passed on to the listeners and the reconnect loop.
+     */
+    void reportFailure(AbstractSender sender, Exception cause) {
+        List<AbstractSender> toDestroy = Collections.emptyList();
+        List<SenderExceptionListener> listeners = null;
+        synchronized (lock) {
+            locked.remove(sender);
+            retired.remove(sender);
+            if (!reconnecting) {
+                toDestroy = failGroup();
+                listeners = new ArrayList<>(exceptionListeners);
+            }
+        }
+        destroy(sender);
+        toDestroy.forEach(this::destroy);
+        if (listeners != null) {
+            electReconnector(cause, listeners);
+        }
+    }
+
+    /**
+     * Returns a borrowed sender: back into the pool if it is still healthy, closed if it was retired by a failure
+     * or the group is shutting down.
+     *
+     * @param sender the sender previously handed out by {@link #acquire()}.
+     */
+    void release(AbstractSender sender) {
+        final boolean discard;
+        synchronized (lock) {
+            locked.remove(sender);
+            discard = retired.remove(sender) || shutdown;
+            if (!discard) {
+                unlocked.add(sender);
+            }
+        }
+        if (discard) {
+            destroy(sender);
+        }
+    }
+
+    /**
+     * Publishes a sender the {@link SenderConnector} has just connected: the group is healthy again, the sender
+     * becomes available to the next caller, and everyone parked in {@link #acquire()} is woken.
+     *
+     * @param connected the freshly connected sender; ownership transfers to this pool.
+     */
+    void onReconnected(AbstractSender connected) {
+        synchronized (lock) {
+            reconnecting = false;
+            failed = false;
+            lastPublished = connected;
+            unlocked.add(connected);
+            lock.notifyAll();
+        }
+    }
+
+    /**
+     * Flips the group into the failed/reconnecting state and retires everything currently checked out. Must be
+     * called with {@link #lock} held and only while {@code !reconnecting}.
+     *
+     * @return the idle senders the caller must close <em>after</em> releasing the lock.
+     */
+    private List<AbstractSender> failGroup() {
+        reconnecting = true;
+        failed = true;
+        listenerFireCount++;
+        final List<AbstractSender> toDestroy = drain(unlocked);
+        retired.addAll(locked);
+        return toDestroy;
+    }
+
+    /**
+     * Second half of failing the group, run <em>outside</em> {@link #lock}: notifies the listeners once for the
+     * outage and starts the group's single reconnect loop.
+     */
+    private void electReconnector(Exception cause, List<SenderExceptionListener> listeners) {
+        // The connector refuses to reconnect a group it still believes to be connected, so record the loss first.
+        coordinator.beginReconnect();
+        // A per-outage notification has no single message, so the message argument is null: "the group failed",
+        // not "this message failed".
+        listeners.forEach(l -> l.onException(cause, null));
+        connector.startReconnect(cause);
+    }
+
+    /** Takes an idle sender and marks it checked out. Must be called with {@link #lock} held. */
+    private AbstractSender takePooled() {
+        final Iterator<AbstractSender> it = unlocked.iterator();
+        if (!it.hasNext()) {
+            return null;
+        }
+        final AbstractSender sender = it.next();
+        it.remove();
+        locked.add(sender);
+        LOG.trace("Reusing pooled sender {} (locked={}, unlocked={})", sender, locked.size(), unlocked.size());
+        return sender;
+    }
+
+    /** Copies the set's contents into a list and empties the set. Must be called with {@link #lock} held. */
+    private List<AbstractSender> drain(Set<AbstractSender> senders) {
+        final List<AbstractSender> drained = new ArrayList<>(senders);
+        senders.clear();
+        return drained;
+    }
+
+    /**
+     * Legacy borrow method: hands out an idle or newly created sender without connecting it. Superseded by
+     * {@link #acquire()}, which only ever hands out a connected sender and honours the group's failure state.
+     *
+     * @return an idle or newly created sender, or {@code null} once {@link #declareShutdown()} has been called.
+     */
+    public AbstractSender get() {
+        final List<AbstractSender> invalid = new ArrayList<>(0);
+        final AbstractSender result;
+        synchronized (lock) {
+            LOG.trace("Get locked={}, unlocked={}", locked.size(), unlocked.size());
+            AbstractSender reused = null;
+            // hand out an existing, still valid sender if one is available
+            final Iterator<AbstractSender> it = unlocked.iterator();
+            while (it.hasNext()) {
+                final AbstractSender sender = it.next();
+                it.remove();
+                if (validate(sender)) {
+                    locked.add(sender);
+                    reused = sender;
+                    break;
+                }
+                // object failed validation
+                LOG.debug("Sender {} failed validation!", sender);
+                invalid.add(sender);
+            }
+            if (reused != null) {
+                LOG.trace("Got sender: {}", reused);
+                result = reused;
+            } else {
+                // no objects available, create a new one
+                LOG.trace("Creating new sender, locked={}, unlocked={}", locked.size(), unlocked.size());
+                result = create();
+                if (result != null) {
+                    if (shutdown) {
+                        result.setShouldShutdown(true);
+                    }
+                    locked.add(result);
+                }
+                LOG.debug("Created sender: {} (shouldShutdown={})", result, shutdown);
+            }
+        }
+        invalid.forEach(this::destroy);
+        return result;
+    }
+
+    /**
+     * Legacy return method: puts the sender back into the pool unconditionally. Superseded by
+     * {@link #release(AbstractSender)}, which also honours retirement and shutdown.
+     *
+     * @param t the sender to return to the pool.
+     */
+    public void close(AbstractSender t) {
+        synchronized (lock) {
+            locked.remove(t);
+            unlocked.add(t);
+            LOG.trace("Close locked={}, unlocked={}", locked.size(), unlocked.size());
+        }
+    }
+
+    /**
+     * Derives a display name for this pool's sender group from the factory by creating (and discarding) one
+     * throwaway instance. Used by {@link SenderConnector} for its thread names; not the pool's real
+     * sender-creation path.
      */
     String getSenderName() {
         return factory.getSender().getName();
     }
 
     /**
-     * Temporary stub pending Task 3's rewrite of this pool: hands a newly (re)connected sender to the pool by
-     * making it available to the next {@link #get()} caller. Task 3 gives this its real body.
-     *
-     * @param sender the sender that just finished a startup connect or reconnect.
-     */
-    synchronized void onReconnected(AbstractSender sender) {
-        unlocked.add(sender);
-    }
-
-    /**
      * Begins shutdown for the group: sets the coordinator's shutdown flag and cancels any in-progress
      * reconnect/startup threads, so a failing final send during the executor drain does not spawn a reconnect.
+     * It also refuses and wakes every {@link #acquire()} caller, so nobody stays parked waiting for a reconnect
+     * that will never complete.
+     * <p>
      * Unlike {@link #declareShutdown()} this does <em>not</em> block new-sender creation, so in-flight sends can
-     * still borrow a sender while the executor drains.
+     * still borrow a sender through the legacy {@link #get()} path while the executor drains. That is why the
+     * wake uses its own {@code draining} flag rather than the {@code shutdown} flag {@link #declareShutdown()}
+     * sets: the two mean different things and must not share a field.
      */
     public void beginShutdown() {
         LOG.debug("Beginning sender group shutdown; cancelling reconnects.");
         coordinator.setShouldShutdown(true);
-        streamAll().forEach(AbstractSender::cancelReconnect);
+        connector.cancelReconnect();
+        final List<AbstractSender> all;
+        synchronized (lock) {
+            draining = true;
+            all = allSenders();
+            lock.notifyAll();
+        }
+        all.forEach(AbstractSender::cancelReconnect);
     }
 
+    /**
+     * Completes shutdown: from here on no new sender is created or handed out, and every sender still checked out
+     * is closed when its borrower releases it.
+     */
     public void declareShutdown() {
-        shutdown = true;
-        streamAll().forEach(s -> s.setShouldShutdown(true));
+        final List<AbstractSender> all;
+        synchronized (lock) {
+            shutdown = true;
+            draining = true;
+            all = allSenders();
+            lock.notifyAll();
+        }
+        coordinator.setShouldShutdown(true);
+        all.forEach(s -> s.setShouldShutdown(true));
     }
 
-    private synchronized void expireAll() {
-        streamAll().forEach(this::destroy);
-        locked.clear();
-        unlocked.clear();
+    private void expireAll() {
+        final List<AbstractSender> all;
+        synchronized (lock) {
+            // retired is a subset of locked, so allSenders() already covers it.
+            all = allSenders();
+            locked.clear();
+            unlocked.clear();
+            retired.clear();
+            lock.notifyAll();
+        }
+        all.forEach(this::destroy);
     }
 
-    private Stream<AbstractSender> streamAll() {
-        return Stream.concat(unlocked.stream(), locked.stream());
+    /** A snapshot of every sender this pool holds. Must be called with {@link #lock} held. */
+    private List<AbstractSender> allSenders() {
+        final List<AbstractSender> all = new ArrayList<>(unlocked.size() + locked.size());
+        all.addAll(unlocked);
+        all.addAll(locked);
+        return all;
+    }
+
+    /**
+     * Test-only accessor (hence the name): waits for the connector to publish a connected sender through
+     * {@link #onReconnected(AbstractSender)} and returns it. Uses the pool's own lock/wait pair rather than
+     * polling. Narrowly named and package-private in preference to widening real API or using reflection.
+     *
+     * @return the most recently published sender, or {@code null} if none was published within 5 seconds.
+     */
+    AbstractSender awaitPublishedSenderForTest() {
+        final long deadline = System.currentTimeMillis() + 5000;
+        synchronized (lock) {
+            while (lastPublished == null) {
+                final long remaining = deadline - System.currentTimeMillis();
+                if (remaining <= 0) {
+                    return null;
+                }
+                try {
+                    lock.wait(remaining);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    return null;
+                }
+            }
+            return lastPublished;
+        }
+    }
+
+    /**
+     * Test-only accessor (hence the name) over the group-failure notification counter, i.e. how often a
+     * reconnector was elected. Narrowly named and package-private in preference to widening real API.
+     *
+     * @return the number of times the exception listeners were notified of a group failure.
+     */
+    int exceptionListenerFireCountForTest() {
+        synchronized (lock) {
+            return listenerFireCount;
+        }
+    }
+
+    /**
+     * Test-only accessor (hence the name) over the {@code retired} set. Narrowly named and package-private in
+     * preference to widening real API.
+     *
+     * @param sender the sender to check.
+     * @return {@code true} if the sender is retired, i.e. will be closed rather than recycled on release.
+     */
+    boolean isRetiredForTest(AbstractSender sender) {
+        synchronized (lock) {
+            return retired.contains(sender);
+        }
     }
 }
