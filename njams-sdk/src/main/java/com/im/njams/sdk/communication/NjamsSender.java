@@ -36,7 +36,6 @@ import org.slf4j.LoggerFactory;
 import com.faizsiegeln.njams.messageformat.v4.common.CommonMessage;
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.NjamsSettings;
-import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.factories.ThreadFactoryBuilder;
 import com.im.njams.sdk.settings.ClientSettings;
 
@@ -45,6 +44,11 @@ import com.im.njams.sdk.settings.ClientSettings;
  * maxQueueLengthHandler to enforce the discardPolicy, if the maxQueueLength is
  * exceeded all message sending is funneled through this class, which creates
  * and uses a pool of senders to multi-thread message sending
+ * <p>
+ * A worker thread keeps its message across sender failures: it borrows a connected sender from the
+ * {@link SenderPool}, and if the send fails it reports the sender as broken and acquires a fresh one for the very
+ * same message. The message is deliberately never re-queued — see {@link #dispatch(CommonMessage, String)}. The
+ * group's startup connect and its single reconnect loop are owned by the pool, not by this class.
  *
  * @author hsiegeln
  * @version 4.0.6
@@ -103,9 +107,6 @@ public class NjamsSender {
     protected final String name;
 
     private MessageDebugDumper debugDumper = new MessageDebugDumper();
-
-    /** The single sender pre-warmed at startup; held until start() awaits it, then returned to the pool. */
-    private volatile AbstractSender startupSender;
 
     public NjamsSender() {
         settings = null;
@@ -182,8 +183,7 @@ public class NjamsSender {
     }
 
     /**
-     * This method starts a thread that sends the message to a sender in the
-     * senderpool.
+     * Hands the message to the sender thread pool, which sends it through a connected sender from the sender pool.
      *
      * @param msg the message that will be send to the server.
      * @param clientSessionId The current client-session ID of the {@link Njams} instance sending this message
@@ -194,43 +194,47 @@ public class NjamsSender {
         }
         LOG.trace("Sending {}", msg);
         debugDumper.dump(msg, clientSessionId);
-        executor.execute(() -> {
-            AbstractSender sender = null;
-            try {
-                sender = senderPool.get();
-                if (sender == null) {
-                    throw new NullPointerException("No sender available");
-                }
-                sender.send(msg, clientSessionId);
-            } catch (Exception e) {
-                LOG.error("could not send message {}, {}", msg, e);
-            } finally {
-                if (sender != null) {
-                    senderPool.close(sender);
-                }
-            }
-        });
+        executor.execute(() -> dispatch(msg, clientSessionId));
     }
 
     /**
-     * Pre-warms one sender connection in the background so it overlaps application setup. Idempotent and
-     * thread-safe: the check-and-borrow is done under the instance lock so that when several threads race the
-     * first call (e.g. two {@link Njams} instances sharing one sender), only the first borrows and starts a
-     * sender. Re-arms after {@link #startWithTimeout(long, boolean)} returns the borrowed sender to the pool.
+     * Sends one message, holding it on this worker thread across sender failures. The message is never
+     * re-submitted to the executor: doing so would deadlock, because a full queue makes
+     * {@link MaxQueueLengthHandler} block the submitting thread, and during an outage every worker is a
+     * submitter. Instead the sender is treated as the replaceable resource — on failure the sender is retired
+     * and a fresh, connected one is acquired for the same message.
+     *
+     * @param msg             the message to send.
+     * @param clientSessionId the session ID of the sending {@link Njams} instance.
      */
-    public synchronized void beginConnect() {
-        if (startupSender != null) {
-            return;
-        }
-        final AbstractSender s = senderPool.get();
-        if (s != null) {
-            startupSender = s;
-            s.beginConnect();
+    private void dispatch(CommonMessage msg, String clientSessionId) {
+        while (!Thread.currentThread().isInterrupted()) {
+            final AbstractSender sender = senderPool.acquire();
+            if (sender == null) {
+                // shutting down, or the discard policy gave up on this message
+                return;
+            }
+            try {
+                sender.send(msg, clientSessionId);
+                senderPool.release(sender);
+                return;
+            } catch (Exception e) {
+                LOG.debug("Send failed on sender {}; retiring it and retrying the message.", sender.getName(), e);
+                senderPool.reportFailure(sender, e);
+            }
         }
     }
 
     /**
-     * Awaits the pre-warmed startup connection up to {@code timeoutMs}, applying the configured
+     * Pre-warms the group's connection in the background so a slow connect overlaps application setup.
+     * Idempotent and thread-safe; delegates to the group's single connector.
+     */
+    public void beginConnect() {
+        senderPool.beginConnect();
+    }
+
+    /**
+     * Awaits the group's startup connection up to {@code timeoutMs}, applying the configured
      * {@link NjamsSettings#PROPERTY_COMMUNICATION_STARTUP_FAILBEHAVIOR}.
      *
      * @param timeoutMs maximum time to wait for the initial connect.
@@ -241,7 +245,8 @@ public class NjamsSender {
     }
 
     /**
-     * Awaits the pre-warmed startup connection up to {@code timeoutMs}.
+     * Awaits the group's startup connection up to {@code timeoutMs}, starting it if {@link #beginConnect()} has not
+     * already done so.
      *
      * @param timeoutMs          maximum time to wait for the initial connect.
      * @param reconnectOnFailure {@code true} for the {@code reconnect} startup policy: on failure the group enters
@@ -251,39 +256,22 @@ public class NjamsSender {
      *         fail startup.
      */
     public boolean startWithTimeout(long timeoutMs, boolean reconnectOnFailure) {
-        beginConnect();
-        final AbstractSender s = startupSender;
-        if (s == null) {
-            return false;
-        }
         if (reconnectOnFailure) {
             senderPool.allowReconnectBeforeConnected();
         }
-        boolean connected = s.awaitStartup(timeoutMs);
-        try {
-            if (connected) {
-                LOG.debug("Sender connected during startup within {} ms.", timeoutMs);
-                return true;
-            }
-            if (reconnectOnFailure) {
-                LOG.info("Initial connect did not complete within {} ms; retrying in the background "
-                    + "(startup fail-behavior 'reconnect').", timeoutMs);
-                // Interrupt a still-blocked initial connect so it fails promptly and, being DISCONNECTED, starts
-                // the reconnect loop from its own thread (see AbstractSender.beginConnect). The reconnect() call
-                // below covers the case where the initial connect already failed fast (sender DISCONNECTED); it is
-                // idempotent when a reconnect is already running.
-                s.cancelReconnect();
-                s.reconnect(new NjamsSdkRuntimeException(
-                    "Startup connect did not complete within " + timeoutMs + " ms; reconnecting in background"));
-                return true;
-            }
-            LOG.debug("Sender did not connect within {} ms; cancelling startup connect (fail-fast).", timeoutMs);
-            s.cancelReconnect();
-            return false;
-        } finally {
-            senderPool.close(s);
-            startupSender = null;
+        if (senderPool.awaitStartup(timeoutMs)) {
+            LOG.debug("Sender connected during startup within {} ms.", timeoutMs);
+            return true;
         }
+        if (reconnectOnFailure) {
+            LOG.info("Initial connect did not complete within {} ms; retrying in the background "
+                + "(startup fail-behavior 'reconnect').", timeoutMs);
+            senderPool.restartConnectInBackground(timeoutMs);
+            return true;
+        }
+        LOG.debug("Sender did not connect within {} ms; cancelling startup connect (fail-fast).", timeoutMs);
+        senderPool.cancelConnect();
+        return false;
     }
 
     /**

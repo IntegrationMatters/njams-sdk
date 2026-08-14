@@ -36,6 +36,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.im.njams.sdk.NjamsSettings;
+import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.settings.ClientSettings;
 
 /**
@@ -175,6 +176,80 @@ public class SenderPool {
     /** Permits reconnect before the first successful connect for this group (startup {@code reconnect} policy). */
     public void allowReconnectBeforeConnected() {
         coordinator.allowReconnectBeforeConnected();
+    }
+
+    /**
+     * Starts the group's initial connect in the background, so a slow connect overlaps application setup.
+     * Idempotent and thread-safe: the connector starts at most one connect for the group.
+     */
+    void beginConnect() {
+        connector.beginConnect();
+    }
+
+    /**
+     * Waits up to {@code timeoutMs} for the group's initial connect to complete, starting one if none is running.
+     * A caller arriving late against an already-connected group succeeds immediately.
+     *
+     * @param timeoutMs maximum time to wait, in milliseconds.
+     * @return {@code true} iff the group is connected.
+     */
+    boolean awaitStartup(long timeoutMs) {
+        return connector.awaitStartup(timeoutMs);
+    }
+
+    /**
+     * Abandons an initial connect that did not complete within the startup timeout and leaves the group retrying in
+     * the background (startup fail-behavior {@code reconnect}).
+     * <p>
+     * Cancelling comes first, and both cancel and (re)start are needed, for different cases.
+     * {@link SenderConnector#cancelReconnect()} interrupts a startup connect that is <em>still blocked</em>, so it
+     * fails promptly and — being a failed connect with the group disconnected — hands off to the reconnect loop
+     * from its own thread (see {@code SenderConnector.runStartupConnect}). The (re)start below covers the other
+     * case, where the initial connect already failed fast and left no thread to interrupt; it is idempotent when a
+     * reconnect is already running.
+     * <p>
+     * The group is then flipped into the failed/reconnecting state through the same election path a failing sender
+     * takes, just without a failing sender to retire. This is not cosmetic bookkeeping: the pool's own
+     * {@code reconnecting} flag is what stops {@link #acquire()} from creating and connecting a sender of its own.
+     * Left healthy-looking, a worker dispatching a message here would take {@link #lock} and start a
+     * <em>second</em> connect, competing with the connector's — the very connect storm this design removes — and
+     * it would hold the lock for the whole blocking connect, so nothing in the group, {@link #beginShutdown()}
+     * included, could make progress. Flipping the flag also makes {@link #isConnectionFailure()} report the truth
+     * while a startup-driven reconnect is running, which is what {@link MaxQueueLengthHandler}'s
+     * {@code ON_CONNECTION_LOSS} branch needs.
+     *
+     * @param timeoutMs the startup timeout that elapsed, for the reconnect cause's message.
+     */
+    void restartConnectInBackground(long timeoutMs) {
+        final Exception cause = new NjamsSdkRuntimeException(
+            "Startup connect did not complete within " + timeoutMs + " ms; reconnecting in background");
+        connector.cancelReconnect();
+        List<AbstractSender> toDestroy = Collections.emptyList();
+        List<SenderExceptionListener> listeners = null;
+        synchronized (lock) {
+            // The connected check closes the narrow race where the startup connect completes between the timeout
+            // expiring and this call, which must not fail a group that is healthy after all.
+            if (!reconnecting && !coordinator.isGroupConnected()) {
+                toDestroy = failGroup();
+                listeners = new ArrayList<>(exceptionListeners);
+            }
+        }
+        toDestroy.forEach(this::destroy);
+        if (listeners != null) {
+            electReconnector(cause, listeners);
+        } else {
+            // Already reconnecting (or connected): no new election, but still kick the connector, which is what
+            // recovers a group whose reconnect thread was cancelled. No-op while one is running.
+            connector.startReconnect(cause);
+        }
+    }
+
+    /**
+     * Cancels the group's in-progress startup connect (and reconnect loop, if any) without shutting the group down.
+     * Used by the fail-fast startup policy, where a connect that has not completed in time must not keep running.
+     */
+    void cancelConnect() {
+        connector.cancelReconnect();
     }
 
     /**

@@ -3,6 +3,7 @@ package com.im.njams.sdk.communication.lifecycle;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
+import com.faizsiegeln.njams.messageformat.v4.common.CommonMessage;
 import com.faizsiegeln.njams.messageformat.v4.logmessage.LogMessage;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.ProjectMessage;
 import com.faizsiegeln.njams.messageformat.v4.tracemessage.TraceMessage;
@@ -86,24 +87,53 @@ public class LifecycleTestSender extends AbstractSender {
         }
     }
 
+    /**
+     * Dispatches to the typed {@code send} methods and lets any failure propagate, which is the SPI contract
+     * {@code SenderPool}/{@code NjamsSender} rely on: one honest attempt per sender, the caller retires the sender
+     * and retries the message on a fresh one.
+     * <p>
+     * Overridden deliberately rather than inheriting {@link AbstractSender#send(CommonMessage, String)}: the base
+     * class still carries the legacy per-sender retry/discard loop, which swallows every send failure internally
+     * and therefore hides the pool's retention loop from any test driving it. That loop is reduced to plain
+     * {@code instanceof} dispatch in the following task, at which point this override becomes redundant with its
+     * superclass rather than a departure from it.
+     *
+     * @param msg             the message to send.
+     * @param clientSessionId the sending client session ID.
+     */
+    @Override
+    public void send(CommonMessage msg, String clientSessionId) {
+        if (msg instanceof LogMessage) {
+            send((LogMessage) msg, clientSessionId);
+        } else if (msg instanceof ProjectMessage) {
+            send((ProjectMessage) msg, clientSessionId);
+        } else if (msg instanceof TraceMessage) {
+            send((TraceMessage) msg, clientSessionId);
+        }
+    }
+
     @Override
     protected void send(LogMessage msg, String clientSessionId) {
         failIfArmed();
+        LifecycleTestTransport.onSuccessfulSend();
     }
 
     @Override
     protected void send(ProjectMessage msg, String clientSessionId) {
         failIfArmed();
+        LifecycleTestTransport.onSuccessfulSend();
     }
 
     @Override
     protected void send(TraceMessage msg, String clientSessionId) {
         failIfArmed();
+        LifecycleTestTransport.onSuccessfulSend();
     }
 
     /**
      * If the block-then-fail send mode is armed, blocks until released and then fails the send the way a real
-     * transport does on a broken connection: drop to DISCONNECTED and throw. Otherwise a no-op (default).
+     * transport does on a broken connection: drop to DISCONNECTED and throw. Otherwise a no-op (default), so the
+     * caller goes on to count the send as successful.
      */
     private void failIfArmed() {
         try {

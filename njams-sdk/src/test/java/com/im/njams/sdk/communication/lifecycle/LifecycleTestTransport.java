@@ -1,6 +1,7 @@
 package com.im.njams.sdk.communication.lifecycle;
 
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -42,6 +43,8 @@ public final class LifecycleTestTransport {
     private static volatile CountDownLatch sendEntered = new CountDownLatch(1);
     /** Released to let a blocked send proceed (to fail). Recreated by {@link #reset()}. */
     private static volatile CountDownLatch sendGate = new CountDownLatch(1);
+    /** Counts the messages a {@link LifecycleTestSender} actually accepted (i.e. the fail mode was not armed). */
+    private static final AtomicInteger successfulSends = new AtomicInteger(0);
 
     private LifecycleTestTransport() {
     }
@@ -65,6 +68,7 @@ public final class LifecycleTestTransport {
         sendBlocksThenFails = false;
         sendEntered = new CountDownLatch(1);
         sendGate = new CountDownLatch(1);
+        successfulSends.set(0);
         receiverMode = ConnectMode.SUCCEED;
         receiverBlockRelease = new CountDownLatch(1);
         receiverConnectAttempted = new CountDownLatch(1);
@@ -83,6 +87,15 @@ public final class LifecycleTestTransport {
         return sendEntered;
     }
 
+    /**
+     * Disarms the block-then-fail send mode again, so the <em>next</em> send succeeds. A send that has already
+     * entered the gate still fails: it decided to fail on entry, which is exactly what lets a test hold one
+     * failing send in flight while every later send succeeds.
+     */
+    public static void disarmSendFailure() {
+        sendBlocksThenFails = false;
+    }
+
     /** Lets a blocked send proceed (it then fails and drops the connection). */
     public static void releaseSend() {
         sendGate.countDown();
@@ -96,6 +109,34 @@ public final class LifecycleTestTransport {
         sendEntered.countDown();
         sendGate.await();
         return true;
+    }
+
+    // called by LifecycleTestSender's send(...) methods once a send has completed without failing
+    static void onSuccessfulSend() {
+        successfulSends.incrementAndGet();
+    }
+
+    /** @return how many messages a sender accepted successfully since the last {@link #reset()}. */
+    public static int successfulSendCount() {
+        return successfulSends.get();
+    }
+
+    /**
+     * Waits for at least {@code target} successful sends. Dispatch happens on an executor worker, so a bare
+     * assertion on {@link #successfulSendCount()} would race it.
+     *
+     * @param target  the number of successful sends to wait for.
+     * @param timeout the maximum time to wait.
+     * @param unit    the unit of {@code timeout}.
+     * @return {@code true} if the count reached {@code target} within the timeout.
+     * @throws InterruptedException if the waiting thread is interrupted.
+     */
+    public static boolean awaitSuccessfulSends(int target, long timeout, TimeUnit unit) throws InterruptedException {
+        final long deadline = System.nanoTime() + unit.toNanos(timeout);
+        while (successfulSends.get() < target && System.nanoTime() < deadline) {
+            Thread.sleep(25);
+        }
+        return successfulSends.get() >= target;
     }
 
     public static void setSenderMode(ConnectMode mode) {
