@@ -15,9 +15,25 @@ public class SenderConnectorTestAccess {
     }
 
     public static SenderConnectorTestAccess create() {
+        return create(false);
+    }
+
+    /**
+     * Creates a connector whose coordinator has the Phase-1 "reconnect" startup policy armed up front (see
+     * {@link ConnectionCoordinator#allowReconnectBeforeConnected()}), so a failed startup connect is permitted to
+     * hand off into the background reconnect loop instead of just failing fast.
+     */
+    public static SenderConnectorTestAccess createWithReconnectBeforeConnected() {
+        return create(true);
+    }
+
+    private static SenderConnectorTestAccess create(boolean allowReconnectBeforeConnected) {
         ClientSettings settings = ClientSettings.from(LifecycleTestTransport.settings().getAllProperties());
         CommunicationFactory factory = new CommunicationFactory(settings);
         ConnectionCoordinator coordinator = new ConnectionCoordinator();
+        if (allowReconnectBeforeConnected) {
+            coordinator.allowReconnectBeforeConnected();
+        }
         SenderPool pool = new SenderPool(factory, coordinator);
         return new SenderConnectorTestAccess(new SenderConnector(factory, coordinator, pool, settings), coordinator);
     }

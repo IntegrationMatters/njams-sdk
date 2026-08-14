@@ -44,6 +44,11 @@ import com.im.njams.sdk.settings.ClientSettings;
  * success rather than blocking on a spent latch or triggering a second connect. This is what lets several
  * {@link com.im.njams.sdk.Njams} instances share one group (shared communications).
  * <p>
+ * At most one of the startup connect or the reconnect loop is ever in flight for a given connector: both
+ * {@link #beginConnect()} and {@link #startReconnect(Exception)} check each other's in-flight state (guarded by
+ * the same {@link #gate} monitor) before starting a thread, and a failed startup connect hands off to the
+ * reconnect loop atomically within the same critical section that clears its own in-flight flag.
+ * <p>
  * Internal SDK infrastructure — not public API.
  */
 class SenderConnector {
@@ -74,21 +79,36 @@ class SenderConnector {
     }
 
     /**
-     * Starts one background connect attempt if the group is not already connected and no connect is in flight.
-     * Idempotent and safe to call from any number of threads.
+     * Starts one background connect attempt if the group is not already connected, no connect is in flight, and
+     * the group's reconnect loop is not already running. Idempotent and safe to call from any number of threads;
+     * at most one of {@code beginConnect()}'s startup thread or {@link #startReconnect(Exception)}'s reconnect
+     * thread is ever in flight at once for this connector (see {@link #isReconnectInFlight()}).
      */
     void beginConnect() {
         synchronized (gate) {
-            if (coordinator.isGroupConnected() || connectInFlight) {
+            if (coordinator.isGroupConnected() || connectInFlight || isReconnectInFlight()) {
                 return;
             }
             connectInFlight = true;
             startupError = null;
-            startupLatch = new CountDownLatch(1);
-            startupThread = new Thread(this::runStartupConnect);
-            startupThread.setDaemon(true);
-            startupThread.setName("Sender-Startup-" + pool.getSenderName());
-            startupThread.start();
+            final CountDownLatch latch = new CountDownLatch(1);
+            startupLatch = latch;
+            try {
+                startupThread = new Thread(this::runStartupConnect);
+                startupThread.setDaemon(true);
+                startupThread.setName("Sender-Startup-" + pool.getSenderName());
+                startupThread.start();
+            } catch (RuntimeException e) {
+                // Preparing/starting the thread failed (e.g. pool.getSenderName() threw) before runStartupConnect()
+                // ever got a chance to run and reset connectInFlight itself in its finally block. Without this,
+                // connectInFlight would stay true forever and every future beginConnect()/awaitStartup() call on
+                // this connector would silently no-op for good.
+                LOG.warn("Failed to start the sender group's startup connect thread; the group remains "
+                    + "disconnected. A later call will retry.", e);
+                connectInFlight = false;
+                startupError = e;
+                latch.countDown();
+            }
         }
     }
 
@@ -121,6 +141,7 @@ class SenderConnector {
 
     private void runStartupConnect() {
         AbstractSender sender = null;
+        Exception failure = null;
         try {
             sender = createSender();
             sender.connect();
@@ -129,38 +150,61 @@ class SenderConnector {
             sender = null; // ownership transferred
         } catch (Exception e) {
             startupError = e;
+            failure = e;
             LOG.debug("Startup connect failed.", e);
-            if (coordinator.shouldReconnect()) {
-                startReconnect(e);
-            }
         } finally {
             closeQuietly(sender);
             synchronized (gate) {
+                // Clear the startup slot and, if warranted, hand off to the reconnect loop in the same critical
+                // section: an external beginConnect()/startReconnect() call taking the gate the instant it is
+                // released must already see either "connected", "still starting up" or "reconnecting" — never a
+                // window where neither is true and it could race a second connect against the handoff.
                 connectInFlight = false;
+                if (failure != null && coordinator.shouldReconnect()) {
+                    startReconnectLocked(failure);
+                }
                 startupLatch.countDown();
             }
         }
     }
 
     /**
-     * Starts the group's single reconnect loop, unless one is already running, the group is already connected, or
-     * a reconnect is not permitted yet (see {@link ConnectionCoordinator#shouldReconnect()}).
+     * Starts the group's single reconnect loop, unless one is already running, a startup connect is currently in
+     * flight, the group is already connected, or a reconnect is not permitted yet (see
+     * {@link ConnectionCoordinator#shouldReconnect()}).
      *
      * @param cause the failure that triggered the reconnect; may be {@code null}.
      */
     void startReconnect(Exception cause) {
         synchronized (gate) {
-            if (coordinator.isGroupConnected() || !coordinator.shouldReconnect()) {
-                return;
-            }
-            if (reconnectThread != null && reconnectThread.isAlive()) {
-                return;
-            }
-            coordinator.beginReconnect();
+            startReconnectLocked(cause);
+        }
+    }
+
+    /**
+     * Core of {@link #startReconnect(Exception)}; assumes {@code gate} is already held by the caller. Split out so
+     * {@link #runStartupConnect()} can hand off from a failed startup connect to the reconnect loop atomically,
+     * within the very same critical section that clears {@link #connectInFlight} (see the finally block there).
+     */
+    private void startReconnectLocked(Exception cause) {
+        if (coordinator.isGroupConnected() || !coordinator.shouldReconnect()) {
+            return;
+        }
+        if (connectInFlight || isReconnectInFlight()) {
+            return;
+        }
+        coordinator.beginReconnect();
+        try {
             reconnectThread = new Thread(() -> runReconnectLoop(cause));
             reconnectThread.setDaemon(true);
             reconnectThread.setName("Sender-Reconnector-" + pool.getSenderName());
             reconnectThread.start();
+        } catch (RuntimeException e) {
+            // Mirrors beginConnect()'s guard: if preparing/starting the thread fails (e.g. pool.getSenderName()
+            // throws) before it can run and pick the group back up, there is no dangling flag to reset here —
+            // isReconnectInFlight() already reads false for a never-started thread — but log it so the failure
+            // is visible instead of the group just silently staying disconnected until the next trigger.
+            LOG.warn("Failed to start the sender group's reconnect thread; a later trigger will retry.", e);
         }
     }
 
@@ -188,6 +232,11 @@ class SenderConnector {
                 }
             }
         }
+    }
+
+    /** @return {@code true} while the group's reconnect loop is currently running. */
+    private boolean isReconnectInFlight() {
+        return reconnectThread != null && reconnectThread.isAlive();
     }
 
     /** Interrupts the startup and reconnect threads so a blocking connect is cancelled promptly on shutdown. */
