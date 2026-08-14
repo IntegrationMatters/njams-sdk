@@ -80,8 +80,9 @@ public class SenderStartGatingSpecTest extends AbstractLifecycleSpecTest {
         assertTrue("reconnect policy: start() succeeds despite a slow initial connect", njams.start());
         assertTrue(njams.isStarted());
 
-        // Latch-driven proof that doReconnect is looping: either a second connect attempt already happened, or the
-        // fresh connect-attempt latch fires when it does. No fixed sleep is used for synchronization.
+        // Latch-driven proof that the connector's reconnect loop is looping: either a second connect attempt
+        // already happened, or the fresh connect-attempt latch fires when it does. No fixed sleep is used for
+        // synchronization.
         CountDownLatch secondAttempt = LifecycleTestTransport.connectAttemptedLatch();
         boolean retried = LifecycleTestTransport.senderConnectCount() >= 2
             || secondAttempt.await(3000, TimeUnit.MILLISECONDS);

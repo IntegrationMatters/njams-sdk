@@ -57,15 +57,15 @@ public class SenderPoolTest {
 
         };
         //To fill the locked map
-        AbstractSender get1 = op.get();
+        AbstractSender get1 = op.acquire();
         assertEquals(mockedAC, get1);
         //To clear the locked map
         op.shutdown();
         verify(get1, times(1)).close();
 
-        AbstractSender get2 = op.get();
+        AbstractSender get2 = op.acquire();
         assertEquals(mockedAC2, get2);
-        op.close(get2);
+        op.release(get2);
         op.shutdown();
         verify(get2, times(1)).close();
         //This hasn't been closed again, because it isn't in the maps anymore
@@ -84,11 +84,11 @@ public class SenderPoolTest {
                 return created.getAndIncrement() == 0 ? first : second;
             }
         };
-        AbstractSender s1 = op.get();
+        AbstractSender s1 = op.acquire();
         assertSame(first, s1);
         //Returning it to the pool makes it available again
-        op.close(s1);
-        AbstractSender s2 = op.get();
+        op.release(s1);
+        AbstractSender s2 = op.acquire();
         //The unlocked sender is reused, no new one is created
         assertSame(first, s2);
         assertEquals(1, created.get());
@@ -99,10 +99,10 @@ public class SenderPoolTest {
         CommunicationFactory mockedCF = mock(CommunicationFactory.class);
         when(mockedCF.getSender()).thenReturn(mock(AbstractSender.class));
         SenderPool op = new SenderPool(mockedCF);
-        assertNotNull(op.get());
+        assertNotNull(op.acquire());
         op.declareShutdown();
         //Once shutdown is declared, no further senders are handed out
-        assertNull(op.get());
+        assertNull(op.acquire());
     }
 
 }

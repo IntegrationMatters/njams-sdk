@@ -54,7 +54,8 @@ public class SenderCloseOrderingSpecTest {
         assertTrue("close() must have entered the executor drain", sender.getExecutor().isShutdown());
 
         CountDownLatch attempted = LifecycleTestTransport.connectAttemptedLatch();
-        LifecycleTestTransport.releaseSend(); // held send now fails during the drain -> onException -> reconnect
+        // held send now fails during the drain -> NjamsSender.dispatch -> SenderPool.reportFailure -> reconnect
+        LifecycleTestTransport.releaseSend();
 
         assertFalse("shutdown-first ordering must prevent reconnect during drain",
             attempted.await(1000, TimeUnit.MILLISECONDS));

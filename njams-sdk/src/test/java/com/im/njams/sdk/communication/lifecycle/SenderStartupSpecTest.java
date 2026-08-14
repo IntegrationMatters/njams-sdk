@@ -5,39 +5,32 @@ import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
 
-import com.im.njams.sdk.communication.AbstractSender;
-import com.im.njams.sdk.settings.ClientSettings;
+import com.im.njams.sdk.communication.SenderConnectorTestAccess;
 
 public class SenderStartupSpecTest extends AbstractLifecycleSpecTest {
-
-    private static AbstractSender freshSender() {
-        AbstractSender s = new LifecycleTestSender();
-        s.init(ClientSettings.from(LifecycleTestTransport.settings().getAllProperties()));
-        return s;
-    }
 
     @Test
     public void awaitStartupReturnsTrueWhenConnectSucceeds() {
         LifecycleTestTransport.setSenderMode(LifecycleTestTransport.ConnectMode.SUCCEED);
-        AbstractSender s = freshSender();
+        SenderConnectorTestAccess s = SenderConnectorTestAccess.create();
         s.beginConnect();
         assertTrue(s.awaitStartup(5000));
-        assertTrue(s.isConnected());
+        assertTrue(s.isGroupConnected());
     }
 
     @Test
     public void awaitStartupReturnsFalseWhenConnectFails() {
         LifecycleTestTransport.setSenderMode(LifecycleTestTransport.ConnectMode.FAIL);
-        AbstractSender s = freshSender();
+        SenderConnectorTestAccess s = SenderConnectorTestAccess.create();
         s.beginConnect();
         assertFalse(s.awaitStartup(5000));
-        assertFalse(s.isConnected());
+        assertFalse(s.isGroupConnected());
     }
 
     @Test
     public void awaitStartupTimesOutWhileConnectBlocks() {
         LifecycleTestTransport.setSenderMode(LifecycleTestTransport.ConnectMode.BLOCK);
-        AbstractSender s = freshSender();
+        SenderConnectorTestAccess s = SenderConnectorTestAccess.create();
         s.beginConnect();
         assertFalse("blocked connect must not report success within the timeout", s.awaitStartup(200));
         // releasing afterwards lets the daemon finish without affecting the (already-returned) result

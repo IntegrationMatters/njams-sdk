@@ -12,7 +12,8 @@ import org.junit.Test;
 
 /**
  * Guards that AbstractSender keeps NO JVM-global (static) connection lifecycle state — that state must live in the
- * per-group ConnectionCoordinator so unrelated Njams instances do not couple. RED while the statics still exist.
+ * per-group ConnectionCoordinator so unrelated Njams instances do not couple. The statics are gone, so this is a
+ * regression guard against reintroducing them.
  */
 public class AbstractSenderStaticStateTest {
 

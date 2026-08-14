@@ -8,41 +8,40 @@ import java.util.concurrent.TimeUnit;
 
 import org.junit.Test;
 
-import com.im.njams.sdk.communication.AbstractSender;
+import com.im.njams.sdk.communication.SenderConnectorTestAccess;
 import com.im.njams.sdk.settings.ClientSettings;
 
 public class SenderShutdownSpecTest extends AbstractLifecycleSpecTest {
 
-    private static AbstractSender connectedSender() {
-        AbstractSender s = new LifecycleTestSender();
-        s.init(ClientSettings.from(LifecycleTestTransport.settings().getAllProperties()));
-        s.beginConnect();
-        s.awaitStartup(5000);
-        return s;
+    private static SenderConnectorTestAccess connectedGroup() {
+        SenderConnectorTestAccess c = SenderConnectorTestAccess.create();
+        c.beginConnect();
+        c.awaitStartup(5000);
+        return c;
     }
 
     @Test
     public void reconnectIsSuppressedOnceShutdownRequested() throws Exception {
-        AbstractSender s = connectedSender();
-        s.setShouldShutdown(true); // group is shutting down
+        SenderConnectorTestAccess c = connectedGroup();
+        c.setShouldShutdown(true); // group is shutting down
         LifecycleTestTransport.setSenderMode(LifecycleTestTransport.ConnectMode.FAIL);
-        ((LifecycleTestSender) s).forceDisconnect();
+        c.forceGroupDisconnected();
         CountDownLatch attempted = LifecycleTestTransport.connectAttemptedLatch();
-        s.reconnect(new IllegalStateException("final send failed during shutdown"));
+        c.startReconnect(new IllegalStateException("final send failed during shutdown"));
         assertFalse("no reconnect once shutdown is requested",
             attempted.await(500, TimeUnit.MILLISECONDS));
     }
 
     @Test
     public void cancelReconnectInterruptsABlockedReconnect() throws Exception {
-        AbstractSender s = connectedSender();
+        SenderConnectorTestAccess c = connectedGroup();
         // force a reconnect that blocks inside connect()
         LifecycleTestTransport.setSenderMode(LifecycleTestTransport.ConnectMode.BLOCK);
-        ((LifecycleTestSender) s).forceDisconnect();
+        c.forceGroupDisconnected();
         CountDownLatch attempted = LifecycleTestTransport.connectAttemptedLatch();
-        s.reconnect(new IllegalStateException("lost"));
+        c.startReconnect(new IllegalStateException("lost"));
         assertTrue("reconnect started and blocked in connect()", attempted.await(2000, TimeUnit.MILLISECONDS));
-        s.cancelReconnect(); // must interrupt the blocked connect thread
+        c.cancelReconnect(); // must interrupt the blocked connect thread
         // releasing the latch is not required; interruption unblocks the daemon
         LifecycleTestTransport.releaseBlockedConnect();
     }

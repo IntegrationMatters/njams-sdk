@@ -50,9 +50,10 @@ public final class LifecycleTestTransport {
     }
 
     /**
-     * Stops every {@link LifecycleTestSender} a test created — sets shutdown, cancels reconnect, and releases the
-     * BLOCK gate so any blocking connect thread can finish — then clears the sender registry. Call in @After so
-     * no daemon reconnect/startup thread survives into a later test where it would count down shared latches.
+     * Closes every {@link LifecycleTestSender} a test created and releases the BLOCK gate so any blocking connect
+     * thread can finish, then clears the sender registry. Call in @After so no daemon startup/reconnect thread
+     * survives into a later test where it would count down shared latches. The threads themselves belong to the
+     * pool's connector, which {@code SenderPoolTestAccess.shutdownAll()} stops.
      */
     public static void shutdownAllSenders() {
         LifecycleTestSender.shutdownAll();

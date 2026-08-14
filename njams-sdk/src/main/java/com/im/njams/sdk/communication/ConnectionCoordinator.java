@@ -78,7 +78,7 @@ class ConnectionCoordinator {
     }
 
     /**
-     * Records a successful startup connect (see {@link AbstractSender#beginConnect()}): marks the group connected
+     * Records a successful startup connect (see {@link SenderConnector#beginConnect()}): marks the group connected
      * and, stickily, that it has connected at least once. Unlike {@link #markConnected()} this does not touch the
      * reconnect counter, because a startup connect is not preceded by {@link #beginReconnect()}.
      *

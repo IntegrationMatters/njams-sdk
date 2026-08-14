@@ -8,24 +8,17 @@ import java.util.concurrent.TimeUnit;
 
 import org.junit.Test;
 
-import com.im.njams.sdk.communication.AbstractSender;
-import com.im.njams.sdk.settings.ClientSettings;
+import com.im.njams.sdk.communication.SenderConnectorTestAccess;
 
 public class SenderReconnectGatingSpecTest extends AbstractLifecycleSpecTest {
-
-    private static AbstractSender freshSender() {
-        AbstractSender s = new LifecycleTestSender();
-        s.init(ClientSettings.from(LifecycleTestTransport.settings().getAllProperties()));
-        return s;
-    }
 
     @Test
     public void neverConnectedSenderDoesNotReconnect() throws Exception {
         LifecycleTestTransport.setSenderMode(LifecycleTestTransport.ConnectMode.FAIL);
-        AbstractSender s = freshSender();
+        SenderConnectorTestAccess s = SenderConnectorTestAccess.create();
         // has never connected and reconnect-before-connected was not allowed
         CountDownLatch attempted = LifecycleTestTransport.connectAttemptedLatch();
-        s.reconnect(new IllegalStateException("boom"));
+        s.startReconnect(new IllegalStateException("boom"));
         assertFalse("no reconnect attempt before a first successful connect",
             attempted.await(500, TimeUnit.MILLISECONDS));
     }
@@ -33,14 +26,14 @@ public class SenderReconnectGatingSpecTest extends AbstractLifecycleSpecTest {
     @Test
     public void reconnectRunsAfterAPriorSuccessfulConnect() throws Exception {
         LifecycleTestTransport.setSenderMode(LifecycleTestTransport.ConnectMode.SUCCEED);
-        AbstractSender s = freshSender();
+        SenderConnectorTestAccess s = SenderConnectorTestAccess.create();
         s.beginConnect();
         assertTrue(s.awaitStartup(5000));
-        // now simulate a mid-processing loss: fail future connects and force disconnect
+        // now simulate a mid-processing loss: fail future connects and force the group disconnected
         LifecycleTestTransport.setSenderMode(LifecycleTestTransport.ConnectMode.FAIL);
-        ((LifecycleTestSender) s).forceDisconnect();
+        s.forceGroupDisconnected();
         CountDownLatch attempted = LifecycleTestTransport.connectAttemptedLatch();
-        s.reconnect(new IllegalStateException("lost"));
+        s.startReconnect(new IllegalStateException("lost"));
         assertTrue("reconnect must attempt after prior success",
             attempted.await(2000, TimeUnit.MILLISECONDS));
     }

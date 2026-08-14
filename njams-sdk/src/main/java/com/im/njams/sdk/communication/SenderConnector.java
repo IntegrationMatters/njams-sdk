@@ -36,7 +36,7 @@ import com.im.njams.sdk.settings.ClientSettings;
  * {@link SenderPool}, which creates and owns it.
  * <p>
  * The connector works on its own private {@link AbstractSender}: while a startup connect or a reconnect loop is
- * running, that instance is exclusively the connector's and is never reachable through {@link SenderPool#get()}.
+ * running, that instance is exclusively the connector's and is never reachable through {@link SenderPool#acquire()}.
  * Only once it is connected is it transferred to the pool via {@link SenderPool#onReconnected(AbstractSender)}, so
  * waiters wake with a working sender already available instead of each racing to connect on a worker thread.
  * <p>
@@ -283,14 +283,13 @@ class SenderConnector {
     }
 
     /**
-     * Creates and connects-up one new sender via the factory. {@link CommunicationFactory#getSender()} already
-     * initializes the new instance with {@link #settings}, so this must not call {@code init(...)} a second time
-     * (that would just re-apply the same settings) — it only wires the shared {@link #coordinator} onto the new
-     * instance, mirroring {@link SenderPool#create()}'s creation pattern.
+     * Creates one new sender via the factory. {@link CommunicationFactory#getSender()} already initializes the new
+     * instance with {@link #settings}, so this must not call {@code init(...)} a second time (that would just
+     * re-apply the same settings) — it only wires the failure sink onto the new instance, mirroring
+     * {@link SenderPool#create()}'s creation pattern.
      */
     private AbstractSender createSender() {
         final AbstractSender sender = factory.getSender();
-        sender.setConnectionCoordinator(coordinator);
         // Every sender the connector publishes ends up serving the group, so it needs the same failure sink
         // SenderPool.create() installs: without it a transport that detects a broken connection asynchronously
         // (JmsSender.onException) has nowhere to report it, and after the first reconnect every pooled sender

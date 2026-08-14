@@ -15,8 +15,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import com.im.njams.sdk.communication.AbstractSender;
-import com.im.njams.sdk.settings.ClientSettings;
+import com.im.njams.sdk.communication.SenderConnectorTestAccess;
 
 /**
  * Acceptance test: reconnect logging must be logged exactly once per phase and must never flood the log across
@@ -25,8 +24,9 @@ import com.im.njams.sdk.settings.ClientSettings;
  * <p>The brief for this test assumed Logback + {@code ListAppender} would be on the test classpath, but the
  * active SLF4J backend for {@code njams-sdk} tests is {@code slf4j-reload4j} (log4j 1.x API, see
  * {@code njams-sdk/pom.xml} and {@code src/test/resources/log4j.properties}) — Logback is not a dependency
- * anywhere in the module. This test therefore captures {@link AbstractSender}'s logger with a small custom
- * {@link AppenderSkeleton} instead of a Logback {@code ListAppender}.
+ * anywhere in the module. This test therefore captures the logger of the sender group's connector with a small
+ * custom {@link AppenderSkeleton} instead of a Logback {@code ListAppender}. The category is named as a string
+ * because {@code SenderConnector} is package-private and not referable from this package.
  */
 public class SenderLoggingSpecTest extends AbstractLifecycleSpecTest {
 
@@ -35,7 +35,7 @@ public class SenderLoggingSpecTest extends AbstractLifecycleSpecTest {
 
     @Before
     public void setUp() {
-        senderLogger = Logger.getLogger(AbstractSender.class);
+        senderLogger = Logger.getLogger("com.im.njams.sdk.communication.SenderConnector");
         appender = new CapturingAppender();
         senderLogger.addAppender(appender);
         senderLogger.setLevel(Level.DEBUG);
@@ -48,15 +48,14 @@ public class SenderLoggingSpecTest extends AbstractLifecycleSpecTest {
 
     @Test
     public void reconnectLogsOnceOnStartAndOnceOnSuccess() throws Exception {
-        AbstractSender s = new LifecycleTestSender();
-        s.init(ClientSettings.from(LifecycleTestTransport.settings().getAllProperties()));
+        SenderConnectorTestAccess s = SenderConnectorTestAccess.create();
         s.beginConnect();
         s.awaitStartup(5000);
 
         // lose the connection: fail a few reconnect attempts, then succeed
         LifecycleTestTransport.setSenderMode(LifecycleTestTransport.ConnectMode.FAIL);
-        ((LifecycleTestSender) s).forceDisconnect();
-        s.reconnect(new IllegalStateException("lost"));
+        s.forceGroupDisconnected();
+        s.startReconnect(new IllegalStateException("lost"));
         // allow a failing attempt to happen, then let the next attempt succeed
         LifecycleTestTransport.connectAttemptedLatch().await(2000, TimeUnit.MILLISECONDS);
         LifecycleTestTransport.setSenderMode(LifecycleTestTransport.ConnectMode.SUCCEED);
@@ -71,14 +70,13 @@ public class SenderLoggingSpecTest extends AbstractLifecycleSpecTest {
 
     @Test
     public void manyFailedReconnectAttemptsDoNotFloodTheLog() throws Exception {
-        AbstractSender s = new LifecycleTestSender();
-        s.init(ClientSettings.from(LifecycleTestTransport.settings().getAllProperties()));
+        SenderConnectorTestAccess s = SenderConnectorTestAccess.create();
         s.beginConnect();
         s.awaitStartup(5000);
 
         LifecycleTestTransport.setSenderMode(LifecycleTestTransport.ConnectMode.FAIL);
-        ((LifecycleTestSender) s).forceDisconnect();
-        s.reconnect(new IllegalStateException("lost"));
+        s.forceGroupDisconnected();
+        s.startReconnect(new IllegalStateException("lost"));
 
         // drive several failed attempts, each observed via the attempt latch -- no fixed sleeps
         final int failedAttemptsToObserve = 5;
@@ -88,7 +86,7 @@ public class SenderLoggingSpecTest extends AbstractLifecycleSpecTest {
 
         LifecycleTestTransport.setSenderMode(LifecycleTestTransport.ConnectMode.SUCCEED);
         awaitReconnectSuccessLogged();
-        assertTrue("sender must eventually reconnect once failures stop", s.isConnected());
+        assertTrue("sender must eventually reconnect once failures stop", s.isGroupConnected());
 
         assertEquals("reconnect-start info must stay bounded regardless of retry count", 1,
             countMessagesStartingWith(Level.INFO, "Initialized reconnect"));
@@ -97,12 +95,11 @@ public class SenderLoggingSpecTest extends AbstractLifecycleSpecTest {
     }
 
     /**
-     * Polls until the "Reconnected sender" success log has actually been captured. Polling on
-     * {@code isConnected()} instead would race the reconnect thread: {@code connectionStatus} flips to
-     * {@code CONNECTED} inside {@code connect()}, a few instructions before {@code doReconnect()} logs the
-     * success -- a test thread could observe "connected" and assert before that log line is written. Waiting
-     * for the log event itself removes that race. Progress is still driven only by the attempt latch, never a
-     * fixed sleep.
+     * Polls until the "Reconnected sender" success log has actually been captured. Polling on the group's
+     * connected state instead would race the reconnect loop: the coordinator is marked connected a few
+     * instructions before the success line is written, so a test thread could observe "connected" and assert
+     * before that log line exists. Waiting for the log event itself removes that race. Progress is still driven
+     * only by the attempt latch, never a fixed sleep.
      */
     private void awaitReconnectSuccessLogged() throws InterruptedException {
         long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(15);

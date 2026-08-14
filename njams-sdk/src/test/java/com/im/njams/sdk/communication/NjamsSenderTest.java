@@ -29,16 +29,12 @@ import static org.mockito.Mockito.*;
 import java.util.Properties;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import com.faizsiegeln.njams.messageformat.v4.common.CommonMessage;
 import com.faizsiegeln.njams.messageformat.v4.logmessage.LogMessage;
-import com.faizsiegeln.njams.messageformat.v4.projectmessage.ProjectMessage;
-import com.faizsiegeln.njams.messageformat.v4.tracemessage.TraceMessage;
 import com.im.njams.sdk.AbstractTest;
 import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
@@ -54,8 +50,6 @@ import com.im.njams.sdk.settings.Settings;
 public class NjamsSenderTest extends AbstractTest {
 
     private static Settings SETTINGS;
-
-    private static final AtomicInteger counter = new AtomicInteger(0);
 
     @BeforeClass
     public static void createSettings() {
@@ -162,38 +156,6 @@ public class NjamsSenderTest extends AbstractTest {
         sender.close();
         assertEquals(100, executor.getCompletedTaskCount());
         executor.getLargestPoolSize();
-    }
-
-    /**
-     * The TRIES in ExceptionSender +1 senders should be reconnected at the end
-     * It only reconnects one sender, because the NjamsSender creates multiple TestSenders
-     * that redirect the send and connect method to the static ExceptionSender.
-     */
-    @Test
-    public void testReconnectingSenders() throws InterruptedException {
-        //Set static ExceptionSender to redirect calls to the TestSender
-        //The ExceptionSender is a standalone AbstractSender with its own ConnectionCoordinator (never connected
-        //through the pool), so it needs the reconnect-before-connected policy enabled to allow its onException/
-        //reconnect loop to retry connect() instead of being gated off by shouldReconnect().
-        ExceptionSender exceptionSender = new ExceptionSender();
-        ConnectionCoordinator coordinator = new ConnectionCoordinator();
-        coordinator.allowReconnectBeforeConnected();
-        exceptionSender.setConnectionCoordinator(coordinator);
-        TestSender.setSenderMock(exceptionSender);
-        NjamsSender sender = new NjamsSender(SETTINGS);
-        int messagesToSend = 1000;
-        for (int i = 0; i < messagesToSend; i++) {
-            Thread t = new Thread(() -> sender.send(null, null));
-            t.start();
-        }
-        while (counter.get() < ExceptionSender.TRIES) {
-            Thread.sleep(100);
-        }
-        Thread.sleep(1000);
-        //+1 for the succeeded connection
-        assertEquals(counter.get(), ExceptionSender.TRIES + 1);
-        TestSender.setSenderMock(null);
-        assertEquals(counter.get(), ExceptionSender.TRIES + 1);
     }
 
     private static Settings discardPolicySettings;
@@ -367,51 +329,5 @@ public class NjamsSenderTest extends AbstractTest {
         Properties p = new Properties();
         p.put(NjamsSettings.PROPERTY_COMMUNICATION_STARTUP_FAILBEHAVIOR, "reconnect");
         assertTrue(NjamsSender.reconnectOnStartupFailure(ClientSettings.from(p)));
-    }
-
-    private class ExceptionSender extends AbstractSender {
-
-        public static final int TRIES = 5;
-
-        @Override
-        public void connect() throws NjamsSdkRuntimeException {
-            synchronized (counter) {
-                if (counter.getAndIncrement() < TRIES) {
-                    System.out.println(counter.get() + " times tried to reconnect.");
-                    throw new NjamsSdkRuntimeException("" + counter.get());
-                }
-                setConnectionStatus(ConnectionStatus.CONNECTED);
-            }
-        }
-
-        @Override
-        public void send(CommonMessage msg, String clientId) {
-            onException(null);
-        }
-
-        @Override
-        protected void send(LogMessage msg, String clientId) throws NjamsSdkRuntimeException {
-
-        }
-
-        @Override
-        protected void send(ProjectMessage msg, String clientId) throws NjamsSdkRuntimeException {
-
-        }
-
-        @Override
-        protected void send(TraceMessage msg, String clientId) throws NjamsSdkRuntimeException {
-
-        }
-
-        @Override
-        public void close() {
-
-        }
-
-        @Override
-        public String getName() {
-            return null;
-        }
     }
 }

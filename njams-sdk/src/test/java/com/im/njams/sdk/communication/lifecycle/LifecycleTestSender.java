@@ -3,7 +3,6 @@ package com.im.njams.sdk.communication.lifecycle;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
-import com.faizsiegeln.njams.messageformat.v4.common.CommonMessage;
 import com.faizsiegeln.njams.messageformat.v4.logmessage.LogMessage;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.ProjectMessage;
 import com.faizsiegeln.njams.messageformat.v4.tracemessage.TraceMessage;
@@ -19,8 +18,9 @@ public class LifecycleTestSender extends AbstractSender {
 
     /**
      * Every instance ever created (also the pooled ones spun up by a real {@code NjamsSender}). Lets test
-     * teardown stop any daemon reconnect/startup thread a test spawned, so it cannot survive into a later test
-     * and count down that test's shared latches.
+     * teardown release the transport resources of any sender a test spawned, so nothing survives into a later
+     * test. The connection lifecycle itself lives on the pool/connector, not on the sender instance, so the
+     * corresponding teardown for reconnect threads is {@code SenderPoolTestAccess.shutdownAll()}.
      */
     private static final List<LifecycleTestSender> INSTANCES = new CopyOnWriteArrayList<>();
 
@@ -31,13 +31,12 @@ public class LifecycleTestSender extends AbstractSender {
     }
 
     /**
-     * Stops every registered sender's daemon threads (reconnect loop and any blocking startup connect) and clears
-     * the registry. Called from {@link LifecycleTestTransport#shutdownAllSenders()} in test teardown.
+     * Closes every registered sender and clears the registry. Called from
+     * {@link LifecycleTestTransport#shutdownAllSenders()} in test teardown.
      */
     static void shutdownAll() {
         for (LifecycleTestSender s : INSTANCES) {
-            s.setShouldShutdown(true);
-            s.cancelReconnect();
+            s.close();
         }
         INSTANCES.clear();
     }
@@ -87,31 +86,6 @@ public class LifecycleTestSender extends AbstractSender {
         }
     }
 
-    /**
-     * Dispatches to the typed {@code send} methods and lets any failure propagate, which is the SPI contract
-     * {@code SenderPool}/{@code NjamsSender} rely on: one honest attempt per sender, the caller retires the sender
-     * and retries the message on a fresh one.
-     * <p>
-     * Overridden deliberately rather than inheriting {@link AbstractSender#send(CommonMessage, String)}: the base
-     * class still carries the legacy per-sender retry/discard loop, which swallows every send failure internally
-     * and therefore hides the pool's retention loop from any test driving it. That loop is reduced to plain
-     * {@code instanceof} dispatch in the following task, at which point this override becomes redundant with its
-     * superclass rather than a departure from it.
-     *
-     * @param msg             the message to send.
-     * @param clientSessionId the sending client session ID.
-     */
-    @Override
-    public void send(CommonMessage msg, String clientSessionId) {
-        if (msg instanceof LogMessage) {
-            send((LogMessage) msg, clientSessionId);
-        } else if (msg instanceof ProjectMessage) {
-            send((ProjectMessage) msg, clientSessionId);
-        } else if (msg instanceof TraceMessage) {
-            send((TraceMessage) msg, clientSessionId);
-        }
-    }
-
     @Override
     protected void send(LogMessage msg, String clientSessionId) {
         failIfArmed();
@@ -146,10 +120,5 @@ public class LifecycleTestSender extends AbstractSender {
             setConnectionStatus(ConnectionStatus.DISCONNECTED);
             throw new NjamsSdkRuntimeException("interrupted during send", e);
         }
-    }
-
-    /** Test hook: forces DISCONNECTED so reconnect() can be exercised. */
-    public void forceDisconnect() {
-        setConnectionStatus(ConnectionStatus.DISCONNECTED);
     }
 }

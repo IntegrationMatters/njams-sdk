@@ -5,6 +5,7 @@ import org.junit.Before;
 
 import com.im.njams.sdk.communication.CountingDiscardMonitor;
 import com.im.njams.sdk.communication.CountingThrottleMonitor;
+import com.im.njams.sdk.communication.SenderConnectorTestAccess;
 import com.im.njams.sdk.communication.SenderPoolTestAccess;
 
 /**
@@ -36,9 +37,11 @@ public abstract class AbstractLifecycleSpecTest {
 
     @After
     public void stopLifecycleSendersAndReceivers() {
-        // Pools first: a pool's reconnect loop is only reachable through the pool itself, and it must be stopped
-        // before the transport's gates are released, or a late-scheduled loop attempts a connect in the next test.
+        // Pools and connectors first: a reconnect loop is only reachable through the pool/connector that owns it,
+        // and it must be stopped before the transport's gates are released, or a late-scheduled loop attempts a
+        // connect in the next test.
         SenderPoolTestAccess.shutdownAll();
+        SenderConnectorTestAccess.shutdownAll();
         LifecycleTestTransport.shutdownAllSenders();
         LifecycleTestTransport.shutdownAllReceivers();
         CountingDiscardMonitor.restore();

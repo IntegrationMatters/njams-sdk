@@ -23,13 +23,6 @@
  */
 package com.im.njams.sdk.communication;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.IdentityHashMap;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -46,6 +39,17 @@ import com.im.njams.sdk.settings.ClientSettings;
  * project- and log-messages to the nJAMS server. When writing your own Sender, extend this class and
  * override methods when needed. All Senders are automatically pooled by the SDK; you must not implement
  * your own connection pooling!
+ * <p>
+ * <b>A {@code send} implementation must not block indefinitely.</b> When a connection fails, the SDK retires the
+ * group's senders and lets one reconnect; that only converges because every send is time-bounded. The built-in
+ * transports bound themselves explicitly (HTTP retries 20 times at 50 ms, JMS 100 times at 50 ms, Kafka waits at
+ * most its request timeout, capped at 6 s). A sender that can block forever stalls retirement for its whole
+ * group, so bound your own retry loops the same way and throw once the bound is reached.
+ * <p>
+ * The SDK also drives the connection lifecycle: implement {@link #connect()}, {@link #close()} and the typed
+ * {@code send} methods as single honest attempts that throw on failure, and do not implement reconnect logic —
+ * the SDK runs exactly one reconnect per sender group. If your transport detects a broken connection
+ * asynchronously, report it with {@link #notifyConnectionFailure(Exception)}.
  *
  * @author hsiegeln
  * @version 4.0.6
@@ -57,26 +61,8 @@ public abstract class AbstractSender {
     private ConnectionStatus connectionStatus;
     protected DiscardPolicy discardPolicy = DiscardPolicy.DEFAULT;
     protected ClientSettings settings;
-    private Thread reconnector = null;
-    private Collection<SenderExceptionListener> exceptionListeners = Collections.newSetFromMap(new IdentityHashMap<>());
-    protected boolean hasConnectionFailure = false;
 
-    private final AtomicBoolean startupBegun = new AtomicBoolean(false);
-    private volatile CountDownLatch startupLatch;
-    private volatile Thread startupConnector;
-    private volatile Exception startupError;
-
-    private ConnectionCoordinator coordinator = new ConnectionCoordinator();
-
-    /**
-     * Injects the shared connection coordinator for this sender's group. Called by the {@link SenderPool} right
-     * after creation. Defaults to a dedicated coordinator so a stand-alone sender still works.
-     *
-     * @param coordinator the group coordinator; must not be {@code null}.
-     */
-    void setConnectionCoordinator(ConnectionCoordinator coordinator) {
-        this.coordinator = coordinator;
-    }
+    private volatile SenderFailureSink failureSink;
 
     /**
      * returns a new AbstractSender
@@ -103,74 +89,6 @@ public abstract class AbstractSender {
     public abstract String getName();
 
     /**
-     * Set Exception listener with special handling on exceptions.
-     *
-     * @param exceptionListener the exception listener to add to list
-     */
-    public void addExceptionListener(SenderExceptionListener exceptionListener) {
-        exceptionListeners.add(exceptionListener);
-    }
-
-    /**
-     * Starts one initial connection attempt in the background so a slow connect overlaps application setup, then
-     * marks the group connected on success. Idempotent — subsequent calls have no effect. Mirrors the receiver's
-     * {@code beginConnect()} model. Intended for internal SDK use at {@code Njams.start()}.
-     */
-    public void beginConnect() {
-        if (!startupBegun.compareAndSet(false, true)) {
-            return;
-        }
-        startupLatch = new CountDownLatch(1);
-        startupConnector = new Thread(() -> {
-            try {
-                connect();
-                coordinator.markStartupConnected();
-            } catch (Exception e) {
-                startupError = e;
-                LOG.debug("Startup connect of sender {} failed.", getName(), e);
-                // If a reconnect is permitted (startup 'reconnect' policy, or the group connected before), start
-                // the background reconnect loop now that connect() has failed and left this sender DISCONNECTED.
-                // This is what makes the 'reconnect' policy retry even when the initial connect blocked past the
-                // startup timeout: the caller cannot start it via reconnect() while this thread still holds
-                // CONNECTING, but here the status is already DISCONNECTED so reconnect() proceeds.
-                if (coordinator.shouldReconnect()) {
-                    reconnect(e);
-                }
-            } finally {
-                startupLatch.countDown();
-            }
-        });
-        startupConnector.setDaemon(true);
-        startupConnector.setName("Sender-Startup-" + getName());
-        startupConnector.start();
-    }
-
-    /**
-     * Waits up to {@code timeoutMs} for the {@link #beginConnect()} attempt to complete. Calls
-     * {@link #beginConnect()} first (idempotent). Never throws and never triggers reconnect — the caller decides
-     * how to react to a {@code false} result (fail-fast vs. background reconnect).
-     *
-     * @param timeoutMs maximum time to wait, in milliseconds.
-     * @return {@code true} iff the sender is connected within the timeout.
-     */
-    public boolean awaitStartup(long timeoutMs) {
-        beginConnect();
-        final CountDownLatch latch = startupLatch;
-        if (latch == null) {
-            return false;
-        }
-        try {
-            if (!latch.await(timeoutMs, TimeUnit.MILLISECONDS)) {
-                return false;
-            }
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            return false;
-        }
-        return isConnected() && startupError == null;
-    }
-
-    /**
      * override this method to implement your own connection initialization
      *
      * @throws NjamsSdkRuntimeException NjamsSdkRuntimeException
@@ -190,72 +108,6 @@ public abstract class AbstractSender {
 
     }
 
-    /**
-     * Initiates a reconnect thread if {@link #isConnected()} is <code>false</code>, no other reconnect is currently
-     * running, and a reconnect is actually allowed: the sender's group must have connected successfully before, or
-     * the startup {@code reconnect} policy must be active for it (see {@link ConnectionCoordinator#shouldReconnect()}
-     * ), and the group must not be shutting down.
-     *
-     * @param e the exception that initiated the reconnect
-     */
-    public synchronized void reconnect(Exception e) {
-        if (isConnecting() || isConnected() || !coordinator.shouldReconnect()) {
-            return;
-        }
-        if (reconnector != null && reconnector.isAlive()) {
-            return;
-        }
-        reconnector = new Thread(() -> {
-            LOG.debug("Start reconnect thread for sender {}", this);
-            doReconnect(e);
-            LOG.debug("Reconnect thread for sender {} terminated.", this);
-        });
-        reconnector.setDaemon(true);
-        reconnector
-            .setName(String.format("Sender-Reconnector-Thread[%s/%d]", getName(), System.identityHashCode(this)));
-        reconnector.start();
-    }
-
-    /**
-     * Implements reconnect behavior. Override this for your own reconnect handling
-     * @param ex the exception that initiated the reconnect
-     */
-    protected void doReconnect(Exception ex) {
-        coordinator.beginReconnect();
-        if (LOG.isInfoEnabled() && ex != null) {
-            LOG.info("Initialized reconnect, because of: {}", getExceptionWithCauses(ex));
-        }
-        hasConnectionFailure = true;
-        while (!isConnected() && !coordinator.shouldShutdown()) {
-            try {
-                connect();
-                if (coordinator.markConnected()) {
-                    LOG.info("Reconnected sender {}", getName());
-                }
-                hasConnectionFailure = false;
-            } catch (Exception e) {
-                try {
-                    Thread.sleep(1000);
-                } catch (InterruptedException e1) {
-                    return;
-                }
-            }
-        }
-    }
-
-    private String getExceptionWithCauses(final Throwable t) {
-        Throwable current = t;
-        StringBuilder sb = new StringBuilder();
-        while (current != null) {
-            if (sb.length() > 1) {
-                sb.append(", caused by: ");
-            }
-            sb.append(current.toString());
-            current = current.getCause();
-        }
-        return sb.toString();
-    }
-
     protected synchronized void setConnectionStatus(ConnectionStatus newConnectionStatus) {
         this.connectionStatus = newConnectionStatus;
     }
@@ -265,74 +117,25 @@ public abstract class AbstractSender {
     }
 
     /**
-     * Send the given message. This method automatically applies the
-     * discardPolicy onConnectionLoss, if set
+     * Dispatches the given message to the matching typed {@code send} method. One honest attempt: any failure
+     * propagates to the caller, which retires this sender and retries the message on a fresh one.
+     * <p>
+     * The connection is guaranteed to be established — {@link SenderPool#acquire()} only hands out connected
+     * senders — so this method does not check the connection status, retry, or apply the discard policy. Those
+     * are the pool's responsibility.
      *
-     * @param msg the message to send
+     * @param msg             the message to send
      * @param clientSessionId the session ID of the {@link com.im.njams.sdk.Njams} instance that sends the message
      */
     public void send(CommonMessage msg, String clientSessionId) {
         LOG.trace("Sending message {}, state={}", msg, getConnectionStatus());
-        // do this until message is sent or discard policy onConnectionLoss is satisfied
-        boolean isSent = false;
-        do {
-            if (isConnected()) {
-                try {
-                    if (msg instanceof LogMessage) {
-                        send((LogMessage) msg, clientSessionId);
-                    } else if (msg instanceof ProjectMessage) {
-                        send((ProjectMessage) msg, clientSessionId);
-                    } else if (msg instanceof TraceMessage) {
-                        send((TraceMessage) msg, clientSessionId);
-                    }
-                    isSent = true;
-                    break;
-                } catch (Exception e) {
-                    for (SenderExceptionListener listener : exceptionListeners) {
-                        listener.onException(e, msg);
-                    }
-                    onException(e);
-                }
-            }
-
-            // if connecting, we're effectively disconnected
-            if (isDisconnected() || isConnecting()) {
-                isSent = discardPolicy == DiscardPolicy.ON_CONNECTION_LOSS || discardPolicy == DiscardPolicy.DISCARD;
-                if (isSent) {
-                    DiscardMonitor.discard();
-                    LOG.debug("Applying discard policy [{}]. Message discarded.", discardPolicy);
-                    break;
-                }
-            }
-
-            // wait for reconnect
-            try {
-                Thread.sleep(1000);
-            }
-            catch(InterruptedException e) {
-                Thread.currentThread().interrupt();
-                break;
-            }
-
-            // trigger reconnect
-            if (!isConnected()) {
-                onException(new IllegalStateException("Not connected"));
-            }
-
-        } while (!isSent && !Thread.currentThread().isInterrupted() && !coordinator.shouldShutdown());
-    }
-
-    /**
-     * used to implement your exception handling for this sender. Is called, if
-     * sending of a message fails. It will automatically close any try to
-     * reconnect the connection; override this method for your own handling
-     *
-     * @param exception NjamsSdkRuntimeException
-     */
-    protected void onException(Exception exception) {
-        // close the existing connection
-        close();
-        reconnect(exception);
+        if (msg instanceof LogMessage) {
+            send((LogMessage) msg, clientSessionId);
+        } else if (msg instanceof ProjectMessage) {
+            send((ProjectMessage) msg, clientSessionId);
+        } else if (msg instanceof TraceMessage) {
+            send((TraceMessage) msg, clientSessionId);
+        }
     }
 
     /**
@@ -387,42 +190,6 @@ public abstract class AbstractSender {
     public boolean isConnecting() {
         return getConnectionStatus() == ConnectionStatus.CONNECTING;
     }
-
-    /**
-     * Set this value to true during shutdown to stop the reconnecting thread. This flag is shared with all other
-     * senders in this sender's group (i.e. handed out by the same {@link SenderPool}), so setting it on one
-     * sender stops the reconnect loop for all of them.
-     *
-     * @param shutdown if the Sender is in shutdown state
-     */
-    public void setShouldShutdown(boolean shutdown) {
-        coordinator.setShouldShutdown(shutdown);
-    }
-
-    /**
-     * Interrupts the startup connect thread and any in-progress reconnect thread of this sender, so a blocking
-     * {@code connect()} is cancelled promptly on shutdown rather than only at the next loop check.
-     */
-    public void cancelReconnect() {
-        final Thread startup = startupConnector;
-        if (startup != null) {
-            startup.interrupt();
-        }
-        final Thread rc = reconnector;
-        if (rc != null) {
-            rc.interrupt();
-        }
-    }
-
-    /**
-     * Returns <code>true</code> in case connection failed or could not be established initially.
-     * @return <code>true</code> only in case of connection failure.
-     */
-    public boolean hasConnectionFailure() {
-        return hasConnectionFailure;
-    }
-
-    private volatile SenderFailureSink failureSink;
 
     /**
      * Injects the callback through which this sender reports connection failures to its owning pool. Called by

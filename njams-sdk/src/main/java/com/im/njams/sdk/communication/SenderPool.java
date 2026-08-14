@@ -273,30 +273,17 @@ public class SenderPool {
             return null;
         }
         final AbstractSender sender = factory.getSender();
-        sender.setConnectionCoordinator(coordinator);
         sender.setFailureSink(this::reportFailure);
         return sender;
-    }
-
-    /**
-     * Kept for the legacy {@link #get()} path.
-     *
-     * @param sender the sender to validate
-     * @return always {@code true}
-     */
-    public boolean validate(AbstractSender sender) {
-        // TODO: there must be a better solution!
-        return true;
     }
 
     /**
      * Closes one sender and drops it. Never call this while holding {@link #lock}: a real transport's
      * {@code close()} can block, which would stall the whole group's acquire/release traffic.
      * <p>
-     * Deliberately does <em>not</em> set the sender's shutdown flag. That flag lives on the shared
-     * {@link ConnectionCoordinator}, so retiring a single broken sender would otherwise abort the group's elected
-     * reconnect. Group shutdown is set explicitly by {@link #beginShutdown()}, {@link #declareShutdown()} and
-     * {@link #shutdown()}.
+     * Deliberately does <em>not</em> touch the group's shutdown state: retiring a single broken sender must not
+     * abort the group's elected reconnect. Group shutdown is set explicitly by {@link #beginShutdown()},
+     * {@link #declareShutdown()} and {@link #shutdown()}.
      */
     private void destroy(AbstractSender sender) {
         try {
@@ -537,66 +524,6 @@ public class SenderPool {
     }
 
     /**
-     * Legacy borrow method: hands out an idle or newly created sender without connecting it. Superseded by
-     * {@link #acquire()}, which only ever hands out a connected sender and honours the group's failure state.
-     *
-     * @return an idle or newly created sender, or {@code null} once {@link #declareShutdown()} has been called.
-     */
-    public AbstractSender get() {
-        final List<AbstractSender> invalid = new ArrayList<>(0);
-        final AbstractSender result;
-        synchronized (lock) {
-            LOG.trace("Get locked={}, unlocked={}", locked.size(), unlocked.size());
-            AbstractSender reused = null;
-            // hand out an existing, still valid sender if one is available
-            final Iterator<AbstractSender> it = unlocked.iterator();
-            while (it.hasNext()) {
-                final AbstractSender sender = it.next();
-                it.remove();
-                if (validate(sender)) {
-                    locked.add(sender);
-                    reused = sender;
-                    break;
-                }
-                // object failed validation
-                LOG.debug("Sender {} failed validation!", sender);
-                invalid.add(sender);
-            }
-            if (reused != null) {
-                LOG.trace("Got sender: {}", reused);
-                result = reused;
-            } else {
-                // no objects available, create a new one
-                LOG.trace("Creating new sender, locked={}, unlocked={}", locked.size(), unlocked.size());
-                result = create();
-                if (result != null) {
-                    if (shutdown) {
-                        result.setShouldShutdown(true);
-                    }
-                    locked.add(result);
-                }
-                LOG.debug("Created sender: {} (shouldShutdown={})", result, shutdown);
-            }
-        }
-        invalid.forEach(this::destroy);
-        return result;
-    }
-
-    /**
-     * Legacy return method: puts the sender back into the pool unconditionally. Superseded by
-     * {@link #release(AbstractSender)}, which also honours retirement and shutdown.
-     *
-     * @param t the sender to return to the pool.
-     */
-    public void close(AbstractSender t) {
-        synchronized (lock) {
-            locked.remove(t);
-            unlocked.add(t);
-            LOG.trace("Close locked={}, unlocked={}", locked.size(), unlocked.size());
-        }
-    }
-
-    /**
      * Derives a display name for this pool's sender group from the factory by creating (and discarding) one
      * throwaway instance. Used by {@link SenderConnector} for its thread names; not the pool's real
      * sender-creation path.
@@ -619,16 +546,13 @@ public class SenderPool {
     public void beginShutdown() {
         LOG.debug("Beginning sender group shutdown; cancelling reconnects.");
         coordinator.setShouldShutdown(true);
-        final List<AbstractSender> all;
         synchronized (lock) {
             // Set before cancelling, so a waiter woken by a reconnect thread that is finishing concurrently
             // already sees the drain instead of picking the group back up.
             draining = true;
-            all = allSenders();
             lock.notifyAll();
         }
         connector.cancelReconnect();
-        all.forEach(AbstractSender::cancelReconnect);
     }
 
     /**
@@ -636,15 +560,12 @@ public class SenderPool {
      * is closed when its borrower releases it.
      */
     public void declareShutdown() {
-        final List<AbstractSender> all;
         synchronized (lock) {
             shutdown = true;
             draining = true;
-            all = allSenders();
             lock.notifyAll();
         }
         coordinator.setShouldShutdown(true);
-        all.forEach(s -> s.setShouldShutdown(true));
     }
 
     private void expireAll() {
