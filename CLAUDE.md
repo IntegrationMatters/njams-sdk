@@ -94,7 +94,7 @@ Transport is pluggable via `CommunicationFactory`. Three built-in transports:
 - **JMS** (`communication/jms/`) — ActiveMQ/JMS queue-based transport
 - **Kafka** (`communication/kafka/`) — Kafka topic-based transport, deprecated (see `.claude/rules/kafka-argos-deprecated.md`)
 
-Each transport implements `AbstractSender` (outbound) and `Receiver` (inbound commands). The `communication/fragments/` package handles message chunking for payloads exceeding the flush size limit. This package is internal infrastructure, not public API — see `.claude/rules/communication-layer.md`.
+Each transport implements `AbstractSender` (outbound) and `Receiver` (inbound commands). The `communication/fragments/` package handles message chunking for payloads exceeding the flush size limit. This package is internal infrastructure, not public API — see `.claude/rules/communication-layer.md`. See that rule's "Transport Relevance" section for how much production weight each transport carries when prioritizing a change.
 
 The sender thread pool (`maxSenderThreads`, default 8) asynchronously dispatches messages. Messages are batched by flush size (`flushsize`, default 5MB) or flush interval (`flush_interval`, default 30s).
 
@@ -124,6 +124,8 @@ Topic-specific rules that apply either always or only when working with certain 
 | `development-workflow-skills.md` | always | Which skill to invoke for new features / modifications / bug fixes |
 | `public-api-design.md` | `njams-sdk/src/main/java/**` | Public API surface, relocated/shaded types, visibility, immutability, Javadoc, checkstyle |
 | `code-quality-general.md` | `njams-sdk/src/main/java/**` | Copyright header, SOLID/DRY principles, layering |
+| `reuse-existing-functionality.md` | `njams-sdk/src/main/java/**` | Search for structurally similar existing mechanisms before building a parallel one |
+| `message-sending-control.md` | `njams-sdk/src/main/java/**` | Send-cadence invariant: SDK, not client, controls when project/log messages go out |
 | `runtime-performance-hotpath.md` | `logmessage/`, `communication/`, `argos/` | Allocation/reflection/I-O rules, settings-snapshot invariant |
 | `job-thread-safety.md` | `logmessage/**` | Job/Activity/Group concurrency contract |
 | `communication-layer.md` | `communication/**` | Not-public-API boundary, transport independence |

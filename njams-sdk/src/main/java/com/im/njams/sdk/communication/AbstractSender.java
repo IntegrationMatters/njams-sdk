@@ -50,6 +50,13 @@ import com.im.njams.sdk.settings.ClientSettings;
  * {@code send} methods as single honest attempts that throw on failure, and do not implement reconnect logic —
  * the SDK runs exactly one reconnect per sender group. If your transport detects a broken connection
  * asynchronously, report it with {@link #notifyConnectionFailure(Exception)}.
+ * <p>
+ * <b>Not an escape hatch for client-triggered flushing.</b> {@link #send(CommonMessage, String)} must
+ * only be called by the SDK's own dispatch logic ({@code JobFlusher}, project-message sending). A
+ * client application must never obtain a sender instance to send log messages directly — nJAMS
+ * server, respectively Elasticsearch, is not very good at handling high-frequency updates to the same
+ * job ({@code logId}), and bypassing the SDK's flush control this way can overwhelm the server or
+ * corrupt message ordering.
  *
  * @author hsiegeln
  * @version 4.0.6
