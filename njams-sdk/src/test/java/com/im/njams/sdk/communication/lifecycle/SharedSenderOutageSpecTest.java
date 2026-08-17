@@ -56,6 +56,10 @@ public class SharedSenderOutageSpecTest extends AbstractLifecycleSpecTest {
     private NjamsSender take() {
         Settings s = LifecycleTestTransport.settings();
         s.put(NjamsSettings.PROPERTY_SHARED_COMMUNICATIONS, "true");
+        // Two core sender threads, so a message dispatched through `first` and one dispatched through `second`
+        // can genuinely run at the same time instead of serializing behind a single core thread — needed for the
+        // race below to actually be a race.
+        s.put(NjamsSettings.PROPERTY_MIN_SENDER_THREADS, "2");
         NjamsSender sender = NjamsSender.takeSharedSender(ClientSettings.from(s.getAllProperties()));
         taken.add(sender);
         return sender;
@@ -73,20 +77,32 @@ public class SharedSenderOutageSpecTest extends AbstractLifecycleSpecTest {
         second.addSenderExceptionListener(b);
         assertTrue(first.startWithTimeout(5000));
 
-        // One outage: every send fails, and the connect that follows blocks so the group stays reconnecting.
-        int connectsBeforeOutage = LifecycleTestTransport.senderConnectCount();
+        // Two genuinely concurrent failures, one dispatched through each instance: `first`'s send takes the one
+        // already-connected sender from startup, `second`'s send finds none idle and connects a second sender of
+        // its own. Arming the block-then-fail gate before either send means both then block on the very same
+        // gate, so releasing it fails both at essentially the same instant — racing two reportFailure() calls
+        // into the shared pool. That race is what actually exercises the `!reconnecting` dedup guard: spec 5.4's
+        // claim is that it still elects exactly one reconnector and fires each listener exactly once, even though
+        // the two failures are attributed to two different Njams instances sharing the one group.
+        int connectsAfterStartup = LifecycleTestTransport.senderConnectCount();
         LifecycleTestTransport.armSendBlocksThenFails();
-        LifecycleTestTransport.setSenderMode(LifecycleTestTransport.ConnectMode.BLOCK);
-        for (int i = 0; i < 4; i++) {
-            first.send(new LogMessage(), "session-" + i);
-        }
+        first.send(new LogMessage(), "session-first");
+        second.send(new LogMessage(), "session-second");
+
+        assertTrue("the second instance's send must create and connect a sender of its own",
+            LifecycleTestTransport.awaitConnectAttempts(connectsAfterStartup + 1, 5, TimeUnit.SECONDS));
         assertTrue("a send must reach the transport",
             LifecycleTestTransport.sendEnteredLatch().await(5, TimeUnit.SECONDS));
+
+        // Only now does the group's reconnect get parked in BLOCK — the connect above must stay on SUCCEED, or
+        // the second instance's own startup connect would hang instead of racing into the failure below.
+        int connectsBeforeOutage = LifecycleTestTransport.senderConnectCount();
+        LifecycleTestTransport.setSenderMode(LifecycleTestTransport.ConnectMode.BLOCK);
         LifecycleTestTransport.releaseSend();
 
         assertTrue("exactly one reconnect must be attempted for the whole JVM group",
             LifecycleTestTransport.awaitConnectAttempts(connectsBeforeOutage + 1, 10, TimeUnit.SECONDS));
-        assertEquals("one reconnector, not one per failing sender", connectsBeforeOutage + 1,
+        assertEquals("one reconnector, not one per concurrently failing instance", connectsBeforeOutage + 1,
             LifecycleTestTransport.senderConnectCount());
 
         // Listener fan-out is one notification per registered listener, per outage (spec 5.4).

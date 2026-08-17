@@ -34,11 +34,14 @@ public class SenderRetirementSpecTest extends AbstractLifecycleSpecTest {
     public void idleSendersAreDestroyedImmediatelyOnFailure() throws Exception {
         SenderPoolTestAccess pool = SenderPoolTestAccess.create("none");
         Object idle = pool.acquire();
-        pool.release(idle);                       // now idle in `unlocked`
-        Object failing = pool.acquire();
+        pool.release(idle);                                  // idle now genuinely sitting in `unlocked`
 
+        // A different sender entirely reports the failure, so `idle` stays untouched in `unlocked` right up to
+        // failGroup()'s drain(unlocked) — acquire()'s own recycling never gets a chance to hand `idle` back out
+        // and thereby empty `unlocked` before the failure is reported.
+        Object failing = pool.newUnconnectedSender();
         pool.reportFailure(failing, new IllegalStateException("group loss"));
 
-        assertTrue("nobody holds an idle sender, so it is closed at once", pool.wasClosed(idle));
+        assertTrue("nobody holds it, so it is destroyed via failGroup's drain(unlocked)", pool.wasClosed(idle));
     }
 }
