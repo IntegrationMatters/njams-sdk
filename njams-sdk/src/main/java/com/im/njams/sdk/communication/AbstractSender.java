@@ -45,6 +45,13 @@ import com.im.njams.sdk.settings.ClientSettings;
  * project- and log-messages to the nJAMS server. When writing your own Sender, extend this class and
  * override methods when needed. All Senders are automatically pooled by the SDK; you must not implement
  * your own connection pooling!
+ * <p>
+ * <b>Not an escape hatch for client-triggered flushing.</b> {@link #send(CommonMessage, String)} must
+ * only be called by the SDK's own dispatch logic ({@code JobFlusher}, project-message sending). A
+ * client application must never obtain a sender instance to send log messages directly — nJAMS
+ * server, respectively Elasticsearch, is not very good at handling high-frequency updates to the same
+ * job ({@code logId}), and bypassing the SDK's flush control this way can overwhelm the server or
+ * corrupt message ordering.
  *
  * @author hsiegeln
  * @version 4.0.6

@@ -320,7 +320,10 @@ public class JobImpl implements Job {
      * @param sentBefore Send if the last flush was before this timestamp
      * @param flushSize  Send if message size is greater than this size
      * @deprecated SDK-internal flush mechanics, not part of the public API; there is no
-     *             replacement — periodic flushing is handled transparently by the SDK.
+     *             replacement — periodic flushing is handled transparently by the SDK because nJAMS
+     *             server, respectively Elasticsearch, is not very good at handling high-frequency
+     *             updates to the same job ({@code logId}). Do not call this method, and do not
+     *             attempt to replicate it by sending messages through a sender instance directly.
      */
     @Deprecated(since = "6.0.0", forRemoval = true)
     public void timerFlush(LocalDateTime sentBefore, long flushSize) {
@@ -333,7 +336,10 @@ public class JobImpl implements Job {
      * server if all the preconditions are fulfilled.
      *
      * @deprecated SDK-internal flush mechanics, not part of the public API; there is no
-     *             replacement — log messages are flushed transparently by the SDK.
+     *             replacement — log messages are flushed transparently by the SDK because nJAMS
+     *             server, respectively Elasticsearch, is not very good at handling high-frequency
+     *             updates to the same job ({@code logId}). Do not call this method, and do not
+     *             attempt to replicate it by sending messages through a sender instance directly.
      */
     @Deprecated(since = "6.0.0", forRemoval = true)
     public void flush() {

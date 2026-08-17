@@ -51,6 +51,14 @@ import java.util.Map;
  * activity/group instance, because parallel threads are expected to work on separate instances. A
  * caller that genuinely shares a single activity or group instance across threads must synchronize
  * those calls itself. See {@link Activity} and {@link Group} for details.
+ * <p>
+ * <b>Send cadence is SDK-controlled.</b> nJAMS server, respectively Elasticsearch, is not very good at
+ * handling high-frequency updates to the same job (identified by its {@code logId}), though it handles
+ * high-frequency messages across different jobs without issue. For this reason the SDK — not the
+ * caller — decides when a job's log message is actually sent: typically once, at
+ * {@link #end(boolean)}, and only more often when the job's accumulated data exceeds the configured
+ * flush size or age threshold. There is no supported way to force an additional send from outside the
+ * SDK; do not attempt to obtain a sender/transport instance and send messages directly.
  *
  * @author pnientiedt
  */
