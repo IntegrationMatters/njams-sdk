@@ -40,23 +40,16 @@ import com.im.njams.sdk.settings.ClientSettings;
  * override methods when needed. All Senders are automatically pooled by the SDK; you must not implement
  * your own connection pooling!
  * <p>
- * <b>A {@code send} implementation must not block indefinitely.</b> When a connection fails, the SDK retires the
- * group's senders and lets one reconnect; that only converges because every send is time-bounded. The built-in
- * transports bound themselves explicitly (HTTP retries 20 times at 50 ms, JMS 100 times at 50 ms, Kafka waits at
- * most its request timeout, capped at 6 s). A sender that can block forever stalls retirement for its whole
- * group, so bound your own retry loops the same way and throw once the bound is reached.
+ * <b>A {@code send} implementation must not block indefinitely.</b> The built-in transports each bound their
+ * own retries and throw once exhausted; do the same in your own implementation.
  * <p>
  * The SDK also drives the connection lifecycle: implement {@link #connect()}, {@link #close()} and the typed
  * {@code send} methods as single honest attempts that throw on failure, and do not implement reconnect logic —
  * the SDK runs exactly one reconnect per sender group. If your transport detects a broken connection
  * asynchronously, report it with {@link #notifyConnectionFailure(Exception)}.
  * <p>
- * <b>Not an escape hatch for client-triggered flushing.</b> {@link #send(CommonMessage, String)} must
- * only be called by the SDK's own dispatch logic ({@code JobFlusher}, project-message sending). A
- * client application must never obtain a sender instance to send log messages directly — nJAMS
- * server, respectively Elasticsearch, is not very good at handling high-frequency updates to the same
- * job ({@code logId}), and bypassing the SDK's flush control this way can overwhelm the server or
- * corrupt message ordering.
+ * Senders are internal SDK infrastructure, not part of the user-facing API — client applications must not use
+ * this class or obtain a sender instance directly.
  *
  * @author hsiegeln
  * @version 4.0.6
