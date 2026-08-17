@@ -50,8 +50,6 @@ how the current fix/feature turned out to be shaped, it's reframed sub-scope of 
 
 **Closing comments** should be brief: state that the issue is resolved and optionally note the root cause. Do not include deep technical detail about how the solution was implemented — that belongs in commit messages or PR descriptions. Post closing/summary comments only when the user actually resolves the ticket, not as soon as the work feels done.
 
-**When asked for a day's ticket summary**, respond with comma-separated ticket keys only, no prose. When asked which tickets were worked on over a period, also check git history for that period, not just the current session.
-
 **While working on a ticket, end responses with the ticket key, title, and status.**
 
 **Write all Jira bodies (descriptions, comments) in Markdown** with `contentFormat=markdown`. Never use wiki markup (`h2.`, `_..._`, `*..*`) — it renders broken.
