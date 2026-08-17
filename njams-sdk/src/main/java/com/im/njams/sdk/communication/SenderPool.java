@@ -310,6 +310,14 @@ public class SenderPool {
      * while the executor drains. Only a caller that would have to <em>wait</em> for a reconnect is refused then:
      * that reconnect is being cancelled, so waiting for it would be pointless. Once {@link #declareShutdown()}
      * has committed to teardown, every caller is refused.
+     * <p>
+     * Creating a brand-new sender (no idle one pooled) reserves it under {@link #lock} via {@link #create()} but
+     * connects it <em>outside</em> the lock (decision B2, reversed): at most {@code maxSenderThreads} callers ever
+     * reach this path, and only while the group is healthy, so letting their connects run concurrently is ordinary
+     * pool growth, not the uncoordinated per-sender reconnect storm this design removes — that storm is specific
+     * to an actual outage, which stays owned end-to-end by {@link SenderConnector}'s single reconnect loop and is
+     * untouched by this. Not holding the lock here means a slow-but-reachable endpoint can no longer stall every
+     * other {@link #acquire()}/{@link #release(AbstractSender)} call in the group for the duration of one connect.
      *
      * @return a CONNECTED sender, or {@code null} if the group is shutting down or the discard policy chose to
      *         drop the message rather than wait.
@@ -325,6 +333,7 @@ public class SenderPool {
             Exception connectFailure = null;
             List<AbstractSender> toDestroy = null;
             List<SenderExceptionListener> toNotify = null;
+            final AbstractSender toConnect;
             synchronized (lock) {
                 if (shutdown) {
                     return null;
@@ -355,32 +364,42 @@ public class SenderPool {
                 if (pooled != null) {
                     return pooled;
                 }
-                final AbstractSender created = create();
-                if (created == null) {
+                // Reserves the slot: this sender exists but is in neither `locked` nor `unlocked` yet, so nothing
+                // else in the pool can see or touch it while it connects below, outside the lock.
+                toConnect = create();
+                if (toConnect == null) {
                     // Shutdown was declared while we were here.
                     return null;
                 }
-                try {
-                    // B2 (confirmed): the connect deliberately happens inside the monitor. Reserving a slot and
-                    // connecting outside the lock was considered and declined — it reintroduces the parallel-
-                    // connect storm this design removes. The cost is bounded: at most maxSenderThreads callers
-                    // ever reach here, and only while the group is healthy, so the connect is expected to be
-                    // fast. A partially degraded endpoint (accepting some connects, hanging others) can still
-                    // hold the lock for the duration of one connect; that is a known, accepted residual risk,
-                    // not a bug to fix here. Do not "optimize" this out.
-                    created.connect();
-                    locked.add(created);
-                    LOG.debug("Created and connected sender: {}", created);
-                    return created;
-                } catch (Exception e) {
+            }
+            try {
+                toConnect.connect();
+            } catch (Exception e) {
+                connectFailure = e;
+            }
+            synchronized (lock) {
+                if (shutdown) {
+                    // Torn down while we were connecting outside the lock; don't publish it, just drop it.
+                    halfBuilt = toConnect;
+                } else if (connectFailure != null) {
                     // The group is broken, not just this attempt: fail it inline rather than re-entering
                     // reportFailure(), which would deadlock on the lock we already hold.
-                    halfBuilt = created;
-                    connectFailure = e;
+                    halfBuilt = toConnect;
                     if (!reconnecting) {
                         toDestroy = failGroup();
                         toNotify = new ArrayList<>(exceptionListeners);
                     }
+                    // else: a concurrent sibling's create() already failed the group first - absorbed.
+                } else if (reconnecting) {
+                    // A sibling's connect failed while ours independently succeeded. The group is already in
+                    // recovery via the elected reconnector, and only its onReconnected(...) publish is allowed to
+                    // clear `reconnecting` (the single-reconnector invariant this whole design rests on) - so this
+                    // redundant, otherwise-healthy sender is dropped rather than published into a failed group.
+                    halfBuilt = toConnect;
+                } else {
+                    locked.add(toConnect);
+                    LOG.debug("Created and connected sender: {}", toConnect);
+                    return toConnect;
                 }
             }
             if (halfBuilt != null) {
