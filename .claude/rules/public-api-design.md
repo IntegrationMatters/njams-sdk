@@ -75,6 +75,14 @@ mvn javadoc:javadoc -pl njams-sdk
 
 A broken `{@link}` or `@see` reference (e.g. pointing to a renamed or removed method) is a hard error that fails the Javadoc build — it is not a warning. Always fix errors before committing; warnings are tolerated but errors are not.
 
+### Conciseness
+
+Javadoc states intent and contract, not implementation detail. Keep it short:
+
+- **No numeric or implementation specifics of concrete subclasses or call sites** (retry counts, timeouts, buffer sizes). State *that* a bound or behavior exists, not its current value — Javadoc on a supertype/interface goes stale the moment one implementation's constant changes. ("Implementations bound their own retries and throw once exhausted", not "HTTP retries 20 times at 50 ms.")
+- **State restrictions plainly, without justifying them.** "Not part of the user-facing API; client code must not call this directly" is sufficient — skip the downstream-consequences rationale (performance impact, server behavior, etc.) unless that reasoning is itself something a caller needs to use the member correctly.
+- If the deeper rationale or current numeric values are worth documenting somewhere, that belongs in the wiki/FAQ or a design spec — not the Javadoc.
+
 ## Immutability of Existing Public API
 
 **All existing `public` and `protected` API must be treated as in active use by external client implementations and must not be changed unless explicitly requested.** This is a hard rule, not a guideline. Changing a method signature, return type, behavior, or removing a member is a breaking change. If you identify a problem with an existing public API, raise it with the user rather than fixing it silently.
