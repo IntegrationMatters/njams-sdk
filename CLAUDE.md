@@ -124,6 +124,7 @@ Topic-specific rules that apply either always or only when working with certain 
 | `development-workflow-skills.md` | always | Which skill to invoke for new features / modifications / bug fixes |
 | `public-api-design.md` | `njams-sdk/src/main/java/**` | Public API surface, relocated/shaded types, visibility, immutability, Javadoc, checkstyle |
 | `code-quality-general.md` | `njams-sdk/src/main/java/**` | Copyright header, SOLID/DRY principles, layering |
+| `reuse-existing-functionality.md` | `njams-sdk/src/main/java/**` | Search for structurally similar existing mechanisms before building a parallel one |
 | `runtime-performance-hotpath.md` | `logmessage/`, `communication/`, `argos/` | Allocation/reflection/I-O rules, settings-snapshot invariant |
 | `job-thread-safety.md` | `logmessage/**` | Job/Activity/Group concurrency contract |
 | `communication-layer.md` | `communication/**` | Not-public-API boundary, transport independence |
