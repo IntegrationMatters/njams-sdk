@@ -158,6 +158,24 @@ public final class LifecycleTestTransport {
         return senderConnectCount.get();
     }
 
+    /**
+     * Waits for at least {@code target} sender connect attempts. A reconnect election happens on a background
+     * connector thread, so a bare assertion on {@link #senderConnectCount()} would race it.
+     *
+     * @param target  the number of connect attempts to wait for.
+     * @param timeout the maximum time to wait.
+     * @param unit    the unit of {@code timeout}.
+     * @return {@code true} if the count reached {@code target} within the timeout.
+     * @throws InterruptedException if the waiting thread is interrupted.
+     */
+    public static boolean awaitConnectAttempts(int target, long timeout, TimeUnit unit) throws InterruptedException {
+        final long deadline = System.nanoTime() + unit.toNanos(timeout);
+        while (senderConnectCount.get() < target && System.nanoTime() < deadline) {
+            Thread.sleep(25);
+        }
+        return senderConnectCount.get() >= target;
+    }
+
     // called by LifecycleTestSender.connect()
     static void onSenderConnect() throws InterruptedException {
         senderConnectCount.incrementAndGet();
