@@ -250,12 +250,12 @@ public abstract class AbstractReceiver implements Receiver {
      * {@link #INIT_RECONNECT_INTERVAL} second before trying again
      * to reconnect.
      * <p>
-     * <strong>Blocks the calling thread</strong> for the entire retry duration — unlike
-     * {@link AbstractSender#reconnect(Exception)}, which spawns its own thread and returns immediately, this
-     * method runs the retry loop synchronously and, being a {@code synchronized} instance method, holds this
-     * receiver's monitor for as long as the loop runs (including any blocking {@link #connect()} call and the
-     * backoff sleep between attempts). Callers that need to keep running should invoke this from a background
-     * thread themselves (see {@link #onException(Exception)}).
+     * <strong>Blocks the calling thread</strong> for the entire retry duration — unlike the sender side, where the
+     * group's reconnect loop runs on its own dedicated thread owned by the sender pool, this method runs the retry
+     * loop synchronously and, being a {@code synchronized} instance method, holds this receiver's monitor for as
+     * long as the loop runs (including any blocking {@link #connect()} call and the backoff sleep between
+     * attempts). Callers that need to keep running should invoke this from a background thread themselves (see
+     * {@link #onException(Exception)}).
      *
      * @param ex the exception that initiated the reconnect
      */
