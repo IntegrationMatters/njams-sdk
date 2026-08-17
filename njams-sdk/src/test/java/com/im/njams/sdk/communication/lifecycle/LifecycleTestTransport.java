@@ -39,10 +39,21 @@ public final class LifecycleTestTransport {
 
     /** When armed, a message send blocks on {@link #sendGate} and then fails, dropping the connection. */
     private static volatile boolean sendBlocksThenFails = false;
+    /**
+     * When armed, a message send blocks on {@link #sendGate} and then <em>succeeds</em>, mirroring
+     * {@link #sendBlocksThenFails} but for forcing several sends to be genuinely in flight at once (e.g. so each
+     * independently acquires/creates its own connected sender instead of one finishing fast enough for a later one
+     * to reuse it), rather than to simulate an outage.
+     */
+    private static volatile boolean sendBlocksThenSucceeds = false;
     /** Fires when a send has entered {@link #awaitSendGateIfArmed()} (so tests know the send is in flight). */
     private static volatile CountDownLatch sendEntered = new CountDownLatch(1);
-    /** Released to let a blocked send proceed (to fail). Recreated by {@link #reset()}. */
+    /** Released to let a blocked send proceed (to fail or succeed). Recreated by {@link #reset()} and
+     *  {@link #rearmSendGate()}. */
     private static volatile CountDownLatch sendGate = new CountDownLatch(1);
+    /** Counts sends currently parked in {@link #awaitSendGateIfArmed()} since the last {@link #reset()} or
+     *  {@link #rearmSendGate()}. */
+    private static final AtomicInteger sendGateEntries = new AtomicInteger(0);
     /** Counts the messages a {@link LifecycleTestSender} actually accepted (i.e. the fail mode was not armed). */
     private static final AtomicInteger successfulSends = new AtomicInteger(0);
 
@@ -67,8 +78,10 @@ public final class LifecycleTestTransport {
         connectAttempted = new CountDownLatch(1);
         senderConnectCount.set(0);
         sendBlocksThenFails = false;
+        sendBlocksThenSucceeds = false;
         sendEntered = new CountDownLatch(1);
         sendGate = new CountDownLatch(1);
+        sendGateEntries.set(0);
         successfulSends.set(0);
         receiverMode = ConnectMode.SUCCEED;
         receiverBlockRelease = new CountDownLatch(1);
@@ -83,7 +96,19 @@ public final class LifecycleTestTransport {
         sendBlocksThenFails = true;
     }
 
-    /** @return the latch that fires when a send has entered the block-then-fail hook. */
+    /**
+     * Arms the block-then-succeed send mode: the next message send(s) block on the gate, then succeed once
+     * released. Unlike {@link #armSendBlocksThenFails()}, this is not for simulating an outage but for forcing
+     * several sends to be genuinely concurrent — e.g. to warm a pool with N distinct connected senders before a
+     * later outage phase, where a send finishing too fast could let a later one reuse its sender instead of
+     * creating its own.
+     */
+    public static void armSendBlocksThenSucceeds() {
+        sendBlocksThenSucceeds = true;
+    }
+
+    /** @return the latch that fires when a send has entered the block gate (either block-then-fail or
+     *          block-then-succeed mode). */
     public static CountDownLatch sendEnteredLatch() {
         return sendEntered;
     }
@@ -97,19 +122,67 @@ public final class LifecycleTestTransport {
         sendBlocksThenFails = false;
     }
 
-    /** Lets a blocked send proceed (it then fails and drops the connection). */
+    /** Disarms the block-then-succeed send mode again, mirroring {@link #disarmSendFailure()}. */
+    public static void disarmSendSuccessBlock() {
+        sendBlocksThenSucceeds = false;
+    }
+
+    /**
+     * Re-arms the send gate for a second block/release cycle within the same test (e.g. a block-then-succeed
+     * warm-up phase followed by a separate block-then-fail outage phase). Recreates the gate and the entered
+     * latch/counter, so a later {@link #releaseSend()} only releases sends that enter after this call, and
+     * {@link #blockedSendCount()}/{@link #awaitBlockedSends(int, long, TimeUnit)} count only entries since this
+     * call rather than accumulating across both cycles.
+     */
+    public static void rearmSendGate() {
+        sendEntered = new CountDownLatch(1);
+        sendGate = new CountDownLatch(1);
+        sendGateEntries.set(0);
+    }
+
+    /** Lets every currently-blocked send proceed (each then either fails or succeeds, per whichever mode it
+     *  entered under). */
     public static void releaseSend() {
         sendGate.countDown();
     }
 
+    /** @return how many sends have entered the block gate since the last {@link #reset()} or
+     *          {@link #rearmSendGate()}. */
+    public static int blockedSendCount() {
+        return sendGateEntries.get();
+    }
+
+    /**
+     * Waits for at least {@code target} sends to have entered the block gate. Dispatch happens on executor worker
+     * threads, so a bare assertion on {@link #blockedSendCount()} would race them.
+     *
+     * @param target  the number of blocked-gate entries to wait for.
+     * @param timeout the maximum time to wait.
+     * @param unit    the unit of {@code timeout}.
+     * @return {@code true} if the count reached {@code target} within the timeout.
+     * @throws InterruptedException if the waiting thread is interrupted.
+     */
+    public static boolean awaitBlockedSends(int target, long timeout, TimeUnit unit) throws InterruptedException {
+        final long deadline = System.nanoTime() + unit.toNanos(timeout);
+        while (sendGateEntries.get() < target && System.nanoTime() < deadline) {
+            Thread.sleep(25);
+        }
+        return sendGateEntries.get() >= target;
+    }
+
     // called by LifecycleTestSender's send(...) methods
     static boolean awaitSendGateIfArmed() throws InterruptedException {
-        if (!sendBlocksThenFails) {
+        if (!sendBlocksThenFails && !sendBlocksThenSucceeds) {
             return false;
         }
+        // Capture the outcome on entry, before blocking: this is what lets a test hold one failing send in flight
+        // while a later send (under a different mode) succeeds, exactly like the pre-existing block-then-fail
+        // semantics this generalizes.
+        final boolean shouldFail = sendBlocksThenFails;
+        sendGateEntries.incrementAndGet();
         sendEntered.countDown();
         sendGate.await();
-        return true;
+        return shouldFail;
     }
 
     // called by LifecycleTestSender's send(...) methods once a send has completed without failing
