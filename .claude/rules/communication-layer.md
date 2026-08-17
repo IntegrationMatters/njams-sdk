@@ -13,6 +13,24 @@ Each transport implements `AbstractSender` (outbound) and `Receiver` (inbound co
 
 The sender thread pool (`maxSenderThreads`, default 8) asynchronously dispatches messages. Messages are batched by flush size (`flushsize`, default 5MB) or flush interval (`flush_interval`, default 30s).
 
+## Transport Relevance
+
+Not all three built-in transports carry equal production weight — this should shape how much scrutiny
+and testing effort a change gets:
+
+- **JMS is the primary production transport.** Most production nJAMS deployments run on JMS. Changes to
+  `communication/jms/` deserve the most scrutiny and the most thorough testing.
+- **HTTP is production-ready, but only for small/low-throughput environments.** It lacks buffering, so
+  it is primarily used for development and testing. In production it is viable only where job/log-message
+  volume is low — few processes, executing rarely, not sending log messages at a high rate. Do not assume
+  an HTTP change needs to handle the same throughput as JMS when weighing its risk or urgency.
+- **Kafka is deprecated but still supported** — see `kafka-argos-deprecated.md` for the standing policy
+  (no new feature investment, tests best-effort/optional).
+
+When deciding how much test coverage or design care a transport-specific change needs, weight JMS
+highest, HTTP moderate (scoped to low-throughput scenarios), and Kafka lowest per the existing
+deprecation policy.
+
 ## API Contracts Inside This Package
 
 This package is never Client Contract (client-facing) API — SDK users should never need to know or care which transport is active, how messages are structured on the wire, or how chunking works, and none of this must leak into the client-facing surface. But "not Client Contract" isn't the same as "not API at all": two other contracts from `public-api-design.md` live inside this package, and a fourth bucket genuinely isn't API.

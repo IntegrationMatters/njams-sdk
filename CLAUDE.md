@@ -94,7 +94,7 @@ Transport is pluggable via `CommunicationFactory`. Three built-in transports:
 - **JMS** (`communication/jms/`) — ActiveMQ/JMS queue-based transport
 - **Kafka** (`communication/kafka/`) — Kafka topic-based transport, deprecated (see `.claude/rules/kafka-argos-deprecated.md`)
 
-Each transport implements `AbstractSender` (outbound) and `Receiver` (inbound commands). The `communication/fragments/` package handles message chunking for payloads exceeding the flush size limit. This package is internal infrastructure, not public API — see `.claude/rules/communication-layer.md`.
+Each transport implements `AbstractSender` (outbound) and `Receiver` (inbound commands). The `communication/fragments/` package handles message chunking for payloads exceeding the flush size limit. This package is internal infrastructure, not public API — see `.claude/rules/communication-layer.md`. See that rule's "Transport Relevance" section for how much production weight each transport carries when prioritizing a change.
 
 The sender thread pool (`maxSenderThreads`, default 8) asynchronously dispatches messages. Messages are batched by flush size (`flushsize`, default 5MB) or flush interval (`flush_interval`, default 30s).
 
