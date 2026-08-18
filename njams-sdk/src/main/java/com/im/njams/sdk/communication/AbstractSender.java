@@ -220,4 +220,19 @@ public abstract class AbstractSender {
         }
     }
 
+    /**
+     * Classifies a failure reported for this sender. Return {@code false} for a failure that does not indicate a
+     * broken connection — a load peak, throttling, or a per-message reject on a working connection.
+     * <p>
+     * A transport that cannot tell the difference must leave this alone: the default answer is that the
+     * connection may be broken.
+     *
+     * @param failure the failure that was reported; may be {@code null}.
+     * @return {@code true} unless this transport can rule out a connection loss.
+     * @since 6.0.0
+     */
+    protected boolean isConnectionBroken(Throwable failure) {
+        return true;
+    }
+
 }
