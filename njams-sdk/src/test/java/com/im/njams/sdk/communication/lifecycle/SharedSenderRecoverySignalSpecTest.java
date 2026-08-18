@@ -197,7 +197,13 @@ public class SharedSenderRecoverySignalSpecTest extends AbstractLifecycleSpecTes
         assertTrue("the group must connect once the transport is healthy again",
             group.startWithTimeout(5000, false));
         int connectsBefore = LifecycleTestTransport.receiverConnectCount();
+        int successfulSendsBefore = LifecycleTestTransport.successfulSendCount();
         driveOutageAndRecovery(group);
+        // Proving the group really recovered — rather than asserting a condition that would already be true
+        // before the group ever reconnects — is what makes the receiver-count assertion below meaningful; see
+        // the identical reasoning in aStoppedClientsReceiverIsNoLongerCycled above.
+        assertTrue("the group must recover and deliver the message retained across the outage",
+            LifecycleTestTransport.awaitSuccessfulSends(successfulSendsBefore + 1, 20, TimeUnit.SECONDS));
 
         assertEquals("a receiver whose client failed at startup must have been deregistered and never cycled",
             connectsBefore, LifecycleTestTransport.receiverConnectCount());

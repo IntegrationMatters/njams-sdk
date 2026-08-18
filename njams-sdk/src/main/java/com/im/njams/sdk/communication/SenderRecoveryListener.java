@@ -38,6 +38,10 @@ public interface SenderRecoveryListener {
 
     /**
      * Called after the sender group reconnected following an outage in which at least one connect attempt failed.
+     * <p>
+     * Runs on the sender group's own single reconnect thread; a slow or blocking implementation delays that
+     * thread from servicing any other, unrelated outage until this call returns. An implementation that may take
+     * a while must dispatch its own work onto another thread rather than running it here.
      */
     void onSenderGroupRecovered();
 }

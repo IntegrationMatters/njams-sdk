@@ -364,8 +364,9 @@ public final class LifecycleTestTransport {
 
     /**
      * Stops every {@link LifecycleTestReceiver} a test created — sets shutdown, cancels reconnect, and releases the
-     * BLOCK gate so any blocking connect thread can finish — then clears the receiver registry. Call in @After so
-     * no daemon reconnect/startup thread survives into a later test where it would count down shared latches.
+     * BLOCK-connect and BLOCK-stop gates so any blocking connect or stop thread can finish — then clears the
+     * receiver registry. Call in @After so no daemon reconnect/startup thread survives into a later test where it
+     * would count down shared latches.
      */
     public static void shutdownAllReceivers() {
         LifecycleTestReceiver.shutdownAll();
