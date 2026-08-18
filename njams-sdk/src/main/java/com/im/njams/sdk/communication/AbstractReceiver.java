@@ -48,7 +48,7 @@ import com.im.njams.sdk.settings.ClientSettings;
  * @author pnientiedt/krautenberg
  * @version 4.0.6
  */
-public abstract class AbstractReceiver implements Receiver {
+public abstract class AbstractReceiver implements Receiver, SenderRecoveryListener {
 
     //The Logger
     private static final Logger LOG = LoggerFactory.getLogger(AbstractReceiver.class);
@@ -382,6 +382,38 @@ public abstract class AbstractReceiver implements Receiver {
             .setName(String.format("Receiver-Sender-Reconnector-Thread[%s/%d]", getName(),
                 System.identityHashCode(this)));
         reconnectThread.start();
+    }
+
+    /**
+     * {@inheritDoc}
+     * <p>
+     * Cycles this receiver's connection: a receiver that passively waits for messages can miss a connection loss
+     * entirely, so the sender group's recovery is taken as the moment to re-verify. Does nothing while this
+     * receiver is shutting down, has never been connected, is currently connecting, or is already running its own
+     * reconnect — in each of those cases its own lifecycle already owns its connection state.
+     *
+     * @since 6.0.0
+     */
+    @Override
+    public void onSenderGroupRecovered() {
+        // wasEverConnected() alone is not enough: it is set by beginConnect()/reconnect(), but not by a plain
+        // start(), so a receiver started directly would look like it had never connected.
+        final boolean neverConnected = !coordinator.wasEverConnected() && !isConnected();
+        if (coordinator.shouldShutdown() || neverConnected || isConnecting() || isReconnectInFlight()) {
+            LOG.debug("Receiver {}: ignoring the sender group's recovery; this receiver's own connection "
+                + "lifecycle already owns its state.", getName());
+            return;
+        }
+        LOG.info("Receiver {}: cycling the connection because the sender group recovered from a connection "
+            + "outage.", getName());
+        onException(new NjamsSdkRuntimeException(
+            "Cycling the receiver after the sender group recovered from a connection outage"));
+    }
+
+    /** @return {@code true} while this receiver's own reconnect loop is running. */
+    private boolean isReconnectInFlight() {
+        final Thread rc = reconnectThread;
+        return rc != null && rc.isAlive();
     }
 
     /**
