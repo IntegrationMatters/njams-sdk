@@ -116,7 +116,7 @@ public class SharedSenderRecoverySignalSpecTest extends AbstractLifecycleSpecTes
         startClient("sharedRecoverySecond");
 
         SharedLifecycleTestReceiver receiver = SharedLifecycleTestReceiver.lastCreated();
-        assertNotNull("both clients must share one receiver instance", receiver);
+        assertNotNull("a shared receiver instance must have been created and wired", receiver);
         awaitTrue("the shared receiver must connect", 5000, receiver::isConnected);
         int receiverConnectsBefore = LifecycleTestTransport.receiverConnectCount();
 
