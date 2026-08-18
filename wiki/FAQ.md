@@ -298,6 +298,13 @@ connection loss the SDK logs a warning (`Receiver connection lost. The client wi
 the server until reconnected.`) and an info once it reconnects (`Receiver reconnected. Handling server commands
 resumed.`).
 
+The receiver's connection is also re-verified when the *sender* group recovers from a connection outage. A
+receiver spends nearly all of its time passively waiting for commands, so it can miss a connection loss entirely;
+when the sender group reconnects after an outage in which its own connect attempts actually failed, the receiver
+cycles its connection once to re-establish it. This does not happen for a send failure against a reachable
+endpoint (a load peak, a throttled or briefly failing target), so a healthy receiver is not disturbed by ordinary
+send retries. <kbd style="background-color:#2da44e;color:#fff;border-color:#2da44e">since 6.0.0</kbd>
+
 ```java
 Njams njams = new Njams(path, version, category, settings);
 // connection attempt starts in background automatically
