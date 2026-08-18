@@ -98,6 +98,13 @@ public class SenderPool {
         Collections.newSetFromMap(new IdentityHashMap<>());
 
     private boolean reconnecting = false;
+    /**
+     * Whether the failure that opened the current outage indicated a broken connection, as classified by the
+     * failing sender. Only ever touched under {@link #lock}. Consumed by {@code onReconnected(AbstractSender,
+     * boolean)} (added once {@link #onReconnected(AbstractSender)} grows that parameter) and by nothing else — it
+     * must not influence retirement, message fate or the discard policy (SDK-474 owns those).
+     */
+    private boolean outageIndicatesBrokenConnection = true;
     /** Read without the lock by {@link #isConnectionFailure()} on the executor's rejection path. */
     private volatile boolean failed = false;
     /** Set by {@link #declareShutdown()}: blocks creation of new senders. */
@@ -236,7 +243,7 @@ public class SenderPool {
             // The connected check closes the narrow race where the startup connect completes between the timeout
             // expiring and this call, which must not fail a group that is healthy after all.
             if (!reconnecting && !coordinator.isGroupConnected()) {
-                toDestroy = failGroup();
+                toDestroy = failGroup(true);
                 listeners = new ArrayList<>(exceptionListeners);
             }
         }
@@ -386,7 +393,10 @@ public class SenderPool {
                     // reportFailure(), which would deadlock on the lock we already hold.
                     halfBuilt = toConnect;
                     if (!reconnecting) {
-                        toDestroy = failGroup();
+                        // true: toConnect never finished connecting, so there is no sender to ask - the same
+                        // "initial connect did not complete" evidence restartConnectInBackground(long) counts as
+                        // a broken connection.
+                        toDestroy = failGroup(true);
                         toNotify = new ArrayList<>(exceptionListeners);
                     }
                     // else: a concurrent sibling's create() already failed the group first - absorbed.
@@ -421,13 +431,16 @@ public class SenderPool {
      * @param cause  the failure, passed on to the listeners and the reconnect loop.
      */
     void reportFailure(AbstractSender sender, Exception cause) {
+        // Classified outside the lock: this calls into transport code, which must never run while the group's
+        // lock is held.
+        final boolean brokenConnection = sender == null || classifyQuietly(sender, cause);
         List<AbstractSender> toDestroy = Collections.emptyList();
         List<SenderExceptionListener> listeners = null;
         synchronized (lock) {
             locked.remove(sender);
             retired.remove(sender);
             if (!reconnecting) {
-                toDestroy = failGroup();
+                toDestroy = failGroup(brokenConnection);
                 listeners = new ArrayList<>(exceptionListeners);
             }
         }
@@ -478,9 +491,11 @@ public class SenderPool {
      * Flips the group into the failed/reconnecting state and retires everything currently checked out. Must be
      * called with {@link #lock} held and only while {@code !reconnecting}.
      *
+     * @param brokenConnection whether the failure opening this outage indicated a broken connection.
      * @return the idle senders the caller must close <em>after</em> releasing the lock.
      */
-    private List<AbstractSender> failGroup() {
+    private List<AbstractSender> failGroup(boolean brokenConnection) {
+        outageIndicatesBrokenConnection = brokenConnection;
         reconnecting = true;
         failed = true;
         // A new outage invalidates whatever the previous reconnect published.
@@ -497,6 +512,20 @@ public class SenderPool {
         final List<AbstractSender> toDestroy = drain(unlocked);
         retired.addAll(locked);
         return toDestroy;
+    }
+
+    /**
+     * Asks the sender to classify the failure. A classifier that throws is treated as "cannot tell", so a broken
+     * implementation can never make the group behave differently than it did before classification existed.
+     */
+    private boolean classifyQuietly(AbstractSender sender, Exception cause) {
+        try {
+            return sender.isConnectionBroken(cause);
+        } catch (RuntimeException e) {
+            LOG.debug("Sender {} failed to classify a connection failure; assuming a broken connection.",
+                sender.getName(), e);
+            return true;
+        }
     }
 
     /**
@@ -647,6 +676,13 @@ public class SenderPool {
     int exceptionListenerFireCountForTest() {
         synchronized (lock) {
             return listenerFireCount;
+        }
+    }
+
+    /** Test-only: see {@link #outageIndicatesBrokenConnection}. */
+    boolean outageIndicatesBrokenConnectionForTest() {
+        synchronized (lock) {
+            return outageIndicatesBrokenConnection;
         }
     }
 

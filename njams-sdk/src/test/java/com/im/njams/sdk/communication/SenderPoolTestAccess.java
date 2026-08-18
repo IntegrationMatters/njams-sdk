@@ -29,6 +29,17 @@ public class SenderPoolTestAccess {
      */
     private static final List<SenderPool> POOLS = new CopyOnWriteArrayList<>();
 
+    /**
+     * A sender that rules out a connection loss for every failure, standing in for the per-transport
+     * classification SDK-474 will implement.
+     */
+    public static class SenderRulingOutConnectionLoss extends LifecycleTestSender {
+        @Override
+        protected boolean isConnectionBroken(Throwable failure) {
+            return false;
+        }
+    }
+
     private final SenderPool pool;
 
     private SenderPoolTestAccess(SenderPool pool) {
@@ -94,6 +105,20 @@ public class SenderPoolTestAccess {
     /** @return a sender that was never connected, for driving {@link SenderPool#reportFailure} directly. */
     public Object newUnconnectedSender() {
         return new LifecycleTestSender();
+    }
+
+    /** @return a sender whose classification rules out a connection loss, for driving the evidence gate. */
+    public Object newSenderRulingOutConnectionLoss() {
+        return new SenderRulingOutConnectionLoss();
+    }
+
+    /** @return whether the failure that opened the current outage was classified as a broken connection. */
+    public boolean outageIndicatesBrokenConnection() {
+        return pool.outageIndicatesBrokenConnectionForTest();
+    }
+
+    public void restartConnectInBackground(long timeoutMs) {
+        pool.restartConnectInBackground(timeoutMs);
     }
 
     /**
