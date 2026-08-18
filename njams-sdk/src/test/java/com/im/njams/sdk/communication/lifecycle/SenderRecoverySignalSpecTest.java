@@ -1,13 +1,16 @@
 package com.im.njams.sdk.communication.lifecycle;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.junit.Test;
 
 import com.im.njams.sdk.communication.SenderPoolTestAccess;
+import com.im.njams.sdk.communication.SenderRecoveryListener;
 
 /**
  * Specifies SDK-473's evidence gate: the pool records whether the failure that opened an outage indicated a
@@ -82,5 +85,116 @@ public class SenderRecoverySignalSpecTest extends AbstractLifecycleSpecTest {
         assertTrue("the startup connect must succeed", pool.awaitStartup(10_000));
         assertFalse("a startup connect follows no outage at all",
             pool.recoveredAfterFailedConnectAttempt());
+    }
+
+    /** Counts recovery notifications reaching this listener. */
+    private static final class CountingRecoveryListener implements SenderRecoveryListener {
+        private final AtomicInteger count = new AtomicInteger();
+
+        @Override
+        public void onSenderGroupRecovered() {
+            count.incrementAndGet();
+        }
+    }
+
+    @Test
+    public void recoveryFromARealOutageSignalsEveryRegisteredListenerOnce() throws Exception {
+        SenderPoolTestAccess pool = SenderPoolTestAccess.create("none");
+        CountingRecoveryListener a = new CountingRecoveryListener();
+        CountingRecoveryListener b = new CountingRecoveryListener();
+        pool.addRecoveryListener(a);
+        pool.addRecoveryListener(b);
+
+        LifecycleTestTransport.setSenderMode(LifecycleTestTransport.ConnectMode.FAIL);
+        pool.reportFailure(pool.newUnconnectedSender(), new RuntimeException("real loss"));
+        assertTrue(LifecycleTestTransport.awaitConnectAttempts(1, 10, TimeUnit.SECONDS));
+        LifecycleTestTransport.setSenderMode(LifecycleTestTransport.ConnectMode.SUCCEED);
+        assertTrue(pool.awaitRecovered(10, TimeUnit.SECONDS));
+
+        // Mirrors the shared-communications HTTP shape: one group, several dedicated receivers, each signalled.
+        assertEquals("every registered listener is signalled exactly once per outage", 1, a.count.get());
+        assertEquals("every registered listener is signalled exactly once per outage", 1, b.count.get());
+    }
+
+    @Test
+    public void aTransientFailureAgainstAReachableEndpointSignalsNobody() throws Exception {
+        SenderPoolTestAccess pool = SenderPoolTestAccess.create("none");
+        CountingRecoveryListener listener = new CountingRecoveryListener();
+        pool.addRecoveryListener(listener);
+
+        // Connect mode stays SUCCEED, so the reconnect works on its first attempt.
+        pool.reportFailure(pool.newUnconnectedSender(), new RuntimeException("one bad send"));
+        assertTrue(pool.awaitRecovered(10, TimeUnit.SECONDS));
+
+        assertEquals("a healthy receiver must not be cycled when the endpoint was reachable all along",
+            0, listener.count.get());
+    }
+
+    @Test
+    public void anOutageTheSenderRuledOutSignalsNobody() throws Exception {
+        SenderPoolTestAccess pool = SenderPoolTestAccess.create("none");
+        CountingRecoveryListener listener = new CountingRecoveryListener();
+        pool.addRecoveryListener(listener);
+
+        LifecycleTestTransport.setSenderMode(LifecycleTestTransport.ConnectMode.FAIL);
+        pool.reportFailure(pool.newSenderRulingOutConnectionLoss(), new IllegalStateException("queue full"));
+        assertTrue(LifecycleTestTransport.awaitConnectAttempts(1, 10, TimeUnit.SECONDS));
+        LifecycleTestTransport.setSenderMode(LifecycleTestTransport.ConnectMode.SUCCEED);
+        assertTrue(pool.awaitRecovered(10, TimeUnit.SECONDS));
+
+        assertEquals("classification and connect evidence are combined with AND, not OR",
+            0, listener.count.get());
+    }
+
+    @Test
+    public void aListenerRegisteredTwiceIsSignalledOnce() throws Exception {
+        SenderPoolTestAccess pool = SenderPoolTestAccess.create("none");
+        CountingRecoveryListener shared = new CountingRecoveryListener();
+        // Mirrors two Njams instances registering the same shared receiver object.
+        pool.addRecoveryListener(shared);
+        pool.addRecoveryListener(shared);
+
+        LifecycleTestTransport.setSenderMode(LifecycleTestTransport.ConnectMode.FAIL);
+        pool.reportFailure(pool.newUnconnectedSender(), new RuntimeException("real loss"));
+        assertTrue(LifecycleTestTransport.awaitConnectAttempts(1, 10, TimeUnit.SECONDS));
+        LifecycleTestTransport.setSenderMode(LifecycleTestTransport.ConnectMode.SUCCEED);
+        assertTrue(pool.awaitRecovered(10, TimeUnit.SECONDS));
+
+        assertEquals("a shared receiver registered by several instances must be cycled once, not once per instance",
+            1, shared.count.get());
+    }
+
+    @Test
+    public void aRemovedListenerIsNotSignalled() throws Exception {
+        SenderPoolTestAccess pool = SenderPoolTestAccess.create("none");
+        CountingRecoveryListener listener = new CountingRecoveryListener();
+        pool.addRecoveryListener(listener);
+        pool.removeRecoveryListener(listener);
+
+        LifecycleTestTransport.setSenderMode(LifecycleTestTransport.ConnectMode.FAIL);
+        pool.reportFailure(pool.newUnconnectedSender(), new RuntimeException("real loss"));
+        assertTrue(LifecycleTestTransport.awaitConnectAttempts(1, 10, TimeUnit.SECONDS));
+        LifecycleTestTransport.setSenderMode(LifecycleTestTransport.ConnectMode.SUCCEED);
+        assertTrue(pool.awaitRecovered(10, TimeUnit.SECONDS));
+
+        assertEquals("a deregistered receiver must never be signalled again", 0, listener.count.get());
+    }
+
+    @Test
+    public void aThrowingListenerDoesNotStopTheOthers() throws Exception {
+        SenderPoolTestAccess pool = SenderPoolTestAccess.create("none");
+        CountingRecoveryListener good = new CountingRecoveryListener();
+        pool.addRecoveryListener(() -> {
+            throw new IllegalStateException("misbehaving listener");
+        });
+        pool.addRecoveryListener(good);
+
+        LifecycleTestTransport.setSenderMode(LifecycleTestTransport.ConnectMode.FAIL);
+        pool.reportFailure(pool.newUnconnectedSender(), new RuntimeException("real loss"));
+        assertTrue(LifecycleTestTransport.awaitConnectAttempts(1, 10, TimeUnit.SECONDS));
+        LifecycleTestTransport.setSenderMode(LifecycleTestTransport.ConnectMode.SUCCEED);
+        assertTrue(pool.awaitRecovered(10, TimeUnit.SECONDS));
+
+        assertEquals("one misbehaving listener must not stop the others", 1, good.count.get());
     }
 }

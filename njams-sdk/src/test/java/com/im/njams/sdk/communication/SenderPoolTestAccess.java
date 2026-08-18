@@ -186,4 +186,12 @@ public class SenderPoolTestAccess {
         pool.beginConnect();
         return pool.awaitStartup(timeoutMs);
     }
+
+    public void addRecoveryListener(SenderRecoveryListener listener) {
+        pool.addSenderRecoveryListener(listener);
+    }
+
+    public void removeRecoveryListener(SenderRecoveryListener listener) {
+        pool.removeSenderRecoveryListener(listener);
+    }
 }

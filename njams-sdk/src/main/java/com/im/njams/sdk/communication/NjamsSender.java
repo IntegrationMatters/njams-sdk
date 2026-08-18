@@ -344,10 +344,43 @@ public class NjamsSender {
         return executor;
     }
 
+    /**
+     * Adds a listener notified whenever a message could not be sent through this group.
+     *
+     * @param listener the listener to add.
+     * @throws IllegalStateException if this sender was not initialized.
+     */
     public void addSenderExceptionListener(SenderExceptionListener listener) {
         if (senderPool == null) {
             throw new IllegalStateException("Sender not initialized.");
         }
         senderPool.addSenderExceptionListener(listener);
+    }
+
+    /**
+     * Adds a listener notified once whenever this group recovers from a connection outage.
+     *
+     * @param listener the listener to add.
+     * @throws IllegalStateException if this sender was not initialized.
+     * @since 6.0.0
+     */
+    public void addSenderRecoveryListener(SenderRecoveryListener listener) {
+        if (senderPool == null) {
+            throw new IllegalStateException("Sender not initialized.");
+        }
+        senderPool.addSenderRecoveryListener(listener);
+    }
+
+    /**
+     * Removes a listener added with {@link #addSenderRecoveryListener(SenderRecoveryListener)}. A shared group
+     * outlives the clients using it, so a stopped client must take its listener with it.
+     *
+     * @param listener the listener to remove; unknown listeners and an uninitialized sender are ignored.
+     * @since 6.0.0
+     */
+    public void removeSenderRecoveryListener(SenderRecoveryListener listener) {
+        if (senderPool != null) {
+            senderPool.removeSenderRecoveryListener(listener);
+        }
     }
 }

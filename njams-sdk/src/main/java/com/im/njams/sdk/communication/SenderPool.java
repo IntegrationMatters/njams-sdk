@@ -97,6 +97,13 @@ public class SenderPool {
      */
     private final Collection<SenderExceptionListener> exceptionListeners =
         Collections.newSetFromMap(new IdentityHashMap<>());
+    /**
+     * Identity semantics for the same reason as {@link #exceptionListeners}: a shared receiver registered by
+     * several {@code Njams} instances must be signalled once, not once per instance. Add-only would leak a
+     * stopped instance's receiver into a JVM-wide shared group, hence {@link #removeSenderRecoveryListener}.
+     */
+    private final Collection<SenderRecoveryListener> recoveryListeners =
+        Collections.newSetFromMap(new IdentityHashMap<>());
 
     private boolean reconnecting = false;
     /**
@@ -119,6 +126,7 @@ public class SenderPool {
     private boolean draining = false;
     /** Counts group-failure notifications, i.e. how often a reconnector was elected. Guarded by {@link #lock}. */
     private int listenerFireCount = 0;
+    private int recoveryListenerFireCount = 0;
     /** The sender the connector published most recently, for {@link #awaitPublishedSenderForTest()}. */
     private AbstractSender lastPublished;
 
@@ -169,6 +177,30 @@ public class SenderPool {
     public void addSenderExceptionListener(SenderExceptionListener listener) {
         synchronized (lock) {
             exceptionListeners.add(listener);
+        }
+    }
+
+    /**
+     * Adds a listener notified once per outage, when the group's connection is re-established after at least one
+     * failed connect attempt.
+     *
+     * @param listener the listener to add.
+     */
+    void addSenderRecoveryListener(SenderRecoveryListener listener) {
+        synchronized (lock) {
+            recoveryListeners.add(listener);
+        }
+    }
+
+    /**
+     * Removes a previously added recovery listener. Required because a shared group outlives the individual
+     * clients using it.
+     *
+     * @param listener the listener to remove; unknown listeners are ignored.
+     */
+    void removeSenderRecoveryListener(SenderRecoveryListener listener) {
+        synchronized (lock) {
+            recoveryListeners.remove(listener);
         }
     }
 
@@ -486,13 +518,40 @@ public class SenderPool {
      *         the only reliable evidence that the endpoint really was unreachable.
      */
     void onReconnected(AbstractSender connected, boolean afterFailedConnectAttempt) {
+        final List<SenderRecoveryListener> toNotify;
         synchronized (lock) {
+            // Both halves of the gate, evaluated while the outage's state is still intact: the failure that
+            // opened it looked like a broken connection, AND the connector really could not reach the endpoint.
+            final boolean recoveredFromOutage = afterFailedConnectAttempt && outageIndicatesBrokenConnection;
             recoveredAfterFailedConnectAttempt = afterFailedConnectAttempt;
             reconnecting = false;
             failed = false;
             lastPublished = connected;
             unlocked.add(connected);
             lock.notifyAll();
+            toNotify = recoveredFromOutage ? new ArrayList<>(recoveryListeners) : null;
+            if (recoveredFromOutage) {
+                recoveryListenerFireCount++;
+            }
+        }
+        if (toNotify != null) {
+            notifyRecovered(toNotify);
+        }
+    }
+
+    /**
+     * Signals the listeners <em>outside</em> {@link #lock}: a listener cycles a receiver's connection, which must
+     * never run while the group's lock is held.
+     */
+    private void notifyRecovered(List<SenderRecoveryListener> listeners) {
+        for (SenderRecoveryListener listener : listeners) {
+            try {
+                listener.onSenderGroupRecovered();
+            } catch (RuntimeException e) {
+                // One misbehaving listener must not stop the others from learning about the recovery.
+                LOG.error("Sender recovery listener {} failed while handling the group's reconnect.",
+                    listener.getClass().getName(), e);
+            }
         }
     }
 
@@ -685,6 +744,13 @@ public class SenderPool {
     int exceptionListenerFireCountForTest() {
         synchronized (lock) {
             return listenerFireCount;
+        }
+    }
+
+    /** Test-only: how often the recovery listeners were fired, i.e. how many outages passed the gate. */
+    int recoveryListenerFireCountForTest() {
+        synchronized (lock) {
+            return recoveryListenerFireCount;
         }
     }
 
