@@ -37,7 +37,8 @@ import com.im.njams.sdk.settings.ClientSettings;
  * <p>
  * The connector works on its own private {@link AbstractSender}: while a startup connect or a reconnect loop is
  * running, that instance is exclusively the connector's and is never reachable through {@link SenderPool#acquire()}.
- * Only once it is connected is it transferred to the pool via {@link SenderPool#onReconnected(AbstractSender)}, so
+ * Only once it is connected is it transferred to the pool via
+ * {@link SenderPool#onReconnected(AbstractSender, boolean)}, so
  * waiters wake with a working sender already available instead of each racing to connect on a worker thread.
  * <p>
  * Startup is re-enterable: any number of later callers awaiting an already-connected group get an immediate
@@ -146,7 +147,8 @@ class SenderConnector {
             sender = createSender();
             sender.connect();
             coordinator.markStartupConnected();
-            pool.onReconnected(sender);
+            // A startup connect follows no outage, so it is never evidence that the endpoint was unreachable.
+            pool.onReconnected(sender, false);
             sender = null; // ownership transferred
         } catch (Exception e) {
             startupError = e;
@@ -212,6 +214,9 @@ class SenderConnector {
         if (LOG.isInfoEnabled() && cause != null) {
             LOG.info("Initialized reconnect, because of: {}", getExceptionWithCauses(cause));
         }
+        // Whether any attempt in this loop actually failed. A group that reconnects on its first attempt was
+        // never unreachable — the failure that opened the outage came from something else (see SDK-474).
+        boolean connectAttemptFailed = false;
         while (!coordinator.isGroupConnected() && !coordinator.shouldShutdown()) {
             AbstractSender sender = null;
             try {
@@ -220,9 +225,10 @@ class SenderConnector {
                 if (coordinator.markConnected()) {
                     LOG.info("Reconnected sender {}", sender.getName());
                 }
-                pool.onReconnected(sender);
+                pool.onReconnected(sender, connectAttemptFailed);
                 return;
             } catch (Exception e) {
+                connectAttemptFailed = true;
                 closeQuietly(sender);
                 try {
                     Thread.sleep(RECONNECT_INTERVAL_MS);

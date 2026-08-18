@@ -3,6 +3,8 @@ package com.im.njams.sdk.communication.lifecycle;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import java.util.concurrent.TimeUnit;
+
 import org.junit.Test;
 
 import com.im.njams.sdk.communication.SenderPoolTestAccess;
@@ -48,5 +50,37 @@ public class SenderRecoverySignalSpecTest extends AbstractLifecycleSpecTest {
         pool.reportFailure(pool.newSenderRulingOutConnectionLoss(), new IllegalStateException("queue full"));
         assertTrue("only the electing failure classifies the outage",
             pool.outageIndicatesBrokenConnection());
+    }
+
+    @Test
+    public void aReconnectThatSucceedsImmediatelyIsNotRecordedAsAFailedConnect() throws Exception {
+        SenderPoolTestAccess pool = SenderPoolTestAccess.create("none");
+        // Connect mode stays SUCCEED: the outage flips the group, but the very first reconnect attempt works —
+        // the transient-failure-against-a-reachable-endpoint case.
+        pool.reportFailure(pool.newUnconnectedSender(), new RuntimeException("one bad send"));
+        assertTrue("the group must recover", pool.awaitRecovered(10, TimeUnit.SECONDS));
+        assertFalse("a reconnect that succeeded on its first attempt is no evidence of unreachability",
+            pool.recoveredAfterFailedConnectAttempt());
+    }
+
+    @Test
+    public void aReconnectThatHadToRetryIsRecordedAsAFailedConnect() throws Exception {
+        SenderPoolTestAccess pool = SenderPoolTestAccess.create("none");
+        LifecycleTestTransport.setSenderMode(LifecycleTestTransport.ConnectMode.FAIL);
+        pool.reportFailure(pool.newUnconnectedSender(), new RuntimeException("real loss"));
+        assertTrue("the reconnect loop must have attempted at least one connect",
+            LifecycleTestTransport.awaitConnectAttempts(1, 10, TimeUnit.SECONDS));
+        LifecycleTestTransport.setSenderMode(LifecycleTestTransport.ConnectMode.SUCCEED);
+        assertTrue("the group must recover once connects succeed again", pool.awaitRecovered(10, TimeUnit.SECONDS));
+        assertTrue("a reconnect that had to retry is evidence the endpoint was unreachable",
+            pool.recoveredAfterFailedConnectAttempt());
+    }
+
+    @Test
+    public void aStartupConnectIsNeverRecordedAsRecoveryFromAFailedConnect() throws Exception {
+        SenderPoolTestAccess pool = SenderPoolTestAccess.create("none");
+        assertTrue("the startup connect must succeed", pool.awaitStartup(10_000));
+        assertFalse("a startup connect follows no outage at all",
+            pool.recoveredAfterFailedConnectAttempt());
     }
 }

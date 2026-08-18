@@ -61,7 +61,8 @@ import com.im.njams.sdk.settings.ClientSettings;
  * {@link #release(AbstractSender)}, which then closes it instead of recycling it. This is what keeps a broken
  * sender from being handed to the next caller without ever closing a sender under a foreign thread. Later reports
  * for the same outage are absorbed, so a burst of failing worker threads produces one reconnect, not one per
- * thread. When the connector has a working sender it publishes it via {@link #onReconnected(AbstractSender)},
+ * thread. When the connector has a working sender it publishes it via
+ * {@link #onReconnected(AbstractSender, boolean)},
  * which clears the failure state and wakes everyone parked in {@link #acquire()}.
  *
  * @author hsiegeln
@@ -100,11 +101,16 @@ public class SenderPool {
     private boolean reconnecting = false;
     /**
      * Whether the failure that opened the current outage indicated a broken connection, as classified by the
-     * failing sender. Only ever touched under {@link #lock}. Consumed by {@code onReconnected(AbstractSender,
-     * boolean)} (added once {@link #onReconnected(AbstractSender)} grows that parameter) and by nothing else — it
-     * must not influence retirement, message fate or the discard policy (SDK-474 owns those).
+     * failing sender. Only ever touched under {@link #lock}. Consumed by
+     * {@link #onReconnected(AbstractSender, boolean)} and by nothing else — it must not influence retirement,
+     * message fate or the discard policy (SDK-474 owns those).
      */
     private boolean outageIndicatesBrokenConnection = true;
+    /**
+     * Whether the publish that made the group healthy again followed at least one failed connect attempt, i.e.
+     * whether the endpoint was demonstrably unreachable. Only ever touched under {@link #lock}.
+     */
+    private boolean recoveredAfterFailedConnectAttempt = false;
     /** Read without the lock by {@link #isConnectionFailure()} on the executor's rejection path. */
     private volatile boolean failed = false;
     /** Set by {@link #declareShutdown()}: blocks creation of new senders. */
@@ -476,9 +482,12 @@ public class SenderPool {
      * becomes available to the next caller, and everyone parked in {@link #acquire()} is woken.
      *
      * @param connected the freshly connected sender; ownership transfers to this pool.
+     * @param afterFailedConnectAttempt whether the connector had to retry before this connect succeeded, which is
+     *         the only reliable evidence that the endpoint really was unreachable.
      */
-    void onReconnected(AbstractSender connected) {
+    void onReconnected(AbstractSender connected, boolean afterFailedConnectAttempt) {
         synchronized (lock) {
+            recoveredAfterFailedConnectAttempt = afterFailedConnectAttempt;
             reconnecting = false;
             failed = false;
             lastPublished = connected;
@@ -643,7 +652,7 @@ public class SenderPool {
 
     /**
      * Test-only accessor (hence the name): waits for the connector to publish a connected sender through
-     * {@link #onReconnected(AbstractSender)} and returns it. Uses the pool's own lock/wait pair rather than
+     * {@link #onReconnected(AbstractSender, boolean)} and returns it. Uses the pool's own lock/wait pair rather than
      * polling. Narrowly named and package-private in preference to widening real API or using reflection.
      *
      * @return the most recently published sender, or {@code null} if none was published within 5 seconds.
@@ -683,6 +692,13 @@ public class SenderPool {
     boolean outageIndicatesBrokenConnectionForTest() {
         synchronized (lock) {
             return outageIndicatesBrokenConnection;
+        }
+    }
+
+    /** Test-only: see {@link #recoveredAfterFailedConnectAttempt}. */
+    boolean recoveredAfterFailedConnectAttemptForTest() {
+        synchronized (lock) {
+            return recoveredAfterFailedConnectAttempt;
         }
     }
 

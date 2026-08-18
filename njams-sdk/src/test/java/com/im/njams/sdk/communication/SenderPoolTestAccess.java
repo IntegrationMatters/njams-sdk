@@ -164,4 +164,26 @@ public class SenderPoolTestAccess {
     public void notifyConnectionFailureOn(Object sender, Exception cause) {
         ((LifecycleTestSender) sender).reportAsyncFailure(cause);
     }
+
+    /** @return whether the last publish to the pool followed at least one failed connect attempt. */
+    public boolean recoveredAfterFailedConnectAttempt() {
+        return pool.recoveredAfterFailedConnectAttemptForTest();
+    }
+
+    /** Polls until the group is connected again after an outage. */
+    public boolean awaitRecovered(long timeout, TimeUnit unit) throws InterruptedException {
+        long deadline = System.nanoTime() + unit.toNanos(timeout);
+        while (System.nanoTime() < deadline) {
+            if (!pool.isConnectionFailure()) {
+                return true;
+            }
+            Thread.sleep(25);
+        }
+        return !pool.isConnectionFailure();
+    }
+
+    public boolean awaitStartup(long timeoutMs) {
+        pool.beginConnect();
+        return pool.awaitStartup(timeoutMs);
+    }
 }
