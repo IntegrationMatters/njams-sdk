@@ -679,8 +679,10 @@ public class Njams implements InstructionListener {
 
     /**
      * Best-effort receiver setup: resolves the receiver (from the pre-warmed {@code earlyReceiver} or newly
-     * created), starts its connection, and, if the receiver reports send exceptions, registers it as a listener
-     * on the given sender group. The receiver's connection outcome never affects {@code start()} — a
+     * created), starts its connection, and, if the receiver reports send exceptions or implements
+     * {@link SenderRecoveryListener}, registers it as a listener on the given sender group; {@link #stop()} (or
+     * {@link #stopReceiverAfterStartupFailure(Receiver)} on a startup failure) removes it again. The
+     * receiver's connection outcome never affects {@code start()} — a
      * construction or connection failure is logged and the SDK proceeds without a working receiver; only the
      * sender is critical to startup (see {@link #start()}). Connecting the receiver here never blocks: see
      * {@link #connectReceiver(Receiver)}.
@@ -703,6 +705,12 @@ public class Njams implements InstructionListener {
             }
             if (receiver instanceof SenderExceptionListener && activeSender != null) {
                 activeSender.addSenderExceptionListener((SenderExceptionListener) receiver);
+            }
+            if (receiver instanceof SenderRecoveryListener && activeSender != null) {
+                // The receiver object itself is the listener, never a lambda: the pool's listener set has identity
+                // semantics, so a shared receiver registered by several instances collapses to one entry (one
+                // cycle per outage), while dedicated per-instance receivers on a shared group each get their own.
+                activeSender.addSenderRecoveryListener((SenderRecoveryListener) receiver);
             }
             connectReceiver(receiver);
         } catch (Exception e) {
@@ -813,6 +821,10 @@ public class Njams implements InstructionListener {
      * this shutdown must observe it. A {@code ShareableReceiver} cannot be signalled this early — only once
      * {@code removeNjamsFromSharedReceiver} confirms this was the last user is it safe to shut down, since
      * signalling earlier would wrongly affect a receiver other {@code Njams} instances still use.
+     * <p>
+     * Also deregisters the receiver from the sender group's recovery listeners, mirroring the registration done
+     * in {@link #startReceiver(NjamsSender)}, so a stopped receiver is not left referenced by (and reacting to) a
+     * sender group it no longer belongs to.
      *
      * @param failedReceiver the receiver to stop; {@code null} is a no-op.
      */
@@ -839,6 +851,10 @@ public class Njams implements InstructionListener {
             if (reallyStopped && failedReceiver instanceof AbstractReceiver) {
                 ((AbstractReceiver) failedReceiver).setShouldShutdown(true);
                 ((AbstractReceiver) failedReceiver).cancelReconnect();
+            }
+            if (reallyStopped && failedReceiver instanceof SenderRecoveryListener && sender != null) {
+                // Same reasoning as in stop(): a shared group must not keep a dead receiver registered.
+                sender.removeSenderRecoveryListener((SenderRecoveryListener) failedReceiver);
             }
         } catch (Exception ex) {
             LOG.debug("Unable to stop receiver after startup failure", ex);
@@ -916,6 +932,13 @@ public class Njams implements InstructionListener {
             if (reallyStopped && receiver instanceof AbstractReceiver) {
                 ((AbstractReceiver) receiver).setShouldShutdown(true);
                 ((AbstractReceiver) receiver).cancelReconnect();
+            }
+            if (reallyStopped && receiver instanceof SenderRecoveryListener && sender != null) {
+                // A shared sender group outlives the instances using it: leaving a stopped receiver registered
+                // would keep it referenced for the group's lifetime and signal it on every later outage. Gated on
+                // reallyStopped so a shared receiver a sibling still uses stays registered. Removing after
+                // sender.close() is safe — close() shuts the pool down but keeps it reachable.
+                sender.removeSenderRecoveryListener((SenderRecoveryListener) receiver);
             }
         }
         commands.clear();
