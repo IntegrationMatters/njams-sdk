@@ -111,4 +111,29 @@ public class ReceiverRecoveryCycleSpecTest extends AbstractLifecycleSpecTest {
         assertEquals("a receiver still connecting for the first time must not be cycled",
             connectsBefore, LifecycleTestTransport.receiverConnectCount());
     }
+
+    /**
+     * Regression guard for a final-review finding: {@link com.im.njams.sdk.communication.AbstractReceiver
+     * #onSenderGroupRecovered()} used to call {@code onException(...)} inline, blocking whatever thread invoked
+     * it — normally the sender group's own single reconnect thread — until this receiver's own {@code stop()}
+     * completed. A slow {@code stop()} (e.g. closing an already-dead connection) would then leave the sender
+     * group unable to elect a reconnector for any later, unrelated outage until the cycle finished.
+     */
+    @Test(timeout = 10_000)
+    public void onSenderGroupRecoveredDoesNotBlockTheCallingThreadOnASlowStop() throws Exception {
+        LifecycleTestReceiver receiver = connectedReceiver();
+        LifecycleTestTransport.armReceiverStopBlocks();
+
+        // If onSenderGroupRecovered() still blocked inline on stop(), this call would hang here forever, since
+        // the gate below is only released after it returns — the @Test timeout is the safety net for that
+        // regression, matching the existing SenderDeadlockRegressionTest's own use of a hard timeout for the
+        // same class of problem.
+        receiver.onSenderGroupRecovered();
+
+        assertTrue("the cycle must actually have reached stop(), just not on this calling thread",
+            LifecycleTestTransport.receiverStopEnteredLatch().await(5, TimeUnit.SECONDS));
+        LifecycleTestTransport.releaseReceiverStop();
+        awaitTrue("the receiver must finish reconnecting once its blocked stop() call is released", 5000,
+            receiver::isConnected);
+    }
 }

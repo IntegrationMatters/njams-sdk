@@ -226,6 +226,10 @@ public abstract class AbstractSender {
      * <p>
      * A transport that cannot tell the difference must leave this alone: the default answer is that the
      * connection may be broken.
+     * <p>
+     * Currently consumed only to decide whether a registered {@link SenderRecoveryListener} is notified when the
+     * group recovers; it does not influence retirement, message discard, or the group's own failed/reconnecting
+     * state.
      *
      * @param failure the failure that was reported; may be {@code null}.
      * @return {@code true} unless this transport can rule out a connection loss.

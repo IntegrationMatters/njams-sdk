@@ -106,6 +106,11 @@ public class LifecycleTestReceiver extends AbstractReceiver {
     @Override
     public void stop() {
         callOrder.add("stop()");
+        try {
+            LifecycleTestTransport.onReceiverStop();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
         connectionStatus = ConnectionStatus.DISCONNECTED;
     }
 

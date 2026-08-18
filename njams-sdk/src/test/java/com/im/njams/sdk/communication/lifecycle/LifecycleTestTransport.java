@@ -29,6 +29,15 @@ public final class LifecycleTestTransport {
     private static volatile CountDownLatch receiverConnectAttempted = new CountDownLatch(1);
     private static final AtomicInteger receiverConnectCount = new AtomicInteger(0);
 
+    /** When armed, the next {@link LifecycleTestReceiver#stop()} call blocks on {@link #receiverStopGate} until
+     * released, then disarms itself. Simulates a slow/blocking transport shutdown (e.g. closing an
+     * already-dead connection) for tests proving a caller must not be blocked by it. */
+    private static volatile boolean receiverStopBlocks = false;
+    /** Fires once a blocked {@code stop()} call has entered the gate. */
+    private static volatile CountDownLatch receiverStopEntered = new CountDownLatch(1);
+    /** Released to let a blocked {@code stop()} call proceed. */
+    private static volatile CountDownLatch receiverStopGate = new CountDownLatch(1);
+
     /** When armed, the next {@link LifecycleTestReceiver#init} call throws instead of succeeding, then disarms
      * itself so every subsequent {@code init} call succeeds normally. */
     private static final AtomicBoolean receiverConstructionShouldFailOnce = new AtomicBoolean(false);
@@ -89,6 +98,9 @@ public final class LifecycleTestTransport {
         receiverConnectCount.set(0);
         receiverConstructionShouldFailOnce.set(false);
         receiverConstructionFailureFired = false;
+        receiverStopBlocks = false;
+        receiverStopEntered = new CountDownLatch(1);
+        receiverStopGate = new CountDownLatch(1);
     }
 
     /** Arms the block-then-fail send mode: the next message send blocks on the gate, then fails. */
@@ -304,6 +316,22 @@ public final class LifecycleTestTransport {
         return receiverConnectAttempted;
     }
 
+    /** Arms the block-on-stop mode: the next {@link LifecycleTestReceiver#stop()} call blocks until
+     * {@link #releaseReceiverStop()} is called. */
+    public static void armReceiverStopBlocks() {
+        receiverStopBlocks = true;
+    }
+
+    /** @return the latch that fires once a blocked {@code stop()} call has entered the gate. */
+    public static CountDownLatch receiverStopEnteredLatch() {
+        return receiverStopEntered;
+    }
+
+    /** Lets a currently-blocked {@code stop()} call proceed. */
+    public static void releaseReceiverStop() {
+        receiverStopGate.countDown();
+    }
+
     public static int receiverConnectCount() {
         return receiverConnectCount.get();
     }
@@ -325,6 +353,15 @@ public final class LifecycleTestTransport {
         }
     }
 
+    // called by LifecycleTestReceiver.stop()
+    static void onReceiverStop() throws InterruptedException {
+        if (receiverStopBlocks) {
+            receiverStopBlocks = false;
+            receiverStopEntered.countDown();
+            receiverStopGate.await();
+        }
+    }
+
     /**
      * Stops every {@link LifecycleTestReceiver} a test created — sets shutdown, cancels reconnect, and releases the
      * BLOCK gate so any blocking connect thread can finish — then clears the receiver registry. Call in @After so
@@ -333,6 +370,7 @@ public final class LifecycleTestTransport {
     public static void shutdownAllReceivers() {
         LifecycleTestReceiver.shutdownAll();
         releaseBlockedReceiverConnect();
+        releaseReceiverStop();
     }
 
     /** Settings selecting this transport with the in-memory configuration provider. */

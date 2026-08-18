@@ -289,7 +289,8 @@ This applies to all transports (HTTP, JMS, Kafka). For JMS in particular, the JM
 connection timeout; without this bound a startup attempt against an unreachable broker could silently block for
 60–120 seconds at the OS TCP level.
 
-**The receiver is independent and never blocks or fails startup.** Unlike the sender, the receiver's connection
+**The receiver is independent and never blocks or fails startup** (its ongoing connection is a different
+matter — see below). Unlike the sender, the receiver's connection
 outcome — whether at startup or later — never affects `start()`'s return value, and is not governed by
 `njams.sdk.communication.startup.failbehavior` or any other setting: it always retries in the background
 unconditionally. This is intentional — if the receiver cannot connect, the client can still push monitoring data

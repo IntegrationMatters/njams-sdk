@@ -1,6 +1,7 @@
 package com.im.njams.sdk.communication.lifecycle;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
@@ -160,5 +161,45 @@ public class SharedSenderRecoverySignalSpecTest extends AbstractLifecycleSpecTes
             LifecycleTestTransport.awaitSuccessfulSends(successfulSendsBefore + 1, 20, TimeUnit.SECONDS));
         assertEquals("a stopped client's receiver must no longer be cycled by the group it left",
             connectsAfterLastStop, LifecycleTestTransport.receiverConnectCount());
+    }
+
+    /**
+     * Regression guard for a final-review finding (M3): the deregistration branch in {@code
+     * Njams#stopReceiverAfterStartupFailure} (only reachable when the shared sender group fails to connect at
+     * startup under the default {@code fail} startup policy) had no test — every existing test of receiver
+     * deregistration above only exercises the normal {@link Njams#stop()} path. Its correctness rests on the
+     * {@code sender} field already being set by the time this branch runs, which is only true because
+     * {@code start()} calls {@code getSender()} before {@code startReceiver}, which itself runs before the
+     * sender's {@code startWithTimeout} check — this pins that ordering so a future refactor cannot silently
+     * break it.
+     */
+    @Test
+    public void aClientThatFailedAtStartupNeverHasItsReceiverCycled() throws Exception {
+        NjamsSender group = takeSharedSender();
+        LifecycleTestTransport.setSenderMode(LifecycleTestTransport.ConnectMode.FAIL);
+
+        Njams failed = new Njams(Path.of("test", "sharedRecoveryStartupFail"), "1.0", "test", sharedSettings());
+        clients.add(failed);
+        assertFalse("the client's startup must fail because the shared sender group cannot connect",
+            failed.start());
+
+        SharedLifecycleTestReceiver receiver = SharedLifecycleTestReceiver.lastCreated();
+        assertNotNull("the receiver must still have been created and registered before the sender's startup "
+            + "failure was discovered", receiver);
+
+        LifecycleTestTransport.setSenderMode(LifecycleTestTransport.ConnectMode.SUCCEED);
+        // The failed client's own fail-fast startup connect was cancelled, not retried (the group never called
+        // allowReconnectBeforeConnected()), so the group itself was never actually connected through its own
+        // connector — driveOutageAndRecovery's later reconnect election would find nothing to elect a reconnector
+        // for. Establish a real, connector-driven first connection on the group directly (bypassing another
+        // Njams/receiver) before driving the outage, exactly mirroring what a normal client's own start() does.
+        group.beginConnect();
+        assertTrue("the group must connect once the transport is healthy again",
+            group.startWithTimeout(5000, false));
+        int connectsBefore = LifecycleTestTransport.receiverConnectCount();
+        driveOutageAndRecovery(group);
+
+        assertEquals("a receiver whose client failed at startup must have been deregistered and never cycled",
+            connectsBefore, LifecycleTestTransport.receiverConnectCount());
     }
 }

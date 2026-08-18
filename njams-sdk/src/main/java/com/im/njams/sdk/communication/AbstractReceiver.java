@@ -406,8 +406,17 @@ public abstract class AbstractReceiver implements Receiver, SenderRecoveryListen
         }
         LOG.info("Receiver {}: cycling the connection because the sender group recovered from a connection "
             + "outage.", getName());
-        onException(new NjamsSdkRuntimeException(
-            "Cycling the receiver after the sender group recovered from a connection outage"));
+        // Dispatched onto its own thread rather than calling onException(...) inline: the caller here is the
+        // sender group's own single reconnect thread, and that thread must not block on this receiver's own
+        // stop()/reconnect() cycle (which can block for a while, e.g. closing an already-dead connection) —
+        // doing so would leave the sender group unable to elect a reconnector for any later, unrelated outage
+        // until this cycle finishes.
+        Thread cycler = new Thread(() -> onException(new NjamsSdkRuntimeException(
+            "Cycling the receiver after the sender group recovered from a connection outage")));
+        cycler.setDaemon(true);
+        cycler.setName(String.format("Receiver-Recovery-Cycle-Thread[%s/%d]", getName(),
+            System.identityHashCode(this)));
+        cycler.start();
     }
 
     /** @return {@code true} while this receiver's own reconnect loop is running. */

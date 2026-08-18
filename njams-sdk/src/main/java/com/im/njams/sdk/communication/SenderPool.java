@@ -126,7 +126,6 @@ public class SenderPool {
     private boolean draining = false;
     /** Counts group-failure notifications, i.e. how often a reconnector was elected. Guarded by {@link #lock}. */
     private int listenerFireCount = 0;
-    private int recoveryListenerFireCount = 0;
     /** The sender the connector published most recently, for {@link #awaitPublishedSenderForTest()}. */
     private AbstractSender lastPublished;
 
@@ -530,9 +529,6 @@ public class SenderPool {
             unlocked.add(connected);
             lock.notifyAll();
             toNotify = recoveredFromOutage ? new ArrayList<>(recoveryListeners) : null;
-            if (recoveredFromOutage) {
-                recoveryListenerFireCount++;
-            }
         }
         if (toNotify != null) {
             notifyRecovered(toNotify);
@@ -547,7 +543,7 @@ public class SenderPool {
         for (SenderRecoveryListener listener : listeners) {
             try {
                 listener.onSenderGroupRecovered();
-            } catch (RuntimeException e) {
+            } catch (RuntimeException | Error e) {
                 // One misbehaving listener must not stop the others from learning about the recovery.
                 LOG.error("Sender recovery listener {} failed while handling the group's reconnect.",
                     listener.getClass().getName(), e);
@@ -744,13 +740,6 @@ public class SenderPool {
     int exceptionListenerFireCountForTest() {
         synchronized (lock) {
             return listenerFireCount;
-        }
-    }
-
-    /** Test-only: how often the recovery listeners were fired, i.e. how many outages passed the gate. */
-    int recoveryListenerFireCountForTest() {
-        synchronized (lock) {
-            return recoveryListenerFireCount;
         }
     }
 
