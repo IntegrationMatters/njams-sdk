@@ -23,6 +23,7 @@
  */
 package com.im.njams.sdk.communication;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
@@ -30,6 +31,14 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.stream.Collectors;
+
+import org.apache.log4j.AppenderSkeleton;
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
+import org.apache.log4j.spi.LoggingEvent;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -88,6 +97,31 @@ public class CommunicationFactoryTest {
     }
 
     @Test
+    public void theDedicatedReceiverFallbackIsLoggedAtInfoNotWarn() {
+        Logger factoryLogger = Logger.getLogger(CommunicationFactory.class);
+        CapturingAppender appender = new CapturingAppender();
+        Level originalLevel = factoryLogger.getLevel();
+        factoryLogger.addAppender(appender);
+        factoryLogger.setLevel(Level.DEBUG);
+        try {
+            Settings settings = createSettings("HTTP");
+            settings.put(NjamsSettings.PROPERTY_HTTP_BASE_URL, "http://localhost:8080/njams/");
+            settings.put(NjamsSettings.PROPERTY_SHARED_COMMUNICATIONS, "true");
+            new CommunicationFactory(settings).getReceiver(njams);
+
+            List<LoggingEvent> aboutSharing = appender.events().stream()
+                .filter(e -> String.valueOf(e.getRenderedMessage()).contains("dedicated receiver instance"))
+                .collect(Collectors.toList());
+            assertEquals("the fallback must be reported exactly once", 1, aboutSharing.size());
+            assertEquals("a deliberate design decision must not be logged as a warning",
+                Level.INFO, aboutSharing.get(0).getLevel());
+        } finally {
+            factoryLogger.removeAppender(appender);
+            factoryLogger.setLevel(originalLevel);
+        }
+    }
+
+    @Test
     public void testCreateFail() {
         CommunicationFactory factory = new CommunicationFactory(createSettings(FailingJmsFactory.NAME));
         try {
@@ -140,6 +174,30 @@ public class CommunicationFactoryTest {
             factory.getReceiver(njams);
             fail("IllegalStateException expected");
         } catch (IllegalStateException e) {
+        }
+    }
+
+    /** Captures log events so a test can assert on their level. Mirrors {@code ReceiverLoggingSpecTest}'s. */
+    private static final class CapturingAppender extends AppenderSkeleton {
+        private final List<LoggingEvent> events = new CopyOnWriteArrayList<>();
+
+        List<LoggingEvent> events() {
+            return events;
+        }
+
+        @Override
+        protected void append(LoggingEvent event) {
+            events.add(event);
+        }
+
+        @Override
+        public void close() {
+            // nothing to release
+        }
+
+        @Override
+        public boolean requiresLayout() {
+            return false;
         }
     }
 

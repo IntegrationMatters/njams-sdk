@@ -114,8 +114,8 @@ public class CommunicationFactory {
         if (found == null) {
             found = receivers.find(r -> r.getName().equalsIgnoreCase(name));
             if (wantsSharable && found != null) {
-                LOG.warn("The requested communication type '{}' does not support sharing the receiver instance. "
-                        + "Creating a dedicated instance instead.", found.getName());
+                LOG.info("Communication type '{}' uses a dedicated receiver instance per client; sharing applies "
+                    + "to the sender only.", found.getName());
             }
         }
         LOG.debug("Found receiver for criteria name={}, sharable={}: {}", name, wantsSharable,
