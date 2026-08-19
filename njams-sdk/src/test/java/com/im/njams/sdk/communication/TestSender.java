@@ -114,4 +114,14 @@ public class TestSender extends AbstractSender {
     protected void send(TraceMessage msg, String clientId) throws NjamsSdkRuntimeException {
         // TODO Auto-generated method stub
     }
+
+    @Override
+    protected boolean isCongestion(Throwable failure) {
+        return false;
+    }
+
+    @Override
+    protected boolean isMessageRejected(Throwable failure) {
+        return false;
+    }
 }

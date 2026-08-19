@@ -378,4 +378,16 @@ public class KafkaSender extends AbstractSender {
     protected boolean isCongestion(Throwable failure) {
         return false;
     }
+
+    /**
+     * Kafka is deprecated (see {@code kafka-argos-deprecated.md}) and receives no new classification investment,
+     * so no failure is ever treated as a permanent per-message rejection.
+     *
+     * @param failure the failure that was reported; ignored.
+     * @return always {@code false}.
+     */
+    @Override
+    protected boolean isMessageRejected(Throwable failure) {
+        return false;
+    }
 }

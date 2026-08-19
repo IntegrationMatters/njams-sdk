@@ -121,4 +121,14 @@ public class LifecycleTestSender extends AbstractSender {
             throw new NjamsSdkRuntimeException("interrupted during send", e);
         }
     }
+
+    @Override
+    protected boolean isCongestion(Throwable failure) {
+        return false;
+    }
+
+    @Override
+    protected boolean isMessageRejected(Throwable failure) {
+        return false;
+    }
 }

@@ -414,6 +414,20 @@ public class JmsSender extends AbstractSender implements ExceptionListener, Clas
     }
 
     /**
+     * JMS has no portable, provider-independent signal that distinguishes a permanently oversized message from
+     * transient resource exhaustion — both surface as the same {@link ResourceAllocationException} classified by
+     * {@link #isCongestion}. Guessing wrong here would silently drop a message that could still have gone through,
+     * so this intentionally never claims a message is permanently rejected.
+     *
+     * @param failure the failure that was reported; ignored.
+     * @return always {@code false}.
+     */
+    @Override
+    protected boolean isMessageRejected(Throwable failure) {
+        return false;
+    }
+
+    /**
      * This method gets all libraries that need to be checked.
      *
      * @return an array of Strings of fully qualified class names.

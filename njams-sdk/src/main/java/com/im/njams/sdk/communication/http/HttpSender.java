@@ -127,9 +127,6 @@ public class HttpSender extends AbstractSender {
     private static final int METHOD_NOT_ALLOWED = 405;
     private static final int PAYLOAD_TOO_LARGE = 413;
     private static final int TOO_MANY_REQUESTS = 429;
-    private static final int BAD_GATEWAY = 502;
-    private static final int SERVICE_UNAVAILABLE = 503;
-    private static final int GATEWAY_TIMEOUT = 504;
 
     protected URL url;
     protected OkHttpClient client;
@@ -478,22 +475,22 @@ public class HttpSender extends AbstractSender {
     }
 
     /**
-     * Identifies a repeated {@code 429}/{@code 502}/{@code 503}/{@code 504} response as congestion: the server is
-     * reachable and answering, just temporarily unable or unwilling to accept the request. Any other failure —
-     * including a client-side I/O failure ({@link HttpSendException}) or any other status code — is treated as a
-     * real connection problem.
+     * Identifies a repeated {@code 429} (Too Many Requests) response as congestion: an explicit rate-limit signal
+     * from an otherwise healthy target, expected to clear on its own without help. {@code 502}/{@code 503}/
+     * {@code 504} are deliberately <em>not</em> treated as congestion, even though they can also be transient: all
+     * three are commonly emitted by a reverse proxy/gateway in front of the actual nJAMS Server, or by the
+     * application itself to signal it is not currently processing requests — meaning the thing the SDK actually
+     * depends on may be unreachable or not ready, not merely busy — and none of them lets the SDK tell that case
+     * apart from a genuinely dead target. Any other failure — including a client-side I/O failure
+     * ({@link HttpSendException}) or any other status code — is likewise treated as a real connection problem.
      *
      * @param failure the failure that was reported.
-     * @return {@code true} only for a repeated transient HTTP status code.
+     * @return {@code true} only for a repeated {@code 429} response.
      */
     @Override
     protected boolean isCongestion(Throwable failure) {
-        if (!(failure instanceof HttpStatusException)) {
-            return false;
-        }
-        final int statusCode = ((HttpStatusException) failure).getStatusCode();
-        return statusCode == TOO_MANY_REQUESTS || statusCode == BAD_GATEWAY || statusCode == SERVICE_UNAVAILABLE
-            || statusCode == GATEWAY_TIMEOUT;
+        return failure instanceof HttpStatusException
+            && ((HttpStatusException) failure).getStatusCode() == TOO_MANY_REQUESTS;
     }
 
     /**

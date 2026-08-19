@@ -341,5 +341,15 @@ public class CleanTracepointsTaskTest extends AbstractTest {
             return TestSender.NAME;
         }
 
+        @Override
+        protected boolean isCongestion(Throwable failure) {
+            return false;
+        }
+
+        @Override
+        protected boolean isMessageRejected(Throwable failure) {
+            return false;
+        }
+
     }
 }

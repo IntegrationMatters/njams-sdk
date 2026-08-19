@@ -229,8 +229,9 @@ public abstract class AbstractSender {
      * security failure, a malformed request — is <em>not</em> congestion and must not return {@code true} here,
      * even though the transport is nominally "connected".
      * <p>
-     * A transport that cannot tell the difference must leave this alone: the default answer is that the failure
-     * is a real connection problem, not mere congestion.
+     * Part of the sender SPI: every implementation must decide this for itself, there is no inherited default.
+     * A transport that cannot positively identify congestion must simply return {@code false} — the safe choice,
+     * since it keeps the pre-classification behaviour of assuming a real connection problem.
      * <p>
      * Consumed to decide whether a registered {@link SenderRecoveryListener} is notified when the group recovers,
      * and by a transport's own send-retry loop to decide whether a failure under the
@@ -239,12 +240,11 @@ public abstract class AbstractSender {
      * failed/reconnecting state.
      *
      * @param failure the failure that was reported; may be {@code null}.
-     * @return {@code true} only if this transport can positively identify the failure as short-lived congestion.
+     * @return {@code true} only if this transport can positively identify the failure as short-lived congestion;
+     *         {@code false} — the safe default — for anything it cannot positively identify as such.
      * @since 6.0.0
      */
-    protected boolean isCongestion(Throwable failure) {
-        return false;
-    }
+    protected abstract boolean isCongestion(Throwable failure);
 
     /**
      * Classifies a failure reported for this sender. Return {@code true} only if retrying the exact message that
@@ -254,15 +254,15 @@ public abstract class AbstractSender {
      * {@link com.im.njams.sdk.NjamsSettings#PROPERTY_DISCARD_POLICY} entirely: retrying forever cannot help, so
      * discarding is preferable even under a policy that would otherwise never discard.
      * <p>
-     * A transport that cannot tell must leave this alone: the default answer is that retrying might still help.
+     * Part of the sender SPI: every implementation must decide this for itself, there is no inherited default.
+     * A transport that cannot positively identify a permanent rejection must simply return {@code false} — the
+     * safe choice, since retrying might still help.
      *
      * @param failure the failure that was reported; may be {@code null}.
      * @return {@code true} only if this transport can positively identify the message itself as permanently
-     *         unsendable.
+     *         unsendable; {@code false} — the safe default — for anything it cannot positively identify as such.
      * @since 6.0.0
      */
-    protected boolean isMessageRejected(Throwable failure) {
-        return false;
-    }
+    protected abstract boolean isMessageRejected(Throwable failure);
 
 }

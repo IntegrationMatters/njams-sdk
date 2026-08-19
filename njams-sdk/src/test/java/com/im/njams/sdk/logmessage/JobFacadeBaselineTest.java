@@ -480,5 +480,15 @@ public class JobFacadeBaselineTest {
         protected void send(com.faizsiegeln.njams.messageformat.v4.tracemessage.TraceMessage msg,
                 String clientSessionId) {
         }
+
+        @Override
+        protected boolean isCongestion(Throwable failure) {
+            return false;
+        }
+
+        @Override
+        protected boolean isMessageRejected(Throwable failure) {
+            return false;
+        }
     }
 }

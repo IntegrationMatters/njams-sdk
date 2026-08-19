@@ -183,12 +183,9 @@ public class HttpSenderTest {
     }
 
     @Test
-    public void isCongestionTrueForTransientStatusCodes() {
+    public void isCongestionTrueOnlyForTooManyRequests() {
         HttpSender sender = initializedSender();
         assertTrue(sender.isCongestion(new HttpStatusException(sender.url, 429)));
-        assertTrue(sender.isCongestion(new HttpStatusException(sender.url, 502)));
-        assertTrue(sender.isCongestion(new HttpStatusException(sender.url, 503)));
-        assertTrue(sender.isCongestion(new HttpStatusException(sender.url, 504)));
     }
 
     @Test
@@ -196,6 +193,11 @@ public class HttpSenderTest {
         HttpSender sender = initializedSender();
         assertFalse(sender.isCongestion(new HttpStatusException(sender.url, 404)));
         assertFalse(sender.isCongestion(new HttpStatusException(sender.url, 500)));
+        // Deliberately not congestion: a proxy/gateway or app-level "not ready" signal can mean the actual
+        // target is unreachable, not merely busy, and none of these lets the SDK tell the two apart.
+        assertFalse(sender.isCongestion(new HttpStatusException(sender.url, 502)));
+        assertFalse(sender.isCongestion(new HttpStatusException(sender.url, 503)));
+        assertFalse(sender.isCongestion(new HttpStatusException(sender.url, 504)));
     }
 
     @Test
@@ -253,10 +255,23 @@ public class HttpSenderTest {
         final int[] attempt = { 0 };
         when(call.execute()).thenAnswer(invocation -> {
             attempt[0]++;
-            return response(sender, attempt[0] <= congestionAttempts ? 503 : 200);
+            return response(sender, attempt[0] <= congestionAttempts ? 429 : 200);
         });
         sender.client = client;
         sender.send(logMessage(), "session-1");
         verify(sender.client, times(congestionAttempts + 1)).newCall(any(Request.class));
+    }
+
+    @Test
+    public void sendDiscardsImmediatelyOnServiceUnavailableUnderConnectionLossPolicy() throws IOException {
+        Map<String, String> props = validProps();
+        props.put(NjamsSettings.PROPERTY_DISCARD_POLICY, "onconnectionloss");
+        HttpSender sender = new HttpSender();
+        sender.init(settings(props));
+        // 503 is deliberately not congestion (an app-level "not ready" signal can outlast any retry budget), so
+        // onconnectionloss must discard on the very first attempt rather than retry indefinitely.
+        sender.client = mockClientReturning(response(sender, 503));
+        sender.send(logMessage(), "session-1");
+        verify(sender.client, times(1)).newCall(any(Request.class));
     }
 }

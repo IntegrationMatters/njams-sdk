@@ -501,5 +501,15 @@ public class NjamsFacadeBaselineTest {
         @Override
         protected void send(TraceMessage msg, String clientSessionId) {
         }
+
+        @Override
+        protected boolean isCongestion(Throwable failure) {
+            return false;
+        }
+
+        @Override
+        protected boolean isMessageRejected(Throwable failure) {
+            return false;
+        }
     }
 }
