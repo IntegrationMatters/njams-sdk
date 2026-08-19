@@ -389,6 +389,30 @@ public class JmsSender extends AbstractSender implements ExceptionListener, Clas
     }
 
     /**
+     * Identifies a {@link ResourceAllocationException} anywhere in the failure's cause chain as congestion: the
+     * JMS-spec-defined, provider-independent signal that the broker could not allocate the resources needed to
+     * accept the message right now (e.g. a destination or store limit), which is expected to resolve itself
+     * shortly as consumers drain the backlog. This holds for any compliant JMS provider — no vendor-specific
+     * exception type is involved. Any other failure, including a bare {@link JMSException} or one indicating the
+     * connection is technically up but not usable (e.g. {@link javax.jms.InvalidDestinationException}), is
+     * treated as a real connection problem.
+     *
+     * @param failure the failure that was reported.
+     * @return {@code true} only if the cause chain contains a {@link ResourceAllocationException}.
+     */
+    @Override
+    protected boolean isCongestion(Throwable failure) {
+        Throwable current = failure;
+        while (current != null) {
+            if (current instanceof ResourceAllocationException) {
+                return true;
+            }
+            current = current.getCause();
+        }
+        return false;
+    }
+
+    /**
      * This method gets all libraries that need to be checked.
      *
      * @return an array of Strings of fully qualified class names.

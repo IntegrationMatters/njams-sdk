@@ -10,8 +10,8 @@ import com.faizsiegeln.njams.messageformat.v4.projectmessage.ProjectMessage;
 import com.faizsiegeln.njams.messageformat.v4.tracemessage.TraceMessage;
 
 /**
- * Specifies the SDK-473/SDK-474 failure-classification seam: a sender says whether a reported failure indicates a
- * broken connection, and the default must keep the pre-SDK-473 behaviour of assuming it does.
+ * Specifies the SDK-473/SDK-474 failure-classification seam: a sender says whether a reported failure is mere
+ * congestion, and the default must keep the pre-SDK-473 behaviour of assuming a real connection problem.
  */
 public class SenderFailureClassificationTest {
 
@@ -49,33 +49,33 @@ public class SenderFailureClassificationTest {
 
         /** Exposes the protected classification to this test. */
         boolean classify(Throwable failure) {
-            return isConnectionBroken(failure);
+            return isCongestion(failure);
         }
     }
 
-    /** A transport that can rule a load peak out, the way SDK-474 will. */
+    /** A transport that can identify a load peak as congestion, the way SDK-474 will. */
     private static class ClassifyingSender extends DefaultSender {
         @Override
-        protected boolean isConnectionBroken(Throwable failure) {
-            return !(failure instanceof IllegalStateException);
+        protected boolean isCongestion(Throwable failure) {
+            return failure instanceof IllegalStateException;
         }
     }
 
     @Test
     public void defaultClassificationAssumesTheConnectionIsBroken() {
         DefaultSender sender = new DefaultSender();
-        assertTrue("a transport that cannot classify must assume a broken connection",
+        assertFalse("a transport that cannot classify must assume a broken connection, not congestion",
             sender.classify(new RuntimeException("boom")));
-        assertTrue("a null cause must be treated the same as any unclassifiable failure",
+        assertFalse("a null cause must be treated the same as any unclassifiable failure",
             sender.classify(null));
     }
 
     @Test
     public void anOverridingTransportCanRuleOutAConnectionLoss() {
         ClassifyingSender sender = new ClassifyingSender();
-        assertFalse("an overriding transport must be able to rule out a connection loss",
+        assertTrue("an overriding transport must be able to identify congestion",
             sender.classify(new IllegalStateException("queue full")));
-        assertTrue("an unrecognised failure must still count as a broken connection",
+        assertFalse("an unrecognised failure must still count as a broken connection",
             sender.classify(new RuntimeException("socket closed")));
     }
 }

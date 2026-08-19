@@ -221,22 +221,27 @@ public abstract class AbstractSender {
     }
 
     /**
-     * Classifies a failure reported for this sender. Return {@code false} for a failure that does not indicate a
-     * broken connection — a load peak, throttling, or a per-message reject on a working connection.
+     * Classifies a failure reported for this sender. Return {@code true} only for a failure that is mere
+     * congestion — short-lived and self-healing, likely to succeed again shortly without any manual
+     * intervention, such as a transport-level back-pressure signal from an otherwise healthy connection.
      * <p>
-     * A transport that cannot tell the difference must leave this alone: the default answer is that the
-     * connection may be broken.
+     * A connection that is technically established but not usable for its purpose — a rejected destination, a
+     * security failure, a malformed request — is <em>not</em> congestion and must not return {@code true} here,
+     * even though the transport is nominally "connected".
+     * <p>
+     * A transport that cannot tell the difference must leave this alone: the default answer is that the failure
+     * is a real connection problem, not mere congestion.
      * <p>
      * Currently consumed only to decide whether a registered {@link SenderRecoveryListener} is notified when the
      * group recovers; it does not influence retirement, message discard, or the group's own failed/reconnecting
      * state.
      *
      * @param failure the failure that was reported; may be {@code null}.
-     * @return {@code true} unless this transport can rule out a connection loss.
+     * @return {@code true} only if this transport can positively identify the failure as short-lived congestion.
      * @since 6.0.0
      */
-    protected boolean isConnectionBroken(Throwable failure) {
-        return true;
+    protected boolean isCongestion(Throwable failure) {
+        return false;
     }
 
 }

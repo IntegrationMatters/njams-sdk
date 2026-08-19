@@ -365,4 +365,17 @@ public class KafkaSender extends AbstractSender {
     public String getName() {
         return KafkaConstants.COMMUNICATION_NAME;
     }
+
+    /**
+     * Kafka is deprecated (see {@code kafka-argos-deprecated.md}) and receives no new classification investment,
+     * so every failure keeps being treated as a real connection problem. See SDK-475 for Kafka's related,
+     * separately tracked discard-counting defect.
+     *
+     * @param failure the failure that was reported; ignored.
+     * @return always {@code false}.
+     */
+    @Override
+    protected boolean isCongestion(Throwable failure) {
+        return false;
+    }
 }

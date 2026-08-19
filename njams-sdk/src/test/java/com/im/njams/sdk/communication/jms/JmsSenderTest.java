@@ -24,6 +24,7 @@
 package com.im.njams.sdk.communication.jms;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
@@ -33,6 +34,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Properties;
 
+import javax.jms.InvalidDestinationException;
 import javax.jms.JMSException;
 import javax.jms.MessageProducer;
 import javax.jms.ResourceAllocationException;
@@ -48,6 +50,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.common.JsonSerializerFactory;
+import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.settings.ClientSettings;
 
 /**
@@ -166,5 +169,31 @@ public class JmsSenderTest {
         jmsSender.init(ClientSettings.from(props));
         jmsSender.connect();
         assertEquals(List.of("njams.primary.event"), WorkingJmsFactory.getCreatedQueueNames());
+    }
+
+    @Test
+    public void isCongestionTrueForResourceAllocationException() {
+        assertTrue(sender.isCongestion(new ResourceAllocationException("full")));
+    }
+
+    @Test
+    public void isCongestionTrueWhenResourceAllocationExceptionIsNested() {
+        assertTrue(sender.isCongestion(
+            new NjamsSdkRuntimeException("Unable to send LogMessage", new ResourceAllocationException("full"))));
+    }
+
+    @Test
+    public void isCongestionFalseForOtherJmsException() {
+        assertFalse(sender.isCongestion(new InvalidDestinationException("bad destination")));
+    }
+
+    @Test
+    public void isCongestionFalseForUnrecognisedFailure() {
+        assertFalse(sender.isCongestion(new RuntimeException("socket closed")));
+    }
+
+    @Test
+    public void isCongestionFalseForNull() {
+        assertFalse(sender.isCongestion(null));
     }
 }

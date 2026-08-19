@@ -125,6 +125,10 @@ public class HttpSender extends AbstractSender {
     private static final int FORBIDDEN = 403;
     private static final int NOT_FOUND = 404;
     private static final int METHOD_NOT_ALLOWED = 405;
+    private static final int TOO_MANY_REQUESTS = 429;
+    private static final int BAD_GATEWAY = 502;
+    private static final int SERVICE_UNAVAILABLE = 503;
+    private static final int GATEWAY_TIMEOUT = 504;
 
     protected URL url;
     protected OkHttpClient client;
@@ -420,8 +424,7 @@ public class HttpSender extends AbstractSender {
                         // but not on message error indicated by some error code response
                         throw new HttpSendException(url, exception);
                     }
-                    throw new NjamsSdkRuntimeException("Error sending message with HTTP client URI "
-                        + url + " Response status is: " + responseStatus);
+                    throw new HttpStatusException(url, responseStatus);
                 }
                 Thread.sleep(EXCEPTION_IDLE_TIME);
             }
@@ -452,6 +455,25 @@ public class HttpSender extends AbstractSender {
     @Override
     public String getName() {
         return NAME;
+    }
+
+    /**
+     * Identifies a repeated {@code 429}/{@code 502}/{@code 503}/{@code 504} response as congestion: the server is
+     * reachable and answering, just temporarily unable or unwilling to accept the request. Any other failure —
+     * including a client-side I/O failure ({@link HttpSendException}) or any other status code — is treated as a
+     * real connection problem.
+     *
+     * @param failure the failure that was reported.
+     * @return {@code true} only for a repeated transient HTTP status code.
+     */
+    @Override
+    protected boolean isCongestion(Throwable failure) {
+        if (!(failure instanceof HttpStatusException)) {
+            return false;
+        }
+        final int statusCode = ((HttpStatusException) failure).getStatusCode();
+        return statusCode == TOO_MANY_REQUESTS || statusCode == BAD_GATEWAY || statusCode == SERVICE_UNAVAILABLE
+            || statusCode == GATEWAY_TIMEOUT;
     }
 
 }

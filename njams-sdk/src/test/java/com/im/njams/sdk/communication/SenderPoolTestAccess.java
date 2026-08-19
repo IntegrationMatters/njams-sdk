@@ -30,13 +30,13 @@ public class SenderPoolTestAccess {
     private static final List<SenderPool> POOLS = new CopyOnWriteArrayList<>();
 
     /**
-     * A sender that rules out a connection loss for every failure, standing in for the per-transport
-     * classification SDK-474 will implement.
+     * A sender that identifies every failure as congestion, ruling out a connection loss, standing in for the
+     * per-transport classification SDK-474 implements.
      */
     public static class SenderRulingOutConnectionLoss extends LifecycleTestSender {
         @Override
-        protected boolean isConnectionBroken(Throwable failure) {
-            return false;
+        protected boolean isCongestion(Throwable failure) {
+            return true;
         }
     }
 

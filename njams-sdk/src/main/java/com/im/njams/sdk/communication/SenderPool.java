@@ -579,12 +579,13 @@ public class SenderPool {
     }
 
     /**
-     * Asks the sender to classify the failure. A classifier that throws is treated as "cannot tell", so a broken
-     * implementation can never make the group behave differently than it did before classification existed.
+     * Asks the sender whether the failure was mere congestion. A classifier that throws is treated as "cannot
+     * tell", so a broken implementation can never make the group behave differently than it did before
+     * classification existed.
      */
     private boolean classifyQuietly(AbstractSender sender, Exception cause) {
         try {
-            return sender.isConnectionBroken(cause);
+            return !sender.isCongestion(cause);
         } catch (RuntimeException e) {
             LOG.debug("Sender {} failed to classify a connection failure; assuming a broken connection.",
                 sender.getName(), e);

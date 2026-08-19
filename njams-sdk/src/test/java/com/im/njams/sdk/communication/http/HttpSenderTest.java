@@ -168,4 +168,43 @@ public class HttpSenderTest {
             // expected: server returned an error status repeatedly
         }
     }
+
+    @Test
+    public void sendThrowsHttpStatusExceptionCarryingTheCodeAfterRetriesOnErrorStatus() throws IOException {
+        HttpSender sender = initializedSender();
+        sender.client = mockClientReturning(response(sender, 503));
+        try {
+            sender.send(logMessage(), "session-1");
+            fail("expected HttpStatusException after exhausting retries on error status");
+        } catch (HttpStatusException expected) {
+            assertEquals(503, expected.getStatusCode());
+        }
+    }
+
+    @Test
+    public void isCongestionTrueForTransientStatusCodes() {
+        HttpSender sender = initializedSender();
+        assertTrue(sender.isCongestion(new HttpStatusException(sender.url, 429)));
+        assertTrue(sender.isCongestion(new HttpStatusException(sender.url, 502)));
+        assertTrue(sender.isCongestion(new HttpStatusException(sender.url, 503)));
+        assertTrue(sender.isCongestion(new HttpStatusException(sender.url, 504)));
+    }
+
+    @Test
+    public void isCongestionFalseForOtherStatusCodes() {
+        HttpSender sender = initializedSender();
+        assertFalse(sender.isCongestion(new HttpStatusException(sender.url, 404)));
+        assertFalse(sender.isCongestion(new HttpStatusException(sender.url, 500)));
+    }
+
+    @Test
+    public void isCongestionFalseForHttpSendException() {
+        HttpSender sender = initializedSender();
+        assertFalse(sender.isCongestion(new HttpSendException(sender.url, new IOException("connection refused"))));
+    }
+
+    @Test
+    public void isCongestionFalseForNull() {
+        assertFalse(initializedSender().isCongestion(null));
+    }
 }
