@@ -125,6 +125,7 @@ public class HttpSender extends AbstractSender {
     private static final int FORBIDDEN = 403;
     private static final int NOT_FOUND = 404;
     private static final int METHOD_NOT_ALLOWED = 405;
+    private static final int PAYLOAD_TOO_LARGE = 413;
     private static final int TOO_MANY_REQUESTS = 429;
     private static final int BAD_GATEWAY = 502;
     private static final int SERVICE_UNAVAILABLE = 503;
@@ -411,10 +412,29 @@ public class HttpSender extends AbstractSender {
                 exception = ex;
             }
             if (exception != null || !sent) {
-                if (discardPolicy == DiscardPolicy.ON_CONNECTION_LOSS) {
-                    LOG.debug("Applying discard policy [{}]. Message discarded.", discardPolicy);
+                // Built eagerly for classification even when not (yet) thrown: exception == null means the
+                // server actually responded with this status, which is exactly what HttpStatusException reports.
+                final HttpStatusException statusFailure =
+                    exception == null ? new HttpStatusException(url, responseStatus) : null;
+                final Throwable failure = exception != null ? exception : statusFailure;
+                if (isMessageRejected(failure)) {
+                    LOG.error("Server permanently rejected the message with status {} from {}; discarding it. "
+                        + "Check {} or the target's payload size limit.", responseStatus, url,
+                        NjamsSettings.PROPERTY_MAX_MESSAGE_SIZE);
                     DiscardMonitor.discard();
                     break;
+                }
+                if (discardPolicy == DiscardPolicy.ON_CONNECTION_LOSS) {
+                    if (!isCongestion(failure)) {
+                        LOG.debug("Applying discard policy [{}]. Message discarded.", discardPolicy);
+                        DiscardMonitor.discard();
+                        break;
+                    }
+                    // Congestion is not a connection loss: this policy blocks in that case, same as DiscardPolicy.NONE.
+                    Thread.sleep(EXCEPTION_IDLE_TIME);
+                    exception = null;
+                    responseStatus = -1;
+                    continue;
                 }
                 if (++tries >= MAX_TRIES) {
                     LOG.warn("Start reconnect because the server HTTP endpoint could not be reached for {} seconds.",
@@ -424,7 +444,7 @@ public class HttpSender extends AbstractSender {
                         // but not on message error indicated by some error code response
                         throw new HttpSendException(url, exception);
                     }
-                    throw new HttpStatusException(url, responseStatus);
+                    throw statusFailure;
                 }
                 Thread.sleep(EXCEPTION_IDLE_TIME);
             }
@@ -474,6 +494,19 @@ public class HttpSender extends AbstractSender {
         final int statusCode = ((HttpStatusException) failure).getStatusCode();
         return statusCode == TOO_MANY_REQUESTS || statusCode == BAD_GATEWAY || statusCode == SERVICE_UNAVAILABLE
             || statusCode == GATEWAY_TIMEOUT;
+    }
+
+    /**
+     * Identifies a {@code 413} response as a message the target will never accept, no matter how often it is
+     * retried or how healthy the connection is.
+     *
+     * @param failure the failure that was reported.
+     * @return {@code true} only for a {@code 413} status.
+     */
+    @Override
+    protected boolean isMessageRejected(Throwable failure) {
+        return failure instanceof HttpStatusException
+            && ((HttpStatusException) failure).getStatusCode() == PAYLOAD_TOO_LARGE;
     }
 
 }

@@ -8,6 +8,7 @@ import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -206,5 +207,56 @@ public class HttpSenderTest {
     @Test
     public void isCongestionFalseForNull() {
         assertFalse(initializedSender().isCongestion(null));
+    }
+
+    @Test
+    public void isMessageRejectedTrueForPayloadTooLarge() {
+        HttpSender sender = initializedSender();
+        assertTrue(sender.isMessageRejected(new HttpStatusException(sender.url, 413)));
+    }
+
+    @Test
+    public void isMessageRejectedFalseForOtherStatusCodes() {
+        HttpSender sender = initializedSender();
+        assertFalse(sender.isMessageRejected(new HttpStatusException(sender.url, 503)));
+        assertFalse(sender.isMessageRejected(new HttpStatusException(sender.url, 500)));
+    }
+
+    @Test
+    public void isMessageRejectedFalseForNull() {
+        assertFalse(initializedSender().isMessageRejected(null));
+    }
+
+    @Test
+    public void sendDiscardsImmediatelyOnPayloadTooLargeRegardlessOfDiscardPolicy() throws IOException {
+        Map<String, String> props = validProps();
+        // "none" would otherwise never give up and keep retrying - proves the bypass is unconditional
+        props.put(NjamsSettings.PROPERTY_DISCARD_POLICY, "none");
+        HttpSender sender = new HttpSender();
+        sender.init(settings(props));
+        sender.client = mockClientReturning(response(sender, 413));
+        sender.send(logMessage(), "session-1");
+        verify(sender.client, times(1)).newCall(any(Request.class));
+    }
+
+    @Test
+    public void sendRetriesPastTransportRetryBudgetOnCongestionUnderConnectionLossPolicy() throws IOException {
+        Map<String, String> props = validProps();
+        props.put(NjamsSettings.PROPERTY_DISCARD_POLICY, "onconnectionloss");
+        HttpSender sender = new HttpSender();
+        sender.init(settings(props));
+        OkHttpClient client = mock(OkHttpClient.class);
+        Call call = mock(Call.class);
+        when(client.newCall(any(Request.class))).thenReturn(call);
+        // more failures than MAX_TRIES (20): proves congestion is never discarded or escalated into a throw
+        final int congestionAttempts = 25;
+        final int[] attempt = { 0 };
+        when(call.execute()).thenAnswer(invocation -> {
+            attempt[0]++;
+            return response(sender, attempt[0] <= congestionAttempts ? 503 : 200);
+        });
+        sender.client = client;
+        sender.send(logMessage(), "session-1");
+        verify(sender.client, times(congestionAttempts + 1)).newCall(any(Request.class));
     }
 }

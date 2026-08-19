@@ -232,15 +232,36 @@ public abstract class AbstractSender {
      * A transport that cannot tell the difference must leave this alone: the default answer is that the failure
      * is a real connection problem, not mere congestion.
      * <p>
-     * Currently consumed only to decide whether a registered {@link SenderRecoveryListener} is notified when the
-     * group recovers; it does not influence retirement, message discard, or the group's own failed/reconnecting
-     * state.
+     * Consumed to decide whether a registered {@link SenderRecoveryListener} is notified when the group recovers,
+     * and by a transport's own send-retry loop to decide whether a failure under the
+     * {@link com.im.njams.sdk.NjamsSettings#PROPERTY_DISCARD_POLICY} {@code onconnectionloss} policy discards the
+     * message or keeps applying back pressure. It does not influence retirement or the group's own
+     * failed/reconnecting state.
      *
      * @param failure the failure that was reported; may be {@code null}.
      * @return {@code true} only if this transport can positively identify the failure as short-lived congestion.
      * @since 6.0.0
      */
     protected boolean isCongestion(Throwable failure) {
+        return false;
+    }
+
+    /**
+     * Classifies a failure reported for this sender. Return {@code true} only if retrying the exact message that
+     * failed could never succeed, regardless of the connection's state — for example, a payload the target
+     * permanently refuses to accept. A transport that identifies this discards just that one message and leaves
+     * the connection untouched, bypassing the configured
+     * {@link com.im.njams.sdk.NjamsSettings#PROPERTY_DISCARD_POLICY} entirely: retrying forever cannot help, so
+     * discarding is preferable even under a policy that would otherwise never discard.
+     * <p>
+     * A transport that cannot tell must leave this alone: the default answer is that retrying might still help.
+     *
+     * @param failure the failure that was reported; may be {@code null}.
+     * @return {@code true} only if this transport can positively identify the message itself as permanently
+     *         unsendable.
+     * @since 6.0.0
+     */
+    protected boolean isMessageRejected(Throwable failure) {
         return false;
     }
 

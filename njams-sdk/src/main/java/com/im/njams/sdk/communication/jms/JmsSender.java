@@ -51,7 +51,6 @@ import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.communication.AbstractSender;
 import com.im.njams.sdk.settings.ClientSettings;
 import com.im.njams.sdk.communication.ConnectionStatus;
-import com.im.njams.sdk.communication.DiscardMonitor;
 import com.im.njams.sdk.communication.DiscardPolicy;
 import com.im.njams.sdk.communication.fragments.SplitSupport;
 import com.im.njams.sdk.communication.fragments.SplitSupport.SplitIterator;
@@ -316,10 +315,12 @@ public class JmsSender extends AbstractSender implements ExceptionListener, Clas
                 sended = true;
             } catch (ResourceAllocationException ex) {
                 if (discardPolicy == DiscardPolicy.ON_CONNECTION_LOSS) {
-                    LOG.debug("JMS Queue limit exceeded. Applying discard policy [{}]. Message discarded.",
-                        discardPolicy);
-                    DiscardMonitor.discard();
-                    break;
+                    // Not a connection loss: this policy blocks in that case, same as DiscardPolicy.NONE. JMS has
+                    // no portable signal distinguishing a permanently oversized message from transient resource
+                    // exhaustion, so this can block indefinitely rather than discard or reconnect.
+                    LOG.debug("JMS Queue limit exceeded; retrying without discarding or reconnecting.");
+                    Thread.sleep(EXCEPTION_IDLE_TIME);
+                    continue;
                 }
                 //Queue limit exceeded
                 if (++tries >= MAX_TRIES) {

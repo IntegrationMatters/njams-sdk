@@ -147,6 +147,31 @@ public class JmsSenderTest {
     }
 
     @Test
+    public void queueFullUnderConnectionLossPolicyRetriesInsteadOfDiscardingImmediately()
+        throws JMSException, InterruptedException {
+        Properties props = new Properties();
+        props.put(NjamsSettings.PROPERTY_COMMUNICATION, JmsSender.COMMUNICATION_NAME);
+        props.put(NjamsSettings.PROPERTY_DISCARD_POLICY, "onconnectionloss");
+        JmsSender onConnectionLossSender = spy(new JmsSender() {
+            @Override
+            String serialize(CommonMessage msg) {
+                return "dummy data";
+            }
+        });
+        onConnectionLossSender.init(ClientSettings.from(props));
+        final MessageProducer producer = onConnectionLossSender.eventProducer = mock(MessageProducer.class);
+        final Session session = onConnectionLossSender.session = mock(Session.class);
+        when(session.createTextMessage(any())).thenReturn(mock(TextMessage.class));
+        ResourceAllocationException er1 = new ResourceAllocationException("Queue limit exceeded");
+        ResourceAllocationException er2 = new ResourceAllocationException("Queue limit exceeded");
+        doThrow(er1).doThrow(er2).doNothing().when(producer).send(any());
+        final CommonMessage msg = mock(CommonMessage.class);
+        when(msg.getPath()).thenReturn("path");
+        onConnectionLossSender.sendMessage(producer, msg, "messageType", null);
+        verify(producer, times(3)).send(any());
+    }
+
+    @Test
     public void connectUsesDestinationPrefixAlternativeKey() {
         Properties props = new Properties();
         props.put(NjamsSettings.PROPERTY_COMMUNICATION, JmsSender.COMMUNICATION_NAME);
