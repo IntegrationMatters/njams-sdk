@@ -200,6 +200,11 @@ public abstract class AbstractSender {
         retired = true;
     }
 
+    /** Test-only accessor (hence the name) over {@link #retired}. */
+    boolean isRetiredForTest() {
+        return retired;
+    }
+
     /**
      * Sends one already-built message unit, applying this SDK's retry and discard-policy handling.
      * <p>

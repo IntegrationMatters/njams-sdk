@@ -157,6 +157,11 @@ public class SenderPoolTestAccess {
         return pool.isRetiredForTest((AbstractSender) sender);
     }
 
+    /** @return whether {@link AbstractSender#setRetired()} has actually been called on this sender instance. */
+    public boolean isSenderInstanceRetired(Object sender) {
+        return ((AbstractSender) sender).isRetiredForTest();
+    }
+
     public boolean wasClosed(Object sender) {
         return ((LifecycleTestSender) sender).wasClosed();
     }

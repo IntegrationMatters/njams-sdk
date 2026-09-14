@@ -44,4 +44,19 @@ public class SenderRetirementSpecTest extends AbstractLifecycleSpecTest {
 
         assertTrue("nobody holds it, so it is destroyed via failGroup's drain(unlocked)", pool.wasClosed(idle));
     }
+
+    @Test
+    public void failGroupMarksACheckedOutSenderRetiredOnTheInstanceItself() throws Exception {
+        SenderPoolTestAccess pool = SenderPoolTestAccess.create("none");
+        Object borrowed = pool.acquire();
+        Object other = pool.acquire();
+
+        pool.reportFailure(other, new IllegalStateException("group loss"));
+
+        assertTrue("the pool's own bookkeeping must mark it retired", pool.isRetired(borrowed));
+        assertTrue("AbstractSender.setRetired() must actually be called on the checked-out instance, not just "
+            + "recorded in the pool's own retired set - this is what lets an in-flight sendWithRetry congestion "
+            + "wait unwind instead of retrying forever on a replaced connection",
+            pool.isSenderInstanceRetired(borrowed));
+    }
 }
