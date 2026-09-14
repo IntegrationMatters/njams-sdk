@@ -261,6 +261,40 @@ public class SenderRetryLoopTest {
     }
 
     @Test
+    public void congestionNeverEscapesTheOuterLoopExceptUnderDiscard() throws Exception {
+        // The invariant the dispatching loop depends on: if a congestion failure escaped under a policy that
+        // never discards, the SDK would drop a message those policies promise to keep retrying forever.
+        // Retirement is the one other way out, and it does not violate this: it unwinds with
+        // SenderRetiredException, which dispatch retries rather than classifying as congestion.
+        for (String policy : new String[] { "none", "onconnectionloss" }) {
+            RetrySender sender = new RetrySender(policy);
+            sender.run(200, new Congested());
+            assertEquals("congestion must be retried, not escalated, under " + policy, 201, sender.attempts);
+        }
+        RetrySender discarding = new RetrySender("discard");
+        try {
+            discarding.run(Integer.MAX_VALUE, new Congested());
+            fail("only the discard policy may let congestion reach the caller");
+        } catch (Congested expected) {
+            assertEquals(1, discarding.attempts);
+        }
+    }
+
+    @Test
+    public void anUnclassifiedFailureIsStillEscalatedUnderPoliciesThatNeverDiscard() throws Exception {
+        // Contrast case: the invariant is specific to congestion, not a blanket "these policies never throw".
+        for (String policy : new String[] { "none", "onconnectionloss" }) {
+            RetrySender sender = new RetrySender(policy);
+            try {
+                sender.run(Integer.MAX_VALUE, new RuntimeException("socket closed"));
+                fail("a real connection problem must be escalated under " + policy);
+            } catch (RuntimeException expected) {
+                assertEquals(4, sender.attempts);
+            }
+        }
+    }
+
+    @Test
     public void aSelfReferentialCauseChainDoesNotHangTheDetection() {
         // A custom transport exception whose getCause() returns itself must not spin the runtime path forever.
         RuntimeException looping = new RuntimeException("loop") {

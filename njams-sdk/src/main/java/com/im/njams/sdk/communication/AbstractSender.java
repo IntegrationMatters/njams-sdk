@@ -40,13 +40,14 @@ import com.im.njams.sdk.settings.ClientSettings;
  * override methods when needed. All Senders are automatically pooled by the SDK; you must not implement
  * your own connection pooling!
  * <p>
- * <b>A {@code send} implementation must not block indefinitely.</b> The built-in transports each bound their
- * own retries and throw once exhausted; do the same in your own implementation.
+ * <b>Do not implement retrying or discard-policy handling.</b> Implement {@link #connect()}, {@link #close()}
+ * and the typed {@code send} methods as single honest attempts that throw on failure, and route each unit you
+ * actually put on the wire through {@link #sendWithRetry(SendAttempt)} — it owns the bounded retrying, the
+ * discard policy and when a failure is escalated, consistently for every transport.
  * <p>
- * The SDK also drives the connection lifecycle: implement {@link #connect()}, {@link #close()} and the typed
- * {@code send} methods as single honest attempts that throw on failure, and do not implement reconnect logic —
- * the SDK runs exactly one reconnect per sender group. If your transport detects a broken connection
- * asynchronously, report it with {@link #notifyConnectionFailure(Exception)}.
+ * The SDK also drives the connection lifecycle: do not implement reconnect logic — it runs exactly one reconnect
+ * per sender group. If your transport detects a broken connection asynchronously, report it with
+ * {@link #notifyConnectionFailure(Exception)}.
  * <p>
  * Senders are internal SDK infrastructure, not part of the user-facing API — client applications must not use
  * this class or obtain a sender instance directly.
@@ -118,7 +119,8 @@ public abstract class AbstractSender {
 
     /**
      * Dispatches the given message to the matching typed {@code send} method. One honest attempt: any failure
-     * propagates to the caller, which retires this sender and retries the message on a fresh one.
+     * propagates to the caller, which decides from this sender's own classification whether to retire it or
+     * merely drop the message.
      * <p>
      * The connection is guaranteed to be established — {@link SenderPool#acquire()} only hands out connected
      * senders — so this method does not check the connection status, retry, or apply the discard policy. Those
@@ -389,11 +391,18 @@ public abstract class AbstractSender {
      * A transport that cannot positively identify congestion must simply return {@code false} — the safe choice,
      * since it keeps the pre-classification behaviour of assuming a real connection problem.
      * <p>
+     * <b>This method must never throw.</b> It has to reach a decision: when it cannot — including when
+     * inspecting the failure itself goes wrong — the answer is {@code false}, the safe fallback. Callers rely on
+     * getting an answer, and the same failure is classified more than once while a send is being decided, so an
+     * implementation must also be a pure function of its argument: same throwable in, same answer out.
+     * <p>
+     * Classify by inspecting the whole cause chain, not just the throwable itself: a transport's own
+     * {@code send} may wrap the failure before the SDK gets to classify it.
+     * <p>
      * Consumed to decide whether a registered {@link SenderRecoveryListener} is notified when the group recovers,
-     * and by a transport's own send-retry loop to decide whether a failure under the
-     * {@link com.im.njams.sdk.NjamsSettings#PROPERTY_DISCARD_POLICY} {@code onconnectionloss} policy discards the
-     * message or keeps applying back pressure. It does not influence retirement or the group's own
-     * failed/reconnecting state.
+     * by {@link #sendWithRetry(SendAttempt)} to decide whether a failed send keeps applying back pressure instead
+     * of being escalated, and by the SDK to decide whether a failure it could not send retires the connection or
+     * only drops the message. It does not influence the group's own failed/reconnecting state.
      *
      * @param failure the failure that was reported; may be {@code null}.
      * @return {@code true} only if this transport can positively identify the failure as short-lived congestion;
@@ -413,6 +422,14 @@ public abstract class AbstractSender {
      * Part of the sender SPI: every implementation must decide this for itself, there is no inherited default.
      * A transport that cannot positively identify a permanent rejection must simply return {@code false} — the
      * safe choice, since retrying might still help.
+     * <p>
+     * <b>This method must never throw.</b> It has to reach a decision: when it cannot — including when
+     * inspecting the failure itself goes wrong — the answer is {@code false}, the safe fallback. Callers rely on
+     * getting an answer, and the same failure is classified more than once while a send is being decided, so an
+     * implementation must also be a pure function of its argument: same throwable in, same answer out.
+     * <p>
+     * Classify by inspecting the whole cause chain, not just the throwable itself: a transport's own
+     * {@code send} may wrap the failure before the SDK gets to classify it.
      *
      * @param failure the failure that was reported; may be {@code null}.
      * @return {@code true} only if this transport can positively identify the message itself as permanently
