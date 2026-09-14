@@ -6,7 +6,6 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -49,6 +48,23 @@ public class HttpSenderTest {
     private static HttpSender initializedSender() {
         HttpSender sender = new HttpSender();
         sender.init(settings(validProps()));
+        return sender;
+    }
+
+    /** A sender with the retry delays removed, for tests that drive many failed attempts. */
+    private static HttpSender fastSender(Map<String, String> props) {
+        HttpSender sender = new HttpSender() {
+            @Override
+            protected long[] getSmoothingDelaysMs() {
+                return new long[] { 0, 0, 0 };
+            }
+
+            @Override
+            protected long getCongestionRetryDelayMs() {
+                return 0;
+            }
+        };
+        sender.init(settings(props));
         return sender;
     }
 
@@ -130,18 +146,6 @@ public class HttpSenderTest {
         sender.client = mockClientReturning(response(sender, 204));
         sender.send(logMessage(), "session-1");
         verify(sender.client).newCall(any(Request.class));
-    }
-
-    @Test
-    public void sendDiscardsOnConnectionLossPolicy() throws IOException {
-        Map<String, String> props = validProps();
-        props.put(NjamsSettings.PROPERTY_DISCARD_POLICY, "onconnectionloss");
-        HttpSender sender = new HttpSender();
-        sender.init(settings(props));
-        sender.client = mockClientThrowing();
-        // discard policy makes the send give up immediately without throwing
-        sender.send(logMessage(), "session-1");
-        verify(sender.client, atLeastOnce()).newCall(any(Request.class));
     }
 
     @Test
@@ -230,23 +234,10 @@ public class HttpSenderTest {
     }
 
     @Test
-    public void sendDiscardsImmediatelyOnPayloadTooLargeRegardlessOfDiscardPolicy() throws IOException {
-        Map<String, String> props = validProps();
-        // "none" would otherwise never give up and keep retrying - proves the bypass is unconditional
-        props.put(NjamsSettings.PROPERTY_DISCARD_POLICY, "none");
-        HttpSender sender = new HttpSender();
-        sender.init(settings(props));
-        sender.client = mockClientReturning(response(sender, 413));
-        sender.send(logMessage(), "session-1");
-        verify(sender.client, times(1)).newCall(any(Request.class));
-    }
-
-    @Test
     public void sendRetriesPastTransportRetryBudgetOnCongestionUnderConnectionLossPolicy() throws IOException {
         Map<String, String> props = validProps();
         props.put(NjamsSettings.PROPERTY_DISCARD_POLICY, "onconnectionloss");
-        HttpSender sender = new HttpSender();
-        sender.init(settings(props));
+        HttpSender sender = fastSender(props);
         OkHttpClient client = mock(OkHttpClient.class);
         Call call = mock(Call.class);
         when(client.newCall(any(Request.class))).thenReturn(call);
@@ -269,9 +260,74 @@ public class HttpSenderTest {
         HttpSender sender = new HttpSender();
         sender.init(settings(props));
         // 503 is deliberately not congestion (an app-level "not ready" signal can outlast any retry budget), so
-        // onconnectionloss must discard on the very first attempt rather than retry indefinitely.
+        // onconnectionloss must discard after the smoothing window rather than retry indefinitely.
         sender.client = mockClientReturning(response(sender, 503));
-        sender.send(logMessage(), "session-1");
+        try {
+            sender.send(logMessage(), "session-1");
+            fail("expected the rejected message to be reported to the SDK");
+        } catch (HttpStatusException expected) {
+            assertEquals(503, expected.getStatusCode());
+        }
+        verify(sender.client, times(4)).newCall(any(Request.class));
+    }
+
+    @Test
+    public void payloadTooLargeThrowsOnTheFirstAttemptSoTheSdkCanDropTheMessage() throws IOException {
+        Map<String, String> props = validProps();
+        props.put(NjamsSettings.PROPERTY_DISCARD_POLICY, "none");
+        HttpSender sender = new HttpSender();
+        sender.init(settings(props));
+        sender.client = mockClientReturning(response(sender, 413));
+        try {
+            sender.send(logMessage(), "session-1");
+            fail("expected the rejected message to be reported to the SDK");
+        } catch (HttpStatusException expected) {
+            assertEquals(413, expected.getStatusCode());
+        }
         verify(sender.client, times(1)).newCall(any(Request.class));
+    }
+
+    @Test
+    public void connectionLossUnderConnectionLossPolicyIsReportedInsteadOfSilentlyDiscarded() throws IOException {
+        Map<String, String> props = validProps();
+        props.put(NjamsSettings.PROPERTY_DISCARD_POLICY, "onconnectionloss");
+        HttpSender sender = new HttpSender();
+        sender.init(settings(props));
+        sender.client = mockClientThrowing();
+        try {
+            sender.send(logMessage(), "session-1");
+            fail("a genuine connection loss must reach the SDK, not be swallowed by the sender");
+        } catch (HttpSendException expected) {
+            // expected: the pool retires the sender, reconnects and notifies listeners
+        }
+        // one attempt plus the bounded smoothing window
+        verify(sender.client, times(4)).newCall(any(Request.class));
+    }
+
+    @Test
+    public void discardPolicyDoesNotDelayTheApplicationOnAConnectionLoss() throws IOException {
+        HttpSender sender = initializedSender();
+        sender.client = mockClientThrowing();
+        try {
+            sender.send(logMessage(), "session-1");
+            fail("expected the failure to be reported");
+        } catch (HttpSendException expected) {
+            // expected
+        }
+        verify(sender.client, times(1)).newCall(any(Request.class));
+    }
+
+    @Test
+    public void isCongestionWalksTheCauseChain() {
+        HttpSender sender = initializedSender();
+        assertTrue("a wrapped 429 must still classify as congestion", sender.isCongestion(
+            new NjamsSdkRuntimeException("Failed to send log message", new HttpStatusException(sender.url, 429))));
+    }
+
+    @Test
+    public void isMessageRejectedWalksTheCauseChain() {
+        HttpSender sender = initializedSender();
+        assertTrue("a wrapped 413 must still classify as rejected", sender.isMessageRejected(
+            new NjamsSdkRuntimeException("Failed to send log message", new HttpStatusException(sender.url, 413))));
     }
 }

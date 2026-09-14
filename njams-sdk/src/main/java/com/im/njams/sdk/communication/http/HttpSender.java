@@ -51,8 +51,6 @@ import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.communication.AbstractSender;
 import com.im.njams.sdk.settings.ClientSettings;
 import com.im.njams.sdk.communication.ConnectionStatus;
-import com.im.njams.sdk.communication.DiscardMonitor;
-import com.im.njams.sdk.communication.DiscardPolicy;
 import com.im.njams.sdk.communication.fragments.SplitSupport;
 import com.im.njams.sdk.communication.fragments.SplitSupport.SplitIterator;
 import com.im.njams.sdk.utils.JsonUtils;
@@ -116,8 +114,6 @@ public class HttpSender extends AbstractSender {
      */
     private static final String INGEST_API_PATH = "api/processing/ingest/";
     private static final String LEGACY_CONNECTION_TEST_PATH = "api/public/version";
-    private static final int EXCEPTION_IDLE_TIME = 50;
-    private static final int MAX_TRIES = 20;
 
     private static final int OK = 200;
     private static final int NO_CONTENT = 204;
@@ -366,7 +362,7 @@ public class HttpSender extends AbstractSender {
     }
 
     private void tryToSend(final CommonMessage msg, final Map<String, String> headers)
-        throws InterruptedException {
+        throws Exception {
         final String data = JsonUtils.serialize(msg);
         if (splitSupport.isSplitting()) {
             final SplitIterator chunks = splitSupport.iterator(data);
@@ -384,71 +380,29 @@ public class HttpSender extends AbstractSender {
             while (chunks.hasNext()) {
                 final String chunk = chunks.next();
                 splitSupport.addChunkHeaders(headers::put, chunks.currentIndex(), chunks.size(), messageKey);
-                tryToSend(chunk, headers);
+                sendChunk(chunk, headers);
             }
         } else {
-            tryToSend(data, headers);
+            sendChunk(data, headers);
         }
         LOG.trace("Sent message: headers={},\n{}", headers, data);
     }
 
-    private void tryToSend(final String json, final Map<String, String> headers)
-        throws InterruptedException {
-        boolean sent = false;
-        int responseStatus = -1;
-        int tries = 0;
-        Exception exception = null;
-        do {
+    private void sendChunk(final String json, final Map<String, String> headers) throws Exception {
+        sendWithRetry(() -> {
+            final int responseStatus;
             try {
                 responseStatus = send(json, headers);
-                if (responseStatus == 200 || responseStatus == 204) {
-                    sent = true;
-                }
             } catch (Exception ex) {
                 LOG.trace("Failed to send to {}:\n{}\nheaders={}", url, json, headers, ex);
-                exception = ex;
+                // A client-side failure: wrapping it in HttpSendException is what tells the SDK to reconnect
+                // the command receiver too, which a mere error status must not do.
+                throw new HttpSendException(url, ex);
             }
-            if (exception != null || !sent) {
-                // Built eagerly for classification even when not (yet) thrown: exception == null means the
-                // server actually responded with this status, which is exactly what HttpStatusException reports.
-                final HttpStatusException statusFailure =
-                    exception == null ? new HttpStatusException(url, responseStatus) : null;
-                final Throwable failure = exception != null ? exception : statusFailure;
-                if (isMessageRejected(failure)) {
-                    LOG.error("Server permanently rejected the message with status {} from {}; discarding it. "
-                        + "Check {} or the target's payload size limit.", responseStatus, url,
-                        NjamsSettings.PROPERTY_MAX_MESSAGE_SIZE);
-                    DiscardMonitor.discard();
-                    break;
-                }
-                if (discardPolicy == DiscardPolicy.ON_CONNECTION_LOSS) {
-                    if (!isCongestion(failure)) {
-                        LOG.debug("Applying discard policy [{}]. Message discarded.", discardPolicy);
-                        DiscardMonitor.discard();
-                        break;
-                    }
-                    // Congestion is not a connection loss: this policy blocks in that case, same as DiscardPolicy.NONE.
-                    Thread.sleep(EXCEPTION_IDLE_TIME);
-                    exception = null;
-                    responseStatus = -1;
-                    continue;
-                }
-                if (++tries >= MAX_TRIES) {
-                    LOG.warn("Start reconnect because the server HTTP endpoint could not be reached for {} seconds.",
-                        MAX_TRIES * EXCEPTION_IDLE_TIME / 1000);
-                    if (exception != null) {
-                        // this triggers reconnecting the command-receiver which is only necessary on communication issues
-                        // but not on message error indicated by some error code response
-                        throw new HttpSendException(url, exception);
-                    }
-                    throw statusFailure;
-                }
-                Thread.sleep(EXCEPTION_IDLE_TIME);
+            if (responseStatus != OK && responseStatus != NO_CONTENT) {
+                throw new HttpStatusException(url, responseStatus);
             }
-            exception = null;
-            responseStatus = -1;
-
-        } while (!sent);
+        });
     }
 
     private int send(final String msg, final Map<String, String> headers) throws IOException {
@@ -475,6 +429,36 @@ public class HttpSender extends AbstractSender {
     }
 
     /**
+     * Logs a send failure with the HTTP detail the shared retry handling does not have: the status code and the
+     * target URL, plus the setting to check when the target rejected the payload outright.
+     *
+     * @param outcome what the SDK decided about this failure.
+     * @param failure the failure itself.
+     */
+    @Override
+    protected void logError(SendFailureOutcome outcome, Throwable failure) {
+        final int status = failure instanceof HttpStatusException ? ((HttpStatusException) failure).getStatusCode()
+            : -1;
+        switch (outcome) {
+        case MESSAGE_REJECTED:
+            LOG.error("Server permanently rejected the message with status {} from {}; discarding it. "
+                + "Check {} or the target's payload size limit.", status, url,
+                NjamsSettings.PROPERTY_MAX_MESSAGE_SIZE);
+            break;
+        case DISCARDED_BY_POLICY:
+            LOG.debug("Applying discard policy [{}] after status {} from {}. Message discarded.", discardPolicy,
+                status, url);
+            break;
+        case ESCALATING:
+            LOG.warn("The nJAMS server HTTP endpoint {} could not be reached (status {}).", url, status);
+            break;
+        default:
+            LOG.debug("Retrying send to {} after failure (status {}).", url, status, failure);
+            break;
+        }
+    }
+
+    /**
      * Identifies a repeated {@code 429} (Too Many Requests) response as congestion: an explicit rate-limit signal
      * from an otherwise healthy target, expected to clear on its own without help. {@code 502}/{@code 503}/
      * {@code 504} are deliberately <em>not</em> treated as congestion, even though they can also be transient: all
@@ -483,27 +467,37 @@ public class HttpSender extends AbstractSender {
      * depends on may be unreachable or not ready, not merely busy — and none of them lets the SDK tell that case
      * apart from a genuinely dead target. Any other failure — including a client-side I/O failure
      * ({@link HttpSendException}) or any other status code — is likewise treated as a real connection problem.
+     * This classification holds anywhere in the failure's cause chain, not just at the top level.
      *
      * @param failure the failure that was reported.
      * @return {@code true} only for a repeated {@code 429} response.
      */
     @Override
     protected boolean isCongestion(Throwable failure) {
-        return failure instanceof HttpStatusException
-            && ((HttpStatusException) failure).getStatusCode() == TOO_MANY_REQUESTS;
+        return statusOf(failure) == TOO_MANY_REQUESTS;
     }
 
     /**
      * Identifies a {@code 413} response as a message the target will never accept, no matter how often it is
-     * retried or how healthy the connection is.
+     * retried or how healthy the connection is. This classification holds anywhere in the failure's cause chain,
+     * not just at the top level.
      *
      * @param failure the failure that was reported.
      * @return {@code true} only for a {@code 413} status.
      */
     @Override
     protected boolean isMessageRejected(Throwable failure) {
-        return failure instanceof HttpStatusException
-            && ((HttpStatusException) failure).getStatusCode() == PAYLOAD_TOO_LARGE;
+        return statusOf(failure) == PAYLOAD_TOO_LARGE;
+    }
+
+    /** @return the status code reported anywhere in the failure's cause chain, or -1 if none was. */
+    private static int statusOf(Throwable failure) {
+        for (Throwable current = failure; current != null; current = current.getCause()) {
+            if (current instanceof HttpStatusException) {
+                return ((HttpStatusException) current).getStatusCode();
+            }
+        }
+        return -1;
     }
 
 }
