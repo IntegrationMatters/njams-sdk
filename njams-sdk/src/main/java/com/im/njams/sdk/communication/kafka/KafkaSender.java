@@ -356,8 +356,7 @@ public class KafkaSender extends AbstractSender {
 
     /**
      * Kafka is deprecated (see {@code kafka-argos-deprecated.md}) and receives no new classification investment,
-     * so every failure keeps being treated as a real connection problem. See SDK-475 for Kafka's related,
-     * separately tracked discard-counting defect.
+     * so every failure keeps being treated as a real connection problem.
      *
      * @param failure the failure that was reported; ignored.
      * @return always {@code false}.
