@@ -375,7 +375,12 @@ public class JmsSender extends AbstractSender implements ExceptionListener, Clas
             LOG.debug("JMS destination limit exceeded; applying discard policy [{}].", discardPolicy);
             break;
         case ESCALATING:
-            LOG.warn("Failed to send to the JMS destination; treating the connection as broken.", failure);
+            if (isCongestion(failure)) {
+                LOG.debug("JMS destination limit exceeded; discard policy [{}] gives up on this message.",
+                    discardPolicy);
+            } else {
+                LOG.warn("Failed to send to the JMS destination; treating the connection as broken.", failure);
+            }
             break;
         default:
             LOG.debug("Retrying JMS send after failure.", failure);
