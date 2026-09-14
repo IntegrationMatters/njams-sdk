@@ -23,6 +23,8 @@
  */
 package com.im.njams.sdk.communication;
 
+import java.util.concurrent.atomic.LongAdder;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -43,9 +45,9 @@ public class ThrottleMonitor {
     private static volatile ThrottleMonitor instance = DEFAULT;
 
     private long lastMessage = System.currentTimeMillis();
-    private long nextMessage = 0;
-    private int throttleCount = 0;
-    private int lastThrottleCount = 0;
+    private volatile long nextMessage = 0;
+    private final LongAdder throttleCount = new LongAdder();
+    private long lastThrottleCount = 0;
 
     /** Subclassable so a test can inject an observing instance; not intended for production subclassing. */
     protected ThrottleMonitor() {
@@ -86,7 +88,7 @@ public class ThrottleMonitor {
         if (!LOG.isInfoEnabled()) {
             return;
         }
-        throttleCount += ms;
+        throttleCount.add(ms);
         final long now = System.currentTimeMillis();
         if (now < nextMessage) {
             return;
@@ -96,10 +98,16 @@ public class ThrottleMonitor {
                 nextMessage = now + 60000;
                 final long minutes = (now - lastMessage + 30000) / 60000;
                 lastMessage = now;
-                final int throttled = throttleCount - lastThrottleCount;
-                lastThrottleCount = throttleCount;
+                final long total = throttleCount.sum();
+                final long throttled = total - lastThrottleCount;
+                lastThrottleCount = total;
                 LOG.info("Throttled processing for {}ms in the last {} minutes.", throttled, minutes);
             }
         }
+    }
+
+    /** Test-only accessor (hence the name) over the accumulated throttle count. */
+    long throttleCountForTest() {
+        return throttleCount.sum();
     }
 }

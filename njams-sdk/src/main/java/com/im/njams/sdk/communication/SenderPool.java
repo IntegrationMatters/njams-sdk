@@ -397,12 +397,14 @@ public class SenderPool {
                         LOG.debug("Group is shutting down while reconnecting; dropping the message without waiting.");
                         return null;
                     }
+                    final long waitStart = System.currentTimeMillis();
                     try {
                         lock.wait();
                     } catch (InterruptedException e) {
                         Thread.currentThread().interrupt();
                         return null;
                     }
+                    ThrottleMonitor.throttle(System.currentTimeMillis() - waitStart);
                     // Re-evaluate: the group may now be connected, or shutting down.
                     continue;
                 }

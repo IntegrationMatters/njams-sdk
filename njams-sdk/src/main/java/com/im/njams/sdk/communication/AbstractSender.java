@@ -248,12 +248,14 @@ public abstract class AbstractSender {
                     throw new SenderRetiredException(failure);
                 }
                 logError(SendFailureOutcome.RETRYING, failure);
+                final long delay = getCongestionRetryDelayMs();
                 try {
-                    Thread.sleep(getCongestionRetryDelayMs());
+                    Thread.sleep(delay);
                 } catch (InterruptedException ie) {
                     Thread.currentThread().interrupt();
                     throw ie;
                 }
+                ThrottleMonitor.throttle(delay);
             }
         }
     }

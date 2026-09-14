@@ -101,6 +101,22 @@ public class SenderPoolAcquireSpecTest extends AbstractLifecycleSpecTest {
     }
 
     @Test
+    public void acquireReconnectWaitReportsToThrottleMonitor() throws Exception {
+        SenderPoolTestAccess pool = SenderPoolTestAccess.create("none");
+        pool.forceReconnecting();
+        CountDownLatch returned = new CountDownLatch(1);
+        Thread t = new Thread(() -> {
+            pool.acquire();
+            returned.countDown();
+        });
+        t.setDaemon(true);
+        t.start();
+        pool.publishConnectedSender();
+        assertTrue("the waiter must wake once a sender is published", returned.await(5, TimeUnit.SECONDS));
+        assertTrue("the reconnect wait must be reported to the throttle monitor", throttleMonitor.totalMs() > 0);
+    }
+
+    @Test
     public void acquireReturnsNullPromptlyOnShutdown() throws Exception {
         SenderPoolTestAccess pool = SenderPoolTestAccess.create("none");
         pool.forceReconnecting();
