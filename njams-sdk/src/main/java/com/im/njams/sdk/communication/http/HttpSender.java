@@ -437,8 +437,7 @@ public class HttpSender extends AbstractSender {
      */
     @Override
     protected void logError(SendFailureOutcome outcome, Throwable failure) {
-        final int status = failure instanceof HttpStatusException ? ((HttpStatusException) failure).getStatusCode()
-            : -1;
+        final int status = statusOf(failure);
         switch (outcome) {
         case MESSAGE_REJECTED:
             LOG.error("Server permanently rejected the message with status {} from {}; discarding it. "
@@ -450,7 +449,12 @@ public class HttpSender extends AbstractSender {
                 status, url);
             break;
         case ESCALATING:
-            LOG.warn("The nJAMS server HTTP endpoint {} could not be reached (status {}).", url, status);
+            if (isMessageRejected(failure) || isCongestion(failure)) {
+                LOG.debug("Server responded with status {} from {}; escalating to discard policy [{}].",
+                    status, url, discardPolicy);
+            } else {
+                LOG.warn("The nJAMS server HTTP endpoint {} could not be reached (status {}).", url, status);
+            }
             break;
         default:
             LOG.debug("Retrying send to {} after failure (status {}).", url, status, failure);
@@ -490,12 +494,21 @@ public class HttpSender extends AbstractSender {
         return statusOf(failure) == PAYLOAD_TOO_LARGE;
     }
 
+    /** Guards against a pathological transport exception whose cause chain loops back on itself. */
+    private static final int MAX_CAUSE_DEPTH = 32;
+
     /** @return the status code reported anywhere in the failure's cause chain, or -1 if none was. */
     private static int statusOf(Throwable failure) {
-        for (Throwable current = failure; current != null; current = current.getCause()) {
+        Throwable current = failure;
+        for (int depth = 0; current != null && depth < MAX_CAUSE_DEPTH; depth++) {
             if (current instanceof HttpStatusException) {
                 return ((HttpStatusException) current).getStatusCode();
             }
+            final Throwable cause = current.getCause();
+            if (cause == current) {
+                return -1;
+            }
+            current = cause;
         }
         return -1;
     }

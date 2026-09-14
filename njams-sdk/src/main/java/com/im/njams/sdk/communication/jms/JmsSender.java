@@ -400,14 +400,21 @@ public class JmsSender extends AbstractSender implements ExceptionListener, Clas
      * @param failure the failure that was reported.
      * @return {@code true} only if the cause chain contains a {@link ResourceAllocationException}.
      */
+    /** Guards against a pathological transport exception whose cause chain loops back on itself. */
+    private static final int MAX_CAUSE_DEPTH = 32;
+
     @Override
     protected boolean isCongestion(Throwable failure) {
         Throwable current = failure;
-        while (current != null) {
+        for (int depth = 0; current != null && depth < MAX_CAUSE_DEPTH; depth++) {
             if (current instanceof ResourceAllocationException) {
                 return true;
             }
-            current = current.getCause();
+            final Throwable cause = current.getCause();
+            if (cause == current) {
+                return false;
+            }
+            current = cause;
         }
         return false;
     }

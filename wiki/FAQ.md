@@ -277,8 +277,10 @@ broken — `njams.sdk.discardpolicy` decides what happens to the message. All th
 Kafka) apply the same policy identically; the retry/discard handling is centralized in the SDK rather than
 implemented separately per transport.
 
-- `none`: never discards. A momentarily full destination is waited out on the same connection; a broken
-  connection is retried until it comes back.
+- `none`: never discards for a transport-level problem. A momentarily full destination is waited out on the same
+  connection; a broken connection is retried until it comes back. The one exception is a message the target
+  rejects permanently (for HTTP, a `413` over the server's payload limit) — retrying cannot help, so it is
+  dropped regardless of the policy.
 - `onconnectionloss`: waits out a momentarily full destination exactly like `none`, and discards a message only
   once the failure is confirmed to be a connection problem rather than transient backpressure. That confirmation
   is always reported, so the SDK reconnects and any registered `SenderRecoveryListener` is notified.
