@@ -213,6 +213,78 @@ sites.
   - This belongs at the `AbstractSender` level, once, not duplicated per concrete transport — the outer loop
     being tested is shared, not transport-specific (see `testing-conventions.md` on coverage expectations).
 
+### Stale failure evidence across a reconnect (races A and B)
+
+Raised in review after the design converged, and verified against shipped code. A slow thread can report a
+failure about a connection the group has *already* given up on and replaced. Both halves are resolved here and
+are in scope for SDK-476 — the pre-existing half deliberately is **not** split into its own ticket, because the
+sender layer is mid-refactoring and SDK-476 is the next step in it.
+
+**The interleaving.** Thread 1's send fails and elects the reconnector; thread 2 is still inside its retry loop
+holding a sender that `failGroup` retired underneath it; the reconnect succeeds; thread 2 then finally reports.
+
+| Step | Thread 1 | Thread 2 | Reconnect thread |
+|---|---|---|---|
+| 1 | `reportFailure(sA)` → `failGroup(true)`: `reconnecting=true`, `listenerFireCount=1`, `retired.addAll(locked)` (`SenderPool.java:577`) — sB, held by thread 2, becomes retired | retrying on sB | — |
+| 2 | `electReconnector` | retrying | connects sC |
+| 3 | — | — | `onReconnected(sC)`: `reconnecting=false`, `failed=false` (`:519-536`) |
+| 4 | — | retries exhausted → `reportFailure(sB)` | — |
+
+**Race A — a stale report re-opens a healed outage.** `reportFailure` (`SenderPool.java:470-489`) computes
+`retired.remove(sender)` but **discards the result**, and by step 4 `!reconnecting` is true again, so it calls
+`failGroup` a second time. Consequences, all real: the healthy group is flipped back to failed/reconnecting;
+`failGroup`'s `drain(unlocked)` (`:576`) **closes sC, the sender the connector just published**; the
+`SenderExceptionListener` fires twice for one outage, breaking the documented "once per outage, not once per
+failed message" contract (`:57-59`, `:171-174`); and under `DISCARD`/`ON_CONNECTION_LOSS`, `acquire()` resumes
+discarding for an entirely unnecessary second reconnect. Reachable from the async channel too:
+`JmsSender.onException` → `notifyConnectionFailure` → the same `reportFailure`.
+
+*Resolution:* absorb a report from an already-retired sender. A retired sender can never return to `unlocked` —
+both `release` and `reportFailure` destroy it — so any failure it reports is, by construction, evidence about a
+connection generation that no longer exists.
+
+```java
+final boolean wasRetired;
+synchronized (lock) {
+    locked.remove(sender);
+    wasRetired = retired.remove(sender);
+    if (!reconnecting && !wasRetired) {
+        toDestroy = failGroup(brokenConnection);
+        listeners = new ArrayList<>(exceptionListeners);
+    }
+}
+```
+
+The codebase already recognises this bug class one method over: `restartConnectInBackground` guards with
+`!reconnecting && !coordinator.isGroupConnected()` and `:280-281` explains why. `reportFailure` never got the
+same guard.
+
+Note that **no message is lost** in the non-congestion case once this guard is in place: `dispatch` loops, so an
+absorbed report falls through to `acquire()` and the same message is re-sent on the healthy sender.
+
+**Race B — the unbounded congestion loop rides a retired connection.** Specific to the new design: under
+`NONE`/`ON_CONNECTION_LOSS` the outer loop retries congestion indefinitely on the *same* sender. If that sender
+is retired mid-flight, the message never migrates to the healthy connection and the retired sender is never
+closed while the loop runs. (JMS has a version of this today — `JmsSender.java:317-324` `continue`s without
+incrementing `tries`.) The obvious fix does not work: letting congestion escalate to `dispatch` lands in the
+congestion branch, which **discards** — and under `NONE` that would violate the "never discards" guarantee.
+
+*Resolution:* make the outer loop retirement-aware, and have `dispatch` treat that abort as *release-and-retry*
+rather than as a failure. The pool marks a sender when `failGroup` retires it; the outer loop stops waiting out
+congestion once marked and unwinds with a distinct internal signal; `dispatch` releases the sender (which closes
+it, since it is retired) and puts the same message on a fresh one. The message is preserved under every policy,
+and no spurious outage is reported.
+
+**The signal must be found by walking the cause chain, not with `instanceof`.** `HttpSender` re-throws a
+`RuntimeException` unwrapped (`HttpSender.java:302-304`), but `JmsSender` wraps *unconditionally*
+(`JmsSender.java:192-194`). An `instanceof` check would therefore work on HTTP and silently fail on JMS — the
+primary production transport. The same asymmetry is why both transports' classifiers must tolerate wrapping.
+
+Neither race has any test coverage today: `SenderPoolTest` never calls `reportFailure`, and
+`SenderRetirementSpecTest` covers only the two benign cases. Race A is deterministically testable through the
+existing `SenderPoolTestAccess` harness (`forceReconnecting()` → `publishConnectedSender()` → stale
+`reportFailure` → assert `exceptionListenerFireCount() == 1`), so this needs no timing-sensitive test.
+
 ### Fast-discard for messages arriving during a known outage (verified consequence, not a new mechanism)
 
 Once a sender reports a genuine connection issue (the "other" row above), every message dispatched *afterward*
@@ -283,7 +355,17 @@ implements this, not as open questions.
    loop under `DISCARD`) — see section 3's "cross-layer invariant" subsection for the concrete Javadoc and test
    shape this needs.
 
+4. **Fix races A and B inside SDK-476, not as a separate ticket.** Race A is a defect in shipped code
+   (`SenderPool.reportFailure` discarding the `retired.remove` result) and would ordinarily be its own ticket per
+   `jira-workflow.md`'s distinct-issue test. **Decision: keep it in SDK-476** — the sender layer is mid-refactoring
+   and SDK-476 is the next step, so fixing it here avoids a ticket whose fix would immediately be rewritten by this
+   one. Both fixes need their own tests; Race A's is deterministic through `SenderPoolTestAccess`, so neither
+   needs a timing-sensitive test. Sequence Race A's pool guard **before** the HTTP migration: making HTTP report
+   failures it currently swallows is exactly what starts exercising this path.
+
 ## 6. Status
 
 - Decision to proceed: made — tracked as **SDK-476**, created and started (`In Progress`, assigned).
-- Still needed before implementation: a `writing-plans` pass turning this design into an implementation plan.
+- Implementation plan written: `docs/superpowers/plans/2026-09-10-sdk-476-sender-retry-unification.md`.
+- Design amended after a review pass raised the reconnect race — see section 3's "Stale failure evidence across
+  a reconnect". Both halves are settled and folded into the plan (Task 1 for B, Task 2 for A).
