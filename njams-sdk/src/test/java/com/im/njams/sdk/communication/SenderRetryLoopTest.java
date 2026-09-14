@@ -42,7 +42,6 @@ public class SenderRetryLoopTest {
         private int failuresToProduce = 0;
         private RuntimeException failureToThrow = new RuntimeException("other");
         private final List<SendFailureOutcome> logged = new ArrayList<>();
-        private long congestionDelayMs = 0;
 
         RetrySender(String policy) {
             Properties props = new Properties();
@@ -87,12 +86,7 @@ public class SenderRetryLoopTest {
 
         @Override
         protected long getCongestionRetryDelayMs() {
-            return congestionDelayMs;
-        }
-
-        /** Overrides the default zero delay; only needed by tests that observe the wait itself. */
-        void congestionDelayMs(long ms) {
-            congestionDelayMs = ms;
+            return 0;
         }
 
         @Override
@@ -297,23 +291,6 @@ public class SenderRetryLoopTest {
             } catch (RuntimeException expected) {
                 assertEquals(4, sender.attempts);
             }
-        }
-    }
-
-    // --- The congestion wait must be visible to operators through the shared throttle monitor ---
-
-    @Test
-    public void congestionWaitReportsToThrottleMonitor() throws Exception {
-        CountingThrottleMonitor monitor = CountingThrottleMonitor.install();
-        try {
-            RetrySender sender = new RetrySender("none");
-            sender.congestionDelayMs(7);
-            // 4 failing attempts exhaust exactly one smoothing window (1 initial + 3 retries), so the outer loop
-            // sleeps exactly once before the window resets and the 5th attempt succeeds.
-            sender.run(4, new Congested());
-            assertEquals("the one congestion wait must report its delay", 7L, monitor.totalMs());
-        } finally {
-            CountingThrottleMonitor.restore();
         }
     }
 
