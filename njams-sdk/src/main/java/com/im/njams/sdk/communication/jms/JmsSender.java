@@ -388,6 +388,9 @@ public class JmsSender extends AbstractSender implements ExceptionListener, Clas
         }
     }
 
+    /** Guards against a pathological transport exception whose cause chain loops back on itself. */
+    private static final int MAX_CAUSE_DEPTH = 32;
+
     /**
      * Identifies a {@link ResourceAllocationException} anywhere in the failure's cause chain as congestion: the
      * JMS-spec-defined, provider-independent signal that the broker could not allocate the resources needed to
@@ -400,9 +403,6 @@ public class JmsSender extends AbstractSender implements ExceptionListener, Clas
      * @param failure the failure that was reported.
      * @return {@code true} only if the cause chain contains a {@link ResourceAllocationException}.
      */
-    /** Guards against a pathological transport exception whose cause chain loops back on itself. */
-    private static final int MAX_CAUSE_DEPTH = 32;
-
     @Override
     protected boolean isCongestion(Throwable failure) {
         Throwable current = failure;
