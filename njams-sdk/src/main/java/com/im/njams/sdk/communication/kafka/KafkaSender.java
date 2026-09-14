@@ -43,7 +43,6 @@ import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.KafkaException;
-import org.apache.kafka.common.errors.RecordTooLargeException;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -57,7 +56,6 @@ import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.communication.AbstractSender;
 import com.im.njams.sdk.communication.ConnectionStatus;
-import com.im.njams.sdk.communication.DiscardMonitor;
 import com.im.njams.sdk.communication.DiscardPolicy;
 import com.im.njams.sdk.communication.fragments.SplitSupport;
 import com.im.njams.sdk.communication.fragments.SplitSupport.SplitIterator;
@@ -290,39 +288,29 @@ public class KafkaSender extends AbstractSender {
     }
 
     /**
-     * Relies on Kafka's internal retry which is controlled by according producer settings.
+     * One honest attempt per record. Kafka's own client-internal retrying still applies underneath, controlled by
+     * the producer settings; the SDK's retry and discard handling sits on top of whatever that reports back.
      *
-     * @param producerRecord
-     * @throws Exception
+     * @param producerRecord the record to send.
+     * @throws Exception if the record could not be sent.
      */
     private void tryToSend(final ProducerRecord<String, String> producerRecord) throws Exception {
-        long start = System.currentTimeMillis();
-        try {
-            final Future<RecordMetadata> future = producer.send(producerRecord);
-            final RecordMetadata result = future.get(requestTimeoutMs, TimeUnit.MILLISECONDS);
-            if (LOG.isTraceEnabled()) {
-                LOG.trace("Send record result: {} after {}ms\n{}", result, System.currentTimeMillis() - start,
-                    producerRecord);
-            } else if (LOG.isDebugEnabled()) {
-                LOG.debug("Send record result: {} after {}ms", result, System.currentTimeMillis() - start);
+        sendWithRetry(() -> {
+            final long start = System.currentTimeMillis();
+            try {
+                final Future<RecordMetadata> future = producer.send(producerRecord);
+                final RecordMetadata result = future.get(requestTimeoutMs, TimeUnit.MILLISECONDS);
+                if (LOG.isTraceEnabled()) {
+                    LOG.trace("Send record result: {} after {}ms\n{}", result, System.currentTimeMillis() - start,
+                        producerRecord);
+                } else if (LOG.isDebugEnabled()) {
+                    LOG.debug("Send record result: {} after {}ms", result, System.currentTimeMillis() - start);
+                }
+            } catch (KafkaException | IllegalStateException | ExecutionException | TimeoutException e) {
+                LOG.debug("Failed to send record after {}ms", System.currentTimeMillis() - start, e);
+                throw getAsyncCause(e);
             }
-
-        } catch (KafkaException | IllegalStateException | ExecutionException | TimeoutException e) {
-            LOG.debug("Failed to send record", e);
-            Exception cause = getAsyncCause(e);
-            if (cause instanceof RecordTooLargeException) {
-                // if splitting is enabled, this can still be caused by misconfiguration!
-                LOG.warn("Discarding message that is too large: {}", cause.toString());
-                DiscardMonitor.discard();
-            }
-            if (discardPolicy == DiscardPolicy.ON_CONNECTION_LOSS) {
-                LOG.debug("Applying discard policy [{}]. Message discarded.", discardPolicy);
-                DiscardMonitor.discard();
-            }
-            LOG.warn("Try to reconnect, because the topic couldn't be reached after {} milliseconds.",
-                System.currentTimeMillis() - start);
-            throw cause;
-        }
+        });
     }
 
     /**
