@@ -117,11 +117,11 @@ public class TestSender extends AbstractSender {
 
     @Override
     protected boolean isCongestion(Throwable failure) {
-        return false;
+        return sender != null && sender.isCongestion(failure);
     }
 
     @Override
     protected boolean isMessageRejected(Throwable failure) {
-        return false;
+        return sender != null && sender.isMessageRejected(failure);
     }
 }

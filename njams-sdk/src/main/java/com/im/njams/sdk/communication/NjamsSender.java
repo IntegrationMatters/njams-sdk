@@ -219,10 +219,47 @@ public class NjamsSender {
                 senderPool.release(sender);
                 return;
             } catch (Exception e) {
+                if (SenderRetiredException.isIn(e)) {
+                    // The pool replaced this connection while the send was still retrying. That says nothing
+                    // about the group's current connection, so this must not be reported as a failure: hand the
+                    // sender back (release closes it, since it is retired) and put the same message on a current
+                    // one. Checked before the classifiers on purpose — the underlying failure is usually
+                    // congestion, and the congestion branch below would drop the message.
+                    LOG.debug("Sender {} was retired mid-send; retrying the message on a current sender.",
+                        sender.getName());
+                    senderPool.release(sender);
+                    continue;
+                }
+                if (dropWithoutRetiring(sender, e)) {
+                    return;
+                }
                 LOG.debug("Send failed on sender {}; retiring it and retrying the message.", sender.getName(), e);
                 senderPool.reportFailure(sender, e);
             }
         }
+    }
+
+    /**
+     * Decides a failed send that the sender itself could attribute to the message or to congestion: the
+     * connection is fine in both cases, so the sender goes back into the pool untouched and only this message
+     * is dropped. Retiring it would cost a needless reconnect, and for a rejected message would blame the
+     * connection for a payload it will never accept.
+     *
+     * @return {@code true} if the message was dropped and this send is finished.
+     */
+    private boolean dropWithoutRetiring(AbstractSender sender, Exception failure) {
+        final AbstractSender.SendFailureOutcome outcome;
+        if (sender.isMessageRejected(failure)) {
+            outcome = AbstractSender.SendFailureOutcome.MESSAGE_REJECTED;
+        } else if (sender.isCongestion(failure)) {
+            outcome = AbstractSender.SendFailureOutcome.DISCARDED_BY_POLICY;
+        } else {
+            return false;
+        }
+        sender.logError(outcome, failure);
+        DiscardMonitor.discard();
+        senderPool.release(sender);
+        return true;
     }
 
     /**
