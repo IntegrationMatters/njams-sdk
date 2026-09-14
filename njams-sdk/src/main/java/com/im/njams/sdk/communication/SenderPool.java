@@ -61,7 +61,9 @@ import com.im.njams.sdk.settings.ClientSettings;
  * {@link #release(AbstractSender)}, which then closes it instead of recycling it. This is what keeps a broken
  * sender from being handed to the next caller without ever closing a sender under a foreign thread. Later reports
  * for the same outage are absorbed, so a burst of failing worker threads produces one reconnect, not one per
- * thread. When the connector has a working sender it publishes it via
+ * thread — and so is a report that arrives only after the outage has already closed: a retired sender's borrower
+ * can still be retrying it when the connector publishes a fresh one, and the stale verdict it eventually reports
+ * must not re-open a group that has already recovered. When the connector has a working sender it publishes it via
  * {@link #onReconnected(AbstractSender, boolean)},
  * which clears the failure state and wakes everyone parked in {@link #acquire()}.
  *
@@ -462,7 +464,9 @@ public class SenderPool {
 
     /**
      * Retires the given sender and, if this is the first report for the current outage, elects the group's single
-     * reconnector and notifies the exception listeners once.
+     * reconnector and notifies the exception listeners once. A report for a sender that is already retired — from
+     * an outage this group has since recovered from, or is still in — is absorbed: it is closed like any other
+     * failing sender, but it never re-opens or re-elects.
      *
      * @param sender the sender that hit the failure; it is closed, never recycled.
      * @param cause  the failure, passed on to the listeners and the reconnect loop.
@@ -473,10 +477,15 @@ public class SenderPool {
         final boolean brokenConnection = sender == null || classifyQuietly(sender, cause);
         List<AbstractSender> toDestroy = Collections.emptyList();
         List<SenderExceptionListener> listeners = null;
+        final boolean wasRetired;
         synchronized (lock) {
             locked.remove(sender);
-            retired.remove(sender);
-            if (!reconnecting) {
+            // A retired sender never returns to `unlocked` - release() and this method both destroy it - so a
+            // failure it reports is always about a connection generation the group has already given up on.
+            // Acting on it would re-fail a healthy group, destroy the sender the connector just published, and
+            // notify the listeners a second time for one outage.
+            wasRetired = retired.remove(sender);
+            if (!reconnecting && !wasRetired) {
                 toDestroy = failGroup(brokenConnection);
                 listeners = new ArrayList<>(exceptionListeners);
             }
@@ -575,6 +584,9 @@ public class SenderPool {
         coordinator.beginReconnect();
         final List<AbstractSender> toDestroy = drain(unlocked);
         retired.addAll(locked);
+        // Let a send still retrying on one of these unwind instead of waiting out congestion on a connection the
+        // group no longer uses. Safe under the lock: it only sets a volatile flag and calls no transport code.
+        locked.forEach(AbstractSender::setRetired);
         return toDestroy;
     }
 
