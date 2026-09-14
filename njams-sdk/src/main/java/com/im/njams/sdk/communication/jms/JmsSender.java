@@ -51,7 +51,6 @@ import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.communication.AbstractSender;
 import com.im.njams.sdk.settings.ClientSettings;
 import com.im.njams.sdk.communication.ConnectionStatus;
-import com.im.njams.sdk.communication.DiscardPolicy;
 import com.im.njams.sdk.communication.fragments.SplitSupport;
 import com.im.njams.sdk.communication.fragments.SplitSupport.SplitIterator;
 import com.im.njams.sdk.communication.jms.factory.JmsFactory;
@@ -227,7 +226,7 @@ public class JmsSender extends AbstractSender implements ExceptionListener, Clas
     }
 
     protected void sendMessage(MessageProducer producer, CommonMessage msg, String messageType, String clientSessionId)
-        throws JMSException, InterruptedException {
+        throws Exception {
         final String data = serialize(msg);
         if (splitSupport.isSplitting()) {
             sendChunks(producer, msg, data, messageType, clientSessionId);
@@ -253,7 +252,7 @@ public class JmsSender extends AbstractSender implements ExceptionListener, Clas
 
     private void sendChunks(MessageProducer producer, CommonMessage msg, String data, String messageType,
         String clientSessionId)
-        throws JMSException, InterruptedException {
+        throws Exception {
         final SplitIterator chunks = splitSupport.iterator(data);
         if (chunks.isEmpty()) {
             return;
@@ -302,35 +301,8 @@ public class JmsSender extends AbstractSender implements ExceptionListener, Clas
         }
     }
 
-    private void tryToSend(MessageProducer producer, TextMessage textMessage)
-        throws InterruptedException, JMSException {
-        boolean sended = false;
-        final int EXCEPTION_IDLE_TIME = 50;
-        final int MAX_TRIES = 100;
-        int tries = 0;
-
-        do {
-            try {
-                producer.send(textMessage);
-                sended = true;
-            } catch (ResourceAllocationException ex) {
-                if (discardPolicy == DiscardPolicy.ON_CONNECTION_LOSS) {
-                    // Not a connection loss: this policy blocks in that case, same as DiscardPolicy.NONE. JMS has
-                    // no portable signal distinguishing a permanently oversized message from transient resource
-                    // exhaustion, so this can block indefinitely rather than discard or reconnect.
-                    LOG.debug("JMS Queue limit exceeded; retrying without discarding or reconnecting.");
-                    Thread.sleep(EXCEPTION_IDLE_TIME);
-                    continue;
-                }
-                //Queue limit exceeded
-                if (++tries >= MAX_TRIES) {
-                    LOG.warn("Try to reconnect, because the MessageQueue hasn't got enough space after {} seconds.",
-                        MAX_TRIES * EXCEPTION_IDLE_TIME);
-                    throw ex;
-                }
-                Thread.sleep(EXCEPTION_IDLE_TIME);
-            }
-        } while (!sended);
+    private void tryToSend(MessageProducer producer, TextMessage textMessage) throws Exception {
+        sendWithRetry(() -> producer.send(textMessage));
     }
 
     /**
@@ -387,6 +359,28 @@ public class JmsSender extends AbstractSender implements ExceptionListener, Clas
     @Override
     public String getName() {
         return COMMUNICATION_NAME;
+    }
+
+    /**
+     * Logs a send failure with the JMS detail the shared retry handling does not have — that a
+     * {@link ResourceAllocationException} means the destination is momentarily full rather than unreachable.
+     *
+     * @param outcome what the SDK decided about this failure.
+     * @param failure the failure itself.
+     */
+    @Override
+    protected void logError(SendFailureOutcome outcome, Throwable failure) {
+        switch (outcome) {
+        case DISCARDED_BY_POLICY:
+            LOG.debug("JMS destination limit exceeded; applying discard policy [{}].", discardPolicy);
+            break;
+        case ESCALATING:
+            LOG.warn("Failed to send to the JMS destination; treating the connection as broken.", failure);
+            break;
+        default:
+            LOG.debug("Retrying JMS send after failure.", failure);
+            break;
+        }
     }
 
     /**

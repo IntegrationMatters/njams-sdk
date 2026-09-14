@@ -113,42 +113,63 @@ public class JmsSenderTest {
     }
 
     @Test
-    public void queueIsFullTest() throws JMSException, InterruptedException {
-        final String ERROR_MESSAGE = "Queue limit exceeded";
-        final MessageProducer producer = sender.eventProducer = mock(MessageProducer.class);
-        final Session session = sender.session = mock(Session.class);
+    public void queueFullIsSmoothedThenRetriedIndefinitelyUnderNonePolicy() throws Exception {
+        Properties props = new Properties();
+        props.put(NjamsSettings.PROPERTY_COMMUNICATION, JmsSender.COMMUNICATION_NAME);
+        props.put(NjamsSettings.PROPERTY_DISCARD_POLICY, "none");
+        JmsSender noneSender = spy(new JmsSender() {
+            @Override
+            String serialize(CommonMessage msg) {
+                return "dummy data";
+            }
+
+            @Override
+            protected long[] getSmoothingDelaysMs() {
+                return new long[] { 0, 0, 0 };
+            }
+
+            @Override
+            protected long getCongestionRetryDelayMs() {
+                return 0;
+            }
+        });
+        noneSender.init(ClientSettings.from(props));
+        final MessageProducer producer = noneSender.eventProducer = mock(MessageProducer.class);
+        final Session session = noneSender.session = mock(Session.class);
         when(session.createTextMessage(any())).thenReturn(mock(TextMessage.class));
-        ResourceAllocationException er1 = new ResourceAllocationException(ERROR_MESSAGE);
-        ResourceAllocationException er2 = new ResourceAllocationException(ERROR_MESSAGE);
-        doThrow(er1).doThrow(er2).doNothing().when(producer).send(any());
+        // more failures than the smoothing window: proves congestion is retried past it, never discarded
+        final int[] attempt = { 0 };
+        doAnswer(invocation -> {
+            if (++attempt[0] <= 10) {
+                throw new ResourceAllocationException("Queue limit exceeded");
+            }
+            return null;
+        }).when(producer).send(any());
         final CommonMessage msg = mock(CommonMessage.class);
         when(msg.getPath()).thenReturn("path");
-        sender.sendMessage(producer, msg, "messageType", null);
-        verify(producer, times(3)).send(any());
+        noneSender.sendMessage(producer, msg, "messageType", null);
+        verify(producer, times(11)).send(any());
     }
 
-    @Test(expected = ResourceAllocationException.class)
-    public void queueIsFullMaxTriesTest() throws JMSException, InterruptedException {
-        final String ERROR_MESSAGE = "Queue limit exceeded";
+    @Test
+    public void queueFullUnderDiscardPolicyGivesUpOnTheFirstAttempt() throws Exception {
         final MessageProducer producer = sender.eventProducer = mock(MessageProducer.class);
         final Session session = sender.session = mock(Session.class);
         when(session.createTextMessage(any())).thenReturn(mock(TextMessage.class));
-        ResourceAllocationException er = new ResourceAllocationException(ERROR_MESSAGE);
-        doThrow(er).when(producer).send(any());
+        doThrow(new ResourceAllocationException("Queue limit exceeded")).when(producer).send(any());
         final CommonMessage msg = mock(CommonMessage.class);
         when(msg.getPath()).thenReturn("path");
         try {
             sender.sendMessage(producer, msg, "messageType", null);
-        } catch (ResourceAllocationException ex) {
-            throw ex;
-        } finally {
-            verify(producer, times(100)).send(any());
+            fail("expected the congestion failure to be reported under the discard policy");
+        } catch (ResourceAllocationException expected) {
+            // expected: the SDK drops the message without retiring the connection
         }
+        verify(producer, times(1)).send(any());
     }
 
     @Test
-    public void queueFullUnderConnectionLossPolicyRetriesInsteadOfDiscardingImmediately()
-        throws JMSException, InterruptedException {
+    public void queueFullUnderConnectionLossPolicyRetriesInsteadOfDiscardingImmediately() throws Exception {
         Properties props = new Properties();
         props.put(NjamsSettings.PROPERTY_COMMUNICATION, JmsSender.COMMUNICATION_NAME);
         props.put(NjamsSettings.PROPERTY_DISCARD_POLICY, "onconnectionloss");
