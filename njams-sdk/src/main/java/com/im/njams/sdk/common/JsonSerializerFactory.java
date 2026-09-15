@@ -55,7 +55,8 @@ import java.util.concurrent.ConcurrentHashMap;
  * for registering custom (de-)serializers use
  * {@link #addSerializer(com.faizsiegeln.njams.messageformat.v4.converter.Converter, boolean)}.
  *
- * <p>Provides factory methods for JSON serializers and mappers.
+ * <p>Provides factory methods for JSON serializers and mappers. All mapper instances are cached for re-using.
+ * Thus, the 'fast-mapper' label is somewhat misleading now. It ony means 'a non-pretty-printing' mapper.
  *
  * <p><b>Note for SDK consumers:</b> Several methods of this class accept or return Jackson types
  * ({@code ObjectMapper}, {@code ObjectWriter}, {@code JsonFactory}, {@code JsonSerializer},
@@ -96,8 +97,14 @@ public class JsonSerializerFactory {
     protected static final String MIX_IN_FILTER_ID = "MixInFilter";
 
     private static final Map<Class<?>, Mapper<?>> customSerializers = new ConcurrentHashMap<>();
-    private static ObjectMapper defaultMapper = null;
-    private static ObjectMapper cachedMapper = null;
+
+    private static final Map<Byte, ObjectMapper> mapperCache = new ConcurrentHashMap<>(4, 1f);
+
+    private static ObjectMapper getCachedMapper(boolean pretty, boolean skipNull) {
+        // key is a flag bitmap fpr the four possible combinations of the given booleans
+        final byte key = (byte) ((pretty ? 0b10 : 0) | (skipNull ? 0b01 : 0));
+        return mapperCache.computeIfAbsent(key, k -> createMapper(skipNull, pretty));
+    }
 
     private JsonSerializerFactory() {
         if (LOG.isTraceEnabled()) {
@@ -125,18 +132,7 @@ public class JsonSerializerFactory {
      */
     @Deprecated(since = "6.0.0", forRemoval = false)
     public static ObjectMapper getFastMapper() {
-        final ObjectMapper om = cachedMapper;
-        if (om != null) {
-            return om;
-        }
-        synchronized (JsonSerializerFactory.class) {
-            if (cachedMapper == null) {
-                LOG.debug("Creating new fast mapper.");
-                cachedMapper = getMapper(true, false);
-            }
-            return cachedMapper;
-        }
-
+        return getCachedMapper(true, false);
     }
 
     /**
@@ -149,17 +145,7 @@ public class JsonSerializerFactory {
      */
     @Deprecated(since = "6.0.0", forRemoval = false)
     public static ObjectMapper getDefaultMapper() {
-        final ObjectMapper om = defaultMapper;
-        if (om != null) {
-            return om;
-        }
-        synchronized (JsonSerializerFactory.class) {
-            if (defaultMapper == null) {
-                LOG.debug("Creating new default mapper.");
-                defaultMapper = getMapper(true, true);
-            }
-            return defaultMapper;
-        }
+        return getCachedMapper(true, true);
     }
 
     /**
@@ -174,7 +160,7 @@ public class JsonSerializerFactory {
      */
     @Deprecated(since = "6.0.0", forRemoval = false)
     @SuppressWarnings("unchecked")
-    public static synchronized ObjectMapper getDefaultMapper(JsonFactory factory) {
+    public static synchronized ObjectMapper createDefaultMapper(JsonFactory factory) {
         ObjectMapper om = factory == null ? new ObjectMapper() : new ObjectMapper(factory);
 
         AnnotationIntrospector first = new JacksonAnnotationIntrospector();
@@ -318,8 +304,7 @@ public class JsonSerializerFactory {
             return;
         }
         LOG.trace("Register new mapper for {}", type.getName());
-        defaultMapper = null;
-        cachedMapper = null;
+        mapperCache.clear();
         customSerializers.put(type, new Mapper<>(serializer, deserializer));
     }
 
@@ -345,8 +330,7 @@ public class JsonSerializerFactory {
      */
     public static synchronized boolean removeSerializer(Class<?> type) {
         if (customSerializers.remove(type) != null) {
-            defaultMapper = null;
-            cachedMapper = null;
+            mapperCache.clear();
             return true;
         }
         return false;
@@ -363,7 +347,11 @@ public class JsonSerializerFactory {
      */
     @Deprecated(since = "6.0.0", forRemoval = false)
     public static ObjectMapper getMapper(boolean skipNullValues, boolean pretty) {
-        ObjectMapper om = getDefaultMapper(null);
+        return getCachedMapper(pretty, skipNullValues);
+    }
+
+    private static ObjectMapper createMapper(boolean skipNullValues, boolean pretty) {
+        ObjectMapper om = createDefaultMapper(null);
         om.setSerializationInclusion(skipNullValues ? Include.NON_NULL : Include.ALWAYS);
         om.configure(SerializationFeature.INDENT_OUTPUT, pretty);
         om.configure(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS, pretty);
