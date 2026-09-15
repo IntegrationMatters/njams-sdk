@@ -126,7 +126,7 @@ public class JsonUtils {
      * @throws NjamsSdkRuntimeException If serializing the object to JSON failed.
      */
     // @Deprecated flags external API consumers only; internal use of Jackson factory is intentional.
-    @Deprecated
+    @SuppressWarnings("deprecation")
     public static String serialize(Object object, boolean prettyPrint, boolean skipNullValues)
         throws NjamsSdkRuntimeException {
         try {
