@@ -23,13 +23,19 @@
  */
 package com.im.njams.sdk.utils;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
 import org.junit.Test;
+
+import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 
 public class JsonUtilsTest {
 
@@ -53,6 +59,84 @@ public class JsonUtilsTest {
         String json = JsonUtils.serialize(payload, true);
 
         assertTrue(json.contains("\n"));
+    }
+
+    @Test
+    public void serializeSkipsNullValuesByDefault() {
+        Map<String, String> payload = new LinkedHashMap<>();
+        payload.put("a", null);
+        payload.put("b", "2");
+
+        String json = JsonUtils.serialize(payload);
+
+        assertFalse(json.contains("\"a\""));
+        assertTrue(json.contains("\"b\""));
+    }
+
+    @Test
+    public void serializeWithPrettyPrintAlsoSkipsNullValues() {
+        Map<String, String> payload = new LinkedHashMap<>();
+        payload.put("a", null);
+        payload.put("b", "2");
+
+        String json = JsonUtils.serialize(payload, true);
+
+        assertFalse(json.contains("\"a\""));
+        assertTrue(json.contains("\n"));
+    }
+
+    @SuppressWarnings("deprecation")
+    @Test
+    public void serializeWithSkipNullValuesFalseIncludesNullValues() {
+        Map<String, String> payload = new LinkedHashMap<>();
+        payload.put("a", null);
+        payload.put("b", "2");
+
+        String json = JsonUtils.serialize(payload, false, false);
+
+        assertTrue(json.contains("\"a\":null"));
+    }
+
+    @Test(expected = NjamsSdkRuntimeException.class)
+    public void serializeWrapsSerializationFailureInRuntimeException() {
+        JsonUtils.serialize(new FailingBean());
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    public void parseStringParsesJsonIntoObject() {
+        Map<String, String> result = JsonUtils.parse("{\"a\":\"1\",\"b\":\"2\"}", Map.class);
+
+        assertEquals("1", result.get("a"));
+        assertEquals("2", result.get("b"));
+    }
+
+    @Test(expected = NjamsSdkRuntimeException.class)
+    public void parseStringWrapsParseFailureInRuntimeException() {
+        JsonUtils.parse("not valid json", Map.class);
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    public void parseInputStreamParsesJsonIntoObject() {
+        InputStream stream = new ByteArrayInputStream("{\"a\":\"1\"}".getBytes(StandardCharsets.UTF_8));
+
+        Map<String, String> result = JsonUtils.parse(stream, Map.class);
+
+        assertEquals("1", result.get("a"));
+    }
+
+    @Test(expected = NjamsSdkRuntimeException.class)
+    public void parseInputStreamWrapsParseFailureInRuntimeException() {
+        InputStream stream = new ByteArrayInputStream("not valid json".getBytes(StandardCharsets.UTF_8));
+
+        JsonUtils.parse(stream, Map.class);
+    }
+
+    private static final class FailingBean {
+        public String getValue() {
+            throw new IllegalStateException("boom");
+        }
     }
 }
 

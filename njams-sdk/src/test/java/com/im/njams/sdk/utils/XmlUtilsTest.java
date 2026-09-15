@@ -84,4 +84,28 @@ public class XmlUtilsTest {
     public void parseInvalidXmlThrows() {
         XmlUtils.parse("<not-valid", Bean.class);
     }
+
+    @Test(expected = NjamsSdkRuntimeException.class)
+    public void parseInvalidXmlFromInputStreamThrows() {
+        XmlUtils.parse(new ByteArrayInputStream("<not-valid".getBytes(StandardCharsets.UTF_8)), Bean.class);
+    }
+
+    @Test(expected = NjamsSdkRuntimeException.class)
+    public void serializeWrapsSerializationFailureInRuntimeException() {
+        XmlUtils.serialize(new FailingBean());
+    }
+
+    @Test
+    public void serializeExcludesNullValues() {
+        String xml = XmlUtils.serialize(new Bean("a", null));
+
+        assertFalse(xml.contains("data"));
+        assertTrue(xml.contains("a"));
+    }
+
+    public static class FailingBean {
+        public String getValue() {
+            throw new IllegalStateException("boom");
+        }
+    }
 }
