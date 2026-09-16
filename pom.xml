@@ -449,12 +449,12 @@
         <repository>
             <id>releases</id>
             <name>Internal Releases on Nexus</name>
-            <url>https://nexus.service.salesfice.io/repository/releases/</url>
+            <url>https://nexus.service.salesfive.io/repository/releases/</url>
         </repository>
         <snapshotRepository>
             <id>snapshots</id>
             <name>Nightly builds on Nexus</name>
-            <url>https://nexus.service.salesfice.io/repository/snapshots/</url>
+            <url>https://nexus.service.salesfive.io/repository/snapshots/</url>
         </snapshotRepository>
     </distributionManagement>
 
