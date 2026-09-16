@@ -25,14 +25,14 @@ package com.im.njams.sdk.logmessage;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.ListIterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Predicate;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -52,11 +52,22 @@ public class JobActivities {
 
     private static final Logger LOG = LoggerFactory.getLogger(JobActivities.class);
 
+    /** Accepts every activity, regardless of its status. */
+    private static final Predicate<ActivityStatus> ANY_STATUS = status -> true;
+    private static final Predicate<ActivityStatus> RUNNING_STATUS = status -> status == ActivityStatus.RUNNING;
+    private static final Predicate<ActivityStatus> COMPLETED_STATUS =
+            status -> status != null && status.ordinal() > ActivityStatus.RUNNING.ordinal();
+
     private final JobImpl jobImpl;
     private final Object lock;
 
     // instanceId -> activity; all access must be guarded by the shared activities lock
     private final Map<String, Activity> activities = new LinkedHashMap<>();
+
+    // modelId -> the activity for that model that was registered last. Each activity links back to
+    // its predecessor for the same model via ActivityImpl#previousWithSameModelId, so a model lookup
+    // walks only that model's activities instead of scanning the whole registry. Same lock as above.
+    private final Map<String, ActivityImpl> lastByModelId = new HashMap<>();
 
     /*
      * activity sequence counter
@@ -166,6 +177,11 @@ public class JobActivities {
                         "The method start() must be called before activities can be added to the job!");
             }
             final Activity previous = activities.put(activity.getInstanceId(), activity);
+            if (previous != null && previous != activity) {
+                // An instance id was re-used by a different activity object: the new one takes the
+                // old one's place in the registry, which its model chain has to follow.
+                rebuildModelChains();
+            }
             if (previous == null) {
                 // Count the per-activity base size in the running estimate as soon as the activity
                 // is added, so flush-by-size reflects activity-heavy jobs between flushes. Content
@@ -173,6 +189,7 @@ public class JobActivities {
                 // only the fixed base is added here to avoid double counting. Reused activities
                 // (loop iterations) re-enter add with previous != null and must not re-add it.
                 owner.addToEstimatedSize(ActivityImpl.BASE_ESTIMATED_SIZE);
+                appendToModelChain(activity);
             }
             if (activity.isStarter()) {
                 // the flag lives on JobImpl: frozen tests access the field directly
@@ -205,17 +222,7 @@ public class JobActivities {
      * @return the {@link Activity}
      */
     public Activity getByModelId(String activityModelId) {
-        synchronized (lock) {
-            List<String> reverseOrderedKeys = new ArrayList<>(activities.keySet());
-            ListIterator<String> iterator = reverseOrderedKeys.listIterator(reverseOrderedKeys.size());
-            while (iterator.hasPrevious()) {
-                Activity _activity = activities.get(iterator.previous());
-                if (_activity != null && _activity.getModelId().equals(activityModelId)) {
-                    return _activity;
-                }
-            }
-            return null;
-        }
+        return findLastByModelId(activityModelId, ANY_STATUS);
     }
 
     /**
@@ -225,18 +232,7 @@ public class JobActivities {
      * @return the {@link Activity}
      */
     public Activity getRunningByModelId(String activityModelId) {
-        synchronized (lock) {
-            List<String> reverseOrderedKeys = new ArrayList<>(activities.keySet());
-            ListIterator<String> iterator = reverseOrderedKeys.listIterator(reverseOrderedKeys.size());
-            while (iterator.hasPrevious()) {
-                Activity _activity = activities.get(iterator.previous());
-                if (_activity.getActivityStatus() == ActivityStatus.RUNNING
-                        && _activity.getModelId().equals(activityModelId)) {
-                    return _activity;
-                }
-            }
-            return null;
-        }
+        return findLastByModelId(activityModelId, RUNNING_STATUS);
     }
 
     /**
@@ -246,17 +242,44 @@ public class JobActivities {
      * @return the {@link Activity}
      */
     public Activity getCompletedByModelId(String activityModelId) {
+        return findLastByModelId(activityModelId, COMPLETED_STATUS);
+    }
+
+    /**
+     * Walks the given model's chain, starting at the activity registered last for that model, and
+     * returns the first one whose status the given filter accepts.
+     */
+    private Activity findLastByModelId(String activityModelId, Predicate<ActivityStatus> statusFilter) {
         synchronized (lock) {
-            List<String> reverseOrderedKeys = new ArrayList<>(activities.keySet());
-            ListIterator<String> iterator = reverseOrderedKeys.listIterator(reverseOrderedKeys.size());
-            while (iterator.hasPrevious()) {
-                Activity _activity = activities.get(iterator.previous());
-                if (_activity.getActivityStatus().ordinal() > ActivityStatus.RUNNING.ordinal()
-                        && _activity.getModelId().equals(activityModelId)) {
-                    return _activity;
+            ActivityImpl candidate = lastByModelId.get(activityModelId);
+            while (candidate != null) {
+                if (statusFilter.test(candidate.getActivityStatus())) {
+                    return candidate;
                 }
+                candidate = candidate.previousWithSameModelId;
             }
             return null;
+        }
+    }
+
+    /**
+     * Appends the given activity to the end of its model's chain. The registry only ever holds
+     * {@link ActivityImpl} instances. Callers must hold the activities lock.
+     */
+    private void appendToModelChain(Activity activity) {
+        final ActivityImpl added = (ActivityImpl) activity;
+        added.previousWithSameModelId = lastByModelId.put(added.getModelId(), added);
+    }
+
+    /**
+     * Rebuilds every model chain from the registry's insertion order. Used after activities have
+     * been removed or replaced, where repairing the affected links individually is not worth the
+     * complexity. Callers must hold the activities lock.
+     */
+    private void rebuildModelChains() {
+        lastByModelId.clear();
+        for (Activity activity : activities.values()) {
+            appendToModelChain(activity);
         }
     }
 
@@ -327,6 +350,8 @@ public class JobActivities {
                     flushedActivities.remove(a.getInstanceId());
                     loggingSum++;
                     iterator.remove();
+                    // do not let an evicted activity keep its predecessors alive through the chain
+                    ((ActivityImpl) a).previousWithSameModelId = null;
                     GroupImpl parent = (GroupImpl) a.getParent();
                     if (parent != null) {
                         parent.removeChildActivity(a.getInstanceId());
@@ -338,6 +363,9 @@ public class JobActivities {
                     flushedActivities.add(a.getInstanceId());
                 }
 
+            }
+            if (loggingSum > 0) {
+                rebuildModelChains();
             }
             LOG.trace("{} activities have been removed from {}. Still running: {}", loggingSum, jobImpl.getLogId(),
                     activities.size());
