@@ -11,7 +11,7 @@ pipeline {
     // branch indexing, so no explicit `triggers` block is required.
 
     tools {
-        jdk 'openJDK-11.0.2'
+        jdk 'openJDK-11.0.20'
         maven 'Maven 3.8.5'
         nodejs 'NodeJS 6.9.1'      // PATH is extended automatically by the tools block
     }
@@ -97,7 +97,7 @@ pipeline {
             steps {
                 // Reuse the artifacts already compiled and tested above: no `clean`
                 // and tests are not re-run.
-                sh 'mvn deploy -Pjenkins-cli -DskipTests -Dhttps.protocols=TLSv1.2'
+                sh 'mvn deploy -Pjenkins-cli -DskipTests'
             }
         }
     }
