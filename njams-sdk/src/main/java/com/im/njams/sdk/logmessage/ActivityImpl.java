@@ -73,6 +73,11 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
     private final Extract extract;
     private boolean starter = false;
     private GroupImpl parent = null;
+
+    // Links to the activity registered before this one with the same model id, forming the
+    // per-model lookup chain owned by JobActivities. Maintained under the job's activities lock.
+    // Package-private and without accessor, so it is never serialized into a log message.
+    ActivityImpl previousWithSameModelId = null;
     private final boolean traceEnabled;
     // used only for calculating duration in ms
     private long startTime = System.currentTimeMillis();
