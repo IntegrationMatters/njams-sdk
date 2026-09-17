@@ -23,13 +23,12 @@
  */
 package com.im.njams.sdk.communication.jms;
 
-import java.util.Properties;
-
 import javax.jms.ConnectionFactory;
 import javax.jms.JMSException;
 import javax.naming.NamingException;
 
 import com.im.njams.sdk.communication.jms.factory.JmsFactory;
+import com.im.njams.sdk.settings.ClientSettings;
 
 public class FailingJmsFactory implements JmsFactory {
     private static class IntentionalError extends Error {
@@ -50,7 +49,7 @@ public class FailingJmsFactory implements JmsFactory {
     }
 
     @Override
-    public void init(Properties settings) throws JMSException, NamingException {
+    public void init(ClientSettings settings) throws JMSException, NamingException {
         throw new IntentionalError();
     }
 

@@ -53,12 +53,14 @@ public class JsonUtils {
      * @throws NjamsSdkRuntimeException
      *             If parsing the given JSON into the target type failed.
      */
+    // @Deprecated flags external API consumers only; internal use of Jackson factory is intentional.
+    @SuppressWarnings("deprecation")
     public static <T> T parse(String json, Class<T> type) throws NjamsSdkRuntimeException {
         try {
             return JsonSerializerFactory.getFastMapper().readValue(json, type);
         } catch (Exception e) {
             throw new NjamsSdkRuntimeException(
-                    "Could not parse JSON string " + json + " to type " + type.getSimpleName(), e);
+                "Could not parse JSON string " + json + " to type " + type.getSimpleName(), e);
         }
     }
 
@@ -75,6 +77,8 @@ public class JsonUtils {
      * @throws NjamsSdkRuntimeException
      *             If parsing the given JSON into the target type failed.
      */
+    // @Deprecated flags external API consumers only; internal use of Jackson factory is intentional.
+    @SuppressWarnings("deprecation")
     public static <T> T parse(InputStream stream, Class<T> type) throws NjamsSdkRuntimeException {
         try {
             return JsonSerializerFactory.getFastMapper().readValue(stream, type);
@@ -85,7 +89,7 @@ public class JsonUtils {
     }
 
     /**
-     * Serializes the given object to a JSON string-
+     * Serializes the given object to a JSON string. No pretty printing and skipping null values.
      *
      * @param object
      *            The object to serialize.
@@ -98,22 +102,37 @@ public class JsonUtils {
     }
 
     /**
-     * Serializes the given object to a JSON string.
+     * Serializes the given object to a JSON string. Skips null values.
      *
      * @param object
      *            The object to serialize.
      * @param prettyPrint
-     *            If true uses the default mapper (pretty-printed JSON), otherwise the fast mapper.
+     *            If true produces pretty-printed JSON.
      * @return JSON string representing the given object.
      * @throws NjamsSdkRuntimeException
      *             If serializing the object to JSON failed.
      */
+
     public static String serialize(Object object, boolean prettyPrint) throws NjamsSdkRuntimeException {
+        return serialize(object, prettyPrint, true);
+    }
+
+    /**
+     * Serializes the given object to a JSON string.
+     * @param object The object to serialize.
+     * @param prettyPrint If true produces pretty-printed JSON.
+     * @param skipNullValues If true null values are skipped from serialization.
+     * @return JSON string representing the given object.
+     * @throws NjamsSdkRuntimeException If serializing the object to JSON failed.
+     */
+    // @Deprecated flags external API consumers only; internal use of Jackson factory is intentional.
+    @SuppressWarnings("deprecation")
+    public static String serialize(Object object, boolean prettyPrint, boolean skipNullValues)
+        throws NjamsSdkRuntimeException {
         try {
-            return (prettyPrint ? JsonSerializerFactory.getDefaultMapper() : JsonSerializerFactory.getFastMapper())
-                    .writeValueAsString(object);
+            return JsonSerializerFactory.getMapper(skipNullValues, prettyPrint).writeValueAsString(object);
         } catch (Exception e) {
-            throw new NjamsSdkRuntimeException("Could not serialize Object " + object, e);
+            throw new NjamsSdkRuntimeException("Could not serialize object " + object, e);
         }
     }
 }

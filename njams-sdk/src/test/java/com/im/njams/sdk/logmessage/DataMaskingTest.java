@@ -27,20 +27,25 @@ import static junit.framework.TestCase.assertEquals;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.not;
 import static org.junit.Assert.assertThat;
-import static org.mockito.Matchers.anyObject;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.doAnswer;
 
 import java.util.Properties;
 
+import com.im.njams.sdk.settings.Settings;
 import org.junit.After;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mockito.Mockito;
 
 import com.im.njams.sdk.Njams;
+import com.im.njams.sdk.NjamsSerializers;
 import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.model.ActivityModel;
 import com.im.njams.sdk.model.ProcessModel;
+import com.im.njams.sdk.serializer.SerializerResult;
 
 /**
  * @author pnientiedt
@@ -50,6 +55,7 @@ public class DataMaskingTest {
     private static JobImpl JOB = Mockito.mock(JobImpl.class);
     private static ProcessModel MODEL = Mockito.mock(ProcessModel.class);
     private static Njams NJAMS = Mockito.mock(Njams.class);
+    private static NjamsSerializers SERIALIZERS = Mockito.mock(NjamsSerializers.class);
     private static ActivityImpl IMPL = null;
 
     @BeforeClass
@@ -57,8 +63,14 @@ public class DataMaskingTest {
         doAnswer(invocation -> true).when(JOB).isDeepTrace();
         doAnswer(invocation -> NJAMS).when(MODEL).getNjams();
         doAnswer(invocation -> NJAMS).when(JOB).getNjams();
-        doAnswer(invocation -> invocation.getArgumentAt(0, String.class)).when(JOB).limitPayload(anyObject());
-        doAnswer(invocation -> invocation.getArguments()[0]).when(NJAMS).serialize(anyObject());
+        // input/output truncation no longer applies a limit in these masking tests: pass values through
+        doAnswer(invocation -> invocation.getArgument(0, String.class)).when(JOB).limitPayload(any());
+        doAnswer(invocation -> invocation.getArgument(0, String.class)).when(JOB).applyLimit(any(), anyBoolean());
+        // ActivityImpl serializes input/output via the serializers facet, returning a SerializerResult
+        doAnswer(invocation -> SERIALIZERS).when(NJAMS).serializers();
+        doAnswer(invocation -> new SerializerResult((String) invocation.getArguments()[0], false))
+                .when(SERIALIZERS).serialize(any(), anyInt());
+        doAnswer(invocation -> invocation.getArguments()[0]).when(NJAMS).serialize(any());
         IMPL = new ActivityImpl(JOB, Mockito.mock(ActivityModel.class));
         IMPL.start();
     }
@@ -146,6 +158,18 @@ public class DataMaskingTest {
         assertEquals("************************", maskedString1);
         assertEquals("Anything else", maskedString2);
 
+    }
+
+    @Test
+    public void addPatternsFromSettings() {
+        DataMasking.removePatterns();
+        Settings settings = new Settings();
+        settings.put(NjamsSettings.PROPERTY_DATA_MASKING_REGEX_PREFIX + "ssn", "\\d{3}-\\d{2}-\\d{4}");
+        settings.put("njams.sdk.other.key", "irrelevant");
+
+        DataMasking.addPatterns(settings);
+
+        assertEquals(1, DataMasking.getPatterns().size());
     }
 
 }

@@ -26,7 +26,10 @@ package com.im.njams.sdk.settings;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Set;
 
@@ -45,8 +48,18 @@ import com.im.njams.sdk.utils.StringUtils;
  * Please only use them and not the deprecated ones from here-
  *
  * @author bwand
+ * @deprecated This class is preserved only as a legacy implementation of {@link ClientSettings}
+ *     for backwards compatibility with existing client code. The SDK itself no longer uses it
+ *     internally — all internal settings handling now goes through the {@link ClientSettings}
+ *     and {@link ReadOnlyClientSettings} interfaces. Obtain settings instances via one of the factory
+ *     methods on those interfaces: {@link ClientSettings#from(java.util.Map)},
+ *     {@link ClientSettings#from(java.util.Properties)},
+ *     {@link ClientSettings#fromSystemProperties(java.util.function.Predicate)}, or
+ *     {@link ReadOnlyClientSettings#fromEnvironment(java.util.function.Predicate)} for a read-only
+ *     environment-backed view.
  */
-public class Settings {
+@Deprecated
+public class Settings implements ClientSettings {
 
     //The Logger
     private static final Logger LOG = LoggerFactory.getLogger(Settings.class);
@@ -78,6 +91,7 @@ public class Settings {
      * @param key to look for
      * @return the found setting value
      */
+    @Override
     public String getProperty(String key) {
         return Transformer.decode(properties.getProperty(key));
     }
@@ -99,8 +113,19 @@ public class Settings {
      * @param key to check
      * @return true if found else false
      */
+    @Override
     public boolean containsKey(String key) {
         return properties.containsKey(key);
+    }
+
+    /**
+     * Returns the set of property keys registered in these settings.
+     *
+     * @return an unmodifiable snapshot of the registered keys
+     */
+    @Override
+    public Set<String> keySet() {
+        return properties.stringPropertyNames();
     }
 
     /**
@@ -109,8 +134,32 @@ public class Settings {
      * @param key   the key
      * @param value the value
      */
+    @Override
     public void put(String key, String value) {
         properties.put(key, value);
+    }
+
+    /**
+     * Stores all entries from the given map, replacing any previous values for the same keys.
+     *
+     * @param entries the entries to add
+     */
+    @Override
+    public void putAll(Map<String, String> entries) {
+        properties.putAll(entries);
+    }
+
+    /**
+     * Returns an iterator over a snapshot of the currently registered key/value pairs. Values are
+     * decoded before being returned. The returned iterator does not support removal.
+     *
+     * @return an iterator over the current entries
+     */
+    @Override
+    public Iterator<Entry<String, String>> iterator() {
+        return properties.stringPropertyNames().stream()
+            .map(key -> Map.entry(key, Transformer.decode(properties.getProperty(key))))
+            .iterator();
     }
 
     /**
@@ -134,6 +183,7 @@ public class Settings {
      *
      * @param logger The logger used for printing properties.
      */
+    @Override
     public void printPropertiesWithoutPasswords(Logger logger) {
         List<String> list = new ArrayList<>();
         properties.keySet().forEach(key -> list.add((String) key));
@@ -145,6 +195,17 @@ public class Settings {
                 logger.info("***      {} = {}", key, properties.getProperty(key));
             }
         });
+    }
+
+    /**
+     * Returns an unmodifiable view of the registered secured-key tokens. A property key whose
+     * lowercased form contains any of these tokens is considered secured.
+     *
+     * @return the secured-key tokens
+     */
+    @Override
+    public Set<String> getSecuredProperties() {
+        return Collections.unmodifiableSet(secureProperties);
     }
 
     /**
@@ -168,7 +229,7 @@ public class Settings {
      * @return the properties.
      */
     public Properties getAllProperties() {
-        return Transformer.decode(properties);
+        return PropertyUtil.toProperties(this);
     }
 
     /**
@@ -178,12 +239,7 @@ public class Settings {
      * @return new filtered Properties
      */
     public Properties filter(String prefix) {
-        Properties response = new Properties();
-        properties.stringPropertyNames()
-            .stream()
-            .filter(k -> k.startsWith(prefix))
-            .forEach(k -> response.setProperty(k, properties.getProperty(k)));
-        return Transformer.decode(response);
+        return PropertyUtil.toProperties(filteredStream(prefix, false));
     }
 
     /**
@@ -194,20 +250,14 @@ public class Settings {
      * @return new filtered and stripped Properties
      */
     public Properties filterAndCut(String prefix) {
-        Properties response = new Properties();
-        properties.stringPropertyNames()
-            .stream()
-            .filter(k -> k.startsWith(prefix))
-            .forEach(k -> response.setProperty(
-                k.substring(k.indexOf(prefix) + prefix.length()),
-                properties.getProperty(k)));
-        return Transformer.decode(response);
+        return PropertyUtil.toProperties(filteredStream(prefix, true));
     }
 
     public void addAll(Properties properties) {
         this.properties.putAll(properties);
     }
 
+    @Override
     public void addSecureProperties(Set<String> secureProperties) {
         secureProperties.forEach(property -> {
             this.secureProperties.add(property.toLowerCase());
@@ -220,6 +270,7 @@ public class Settings {
      * @param deprecatedKey Deprecated key to try if the expected one does not exist.
      * @return see {@link #getPropertyWithDeprecationWarning(String, String, String)}
      */
+    @Override
     public String getPropertyWithDeprecationWarning(String expectedKey, String deprecatedKey) {
         return getPropertyWithDeprecationWarning(expectedKey, null, deprecatedKey);
     }
@@ -234,6 +285,7 @@ public class Settings {
      * @param deprecatedKey Deprecated key to try if the expected one does not exist.
      * @return A value for the given keys as explained above.
      */
+    @Override
     public String getPropertyWithDeprecationWarning(String expectedKey, String defaultValue, String deprecatedKey) {
         return PropertyUtil.getPropertyWithDeprecationWarning(getAllProperties(), expectedKey, defaultValue,
             deprecatedKey);

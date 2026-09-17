@@ -25,7 +25,7 @@ package com.im.njams.sdk.communication;
 
 import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
 import com.im.njams.sdk.Njams;
-import com.im.njams.sdk.common.Path;
+import com.im.njams.sdk.Path;
 
 /**
  * Interface to be implemented by {@link Receiver}s that support receiving messages for multiple {@link Njams} instances.

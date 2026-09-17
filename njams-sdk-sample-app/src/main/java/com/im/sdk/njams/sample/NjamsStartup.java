@@ -2,7 +2,7 @@ package com.im.sdk.njams.sample;
 
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.NjamsSettings;
-import com.im.njams.sdk.common.Path;
+import com.im.njams.sdk.Path;
 import com.im.njams.sdk.model.ActivityModel;
 import com.im.njams.sdk.model.ProcessModel;
 import com.im.njams.sdk.settings.Settings;
@@ -33,27 +33,27 @@ public class NjamsStartup {
         //Settings settings = getJmsPropertiesFromFile("settings.properties");
 
         // Specify a client path. This path specifies where your client instance will be visible in the object tree.
-        Path clientPath = new Path("SDK4", "Client", "Simple");
+        Path clientPath = Path.of("SDK4", "Client", "Simple");
 
         // Instantiate client for first application
         njams = new Njams(clientPath, "1.0.0", technology, settings);
 
         // add custom image for your technology
-        njams.addImage(technology, "images/njams_java_sdk_process_step.png");
+        njams.model().addImage(technology, "images/njams_java_sdk_process_step.png");
 
         // add custom images for your activites
-        njams.addImage("startType", "images/njams_java_sdk_process_start.png");
-        njams.addImage("stepType", "images/njams_java_sdk_process_step.png");
-        njams.addImage("endType", "images/njams_java_sdk_process_end.png");
+        njams.model().addImage("startType", "images/njams_java_sdk_process_start.png");
+        njams.model().addImage("stepType", "images/njams_java_sdk_process_step.png");
+        njams.model().addImage("endType", "images/njams_java_sdk_process_end.png");
 
         /**
          * Creating a process by adding a ProcessModel
          */
-        // Specify a process path, which is relative to the client path
-        Path processPath = new Path("Processes", "SimpleProcess");
+        // Build the absolute process path below the client path
+        Path processPath = clientPath.getOrCreateChild("Processes", "SimpleProcess");
 
         // Create an new empty process model
-        ProcessModel process = njams.createProcess(processPath);
+        ProcessModel process = njams.model().create(processPath);
 
         // start the model with a start activity by id, name and type, where type should match one of your previously
         // registered images

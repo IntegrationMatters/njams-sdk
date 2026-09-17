@@ -30,7 +30,6 @@ import static com.im.njams.sdk.utils.ReflectionWrapper.argsBuilder;
 
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.Properties;
 
 import javax.jms.ConnectionFactory;
 import javax.jms.JMSException;
@@ -38,6 +37,7 @@ import javax.jms.JMSException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.im.njams.sdk.settings.ClientSettings;
 import com.im.njams.sdk.utils.ReflectionWrapper;
 
 /**
@@ -60,21 +60,21 @@ public class AzureServiceBusJmsFactory implements JmsFactory {
     }
 
     @Override
-    public void init(Properties properties) throws JMSException {
+    public void init(ClientSettings settings) throws JMSException {
         if (factory != null) {
             // assuming that config does not change
             return;
         }
         final ClassLoader cl = Thread.currentThread().getContextClassLoader();
         try {
-            final URI uri = new URI(properties.getProperty(PROPERTY_JMS_PROVIDER_URL));
+            final URI uri = new URI(settings.getProperty(PROPERTY_JMS_PROVIDER_URL));
             final ReflectionWrapper connectStringBuilder =
                     new ReflectionWrapper("com.microsoft.azure.servicebus.jms.ConnectionStringBuilder", cl,
                             argsBuilder()
                                     .addObject(uri)
                                     .addNull(String.class)
-                                    .addObject(properties.getProperty(PROPERTY_JMS_USERNAME))
-                                    .addObject(properties.getProperty(PROPERTY_JMS_PASSWORD)));
+                                    .addObject(settings.getProperty(PROPERTY_JMS_USERNAME))
+                                    .addObject(settings.getProperty(PROPERTY_JMS_PASSWORD)));
 
             final ReflectionWrapper connectSettings =
                     new ReflectionWrapper("com.microsoft.azure.servicebus.jms.ServiceBusJmsConnectionFactorySettings",
@@ -94,7 +94,7 @@ public class AzureServiceBusJmsFactory implements JmsFactory {
         } catch (ReflectiveOperationException e) {
             throw buildException("Failed to load Azure Service Bus Premium JMS implemenation", e);
         } catch (URISyntaxException e) {
-            throw buildException("Failed to create URI from: " + properties.getProperty(PROPERTY_JMS_PROVIDER_URL), e);
+            throw buildException("Failed to create URI from: " + settings.getProperty(PROPERTY_JMS_PROVIDER_URL), e);
         }
 
     }

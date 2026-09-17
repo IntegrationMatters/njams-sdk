@@ -16,50 +16,23 @@
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
  * THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE
- * FOR ANY CLAIM, DAMAGES OR OTHER
+ *  FOR ANY CLAIM, DAMAGES OR OTHER
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
  * SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
  */
-package com.im.njams.sdk.communication;
+package com.im.njams.sdk.settings;
 
-import java.util.Properties;
+import java.util.Map;
 
-import com.faizsiegeln.njams.messageformat.v4.common.CommonMessage;
-import com.im.njams.sdk.Njams;
+class WritableSettingsImpl extends ReadOnlySettingsImpl implements ClientSettings {
 
-/**
- * This interface must be implemented to create a nJAMS sender implementation
- * which can send project and log-messages to nJAMS server.
- *
- * @author bwand
- */
-public interface Sender {
+    WritableSettingsImpl(Map<String, String> map) {
+        super(map);
+    }
 
-    /**
-     * This implementation should initialize itself via the given properties.
-     *
-     * @param properties to be used for initialization
-     */
-    public void init(Properties properties);
-
-    /**
-     * Send the given message to the new communication layer
-     *
-     * @param msg the message to send
-     * @param clientSessionId The session ID of the {@link Njams} instance that sends the message.
-     */
-    void send(CommonMessage msg, String clientSessionId);
-
-    /**
-     * Close this Sender.
-     */
-    public void close();
-
-    /**
-     * Each implementation should provide a unique name.
-     * @return This implementation's name
-     */
-    public String getName();
-
+    @Override
+    public void put(String key, String value) {
+        map.put(key, value);
+    }
 }

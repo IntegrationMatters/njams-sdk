@@ -24,7 +24,8 @@
 package com.im.njams.sdk.serializer;
 
 import java.io.Serializable;
-
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.junit.Test;
@@ -56,6 +57,87 @@ public class JsonSerializerTest implements Serializable {
         String serialized2 = ser.serialize(words);
         System.out.println(serialized2);
         assertNotEquals(serialized1, serialized2);
+    }
+
+    @Test
+    public void serializeWithLimitReturnsAtMostRoughlyLimit() {
+        JsonSerializer<int[]> ser = new JsonSerializer<>();
+        int[] data = new int[10_000]; // serializes to a long JSON array
+        for (int i = 0; i < data.length; i++) {
+            data[i] = i;
+        }
+        String full = ser.serialize(data);
+        SerializerResult limited = ser.serialize(data, 100);
+
+        // size-aware result is much shorter than the full result
+        assertTrue("full length should be much greater than 100, got " + full.length(), full.length() > 1000);
+        assertTrue("limited length should not exceed ~limit + small Jackson buffering, got "
+                + limited.value().length(), limited.value().length() <= 200);
+        // and it is a prefix of (the start of) the full string
+        assertTrue("limited result should be a prefix of the full result",
+                full.startsWith(limited.value().substring(0, Math.min(limited.value().length(), 50))));
+        // the size-aware result must report itself as truncated
+        assertTrue("limited result must be reported as truncated", limited.truncated());
+    }
+
+    @Test
+    public void serializeWithinLimitReportsNotTruncated() {
+        JsonSerializer<String[]> ser = new JsonSerializer<>();
+        String[] words = {"alpha", "beta", "gamma"};
+        SerializerResult result = ser.serialize(words, 10_000);
+        assertEquals(ser.serialize(words), result.value());
+        assertFalse("result that fits within the limit must not be truncated", result.truncated());
+    }
+
+    @Test
+    public void serializeWithMaxValueLimitMatchesUnlimited() {
+        JsonSerializer<String[]> ser = new JsonSerializer<>();
+        String[] words = {"alpha", "beta", "gamma"};
+        SerializerResult result = ser.serialize(words, Integer.MAX_VALUE);
+        assertEquals(ser.serialize(words), result.value());
+        assertFalse(result.truncated());
+    }
+
+    @Test
+    public void serializeWithZeroOrNegativeLimitMatchesUnlimited() {
+        JsonSerializer<String[]> ser = new JsonSerializer<>();
+        String[] words = {"alpha", "beta", "gamma"};
+        assertEquals(ser.serialize(words), ser.serialize(words, 0).value());
+        assertEquals(ser.serialize(words), ser.serialize(words, -1).value());
+    }
+
+    @Test
+    public void serializeWithNullObjectReturnsNull() {
+        JsonSerializer<Object> ser = new JsonSerializer<>();
+        assertNull(ser.serialize(null));
+        assertNull(ser.serialize(null, 50));
+    }
+
+    @Test
+    public void noArgConstructorProducesCompactOutput() {
+        JsonSerializer<String[]> ser = new JsonSerializer<>();
+        String result = ser.serialize(new String[]{"a", "b"});
+        assertFalse("no-arg constructor should produce compact JSON without newlines",
+                result.contains("\n"));
+    }
+
+    @Test
+    public void prettyFalseConstructorProducesCompactOutput() {
+        JsonSerializer<String[]> ser = new JsonSerializer<>(false);
+        String result = ser.serialize(new String[]{"a", "b"});
+        assertFalse("pretty=false should produce compact JSON without newlines",
+                result.contains("\n"));
+    }
+
+    @Test
+    public void prettyTrueConstructorProducesIndentedOutput() {
+        JsonSerializer<Map<String, String>> ser = new JsonSerializer<>(true);
+        Map<String, String> data = new LinkedHashMap<>();
+        data.put("key1", "value1");
+        data.put("key2", "value2");
+        String result = ser.serialize(data);
+        assertTrue("pretty=true should produce indented JSON with newlines",
+                result.contains("\n"));
     }
 
 }

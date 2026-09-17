@@ -40,7 +40,15 @@ import com.im.njams.sdk.NjamsSettings;
  * This factory is for getting a Provider for setting of client.
  * <p>
  * It is used in ADR3 Client for example.
+ *
+ * @deprecated Use {@link ClientSettings} factory methods directly instead:
+ *     {@link ClientSettings#from(java.util.Map)},
+ *     {@link ClientSettings#from(java.util.Properties)},
+ *     {@link ClientSettings#fromSystemProperties(java.util.function.Predicate)}, or
+ *     {@link ReadOnlyClientSettings#fromEnvironment(java.util.function.Predicate)} for a read-only
+ *     environment-backed view. The provider/factory layer is no longer needed.
  */
+@Deprecated
 public class SettingsProviderFactory {
 
     private static final Logger LOG = LoggerFactory.getLogger(SettingsProviderFactory.class);

@@ -145,6 +145,7 @@ public class NjamsSenderTest extends AbstractTest {
         settings.put(NjamsSettings.PROPERTY_MIN_SENDER_THREADS, "3");
         settings.put(NjamsSettings.PROPERTY_MAX_SENDER_THREADS, "10");
         settings.put(NjamsSettings.PROPERTY_SENDER_THREAD_IDLE_TIME, "5000");
+        settings.put(NjamsSettings.PROPERTY_DISCARD_POLICY, "none");
 
         NjamsSender sender = new NjamsSender(settings);
         ThreadPoolExecutor executor = sender.getExecutor();
@@ -328,6 +329,23 @@ public class NjamsSenderTest extends AbstractTest {
         }
         verify(maxQueueLengthHandler, times(messagesToSend)).rejectedExecution(runnable, executor);
         verify(maxQueueLengthHandler, times(0)).blockThread(runnable, executor);
+    }
+
+    @Test
+    public void communicationTypeAlternativeKeyIsAccepted() {
+        Settings settings = new Settings();
+        settings.put(NjamsSettings.PROPERTY_COMMUNICATION_TYPE, TestSender.NAME);
+        NjamsSender sender = new NjamsSender(settings);
+        assertEquals(TestSender.NAME, sender.getName());
+    }
+
+    @Test
+    public void primaryCommunicationKeyTakesPrecedenceOverAlternative() {
+        Settings settings = new Settings();
+        settings.put(NjamsSettings.PROPERTY_COMMUNICATION, TestSender.NAME);
+        settings.put(NjamsSettings.PROPERTY_COMMUNICATION_TYPE, "SomeOtherName");
+        NjamsSender sender = new NjamsSender(settings);
+        assertEquals(TestSender.NAME, sender.getName());
     }
 
     private class ExceptionSender extends AbstractSender {

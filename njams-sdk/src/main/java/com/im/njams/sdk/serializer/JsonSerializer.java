@@ -31,34 +31,103 @@ import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import java.io.StringWriter;
 
 /**
- * Json Serializer
- * @author stkniep
- * @param <T> generic
+ * {@link Serializer} implementation that converts objects to their JSON string representation
+ * using Jackson.
+ *
+ * <p>By default, the serializer produces compact output. Pass {@code true} to
+ * {@link #JsonSerializer(boolean)} to obtain indented, human-readable output instead.</p>
+ *
+ * <p>Both {@code serialize} methods return {@code null} when the object is {@code null}.</p>
+ *
+ * @param <T> the type of object to serialize
  */
 public class JsonSerializer<T> implements Serializer<T> {
 
-    private final ObjectMapper objectMapper = JsonSerializerFactory.getDefaultMapper();
-    private final ObjectWriter objectWriter = this.objectMapper.writer();
+    private final ObjectWriter objectWriter;
 
     /**
-     * Serialize
+     * Creates a serializer that produces compact (non-pretty-printed) JSON output.
+     */
+    public JsonSerializer() {
+        this(false);
+    }
+
+    /**
+     * Creates a serializer with the given pretty-printing setting.
      *
-     * @param object to serialize
-     * @return serielized object
-     * @throws NjamsSdkRuntimeException exception
+     * <p>When {@code pretty} is {@code true}, the default mapper from
+     * {@link JsonSerializerFactory#getDefaultMapper()} is used, which produces indented,
+     * human-readable JSON with entries ordered by key. When {@code false}, the fast mapper
+     * from {@link JsonSerializerFactory#getFastMapper()} is used, producing compact output
+     * optimized for performance.</p>
+     *
+     * @param pretty {@code true} for indented, human-readable JSON; {@code false} for compact output
+     */
+    // @Deprecated flags external API consumers only; internal use of Jackson factory is intentional.
+    @SuppressWarnings("deprecation")
+    public JsonSerializer(final boolean pretty) {
+        final ObjectMapper mapper = pretty
+                ? JsonSerializerFactory.getDefaultMapper()
+                : JsonSerializerFactory.getFastMapper();
+        this.objectWriter = mapper.writer();
+    }
+
+    /**
+     * Serialize the given object to a JSON string, with no effective size limit.
+     *
+     * @param object Object to serialize, may be {@code null}
+     * @return JSON representation, or {@code null} if {@code object} is {@code null}
+     * @throws NjamsSdkRuntimeException if Jackson fails to serialize the object
      */
     @Override
     public String serialize(final T object) throws NjamsSdkRuntimeException {
+        if (object == null) {
+            return null;
+        }
         try {
-            if (object == null) {
-                return "{}";
-            }
             final StringWriter writer = new StringWriter();
             objectWriter.writeValue(writer, object);
             return writer.toString();
         } catch (Exception e) {
-            throw new NjamsSdkRuntimeException("Could nit serialize object " + object.toString(), e);
+            throw new NjamsSdkRuntimeException("Could not serialize object " + object, e);
         }
     }
 
+    /**
+     * Serialize the given object to a JSON string, stopping near {@code sizeLimit} characters and
+     * reporting whether the output was truncated.
+     *
+     * <p>The value may slightly exceed {@code sizeLimit} due to Jackson's internal buffering.
+     * {@code sizeLimit <= 0} or {@code sizeLimit == Integer.MAX_VALUE} mean "no limit" and route to
+     * the unlimited fast path (never truncated). Otherwise the stream is aborted once the limit is
+     * reached, and {@link SerializerResult#truncated()} is {@code true} exactly when that happened
+     * (i.e. the object was larger than {@code sizeLimit}).</p>
+     *
+     * @param object    Object to serialize, may be {@code null}
+     * @param sizeLimit Approximate maximum length of the produced string
+     * @return the JSON value (possibly clipped) and its truncation flag, or {@code null} if
+     *         {@code object} is {@code null}
+     * @throws NjamsSdkRuntimeException if Jackson fails for a reason other than the size limit
+     */
+    @Override
+    public SerializerResult serialize(final T object, final int sizeLimit) throws NjamsSdkRuntimeException {
+        if (object == null) {
+            return null;
+        }
+        if (sizeLimit <= 0 || sizeLimit == Integer.MAX_VALUE) {
+            return new SerializerResult(serialize(object), false);
+        }
+        final StringWriter buffer = new StringWriter();
+        boolean truncated = false;
+        try (LimitedWriter limited = new LimitedWriter(buffer, sizeLimit)) {
+            objectWriter.writeValue(limited, object);
+        } catch (Exception e) {
+            if (LimitedWriter.isSizeLimitReached(e)) {
+                truncated = true;
+            } else {
+                throw new NjamsSdkRuntimeException("Could not serialize object " + object, e);
+            }
+        }
+        return new SerializerResult(buffer.toString(), truncated);
+    }
 }

@@ -23,6 +23,21 @@
  */
 package com.im.njams.sdk.common;
 
+import com.faizsiegeln.njams.messageformat.v4.converter.Converter;
+import com.faizsiegeln.njams.messageformat.v4.converter.DefaultConverter;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonInclude.Include;
+import com.fasterxml.jackson.core.*;
+import com.fasterxml.jackson.databind.*;
+import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
+import com.fasterxml.jackson.databind.introspect.JacksonAnnotationIntrospector;
+import com.fasterxml.jackson.databind.module.SimpleModule;
+import com.fasterxml.jackson.databind.ser.std.StdSerializer;
+import com.fasterxml.jackson.module.jakarta.xmlbind.JakartaXmlBindAnnotationIntrospector;
+import com.fasterxml.jackson.module.jaxb.JaxbAnnotationIntrospector;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.IOException;
 import java.io.StringWriter;
 import java.time.LocalDateTime;
@@ -34,37 +49,22 @@ import java.util.Objects;
 import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.faizsiegeln.njams.messageformat.v4.converter.Converter;
-import com.faizsiegeln.njams.messageformat.v4.converter.DefaultConverter;
-import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.annotation.JsonInclude.Include;
-import com.fasterxml.jackson.core.JacksonException;
-import com.fasterxml.jackson.core.JsonFactory;
-import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.AnnotationIntrospector;
-import com.fasterxml.jackson.databind.DeserializationContext;
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.JsonDeserializer;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.JsonSerializer;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.ObjectWriter;
-import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.databind.SerializerProvider;
-import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
-import com.fasterxml.jackson.databind.introspect.JacksonAnnotationIntrospector;
-import com.fasterxml.jackson.databind.module.SimpleModule;
-import com.fasterxml.jackson.databind.ser.std.StdSerializer;
-import com.fasterxml.jackson.module.jakarta.xmlbind.JakartaXmlBindAnnotationIntrospector;
-import com.fasterxml.jackson.module.jaxb.JaxbAnnotationIntrospector;
-
 /**
- * Provides factory methods for JSON serializers and mappers.
+ * <b>THIS IS FOR INTERNAL USE ONLY!</b>
+ * For simple serialization and parsing tasks prefer {@link com.im.njams.sdk.utils.JsonUtils};
+ * for registering custom (de-)serializers use
+ * {@link #addSerializer(com.faizsiegeln.njams.messageformat.v4.converter.Converter, boolean)}.
+ *
+ * <p>Provides factory methods for JSON serializers and mappers. All mapper instances are cached for re-using.
+ * Thus, the 'fast-mapper' label is somewhat misleading now. It ony means 'a non-pretty-printing' mapper.
+ *
+ * <p><b>Note for SDK consumers:</b> Several methods of this class accept or return Jackson types
+ * ({@code ObjectMapper}, {@code ObjectWriter}, {@code JsonFactory}, {@code JsonSerializer},
+ * {@code JsonDeserializer}). Jackson is bundled as an internal dependency and relocated to a
+ * private package namespace during SDK packaging, making those types unreachable by SDK consumers
+ * in the packaged artifact. The affected methods are therefore marked {@code @Deprecated} to
+ * prevent their use from external code. There is no plan to remove the deprecated methods for internal use but
+ * it will become hidden from external use eventually.
  *
  * @author cwinkler
  *
@@ -97,20 +97,26 @@ public class JsonSerializerFactory {
     protected static final String MIX_IN_FILTER_ID = "MixInFilter";
 
     private static final Map<Class<?>, Mapper<?>> customSerializers = new ConcurrentHashMap<>();
-    private static ObjectMapper defaultMapper = null;
-    private static ObjectMapper cachedMapper = null;
+
+    private static final Map<Byte, ObjectMapper> mapperCache = new ConcurrentHashMap<>(4, 1f);
+
+    private static ObjectMapper getCachedMapper(boolean pretty, boolean skipNull) {
+        // key is a flag bitmap fpr the four possible combinations of the given booleans
+        final byte key = (byte) ((pretty ? 0b10 : 0) | (skipNull ? 0b01 : 0));
+        return mapperCache.computeIfAbsent(key, k -> createMapper(skipNull, pretty));
+    }
 
     private JsonSerializerFactory() {
         if (LOG.isTraceEnabled()) {
             LOG.trace("Jackson databind: {}", ObjectMapper.class.getProtectionDomain().getCodeSource().getLocation());
             LOG.trace("Jackson core: {}",
-                    JsonFactory.class.getProtectionDomain().getCodeSource().getLocation());
+                JsonFactory.class.getProtectionDomain().getCodeSource().getLocation());
             LOG.trace("Jackson module.jaxb: {}",
-                    JaxbAnnotationIntrospector.class.getProtectionDomain().getCodeSource().getLocation());
+                JaxbAnnotationIntrospector.class.getProtectionDomain().getCodeSource().getLocation());
             LOG.trace("Jackson module.jakarta: {}",
-                    JakartaXmlBindAnnotationIntrospector.class.getProtectionDomain().getCodeSource().getLocation());
+                JakartaXmlBindAnnotationIntrospector.class.getProtectionDomain().getCodeSource().getLocation());
             LOG.trace("Jackson annotation: {}",
-                    JsonInclude.Include.class.getProtectionDomain().getCodeSource().getLocation());
+                JsonInclude.Include.class.getProtectionDomain().getCodeSource().getLocation());
         }
         addMessageFormatConverters();
     }
@@ -121,20 +127,12 @@ public class JsonSerializerFactory {
      * pretty-printing as the mapper provided by {@link #getDefaultMapper()}.
      *
      * @return the ObjectMapper.
+     * @deprecated {@code ObjectMapper} is a Jackson type relocated during SDK packaging and not reachable
+     * by SDK consumers. Use {@link com.im.njams.sdk.utils.JsonUtils} for serialization and parsing instead.
      */
+    @Deprecated(since = "6.0.0", forRemoval = false)
     public static ObjectMapper getFastMapper() {
-        final ObjectMapper om = cachedMapper;
-        if (om != null) {
-            return om;
-        }
-        synchronized (JsonSerializerFactory.class) {
-            if (cachedMapper == null) {
-                LOG.debug("Creating new fast mapper.");
-                cachedMapper = getMapper(true, false);
-            }
-            return cachedMapper;
-        }
-
+        return getCachedMapper(true, false);
     }
 
     /**
@@ -142,19 +140,12 @@ public class JsonSerializerFactory {
      * serializers. skipNullValues and pretty will be set to true.
      *
      * @return the ObjectMapper.
+     * @deprecated {@code ObjectMapper} is a Jackson type relocated during SDK packaging and not reachable
+     * by SDK consumers. Use {@link com.im.njams.sdk.utils.JsonUtils} for serialization and parsing instead.
      */
+    @Deprecated(since = "6.0.0", forRemoval = false)
     public static ObjectMapper getDefaultMapper() {
-        final ObjectMapper om = defaultMapper;
-        if (om != null) {
-            return om;
-        }
-        synchronized (JsonSerializerFactory.class) {
-            if (defaultMapper == null) {
-                LOG.debug("Creating new default mapper.");
-                defaultMapper = getMapper(true, true);
-            }
-            return defaultMapper;
-        }
+        return getCachedMapper(true, true);
     }
 
     /**
@@ -163,9 +154,13 @@ public class JsonSerializerFactory {
      *
      * @param factory May be <code>null</code> to use the default JSON factors.
      * @return the default ObjectMapper
+     * @deprecated Both {@code JsonFactory} and the returned {@code ObjectMapper} are Jackson types
+     * relocated during SDK packaging and not reachable by SDK consumers. Add Jackson as a direct
+     * dependency in your own project if you need direct mapper access.
      */
+    @Deprecated(since = "6.0.0", forRemoval = false)
     @SuppressWarnings("unchecked")
-    public static synchronized ObjectMapper getDefaultMapper(JsonFactory factory) {
+    public static synchronized ObjectMapper createDefaultMapper(JsonFactory factory) {
         ObjectMapper om = factory == null ? new ObjectMapper() : new ObjectMapper(factory);
 
         AnnotationIntrospector first = new JacksonAnnotationIntrospector();
@@ -178,8 +173,7 @@ public class JsonSerializerFactory {
         // ensure that default converters are registered
         addMessageFormatConverters();
         final SimpleModule customSerializersModule = new SimpleModule();
-        for (@SuppressWarnings("rawtypes")
-        final Mapper mapper : customSerializers.values()) {
+        for (@SuppressWarnings("rawtypes") final Mapper mapper : customSerializers.values()) {
             LOG.trace("Adding {}", mapper);
             customSerializersModule.addSerializer(mapper.getType(), mapper.serializer);
             customSerializersModule.addDeserializer(mapper.getType(), mapper.deserializer);
@@ -208,37 +202,37 @@ public class JsonSerializerFactory {
     @SuppressWarnings("serial")
     private static <T> Entry<StdSerializer<T>, StdDeserializer<T>> buildSerializer(Converter<T> converter) {
         return new AbstractMap.SimpleImmutableEntry<StdSerializer<T>, StdDeserializer<T>>(
-                new StdSerializer<T>(converter.getType()) {
+            new StdSerializer<T>(converter.getType()) {
 
-                    @Override
-                    public void serialize(T value, JsonGenerator gen, SerializerProvider provider) throws IOException {
-                        try {
-                            final String json = converter.serialize(value);
-                            if (json == null) {
-                                gen.writeNull();
-                            } else {
-                                gen.writeString(json);
-                            }
-                        } catch (Exception e) {
-                            new IOException("Failed to serialize: " + value, e);
+                @Override
+                public void serialize(T value, JsonGenerator gen, SerializerProvider provider) throws IOException {
+                    try {
+                        final String json = converter.serialize(value);
+                        if (json == null) {
+                            gen.writeNull();
+                        } else {
+                            gen.writeString(json);
                         }
+                    } catch (Exception e) {
+                        new IOException("Failed to serialize: " + value, e);
                     }
-                }, new StdDeserializer<T>(converter.getType()) {
+                }
+            }, new StdDeserializer<T>(converter.getType()) {
 
-                    @Override
-                    public T deserialize(JsonParser jp, DeserializationContext ctxt)
-                            throws IOException, JacksonException {
-                        try {
-                            final JsonNode node = jp.getCodec().readTree(jp);
-                            if (node == null || !node.isTextual()) {
-                                return null;
-                            }
-                            return converter.deserialize(node.asText());
-                        } catch (Exception e) {
-                            throw new IOException("Failed to deserialize", e);
-                        }
+            @Override
+            public T deserialize(JsonParser jp, DeserializationContext ctxt)
+                throws IOException, JacksonException {
+                try {
+                    final JsonNode node = jp.getCodec().readTree(jp);
+                    if (node == null || !node.isTextual()) {
+                        return null;
                     }
-                });
+                    return converter.deserialize(node.asText());
+                } catch (Exception e) {
+                    throw new IOException("Failed to deserialize", e);
+                }
+            }
+        });
     }
 
     /**
@@ -249,26 +243,26 @@ public class JsonSerializerFactory {
     @Deprecated(forRemoval = true, since = "5.0.0")
     public static void addLocalDateTimeSerializer() {
         addSerializer(
-                new StdSerializer<LocalDateTime>(LocalDateTime.class) {
-                    private static final long serialVersionUID = 1L;
+            new StdSerializer<LocalDateTime>(LocalDateTime.class) {
+                private static final long serialVersionUID = 1L;
 
-                    @Override
-                    public void serialize(LocalDateTime value, JsonGenerator gen, SerializerProvider provider)
-                            throws IOException {
-                        gen.writeString(value.toString());
+                @Override
+                public void serialize(LocalDateTime value, JsonGenerator gen, SerializerProvider provider)
+                    throws IOException {
+                    gen.writeString(value.toString());
 
-                    }
-                }, new StdDeserializer<LocalDateTime>(LocalDateTime.class) {
-                    private static final long serialVersionUID = 1L;
+                }
+            }, new StdDeserializer<LocalDateTime>(LocalDateTime.class) {
+                private static final long serialVersionUID = 1L;
 
-                    @Override
-                    public LocalDateTime deserialize(JsonParser jp, DeserializationContext ctxt) throws IOException,
-                            JsonProcessingException {
-                        JsonNode node = jp.getCodec().readTree(jp);
-                        String dt = node.textValue();
-                        return LocalDateTime.parse(dt, DateTimeFormatter.ISO_LOCAL_DATE_TIME);
-                    }
-                }, false);
+                @Override
+                public LocalDateTime deserialize(JsonParser jp, DeserializationContext ctxt) throws IOException,
+                    JsonProcessingException {
+                    JsonNode node = jp.getCodec().readTree(jp);
+                    String dt = node.textValue();
+                    return LocalDateTime.parse(dt, DateTimeFormatter.ISO_LOCAL_DATE_TIME);
+                }
+            }, false);
     }
 
     /**
@@ -278,7 +272,11 @@ public class JsonSerializerFactory {
      * @param <T> Object type for which the serializers should be added
      * @param serializer custom serializer
      * @param deserializer custom deserializer
+     * @deprecated {@code JsonSerializer} and {@code JsonDeserializer} are Jackson types relocated during
+     * SDK packaging and not reachable by SDK consumers.
+     * Use {@link #addSerializer(com.faizsiegeln.njams.messageformat.v4.converter.Converter, boolean)} instead.
      */
+    @Deprecated(since = "6.0.0", forRemoval = false)
     public static <T> void addSerializer(JsonSerializer<T> serializer, JsonDeserializer<T> deserializer) {
         addSerializer(serializer, deserializer, false);
     }
@@ -293,17 +291,20 @@ public class JsonSerializerFactory {
      * @param replace If <code>true</code> any registered serializer for the same type is replaced. Otherwise, if a
      * serializer for the same type is already registered, this method does nothing. Be careful with overwriting default
      * serializers!
+     * @deprecated {@code JsonSerializer} and {@code JsonDeserializer} are Jackson types relocated during
+     * SDK packaging and not reachable by SDK consumers.
+     * Use {@link #addSerializer(com.faizsiegeln.njams.messageformat.v4.converter.Converter, boolean)} instead.
      */
+    @Deprecated(since = "6.0.0", forRemoval = false)
     public static synchronized <T> void addSerializer(JsonSerializer<T> serializer, JsonDeserializer<T> deserializer,
-            boolean replace) {
+        boolean replace) {
         final Class<T> type = serializer.handledType();
         if (!replace && customSerializers.containsKey(type)) {
             LOG.debug("Skip adding new serializer because there is already one registered for type {}", type.getName());
             return;
         }
         LOG.trace("Register new mapper for {}", type.getName());
-        defaultMapper = null;
-        cachedMapper = null;
+        mapperCache.clear();
         customSerializers.put(type, new Mapper<>(serializer, deserializer));
     }
 
@@ -329,8 +330,7 @@ public class JsonSerializerFactory {
      */
     public static synchronized boolean removeSerializer(Class<?> type) {
         if (customSerializers.remove(type) != null) {
-            defaultMapper = null;
-            cachedMapper = null;
+            mapperCache.clear();
             return true;
         }
         return false;
@@ -342,9 +342,16 @@ public class JsonSerializerFactory {
      * @param skipNullValues if true all null values will not be serialized.
      * @param pretty if true the result JSON will be prettyfied.
      * @return the ObjectMapper with the selected settings.
+     * @deprecated {@code ObjectMapper} is a Jackson type relocated during SDK packaging and not reachable
+     * by SDK consumers. Use {@link com.im.njams.sdk.utils.JsonUtils#serialize(Object, boolean)} instead.
      */
+    @Deprecated(since = "6.0.0", forRemoval = false)
     public static ObjectMapper getMapper(boolean skipNullValues, boolean pretty) {
-        ObjectMapper om = getDefaultMapper(null);
+        return getCachedMapper(pretty, skipNullValues);
+    }
+
+    private static ObjectMapper createMapper(boolean skipNullValues, boolean pretty) {
+        ObjectMapper om = createDefaultMapper(null);
         om.setSerializationInclusion(skipNullValues ? Include.NON_NULL : Include.ALWAYS);
         om.configure(SerializationFeature.INDENT_OUTPUT, pretty);
         om.configure(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS, pretty);
@@ -357,7 +364,10 @@ public class JsonSerializerFactory {
      * to <code>false</code>.
      *
      * @return the DefaultWriter
+     * @deprecated {@code ObjectWriter} is a Jackson type relocated during SDK packaging and not reachable
+     * by SDK consumers. Use {@link com.im.njams.sdk.utils.JsonUtils#serialize(Object)} instead.
      */
+    @Deprecated(since = "6.0.0", forRemoval = false)
     public static ObjectWriter createDefaultWriter() {
         return getDefaultMapper().writer();
     }
@@ -370,18 +380,23 @@ public class JsonSerializerFactory {
      * @param pretty If set to to <code>true</code>, the writer will format the
      * Json output.
      * @return the ObjectWriter
+     * @deprecated {@code ObjectWriter} is a Jackson type relocated during SDK packaging and not reachable
+     * by SDK consumers. Use {@link com.im.njams.sdk.utils.JsonUtils#serialize(Object, boolean)} instead.
      */
+    @Deprecated(since = "6.0.0", forRemoval = false)
     public static ObjectWriter createWriter(boolean skipNullValues, boolean pretty) {
         ObjectMapper om = getMapper(skipNullValues, pretty);
         return om.writer();
     }
 
     /**
-     * Coverts Properties to json
+     * Converts Properties to JSON.
      *
      * @param properties to convert
      * @return json string representation for the given properties
+     * @deprecated Use {@link com.im.njams.sdk.utils.JsonUtils#serialize(Object)} instead.
      */
+    @Deprecated(since = "6.0.0", forRemoval = false)
     public static String propertiesToJsonString(final Properties properties) {
         final ObjectWriter objectWriter = createDefaultWriter();
         final StringWriter stringWriter = new StringWriter();

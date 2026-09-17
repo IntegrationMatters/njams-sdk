@@ -24,9 +24,7 @@
 package com.im.njams.sdk.communication;
 
 import static com.im.njams.sdk.NjamsSettings.*;
-import static com.im.njams.sdk.utils.PropertyUtil.getPropertyWithDeprecationWarning;
 
-import java.util.Properties;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -39,8 +37,7 @@ import com.faizsiegeln.njams.messageformat.v4.common.CommonMessage;
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.factories.ThreadFactoryBuilder;
-import com.im.njams.sdk.settings.Settings;
-import com.im.njams.sdk.utils.StringUtils;
+import com.im.njams.sdk.settings.ClientSettings;
 
 /**
  * This class enforces the maxQueueLength setting. It uses the
@@ -57,7 +54,7 @@ public class NjamsSender {
         private final Object lock = new Object();
         private int usage = 0;
 
-        private NjamsSharedSender(Settings settings) {
+        private NjamsSharedSender(ClientSettings settings) {
             super(settings);
         }
 
@@ -99,10 +96,12 @@ public class NjamsSender {
     protected ThreadPoolExecutor executor = null;
 
     //The settings will be used for the name and max-queue-length
-    protected final Settings settings;
+    protected final ClientSettings settings;
 
     //The name for the executor threads.
     protected final String name;
+
+    private MessageDebugDumper debugDumper = new MessageDebugDumper();
 
     public NjamsSender() {
         settings = null;
@@ -112,29 +111,30 @@ public class NjamsSender {
     /**
      * This constructor initializes a NjamsSender. It saves
      * the settings and gets the name for the executor threads from the settings
-     * with the key: njams.sdk.communication.
+     * with the key: njams.sdk.communication (or its alternative njams.sdk.communication.type).
      *
      * @param settings the setting where some settings will be taken from.
      */
-    public NjamsSender(Settings settings) {
+    public NjamsSender(ClientSettings settings) {
         this.settings = settings;
-        name = settings.getProperty(NjamsSettings.PROPERTY_COMMUNICATION);
-        init(settings.getAllProperties());
+        name = settings.getPropertyWithAlternativeKey(
+                NjamsSettings.PROPERTY_COMMUNICATION, NjamsSettings.PROPERTY_COMMUNICATION_TYPE);
+        init();
     }
 
     /**
      * Returns the one shared sender instance. On first access, the instance is lazily created. All later access will
      * get the same instance until the instance has closed. Then a new instance is created if required.
      * Calling this method tracks usage of the sender instance. I.e., after <i>taking</i> a sender, it must be
-     * {@link Sender#close()}d to return the instance and allow the implementation to keep track of usage. Calling
-     * {@link Sender#close()} does not really close the actual sender as long as it is still being used.
+     * {@link #close()}d to return the instance and allow the implementation to keep track of usage. Calling
+     * {@link #close()} does not really close the actual sender as long as it is still being used.
      * Only when it is no longer used (close has been called as often as it has been taken), the real sender instance
      * will be closed finally.
      *
      * @param settings Only used if a new instance needs to be created.
      * @return The shared sender instance as explained above.
      */
-    public static synchronized NjamsSender takeSharedSender(Settings settings) {
+    public static synchronized NjamsSender takeSharedSender(ClientSettings settings) {
         if (sharedInstance == null || sharedInstance.isDestroyed()) {
             sharedInstance = new NjamsSharedSender(settings);
         }
@@ -145,19 +145,13 @@ public class NjamsSender {
 
     /**
      * This method initializes a CommunicationFactory, a ThreadPoolExecutor and
-     * a SenderPool.
-     *
-     * @param properties the properties for MIN_QUEUE_LENGTH, MAX_QUEUE_LENGTH
-     *                   and IDLE_TIME for the sender threads.
+     * a SenderPool using the settings provided at construction time.
      */
-    public void init(Properties properties) {
-        int minSenderThreads =
-            (int) getLongProperty(properties, 1, PROPERTY_MIN_SENDER_THREADS, OLD_MIN_SENDER_THREADS);
-        int maxSenderThreads =
-            (int) getLongProperty(properties, 8, PROPERTY_MAX_SENDER_THREADS, OLD_MAX_SENDER_THREADS);
-        int maxQueueLength = (int) getLongProperty(properties, 8, PROPERTY_MAX_QUEUE_LENGTH, OLD_MAX_QUEUE_LENGTH);
-        long idleTime =
-            getLongProperty(properties, 10000, PROPERTY_SENDER_THREAD_IDLE_TIME, OLD_SENDER_THREAD_IDLE_TIME);
+    public void init() {
+        int minSenderThreads = (int) settings.getLong(PROPERTY_MIN_SENDER_THREADS, 1);
+        int maxSenderThreads = (int) settings.getLong(PROPERTY_MAX_SENDER_THREADS, 8);
+        int maxQueueLength = (int) settings.getLong(PROPERTY_MAX_QUEUE_LENGTH, 8);
+        long idleTime = settings.getLong(PROPERTY_SENDER_THREAD_IDLE_TIME, 10000);
         LOG.debug("Init thread pool (min={}, max={}, queue={}, idle={})", minSenderThreads, maxSenderThreads,
             maxQueueLength, idleTime);
         validateThreadPool(minSenderThreads, maxSenderThreads, maxQueueLength, idleTime);
@@ -167,7 +161,8 @@ public class NjamsSender {
         senderPool = new SenderPool(communicationFactory);
         executor = new ThreadPoolExecutor(minSenderThreads, maxSenderThreads, idleTime, TimeUnit.MILLISECONDS,
             new ArrayBlockingQueue<>(maxQueueLength), threadFactory,
-            new MaxQueueLengthHandler(properties, senderPool::isConnectionFailure));
+            new MaxQueueLengthHandler(settings, senderPool::isConnectionFailure));
+        debugDumper = new MessageDebugDumper(settings);
     }
 
     private void validateThreadPool(int minThreads, int maxThreads, int maxQueueLen, long idleTime) {
@@ -179,18 +174,6 @@ public class NjamsSender {
         }
         if (idleTime < 0) {
             throw new IllegalArgumentException("Idle time must be >0");
-        }
-    }
-
-    private long getLongProperty(Properties properties, int def, String key, String deprecatedKey) {
-        String val = getPropertyWithDeprecationWarning(properties, key, deprecatedKey);
-        if (StringUtils.isBlank(val)) {
-            return def;
-        }
-        try {
-            return Long.parseLong(val);
-        } catch (NumberFormatException e) {
-            return def;
         }
     }
 
@@ -206,6 +189,7 @@ public class NjamsSender {
             return;
         }
         LOG.trace("Sending {}", msg);
+        debugDumper.dump(msg, clientSessionId);
         executor.execute(() -> {
             AbstractSender sender = null;
             try {
@@ -259,7 +243,7 @@ public class NjamsSender {
 
     /**
      * This method returns the name that was set in the settings with the key
-     * njams.sdk.communication.
+     * njams.sdk.communication (or its alternative njams.sdk.communication.type).
      *
      * @return the value to key njams.sdk.communication in the
      * settings

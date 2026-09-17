@@ -21,15 +21,16 @@ public class LogMessageResource {
     @Path("start")
     public String createLogMessage() {
         Njams njams = NjamsStartup.njams;
-        com.im.njams.sdk.common.Path processPath = new com.im.njams.sdk.common.Path("Processes", "SimpleProcess");
-        ProcessModel process = njams.getProcessModel(processPath);
+        com.im.njams.sdk.Path processPath =
+            njams.metadata().getClientPath().getChild("Processes", "SimpleProcess");
+        ProcessModel process = njams.model().get(processPath);
 
         Job job = process.createJob();
         // Starts the job, i.e., sets the according status, job start date if not set before, and flags the job to begin
         // flushing.
         job.start();
         ActivityModel startModel = process.getStartActivities().get(0);
-        job.createActivity(startModel).build();
+        job.activities().create(startModel).build();
         LOG.info("Start Logmessage with ID " + job.getJobId());
 
         return job.getJobId();
@@ -41,8 +42,9 @@ public class LogMessageResource {
                                    @PathParam("toActivity") String toActivity) {
 
         Njams njams = NjamsStartup.njams;
-        com.im.njams.sdk.common.Path processPath = new com.im.njams.sdk.common.Path("Processes", "SimpleProcess");
-        ProcessModel process = njams.getProcessModel(processPath);
+        com.im.njams.sdk.Path processPath =
+            njams.metadata().getClientPath().getChild("Processes", "SimpleProcess");
+        ProcessModel process = njams.model().get(processPath);
 
         Job job = njams.getJobById(jobId);
         if(job == null) {

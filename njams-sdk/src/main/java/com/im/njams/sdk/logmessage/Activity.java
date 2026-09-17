@@ -31,6 +31,13 @@ import com.im.njams.sdk.model.SubProcessActivityModel;
 
 /**
  * The runtime Activity
+ * <p>
+ * <b>Thread safety.</b> An {@code Activity} instance is <b>thread-confined</b>: it is expected to be
+ * accessed by a single thread, and the SDK does not synchronize mutation of an individual instance.
+ * When monitoring parallel execution, each thread works on its own activity instances within a
+ * shared {@link Job}; the job-level state these calls update is synchronized by the job itself (see
+ * {@link Job}). A caller that genuinely shares one activity instance across threads must synchronize
+ * those calls itself.
  *
  * @author pnientiedt
  * @version 4.0.6

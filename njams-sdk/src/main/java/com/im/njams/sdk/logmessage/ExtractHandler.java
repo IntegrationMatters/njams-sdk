@@ -220,6 +220,8 @@ public class ExtractHandler {
         }
     }
 
+    // @Deprecated flags external API consumers only; internal use of Jackson factory is intentional.
+    @SuppressWarnings("deprecation")
     private static String applyJmespath(String expression, String data) throws IOException {
         if (StringUtils.isBlank(expression) || StringUtils.isBlank(data)) {
             return null;

@@ -42,6 +42,7 @@ import com.faizsiegeln.njams.messageformat.v4.projectmessage.Extract;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.RuleType;
 import com.im.njams.sdk.common.DateTimeUtility;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
+import com.im.njams.sdk.serializer.SerializerResult;
 import com.im.njams.sdk.configuration.ActivityConfiguration;
 import com.im.njams.sdk.configuration.TracepointExt;
 import com.im.njams.sdk.logmessage.ExtractHandler.ExtractSource;
@@ -72,6 +73,11 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
     private final Extract extract;
     private boolean starter = false;
     private GroupImpl parent = null;
+
+    // Links to the activity registered before this one with the same model id, forming the
+    // per-model lookup chain owned by JobActivities. Maintained under the job's activities lock.
+    // Package-private and without accessor, so it is never serialized into a log message.
+    ActivityImpl previousWithSameModelId = null;
     private final boolean traceEnabled;
     // used only for calculating duration in ms
     private long startTime = System.currentTimeMillis();
@@ -79,7 +85,12 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
     private LocalDateTime tmpExecution = null;
     private boolean executionRequired = false;
 
-    private long estimatedSize = 700L;
+    // Base size estimate (in characters) attributed to every activity regardless of content.
+    // Approximates the serialized structural fields of a typical activity (modelId, instanceId,
+    // sequence, iteration, execution timestamp and a single predecessor), with a little headroom.
+    static final long BASE_ESTIMATED_SIZE = 400L;
+
+    private long estimatedSize = BASE_ESTIMATED_SIZE;
     private boolean ended = false;
     private boolean inputProcessecd = false;
     private boolean outputProcessed = false;
@@ -240,13 +251,19 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
     @Override
     public void processInput(Object input) {
         final String serializedData;
-        if (isTracing() || needsData(extract)) {
-            serializedData = DataMasking.maskString(job.getNjams().serialize(input));
+        final boolean truncated;
+        final boolean needsData = needsData(extract);
+        if (isTracing() || needsData) {
+            final int sizeLimit = needsData ? 0 : job.getSerializeSizeHint();
+            final SerializerResult result = job.getNjams().serializers().serialize(input, sizeLimit);
+            serializedData = DataMasking.maskString(result == null ? null : result.value());
+            truncated = result != null && result.truncated();
         } else {
             serializedData = null;
+            truncated = false;
         }
         if (serializedData != null && isTracing()) {
-            handleTracing(serializedData, true);
+            handleTracing(serializedData, truncated, true);
         }
 
         if (extract != null) {
@@ -305,13 +322,19 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
     @Override
     public void processOutput(Object output) {
         final String serializedData;
-        if (isTracing() || needsData(extract)) {
-            serializedData = DataMasking.maskString(job.getNjams().serialize(output));
+        final boolean truncated;
+        final boolean needsData = needsData(extract);
+        if (isTracing() || needsData) {
+            final int sizeLimit = needsData ? 0 : job.getSerializeSizeHint();
+            final SerializerResult result = job.getNjams().serializers().serialize(output, sizeLimit);
+            serializedData = DataMasking.maskString(result == null ? null : result.value());
+            truncated = result != null && result.truncated();
         } else {
             serializedData = null;
+            truncated = false;
         }
         if (serializedData != null && isTracing()) {
-            handleTracing(serializedData, false);
+            handleTracing(serializedData, truncated, false);
 
         }
         if (extract != null) {
@@ -322,19 +345,21 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
     }
 
     /**
-     * handle tracing
+     * Stores the serialized trace data on this activity, applying the configured payload limit
+     * using the serializer's truncation flag.
      *
-     * @param data
-     * @param input
+     * @param data                the already-masked serialized data
+     * @param serializerTruncated whether the serializer truncated the data at the size limit
+     * @param input               <code>true</code> for input, <code>false</code> for output
      */
-    private void handleTracing(String data, boolean input) {
+    private void handleTracing(String data, boolean serializerTruncated, boolean input) {
+        final String stored = job.applyLimit(data, serializerTruncated);
         if (input) {
-            setInput(data);
+            super.setInput(stored);
         } else {
-            setOutput(data);
+            super.setOutput(stored);
         }
         addToEstimatedSize(data.length());
-        job.addToEstimatedSize(data.length());
         setExecutionIfNotSet();
         job.setTraces(true);
     }
@@ -499,12 +524,13 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
     }
 
     /**
-     * Add to estimated size
+     * Adds to this activity's estimated size and, in turn, to the owning job's estimated size.
      *
      * @param estimatedSize estimated size to add
      */
     public void addToEstimatedSize(long estimatedSize) {
         this.estimatedSize += estimatedSize;
+        job.addToEstimatedSize(estimatedSize);
     }
 
     /**
@@ -515,9 +541,28 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
      */
     @Override
     public void processStartData(Object startData) {
-        if (job.isRecording()) {
-            setStartData(job.getNjams().serialize(startData));
+        if (!job.isRecording()) {
+            return;
         }
+        // SDK-462: a job carries a single start data; skip serialization if it is already set.
+        if (job.isStartDataSet()) {
+            LOG.warn("Start data was already set for job {}; ignoring this processStartData call "
+                + "(the first start data wins).", job.getLogId());
+            return;
+        }
+        final String serialized;
+        final boolean truncated;
+        if (job.isStartDataLimited()) {
+            // SDK-420: serialize with the configured size limit so the truncation flag is reliable
+            final SerializerResult result =
+                job.getNjams().serializers().serialize(startData, job.getSerializeSizeHint());
+            serialized = result == null ? null : result.value();
+            truncated = result != null && result.truncated();
+        } else {
+            serialized = job.getNjams().serializers().serialize(startData);
+            truncated = false;
+        }
+        storeStartData(serialized, truncated);
     }
 
     /**
@@ -548,8 +593,11 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
     @Override
     public void setEventMessage(String message) {
         setExecutionIfNotSet();
-        super.setEventMessage(DataMasking.maskString(limitLength("eventMessage", message, MAX_VALUE_LIMIT)));
+        final String limited = DataMasking.maskString(limitLength("eventMessage", message, MAX_VALUE_LIMIT));
+        super.setEventMessage(limited);
         if (StringUtils.isNotBlank(message)) {
+            final int size = limited == null ? 0 : limited.length();
+            addToEstimatedSize(size);
             job.setInstrumented();
         }
     }
@@ -562,8 +610,11 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
     @Override
     public void setEventCode(String code) {
         setExecutionIfNotSet();
-        super.setEventCode(DataMasking.maskString(limitLength("eventCode", code, MAX_VALUE_LIMIT)));
+        final String limited = DataMasking.maskString(limitLength("eventCode", code, MAX_VALUE_LIMIT));
+        super.setEventCode(limited);
         if (StringUtils.isNotBlank(code)) {
+            final int size = limited == null ? 0 : limited.length();
+            addToEstimatedSize(size);
             job.setInstrumented();
         }
     }
@@ -584,7 +635,6 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
         if (StringUtils.isNotBlank(eventPayload)) {
             final int payloadSize = limited == null ? 0 : limited.length();
             addToEstimatedSize(payloadSize);
-            job.addToEstimatedSize(payloadSize);
             job.setInstrumented();
         }
     }
@@ -605,7 +655,6 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
         if (StringUtils.isNotBlank(stackTrace)) {
             int stackTraceSize = limited == null ? 0 : limited.length();
             addToEstimatedSize(stackTraceSize);
-            job.addToEstimatedSize(stackTraceSize);
             job.setInstrumented();
         }
     }
@@ -615,16 +664,46 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
      * it adds the size of the masked startData to the estimatedSize of this and
      * of the job.
      *
+     * <p>Start data belongs to the job: only the first start data set for a job is kept (SDK-462).
+     * A later call (on this or any other activity of the same job) is ignored and logged, so a job
+     * transmits at most one start data. A <code>null</code> value does not consume the slot.</p>
+     *
      * @param startData the startData to mask and set to the Activity.
      */
     @Override
     public void setStartData(String startData) {
-        String maskedStartData = DataMasking.maskString(startData);
-        super.setStartData(maskedStartData);
-        if (maskedStartData != null) {
-            int startDataSize = maskedStartData.length();
-            addToEstimatedSize(startDataSize);
-            job.addToEstimatedSize(startDataSize);
+        // no serializer truncation flag for an already-serialized string: limiting (if enabled) is length-based
+        storeStartData(startData, false);
+    }
+
+    /**
+     * Stores the (single) start data for the owning job, claiming the job's start-data slot (SDK-462) and,
+     * when start-data limiting is enabled (SDK-420), applying the configured payload limit and clearing the
+     * job's recorded flag if the start data was actually truncated or discarded.
+     *
+     * @param serialized          the serialized start data, may be <code>null</code>
+     * @param serializerTruncated whether the serializer already truncated the value at the configured limit
+     */
+    private void storeStartData(String serialized, boolean serializerTruncated) {
+        final String masked = DataMasking.maskString(serialized);
+        if (masked != null && !job.claimStartData()) {
+            LOG.warn("Start data was already set for job {}; ignoring this call (the first start data wins).",
+                job.getLogId());
+            return;
+        }
+        final String stored;
+        if (job.isStartDataLimited()) {
+            if (job.exceedsStartDataLimit(masked, serializerTruncated)) {
+                // truncated or discarded -> this job can no longer be replayed
+                job.revokeRecorded();
+            }
+            stored = job.applyLimit(masked, serializerTruncated);
+        } else {
+            stored = masked;
+        }
+        super.setStartData(stored);
+        if (stored != null) {
+            addToEstimatedSize(stored.length());
         }
     }
 

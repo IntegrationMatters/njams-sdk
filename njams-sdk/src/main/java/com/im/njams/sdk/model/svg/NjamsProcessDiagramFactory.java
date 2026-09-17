@@ -23,34 +23,6 @@
  */
 package com.im.njams.sdk.model.svg;
 
-import java.io.InputStream;
-import java.io.StringReader;
-import java.io.StringWriter;
-import java.util.List;
-import java.util.Objects;
-import java.util.stream.Collectors;
-
-import javax.xml.XMLConstants;
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.transform.OutputKeys;
-import javax.xml.transform.Source;
-import javax.xml.transform.Templates;
-import javax.xml.transform.Transformer;
-import javax.xml.transform.TransformerConfigurationException;
-import javax.xml.transform.TransformerException;
-import javax.xml.transform.TransformerFactory;
-import javax.xml.transform.dom.DOMSource;
-import javax.xml.transform.stream.StreamResult;
-import javax.xml.transform.stream.StreamSource;
-
-import com.im.njams.sdk.utils.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.w3c.dom.DOMImplementation;
-import org.w3c.dom.Document;
-import org.w3c.dom.Element;
-
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
@@ -58,6 +30,27 @@ import com.im.njams.sdk.model.ActivityModel;
 import com.im.njams.sdk.model.GroupModel;
 import com.im.njams.sdk.model.ProcessModel;
 import com.im.njams.sdk.model.TransitionModel;
+import com.im.njams.sdk.utils.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.w3c.dom.DOMImplementation;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+
+import javax.xml.XMLConstants;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.transform.*;
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.stream.StreamResult;
+import javax.xml.transform.stream.StreamSource;
+import java.io.InputStream;
+import java.io.StringReader;
+import java.io.StringWriter;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
 /**
  * This is the default SDK ProcessDiagramFactory. It converts a ProcessModel
@@ -98,13 +91,42 @@ public class NjamsProcessDiagramFactory implements ProcessDiagramFactory {
     protected static final int DEFAULT_MARKER_SIZE = 10;
 
     /**
+     * default maximum number of lines for transition labels
+     */
+    protected static final int DEFAULT_MAX_LABEL_LINES = 2;
+
+    /**
+     * estimated character width as a fraction of the font size, used for transition label wrapping
+     */
+    protected static final double DEFAULT_CHAR_WIDTH_FACTOR = 0.4;
+
+    /**
+     * Width reserved at the right edge of the group header for nJAMS Server controls.
+     */
+    protected static final int GROUP_HEADER_RESERVED_END = 120;
+
+    /**
+     * Maximum activity label width expressed as a multiple of {@link #DEFAULT_ACTIVITY_SIZE}.
+     * Labels wider than this limit are truncated with an ellipsis.
+     */
+    protected static final int ACTIVITY_LABEL_MAX_WIDTH_FACTOR = 2;
+
+    /**
      * default secure processing
      */
     protected static final String DEFAULT_DISABLE_SECURE_PROCESSING = "false";
 
+    /**
+     * Attribute carrying the full label text on an SVG element whose rendered label was truncated.
+     * The nJAMS Server UI presents this as a tooltip.
+     */
+    static final String TOOLTIP_ATTRIBUTE = "nj-sdk-tooltip";
+
     private static final Logger LOG = LoggerFactory.getLogger(NjamsProcessDiagramFactory.class);
 
     protected boolean disableSecureProcessing = false;
+
+    private boolean legacyServerCompat = false;
 
     private volatile Templates postProcessXsltTemplates;
 
@@ -115,14 +137,21 @@ public class NjamsProcessDiagramFactory implements ProcessDiagramFactory {
      * @param njams Initialize this entry with this Njams
      */
     public NjamsProcessDiagramFactory(Njams njams) {
-        this("true".equalsIgnoreCase(njams.getSettings().getPropertyWithDeprecationWarning(
-            NjamsSettings.PROPERTY_DISABLE_SECURE_PROCESSING,
-            DEFAULT_DISABLE_SECURE_PROCESSING,
-            NjamsSettings.OLD_DISABLE_SECURE_PROCESSING)));
+        this(
+            njams.getSettings().getBool(
+                NjamsSettings.PROPERTY_DISABLE_SECURE_PROCESSING,
+                Boolean.parseBoolean(DEFAULT_DISABLE_SECURE_PROCESSING)),
+            "6.1".equals(njams.getSettings().getProperty(NjamsSettings.PROPERTY_SERVER_COMPATIBILITY))
+        );
     }
 
     NjamsProcessDiagramFactory(boolean disableSecureProcessing) {
+        this(disableSecureProcessing, false);
+    }
+
+    NjamsProcessDiagramFactory(boolean disableSecureProcessing, boolean legacyServerCompat) {
         this.disableSecureProcessing = disableSecureProcessing;
+        this.legacyServerCompat = legacyServerCompat;
         if (disableSecureProcessing) {
             LOG.debug("Disabled secure XML processing by configuration switch.");
         } else {
@@ -198,7 +227,6 @@ public class NjamsProcessDiagramFactory implements ProcessDiagramFactory {
             createSvg(context, processModel);
 
             String svg = serializeDocument(context);
-            LOG.trace("Created ProcessDiagram from ProcessModel: {}", svg);
             return svg;
         } catch (Exception e) {
             throw new NjamsSdkRuntimeException("Error in NjamsProcessDiagramFactory", e);
@@ -237,15 +265,16 @@ public class NjamsProcessDiagramFactory implements ProcessDiagramFactory {
                 .filter(a -> !(a instanceof GroupModel)).collect(Collectors.toList());
         rootActivities.forEach(a -> drawActivity(context, a));
 
+        // draw root groups before transitions: a group's opaque background must not be painted on top of
+        // a transition that touches its border (SDK-471)
+        List<GroupModel> rootGroups = processModel.getActivityModels().stream().filter(a -> a.getParent() == null)
+            .filter(a -> a instanceof GroupModel).map(GroupModel.class::cast).collect(Collectors.toList());
+        rootGroups.forEach(a -> drawGroup(context, a));
+
         // draw root transitions
         List<TransitionModel> rootTransition = processModel.getTransitionModels().stream()
             .filter(a -> a.getParent() == null).collect(Collectors.toList());
         rootTransition.forEach(t -> drawTransition(context, t));
-
-        // draw root groups
-        List<GroupModel> rootGroups = processModel.getActivityModels().stream().filter(a -> a.getParent() == null)
-            .filter(a -> a instanceof GroupModel).map(GroupModel.class::cast).collect(Collectors.toList());
-        rootGroups.forEach(a -> drawGroup(context, a));
 
         drawExtraElements(context);
     }
@@ -333,9 +362,15 @@ public class NjamsProcessDiagramFactory implements ProcessDiagramFactory {
         activityText.setAttributeNS(null, "x", String.valueOf(labelX));
         activityText.setAttributeNS(null, "y", String.valueOf(labelY));
         activityText.setAttributeNS(null, "text-anchor", "middle");
-        activityText.setTextContent(activityModel.getName());
+        FittedLabel activityLabel =
+            truncateLabel(activityModel.getName(), (double) ACTIVITY_LABEL_MAX_WIDTH_FACTOR * DEFAULT_ACTIVITY_SIZE);
+        activityText.setTextContent(activityLabel.singleLine());
+        if (activityLabel.isTruncated()) {
+            image.setAttributeNS(null, TOOLTIP_ATTRIBUTE, activityLabel.getFull());
+        }
         context.getContainerElement().appendChild(activityText);
 
+        /*
         // create text for activity stats
         Element activityStats = context.getDoc().createElementNS(context.getSvgNS(), "text");
         activityStats.setAttributeNS(null, "id", activityModel.getId() + "_stats_text");
@@ -343,6 +378,8 @@ public class NjamsProcessDiagramFactory implements ProcessDiagramFactory {
         activityStats.setAttributeNS(null, "y", String.valueOf(statxY));
         activityStats.setAttributeNS(null, "text-anchor", "middle");
         context.getContainerElement().appendChild(activityStats);
+
+         */
     }
 
     /**
@@ -384,13 +421,16 @@ public class NjamsProcessDiagramFactory implements ProcessDiagramFactory {
         rectHeader.setAttributeNS(null, "stroke", "black");
         context.getContainerElement().appendChild(rectHeader);
 
+        int iconSize = 16;
         Element groupIcon = context.getDoc().createElementNS(context.getSvgNS(), "image");
-        groupIcon.setAttributeNS(null, "x", String.valueOf(headerX));
-        groupIcon.setAttributeNS(null, "y", String.valueOf(headerY));
-        groupIcon.setAttributeNS(null, "width", String.valueOf(16));
-        groupIcon.setAttributeNS(null, "height", String.valueOf(16));
-        // TODO: wtf, make this configurable or whatever
-        groupIcon.setAttributeNS("http://www.w3.org/1999/xlink", "xlink:href", "assets/images/svg/groupType_group.png");
+        groupIcon.setAttributeNS(null, "activity", "true");
+        groupIcon.setAttributeNS(null, "modelId", groupModel.getId());
+        groupIcon.setAttributeNS(null, "x", String.valueOf(headerX + 1));
+        groupIcon.setAttributeNS(null, "y", String.valueOf(headerY + 1));
+        groupIcon.setAttributeNS(null, "width", String.valueOf(iconSize));
+        groupIcon.setAttributeNS(null, "height", String.valueOf(iconSize));
+        groupIcon.setAttributeNS(null, "group-type", context.getCategory() + "." + groupModel.getType());
+        groupIcon.setAttributeNS(null, "activity-type", context.getCategory() + "." + groupModel.getType());
         context.getContainerElement().appendChild(groupIcon);
 
         // general container sizing
@@ -409,31 +449,38 @@ public class NjamsProcessDiagramFactory implements ProcessDiagramFactory {
         rectGroupContainer.setAttributeNS(null, "stroke", "black");
         context.getContainerElement().appendChild(rectGroupContainer);
 
-        // general text sizing
-        int groupTextX = groupX + groupWidth / 2;
-        int groupTextY = groupY + groupHeight + DEFAULT_TEXT_SIZE;
+        // label left-aligned next to the icon, inside the header
+        int labelGap = 4;
+        int groupTextX = headerX + iconSize + labelGap;
+        int groupTextY = headerY + DEFAULT_TEXT_SIZE;
+        double labelAvailableWidth = headerWidth - iconSize - labelGap - GROUP_HEADER_RESERVED_END;
 
         Element groupText = context.getDoc().createElementNS(context.getSvgNS(), "text");
         groupText.setAttributeNS(null, "id", groupModel.getId() + "_label");
         groupText.setAttributeNS(null, "x", String.valueOf(groupTextX));
         groupText.setAttributeNS(null, "y", String.valueOf(groupTextY));
-        groupText.setAttributeNS(null, "text-anchor", "middle");
-        groupText.setTextContent(groupModel.getName());
+        groupText.setAttributeNS(null, "text-anchor", "start");
+        FittedLabel groupLabel = truncateLabel(groupModel.getName(), labelAvailableWidth);
+        groupText.setTextContent(groupLabel.singleLine());
+        if (groupLabel.isTruncated()) {
+            rectHeader.setAttributeNS(null, TOOLTIP_ATTRIBUTE, groupLabel.getFull());
+        }
         context.getContainerElement().appendChild(groupText);
 
-        // draw root activities
+        // draw child activities
         List<ActivityModel> groupActivities = groupModel.getChildActivities().stream()
             .filter(a -> !(a instanceof GroupModel)).collect(Collectors.toList());
         groupActivities.forEach(a -> drawActivity(context, a));
 
-        // draw root transitions
-        List<TransitionModel> groupTransitions = groupModel.getChildTransitions().stream().collect(Collectors.toList());
-        groupTransitions.forEach(t -> drawTransition(context, t));
-
-        // draw root groups
+        // draw child (sub)groups before this group's own transitions: a subgroup's opaque background must
+        // not be painted on top of a transition that touches its border (SDK-471)
         List<GroupModel> groupGroups = groupModel.getChildActivities().stream().filter(a -> a instanceof GroupModel)
             .map(GroupModel.class::cast).collect(Collectors.toList());
         groupGroups.forEach(a -> drawGroup(context, a));
+
+        // draw this group's own transitions
+        List<TransitionModel> groupTransitions = groupModel.getChildTransitions().stream().collect(Collectors.toList());
+        groupTransitions.forEach(t -> drawTransition(context, t));
 
         // after drawing my childs, set back to the previous parent
         context.setContainerElement(parentContainer);
@@ -479,7 +526,7 @@ public class NjamsProcessDiagramFactory implements ProcessDiagramFactory {
         Element line = context.getDoc().createElementNS(context.getSvgNS(), "line");
         line.setAttributeNS(null, "markerId", markerId);
         line.setAttributeNS(null, "modelId", transitionModel.getId());
-        line.setAttributeNS(null, "name", transitionModel.getName());
+        line.setAttributeNS(null, "name", transitionModel.getName() != null ? transitionModel.getName() : "");
         line.setAttributeNS(null, "x1", String.valueOf(fromPoint.getX()));
         line.setAttributeNS(null, "y1", String.valueOf(fromPoint.getY()));
         line.setAttributeNS(null, "x2", String.valueOf(toPoint.getX()));
@@ -488,18 +535,29 @@ public class NjamsProcessDiagramFactory implements ProcessDiagramFactory {
         line.setAttributeNS(null, "style", "cursor: pointer; stroke:#000; fill:#000");
         context.getContainerElement().appendChild(line);
 
-        if (StringUtils.isNotBlank(transitionModel.getName()) && !Objects.equals(transitionModel.getName(),
-            transitionModel.getId())) {
-            // create text under transition on half way to next activity
-            double x = (fromPoint.getX() + toPoint.getX()) / 2;
-            double y = (fromPoint.getY() + toPoint.getY()) / 2 + DEFAULT_TEXT_SIZE;
-            Element bwTransitionText = context.getDoc().createElementNS(context.getSvgNS(), "text");
-            bwTransitionText.setAttributeNS(null, "id", transitionModel.getId() + "_label");
-            bwTransitionText.setAttributeNS(null, "x", String.valueOf(x));
-            bwTransitionText.setAttributeNS(null, "y", String.valueOf(y));
-            bwTransitionText.setAttributeNS(null, "text-anchor", "middle");
-            bwTransitionText.setTextContent(transitionModel.getName());
-            context.getContainerElement().appendChild(bwTransitionText);
+        double lineWidth = Math.abs(toPoint.getX() - fromPoint.getX());
+        FittedLabel label = wrapLabel(transitionModel.getName(), lineWidth);
+        String[] labelLines = label.getLines();
+        boolean suppressLabel =
+            legacyServerCompat && Objects.equals(transitionModel.getName(), transitionModel.getId());
+        if (labelLines.length > 0 && !suppressLabel) {
+            if (label.isTruncated()) {
+                line.setAttributeNS(null, TOOLTIP_ATTRIBUTE, label.getFull());
+            }
+            double midX = (fromPoint.getX() + toPoint.getX()) / 2;
+            double midY = (fromPoint.getY() + toPoint.getY()) / 2 + DEFAULT_TEXT_SIZE;
+            for (int i = 0; i < labelLines.length; i++) {
+                Element textElem = context.getDoc().createElementNS(context.getSvgNS(), "text");
+                String elemId = i == 0
+                    ? transitionModel.getId() + "_label"
+                    : transitionModel.getId() + "_label_" + (i + 1);
+                textElem.setAttributeNS(null, "id", elemId);
+                textElem.setAttributeNS(null, "x", String.valueOf(midX));
+                textElem.setAttributeNS(null, "y", String.valueOf(midY + i * DEFAULT_TEXT_SIZE));
+                textElem.setAttributeNS(null, "text-anchor", "middle");
+                textElem.setTextContent(labelLines[i]);
+                context.getContainerElement().appendChild(textElem);
+            }
         }
     }
 
@@ -558,6 +616,127 @@ public class NjamsProcessDiagramFactory implements ProcessDiagramFactory {
             LOG.debug("new toPoint for Group {} is {}:{}", toActivity.getName(), toPoint.getX(), toPoint.getY());
         }
         return new Point[] { fromPoint, toPoint };
+    }
+
+    FittedLabel wrapLabel(String text, double lineWidth) {
+        if (text == null) {
+            return FittedLabel.empty();
+        }
+        String normalized = text.trim().replaceAll("\\s+", " ");
+        if (normalized.isEmpty()) {
+            return FittedLabel.empty();
+        }
+        double effectiveWidth = lineWidth > 0 ? lineWidth : DEFAULT_ACTIVITY_SIZE;
+        int maxChars = Math.max(1, (int) (effectiveWidth / (DEFAULT_TEXT_SIZE * DEFAULT_CHAR_WIDTH_FACTOR)));
+        String[] result = new String[DEFAULT_MAX_LABEL_LINES];
+        int count = 0;
+        int pos = 0;
+        boolean truncated = false;
+        while (pos < normalized.length() && count < DEFAULT_MAX_LABEL_LINES) {
+            boolean isLastLine = count == DEFAULT_MAX_LABEL_LINES - 1;
+            if (normalized.length() - pos <= maxChars) {
+                result[count++] = normalized.substring(pos);
+                break;
+            }
+            if (isLastLine) {
+                int budget = maxChars - 1;
+                if (budget <= 0) {
+                    result[count++] = String.valueOf(StringUtils.ELLIPSIS);
+                } else {
+                    int lineEnd = lastSplitInWindow(normalized, pos, budget);
+                    result[count++] = normalized.substring(pos, pos + lineEnd) + StringUtils.ELLIPSIS;
+                }
+                truncated = true;
+                break;
+            }
+            int[] split = splitWindow(normalized, pos, maxChars);
+            result[count++] = normalized.substring(pos, pos + split[0]);
+            pos += split[1];
+            while (pos < normalized.length() && normalized.charAt(pos) == ' ') {
+                pos++;
+            }
+        }
+        return new FittedLabel(Arrays.copyOf(result, count), truncated, normalized);
+    }
+
+    FittedLabel truncateLabel(String text, double availableWidth) {
+        if (text == null) {
+            return FittedLabel.empty();
+        }
+        String normalized = text.trim().replaceAll("\\s+", " ");
+        if (normalized.isEmpty()) {
+            return FittedLabel.empty();
+        }
+        double effective = availableWidth > 0 ? availableWidth : DEFAULT_ACTIVITY_SIZE;
+        int maxChars = Math.max(1, (int) (effective / (DEFAULT_TEXT_SIZE * DEFAULT_CHAR_WIDTH_FACTOR)));
+        if (normalized.length() <= maxChars) {
+            return new FittedLabel(new String[] { normalized }, false, normalized);
+        }
+        int budget = maxChars - 1;
+        String line = budget <= 0
+            ? String.valueOf(StringUtils.ELLIPSIS)
+            : normalized.substring(0, budget) + StringUtils.ELLIPSIS;
+        return new FittedLabel(new String[] { line }, true, normalized);
+    }
+
+    /**
+     * Outcome of fitting a label into the available space: the rendered display line(s), whether
+     * content had to be dropped to make it fit, and the full whitespace-normalized label used as the
+     * tooltip text when truncated.
+     */
+    static final class FittedLabel {
+
+        private static final FittedLabel EMPTY = new FittedLabel(new String[0], false, "");
+
+        private final String[] lines;
+        private final boolean truncated;
+        private final String full;
+
+        FittedLabel(String[] lines, boolean truncated, String full) {
+            this.lines = lines;
+            this.truncated = truncated;
+            this.full = full;
+        }
+
+        static FittedLabel empty() {
+            return EMPTY;
+        }
+
+        String[] getLines() {
+            return lines;
+        }
+
+        String singleLine() {
+            return lines.length == 0 ? "" : lines[0];
+        }
+
+        boolean isTruncated() {
+            return truncated;
+        }
+
+        String getFull() {
+            return full;
+        }
+    }
+
+    private int[] splitWindow(String text, int pos, int maxChars) {
+        for (int i = maxChars - 1; i >= 0; i--) {
+            char c = text.charAt(pos + i);
+            if (!Character.isLetterOrDigit(c)) {
+                return c == ' ' ? new int[] { i, i + 1 } : new int[] { i + 1, i + 1 };
+            }
+        }
+        return new int[] { maxChars, maxChars };
+    }
+
+    private int lastSplitInWindow(String text, int pos, int budget) {
+        for (int i = budget - 1; i >= 0; i--) {
+            char c = text.charAt(pos + i);
+            if (!Character.isLetterOrDigit(c)) {
+                return c == ' ' ? i : i + 1;
+            }
+        }
+        return budget;
     }
 
     /**

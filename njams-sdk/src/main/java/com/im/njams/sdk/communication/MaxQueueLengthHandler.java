@@ -23,9 +23,6 @@
  */
 package com.im.njams.sdk.communication;
 
-import static com.im.njams.sdk.utils.PropertyUtil.getPropertyWithDeprecationWarning;
-
-import java.util.Properties;
 import java.util.concurrent.RejectedExecutionHandler;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.function.Supplier;
@@ -33,6 +30,7 @@ import java.util.function.Supplier;
 import org.slf4j.LoggerFactory;
 
 import com.im.njams.sdk.NjamsSettings;
+import com.im.njams.sdk.settings.ClientSettings;
 
 /**
  * Implements the <code>maxQueueLength</code> handling for senders.
@@ -47,10 +45,8 @@ public class MaxQueueLengthHandler implements RejectedExecutionHandler {
     private final DiscardPolicy discardPolicy;
     private final Supplier<Boolean> isConnectionLost;
 
-    @SuppressWarnings("removal")
-    public MaxQueueLengthHandler(final Properties properties, final Supplier<Boolean> isConnectionLost) {
-        discardPolicy = DiscardPolicy.byValue(getPropertyWithDeprecationWarning(properties,
-            NjamsSettings.PROPERTY_DISCARD_POLICY, NjamsSettings.OLD_DISCARD_POLICY));
+    public MaxQueueLengthHandler(final ClientSettings settings, final Supplier<Boolean> isConnectionLost) {
+        discardPolicy = DiscardPolicy.byValue(settings.getProperty(NjamsSettings.PROPERTY_DISCARD_POLICY));
         this.isConnectionLost = isConnectionLost;
     }
 

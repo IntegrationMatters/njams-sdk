@@ -23,22 +23,21 @@
  */
 package com.im.njams.sdk.configuration.provider;
 
-import java.util.Properties;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.LogLevel;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.LogMode;
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.configuration.ConfigurationProvider;
 import com.im.njams.sdk.configuration.ProcessConfiguration;
-import com.im.njams.sdk.settings.Settings;
+import com.im.njams.sdk.settings.ClientSettings;
 import com.im.njams.sdk.utils.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.Properties;
 
 /**
  * A base implementation for {@link ConfigurationProvider} that manages common default that are provided via
- * {@link Settings}.
+ * {@link ClientSettings}.
  */
 public abstract class AbstractConfigurationProvider implements ConfigurationProvider {
 
@@ -68,7 +67,7 @@ public abstract class AbstractConfigurationProvider implements ConfigurationProv
         if (properties.containsKey(DEFAULT_LOG_LEVEL_CONFIG)) {
             initLogLevel(properties.getProperty(DEFAULT_LOG_LEVEL_CONFIG));
         }
-        LOG.debug("Initialized: defaultRecording{}, defailtLogMode={}, defaultLogLevel={}", defaultRecording,
+        LOG.debug("Initialized: defaultRecording{}, defaultLogMode={}, defaultLogLevel={}", defaultRecording,
             defaultLogMode, defaultLogLevel);
     }
 
@@ -116,6 +115,16 @@ public abstract class AbstractConfigurationProvider implements ConfigurationProv
 
     protected Njams getNjams() {
         return njams;
+    }
+
+    /**
+     * Returns the client settings of the associated {@link Njams} instance, or <code>null</code> if
+     * this provider was not configured with one. Used by {@link #loadConfiguration()} implementations
+     * to initialize the loaded configuration's process filter.
+     * @return the client settings, or <code>null</code>.
+     */
+    protected ClientSettings getSettings() {
+        return njams == null ? null : njams.getSettings();
     }
 
     protected boolean getDefaultRecording() {

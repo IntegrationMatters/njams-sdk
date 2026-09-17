@@ -23,11 +23,10 @@
  */
 package com.im.njams.sdk.communication;
 
-import java.util.Properties;
-
 import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.NjamsSettings;
+import com.im.njams.sdk.settings.ClientSettings;
 
 /**
  * This interface must be implenmented by a new Receiver for a given
@@ -48,18 +47,19 @@ public interface Receiver {
      * The implementation should return its name here, by which it can be
      * identified. This name will be used as value in the
      * CommunicationConfiguration via the Key
-     * {@value NjamsSettings#PROPERTY_COMMUNICATION}
+     * {@value NjamsSettings#PROPERTY_COMMUNICATION} (or its alternative
+     * {@value NjamsSettings#PROPERTY_COMMUNICATION_TYPE})
      *
      * @return the name of the receiver implementation
      */
     String getName();
 
     /**
-     * This implementation will initialize itself via the given Properties
+     * Initializes the receiver with the given settings.
      *
-     * @param properties to be used for initialization
+     * @param settings the settings to be used for initialization
      */
-    void init(Properties properties);
+    void init(ClientSettings settings);
 
     /**
      * This function should be called by a implementation of the Receiver class
@@ -73,6 +73,27 @@ public interface Receiver {
      * Start the new Receiver
      */
     void start();
+
+    /**
+     * Starts this receiver for the initial connection, waiting at most {@code timeoutMs} milliseconds
+     * for the connection to be established.
+     * <p>
+     * Unlike {@link #start()}, implementations must <strong>not</strong> trigger the reconnect
+     * mechanism on failure — if the connection cannot be established within the given time,
+     * this method must throw and leave the receiver inactive.
+     * <p>
+     * The default implementation ignores the timeout and delegates to {@link #start()}.
+     * {@link AbstractReceiver} overrides this with a proper timeout-enforced implementation that
+     * also supports early connection start via {@link AbstractReceiver#beginConnect()}.
+     *
+     * @param timeoutMs maximum time in milliseconds to wait for the connection
+     * @throws com.im.njams.sdk.common.NjamsSdkRuntimeException if the connection cannot be
+     *         established within {@code timeoutMs} or an error occurs during connection
+     * @since 6.0.0
+     */
+    default void startWithTimeout(long timeoutMs) {
+        start();
+    }
 
     /**
      * Stop the new Receiver

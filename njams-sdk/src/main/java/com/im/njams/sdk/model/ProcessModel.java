@@ -35,9 +35,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.im.njams.sdk.Njams;
+import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.common.IdUtil;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
-import com.im.njams.sdk.common.Path;
+import com.im.njams.sdk.Path;
 import com.im.njams.sdk.configuration.ProcessConfiguration;
 import com.im.njams.sdk.logmessage.Job;
 import com.im.njams.sdk.logmessage.JobImpl;
@@ -94,13 +95,13 @@ public class ProcessModel {
 
         // set meta data
         internalProcessModel.setPath(path.toString());
-        internalProcessModel.setName(path.getObjectName());
+        internalProcessModel.setName(path.getName());
 
         // set configuration data
         ProcessConfiguration processConfiguration = njams.getConfiguration().getProcess(path.toString());
         if (processConfiguration != null) {
             internalProcessModel.setLogLevel(processConfiguration.getLogLevel());
-            internalProcessModel.setExclude(njams.getConfiguration().hasProcessExcludeFilter(path));
+            internalProcessModel.setExclude(njams.getConfiguration().hasProcessExcludeFilter(path.toLegacyPath()));
             internalProcessModel.setRecording(processConfiguration.isRecording());
         } else {
             internalProcessModel.setRecording(njams.getConfiguration().isRecording());
@@ -123,6 +124,7 @@ public class ProcessModel {
                 njams.getProcessModelLayouter().layout(this);
                 // build SVG
                 svg = njams.getProcessDiagramFactory().getProcessDiagram(this);
+                LOG.trace("Created process diagram for model '{}'\n{}", path, svg);
             }
             internalProcessModel.setSvg(svg);
             internalProcessModel.setSvgStatus(ProcessDiagramFactory.SUCCESS_STATUS);
@@ -156,7 +158,7 @@ public class ProcessModel {
      * @return Name of this ProcessModel
      */
     public String getName() {
-        return path.getObjectName();
+        return path.getName();
     }
 
     /**
@@ -355,7 +357,7 @@ public class ProcessModel {
      * The transitionModelId is given from outside.
      *
      * @param fromActivityModelId The ID of the transition's start activity.
-     * @param toActivityModelId The ID of the transition's start activity.
+     * @param toActivityModelId The ID of the transition's next activity.
      * @param transitionModelId The ID of the new {@link TransitionModel}.
      * @return the created {@link TransitionModel}
      */
@@ -369,7 +371,10 @@ public class ProcessModel {
         if (toActivityModel == null) {
             throw new NjamsSdkRuntimeException("ToActivityModel with id " + toActivityModelId + " does not exist");
         }
-        TransitionModel transition = new TransitionModel(this, transitionModelId, transitionModelId);
+        TransitionModel transition = new TransitionModel(this, transitionModelId);
+        if (njams != null && "6.1".equals(njams.getSettings().getProperty(NjamsSettings.PROPERTY_SERVER_COMPATIBILITY))) {
+            transition.setName(transitionModelId);
+        }
         transition.setFromActivity(fromActivityModel);
         transition.setToActivity(toActivityModel);
         addTransition(transition);

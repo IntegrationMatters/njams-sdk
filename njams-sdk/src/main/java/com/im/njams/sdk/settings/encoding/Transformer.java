@@ -330,10 +330,16 @@ public class Transformer {
     }
 
     /**
-     * This method decodes every property value, if it is encoded.
+     * Decodes every property value in the given properties.
+     *
      * @param properties the properties to decode
-     * @return the decoded properties
+     * @return a new {@link Properties} instance with all values decoded
+     * @deprecated The {@link com.im.njams.sdk.settings.ClientSettings} interface decodes values on read via
+     *     {@link com.im.njams.sdk.settings.ClientSettings#getProperty(String)}. Callers that need a decoded
+     *     {@link Properties} snapshot should use
+     *     {@link com.im.njams.sdk.utils.PropertyUtil#toProperties(com.im.njams.sdk.settings.ClientSettings)} instead.
      */
+    @Deprecated
     public static Properties decode(Properties properties) {
         Properties newProps = new Properties();
         properties.keySet().forEach(key -> newProps.put(key, decode((String) properties.get(key))));

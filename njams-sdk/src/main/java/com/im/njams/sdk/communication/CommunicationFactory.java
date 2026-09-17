@@ -25,8 +25,8 @@ package com.im.njams.sdk.communication;
 
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.Properties;
 import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
@@ -34,7 +34,7 @@ import org.slf4j.LoggerFactory;
 
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.NjamsSettings;
-import com.im.njams.sdk.settings.Settings;
+import com.im.njams.sdk.settings.ClientSettings;
 import com.im.njams.sdk.utils.ClasspathValidator;
 import com.im.njams.sdk.utils.ServiceLoaderSupport;
 
@@ -46,7 +46,14 @@ import com.im.njams.sdk.utils.ServiceLoaderSupport;
 public class CommunicationFactory {
     private static final Logger LOG = LoggerFactory.getLogger(CommunicationFactory.class);
 
-    private final Settings settings;
+    /**
+     * Property key used internally to pass the client path from the {@link Njams} instance to
+     * senders and receivers via their configuration properties. The {@code "njams.$"} prefix marks
+     * the key as not user-configurable.
+     */
+    public static final String INTERNAL_PROPERTY_CLIENTPATH = "njams.$clientPath";
+
+    private final ClientSettings settings;
     private static final Map<Class<? extends Receiver>, ShareableReceiver<?>> sharedReceivers = new HashMap<>();
 
     /**
@@ -54,7 +61,7 @@ public class CommunicationFactory {
      *
      * @param settings Settings to add
      */
-    public CommunicationFactory(Settings settings) {
+    public CommunicationFactory(ClientSettings settings) {
         this.settings = settings;
     }
 
@@ -67,21 +74,21 @@ public class CommunicationFactory {
     }
 
     /**
-     * Returns the Receiver specified by the value of {@value NjamsSettings#PROPERTY_COMMUNICATION}
-     * specified in the CommunicationProperties in the Settings
+     * Returns the Receiver specified by the value of {@value NjamsSettings#PROPERTY_COMMUNICATION} (or its
+     * alternative {@value NjamsSettings#PROPERTY_COMMUNICATION_TYPE}) specified in the CommunicationProperties
+     * in the Settings
      *
      * @param njams The {@link Njams} client instance for that messages shall be received.
      * @return new initialized Receiver
      */
     public Receiver getReceiver(Njams njams) {
-        if (settings.containsKey(NjamsSettings.PROPERTY_COMMUNICATION)) {
-            String requiredReceiverName = settings.getProperty(NjamsSettings.PROPERTY_COMMUNICATION);
+        String requiredReceiverName = settings.getPropertyWithAlternativeKey(
+                NjamsSettings.PROPERTY_COMMUNICATION, NjamsSettings.PROPERTY_COMMUNICATION_TYPE);
+        if (requiredReceiverName != null) {
             if ("HTTPS".equalsIgnoreCase(requiredReceiverName)) {
                 requiredReceiverName = "HTTP";
             }
-            final boolean shared =
-                    "true".equalsIgnoreCase(settings.getPropertyWithDeprecationWarning(
-                            NjamsSettings.PROPERTY_SHARED_COMMUNICATIONS, NjamsSettings.OLD_SHARED_COMMUNICATIONS));
+            final boolean shared = settings.getBool(NjamsSettings.PROPERTY_SHARED_COMMUNICATIONS, false);
             Class<? extends Receiver> type = findReceiverType(requiredReceiverName, shared);
             if (type != null) {
                 final Receiver newInstance = createReceiver(type, njams, shared, requiredReceiverName);
@@ -96,7 +103,7 @@ public class CommunicationFactory {
                             + available);
         }
         throw new IllegalStateException("Unable to find " + NjamsSettings.PROPERTY_COMMUNICATION
-                + " in settings properties");
+                + " (or its alternative " + NjamsSettings.PROPERTY_COMMUNICATION_TYPE + ") in settings properties");
     }
 
     private Class<? extends Receiver> findReceiverType(String name, boolean wantsSharable) {
@@ -118,8 +125,10 @@ public class CommunicationFactory {
 
     private Receiver createReceiver(Class<? extends Receiver> clazz, Njams njams, boolean shared, String name) {
         try {
-            Properties properties = settings.getAllProperties();
-            properties.setProperty(Settings.INTERNAL_PROPERTY_CLIENTPATH, njams.getClientPath().toString());
+            Map<String, String> copy = new LinkedHashMap<>();
+            settings.forEach(e -> copy.put(e.getKey(), e.getValue()));
+            ClientSettings receiverSettings = ClientSettings.from(copy);
+            receiverSettings.put(INTERNAL_PROPERTY_CLIENTPATH, njams.getClientPath().toString());
             Receiver receiver;
             if (shared && ShareableReceiver.class.isAssignableFrom(clazz)) {
                 synchronized (sharedReceivers) {
@@ -134,7 +143,7 @@ public class CommunicationFactory {
                         ((ClasspathValidator) receiver).validate();
                     }
                     sharedReceivers.put(clazz, (ShareableReceiver<?>) receiver);
-                    receiver.init(properties);
+                    receiver.init(receiverSettings);
                     return receiver;
                 }
             }
@@ -143,7 +152,7 @@ public class CommunicationFactory {
             if (receiver instanceof ClasspathValidator) {
                 ((ClasspathValidator) receiver).validate();
             }
-            receiver.init(properties);
+            receiver.init(receiverSettings);
             return receiver;
         } catch (Exception e) {
             throw new IllegalStateException("Unable to create new receiver " + name + " instance.", e);
@@ -151,18 +160,20 @@ public class CommunicationFactory {
     }
 
     /**
-     * Returns the Sender specified by the value of {@value NjamsSettings#PROPERTY_COMMUNICATION}
-     * specified in the CommunicationProperties in the Settings
+     * Returns the Sender specified by the value of {@value NjamsSettings#PROPERTY_COMMUNICATION} (or its
+     * alternative {@value NjamsSettings#PROPERTY_COMMUNICATION_TYPE}) specified in the CommunicationProperties
+     * in the Settings
      *
      * @return new initialized Sender
      */
     public AbstractSender getSender() {
-        if (!settings.containsKey(NjamsSettings.PROPERTY_COMMUNICATION)) {
+        final String requiredSenderName = settings.getPropertyWithAlternativeKey(
+                NjamsSettings.PROPERTY_COMMUNICATION, NjamsSettings.PROPERTY_COMMUNICATION_TYPE);
+        if (requiredSenderName == null) {
             throw new IllegalStateException("Unable to find " + NjamsSettings.PROPERTY_COMMUNICATION
                     + " in settings properties");
         }
         final ServiceLoaderSupport<AbstractSender> senders = getSenderLoader();
-        final String requiredSenderName = settings.getProperty(NjamsSettings.PROPERTY_COMMUNICATION);
         final AbstractSender sender = senders.find(s -> s.getName().equalsIgnoreCase(requiredSenderName));
         if (sender != null) {
             try {
@@ -173,7 +184,7 @@ public class CommunicationFactory {
                     ((ClasspathValidator) newInstance).validate();
                 }
 
-                newInstance.init(settings.getAllProperties());
+                newInstance.init(settings);
                 newInstance.startup();
                 return newInstance;
             } catch (Exception e) {

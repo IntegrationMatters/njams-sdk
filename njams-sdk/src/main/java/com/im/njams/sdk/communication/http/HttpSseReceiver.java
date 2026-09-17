@@ -23,7 +23,28 @@
  */
 package com.im.njams.sdk.communication.http;
 
-import static com.im.njams.sdk.communication.MessageHeaders.*;
+import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
+import com.im.njams.sdk.NjamsSettings;
+import com.im.njams.sdk.Path;
+import com.im.njams.sdk.common.NjamsSdkRuntimeException;
+import com.im.njams.sdk.communication.AbstractReceiver;
+import com.im.njams.sdk.communication.ConnectionStatus;
+import com.im.njams.sdk.communication.fragments.HttpSseChunkAssembly;
+import com.im.njams.sdk.communication.fragments.RawMessage;
+import com.im.njams.sdk.communication.fragments.SplitSupport;
+import com.im.njams.sdk.communication.fragments.SplitSupport.SplitIterator;
+import com.im.njams.sdk.settings.ClientSettings;
+import com.im.njams.sdk.utils.JsonUtils;
+import com.im.njams.sdk.utils.StringUtils;
+import com.launchdarkly.eventsource.*;
+import com.launchdarkly.eventsource.background.BackgroundEventHandler;
+import com.launchdarkly.eventsource.background.BackgroundEventSource;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.RequestBody;
+import okhttp3.Response;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.net.SocketTimeoutException;
@@ -31,41 +52,11 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.Map;
-import java.util.Properties;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 
-import javax.jms.IllegalStateException;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
-import com.im.njams.sdk.NjamsSettings;
-import com.im.njams.sdk.common.NjamsSdkRuntimeException;
-import com.im.njams.sdk.common.Path;
-import com.im.njams.sdk.communication.AbstractReceiver;
-import com.im.njams.sdk.communication.ConnectionStatus;
-import com.im.njams.sdk.communication.fragments.HttpSseChunkAssembly;
-import com.im.njams.sdk.communication.fragments.RawMessage;
-import com.im.njams.sdk.communication.fragments.SplitSupport;
-import com.im.njams.sdk.communication.fragments.SplitSupport.SplitIterator;
-import com.im.njams.sdk.utils.JsonUtils;
-import com.im.njams.sdk.utils.StringUtils;
-import com.launchdarkly.eventsource.ConnectStrategy;
-import com.launchdarkly.eventsource.ErrorStrategy;
-import com.launchdarkly.eventsource.EventSource;
-import com.launchdarkly.eventsource.MessageEvent;
-import com.launchdarkly.eventsource.ReadyState;
-import com.launchdarkly.eventsource.StreamIOException;
-import com.launchdarkly.eventsource.background.BackgroundEventHandler;
-import com.launchdarkly.eventsource.background.BackgroundEventSource;
-
-import okhttp3.OkHttpClient;
-import okhttp3.Request;
-import okhttp3.RequestBody;
-import okhttp3.Response;
+import static com.im.njams.sdk.communication.MessageHeaders.*;
 
 /**
  * Receives SSE (server sent events) from nJAMS as HTTP Client Communication
@@ -90,21 +81,32 @@ public class HttpSseReceiver extends AbstractReceiver implements BackgroundEvent
     private SplitSupport splitSupport = null;
     protected final HttpSseChunkAssembly chunkAssembly = new HttpSseChunkAssembly();
 
+    /**
+     * Initializes this receiver via the given settings.
+     * <p>
+     * Valid settings are:
+     * <ul>
+     * <li>{@value NjamsSettings#PROPERTY_HTTP_BASE_URL}
+     * </ul>
+     *
+     * @param settings the settings needed to initialize
+     */
     @Override
-    public void init(final Properties properties) {
+    public void init(final ClientSettings settings) {
+        super.init(settings);
         try {
-            subscribeUri = createUri(properties, "subscribe");
-            replyUrl = createUri(properties, "reply").toURL();
-            clientFactory = new HttpClientFactory(properties, subscribeUri);
+            subscribeUri = createUri(settings, "subscribe");
+            replyUrl = createUri(settings, "reply").toURL();
+            clientFactory = new HttpClientFactory(settings, subscribeUri);
         } catch (final Exception ex) {
             throw new NjamsSdkRuntimeException("Unable to init HTTP receiver", ex);
         }
-        splitSupport = new SplitSupport(properties, 0);
+        splitSupport = new SplitSupport(settings, 0);
         LOG.debug("URI subscription={}; reply={}", subscribeUri, replyUrl);
     }
 
-    private URI createUri(final Properties properties, String path) throws URISyntaxException {
-        String base = properties.getProperty(NjamsSettings.PROPERTY_HTTP_BASE_URL);
+    private URI createUri(final ClientSettings settings, String path) throws URISyntaxException {
+        String base = settings.getProperty(NjamsSettings.PROPERTY_HTTP_BASE_URL);
         if (StringUtils.isBlank(base)) {
             throw new NjamsSdkRuntimeException(
                 "Required parameter " + NjamsSettings.PROPERTY_HTTP_BASE_URL + " is missing.");
@@ -152,9 +154,9 @@ public class HttpSseReceiver extends AbstractReceiver implements BackgroundEvent
                             ConnectStrategy
                                 .http(subscribeUri)
                                 .httpClient(client))
-                                    .errorStrategy(
-                                        ErrorStrategy.continueWithTimeLimit(2,
-                                            TimeUnit.SECONDS)));
+                            .errorStrategy(
+                                ErrorStrategy.continueWithTimeLimit(2,
+                                    TimeUnit.SECONDS)));
                 source = builder.build();
                 LOG.debug("Start connect...");
                 source.getEventSource().start();
@@ -208,6 +210,7 @@ public class HttpSseReceiver extends AbstractReceiver implements BackgroundEvent
         final String requestId = resolved.getHeader(NJAMS_MESSAGE_ID_HTTP_HEADER);
         final String payload = resolved.getBody();
         LOG.debug("Processing event {} (message={})", requestId, resolved);
+        LOG.trace("Instruction body: {}", payload);
         final Instruction instruction;
         try {
             instruction = JsonUtils.parse(payload, Instruction.class);
@@ -233,7 +236,7 @@ public class HttpSseReceiver extends AbstractReceiver implements BackgroundEvent
             return false;
         }
         final String receiver = headers.get(NJAMS_RECEIVER_HTTP_HEADER);
-        if (StringUtils.isBlank(receiver) || !njams.getClientPath().equals(new Path(receiver))) {
+        if (StringUtils.isBlank(receiver) || njams.getClientPath() != Path.resolve(receiver)) {
             LOG.debug("Message is not for me! Client path from message is: {} but nJAMS client path is: {} ", receiver,
                 njams.getClientPath());
             return false;

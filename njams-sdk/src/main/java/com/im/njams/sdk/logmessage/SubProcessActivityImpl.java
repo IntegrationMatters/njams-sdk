@@ -33,6 +33,13 @@ import com.im.njams.sdk.model.SubProcessActivityModel;
  */
 public class SubProcessActivityImpl extends GroupImpl implements SubProcessActivity {
 
+    // Flat size estimate (in characters) for the subprocess reference (name + path + logId and
+    // their JSON structure). A constant average is used rather than measuring each field, since
+    // these values are bounded and exact counting is not worth the cost on this path.
+    static final long SUBPROCESS_ESTIMATED_SIZE = 200L;
+
+    private boolean subProcessSizeCounted;
+
     public SubProcessActivityImpl(JobImpl job, SubProcessActivityModel model) {
         super(job, model);
     }
@@ -72,6 +79,23 @@ public class SubProcessActivityImpl extends GroupImpl implements SubProcessActiv
     public void setSubProcess(String subProcessName, String subProcessPath, String subProcessLogId) {
         setSubProcess(new com.faizsiegeln.njams.messageformat.v4.common.SubProcess(subProcessName, subProcessPath,
                 subProcessLogId));
+    }
+
+    /**
+     * Sets the subprocess reference and, the first time a non-null reference is set, adds a flat
+     * constant ({@value #SUBPROCESS_ESTIMATED_SIZE}) to the estimated size to account for the
+     * subprocess name, path and logId. All other {@code setSubProcess} overloads funnel through
+     * this method, so the constant is counted exactly once per subprocess activity.
+     *
+     * @param subProcess the subprocess reference to set
+     */
+    @Override
+    public void setSubProcess(com.faizsiegeln.njams.messageformat.v4.common.SubProcess subProcess) {
+        super.setSubProcess(subProcess);
+        if (subProcess != null && !subProcessSizeCounted) {
+            subProcessSizeCounted = true;
+            addToEstimatedSize(SUBPROCESS_ESTIMATED_SIZE);
+        }
     }
 
 }

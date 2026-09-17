@@ -25,7 +25,7 @@ package com.faizsiegeln.test;
 
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.NjamsSettings;
-import com.im.njams.sdk.common.Path;
+import com.im.njams.sdk.Path;
 import com.im.njams.sdk.logmessage.Activity;
 import com.im.njams.sdk.logmessage.Job;
 import com.im.njams.sdk.logmessage.SubProcessActivity;
@@ -47,7 +47,7 @@ public class SubProcessClient {
         String technology = "sdk4";
 
         //Specify a client path. This path specifies where your client instance will be visible in the object tree.
-        Path clientPath = new Path("SDK4", "Client", "SubProcess");
+        Path clientPath = Path.of("SDK4", "Client", "SubProcess");
 
         //Create communicationProperties, which specify how your client will communicate with the server
         //Settings settings = getJmsProperties();
@@ -57,20 +57,20 @@ public class SubProcessClient {
         Njams njams = new Njams(clientPath, "1.0.0", technology, settings);
 
         //add custom image for your technology
-        njams.addImage(technology, "images/njams_java_sdk_process_step.png");
+        njams.model().addImage(technology, "images/njams_java_sdk_process_step.png");
         //add custom images for your activites
-        njams.addImage("startType", "images/njams_java_sdk_process_start.png");
-        njams.addImage("stepType", "images/njams_java_sdk_process_step.png");
-        njams.addImage("endType", "images/njams_java_sdk_process_end.png");
+        njams.model().addImage("startType", "images/njams_java_sdk_process_start.png");
+        njams.model().addImage("stepType", "images/njams_java_sdk_process_step.png");
+        njams.model().addImage("endType", "images/njams_java_sdk_process_end.png");
 
         /**
          * Creating a process by adding a ProcessModel
          */
-        //Specify a process path, which is relative to the client path
-        Path processPath = new Path("Processes", "TheProcess");
+        //Build the absolute process path below the client path
+        Path processPath = clientPath.getOrCreateChild("Processes", "TheProcess");
 
         //Create an new empty process model for the main process
-        ProcessModel process = njams.createProcess(processPath);
+        ProcessModel process = njams.model().create(processPath);
 
         //start model
         ActivityModel startModel = process.createActivity("start", "Start", "startType");
@@ -83,8 +83,8 @@ public class SubProcessClient {
         ActivityModel endModel = subProcessActivityModel.transitionTo("end", "End", "endType");
 
         //Create a new process model for the subprocess
-        Path subProcessPath = new Path("PROCESSES", "SubProcess");
-        ProcessModel subProcess = njams.createProcess(subProcessPath);
+        Path subProcessPath = clientPath.getOrCreateChild("PROCESSES", "SubProcess");
+        ProcessModel subProcess = njams.model().create(subProcessPath);
         ActivityModel subProcessStartModel = subProcess.createActivity("subProcessstart", "Start", "startType");
         subProcessStartModel.setStarter(true);
         ActivityModel subProcessLogModel = subProcessStartModel.transitionTo("subProcesslog", "Log", "stepType");
@@ -106,7 +106,7 @@ public class SubProcessClient {
         // Starts the job, i.e., sets the according status, job start date if not set before, and flags the job to begin flushing.
         job.start();
 
-        Activity start = job.createActivity(startModel).build();
+        Activity start = job.activities().create(startModel).build();
         start.processInput("testdata");
         start.processOutput("testdata");
 

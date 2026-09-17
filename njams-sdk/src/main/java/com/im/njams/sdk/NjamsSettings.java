@@ -31,19 +31,13 @@ import com.im.njams.sdk.communication.http.HttpSender;
 import com.im.njams.sdk.communication.jms.factory.JmsFactory;
 import com.im.njams.sdk.communication.jms.factory.JndiJmsFactory;
 import com.im.njams.sdk.communication.kafka.KafkaUtil;
+import com.im.njams.sdk.settings.ClientSettings;
 
 /**
  * This class is a list and documentation for all settings, which can be used in SDK.
  */
 public class NjamsSettings {
 
-    //     _____ _____  _  __
-    //    / ____|  __ \| |/ /
-    //   | (___ | |  | | ' /
-    //    \___ \| |  | |  <
-    //    ____) | |__| | . \
-    //   |_____/|_____/|_|\_\
-    //
     /**
      * Property key for communication properties which specifies which
      * communication implementation will be used.
@@ -57,6 +51,18 @@ public class NjamsSettings {
      * </ul>
      */
     public static final String PROPERTY_COMMUNICATION = "njams.sdk.communication";
+
+    /**
+     * Equally valid alternative key for {@value #PROPERTY_COMMUNICATION}. {@value #PROPERTY_COMMUNICATION} is
+     * also the prefix of every transport-specific setting (e.g. {@value #PROPERTY_HTTP_BASE_URL},
+     * {@value #PROPERTY_JMS_DESTINATION}), so it cannot be expressed in a hierarchical configuration format
+     * such as YAML, where a key can be either a scalar value or a parent of nested keys, but never both. This
+     * key provides a collision-free alternative for such sources; either key can be used interchangeably, and
+     * neither is deprecated.
+     *
+     * @since 6.0.0
+     */
+    public static final String PROPERTY_COMMUNICATION_TYPE = "njams.sdk.communication.type";
 
     /**
      * Limits the message size for messages being sent to the server. The given value is the maximum size in bytes.
@@ -118,17 +124,30 @@ public class NjamsSettings {
     public static final String PROPERTY_CONTAINER_MODE = "njams.sdk.communication.containerMode";
 
     /**
+     * Maximum time in milliseconds the SDK waits for the initial communication connection to be
+     * established during {@link com.im.njams.sdk.Njams#start()}. If the connection is not ready within
+     * this time, {@code start()} returns {@code false} and the SDK instance remains inactive — no
+     * reconnect thread is started.
+     * <p>
+     * The connection attempt is started automatically in the background when the
+     * {@link com.im.njams.sdk.Njams} instance is constructed, so that it overlaps with application
+     * setup. {@code start()} then awaits the already-running attempt and applies this timeout only for
+     * the remaining wait.
+     * <p>
+     * The default is 30000 ms.
+     *
+     * @since 6.0.0
+     */
+    public static final String PROPERTY_COMMUNICATION_CONNECT_TIMEOUT =
+            "njams.sdk.communication.connect.timeout";
+
+    /**
      * This property is a flush criteria with a default of 5mb.
      * <p>
      * If the flush size of the @{@link com.faizsiegeln.njams.messageformat.v4.logmessage.LogMessage}
      * exceeds this threshold, the message will be flushed
      */
     public static final String PROPERTY_FLUSH_SIZE = "njams.sdk.flushsize";
-    /**
-     * @deprecated Just for downward compatibility.
-     */
-    @Deprecated(since = "5.0.0", forRemoval = true)
-    public static final String OLD_FLUSH_SIZE = "njams.client.sdk.flushsize";
 
     /**
      * This property is a flush criteria with a default of 30s.
@@ -137,11 +156,6 @@ public class NjamsSettings {
      * has been sent in the last 30 seconds, it will be flushed
      */
     public static final String PROPERTY_FLUSH_INTERVAL = "njams.sdk.flush_interval";
-    /**
-     * @deprecated Just for downward compatibility.
-     */
-    @Deprecated(since = "5.0.0", forRemoval = true)
-    public static final String OLD_FLUSH_INTERVAL = "njams.client.sdk.flush_interval";
 
     /**
      * This property's default is 1 sender thread as core thread
@@ -149,11 +163,6 @@ public class NjamsSettings {
      * that can send project and log messages to the server.
      */
     public static final String PROPERTY_MIN_SENDER_THREADS = "njams.sdk.minsenderthreads";
-    /**
-     * @deprecated Just for downward compatibility.
-     */
-    @Deprecated(since = "5.0.0", forRemoval = true)
-    public static final String OLD_MIN_SENDER_THREADS = "njams.client.sdk.minsenderthreads";
 
     /**
      * This property's default is 8 sender threads as maximum threads that can be used.
@@ -162,49 +171,29 @@ public class NjamsSettings {
      * (look below njams.client.sdk.senderthreadidletime), the thread will be removed.
      */
     public static final String PROPERTY_MAX_SENDER_THREADS = "njams.sdk.maxsenderthreads";
-    /**
-     * @deprecated Just for downward compatibility.
-     */
-    @Deprecated(since = "5.0.0", forRemoval = true)
-    public static final String OLD_MAX_SENDER_THREADS = "njams.client.sdk.maxsenderthreads";
 
     /**
      * This property's default is 8 messages that can be hold in the message Queue before the
      * messages will be discarded or client will stop processing until the queue has space again.
      */
     public static final String PROPERTY_MAX_QUEUE_LENGTH = "njams.sdk.maxqueuelength";
-    /**
-     * @deprecated Just for downward compatibility.
-     */
-    @Deprecated(since = "5.0.0", forRemoval = true)
-    public static final String OLD_MAX_QUEUE_LENGTH = "njams.client.sdk.maxqueuelength";
 
     /**
      * This property's default is 10000 (ms) that means that idle sender threads that haven't send any
      * message in the last 10 seconds and are not core threads will be removed.
      */
     public static final String PROPERTY_SENDER_THREAD_IDLE_TIME = "njams.sdk.senderthreadidletime";
-    /**
-     * @deprecated Just for downward compatibility.
-     */
-    @Deprecated(since = "5.0.0", forRemoval = true)
-    public static final String OLD_SENDER_THREAD_IDLE_TIME = "njams.client.sdk.senderthreadidletime";
 
     /**
      * This property decides what to do with a logmessage that couldn't be delivered (because of connection loss, full queue, etc.)
      * Possible values are:
      * <ul>
-     * <li>none (Default)
+     * <li>none
      * <li>onconnectionloss
-     * <li>discard
+     * <li>discard (Default since 6.0.0; was none in earlier versions)
      * </ul>
      */
     public static final String PROPERTY_DISCARD_POLICY = "njams.sdk.discardpolicy";
-    /**
-     * @deprecated Just for downward compatibility.
-     */
-    @Deprecated(since = "5.0.0", forRemoval = true)
-    public static final String OLD_DISCARD_POLICY = "njams.client.sdk.discardpolicy";
 
     /**
      * If set to <code>true</code> communications (senders and receivers) will be shared across multiple {@link Njams}
@@ -212,11 +201,6 @@ public class NjamsSettings {
      * {@link Njams} instance uses a dedicated instance of sender and receiver pools.
      */
     public static final String PROPERTY_SHARED_COMMUNICATIONS = "njams.sdk.communication.shared";
-    /**
-     * @deprecated Just for downward compatibility.
-     */
-    @Deprecated(since = "5.0.0", forRemoval = true)
-    public static final String OLD_SHARED_COMMUNICATIONS = "njams.client.sdk.sharedcommunications";
 
     /**
      * If set to <code>true</code> secure XML processing feature will NOT be initialized:
@@ -226,25 +210,6 @@ public class NjamsSettings {
      * This can be helpful for an environment containing an old XML lib, which does not support this.
      */
     public static final String PROPERTY_DISABLE_SECURE_PROCESSING = "njams.sdk.disable.secure.processing";
-    /**
-     * @deprecated Just for downward compatibility.
-     */
-    @Deprecated(since = "5.0.0", forRemoval = true)
-    public static final String OLD_DISABLE_SECURE_PROCESSING = "njams.client.sdk.disable.secure.processing";
-
-    /**
-     * If set to <code>true</code> collecting job start-data is disabled. Please note that this also disables replay
-     * functionality.
-     * @deprecated This gets in the way with the new possibility for configuring recording in nJAMS server 5.0.
-     * Use {@link #PROPERTY_BOOSTRAP_RECORDING} as default setting and configure via nJAMS server.
-     */
-    @Deprecated(since = "5.0.0", forRemoval = true)
-    public static final String PROPERTY_DISABLE_STARTDATA = "njams.sdk.disable.startdata";
-    /**
-     * @deprecated Just for downward compatibility.
-     */
-    @Deprecated(since = "5.0.0", forRemoval = true)
-    public static final String OLD_DISABLE_STARTDATA = "njams.client.sdk.disable.startdata";
 
     /**
      * Since 5.0.0.
@@ -272,6 +237,18 @@ public class NjamsSettings {
     public static final String PROPERTY_PAYLOAD_LIMIT_SIZE = "njams.sdk.payload.limit.size";
 
     /**
+     * Since 6.0.0
+     * When set to <code>true</code>, the payload limit configured via {@value #PROPERTY_PAYLOAD_LIMIT_MODE} and
+     * {@value #PROPERTY_PAYLOAD_LIMIT_SIZE} is also applied to a job's start data. Start data that is truncated or
+     * discarded this way makes the job non-replayable (the <code>$njams_recorded</code> flag is cleared).<br>
+     * By default (<code>false</code>) start data is never limited, preserving replay.<br>
+     * Note: to actually bound memory while serializing large start data, a payload-size-honouring serializer (e.g.
+     * the JSON serializer) must be registered for the start-data type; the default <code>toString</code>-based
+     * serializer builds the full representation first, so this option then only bounds the transmitted/stored size.
+     */
+    public static final String PROPERTY_APPLY_PAYLOAD_LIMIT_TO_START_DATA = "njams.sdk.payload.limit.applyToStartData";
+
+    /**
      * Since 5.0.0
      * Defines the default log-mode that is used until the client's configuration contains a specific setting for that.
      */
@@ -282,14 +259,19 @@ public class NjamsSettings {
      */
     public static final String PROPERTY_LOG_LEVEL_DEFAULT = "njams.sdk.logLevel.default";
 
-    //     _____      _   _   _
-    //    / ____|    | | | | (_)
-    //   | (___   ___| |_| |_ _ _ __   __ _ ___
-    //    \___ \ / _ \ __| __| | '_ \ / _` / __|
-    //    ____) |  __/ |_| |_| | | | | (_| \__ \
-    //   |_____/ \___|\__|\__|_|_| |_|\__, |___/
-    //                                 __/ |
-    //                                |___/
+    /**
+     * Optional path to a directory where outbound messages are written as individual files for debug purposes.
+     * When set, each message submitted to the sender is written to a per-run subdirectory named after the
+     * start time of the current JVM run ({@code yyyyMMdd-HHmmss}). Filenames include a zero-padded sequence
+     * counter, the message type, and a message identifier.
+     * <p>
+     * <b>For development and debug use only.</b> When this property is not set, the feature is completely inactive
+     * with negligible overhead on the send path.
+     *
+     * @since 6.0.0
+     */
+    public static final String PROPERTY_DEBUG_MESSAGE_DIR = "njams.sdk.debug.messagedir";
+
     /**
      * Property key for the settings properties. Specifies which implementation will be loaded.
      * Possible values:
@@ -300,37 +282,50 @@ public class NjamsSettings {
      * <li>memory
      * <li>systemProperties
      * </ul>
+     *
+     * @deprecated The settings provider/factory layer is replaced by the {@link ClientSettings}
+     *     factory methods such as {@link ClientSettings#from(java.util.Map)} and
+     *     {@link ClientSettings#from(java.util.Properties)}; no provider needs to be selected.
      */
+    @Deprecated(since = "6.0.0", forRemoval = true)
     public static final String PROPERTY_SETTINGS_PROVIDER = "njams.sdk.settings.provider";
 
     /**
      * Specifies the path to the settings file for "file" settings provider.
+     *
+     * @deprecated Part of the deprecated settings provider layer. Load the file yourself and pass
+     *     the resulting properties to {@link ClientSettings#from(java.util.Properties)} instead.
      */
+    @Deprecated(since = "6.0.0", forRemoval = true)
     public static final String PROPERTY_FILE_SETTINGS_FILE = "njams.sdk.settings.file";
 
     /**
      * Property key for the propertiesFile provider, specifying the path to the properties file to be used.
+     *
+     * @deprecated Part of the deprecated settings provider layer. Load the file yourself and pass
+     *     the resulting properties to {@link ClientSettings#from(java.util.Properties)} instead.
      */
+    @Deprecated(since = "6.0.0", forRemoval = true)
     public static final String PROPERTY_PROPERTIES_FILE_SETTINGS_FILE = "njams.sdk.settings.properties.file";
     /**
      * Default property key for loading parent (default) configuration file for the propertiesFile provider.
      * See {@link #PROPERTY_PROPERTIES_FILE_SETTINGS_PARENT_KEY} for using an alternative key.
+     *
+     * @deprecated Part of the deprecated settings provider layer. Load the file yourself and pass
+     *     the resulting properties to {@link ClientSettings#from(java.util.Properties)} instead.
      */
+    @Deprecated(since = "6.0.0", forRemoval = true)
     public static final String PROPERTY_PROPERTIES_FILE_SETTINGS_PARENT_FILE = "njams.sdk.settings.properties.parent";
     /**
      * Allows to override the default parent file key for the propertiesFile provider.
      * ({@value #PROPERTY_PROPERTIES_FILE_SETTINGS_PARENT_FILE}).
+     *
+     * @deprecated Part of the deprecated settings provider layer. Load the file yourself and pass
+     *     the resulting properties to {@link ClientSettings#from(java.util.Properties)} instead.
      */
+    @Deprecated(since = "6.0.0", forRemoval = true)
     public static final String PROPERTY_PROPERTIES_FILE_SETTINGS_PARENT_KEY = "njams.sdk.settings.properties.parentKey";
 
-    //
-    //       /\
-    //      /  \   _ __ __ _  ___  ___
-    //     / /\ \ | '__/ _` |/ _ \/ __|
-    //    / ____ \| | | (_| | (_) \__ \
-    //   /_/    \_\_|  \__, |\___/|___/
-    //                  __/ |
-    //                 |___/
     /**
      * Name of the property flag to enable or disable collecting Argos Metrics.
      */
@@ -346,13 +341,6 @@ public class NjamsSettings {
      */
     public static final String PROPERTY_ARGOS_SUBAGENT_HOST = "njams.sdk.subagent.host";
 
-    //    _    _ _______ _______ _____
-    //   | |  | |__   __|__   __|  __ \
-    //   | |__| |  | |     | |  | |__) |
-    //   |  __  |  | |     | |  |  ___/
-    //   | |  | |  | |     | |  | |
-    //   |_|  |_|  |_|     |_|  |_|
-
     /**
      * The URL, where the nJAMS Server is running and reachable
      * (eg. <code>http://localhost:8080/njams/</code>)
@@ -363,28 +351,11 @@ public class NjamsSettings {
      * This is the http path suffix of the nJAMS dataprovider you want to send your events to.
      */
     public static final String PROPERTY_HTTP_DATAPROVIDER_SUFFIX = "njams.sdk.communication.http.dataprovider.suffix";
-    /**
-     * @deprecated Replaced by {@link #PROPERTY_HTTP_DATAPROVIDER_SUFFIX}
-     */
-    @Deprecated(since = "5.0.0", forRemoval = true)
-    public static final String PROPERTY_HTTP_DATAPROVIDER_PREFIX = "njams.sdk.communication.http.dataprovider.prefix";
 
     /**
      * This is the full path to your certificate file to use for SSL
      */
     public static final String PROPERTY_HTTP_SSL_CERTIFICATE_FILE = "njams.sdk.communication.http.ssl.certificate.file";
-    /**
-     * The http sender uses a connection test for testing whether or not the expected http dataprovider
-     * is available. This test is supported since nJAMS 5.3.4. For older versions the test is tried once,
-     * and, if fails, it switches to a less reliable legacy fallback. However, the failing first attempt
-     * leads to an exception in nJAMS server logs which can be prevented by setting this property
-     * to <code>legacy</code><br>
-     * See SER-337 and {@link HttpSender}<code>.testConnection()</code>.
-     * @deprecated To be removed in future releases.
-     */
-    @Deprecated(since = "5.0.0", forRemoval = true)
-    public static final String PROPERTY_HTTP_CONNECTION_TEST = "njams.sdk.communication.http.connection.test";
-
     /**
      * nJAMS user if nJAMS server is required to use authentication for the ingest-service
      */
@@ -452,13 +423,6 @@ public class NjamsSettings {
     public static final String PROPERTY_HTTP_COMPRESSION_ENABLED =
         "njams.sdk.communication.http.compression.enabled";
 
-    //    _  __          ______ _  __
-    //   | |/ /    /\   |  ____| |/ /    /\
-    //   | ' /    /  \  | |__  | ' /    /  \
-    //   |  <    / /\ \ |  __| |  <    / /\ \
-    //   | . \  / ____ \| |    | . \  / ____ \
-    //   |_|\_\/_/    \_\_|    |_|\_\/_/    \_\
-
     /**
      * This is just the prefix for all Kafka Properties
      */
@@ -517,13 +481,6 @@ public class NjamsSettings {
      */
     public static final String PROPERTY_KAFKA_ADMIN_PREFIX = "njams.sdk.communication.kafka.admin.";
 
-    //         _ __  __  _____
-    //        | |  \/  |/ ____|
-    //        | | \  / | (___
-    //    _   | | |\/| |\___ \
-    //   | |__| | |  | |____) |
-    //    \____/|_|  |_|_____/
-
     /**
      * Prefix for the jms communication properties
      */
@@ -546,7 +503,7 @@ public class NjamsSettings {
      * {@link JmsFactory} implementation which defaults to {@link JndiJmsFactory}
      * if no match was found. In the second step, the {@link JndiJmsFactory} uses the value
      * for a JNDI lookup to obtain a {@link ConnectionFactory}.
-     * @see JmsFactory#find(java.util.Properties)
+     * @see JmsFactory#find(ClientSettings)
      * @see #PROPERTY_JMS_JMSFACTORY
      */
     public static final String PROPERTY_JMS_CONNECTION_FACTORY = "njams.sdk.communication.jms.connectionFactory";
@@ -574,6 +531,17 @@ public class NjamsSettings {
      * This is the prefix of the event, command and error queue, and the commands topic.
      */
     public static final String PROPERTY_JMS_DESTINATION = "njams.sdk.communication.jms.destination";
+
+    /**
+     * Equally valid alternative key for {@value #PROPERTY_JMS_DESTINATION}. {@value #PROPERTY_JMS_DESTINATION}
+     * is also the prefix of {@value #PROPERTY_JMS_COMMANDS_DESTINATION}, so it cannot be expressed in a
+     * hierarchical configuration format such as YAML, where a key can be either a scalar value or a parent of
+     * nested keys, but never both. This key provides a collision-free alternative for such sources; either key
+     * can be used interchangeably, and neither is deprecated.
+     *
+     * @since 6.0.0
+     */
+    public static final String PROPERTY_JMS_DESTINATION_PREFIX = "njams.sdk.communication.jms.destination.prefix";
 
     /**
      * This is the the commands topic to use, if its name does not match the common convention using the
@@ -641,14 +609,6 @@ public class NjamsSettings {
      */
     public static final String PROPERTY_JMS_TRUSTSTORETYPE = SSLPREFIX + "trustStoreType";
 
-    //    _____        _                            _    _
-    //   |  __ \      | |                          | |  (_)
-    //   | |  | | __ _| |_ __ _ _ __ ___   __ _ ___| | ___ _ __   __ _
-    //   | |  | |/ _` | __/ _` | '_ ` _ \ / _` / __| |/ / | '_ \ / _` |
-    //   | |__| | (_| | || (_| | | | | | | (_| \__ \   <| | | | | (_| |
-    //   |_____/ \__,_|\__\__,_|_| |_| |_|\__,_|___/_|\_\_|_| |_|\__, |
-    //                                                            __/ |
-    //                                                           |___/
     /**
      * When this setting is true (default) nJAMS enables dataMasking.
      * When false, DataMasking is disabled for the regexes defined in the properties AND in the config.json.
@@ -674,5 +634,52 @@ public class NjamsSettings {
      * </pre>
      */
     public static final String PROPERTY_DATA_MASKING_REGEX_PREFIX = "njams.sdk.datamasking.regex.";
+
+    /**
+     * Prefix for defining process-exclusion regular expressions. Append an arbitrary name to the
+     * prefix and set a Java regular expression as the value; multiple patterns may be defined using
+     * different names:
+     * <ul>
+     *     <li>njams.sdk.process.exclude.regex.NAME_FOR_REGEX_1=THE_REGEX_1
+     *     <li>njams.sdk.process.exclude.regex.NAME_FOR_REGEX_2=THE_REGEX_2
+     * </ul>
+     * <p>
+     * A process is excluded from processing when its path matches any of these patterns. Matching is
+     * a full match (the whole path must match) and is case-sensitive; prefix the expression with
+     * {@code (?i)} for case-insensitive matching. The path is matched in its canonical form, e.g.
+     * {@code >MyApp>MyProcess>}.
+     * <p>
+     * These patterns are applied <em>in addition</em> to the process filters configured via the
+     * nJAMS server: a process is excluded if it is excluded by either mechanism. An explicit
+     * <em>include</em> filter for a process takes precedence and re-includes it. Invalid expressions
+     * are ignored (logged as a warning).
+     * <p>
+     * Example:
+     * <pre>
+     * "njams.sdk.process.exclude.regex.internal = &gt;MyApp&gt;internal&gt;.*"
+     * excludes every process whose path starts with "&gt;MyApp&gt;internal&gt;".
+     * </pre>
+     */
+    public static final String PROPERTY_PROCESS_EXCLUDE_REGEX_PREFIX = "njams.sdk.process.exclude.regex.";
+
+    /**
+     * Server version compatibility switch. When set to a server version string (e.g., {@code "6.1"}),
+     * the SDK restores behavioral compatibility with that server version and earlier.
+     * Leave unset (or blank) to use current SDK behavior.
+     *
+     * <p>Effects when set to {@code "6.1"}:
+     * <ul>
+     *   <li>Transitions created without an explicit name carry the transition ID as their name,
+     *       matching the behavior prior to the SDK 6.0 fix for SDK-427. This is required when
+     *       sending process models to nJAMS server versions that do not yet support nameless transitions.</li>
+     * </ul>
+     *
+     * <p>Remove this setting once the deployed nJAMS server supports all current SDK behaviors.
+     *
+     * @deprecated Transitional bridge only. Will be removed from the SDK in a future release
+     *             once support for older server versions is dropped.
+     */
+    @Deprecated
+    public static final String PROPERTY_SERVER_COMPATIBILITY = "njams.sdk.server.compatibility";
 
 }

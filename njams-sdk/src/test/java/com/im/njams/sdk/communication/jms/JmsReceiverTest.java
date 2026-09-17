@@ -31,6 +31,8 @@ import static org.mockito.Mockito.when;
 import java.util.Properties;
 
 import javax.jms.JMSException;
+
+import com.im.njams.sdk.settings.ClientSettings;
 import javax.jms.Message;
 import javax.jms.TextMessage;
 
@@ -55,17 +57,14 @@ import com.im.njams.sdk.communication.ConnectionStatus;
  */
 public class JmsReceiverTest {
 
-    private static final Properties FILLEDPROPS = new Properties();
-    private static final Properties EMPTYPROPS = new Properties();
+    private static ClientSettings FILLEDPROPS;
+    private static final ClientSettings EMPTYPROPS = ClientSettings.from(new Properties());
 
     private JmsReceiverMock impl;
 
     @BeforeClass
     public static void initReceiver() {
-        JmsReceiverTest.fillProps(FILLEDPROPS);
-    }
-
-    private static void fillProps(Properties props) {
+        Properties props = new Properties();
         props.put(NjamsSettings.PROPERTY_COMMUNICATION, "JMS");
         props.put(NjamsSettings.PROPERTY_JMS_INITIAL_CONTEXT_FACTORY,
             "com.tibco.tibjms.naming.TibjmsInitialContextFactory");
@@ -76,6 +75,7 @@ public class JmsReceiverTest {
         props.put(NjamsSettings.PROPERTY_JMS_USERNAME, "njams");
         props.put(NjamsSettings.PROPERTY_JMS_PASSWORD, "njams");
         props.put(NjamsSettings.PROPERTY_JMS_DESTINATION, "njams4.sdk.test");
+        FILLEDPROPS = ClientSettings.from(props);
     }
 
     @Before
@@ -166,8 +166,9 @@ public class JmsReceiverTest {
     @Test
     public void testInitWithCustomProps() {
         JmsReceiverMock.testBeforeInit(impl);
-        Properties props = new Properties();
-        props.put(NjamsSettings.PROPERTY_JMS_COMMANDS_DESTINATION, "njams4.sdk.test.custom.commands");
+        Properties p = new Properties();
+        p.put(NjamsSettings.PROPERTY_JMS_COMMANDS_DESTINATION, "njams4.sdk.test.custom.commands");
+        ClientSettings props = ClientSettings.from(p);
         impl.init(props);
         //Initialized
         JmsReceiverMock.testAfterInit(impl, props);
@@ -180,8 +181,9 @@ public class JmsReceiverTest {
     @Test
     public void testMultipleInitWithSameProps() {
         JmsReceiverMock.testBeforeInit(impl);
-        Properties props = new Properties();
-        props.put(NjamsSettings.PROPERTY_JMS_COMMANDS_DESTINATION, "njams4.sdk.test.custom.commands");
+        Properties p = new Properties();
+        p.put(NjamsSettings.PROPERTY_JMS_COMMANDS_DESTINATION, "njams4.sdk.test.custom.commands");
+        ClientSettings props = ClientSettings.from(p);
         //first initialize
         impl.init(props);
         JmsReceiverMock.testAfterInit(impl, props);
@@ -196,12 +198,39 @@ public class JmsReceiverTest {
     @Test
     public void testDestinationAndCommandsSet() {
         JmsReceiverMock.testBeforeInit(impl);
-        Properties props = new Properties();
-        props.put(NjamsSettings.PROPERTY_JMS_DESTINATION, "njams4.overwrite");
-        props.put(NjamsSettings.PROPERTY_JMS_COMMANDS_DESTINATION, "njams4.overwritten");
+        Properties p = new Properties();
+        p.put(NjamsSettings.PROPERTY_JMS_DESTINATION, "njams4.overwrite");
+        p.put(NjamsSettings.PROPERTY_JMS_COMMANDS_DESTINATION, "njams4.overwritten");
         //first initialize
-        impl.init(props);
+        impl.init(ClientSettings.from(p));
         assertEquals("njams4.overwritten", impl.getTopicName());
+    }
+
+    /**
+     * This method tests if {@value NjamsSettings#PROPERTY_JMS_DESTINATION_PREFIX} is accepted as an
+     * equally valid alternative to {@value NjamsSettings#PROPERTY_JMS_DESTINATION}.
+     */
+    @Test
+    public void testDestinationPrefixAlternativeKey() {
+        JmsReceiverMock.testBeforeInit(impl);
+        Properties p = new Properties();
+        p.put(NjamsSettings.PROPERTY_JMS_DESTINATION_PREFIX, "njams4.alt");
+        impl.init(ClientSettings.from(p));
+        assertEquals("njams4.alt.commands", impl.getTopicName());
+    }
+
+    /**
+     * This method tests that {@value NjamsSettings#PROPERTY_JMS_DESTINATION} takes precedence over its
+     * alternative {@value NjamsSettings#PROPERTY_JMS_DESTINATION_PREFIX} when both are set.
+     */
+    @Test
+    public void testDestinationKeyTakesPrecedenceOverAlternative() {
+        JmsReceiverMock.testBeforeInit(impl);
+        Properties p = new Properties();
+        p.put(NjamsSettings.PROPERTY_JMS_DESTINATION, "njams4.primary");
+        p.put(NjamsSettings.PROPERTY_JMS_DESTINATION_PREFIX, "njams4.alt");
+        impl.init(ClientSettings.from(p));
+        assertEquals("njams4.primary.commands", impl.getTopicName());
     }
 
     //connect tests
@@ -227,15 +256,16 @@ public class JmsReceiverTest {
      */
     @Test(expected = NjamsSdkRuntimeException.class)
     public void testConnectWithPropertiesWithRealDestinationButWithoutUsername() {
-        Properties props = new Properties();
-        props.put(NjamsSettings.PROPERTY_COMMUNICATION, "JMS");
-        props.put(NjamsSettings.PROPERTY_JMS_INITIAL_CONTEXT_FACTORY,
+        Properties p = new Properties();
+        p.put(NjamsSettings.PROPERTY_COMMUNICATION, "JMS");
+        p.put(NjamsSettings.PROPERTY_JMS_INITIAL_CONTEXT_FACTORY,
             "com.tibco.tibjms.naming.TibjmsInitialContextFactory");
-        props.put(NjamsSettings.PROPERTY_JMS_SECURITY_PRINCIPAL, "njams");
-        props.put(NjamsSettings.PROPERTY_JMS_SECURITY_CREDENTIALS, "njams");
-        props.put(NjamsSettings.PROPERTY_JMS_PROVIDER_URL, "tibjmsnaming://blablub:7222");
-        props.put(NjamsSettings.PROPERTY_JMS_CONNECTION_FACTORY, "NoopJmsFactory");
-        props.put(NjamsSettings.PROPERTY_JMS_DESTINATION, "njams4.dev.kai");
+        p.put(NjamsSettings.PROPERTY_JMS_SECURITY_PRINCIPAL, "njams");
+        p.put(NjamsSettings.PROPERTY_JMS_SECURITY_CREDENTIALS, "njams");
+        p.put(NjamsSettings.PROPERTY_JMS_PROVIDER_URL, "tibjmsnaming://blablub:7222");
+        p.put(NjamsSettings.PROPERTY_JMS_CONNECTION_FACTORY, "NoopJmsFactory");
+        p.put(NjamsSettings.PROPERTY_JMS_DESTINATION, "njams4.dev.kai");
+        ClientSettings props = ClientSettings.from(p);
 
         JmsReceiverMock.testBeforeInit(impl);
         impl.init(props);

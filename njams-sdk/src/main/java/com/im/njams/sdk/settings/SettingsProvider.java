@@ -29,7 +29,14 @@ import java.util.Properties;
  * This interface must be implemented for creating new SettingsProvider
  *
  * @author pnientiedt
+ * @deprecated Use {@link ClientSettings} instead. Construct settings directly via the factory
+ *     methods on {@link ClientSettings} ({@link ClientSettings#from(java.util.Map)},
+ *     {@link ClientSettings#from(java.util.Properties)},
+ *     {@link ClientSettings#fromSystemProperties(java.util.function.Predicate)}) or via
+ *     {@link ReadOnlyClientSettings#fromEnvironment(java.util.function.Predicate)} for a read-only
+ *     environment-backed view. The provider/factory layer is no longer needed.
  */
+@Deprecated
 public interface SettingsProvider {
 
     /**

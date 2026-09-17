@@ -23,14 +23,11 @@
  */
 package com.im.njams.sdk.logmessage;
 
-import static java.util.Collections.unmodifiableCollection;
-
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -41,6 +38,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.slf4j.Logger;
@@ -55,7 +53,7 @@ import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.common.DateTimeUtility;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
-import com.im.njams.sdk.common.Path;
+import com.im.njams.sdk.Path;
 import com.im.njams.sdk.configuration.ActivityConfiguration;
 import com.im.njams.sdk.configuration.Configuration;
 import com.im.njams.sdk.configuration.ProcessConfiguration;
@@ -64,7 +62,7 @@ import com.im.njams.sdk.model.ActivityModel;
 import com.im.njams.sdk.model.GroupModel;
 import com.im.njams.sdk.model.ProcessModel;
 import com.im.njams.sdk.model.SubProcessActivityModel;
-import com.im.njams.sdk.settings.Settings;
+import com.im.njams.sdk.settings.ClientSettings;
 import com.im.njams.sdk.utils.StringUtils;
 
 /**
@@ -99,6 +97,9 @@ public class JobImpl implements Job {
      */
     public static final int MAX_VALUE_LIMIT = 2000;
 
+    // Job attribute that marks a job as replayable; cleared to "false" when start data is dropped (SDK-420).
+    private static final String RECORDED_ATTRIBUTE = "$njams_recorded";
+
     private final ProcessModel processModel;
     private final Njams njams;
 
@@ -106,71 +107,54 @@ public class JobImpl implements Job {
 
     private final String logId;
     /*
-     * the latest status of the job, set by any event
+     * The latest status of the job, set by any event. Mutated under activitiesLock (see
+     * setStatusAndSeverity and end); volatile so that readers see updates without locking.
      */
-    private JobStatus lastStatus = JobStatus.CREATED;
+    private volatile JobStatus lastStatus = JobStatus.CREATED;
 
     /*
-     * maximum severity recorded
+     * Maximum severity recorded. Mutated under activitiesLock (the update is a read-modify-write
+     * that must be atomic); volatile so that readers see updates without locking.
      */
-    private JobStatus maxSeverity = JobStatus.SUCCESS;
+    private volatile JobStatus maxSeverity = JobStatus.SUCCESS;
 
-    // instanceId -> activity
-    private final Map<String, Activity> activities = Collections.synchronizedMap(new LinkedHashMap<>());
+    // guards the activity registry, the truncation state and the job status (lastStatus/maxSeverity)
+    final Object activitiesLock = new Object();
 
-    /*
-     * activity sequence counter
-     */
-    private final AtomicInteger sequenceCounter;
+    private final JobActivities activities = new JobActivities(this, activitiesLock);
 
     /*
      * job level attributes
      */
-    private final Map<String, String> attributes = new ConcurrentHashMap<>();
-    private final Map<String, String> flushedAttributes = new ConcurrentHashMap<>();
+    private final JobAttributes attributes = new JobAttributes(this);
 
-    /*
-     * Plugin data items
-     */
-    private final List<PluginDataItem> pluginDataItems;
+    private final JobFlusher flusher;
 
-    /*
-     * counts how many flushes have been made. Used in LogMessage as messageNo
-     */
-    private final AtomicInteger flushCounter;
-
-    private Activity startActivity;
-
+    // kept on JobImpl (not in JobActivities): frozen tests access this field directly
     boolean hasOrHadStartActivity;
 
-    private boolean deepTrace;
+    // volatile: read without locking by requireNotFinished/getStatus on any thread; written under
+    // activitiesLock in end() and discard(). A reader observing finished==true also observes the
+    // final lastStatus.
+    private volatile boolean finished = false;
 
-    private boolean finished = false;
+    // SDK-465: set under activitiesLock by discard(); read by the flusher to guarantee a discarded
+    // job is never sent, even if a timer flush captured the job reference before discard removed it
+    // from the registry. volatile so the flusher sees the update without holding a reference race.
+    private volatile boolean discarded = false;
 
-    private LogMode logMode = LogMode.COMPLETE;
-    private LogLevel logLevel = LogLevel.INFO;
-    private boolean exclude = false;
+    private final JobRuntimeConfig runtimeConfig;
 
-    private boolean instrumented = false;
-    private boolean traces;
+    private final JobTracing tracing = new JobTracing();
 
-    // internal properties, shall no go to project message
-    private final Map<String, Object> properties = new LinkedHashMap<>();
+    // SDK-462: a job carries a single start data; the first caller claims it, later ones are ignored.
+    // Lock-free because a job is the shared concurrency unit and start data may be set from any thread.
+    private final AtomicBoolean startDataClaimed = new AtomicBoolean(false);
 
-    //1000 for headers and co
-    private long estimatedSize = 1000L;
+    // internal properties, shall not go to any message
+    private final JobProperties properties = new JobProperties();
 
-    private boolean recording = true;
-
-    private String correlationLogId;
-
-    private String parentLogId;
-
-    private String externalLogId;
-
-    private String businessService;
-
-    private String businessObject;
+    private final JobMetadata metadata;
 
     private LocalDateTime startTime;
 
@@ -178,27 +162,10 @@ public class JobImpl implements Job {
 
     private LocalDateTime endTime;
 
-    private LocalDateTime lastFlush;
-
-    private LocalDateTime businessEnd;
-
-    private LocalDateTime businessStart;
-
-    private final Object errorLock = new Object();
-    private ActivityImpl errorActivity = null;
-    private ErrorEvent errorEvent = null;
-    private final boolean allErrors;
-    private final int truncateLimit;
-    private final boolean truncateOnSuccess;
-    private boolean isTruncatingActivities = false;
-    private boolean isTruncatingEvents = false;
-    // access to truncate fields is synchronized on activities!
-    // activity-instance-ID --> hasEvent(activity)
-    private final Map<String, Boolean> activityIds = new HashMap<>();
-    // IDs of activities that have been flushed but are not complete yet; for checking timer-flush
-    private Set<String> flushedActivities = ConcurrentHashMap.newKeySet();
-
-    private Entry<Boolean, Integer> payloadLimit = null;
+    private final JobErrorHandling errorHandling;
+    private final JobSettings jobSettings;
+    // access to truncation state is synchronized on the activities lock!
+    private final JobTruncation truncation;
 
     /**
      * Create a job with a givenModelId, a jobId and a logId
@@ -210,104 +177,25 @@ public class JobImpl implements Job {
     public JobImpl(ProcessModel processModel, String jobId, String logId) {
         this.jobId = jobId;
         this.logId = logId;
-        correlationLogId = logId;
+        metadata = new JobMetadata(this, logId);
         setStatusAndSeverity(JobStatus.CREATED);
         this.processModel = processModel;
         njams = processModel.getNjams();
-        sequenceCounter = new AtomicInteger();
-        flushCounter = new AtomicInteger();
-        lastFlush = DateTimeUtility.now();
-        pluginDataItems = new ArrayList<>();
-        initFromConfiguration(processModel);
+        // must be set before initFromConfiguration: addAttribute already applies payload limits
+        jobSettings = JobSettings.of(njams.getSettings());
+        errorHandling = new JobErrorHandling(this, jobSettings);
+        truncation = new JobTruncation(this, jobSettings);
+        runtimeConfig = new JobRuntimeConfig(processModel);
+        flusher = new JobFlusher(processModel, activities, attributes, metadata, tracing, runtimeConfig,
+                truncation, activitiesLock);
+        if (runtimeConfig.addRecordedAttribute) {
+            addAttribute(RECORDED_ATTRIBUTE, "true");
+        }
         //It is used as the default startTime, if no other startTime will be set.
         //If a startTime is set afterwards with setStartTime, startTimeExplicitlySet
         //will be set to true.
         startTime = DateTimeUtility.now();
         startTimeExplicitlySet = false;
-        allErrors = "true".equalsIgnoreCase(njams.getSettings().getProperty(NjamsSettings.PROPERTY_LOG_ALL_ERRORS));
-        truncateOnSuccess =
-                "true".equalsIgnoreCase(njams.getSettings().getProperty(NjamsSettings.PROPERTY_TRUNCATE_ON_SUCCESS));
-        truncateLimit = getTruncateLimit();
-        initPayloadLimit();
-    }
-
-    private void initPayloadLimit() {
-        final Settings settings = njams.getSettings();
-        // truncate, discard
-        final String mode = settings.getProperty(NjamsSettings.PROPERTY_PAYLOAD_LIMIT_MODE);
-        if (StringUtils.isBlank(mode)) {
-            return;
-        }
-        try {
-            final int limit = Integer.parseInt(settings.getProperty(NjamsSettings.PROPERTY_PAYLOAD_LIMIT_SIZE));
-            if (limit < 0) {
-                return;
-            }
-            if (limit == 0 || "discard".equalsIgnoreCase(mode)) {
-                payloadLimit = new AbstractMap.SimpleImmutableEntry<>(false, limit);
-            } else if ("truncate".equalsIgnoreCase(mode)) {
-                payloadLimit = new AbstractMap.SimpleImmutableEntry<>(true, limit);
-            }
-        } catch (NumberFormatException e) {
-            LOG.error("Failed to parse payload limit size: {}", e.toString());
-        }
-
-    }
-
-    private int getTruncateLimit() {
-        String s = null;
-        try {
-            s = njams.getSettings().getProperty(NjamsSettings.PROPERTY_TRUNCATE_LIMIT);
-            if (StringUtils.isBlank(s)) {
-                return Integer.MAX_VALUE;
-            }
-            final int i = Integer.parseInt(s);
-            return i > 0 ? i : Integer.MAX_VALUE;
-        } catch (Exception e) {
-            LOG.warn("Failed  to parse setting: {}={} - Truncating will be disabled.",
-                    NjamsSettings.PROPERTY_TRUNCATE_LIMIT, s);
-            return Integer.MAX_VALUE;
-        }
-    }
-
-    /**
-     * This method initializes the processConfiguration and the
-     * activityConfigurations.
-     */
-    private void initFromConfiguration(ProcessModel processModel) {
-        Configuration configuration = processModel.getNjams().getConfiguration();
-        if (configuration == null) {
-            LOG.error("Unable to set LogMode, LogLevel and Exclude for {}, configuration is null",
-                    processModel.getPath());
-            return;
-        }
-        logMode = configuration.getLogMode();
-        LOG.debug("Set LogMode for {} to {}", processModel.getPath(), logMode);
-
-        boolean disableStartData = "true"
-                .equalsIgnoreCase(getNjams().getSettings().getPropertyWithDeprecationWarning(
-                        NjamsSettings.PROPERTY_DISABLE_STARTDATA, NjamsSettings.OLD_DISABLE_STARTDATA));
-
-        recording = !disableStartData && configuration.isRecording();
-        LOG.debug(
-                "Set recording for {} to {} based on client settings {} and disable-start-data setting {}",
-                processModel.getPath(), recording, configuration.isRecording(), disableStartData);
-
-        ProcessConfiguration process = configuration.getProcess(processModel.getPath().toString());
-        if (process != null) {
-            logLevel = process.getLogLevel();
-            LOG.debug("Set LogLevel for {} to {}", processModel.getPath(), logLevel);
-            recording = !disableStartData && process.isRecording();
-            LOG.debug(
-                    "Set recording for {} to {} based on process settings {} and client setting {} and disable-start-data setting {}",
-                    processModel.getPath(), recording, process.isRecording(),
-                    configuration.isRecording(), disableStartData);
-        }
-        exclude = njams.isExcluded(processModel.getPath());
-        LOG.debug("Set Exclude for {} to {}", processModel.getPath(), exclude);
-        if (recording) {
-            addAttribute("$njams_recorded", "true");
-        }
     }
 
     /**
@@ -318,13 +206,7 @@ public class JobImpl implements Job {
      */
     @Override
     public ActivityBuilder createActivity(ActivityModel activityModel) {
-        if (activityModel instanceof GroupModel) {
-            return createGroup((GroupModel) activityModel);
-        }
-        if (activityModel instanceof SubProcessActivityModel) {
-            return createSubProcess((SubProcessActivityModel) activityModel);
-        }
-        return new ActivityBuilder(this, activityModel);
+        return activities.create(activityModel, this);
     }
 
     /**
@@ -335,7 +217,7 @@ public class JobImpl implements Job {
      */
     @Override
     public GroupBuilder createGroup(GroupModel groupModel) {
-        return new GroupBuilder(this, groupModel);
+        return activities.createGroup(groupModel, this);
     }
 
     /**
@@ -346,7 +228,7 @@ public class JobImpl implements Job {
      */
     @Override
     public SubProcessActivityBuilder createSubProcess(SubProcessActivityModel groupModel) {
-        return new SubProcessActivityBuilder(this, groupModel);
+        return activities.createSubProcess(groupModel, this);
     }
 
     /**
@@ -358,28 +240,7 @@ public class JobImpl implements Job {
      */
     @Override
     public void addActivity(final Activity activity) {
-        synchronized (activities) {
-            if (!hasStarted()) {
-                throw new NjamsSdkRuntimeException(
-                        "The method start() must be called before activities can be added to the job!");
-            }
-            activities.put(activity.getInstanceId(), activity);
-            if (activity.isStarter()) {
-                if (hasOrHadStartActivity) {
-                    throw new NjamsSdkRuntimeException("A job must not have more than one start activity "
-                            + getJobId());
-                }
-                startActivity = activity;
-                hasOrHadStartActivity = true;
-            }
-        }
-    }
-
-    private boolean hasEvent(final Activity activity) {
-        return activity.getEventStatus() != null || StringUtils.isNotBlank(activity.getEventCode())
-                || StringUtils.isNotBlank(activity.getEventMessage())
-                || StringUtils.isNotBlank(activity.getEventPayload())
-                || StringUtils.isNotBlank(activity.getStackTrace());
+        activities.add(activity, this, true);
     }
 
     /**
@@ -390,7 +251,7 @@ public class JobImpl implements Job {
      */
     @Override
     public Activity getActivityByInstanceId(String activityInstanceId) {
-        return activities.get(activityInstanceId);
+        return activities.getByInstanceId(activityInstanceId);
     }
 
     /**
@@ -401,17 +262,7 @@ public class JobImpl implements Job {
      */
     @Override
     public Activity getActivityByModelId(String activityModelId) {
-        synchronized (activities) {
-            List<String> reverseOrderedKeys = new ArrayList<>(activities.keySet());
-            ListIterator<String> iterator = reverseOrderedKeys.listIterator(reverseOrderedKeys.size());
-            while (iterator.hasPrevious()) {
-                Activity _activity = activities.get(iterator.previous());
-                if (_activity != null && _activity.getModelId().equals(activityModelId)) {
-                    return _activity;
-                }
-            }
-            return null;
-        }
+        return activities.getByModelId(activityModelId);
     }
 
     /**
@@ -422,18 +273,7 @@ public class JobImpl implements Job {
      */
     @Override
     public Activity getRunningActivityByModelId(String activityModelId) {
-        synchronized (activities) {
-            List<String> reverseOrderedKeys = new ArrayList<>(activities.keySet());
-            ListIterator<String> iterator = reverseOrderedKeys.listIterator(reverseOrderedKeys.size());
-            while (iterator.hasPrevious()) {
-                Activity _activity = activities.get(iterator.previous());
-                if (_activity.getActivityStatus() == ActivityStatus.RUNNING
-                        && _activity.getModelId().equals(activityModelId)) {
-                    return _activity;
-                }
-            }
-            return null;
-        }
+        return activities.getRunningByModelId(activityModelId);
     }
 
     /**
@@ -444,18 +284,7 @@ public class JobImpl implements Job {
      */
     @Override
     public Activity getCompletedActivityByModelId(String activityModelId) {
-        synchronized (activities) {
-            List<String> reverseOrderedKeys = new ArrayList<>(activities.keySet());
-            ListIterator<String> iterator = reverseOrderedKeys.listIterator(reverseOrderedKeys.size());
-            while (iterator.hasPrevious()) {
-                Activity _activity = activities.get(iterator.previous());
-                if (_activity.getActivityStatus().ordinal() > ActivityStatus.RUNNING.ordinal()
-                        && _activity.getModelId().equals(activityModelId)) {
-                    return _activity;
-                }
-            }
-            return null;
-        }
+        return activities.getCompletedByModelId(activityModelId);
     }
 
     /**
@@ -465,19 +294,15 @@ public class JobImpl implements Job {
      */
     @Override
     public Activity getStartActivity() {
-        return startActivity;
+        return activities.getStart();
     }
 
     /**
-     * Return all Activities
-     *
-     * @return all Activities
+     * {@inheritDoc}
      */
     @Override
     public Collection<Activity> getActivities() {
-        synchronized (activities) {
-            return unmodifiableCollection(activities.values());
-        }
+        return activities.getAll();
     }
 
     /**
@@ -486,7 +311,7 @@ public class JobImpl implements Job {
      * @return the next one
      */
     long getNextSequence() {
-        return sequenceCounter.incrementAndGet();
+        return activities.getNextSequence();
     }
 
     /**
@@ -494,177 +319,31 @@ public class JobImpl implements Job {
      *
      * @param sentBefore Send if the last flush was before this timestamp
      * @param flushSize  Send if message size is greater than this size
+     * @deprecated SDK-internal flush mechanics, not part of the public API; there is no
+     *             replacement — periodic flushing is handled transparently by the SDK because nJAMS
+     *             server, respectively Elasticsearch, is not very good at handling high-frequency
+     *             updates to the same job ({@code logId}). Do not call this method, and do not
+     *             attempt to replicate it by sending messages through a sender instance directly.
      */
+    @Deprecated(since = "6.0.0", forRemoval = true)
     public void timerFlush(LocalDateTime sentBefore, long flushSize) {
-        if (!hasStarted()) {
-            LOG.trace("Skip timer flush. Job {} is not started.", this);
-            return;
-        }
-        // only send updates automatically, if a change has been
-        // made to the job between individual send events.
-        LOG.trace("Job {}: lastPush: {}, age: {}, size: {}", this, getLastFlush(),
-                Duration.between(getLastFlush(), DateTimeUtility.now()), getEstimatedSize());
-        if ((getLastFlush().isBefore(sentBefore) || getEstimatedSize() > flushSize)
-                && (!attributes.isEmpty() || getEndTime() != null || hasUnsentActivity())) {
-            LOG.debug("Flush by timer: {}", this);
-            flush();
-        }
-    }
-
-    private boolean hasUnsentActivity() {
-        synchronized (activities) {
-            return activities.keySet().stream().anyMatch(i -> !flushedActivities.contains(i));
-        }
+        flusher.timerFlush(this, sentBefore, flushSize);
     }
 
     /**
      * This method is called by {@link #timerFlush(LocalDateTime, long)}
      * and when {@link #end(boolean)} is called. It flushes a logMessage to the
      * server if all the preconditions are fulfilled.
-     */
-    public void flush() {
-
-        synchronized (activities) {
-            boolean suppressed = mustBeSuppressed();
-            boolean started = hasStarted();
-            if (!suppressed) {
-                if (!started) {
-                    LOG.warn("The job with logId: {} will be flushed, but hasn't started yet.", logId);
-                }
-                flushCounter.incrementAndGet();
-                lastFlush = DateTimeUtility.now();
-                LogMessage logMessage = createLogMessage();
-                addToLogMessageAndCleanup(logMessage);
-                logMessage.setSentAt(lastFlush);
-                processModel.getNjams().getSender().send(logMessage, njams.getClientSessionId());
-                // clean up jobImpl
-                pluginDataItems.clear();
-                calculateEstimatedSize();
-            }
-        }
-    }
-
-    private boolean mustBeSuppressed() {
-        synchronized (activities) {
-            // Do not send if one of the conditions is true.
-            if (isLogModeNone() || isLogModeExclusiveAndNotInstrumented() || isExcludedProcess()
-                    || isLogLevelHigherAsJobStateAndHasNoTraces()) {
-                LOG.debug("Job not flushed: Engine Mode: {} // Job's log level: {}, "
-                        + "configured level: {} // is excluded: {} // has traces: {}", logMode, getStatus(), logLevel,
-                        exclude, traces);
-                //delete not running activities
-                removeNotRunningActivities();
-                calculateEstimatedSize();
-                LOG.debug("mustBeSuppressed: true");
-                return true;
-            }
-            LOG.debug("mustBeSuppressed: false");
-            return false;
-        }
-    }
-
-    private boolean isLogModeNone() {
-        if (logMode == LogMode.NONE) {
-            LOG.debug("isLogModeNone: true");
-            return true;
-        }
-        return false;
-    }
-
-    private boolean isLogModeExclusiveAndNotInstrumented() {
-        if (logMode == LogMode.EXCLUSIVE && !instrumented) {
-            LOG.debug("isLogModeExclusiveAndNotInstrumented: true");
-            return true;
-        }
-        return false;
-    }
-
-    private boolean isExcludedProcess() {
-        if (exclude) {
-            LOG.debug("isExcludedProcess: true");
-            return true;
-        }
-        return false;
-    }
-
-    private boolean isLogLevelHigherAsJobStateAndHasNoTraces() {
-        boolean b = hasStarted() && maxSeverity.getValue() < logLevel.value() && !traces;
-
-        if (LOG.isDebugEnabled()) {
-            LOG.debug("hasStarted[{}] && maxSeverity[{}] < logLevel[{}] && !traces[{}] == {}", hasStarted(),
-                    maxSeverity.getValue(), logLevel.value(), traces, b);
-        }
-        return b;
-    }
-
-    /**
-     * This method creates the LogMessage that will be send to the server and
-     * fills it with the attributes of the job.
      *
-     * @return the created and with the job's information filled logMessage
+     * @deprecated SDK-internal flush mechanics, not part of the public API; there is no
+     *             replacement — log messages are flushed transparently by the SDK because nJAMS
+     *             server, respectively Elasticsearch, is not very good at handling high-frequency
+     *             updates to the same job ({@code logId}). Do not call this method, and do not
+     *             attempt to replicate it by sending messages through a sender instance directly.
      */
-    private LogMessage createLogMessage() {
-        LOG.trace("Creating LogMessage for job with logId: {}", logId);
-        LogMessage logMessage = new LogMessage();
-        logMessage.setBusinessEnd(businessEnd);
-        logMessage.setBusinessStart(businessStart);
-        logMessage.setCategory(processModel.getNjams().getCategory());
-        logMessage.setCorrelationLogId(correlationLogId);
-        logMessage.setExternalLogId(externalLogId);
-        logMessage.setJobEnd(endTime);
-        logMessage.setJobId(jobId);
-        logMessage.setJobStart(startTime);
-        logMessage.setLogId(logId);
-        logMessage.setMachineName(processModel.getNjams().getMachine());
-        logMessage.setMaxSeverity(maxSeverity.getValue());
-        logMessage.setMessageNo(flushCounter.get());
-        logMessage.setObjectName(businessObject);
-        logMessage.setParentLogId(parentLogId);
-        logMessage.setPath(processModel.getPath().toString());
-        logMessage.setProcessName(processModel.getName());
-        logMessage.setStatus(getStatus().getValue());
-        logMessage.setServiceName(businessService);
-        logMessage.setClientVersion(njams.getClientVersion());
-        logMessage.setSdkVersion(njams.getSdkVersion());
-        logMessage.setRuntimeVersion(njams.getRuntimeVersion());
-
-        pluginDataItems.forEach(i -> logMessage.addPluginDataItem(i));
-        return logMessage;
-    }
-
-    private void addToLogMessageAndCleanup(LogMessage logMessage) {
-        synchronized (attributes) {
-            for (Entry<String, String> e : attributes.entrySet()) {
-                logMessage.addAtribute(e.getKey(), e.getValue());
-                flushedAttributes.put(e.getKey(), e.getValue());
-                attributes.remove(e.getKey());
-            }
-        }
-        synchronized (activities) {
-            // If this is the final message being sent, and truncate-on-success is selected and this job was
-            // successful, truncate all activities w/o events.
-            boolean finishedWithSuccess = logMessage.getJobEnd() != null && getStatus() == JobStatus.SUCCESS;
-
-            //add all to logMessage
-            for (Activity activity : activities.values()) {
-                if (shouldFlush(activity)) {
-                    if (checkTruncating(activity, finishedWithSuccess)) {
-                        logMessage.addActivity(activity);
-                    } else {
-                        logMessage.setTruncated(true);
-                    }
-                }
-            }
-            //remove finished
-            removeNotRunningActivities();
-        }
-    }
-
-    private boolean shouldFlush(Activity activity) {
-        if (!flushedActivities.contains(activity.getInstanceId())) {
-            return true;
-        }
-        return activity.getActivityStatus() != ActivityStatus.RUNNING;
+    @Deprecated(since = "6.0.0", forRemoval = true)
+    public void flush() {
+        flusher.flush(this);
     }
 
     /**
@@ -675,49 +354,9 @@ public class JobImpl implements Job {
      * @return <code>true</code> if the given activity shall be added, <code>false</code> if not.
      */
     boolean checkTruncating(final Activity activity, boolean finishedSuccess) {
-        if (!truncateOnSuccess && truncateLimit >= Integer.MAX_VALUE) {
-            // truncating is disabled
-            return true;
-        }
-        if (isTruncatingEvents) {
-            // already truncating completely
-            return false;
-        }
-        // collect IDs
-        final boolean hasEvent = hasEvent(activity);
-        if (!isTruncatingActivities) {
-            activityIds.put(activity.getInstanceId(), hasEvent);
-            // check limit reached
-            if (truncateOnSuccess && finishedSuccess || activityIds.size() > truncateLimit) {
-                isTruncatingActivities = true;
-                activityIds.values().removeIf(b -> !b);
-                LOG.debug("Start truncating activities for {}", this);
-            }
-        }
-        if (isTruncatingActivities && hasEvent && !isTruncatingEvents) {
-            activityIds.put(activity.getInstanceId(), true);
-            // check limit reached again
-            if (activityIds.size() > truncateLimit) {
-                isTruncatingEvents = true;
-                activityIds.clear();
-                LOG.debug("Start truncating events for {}", this);
-            }
-        }
-        // result for the given activity
-        if (isTruncatingEvents) {
-            // full stop
-            return false;
-        }
-        // no truncating, or truncating activities but not events
-        return !isTruncatingActivities || hasEvent;
+        return truncation.checkTruncating(activity, finishedSuccess);
     }
 
-    private void calculateEstimatedSize() {
-        synchronized (activities) {
-            estimatedSize =
-                    1000 + activities.values().stream().mapToLong(a -> ((ActivityImpl) a).getEstimatedSize()).sum();
-        }
-    }
 
     /**
      * Starts the job, i.e., sets status to RUNNING, job start date to now if
@@ -742,53 +381,64 @@ public class JobImpl implements Job {
         if (finished) {
             throw new NjamsSdkRuntimeException("Job already finished");
         }
-        synchronized (activities) {
+        synchronized (activitiesLock) {
+            // must be captured before the final status is set below, which makes hasStarted() true
+            final boolean neverStarted = !hasStarted();
             if (!normalCompletion) {
                 // unhandled error
                 lastStatus = JobStatus.ERROR;
-                commitActivityError();
+                errorHandling.commitActivityError();
             } else if (lastStatus == null || lastStatus.getValue() <= JobStatus.RUNNING.getValue()) {
                 // if we never had a status update, we are setting SUCCESS
                 lastStatus = JobStatus.SUCCESS;
             }
             //end all not ended activities
-            activities.values().stream()
+            activities.internalValues().stream()
                     .filter(a -> a.getActivityStatus() == null || a.getActivityStatus() == ActivityStatus.RUNNING)
                     .forEach(Activity::end);
             if (getEndTime() == null) {
                 setEndTime(DateTimeUtility.now());
             }
-            if (!hasStarted()) {
-                LOG.warn("Job has been finished before it started.");
-            }
             finished = true;
             processModel.getNjams().removeJob(getJobId());
-            flush();
+            if (neverStarted) {
+                LOG.error("Job {} has been finished before it was started"
+                        + " - it will NOT be sent to the nJAMS server.", getLogId());
+            } else {
+                flush();
+            }
         }
     }
 
     /**
-     * If the job has failed, there was an unhandled error that should have been recorded by
-     * {@link #setActivityErrorEvent(Activity, ErrorEvent)}. If so, the error is now committed to an according error
-     * event on this activity.
+     * {@inheritDoc}
      */
-    private void commitActivityError() {
-        if (allErrors) {
-            // all errors have already been added to their activities.
+    @Override
+    public void discard() {
+        if (finished) {
+            // idempotent: already ended or already discarded
             return;
         }
-        synchronized (errorLock) {
-            if (errorActivity != null) {
-                LOG.debug("Committing error event to {}", errorActivity);
-                updateActivityErrorEvent(errorActivity, errorEvent);
-                if (getActivityByInstanceId(errorActivity.getInstanceId()) == null) {
-                    // the activity is already sent, i.e., re-send
-                    addActivity(errorActivity);
-                }
-                errorActivity = null;
-                errorEvent = null;
+        synchronized (activitiesLock) {
+            if (finished) {
+                return;
             }
+            LOG.warn("Discarding job {} without sending it to the nJAMS server;"
+                    + " any data recorded for this job is dropped.", getLogId());
+            discarded = true;
+            finished = true;
+            processModel.getNjams().removeJob(getJobId());
         }
+    }
+
+    /**
+     * Indicates whether this job has been discarded (see {@link #discard()}). Read by the flusher
+     * to ensure a discarded job is never sent.
+     *
+     * @return <code>true</code> if and only if this job was discarded
+     */
+    boolean isDiscarded() {
+        return discarded;
     }
 
     /**
@@ -799,42 +449,12 @@ public class JobImpl implements Job {
      * @param errorActivity The activity instance on that the given error occurred.
      * @param errorEvent    Information about the error that occurred. This information is used for
      *                      generating an according event if required.
+     * @deprecated SDK-internal error handling, not part of the public API; there is no
+     *             replacement — error events are recorded by the SDK's activity processing.
      */
+    @Deprecated(since = "6.0.0", forRemoval = true)
     public void setActivityErrorEvent(Activity errorActivity, ErrorEvent errorEvent) {
-        if (errorActivity != null && errorEvent != null) {
-            if (allErrors) {
-                // add all errors directly to the activity
-                LOG.debug("Adding error event to {}", errorActivity);
-                updateActivityErrorEvent((ActivityImpl) errorActivity, errorEvent);
-            } else {
-                // store as last error until job-end; then we know whether to add or ignore it
-                LOG.debug("Storing error event for {}", errorActivity);
-                synchronized (errorLock) {
-                    this.errorActivity = (ActivityImpl) errorActivity;
-                    this.errorEvent = errorEvent;
-                }
-            }
-        }
-    }
-
-    /**
-     * Update the event information on the given activity, based on the given error information.
-     *
-     * @param activity
-     * @param errorEvent
-     */
-    private void updateActivityErrorEvent(ActivityImpl activity, ErrorEvent errorEvent) {
-        EventStatus status = errorEvent.getStatus() == null ? EventStatus.ERROR : errorEvent.getStatus();
-        activity.setActivityStatus(status.mapToActivityStatus());
-        activity.setEventStatus(status);
-        if (activity.getExecution() == null) {
-            activity.setExecution(
-                    errorEvent.getEventTime() == null ? DateTimeUtility.now() : errorEvent.getEventTime());
-        }
-        activity.setEventCode(errorEvent.getCode());
-        activity.setEventMessage(errorEvent.getMessage());
-        activity.setEventPayload(errorEvent.getPayload());
-        activity.setStackTrace(errorEvent.getStacktrace());
+        errorHandling.setActivityErrorEvent(errorActivity, errorEvent);
     }
 
     /**
@@ -882,9 +502,13 @@ public class JobImpl implements Job {
     }
 
     private void setStatusAndSeverity(JobStatus status) {
-        lastStatus = status;
-        if (maxSeverity == null || maxSeverity.getValue() < lastStatus.getValue()) {
-            maxSeverity = status;
+        // Atomic read-modify-write: parallel threads recording into the same job may escalate the
+        // status concurrently; without the lock an escalation (e.g. ERROR) can be lost.
+        synchronized (activitiesLock) {
+            lastStatus = status;
+            if (maxSeverity == null || maxSeverity.getValue() < status.getValue()) {
+                maxSeverity = status;
+            }
         }
     }
 
@@ -907,7 +531,8 @@ public class JobImpl implements Job {
      */
     @Override
     public void setCorrelationLogId(final String correlationLogId) {
-        this.correlationLogId = limitLength("correlationLogId", correlationLogId, MAX_VALUE_LIMIT);
+        warnIfFinished("setCorrelationLogId", "metadata().setCorrelationLogId(...)");
+        metadata.setCorrelationLogIdInternal(correlationLogId);
     }
 
     /**
@@ -917,7 +542,7 @@ public class JobImpl implements Job {
      */
     @Override
     public String getCorrelationLogId() {
-        return correlationLogId;
+        return metadata.getCorrelationLogId();
     }
 
     /**
@@ -927,7 +552,8 @@ public class JobImpl implements Job {
      */
     @Override
     public void setParentLogId(String parentLogId) {
-        this.parentLogId = limitLength("parentLogId", parentLogId, MAX_VALUE_LIMIT);
+        warnIfFinished("setParentLogId", "metadata().setParentLogId(...)");
+        metadata.setParentLogIdInternal(parentLogId);
     }
 
     /**
@@ -937,7 +563,7 @@ public class JobImpl implements Job {
      */
     @Override
     public String getParentLogId() {
-        return parentLogId;
+        return metadata.getParentLogId();
     }
 
     /**
@@ -947,7 +573,8 @@ public class JobImpl implements Job {
      */
     @Override
     public void setExternalLogId(String externalLogId) {
-        this.externalLogId = limitLength("externalLogId", externalLogId, MAX_VALUE_LIMIT);
+        warnIfFinished("setExternalLogId", "metadata().setExternalLogId(...)");
+        metadata.setExternalLogIdInternal(externalLogId);
     }
 
     /**
@@ -957,7 +584,7 @@ public class JobImpl implements Job {
      */
     @Override
     public String getExternalLogId() {
-        return externalLogId;
+        return metadata.getExternalLogId();
     }
 
     /**
@@ -967,7 +594,7 @@ public class JobImpl implements Job {
      */
     @Override
     public void setBusinessService(String businessService) {
-        setBusinessService(new Path(businessService));
+        setBusinessService(Path.resolve(businessService));
     }
 
     /**
@@ -977,9 +604,8 @@ public class JobImpl implements Job {
      */
     @Override
     public void setBusinessService(Path businessService) {
-        if (businessService != null) {
-            this.businessService = limitLength("businessService", businessService.toString(), MAX_VALUE_LIMIT);
-        }
+        warnIfFinished("setBusinessService", "metadata().setBusinessService(...)");
+        metadata.setBusinessServiceInternal(businessService);
     }
 
     /**
@@ -989,7 +615,7 @@ public class JobImpl implements Job {
      */
     @Override
     public String getBusinessService() {
-        return businessService;
+        return metadata.getBusinessService();
     }
 
     /**
@@ -999,7 +625,7 @@ public class JobImpl implements Job {
      */
     @Override
     public void setBusinessObject(String businessObject) {
-        setBusinessObject(new Path(businessObject));
+        setBusinessObject(Path.resolve(businessObject));
     }
 
     /**
@@ -1009,9 +635,8 @@ public class JobImpl implements Job {
      */
     @Override
     public void setBusinessObject(Path businessObject) {
-        if (businessObject != null) {
-            this.businessObject = limitLength("businessObject", businessObject.toString(), MAX_VALUE_LIMIT);
-        }
+        warnIfFinished("setBusinessObject", "metadata().setBusinessObject(...)");
+        metadata.setBusinessObjectInternal(businessObject);
     }
 
     /**
@@ -1021,7 +646,7 @@ public class JobImpl implements Job {
      */
     @Override
     public String getBusinessObject() {
-        return businessObject;
+        return metadata.getBusinessObject();
     }
 
     /**
@@ -1094,6 +719,30 @@ public class JobImpl implements Job {
     }
 
     /**
+     * Guard for the new facet API: data changed after end() is never sent to the nJAMS server,
+     * because the final log message has already been flushed.
+     */
+    void requireNotFinished(String operation) {
+        if (finished) {
+            throw new NjamsSdkRuntimeException(
+                    operation + " is not allowed after end(): the final log message of the job has already"
+                            + " been sent to the nJAMS server and a later change is never sent.");
+        }
+    }
+
+    /**
+     * Lenient-legacy guard: where the new facet API rejects a call after end(), the deprecated
+     * facade method only logs a warning and proceeds, so that existing client code keeps working
+     * throughout the deprecation period.
+     */
+    private void warnIfFinished(String oldMethod, String replacement) {
+        if (finished) {
+            LOG.warn("{} was called after end(); the change will not be sent to the nJAMS server."
+                    + " The replacement API {} rejects this call.", oldMethod, replacement);
+        }
+    }
+
+    /**
      * Return the Attribute name to a given value
      *
      * @param name attribute name
@@ -1101,11 +750,7 @@ public class JobImpl implements Job {
      */
     @Override
     public String getAttribute(final String name) {
-        String val = attributes.get(name);
-        if (val != null) {
-            return val;
-        }
-        return flushedAttributes.get(name);
+        return attributes.get(name);
     }
 
     /**
@@ -1116,9 +761,7 @@ public class JobImpl implements Job {
      */
     @Override
     public Map<String, String> getAttributes() {
-        final Map<String, String> attr = new TreeMap<>(flushedAttributes);
-        attr.putAll(attributes);
-        return attr;
+        return attributes.getAll();
     }
 
     /**
@@ -1129,7 +772,7 @@ public class JobImpl implements Job {
      */
     @Override
     public boolean hasAttribute(final String name) {
-        return attributes.containsKey(name) || flushedAttributes.containsKey(name);
+        return attributes.has(name);
     }
 
     /**
@@ -1140,7 +783,7 @@ public class JobImpl implements Job {
      */
     @Override
     public void setDeepTrace(boolean deepTrace) {
-        this.deepTrace = deepTrace;
+        tracing.setDeepTrace(deepTrace);
     }
 
     /**
@@ -1151,23 +794,30 @@ public class JobImpl implements Job {
      */
     @Override
     public boolean isDeepTrace() {
-        return deepTrace;
+        return tracing.isDeepTrace();
     }
 
     /**
      * Return the last push LocalDateTime
      *
      * @return the last push LocalDateTime
+     * @deprecated SDK-internal flush bookkeeping, not part of the public API; there is no
+     *             replacement.
      */
+    @Deprecated(since = "6.0.0", forRemoval = true)
     public LocalDateTime getLastFlush() {
-        return lastFlush;
+        return flusher.getLastFlush();
     }
 
     /**
      * Marks this job instance as instrumented.
+     *
+     * @deprecated SDK-internal tracing mechanics, not part of the public API; there is no
+     *             replacement — instrumentation is flagged by the SDK's tracing handling.
      */
+    @Deprecated(since = "6.0.0", forRemoval = true)
     public void setInstrumented() {
-        instrumented = true;
+        tracing.setInstrumented();
     }
 
     /**
@@ -1175,14 +825,17 @@ public class JobImpl implements Job {
      */
     @Override
     public boolean isTraces() {
-        return traces;
+        return tracing.isTraces();
     }
 
     /**
      * @param traces the traces to set
+     * @deprecated SDK-internal tracing mechanics, not part of the public API; there is no
+     *             replacement — the traces flag is maintained by the SDK's tracepoint handling.
      */
+    @Deprecated(since = "6.0.0", forRemoval = true)
     public void setTraces(boolean traces) {
-        this.traces = traces;
+        tracing.setTraces(traces);
     }
 
     /**
@@ -1205,7 +858,7 @@ public class JobImpl implements Job {
      */
     @Override
     public boolean hasProperty(final String key) {
-        return properties.containsKey(key);
+        return properties.has(key);
     }
 
     /**
@@ -1217,7 +870,7 @@ public class JobImpl implements Job {
      */
     @Override
     public void setProperty(final String key, final Object value) {
-        properties.put(key, value);
+        properties.set(key, value);
     }
 
     /**
@@ -1233,56 +886,30 @@ public class JobImpl implements Job {
     }
 
     /**
-     * This method removes all not running activities from the activities map if
-     * the activity has a parent, remove the activity from the childActivity map
-     * of the parent.
-     */
-    private void removeNotRunningActivities() {
-        int loggingSum = 0;
-        synchronized (activities) {
-            Iterator<Activity> iterator = activities.values().iterator();
-            while (iterator.hasNext()) {
-                Activity a = iterator.next();
-                if (a.getActivityStatus() != ActivityStatus.RUNNING) {
-                    flushedActivities.remove(a.getInstanceId());
-                    loggingSum++;
-                    iterator.remove();
-                    GroupImpl parent = (GroupImpl) a.getParent();
-                    if (parent != null) {
-                        parent.removeChildActivity(a.getInstanceId());
-                    }
-                    if (a == startActivity) {
-                        startActivity = null;
-                    }
-                } else {
-                    flushedActivities.add(a.getInstanceId());
-                }
-
-            }
-            LOG.trace("{} activities have been removed from {}. Still running: {}", loggingSum, getLogId(),
-                    activities.size());
-        }
-    }
-
-    /**
      * @return the estimatedSize
+     * @deprecated SDK-internal flush bookkeeping, not part of the public API; there is no
+     *             replacement.
      */
+    @Deprecated(since = "6.0.0", forRemoval = true)
     public long getEstimatedSize() {
-        return estimatedSize;
+        return flusher.getEstimatedSize();
     }
 
     /**
      * Add estimatedSize to the estimatedSize of the activity
      *
      * @param estimatedSize estimatedSize to add
+     * @deprecated SDK-internal flush bookkeeping, not part of the public API; there is no
+     *             replacement.
      */
+    @Deprecated(since = "6.0.0", forRemoval = true)
     public void addToEstimatedSize(long estimatedSize) {
-        this.estimatedSize += estimatedSize;
+        flusher.addToEstimatedSize(estimatedSize);
     }
 
     @Override
     public boolean needsData(ActivityModel activityModel) {
-        if (deepTrace || activityModel.isStarter()) {
+        if (tracing.isDeepTrace() || activityModel.isStarter()) {
             return true;
         }
         ActivityConfiguration activityConfig = getActivityConfiguration(activityModel);
@@ -1297,16 +924,12 @@ public class JobImpl implements Job {
      *
      * @param tracepoint The tracepoint to check
      * @return <code>true</code> if the given tracepoint configuration is currently active.
+     * @deprecated SDK-internal tracing mechanics, not part of the public API; there is no
+     *             replacement — tracepoints are evaluated by the SDK's activity processing.
      */
+    @Deprecated(since = "6.0.0", forRemoval = true)
     public boolean isActiveTracepoint(TracepointExt tracepoint) {
-        if (tracepoint != null) {
-            //if tracepoint exists, check timings
-            LocalDateTime now = DateTimeUtility.now();
-            //timing is right, and iterations are less than configured
-            return !now.isBefore(tracepoint.getStarttime()) && now.isBefore(tracepoint.getEndtime())
-                    && !tracepoint.iterationsExceeded();
-        }
-        return false;
+        return runtimeConfig.isActiveTracepoint(tracepoint);
     }
 
     /**
@@ -1314,34 +937,80 @@ public class JobImpl implements Job {
      *
      * @param activityModel The model for that configuration shall be returned.
      * @return May be <code>null</code> if no configuration exists.
+     * @deprecated SDK-internal configuration lookup, not part of the public API; there is no
+     *             replacement — activity configurations are resolved by the SDK.
      */
+    @Deprecated(since = "6.0.0", forRemoval = true)
     public ActivityConfiguration getActivityConfiguration(ActivityModel activityModel) {
-        if (activityModel == null) {
-            return null;
-        }
-        ProcessModel processModel = activityModel.getProcessModel();
-        if (processModel == null) {
-            return null;
-        }
-        Configuration configuration = processModel.getNjams().getConfiguration();
-        if (configuration == null) {
-            return null;
-        }
-        ProcessConfiguration processConfig = configuration.getProcess(processModel.getPath().toString());
-        if (processConfig == null) {
-            return null;
-        }
-        return processConfig.getActivity(activityModel.getId());
-
+        return runtimeConfig.getActivityConfiguration(activityModel);
     }
 
     /**
      * Return if recording is activated for this job
      *
      * @return true if activated, false if not
+     * @deprecated SDK-internal configuration state, not part of the public API; there is no
+     *             replacement.
      */
+    @Deprecated(since = "6.0.0", forRemoval = true)
     public boolean isRecording() {
-        return recording;
+        return runtimeConfig.recording;
+    }
+
+    /**
+     * Claims this job's single start-data slot (SDK-462). The first caller gets <code>true</code>
+     * and may set the start data; every later caller gets <code>false</code>. Lock-free: a job is
+     * shared across threads, so the claim must be atomic.
+     *
+     * @return <code>true</code> only for the first caller
+     */
+    boolean claimStartData() {
+        return startDataClaimed.compareAndSet(false, true);
+    }
+
+    /**
+     * Returns whether this job's start data has already been set.
+     *
+     * @return <code>true</code> if start data was already set for this job
+     */
+    boolean isStartDataSet() {
+        return startDataClaimed.get();
+    }
+
+    /**
+     * Returns whether the configured payload limit should also be applied to start data (SDK-420).
+     *
+     * @return <code>true</code> if start data is subject to the payload limit
+     */
+    boolean isStartDataLimited() {
+        return jobSettings.applyPayloadLimitToStartData;
+    }
+
+    /**
+     * Returns whether the given (already-serialized) start data would be truncated or discarded by the
+     * configured payload limit, either because the serializer already truncated it or because it still
+     * exceeds the limit.
+     *
+     * @param payload             the serialized start data, may be <code>null</code>
+     * @param serializerTruncated whether the serializer already truncated the value at the limit
+     * @return <code>true</code> if applying the limit would truncate or discard the value
+     */
+    boolean exceedsStartDataLimit(String payload, boolean serializerTruncated) {
+        if (payload == null || jobSettings.payloadLimit == null) {
+            return false;
+        }
+        return serializerTruncated || payload.length() > jobSettings.payloadLimit.getValue();
+    }
+
+    /**
+     * Marks this job as not replayable because its start data was truncated or discarded (SDK-420), by
+     * clearing the recorded flag to <code>false</code> (last value wins, overriding the earlier
+     * <code>true</code>). Only applied to jobs that were recordable to begin with.
+     */
+    void revokeRecorded() {
+        if (runtimeConfig.addRecordedAttribute) {
+            addAttribute(RECORDED_ATTRIBUTE, "false");
+        }
     }
 
     @Override
@@ -1357,7 +1026,7 @@ public class JobImpl implements Job {
     @Override
     public void addPluginDataItem(
             com.faizsiegeln.njams.messageformat.v4.logmessage.interfaces.IPluginDataItem pluginDataItem) {
-        pluginDataItems.add((PluginDataItem) pluginDataItem);
+        flusher.addPluginDataItem((PluginDataItem) pluginDataItem);
     }
 
     /**
@@ -1367,12 +1036,13 @@ public class JobImpl implements Job {
      */
     @Override
     public void setBusinessStart(LocalDateTime businessStart) {
-        this.businessStart = businessStart;
+        warnIfFinished("setBusinessStart", "metadata().setBusinessStart(...)");
+        metadata.setBusinessStartInternal(businessStart);
     }
 
     @Override
     public LocalDateTime getBusinessStart() {
-        return businessStart;
+        return metadata.getBusinessStart();
     }
 
     /**
@@ -1382,12 +1052,13 @@ public class JobImpl implements Job {
      */
     @Override
     public void setBusinessEnd(LocalDateTime businessEnd) {
-        this.businessEnd = businessEnd;
+        warnIfFinished("setBusinessEnd", "metadata().setBusinessEnd(...)");
+        metadata.setBusinessEndInternal(businessEnd);
     }
 
     @Override
     public LocalDateTime getBusinessEnd() {
-        return businessEnd;
+        return metadata.getBusinessEnd();
     }
 
     /**
@@ -1396,8 +1067,63 @@ public class JobImpl implements Job {
      * @return true, if the job has started already (RUNNING, SUCCESS, WARNING,
      * ERROR). return false, if the job hasn't been started (CREATED)
      */
+    @Override
     public boolean hasStarted() {
         return lastStatus != JobStatus.CREATED;
+    }
+
+    /**
+     * Provides access to the runtime activities of this job: the activity registry, lookups,
+     * builders, and the start activity.
+     *
+     * @return the activities facet of this job, never <code>null</code>
+     */
+    @Override
+    public JobActivities activities() {
+        return activities;
+    }
+
+    /**
+     * Provides access to the attributes of this job. Attributes are wire data: they are
+     * transmitted to the nJAMS server with the next log message.
+     *
+     * @return the attributes facet of this job, never <code>null</code>
+     */
+    @Override
+    public JobAttributes attributes() {
+        return attributes;
+    }
+
+    /**
+     * Provides access to the descriptive metadata of this job: correlation/parent/external
+     * log ids and the business fields. The facet's setters are chainable.
+     *
+     * @return the metadata facet of this job, never <code>null</code>
+     */
+    @Override
+    public JobMetadata metadata() {
+        return metadata;
+    }
+
+    /**
+     * Provides access to the internal properties of this job. Properties are client-local
+     * only and never transmitted to the nJAMS server.
+     *
+     * @return the properties facet of this job, never <code>null</code>
+     */
+    @Override
+    public JobProperties properties() {
+        return properties;
+    }
+
+    /**
+     * Provides access to the tracing flags of this job (deep trace, traces).
+     *
+     * @return the tracing facet of this job, never <code>null</code>
+     */
+    @Override
+    public JobTracing tracing() {
+        return tracing;
     }
 
     /**
@@ -1408,15 +1134,19 @@ public class JobImpl implements Job {
      */
     @Override
     public void addAttribute(final String key, String value) {
-        if (value == null) {
-            return;
-        }
-        String limitKey = limitLength("attributeName", key, 500);
-        synchronized (attributes) {
-            attributes.put(limitKey, DataMasking.maskString(limitPayload(value)));
-        }
+        warnIfFinished("addAttribute", "attributes().add(...)");
+        attributes.addInternal(key, value);
     }
 
+    /**
+     * Returns the {@link Njams} client instance owning this job.
+     *
+     * @return the owning client instance
+     * @deprecated SDK-internal back-reference, not part of the public API; there is no
+     *             replacement — client code should keep its own reference to its {@link Njams}
+     *             instance.
+     */
+    @Deprecated(since = "6.0.0", forRemoval = true)
     public Njams getNjams() {
         return njams;
     }
@@ -1436,7 +1166,10 @@ public class JobImpl implements Job {
      * @param value     The input value that is returned but possibly truncated
      * @param maxLength Maximum length for the returned string
      * @return The given input but no longer than the given maximum length
+     * @deprecated SDK-internal helper, not part of the public API; there is no replacement —
+     *             field values are limited transparently by the SDK.
      */
+    @Deprecated(since = "6.0.0", forRemoval = true)
     public static String limitLength(String fieldName, String value, int maxLength) {
         if (value != null && value.length() > maxLength) {
             LOG.warn("Value of field '{}' exceeds max length of {} characters. Value will be truncated.", fieldName,
@@ -1447,19 +1180,54 @@ public class JobImpl implements Job {
     }
 
     /**
-     * If limiting payload size is enabled, this method ensures that the given payload is handled accordingly.
+     * Returns the size limit to pass to
+     * {@link com.im.njams.sdk.serializer.Serializer#serialize(Object, int)} for payloads whose
+     * truncation is then resolved via {@link #applyLimit(String, boolean)} using the serializer's
+     * truncation flag.
+     *
+     * @return the configured payload limit, or {@code 0} when no payload limit is configured
+     */
+    int getSerializeSizeHint() {
+        if (jobSettings.payloadLimit == null) {
+            return 0;
+        }
+        final int limit = jobSettings.payloadLimit.getValue();
+        return limit <= 0 ? 0 : limit;
+    }
+
+    /**
+     * If limiting payload size is enabled, this method ensures that the given payload is handled
+     * accordingly. Truncation is decided purely from the payload length, for fields that are not
+     * produced by a size-limited serializer (event payload, stack trace, attributes, ...).
      * @param payload The payload to limit.
      * @return The given payload adjusted to the configured limits.
      */
     String limitPayload(String payload) {
-        if (payload == null || payloadLimit == null || payload.length() <= payloadLimit.getValue()) {
+        return applyLimit(payload, false);
+    }
+
+    /**
+     * Applies the configured payload limit to an already-serialized payload, honouring an explicit
+     * serializer truncation flag. The payload is considered truncated if the serializer already
+     * truncated it, or if it still exceeds the configured limit; in that case it is truncated (with
+     * the truncated-suffix) or discarded according to the configured mode.
+     *
+     * @param payload            The serialized payload to limit.
+     * @param serializerTruncated Whether the serializer already had to truncate the value at the limit.
+     * @return The payload adjusted to the configured limits.
+     */
+    String applyLimit(String payload, boolean serializerTruncated) {
+        if (payload == null || jobSettings.payloadLimit == null) {
             return payload;
         }
-        final int limit = payloadLimit.getValue();
-        if (limit > 0 && payloadLimit.getKey()) {
+        final int limit = jobSettings.payloadLimit.getValue();
+        final boolean truncated = serializerTruncated || payload.length() > limit;
+        if (!truncated) {
+            return payload;
+        }
+        if (limit > 0 && jobSettings.payloadLimit.getKey()) {
             // truncate
-            final String suffix = PAYLOAD_TRUNCATED_SUFFIX;
-            return payload.substring(0, limit) + suffix;
+            return payload.substring(0, Math.min(payload.length(), limit)) + PAYLOAD_TRUNCATED_SUFFIX;
         }
         // discard
         return PAYLOAD_DISCARDED_MESSAGE;

@@ -23,7 +23,10 @@
  */
 package com.im.njams.sdk.settings;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Properties;
+import java.util.stream.Stream;
 import org.junit.Test;
 
 import com.im.njams.sdk.utils.PropertyUtil;
@@ -74,6 +77,41 @@ public class PropertyUtilTest {
         assertEquals("DEF", toTest.get("D.EF"));
         assertNull(toTest.get("ABC.DE"));
         assertNull(toTest.get("foo"));
+    }
+
+    @Test
+    public void toPropertiesFromMap_copiesAllEntries() {
+        Map<String, String> map = new HashMap<>();
+        map.put("k1", "v1");
+        map.put("k2", "v2");
+        Properties result = PropertyUtil.toProperties(map);
+        assertEquals(2, result.size());
+        assertEquals("v1", result.getProperty("k1"));
+        assertEquals("v2", result.getProperty("k2"));
+    }
+
+    @Test
+    public void toPropertiesFromMap_emptyMapProducesEmptyProperties() {
+        Properties result = PropertyUtil.toProperties(new HashMap<>());
+        assertTrue(result.isEmpty());
+    }
+
+    @Test
+    public void toPropertiesFromStream_copiesAllEntries() {
+        Stream<Map.Entry<String, String>> stream = Stream.of(
+            Map.entry("a", "1"),
+            Map.entry("b", "2")
+        );
+        Properties result = PropertyUtil.toProperties(stream);
+        assertEquals(2, result.size());
+        assertEquals("1", result.getProperty("a"));
+        assertEquals("2", result.getProperty("b"));
+    }
+
+    @Test
+    public void toPropertiesFromStream_emptyStreamProducesEmptyProperties() {
+        Properties result = PropertyUtil.toProperties(Stream.empty());
+        assertTrue(result.isEmpty());
     }
 
 }

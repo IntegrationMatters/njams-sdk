@@ -23,8 +23,11 @@
  */
 package com.im.njams.sdk.utils;
 
+import java.util.Map;
 import java.util.Properties;
+import java.util.stream.Stream;
 
+import com.im.njams.sdk.settings.ClientSettings;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -41,6 +44,23 @@ public class PropertyUtil {
 
     private PropertyUtil() {
         // static only
+    }
+
+    /**
+     * Builds a {@link Properties} snapshot from the entries of the given {@link ClientSettings}.
+     * Provided as a bridge for third-party APIs (e.g. Kafka, JMS, HTTP clients) that require a
+     * {@link Properties} instance for configuration. SDK code should otherwise operate on
+     * {@link com.im.njams.sdk.settings.ClientSettings} directly.
+     *
+     * @param settings the settings to copy entries from
+     * @return a new {@link Properties} containing every entry of {@code settings}
+     */
+    public static Properties toProperties(ClientSettings settings) {
+        Properties result = new Properties();
+        for (Map.Entry<String, String> entry : settings) {
+            result.setProperty(entry.getKey(), entry.getValue());
+        }
+        return result;
     }
 
     /**
@@ -173,5 +193,29 @@ public class PropertyUtil {
             return Transformer.decode(properties.getProperty(deprecatedKey));
         }
         return defaultValue;
+    }
+
+    /**
+     * Builds a {@link Properties} snapshot from the given map.
+     *
+     * @param map the map to copy entries from
+     * @return a new {@link Properties} containing every entry of {@code map}
+     */
+    public static Properties toProperties(Map<String, String> map) {
+        Properties props = new Properties();
+        map.forEach(props::setProperty);
+        return props;
+    }
+
+    /**
+     * Builds a {@link Properties} snapshot by consuming the given entry stream.
+     *
+     * @param entries the stream of key/value pairs to collect
+     * @return a new {@link Properties} containing every entry from the stream
+     */
+    public static Properties toProperties(Stream<Map.Entry<String, String>> entries) {
+        Properties props = new Properties();
+        entries.forEach(e -> props.setProperty(e.getKey(), e.getValue()));
+        return props;
     }
 }

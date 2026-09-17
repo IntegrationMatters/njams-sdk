@@ -37,6 +37,10 @@ import javax.jms.TextMessage;
  *
  */
 public class StringUtils {
+    /** The three dots ellipsis character '…' used for abbreviations. */
+    public static final char ELLIPSIS = '\u2026';
+
+
     private StringUtils() {
         // static only
     }
@@ -93,8 +97,9 @@ public class StringUtils {
      * Abbreviates the given string to given length
      * @param s The string to abbreviate
      * @param maxLength The maximum length
-     * @return The given string if shorter than the given length, or a shortened version with three dots at the end that
-     * indicate the truncation. I.e., the length of a truncated result is <code>maxLength+3</code>.
+     * @return The given string if shorter than the given length, or a shortened version with a single ellipsis
+     * character ({@value #ELLIPSIS}) appended that indicates the truncation. I.e., the length of a truncated result
+     * is <code>maxLength+1</code>.
      */
     public static String abbreviate(String s, int maxLength) {
         if (s == null) {
@@ -103,7 +108,7 @@ public class StringUtils {
         if (s.length() <= maxLength || maxLength < 1) {
             return s;
         }
-        return s.substring(0, maxLength) + "...";
+        return s.substring(0, maxLength) + ELLIPSIS;
     }
 
     /**

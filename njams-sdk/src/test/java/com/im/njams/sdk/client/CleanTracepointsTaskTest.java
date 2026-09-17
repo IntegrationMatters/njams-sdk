@@ -35,15 +35,15 @@ import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
-
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
 import com.faizsiegeln.njams.messageformat.v4.common.CommonMessage;
+import com.faizsiegeln.njams.messageformat.v4.logmessage.LogMessage;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.Extract;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.LogLevel;
+import com.faizsiegeln.njams.messageformat.v4.projectmessage.ProjectMessage;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.Tracepoint;
 import com.faizsiegeln.njams.messageformat.v4.tracemessage.Activity;
 import com.faizsiegeln.njams.messageformat.v4.tracemessage.ProcessModel;
@@ -52,9 +52,10 @@ import com.im.njams.sdk.AbstractTest;
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.common.DateTimeUtility;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
-import com.im.njams.sdk.common.Path;
-import com.im.njams.sdk.communication.Sender;
+import com.im.njams.sdk.Path;
+import com.im.njams.sdk.communication.AbstractSender;
 import com.im.njams.sdk.communication.TestSender;
+import com.im.njams.sdk.settings.ClientSettings;
 import com.im.njams.sdk.configuration.ActivityConfiguration;
 import com.im.njams.sdk.configuration.ProcessConfiguration;
 import com.im.njams.sdk.configuration.TracepointExt;
@@ -72,7 +73,7 @@ public class CleanTracepointsTaskTest extends AbstractTest {
         TestSender.setSenderMock(new SenderMock());
         njams.start();
         createDefaultActivity(createDefaultStartedJob());
-        FULLPROCESSPATHNAME = njams.getClientPath().add(PROCESSPATHNAME).toString();
+        FULLPROCESSPATHNAME = njams.getClientPath().getOrCreateChild(PROCESSPATHNAME).toString();
     }
 
     @BeforeClass
@@ -83,7 +84,7 @@ public class CleanTracepointsTaskTest extends AbstractTest {
     @Before
     public void testStopAll() {
         CleanTracepointsTask.getNjamsInstances().forEach(CleanTracepointsTask::stop);
-        when(njamsMock.getClientPath()).thenReturn(new Path("A"));
+        when(njamsMock.getClientPath()).thenReturn(Path.of("A"));
     }
 
     @Test(expected = NjamsSdkRuntimeException.class)
@@ -285,15 +286,13 @@ public class CleanTracepointsTaskTest extends AbstractTest {
     /**
      * This class is for fetching the messages that would be sent out.
      */
-    private static class SenderMock implements Sender {
+    private static class SenderMock extends AbstractSender {
 
         /**
          * This method does nothing
-         *
-         * @param properties nothing to do with these
          */
         @Override
-        public void init(Properties properties) {
+        public void init(ClientSettings settings) {
             //Do nothing
         }
 
@@ -307,6 +306,21 @@ public class CleanTracepointsTaskTest extends AbstractTest {
             if (msg instanceof TraceMessage) {
                 message = (TraceMessage) msg;
             }
+        }
+
+        @Override
+        protected void send(LogMessage msg, String clientId) {
+            //Do nothing
+        }
+
+        @Override
+        protected void send(ProjectMessage msg, String clientId) {
+            //Do nothing
+        }
+
+        @Override
+        protected void send(TraceMessage msg, String clientId) {
+            //Do nothing
         }
 
         /**

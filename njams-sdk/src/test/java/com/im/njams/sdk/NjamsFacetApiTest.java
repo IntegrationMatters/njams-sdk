@@ -1,0 +1,828 @@
+package com.im.njams.sdk;
+
+import static org.junit.Assert.*;
+
+import java.util.HashMap;
+import java.util.Map;
+
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+
+import com.im.njams.sdk.common.NjamsSdkRuntimeException;
+import com.im.njams.sdk.communication.TestReceiver;
+
+/**
+ * Tests the new facet API of SDK-359: accessor identity, phase guards, behavioral parity
+ * with the legacy API (mirror tests suffixed _viaFacet), and the lenient behavior of the
+ * deprecated legacy methods.
+ */
+public class NjamsFacetApiTest {
+
+    private Njams njams;
+
+    @Before
+    public void setUp() {
+        njams = new Njams(Path.of("SDK4", "TEST"), "4.1.1", "sdk4", TestReceiver.getSettings());
+    }
+
+    @After
+    public void tearDown() {
+        if (njams.isStarted()) {
+            njams.stop();
+        }
+    }
+
+    @Test
+    public void accessorsReturnTheSameInstanceEveryTime() {
+        assertSame(njams.metadata(), njams.metadata());
+        assertSame(njams.jobs(), njams.jobs());
+        assertSame(njams.model(), njams.model());
+        assertSame(njams.features(), njams.features());
+        assertSame(njams.serializers(), njams.serializers());
+        assertSame(njams.replay(), njams.replay());
+        assertSame(njams.commands(), njams.commands());
+        assertSame(njams.argos(), njams.argos());
+        assertSame(njams.configuration(), njams.configuration());
+    }
+
+    // --- metadata + model global-variable guards ---
+
+    @Test(expected = NjamsSdkRuntimeException.class)
+    public void newAddGlobalVariablesThrowsAfterStart() {
+        njams.start();
+        Map<String, String> vars = new HashMap<>();
+        vars.put("late", "x");
+        njams.model().addGlobalVariables(vars);
+    }
+
+    @Test(expected = NjamsSdkRuntimeException.class)
+    public void newSetGlobalVariablesPatternThrowsAfterStart() {
+        njams.start();
+        njams.model().setGlobalVariablesPattern("(?<full>%%(?<name>[^%]+)%%)");
+    }
+
+    @Test(expected = NjamsSdkRuntimeException.class)
+    public void newSetRuntimeVersionThrowsAfterStart() {
+        njams.start();
+        njams.metadata().setRuntimeVersion("late");
+    }
+
+    @Test
+    public void newMetadataMutatorsWorkBeforeStart() {
+        njams.metadata().setRuntimeVersion("rt");
+        Map<String, String> vars = new HashMap<>();
+        vars.put("a", "1");
+        njams.model().addGlobalVariables(vars);
+        njams.model().setGlobalVariablesPattern("(?<full>%%(?<name>[^%]+)%%)");
+        assertEquals("rt", njams.metadata().getRuntimeVersion());
+        assertEquals("1", njams.model().getGlobalVariables().get("a"));
+    }
+
+    @Test
+    public void facetMutatorsAreChainable() {
+        Map<String, String> vars = new HashMap<>();
+        vars.put("a", "1");
+        NjamsMetadata metadataResult = njams.metadata().setRuntimeVersion("rt");
+        assertSame(njams.metadata(), metadataResult);
+        NjamsModel modelResult = njams.model()
+            .addGlobalVariables(vars)
+            .setGlobalVariablesPattern("(?<full>%%(?<name>[^%]+)%%)");
+        assertSame(njams.model(), modelResult);
+        assertEquals("rt", njams.metadata().getRuntimeVersion());
+        assertEquals("1", njams.model().getGlobalVariables().get("a"));
+    }
+
+    @Test
+    public void deprecatedMetadataMutatorsStayLenientAfterStart() {
+        njams.start();
+        njams.setRuntimeVersion("late"); // WARN, no throw
+        Map<String, String> vars = new HashMap<>();
+        vars.put("late", "x");
+        njams.addGlobalVariables(vars); // WARN, no throw
+        assertEquals("late", njams.getRuntimeVersion());
+        assertEquals("x", njams.getGlobalVariables().get("late"));
+    }
+
+    // --- metadata + model global-variable parity mirrors ---
+
+    @Test
+    public void categoryIsUppercased_viaFacet() {
+        assertEquals("SDK4", njams.metadata().getCategory());
+    }
+
+    @Test
+    public void clientPathIsReturned_viaFacet() {
+        assertEquals(Path.of("SDK4", "TEST"), njams.metadata().getClientPath());
+    }
+
+    @Test
+    public void clientVersionComesFromConstructorWhenNoVersionFile_viaFacet() {
+        assertEquals("4.1.1", njams.metadata().getClientVersion());
+    }
+
+    @Test
+    public void sdkVersionIsNeverNull_viaFacet() {
+        assertNotNull(njams.metadata().getSdkVersion());
+    }
+
+    @Test
+    public void machineIsNeverNull_viaFacet() {
+        assertNotNull(njams.metadata().getMachine());
+    }
+
+    @Test
+    public void runtimeVersionIsSettable_viaFacet() {
+        assertNull(njams.metadata().getRuntimeVersion());
+        njams.metadata().setRuntimeVersion("rt-1");
+        assertEquals("rt-1", njams.metadata().getRuntimeVersion());
+    }
+
+    @Test
+    public void addGlobalVariablesMergesIntoExisting_viaFacet() {
+        Map<String, String> first = new HashMap<>();
+        first.put("a", "1");
+        njams.model().addGlobalVariables(first);
+        Map<String, String> second = new HashMap<>();
+        second.put("b", "2");
+        second.put("a", "overwritten");
+        njams.model().addGlobalVariables(second);
+        assertEquals("overwritten", njams.model().getGlobalVariables().get("a"));
+        assertEquals("2", njams.model().getGlobalVariables().get("b"));
+    }
+
+    @Test
+    public void clientSessionIdMatchesBothLegacyGetters_viaFacet() {
+        // pins the intentional unification of getClientSessionId()/getCommunicationSessionId()
+        assertNotNull(njams.metadata().getClientSessionId());
+        assertEquals(njams.metadata().getClientSessionId(), njams.getClientSessionId());
+        assertEquals(njams.metadata().getClientSessionId(), njams.getCommunicationSessionId());
+    }
+
+    @Test
+    public void setGlobalVariablesPattern_acceptsValidPatternAndIsReturnedByGetter_viaFacet() {
+        String pattern = "(?<full>%%(?<name>[^%]+)%%)";
+        njams.model().setGlobalVariablesPattern(pattern);
+        assertEquals(pattern, njams.model().getGlobalVariablesPattern());
+    }
+
+    @Test
+    public void setGlobalVariablesPattern_acceptsPatternWithOptionalDefaultGroup_viaFacet() {
+        String pattern = "(?<full>\\{\\{\\??(?<name>(?:(?:sys|env):)?[^}:]+)(?::(?<default>[^}]+))?\\}\\})";
+        njams.model().setGlobalVariablesPattern(pattern);
+        assertEquals(pattern, njams.model().getGlobalVariablesPattern());
+    }
+
+    @Test
+    public void setGlobalVariablesPattern_nullClearsThePattern_viaFacet() {
+        njams.model().setGlobalVariablesPattern("(?<full>%%(?<name>[^%]+)%%)");
+        njams.model().setGlobalVariablesPattern(null);
+        assertNull(njams.model().getGlobalVariablesPattern());
+    }
+
+    @Test(expected = NjamsSdkRuntimeException.class)
+    public void setGlobalVariablesPattern_rejectsInvalidRegex_viaFacet() {
+        njams.model().setGlobalVariablesPattern("(?<full>(?<name>[^%]+");
+    }
+
+    @Test(expected = NjamsSdkRuntimeException.class)
+    public void setGlobalVariablesPattern_rejectsMissingNameGroup_viaFacet() {
+        njams.model().setGlobalVariablesPattern("(?<full>%%[^%]+%%)");
+    }
+
+    @Test(expected = NjamsSdkRuntimeException.class)
+    public void setGlobalVariablesPattern_rejectsMissingFullGroup_viaFacet() {
+        njams.model().setGlobalVariablesPattern("%%(?<name>[^%]+)%%");
+    }
+
+    // --- features guards ---
+
+    @Test(expected = NjamsSdkRuntimeException.class)
+    public void newFeatureAddThrowsAfterStart() {
+        njams.start();
+        njams.features().add(Njams.Feature.INJECTION);
+    }
+
+    @Test(expected = NjamsSdkRuntimeException.class)
+    public void newFeatureRemoveThrowsAfterStart() {
+        njams.features().add(Njams.Feature.INJECTION);
+        njams.start();
+        njams.features().remove(Njams.Feature.INJECTION);
+    }
+
+    @Test
+    public void deprecatedFeatureAddStaysLenientAfterStart() {
+        njams.start();
+        njams.addFeature(Njams.Feature.INJECTION); // WARN, no throw
+        assertTrue(njams.hasFeature(Njams.Feature.INJECTION));
+    }
+
+    // --- features parity mirrors ---
+
+    @Test
+    public void inherentFeaturesArePresentByDefault_viaFacet() {
+        assertTrue(njams.features().has(Njams.Feature.EXPRESSION_TEST));
+        assertTrue(njams.features().has(Njams.Feature.PING));
+        assertTrue(njams.features().has(Njams.Feature.COMMANDS_SPLIT));
+    }
+
+    @Test
+    public void addFeatureIsIdempotent_viaFacet() {
+        njams.features().add(Njams.Feature.INJECTION);
+        njams.features().add(Njams.Feature.INJECTION);
+        assertEquals(1, njams.features().list().stream()
+            .filter(f -> f == Njams.Feature.INJECTION).count());
+    }
+
+    @Test
+    public void removeFeatureRemoves_viaFacet() {
+        njams.features().add(Njams.Feature.INJECTION);
+        njams.features().remove(Njams.Feature.INJECTION);
+        assertFalse(njams.features().has(Njams.Feature.INJECTION));
+    }
+
+    @Test(expected = NjamsSdkRuntimeException.class)
+    public void removingInherentFeatureThrows_viaFacet() {
+        njams.features().remove(Njams.Feature.PING);
+    }
+
+    @Test
+    public void getFeaturesReturnsACopy_viaFacet() {
+        njams.features().list().clear();
+        assertTrue(njams.features().has(Njams.Feature.PING));
+    }
+
+    @Test
+    public void containerModeIsOnByDefaultAndSettableBeforeStart_viaFacet() {
+        assertTrue(njams.features().isContainerMode());
+        njams.features().setContainerMode(false);
+        assertFalse(njams.features().isContainerMode());
+        assertFalse(njams.features().has(Njams.Feature.CONTAINER_MODE));
+    }
+
+    @Test(expected = NjamsSdkRuntimeException.class)
+    public void setContainerModeAfterStartThrows_viaFacet() {
+        njams.start();
+        njams.features().setContainerMode(false);
+    }
+
+    // --- replay guards + parity ---
+
+    @Test(expected = NjamsSdkRuntimeException.class)
+    public void newReplaySetHandlerThrowsAfterStart() {
+        njams.start();
+        njams.replay().setHandler(request -> new com.im.njams.sdk.communication.ReplayResponse());
+    }
+
+    @Test
+    public void newReplaySetHandlerWorksBeforeStart() {
+        njams.replay().setHandler(request -> new com.im.njams.sdk.communication.ReplayResponse());
+        assertNotNull(njams.replay().getHandler());
+        assertTrue(njams.features().has(Njams.Feature.REPLAY));
+    }
+
+    @Test
+    public void setReplayHandlerTogglesReplayFeature_viaFacet() {
+        assertFalse(njams.features().has(Njams.Feature.REPLAY));
+        njams.replay().setHandler(request -> new com.im.njams.sdk.communication.ReplayResponse());
+        assertTrue(njams.features().has(Njams.Feature.REPLAY));
+        assertNotNull(njams.replay().getHandler());
+        njams.replay().setHandler(null);
+        assertFalse(njams.features().has(Njams.Feature.REPLAY));
+        assertNull(njams.replay().getHandler());
+    }
+
+    @Test
+    public void replayInstructionIsAnswered_viaFacet() {
+        njams.replay().setHandler(request -> {
+            com.im.njams.sdk.communication.ReplayResponse resp =
+                new com.im.njams.sdk.communication.ReplayResponse();
+            resp.setResultCode(0);
+            resp.setResultMessage("TestWorked");
+            return resp;
+        });
+        com.faizsiegeln.njams.messageformat.v4.command.Instruction inst =
+            new com.faizsiegeln.njams.messageformat.v4.command.Instruction();
+        com.faizsiegeln.njams.messageformat.v4.command.Request req =
+            new com.faizsiegeln.njams.messageformat.v4.command.Request();
+        req.setCommand(com.faizsiegeln.njams.messageformat.v4.command.Command.REPLAY.commandString());
+        inst.setRequest(req);
+        njams.onInstruction(inst);
+        assertEquals(0, inst.getResponse().getResultCode());
+        assertEquals("TestWorked", inst.getResponse().getResultMessage());
+    }
+
+    // --- processes guards ---
+
+    @Test(expected = NjamsSdkRuntimeException.class)
+    public void newAddImageThrowsAfterStart() {
+        njams.start();
+        njams.model().addImage("late.image", "images/root.png");
+    }
+
+    @Test(expected = NjamsSdkRuntimeException.class)
+    public void newSetTreeElementTypeThrowsAfterStart() {
+        njams.start();
+        njams.model().setTreeElementType(Path.of("SDK4", "TEST"), "custom.type");
+    }
+
+    @Test
+    public void newProcessCreateIsAllowedAfterStartAndAnnouncable() {
+        njams.start();
+        com.im.njams.sdk.model.ProcessModel lazy = njams.model().create("LAZY");
+        njams.model().additionalResources().addProcessModel(lazy).build(); // must not throw
+    }
+
+    @Test(expected = NjamsSdkRuntimeException.class)
+    public void newAnnounceBeforeStartThrows() {
+        com.im.njams.sdk.model.ProcessModel model = njams.model().create("P1");
+        njams.model().additionalResources().addProcessModel(model).build();
+    }
+
+    // --- processes parity mirrors ---
+
+    @Test(expected = NjamsSdkRuntimeException.class)
+    public void getProcessModelThrowsWhenAbsent_viaFacet() {
+        njams.model().get("MISSING");
+    }
+
+    @Test
+    public void createProcessRegistersModelUnderAbsolutePath_viaFacet() {
+        com.im.njams.sdk.model.ProcessModel created = njams.model().create("P1");
+        assertSame(created, njams.model().get("P1"));
+        assertEquals(1, njams.model().getAll().size());
+    }
+
+    @Test(expected = UnsupportedOperationException.class)
+    public void getProcessModelsIsUnmodifiable_viaFacet() {
+        njams.model().create("P1");
+        njams.model().getAll().clear();
+    }
+
+    @Test(expected = NjamsSdkRuntimeException.class)
+    public void addProcessModelOfForeignInstanceThrows_viaFacet() {
+        Njams other = new Njams(Path.of("OTHER"), "1.0", "X", TestReceiver.getSettings());
+        com.im.njams.sdk.model.ProcessModel foreign = other.model().create("P1");
+        njams.model().add(foreign);
+    }
+
+    @Test
+    public void addProcessModelIgnoresNull_viaFacet() {
+        njams.model().add(null); // must NOT throw
+        assertTrue(njams.model().getAll().isEmpty());
+    }
+
+    // --- SDK-447: absolute paths and single-segment name convenience ---
+
+    @Test
+    public void createByAbsolutePath_isFoundByItsOwnPath() {
+        Path absolute = njams.metadata().getClientPath().getOrCreateChild("PROC447");
+        com.im.njams.sdk.model.ProcessModel model = njams.model().create(absolute);
+        // the model is registered under exactly the given absolute path - no re-rooting
+        assertSame(absolute, model.getPath());
+        assertTrue(njams.model().has(model.getPath()));
+        assertSame(model, njams.model().get(model.getPath()));
+    }
+
+    @Test
+    public void createByName_isFoundByNameAndByAbsolutePath() {
+        com.im.njams.sdk.model.ProcessModel model = njams.model().create("PROC447");
+        assertTrue(njams.model().has("PROC447"));
+        assertSame(model, njams.model().get("PROC447"));
+        assertSame(njams.metadata().getClientPath().getChild("PROC447"), model.getPath());
+        assertTrue(njams.model().has(model.getPath()));
+    }
+
+    @Test
+    public void hasByAbsolutePath_isFalseWhenAbsent() {
+        Path absent = njams.metadata().getClientPath().getOrCreateChild("ABSENT447");
+        assertFalse(njams.model().has(absent));
+    }
+
+    @Test(expected = NjamsSdkRuntimeException.class)
+    public void createPathNotUnderClientPath_throws() {
+        njams.model().create(Path.of("OUTSIDE", "X"));
+    }
+
+    @Test(expected = NjamsSdkRuntimeException.class)
+    public void setTreeElementTypeForUnknownPathThrows_viaFacet() {
+        njams.model().setTreeElementType(Path.of("DOES", "NOT", "EXIST"), "some.type");
+    }
+
+    @Test
+    public void setTreeElementTypeForClientPathWorks_viaFacet() {
+        njams.model().setTreeElementType(Path.of("SDK4", "TEST"), "custom.type");
+    }
+
+    @Test
+    public void layouterAndDiagramFactoryAreReplaceable_viaFacet() {
+        com.im.njams.sdk.model.layout.SimpleProcessModelLayouter layouter =
+            new com.im.njams.sdk.model.layout.SimpleProcessModelLayouter();
+        njams.model().setLayouter(layouter);
+        assertSame(layouter, njams.model().getLayouter());
+
+        com.im.njams.sdk.model.svg.ProcessDiagramFactory factory =
+            new com.im.njams.sdk.model.svg.NjamsProcessDiagramFactory(njams);
+        njams.model().setDiagramFactory(factory);
+        assertSame(factory, njams.model().getDiagramFactory());
+    }
+
+    @Test
+    public void defaultLayouter_isCommonBfsModelLayouter_viaFacet() {
+        assertTrue("Default layouter must be CommonBfsModelLayouter",
+            njams.model().getLayouter() instanceof com.im.njams.sdk.model.layout.CommonBfsModelLayouter);
+    }
+
+    @Test
+    public void sendProjectMessageContainsAddedImage_viaFacet() throws InterruptedException {
+        njams.model().addImage("my.image", "images/root.png");
+        njams.start();
+        CapturingSender capturing = new CapturingSender(msg -> msg.getImages().containsKey("my.image"));
+        com.im.njams.sdk.communication.TestSender.setSenderMock(capturing);
+        try {
+            njams.model().send();
+            com.faizsiegeln.njams.messageformat.v4.projectmessage.ProjectMessage sent =
+                capturing.awaitProjectMessage();
+            assertNotNull(sent);
+            assertTrue(sent.getImages().containsKey("my.image"));
+        } finally {
+            com.im.njams.sdk.communication.TestSender.setSenderMock(null);
+        }
+    }
+
+    @Test
+    public void sendAdditionalProcessSendsProjectMessageWithThatProcess_viaFacet() throws InterruptedException {
+        njams.start();
+        com.im.njams.sdk.model.ProcessModel model = njams.model().create("LAZY");
+        CapturingSender capturing = new CapturingSender(msg -> !msg.getProcesses().isEmpty());
+        com.im.njams.sdk.communication.TestSender.setSenderMock(capturing);
+        try {
+            njams.model().additionalResources().addProcessModel(model).build();
+            com.faizsiegeln.njams.messageformat.v4.projectmessage.ProjectMessage sent =
+                capturing.awaitProjectMessage();
+            assertNotNull(sent);
+            assertEquals(1, sent.getProcesses().size());
+        } finally {
+            com.im.njams.sdk.communication.TestSender.setSenderMock(null);
+        }
+    }
+
+    @Test
+    public void additionalResourcesSendsNewImage() throws InterruptedException {
+        njams.start();
+        CapturingSender capturing = new CapturingSender(msg -> msg.getImages().containsKey("extra.image"));
+        com.im.njams.sdk.communication.TestSender.setSenderMock(capturing);
+        try {
+            njams.model().additionalResources().addImage("extra.image", "images/root.png").build();
+            com.faizsiegeln.njams.messageformat.v4.projectmessage.ProjectMessage sent =
+                capturing.awaitProjectMessage();
+            assertNotNull(sent);
+            assertTrue(sent.getImages().containsKey("extra.image"));
+        } finally {
+            com.im.njams.sdk.communication.TestSender.setSenderMock(null);
+        }
+    }
+
+    @Test
+    public void additionalResourcesOmitsResourcesAlreadySent() throws InterruptedException {
+        com.im.njams.sdk.model.ProcessModel first = njams.model().create("FIRST");
+        njams.model().addGlobalVariables(java.util.Collections.singletonMap("gv1", "v1"));
+        njams.start(); // start message announces FIRST and gv1
+        com.im.njams.sdk.model.ProcessModel second = njams.model().create("SECOND");
+        // Match only the delta message (the async start message carries gv1, never gv2).
+        CapturingSender capturing = new CapturingSender(msg -> msg.getGlobalVariables().containsKey("gv2"));
+        com.im.njams.sdk.communication.TestSender.setSenderMock(capturing);
+        try {
+            njams.model().additionalResources()
+                .addProcessModel(first)                                             // already sent -> omitted
+                .addProcessModel(second)                                            // new -> included
+                .addGlobalVariables(java.util.Collections.singletonMap("gv1", "x")) // name already sent -> omitted
+                .addGlobalVariables(java.util.Collections.singletonMap("gv2", "v2")) // new -> included
+                .build();
+            com.faizsiegeln.njams.messageformat.v4.projectmessage.ProjectMessage sent =
+                capturing.awaitProjectMessage();
+            assertNotNull(sent);
+            assertEquals(1, sent.getProcesses().size());
+            assertTrue(sent.getGlobalVariables().containsKey("gv2"));
+            assertFalse(sent.getGlobalVariables().containsKey("gv1"));
+        } finally {
+            com.im.njams.sdk.communication.TestSender.setSenderMock(null);
+        }
+    }
+
+    @Test
+    public void replacementResendsAlreadyAnnouncedProcessModel() throws InterruptedException {
+        com.im.njams.sdk.model.ProcessModel a = njams.model().create("A");
+        njams.start(); // start (deployment) message announces A
+        // Default mode would omit A; replacement mode must re-send it. Only the additional message
+        // carries the additionalData event, so it never races with the async start message.
+        CapturingSender capturing = new CapturingSender(msg -> "additionalData".equals(msg.getEvent()));
+        com.im.njams.sdk.communication.TestSender.setSenderMock(capturing);
+        try {
+            njams.model().additionalResources().addProcessModel(a).asReplacement().build();
+            com.faizsiegeln.njams.messageformat.v4.projectmessage.ProjectMessage sent =
+                capturing.awaitProjectMessage();
+            assertNotNull(sent);
+            assertEquals(1, sent.getProcesses().size());
+        } finally {
+            com.im.njams.sdk.communication.TestSender.setSenderMock(null);
+        }
+    }
+
+    @Test
+    public void replacementResendsGlobalVariableWithNewValueAndUpdatesStoredCopy() throws InterruptedException {
+        njams.model().addGlobalVariables(java.util.Collections.singletonMap("gv", "old"));
+        njams.start(); // announces gv=old
+        CapturingSender capturing = new CapturingSender(
+            msg -> "additionalData".equals(msg.getEvent()) && msg.getGlobalVariables().containsKey("gv"));
+        com.im.njams.sdk.communication.TestSender.setSenderMock(capturing);
+        try {
+            njams.model().additionalResources()
+                .addGlobalVariables(java.util.Collections.singletonMap("gv", "new"))
+                .asReplacement()
+                .build();
+            com.faizsiegeln.njams.messageformat.v4.projectmessage.ProjectMessage sent =
+                capturing.awaitProjectMessage();
+            assertNotNull(sent);
+            assertEquals("new", sent.getGlobalVariables().get("gv"));
+            // stored copy updated -> subsequent messages use the new value
+            assertEquals("new", njams.model().getGlobalVariables().get("gv"));
+        } finally {
+            com.im.njams.sdk.communication.TestSender.setSenderMock(null);
+        }
+    }
+
+    @Test
+    public void replacementResendsAlreadyAnnouncedImage() throws InterruptedException {
+        njams.model().addImage("img", "images/root.png");
+        njams.start(); // announces img
+        CapturingSender capturing = new CapturingSender(
+            msg -> "additionalData".equals(msg.getEvent()) && msg.getImages().containsKey("img"));
+        com.im.njams.sdk.communication.TestSender.setSenderMock(capturing);
+        try {
+            njams.model().additionalResources().addImage("img", "images/root.png").asReplacement().build();
+            com.faizsiegeln.njams.messageformat.v4.projectmessage.ProjectMessage sent =
+                capturing.awaitProjectMessage();
+            assertNotNull(sent);
+            assertTrue(sent.getImages().containsKey("img"));
+        } finally {
+            com.im.njams.sdk.communication.TestSender.setSenderMock(null);
+        }
+    }
+
+    @Test(expected = NjamsSdkRuntimeException.class)
+    public void additionalResourcesForeignProcessModelThrows() {
+        njams.start();
+        Njams other = new Njams(Path.of("OTHER"), "1.0", "X", TestReceiver.getSettings());
+        com.im.njams.sdk.model.ProcessModel foreign = other.model().create("P1");
+        njams.model().additionalResources().addProcessModel(foreign);
+    }
+
+    @Test
+    public void additionalResourcesIgnoresNullsAndSendsNothingWhenEmpty() {
+        njams.start();
+        // all-null / empty builder must neither throw nor fail
+        njams.model().additionalResources()
+            .addProcessModel(null)
+            .addGlobalVariables(null)
+            .addImage((com.im.njams.sdk.model.image.ImageSupplier) null)
+            .build();
+    }
+
+    @Test
+    public void resendProjectMessageIncludesOriginalAndAdditionalResources() throws InterruptedException {
+        // Original resources, transmitted with the start-time project message.
+        njams.model().create("A");
+        njams.model().addGlobalVariables(java.util.Collections.singletonMap("orig", "1"));
+        njams.model().addImage("orig.image", "images/root.png");
+        njams.start();
+        // Additional resources announced afterwards via the builder.
+        com.im.njams.sdk.model.ProcessModel b = njams.model().create("B");
+        njams.model().additionalResources()
+            .addProcessModel(b)
+            .addGlobalVariables(java.util.Collections.singletonMap("extra", "2"))
+            .addImage("extra.image", "images/root.png")
+            .build();
+        // A SEND_PROJECTMESSAGE command triggers model.send(); the resulting full message must
+        // carry everything - the original resources and all additional ones. The full message is
+        // the only one with two processes (start had A, the additional message had B).
+        CapturingSender capturing = new CapturingSender(msg -> msg.getProcesses().size() >= 2);
+        com.im.njams.sdk.communication.TestSender.setSenderMock(capturing);
+        try {
+            njams.model().send(); // exactly what the SEND_PROJECTMESSAGE command invokes
+            com.faizsiegeln.njams.messageformat.v4.projectmessage.ProjectMessage sent =
+                capturing.awaitProjectMessage();
+            assertNotNull(sent);
+            assertEquals(2, sent.getProcesses().size());
+            assertTrue(sent.getGlobalVariables().containsKey("orig"));
+            assertTrue(sent.getGlobalVariables().containsKey("extra"));
+            assertTrue(sent.getImages().containsKey("orig.image"));
+            assertTrue(sent.getImages().containsKey("extra.image"));
+        } finally {
+            com.im.njams.sdk.communication.TestSender.setSenderMock(null);
+        }
+    }
+
+    @Test
+    public void additionalResourcesMessageUsesAdditionalDataEvent() throws InterruptedException {
+        njams.start();
+        com.im.njams.sdk.model.ProcessModel p = njams.model().create("EVT");
+        // The start message carries no process (EVT is created after start), so only the additional
+        // message matches this predicate - no race with the async start message.
+        CapturingSender capturing = new CapturingSender(msg -> !msg.getProcesses().isEmpty());
+        com.im.njams.sdk.communication.TestSender.setSenderMock(capturing);
+        try {
+            njams.model().additionalResources().addProcessModel(p).build();
+            com.faizsiegeln.njams.messageformat.v4.projectmessage.ProjectMessage sent =
+                capturing.awaitProjectMessage();
+            assertNotNull(sent);
+            assertEquals("additionalData", sent.getEvent());
+        } finally {
+            com.im.njams.sdk.communication.TestSender.setSenderMock(null);
+        }
+    }
+
+    @Test
+    public void fullProjectMessageKeepsDeploymentEvent() throws InterruptedException {
+        njams.model().create("FULL");
+        njams.start();
+        CapturingSender capturing = new CapturingSender(msg -> !msg.getProcesses().isEmpty());
+        com.im.njams.sdk.communication.TestSender.setSenderMock(capturing);
+        try {
+            njams.model().send();
+            com.faizsiegeln.njams.messageformat.v4.projectmessage.ProjectMessage sent =
+                capturing.awaitProjectMessage();
+            assertNotNull(sent);
+            assertEquals("deployment", sent.getEvent());
+        } finally {
+            com.im.njams.sdk.communication.TestSender.setSenderMock(null);
+        }
+    }
+
+    // --- jobs parity ---
+
+    @Test
+    public void newJobsApiMatchesLegacyBehavior() {
+        njams.start();
+        com.im.njams.sdk.model.ProcessModel model = njams.model().create("P1");
+        com.im.njams.sdk.logmessage.Job job = model.createJob();
+        assertSame(job, njams.jobs().get(job.getJobId()));
+        assertEquals(1, njams.jobs().getAll().size());
+        njams.jobs().remove(job.getJobId());
+        assertNull(njams.jobs().get(job.getJobId()));
+    }
+
+    @Test(expected = NjamsSdkRuntimeException.class)
+    public void newJobsAddBeforeStartThrows() {
+        com.im.njams.sdk.model.ProcessModel model = njams.model().create("P1");
+        model.createJob(); // createJob registers the job and requires a started instance
+    }
+
+    @Test(expected = UnsupportedOperationException.class)
+    public void getJobsIsUnmodifiable_viaFacet() {
+        njams.start();
+        njams.jobs().getAll().clear();
+    }
+
+    // --- serializers parity ---
+
+    @Test
+    public void serializerHierarchyResolution_viaFacet() {
+        final com.im.njams.sdk.serializer.Serializer<java.util.List> listSerializer =
+                (l, sizeLimit) -> new com.im.njams.sdk.serializer.SerializerResult("list", false);
+        njams.serializers().add(java.util.ArrayList.class,
+                (a, sizeLimit) -> new com.im.njams.sdk.serializer.SerializerResult(a.getClass().getSimpleName(), false));
+        njams.serializers().add(java.util.List.class, listSerializer);
+
+        // found ArrayList serializer
+        assertEquals("ArrayList", njams.serializers().serialize(new java.util.ArrayList<>()));
+        // found default string serializer
+        assertEquals("{}", njams.serializers().serialize(new HashMap<>()));
+        // found list serializer via interface hierarchy
+        assertEquals("list", njams.serializers().serialize(new java.util.LinkedList<>()));
+    }
+
+    @Test
+    public void serializeWithSizeLimitForwardsLimitToRegisteredSerializer_viaFacet() {
+        final int[] capturedLimit = { -1 };
+        njams.serializers().add(String.class, (value, sizeLimit) -> {
+            capturedLimit[0] = sizeLimit;
+            return new com.im.njams.sdk.serializer.SerializerResult(value, false);
+        });
+        assertEquals("hello", njams.serializers().serialize("hello", 7).value());
+        assertEquals(7, capturedLimit[0]);
+    }
+
+    @Test
+    public void serializeWithoutSizeLimitStillUsesMaxValue_viaFacet() {
+        final int[] capturedLimit = { -1 };
+        njams.serializers().add(String.class, (value, sizeLimit) -> {
+            capturedLimit[0] = sizeLimit;
+            return new com.im.njams.sdk.serializer.SerializerResult(value, false);
+        });
+        njams.serializers().serialize("hello");
+        assertEquals(Integer.MAX_VALUE, capturedLimit[0]);
+    }
+
+    @Test
+    public void newSerializersApiWorks() {
+        njams.serializers().add(String.class,
+                (value, sizeLimit) -> new com.im.njams.sdk.serializer.SerializerResult("X" + value, false));
+        assertEquals("Xhello", njams.serializers().serialize("hello"));
+        assertNotNull(njams.serializers().remove(String.class));
+    }
+
+    // --- commands / configuration / argos parity ---
+
+    @Test
+    public void newCommandsApiWorks() {
+        com.im.njams.sdk.communication.InstructionListener listener = instruction -> {
+        };
+        int before = njams.commands().list().size();
+        njams.commands().add(listener);
+        assertEquals(before + 1, njams.commands().list().size());
+        njams.commands().remove(listener);
+        assertEquals(before, njams.commands().list().size());
+    }
+
+    @Test
+    public void getInstructionListenersReturnsACopy_viaFacet() {
+        com.im.njams.sdk.communication.InstructionListener listener = instruction -> {
+        };
+        njams.commands().add(listener);
+        njams.commands().list().clear();
+        assertTrue(njams.commands().list().contains(listener));
+    }
+
+    @Test
+    public void newConfigurationApiWorks() {
+        assertNotNull(njams.configuration().get());
+        assertEquals(com.faizsiegeln.njams.messageformat.v4.projectmessage.LogMode.COMPLETE,
+            njams.configuration().getLogMode());
+        assertFalse(njams.configuration().isExcluded(Path.of("P1")));
+    }
+
+    @Test
+    public void isExcludedIsFalseByDefaultAndTrueForNull_viaFacet() {
+        assertFalse(njams.configuration().isExcluded(Path.of("P1")));
+        // null is not selected by the process filter -> reported as excluded
+        assertTrue(njams.configuration().isExcluded(null));
+    }
+
+    @Test
+    public void argosCollectorAddAndRemoveDoNotThrow_viaFacet() {
+        com.im.njams.sdk.argos.ArgosMultiCollector<?> collector =
+            new com.im.njams.sdk.argos.jvm.JVMCollector(
+                new com.im.njams.sdk.argos.ArgosComponent("id", "name", "container", "measurement", "type"));
+        njams.argos().add(collector);
+        njams.argos().remove(collector);
+    }
+
+    /** Same pattern as NjamsFacadeBaselineTest.CapturingSender. */
+    private static final class CapturingSender extends com.im.njams.sdk.communication.AbstractSender {
+        private final java.util.concurrent.CountDownLatch latch = new java.util.concurrent.CountDownLatch(1);
+        private final java.util.function.Predicate<
+            com.faizsiegeln.njams.messageformat.v4.projectmessage.ProjectMessage> expected;
+        private volatile com.faizsiegeln.njams.messageformat.v4.projectmessage.ProjectMessage lastProjectMessage;
+
+        CapturingSender(java.util.function.Predicate<
+            com.faizsiegeln.njams.messageformat.v4.projectmessage.ProjectMessage> expected) {
+            this.expected = expected;
+        }
+
+        @Override
+        public String getName() {
+            return "CAPTURING";
+        }
+
+        @Override
+        public void send(com.faizsiegeln.njams.messageformat.v4.common.CommonMessage msg, String clientSessionId) {
+            if (msg instanceof com.faizsiegeln.njams.messageformat.v4.projectmessage.ProjectMessage
+                && expected.test((com.faizsiegeln.njams.messageformat.v4.projectmessage.ProjectMessage) msg)) {
+                lastProjectMessage = (com.faizsiegeln.njams.messageformat.v4.projectmessage.ProjectMessage) msg;
+                latch.countDown();
+            }
+        }
+
+        com.faizsiegeln.njams.messageformat.v4.projectmessage.ProjectMessage awaitProjectMessage()
+            throws InterruptedException {
+            latch.await(5, java.util.concurrent.TimeUnit.SECONDS);
+            return lastProjectMessage;
+        }
+
+        @Override
+        protected void send(com.faizsiegeln.njams.messageformat.v4.logmessage.LogMessage msg,
+            String clientSessionId) {
+        }
+
+        @Override
+        protected void send(com.faizsiegeln.njams.messageformat.v4.projectmessage.ProjectMessage msg,
+            String clientSessionId) {
+        }
+
+        @Override
+        protected void send(com.faizsiegeln.njams.messageformat.v4.tracemessage.TraceMessage msg,
+            String clientSessionId) {
+        }
+    }
+}

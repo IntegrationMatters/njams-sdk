@@ -25,7 +25,7 @@ package com.im.njams.sdk.communication;
 
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-import static org.mockito.Matchers.any;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -35,7 +35,8 @@ import org.junit.Test;
 
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.NjamsSettings;
-import com.im.njams.sdk.common.Path;
+import com.im.njams.sdk.Path;
+import com.im.njams.sdk.communication.http.HttpSseReceiver;
 import com.im.njams.sdk.communication.jms.FailingJmsFactory;
 import com.im.njams.sdk.settings.Settings;
 
@@ -46,7 +47,7 @@ public class CommunicationFactoryTest {
     @Before
     public void setUp() {
         njams = mock(Njams.class);
-        when(njams.getClientPath()).thenReturn(new Path("test"));
+        when(njams.getClientPath()).thenReturn(Path.of("test"));
     }
 
     private Settings createSettings(String communicationType) {
@@ -57,7 +58,7 @@ public class CommunicationFactoryTest {
 
     @Test
     public void testCreateAndInit() {
-        Sender sender = mock(Sender.class);
+        AbstractSender sender = mock(AbstractSender.class);
         TestSender.setSenderMock(sender);
         CommunicationFactory factory = new CommunicationFactory(createSettings(TestSender.NAME));
         assertTrue(factory.getSender() instanceof TestSender);
@@ -70,8 +71,66 @@ public class CommunicationFactoryTest {
     }
 
     @Test
+    public void httpReceiverWithoutSharingIsAnHttpSseReceiver() {
+        Settings settings = createSettings("HTTP");
+        settings.put(NjamsSettings.PROPERTY_HTTP_BASE_URL, "http://localhost:8080/njams/");
+        CommunicationFactory factory = new CommunicationFactory(settings);
+        assertTrue(factory.getReceiver(njams) instanceof HttpSseReceiver);
+    }
+
+    @Test
+    public void httpReceiverWithSharingRequestedFallsBackToHttpSseReceiver() {
+        Settings settings = createSettings("HTTP");
+        settings.put(NjamsSettings.PROPERTY_HTTP_BASE_URL, "http://localhost:8080/njams/");
+        settings.put(NjamsSettings.PROPERTY_SHARED_COMMUNICATIONS, "true");
+        CommunicationFactory factory = new CommunicationFactory(settings);
+        assertTrue(factory.getReceiver(njams) instanceof HttpSseReceiver);
+    }
+
+    @Test
     public void testCreateFail() {
         CommunicationFactory factory = new CommunicationFactory(createSettings(FailingJmsFactory.NAME));
+        try {
+            factory.getSender();
+            fail("IllegalStateException expected");
+        } catch (IllegalStateException e) {
+        }
+        try {
+            factory.getReceiver(njams);
+            fail("IllegalStateException expected");
+        } catch (IllegalStateException e) {
+        }
+    }
+
+    @Test
+    public void communicationTypeAlternativeKeyIsAccepted() {
+        Settings settings = new Settings();
+        settings.put(NjamsSettings.PROPERTY_COMMUNICATION_TYPE, TestSender.NAME);
+
+        AbstractSender sender = mock(AbstractSender.class);
+        TestSender.setSenderMock(sender);
+        CommunicationFactory factory = new CommunicationFactory(settings);
+        assertTrue(factory.getSender() instanceof TestSender);
+
+        Receiver receiver = mock(Receiver.class);
+        TestReceiver.setReceiverMock(receiver);
+        assertTrue(factory.getReceiver(njams) instanceof TestReceiver);
+    }
+
+    @Test
+    public void primaryCommunicationKeyTakesPrecedenceOverAlternative() {
+        Settings settings = createSettings(TestSender.NAME);
+        settings.put(NjamsSettings.PROPERTY_COMMUNICATION_TYPE, FailingJmsFactory.NAME);
+
+        AbstractSender sender = mock(AbstractSender.class);
+        TestSender.setSenderMock(sender);
+        CommunicationFactory factory = new CommunicationFactory(settings);
+        assertTrue(factory.getSender() instanceof TestSender);
+    }
+
+    @Test
+    public void missingBothCommunicationKeysThrows() {
+        CommunicationFactory factory = new CommunicationFactory(new Settings());
         try {
             factory.getSender();
             fail("IllegalStateException expected");

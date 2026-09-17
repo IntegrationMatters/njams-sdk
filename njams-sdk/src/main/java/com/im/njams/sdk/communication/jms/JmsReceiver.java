@@ -30,10 +30,10 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.Properties;
 import java.util.UUID;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import javax.jms.Connection;
 import javax.jms.ConnectionFactory;
@@ -56,10 +56,11 @@ import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.NjamsSettings;
+import com.im.njams.sdk.Path;
 import com.im.njams.sdk.common.JsonSerializerFactory;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
-import com.im.njams.sdk.common.Path;
 import com.im.njams.sdk.communication.AbstractReceiver;
+import com.im.njams.sdk.settings.ClientSettings;
 import com.im.njams.sdk.communication.ConnectionStatus;
 import com.im.njams.sdk.communication.fragments.JMSChunkAssembly;
 import com.im.njams.sdk.communication.fragments.RawMessage;
@@ -84,7 +85,6 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
 
     private Connection connection = null;
     protected Session session = null;
-    private Properties properties = null;
     protected MessageConsumer consumer = null;
     private String topicName = null;
     private ObjectMapper mapper = null;
@@ -108,34 +108,39 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
     }
 
     /**
-     * Initializes this Receiver via the given Properties.
+     * Initializes this Receiver via the given settings.
      * <p>
-     * Valid properties are:
+     * Valid settings are:
      * <ul>
      * <li>{@value NjamsSettings#PROPERTY_JMS_CONNECTION_FACTORY}
      * <li>{@value NjamsSettings#PROPERTY_JMS_USERNAME}
      * <li>{@value NjamsSettings#PROPERTY_JMS_PASSWORD}
-     * <li>{@value NjamsSettings#PROPERTY_JMS_DESTINATION}
+     * <li>{@value NjamsSettings#PROPERTY_JMS_DESTINATION} (or its alternative
+     * {@value NjamsSettings#PROPERTY_JMS_DESTINATION_PREFIX})
      * <li>...
      * </ul>
      * For more look in the github FAQ of this project.
      *
-     * @param props the properties needed to init
+     * @param settings the settings needed to init
      */
     @Override
-    public void init(Properties props) {
+    // @Deprecated flags external API consumers only; internal use of Jackson factory is intentional.
+    @SuppressWarnings("deprecation")
+    public void init(ClientSettings settings) {
+        super.init(settings);
         connectionStatus = ConnectionStatus.DISCONNECTED;
         mapper = JsonSerializerFactory.getFastMapper();
-        properties = props;
-        if (StringUtils.isNotBlank(props.getProperty(NjamsSettings.PROPERTY_JMS_COMMANDS_DESTINATION))) {
-            topicName = props.getProperty(NjamsSettings.PROPERTY_JMS_COMMANDS_DESTINATION);
+        if (StringUtils.isNotBlank(settings.getProperty(NjamsSettings.PROPERTY_JMS_COMMANDS_DESTINATION))) {
+            topicName = settings.getProperty(NjamsSettings.PROPERTY_JMS_COMMANDS_DESTINATION);
         } else {
-            topicName = props.getProperty(NjamsSettings.PROPERTY_JMS_DESTINATION) + ".commands";
+            topicName = settings.getPropertyWithAlternativeKey(
+                    NjamsSettings.PROPERTY_JMS_DESTINATION, NjamsSettings.PROPERTY_JMS_DESTINATION_PREFIX)
+                    + ".commands";
         }
         useMessageselector =
-            !"false".equalsIgnoreCase(props.getProperty(NjamsSettings.PROPERTY_JMS_SUPPORTS_MESSAGE_SELECTOR));
+            !"false".equalsIgnoreCase(settings.getProperty(NjamsSettings.PROPERTY_JMS_SUPPORTS_MESSAGE_SELECTOR));
 
-        splitSupport = new SplitSupport(props, -1);
+        splitSupport = new SplitSupport(settings, -1);
     }
 
     /**
@@ -151,8 +156,8 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
         if (njamsInstances.isEmpty()) {
             return null;
         }
-        final String selector = njamsInstances.stream().map(Njams::getClientPath).map(Path::getAllPaths)
-            .flatMap(Collection::stream).map(Object::toString).sorted()
+        final String selector = njamsInstances.stream().map(Njams::getClientPath).flatMap(JmsReceiver::ancestorPathStrings)
+            .sorted()
             .collect(Collectors.joining("' OR NJAMS_RECEIVER = '", "NJAMS_RECEIVER = '", "'"));
         LOG.debug("Updated message selector: {}", selector);
         return selector;
@@ -172,9 +177,7 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
 
         final Collection<String> paths = njamsInstances.stream()
             .map(Njams::getClientPath)
-            .map(Path::getAllPaths)
-            .flatMap(Collection::stream)
-            .map(Object::toString)
+            .flatMap(JmsReceiver::ancestorPathStrings)
             .collect(Collectors.toSet());
         final Predicate<Message> filter = m -> {
             try {
@@ -203,6 +206,14 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
         return filter;
     }
 
+    private static Stream<String> ancestorPathStrings(Path path) {
+        List<String> result = new ArrayList<>();
+        for (Path p = path; !p.isRoot(); p = p.getParent()) {
+            result.add(p.toString());
+        }
+        return result.stream();
+    }
+
     /**
      * Has to provide all {@link Njams} instances that use this receiver for selecting the commands addressed to any
      * of these instances.
@@ -222,7 +233,7 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
         if (!isConnected()) {
             connectionStatus = ConnectionStatus.CONNECTING;
 
-            tryToConnect(properties);
+            tryToConnect(settings);
 
             connectionStatus = ConnectionStatus.CONNECTED;
         }
@@ -233,16 +244,16 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
      * session etc. It throws an NjamsSdkRuntimeException if any of the
      * resources throws any exception.
      *
-     * @param props the Properties that are used for connecting.
+     * @param clientSettings the settings that are used for connecting.
      */
-    private void tryToConnect(Properties props) {
-        try (final JmsFactory jmsFactory = JmsFactory.find(props)) {
+    private void tryToConnect(ClientSettings clientSettings) {
+        try (final JmsFactory jmsFactory = JmsFactory.find(clientSettings)) {
             LOG.trace("The InitialContext was created successfully.");
 
             ConnectionFactory factory = jmsFactory.createConnectionFactory();
             LOG.trace("The ConnectionFactory was created successfully.");
 
-            connection = createConnection(props, factory);
+            connection = createConnection(clientSettings, factory);
             LOG.trace("The Connection was created successfully.");
 
             session = createSession(connection);
@@ -265,23 +276,23 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
     }
 
     /**
-     * This method creates a connection out of the properties and the factory.
+     * This method creates a connection out of the settings and the factory.
      * It established a secure connection with JmsConstants.USERNAME and
      * NjamsSettings.PROPERTY_JMS_PASSWORD, or if they are not provided, creates a connection
      * that uses the default username and password.
      *
-     * @param props   the properties where username and password are safed
+     * @param clientSettings the settings where username and password are stored
      * @param factory the factory where the connection will be created from.
      * @return the Connection if it can be created.
      * @throws JMSException is thrown if something is wrong with the username or
      *                      password.
      */
-    private Connection createConnection(Properties props, ConnectionFactory factory) throws JMSException {
+    private Connection createConnection(ClientSettings clientSettings, ConnectionFactory factory) throws JMSException {
         Connection con;
-        if (props.containsKey(NjamsSettings.PROPERTY_JMS_USERNAME)
-            && props.containsKey(NjamsSettings.PROPERTY_JMS_PASSWORD)) {
-            con = factory.createConnection(props.getProperty(NjamsSettings.PROPERTY_JMS_USERNAME),
-                props.getProperty(NjamsSettings.PROPERTY_JMS_PASSWORD));
+        if (clientSettings.containsKey(NjamsSettings.PROPERTY_JMS_USERNAME)
+            && clientSettings.containsKey(NjamsSettings.PROPERTY_JMS_PASSWORD)) {
+            con = factory.createConnection(clientSettings.getProperty(NjamsSettings.PROPERTY_JMS_USERNAME),
+                clientSettings.getProperty(NjamsSettings.PROPERTY_JMS_PASSWORD));
         } else {
             con = factory.createConnection();
         }

@@ -553,6 +553,8 @@ public class ConfigurationInstructionListener implements InstructionListener {
         }
         Extract extract = null;
         try {
+            // @Deprecated flags external API consumers only; internal use of Jackson factory is intentional.
+            @SuppressWarnings("deprecation")
             final ObjectMapper mapper = JsonSerializerFactory.getDefaultMapper();
             extract = mapper.readValue(extractString, Extract.class);
         } catch (final Exception e) {
@@ -671,8 +673,8 @@ public class ConfigurationInstructionListener implements InstructionListener {
         instructionSupport.setParameter(ENGINE_WIDE_RECORDING, configuration.isRecording());
         for (ProcessModel model : njams.getProcessModels()) {
             final boolean recording;
-            if (configuration.hasProcess(model.getPath())) {
-                recording = configuration.getProcess(model.getPath()).isRecording();
+            if (configuration.hasProcess(model.getPath().toLegacyPath())) {
+                recording = configuration.getProcess(model.getPath().toLegacyPath()).isRecording();
             } else {
                 recording = configuration.isRecording();
             }
@@ -681,12 +683,6 @@ public class ConfigurationInstructionListener implements InstructionListener {
     }
 
     private void record(final InstructionSupport instructionSupport) {
-        if ("true".equalsIgnoreCase(njams.getSettings().getPropertyWithDeprecationWarning(
-            NjamsSettings.PROPERTY_DISABLE_STARTDATA, NjamsSettings.OLD_DISABLE_STARTDATA))) {
-            instructionSupport.error("Collecting start-data is disabled by configuration.");
-            return;
-        }
-
         //fetch parameters
         if (instructionSupport.hasParameter(ENGINE_WIDE_RECORDING)) {
             try {

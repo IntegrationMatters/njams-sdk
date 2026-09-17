@@ -29,6 +29,17 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
+import java.net.InetAddress;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Map;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.*;
 
 public class ArgosSenderTest {
@@ -57,6 +68,30 @@ public class ArgosSenderTest {
     }
 
     @Test
+    public void initWithDeprecatedKeys() throws Exception {
+        ArgosSender sender = new ArgosSender();
+        Settings settings = new Settings();
+        // use the old .client. key names instead of the current .sdk. ones
+        settings.put("njams.client.subagent.host", "legacy-host");
+        settings.put("njams.client.subagent.port", "4711");
+        settings.put("njams.client.subagent.enabled", "true");
+
+        sender.init(settings);
+
+        // verify via reflection
+        java.lang.reflect.Field hostField = ArgosSender.class.getDeclaredField("host");
+        hostField.setAccessible(true);
+        java.lang.reflect.Field portField = ArgosSender.class.getDeclaredField("port");
+        portField.setAccessible(true);
+        java.lang.reflect.Field enabledField = ArgosSender.class.getDeclaredField("enabled");
+        enabledField.setAccessible(true);
+
+        assertEquals("legacy-host", hostField.get(sender));
+        assertEquals(4711, portField.get(sender));
+        assertTrue((Boolean) enabledField.get(sender));
+    }
+
+    @Test
     public void addCollector() throws InterruptedException {
         ArgosCollector collector = mock(ArgosCollector.class);
         ArgosComponent comp = mock(ArgosComponent.class);
@@ -70,5 +105,93 @@ public class ArgosSenderTest {
         Thread.sleep(15000);
 
         verify(collector).collectAll();
+    }
+
+    @Test
+    public void doesNotSendNullMetricElement() throws Exception {
+        ArgosSender sender = new ArgosSender();
+        DatagramSocket mockSocket = mock(DatagramSocket.class);
+        ArgosComponent component = new ArgosComponent("id", "name", "container", "measurement", "type");
+        ArgosMetric valid = new TestMetric(component);
+
+        injectSendingState(sender, mockSocket, component,
+            new TestCollector(component, Arrays.asList(valid, null)));
+
+        invokePublishData(sender);
+
+        // the null element must be skipped; only the valid metric is sent
+        verify(mockSocket, times(1)).send(any(DatagramPacket.class));
+    }
+
+    @Test
+    public void doesNotSendEmptySerializedMetric() throws Exception {
+        ArgosSender sender = new ArgosSender();
+        DatagramSocket mockSocket = mock(DatagramSocket.class);
+        ArgosComponent component = new ArgosComponent("id", "name", "container", "measurement", "type");
+        ArgosMetric valid = new TestMetric(component);
+        ArgosMetric unserializable = new ThrowingMetric(component);
+
+        injectSendingState(sender, mockSocket, component,
+            new TestCollector(component, Arrays.asList(valid, unserializable)));
+
+        invokePublishData(sender);
+
+        // the metric whose serialization yields empty data must be skipped
+        verify(mockSocket, times(1)).send(any(DatagramPacket.class));
+    }
+
+    @SuppressWarnings("unchecked")
+    private void injectSendingState(ArgosSender sender, DatagramSocket socket, ArgosComponent component,
+        ArgosMultiCollector<ArgosMetric> collector) throws Exception {
+        setField(sender, "socket", socket);
+        setField(sender, "ip", InetAddress.getByName(ADDRESS));
+        setField(sender, "port", PORT);
+        Field collectorsField = ArgosSender.class.getDeclaredField("argosCollectors");
+        collectorsField.setAccessible(true);
+        Map<ArgosComponent, ArgosMultiCollector> collectors =
+            (Map<ArgosComponent, ArgosMultiCollector>) collectorsField.get(sender);
+        collectors.put(component, collector);
+    }
+
+    private void setField(Object target, String name, Object value) throws Exception {
+        Field field = ArgosSender.class.getDeclaredField(name);
+        field.setAccessible(true);
+        field.set(target, value);
+    }
+
+    private void invokePublishData(ArgosSender sender) throws Exception {
+        Method method = ArgosSender.class.getDeclaredMethod("publishData");
+        method.setAccessible(true);
+        method.invoke(sender);
+    }
+
+    private static class TestMetric extends ArgosMetric {
+        TestMetric(ArgosComponent component) {
+            super(component);
+        }
+    }
+
+    private static class ThrowingMetric extends ArgosMetric {
+        ThrowingMetric(ArgosComponent component) {
+            super(component);
+        }
+
+        public int getBoom() {
+            throw new IllegalStateException("cannot serialize");
+        }
+    }
+
+    private static class TestCollector extends ArgosMultiCollector<ArgosMetric> {
+        private final Collection<ArgosMetric> metrics;
+
+        TestCollector(ArgosComponent component, Collection<ArgosMetric> metrics) {
+            super(component);
+            this.metrics = metrics;
+        }
+
+        @Override
+        protected Collection<ArgosMetric> createAll() {
+            return metrics;
+        }
     }
 }

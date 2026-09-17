@@ -39,30 +39,31 @@ import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.communication.jms.factory.ActiveMqSslJmsFactory;
 import com.im.njams.sdk.communication.jms.factory.JmsFactory;
 import com.im.njams.sdk.communication.jms.factory.JndiJmsFactory;
+import com.im.njams.sdk.settings.ClientSettings;
 
 public class NjamsConnectionFactoryTest {
 
-    private Properties properties;
+    private ClientSettings properties;
 
     @Before
     public void setUp() {
-        properties = new Properties();
+        properties = ClientSettings.from(new Properties());
         properties.put(NjamsSettings.PROPERTY_JMS_INITIAL_CONTEXT_FACTORY,
             "org.apache.activemq.jndi.ActiveMQInitialContextFactory");
-        properties.setProperty(NjamsSettings.PROPERTY_JMS_KEYSTORE, "keystore");
-        properties.setProperty(NjamsSettings.PROPERTY_JMS_KEYSTOREPASSWORD, "keypwd");
-        properties.setProperty(NjamsSettings.PROPERTY_JMS_KEYSTORETYPE, "keytype");
-        properties.setProperty(NjamsSettings.PROPERTY_JMS_TRUSTSTORE, "truststore");
-        properties.setProperty(NjamsSettings.PROPERTY_JMS_TRUSTSTOREPASSWORD, "trustpwd");
-        properties.setProperty(NjamsSettings.PROPERTY_JMS_TRUSTSTORETYPE, "trusttype");
-        properties.setProperty(NjamsSettings.PROPERTY_JMS_PASSWORD, "pwd");
-        properties.setProperty(NjamsSettings.PROPERTY_JMS_USERNAME, "user");
-        properties.setProperty(NjamsSettings.PROPERTY_JMS_PROVIDER_URL, "url");
+        properties.put(NjamsSettings.PROPERTY_JMS_KEYSTORE, "keystore");
+        properties.put(NjamsSettings.PROPERTY_JMS_KEYSTOREPASSWORD, "keypwd");
+        properties.put(NjamsSettings.PROPERTY_JMS_KEYSTORETYPE, "keytype");
+        properties.put(NjamsSettings.PROPERTY_JMS_TRUSTSTORE, "truststore");
+        properties.put(NjamsSettings.PROPERTY_JMS_TRUSTSTOREPASSWORD, "trustpwd");
+        properties.put(NjamsSettings.PROPERTY_JMS_TRUSTSTORETYPE, "trusttype");
+        properties.put(NjamsSettings.PROPERTY_JMS_PASSWORD, "pwd");
+        properties.put(NjamsSettings.PROPERTY_JMS_USERNAME, "user");
+        properties.put(NjamsSettings.PROPERTY_JMS_PROVIDER_URL, "url");
     }
 
     @Test
     public void testGetFactoryAMQnonJNDIwithSSL() throws Exception {
-        properties.setProperty(NjamsSettings.PROPERTY_JMS_CONNECTION_FACTORY, "ActiveMQSslConnectionFactory");
+        properties.put(NjamsSettings.PROPERTY_JMS_CONNECTION_FACTORY, "ActiveMQSslConnectionFactory");
         JmsFactory jmsFactory = JmsFactory.find(properties);
         assertTrue(jmsFactory instanceof ActiveMqSslJmsFactory);
         ConnectionFactory cnf = jmsFactory.createConnectionFactory();
@@ -82,8 +83,8 @@ public class NjamsConnectionFactoryTest {
 
     @Test
     public void testGetFactoryAMQviaJNDI() throws Exception {
-        properties.setProperty(NjamsSettings.PROPERTY_JMS_CONNECTION_FACTORY, "QueueConnectionFactory");
-        properties.setProperty(NjamsSettings.PROPERTY_JMS_INITIAL_CONTEXT_FACTORY,
+        properties.put(NjamsSettings.PROPERTY_JMS_CONNECTION_FACTORY, "QueueConnectionFactory");
+        properties.put(NjamsSettings.PROPERTY_JMS_INITIAL_CONTEXT_FACTORY,
             "org.apache.activemq.jndi.ActiveMQInitialContextFactory");
         JmsFactory jmsFactory = JmsFactory.find(properties);
         assertTrue(jmsFactory instanceof JndiJmsFactory);

@@ -41,7 +41,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.im.njams.sdk.NjamsSettings;
-import com.im.njams.sdk.utils.PropertyUtil;
+import com.im.njams.sdk.settings.ClientSettings;
 import com.im.njams.sdk.utils.StringUtils;
 
 /**
@@ -65,16 +65,25 @@ public class JndiJmsFactory implements JmsFactory {
     }
 
     @Override
-    public void init(Properties settings) throws NamingException, JMSException {
+    public void init(ClientSettings settings) throws NamingException, JMSException {
         if (context != null) {
             // assuming that config does not change
             return;
         }
-        context = new InitialContext(PropertyUtil.filterAndCut(settings, NjamsSettings.PROPERTY_JMS_PREFIX));
+        final Properties jndiProperties = new Properties();
+        settings.filteredStream(NjamsSettings.PROPERTY_JMS_PREFIX, true)
+            .forEach(e -> jndiProperties.setProperty(e.getKey(), e.getValue()));
+        context = new InitialContext(jndiProperties);
         initFactory(settings);
     }
 
-    protected void initFactory(Properties settings) throws NamingException, JMSException {
+    /**
+     * Initializes the {@link ConnectionFactory} from the JNDI context.
+     * @param settings The settings to use for initialization.
+     * @throws NamingException If a JNDI related error occurred
+     * @throws JMSException If creating a JMS object failed
+     */
+    protected void initFactory(ClientSettings settings) throws NamingException, JMSException {
         final String connectFactory = settings.getProperty(PROPERTY_JMS_CONNECTION_FACTORY);
         if (StringUtils.isNotBlank(connectFactory)) {
             factory = (ConnectionFactory) context.lookup(connectFactory);
