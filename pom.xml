@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.faizsiegeln</groupId>
     <artifactId>njams4-sdk-root</artifactId>
@@ -118,11 +119,11 @@
                         </dependency>
                     </dependencies>
                 </plugin>
-	            <plugin>
-	                <groupId>org.apache.maven.plugins</groupId>
-	                <artifactId>maven-javadoc-plugin</artifactId>
-	                <version>3.4.1</version>
-	            </plugin>                
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-javadoc-plugin</artifactId>
+                    <version>3.4.1</version>
+                </plugin>
             </plugins>
         </pluginManagement>
 
@@ -201,22 +202,22 @@
                 <artifactId>jaxb-api</artifactId>
                 <version>${jaxb-api.version}</version>
             </dependency>
-			<dependency>
-			    <groupId>jakarta.xml.bind</groupId>
-			    <artifactId>jakarta.xml.bind-api</artifactId>
-			    <version>${jakarta.xml.bind-api}</version>
-			</dependency>
+            <dependency>
+                <groupId>jakarta.xml.bind</groupId>
+                <artifactId>jakarta.xml.bind-api</artifactId>
+                <version>${jakarta.xml.bind-api}</version>
+            </dependency>
             <dependency>
                 <groupId>com.fasterxml.jackson.module</groupId>
                 <artifactId>jackson-module-jaxb-annotations</artifactId>
                 <version>${jackson.version}</version>
                 <scope>provided</scope>
             </dependency>
-    		<dependency>
-	            <groupId>com.fasterxml.jackson.module</groupId>
-	            <artifactId>jackson-module-jakarta-xmlbind-annotations</artifactId>
-	            <version>${jackson.version}</version>
-        	</dependency>            
+            <dependency>
+                <groupId>com.fasterxml.jackson.module</groupId>
+                <artifactId>jackson-module-jakarta-xmlbind-annotations</artifactId>
+                <version>${jackson.version}</version>
+            </dependency>
             <dependency>
                 <groupId>com.fasterxml.jackson.core</groupId>
                 <artifactId>jackson-annotations</artifactId>
@@ -311,7 +312,7 @@
                         <artifactId>jacoco-maven-plugin</artifactId>
                         <version>${jacoco-maven-plugin.version}</version>
                         <configuration>
-                            <excludes />
+                            <excludes/>
                         </configuration>
                         <executions>
                             <!--
@@ -433,12 +434,12 @@
         <repository>
             <id>releases</id>
             <name>Internal Releases on Nexus</name>
-            <url>http://vslnexus01:8081/repository/releases/</url>
+            <url>https://nexus.service.salesfive.io/repository/releases/</url>
         </repository>
         <snapshotRepository>
             <id>snapshots</id>
             <name>Nightly builds on Nexus</name>
-            <url>http://vslnexus01:8081/repository/snapshots/</url>
+            <url>https://nexus.service.salesfive.io/repository/snapshots/</url>
         </snapshotRepository>
     </distributionManagement>
 
