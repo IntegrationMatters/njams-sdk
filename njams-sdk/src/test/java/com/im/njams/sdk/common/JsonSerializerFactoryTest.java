@@ -24,6 +24,7 @@
 package com.im.njams.sdk.common;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.spy;
@@ -80,6 +81,21 @@ public class JsonSerializerFactoryTest {
 
         verify(converter, times(1)).serialize(any(LocalDateTime.class));
         verify(converter, times(1)).deserialize(any(String.class));
+    }
+
+    public static class NullableFieldTestClass {
+        public String value = "present";
+        public String missing = null;
+    }
+
+    @Test
+    public void testFastMapperIsCompactAndSkipsNullValues() throws IOException {
+        NullableFieldTestClass test = new NullableFieldTestClass();
+        String s = JsonSerializerFactory.getFastMapper().writeValueAsString(test);
+        System.out.println(s);
+
+        assertFalse("getFastMapper() must not pretty-print, per its own Javadoc", s.contains("\n"));
+        assertFalse("getFastMapper() must skip null-valued properties", s.contains("missing"));
     }
 
 }
