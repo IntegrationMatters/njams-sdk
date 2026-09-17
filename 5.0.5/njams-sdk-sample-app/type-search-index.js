@@ -1,1 +1,0 @@
-typeSearchIndex = [{"l":"All Classes","url":"allclasses-index.html"},{"p":"com.im.sdk.njams.sample","l":"JAXRSConfiguration"},{"p":"com.im.sdk.njams.sample","l":"LogMessageResource"},{"p":"com.im.sdk.njams.sample","l":"NjamsStartup"}]
