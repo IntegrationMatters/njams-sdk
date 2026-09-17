@@ -12,7 +12,7 @@ node('master') {
     def buildGoal
     def scmInfo
     def mvnHome
-    env.JAVA_HOME = tool 'openJDK-11.0.2'
+    env.JAVA_HOME = tool 'openJDK-11.0.20'
     def nodeHome = tool name: 'NodeJS 6.9.1', type: 'jenkins.plugins.nodejs.tools.NodeJSInstallation'
     env.PATH = "${nodeHome}/bin:${env.PATH}"
 
@@ -45,11 +45,11 @@ node('master') {
                 junit 'target/surefire-reports/*.xml'
                 junit allowEmptyResults: true, testResults: 'target/failsafe-reports/*.xml'
             }
-			/*
+            /*
             withSonarQubeEnv('sonar') {
                 sh "'${mvnHome}/bin/mvn' org.sonarsource.scanner.maven:sonar-maven-plugin:3.2:sonar"
             }
-			*/
+            */
             archiveArtifacts 'target/*.jar'
         }
     }
