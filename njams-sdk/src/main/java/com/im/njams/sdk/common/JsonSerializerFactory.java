@@ -132,7 +132,7 @@ public class JsonSerializerFactory {
      */
     @Deprecated(since = "6.0.0", forRemoval = false)
     public static ObjectMapper getFastMapper() {
-        return getCachedMapper(true, false);
+        return getCachedMapper(false, true);
     }
 
     /**
