@@ -46,7 +46,7 @@
         <jacoco-maven-plugin.version>0.8.13</jacoco-maven-plugin.version>
 
         <!-- Dependency versions -->
-        <njams-messageformat.version>5.0.1-SNAPSHOT</njams-messageformat.version>
+        <njams-messageformat.version>5.0.1-RC1</njams-messageformat.version>
 
         <!-- Jakarta Messaging 2.0 (still javax.jms namespace, Java 8 bytecode); aligns the provided
              API with the version activemq-client brings transitively, avoiding a test-classpath clash (SDK-467). -->
