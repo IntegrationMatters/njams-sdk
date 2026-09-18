@@ -1,5 +1,50 @@
 # nJAMS SDK FAQs
 
+## What changed in 6.0
+
+This section summarizes the changes in 6.0.0 that matter to SDK users when upgrading from 5.x — actual breaking
+changes first, then deprecated API replaced by a new equivalent, then other new behavior. Settings-key additions,
+changes, deprecations, and removals are **not** repeated here — they are already fully tagged in the settings tables
+under [Which settings can I use](#which-settings-can-i-use) (`since`/`changed`/`deprecated`/`removed 6.0.0`).
+
+### Breaking changes
+
+- **Maven coordinates changed.** The groupId changed from `com.faizsiegeln` to `com.salesfive.njams`, and every
+  artifactId dropped the `4` (e.g. `njams4-sdk-root` → `njams-sdk-root`). Update your dependency declarations when
+  upgrading.
+- **Custom `Serializer<T>` implementations must migrate.** The interface's abstract method changed from
+  `serialize(T object)` returning `String` to `serialize(T object, int sizeLimit)` returning a `SerializerResult`
+  (the serialized value plus a mandatory `truncated` flag); `serialize(T object)` is now a `default` method that
+  delegates to it. Any custom serializer registered via `njams.serializers().add(...)` before 6.0.0 must implement
+  the new method.
+- **`XpathContext.getDoc()`/`setDoc(...)` signature changed** from Saxon's `net.sf.saxon.om.NodeInfo` to
+  `javax.xml.transform.Source`, since Saxon is shaded (`net.sf.saxon` → `com.im.saxon`) and `NodeInfo` is no longer
+  reachable by SDK consumers. Affects custom XPath-based data-extract implementations.
+- **`njams.sdk.discardpolicy` default changed** from `none` to `discard` — see the
+  [General SDK Settings](#general-sdk-settings) table.
+- **Default `ProcessModelLayouter` changed** to `CommonBfsModelLayouter` — see
+  [How to modify the process model view (SVG)](#how-to-modify-the-process-model-view-svg) below.
+
+### Deprecations and replacements
+
+| Deprecated                                                                                  | Replacement                                                                                     | Notes                                                                                                                                                                              |
+|-----------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Most flat methods on `Njams` (e.g. `getClientPath()`, `setProcessDiagramFactory(...)`, `addArgosCollector(...)`, `getJob(id)`, `getLogMode()`) | Facet accessors: `metadata()`, `model()`, `jobs()`, `argos()`, `replay()`, `features()`, `commands()`, `serializers()`, `configuration()` | E.g. `setProcessDiagramFactory(f)` → `model().setDiagramFactory(f)`; `addArgosCollector(c)` → `argos().add(c)`. Marked `forRemoval = true`.                                        |
+| Most flat getters/setters on `Job` (e.g. `getActivities()`, `getBusinessObject()`/`setBusinessObject(...)`, `getAttribute(name)`) | Facet accessors: `activities()`, `attributes()`, `metadata()`, `properties()`, `tracing()`        | E.g. `getActivities()` → `activities().getAll()`; `getAttribute(name)` → `attributes().get(name)`. Marked `forRemoval = true`.                                                    |
+| `com.im.njams.sdk.common.Path`                                                                | `com.im.njams.sdk.Path`                                                                           | The new type guarantees path uniqueness, immutability, and thread-safety. `Path.of(oldPath)` and `path.toLegacyPath()` exist only as temporary converters for migration — both are themselves deprecated. Replace old `Path` instances with the new type rather than converting back and forth. |
+| Settings provider/factory mechanism (`SettingsProviderFactory`, `SettingsProvider` and its built-ins, `Settings`) | `ClientSettings`, `HierarchicalSettings`                                                          | See [Migrating from the deprecated provider/factory mechanism](#migrating-from-the-deprecated-providerfactory-mechanism) below for the full mapping.                             |
+| `SimpleProcessModelLayouter`                                                                   | `CommonBfsModelLayouter` (now the default — see the breaking changes above)                       | Does not correctly handle parallel branches, multiple start activities, or groups with more than one start activity.                                                              |
+| `JsonSerializerFactory` methods that expose Jackson types (`getFastMapper()`, `getDefaultMapper()`, `createDefaultMapper(...)`, `addSerializer(...)`, `getMapper(...)`, `createDefaultWriter()`, `createWriter(...)`) | `JsonUtils` for general JSON serialization/parsing needs                                          | Jackson is shaded in the packaged jar, so these Jackson-typed signatures are no longer usable by SDK consumers. Not marked for removal.                                            |
+| `Job.flush()` / `Job.timerFlush(...)`                                                          | *(none — no supported way to force an extra flush)*                                                | See [How does the SDK control sending messages to nJAMS Server](#how-does-the-sdk-control-sending-messages-to-njams-server) below. Marked `forRemoval = true`.                    |
+
+### New guarantees since 6.0.0
+
+- **`Job`/`Activity`/`Group` thread-safety contract.** Before 6.0.0 there was no thread-safety guarantee at all for
+  these runtime classes. See [Can a single job be used from multiple threads](#can-a-single-job-be-used-from-multiple-threads) below.
+- **Bounded, backgrounded startup connection.** `Njams.start()` no longer blocks indefinitely, and the connection
+  attempt starts in the background as soon as the `Njams` instance is constructed. See
+  [What happens when the communication backend is unreachable at startup](#what-happens-when-the-communication-backend-is-unreachable-at-startup) below.
+
 ## How to provide startup settings to nJAMS
 
 nJAMS is configured at startup through a `ClientSettings` instance that you pass to the `Njams` constructor.
