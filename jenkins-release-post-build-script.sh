@@ -65,19 +65,7 @@ done
 ###########################################################
 # Handle gh-pages (JavaDoc) update for final releases only
 ###########################################################
-runGhPagesUpdate=${isFinalRelease}
-
-### >>> TEMPORARY TEST OVERRIDE - also run gh-pages update for -TEST tags; remove after verifying the fix <<<
-testReleaseRegex="^(.*)-([0-9]+\.[0-9]+\.[0-9]+)-TEST[0-9]*$"
-if [[ ${runGhPagesUpdate} != true ]] && [[ ${tagName} =~ $testReleaseRegex ]]; then
-    runGhPagesUpdate=true
-    baseName="${BASH_REMATCH[1]}"
-    version="${BASH_REMATCH[2]}"
-    echo "TEMPORARY OVERRIDE: treating test tag ${tagName} as eligible for gh-pages update (version=${version})"
-fi
-### >>> END TEMPORARY TEST OVERRIDE <<<
-
-if [[ ${runGhPagesUpdate} == true ]]; then
+if [[ ${isFinalRelease} == true ]]; then
     echo "Final release ${version}: checkout gh-pages for JavaDoc update"
     mkdir -p target/gh-pages
     git clone https://${GITHUB_TOKEN}@github.com/${owner}/${repo} --branch gh-pages --single-branch target/gh-pages
