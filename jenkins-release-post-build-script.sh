@@ -85,11 +85,11 @@ if [[ ${runGhPagesUpdate} == true ]]; then
     echo "Remove old content for ${version}"
     rm -R target/gh-pages/${version}/* 2> /dev/null
 
-    files="target/checkout/*/target/apidocs"
+    files="target/checkout/*/target/reports/apidocs"
     for f in $files
     do
         echo "Found JavaDoc in ${f}"
-        regex="target/checkout/(.*)/target/apidocs"
+        regex="target/checkout/(.*)/target/reports/apidocs"
         [[ ${f} =~ $regex ]]
         name="${BASH_REMATCH[1]}"
         echo "Name for JavaDoc is ${name}"
