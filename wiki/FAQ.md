@@ -52,9 +52,7 @@ environment equivalents — e.g. reading `njams.sdk.communication` looks up the 
 ```java
 // 1. Assemble the configuration as key/value pairs.
 Properties props = new Properties();
-props.
-
-setProperty(NjamsSettings.PROPERTY_COMMUNICATION, "HTTP");
+props.setProperty(NjamsSettings.PROPERTY_COMMUNICATION, "HTTP");
 // … further transport and SDK settings (see the tables below) …
 
 // 2. Wrap them in a ClientSettings instance.
@@ -62,9 +60,7 @@ ClientSettings settings = ClientSettings.from(props);
 
 // 3. Pass the settings to the Njams constructor and start the client.
 Njams njams = new Njams(new Path("Domain", "Deployment", "MyClient"), "1.0.0", "BW6", settings);
-njams.
-
-start();
+njams.start();
 ```
 
 ### Migrating from the deprecated provider/factory mechanism
@@ -367,9 +363,7 @@ string. Use this to restyle, reorder, or augment the generated SVG without touch
 ```java
 NjamsProcessDiagramFactory factory = new NjamsProcessDiagramFactory(njams)
     .withXslt(MyClass.class.getResourceAsStream("/my-svg-transform.xsl"));
-njams.
-
-setProcessDiagramFactory(factory);
+njams.setProcessDiagramFactory(factory);
 ```
 
 Three `withXslt()` overloads are available: `withXslt(Source)`, `withXslt(String)`, and `withXslt(InputStream)`.
@@ -389,9 +383,7 @@ public class MyDiagramFactory extends NjamsProcessDiagramFactory {
         // append custom nodes to context.getDoc()
     }
 }
-njams.
-
-setProcessDiagramFactory(new MyDiagramFactory(njams));
+njams.setProcessDiagramFactory(new MyDiagramFactory(njams));
 ```
 
 **Fine-grained drawing overrides** — `NjamsProcessDiagramFactory` also exposes `drawActivity()`, `drawGroup()`, and
