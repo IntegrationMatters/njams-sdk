@@ -5,7 +5,7 @@
 This section summarizes the changes in 6.0.0 that matter to SDK users when upgrading from 5.x — actual breaking
 changes first, then deprecated API replaced by a new equivalent, then other new behavior. Settings-key additions,
 changes, deprecations, and removals are **not** repeated here — they are already fully tagged in the settings tables
-under [Which settings can I use](#which-settings-can-i-use) (`since`/`changed`/`deprecated`/`removed 6.0.0`).
+under [Which settings can I use](#which-settings-can-i-use) (`since`/`changed`/`deprecated`/`removed 6.0.0`) below.
 
 ### Breaking changes
 
@@ -21,7 +21,7 @@ under [Which settings can I use](#which-settings-can-i-use) (`since`/`changed`/`
   `javax.xml.transform.Source`, since Saxon is shaded (`net.sf.saxon` → `com.im.saxon`) and `NodeInfo` is no longer
   reachable by SDK consumers. Affects custom XPath-based data-extract implementations.
 - **`njams.sdk.discardpolicy` default changed** from `none` to `discard` — see the
-  [General SDK Settings](#general-sdk-settings) table.
+  [General SDK Settings](#general-sdk-settings) table below.
 - **Default `ProcessModelLayouter` changed** to `CommonBfsModelLayouter` — see
   [How to modify the process model view (SVG)](#how-to-modify-the-process-model-view-svg) below.
 
@@ -44,6 +44,44 @@ under [Which settings can I use](#which-settings-can-i-use) (`since`/`changed`/`
 - **Bounded, backgrounded startup connection.** `Njams.start()` no longer blocks indefinitely, and the connection
   attempt starts in the background as soon as the `Njams` instance is constructed. See
   [What happens when the communication backend is unreachable at startup](#what-happens-when-the-communication-backend-is-unreachable-at-startup) below.
+
+## How to get started
+
+The core lifecycle of any nJAMS client built on this SDK is: define your process model(s), start the client, execute
+jobs, then stop the client on shutdown.
+
+1. Add the SDK as a dependency to your project (see [Releases](https://github.com/IntegrationMatters/njams-sdk/releases)
+   for available versions).
+2. Instantiate `Njams` with your client path, version, category, and [startup settings](#how-to-provide-startup-settings-to-njams)
+   (see below).
+3. Define a `ProcessModel` via `njams.model().create(path)`, adding `ActivityModel`s and the transitions between them.
+4. Call `njams.start()`.
+5. For each process execution, create a `Job` from the `ProcessModel`, record its activities, and call `job.end()`.
+6. Call `njams.stop()` when your application shuts down.
+
+```java
+Path clientPath = Path.of("Domain", "Deployment", "MyClient");
+Njams njams = new Njams(clientPath, "1.0.0", "MyTechnology", settings);
+
+Path processPath = clientPath.getOrCreateChild("Processes", "MyProcess");
+ProcessModel process = njams.model().create(processPath);
+ActivityModel start = process.createActivity("start", "Start", "startType");
+start.setStarter(true);
+ActivityModel end = start.transitionTo("end", "End", "endType");
+
+njams.start();
+
+Job job = process.createJob();
+job.start();
+Activity startActivity = job.activities().create(start).build();
+Activity endActivity = startActivity.stepTo(end).build();
+job.end();
+
+njams.stop();
+```
+
+See the [sample client](https://github.com/IntegrationMatters/njams-sdk/tree/master/njams-sdk-sample-client/src/main/java/com/faizsiegeln/test)
+for complete, runnable examples covering all SDK features.
 
 ## How to provide startup settings to nJAMS
 
@@ -132,7 +170,8 @@ new code should use `ClientSettings` directly.
 
 The tables below cover all settings recognized by the nJAMS SDK itself. Settings are passed to the SDK through a
 `ClientSettings` instance (see the section above) as plain key/value pairs. Each key is defined as a constant in
-`NjamsSettings`.
+`NjamsSettings`. A [full settings properties file](https://github.com/IntegrationMatters/njams-sdk/blob/master/njams-sdk-sample-client/src/main/resources/settings_full.properties),
+listing every available setting with its default value, is maintained alongside the SDK as a reference.
 
 > **Note:** nJAMS client implementations built on top of this SDK may define additional settings of their own. Consult
 > the documentation of the specific client for those.

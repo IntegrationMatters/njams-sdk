@@ -3,11 +3,13 @@
 ![GitHub all releases](https://img.shields.io/github/downloads/IntegrationMatters/njams-sdk/total)
 ![GitHub release (latest by date)](https://img.shields.io/github/v/release/Integrationmatters/njams-sdk)
 
-The nJAMS Client SDK provides implementations to connect to nJAMS Server and create messages via Java classes. It should
-be the underlying base when you try to create a nJAMS client.
+The nJAMS SDK is a Java library for instrumenting applications so they report process execution and monitoring data
+to an nJAMS Server: job and activity execution, process models, and metrics. It is the recommended foundation for
+building any nJAMS client — it handles the transport (HTTP, JMS, Kafka), message batching, and the wire format, so
+your client code doesn't have to.
 
-SDK uses the [Messageformat](https://github.com/IntegrationMatters/njams-messageformat) which contains the shared
-Message structures between client and server.
+The SDK depends on the [Messageformat](https://github.com/IntegrationMatters/njams-messageformat) project, which
+defines the shared message structures exchanged between client and server.
 
 ## JavaDoc
 
@@ -15,29 +17,16 @@ Message structures between client and server.
 * [JavaDoc nJAMS SDK sample client](https://integrationmatters.github.io/njams-sdk/index-njams-sdk-sample-client.html) -
   The newest sample JavaDocs
 
-## Getting started
-
-* [Sample](https://github.com/IntegrationMatters/njams-sdk/tree/master/njams-sdk-sample-client/src/main/java/com/faizsiegeln/test)
-    - See our sample client implementations
-* [Releases](https://github.com/IntegrationMatters/njams-sdk/releases) - Download latest SDK Release
-* Use SDK as a dependency in your Client project.
-* Instantiate Njams Object with your Client Path
-* Add images and ProcessModels to Njams
-* Start Njams and begin to create Jobs/Logmessages for a Process
-
 ## FAQ
 
-* [FAQ](https://github.com/IntegrationMatters/njams-sdk/wiki/FAQ) - Questions on how to use SDK Features
+* [FAQ](https://github.com/IntegrationMatters/njams-sdk/wiki/FAQ) - Questions on how to use SDK features, including a
+  [Getting Started guide](https://github.com/IntegrationMatters/njams-sdk/wiki/FAQ#how-to-get-started) and a summary of
+  [breaking changes and deprecations introduced in 6.0](https://github.com/IntegrationMatters/njams-sdk/wiki/FAQ#what-changed-in-60)
 
 ## Third Party Libs Licenses
 
 * [Libs](https://github.com/IntegrationMatters/njams-sdk/blob/master/njams-sdk/src/license/THIRD-PARTY.txt) - Licenses
   of third party libs
-
-## Full Settings Properties File
-
-* [settings_full.properties](https://github.com/IntegrationMatters/njams-sdk/blob/master//njams-sdk-sample-client/src/main/resources/settings_full.properties)
-    - Full Settings Properties File
 
 ## License
 
