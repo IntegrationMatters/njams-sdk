@@ -28,7 +28,16 @@ Every commit that references a ticket must include a description. The `#comment`
 
 ## Branching
 
-As of 2026-09-17, `6.0-dev` was merged into `master` (PR #45) and retired. For now, all current work is committed directly to `master`; no separate development branch exists and no merging back is required. Do not create additional branches unless explicitly requested. This is the current arrangement, not necessarily permanent — if a new development branch is introduced later, this section should be updated to name it and restore the appropriate master-sync check below.
+As of 2026-09-17, `6.0-dev` was merged into `master` (PR #45) and retired. As of 2026-09-22, `6.0.1-dev` was created
+from `master` for the 6.0.1 release line; all current work is committed directly to `6.0.1-dev`. It is a longer-lived
+branch — it stays in place until the 6.0.1 release ships, not merged back after each change. Do not create additional
+branches unless explicitly requested. The `master` branch is the stable release baseline, must never be merged into,
+and is not the target for ongoing development.
+
+**At the start of each session on a non-`master` branch, check whether `master` has commits not yet merged into the
+current branch.** Run `git fetch origin master` then `git log --oneline HEAD..origin/master`. If the list is
+non-empty, summarize what is missing and ask the user whether to merge `master` into the current branch before doing
+further work. Do not merge without confirmation. Skip the check if already done earlier in the same session.
 
 ## Pushing
 
