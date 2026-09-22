@@ -32,6 +32,7 @@ import com.im.njams.sdk.model.TransitionModel;
 import org.w3c.dom.Element;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -139,6 +140,40 @@ public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
             return;
         }
         drawRoutedTransition(context, transitionModel, route);
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * <p>Reports each routed transition's label extent, computed from the routing plan built by
+     * {@link #createSvg}. A label can extend well beyond its activities' own bounds -- most notably a
+     * purely vertical transition's fallback width, which is wider than the single column it sits in --
+     * so without this the canvas could be sized too narrow and clip the label.
+     */
+    @Override
+    protected List<double[]> getAdditionalBounds(ProcessModel processModel) {
+        Map<String, Route> plan = currentPlan.get();
+        if (plan == null) {
+            return Collections.emptyList();
+        }
+        List<double[]> bounds = new ArrayList<>();
+        for (Route route : plan.values()) {
+            double left;
+            double right;
+            if ("start".equals(route.labelAnchor)) {
+                left = route.labelX;
+                right = route.labelX + route.labelWidth;
+            } else if ("end".equals(route.labelAnchor)) {
+                left = route.labelX - route.labelWidth;
+                right = route.labelX;
+            } else {
+                left = route.labelX - route.labelWidth / 2.0;
+                right = route.labelX + route.labelWidth / 2.0;
+            }
+            bounds.add(new double[] {left, route.labelY - DEFAULT_TEXT_SIZE * DEFAULT_MAX_LABEL_LINES,
+                right, route.labelY + DEFAULT_TEXT_SIZE});
+        }
+        return bounds;
     }
 
     // --- routing -----------------------------------------------------------------------------------
@@ -574,8 +609,24 @@ public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
                 wp.add(new Point(e.scx, e.scy));
                 wp.add(new Point(e.tcx, e.tcy));
                 labelX = (e.scx + e.tcx) / 2.0;
-                labelY = (e.scy + e.tcy) / 2.0 + DEFAULT_TEXT_SIZE;
-                labelWidth = e.scy == e.tcy ? Math.abs(e.tcx - e.scx) : DEFAULT_ACTIVITY_SIZE;
+                // Actual horizontal span between the two endpoints. A purely vertical transition has
+                // none at all, so it falls back to the same column-to-column spacing assumed for a
+                // pure horizontal transition, not the far narrower activity icon size.
+                double horizontalSpan = Math.abs(e.tcx - e.scx);
+                double centerSpan = horizontalSpan > 0 ? horizontalSpan : DEFAULT_COLUMN_SPACING;
+                // The real clear gap is between the two icons' facing edges, not their (wider) centre
+                // distance -- otherwise a wrapped label happily grows into the icons on either side.
+                labelWidth = centerSpan - DEFAULT_ACTIVITY_SIZE;
+                if (horizontalSpan > 0) {
+                    labelY = (e.scy + e.tcy) / 2.0 + DEFAULT_TEXT_SIZE;
+                } else {
+                    // Purely vertical: the label lives in the same narrow gap the two activities are
+                    // spaced by, so a wrapped block must keep its last line where a single line would
+                    // sit and grow the earlier lines upward, instead of growing every line downward
+                    // into the activity below.
+                    int lineCount = Math.max(1, wrapLabel(e.transition.getName(), labelWidth).getLines().length);
+                    labelY = (e.scy + e.tcy) / 2.0 + DEFAULT_TEXT_SIZE - (lineCount - 1) * DEFAULT_TEXT_SIZE;
+                }
                 break;
             }
         }

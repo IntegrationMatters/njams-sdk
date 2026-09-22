@@ -663,6 +663,164 @@ public class PolylineProcessDiagramFactoryTest {
     }
 
     @Test
+    public void diagonalStraightTransition_labelWidthUsesActualHorizontalSpan() throws Exception {
+        // Positioned manually (bypassing the auto layouter) so X->A classifies as a "STRAIGHT" edge
+        // whose target column lies left of its source column (colT < colS) with a different row --
+        // a genuinely diagonal edge with ~500px of actual horizontal room between the two activities.
+        ProcessModel model = createProcess();
+        ActivityModel x = model.createActivity("X", "X", null);
+        ActivityModel a = model.createActivity("A", "A", null);
+        x.setStarter(true);
+        String name = "This Is A Long Transition Condition";
+        model.createTransition("X", "A").setName(name);
+        x.setX(500);
+        x.setY(0);
+        a.setX(0);
+        a.setY(300);
+
+        Njams njams = model.getNjams();
+        Document doc = parse(new PolylineProcessDiagramFactory(njams).getProcessDiagram(model));
+        String tid = transitionId(model, "X", "A");
+
+        Element poly = findTransitionPolyline(doc, tid);
+        Assert.assertNotNull("transition must be rendered as a polyline", poly);
+        Assert.assertFalse(
+            "label has ~500px of actual horizontal room and must not be truncated as if only "
+                + "the fixed default activity width were available",
+            poly.hasAttribute("nj-sdk-tooltip"));
+        Assert.assertNull("label should fit on a single line given the actual available width",
+            findText(doc, tid + "_label_2"));
+        Assert.assertEquals(name, findText(doc, tid + "_label").getTextContent());
+    }
+
+    @Test
+    public void verticalStraightTransition_labelFallsBackToColumnSpacingNotActivitySize() throws Exception {
+        // X and A share the same column (scx == tcx), so the edge has no actual horizontal extent at
+        // all: the fallback must assume the same clear gap as the default column-to-column spacing
+        // (minus the icon width on either side), not the far narrower activity icon size outright.
+        ProcessModel model = createProcess();
+        ActivityModel x = model.createActivity("X", "X", null);
+        ActivityModel a = model.createActivity("A", "A", null);
+        x.setStarter(true);
+        String name = "Continue Now";
+        model.createTransition("X", "A").setName(name);
+        x.setX(200);
+        x.setY(0);
+        a.setX(200);
+        a.setY(300);
+
+        Njams njams = model.getNjams();
+        Document doc = parse(new PolylineProcessDiagramFactory(njams).getProcessDiagram(model));
+        String tid = transitionId(model, "X", "A");
+
+        Element poly = findTransitionPolyline(doc, tid);
+        Assert.assertNotNull("transition must be rendered as a polyline", poly);
+        Assert.assertFalse(
+            "a purely vertical transition must fall back to the default column spacing, not the "
+                + "much narrower activity icon size, so a normal-length label must not be truncated",
+            poly.hasAttribute("nj-sdk-tooltip"));
+        Assert.assertNull("label should fit on a single line given the column-spacing fallback width",
+            findText(doc, tid + "_label_2"));
+        Assert.assertEquals(name, findText(doc, tid + "_label").getTextContent());
+    }
+
+    /** True if two axis-aligned boxes ([left, top, right, bottom]) overlap by more than a hairline. */
+    private static boolean boxesOverlap(double[] a, double[] b) {
+        double pad = 0.5;
+        return a[0] < b[2] - pad && a[2] > b[0] + pad && a[1] < b[3] - pad && a[3] > b[1] + pad;
+    }
+
+    /** Asserts neither label line (if present) of the given transition overlaps any activity icon. */
+    private static void assertLabelDoesNotOverlapAnyActivity(Document doc, String tid) {
+        List<double[]> boxes = activityBoxes(doc);
+        for (String suffix : new String[] {"_label", "_label_2"}) {
+            Element label = findText(doc, tid + suffix);
+            if (label == null) {
+                continue;
+            }
+            double[] lb = labelBox(label);
+            for (double[] box : boxes) {
+                Assert.assertFalse(
+                    "label line '" + label.getTextContent() + "' (" + tid + suffix + ") overlaps an activity icon",
+                    boxesOverlap(lb, box));
+            }
+        }
+    }
+
+    @Test
+    public void straightTransition_longLabelDoesNotOverlapAdjacentActivities() throws Exception {
+        // Same-row STRAIGHT edge (colT - colS < 2): the actual span used for wrapping is the distance
+        // between activity CENTRES, which is 50px (DEFAULT_ACTIVITY_SIZE) wider on each side than the
+        // real clear gap between the two icons' facing edges.
+        ProcessModel model = createProcess();
+        ActivityModel x = model.createActivity("X", "X", null);
+        ActivityModel a = model.createActivity("A", "A", null);
+        x.setStarter(true);
+        String name = "This condition determines whether the customer qualifies for automatic approval";
+        model.createTransition("X", "A").setName(name);
+        x.setX(0);
+        x.setY(0);
+        a.setX(150);
+        a.setY(0);
+
+        Njams njams = model.getNjams();
+        Document doc = parse(new PolylineProcessDiagramFactory(njams).getProcessDiagram(model));
+        String tid = transitionId(model, "X", "A");
+
+        assertLabelDoesNotOverlapAnyActivity(doc, tid);
+    }
+
+    @Test
+    public void verticalStraightTransition_wrappedLabelDoesNotOverlapLowerActivity() throws Exception {
+        // Purely vertical STRAIGHT edge: a wrapped (2-line) label must stay within the vertical gap
+        // between the two activities rather than growing straight down from a single-line offset.
+        ProcessModel model = createProcess();
+        ActivityModel x = model.createActivity("X", "X", null);
+        ActivityModel a = model.createActivity("A", "A", null);
+        x.setStarter(true);
+        String name = "This step requires manual review before proceeding further";
+        model.createTransition("X", "A").setName(name);
+        x.setX(0);
+        x.setY(0);
+        a.setX(0);
+        a.setY(100);
+
+        Njams njams = model.getNjams();
+        Document doc = parse(new PolylineProcessDiagramFactory(njams).getProcessDiagram(model));
+        String tid = transitionId(model, "X", "A");
+
+        assertLabelDoesNotOverlapAnyActivity(doc, tid);
+    }
+
+    @Test
+    public void verticalStraightTransition_canvasAccommodatesFallbackLabelWidth() throws Exception {
+        // The canvas is currently sized purely from activity positions (icon size + margin), with no
+        // regard for how wide a transition's own label is allowed to be. For an isolated vertical chain
+        // the canvas is only as wide as a single icon (~70px), while the label's own fallback width
+        // (DEFAULT_COLUMN_SPACING(150) - DEFAULT_ACTIVITY_SIZE(50) = 100px) already exceeds that -- an
+        // internal inconsistency that lets real (wider-than-estimated) glyph rendering get clipped by
+        // the SVG viewport, independent of how accurate the estimate itself is.
+        ProcessModel model = createProcess();
+        ActivityModel x = model.createActivity("X", "X", null);
+        ActivityModel a = model.createActivity("A", "A", null);
+        x.setStarter(true);
+        model.createTransition("X", "A").setName("Continue Processing");
+        x.setX(0);
+        x.setY(0);
+        a.setX(0);
+        a.setY(100);
+
+        Njams njams = model.getNjams();
+        Document doc = parse(new PolylineProcessDiagramFactory(njams).getProcessDiagram(model));
+
+        double canvasWidth = Double.parseDouble(doc.getDocumentElement().getAttribute("width"));
+        Assert.assertTrue(
+            "canvas width (" + canvasWidth + ") must be at least the label's assumed available width "
+                + "(100px), otherwise the label can render wider than the canvas and get clipped",
+            canvasWidth >= 100);
+    }
+
+    @Test
     public void parallelBranches_shareGutterButGetDistinctLanes() throws Exception {
         // X -> A (row 0) and X -> B (row 1): both leave column 0; their vertical runs must differ in x.
         ProcessModel model = createProcess();
