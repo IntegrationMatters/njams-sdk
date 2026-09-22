@@ -401,7 +401,7 @@ public class NjamsProcessDiagramFactory implements ProcessDiagramFactory {
 
         // general group sizing
         int groupX = context.getStartX() + groupModel.getX();
-        int groupY = context.getStartX() + groupModel.getY();
+        int groupY = context.getStartY() + groupModel.getY();
         int groupWidth = groupModel.getWidth();
         int groupHeight = groupModel.getHeight();
 
