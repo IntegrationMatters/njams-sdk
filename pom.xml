@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.salesfive.njams</groupId>
     <artifactId>njams-sdk-root</artifactId>
@@ -45,7 +46,7 @@
         <jacoco-maven-plugin.version>0.8.13</jacoco-maven-plugin.version>
 
         <!-- Dependency versions -->
-        <njams-messageformat.version>5.0.1-RC1</njams-messageformat.version>
+        <njams-messageformat.version>5.0.1-RC2</njams-messageformat.version>
 
         <!-- Jakarta Messaging 2.0 (still javax.jms namespace, Java 8 bytecode); aligns the provided
              API with the version activemq-client brings transitively, avoiding a test-classpath clash (SDK-467). -->
@@ -317,7 +318,7 @@
                         <artifactId>jacoco-maven-plugin</artifactId>
                         <version>${jacoco-maven-plugin.version}</version>
                         <configuration>
-                            <excludes />
+                            <excludes/>
                         </configuration>
                         <executions>
                             <!--
