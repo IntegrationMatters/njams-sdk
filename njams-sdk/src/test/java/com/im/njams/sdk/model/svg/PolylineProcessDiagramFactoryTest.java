@@ -699,4 +699,49 @@ public class PolylineProcessDiagramFactoryTest {
 
         assertNoTransitionCrossesAnyGroupBox(doc);
     }
+
+    @Test
+    public void bypassAndFanInElbow_sharingApproachGutter_useDistinctCorridors() throws Exception {
+        // X -> D -> Y is the main path; X -> Y bypasses D directly (skips its column). B and C, on
+        // two other rows, also feed into Y (fan-in). The bypass's final approach hop and the fan-in
+        // elbows' gutter both reference "the column just left of Y" using the identical formula, so
+        // without coordination they can land on the exact same x — making the bypass's last hop and
+        // an elbow's long vertical run run right on top of each other near the shared target.
+        ProcessModel model = createProcess();
+        ActivityModel x = model.createActivity("X", "X", null);
+        model.createActivity("D", "D", null);
+        model.createActivity("B", "B", null);
+        model.createActivity("C", "C", null);
+        model.createActivity("Y", "Y", null);
+        x.setStarter(true);
+        model.createTransition("X", "D");
+        model.createTransition("D", "Y");
+        model.createTransition("X", "Y").setName("skip");
+        model.createTransition("X", "B");
+        model.createTransition("B", "Y");
+        model.createTransition("X", "C");
+        model.createTransition("C", "Y");
+
+        Document doc = parse(render(model));
+
+        Element bypass = findTransitionPolyline(doc, transitionId(model, "X", "Y"));
+        Element elbowB = findTransitionPolyline(doc, transitionId(model, "B", "Y"));
+        Element elbowC = findTransitionPolyline(doc, transitionId(model, "C", "Y"));
+        Assert.assertNotNull("bypass X->Y must be routed", bypass);
+        Assert.assertNotNull("elbow B->Y must be routed", elbowB);
+        Assert.assertNotNull("elbow C->Y must be routed", elbowC);
+
+        // The bypass's final vertical hop into the target is its second-to-last waypoint's x.
+        double bypassApproachX = points(bypass).get(points(bypass).size() - 2)[0];
+        // An elbow's gutter x is its second waypoint (after the exit-from-source hop).
+        double elbowBGutterX = points(elbowB).get(1)[0];
+        double elbowCGutterX = points(elbowC).get(1)[0];
+
+        Assert.assertTrue("bypass approach corridor must not coincide with elbow B's gutter",
+            Math.abs(bypassApproachX - elbowBGutterX) > 0.01);
+        Assert.assertTrue("bypass approach corridor must not coincide with elbow C's gutter",
+            Math.abs(bypassApproachX - elbowCGutterX) > 0.01);
+        Assert.assertTrue("fan-in elbows sharing a gutter must still use distinct lanes",
+            Math.abs(elbowBGutterX - elbowCGutterX) > 0.01);
+    }
 }

@@ -34,10 +34,12 @@ import org.w3c.dom.Element;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.TreeSet;
 
 /**
@@ -369,9 +371,14 @@ public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
     private void assignLanes(List<Edge> edges) {
         Map<Integer, List<Edge>> bypassByRow = new LinkedHashMap<>();
         Map<Integer, List<Edge>> elbowByGutter = new LinkedHashMap<>();
+        Set<Integer> gutterColumnsClaimedByBypass = new HashSet<>();
         for (Edge e : edges) {
             if (e.type == Type.BYPASS) {
                 bypassByRow.computeIfAbsent(e.rowS, k -> new ArrayList<>()).add(e);
+                // A bypass approaches its target through the gutter just left of the target column —
+                // the same reference gutter a fan-in elbow to the same target uses (see
+                // assignElbowGutter). Claim it so that group's lanes start one further out below.
+                gutterColumnsClaimedByBypass.add(e.colT - 1);
             } else if (e.type == Type.ELBOW) {
                 elbowByGutter.computeIfAbsent(e.gutterCol, k -> new ArrayList<>()).add(e);
             }
@@ -396,12 +403,17 @@ public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
             .thenComparingDouble((Edge e) -> e.tcy)
             .thenComparingDouble(e -> e.tcx)
             .thenComparing(e -> e.transition.getId());
-        for (List<Edge> group : elbowByGutter.values()) {
+        for (Map.Entry<Integer, List<Edge>> gutterGroup : elbowByGutter.entrySet()) {
+            List<Edge> group = gutterGroup.getValue();
             group.sort(elbowOrder);
             int n = group.size();
+            // A bypass sharing this gutter column already occupies its base corridor (lane 0) for the
+            // final hop into a common target; start the elbow group one lane further out so a fan-in
+            // elbow's gutter can never land on the exact x a bypass's approach corridor already uses.
+            int laneOffset = gutterColumnsClaimedByBypass.contains(gutterGroup.getKey()) ? 1 : 0;
             for (int i = 0; i < n; i++) {
                 Edge e = group.get(i);
-                e.lane = i;
+                e.lane = i + laneOffset;
                 // Stagger direction must follow the elbow's travel direction so the staggered exit/entry
                 // y stays strictly between scy and tcy, keeping the vertical segment clear of any
                 // straight edge from the same source (or to the same target) at y=scy (or y=tcy).
