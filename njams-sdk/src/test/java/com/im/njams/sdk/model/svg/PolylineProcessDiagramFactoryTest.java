@@ -697,6 +697,11 @@ public class PolylineProcessDiagramFactoryTest {
 
         Document doc = parse(render(model));
 
+        Element bypassPolyline = findTransitionPolyline(doc, transitionId(model, "A", "B"));
+        Assert.assertNotNull("bypass A->B must be routed as a polyline, not fall back to a straight line",
+            bypassPolyline);
+        Assert.assertEquals("a routed BYPASS transition should have 6 waypoints", 6,
+            points(bypassPolyline).size());
         assertNoTransitionCrossesAnyGroupBox(doc);
     }
 
@@ -738,10 +743,10 @@ public class PolylineProcessDiagramFactoryTest {
         double elbowCGutterX = points(elbowC).get(1)[0];
 
         Assert.assertTrue("bypass approach corridor must not coincide with elbow B's gutter",
-            Math.abs(bypassApproachX - elbowBGutterX) > 0.01);
+            Math.abs(bypassApproachX - elbowBGutterX) > 7.0);
         Assert.assertTrue("bypass approach corridor must not coincide with elbow C's gutter",
-            Math.abs(bypassApproachX - elbowCGutterX) > 0.01);
+            Math.abs(bypassApproachX - elbowCGutterX) > 7.0);
         Assert.assertTrue("fan-in elbows sharing a gutter must still use distinct lanes",
-            Math.abs(elbowBGutterX - elbowCGutterX) > 0.01);
+            Math.abs(elbowBGutterX - elbowCGutterX) > 7.0);
     }
 }

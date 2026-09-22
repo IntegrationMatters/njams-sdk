@@ -211,7 +211,7 @@ public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
             e.sourceFanOut = outDegree.getOrDefault(t.getFromActivity().getId(), 0) > 1;
             e.targetFanIn = inDegree.getOrDefault(t.getToActivity().getId(), 0) > 1;
             if (e.type == Type.ELBOW) {
-                assignElbowGutter(e, sortedX);
+                assignElbowGutter(e, siblings);
             }
             edges.add(e);
         }
@@ -266,7 +266,7 @@ public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
                 : srcRight + (DEFAULT_COLUMN_SPACING - DEFAULT_ACTIVITY_SIZE) / 2.0;
             ActivityModel prevSibling = prevColumn(to.getX(), siblings);
             e.approachX = prevSibling != null
-                ? (prevSibling.getX() + widthOf(prevSibling) + to.getX()) / 2.0
+                ? (prevSibling.getX() + widthAtColumn(prevSibling.getX(), siblings) + to.getX()) / 2.0
                 : to.getX() - (DEFAULT_COLUMN_SPACING - DEFAULT_ACTIVITY_SIZE) / 2.0;
         } else {
             e.type = Type.ELBOW;
@@ -329,11 +329,22 @@ public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
         return activity instanceof GroupModel ? ((GroupModel) activity).getWidth() : DEFAULT_ACTIVITY_SIZE;
     }
 
+    /** The widest sibling occupying column {@code x} — mirrors {@link #rowBottom} maxing heights over a row. */
+    private static int widthAtColumn(int x, List<ActivityModel> siblings) {
+        int width = DEFAULT_ACTIVITY_SIZE;
+        for (ActivityModel sibling : siblings) {
+            if (sibling.getX() == x) {
+                width = Math.max(width, widthOf(sibling));
+            }
+        }
+        return width;
+    }
+
     /**
      * Whether some sibling sits strictly between {@code fromX} and {@code toX} on {@code rowY} — used to
      * detect an obstacle (e.g. a bypassed group) that has no transition of its own surviving into this
      * container's transition-derived coordinate grid, and so would otherwise be invisible to the
-     * STRAIGHT/BYPASS classification below.
+     * STRAIGHT/BYPASS classification above.
      */
     private static boolean hasSiblingBetween(int fromX, int toX, int rowY, List<ActivityModel> siblings) {
         for (ActivityModel sibling : siblings) {
@@ -349,19 +360,24 @@ public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
      * a fan-out exits on the source's right and runs in the gutter just right of the source column, so
      * each branch turns early. A pure fan-in instead runs along the (free) source row and bends in the
      * gutter just left of the target column, so a long join only turns towards the target at the end
-     * and does not cut back across intermediate nodes on the target's row.
+     * and does not cut back across intermediate nodes on the target's row. The gutter geometry is found
+     * from the actual sibling activities (obstacle-aware, see {@link #nextColumn}/{@link #prevColumn}),
+     * not from a transition-derived column list, so a group that is the sole occupant of its column is
+     * still cleared correctly.
      */
-    private void assignElbowGutter(Edge e, List<Integer> sortedX) {
+    private void assignElbowGutter(Edge e, List<ActivityModel> siblings) {
         if (e.targetFanIn && !e.sourceFanOut) {
             double targetLeft = e.tcx - DEFAULT_HALF_ACTIVITY_SIZE;
-            e.laneBase = e.colT - 1 >= 0
-                ? (sortedX.get(e.colT - 1) + DEFAULT_ACTIVITY_SIZE + targetLeft) / 2.0
+            ActivityModel prevSibling = prevColumn((int) targetLeft, siblings);
+            e.laneBase = prevSibling != null
+                ? (prevSibling.getX() + widthAtColumn(prevSibling.getX(), siblings) + targetLeft) / 2.0
                 : targetLeft - (DEFAULT_COLUMN_SPACING - DEFAULT_ACTIVITY_SIZE) / 2.0;
             e.gutterCol = e.colT - 1;
         } else {
             double sourceRight = e.scx + DEFAULT_HALF_ACTIVITY_SIZE;
-            e.laneBase = e.colS + 1 < sortedX.size()
-                ? (sourceRight + sortedX.get(e.colS + 1)) / 2.0
+            ActivityModel nextSibling = nextColumn((int) (e.scx - DEFAULT_HALF_ACTIVITY_SIZE), siblings);
+            e.laneBase = nextSibling != null
+                ? (sourceRight + nextSibling.getX()) / 2.0
                 : sourceRight + (DEFAULT_COLUMN_SPACING - DEFAULT_ACTIVITY_SIZE) / 2.0;
             e.gutterCol = e.colS;
         }
