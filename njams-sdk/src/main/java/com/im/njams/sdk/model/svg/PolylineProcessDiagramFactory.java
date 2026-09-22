@@ -162,14 +162,26 @@ public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
                 groupTransitions.computeIfAbsent(pf, k -> new ArrayList<>()).add(t);
             }
         }
-        routeContainer(rootTransitions, routes);
-        for (List<TransitionModel> transitions : groupTransitions.values()) {
-            routeContainer(transitions, routes);
+        routeContainer(rootTransitions, rootSiblings(processModel), routes);
+        for (Map.Entry<GroupModel, List<TransitionModel>> entry : groupTransitions.entrySet()) {
+            routeContainer(entry.getValue(), entry.getKey().getChildActivities(), routes);
         }
         return routes;
     }
 
-    private void routeContainer(List<TransitionModel> transitions, Map<String, Route> routes) {
+    /** Top-level activities of the process model — the obstacles a root-level edge must clear. */
+    private static List<ActivityModel> rootSiblings(ProcessModel processModel) {
+        List<ActivityModel> siblings = new ArrayList<>();
+        for (ActivityModel a : processModel.getActivityModels()) {
+            if (a.getParent() == null) {
+                siblings.add(a);
+            }
+        }
+        return siblings;
+    }
+
+    private void routeContainer(List<TransitionModel> transitions, List<ActivityModel> siblings,
+        Map<String, Route> routes) {
         if (transitions.isEmpty()) {
             return;
         }
@@ -193,7 +205,7 @@ public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
 
         List<Edge> edges = new ArrayList<>();
         for (TransitionModel t : transitions) {
-            Edge e = classify(t, sortedX, sortedY);
+            Edge e = classify(t, sortedX, sortedY, siblings);
             e.sourceFanOut = outDegree.getOrDefault(t.getFromActivity().getId(), 0) > 1;
             e.targetFanIn = inDegree.getOrDefault(t.getToActivity().getId(), 0) > 1;
             if (e.type == Type.ELBOW) {
@@ -207,7 +219,8 @@ public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
         }
     }
 
-    private Edge classify(TransitionModel t, List<Integer> sortedX, List<Integer> sortedY) {
+    private Edge classify(TransitionModel t, List<Integer> sortedX, List<Integer> sortedY,
+        List<ActivityModel> siblings) {
         Edge e = new Edge();
         e.transition = t;
         ActivityModel from = t.getFromActivity();
@@ -224,25 +237,34 @@ public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
         e.colS = colS;
         e.colT = colT;
 
-        if (colS == colT || colT < colS || (rowS == rowT && Math.abs(colT - colS) < 2)) {
+        boolean obstacleBetween = rowS == rowT && colT > colS
+            && hasSiblingBetween(from.getX(), to.getX(), from.getY(), siblings);
+        if (colS == colT || colT < colS || (rowS == rowT && !obstacleBetween && Math.abs(colT - colS) < 2)) {
             e.type = Type.STRAIGHT;
         } else if (rowS == rowT) {
             e.type = Type.BYPASS;
-            // Channel below the row, kept clear of the label text drawn beneath the icons.
-            double rowBottom = from.getY() + DEFAULT_ACTIVITY_SIZE;
+            // Channel below the row, kept clear both of the label text drawn beneath the icons and of
+            // any sibling in this row that is taller than a plain activity (e.g. a group box).
+            double bottom = rowBottom(from.getY(), siblings);
             double labelClear = from.getY() + DEFAULT_ACTIVITY_SIZE + LABEL_CLEARANCE;
             double mid = rowS + 1 < sortedY.size()
-                ? (rowBottom + sortedY.get(rowS + 1)) / 2.0
-                : rowBottom + (DEFAULT_ROW_SPACING - DEFAULT_ACTIVITY_SIZE) / 2.0;
+                ? (bottom + sortedY.get(rowS + 1)) / 2.0
+                : bottom + (DEFAULT_ROW_SPACING - DEFAULT_ACTIVITY_SIZE) / 2.0;
             e.laneBase = Math.max(mid, labelClear);
             // Leave the source on its right and re-enter the target from the left, through the
-            // gutters between columns, so neither end crosses the label below an icon.
+            // gutters between columns, so neither end crosses the label below an icon. The neighbor
+            // columns are found from the actual sibling activities (obstacle-aware), not from
+            // sortedX — sortedX is derived only from this container's transitions and is blind to an
+            // intermediate activity (e.g. a bypassed group) that has no transition surviving into this
+            // container's coordinate grid.
             double srcRight = from.getX() + DEFAULT_ACTIVITY_SIZE;
-            e.exitX = colS + 1 < sortedX.size()
-                ? (srcRight + sortedX.get(colS + 1)) / 2.0
+            ActivityModel nextSibling = nextColumn(from.getX(), siblings);
+            e.exitX = nextSibling != null
+                ? (srcRight + nextSibling.getX()) / 2.0
                 : srcRight + (DEFAULT_COLUMN_SPACING - DEFAULT_ACTIVITY_SIZE) / 2.0;
-            e.approachX = colT - 1 >= 0
-                ? (sortedX.get(colT - 1) + DEFAULT_ACTIVITY_SIZE + to.getX()) / 2.0
+            ActivityModel prevSibling = prevColumn(to.getX(), siblings);
+            e.approachX = prevSibling != null
+                ? (prevSibling.getX() + widthOf(prevSibling) + to.getX()) / 2.0
                 : to.getX() - (DEFAULT_COLUMN_SPACING - DEFAULT_ACTIVITY_SIZE) / 2.0;
         } else {
             e.type = Type.ELBOW;
@@ -250,6 +272,74 @@ public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
             // once the fan-out / fan-in flags are known.
         }
         return e;
+    }
+
+    /**
+     * The lowest y a bypass channel in this row may safely start from: the bottom edge of the tallest
+     * sibling activity whose top sits exactly at {@code rowY} — a plain activity's bottom by default,
+     * or a group's actual (dynamic) bottom edge when a group occupies that row.
+     */
+    private static double rowBottom(int rowY, List<ActivityModel> siblings) {
+        double bottom = rowY + DEFAULT_ACTIVITY_SIZE;
+        for (ActivityModel sibling : siblings) {
+            if (sibling.getY() == rowY) {
+                double siblingBottom = sibling.getY() + heightOf(sibling);
+                if (siblingBottom > bottom) {
+                    bottom = siblingBottom;
+                }
+            }
+        }
+        return bottom;
+    }
+
+    private static int heightOf(ActivityModel activity) {
+        return activity instanceof GroupModel ? ((GroupModel) activity).getHeight() : DEFAULT_ACTIVITY_SIZE;
+    }
+
+    /**
+     * The nearest sibling column strictly to the right of {@code fromX} — the obstacle-aware replacement
+     * for "the next entry in the transition-derived column list", which is blind to any intermediate
+     * activity (e.g. a bypassed group) that has no transition surviving into this container's coordinate
+     * grid. Returns {@code null} when {@code fromX} is the rightmost column.
+     */
+    private static ActivityModel nextColumn(int fromX, List<ActivityModel> siblings) {
+        ActivityModel next = null;
+        for (ActivityModel sibling : siblings) {
+            if (sibling.getX() > fromX && (next == null || sibling.getX() < next.getX())) {
+                next = sibling;
+            }
+        }
+        return next;
+    }
+
+    /** The nearest sibling column strictly to the left of {@code toX} — see {@link #nextColumn}. */
+    private static ActivityModel prevColumn(int toX, List<ActivityModel> siblings) {
+        ActivityModel prev = null;
+        for (ActivityModel sibling : siblings) {
+            if (sibling.getX() < toX && (prev == null || sibling.getX() > prev.getX())) {
+                prev = sibling;
+            }
+        }
+        return prev;
+    }
+
+    private static int widthOf(ActivityModel activity) {
+        return activity instanceof GroupModel ? ((GroupModel) activity).getWidth() : DEFAULT_ACTIVITY_SIZE;
+    }
+
+    /**
+     * Whether some sibling sits strictly between {@code fromX} and {@code toX} on {@code rowY} — used to
+     * detect an obstacle (e.g. a bypassed group) that has no transition of its own surviving into this
+     * container's transition-derived coordinate grid, and so would otherwise be invisible to the
+     * STRAIGHT/BYPASS classification below.
+     */
+    private static boolean hasSiblingBetween(int fromX, int toX, int rowY, List<ActivityModel> siblings) {
+        for (ActivityModel sibling : siblings) {
+            if (sibling.getY() == rowY && sibling.getX() > fromX && sibling.getX() < toX) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**

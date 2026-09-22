@@ -11,6 +11,7 @@ import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.Path;
 import com.im.njams.sdk.communication.TestSender;
 import com.im.njams.sdk.model.ActivityModel;
+import com.im.njams.sdk.model.GroupModel;
 import com.im.njams.sdk.model.ProcessModel;
 import com.im.njams.sdk.model.TransitionModel;
 import com.im.njams.sdk.model.layout.CommonBfsModelLayouter;
@@ -62,6 +63,54 @@ public class PolylineProcessDiagramFactoryTest {
             boxes.add(new double[] {x, y, x + w, y + Double.parseDouble(e.getAttribute("height"))});
         }
         return boxes;
+    }
+
+    /** Bounding boxes of group containers (header + child area combined), in SVG coordinates. */
+    private static List<double[]> groupBoxes(Document doc) {
+        List<double[]> boxes = new ArrayList<>();
+        NodeList groups = doc.getElementsByTagNameNS(SVG_NS, "g");
+        for (int i = 0; i < groups.getLength(); i++) {
+            Element g = (Element) groups.item(i);
+            if (!g.hasAttribute("modelId") || !g.getAttribute("id").startsWith("group_")) {
+                continue;
+            }
+            Double left = null;
+            Double top = null;
+            Double right = null;
+            Double bottom = null;
+            NodeList rects = g.getElementsByTagNameNS(SVG_NS, "rect");
+            for (int r = 0; r < rects.getLength(); r++) {
+                Element rect = (Element) rects.item(r);
+                double x = Double.parseDouble(rect.getAttribute("x"));
+                double y = Double.parseDouble(rect.getAttribute("y"));
+                double w = Double.parseDouble(rect.getAttribute("width"));
+                double h = Double.parseDouble(rect.getAttribute("height"));
+                left = left == null ? x : Math.min(left, x);
+                top = top == null ? y : Math.min(top, y);
+                right = right == null ? x + w : Math.max(right, x + w);
+                bottom = bottom == null ? y + h : Math.max(bottom, y + h);
+            }
+            if (left != null) {
+                boxes.add(new double[] {left, top, right, bottom});
+            }
+        }
+        return boxes;
+    }
+
+    private static void assertNoTransitionCrossesAnyGroupBox(Document doc) {
+        List<double[]> boxes = groupBoxes(doc);
+        Assert.assertFalse("expected at least one group box in this diagram", boxes.isEmpty());
+        for (Element poly : transitionPolylines(doc)) {
+            List<double[]> pts = points(poly);
+            for (int i = 0; i + 1 < pts.size(); i++) {
+                for (double[] box : boxes) {
+                    Assert.assertFalse(
+                        "Transition '" + poly.getAttribute("modelId") + "' segment " + i
+                            + " crosses a group box",
+                        segmentIntersectsRect(pts.get(i), pts.get(i + 1), box));
+                }
+            }
+        }
     }
 
     /** Transition polylines (those carrying a modelId), as point lists. */
@@ -626,5 +675,28 @@ public class PolylineProcessDiagramFactoryTest {
 
         Document doc = parse(render(model));
         assertNoTransitionCrossesAnyActivity(doc);
+    }
+
+    @Test
+    public void bypass_avoidsGroupBoxTallerThanPlainActivity() throws Exception {
+        // A -> G (a group containing one child H) -> B is the main chain; A -> B bypasses G directly,
+        // skipping its column. A group's minimum height (header + padding + one child row = 120) is
+        // far taller than a plain activity (50), so a channel computed only from a plain activity's
+        // height would cut straight through it.
+        ProcessModel model = createProcess();
+        ActivityModel a = model.createActivity("A", "A", null);
+        GroupModel g = model.createGroup("G", "G", null);
+        model.createActivity("B", "B", null);
+        a.setStarter(true);
+        model.createTransition("A", "G");
+        ActivityModel h = g.createChildActivity("H", "H", null);
+        h.setStarter(true);
+        model.createTransition("G", "B");
+        TransitionModel bypass = model.createTransition("A", "B");
+        bypass.setName("skip");
+
+        Document doc = parse(render(model));
+
+        assertNoTransitionCrossesAnyGroupBox(doc);
     }
 }
