@@ -211,7 +211,7 @@ public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
             e.sourceFanOut = outDegree.getOrDefault(t.getFromActivity().getId(), 0) > 1;
             e.targetFanIn = inDegree.getOrDefault(t.getToActivity().getId(), 0) > 1;
             if (e.type == Type.ELBOW) {
-                assignElbowGutter(e, siblings);
+                assignElbowGutter(e, siblings, sortedY);
             }
             edges.add(e);
         }
@@ -247,23 +247,14 @@ public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
             e.type = Type.BYPASS;
             // Channel below the row, kept clear both of the label text drawn beneath the icons and of
             // any sibling in this row that is taller than a plain activity (e.g. a group box).
-            double bottom = rowBottom(from.getY(), siblings);
-            double labelClear = from.getY() + DEFAULT_ACTIVITY_SIZE + LABEL_CLEARANCE;
-            double mid = rowS + 1 < sortedY.size()
-                ? (bottom + sortedY.get(rowS + 1)) / 2.0
-                : bottom + (DEFAULT_ROW_SPACING - DEFAULT_ACTIVITY_SIZE) / 2.0;
-            e.laneBase = Math.max(mid, labelClear);
+            e.laneBase = channelY(from.getY(), rowS, sortedY, siblings);
             // Leave the source on its right and re-enter the target from the left, through the
             // gutters between columns, so neither end crosses the label below an icon. The neighbor
             // columns are found from the actual sibling activities (obstacle-aware), not from
             // sortedX — sortedX is derived only from this container's transitions and is blind to an
             // intermediate activity (e.g. a bypassed group) that has no transition surviving into this
             // container's coordinate grid.
-            double srcRight = from.getX() + DEFAULT_ACTIVITY_SIZE;
-            ActivityModel nextSibling = nextColumn(from.getX(), siblings);
-            e.exitX = nextSibling != null
-                ? (srcRight + nextSibling.getX()) / 2.0
-                : srcRight + (DEFAULT_COLUMN_SPACING - DEFAULT_ACTIVITY_SIZE) / 2.0;
+            e.exitX = exitCorridorX(from.getX(), siblings);
             ActivityModel prevSibling = prevColumn(to.getX(), siblings);
             e.approachX = prevSibling != null
                 ? (prevSibling.getX() + widthAtColumn(prevSibling.getX(), siblings) + to.getX()) / 2.0
@@ -296,6 +287,29 @@ public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
 
     private static int heightOf(ActivityModel activity) {
         return activity instanceof GroupModel ? ((GroupModel) activity).getHeight() : DEFAULT_ACTIVITY_SIZE;
+    }
+
+    /**
+     * The channel y a same-row detour (a BYPASS's mid-row run, or a fan-in ELBOW's obstacle detour,
+     * see {@link #assignElbowGutter}) may use below {@code rowY}: the midpoint of the gap to the next
+     * row, or clear of the label text under {@code rowY}'s icons, whichever is lower.
+     */
+    private static double channelY(int rowY, int rowIndex, List<Integer> sortedY, List<ActivityModel> siblings) {
+        double bottom = rowBottom(rowY, siblings);
+        double labelClear = rowY + DEFAULT_ACTIVITY_SIZE + LABEL_CLEARANCE;
+        double mid = rowIndex + 1 < sortedY.size()
+            ? (bottom + sortedY.get(rowIndex + 1)) / 2.0
+            : bottom + (DEFAULT_ROW_SPACING - DEFAULT_ACTIVITY_SIZE) / 2.0;
+        return Math.max(mid, labelClear);
+    }
+
+    /** The x just past {@code fromX}'s activity, before the next sibling column — see {@link #nextColumn}. */
+    private static double exitCorridorX(int fromX, List<ActivityModel> siblings) {
+        double srcRight = fromX + DEFAULT_ACTIVITY_SIZE;
+        ActivityModel nextSibling = nextColumn(fromX, siblings);
+        return nextSibling != null
+            ? (srcRight + nextSibling.getX()) / 2.0
+            : srcRight + (DEFAULT_COLUMN_SPACING - DEFAULT_ACTIVITY_SIZE) / 2.0;
     }
 
     /**
@@ -341,10 +355,11 @@ public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
     }
 
     /**
-     * Whether some sibling sits strictly between {@code fromX} and {@code toX} on {@code rowY} — used to
+     * Whether some sibling sits strictly between {@code fromX} and {@code toX} on {@code rowY}. Used to
      * detect an obstacle (e.g. a bypassed group) that has no transition of its own surviving into this
      * container's transition-derived coordinate grid, and so would otherwise be invisible to the
-     * STRAIGHT/BYPASS classification above.
+     * STRAIGHT/BYPASS classification above; and, in {@link #assignElbowGutter}, to detect a sibling
+     * that a fan-in elbow's source-row exit run would otherwise cross.
      */
     private static boolean hasSiblingBetween(int fromX, int toX, int rowY, List<ActivityModel> siblings) {
         for (ActivityModel sibling : siblings) {
@@ -363,9 +378,12 @@ public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
      * and does not cut back across intermediate nodes on the target's row. The gutter geometry is found
      * from the actual sibling activities (obstacle-aware, see {@link #nextColumn}/{@link #prevColumn}),
      * not from a transition-derived column list, so a group that is the sole occupant of its column is
-     * still cleared correctly.
+     * still cleared correctly. When a fan-in's long source-row run would itself pass over another
+     * sibling sitting in that row between the source and the gutter — a distant branch that happens to
+     * land on the same row, see {@link #hasSiblingBetween} — the run is routed through the row's
+     * below-row channel instead (like a {@link Type#BYPASS}) so it clears that sibling and its edges.
      */
-    private void assignElbowGutter(Edge e, List<ActivityModel> siblings) {
+    private void assignElbowGutter(Edge e, List<ActivityModel> siblings, List<Integer> sortedY) {
         if (e.targetFanIn && !e.sourceFanOut) {
             double targetLeft = e.tcx - DEFAULT_HALF_ACTIVITY_SIZE;
             ActivityModel prevSibling = prevColumn((int) targetLeft, siblings);
@@ -373,6 +391,13 @@ public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
                 ? (prevSibling.getX() + widthAtColumn(prevSibling.getX(), siblings) + targetLeft) / 2.0
                 : targetLeft - (DEFAULT_COLUMN_SPACING - DEFAULT_ACTIVITY_SIZE) / 2.0;
             e.gutterCol = e.colT - 1;
+            int fromX = (int) (e.scx - DEFAULT_HALF_ACTIVITY_SIZE);
+            int fromY = (int) (e.scy - DEFAULT_HALF_ACTIVITY_SIZE);
+            e.rowDetour = hasSiblingBetween(fromX, (int) e.laneBase, fromY, siblings);
+            if (e.rowDetour) {
+                e.exitX = exitCorridorX(fromX, siblings);
+                e.channelBase = channelY(fromY, e.rowS, sortedY, siblings);
+            }
         } else {
             double sourceRight = e.scx + DEFAULT_HALF_ACTIVITY_SIZE;
             ActivityModel nextSibling = nextColumn((int) (e.scx - DEFAULT_HALF_ACTIVITY_SIZE), siblings);
@@ -387,6 +412,7 @@ public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
     private void assignLanes(List<Edge> edges) {
         Map<Integer, List<Edge>> bypassByRow = new LinkedHashMap<>();
         Map<Integer, List<Edge>> elbowByGutter = new LinkedHashMap<>();
+        Map<Integer, List<Edge>> rowDetourByRow = new LinkedHashMap<>();
         Set<Integer> gutterColumnsClaimedByBypass = new HashSet<>();
         for (Edge e : edges) {
             if (e.type == Type.BYPASS) {
@@ -397,6 +423,9 @@ public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
                 gutterColumnsClaimedByBypass.add(e.colT - 1);
             } else if (e.type == Type.ELBOW) {
                 elbowByGutter.computeIfAbsent(e.gutterCol, k -> new ArrayList<>()).add(e);
+                if (e.rowDetour) {
+                    rowDetourByRow.computeIfAbsent(e.rowS, k -> new ArrayList<>()).add(e);
+                }
             }
         }
         Comparator<Edge> bypassOrder = Comparator.comparingDouble((Edge e) -> e.tcy)
@@ -445,6 +474,18 @@ public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
                 }
             }
         }
+        // A row-detouring fan-in elbow's channel run shares its row with any bypass already routed
+        // through it (both use the same channelY/laneBase base for that row); it takes the next lane
+        // after that row's bypasses so the two mechanisms never land on the same y.
+        for (Map.Entry<Integer, List<Edge>> rowGroup : rowDetourByRow.entrySet()) {
+            List<Edge> group = rowGroup.getValue();
+            group.sort(bypassOrder);
+            List<Edge> bypassesInRow = bypassByRow.get(rowGroup.getKey());
+            int channelOffset = bypassesInRow == null ? 0 : bypassesInRow.size();
+            for (int i = 0; i < group.size(); i++) {
+                group.get(i).channelLane = i + channelOffset;
+            }
+        }
     }
 
     /**
@@ -487,10 +528,23 @@ public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
                 // target; all other elbows (fan-out or plain) stagger at the source.
                 double exitY = (e.targetFanIn && !e.sourceFanOut) ? e.scy : e.scy + e.nodeStagger;
                 double entryY = (e.targetFanIn && !e.sourceFanOut) ? e.tcy + e.nodeStagger : e.tcy;
-                wp.add(new Point(e.scx, exitY));
-                wp.add(new Point(gx, exitY));
-                wp.add(new Point(gx, entryY));
-                wp.add(new Point(e.tcx, entryY));
+                if (e.rowDetour) {
+                    // The exit run along the source row would otherwise cross a sibling sitting between
+                    // the source and the gutter (see assignElbowGutter) — detour through the row's
+                    // below-row channel first, the same way a BYPASS clears a same-row obstacle.
+                    double cy = e.channelBase + e.channelLane * LANE_GAP;
+                    wp.add(new Point(e.scx, exitY));
+                    wp.add(new Point(e.exitX, exitY));
+                    wp.add(new Point(e.exitX, cy));
+                    wp.add(new Point(gx, cy));
+                    wp.add(new Point(gx, entryY));
+                    wp.add(new Point(e.tcx, entryY));
+                } else {
+                    wp.add(new Point(e.scx, exitY));
+                    wp.add(new Point(gx, exitY));
+                    wp.add(new Point(gx, entryY));
+                    wp.add(new Point(e.tcx, entryY));
+                }
                 // Anchor the label on the side that is NOT shared with sibling edges, hugging the node
                 // and growing into the free run space: fan-out labels are right-aligned just left of the
                 // target (so they use the long approach), fan-in labels are left-aligned just right of
@@ -641,6 +695,9 @@ public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
         private double nodeStagger;
         private boolean sourceFanOut;
         private boolean targetFanIn;
+        private boolean rowDetour;
+        private double channelBase;
+        private int channelLane;
     }
 
     /** Routed path (model coordinates) plus the chosen label anchor. */

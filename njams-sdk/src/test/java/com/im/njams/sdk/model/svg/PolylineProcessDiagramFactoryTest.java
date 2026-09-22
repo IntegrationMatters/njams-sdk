@@ -749,4 +749,86 @@ public class PolylineProcessDiagramFactoryTest {
         Assert.assertTrue("fan-in elbows sharing a gutter must still use distinct lanes",
             Math.abs(elbowBGutterX - elbowCGutterX) > 7.0);
     }
+
+    @Test
+    public void fanInElbowExit_doesNotCrossLaterActivityInSameRow() throws Exception {
+        // Real topology reported against SDK-479 (Camel "producer-order-intake" route):
+        // validate-items-non-empty forks into a short branch (log-rejected-empty-items, joining far to
+        // the right at set-response-content-type, a high fan-in target) and a longer branch that passes
+        // through a second Choice (choose-confirm-or-reject). The extra hop bumps choose-confirm-or-reject
+        // onto the SAME row as log-rejected-empty-items, landing between it and the join column. The
+        // fan-in elbow's exit leg runs unstaggered along its own row (see assignElbowGutter) all the way
+        // to the join's gutter, with no obstacle awareness — so it cuts straight through
+        // choose-confirm-or-reject's icon and its own outgoing edge.
+        ProcessModel model = createProcess();
+        ActivityModel start = model.createActivity("From:platform-http_1", "From:platform-http_1", null);
+        model.createActivity("unmarshal-incoming-order", "unmarshal-incoming-order", null);
+        model.createActivity("producer-extract-order-id", "producer-extract-order-id", null);
+        model.createActivity("extract-callback-url", "extract-callback-url", null);
+        model.createActivity("save-parsed-order", "save-parsed-order", null);
+        model.createActivity("set-default-duplicate-response", "set-default-duplicate-response", null);
+        model.createActivity("dedupe-incoming-order", "dedupe-incoming-order", null);
+        model.createActivity("restore-parsed-order", "restore-parsed-order", null);
+        model.createActivity("validate-structure", "validate-structure", null);
+        model.createActivity("set-rejection-missing-items", "set-rejection-missing-items", null);
+        model.createActivity("log-rejected-missing-items", "log-rejected-missing-items", null);
+        model.createActivity("validate-items-non-empty", "validate-items-non-empty", null);
+        model.createActivity("set-rejection-empty-items", "set-rejection-empty-items", null);
+        model.createActivity("log-rejected-empty-items", "log-rejected-empty-items", null);
+        model.createActivity("enrich-inventory-check", "enrich-inventory-check", null);
+        model.createActivity("roll-injected-error", "roll-injected-error", null);
+        model.createActivity("choose-injected-error", "choose-injected-error", null);
+        model.createActivity("log-injected-error", "log-injected-error", null);
+        model.createActivity("throw-injected-error", "throw-injected-error", null);
+        model.createActivity("choose-confirm-or-reject", "choose-confirm-or-reject", null);
+        model.createActivity("set-rejection-out-of-stock", "set-rejection-out-of-stock", null);
+        model.createActivity("log-rejected-out-of-stock", "log-rejected-out-of-stock", null);
+        model.createActivity("log-order-confirmed", "log-order-confirmed", null);
+        model.createActivity("save-confirmation-response", "save-confirmation-response", null);
+        model.createActivity("set-body-for-async-handoff", "set-body-for-async-handoff", null);
+        model.createActivity("handoff-to-produce-queue", "handoff-to-produce-queue", null);
+        model.createActivity("restore-confirmation-response", "restore-confirmation-response", null);
+        model.createActivity("set-response-content-type", "set-response-content-type", null);
+        start.setStarter(true);
+
+        model.createTransition("From:platform-http_1", "unmarshal-incoming-order");
+        model.createTransition("unmarshal-incoming-order", "producer-extract-order-id");
+        model.createTransition("producer-extract-order-id", "extract-callback-url");
+        model.createTransition("extract-callback-url", "save-parsed-order");
+        model.createTransition("save-parsed-order", "set-default-duplicate-response");
+        model.createTransition("set-default-duplicate-response", "dedupe-incoming-order");
+        model.createTransition("restore-parsed-order", "validate-structure");
+        model.createTransition("set-rejection-missing-items", "log-rejected-missing-items");
+        model.createTransition("validate-structure", "set-rejection-missing-items").setName("${body[items]} == null");
+        model.createTransition("set-rejection-empty-items", "log-rejected-empty-items");
+        model.createTransition("validate-items-non-empty", "set-rejection-empty-items")
+            .setName("${body[items].size()} == 0");
+        model.createTransition("enrich-inventory-check", "roll-injected-error");
+        model.createTransition("roll-injected-error", "choose-injected-error");
+        model.createTransition("log-injected-error", "throw-injected-error");
+        model.createTransition("choose-injected-error", "log-injected-error")
+            .setName("${header.injectedErrorRoll} < {{...}}");
+        model.createTransition("set-rejection-out-of-stock", "log-rejected-out-of-stock");
+        model.createTransition("choose-confirm-or-reject", "set-rejection-out-of-stock")
+            .setName("${variable.inventoryCheck[inStock]} == false");
+        model.createTransition("log-order-confirmed", "save-confirmation-response");
+        model.createTransition("save-confirmation-response", "set-body-for-async-handoff");
+        model.createTransition("set-body-for-async-handoff", "handoff-to-produce-queue");
+        model.createTransition("handoff-to-produce-queue", "restore-confirmation-response");
+        model.createTransition("choose-confirm-or-reject", "log-order-confirmed").setName("otherwise");
+        model.createTransition("choose-injected-error", "choose-confirm-or-reject").setName("otherwise");
+        model.createTransition("validate-items-non-empty", "enrich-inventory-check").setName("otherwise");
+        model.createTransition("validate-structure", "validate-items-non-empty").setName("otherwise");
+        model.createTransition("dedupe-incoming-order", "restore-parsed-order");
+        model.createTransition("dedupe-incoming-order", "set-response-content-type");
+        model.createTransition("log-rejected-missing-items", "set-response-content-type");
+        model.createTransition("log-rejected-empty-items", "set-response-content-type");
+        model.createTransition("throw-injected-error", "set-response-content-type");
+        model.createTransition("log-rejected-out-of-stock", "set-response-content-type");
+        model.createTransition("restore-confirmation-response", "set-response-content-type");
+
+        Document doc = parse(render(model));
+
+        assertNoTransitionCrossesAnyActivity(doc);
+    }
 }
