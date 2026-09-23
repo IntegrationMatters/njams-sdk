@@ -53,9 +53,27 @@ When implementing new functionality, keep all implementation details private by 
 
 ## Javadoc Requirement
 
-**All `public` and `protected` members must have Javadoc.** This includes classes, interfaces, methods, constructors, and fields. When adding new public API, write Javadoc as part of the implementation — not as an afterthought. When deprecating an existing member, ensure its Javadoc includes a `@deprecated` tag referencing the replacement. Internal (`private` and package-private) members do not require Javadoc.
+**All `public` and `protected` members must have Javadoc.** This includes classes, interfaces, methods, constructors, and fields. When adding new public API, write Javadoc as part of the implementation — not as an afterthought. When deprecating an existing member, ensure its Javadoc includes a `@deprecated` tag referencing the replacement (see "Inheritance and deprecation" below for overrides). Internal (`private` and package-private) members do not require Javadoc.
 
 Documentation and code quality rules do not apply to test code (`njams-sdk/src/test/**`) or to the sample modules (see `sample-modules.md`).
+
+### Inheritance and deprecation
+
+Javadoc inheritance and deprecation behave differently, and getting this wrong silently produces docs that don't say what was intended (verified with JDK 25 `javac`/`javadoc`):
+
+- **Doc comments are inherited only by an override that has no comment at all.** It then copies the overridden member's main description, `@param`, `@return` and `@throws`. As soon as the override has any comment, only what it writes itself is shown; use `{@inheritDoc}` to pull in individual parts.
+- **Deprecation is never inherited** — neither the `@Deprecated` annotation nor the `@deprecated` tag. An override that lacks them is documented as *not* deprecated, and code calling it through the implementing type (e.g. a `JobImpl` reference instead of `Job`) gets no compiler warning.
+- **`{@inheritDoc}` does not work inside `@deprecated`**: `javadoc` warns and the reason text is dropped.
+
+Therefore, when deprecating a method that has public overrides in the SDK (typically an interface method and its `*Impl`):
+
+- Put the full reasoning/replacement text once, on the declaring type.
+- On every public override, keep its Javadoc comment, add the same `@Deprecated(since = ..., forRemoval = ...)` annotation, and a short pointer tag: `@deprecated See {@link Job#method(String)}.`
+- A package-private member may also be marked `@Deprecated(forRemoval = true)` purely to schedule its removal (e.g. an internal helper that only backs deprecated API); its `@deprecated` tag should name what it has to be removed together with.
+
+`javac` still reports a `[removal]` warning on the override itself even when it is annotated — that is expected for terminal deprecation and needs no suppression.
+
+When deprecation or inherited docs matter, check the generated page (`njams-sdk/target/reports/apidocs/...`) rather than trusting the source. Delete that folder first — `javadoc:javadoc` may leave a stale page in place.
 
 ### Verification
 

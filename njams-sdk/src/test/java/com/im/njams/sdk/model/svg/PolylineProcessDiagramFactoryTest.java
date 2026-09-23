@@ -11,6 +11,7 @@ import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.Path;
 import com.im.njams.sdk.communication.TestSender;
 import com.im.njams.sdk.model.ActivityModel;
+import com.im.njams.sdk.model.GroupModel;
 import com.im.njams.sdk.model.ProcessModel;
 import com.im.njams.sdk.model.TransitionModel;
 import com.im.njams.sdk.model.layout.CommonBfsModelLayouter;
@@ -62,6 +63,54 @@ public class PolylineProcessDiagramFactoryTest {
             boxes.add(new double[] {x, y, x + w, y + Double.parseDouble(e.getAttribute("height"))});
         }
         return boxes;
+    }
+
+    /** Bounding boxes of group containers (header + child area combined), in SVG coordinates. */
+    private static List<double[]> groupBoxes(Document doc) {
+        List<double[]> boxes = new ArrayList<>();
+        NodeList groups = doc.getElementsByTagNameNS(SVG_NS, "g");
+        for (int i = 0; i < groups.getLength(); i++) {
+            Element g = (Element) groups.item(i);
+            if (!g.hasAttribute("modelId") || !g.getAttribute("id").startsWith("group_")) {
+                continue;
+            }
+            Double left = null;
+            Double top = null;
+            Double right = null;
+            Double bottom = null;
+            NodeList rects = g.getElementsByTagNameNS(SVG_NS, "rect");
+            for (int r = 0; r < rects.getLength(); r++) {
+                Element rect = (Element) rects.item(r);
+                double x = Double.parseDouble(rect.getAttribute("x"));
+                double y = Double.parseDouble(rect.getAttribute("y"));
+                double w = Double.parseDouble(rect.getAttribute("width"));
+                double h = Double.parseDouble(rect.getAttribute("height"));
+                left = left == null ? x : Math.min(left, x);
+                top = top == null ? y : Math.min(top, y);
+                right = right == null ? x + w : Math.max(right, x + w);
+                bottom = bottom == null ? y + h : Math.max(bottom, y + h);
+            }
+            if (left != null) {
+                boxes.add(new double[] {left, top, right, bottom});
+            }
+        }
+        return boxes;
+    }
+
+    private static void assertNoTransitionCrossesAnyGroupBox(Document doc) {
+        List<double[]> boxes = groupBoxes(doc);
+        Assert.assertFalse("expected at least one group box in this diagram", boxes.isEmpty());
+        for (Element poly : transitionPolylines(doc)) {
+            List<double[]> pts = points(poly);
+            for (int i = 0; i + 1 < pts.size(); i++) {
+                for (double[] box : boxes) {
+                    Assert.assertFalse(
+                        "Transition '" + poly.getAttribute("modelId") + "' segment " + i
+                            + " crosses a group box",
+                        segmentIntersectsRect(pts.get(i), pts.get(i + 1), box));
+                }
+            }
+        }
     }
 
     /** Transition polylines (those carrying a modelId), as point lists. */
@@ -579,6 +628,123 @@ public class PolylineProcessDiagramFactoryTest {
             entryYs.size(), distinct);
     }
 
+    @Test
+    public void fanOut_directLabelDoesNotOverlapSiblingElbowLines() throws Exception {
+        // X fans out to A (same row, so X::A classifies as STRAIGHT), B and C (ELBOW, staggered below
+        // X's centre per assignLanes). X::A's wrapped label used to grow straight down from just below
+        // its own line -- directly into the space where B's and C's staggered exit runs live.
+        ProcessModel model = createProcess();
+        ActivityModel x = model.createActivity("X", "X", null);
+        ActivityModel a = model.createActivity("A", "A", null);
+        ActivityModel b = model.createActivity("B", "B", null);
+        ActivityModel c = model.createActivity("C", "C", null);
+        x.setStarter(true);
+        model.createTransition("X", "A").setName("Order value exceeds the automatic approval threshold");
+        model.createTransition("X", "B").setName("otherwise");
+        model.createTransition("X", "C").setName("cancelled by customer");
+        x.setX(0);
+        x.setY(0);
+        a.setX(150);
+        a.setY(0);
+        b.setX(150);
+        b.setY(100);
+        c.setX(150);
+        c.setY(200);
+
+        Njams njams = model.getNjams();
+        Document doc = parse(new PolylineProcessDiagramFactory(njams).getProcessDiagram(model));
+
+        assertLabelDoesNotOverlapAnyOtherTransition(doc, transitionId(model, "X", "A"));
+    }
+
+    @Test
+    public void fanIn_directLabelDoesNotOverlapSiblingElbowLines() throws Exception {
+        // A and B fan in to Y; A::Y is same row (STRAIGHT), B::Y is ELBOW (target fan-in, staggered
+        // below Y's centre per assignLanes). A::Y's wrapped label used to grow straight down into the
+        // space where B::Y's staggered entry run lives.
+        ProcessModel model = createProcess();
+        ActivityModel x = model.createActivity("X", "X", null);
+        ActivityModel a = model.createActivity("A", "A", null);
+        ActivityModel b = model.createActivity("B", "B", null);
+        ActivityModel y = model.createActivity("Y", "Y", null);
+        x.setStarter(true);
+        model.createTransition("X", "A");
+        model.createTransition("X", "B");
+        model.createTransition("A", "Y").setName("Approved after manual review by a supervisor");
+        model.createTransition("B", "Y").setName("otherwise");
+        x.setX(0);
+        x.setY(0);
+        a.setX(150);
+        a.setY(0);
+        b.setX(150);
+        b.setY(100);
+        y.setX(300);
+        y.setY(0);
+
+        Njams njams = model.getNjams();
+        Document doc = parse(new PolylineProcessDiagramFactory(njams).getProcessDiagram(model));
+
+        assertLabelDoesNotOverlapAnyOtherTransition(doc, transitionId(model, "A", "Y"));
+    }
+
+    @Test
+    public void straightTransition_shortLabelSitsCloseAboveItsLine() throws Exception {
+        // Single-line label on a same-row STRAIGHT edge: it must hug the line closely from above (a
+        // small gap, the same closeness convention LABEL_GAP uses elsewhere for the icon-to-label gap),
+        // not float a full text-line's height away from it.
+        ProcessModel model = createProcess();
+        ActivityModel x = model.createActivity("X", "X", null);
+        ActivityModel a = model.createActivity("A", "A", null);
+        x.setStarter(true);
+        model.createTransition("X", "A").setName("OK");
+        x.setX(0);
+        x.setY(0);
+        a.setX(150);
+        a.setY(0);
+
+        Njams njams = model.getNjams();
+        Document doc = parse(new PolylineProcessDiagramFactory(njams).getProcessDiagram(model));
+        String tid = transitionId(model, "X", "A");
+
+        Element poly = findTransitionPolyline(doc, tid);
+        Assert.assertNotNull("transition must be rendered as a polyline", poly);
+        double lineY = points(poly).get(0)[1];
+        Assert.assertNull("label should fit on a single line", findText(doc, tid + "_label_2"));
+        Element label = findText(doc, tid + "_label");
+        Assert.assertNotNull("label must be present", label);
+        double labelY = Double.parseDouble(label.getAttribute("y"));
+
+        Assert.assertTrue("single-line label must sit above its line (labelY=" + labelY + ", lineY=" + lineY + ")",
+            labelY < lineY);
+        double gap = lineY - labelY;
+        Assert.assertTrue("label must hug the line closely (gap=" + gap + "px), not float a full text-line "
+                + "height away from it",
+            gap <= NjamsProcessDiagramFactory.DEFAULT_TEXT_SIZE / 2.0);
+    }
+
+    /** Asserts neither label line (if present) of the given transition overlaps any OTHER transition's line. */
+    private static void assertLabelDoesNotOverlapAnyOtherTransition(Document doc, String tid) {
+        for (String suffix : new String[] {"_label", "_label_2"}) {
+            Element label = findText(doc, tid + suffix);
+            if (label == null) {
+                continue;
+            }
+            double[] lb = labelBox(label);
+            for (Element poly : transitionPolylines(doc)) {
+                if (tid.equals(poly.getAttribute("modelId"))) {
+                    continue;
+                }
+                List<double[]> pts = points(poly);
+                for (int i = 0; i + 1 < pts.size(); i++) {
+                    Assert.assertFalse(
+                        "label line '" + label.getTextContent() + "' (" + tid + suffix
+                            + ") overlaps sibling transition '" + poly.getAttribute("modelId") + "'",
+                        segmentIntersectsRect(pts.get(i), pts.get(i + 1), lb));
+                }
+            }
+        }
+    }
+
     private static Element findText(Document doc, String id) {
         NodeList texts = doc.getElementsByTagNameNS(SVG_NS, "text");
         for (int i = 0; i < texts.getLength(); i++) {
@@ -614,6 +780,164 @@ public class PolylineProcessDiagramFactoryTest {
     }
 
     @Test
+    public void diagonalStraightTransition_labelWidthUsesActualHorizontalSpan() throws Exception {
+        // Positioned manually (bypassing the auto layouter) so X->A classifies as a "STRAIGHT" edge
+        // whose target column lies left of its source column (colT < colS) with a different row --
+        // a genuinely diagonal edge with ~500px of actual horizontal room between the two activities.
+        ProcessModel model = createProcess();
+        ActivityModel x = model.createActivity("X", "X", null);
+        ActivityModel a = model.createActivity("A", "A", null);
+        x.setStarter(true);
+        String name = "This Is A Long Transition Condition";
+        model.createTransition("X", "A").setName(name);
+        x.setX(500);
+        x.setY(0);
+        a.setX(0);
+        a.setY(300);
+
+        Njams njams = model.getNjams();
+        Document doc = parse(new PolylineProcessDiagramFactory(njams).getProcessDiagram(model));
+        String tid = transitionId(model, "X", "A");
+
+        Element poly = findTransitionPolyline(doc, tid);
+        Assert.assertNotNull("transition must be rendered as a polyline", poly);
+        Assert.assertFalse(
+            "label has ~500px of actual horizontal room and must not be truncated as if only "
+                + "the fixed default activity width were available",
+            poly.hasAttribute("nj-sdk-tooltip"));
+        Assert.assertNull("label should fit on a single line given the actual available width",
+            findText(doc, tid + "_label_2"));
+        Assert.assertEquals(name, findText(doc, tid + "_label").getTextContent());
+    }
+
+    @Test
+    public void verticalStraightTransition_labelFallsBackToColumnSpacingNotActivitySize() throws Exception {
+        // X and A share the same column (scx == tcx), so the edge has no actual horizontal extent at
+        // all: the fallback must assume the same clear gap as the default column-to-column spacing
+        // (minus the icon width on either side), not the far narrower activity icon size outright.
+        ProcessModel model = createProcess();
+        ActivityModel x = model.createActivity("X", "X", null);
+        ActivityModel a = model.createActivity("A", "A", null);
+        x.setStarter(true);
+        String name = "Continue Now";
+        model.createTransition("X", "A").setName(name);
+        x.setX(200);
+        x.setY(0);
+        a.setX(200);
+        a.setY(300);
+
+        Njams njams = model.getNjams();
+        Document doc = parse(new PolylineProcessDiagramFactory(njams).getProcessDiagram(model));
+        String tid = transitionId(model, "X", "A");
+
+        Element poly = findTransitionPolyline(doc, tid);
+        Assert.assertNotNull("transition must be rendered as a polyline", poly);
+        Assert.assertFalse(
+            "a purely vertical transition must fall back to the default column spacing, not the "
+                + "much narrower activity icon size, so a normal-length label must not be truncated",
+            poly.hasAttribute("nj-sdk-tooltip"));
+        Assert.assertNull("label should fit on a single line given the column-spacing fallback width",
+            findText(doc, tid + "_label_2"));
+        Assert.assertEquals(name, findText(doc, tid + "_label").getTextContent());
+    }
+
+    /** True if two axis-aligned boxes ([left, top, right, bottom]) overlap by more than a hairline. */
+    private static boolean boxesOverlap(double[] a, double[] b) {
+        double pad = 0.5;
+        return a[0] < b[2] - pad && a[2] > b[0] + pad && a[1] < b[3] - pad && a[3] > b[1] + pad;
+    }
+
+    /** Asserts neither label line (if present) of the given transition overlaps any activity icon. */
+    private static void assertLabelDoesNotOverlapAnyActivity(Document doc, String tid) {
+        List<double[]> boxes = activityBoxes(doc);
+        for (String suffix : new String[] {"_label", "_label_2"}) {
+            Element label = findText(doc, tid + suffix);
+            if (label == null) {
+                continue;
+            }
+            double[] lb = labelBox(label);
+            for (double[] box : boxes) {
+                Assert.assertFalse(
+                    "label line '" + label.getTextContent() + "' (" + tid + suffix + ") overlaps an activity icon",
+                    boxesOverlap(lb, box));
+            }
+        }
+    }
+
+    @Test
+    public void straightTransition_longLabelDoesNotOverlapAdjacentActivities() throws Exception {
+        // Same-row STRAIGHT edge (colT - colS < 2): the actual span used for wrapping is the distance
+        // between activity CENTRES, which is 50px (DEFAULT_ACTIVITY_SIZE) wider on each side than the
+        // real clear gap between the two icons' facing edges.
+        ProcessModel model = createProcess();
+        ActivityModel x = model.createActivity("X", "X", null);
+        ActivityModel a = model.createActivity("A", "A", null);
+        x.setStarter(true);
+        String name = "This condition determines whether the customer qualifies for automatic approval";
+        model.createTransition("X", "A").setName(name);
+        x.setX(0);
+        x.setY(0);
+        a.setX(150);
+        a.setY(0);
+
+        Njams njams = model.getNjams();
+        Document doc = parse(new PolylineProcessDiagramFactory(njams).getProcessDiagram(model));
+        String tid = transitionId(model, "X", "A");
+
+        assertLabelDoesNotOverlapAnyActivity(doc, tid);
+    }
+
+    @Test
+    public void verticalStraightTransition_wrappedLabelDoesNotOverlapLowerActivity() throws Exception {
+        // Purely vertical STRAIGHT edge: a wrapped (2-line) label must stay within the vertical gap
+        // between the two activities rather than growing straight down from a single-line offset.
+        ProcessModel model = createProcess();
+        ActivityModel x = model.createActivity("X", "X", null);
+        ActivityModel a = model.createActivity("A", "A", null);
+        x.setStarter(true);
+        String name = "This step requires manual review before proceeding further";
+        model.createTransition("X", "A").setName(name);
+        x.setX(0);
+        x.setY(0);
+        a.setX(0);
+        a.setY(100);
+
+        Njams njams = model.getNjams();
+        Document doc = parse(new PolylineProcessDiagramFactory(njams).getProcessDiagram(model));
+        String tid = transitionId(model, "X", "A");
+
+        assertLabelDoesNotOverlapAnyActivity(doc, tid);
+    }
+
+    @Test
+    public void verticalStraightTransition_canvasAccommodatesFallbackLabelWidth() throws Exception {
+        // The canvas is currently sized purely from activity positions (icon size + margin), with no
+        // regard for how wide a transition's own label is allowed to be. For an isolated vertical chain
+        // the canvas is only as wide as a single icon (~70px), while the label's own fallback width
+        // (DEFAULT_COLUMN_SPACING(150) - DEFAULT_ACTIVITY_SIZE(50) = 100px) already exceeds that -- an
+        // internal inconsistency that lets real (wider-than-estimated) glyph rendering get clipped by
+        // the SVG viewport, independent of how accurate the estimate itself is.
+        ProcessModel model = createProcess();
+        ActivityModel x = model.createActivity("X", "X", null);
+        ActivityModel a = model.createActivity("A", "A", null);
+        x.setStarter(true);
+        model.createTransition("X", "A").setName("Continue Processing");
+        x.setX(0);
+        x.setY(0);
+        a.setX(0);
+        a.setY(100);
+
+        Njams njams = model.getNjams();
+        Document doc = parse(new PolylineProcessDiagramFactory(njams).getProcessDiagram(model));
+
+        double canvasWidth = Double.parseDouble(doc.getDocumentElement().getAttribute("width"));
+        Assert.assertTrue(
+            "canvas width (" + canvasWidth + ") must be at least the label's assumed available width "
+                + "(100px), otherwise the label can render wider than the canvas and get clipped",
+            canvasWidth >= 100);
+    }
+
+    @Test
     public void parallelBranches_shareGutterButGetDistinctLanes() throws Exception {
         // X -> A (row 0) and X -> B (row 1): both leave column 0; their vertical runs must differ in x.
         ProcessModel model = createProcess();
@@ -625,6 +949,161 @@ public class PolylineProcessDiagramFactoryTest {
         model.createTransition("X", "B");
 
         Document doc = parse(render(model));
+        assertNoTransitionCrossesAnyActivity(doc);
+    }
+
+    @Test
+    public void bypass_avoidsGroupBoxTallerThanPlainActivity() throws Exception {
+        // A -> G (a group containing one child H) -> B is the main chain; A -> B bypasses G directly,
+        // skipping its column. A group's minimum height (header + padding + one child row = 120) is
+        // far taller than a plain activity (50), so a channel computed only from a plain activity's
+        // height would cut straight through it.
+        ProcessModel model = createProcess();
+        ActivityModel a = model.createActivity("A", "A", null);
+        GroupModel g = model.createGroup("G", "G", null);
+        model.createActivity("B", "B", null);
+        a.setStarter(true);
+        model.createTransition("A", "G");
+        ActivityModel h = g.createChildActivity("H", "H", null);
+        h.setStarter(true);
+        model.createTransition("G", "B");
+        TransitionModel bypass = model.createTransition("A", "B");
+        bypass.setName("skip");
+
+        Document doc = parse(render(model));
+
+        Element bypassPolyline = findTransitionPolyline(doc, transitionId(model, "A", "B"));
+        Assert.assertNotNull("bypass A->B must be routed as a polyline, not fall back to a straight line",
+            bypassPolyline);
+        Assert.assertEquals("a routed BYPASS transition should have 6 waypoints", 6,
+            points(bypassPolyline).size());
+        assertNoTransitionCrossesAnyGroupBox(doc);
+    }
+
+    @Test
+    public void bypassAndFanInElbow_sharingApproachGutter_useDistinctCorridors() throws Exception {
+        // X -> D -> Y is the main path; X -> Y bypasses D directly (skips its column). B and C, on
+        // two other rows, also feed into Y (fan-in). The bypass's final approach hop and the fan-in
+        // elbows' gutter both reference "the column just left of Y" using the identical formula, so
+        // without coordination they can land on the exact same x — making the bypass's last hop and
+        // an elbow's long vertical run run right on top of each other near the shared target.
+        ProcessModel model = createProcess();
+        ActivityModel x = model.createActivity("X", "X", null);
+        model.createActivity("D", "D", null);
+        model.createActivity("B", "B", null);
+        model.createActivity("C", "C", null);
+        model.createActivity("Y", "Y", null);
+        x.setStarter(true);
+        model.createTransition("X", "D");
+        model.createTransition("D", "Y");
+        model.createTransition("X", "Y").setName("skip");
+        model.createTransition("X", "B");
+        model.createTransition("B", "Y");
+        model.createTransition("X", "C");
+        model.createTransition("C", "Y");
+
+        Document doc = parse(render(model));
+
+        Element bypass = findTransitionPolyline(doc, transitionId(model, "X", "Y"));
+        Element elbowB = findTransitionPolyline(doc, transitionId(model, "B", "Y"));
+        Element elbowC = findTransitionPolyline(doc, transitionId(model, "C", "Y"));
+        Assert.assertNotNull("bypass X->Y must be routed", bypass);
+        Assert.assertNotNull("elbow B->Y must be routed", elbowB);
+        Assert.assertNotNull("elbow C->Y must be routed", elbowC);
+
+        // The bypass's final vertical hop into the target is its second-to-last waypoint's x.
+        double bypassApproachX = points(bypass).get(points(bypass).size() - 2)[0];
+        // An elbow's gutter x is its second waypoint (after the exit-from-source hop).
+        double elbowBGutterX = points(elbowB).get(1)[0];
+        double elbowCGutterX = points(elbowC).get(1)[0];
+
+        Assert.assertTrue("bypass approach corridor must not coincide with elbow B's gutter",
+            Math.abs(bypassApproachX - elbowBGutterX) > 7.0);
+        Assert.assertTrue("bypass approach corridor must not coincide with elbow C's gutter",
+            Math.abs(bypassApproachX - elbowCGutterX) > 7.0);
+        Assert.assertTrue("fan-in elbows sharing a gutter must still use distinct lanes",
+            Math.abs(elbowBGutterX - elbowCGutterX) > 7.0);
+    }
+
+    @Test
+    public void fanInElbowExit_doesNotCrossLaterActivityInSameRow() throws Exception {
+        // Real topology reported against SDK-479 (Camel "producer-order-intake" route):
+        // validate-items-non-empty forks into a short branch (log-rejected-empty-items, joining far to
+        // the right at set-response-content-type, a high fan-in target) and a longer branch that passes
+        // through a second Choice (choose-confirm-or-reject). The extra hop bumps choose-confirm-or-reject
+        // onto the SAME row as log-rejected-empty-items, landing between it and the join column. The
+        // fan-in elbow's exit leg runs unstaggered along its own row (see assignElbowGutter) all the way
+        // to the join's gutter, with no obstacle awareness — so it cuts straight through
+        // choose-confirm-or-reject's icon and its own outgoing edge.
+        ProcessModel model = createProcess();
+        ActivityModel start = model.createActivity("From:platform-http_1", "From:platform-http_1", null);
+        model.createActivity("unmarshal-incoming-order", "unmarshal-incoming-order", null);
+        model.createActivity("producer-extract-order-id", "producer-extract-order-id", null);
+        model.createActivity("extract-callback-url", "extract-callback-url", null);
+        model.createActivity("save-parsed-order", "save-parsed-order", null);
+        model.createActivity("set-default-duplicate-response", "set-default-duplicate-response", null);
+        model.createActivity("dedupe-incoming-order", "dedupe-incoming-order", null);
+        model.createActivity("restore-parsed-order", "restore-parsed-order", null);
+        model.createActivity("validate-structure", "validate-structure", null);
+        model.createActivity("set-rejection-missing-items", "set-rejection-missing-items", null);
+        model.createActivity("log-rejected-missing-items", "log-rejected-missing-items", null);
+        model.createActivity("validate-items-non-empty", "validate-items-non-empty", null);
+        model.createActivity("set-rejection-empty-items", "set-rejection-empty-items", null);
+        model.createActivity("log-rejected-empty-items", "log-rejected-empty-items", null);
+        model.createActivity("enrich-inventory-check", "enrich-inventory-check", null);
+        model.createActivity("roll-injected-error", "roll-injected-error", null);
+        model.createActivity("choose-injected-error", "choose-injected-error", null);
+        model.createActivity("log-injected-error", "log-injected-error", null);
+        model.createActivity("throw-injected-error", "throw-injected-error", null);
+        model.createActivity("choose-confirm-or-reject", "choose-confirm-or-reject", null);
+        model.createActivity("set-rejection-out-of-stock", "set-rejection-out-of-stock", null);
+        model.createActivity("log-rejected-out-of-stock", "log-rejected-out-of-stock", null);
+        model.createActivity("log-order-confirmed", "log-order-confirmed", null);
+        model.createActivity("save-confirmation-response", "save-confirmation-response", null);
+        model.createActivity("set-body-for-async-handoff", "set-body-for-async-handoff", null);
+        model.createActivity("handoff-to-produce-queue", "handoff-to-produce-queue", null);
+        model.createActivity("restore-confirmation-response", "restore-confirmation-response", null);
+        model.createActivity("set-response-content-type", "set-response-content-type", null);
+        start.setStarter(true);
+
+        model.createTransition("From:platform-http_1", "unmarshal-incoming-order");
+        model.createTransition("unmarshal-incoming-order", "producer-extract-order-id");
+        model.createTransition("producer-extract-order-id", "extract-callback-url");
+        model.createTransition("extract-callback-url", "save-parsed-order");
+        model.createTransition("save-parsed-order", "set-default-duplicate-response");
+        model.createTransition("set-default-duplicate-response", "dedupe-incoming-order");
+        model.createTransition("restore-parsed-order", "validate-structure");
+        model.createTransition("set-rejection-missing-items", "log-rejected-missing-items");
+        model.createTransition("validate-structure", "set-rejection-missing-items").setName("${body[items]} == null");
+        model.createTransition("set-rejection-empty-items", "log-rejected-empty-items");
+        model.createTransition("validate-items-non-empty", "set-rejection-empty-items")
+            .setName("${body[items].size()} == 0");
+        model.createTransition("enrich-inventory-check", "roll-injected-error");
+        model.createTransition("roll-injected-error", "choose-injected-error");
+        model.createTransition("log-injected-error", "throw-injected-error");
+        model.createTransition("choose-injected-error", "log-injected-error")
+            .setName("${header.injectedErrorRoll} < {{...}}");
+        model.createTransition("set-rejection-out-of-stock", "log-rejected-out-of-stock");
+        model.createTransition("choose-confirm-or-reject", "set-rejection-out-of-stock")
+            .setName("${variable.inventoryCheck[inStock]} == false");
+        model.createTransition("log-order-confirmed", "save-confirmation-response");
+        model.createTransition("save-confirmation-response", "set-body-for-async-handoff");
+        model.createTransition("set-body-for-async-handoff", "handoff-to-produce-queue");
+        model.createTransition("handoff-to-produce-queue", "restore-confirmation-response");
+        model.createTransition("choose-confirm-or-reject", "log-order-confirmed").setName("otherwise");
+        model.createTransition("choose-injected-error", "choose-confirm-or-reject").setName("otherwise");
+        model.createTransition("validate-items-non-empty", "enrich-inventory-check").setName("otherwise");
+        model.createTransition("validate-structure", "validate-items-non-empty").setName("otherwise");
+        model.createTransition("dedupe-incoming-order", "restore-parsed-order");
+        model.createTransition("dedupe-incoming-order", "set-response-content-type");
+        model.createTransition("log-rejected-missing-items", "set-response-content-type");
+        model.createTransition("log-rejected-empty-items", "set-response-content-type");
+        model.createTransition("throw-injected-error", "set-response-content-type");
+        model.createTransition("log-rejected-out-of-stock", "set-response-content-type");
+        model.createTransition("restore-confirmation-response", "set-response-content-type");
+
+        Document doc = parse(render(model));
+
         assertNoTransitionCrossesAnyActivity(doc);
     }
 }

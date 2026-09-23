@@ -269,9 +269,11 @@ public interface Job {
      *
      * @param activityModelId to get
      * @return the {@link Activity}
-     * @deprecated Use {@code job.activities().getCompletedByModelId(activityModelId)} instead —
-     *             obtain the facet via {@link #activities()} and call
-     *             {@link JobActivities#getCompletedByModelId(String)}.
+     * @deprecated Not reliable; there is no replacement. A completed activity is removed from the job as
+     *             soon as it has been sent with a log message, and the SDK decides when that happens
+     *             (see the class documentation). Whether this method still finds a completed activity
+     *             therefore depends on flush timing. Keep your own reference to an activity if you need
+     *             it after it has completed.
      */
     @Deprecated(since = "6.0.0", forRemoval = true)
     public Activity getCompletedActivityByModelId(String activityModelId);
@@ -351,9 +353,12 @@ public interface Job {
      *
      * @param activityModelId to get
      * @return the {@link Activity}
-     * @deprecated Use {@code job.activities().getRunningByModelId(activityModelId)} instead —
-     *             obtain the facet via {@link #activities()} and call
-     *             {@link JobActivities#getRunningByModelId(String)}.
+     * @deprecated Use {@code job.activities().getByModelId(activityModelId)} instead — obtain the
+     *             facet via {@link #activities()} and call {@link JobActivities#getByModelId(String)}.
+     *             The activity added last for a model is normally the one that is still running, so
+     *             filtering for the running status is redundant. Also, completed activities are removed
+     *             from the job once they have been sent, so the status filter could not give reliable
+     *             results anyway.
      */
     @Deprecated(since = "6.0.0", forRemoval = true)
     public Activity getRunningActivityByModelId(String activityModelId);
