@@ -628,6 +628,88 @@ public class PolylineProcessDiagramFactoryTest {
             entryYs.size(), distinct);
     }
 
+    @Test
+    public void fanOut_directLabelDoesNotOverlapSiblingElbowLines() throws Exception {
+        // X fans out to A (same row, so X::A classifies as STRAIGHT), B and C (ELBOW, staggered below
+        // X's centre per assignLanes). X::A's wrapped label used to grow straight down from just below
+        // its own line -- directly into the space where B's and C's staggered exit runs live.
+        ProcessModel model = createProcess();
+        ActivityModel x = model.createActivity("X", "X", null);
+        ActivityModel a = model.createActivity("A", "A", null);
+        ActivityModel b = model.createActivity("B", "B", null);
+        ActivityModel c = model.createActivity("C", "C", null);
+        x.setStarter(true);
+        model.createTransition("X", "A").setName("Order value exceeds the automatic approval threshold");
+        model.createTransition("X", "B").setName("otherwise");
+        model.createTransition("X", "C").setName("cancelled by customer");
+        x.setX(0);
+        x.setY(0);
+        a.setX(150);
+        a.setY(0);
+        b.setX(150);
+        b.setY(100);
+        c.setX(150);
+        c.setY(200);
+
+        Njams njams = model.getNjams();
+        Document doc = parse(new PolylineProcessDiagramFactory(njams).getProcessDiagram(model));
+
+        assertLabelDoesNotOverlapAnyOtherTransition(doc, transitionId(model, "X", "A"));
+    }
+
+    @Test
+    public void fanIn_directLabelDoesNotOverlapSiblingElbowLines() throws Exception {
+        // A and B fan in to Y; A::Y is same row (STRAIGHT), B::Y is ELBOW (target fan-in, staggered
+        // below Y's centre per assignLanes). A::Y's wrapped label used to grow straight down into the
+        // space where B::Y's staggered entry run lives.
+        ProcessModel model = createProcess();
+        ActivityModel x = model.createActivity("X", "X", null);
+        ActivityModel a = model.createActivity("A", "A", null);
+        ActivityModel b = model.createActivity("B", "B", null);
+        ActivityModel y = model.createActivity("Y", "Y", null);
+        x.setStarter(true);
+        model.createTransition("X", "A");
+        model.createTransition("X", "B");
+        model.createTransition("A", "Y").setName("Approved after manual review by a supervisor");
+        model.createTransition("B", "Y").setName("otherwise");
+        x.setX(0);
+        x.setY(0);
+        a.setX(150);
+        a.setY(0);
+        b.setX(150);
+        b.setY(100);
+        y.setX(300);
+        y.setY(0);
+
+        Njams njams = model.getNjams();
+        Document doc = parse(new PolylineProcessDiagramFactory(njams).getProcessDiagram(model));
+
+        assertLabelDoesNotOverlapAnyOtherTransition(doc, transitionId(model, "A", "Y"));
+    }
+
+    /** Asserts neither label line (if present) of the given transition overlaps any OTHER transition's line. */
+    private static void assertLabelDoesNotOverlapAnyOtherTransition(Document doc, String tid) {
+        for (String suffix : new String[] {"_label", "_label_2"}) {
+            Element label = findText(doc, tid + suffix);
+            if (label == null) {
+                continue;
+            }
+            double[] lb = labelBox(label);
+            for (Element poly : transitionPolylines(doc)) {
+                if (tid.equals(poly.getAttribute("modelId"))) {
+                    continue;
+                }
+                List<double[]> pts = points(poly);
+                for (int i = 0; i + 1 < pts.size(); i++) {
+                    Assert.assertFalse(
+                        "label line '" + label.getTextContent() + "' (" + tid + suffix
+                            + ") overlaps sibling transition '" + poly.getAttribute("modelId") + "'",
+                        segmentIntersectsRect(pts.get(i), pts.get(i + 1), lb));
+                }
+            }
+        }
+    }
+
     private static Element findText(Document doc, String id) {
         NodeList texts = doc.getElementsByTagNameNS(SVG_NS, "text");
         for (int i = 0; i < texts.getLength(); i++) {
