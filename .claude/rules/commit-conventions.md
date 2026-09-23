@@ -28,7 +28,29 @@ Every commit that references a ticket must include a description. The `#comment`
 
 ## Branching
 
-As of 2026-09-17, `6.0-dev` was merged into `master` (PR #45) and retired. For now, all current work is committed directly to `master`; no separate development branch exists and no merging back is required. Do not create additional branches unless explicitly requested. This is the current arrangement, not necessarily permanent — if a new development branch is introduced later, this section should be updated to name it and restore the appropriate master-sync check below.
+**A change belongs to the release defined by the current branch's root `pom.xml`** (version with `-SNAPSHOT`
+stripped). Always read it from the pom, never infer it from the branch name. Before starting work on a ticket, check
+that this version matches the ticket's fix version; if it doesn't, stop and ask which branch to use.
+
+**Merging is exclusively the user's decision — HARD rule.** When to merge, what to merge, and into which target is
+always decided by the user. Never decide on a merge, and never propose or suggest one — not at session start, not when
+a branch is behind, not as an option in a menu. Merge only when the user explicitly asks for a specific merge.
+
+**Before running a requested merge, check only its reasonability:**
+
+- A fix may be backported into another major/minor line's branch, or forwarded into a future development branch.
+- A fix must never go into an already released version. The target branch counts as released when its pom version
+  (without `-SNAPSHOT`) already has a final release tag, i.e. `git tag -l "*-sdk-root-<version>"` returns a tag that
+  is not an `-RC`/`-TEST` build. The prefix changed over time (`njams4-sdk-root-` up to 5.x, `njams-sdk-root-` from
+  6.0).
+- If the check fails, report why instead of merging; otherwise perform exactly the requested merge.
+
+**Only exception: worktree branches.** A worktree branch is temporary and exists only to be merged back once its work
+is complete. Merging it back may therefore be offered (e.g. in the finish-the-branch menu), but only into the branch
+it was created from, never into any other target. **Always ask for explicit confirmation before actually merging it
+back**, because the origin branch may have work in progress of its own.
+
+Do not create additional branches unless explicitly requested.
 
 ## Pushing
 
