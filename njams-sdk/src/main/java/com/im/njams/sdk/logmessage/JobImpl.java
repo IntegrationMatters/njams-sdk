@@ -23,47 +23,27 @@
  */
 package com.im.njams.sdk.logmessage;
 
-import java.time.Duration;
 import java.time.LocalDateTime;
-import java.util.AbstractMap;
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.ListIterator;
 import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-import java.util.TreeMap;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.faizsiegeln.njams.messageformat.v4.logmessage.ActivityStatus;
-import com.faizsiegeln.njams.messageformat.v4.logmessage.LogMessage;
 import com.faizsiegeln.njams.messageformat.v4.logmessage.PluginDataItem;
-import com.faizsiegeln.njams.messageformat.v4.projectmessage.LogLevel;
-import com.faizsiegeln.njams.messageformat.v4.projectmessage.LogMode;
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.common.DateTimeUtility;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.Path;
 import com.im.njams.sdk.configuration.ActivityConfiguration;
-import com.im.njams.sdk.configuration.Configuration;
-import com.im.njams.sdk.configuration.ProcessConfiguration;
 import com.im.njams.sdk.configuration.TracepointExt;
 import com.im.njams.sdk.model.ActivityModel;
 import com.im.njams.sdk.model.GroupModel;
 import com.im.njams.sdk.model.ProcessModel;
 import com.im.njams.sdk.model.SubProcessActivityModel;
-import com.im.njams.sdk.settings.ClientSettings;
-import com.im.njams.sdk.utils.StringUtils;
 
 /**
  * This represents an instance of a process/flow etc in engine to monitor.
@@ -270,7 +250,9 @@ public class JobImpl implements Job {
      *
      * @param activityModelId to get
      * @return the {@link Activity}
+     * @deprecated See {@link Job#getRunningActivityByModelId(String)}.
      */
+    @Deprecated(since = "6.0.0", forRemoval = true)
     @Override
     public Activity getRunningActivityByModelId(String activityModelId) {
         return activities.getRunningByModelId(activityModelId);
@@ -281,7 +263,9 @@ public class JobImpl implements Job {
      *
      * @param activityModelId to get
      * @return the {@link Activity}
+     * @deprecated See {@link Job#getCompletedActivityByModelId(String)}.
      */
+    @Deprecated(since = "6.0.0", forRemoval = true)
     @Override
     public Activity getCompletedActivityByModelId(String activityModelId) {
         return activities.getCompletedByModelId(activityModelId);

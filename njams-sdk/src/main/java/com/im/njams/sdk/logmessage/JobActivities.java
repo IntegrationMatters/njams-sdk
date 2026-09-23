@@ -230,8 +230,11 @@ public class JobActivities {
      *
      * @param activityModelId to get
      * @return the {@link Activity}
+     * @deprecated Revoked from the facet API before the 6.0.0 release; only backs the deprecated
+     *             {@link Job#getRunningActivityByModelId(String)}. Remove together with it.
      */
-    public Activity getRunningByModelId(String activityModelId) {
+    @Deprecated(since = "6.0.0", forRemoval = true)
+    Activity getRunningByModelId(String activityModelId) {
         return findLastByModelId(activityModelId, RUNNING_STATUS);
     }
 
@@ -240,8 +243,11 @@ public class JobActivities {
      *
      * @param activityModelId to get
      * @return the {@link Activity}
+     * @deprecated Revoked from the facet API before the 6.0.0 release; only backs the deprecated
+     *             {@link Job#getCompletedActivityByModelId(String)}. Remove together with it.
      */
-    public Activity getCompletedByModelId(String activityModelId) {
+    @Deprecated(since = "6.0.0", forRemoval = true)
+    Activity getCompletedByModelId(String activityModelId) {
         return findLastByModelId(activityModelId, COMPLETED_STATUS);
     }
 
