@@ -23,47 +23,27 @@
  */
 package com.im.njams.sdk.logmessage;
 
-import java.time.Duration;
 import java.time.LocalDateTime;
-import java.util.AbstractMap;
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.ListIterator;
 import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-import java.util.TreeMap;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.faizsiegeln.njams.messageformat.v4.logmessage.ActivityStatus;
-import com.faizsiegeln.njams.messageformat.v4.logmessage.LogMessage;
 import com.faizsiegeln.njams.messageformat.v4.logmessage.PluginDataItem;
-import com.faizsiegeln.njams.messageformat.v4.projectmessage.LogLevel;
-import com.faizsiegeln.njams.messageformat.v4.projectmessage.LogMode;
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.common.DateTimeUtility;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.Path;
 import com.im.njams.sdk.configuration.ActivityConfiguration;
-import com.im.njams.sdk.configuration.Configuration;
-import com.im.njams.sdk.configuration.ProcessConfiguration;
 import com.im.njams.sdk.configuration.TracepointExt;
 import com.im.njams.sdk.model.ActivityModel;
 import com.im.njams.sdk.model.GroupModel;
 import com.im.njams.sdk.model.ProcessModel;
 import com.im.njams.sdk.model.SubProcessActivityModel;
-import com.im.njams.sdk.settings.ClientSettings;
-import com.im.njams.sdk.utils.StringUtils;
 
 /**
  * This represents an instance of a process/flow etc in engine to monitor.
@@ -203,7 +183,9 @@ public class JobImpl implements Job {
      *
      * @param activityModel to create
      * @return a builder
+     * @deprecated See {@link Job#createActivity(ActivityModel)}.
      */
+    @Deprecated(since = "6.0.0", forRemoval = true)
     @Override
     public ActivityBuilder createActivity(ActivityModel activityModel) {
         return activities.create(activityModel, this);
@@ -214,7 +196,9 @@ public class JobImpl implements Job {
      *
      * @param groupModel to create
      * @return a builder
+     * @deprecated See {@link Job#createGroup(GroupModel)}.
      */
+    @Deprecated(since = "6.0.0", forRemoval = true)
     @Override
     public GroupBuilder createGroup(GroupModel groupModel) {
         return activities.createGroup(groupModel, this);
@@ -225,7 +209,9 @@ public class JobImpl implements Job {
      *
      * @param groupModel to create
      * @return a builder
+     * @deprecated See {@link Job#createSubProcess(SubProcessActivityModel)}.
      */
+    @Deprecated(since = "6.0.0", forRemoval = true)
     @Override
     public SubProcessActivityBuilder createSubProcess(SubProcessActivityModel groupModel) {
         return activities.createSubProcess(groupModel, this);
@@ -237,7 +223,9 @@ public class JobImpl implements Job {
      * will be thrown.
      *
      * @param activity to add to this job.
+     * @deprecated See {@link Job#addActivity(Activity)}.
      */
+    @Deprecated(since = "6.0.0", forRemoval = true)
     @Override
     public void addActivity(final Activity activity) {
         activities.add(activity, this, true);
@@ -248,7 +236,9 @@ public class JobImpl implements Job {
      *
      * @param activityInstanceId to get
      * @return the {@link Activity}
+     * @deprecated See {@link Job#getActivityByInstanceId(String)}.
      */
+    @Deprecated(since = "6.0.0", forRemoval = true)
     @Override
     public Activity getActivityByInstanceId(String activityInstanceId) {
         return activities.getByInstanceId(activityInstanceId);
@@ -259,7 +249,9 @@ public class JobImpl implements Job {
      *
      * @param activityModelId to get
      * @return the {@link Activity}
+     * @deprecated See {@link Job#getActivityByModelId(String)}.
      */
+    @Deprecated(since = "6.0.0", forRemoval = true)
     @Override
     public Activity getActivityByModelId(String activityModelId) {
         return activities.getByModelId(activityModelId);
@@ -270,7 +262,9 @@ public class JobImpl implements Job {
      *
      * @param activityModelId to get
      * @return the {@link Activity}
+     * @deprecated See {@link Job#getRunningActivityByModelId(String)}.
      */
+    @Deprecated(since = "6.0.0", forRemoval = true)
     @Override
     public Activity getRunningActivityByModelId(String activityModelId) {
         return activities.getRunningByModelId(activityModelId);
@@ -281,7 +275,9 @@ public class JobImpl implements Job {
      *
      * @param activityModelId to get
      * @return the {@link Activity}
+     * @deprecated See {@link Job#getCompletedActivityByModelId(String)}.
      */
+    @Deprecated(since = "6.0.0", forRemoval = true)
     @Override
     public Activity getCompletedActivityByModelId(String activityModelId) {
         return activities.getCompletedByModelId(activityModelId);
@@ -291,7 +287,9 @@ public class JobImpl implements Job {
      * Return the start activity, might return null if the startActivity hasn't been set or if it has already been flushed.
      *
      * @return the start activity or null
+     * @deprecated See {@link Job#getStartActivity()}.
      */
+    @Deprecated(since = "6.0.0", forRemoval = true)
     @Override
     public Activity getStartActivity() {
         return activities.getStart();
@@ -299,7 +297,9 @@ public class JobImpl implements Job {
 
     /**
      * {@inheritDoc}
+     * @deprecated See {@link Job#getActivities()}.
      */
+    @Deprecated(since = "6.0.0", forRemoval = true)
     @Override
     public Collection<Activity> getActivities() {
         return activities.getAll();
@@ -477,7 +477,9 @@ public class JobImpl implements Job {
      *
      * @param status the new job status if it is not null and not
      *               JobStatus.CREATED.
+     * @deprecated See {@link Job#setStatus(JobStatus)}.
      */
+    @Deprecated
     @Override
     public void setStatus(JobStatus status) {
         boolean changed = false;
@@ -528,7 +530,9 @@ public class JobImpl implements Job {
      * Sets the correlation log id of this job.
      *
      * @param correlationLogId correlation log id
+     * @deprecated See {@link Job#setCorrelationLogId(String)}.
      */
+    @Deprecated(since = "6.0.0", forRemoval = true)
     @Override
     public void setCorrelationLogId(final String correlationLogId) {
         warnIfFinished("setCorrelationLogId", "metadata().setCorrelationLogId(...)");
@@ -539,7 +543,9 @@ public class JobImpl implements Job {
      * Returns the correlation log id of this job.
      *
      * @return collreation log id
+     * @deprecated See {@link Job#getCorrelationLogId()}.
      */
+    @Deprecated(since = "6.0.0", forRemoval = true)
     @Override
     public String getCorrelationLogId() {
         return metadata.getCorrelationLogId();
@@ -549,7 +555,9 @@ public class JobImpl implements Job {
      * Set the parentLogId
      *
      * @param parentLogId parentLogId to set
+     * @deprecated See {@link Job#setParentLogId(String)}.
      */
+    @Deprecated(since = "6.0.0", forRemoval = true)
     @Override
     public void setParentLogId(String parentLogId) {
         warnIfFinished("setParentLogId", "metadata().setParentLogId(...)");
@@ -560,7 +568,9 @@ public class JobImpl implements Job {
      * Return the parentLogId
      *
      * @return the parentLogId
+     * @deprecated See {@link Job#getParentLogId()}.
      */
+    @Deprecated(since = "6.0.0", forRemoval = true)
     @Override
     public String getParentLogId() {
         return metadata.getParentLogId();
@@ -570,7 +580,9 @@ public class JobImpl implements Job {
      * Set the externalLogId
      *
      * @param externalLogId texternalLogId to set
+     * @deprecated See {@link Job#setExternalLogId(String)}.
      */
+    @Deprecated(since = "6.0.0", forRemoval = true)
     @Override
     public void setExternalLogId(String externalLogId) {
         warnIfFinished("setExternalLogId", "metadata().setExternalLogId(...)");
@@ -581,7 +593,9 @@ public class JobImpl implements Job {
      * Return the externalLogId
      *
      * @return the externalLogId
+     * @deprecated See {@link Job#getExternalLogId()}.
      */
+    @Deprecated(since = "6.0.0", forRemoval = true)
     @Override
     public String getExternalLogId() {
         return metadata.getExternalLogId();
@@ -591,7 +605,9 @@ public class JobImpl implements Job {
      * Set the businessService as String
      *
      * @param businessService businessService to set
+     * @deprecated See {@link Job#setBusinessService(String)}.
      */
+    @Deprecated(since = "6.0.0", forRemoval = true)
     @Override
     public void setBusinessService(String businessService) {
         setBusinessService(Path.resolve(businessService));
@@ -601,7 +617,9 @@ public class JobImpl implements Job {
      * Set the businessService as Path
      *
      * @param businessService businessService to set
+     * @deprecated See {@link Job#setBusinessService(Path)}.
      */
+    @Deprecated(since = "6.0.0", forRemoval = true)
     @Override
     public void setBusinessService(Path businessService) {
         warnIfFinished("setBusinessService", "metadata().setBusinessService(...)");
@@ -612,7 +630,9 @@ public class JobImpl implements Job {
      * Return the businessService
      *
      * @return the businessService
+     * @deprecated See {@link Job#getBusinessService()}.
      */
+    @Deprecated(since = "6.0.0", forRemoval = true)
     @Override
     public String getBusinessService() {
         return metadata.getBusinessService();
@@ -622,7 +642,9 @@ public class JobImpl implements Job {
      * Set the businessObject as String
      *
      * @param businessObject businessObject to set
+     * @deprecated See {@link Job#setBusinessObject(String)}.
      */
+    @Deprecated(since = "6.0.0", forRemoval = true)
     @Override
     public void setBusinessObject(String businessObject) {
         setBusinessObject(Path.resolve(businessObject));
@@ -632,7 +654,9 @@ public class JobImpl implements Job {
      * Set the binsessObject as Path
      *
      * @param businessObject businessObject to set
+     * @deprecated See {@link Job#setBusinessObject(Path)}.
      */
+    @Deprecated(since = "6.0.0", forRemoval = true)
     @Override
     public void setBusinessObject(Path businessObject) {
         warnIfFinished("setBusinessObject", "metadata().setBusinessObject(...)");
@@ -643,7 +667,9 @@ public class JobImpl implements Job {
      * Return the businessObject
      *
      * @return the businessObject
+     * @deprecated See {@link Job#getBusinessObject()}.
      */
+    @Deprecated(since = "6.0.0", forRemoval = true)
     @Override
     public String getBusinessObject() {
         return metadata.getBusinessObject();
@@ -747,7 +773,9 @@ public class JobImpl implements Job {
      *
      * @param name attribute name
      * @return attribute value
+     * @deprecated See {@link Job#getAttribute(String)}.
      */
+    @Deprecated(since = "6.0.0", forRemoval = true)
     @Override
     public String getAttribute(final String name) {
         return attributes.get(name);
@@ -758,7 +786,9 @@ public class JobImpl implements Job {
      * on this job instance!
      *
      * @return list of attributes
+     * @deprecated See {@link Job#getAttributes()}.
      */
+    @Deprecated(since = "6.0.0", forRemoval = true)
     @Override
     public Map<String, String> getAttributes() {
         return attributes.getAll();
@@ -769,7 +799,9 @@ public class JobImpl implements Job {
      *
      * @param name attribute name to check
      * @return true if found, false if not found
+     * @deprecated See {@link Job#hasAttribute(String)}.
      */
+    @Deprecated(since = "6.0.0", forRemoval = true)
     @Override
     public boolean hasAttribute(final String name) {
         return attributes.has(name);
@@ -780,7 +812,9 @@ public class JobImpl implements Job {
      * (including sub processes).
      *
      * @param deepTrace <b>true</b> if deep trace shall be activated.
+     * @deprecated See {@link Job#setDeepTrace(boolean)}.
      */
+    @Deprecated(since = "6.0.0", forRemoval = true)
     @Override
     public void setDeepTrace(boolean deepTrace) {
         tracing.setDeepTrace(deepTrace);
@@ -791,7 +825,9 @@ public class JobImpl implements Job {
      * this job (including sub processes).
      *
      * @return <b>true</b> if and only if deep trace is enabled.
+     * @deprecated See {@link Job#isDeepTrace()}.
      */
+    @Deprecated(since = "6.0.0", forRemoval = true)
     @Override
     public boolean isDeepTrace() {
         return tracing.isDeepTrace();
@@ -822,7 +858,9 @@ public class JobImpl implements Job {
 
     /**
      * @return the traces
+     * @deprecated See {@link Job#isTraces()}.
      */
+    @Deprecated(since = "6.0.0", forRemoval = true)
     @Override
     public boolean isTraces() {
         return tracing.isTraces();
@@ -844,7 +882,9 @@ public class JobImpl implements Job {
      *
      * @param key name of the property
      * @return Properties value of <b>null</b>
+     * @deprecated See {@link Job#getProperty(String)}.
      */
+    @Deprecated(since = "6.0.0", forRemoval = true)
     @Override
     public Object getProperty(final String key) {
         return properties.get(key);
@@ -855,7 +895,9 @@ public class JobImpl implements Job {
      *
      * @param key name of the property
      * @return <b>true</b> if and only if a property with the given name exists.
+     * @deprecated See {@link Job#hasProperty(String)}.
      */
+    @Deprecated(since = "6.0.0", forRemoval = true)
     @Override
     public boolean hasProperty(final String key) {
         return properties.has(key);
@@ -867,7 +909,9 @@ public class JobImpl implements Job {
      *
      * @param key   name of the property
      * @param value value of the property
+     * @deprecated See {@link Job#setProperty(String, Object)}.
      */
+    @Deprecated(since = "6.0.0", forRemoval = true)
     @Override
     public void setProperty(final String key, final Object value) {
         properties.set(key, value);
@@ -879,7 +923,9 @@ public class JobImpl implements Job {
      * @param key name of the property
      * @return Previous value of the property (if it existed) or else
      * <b>null</b>.
+     * @deprecated See {@link Job#removeProperty(String)}.
      */
+    @Deprecated(since = "6.0.0", forRemoval = true)
     @Override
     public Object removeProperty(final String key) {
         return properties.remove(key);
@@ -1033,13 +1079,22 @@ public class JobImpl implements Job {
      * This method sets the businessStart in the ActivityImpl
      *
      * @param businessStart the businessStart to set
+     * @deprecated See {@link Job#setBusinessStart(LocalDateTime)}.
      */
+    @Deprecated(since = "6.0.0", forRemoval = true)
     @Override
     public void setBusinessStart(LocalDateTime businessStart) {
         warnIfFinished("setBusinessStart", "metadata().setBusinessStart(...)");
         metadata.setBusinessStartInternal(businessStart);
     }
 
+    /**
+     * {@inheritDoc}
+     *
+     * @return {@inheritDoc}
+     * @deprecated See {@link Job#getBusinessStart()}.
+     */
+    @Deprecated(since = "6.0.0", forRemoval = true)
     @Override
     public LocalDateTime getBusinessStart() {
         return metadata.getBusinessStart();
@@ -1049,13 +1104,22 @@ public class JobImpl implements Job {
      * This method sets the businessEnd in the ActivityImpl
      *
      * @param businessEnd the businessEnd to set
+     * @deprecated See {@link Job#setBusinessEnd(LocalDateTime)}.
      */
+    @Deprecated(since = "6.0.0", forRemoval = true)
     @Override
     public void setBusinessEnd(LocalDateTime businessEnd) {
         warnIfFinished("setBusinessEnd", "metadata().setBusinessEnd(...)");
         metadata.setBusinessEndInternal(businessEnd);
     }
 
+    /**
+     * {@inheritDoc}
+     *
+     * @return {@inheritDoc}
+     * @deprecated See {@link Job#getBusinessEnd()}.
+     */
+    @Deprecated(since = "6.0.0", forRemoval = true)
     @Override
     public LocalDateTime getBusinessEnd() {
         return metadata.getBusinessEnd();
@@ -1131,7 +1195,9 @@ public class JobImpl implements Job {
      *
      * @param key   the key to set
      * @param value the value to set
+     * @deprecated See {@link Job#addAttribute(String, String)}.
      */
+    @Deprecated(since = "6.0.0", forRemoval = true)
     @Override
     public void addAttribute(final String key, String value) {
         warnIfFinished("addAttribute", "attributes().add(...)");
