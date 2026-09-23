@@ -618,13 +618,14 @@ public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
                 // distance -- otherwise a wrapped label happily grows into the icons on either side.
                 labelWidth = centerSpan - DEFAULT_ACTIVITY_SIZE;
                 if (horizontalSpan > 0) {
-                    // Anchor the LAST line just above the line and grow earlier lines further upward,
-                    // instead of growing every line downward from just below it. The space below a
-                    // same-row edge is exactly where a fan-out/fan-in sibling's staggered elbow run
-                    // lives (see assignElbowGutter/assignLanes), so growing down risks the label
-                    // overlapping that sibling's line.
+                    // Anchor the LAST line just above the line (hugging it, like the icon/label gap
+                    // elsewhere -- see LABEL_GAP) and grow earlier lines further upward, instead of
+                    // growing every line downward from just below it. The space below a same-row edge
+                    // is exactly where a fan-out/fan-in sibling's staggered elbow run lives (see
+                    // assignElbowGutter/assignLanes), so growing down risks the label overlapping that
+                    // sibling's line.
                     int lineCount = Math.max(1, wrapLabel(e.transition.getName(), labelWidth).getLines().length);
-                    labelY = (e.scy + e.tcy) / 2.0 - lineCount * DEFAULT_TEXT_SIZE;
+                    labelY = (e.scy + e.tcy) / 2.0 - LABEL_GAP - (lineCount - 1) * DEFAULT_TEXT_SIZE;
                 } else {
                     // Purely vertical: the label lives in the same narrow gap the two activities are
                     // spaced by, so a wrapped block must keep its last line where a single line would

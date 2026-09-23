@@ -687,6 +687,41 @@ public class PolylineProcessDiagramFactoryTest {
         assertLabelDoesNotOverlapAnyOtherTransition(doc, transitionId(model, "A", "Y"));
     }
 
+    @Test
+    public void straightTransition_shortLabelSitsCloseAboveItsLine() throws Exception {
+        // Single-line label on a same-row STRAIGHT edge: it must hug the line closely from above (a
+        // small gap, the same closeness convention LABEL_GAP uses elsewhere for the icon-to-label gap),
+        // not float a full text-line's height away from it.
+        ProcessModel model = createProcess();
+        ActivityModel x = model.createActivity("X", "X", null);
+        ActivityModel a = model.createActivity("A", "A", null);
+        x.setStarter(true);
+        model.createTransition("X", "A").setName("OK");
+        x.setX(0);
+        x.setY(0);
+        a.setX(150);
+        a.setY(0);
+
+        Njams njams = model.getNjams();
+        Document doc = parse(new PolylineProcessDiagramFactory(njams).getProcessDiagram(model));
+        String tid = transitionId(model, "X", "A");
+
+        Element poly = findTransitionPolyline(doc, tid);
+        Assert.assertNotNull("transition must be rendered as a polyline", poly);
+        double lineY = points(poly).get(0)[1];
+        Assert.assertNull("label should fit on a single line", findText(doc, tid + "_label_2"));
+        Element label = findText(doc, tid + "_label");
+        Assert.assertNotNull("label must be present", label);
+        double labelY = Double.parseDouble(label.getAttribute("y"));
+
+        Assert.assertTrue("single-line label must sit above its line (labelY=" + labelY + ", lineY=" + lineY + ")",
+            labelY < lineY);
+        double gap = lineY - labelY;
+        Assert.assertTrue("label must hug the line closely (gap=" + gap + "px), not float a full text-line "
+                + "height away from it",
+            gap <= NjamsProcessDiagramFactory.DEFAULT_TEXT_SIZE / 2.0);
+    }
+
     /** Asserts neither label line (if present) of the given transition overlaps any OTHER transition's line. */
     private static void assertLabelDoesNotOverlapAnyOtherTransition(Document doc, String tid) {
         for (String suffix : new String[] {"_label", "_label_2"}) {
