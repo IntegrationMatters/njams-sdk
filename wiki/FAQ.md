@@ -245,6 +245,16 @@ listing every available setting with its default value, is maintained alongside 
 Set `njams.sdk.communication=HTTP`. HTTPS is used automatically when the base URL uses the `https` scheme; the separate
 `HTTPS` communication value is deprecated since 5.0.0.
 
+```properties
+# Minimum settings to get started
+njams.sdk.communication=HTTP
+njams.sdk.communication.http.base.url=http://localhost:8080/njams/
+njams.sdk.communication.http.dataprovider.suffix=sdk
+```
+
+`njams.sdk.communication.http.user`/`.password` are additionally required only if the nJAMS server enforces
+authentication (supported since nJAMS server 6.0.1).
+
 | Property                                                              | Default | Description                                                                                                                                                                             | Tags                                                                                                                                                                                                                                                                                 |
 |-----------------------------------------------------------------------|---------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `njams.sdk.communication.http.base.url`                               | —       | Base URL of the nJAMS server (e.g. `http://localhost:8080/njams/`).                                                                                                                     | <kbd style="background-color:#2da44e;color:#fff;border-color:#2da44e">since 4.2.0</kbd>                                                                                                                                                                                              |
@@ -271,6 +281,18 @@ Set `njams.sdk.communication=HTTP`. HTTPS is used automatically when the base UR
 ### JMS
 
 Set `njams.sdk.communication=JMS`.
+
+```properties
+# Minimum settings to get started (standard JNDI lookup, e.g. ActiveMQ Classic)
+njams.sdk.communication=JMS
+njams.sdk.communication.jms.java.naming.factory.initial=org.apache.activemq.jndi.ActiveMQInitialContextFactory
+njams.sdk.communication.jms.java.naming.provider.url=tcp://localhost:61616
+njams.sdk.communication.jms.connectionFactory=QueueConnectionFactory
+njams.sdk.communication.jms.destination=njams
+```
+
+`njams.sdk.communication.jms.username`/`.password` (and JNDI `java.naming.security.principal`/`.credentials`) are
+additionally required only if the broker/JNDI provider enforces authentication.
 
 | Property                                                       | Default      | Description                                                                                                                                                                                                                         | Tags                                                                                    |
 |----------------------------------------------------------------|--------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------|
