@@ -723,7 +723,17 @@ public class Njams implements InstructionListener {
             LogMessageFlushTask.start(this);
             CleanTracepointsTask.start(this);
             lifecycle.setStarted(true);
-            sendProjectMessage();
+            try {
+                sendProjectMessage();
+            } catch (Exception | Error e) {
+                // A failure here (e.g. a classloading Error from image embedding) is unrecoverable within
+                // this JVM run — no retry can help, so fail startup cleanly instead of leaving the
+                // sender/background tasks running.
+                LOG.error("The client SDK failed to initialize: could not send the initial project message. "
+                    + "The SDK instance is inactive.", e);
+                stop();
+                return false;
+            }
             LOG.info("SDK instance {} started (client-session={})", getClientPath(), metadata.getClientSessionId());
         }
         return isStarted();

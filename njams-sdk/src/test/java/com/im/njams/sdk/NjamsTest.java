@@ -57,6 +57,7 @@ import com.im.njams.sdk.settings.ClientSettings;
 import com.im.njams.sdk.logmessage.DataMasking;
 import com.im.njams.sdk.logmessage.Job;
 import com.im.njams.sdk.model.ProcessModel;
+import com.im.njams.sdk.model.image.ImageSupplier;
 import com.im.njams.sdk.model.layout.CommonBfsModelLayouter;
 import com.im.njams.sdk.serializer.Serializer;
 import com.im.njams.sdk.settings.Settings;
@@ -196,6 +197,26 @@ public class NjamsTest {
             }
             TestReceiver.setReceiverMock(null);
         }
+    }
+
+    @Test
+    public void startCleansUpAndReturnsFalseWhenSendProjectMessageFails() {
+        // SDK-481: sendProjectMessage() is the last step of start(); a failure there (e.g. an Error while
+        // embedding an image, as StreamImageSupplier's ImageIO usage can throw on a broken native setup)
+        // must not escape start() uncaught and must not leave the sender/background tasks running.
+        Njams njams = new Njams(Path.of("TEST"), "1.0", "TEST", TestSender.getSettings());
+        ImageSupplier throwingImage = new ImageSupplier("broken") {
+            @Override
+            public String getBase64Image() {
+                throw new UnsatisfiedLinkError("Simulated native image-embedding failure");
+            }
+        };
+        njams.model().addImage(throwingImage);
+
+        boolean result = njams.start();
+
+        assertFalse("start() must return false when sendProjectMessage() throws", result);
+        assertFalse("SDK must not stay started after a project-message failure", njams.isStarted());
     }
 
     @Test
