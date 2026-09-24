@@ -26,7 +26,11 @@ package com.im.njams.sdk.communication;
 import com.im.njams.sdk.logmessage.Job;
 
 /**
- * This interface must be implemented for replay handlers.
+ * Defines the functionality to be implemented for processing {@link ReplayRequest}s.
+ * <p>
+ * Do not implement this interface directly. Extend {@link AbstractReplayHandler} instead, which takes care of
+ * request/response handling and process-path resolution and only requires overriding the actual replay logic.
+ *
  * @see AbstractReplayHandler
  */
 public interface ReplayHandler {
