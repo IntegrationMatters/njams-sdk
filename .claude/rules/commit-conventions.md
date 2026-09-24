@@ -13,6 +13,12 @@ referencing `SDK-XXX` is still appropriate when the change obviously relates to 
 written for it, a sample update demonstrating a ticket's new feature, or a skill/rule update made as part of a
 ticket's work).
 
+**The ticket reference can be waived per commit, but only by an explicit statement from the user in the same
+conversation that no ticket is needed for that specific commit.** Silence, a bare "commit this", or reasoning that
+the change is "just" a Javadoc/comment/small edit does not waive it — the requirement above applies regardless of how
+small or low-risk the change looks. Only the user's own explicit waiver (e.g. "commit without a ticket") skips it,
+and it applies to that commit only, not to later ones in the same session.
+
 ## Format
 
 Every commit that needs a ticket reference (per the scope above) must reference the related Jira ticket using the
