@@ -15,10 +15,15 @@ change would deviate from it, update the spec and confirm with the user rather t
   default `mvn clean install` lifecycle.
 - **Kafka is out of scope.** Treated as a noted future extension only — do not add Kafka containers or test
   scenarios here without the user explicitly asking for that extension.
-- **This module detects regressions; it does not diagnose or fix them.** If a scenario in this module surfaces
-  a real defect (e.g. a resource-leak or duplicate-delivery finding), that is a separate Jira ticket with its own
-  focused JUnit/mocked-IT reproduction — do not attempt to root-cause or fix the underlying SDK behavior as part
-  of work in this module.
+- **This module's sole purpose is exercising documented behavior under virtually-real-life conditions — it does
+  not diagnose, fix, or regression-test defects.** If a scenario here surfaces a real defect (e.g. a
+  resource-leak or duplicate-delivery finding), that becomes a separate Jira ticket, fixed with the project's
+  normal JUnit/mocked-IT TDD approach (`njams-bug-fix`) — and that fix's regression guard is added to
+  `njams-sdk`'s own test suite, never to this module.
+- **This module's scenario catalog is stable by default and does not grow in response to bug fixes.** Do not add
+  a new scenario here just because a fix landed for something this suite found — the existing scenario already
+  covers it once the fix ships. Add a new scenario only on a deliberate, separate decision that some
+  transport behavior genuinely needs additional real-life verification.
 - **Keep the client-side driving logic trivial.** The process/activity model is intentionally fixed and simple
   (see the spec's harness section) so it cannot itself be a source of test flakiness — do not add branching,
   groups, or scenario-specific client logic beyond the three documented knobs.

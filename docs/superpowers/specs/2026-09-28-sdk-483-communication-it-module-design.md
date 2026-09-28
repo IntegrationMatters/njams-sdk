@@ -38,10 +38,12 @@ There is currently no module in this repository set up to run this kind of test 
 ## 3. Non-goals
 
 - **Kafka.** Deferred as a future extension to this module. Not built now.
-- **Diagnosing or fixing any defect this suite finds.** If a scenario surfaces a real bug (see §7, the
-  `HttpSender.close()` finding), root-causing and fixing it is a separate ticket with its own focused
-  JUnit/mocked-IT reproduction. This module's job is to detect regressions under real conditions, not to prove
-  root cause.
+- **Diagnosing or fixing any defect this suite finds, or adding that fix's regression coverage here.** If a
+  scenario surfaces a real bug (see §7, the `HttpSender.close()` finding), root-causing and fixing it is a
+  separate ticket, worked with the project's normal JUnit/mocked-IT TDD approach — including that fix's own
+  regression guard, which lives in `njams-sdk`'s own test suite, not in this module. This module's sole purpose
+  is exercising documented behavior under virtually-real-life conditions; it does not grow in response to a bug
+  fix. See §9 for what does warrant a new scenario here.
 - **Client-side business-logic variety.** The process/activity model driving these tests is fixed and trivial by
   design (§4). No scenario varies it.
 - **Exhaustive discard-policy × fault-type coverage.** Only combinations where the acceptance criteria in
@@ -144,12 +146,29 @@ Layered onto scenarios 2, 4, 5, and 6 above, plus one new lightweight scenario (
 
 **Known finding, not fixed here:** `HttpSender.close()` does not cancel an in-flight `OkHttpClient` call or
 dispose its dispatcher when a sender is retired mid-send. This is exactly the "stale sender still holding/
-delivering a message a new sender also sent" risk. Per the project's bug workflow, if this suite's scenario 2/6
-regression checks confirm real duplicate/leaked delivery, that becomes a **new, separate ticket**, reproduced
-with a focused JUnit/mocked-IT — this module is not the vehicle for diagnosing or fixing it.
+delivering a message a new sender also sent" risk. Per §9, if this suite's scenario 2/6 regression checks confirm
+real duplicate/leaked delivery, that becomes a **new, separate ticket**, fixed with the project's normal
+JUnit/mocked-IT TDD approach — including the regression guard for that fix, which is added to `njams-sdk`'s own
+test suite, not to this module.
 
 ## 8. Testing this module itself
 
 The module's own value is the regression assertions in §6/§7 running green against real infrastructure. There is
 no separate unit-test layer for the harness itself beyond what's needed to keep the fixed process/activity model
 and the three knobs correct — kept intentionally minimal per §2's flakiness goal.
+
+## 9. Scope stability — this module does not grow in response to bug fixes
+
+This module's sole purpose is exercising the SDK's documented communication behavior under virtually-real-life
+conditions (real broker, real HTTP responses, real network faults). It is explicitly **not** where defects get
+diagnosed, fixed, or regression-tested:
+
+- A defect this suite's assertions surface is fixed in `njams-sdk` itself, through the project's normal
+  JUnit/mocked-IT TDD workflow (`njams-bug-fix`). That fix's own regression guard is a unit test or mocked-IT
+  in `njams-sdk`'s test tree — never a new scenario added here.
+- **This module's scenario catalog (§6/§7) is stable by default.** Fixing a bug found via this suite does not,
+  by itself, justify adding a new scenario here — the existing scenario that surfaced the defect already covers
+  it once the underlying fix lands, and the suite goes back to green.
+- A new scenario is added to this module only on a **deliberate, separate decision** that some transport
+  behavior genuinely needs additional real-life verification beyond what §6/§7 already cover — not as a routine
+  side effect of any given bug fix or feature change.
