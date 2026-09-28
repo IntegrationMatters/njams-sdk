@@ -338,7 +338,8 @@ public class NjamsSender {
         boolean terminated = false;
         senderPool.beginShutdown(); // set shutdown flag + cancel reconnects BEFORE draining
         try {
-            LOG.info("Shutdown the sender's threadpool executor.");
+            LOG.info("Shutdown the sender's threadpool executor ({} sender thread(s) currently active).",
+                executor.getActiveCount());
             executor.shutdown();
             terminated = executor.awaitTermination(waitTime, unit);
             if (terminated) {
@@ -419,5 +420,29 @@ public class NjamsSender {
         if (senderPool != null) {
             senderPool.removeSenderRecoveryListener(listener);
         }
+    }
+
+    /**
+     * Test-support accessor: the current number of {@link SenderExceptionListener}s registered on this sender's
+     * group. Not part of any public API contract (see communication-layer.md) — for integration-test introspection
+     * of listener-registration lifecycle only, e.g. across repeated start/stop of instances sharing a group via
+     * {@link com.im.njams.sdk.NjamsSettings#PROPERTY_SHARED_COMMUNICATIONS}.
+     *
+     * @return the exception-listener registration count, or 0 if this sender was not initialized.
+     */
+    public int exceptionListenerCount() {
+        return senderPool == null ? 0 : senderPool.exceptionListenerCount();
+    }
+
+    /**
+     * Test-support accessor: the current number of {@link SenderRecoveryListener}s registered on this sender's
+     * group. Not part of any public API contract (see communication-layer.md) — for integration-test introspection
+     * of listener-registration lifecycle only, e.g. across repeated start/stop of instances sharing a group via
+     * {@link com.im.njams.sdk.NjamsSettings#PROPERTY_SHARED_COMMUNICATIONS}.
+     *
+     * @return the recovery-listener registration count, or 0 if this sender was not initialized.
+     */
+    public int recoveryListenerCount() {
+        return senderPool == null ? 0 : senderPool.recoveryListenerCount();
     }
 }

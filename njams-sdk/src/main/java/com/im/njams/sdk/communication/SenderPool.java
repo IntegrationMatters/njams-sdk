@@ -206,6 +206,32 @@ public class SenderPool {
     }
 
     /**
+     * Test-support accessor for {@code njams-sdk-communication-it}'s repeated start/stop leak probe. Not part of
+     * any public API contract (see communication-layer.md) — this package-private method exists purely so
+     * {@link NjamsSender} can expose a small public wrapper for integration-test introspection.
+     *
+     * @return the current number of registered {@link SenderExceptionListener}s.
+     */
+    int exceptionListenerCount() {
+        synchronized (lock) {
+            return exceptionListeners.size();
+        }
+    }
+
+    /**
+     * Test-support accessor for {@code njams-sdk-communication-it}'s repeated start/stop leak probe. Not part of
+     * any public API contract (see communication-layer.md) — this package-private method exists purely so
+     * {@link NjamsSender} can expose a small public wrapper for integration-test introspection.
+     *
+     * @return the current number of registered {@link SenderRecoveryListener}s.
+     */
+    int recoveryListenerCount() {
+        synchronized (lock) {
+            return recoveryListeners.size();
+        }
+    }
+
+    /**
      * The group's connection-failure flag: {@code true} from the moment a failure is reported until the connector
      * publishes a working sender again. Feeds {@link MaxQueueLengthHandler}'s {@code ON_CONNECTION_LOSS} branch.
      * <p>
@@ -417,6 +443,8 @@ public class SenderPool {
                     // Shutdown was declared while we were here.
                     return null;
                 }
+                LOG.info("Creating additional sender (pool growth): {} ({} sender(s) currently active)",
+                    toConnect.getName(), locked.size());
             }
             try {
                 toConnect.connect();
@@ -707,6 +735,7 @@ public class SenderPool {
             retired.clear();
             lock.notifyAll();
         }
+        LOG.info("Closing {} sender(s) as part of group shutdown.", all.size());
         all.forEach(this::destroy);
     }
 
