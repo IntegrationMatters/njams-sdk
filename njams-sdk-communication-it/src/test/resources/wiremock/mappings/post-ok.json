@@ -1,0 +1,5 @@
+{
+  "priority": 10,
+  "request": { "method": "POST", "urlPath": "/dataprovider" },
+  "response": { "status": 200 }
+}

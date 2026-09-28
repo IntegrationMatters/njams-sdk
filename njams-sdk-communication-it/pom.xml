@@ -107,6 +107,29 @@
                                 </wait>
                             </run>
                         </image>
+                        <image>
+                            <alias>wiremock</alias>
+                            <name>wiremock/wiremock:3.13.2</name>
+                            <run>
+                                <network>
+                                    <mode>custom</mode>
+                                    <name>njams-communication-it</name>
+                                    <alias>wiremock</alias>
+                                </network>
+                                <ports>
+                                    <port>+wiremock.http:8080</port>
+                                </ports>
+                                <volumes>
+                                    <bind>
+                                        <volume>${project.basedir}/src/test/resources/wiremock/mappings:/home/wiremock/mappings</volume>
+                                    </bind>
+                                </volumes>
+                                <wait>
+                                    <log>extensions:\s+response-template</log>
+                                    <time>30000</time>
+                                </wait>
+                            </run>
+                        </image>
                     </images>
                     <portPropertyFile>${project.build.directory}/docker-it.properties</portPropertyFile>
                 </configuration>
