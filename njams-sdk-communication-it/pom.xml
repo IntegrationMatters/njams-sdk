@@ -59,4 +59,45 @@
             <scope>test</scope>
         </dependency>
     </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>io.fabric8</groupId>
+                <artifactId>docker-maven-plugin</artifactId>
+                <version>0.48.1</version> <!-- latest stable as of 2026-09-28 -->
+                <configuration>
+                    <images>
+                        <image>
+                            <alias>activemq</alias>
+                            <name>apache/activemq-classic:5.19.2</name>
+                            <run>
+                                <ports>
+                                    <port>+activemq.openwire:61616</port>
+                                    <port>+activemq.console:8161</port>
+                                </ports>
+                                <wait>
+                                    <log>Apache ActiveMQ.*started</log>
+                                    <time>60000</time>
+                                </wait>
+                            </run>
+                        </image>
+                    </images>
+                    <portPropertyFile>${project.build.directory}/docker-it.properties</portPropertyFile>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>docker-start</id>
+                        <phase>pre-integration-test</phase>
+                        <goals><goal>start</goal></goals>
+                    </execution>
+                    <execution>
+                        <id>docker-stop</id>
+                        <phase>post-integration-test</phase>
+                        <goals><goal>stop</goal></goals>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
 </project>

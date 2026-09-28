@@ -1,0 +1,2 @@
+<!-- Intentionally empty: the image's default configuration is used. Kept as a mount point for future broker
+     tuning (e.g. a lower producer flow-control limit) if a scenario needs it. -->
