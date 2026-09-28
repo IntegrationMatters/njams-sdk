@@ -125,10 +125,18 @@ public class DockerEnvironment extends ExternalResource {
 
     private void resetWireMock() throws IOException, InterruptedException {
         HttpClient client = HttpClient.newHttpClient();
-        HttpRequest request = HttpRequest.newBuilder(URI.create(wireMockAdminUrl() + "/requests"))
+        HttpRequest deleteRequests = HttpRequest.newBuilder(URI.create(wireMockAdminUrl() + "/requests"))
             .timeout(Duration.ofSeconds(5))
             .DELETE()
             .build();
-        client.send(request, BodyHandlers.discarding());
+        client.send(deleteRequests, BodyHandlers.discarding());
+        // Also restore stub mappings to their classpath-loaded baseline: an on-demand mapping a test posts (e.g.
+        // HttpRejectAndCongestionIT's 429/413/503 stubs) has a higher priority than the baseline post-ok.json and
+        // would otherwise keep matching every subsequent IT's requests in the same Docker session.
+        HttpRequest resetMappings = HttpRequest.newBuilder(URI.create(wireMockAdminUrl() + "/mappings/reset"))
+            .timeout(Duration.ofSeconds(5))
+            .POST(HttpRequest.BodyPublishers.noBody())
+            .build();
+        client.send(resetMappings, BodyHandlers.discarding());
     }
 }
