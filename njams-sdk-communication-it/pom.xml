@@ -67,11 +67,17 @@
                 <artifactId>docker-maven-plugin</artifactId>
                 <version>0.48.1</version> <!-- latest stable as of 2026-09-28 -->
                 <configuration>
+                    <autoCreateCustomNetworks>true</autoCreateCustomNetworks>
                     <images>
                         <image>
                             <alias>activemq</alias>
                             <name>apache/activemq-classic:5.19.2</name>
                             <run>
+                                <network>
+                                    <mode>custom</mode>
+                                    <name>njams-communication-it</name>
+                                    <alias>activemq</alias>
+                                </network>
                                 <ports>
                                     <port>+activemq.openwire:61616</port>
                                     <port>+activemq.console:8161</port>
@@ -79,6 +85,25 @@
                                 <wait>
                                     <log>Apache ActiveMQ.*started</log>
                                     <time>60000</time>
+                                </wait>
+                            </run>
+                        </image>
+                        <image>
+                            <alias>toxiproxy</alias>
+                            <name>ghcr.io/shopify/toxiproxy:2.12.0</name>
+                            <run>
+                                <network>
+                                    <mode>custom</mode>
+                                    <name>njams-communication-it</name>
+                                </network>
+                                <ports>
+                                    <port>+toxiproxy.control:8474</port>
+                                    <port>+toxiproxy.jms:20000</port>
+                                    <port>+toxiproxy.http:20001</port>
+                                </ports>
+                                <wait>
+                                    <log>Starting Toxiproxy HTTP server</log>
+                                    <time>30000</time>
                                 </wait>
                             </run>
                         </image>
