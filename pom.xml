@@ -438,6 +438,15 @@
                 </plugins>
             </build>
         </profile>
+        <profile>
+            <id>docker-it</id>
+            <activation>
+                <activeByDefault>false</activeByDefault>
+            </activation>
+            <modules>
+                <module>njams-sdk-communication-it</module>
+            </modules>
+        </profile>
     </profiles>
 
     <distributionManagement>
