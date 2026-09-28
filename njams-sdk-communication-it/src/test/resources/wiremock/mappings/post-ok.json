@@ -1,5 +1,5 @@
 {
   "priority": 10,
-  "request": { "method": "POST", "urlPath": "/dataprovider" },
+  "request": { "method": "POST", "urlPath": "/api/processing/ingest/dataprovider" },
   "response": { "status": 200 }
 }

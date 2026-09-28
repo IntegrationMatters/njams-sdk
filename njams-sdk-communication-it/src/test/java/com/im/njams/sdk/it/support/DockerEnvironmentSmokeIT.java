@@ -36,7 +36,8 @@ public class DockerEnvironmentSmokeIT {
         env.toxiproxy().addToxic("jms", "cross-check", "timeout", Map.of("timeout", 1));
 
         HttpClient client = HttpClient.newHttpClient();
-        HttpRequest request = HttpRequest.newBuilder(URI.create(env.httpBaseUrlThroughProxy() + "/dataprovider"))
+        HttpRequest request = HttpRequest.newBuilder(
+            URI.create(env.httpBaseUrlThroughProxy() + "/api/processing/ingest/dataprovider"))
             .timeout(Duration.ofSeconds(5))
             .POST(HttpRequest.BodyPublishers.ofString("{}"))
             .header("Content-Type", "application/json")

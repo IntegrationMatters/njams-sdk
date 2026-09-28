@@ -11,12 +11,24 @@ import java.util.Properties;
 
 import org.junit.rules.ExternalResource;
 
+import com.im.njams.sdk.NjamsSettings;
+import com.im.njams.sdk.settings.Settings;
+
 /**
  * Reads the host ports fabric8's docker-maven-plugin assigned (via {@code target/docker-it.properties}) and
  * exposes typed accessors, plus a per-test reset of Toxiproxy toxics and the WireMock request journal so
  * state from one IT never leaks into the next (Review Focus items 1 and 3).
  */
 public class DockerEnvironment extends ExternalResource {
+
+    private static final String ACTIVEMQ_INITIAL_CONTEXT_FACTORY =
+        "org.apache.activemq.jndi.ActiveMQInitialContextFactory";
+
+    /**
+     * One of ActiveMQ's own default JNDI connection-factory bindings (confirmed against
+     * {@code ActiveMQInitialContextFactory}'s default binding names) — no broker-side configuration needed.
+     */
+    private static final String ACTIVEMQ_CONNECTION_FACTORY_NAME = "ConnectionFactory";
 
     private final Properties props = new Properties();
     private final ToxiproxyControl toxiproxy;
@@ -53,6 +65,30 @@ public class DockerEnvironment extends ExternalResource {
 
     public ToxiproxyControl toxiproxy() {
         return toxiproxy;
+    }
+
+    /**
+     * Sets the JNDI settings a real {@code Njams} instance needs to actually connect to the ActiveMQ broker this
+     * environment runs — the SDK's default {@code JndiJmsFactory} requires {@code PROPERTY_JMS_CONNECTION_FACTORY}
+     * to be non-blank or every connect attempt fails with {@code IllegalStateException: Not initialized}
+     * regardless of network reachability, which would defeat every JMS scenario in this module. Callers still set
+     * {@code PROPERTY_COMMUNICATION} and {@code PROPERTY_JMS_PROVIDER_URL} themselves, since those vary (direct vs.
+     * through-proxy) per test.
+     */
+    public void configureJms(Settings settings) {
+        settings.put(NjamsSettings.PROPERTY_JMS_INITIAL_CONTEXT_FACTORY, ACTIVEMQ_INITIAL_CONTEXT_FACTORY);
+        settings.put(NjamsSettings.PROPERTY_JMS_CONNECTION_FACTORY, ACTIVEMQ_CONNECTION_FACTORY_NAME);
+    }
+
+    /**
+     * Sets {@code PROPERTY_DISCARD_POLICY} to {@code none} (block until a dispatch-queue slot frees up, rather
+     * than drop) so a scenario that asserts on delivery counts is testing outage/recovery behavior, not the
+     * unrelated default discard-under-burst behavior — the sender pool's dispatch queue is small (default
+     * capacity 8) and a {@code MessageDriver} burst can easily exceed it well before any outage is involved.
+     * Do not call this from a scenario whose own purpose is exercising discard-policy-dependent behavior.
+     */
+    public void disableMessageDiscarding(Settings settings) {
+        settings.put(NjamsSettings.PROPERTY_DISCARD_POLICY, "none");
     }
 
     public String jmsUrlDirect() {

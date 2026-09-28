@@ -22,7 +22,8 @@ public class HttpThroughProxySmokeIT {
     @Test
     public void postThroughTheProxyReachesTheStub() throws Exception {
         HttpClient client = HttpClient.newHttpClient();
-        HttpRequest request = HttpRequest.newBuilder(URI.create(env.httpBaseUrlThroughProxy() + "/dataprovider"))
+        HttpRequest request = HttpRequest.newBuilder(
+            URI.create(env.httpBaseUrlThroughProxy() + "/api/processing/ingest/dataprovider"))
             .timeout(Duration.ofSeconds(5))
             .POST(HttpRequest.BodyPublishers.ofString("{}"))
             .header("Content-Type", "application/json")

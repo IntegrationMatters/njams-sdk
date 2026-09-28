@@ -36,6 +36,7 @@ public class StartupOutageIT {
         settings.put(NjamsSettings.PROPERTY_COMMUNICATION, "JMS");
         settings.put(NjamsSettings.PROPERTY_JMS_PROVIDER_URL, env.jmsUrlThroughProxy());
         settings.put(NjamsSettings.PROPERTY_COMMUNICATION_STARTUP_FAILBEHAVIOR, "FAIL");
+        env.configureJms(settings);
 
         njams = new Njams(Path.of("StartupOutageIT"), "1.0.0", "CommunicationIT", settings);
         boolean started = njams.start();

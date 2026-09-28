@@ -1,5 +1,5 @@
 {
   "priority": 10,
-  "request": { "method": "HEAD", "urlPath": "/dataprovider" },
+  "request": { "method": "HEAD", "urlPath": "/api/processing/ingest/dataprovider" },
   "response": { "status": 404 }
 }
