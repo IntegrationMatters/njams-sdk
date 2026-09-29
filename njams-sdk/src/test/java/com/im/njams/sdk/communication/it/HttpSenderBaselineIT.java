@@ -3,10 +3,8 @@ package com.im.njams.sdk.communication.it;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-import java.lang.reflect.Field;
 import java.util.Properties;
 
-import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -20,14 +18,6 @@ public class HttpSenderBaselineIT {
 
     @Rule
     public IngestHttpServer server = new IngestHttpServer();
-
-    /** HttpSender caches its connection-test in a static field; reset it so each test starts clean. */
-    @Before
-    public void resetHttpConnectionTestCache() throws Exception {
-        Field f = HttpSender.class.getDeclaredField("connectionTest");
-        f.setAccessible(true);
-        f.set(null, null);
-    }
 
     ClientSettings settings(IngestHttpServer server) {
         Properties p = new Properties();

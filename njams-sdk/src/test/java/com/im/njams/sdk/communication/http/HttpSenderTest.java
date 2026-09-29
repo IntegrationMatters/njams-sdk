@@ -6,6 +6,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -130,6 +131,39 @@ public class HttpSenderTest {
         HttpSender sender = initializedSender();
         assertNotNull(sender.url);
         assertTrue(sender.url.toString().contains("api/processing/ingest/myDp"));
+    }
+
+    @Test
+    public void connectUsesEachInstancesOwnConnectivityCheckNotAnEarlierInstances() throws IOException {
+        HttpSender sender1 = initializedSender();
+        sender1.client = mockClientReturning(response(sender1, 200));
+        sender1.connect();
+
+        Map<String, String> props2 = validProps();
+        props2.put(NjamsSettings.PROPERTY_HTTP_BASE_URL, "http://localhost:9090/");
+        HttpSender sender2 = new HttpSender();
+        sender2.init(settings(props2));
+        sender2.client = mockClientReturning(response(sender2, 200));
+        sender2.connect();
+
+        // atLeastOnce(), not an exact count: getConnectionTest() probes once itself (to detect a legacy-fallback
+        // 405) and testConnection() probes again on the same cached ConnectionTest, so a fresh instance's first
+        // connect legitimately calls newCall() twice. What this proves is that sender2's OWN client was used at
+        // all -- before the fix this was zero, since sender2 silently inherited sender1's cached ConnectionTest.
+        verify(sender2.client, atLeastOnce()).newCall(any(Request.class));
+    }
+
+    @Test
+    public void connectFailsWithClearMessageWhenConnectivityProbeGetsNoResponse() throws IOException {
+        HttpSender sender = initializedSender();
+        sender.client = mockClientThrowing();
+        try {
+            sender.connect();
+            fail("expected connect() to fail when the connectivity probe cannot reach the server");
+        } catch (NjamsSdkRuntimeException expected) {
+            assertFalse("a connectivity probe that gets no response must not surface as a NullPointerException",
+                expected.getCause() instanceof NullPointerException);
+        }
     }
 
     @Test

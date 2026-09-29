@@ -138,7 +138,7 @@ public class HttpSender extends AbstractSender {
         LEGACY
     }
 
-    private static ConnectionTest connectionTest = null;
+    private ConnectionTest connectionTest = null;
 
     /**
      * Initializes this sender via the given settings.
@@ -240,20 +240,20 @@ public class HttpSender extends AbstractSender {
 
     }
 
+    /**
+     * Lazily resolves and caches this instance's own connection test on first use. Only ever called from
+     * {@link #connect()}, which is itself {@code synchronized} per instance, so no further locking is needed here.
+     */
     private ConnectionTest getConnectionTest() {
         if (connectionTest == null) {
-            synchronized (HttpSender.class) {
-                if (connectionTest == null) {
-                    ConnectionTest testCon = getConnectionTest(ConnectionTestMode.STANDARD);
-                    final Response response = testCon.execute();
-                    if (response.code() == METHOD_NOT_ALLOWED) {
-                        // 405 -> The server does not know about HEAD on that resource -> use legacy fallback
-                        testCon = getConnectionTest(ConnectionTestMode.LEGACY);
-                        LOG.info("Switched to legacy http connection test implementation.");
-                    }
-                    connectionTest = testCon;
-                }
+            ConnectionTest testCon = getConnectionTest(ConnectionTestMode.STANDARD);
+            final Response response = testCon.execute();
+            if (response != null && response.code() == METHOD_NOT_ALLOWED) {
+                // 405 -> The server does not know about HEAD on that resource -> use legacy fallback
+                testCon = getConnectionTest(ConnectionTestMode.LEGACY);
+                LOG.info("Switched to legacy http connection test implementation.");
             }
+            connectionTest = testCon;
         }
         return connectionTest;
     }
