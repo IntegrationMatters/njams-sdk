@@ -414,7 +414,9 @@ time elapses without a successful sender connection is controlled by
 - `reconnect`: `start()` returns `true` and the sender connection is retried in the background until it succeeds.
   The SDK instance is considered started; messages produced before the connection is established are subject to
   the configured [discard policy](#what-does-njamssdkdiscardpolicy-control) (`njams.sdk.discardpolicy`), which by
-  default discards them while disconnected.
+  default discards them while disconnected. This includes the initial project message sent right after
+  `start()`: if the discard policy drops it while the connection is still being established, it is treated like
+  any other discarded message, and the nJAMS server requests a resend if it misses it.
 
 This applies to all transports (HTTP, JMS, Kafka). For JMS in particular, the JMS API provides no standard
 connection timeout; without this bound a startup attempt against an unreachable broker could silently block for

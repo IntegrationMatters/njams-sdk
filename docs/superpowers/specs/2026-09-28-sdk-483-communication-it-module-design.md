@@ -156,7 +156,7 @@ the connection issue is then treated like any later connection problem, i.e. by 
 
 | Startup with `reconnect`, target down | `none` | `onconnectionloss` | `discard` |
 |---|---|---|---|
-| Startup project message (produced before any connection exists) | Held, delivered after the reconnect. | Discarded while the group reconnects (as the FAQ states for messages produced before the initial connection). Whether it is ever re-sent is not documented and not asserted. | As `onconnectionloss`. |
+| Startup project message (produced before any connection exists) | Held, delivered after the reconnect. | Discarded while the group reconnects (as the FAQ states for messages produced before the initial connection). Dropping it is expected and no worse than any other discarded message: the server requests a resend if it misses it. Whether it reached the server is observed, not asserted. | As `onconnectionloss`. |
 | Jobs driven while still down | Held, none discarded, delivered after the reconnect. | Every one discarded (counted), none delivered later. | As `onconnectionloss`. |
 | Jobs driven after the reconnect | Delivered. | Delivered. | Delivered. |
 

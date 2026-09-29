@@ -174,8 +174,9 @@ public abstract class StartupReconnectScenario {
             assertTrue("Under 'none' the startup project message is held and delivered after the reconnect",
                 projectMessage);
         }
-        // Observed only, not asserted, for the dropping modes: whether a project message dropped during startup is
-        // ever re-sent is not documented behavior.
+        // Observed only, not asserted, for the dropping modes: dropping the startup project message is expected (it
+        // is no worse than any other discarded message; the server requests a resend if it misses it), so whether
+        // it reached the server is informational.
         System.out.println("[startup-reconnect] mode=" + mode + " projectMessageDelivered=" + projectMessage);
     }
 
