@@ -1,9 +1,13 @@
 package com.im.njams.sdk.it.http;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import org.junit.Rule;
 import org.junit.Test;
@@ -97,5 +101,47 @@ public class HttpRepeatedStartStopLeakIT {
         assertEquals("Expected count for the known, ticketed SenderExceptionListener leak (SDK-485) — "
             + "update this value if/when SenderPool gains a matching remove path", 10,
             sharedSender.exceptionListenerCount());
+    }
+
+    /**
+     * Mirrors {@code RepeatedFlapIT}'s "no thread pileup" check, but for a different failure mode: that test flaps
+     * one already-running instance's connection and checks the JVM's total thread count; this checks whether
+     * {@code Njams.stop()} itself actually terminates a receiver's own threads, across many independent
+     * start/stop cycles. {@code AbstractReceiver}'s {@code startupConnectThread} and {@code reconnectThread} fields
+     * (confirmed via source) are named {@code "Receiver-Startup-" + getName()},
+     * {@code "Receiver-Sender-Reconnector-Thread[...]"}, and {@code "Receiver-Recovery-Cycle-Thread[...]"} — all
+     * sharing the {@code "Receiver-"} prefix used below. This uses its own, non-shared instances (unlike the
+     * listener-leak test above): sharing is irrelevant here since HTTP has no shareable receiver (see that test's
+     * Javadoc), so each instance always gets its own distinct receiver and threads regardless.
+     */
+    @Test(timeout = 60000)
+    public void repeatedStartStopDoesNotLeaveReceiverThreadsRunning() throws Exception {
+        Settings settings = new Settings();
+        settings.put(NjamsSettings.PROPERTY_COMMUNICATION, "HTTP");
+        settings.put(NjamsSettings.PROPERTY_HTTP_BASE_URL, env.httpBaseUrlThroughProxy());
+        settings.put(NjamsSettings.PROPERTY_HTTP_DATAPROVIDER_SUFFIX, "dataprovider");
+
+        for (int i = 0; i < 10; i++) {
+            Njams instance = new Njams(Path.of("ReceiverThreadLeakIT-" + i), "1.0.0", "CommunicationIT", settings);
+            instance.start();
+            instance.stop();
+        }
+
+        // Allow the last iteration's startup/reconnect threads a moment to actually terminate. Polls rather than
+        // a single fixed sleep: beginConnect() never blocks Njams.start(), so a startup thread can still be
+        // in-flight (running its own real connect() call) at the moment this loop's last stop() returns.
+        Set<String> survivingReceiverThreads = Set.of();
+        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(10);
+        do {
+            survivingReceiverThreads = Thread.getAllStackTraces().keySet().stream()
+                .map(Thread::getName)
+                .filter(name -> name.startsWith("Receiver-"))
+                .collect(Collectors.toSet());
+            if (!survivingReceiverThreads.isEmpty()) {
+                Thread.sleep(200);
+            }
+        } while (!survivingReceiverThreads.isEmpty() && System.nanoTime() < deadline);
+        assertTrue("Receiver-side threads survived repeated start/stop: " + survivingReceiverThreads,
+            survivingReceiverThreads.isEmpty());
     }
 }

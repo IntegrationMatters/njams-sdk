@@ -445,4 +445,16 @@ public class NjamsSender {
     public int recoveryListenerCount() {
         return senderPool == null ? 0 : senderPool.recoveryListenerCount();
     }
+
+    /**
+     * Test-support accessor: the current total number of senders this sender's group's pool holds, checked out
+     * plus idle. Not part of any public API contract (see communication-layer.md) — for integration-test
+     * introspection of the pool's "virtually bounded to {@code maxSenderThreads}" invariant only (see
+     * {@link SenderPool}'s class Javadoc).
+     *
+     * @return the pooled-sender count, or 0 if this sender was not initialized.
+     */
+    public int pooledSenderCount() {
+        return senderPool == null ? 0 : senderPool.pooledSenderCount();
+    }
 }

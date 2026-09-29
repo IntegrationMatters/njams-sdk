@@ -232,6 +232,20 @@ public class SenderPool {
     }
 
     /**
+     * Test-support accessor for {@code njams-sdk-communication-it}'s pool-bookkeeping regression probe. Not part
+     * of any public API contract (see communication-layer.md) — this package-private method exists purely so
+     * {@link NjamsSender} can expose a small public wrapper for integration-test introspection of the "virtually
+     * bounded to {@code maxSenderThreads}" invariant documented on this class.
+     *
+     * @return the current total number of senders this pool holds, checked out plus idle.
+     */
+    int pooledSenderCount() {
+        synchronized (lock) {
+            return locked.size() + unlocked.size();
+        }
+    }
+
+    /**
      * The group's connection-failure flag: {@code true} from the moment a failure is reported until the connector
      * publishes a working sender again. Feeds {@link MaxQueueLengthHandler}'s {@code ON_CONNECTION_LOSS} branch.
      * <p>
