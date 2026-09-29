@@ -61,6 +61,12 @@ public class FragmentationUnderOutageIT {
         njams.start();
         ProcessModel model = FixedProcessModel.build(njams);
 
+        // Armed before the driver starts, not after a fixed delay: a 200 KB payload over localhost/Docker can
+        // fully send well inside any short window before a toxic lands, which would leave the outage never
+        // actually intersecting the chunk sequence and the assertions below passing on the pure happy path
+        // instead of on outage-interrupted delivery. Arming first guarantees every chunk attempt hits the outage
+        // until it is removed, the same pattern MidProcessingOutageRecoveryIT uses for its own outage window.
+        env.toxiproxy().addToxic("jms", "fragment-outage", "timeout", Map.of("timeout", 1));
         List<String> logIds = new ArrayList<>();
         Thread background = new Thread(() -> {
             try {
@@ -71,8 +77,6 @@ public class FragmentationUnderOutageIT {
             }
         });
         background.start();
-        Thread.sleep(50); // outage lands mid-fragment-sequence
-        env.toxiproxy().addToxic("jms", "fragment-outage", "timeout", Map.of("timeout", 1));
         Thread.sleep(500);
         env.toxiproxy().removeToxic("jms", "fragment-outage");
         background.join(30000);

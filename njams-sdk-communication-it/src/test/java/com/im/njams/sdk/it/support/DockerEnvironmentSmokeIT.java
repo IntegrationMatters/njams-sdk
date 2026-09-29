@@ -47,9 +47,12 @@ public class DockerEnvironmentSmokeIT {
 
     @Test
     public void resetAllClearsToxicsBetweenTests() throws Exception {
-        // Review Focus #1: this test intentionally runs after the one above, relying on DockerEnvironment's
-        // @Rule-driven after() having already reset the "jms" proxy's toxic — if it hadn't, this connection
-        // would also fail.
+        // Review Focus #1: self-contained — arms its own toxic and resets it itself, rather than relying on a
+        // previous test method's @Rule-driven after() having already reset the "jms" proxy. Test execution order
+        // must never be load-bearing for correctness (see testing-conventions.md).
+        env.toxiproxy().addToxic("jms", "self-reset-check", "timeout", Map.of("timeout", 1));
+        env.toxiproxy().resetAll();
+
         ActiveMQConnectionFactory factory = new ActiveMQConnectionFactory(env.jmsUrlThroughProxy());
         try (Connection connection = factory.createConnection()) {
             connection.start();

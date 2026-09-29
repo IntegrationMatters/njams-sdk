@@ -92,9 +92,9 @@ public class HttpRepeatedStartStopLeakIT {
         // method at all, so a registration made through the public addSenderExceptionListener API has no way to
         // ever be undone — it persists even after every instance that registered one has stopped. This assertion
         // documents/regression-guards the currently-confirmed count; per communication-it-module.md this module
-        // detects real defects rather than fixing them, so a future fix for the underlying SenderPool gap is
+        // detects real defects rather than fixing them, so SDK-485's fix for the underlying SenderPool gap is
         // expected to update this expected value as part of that fix.
-        assertEquals("Expected count for the known, ticketed SenderExceptionListener leak (see SDK ticket) — "
+        assertEquals("Expected count for the known, ticketed SenderExceptionListener leak (SDK-485) — "
             + "update this value if/when SenderPool gains a matching remove path", 10,
             sharedSender.exceptionListenerCount());
     }

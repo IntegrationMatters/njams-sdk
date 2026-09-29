@@ -6,6 +6,7 @@ import java.lang.management.ManagementFactory;
 import java.lang.management.ThreadMXBean;
 import java.util.Map;
 
+import org.junit.After;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -23,6 +24,15 @@ public class RepeatedFlapIT {
     @Rule
     public DockerEnvironment env = new DockerEnvironment();
 
+    private Njams njams;
+
+    @After
+    public void tearDown() {
+        if (njams != null && njams.isStarted()) {
+            njams.stop();
+        }
+    }
+
     @Test(timeout = 60000)
     public void repeatedFlappingDoesNotAccumulateThreads() throws Exception {
         Settings settings = new Settings();
@@ -30,7 +40,7 @@ public class RepeatedFlapIT {
         settings.put(NjamsSettings.PROPERTY_JMS_PROVIDER_URL, env.jmsUrlThroughProxy());
         env.configureJms(settings);
 
-        Njams njams = new Njams(Path.of("RepeatedFlapIT"), "1.0.0", "CommunicationIT", settings);
+        njams = new Njams(Path.of("RepeatedFlapIT"), "1.0.0", "CommunicationIT", settings);
         njams.start();
         ProcessModel model = FixedProcessModel.build(njams);
         MessageDriver.run(model, 5, 50, 1);
@@ -56,8 +66,6 @@ public class RepeatedFlapIT {
         // Allow reconnect threads from the last cycle a moment to actually terminate.
         Thread.sleep(1000);
         int finalThreadCount = threadBean.getThreadCount();
-
-        njams.stop();
 
         assertTrue("Thread count grew from " + baselineThreadCount + " to " + finalThreadCount
             + " across 10 flap cycles — suspect a reconnect-thread leak",

@@ -1,7 +1,9 @@
 package com.im.njams.sdk.it.jms;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -76,21 +78,32 @@ public class MidProcessingOutageRecoveryIT {
         assertEquals(40, logIds.size());
         assertEquals(40, Set.copyOf(logIds).size());
 
-        assertEquals(40, countUniqueLogIdsDelivered(logIds));
+        Map<String, Integer> deliveryCounts = countDeliveriesPerLogId(logIds);
+        assertEquals(40, deliveryCounts.size());
+
+        // This harness drives exactly one job.end() flush per job, so a given logId has exactly one intended
+        // message; a repeat delivery of that same logId is therefore a wire-level resend, not a legitimate
+        // distinct update (see message-sending-control.md — updates to the same logId are the common case in
+        // general, but this fixed harness never produces more than one per job). At-least-once semantics still
+        // permit a single ambiguous-outcome retry (the send's success was unknown, so the sender retried), so
+        // this bounds resends rather than forbidding them outright: more than that indicates an unbounded/looping
+        // resend defect, not the documented safe-retry case.
+        int maxDeliveries = deliveryCounts.values().stream().mapToInt(Integer::intValue).max().orElse(0);
+        assertTrue("No logId should be delivered more than twice (one attempt plus at most one "
+            + "ambiguous-outcome retry); observed a max of " + maxDeliveries + " deliveries across logIds: "
+            + deliveryCounts, maxDeliveries <= 2);
     }
 
     /**
-     * Counts the distinct {@code logIds} represented among messages on the {@code njams.event} queue (the SDK's
-     * default JMS destination — confirmed against {@code JmsSender.createProducers}) whose
-     * {@link MessageHeaders#NJAMS_LOGID_HEADER} property matches one of {@code logIds}, via a JMS selector.
-     * Counts distinct IDs, not total matching messages: under a disrupted connection the sender can retry a send
-     * whose outcome was ambiguous, producing more than one message with the same {@code logId} on the queue —
-     * this is the documented, safe at-least-once behavior the server's own idempotent-by-logId handling exists
-     * for (see message-sending-control.md), not a drop or a wrong delivery, so it must not fail this assertion.
+     * Counts, per {@code logId}, how many messages on the {@code njams.event} queue (the SDK's default JMS
+     * destination — confirmed against {@code JmsSender.createProducers}) carry that {@code logId} in their
+     * {@link MessageHeaders#NJAMS_LOGID_HEADER} property, via a JMS selector restricted to {@code logIds}.
      * Filtering by logId (rather than a raw count) also keeps a prior test run's leftover messages on the same
-     * queue from inflating the result.
+     * queue from inflating the result. Drains until every {@code logId} has been seen at least once, then keeps
+     * draining for a short tail window to catch any duplicate arriving immediately afterward, so a resend that
+     * lands just after the last first-delivery isn't missed.
      */
-    private int countUniqueLogIdsDelivered(List<String> logIds) throws Exception {
+    private Map<String, Integer> countDeliveriesPerLogId(List<String> logIds) throws Exception {
         String inClause = logIds.stream().map(id -> "'" + id + "'").collect(Collectors.joining(","));
         String selector = MessageHeaders.NJAMS_LOGID_HEADER + " IN (" + inClause + ")";
 
@@ -104,12 +117,15 @@ public class MidProcessingOutageRecoveryIT {
             // right after an outage clears, the sender's own reconnect can still be settling, so the gap before
             // a message arrives can run well past a couple of seconds. A 10s per-message timeout keeps the drain
             // loop from giving up before delivery has actually caught up.
-            Set<String> delivered = new java.util.HashSet<>();
+            Map<String, Integer> deliveries = new HashMap<>();
             Message message;
-            while (delivered.size() < logIds.size() && (message = consumer.receive(10_000)) != null) {
-                delivered.add(message.getStringProperty(MessageHeaders.NJAMS_LOGID_HEADER));
+            while (deliveries.size() < logIds.size() && (message = consumer.receive(10_000)) != null) {
+                deliveries.merge(message.getStringProperty(MessageHeaders.NJAMS_LOGID_HEADER), 1, Integer::sum);
             }
-            return delivered.size();
+            while ((message = consumer.receive(2_000)) != null) {
+                deliveries.merge(message.getStringProperty(MessageHeaders.NJAMS_LOGID_HEADER), 1, Integer::sum);
+            }
+            return deliveries;
         }
     }
 }

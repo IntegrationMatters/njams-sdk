@@ -2,6 +2,7 @@ package com.im.njams.sdk.it.http;
 
 import java.util.Map;
 
+import org.junit.After;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -19,6 +20,22 @@ public class HttpShutdownDuringOutageIT {
     @Rule
     public DockerEnvironment env = new DockerEnvironment();
 
+    private Njams njams;
+
+    /**
+     * Safety net only — the test's own point is that {@code njams.stop()} inline, inside the
+     * {@code @Test(timeout=...)} bound, completes promptly under outage; {@code @After} runs outside that bound,
+     * so it must not become the primary way this instance is stopped. It only catches the case where the test
+     * fails before reaching its own inline {@code stop()} call, so a failed run never leaves a live instance
+     * reconnecting for the rest of the suite.
+     */
+    @After
+    public void tearDown() {
+        if (njams != null && njams.isStarted()) {
+            njams.stop();
+        }
+    }
+
     @Test(timeout = 20000)
     public void stopCompletesPromptlyEvenWhileReconnecting() throws Exception {
         Settings settings = new Settings();
@@ -26,7 +43,7 @@ public class HttpShutdownDuringOutageIT {
         settings.put(NjamsSettings.PROPERTY_HTTP_BASE_URL, env.httpBaseUrlThroughProxy());
         settings.put(NjamsSettings.PROPERTY_HTTP_DATAPROVIDER_SUFFIX, "dataprovider");
 
-        Njams njams = new Njams(Path.of("HttpShutdownDuringOutageIT"), "1.0.0", "CommunicationIT", settings);
+        njams = new Njams(Path.of("HttpShutdownDuringOutageIT"), "1.0.0", "CommunicationIT", settings);
         njams.start();
         ProcessModel model = FixedProcessModel.build(njams);
         MessageDriver.run(model, 5, 100, 1);
