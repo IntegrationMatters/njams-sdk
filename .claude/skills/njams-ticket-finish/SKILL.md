@@ -32,6 +32,8 @@ Write it in Markdown with `contentFormat=markdown` — wiki markup (`h2.`, `_...
 
 **If the ticket touched any settings**, confirm `NjamsSettings`, `wiki/FAQ.md`, and `settings_full.properties` are all in sync before closing — see `njams-settings-sync`. Don't resolve a settings-touching ticket with docs out of sync.
 
+**Apply the project rules' completion checks.** Rules under `.claude/rules/` may contribute their own checks in a section titled `## Ticket completion checks`. Before resolving, apply every such section whose rule's path scope (the `globs:` frontmatter, or the "Applies to" column in `CLAUDE.md` for rules without one) matches files in the ticket's diff. A check that says "propose" means propose to the user and wait for the answer; don't resolve the ticket while a proposed check is still unanswered. This keeps project-specific steps in the rules that own them instead of in this skill.
+
 ## Workflow
 
 ```dot
@@ -45,6 +47,7 @@ digraph ticket_finish {
     "Confirm message-format-changes gate was satisfied" [shape=box];
     "Decide breaking-change label against real diff" [shape=box];
     "Settings touched?" [shape=diamond];
+    "Apply matching rules' '## Ticket completion checks'" [shape=box];
     "Verify NjamsSettings / FAQ / settings_full.properties in sync" [shape=box];
     "Post signed closing comment" [shape=box];
     "Set resolution=Done, unassign" [shape=box];
@@ -62,8 +65,9 @@ digraph ticket_finish {
     "Confirm message-format-changes gate was satisfied" -> "Settings touched?";
     "Decide breaking-change label against real diff" -> "Settings touched?";
     "Settings touched?" -> "Verify NjamsSettings / FAQ / settings_full.properties in sync" [label="yes"];
-    "Settings touched?" -> "Post signed closing comment" [label="no"];
-    "Verify NjamsSettings / FAQ / settings_full.properties in sync" -> "Post signed closing comment";
+    "Settings touched?" -> "Apply matching rules' '## Ticket completion checks'" [label="no"];
+    "Verify NjamsSettings / FAQ / settings_full.properties in sync" -> "Apply matching rules' '## Ticket completion checks'";
+    "Apply matching rules' '## Ticket completion checks'" -> "Post signed closing comment";
     "Post signed closing comment" -> "Set resolution=Done, unassign";
     "Set resolution=Done, unassign" -> "Plan file exists for this ticket?";
     "Plan file exists for this ticket?" -> "Delete plan file, keep any spec";
@@ -92,10 +96,13 @@ Otherwise (Internal, Client Contract, or SPI Contract), diff the actual changes 
 **3. Check settings sync if relevant.**
 If any `PROPERTY_*` key changed, was added, or was deprecated, don't resolve until `njams-settings-sync` has been applied.
 
-**4. Comment, then resolve.**
+**4. Apply the rules' completion checks.**
+List the files in the ticket's diff, then grep `.claude/rules/*.md` for the heading `## Ticket completion checks`. For each rule that has it and whose path scope matches those files, carry out its checks (e.g. proposing a test suite run) and resolve any open question with the user before continuing. Skip rules whose scope doesn't match the diff.
+
+**5. Comment, then resolve.**
 Post the closing comment first (or as part of the same transition, depending on the tool), then set resolution to `Done` and clear the assignee.
 
-**5. Only now, clean up the plan.**
+**6. Only now, clean up the plan.**
 With the ticket actually resolved, find `docs/superpowers/plans/*-sdk-<ticket-number>-*.md` and delete it. Leave `docs/superpowers/specs/*-sdk-<ticket-number>-*` untouched — it's permanent. Don't delete the plan earlier in the sequence — "code shipped" and "ticket resolved" are different things, and the plan should only go once both are true.
 
 ## Common Mistakes
@@ -110,4 +117,5 @@ With the ticket actually resolved, find `docs/superpowers/plans/*-sdk-<ticket-nu
 | Leaving the plan file in docs/superpowers/plans/ after the ticket is resolved | Delete it — specs stay, plans don't |
 | Deleting the plan file before the ticket is actually resolved (e.g. right after code ships) | Wait until resolution=Done is actually set — merged code isn't the same as a resolved ticket |
 | Closing a ticket that changed a setting without checking the FAQ/properties file | Run njams-settings-sync first |
+| Resolving without checking the project rules' `## Ticket completion checks` | Grep `.claude/rules/*.md` for the heading and apply the ones whose scope matches the diff |
 | Writing a long technical closing comment | Keep it to root cause + resolution; details belong in commits |

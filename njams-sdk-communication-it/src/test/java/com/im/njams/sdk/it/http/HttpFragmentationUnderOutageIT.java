@@ -8,6 +8,8 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse.BodyHandlers;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -18,6 +20,9 @@ import java.util.stream.IntStream;
 import org.junit.After;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -27,16 +32,33 @@ import com.im.njams.sdk.Path;
 import com.im.njams.sdk.communication.MessageHeaders;
 import com.im.njams.sdk.it.harness.FixedProcessModel;
 import com.im.njams.sdk.it.harness.MessageDriver;
+import com.im.njams.sdk.it.support.DiscardMode;
+import com.im.njams.sdk.it.support.DiscardObserver;
 import com.im.njams.sdk.it.support.DockerEnvironment;
 import com.im.njams.sdk.model.ProcessModel;
 import com.im.njams.sdk.settings.Settings;
 
+@RunWith(Parameterized.class)
 public class HttpFragmentationUnderOutageIT {
+
+
+    @Parameters(name = "{0}")
+    public static Collection<Object[]> modes() {
+        return Arrays.stream(DiscardMode.values()).map(m -> new Object[] { m }).collect(Collectors.toList());
+    }
 
     @Rule
     public DockerEnvironment env = new DockerEnvironment();
 
+    @Rule
+    public DiscardObserver discards = new DiscardObserver();
+
+    private final DiscardMode mode;
     private Njams njams;
+
+    public HttpFragmentationUnderOutageIT(DiscardMode mode) {
+        this.mode = mode;
+    }
 
     @After
     public void tearDown() {
@@ -46,12 +68,12 @@ public class HttpFragmentationUnderOutageIT {
     }
 
     @Test(timeout = 60000)
-    public void aFragmentedMessageFullyResendsRatherThanPartiallyDelivering() throws Exception {
+    public void aFragmentedMessageIsNeverPartiallyDelivered() throws Exception {
         Settings settings = new Settings();
         settings.put(NjamsSettings.PROPERTY_COMMUNICATION, "HTTP");
         settings.put(NjamsSettings.PROPERTY_HTTP_BASE_URL, env.httpBaseUrlThroughProxy());
         settings.put(NjamsSettings.PROPERTY_HTTP_DATAPROVIDER_SUFFIX, "dataprovider");
-        env.disableMessageDiscarding(settings);
+        mode.apply(settings);
         // Force chunking well below the 200 KB payload driven below, so a single message is guaranteed to
         // fragment into multiple sends. Below SplitSupport.MIN_SIZE_LIMIT (10240), so the SDK clamps this up to
         // that minimum internally — still far smaller than the payload, so splitting still occurs.
@@ -77,12 +99,12 @@ public class HttpFragmentationUnderOutageIT {
             }
         });
         background.start();
-        Thread.sleep(500);
+        Thread.sleep(DockerEnvironment.OUTAGE_MS);
         env.toxiproxy().removeToxic("http", "fragment-outage");
         background.join(30000);
 
         assertEquals(1, logIds.size());
-        assertFragmentsCompletelyDelivered(logIds.get(0));
+        assertFragmentsDeliveredPerMode(logIds.get(0));
     }
 
     /**
@@ -94,8 +116,9 @@ public class HttpFragmentationUnderOutageIT {
      * request body ({@code HttpClientFactory.MEDIA_TYPE_JSON} — confirmed via source read; the SDK does not send
      * chunk bodies as {@code text/plain}), so this is not asserted separately.
      */
-    private void assertFragmentsCompletelyDelivered(String logId) throws Exception {
-        long deadline = System.nanoTime() + java.util.concurrent.TimeUnit.SECONDS.toNanos(30);
+    private void assertFragmentsDeliveredPerMode(String logId) throws Exception {
+        long deadline = System.nanoTime()
+            + java.util.concurrent.TimeUnit.SECONDS.toNanos(mode.holdsMessages() ? 30 : 8);
         Set<Integer> chunkNumbersSeen = new HashSet<>();
         Integer declaredTotalChunks = null;
         while (System.nanoTime() < deadline) {
@@ -106,6 +129,16 @@ public class HttpFragmentationUnderOutageIT {
             Thread.sleep(500);
         }
 
+        if (mode.holdsMessages()) {
+            assertEquals("Mode none must never discard", 0, discards.count());
+        } else {
+            // The outage covers the whole send, so the message must have been discarded as a whole.
+            assertTrue("The fragmented message was driven into an outage and must be discarded",
+                discards.count() >= 1);
+            if (chunkNumbersSeen.isEmpty()) {
+                return;
+            }
+        }
         assertTrue("Message never split into multiple chunks — the size settings failed to force fragmentation",
             declaredTotalChunks != null && declaredTotalChunks > 1);
         Set<Integer> expectedChunkNumbers = IntStream.rangeClosed(1, declaredTotalChunks)

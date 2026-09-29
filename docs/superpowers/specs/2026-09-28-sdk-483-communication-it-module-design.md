@@ -46,9 +46,10 @@ There is currently no module in this repository set up to run this kind of test 
   fix. See §9 for what does warrant a new scenario here.
 - **Client-side business-logic variety.** The process/activity model driving these tests is fixed and trivial by
   design (§4). No scenario varies it.
-- **Exhaustive discard-policy × fault-type coverage.** Only combinations where the acceptance criteria in
-  SDK-476 actually predict different behavior per policy are parameterized by policy (§6, scenario 8). Rejection
-  and connection-loss are policy-independent per those criteria and are not repeated per policy.
+- **Discard-mode combinations that do not exist.** Every fault scenario is verified under each discard mode
+  (§6.1), but scenarios where the SDK's behavior is policy-independent by design (startup with `fail`, degraded
+  connect) are not repeated per mode. Startup with `reconnect` is *not* policy-independent and does run per mode
+  (scenario 1b).
 - **CI integration.** Out of scope for this ticket; this is a manually invoked profile.
 
 ## 4. Module design
@@ -113,7 +114,8 @@ assertion only cares about the scenario's own driven messages.
 
 | # | Scenario | Mechanism | Transport | Verifies |
 |---|---|---|---|---|
-| 1 | Startup outage | Toxiproxy `down` before `start()`; HTTP also tested via `HEAD → 404` ("no active dataprovider found") | JMS + HTTP | Phase 1: failure propagates per `startup.failbehavior`, doesn't hang |
+| 1a | Startup outage, `startup.failbehavior=fail` | Toxiproxy `down` before `start()`; HTTP also tested via `HEAD → 404` ("no active dataprovider found") | JMS + HTTP | Phase 1: `start()` returns `false` and the SDK is shut down fully — instance inactive, no `Sender-Startup-*`/`Sender-Reconnector-*`/`Receiver-*` thread left, and once the target is usable again nothing reconnects or sends on its own (JMS: broker connection count unchanged; HTTP: WireMock journal unchanged). Policy-independent |
+| 1b | Startup outage, `startup.failbehavior=reconnect` | Toxiproxy `down` before `start()`, short `connect.timeout`; jobs driven while still down, then the target is restored | JMS + HTTP | `start()` returns `true` and the SDK is initialized; the sender then behaves as for a later connection problem per discard mode (§6.1): background reconnect runs on its own and ends once the target is back, jobs driven afterwards are delivered |
 | 2 | Mid-processing outage + recovery | Toxiproxy `down` while jobs are running, then removed | JMS + HTTP | Phase 2 core: single sender elected to reconnect, others drained, pool refuses new senders meanwhile, in-flight message survives and resends after reconnect (SDK-472) |
 | 3 | Degraded/slow connect | Toxiproxy `latency`/`timeout` on new connections only, established traffic unaffected | JMS | The accepted-risk fix (SDK-472 decision B2): a slow-but-reachable broker doesn't stall unrelated `acquire()`/`release()` calls in the pool |
 | 4 | Shutdown during outage | Toxiproxy `down`, then `Njams.stop()` mid-reconnect | JMS + HTTP | Phase 3: shutdown cancels the reconnect loop promptly, no new attempts |
@@ -123,6 +125,40 @@ assertion only cares about the scenario's own driven messages.
 | 8 | Congestion | WireMock `POST` stub → **429**, repeated | HTTP | Local retry without retiring/reconnecting under `none`/`onconnectionloss`; immediate no-delay discard under `discard` — the one case where policy actually changes behavior |
 | 9a | Connection problem (application-level) | WireMock `POST` stub → **503** | HTTP | Classified as a connection problem, not congestion — direct regression test for the exact defect class SDK-476 fixed |
 | 9b | Connection problem (transport-level) | Toxiproxy `down` in front of WireMock | HTTP | Same retire/reconnect/listener path as 9a, confirming both failure origins land in the same handling |
+| 10 | Dispatch-queue saturation | One sender thread and a 2-slot queue (`maxsenderthreads`/`maxqueuelength`), 8 jobs driven while the transport is either *slow* (Toxiproxy `latency` on every exchange, connection stays up) or *down* (Toxiproxy `timeout`) | JMS + HTTP | Discard-mode-dependent blocking vs. dropping of the submitter, see §6.1 |
+
+Scenarios 1b, 2, 4, 5, 6, 7, 8, 9a, 9b and 10 run once per discard mode (§6.1); 1a and 3 are policy-independent.
+
+**Fault-injection caveat:** Toxiproxy's `timeout` toxic (used for "down") blocks only the response direction of an
+existing exchange. For HTTP, a request the client reports as failed can therefore still reach WireMock, so a
+`logId` may legitimately be seen more than once; delivery-count bounds account for that (at-least-once, server
+dedups by `logId`).
+
+### 6.1 Discard-mode matrix
+
+The discard policy (`njams.sdk.discardpolicy`: `none`, `onconnectionloss`, `discard`) defines the SDK's behavior
+under connection problems, which is what this module verifies. Each fault scenario therefore runs under **every**
+discard mode and asserts that mode's expected outcome. Expected behavior (from `NjamsSender.dispatch`,
+`SenderPool.acquire`, `AbstractSender.sendWithRetry`, `MaxQueueLengthHandler`):
+
+| Fault | `none` | `onconnectionloss` | `discard` |
+|---|---|---|---|
+| Connection problem during processing (2, 6, 9a, 9b, 5) | In-flight message is held and resent after reconnect; new sends block in `acquire()`. Every driven job arrives exactly once. | In-flight message is retired and dropped at `acquire()` while the group reconnects; new sends during the outage are dropped. Jobs sent outside the outage arrive exactly once; dropped jobs are counted by `DiscardMonitor`. | As `onconnectionloss`, and additionally without the quick-retry smoothing window. |
+| Fragmented message under outage (6) | Full resend, no fragment gap. | Clean discard of the whole message, no partial delivery. | As `onconnectionloss`. |
+| Shutdown during outage (4) | Callers blocked in `acquire()` are released promptly; `stop()` returns promptly. | `stop()` returns promptly. | `stop()` returns promptly. |
+| Congestion, `429` (8) | Retried locally, no reconnect. | Retried locally, no reconnect. | One attempt, then dropped; never reconnects. |
+| Rejected, `413` (7) | Dropped after one attempt; connection untouched. | As `none`. | As `none`. |
+| Dispatch-queue saturation (10) | Submitting thread blocks until a slot frees. | Drops only while the connection is lost. | Always drops when the queue is full. |
+
+**Startup (1a/1b):** with `startup.failbehavior=fail` the client does not become active: `start()` returns `false`
+and the SDK shuts down fully (policy-independent, 1a). With `reconnect` `start()` succeeds and the SDK initializes;
+the connection issue is then treated like any later connection problem, i.e. by discard mode (1b):
+
+| Startup with `reconnect`, target down | `none` | `onconnectionloss` | `discard` |
+|---|---|---|---|
+| Startup project message (produced before any connection exists) | Held, delivered after the reconnect. | Discarded while the group reconnects (as the FAQ states for messages produced before the initial connection). Whether it is ever re-sent is not documented and not asserted. | As `onconnectionloss`. |
+| Jobs driven while still down | Held, none discarded, delivered after the reconnect. | Every one discarded (counted), none delivered later. | As `onconnectionloss`. |
+| Jobs driven after the reconnect | Delivered. | Delivered. | Delivered. |
 
 Status-code classification is taken directly from `HttpSender.isCongestion`/`isMessageRejected`
 (`HttpSender.java:479-495`): only `429` is congestion, only `413` is message-rejected, and everything else

@@ -51,6 +51,11 @@ public final class WireMockJournal {
         return count;
     }
 
+    /** Counts every journal entry, whatever its method, path or headers. */
+    public static long countAll(DockerEnvironment env) throws IOException, InterruptedException {
+        return requests(env).size();
+    }
+
     /**
      * Polls {@link #countMatching} until {@code satisfied} accepts the count or {@code timeout} elapses, returning
      * whatever the last observed count was either way — the caller asserts on that value, so a still-unsatisfied

@@ -3,11 +3,6 @@ package com.im.njams.sdk.it.jms;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse.BodyHandlers;
-import java.util.Base64;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -26,8 +21,6 @@ import org.junit.After;
 import org.junit.Rule;
 import org.junit.Test;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.Path;
@@ -100,7 +93,7 @@ public class PoolBookkeepingIT {
         // The SDK's one JmsReceiver instance holds its own, separate JMS Connection (confirmed via JmsReceiver
         // source: a private Connection field distinct from any JmsSender's), so the broker's live connection count
         // is expected to be exactly the pool's sender count plus that one receiver connection.
-        int brokerConnectionCount = currentBrokerConnectionCount();
+        int brokerConnectionCount = env.brokerConnectionCount();
         assertEquals("Broker's own live connection count (independently queried via Jolokia) must equal the pool's "
             + "bookkeeping count plus the SDK's one receiver connection", pooledSenderCount + 1,
             brokerConnectionCount);
@@ -130,34 +123,5 @@ public class PoolBookkeepingIT {
             assertTrue("All driven jobs must be delivered before checking pool/broker connection state; delivered "
                 + delivered.size() + "/" + logIds.size(), delivered.size() == logIds.size());
         }
-    }
-
-    /**
-     * Reads ActiveMQ's own {@code CurrentConnectionsCount} broker attribute via Jolokia — confirmed empirically
-     * against the running container (not assumed from general ActiveMQ/Jolokia familiarity): the MBean is
-     * {@code org.apache.activemq:type=Broker,brokerName=localhost} (the {@code apache/activemq-classic} image's
-     * default broker name), and the attribute tracked 0 -> 2 across two independently-opened JMS connections in a
-     * manual probe. Jolokia rejects requests whose {@code Origin} header is missing/{@code null} with a 403, so an
-     * explicit same-origin value is set here.
-     */
-    private int currentBrokerConnectionCount() throws Exception {
-        URI jolokiaUri = URI.create(env.jolokiaUrl());
-        String credentials = Base64.getEncoder().encodeToString(jolokiaUri.getUserInfo().getBytes());
-        URI requestUri = new URI(jolokiaUri.getScheme(), null, jolokiaUri.getHost(), jolokiaUri.getPort(),
-            jolokiaUri.getPath(), null, null);
-        String origin = jolokiaUri.getScheme() + "://" + jolokiaUri.getHost() + ":" + jolokiaUri.getPort();
-
-        String requestBody = "{\"type\":\"read\",\"mbean\":\"org.apache.activemq:type=Broker,brokerName=localhost\","
-            + "\"attribute\":\"CurrentConnectionsCount\"}";
-        HttpRequest request = HttpRequest.newBuilder(requestUri)
-            .header("Authorization", "Basic " + credentials)
-            .header("Origin", origin)
-            .header("Content-Type", "application/json")
-            .POST(HttpRequest.BodyPublishers.ofString(requestBody))
-            .build();
-
-        String body = HttpClient.newHttpClient().send(request, BodyHandlers.ofString()).body();
-        JsonNode root = new ObjectMapper().readTree(body);
-        return root.get("value").asInt();
     }
 }

@@ -3,14 +3,17 @@ package com.im.njams.sdk.it.support;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse.BodyHandlers;
 import java.time.Duration;
+import java.util.Base64;
 import java.util.Properties;
 
 import org.junit.rules.ExternalResource;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.settings.Settings;
 
@@ -29,6 +32,13 @@ public class DockerEnvironment extends ExternalResource {
      * {@code ActiveMQInitialContextFactory}'s default binding names) — no broker-side configuration needed.
      */
     private static final String ACTIVEMQ_CONNECTION_FACTORY_NAME = "ConnectionFactory";
+
+    /**
+     * How long a scenario keeps a transport outage in force before restoring it. Must outlast the sender's own
+     * bounded quick-retry window (about one second), otherwise a message could be saved by local retries alone
+     * and never reach the reconnect / discard-policy handling the scenario targets.
+     */
+    public static final long OUTAGE_MS = 3_000;
 
     private final Properties props = new Properties();
     private final ToxiproxyControl toxiproxy;
@@ -81,14 +91,13 @@ public class DockerEnvironment extends ExternalResource {
     }
 
     /**
-     * Sets {@code PROPERTY_DISCARD_POLICY} to {@code none} (block until a dispatch-queue slot frees up, rather
-     * than drop) so a scenario that asserts on delivery counts is testing outage/recovery behavior, not the
-     * unrelated default discard-under-burst behavior — the sender pool's dispatch queue is small (default
-     * capacity 8) and a {@code MessageDriver} burst can easily exceed it well before any outage is involved.
-     * Do not call this from a scenario whose own purpose is exercising discard-policy-dependent behavior.
+     * Pins {@code PROPERTY_DISCARD_POLICY} to {@code none} for a scenario that is not about discard behavior at
+     * all (pool bookkeeping, degraded connect): blocking instead of dropping keeps such a scenario's delivery
+     * assertions independent of the small dispatch queue. Scenarios that verify connection-problem handling run
+     * once per {@link DiscardMode} instead and must not call this.
      */
     public void disableMessageDiscarding(Settings settings) {
-        settings.put(NjamsSettings.PROPERTY_DISCARD_POLICY, "none");
+        DiscardMode.NONE.apply(settings);
     }
 
     public String jmsUrlDirect() {
@@ -113,6 +122,36 @@ public class DockerEnvironment extends ExternalResource {
 
     public String wireMockAdminUrl() {
         return httpBaseUrlDirect() + "/__admin";
+    }
+
+    /**
+     * Reads ActiveMQ's own {@code CurrentConnectionsCount} broker attribute via Jolokia — confirmed empirically
+     * against the running container (not assumed from general ActiveMQ/Jolokia familiarity): the MBean is
+     * {@code org.apache.activemq:type=Broker,brokerName=localhost} (the {@code apache/activemq-classic} image's
+     * default broker name), and the attribute tracked 0 -> 2 across two independently-opened JMS connections in a
+     * manual probe. Jolokia rejects requests whose {@code Origin} header is missing/{@code null} with a 403, so an
+     * explicit same-origin value is set here.
+     *
+     * @return the number of connections the broker currently holds open.
+     */
+    public int brokerConnectionCount() throws IOException, InterruptedException, URISyntaxException {
+        URI jolokiaUri = URI.create(jolokiaUrl());
+        String credentials = Base64.getEncoder().encodeToString(jolokiaUri.getUserInfo().getBytes());
+        URI requestUri = new URI(jolokiaUri.getScheme(), null, jolokiaUri.getHost(), jolokiaUri.getPort(),
+            jolokiaUri.getPath(), null, null);
+        String origin = jolokiaUri.getScheme() + "://" + jolokiaUri.getHost() + ":" + jolokiaUri.getPort();
+
+        String requestBody = "{\"type\":\"read\",\"mbean\":\"org.apache.activemq:type=Broker,brokerName=localhost\","
+            + "\"attribute\":\"CurrentConnectionsCount\"}";
+        HttpRequest request = HttpRequest.newBuilder(requestUri)
+            .header("Authorization", "Basic " + credentials)
+            .header("Origin", origin)
+            .header("Content-Type", "application/json")
+            .POST(HttpRequest.BodyPublishers.ofString(requestBody))
+            .build();
+
+        String body = HttpClient.newHttpClient().send(request, BodyHandlers.ofString()).body();
+        return new ObjectMapper().readTree(body).get("value").asInt();
     }
 
     private int port(String key) {

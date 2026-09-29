@@ -1,13 +1,12 @@
 package com.im.njams.sdk.it.http;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse.BodyHandlers;
-import java.util.HashMap;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -16,32 +15,55 @@ import java.util.concurrent.TimeUnit;
 import org.junit.After;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.Path;
-import com.im.njams.sdk.communication.MessageHeaders;
 import com.im.njams.sdk.it.harness.FixedProcessModel;
 import com.im.njams.sdk.it.harness.MessageDriver;
+import com.im.njams.sdk.it.support.Deliveries;
+import com.im.njams.sdk.it.support.DeliveryAssertions;
+import com.im.njams.sdk.it.support.DiscardMode;
+import com.im.njams.sdk.it.support.DiscardObserver;
 import com.im.njams.sdk.it.support.DockerEnvironment;
 import com.im.njams.sdk.model.ProcessModel;
 import com.im.njams.sdk.settings.Settings;
 
+/**
+ * Scenario 2, once per discard mode: {@code none} holds every job across the outage and delivers it after
+ * recovery; {@code onconnectionloss} and {@code discard} drop the jobs sent while the connection is lost and
+ * account for each of them as a discard.
+ */
+@RunWith(Parameterized.class)
 public class HttpMidProcessingOutageRecoveryIT {
 
     /**
-     * One initial send attempt plus {@code AbstractSender.SMOOTHING_DELAYS_MS.length} (3) bounded local smoothing
-     * retries -- confirmed via {@code AbstractSender.java}, since that field is private and not otherwise reachable
-     * from this module.
+     * One initial send attempt plus {@code AbstractSender}'s 3 bounded local smoothing retries -- over HTTP each of
+     * them can independently reach the server, because the toxic only severs the response -- plus one resend on the
+     * fresh sender after the reconnect (mode {@code none} holds the job across the outage).
      */
-    private static final int MAX_EXPECTED_DELIVERIES_PER_LOG_ID = 4;
+    private static final int MAX_DELIVERIES_PER_LOG_ID = 5;
+
+    @Parameters(name = "{0}")
+    public static Collection<Object[]> modes() {
+        return Arrays.stream(DiscardMode.values()).map(m -> new Object[] { m }).collect(java.util.stream.Collectors.toList());
+    }
 
     @Rule
     public DockerEnvironment env = new DockerEnvironment();
 
+    @Rule
+    public DiscardObserver discards = new DiscardObserver();
+
+    private final DiscardMode mode;
     private Njams njams;
+
+    public HttpMidProcessingOutageRecoveryIT(DiscardMode mode) {
+        this.mode = mode;
+    }
 
     @After
     public void tearDown() {
@@ -51,102 +73,46 @@ public class HttpMidProcessingOutageRecoveryIT {
     }
 
     @Test
-    public void everyDrivenJobArrivesExactlyOnceAcrossAnOutage() throws Exception {
+    public void jobsAreHeldOrDiscardedAcrossAnOutageAccordingToTheDiscardMode() throws Exception {
         Settings settings = new Settings();
         settings.put(NjamsSettings.PROPERTY_COMMUNICATION, "HTTP");
         settings.put(NjamsSettings.PROPERTY_HTTP_BASE_URL, env.httpBaseUrlThroughProxy());
         settings.put(NjamsSettings.PROPERTY_HTTP_DATAPROVIDER_SUFFIX, "dataprovider");
-        env.disableMessageDiscarding(settings);
+        mode.apply(settings);
 
         njams = new Njams(Path.of("HttpMidProcessingOutageRecoveryIT"), "1.0.0", "CommunicationIT", settings);
         njams.start();
         ProcessModel model = FixedProcessModel.build(njams);
 
-        List<String> logIds = MessageDriver.run(model, 20, 100, 4);
+        List<String> beforeOutage = MessageDriver.run(model, 20, 100, 4);
 
-        // Same interleaving approach as the JMS scenario: start a second batch, cut after it has started, then
-        // restore, since cutting mid-flight relative to the first batch isn't controllable at this granularity.
+        // The outage is armed before the second batch starts, so every job of that batch is driven into it.
         env.toxiproxy().addToxic("http", "mid-outage", "timeout", Map.of("timeout", 1));
+        List<String> duringOutage = new ArrayList<>();
         Thread outageDriver = new Thread(() -> {
             try {
-                logIds.addAll(MessageDriver.run(model, 20, 100, 4));
+                duringOutage.addAll(MessageDriver.run(model, 20, 100, 4));
             } catch (InterruptedException ignored) {
                 Thread.currentThread().interrupt();
             }
         });
         outageDriver.start();
-        Thread.sleep(500);
+        Thread.sleep(DockerEnvironment.OUTAGE_MS);
         env.toxiproxy().removeToxic("http", "mid-outage");
         outageDriver.join(TimeUnit.SECONDS.toMillis(30));
 
-        assertEquals(40, logIds.size());
-        assertEquals(40, Set.copyOf(logIds).size());
+        List<String> driven = new ArrayList<>(beforeOutage);
+        driven.addAll(duringOutage);
+        assertEquals(40, driven.size());
+        assertEquals(40, Set.copyOf(driven).size());
 
-        Map<String, Integer> deliveryCounts = countDeliveriesPerLogId(logIds);
-        assertEquals(40, deliveryCounts.size());
+        Map<String, Integer> deliveries = Deliveries.viaHttp(env, driven, mode, discards::count);
+        DeliveryAssertions.assertOutcome(mode, driven, deliveries, discards.count(), MAX_DELIVERIES_PER_LOG_ID);
 
-        // This harness drives exactly one job.end() flush per job, so a given logId has exactly one intended
-        // message; a repeat wire-level POST for that same logId is therefore a resend, not a legitimate distinct
-        // update (see message-sending-control.md — updates to the same logId are the common case in general, but
-        // this fixed harness never produces more than one per job). AbstractSender.attemptWithSmoothing bounds a
-        // failed send to one initial attempt plus SMOOTHING_DELAYS_MS.length (3) local smoothing retries -- up to
-        // 4 raw wire-level attempts per logical message -- entirely before anything escalates to the pool/reconnect
-        // layer. Over HTTP, request and response are decoupled at the socket level, so under this scenario's
-        // "timeout" toxic each of those attempts can independently reach the real server (confirmed via WireMock's
-        // own request journal recording a full POST body for every attempt): the request lands and a response is
-        // built, but the toxic severs the connection before the client sees it, so the client retries an
-        // already-served request. This is the documented at-least-once/ambiguous-outcome case (server dedups by
-        // logId), not an unbounded/looping resend defect -- so the bound here is the smoothing window's own
-        // maximum, not the single-retry margin that happens to suffice for the JMS scenario on the same toxic.
-        int maxDeliveries = deliveryCounts.values().stream().mapToInt(Integer::intValue).max().orElse(0);
-        assertTrue("No logId should be POSTed more than " + MAX_EXPECTED_DELIVERIES_PER_LOG_ID
-            + " times (one initial attempt plus AbstractSender's bounded local smoothing retries); observed a max "
-            + "of " + maxDeliveries + " POSTs across logIds: " + deliveryCounts,
-            maxDeliveries <= MAX_EXPECTED_DELIVERIES_PER_LOG_ID);
-    }
-
-    /**
-     * Counts, per {@code logId}, how many {@code POST}s to the SDK's real ingest path
-     * ({@code /api/processing/ingest/dataprovider} — {@code HttpSender}'s hardcoded {@code INGEST_API_PATH} plus
-     * the fixed {@code dataprovider} suffix this module's settings and stubs agree on) in WireMock's
-     * {@code /__admin/requests} journal carry that {@code logId} in their
-     * {@link MessageHeaders#NJAMS_LOGID_HTTP_HEADER} ("njams-logid") request header. Polls rather than taking a
-     * single snapshot: {@code job.end()} only queues the message for background dispatch, so delivery can still
-     * be catching up, especially right after an outage clears and the sender is settling its reconnect.
-     */
-    private Map<String, Integer> countDeliveriesPerLogId(List<String> logIds) throws Exception {
-        Set<String> wanted = Set.copyOf(logIds);
-        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(30);
-        Map<String, Integer> deliveries;
-        do {
-            deliveries = matchingJournalDeliveryCounts(wanted);
-            if (deliveries.size() < wanted.size()) {
-                Thread.sleep(500);
-            }
-        } while (deliveries.size() < wanted.size() && System.nanoTime() < deadline);
-        return deliveries;
-    }
-
-    private Map<String, Integer> matchingJournalDeliveryCounts(Set<String> wanted) throws Exception {
-        HttpClient client = HttpClient.newHttpClient();
-        HttpRequest request = HttpRequest.newBuilder(URI.create(env.wireMockAdminUrl() + "/requests")).GET().build();
-        String body = client.send(request, BodyHandlers.ofString()).body();
-
-        JsonNode root = new ObjectMapper().readTree(body);
-        Map<String, Integer> deliveries = new HashMap<>();
-        for (JsonNode entry : root.get("requests")) {
-            JsonNode requestNode = entry.get("request");
-            if (!"POST".equals(requestNode.get("method").asText())) {
-                continue;
-            }
-            if (!"/api/processing/ingest/dataprovider".equals(requestNode.get("url").asText())) {
-                continue;
-            }
-            JsonNode logIdHeader = requestNode.get("headers").get(MessageHeaders.NJAMS_LOGID_HTTP_HEADER);
-            if (logIdHeader != null && wanted.contains(logIdHeader.asText())) {
-                deliveries.merge(logIdHeader.asText(), 1, Integer::sum);
-            }
+        if (!mode.holdsMessages()) {
+            assertTrue("Jobs driven into the outage must be discarded, but none was", discards.count() >= 1);
+            assertFalse("Not every job driven into the outage may survive under " + mode,
+                deliveries.keySet().containsAll(duringOutage));
         }
-        return deliveries;
     }
 }

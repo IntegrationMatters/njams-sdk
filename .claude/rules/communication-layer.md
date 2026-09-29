@@ -48,3 +48,9 @@ Business logic outside this package must not depend on a specific transport. All
 ## Performance
 
 `communication/` is part of the runtime monitoring path — see `runtime-performance-hotpath.md`.
+
+## Ticket completion checks
+
+Read by `njams-ticket-finish` before it proposes resolving a ticket (see the "Ticket completion checks" convention in `CLAUDE.md`).
+
+- **Resilience test suite.** If the ticket's diff contains a **significant** change to this package — sender/receiver lifecycle, `NjamsSender`/`SenderPool`/`SenderConnector` reconnect or retry logic, discard-policy handling, fragmentation, or a transport's connect/send/close path (not comment, logging or pure rename changes) — **propose** running the Docker-based `njams-sdk-communication-it` suite before proposing to resolve the ticket. Do not propose it mid-work or after individual edits. Command: `mvn -Pdocker-it verify -pl njams-sdk-communication-it` (about 6 minutes, needs Docker; see that module's `README.md`). It is a proposal, never an automatic step: state the duration up front and let the user decide. Never run two suites at once (they share `target/docker-it.properties`). A failure there is a defect finding, handled as described in `communication-it-module.md` — do not adapt the ITs to make it pass.

@@ -116,6 +116,8 @@ Configuration providers (`ConfigurationProvider` implementations) allow loading 
 
 Topic-specific rules that apply either always or only when working with certain files:
 
+**Ticket completion checks:** a rule file may contain a section titled `## Ticket completion checks` listing steps to carry out before a ticket is resolved. The `njams-ticket-finish` skill reads these sections from every rule whose path scope matches the ticket's diff, so project-specific completion steps live in the rule that owns them and not in the skill.
+
 | Rule file | Applies to | Topic |
 |---|---|---|
 | `jira-workflow.md` | always | Ticket lifecycle, labels, fix version, descriptions, closing comments |
@@ -128,7 +130,7 @@ Topic-specific rules that apply either always or only when working with certain 
 | `message-sending-control.md` | `njams-sdk/src/main/java/**` | Send-cadence invariant: SDK, not client, controls when project/log messages go out |
 | `runtime-performance-hotpath.md` | `logmessage/`, `communication/`, `argos/` | Allocation/reflection/I-O rules, settings-snapshot invariant |
 | `job-thread-safety.md` | `logmessage/**` | Job/Activity/Group concurrency contract |
-| `communication-layer.md` | `communication/**` | Not-public-API boundary, transport independence |
+| `communication-layer.md` | `communication/**` | Not-public-API boundary, transport independence, when to propose the communication-it suite |
 | `kafka-argos-deprecated.md` | `communication/kafka/**`, `argos/**` | Standing deprecation policy |
 | `settings-management.md` | `settings/**`, `configuration/**`, `NjamsSettings.java`, `settings_full.properties` | Setting-key rules, canonical properties file sync |
 | `testing-conventions.md` | `njams-sdk/src/test/**` | Test infra (`AbstractTest`, `TestSender`), coverage requirements |
