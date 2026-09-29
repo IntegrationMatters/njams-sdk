@@ -232,7 +232,7 @@ public class CommunicationFactory {
         if (sender != null) {
             try {
                 // create a new instance
-                LOG.info("Create sender {}", sender.getName());
+                LOG.debug("Create sender {}", sender.getName());
                 AbstractSender newInstance = sender.getClass().getDeclaredConstructor().newInstance();
                 if (newInstance instanceof ClasspathValidator) {
                     ((ClasspathValidator) newInstance).validate();

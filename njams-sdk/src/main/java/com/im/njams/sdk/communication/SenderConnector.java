@@ -144,6 +144,7 @@ class SenderConnector {
         AbstractSender sender = null;
         Exception failure = null;
         try {
+            LOG.info("Creating initial sender for group {}", pool.getSenderName());
             sender = createSender();
             sender.connect();
             coordinator.markStartupConnected();
@@ -220,6 +221,7 @@ class SenderConnector {
         while (!coordinator.isGroupConnected() && !coordinator.shouldShutdown()) {
             AbstractSender sender = null;
             try {
+                LOG.debug("Creating sender for reconnect attempt on group {}", pool.getSenderName());
                 sender = createSender();
                 sender.connect();
                 if (coordinator.markConnected()) {
