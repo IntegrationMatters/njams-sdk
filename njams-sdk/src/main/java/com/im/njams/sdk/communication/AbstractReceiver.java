@@ -392,7 +392,7 @@ public abstract class AbstractReceiver implements Receiver, SenderRecoveryListen
      * receiver is shutting down, has never been connected, is currently connecting, or is already running its own
      * reconnect — in each of those cases its own lifecycle already owns its connection state.
      *
-     * @since 6.0.0
+     * @since 6.1.0
      */
     @Override
     public void onSenderGroupRecovered() {
@@ -440,7 +440,7 @@ public abstract class AbstractReceiver implements Receiver, SenderRecoveryListen
      * effect on any sender group, and a sender group shutting down has no effect here either.
      *
      * @param shutdown {@code true} to begin shutdown for this receiver.
-     * @since 6.0.0
+     * @since 6.1.0
      */
     public void setShouldShutdown(boolean shutdown) {
         coordinator.setShouldShutdown(shutdown);
@@ -450,7 +450,7 @@ public abstract class AbstractReceiver implements Receiver, SenderRecoveryListen
      * Interrupts the startup connect thread and any in-progress reconnect thread of this receiver, so a blocking
      * {@link #connect()} is cancelled promptly on shutdown rather than only at the next loop check.
      *
-     * @since 6.0.0
+     * @since 6.1.0
      */
     public void cancelReconnect() {
         final Thread startup = startupConnectThread;

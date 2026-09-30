@@ -30,7 +30,7 @@ package com.im.njams.sdk.communication;
  * swallow a failure, and never apply the discard policy itself. Retrying, classification and the discard policy
  * are owned by {@link AbstractSender#sendWithRetry(SendAttempt)}.
  *
- * @since 6.0.0
+ * @since 6.1.0
  */
 @FunctionalInterface
 public interface SendAttempt {

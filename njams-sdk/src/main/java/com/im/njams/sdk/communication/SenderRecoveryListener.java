@@ -32,7 +32,7 @@ package com.im.njams.sdk.communication;
  * again. Called once per outage, on a background thread. Not part of the user-facing API; client code must not
  * call this directly.
  *
- * @since 6.0.0
+ * @since 6.1.0
  */
 public interface SenderRecoveryListener {
 

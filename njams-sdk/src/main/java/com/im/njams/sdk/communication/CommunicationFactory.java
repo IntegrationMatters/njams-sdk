@@ -182,7 +182,7 @@ public class CommunicationFactory {
      * @param njams the {@link Njams} instance to remove.
      * @return {@code true} if this was the last user, i.e., the receiver has genuinely stopped and been evicted;
      *         {@code false} if other instances still use it.
-     * @since 6.0.0
+     * @since 6.1.0
      */
     public static boolean removeNjamsFromSharedReceiver(ShareableReceiver<?> receiver, Njams njams) {
         synchronized (sharedReceivers) {

@@ -178,7 +178,7 @@ public abstract class AbstractSender {
     /**
      * What the shared retry machinery decided about a failure, so a transport can log it in its own terms.
      *
-     * @since 6.0.0
+     * @since 6.1.0
      */
     public enum SendFailureOutcome {
         /** The same message is about to be attempted again; nothing has been lost. */
@@ -223,7 +223,7 @@ public abstract class AbstractSender {
      *
      * @param attempt one honest send attempt.
      * @throws Exception the failure that could not be resolved locally, unchanged.
-     * @since 6.0.0
+     * @since 6.1.0
      */
     protected final void sendWithRetry(SendAttempt attempt) throws Exception {
         while (true) {
@@ -288,7 +288,7 @@ public abstract class AbstractSender {
      * Override only to tune this transport or to remove the waiting in a test.
      *
      * @return the delay in milliseconds before each retry.
-     * @since 6.0.0
+     * @since 6.1.0
      */
     protected long[] getSmoothingDelaysMs() {
         return SMOOTHING_DELAYS_MS;
@@ -298,7 +298,7 @@ public abstract class AbstractSender {
      * Delay between two rounds of attempts while waiting out congestion.
      *
      * @return the delay in milliseconds.
-     * @since 6.0.0
+     * @since 6.1.0
      */
     protected long getCongestionRetryDelayMs() {
         return CONGESTION_RETRY_DELAY_MS;
@@ -314,7 +314,7 @@ public abstract class AbstractSender {
      *
      * @param outcome what the SDK decided about this failure.
      * @param failure the failure itself; may be {@code null}.
-     * @since 6.0.0
+     * @since 6.1.0
      */
     protected void logError(SendFailureOutcome outcome, Throwable failure) {
         LOG.debug("Send failure on sender {} classified as {}.", getName(), outcome, failure);
@@ -407,7 +407,7 @@ public abstract class AbstractSender {
      * @param failure the failure that was reported; may be {@code null}.
      * @return {@code true} only if this transport can positively identify the failure as short-lived congestion;
      *         {@code false} — the safe default — for anything it cannot positively identify as such.
-     * @since 6.0.0
+     * @since 6.1.0
      */
     protected abstract boolean isCongestion(Throwable failure);
 
@@ -434,7 +434,7 @@ public abstract class AbstractSender {
      * @param failure the failure that was reported; may be {@code null}.
      * @return {@code true} only if this transport can positively identify the message itself as permanently
      *         unsendable; {@code false} — the safe default — for anything it cannot positively identify as such.
-     * @since 6.0.0
+     * @since 6.1.0
      */
     protected abstract boolean isMessageRejected(Throwable failure);
 

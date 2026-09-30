@@ -32,7 +32,7 @@ import com.im.njams.sdk.common.NjamsSdkRuntimeException;
  * sender's own retries were exhausted. Distinct from {@link HttpSendException}: the HTTP client itself never
  * failed here, so this does not necessarily indicate a broken connection.
  *
- * @since 6.0.0
+ * @since 6.1.0
  */
 public class HttpStatusException extends NjamsSdkRuntimeException {
 
