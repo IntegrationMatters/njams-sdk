@@ -722,10 +722,15 @@ public class Njams implements InstructionListener {
             }
             configuration.load();
             configuration.initializeDataMasking();
+            final ConfigurationInstructionListener configurationListener = new ConfigurationInstructionListener(this);
             commands.add(this);
-            commands.add(new ConfigurationInstructionListener(this));
+            commands.add(configurationListener);
             startReceiver();
             if (receiver == null) {
+                // leave nothing behind that a client would need to clean up, or that a retry would duplicate
+                commands.remove(this);
+                commands.remove(configurationListener);
+                argos.stop();
                 return false;
             }
             LogMessageFlushTask.start(this);
