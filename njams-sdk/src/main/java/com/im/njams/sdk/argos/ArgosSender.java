@@ -192,7 +192,9 @@ public class ArgosSender implements Closeable {
                 isRunning = true;
                 startId = ++startCount;
             }
-            Executors.newSingleThreadExecutor().execute(() -> asyncStart(startId));
+            Thread startup = new Thread(() -> asyncStart(startId), "ArgosSender-Startup");
+            startup.setDaemon(true);
+            startup.start();
         } else {
             LOG.info("Argos Sender is disabled. Will not send any Metrics.");
         }

@@ -199,6 +199,33 @@ public class ArgosSenderTest {
         assertTrue(scheduler == null || scheduler.isShutdown());
     }
 
+    // SDK-488
+    @Test
+    public void startLeavesNoIdleStartupThreadBehind() throws Exception {
+        ArgosSender sender = newEnabledSender();
+        int cycles = 10;
+        long before = countLivePoolThreads();
+        for (int i = 0; i < cycles; i++) {
+            TestCollector collector = new TestCollector(
+                new ArgosComponent("cycle" + i, "name", "container", "measurement", "type"), Collections.emptyList());
+            sender.addArgosCollector(collector);
+            // let the asynchronous startup complete before closing again
+            Thread.sleep(50);
+            sender.removeArgosCollector(collector);
+        }
+        Thread.sleep(100);
+        long leaked = countLivePoolThreads() - before;
+        // tolerate unrelated threads of other tests; a leak would add one thread per cycle
+        assertTrue("start() must not leave an idle startup thread behind per call, leaked " + leaked,
+            leaked < cycles);
+    }
+
+    private static long countLivePoolThreads() {
+        return Thread.getAllStackTraces().keySet().stream()
+            .filter(t -> t.isAlive() && t.getName().startsWith("pool-"))
+            .count();
+    }
+
     private static ArgosSender newEnabledSender() {
         ArgosSender sender = new ArgosSender();
         Settings settings = new Settings();
