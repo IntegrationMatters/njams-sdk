@@ -87,6 +87,8 @@ public class SharedReceiverSupport<R extends AbstractReceiver & ShareableReceive
             LOG.debug("Removed client {} from shared receiver; {} remaining receivers.", njamsInstance.getClientPath(),
                     njamsInstances.size());
             if (njamsInstances.isEmpty()) {
+                // a stopped instance is never connected again; later Njams instances need a new one
+                CommunicationFactory.removeSharedReceiver(receiver);
                 receiver.stop();
                 return true;
             }

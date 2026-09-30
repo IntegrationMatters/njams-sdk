@@ -26,6 +26,8 @@ package com.im.njams.sdk;
 import static org.junit.Assert.*;
 
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -46,13 +48,19 @@ import com.faizsiegeln.njams.messageformat.v4.projectmessage.ProjectMessage;
 import com.faizsiegeln.njams.messageformat.v4.tracemessage.TraceMessage;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.Path;
+import com.im.njams.sdk.argos.ArgosComponent;
+import com.im.njams.sdk.argos.ArgosMetric;
+import com.im.njams.sdk.argos.ArgosMultiCollector;
+import com.im.njams.sdk.argos.ArgosSender;
 import com.im.njams.sdk.communication.AbstractSender;
+import com.im.njams.sdk.communication.InstructionListener;
 import com.im.njams.sdk.communication.Receiver;
 import com.im.njams.sdk.communication.ReplayHandler;
 import com.im.njams.sdk.communication.ReplayRequest;
 import com.im.njams.sdk.communication.ReplayResponse;
 import com.im.njams.sdk.communication.TestReceiver;
 import com.im.njams.sdk.communication.TestSender;
+import com.im.njams.sdk.configuration.ConfigurationInstructionListener;
 import com.im.njams.sdk.settings.ClientSettings;
 import com.im.njams.sdk.logmessage.DataMasking;
 import com.im.njams.sdk.logmessage.Job;
@@ -217,6 +225,69 @@ public class NjamsTest {
 
         assertFalse("start() must return false when sendProjectMessage() throws", result);
         assertFalse("SDK must not stay started after a project-message failure", njams.isStarted());
+    }
+
+    @Test
+    public void testRetriedStartAfterFailureStartsWithoutDuplicateListeners() {
+        final int[] attempts = {0};
+        Receiver failsOnceReceiver = new Receiver() {
+            @Override public String getName() { return "FailsOnceReceiver"; }
+            @Override public void init(ClientSettings settings) {}
+            @Override public void setNjams(Njams njams) {}
+            @Override public void onInstruction(Instruction i) {}
+            @Override public void start() {}
+            @Override public void stop() {}
+            @Override public void startWithTimeout(long timeoutMs) {
+                if (attempts[0]++ == 0) {
+                    throw new NjamsSdkRuntimeException("Simulated connect error");
+                }
+            }
+        };
+        TestReceiver.setReceiverMock(failsOnceReceiver);
+        try {
+            assertFalse(instance.start());
+            assertTrue("a retried start() must succeed once the connection is available", instance.start());
+            List<InstructionListener> listeners = instance.commands().list();
+            assertEquals(1, listeners.stream().filter(l -> l == instance).count());
+            assertEquals(1, listeners.stream().filter(l -> l instanceof ConfigurationInstructionListener).count());
+        } finally {
+            if (instance.isStarted()) {
+                instance.stop();
+            }
+            TestReceiver.setReceiverMock(null);
+        }
+    }
+
+    @Test
+    public void testFailedStartRemovesArgosCollectors() {
+        ArgosMultiCollector<?> collector = new ArgosMultiCollector<ArgosMetric>(
+            new ArgosComponent("id", "name", "container", "measurement", "type")) {
+            @Override
+            protected Collection<ArgosMetric> createAll() {
+                return Collections.emptyList();
+            }
+        };
+        instance.argos().add(collector);
+        Receiver failingReceiver = new Receiver() {
+            @Override public String getName() { return "FailingReceiver"; }
+            @Override public void init(ClientSettings settings) {}
+            @Override public void setNjams(Njams njams) {}
+            @Override public void onInstruction(Instruction i) {}
+            @Override public void start() {}
+            @Override public void stop() {}
+            @Override public void startWithTimeout(long timeoutMs) {
+                throw new NjamsSdkRuntimeException("Simulated connect error");
+            }
+        };
+        TestReceiver.setReceiverMock(failingReceiver);
+        try {
+            assertFalse(instance.start());
+            assertFalse("a failed start() must deregister the instance's Argos collectors",
+                ArgosSender.getInstance().removeArgosCollector(collector));
+        } finally {
+            ArgosSender.getInstance().removeArgosCollector(collector);
+            TestReceiver.setReceiverMock(null);
+        }
     }
 
     @Test

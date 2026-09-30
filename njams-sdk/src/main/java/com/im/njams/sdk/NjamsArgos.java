@@ -64,7 +64,7 @@ public class NjamsArgos {
         argosSender.removeArgosCollector(collector);
     }
 
-    /** Deregisters all collectors; called from Njams.stop(). */
+    /** Deregisters all collectors; called from Njams.stop() and after a failed Njams.start(). */
     void stop() {
         collectors.forEach(argosSender::removeArgosCollector);
         collectors.clear();

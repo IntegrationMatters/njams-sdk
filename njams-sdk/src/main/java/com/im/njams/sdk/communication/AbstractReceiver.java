@@ -72,7 +72,7 @@ public abstract class AbstractReceiver implements Receiver {
     private AtomicInteger reconnectIntervalIncreasing = new AtomicInteger(INIT_RECONNECT_INTERVAL * 10 + 1);
 
     private final AtomicBoolean connectBegun = new AtomicBoolean(false);
-    private volatile CountDownLatch startupLatch;
+    private final CountDownLatch startupLatch = new CountDownLatch(1);
     private final AtomicReference<Exception> startupError = new AtomicReference<>();
     private final AtomicBoolean startupTimedOut = new AtomicBoolean(false);
 
@@ -211,7 +211,6 @@ public abstract class AbstractReceiver implements Receiver {
         if (!connectBegun.compareAndSet(false, true)) {
             return;
         }
-        startupLatch = new CountDownLatch(1);
         LOG.debug("Receiver {}: starting connection attempt.", getName());
         Thread connectThread = new Thread(() -> {
             try {
@@ -281,6 +280,16 @@ public abstract class AbstractReceiver implements Receiver {
             connectionStatus = ConnectionStatus.DISCONNECTED;
             throw new NjamsSdkRuntimeException("Failed to connect " + getName() + " during startup", error);
         }
+    }
+
+    /**
+     * Returns whether the initial startup connection of this instance has failed or timed out. Such an instance
+     * can never be started successfully anymore, see {@link #startWithTimeout(long)}.
+     *
+     * @return <code>true</code> if the startup connection failed or timed out
+     */
+    boolean hasFailedStartup() {
+        return startupError.get() != null || startupTimedOut.get();
     }
 
     /**
