@@ -3,6 +3,7 @@ package com.im.njams.sdk.communication;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Predicate;
 
 import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.communication.lifecycle.LifecycleTestSender;
@@ -183,16 +184,63 @@ public class SenderPoolTestAccess {
         return pool.recoveredAfterFailedConnectAttemptForTest();
     }
 
-    /** Polls until the group is connected again after an outage. */
+    /**
+     * Polls until the group is connected again after an outage <em>and</em> the recovery notifications have been
+     * delivered. The pool clears its failed state before it calls the recovery listeners, so the state alone would
+     * let a caller check a listener too early. The listeners are called synchronously by the reconnect thread
+     * before its loop returns, so the thread having ended means they have all been called.
+     */
     public boolean awaitRecovered(long timeout, TimeUnit unit) throws InterruptedException {
         long deadline = System.nanoTime() + unit.toNanos(timeout);
         while (System.nanoTime() < deadline) {
-            if (!pool.isConnectionFailure()) {
+            if (isRecovered()) {
                 return true;
             }
             Thread.sleep(25);
         }
-        return !pool.isConnectionFailure();
+        return isRecovered();
+    }
+
+    private boolean isRecovered() {
+        return !pool.isConnectionFailure() && !isReconnectorThreadAlive();
+    }
+
+    private static boolean isReconnectorThreadAlive() {
+        return isThreadAlive(name -> name.startsWith("Sender-Reconnector-"));
+    }
+
+    private static boolean isThreadAlive(Predicate<String> nameMatches) {
+        return Thread.getAllStackTraces().keySet().stream()
+            .anyMatch(t -> t.isAlive() && nameMatches.test(t.getName()));
+    }
+
+    /**
+     * Waits until every recovery signal that a sender group's recovery can still produce for the given receiver has
+     * played out: the group's reconnect thread has ended (so all listeners were called, see
+     * {@link #awaitRecovered}) and the receiver's own recovery-cycle thread, which a listener call starts, has
+     * ended too. Call it before asserting that a receiver was <em>not</em> (or not again) cycled; without it such an
+     * assertion can read the state before a late cycle happened.
+     * <p>
+     * The reconnect thread is checked first on purpose: once it has ended, any cycle thread it caused already
+     * exists, so the second check cannot miss one that is still to be started. The cycle thread is matched by the
+     * receiver's identity hash, so a leftover thread of another test's receiver cannot hold this up.
+     *
+     * @param receiver the receiver whose recovery cycle is awaited.
+     * @return {@code true} if all of it played out within the timeout.
+     */
+    public static boolean awaitRecoveryQuiescent(Object receiver, long timeout, TimeUnit unit)
+        throws InterruptedException {
+        final String cycleThreadSuffix = "/" + System.identityHashCode(receiver) + "]";
+        final Predicate<String> receiverCycleThread =
+            name -> name.startsWith("Receiver-Recovery-Cycle-Thread[") && name.endsWith(cycleThreadSuffix);
+        long deadline = System.nanoTime() + unit.toNanos(timeout);
+        while (System.nanoTime() < deadline) {
+            if (!isReconnectorThreadAlive() && !isThreadAlive(receiverCycleThread)) {
+                return true;
+            }
+            Thread.sleep(25);
+        }
+        return !isReconnectorThreadAlive() && !isThreadAlive(receiverCycleThread);
     }
 
     public boolean awaitStartup(long timeoutMs) {

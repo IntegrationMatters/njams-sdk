@@ -18,6 +18,7 @@ import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.Path;
 import com.im.njams.sdk.communication.NjamsSender;
+import com.im.njams.sdk.communication.SenderPoolTestAccess;
 import com.im.njams.sdk.settings.ClientSettings;
 import com.im.njams.sdk.settings.Settings;
 
@@ -126,6 +127,8 @@ public class SharedSenderRecoverySignalSpecTest extends AbstractLifecycleSpecTes
         awaitTrue("the shared receiver must be cycled once the group recovers", 20_000,
             () -> LifecycleTestTransport.receiverConnectCount() > receiverConnectsBefore);
         awaitTrue("the shared receiver must be connected again after the cycle", 10_000, receiver::isConnected);
+        assertTrue("every recovery signal for the receiver must have played out",
+            SenderPoolTestAccess.awaitRecoveryQuiescent(receiver, 10, TimeUnit.SECONDS));
         assertEquals("a shared receiver registered by two clients must be cycled once, not twice",
             receiverConnectsBefore + 1, LifecycleTestTransport.receiverConnectCount());
     }
@@ -159,6 +162,8 @@ public class SharedSenderRecoverySignalSpecTest extends AbstractLifecycleSpecTes
         // the fresh sender only once the group is connected again.
         assertTrue("the group must recover a second time and deliver the retained message",
             LifecycleTestTransport.awaitSuccessfulSends(successfulSendsBefore + 1, 20, TimeUnit.SECONDS));
+        assertTrue("every recovery signal for the receiver must have played out",
+            SenderPoolTestAccess.awaitRecoveryQuiescent(receiver, 10, TimeUnit.SECONDS));
         assertEquals("a stopped client's receiver must no longer be cycled by the group it left",
             connectsAfterLastStop, LifecycleTestTransport.receiverConnectCount());
     }
@@ -204,6 +209,8 @@ public class SharedSenderRecoverySignalSpecTest extends AbstractLifecycleSpecTes
         // the identical reasoning in aStoppedClientsReceiverIsNoLongerCycled above.
         assertTrue("the group must recover and deliver the message retained across the outage",
             LifecycleTestTransport.awaitSuccessfulSends(successfulSendsBefore + 1, 20, TimeUnit.SECONDS));
+        assertTrue("every recovery signal for the receiver must have played out",
+            SenderPoolTestAccess.awaitRecoveryQuiescent(receiver, 10, TimeUnit.SECONDS));
 
         assertEquals("a receiver whose client failed at startup must have been deregistered and never cycled",
             connectsBefore, LifecycleTestTransport.receiverConnectCount());
