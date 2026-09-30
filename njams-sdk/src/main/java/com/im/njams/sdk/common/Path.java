@@ -39,7 +39,7 @@ import java.util.stream.Collectors;
  *     immutability, and thread-safety. Existing instances can be converted to the new type via
  *     {@link com.im.njams.sdk.Path#of(com.im.njams.sdk.common.Path)}.
  */
-@Deprecated
+@Deprecated(since = "6.0.0", forRemoval = true)
 public class Path implements Comparable<Path> {
 
     private final String pathAsString;
