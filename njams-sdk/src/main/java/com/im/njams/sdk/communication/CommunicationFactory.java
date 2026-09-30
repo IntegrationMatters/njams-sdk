@@ -133,7 +133,7 @@ public class CommunicationFactory {
             if (shared && ShareableReceiver.class.isAssignableFrom(clazz)) {
                 synchronized (sharedReceivers) {
                     receiver = sharedReceivers.get(clazz);
-                    if (receiver != null) {
+                    if (receiver != null && !hasFailedStartup(receiver)) {
                         LOG.debug("Reusing shared receiver {}", clazz);
                         return receiver;
                     }
@@ -156,6 +156,24 @@ public class CommunicationFactory {
             return receiver;
         } catch (Exception e) {
             throw new IllegalStateException("Unable to create new receiver " + name + " instance.", e);
+        }
+    }
+
+    private static boolean hasFailedStartup(Receiver receiver) {
+        return receiver instanceof AbstractReceiver && ((AbstractReceiver) receiver).hasFailedStartup();
+    }
+
+    /**
+     * Removes the given shared receiver from the cache, so that it is no longer handed out to new {@link Njams}
+     * instances. Does nothing if the cache already holds another instance.
+     *
+     * @param receiver the shared receiver to remove
+     */
+    static void removeSharedReceiver(ShareableReceiver<?> receiver) {
+        synchronized (sharedReceivers) {
+            if (sharedReceivers.remove(receiver.getClass(), receiver)) {
+                LOG.debug("Removed shared receiver {}", receiver.getClass());
+            }
         }
     }
 

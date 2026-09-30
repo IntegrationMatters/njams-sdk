@@ -693,12 +693,20 @@ public class Njams implements InstructionListener {
                 + "The SDK instance is inactive.", e);
             if (receiver != null) {
                 try {
-                    receiver.stop();
+                    releaseReceiver();
                 } catch (Exception ex) {
                     LOG.debug("Unable to stop receiver after startup failure", ex);
                 }
                 receiver = null;
             }
+        }
+    }
+
+    private void releaseReceiver() {
+        if (receiver instanceof ShareableReceiver) {
+            ((ShareableReceiver<?>) receiver).removeNjams(this);
+        } else {
+            receiver.stop();
         }
     }
 
@@ -758,11 +766,7 @@ public class Njams implements InstructionListener {
             sender.close();
         }
         if (receiver != null) {
-            if (receiver instanceof ShareableReceiver) {
-                ((ShareableReceiver<?>) receiver).removeNjams(this);
-            } else {
-                receiver.stop();
-            }
+            releaseReceiver();
         }
         commands.clear();
         lifecycle.setStarted(false);
