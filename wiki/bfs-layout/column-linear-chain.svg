@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="580" height="125">
+  <defs>
+    <marker id="ca1" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+      <polygon points="0 0,8 3,0 6" fill="#444"/>
+    </marker>
+  </defs>
+  <rect x="0" y="20" width="580" height="95" fill="#f5f7ff" rx="3"/>
+  <text x="80"  y="13" text-anchor="middle" font-size="10" fill="#888" font-family="sans-serif">col 0</text>
+  <text x="230" y="13" text-anchor="middle" font-size="10" fill="#888" font-family="sans-serif">col 1</text>
+  <text x="380" y="13" text-anchor="middle" font-size="10" fill="#888" font-family="sans-serif">col 2</text>
+  <text x="530" y="13" text-anchor="middle" font-size="10" fill="#888" font-family="sans-serif">col 3</text>
+  <line x1="106" y1="67" x2="204" y2="67" stroke="#444" stroke-width="1.5" marker-end="url(#ca1)"/>
+  <line x1="256" y1="67" x2="354" y2="67" stroke="#444" stroke-width="1.5" marker-end="url(#ca1)"/>
+  <line x1="406" y1="67" x2="504" y2="67" stroke="#444" stroke-width="1.5" marker-end="url(#ca1)"/>
+  <rect x="55"  y="42" width="50" height="50" fill="white" stroke="#4a7adb" stroke-width="1.5" rx="4"/>
+  <text x="80"  y="71" text-anchor="middle" font-size="11" font-family="monospace" fill="#222">Start</text>
+  <rect x="205" y="42" width="50" height="50" fill="white" stroke="#4a7adb" stroke-width="1.5" rx="4"/>
+  <text x="230" y="71" text-anchor="middle" font-size="11" font-family="monospace" fill="#222">A</text>
+  <rect x="355" y="42" width="50" height="50" fill="white" stroke="#4a7adb" stroke-width="1.5" rx="4"/>
+  <text x="380" y="71" text-anchor="middle" font-size="11" font-family="monospace" fill="#222">B</text>
+  <rect x="505" y="42" width="50" height="50" fill="white" stroke="#4a7adb" stroke-width="1.5" rx="4"/>
+  <text x="530" y="71" text-anchor="middle" font-size="11" font-family="monospace" fill="#222">End</text>
+</svg>
