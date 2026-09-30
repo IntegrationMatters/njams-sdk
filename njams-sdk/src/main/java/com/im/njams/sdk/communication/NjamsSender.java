@@ -320,11 +320,24 @@ public class NjamsSender {
      *
      * @param settings the settings to read the setting from.
      * @return {@code true} if the startup fail-behavior is {@code reconnect}, {@code false} for the default
-     *         {@code fail}.
-     * @since 6.0.0
+     *         {@code fail} and for {@code exit}.
+     * @since 6.1.0
      */
     public static boolean reconnectOnStartupFailure(ClientSettings settings) {
         return StartupFailBehavior.fromSettings(settings).reconnectOnStartupFailure();
+    }
+
+    /**
+     * Resolves whether {@link NjamsSettings#PROPERTY_COMMUNICATION_STARTUP_FAILBEHAVIOR} is set to {@code exit}
+     * for the given settings. Within the SDK {@code exit} behaves exactly like {@code fail}; this only lets {@link
+     * com.im.njams.sdk.Njams#startup()} report the outcome as {@code EXIT} instead of {@code FAIL}.
+     *
+     * @param settings the settings to read the setting from.
+     * @return {@code true} if the startup fail-behavior is {@code exit}.
+     * @since 6.1.0
+     */
+    public static boolean exitOnStartupFailure(ClientSettings settings) {
+        return StartupFailBehavior.fromSettings(settings).exitOnStartupFailure();
     }
 
     /**
@@ -413,7 +426,7 @@ public class NjamsSender {
      *
      * @param listener the listener to add.
      * @throws IllegalStateException if this sender was not initialized.
-     * @since 6.0.0
+     * @since 6.1.0
      */
     public void addSenderRecoveryListener(SenderRecoveryListener listener) {
         if (senderPool == null) {
@@ -427,7 +440,7 @@ public class NjamsSender {
      * outlives the clients using it, so a stopped client must take its listener with it.
      *
      * @param listener the listener to remove; unknown listeners and an uninitialized sender are ignored.
-     * @since 6.0.0
+     * @since 6.1.0
      */
     public void removeSenderRecoveryListener(SenderRecoveryListener listener) {
         if (senderPool != null) {

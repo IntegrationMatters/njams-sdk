@@ -757,10 +757,35 @@ public class Njams implements InstructionListener {
 
     /**
      * Start a client; it will initiate the connections and start processing.
+     * <p>
+     * Clients that want to differentiate whether a failed startup should only withdraw the client from the
+     * runtime or terminate the runtime must use {@link #startup()} instead.
      *
      * @return true if successful
      */
     public boolean start() {
+        return startup() == StartupResult.SUCCESS;
+    }
+
+    /**
+     * Start a client; it will initiate the connections and start processing. Does the same as {@link #start()} but
+     * reports the outcome as a {@link StartupResult}, which is only needed by clients that want to differentiate
+     * {@link StartupResult#FAIL} from {@link StartupResult#EXIT}:
+     * <ul>
+     * <li>{@link StartupResult#SUCCESS}: the client continues its normal startup.</li>
+     * <li>{@link StartupResult#FAIL}: the runtime continues without the client, i.e., the client withdraws itself
+     * from the runtime as far as possible.</li>
+     * <li>{@link StartupResult#EXIT}: the client terminates the runtime. This is returned instead of
+     * {@code FAIL} if the transport could not be connected and
+     * {@link NjamsSettings#PROPERTY_COMMUNICATION_STARTUP_FAILBEHAVIOR} is {@code exit}.</li>
+     * </ul>
+     * The SDK treats {@code FAIL} and {@code EXIT} identically: the instance stays inactive. Reacting differently
+     * has to be implemented by the client; see the respective client's documentation for how it reacts.
+     *
+     * @return the outcome of the startup.
+     * @since 6.1.0
+     */
+    public StartupResult startup() {
         if (!isStarted()) {
             if (settings == null) {
                 throw new NjamsSdkRuntimeException("Settings not set");
@@ -775,7 +800,7 @@ public class Njams implements InstructionListener {
             } catch (Exception e) {
                 LOG.error("SDK startup failed: could not obtain a sender. The SDK instance is inactive.", e);
                 releasePrewarmedSender();
-                return false;
+                return StartupResult.FAIL;
             }
             startReceiver(activeSender);
             if (activeSender != null) {
@@ -783,12 +808,13 @@ public class Njams implements InstructionListener {
                     NjamsSettings.PROPERTY_COMMUNICATION_CONNECT_TIMEOUT, DEFAULT_CONNECT_TIMEOUT_MS);
                 boolean reconnectOnFailure = NjamsSender.reconnectOnStartupFailure(settings);
                 if (!activeSender.startWithTimeout(timeoutMs, reconnectOnFailure)) {
-                    LOG.error("SDK startup failed: sender could not connect and startup fail-behavior is 'fail'. "
-                        + "The SDK instance is inactive.");
+                    boolean exit = NjamsSender.exitOnStartupFailure(settings);
+                    LOG.error("SDK startup failed: sender could not connect and startup fail-behavior is '{}'. "
+                        + "The SDK instance is inactive.", exit ? "exit" : "fail");
                     stopReceiverAfterStartupFailure(receiver);
                     receiver = null;
                     releasePrewarmedSender();
-                    return false;
+                    return exit ? StartupResult.EXIT : StartupResult.FAIL;
                 }
             }
             LogMessageFlushTask.start(this);
@@ -803,11 +829,11 @@ public class Njams implements InstructionListener {
                 LOG.error("The client SDK failed to initialize: could not send the initial project message. "
                     + "The SDK instance is inactive.", e);
                 stop();
-                return false;
+                return StartupResult.FAIL;
             }
             LOG.info("SDK instance {} started (client-session={})", getClientPath(), metadata.getClientSessionId());
         }
-        return isStarted();
+        return isStarted() ? StartupResult.SUCCESS : StartupResult.FAIL;
     }
 
     /**

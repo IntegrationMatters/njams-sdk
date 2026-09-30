@@ -37,6 +37,11 @@ import com.im.njams.sdk.settings.ClientSettings;
 enum StartupFailBehavior {
     /** Initial connect failure fails startup: {@code Njams.start()} returns {@code false}, SDK inactive. */
     FAIL,
+    /**
+     * Behaves exactly like {@link #FAIL} within the SDK; only the outcome reported by {@code Njams.startup()}
+     * differs, so that a client can tell the two apart.
+     */
+    EXIT,
     /** Initial connect failure enters the background reconnect loop; {@code Njams.start()} returns {@code true}. */
     RECONNECT;
 
@@ -57,6 +62,9 @@ enum StartupFailBehavior {
         if (FAIL.name().equalsIgnoreCase(normalized)) {
             return FAIL;
         }
+        if (EXIT.name().equalsIgnoreCase(normalized)) {
+            return EXIT;
+        }
         LOG.warn("Unknown value '{}' for {}; defaulting to '{}'.", value,
             NjamsSettings.PROPERTY_COMMUNICATION_STARTUP_FAILBEHAVIOR, DEFAULT.name().toLowerCase());
         return DEFAULT;
@@ -64,5 +72,9 @@ enum StartupFailBehavior {
 
     boolean reconnectOnStartupFailure() {
         return this == RECONNECT;
+    }
+
+    boolean exitOnStartupFailure() {
+        return this == EXIT;
     }
 }

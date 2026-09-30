@@ -60,6 +60,13 @@ not compensating for it in the assertion.
 Cover all new/changed code with tests. For modifications to existing code, invoke the `njams-safe-modification` skill
 FIRST to establish baseline coverage (see `development-workflow-skills.md`).
 
+## Startup fail-behavior `fail` vs. `exit`
+
+Within the SDK, the `fail` and `exit` values of `njams.sdk.communication.startup.failbehavior` behave identically;
+only the outcome `Njams.startup()` returns differs (`StartupResult.FAIL` vs. `StartupResult.EXIT`). SDK-local
+behavior tests therefore do not need to differentiate the two — cover the behavior once (with `fail`). Only the
+returned value is checked, by a simple dedicated test (`StartupResultTest`).
+
 ## Bug fixes
 
 **Existing test cases must never be modified without explicit user permission** — if a fix causes a test to fail, the

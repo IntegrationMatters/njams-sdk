@@ -127,7 +127,7 @@ public class NjamsSettings {
      * Maximum time in milliseconds the SDK waits for the initial communication connection to be
      * established during {@link com.im.njams.sdk.Njams#start()}. If the connection is not ready within
      * this time, the outcome depends on {@link #PROPERTY_COMMUNICATION_STARTUP_FAILBEHAVIOR}: with
-     * {@code fail} (the default) {@code start()} returns {@code false} and the SDK instance remains
+     * {@code fail} (the default) or {@code exit} {@code start()} returns {@code false} and the SDK instance remains
      * inactive with no background reconnect; with {@code reconnect} {@code start()} returns {@code true}
      * and the connection continues to be retried in the background.
      * <p>
@@ -145,11 +145,17 @@ public class NjamsSettings {
 
     /**
      * Controls how {@code Njams.start()} reacts when the transport cannot be connected on the very first attempt.
-     * Values: {@code fail} (default) — start() returns {@code false} and the SDK stays inactive; {@code reconnect}
-     * — start() returns {@code true} and the connection is retried in the background. Governs the whole
-     * shared-transport group.
+     * Values: {@code fail} (default) — start() returns {@code false} and the SDK stays inactive; {@code exit} — the
+     * SDK behaves exactly like with {@code fail}, but {@link com.im.njams.sdk.Njams#startup()} reports
+     * {@link com.im.njams.sdk.StartupResult#EXIT} instead of {@link com.im.njams.sdk.StartupResult#FAIL}, which
+     * tells the client to terminate the runtime instead of only withdrawing from it; {@code reconnect} — start()
+     * returns {@code true} and the connection is retried in the background. Governs the whole shared-transport
+     * group.
+     * <p>
+     * Differentiating {@code fail} from {@code exit} has to be implemented by the client; otherwise both values are
+     * treated fully equal. See the respective client's documentation for how it reacts.
      *
-     * @since 6.0.0
+     * @since 6.1.0
      */
     public static final String PROPERTY_COMMUNICATION_STARTUP_FAILBEHAVIOR =
             "njams.sdk.communication.startup.failbehavior";
