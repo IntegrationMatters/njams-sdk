@@ -43,7 +43,7 @@ import org.slf4j.LoggerFactory;
  *             parallel branches, convergence, and nested groups correctly, and is the default
  *             layouter used by {@link Njams} since 6.0.
  */
-@Deprecated
+@Deprecated(since = "6.0.0", forRemoval = true)
 public class SimpleProcessModelLayouter implements ProcessModelLayouter {
 
     private static final Logger LOG = LoggerFactory.getLogger(SimpleProcessModelLayouter.class);
