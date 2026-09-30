@@ -712,8 +712,23 @@ public class Njams implements InstructionListener {
 
     /**
      * Start a client; it will initiate the connections and start processing.
+     * <p>
+     * This method waits for the communication connection to be established, at most for the time configured by
+     * {@value NjamsSettings#PROPERTY_COMMUNICATION_CONNECT_TIMEOUT} (default 30000 ms).
+     * <ul>
+     * <li>If it returns <code>true</code>, the instance is fully started and the client's startup can complete
+     * normally.</li>
+     * <li>If it returns <code>false</code>, the connection could not be established in time. The instance stays
+     * inactive: the SDK does not try to reconnect by itself, and all further calls that require a started instance throw an
+     * {@link NjamsSdkRuntimeException}. The SDK has already released everything this call acquired, so no cleanup
+     * is required. The client should log the failure and withdraw completely, so that it does not interfere with
+     * the monitored runtime.</li>
+     * </ul>
+     * Calling this method again after it returned <code>false</code> is possible; it performs a new startup
+     * attempt.
      *
-     * @return true if successful
+     * @return <code>true</code> if the instance has been started, <code>false</code> if the communication
+     * connection could not be established
      */
     public boolean start() {
         if (!isStarted()) {

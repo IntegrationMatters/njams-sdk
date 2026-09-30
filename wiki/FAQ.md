@@ -362,8 +362,16 @@ is actually sent:
 maximum wait is bounded by the [`njams.sdk.communication.connect.timeout`](#communication) setting
 (default `30000` ms). If the connection is not established within this time, `start()` logs an error
 and returns `false`. The SDK instance is then completely inactive; **no reconnect thread is started**.
-It is the client application's responsibility to check the return value of `start()` and handle the
-failure accordingly.
+This is intentional: an instance started without a working connection could block the monitored runtime
+(depending on the discard policy), so the SDK does not start at all when its infrastructure is not ready.
+
+It is the client application's responsibility to check the return value of `start()`:
+
+- `true` — the instance is fully started; the client's startup can complete normally.
+- `false` — log the failure and withdraw the client completely, so that it does not interfere with the
+  runtime. Do not create jobs on this instance; they fail with an exception. The SDK has already released
+  everything the failed `start()` acquired, so no cleanup is needed. Calling `start()` again later is possible
+  and performs a new startup attempt.
 
 This applies to all transports (HTTP, JMS, Kafka). For JMS in particular, the JMS API provides no
 standard connection timeout; without this bound a startup attempt against an unreachable broker
@@ -381,7 +389,7 @@ Njams njams = new Njams(path, version, category, settings);
 // ... register process models, add collectors, etc. ...
 boolean started = njams.start(); // awaits connection; may return immediately if already done
 if(!started){
-    // connection could not be established within the timeout — handle inactive SDK
+    // connection could not be established within the timeout — log it and withdraw the client
     }
 ```
 
