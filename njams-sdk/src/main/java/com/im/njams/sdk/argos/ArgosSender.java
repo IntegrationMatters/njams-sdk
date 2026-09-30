@@ -80,6 +80,8 @@ public class ArgosSender implements Closeable {
     private final Map<ArgosComponent, ArgosMultiCollector> argosCollectors = new HashMap<>();
 
     private boolean isRunning = false;
+    // identifies the latest start() call; guarded by argosCollectors
+    private int startCount = 0;
     private boolean isInitialized = false;
 
     private static ArgosSender instance = null;
@@ -182,33 +184,48 @@ public class ArgosSender implements Closeable {
      */
     public void start() {
         if (enabled) {
+            final int startId;
             synchronized (argosCollectors) {
                 if (argosCollectors.isEmpty() || isRunning) {
                     return;
                 }
                 isRunning = true;
+                startId = ++startCount;
             }
-            Executors.newSingleThreadExecutor().execute(this::asyncStart);
+            Thread startup = new Thread(() -> asyncStart(startId), "ArgosSender-Startup");
+            startup.setDaemon(true);
+            startup.start();
         } else {
             LOG.info("Argos Sender is disabled. Will not send any Metrics.");
         }
     }
 
-    private void asyncStart() {
+    private void asyncStart(int startId) {
+        final InetAddress address;
+        final DatagramSocket newSocket;
         try {
-            ip = InetAddress.getByName(host);
-            socket = new DatagramSocket();
-            LOG.info("Enabled Argos Sender with target address {}:{}", ip, port);
-
+            address = InetAddress.getByName(host);
+            newSocket = new DatagramSocket();
         } catch (SocketException | UnknownHostException e) {
-            LOG.error("Failed to resolve address: {}", ip, e);
+            LOG.error("Failed to resolve address: {}", host, e);
             enabled = false;
             LOG.warn("Argos Sender is disabled. Will not send any Metrics.");
             return;
         }
 
-        execService = Executors.newSingleThreadScheduledExecutor();
-        execService.scheduleAtFixedRate(this::run, INITIAL_DELAY, INTERVAL, TimeUnit.SECONDS);
+        synchronized (argosCollectors) {
+            // closed (and possibly started again) while this startup was pending
+            if (!isRunning || startId != startCount) {
+                LOG.debug("Argos Sender was closed during startup.");
+                newSocket.close();
+                return;
+            }
+            ip = address;
+            socket = newSocket;
+            execService = Executors.newSingleThreadScheduledExecutor();
+            execService.scheduleAtFixedRate(this::run, INITIAL_DELAY, INTERVAL, TimeUnit.SECONDS);
+        }
+        LOG.info("Enabled Argos Sender with target address {}:{}", address, port);
     }
 
     /**
@@ -267,19 +284,25 @@ public class ArgosSender implements Closeable {
      */
     @Override
     public void close() {
+        final ScheduledExecutorService scheduler;
+        final DatagramSocket openSocket;
         synchronized (argosCollectors) {
             isRunning = false;
+            scheduler = execService;
+            execService = null;
+            openSocket = socket;
+            socket = null;
         }
-        if (execService != null) {
-            execService.shutdown();
+        if (scheduler != null) {
+            scheduler.shutdown();
             try {
-                execService.awaitTermination(10, TimeUnit.SECONDS);
+                scheduler.awaitTermination(10, TimeUnit.SECONDS);
             } catch (InterruptedException e) {
                 LOG.debug("Interrupted while waiting for termination.", e);
             }
         }
-        if (socket != null) {
-            socket.close();
+        if (openSocket != null) {
+            openSocket.close();
         }
     }
 }
