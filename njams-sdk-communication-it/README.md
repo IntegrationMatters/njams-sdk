@@ -129,7 +129,7 @@ Scenarios marked "×3" in the test-class column run once per discard mode; the o
 |---|---|---|---|
 | Sender-pool bookkeeping vs. the broker | Pooled-sender count stays ≤ `maxSenderThreads` under concurrent load and agrees with the broker's own connection count (Jolokia). | `jms.PoolBookkeepingIT` | Pinned to `none` (delivery is not the subject). |
 | Receiver threads across start/stop | 10 start/stop cycles leave no `Receiver-*` threads running. | `http.HttpRepeatedStartStopLeakIT#repeatedStartStopDoesNotLeaveReceiverThreadsRunning` | |
-| Listener registrations on a shared sender group | `SenderRecoveryListener` count returns to 0 after all instances stop. `SenderExceptionListener` count is **pinned at 10** — a known, tracked leak (the SDK has no remove path for exception listeners). | `http.HttpRepeatedStartStopLeakIT#repeatedRegistrationAgainstASharedGroupLeaksExceptionListenersButNotRecoveryListeners` | Update the expected value when the SDK gains a remove path. |
+| Listener registrations on a shared sender group | `SenderRecoveryListener` count returns to 0 after all instances stop. `SenderExceptionListener` registrations made by external client code are not tied to an instance's lifecycle: the count stays at 10 after stop and returns to 0 once each is removed via `removeSenderExceptionListener`. | `http.HttpRepeatedStartStopLeakIT#listenerRegistrationsOnASharedGroupReturnToZeroOnceRemovedOrTheirClientsStopped` | |
 
 ### Environment smoke checks
 

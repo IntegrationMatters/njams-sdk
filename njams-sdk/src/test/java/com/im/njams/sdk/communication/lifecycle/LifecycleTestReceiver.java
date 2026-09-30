@@ -3,17 +3,22 @@ package com.im.njams.sdk.communication.lifecycle;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
+import com.faizsiegeln.njams.messageformat.v4.common.CommonMessage;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.communication.AbstractReceiver;
 import com.im.njams.sdk.communication.ConnectionStatus;
+import com.im.njams.sdk.communication.SenderExceptionListener;
 import com.im.njams.sdk.settings.ClientSettings;
 
 /**
  * Controllable fake receiver for deterministic lifecycle tests. Connect behavior is driven by
  * {@link LifecycleTestTransport}, mirroring {@link LifecycleTestSender}. Pairs with it under the same transport
  * name so a real Njams can start with both sides controllable.
+ * <p>
+ * Also a (no-op) {@link SenderExceptionListener}, so that {@code Njams} registers it in the sender group's exception
+ * listeners as well as its recovery listeners, which is what the listener-deregistration specs observe.
  */
-public class LifecycleTestReceiver extends AbstractReceiver {
+public class LifecycleTestReceiver extends AbstractReceiver implements SenderExceptionListener {
 
     /** Mirrors {@link LifecycleTestSender#INSTANCES} — see its Javadoc for why teardown needs this registry. */
     private static final List<LifecycleTestReceiver> INSTANCES = new CopyOnWriteArrayList<>();
@@ -112,6 +117,11 @@ public class LifecycleTestReceiver extends AbstractReceiver {
             Thread.currentThread().interrupt();
         }
         connectionStatus = ConnectionStatus.DISCONNECTED;
+    }
+
+    @Override
+    public void onException(Exception exception, CommonMessage msg) {
+        // Intentionally does nothing: this receiver only needs to be a distinct, registrable listener.
     }
 
     /** Test hook: forces DISCONNECTED so reconnect() can be exercised. */

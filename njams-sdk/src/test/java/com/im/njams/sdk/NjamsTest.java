@@ -50,10 +50,12 @@ import com.im.njams.sdk.Path;
 import com.im.njams.sdk.communication.AbstractReceiver;
 import com.im.njams.sdk.communication.AbstractSender;
 import com.im.njams.sdk.communication.ConnectionStatus;
+import com.im.njams.sdk.communication.NjamsSender;
 import com.im.njams.sdk.communication.Receiver;
 import com.im.njams.sdk.communication.ReplayHandler;
 import com.im.njams.sdk.communication.ReplayRequest;
 import com.im.njams.sdk.communication.ReplayResponse;
+import com.im.njams.sdk.communication.SenderExceptionListener;
 import com.im.njams.sdk.communication.ShareableReceiver;
 import com.im.njams.sdk.communication.TestReceiver;
 import com.im.njams.sdk.communication.TestSender;
@@ -217,6 +219,50 @@ public class NjamsTest {
         assertTrue("removeNjams() must have been consulted", fake.removeNjamsCalled);
         assertTrue("must cancel the reconnect once removeNjams() reports this was the last user",
             fake.cancelReconnectCalled);
+    }
+
+    /** A plain, non-shareable receiver that is both kinds of sender-group listener. */
+    private static class ListeningReceiver extends AbstractReceiver implements SenderExceptionListener {
+        @Override
+        public String getName() {
+            return "listening-receiver";
+        }
+
+        @Override
+        public void connect() {
+            connectionStatus = ConnectionStatus.CONNECTED;
+        }
+
+        @Override
+        public void stop() {
+            connectionStatus = ConnectionStatus.DISCONNECTED;
+        }
+
+        @Override
+        public void onException(Exception exception, CommonMessage msg) {
+            // not used in this test
+        }
+    }
+
+    /**
+     * {@code stopReceiverAfterStartupFailure} must deregister the receiver from every listener set it was
+     * registered in — same as {@code stop()} — so a shared sender group does not keep a dead receiver referenced.
+     */
+    @Test
+    @SuppressWarnings("deprecation") // Njams.getSender() is the only way to reach the group's listener registrations.
+    public void stopReceiverAfterStartupFailureDeregistersTheReceiverFromTheRecoveryAndTheExceptionListeners()
+            throws Exception {
+        NjamsSender sender = instance.getSender();
+        ListeningReceiver receiver = new ListeningReceiver();
+        sender.addSenderRecoveryListener(receiver);
+        sender.addSenderExceptionListener(receiver);
+        assertEquals(1, sender.recoveryListenerCount());
+        assertEquals(1, sender.exceptionListenerCount());
+
+        invokeStopReceiverAfterStartupFailure(receiver);
+
+        assertEquals(0, sender.recoveryListenerCount());
+        assertEquals(0, sender.exceptionListenerCount());
     }
 
     @Test

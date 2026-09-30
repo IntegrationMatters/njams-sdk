@@ -98,6 +98,14 @@ public class SenderPoolTestAccess {
         pool.addSenderExceptionListener(listener);
     }
 
+    public void removeExceptionListener(SenderExceptionListener listener) {
+        pool.removeSenderExceptionListener(listener);
+    }
+
+    public int exceptionListenerCount() {
+        return pool.exceptionListenerCount();
+    }
+
     public boolean isConnected(Object sender) {
         return ((AbstractSender) sender).isConnected();
     }

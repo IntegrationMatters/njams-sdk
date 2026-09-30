@@ -45,7 +45,7 @@ public class HttpRepeatedStartStopLeakIT {
     @Test(timeout = 60000)
     @SuppressWarnings("deprecation") // Njams.getSender() is deprecated for removal, but is the only way to reach
                                       // the shared group's listener-count accessors from outside the SDK.
-    public void repeatedRegistrationAgainstASharedGroupLeaksExceptionListenersButNotRecoveryListeners()
+    public void listenerRegistrationsOnASharedGroupReturnToZeroOnceRemovedOrTheirClientsStopped()
         throws Exception {
         Settings settings = new Settings();
         settings.put(NjamsSettings.PROPERTY_COMMUNICATION, "HTTP");
@@ -66,6 +66,7 @@ public class HttpRepeatedStartStopLeakIT {
         // usage refcount return to 0 between iterations, destroying and recreating it every time and never letting
         // registrations actually accumulate.
         List<Njams> instances = new ArrayList<>();
+        List<SenderExceptionListener> externalListeners = new ArrayList<>();
         for (int i = 0; i < 10; i++) {
             Njams instance = new Njams(Path.of("HttpRepeatedStartStopLeakIT-" + i), "1.0.0", "CommunicationIT",
                 settings);
@@ -73,7 +74,9 @@ public class HttpRepeatedStartStopLeakIT {
             // Simulates one external SenderExceptionListener registration per client instance — see
             // NoOpSenderExceptionListener's Javadoc for why this is necessary instead of relying on a built-in
             // receiver.
-            instance.getSender().addSenderExceptionListener(new NoOpSenderExceptionListener());
+            SenderExceptionListener externalListener = new NoOpSenderExceptionListener();
+            instance.getSender().addSenderExceptionListener(externalListener);
+            externalListeners.add(externalListener);
             instances.add(instance);
         }
         NjamsSender sharedSender = instances.get(0).getSender();
@@ -92,14 +95,12 @@ public class HttpRepeatedStartStopLeakIT {
         // so its registration count must return to 0 once every instance has stopped — no leak here.
         assertEquals("SenderRecoveryListener registration leaked across repeated start/stop", 0,
             sharedSender.recoveryListenerCount());
-        // Known gap, confirmed via source: neither SenderPool nor NjamsSender has any removeSenderExceptionListener
-        // method at all, so a registration made through the public addSenderExceptionListener API has no way to
-        // ever be undone — it persists even after every instance that registered one has stopped. This assertion
-        // documents/regression-guards the currently-confirmed count; per communication-it-module.md this module
-        // detects real defects rather than fixing them, so SDK-485's fix for the underlying SenderPool gap is
-        // expected to update this expected value as part of that fix.
-        assertEquals("Expected count for the known, ticketed SenderExceptionListener leak (SDK-485) — "
-            + "update this value if/when SenderPool gains a matching remove path", 10,
+        // Registrations made by external client code through the public addSenderExceptionListener API are not
+        // tied to any Njams instance's lifecycle, so stopping the instances does not undo them: the owner removes
+        // them via removeSenderExceptionListener (SDK-485), mirroring removeSenderRecoveryListener.
+        assertEquals(10, sharedSender.exceptionListenerCount());
+        externalListeners.forEach(sharedSender::removeSenderExceptionListener);
+        assertEquals("SenderExceptionListener registration leaked although explicitly removed", 0,
             sharedSender.exceptionListenerCount());
     }
 

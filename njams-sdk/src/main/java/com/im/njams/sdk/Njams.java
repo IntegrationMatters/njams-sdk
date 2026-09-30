@@ -832,9 +832,9 @@ public class Njams implements InstructionListener {
      * {@code removeNjamsFromSharedReceiver} confirms this was the last user is it safe to shut down, since
      * signalling earlier would wrongly affect a receiver other {@code Njams} instances still use.
      * <p>
-     * Also deregisters the receiver from the sender group's recovery listeners, mirroring the registration done
-     * in {@link #startReceiver(NjamsSender)}, so a stopped receiver is not left referenced by (and reacting to) a
-     * sender group it no longer belongs to.
+     * Also deregisters the receiver from the sender group's exception and recovery listeners, mirroring the
+     * registration done in {@link #startReceiver(NjamsSender)}, so a stopped receiver is not left referenced by
+     * (and reacting to) a sender group it no longer belongs to.
      *
      * @param failedReceiver the receiver to stop; {@code null} is a no-op.
      */
@@ -862,12 +862,25 @@ public class Njams implements InstructionListener {
                 ((AbstractReceiver) failedReceiver).setShouldShutdown(true);
                 ((AbstractReceiver) failedReceiver).cancelReconnect();
             }
-            if (reallyStopped && failedReceiver instanceof SenderRecoveryListener && sender != null) {
+            if (reallyStopped && sender != null) {
                 // Same reasoning as in stop(): a shared group must not keep a dead receiver registered.
-                sender.removeSenderRecoveryListener((SenderRecoveryListener) failedReceiver);
+                deregisterReceiverListeners(failedReceiver);
             }
         } catch (Exception ex) {
             LOG.debug("Unable to stop receiver after startup failure", ex);
+        }
+    }
+
+    /**
+     * Removes the given receiver from every sender-group listener set {@link #startReceiver(NjamsSender)} may have
+     * registered it in. Must only be called with a non-{@code null} {@link #sender}.
+     */
+    private void deregisterReceiverListeners(Receiver stoppedReceiver) {
+        if (stoppedReceiver instanceof SenderExceptionListener) {
+            sender.removeSenderExceptionListener((SenderExceptionListener) stoppedReceiver);
+        }
+        if (stoppedReceiver instanceof SenderRecoveryListener) {
+            sender.removeSenderRecoveryListener((SenderRecoveryListener) stoppedReceiver);
         }
     }
 
@@ -943,12 +956,12 @@ public class Njams implements InstructionListener {
                 ((AbstractReceiver) receiver).setShouldShutdown(true);
                 ((AbstractReceiver) receiver).cancelReconnect();
             }
-            if (reallyStopped && receiver instanceof SenderRecoveryListener && sender != null) {
+            if (reallyStopped && sender != null) {
                 // A shared sender group outlives the instances using it: leaving a stopped receiver registered
                 // would keep it referenced for the group's lifetime and signal it on every later outage. Gated on
                 // reallyStopped so a shared receiver a sibling still uses stays registered. Removing after
                 // sender.close() is safe — close() shuts the pool down but keeps it reachable.
-                sender.removeSenderRecoveryListener((SenderRecoveryListener) receiver);
+                deregisterReceiverListeners(receiver);
             }
         }
         commands.clear();

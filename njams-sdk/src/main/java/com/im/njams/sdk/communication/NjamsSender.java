@@ -396,6 +396,19 @@ public class NjamsSender {
     }
 
     /**
+     * Removes a listener added with {@link #addSenderExceptionListener(SenderExceptionListener)}. A shared group
+     * outlives the clients using it, so a stopped client must take its listener with it.
+     *
+     * @param listener the listener to remove; unknown listeners and an uninitialized sender are ignored.
+     * @since 6.1.0
+     */
+    public void removeSenderExceptionListener(SenderExceptionListener listener) {
+        if (senderPool != null) {
+            senderPool.removeSenderExceptionListener(listener);
+        }
+    }
+
+    /**
      * Adds a listener notified once whenever this group recovers from a connection outage.
      *
      * @param listener the listener to add.

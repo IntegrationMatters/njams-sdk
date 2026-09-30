@@ -182,6 +182,18 @@ public class SenderPool {
     }
 
     /**
+     * Removes a previously added exception listener. Required because a shared group outlives the individual
+     * clients using it.
+     *
+     * @param listener the listener to remove; unknown listeners are ignored.
+     */
+    void removeSenderExceptionListener(SenderExceptionListener listener) {
+        synchronized (lock) {
+            exceptionListeners.remove(listener);
+        }
+    }
+
+    /**
      * Adds a listener notified once per outage, when the group's connection is re-established after at least one
      * failed connect attempt.
      *
