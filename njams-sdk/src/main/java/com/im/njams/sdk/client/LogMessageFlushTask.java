@@ -34,6 +34,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.im.njams.sdk.Njams;
+import com.im.njams.sdk.Path;
 import com.im.njams.sdk.common.DateTimeUtility;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.logmessage.JobImpl;
@@ -47,7 +48,7 @@ public class LogMessageFlushTask extends TimerTask {
 
     private static final Logger LOG = LoggerFactory.getLogger(LogMessageFlushTask.class);
 
-    private static final Map<String, LMFTEntry> NJAMS_INSTANCES = new HashMap<>();
+    private static final Map<Path, LMFTEntry> NJAMS_INSTANCES = new HashMap<>();
 
     private static Timer timer = null;
 
@@ -72,7 +73,7 @@ public class LogMessageFlushTask extends TimerTask {
             timer.scheduleAtFixedRate(new LogMessageFlushTask(), 1000, 1000);
         }
 
-        NJAMS_INSTANCES.put(njams.getClientPath().toString(), new LMFTEntry(njams));
+        NJAMS_INSTANCES.put(njams.getClientPath(), new LMFTEntry(njams));
     }
 
     /**
@@ -89,7 +90,7 @@ public class LogMessageFlushTask extends TimerTask {
         if (njams.getClientPath() == null) {
             throw new NjamsSdkRuntimeException("Stop: Njams clientPath is null");
         }
-        LMFTEntry entry = NJAMS_INSTANCES.remove(njams.getClientPath().toString());
+        LMFTEntry entry = NJAMS_INSTANCES.remove(njams.getClientPath());
         if (entry != null) {
             Njams stoppingNjams = entry.getNjams();
             stoppingNjams.getJobs().forEach(job -> ((JobImpl) job).flush());
