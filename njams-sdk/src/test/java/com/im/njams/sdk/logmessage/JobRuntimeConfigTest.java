@@ -17,6 +17,7 @@ import com.im.njams.sdk.AbstractTest;
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.Path;
 import com.im.njams.sdk.common.DateTimeUtility;
+import com.im.njams.sdk.configuration.ProcessConfiguration;
 import com.im.njams.sdk.configuration.TracepointExt;
 import com.im.njams.sdk.model.ActivityModel;
 import com.im.njams.sdk.model.ProcessModel;
@@ -36,6 +37,19 @@ public class JobRuntimeConfigTest extends AbstractTest {
         assertTrue(cfg.recording);
         // a configuration is present and recording is on -> the recorded attribute is added
         assertTrue(cfg.addRecordedAttribute);
+    }
+
+    @Test
+    public void processSpecificConfigurationIsApplied() {
+        ProcessConfiguration processConfig = njams.configuration().get().getProcess(process.getPath().toString());
+        processConfig.setLogLevel(LogLevel.WARNING);
+        processConfig.setRecording(false);
+
+        JobRuntimeConfig cfg = new JobRuntimeConfig(process);
+
+        assertEquals(LogLevel.WARNING, cfg.logLevel);
+        assertFalse(cfg.recording);
+        assertFalse(cfg.addRecordedAttribute);
     }
 
     @Test

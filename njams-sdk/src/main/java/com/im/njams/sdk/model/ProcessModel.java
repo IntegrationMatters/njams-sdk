@@ -98,7 +98,7 @@ public class ProcessModel {
         internalProcessModel.setName(path.getName());
 
         // set configuration data
-        ProcessConfiguration processConfiguration = njams.getConfiguration().getProcess(path.toString());
+        ProcessConfiguration processConfiguration = njams.getConfiguration().getProcess(path);
         if (processConfiguration != null) {
             internalProcessModel.setLogLevel(processConfiguration.getLogLevel());
             internalProcessModel.setExclude(njams.getConfiguration().hasProcessExcludeFilter(path));

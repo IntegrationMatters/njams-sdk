@@ -38,6 +38,7 @@ import org.slf4j.LoggerFactory;
 import com.faizsiegeln.njams.messageformat.v4.tracemessage.Activity;
 import com.faizsiegeln.njams.messageformat.v4.tracemessage.TraceMessage;
 import com.im.njams.sdk.Njams;
+import com.im.njams.sdk.Path;
 import com.im.njams.sdk.common.DateTimeUtility;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.configuration.ActivityConfiguration;
@@ -55,7 +56,7 @@ public class CleanTracepointsTask extends TimerTask {
 
     private static final org.slf4j.Logger LOG = LoggerFactory.getLogger(CleanTracepointsTask.class);
 
-    private static Map<String, Njams> njamsInstances = new ConcurrentHashMap<>();
+    private static Map<Path, Njams> njamsInstances = new ConcurrentHashMap<>();
 
     private static Timer timer = null;
 
@@ -81,7 +82,7 @@ public class CleanTracepointsTask extends TimerTask {
             timer.scheduleAtFixedRate(new CleanTracepointsTask(), DELAY, INTERVAL);
         }
 
-        njamsInstances.put(njams.getClientPath().toString(), njams);
+        njamsInstances.put(njams.getClientPath(), njams);
     }
 
     /**
@@ -115,7 +116,7 @@ public class CleanTracepointsTask extends TimerTask {
         if (njams.getClientPath() == null) {
             throw new NjamsSdkRuntimeException("Stop: Njams clientPath is null");
         }
-        njamsInstances.remove(njams.getClientPath().toString());
+        njamsInstances.remove(njams.getClientPath());
         if (njamsInstances.size() <= 0 && timer != null) {
             timer.cancel();
             timer = null;
