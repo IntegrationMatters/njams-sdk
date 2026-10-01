@@ -758,6 +758,10 @@ public class Njams implements InstructionListener {
     /**
      * Start a client; it will initiate the connections and start processing.
      * <p>
+     * If it returns <code>false</code>, the instance stays inactive and all further calls that require a started
+     * instance throw an {@link NjamsSdkRuntimeException}. The SDK has already released everything this call
+     * acquired, so no cleanup is required, and calling this method again performs a new startup attempt.
+     * <p>
      * Clients that want to differentiate whether a failed startup should only withdraw the client from the
      * runtime or terminate the runtime must use {@link #startup()} instead.
      *
@@ -792,13 +796,15 @@ public class Njams implements InstructionListener {
             }
             configuration.load();
             configuration.initializeDataMasking();
+            final ConfigurationInstructionListener configurationListener = new ConfigurationInstructionListener(this);
             commands.add(this);
-            commands.add(new ConfigurationInstructionListener(this));
+            commands.add(configurationListener);
             final NjamsSender activeSender;
             try {
                 activeSender = getSender();
             } catch (Exception e) {
                 LOG.error("SDK startup failed: could not obtain a sender. The SDK instance is inactive.", e);
+                releaseStartupRegistrations(configurationListener);
                 releasePrewarmedSender();
                 return StartupResult.FAIL;
             }
@@ -813,6 +819,7 @@ public class Njams implements InstructionListener {
                         + "The SDK instance is inactive.", exit ? "exit" : "fail");
                     stopReceiverAfterStartupFailure(receiver);
                     receiver = null;
+                    releaseStartupRegistrations(configurationListener);
                     releasePrewarmedSender();
                     return exit ? StartupResult.EXIT : StartupResult.FAIL;
                 }
@@ -834,6 +841,18 @@ public class Njams implements InstructionListener {
             LOG.info("SDK instance {} started (client-session={})", getClientPath(), metadata.getClientSessionId());
         }
         return isStarted() ? StartupResult.SUCCESS : StartupResult.FAIL;
+    }
+
+    /**
+     * Removes what {@link #startup()} registered before the sender was connected, so a failed startup leaves
+     * nothing behind that a client would need to clean up, or that a retried startup would duplicate.
+     *
+     * @param configurationListener the configuration listener registered by the failing startup.
+     */
+    private void releaseStartupRegistrations(ConfigurationInstructionListener configurationListener) {
+        commands.remove(this);
+        commands.remove(configurationListener);
+        argos.stop();
     }
 
     /**

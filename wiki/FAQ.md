@@ -412,7 +412,10 @@ time elapses without a successful sender connection is controlled by
 
 - `fail` (default): `start()` logs an error and returns `false`. The SDK instance is then completely inactive,
   and no sender reconnect thread is started. It is the client application's responsibility to check the return
-  value of `start()` and decide whether to continue without nJAMS.
+  value of `start()`, log the failure, and withdraw the client completely so that it does not interfere with the
+  runtime. Do not create jobs on this instance; they fail with an exception. The SDK has already released
+  everything the failed `start()` acquired, so no cleanup is needed. Calling `start()` again later is possible
+  and performs a new startup attempt.
 - `exit`: behaves exactly like `fail` within the SDK. The only difference is the outcome reported by
   `Njams.startup()` (see below). This has to be implemented by the client; otherwise `fail` and `exit` are treated
   fully equal. See the respective client's documentation for how it reacts.
@@ -462,7 +465,7 @@ Njams njams = new Njams(path, version, category, settings);
 // ... register process models, add collectors, etc. ...
 boolean started = njams.start(); // awaits connection; may return immediately if already done
 if(!started){
-    // connection could not be established within the timeout — handle inactive SDK
+    // connection could not be established within the timeout — log it and withdraw the client
 }
 ```
 

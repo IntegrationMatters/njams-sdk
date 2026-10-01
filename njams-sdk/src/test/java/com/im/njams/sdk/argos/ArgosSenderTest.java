@@ -36,9 +36,13 @@ import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Map;
+import java.util.concurrent.ScheduledExecutorService;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.*;
 
@@ -138,6 +142,104 @@ public class ArgosSenderTest {
 
         // the metric whose serialization yields empty data must be skipped
         verify(mockSocket, times(1)).send(any(DatagramPacket.class));
+    }
+
+    // SDK-488
+    @Test
+    public void closeDuringStartupLeavesNoSchedulerOrSocketBehind() throws Exception {
+        ArgosSender sender = newEnabledSender();
+        for (int i = 0; i < 20; i++) {
+            TestCollector collector = new TestCollector(
+                new ArgosComponent("id" + i, "name", "container", "measurement", "type"), Collections.emptyList());
+            sender.addArgosCollector(collector);
+            sender.removeArgosCollector(collector);
+            // give a pending asynchronous startup the chance to complete
+            Thread.sleep(50);
+            ScheduledExecutorService scheduler = (ScheduledExecutorService) getField(sender, "execService");
+            DatagramSocket socket = (DatagramSocket) getField(sender, "socket");
+            try {
+                assertTrue("closing during startup must not leave a scheduler running (iteration " + i + ")",
+                    scheduler == null || scheduler.isShutdown());
+                assertTrue("closing during startup must not leave a socket open (iteration " + i + ")",
+                    socket == null || socket.isClosed());
+            } finally {
+                if (scheduler != null) {
+                    scheduler.shutdownNow();
+                }
+                if (socket != null) {
+                    socket.close();
+                }
+            }
+        }
+    }
+
+    // SDK-488
+    @Test
+    public void startAfterCloseDuringStartupRunsScheduler() throws Exception {
+        ArgosSender sender = newEnabledSender();
+        TestCollector first = new TestCollector(
+            new ArgosComponent("first", "name", "container", "measurement", "type"), Collections.emptyList());
+        TestCollector second = new TestCollector(
+            new ArgosComponent("second", "name", "container", "measurement", "type"), Collections.emptyList());
+        sender.addArgosCollector(first);
+        sender.removeArgosCollector(first);
+        sender.addArgosCollector(second);
+        try {
+            ScheduledExecutorService scheduler = null;
+            for (int i = 0; i < 100 && scheduler == null; i++) {
+                Thread.sleep(20);
+                scheduler = (ScheduledExecutorService) getField(sender, "execService");
+            }
+            assertNotNull("a restarted sender must run a scheduler", scheduler);
+            assertFalse(scheduler.isShutdown());
+        } finally {
+            sender.removeArgosCollector(second);
+        }
+        ScheduledExecutorService scheduler = (ScheduledExecutorService) getField(sender, "execService");
+        assertTrue(scheduler == null || scheduler.isShutdown());
+    }
+
+    // SDK-488
+    @Test
+    public void startLeavesNoIdleStartupThreadBehind() throws Exception {
+        ArgosSender sender = newEnabledSender();
+        int cycles = 10;
+        long before = countLivePoolThreads();
+        for (int i = 0; i < cycles; i++) {
+            TestCollector collector = new TestCollector(
+                new ArgosComponent("cycle" + i, "name", "container", "measurement", "type"), Collections.emptyList());
+            sender.addArgosCollector(collector);
+            // let the asynchronous startup complete before closing again
+            Thread.sleep(50);
+            sender.removeArgosCollector(collector);
+        }
+        Thread.sleep(100);
+        long leaked = countLivePoolThreads() - before;
+        // tolerate unrelated threads of other tests; a leak would add one thread per cycle
+        assertTrue("start() must not leave an idle startup thread behind per call, leaked " + leaked,
+            leaked < cycles);
+    }
+
+    private static long countLivePoolThreads() {
+        return Thread.getAllStackTraces().keySet().stream()
+            .filter(t -> t.isAlive() && t.getName().startsWith("pool-"))
+            .count();
+    }
+
+    private static ArgosSender newEnabledSender() {
+        ArgosSender sender = new ArgosSender();
+        Settings settings = new Settings();
+        settings.put(NjamsSettings.PROPERTY_ARGOS_SUBAGENT_HOST, ADDRESS);
+        settings.put(NjamsSettings.PROPERTY_ARGOS_SUBAGENT_PORT, Integer.toString(PORT));
+        settings.put(NjamsSettings.PROPERTY_ARGOS_SUBAGENT_ENABLED, "true");
+        sender.init(settings);
+        return sender;
+    }
+
+    private static Object getField(Object target, String name) throws Exception {
+        Field field = ArgosSender.class.getDeclaredField(name);
+        field.setAccessible(true);
+        return field.get(target);
     }
 
     @SuppressWarnings("unchecked")
