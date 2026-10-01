@@ -1009,6 +1009,8 @@ public class Njams implements InstructionListener {
                 deregisterReceiverListeners(receiver);
             }
         }
+        // the closed sender must not be reused: a later start() acquires a new one
+        sender = null;
         commands.clear();
         lifecycle.setStarted(false);
         return !isStarted();
