@@ -3,6 +3,8 @@ package com.im.njams.sdk.logmessage;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import java.lang.reflect.Modifier;
+
 import org.junit.Before;
 import org.junit.Test;
 
@@ -39,6 +41,13 @@ public class JobTracingTest {
         assertTrue(tracing.isTraces());
         tracing.setTraces(false);
         assertFalse(tracing.isTraces());
+    }
+
+    @Test
+    public void instrumentedMethodsArePublicApi() throws NoSuchMethodException {
+        // Class.getMethod only finds public methods
+        assertTrue(Modifier.isPublic(JobTracing.class.getMethod("setInstrumented").getModifiers()));
+        assertTrue(Modifier.isPublic(JobTracing.class.getMethod("isInstrumented").getModifiers()));
     }
 
     @Test

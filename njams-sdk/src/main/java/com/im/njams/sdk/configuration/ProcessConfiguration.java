@@ -42,7 +42,7 @@ public class ProcessConfiguration {
     private boolean recording = true;
 
     /**
-     * Use {@link Configuration#getProcess(com.im.njams.sdk.common.Path)} for creating an instance.
+     * Use {@link Configuration#getProcess(com.im.njams.sdk.Path)} for creating an instance.
      */
     public ProcessConfiguration() {
         // instances created by Configuration class
@@ -63,7 +63,7 @@ public class ProcessConfiguration {
     }
 
     /**
-     * @deprecated Replaced by {@link Configuration#hasProcessExcludeFilter(com.im.njams.sdk.common.Path)}
+     * @deprecated Replaced by {@link Configuration#hasProcessExcludeFilter(com.im.njams.sdk.Path)}
      * @return the exclude
      */
     @Deprecated(since = "5.0.0", forRemoval = true)
@@ -72,7 +72,7 @@ public class ProcessConfiguration {
     }
 
     /**
-     * @deprecated Replaced by {@link Configuration#setProcessExcluded(com.im.njams.sdk.common.Path, boolean)}
+     * @deprecated Replaced by {@link Configuration#setProcessExcluded(com.im.njams.sdk.Path, boolean)}
      * @param exclude the exclude to set
      */
     @Deprecated(since = "5.0.0", forRemoval = true)

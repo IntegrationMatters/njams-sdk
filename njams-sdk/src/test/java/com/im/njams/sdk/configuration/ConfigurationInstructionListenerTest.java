@@ -222,6 +222,29 @@ public class ConfigurationInstructionListenerTest {
     }
 
     @Test
+    public void testGetLogLevelWithInvalidPathRespondsWithError() {
+        prepareInstruction(GET_LOG_LEVEL).addPath(">a> >b>");
+        listener.onInstruction(instruction);
+        Response response = instruction.getResponse();
+        assertEquals(1, response.getResultCode());
+        assertTrue(response.getResultMessage().contains("Invalid process path"));
+        assertTrue(response.getParameters().isEmpty());
+    }
+
+    @Test
+    public void testSetLogLevelWithInvalidPathRespondsWithErrorAndChangesNothing() {
+        prepareInstruction(SET_LOG_LEVEL).addPath(">a> >b>").addParameter("logLevel", LogLevel.ERROR.name());
+        listener.onInstruction(instruction);
+        Response response = instruction.getResponse();
+        assertEquals(1, response.getResultCode());
+        assertTrue(response.getResultMessage().contains("Invalid process path"));
+        assertTrue(response.getParameters().isEmpty());
+
+        verify(configuration, never()).save();
+        assertTrue(configuration.getProcesses().isEmpty());
+    }
+
+    @Test
     public void testGetLogMode() {
         prepareInstruction(GET_LOG_MODE);
         listener.onInstruction(instruction);

@@ -39,7 +39,7 @@ import org.slf4j.LoggerFactory;
 
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.LogMode;
 import com.im.njams.sdk.NjamsSettings;
-import com.im.njams.sdk.common.Path;
+import com.im.njams.sdk.Path;
 import com.im.njams.sdk.configuration.ProcessFilterEntry.FilterType;
 import com.im.njams.sdk.configuration.ProcessFilterEntry.MatcherType;
 import com.im.njams.sdk.settings.ClientSettings;
@@ -60,7 +60,7 @@ public class ProcessFilter {
     // configuration change, without re-reading the settings.
     private final Collection<Pattern> settingsExcludePatterns;
     // cached decisions for faster results
-    private final Map<Path, Boolean> decisions = new ConcurrentHashMap<>();
+    private final Map<String, Boolean> decisions = new ConcurrentHashMap<>();
 
     private final boolean includeAll;
     private final boolean excludeNone;
@@ -189,10 +189,21 @@ public class ProcessFilter {
      * @return <code>true</code> if the process with shall be processed.
      */
     public boolean isSelected(final Path processPath) {
-        if (processPath == null) {
-            return false;
-        }
-        final String pathString = processPath.toString();
+        return processPath != null && isSelected(processPath.toString());
+    }
+
+    /**
+     * Legacy variant of {@link #isSelected(Path)}.
+     * @param processPath The path of the process to test.
+     * @return <code>true</code> if the process shall be processed.
+     * @deprecated Use {@link #isSelected(Path)} instead.
+     */
+    @Deprecated(since = "6.0.0", forRemoval = true)
+    public boolean isSelected(final com.im.njams.sdk.common.Path processPath) {
+        return processPath != null && isSelected(processPath.toString());
+    }
+
+    private boolean isSelected(final String pathString) {
         if (config.getLogMode() == LogMode.NONE) {
             // do not cache, since this setting can change during runtime!
             return false;
@@ -201,30 +212,30 @@ public class ProcessFilter {
             // all selected; no need for caching
             return true;
         }
-        final Boolean cached = decisions.get(processPath);
+        final Boolean cached = decisions.get(pathString);
         if (cached != null) {
             return cached;
         }
         // do expensive (pattern-) matching just once; store the result in the decisions cache
         final String lowerCase = pathString.toLowerCase();
         if (excludes.contains(lowerCase)) {
-            decisions.put(processPath, false);
+            decisions.put(pathString, false);
             return false;
         }
         if (includes.contains(lowerCase)) {
-            decisions.put(processPath, true);
+            decisions.put(pathString, true);
             return true;
         }
         if (excludePatterns.stream().anyMatch(r -> r.matcher(pathString).matches())
             || settingsExcludePatterns.stream().anyMatch(r -> r.matcher(pathString).matches())) {
-            decisions.put(processPath, false);
+            decisions.put(pathString, false);
             return false;
         }
         if (includeAll || includePatterns.stream().anyMatch(r -> r.matcher(pathString).matches())) {
-            decisions.put(processPath, true);
+            decisions.put(pathString, true);
             return true;
         }
-        decisions.put(processPath, false);
+        decisions.put(pathString, false);
         return false;
 
     }
@@ -238,9 +249,24 @@ public class ProcessFilter {
      *
      */
     public void setExcluded(Path processPath, boolean excluded) {
-        decisions.put(processPath, excluded);
-        final String pathString = processPath.toString();
+        setExcluded(processPath.toString(), excluded);
+    }
+
+    /**
+     * Legacy variant of {@link #setExcluded(Path, boolean)}.
+     * @param processPath The process path for that an exclude filter shall be added or removed.
+     * @param excluded If <code>true</code> an exclude-filter for the given path is added (if none exists), if
+     * <code>false</code>, any existing exclude-filter for that path is removed.
+     * @deprecated Use {@link #setExcluded(Path, boolean)} instead.
+     */
+    @Deprecated(since = "6.0.0", forRemoval = true)
+    public void setExcluded(com.im.njams.sdk.common.Path processPath, boolean excluded) {
+        setExcluded(processPath.toString(), excluded);
+    }
+
+    private void setExcluded(final String pathString, boolean excluded) {
         if (excluded) {
+            decisions.put(pathString, false);
             if (config.getProcessFilters().stream().noneMatch(excludeProcessPredicate(pathString))) {
                 // Add directly to the list (not via Configuration.addProcessFilter) to avoid
                 // triggering a filter rebuild while this filter is mutating.
@@ -249,9 +275,13 @@ public class ProcessFilter {
                 config.save();
                 LOG.debug("Process {} excluded explicitly.", pathString);
             }
-        } else if (config.getProcessFilters().removeIf(excludeProcessPredicate(pathString))) {
-            config.save();
-            LOG.debug("Process {} no longer explicitly excluded.", pathString);
+        } else {
+            // no longer explicitly excluded; whether the process is selected depends on the other filters again
+            decisions.remove(pathString);
+            if (config.getProcessFilters().removeIf(excludeProcessPredicate(pathString))) {
+                config.save();
+                LOG.debug("Process {} no longer explicitly excluded.", pathString);
+            }
         }
     }
 
@@ -266,7 +296,22 @@ public class ProcessFilter {
      * @return <code>true</code> only if there is an explicit exclude filter for the given path.
      */
     public boolean hasExcludeFilter(Path processPath) {
-        return config.getProcessFilters().stream().anyMatch(excludeProcessPredicate(processPath.toString()));
+        return hasExcludeFilter(processPath.toString());
+    }
+
+    /**
+     * Legacy variant of {@link #hasExcludeFilter(Path)}.
+     * @param processPath The process path to test.
+     * @return <code>true</code> only if there is an explicit exclude filter for the given path.
+     * @deprecated Use {@link #hasExcludeFilter(Path)} instead.
+     */
+    @Deprecated(since = "6.0.0", forRemoval = true)
+    public boolean hasExcludeFilter(com.im.njams.sdk.common.Path processPath) {
+        return hasExcludeFilter(processPath.toString());
+    }
+
+    private boolean hasExcludeFilter(final String pathString) {
+        return config.getProcessFilters().stream().anyMatch(excludeProcessPredicate(pathString));
     }
 
     private Predicate<ProcessFilterEntry> excludeProcessPredicate(String process) {
