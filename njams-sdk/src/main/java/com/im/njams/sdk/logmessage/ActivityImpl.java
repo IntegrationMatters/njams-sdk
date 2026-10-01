@@ -477,7 +477,7 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
                     LOG.trace("This status was set to job {} : {}", job.getLogId(), possibleStatus);
                 }
                 job.setStatus(possibleStatus);
-                job.setInstrumented();
+                job.tracing().setInstrumented();
             }
         } catch (NjamsSdkRuntimeException e) {
             LOG.error("{} for job with logId: {}. Using old status: {}", e.getMessage(), job.getLogId(),
@@ -598,7 +598,7 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
         if (StringUtils.isNotBlank(message)) {
             final int size = limited == null ? 0 : limited.length();
             addToEstimatedSize(size);
-            job.setInstrumented();
+            job.tracing().setInstrumented();
         }
     }
 
@@ -615,7 +615,7 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
         if (StringUtils.isNotBlank(code)) {
             final int size = limited == null ? 0 : limited.length();
             addToEstimatedSize(size);
-            job.setInstrumented();
+            job.tracing().setInstrumented();
         }
     }
 
@@ -635,7 +635,7 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
         if (StringUtils.isNotBlank(eventPayload)) {
             final int payloadSize = limited == null ? 0 : limited.length();
             addToEstimatedSize(payloadSize);
-            job.setInstrumented();
+            job.tracing().setInstrumented();
         }
     }
 
@@ -655,7 +655,7 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
         if (StringUtils.isNotBlank(stackTrace)) {
             int stackTraceSize = limited == null ? 0 : limited.length();
             addToEstimatedSize(stackTraceSize);
-            job.setInstrumented();
+            job.tracing().setInstrumented();
         }
     }
 

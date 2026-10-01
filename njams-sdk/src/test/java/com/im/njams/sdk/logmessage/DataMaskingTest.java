@@ -56,11 +56,14 @@ public class DataMaskingTest {
     private static ProcessModel MODEL = Mockito.mock(ProcessModel.class);
     private static Njams NJAMS = Mockito.mock(Njams.class);
     private static NjamsSerializers SERIALIZERS = Mockito.mock(NjamsSerializers.class);
+    private static final JobTracing TRACING = new JobTracing();
     private static ActivityImpl IMPL = null;
 
     @BeforeClass
     public static void mockFields() {
         doAnswer(invocation -> true).when(JOB).isDeepTrace();
+        // ActivityImpl flags the job as instrumented via the tracing facet
+        doAnswer(invocation -> TRACING).when(JOB).tracing();
         doAnswer(invocation -> NJAMS).when(MODEL).getNjams();
         doAnswer(invocation -> NJAMS).when(JOB).getNjams();
         // input/output truncation no longer applies a limit in these masking tests: pass values through

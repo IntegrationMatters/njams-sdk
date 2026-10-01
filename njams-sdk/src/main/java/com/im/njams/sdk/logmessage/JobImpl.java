@@ -848,8 +848,8 @@ public class JobImpl implements Job {
     /**
      * Marks this job instance as instrumented.
      *
-     * @deprecated SDK-internal tracing mechanics, not part of the public API; there is no
-     *             replacement — instrumentation is flagged by the SDK's tracing handling.
+     * @deprecated Use {@code job.tracing().setInstrumented()} instead — obtain the facet via
+     *             {@link #tracing()} and call {@link JobTracing#setInstrumented()}.
      */
     @Deprecated(since = "6.0.0", forRemoval = true)
     public void setInstrumented() {

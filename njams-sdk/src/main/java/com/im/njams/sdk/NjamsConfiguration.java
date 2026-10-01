@@ -79,7 +79,7 @@ public class NjamsConfiguration {
      * @return true if the process is excluded, or false if not
      */
     public boolean isExcluded(Path processPath) {
-        return configuration.isProcessExcluded(processPath == null ? null : processPath.toLegacyPath());
+        return configuration.isProcessExcluded(processPath);
     }
 
     /**
