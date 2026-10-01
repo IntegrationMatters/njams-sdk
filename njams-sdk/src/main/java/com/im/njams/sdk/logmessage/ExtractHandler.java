@@ -197,7 +197,7 @@ public class ExtractHandler {
                 setAttributes(job, activity, setting, value);
             }
         }
-        job.setInstrumented();
+        job.tracing().setInstrumented();
     }
 
     public static String testExpression(RuleType type, String expression, String testData) throws Exception {
@@ -318,7 +318,7 @@ public class ExtractHandler {
         String evt = er.getRule();
         if (evt != null && evt.length() > 0) {
             activity.setEventStatus(getEventStatus(evt));
-            job.setInstrumented();
+            job.tracing().setInstrumented();
         }
     }
 
@@ -328,7 +328,7 @@ public class ExtractHandler {
         } else {
             setAttributes(job, activity, er.getAttribute(), er.getRule());
         }
-        job.setInstrumented();
+        job.tracing().setInstrumented();
     }
 
     private static void doJmespath(JobImpl job, ActivityImpl activity, ExtractRule er, String data) {
@@ -348,7 +348,7 @@ public class ExtractHandler {
                 }
                 setAttributes(job, activity, er.getAttribute(), strResult);
             }
-            job.setInstrumented();
+            job.tracing().setInstrumented();
         } catch (Exception e) {
             LOG.error("Failed to evaluate jmespath for setting: {} and rule: {}.", er.getAttribute(), er.getRule(), e);
         }
@@ -370,7 +370,7 @@ public class ExtractHandler {
                 LOG.debug("nJAMS: xpath result: {}", strResult);
                 setAttributes(job, activity, er.getAttribute(), strResult);
             }
-            job.setInstrumented();
+            job.tracing().setInstrumented();
         } catch (Exception e) {
             LOG.error("Failed to evaluate xpath for setting: {} and rule: {}.", er.getAttribute(), er.getRule(), e);
         }
