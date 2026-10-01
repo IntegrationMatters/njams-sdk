@@ -23,6 +23,23 @@
  */
 package com.im.njams.sdk.configuration;
 
+import com.faizsiegeln.njams.messageformat.v4.command.Command;
+import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
+import com.faizsiegeln.njams.messageformat.v4.command.Response;
+import com.faizsiegeln.njams.messageformat.v4.projectmessage.*;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.im.njams.sdk.Njams;
+import com.im.njams.sdk.Path;
+import com.im.njams.sdk.common.DateTimeUtility;
+import com.im.njams.sdk.common.JsonSerializerFactory;
+import com.im.njams.sdk.communication.InstructionListener;
+import com.im.njams.sdk.logmessage.ExtractHandler;
+import com.im.njams.sdk.model.ProcessModel;
+import com.im.njams.sdk.utils.JsonUtils;
+import com.im.njams.sdk.utils.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.Collection;
@@ -31,29 +48,6 @@ import java.util.Map.Entry;
 import java.util.function.Function;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.faizsiegeln.njams.messageformat.v4.command.Command;
-import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
-import com.faizsiegeln.njams.messageformat.v4.command.Response;
-import com.faizsiegeln.njams.messageformat.v4.projectmessage.Extract;
-import com.faizsiegeln.njams.messageformat.v4.projectmessage.ExtractRule;
-import com.faizsiegeln.njams.messageformat.v4.projectmessage.LogLevel;
-import com.faizsiegeln.njams.messageformat.v4.projectmessage.LogMode;
-import com.faizsiegeln.njams.messageformat.v4.projectmessage.RuleType;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.im.njams.sdk.Njams;
-import com.im.njams.sdk.NjamsSettings;
-import com.im.njams.sdk.common.DateTimeUtility;
-import com.im.njams.sdk.common.JsonSerializerFactory;
-import com.im.njams.sdk.common.Path;
-import com.im.njams.sdk.communication.InstructionListener;
-import com.im.njams.sdk.logmessage.ExtractHandler;
-import com.im.njams.sdk.model.ProcessModel;
-import com.im.njams.sdk.utils.JsonUtils;
-import com.im.njams.sdk.utils.StringUtils;
 
 /**
  * InstructionListener implementation for all instructions which will modify
@@ -190,6 +184,22 @@ public class ConfigurationInstructionListener implements InstructionListener {
          */
         private String getProcessPath() {
             return getParameter(PROCESS_PATH);
+        }
+
+        /**
+         * Returns the process path from the request as a {@link Path}. If the request's path is not a valid path,
+         * an according error response is set and <code>null</code> is returned.
+         *
+         * @return The process path, or <code>null</code> if it is invalid.
+         */
+        private Path getValidProcessPath() {
+            final String processPath = getProcessPath();
+            try {
+                return Path.resolve(processPath);
+            } catch (final IllegalArgumentException e) {
+                error("Invalid process path [" + processPath + "]", e);
+                return null;
+            }
         }
 
         /**
@@ -383,7 +393,7 @@ public class ConfigurationInstructionListener implements InstructionListener {
         // set response into instruction
         instructionSupport.applyResponse();
         LOG.debug("Handled command: {} (result={}) on process: {}{}", command, instructionSupport.isError() ? "error"
-            : "ok", instructionSupport.getProcessPath(),
+                : "ok", instructionSupport.getProcessPath(),
             instructionSupport.getActivityId() == null ? ""
                 : "#"
                     + instructionSupport.getActivityId());
@@ -394,15 +404,18 @@ public class ConfigurationInstructionListener implements InstructionListener {
         if (!instructionSupport.validate(PROCESS_PATH)) {
             return;
         }
-        final String processPath = instructionSupport.getProcessPath();
+        final Path path = instructionSupport.getValidProcessPath();
+        if (path == null) {
+            return;
+        }
 
         //execute action
         // init with defaults
         LogLevel logLevel = LogLevel.INFO;
-        boolean exclude = configuration.hasProcessExcludeFilter(new Path(processPath));
+        boolean exclude = configuration.hasProcessExcludeFilter(path);
 
         // differing config stored?
-        final ProcessConfiguration process = configuration.getProcess(processPath);
+        final ProcessConfiguration process = configuration.getProcess(path);
         if (process != null) {
             logLevel = process.getLogLevel();
         }
@@ -410,7 +423,7 @@ public class ConfigurationInstructionListener implements InstructionListener {
         instructionSupport.setParameter(LOG_LEVEL, logLevel.name()).setParameter(EXCLUDE, exclude)
             .setParameter(LOG_MODE, configuration.getLogMode());
 
-        LOG.debug("Return LogLevel for {}", processPath);
+        LOG.debug("Return LogLevel for {}", path);
     }
 
     private void setLogLevel(final InstructionSupport instructionSupport) {
@@ -419,17 +432,20 @@ public class ConfigurationInstructionListener implements InstructionListener {
             return;
         }
         //fetch parameters
-        final String processPath = instructionSupport.getProcessPath();
+        final Path path = instructionSupport.getValidProcessPath();
+        if (path == null) {
+            return;
+        }
         final LogLevel loglevel = instructionSupport.getEnumParameter(LOG_LEVEL, LogLevel.class);
 
         //execute action
-        ProcessConfiguration process = configuration.getProcess(processPath);
+        ProcessConfiguration process = configuration.getProcess(path);
         final LogMode logMode = instructionSupport.getEnumParameter(LOG_MODE, LogMode.class);
         if (logMode != null) {
             configuration.setLogMode(logMode);
         }
         process.setLogLevel(loglevel);
-        configuration.setProcessExcluded(new Path(processPath), instructionSupport.getBoolParameter(EXCLUDE));
+        configuration.setProcessExcluded(path, instructionSupport.getBoolParameter(EXCLUDE));
         process.setExclude(null);
         saveConfiguration(instructionSupport);
     }
@@ -673,8 +689,8 @@ public class ConfigurationInstructionListener implements InstructionListener {
         instructionSupport.setParameter(ENGINE_WIDE_RECORDING, configuration.isRecording());
         for (ProcessModel model : njams.getProcessModels()) {
             final boolean recording;
-            if (configuration.hasProcess(model.getPath().toLegacyPath())) {
-                recording = configuration.getProcess(model.getPath().toLegacyPath()).isRecording();
+            if (configuration.hasProcess(model.getPath())) {
+                recording = configuration.getProcess(model.getPath()).isRecording();
             } else {
                 recording = configuration.isRecording();
             }
