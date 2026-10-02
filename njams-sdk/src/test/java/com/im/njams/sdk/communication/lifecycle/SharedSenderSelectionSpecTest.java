@@ -12,7 +12,7 @@ import com.im.njams.sdk.SenderProbe;
 import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.Path;
 import com.im.njams.sdk.communication.NjamsSender;
-import com.im.njams.sdk.settings.Settings;
+import com.im.njams.sdk.settings.ClientSettings;
 
 /**
  * Specifies what {@code njams.sdk.communication.shared=true} yields on the sender side, through {@link
@@ -37,8 +37,8 @@ public class SharedSenderSelectionSpecTest extends AbstractLifecycleSpecTest {
         }
     }
 
-    private static Settings settings(boolean shared) {
-        Settings s = LifecycleTestTransport.settings();
+    private static ClientSettings settings(boolean shared) {
+        ClientSettings s = LifecycleTestTransport.settings();
         s.put(NjamsSettings.PROPERTY_SHARED_COMMUNICATIONS, String.valueOf(shared));
         return s;
     }

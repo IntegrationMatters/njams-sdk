@@ -15,7 +15,7 @@ import com.im.njams.sdk.model.GroupModel;
 import com.im.njams.sdk.model.ProcessModel;
 import com.im.njams.sdk.model.TransitionModel;
 import com.im.njams.sdk.model.layout.CommonBfsModelLayouter;
-import com.im.njams.sdk.settings.Settings;
+import com.im.njams.sdk.settings.ClientSettings;
 import org.junit.Assert;
 import org.junit.Test;
 import org.w3c.dom.Document;
@@ -27,7 +27,7 @@ public class PolylineProcessDiagramFactoryTest {
     private static final String SVG_NS = "http://www.w3.org/2000/svg";
 
     private ProcessModel createProcess() {
-        Settings settings = TestSender.getSettings();
+        ClientSettings settings = TestSender.getSettings();
         Njams njams = new Njams(Path.of("TEST"), "1.0", "TEST", settings);
         return njams.model().create("proc");
     }

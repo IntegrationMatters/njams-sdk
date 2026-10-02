@@ -20,7 +20,6 @@ import com.im.njams.sdk.Path;
 import com.im.njams.sdk.communication.NjamsSender;
 import com.im.njams.sdk.communication.SenderPoolTestAccess;
 import com.im.njams.sdk.settings.ClientSettings;
-import com.im.njams.sdk.settings.Settings;
 
 /**
  * Specifies SDK-473 end-to-end under shared communications: one outage of the JVM-wide sender group cycles the
@@ -48,8 +47,8 @@ public class SharedSenderRecoverySignalSpecTest extends AbstractLifecycleSpecTes
         taken.clear();
     }
 
-    private static Settings sharedSettings() {
-        Settings s = LifecycleTestTransport.settings();
+    private static ClientSettings sharedSettings() {
+        ClientSettings s = LifecycleTestTransport.settings();
         s.put(NjamsSettings.PROPERTY_SHARED_COMMUNICATIONS, "true");
         s.put(NjamsSettings.PROPERTY_MIN_SENDER_THREADS, "2");
         // "none" so a message dispatched while the group is reconnecting is retained and retried on the fresh
@@ -63,7 +62,7 @@ public class SharedSenderRecoverySignalSpecTest extends AbstractLifecycleSpecTes
     /** Takes a test-held reference on the shared group, so it survives every client stopping. */
     private NjamsSender takeSharedSender() {
         NjamsSender sender =
-            NjamsSender.takeSharedSender(ClientSettings.from(sharedSettings().getAllProperties()));
+            NjamsSender.takeSharedSender(sharedSettings());
         taken.add(sender);
         return sender;
     }

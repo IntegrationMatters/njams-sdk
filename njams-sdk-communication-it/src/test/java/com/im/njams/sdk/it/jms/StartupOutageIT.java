@@ -1,5 +1,6 @@
 package com.im.njams.sdk.it.jms;
 
+import java.util.Properties;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -17,7 +18,7 @@ import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.Path;
 import com.im.njams.sdk.it.support.DockerEnvironment;
 import com.im.njams.sdk.it.support.SdkThreads;
-import com.im.njams.sdk.settings.Settings;
+import com.im.njams.sdk.settings.ClientSettings;
 
 /**
  * Startup with {@code startup.failbehavior=fail} and the broker unreachable: the SDK must shut down fully. This is
@@ -45,7 +46,7 @@ public class StartupOutageIT {
     public void startFailsAndLeavesTheSdkFullyShutDown() throws Exception {
         env.toxiproxy().addToxic("jms", "startup-down", "timeout", Map.of("timeout", 1));
 
-        Settings settings = new Settings();
+        ClientSettings settings = ClientSettings.from(new Properties());
         settings.put(NjamsSettings.PROPERTY_COMMUNICATION, "JMS");
         settings.put(NjamsSettings.PROPERTY_JMS_PROVIDER_URL, env.jmsUrlThroughProxy());
         settings.put(NjamsSettings.PROPERTY_COMMUNICATION_STARTUP_FAILBEHAVIOR, "FAIL");

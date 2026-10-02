@@ -26,7 +26,6 @@ package com.im.njams.sdk.settings.encoding;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Properties;
 
 /**
  * This class encodes and decodes Strings
@@ -327,23 +326,6 @@ public class Transformer {
         else{
             return null;
         }
-    }
-
-    /**
-     * Decodes every property value in the given properties.
-     *
-     * @param properties the properties to decode
-     * @return a new {@link Properties} instance with all values decoded
-     * @deprecated The {@link com.im.njams.sdk.settings.ClientSettings} interface decodes values on read via
-     *     {@link com.im.njams.sdk.settings.ClientSettings#getProperty(String)}. Callers that need a decoded
-     *     {@link Properties} snapshot should use
-     *     {@link com.im.njams.sdk.utils.PropertyUtil#toProperties(com.im.njams.sdk.settings.ClientSettings)} instead.
-     */
-    @Deprecated
-    public static Properties decode(Properties properties) {
-        Properties newProps = new Properties();
-        properties.keySet().forEach(key -> newProps.put(key, decode((String) properties.get(key))));
-        return newProps;
     }
 
     private static int getEncryptionRow(String password) {

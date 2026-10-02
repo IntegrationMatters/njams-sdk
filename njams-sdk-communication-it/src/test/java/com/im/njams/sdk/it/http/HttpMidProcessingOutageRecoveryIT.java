@@ -1,5 +1,6 @@
 package com.im.njams.sdk.it.http;
 
+import java.util.Properties;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -30,7 +31,7 @@ import com.im.njams.sdk.it.support.DiscardMode;
 import com.im.njams.sdk.it.support.DiscardObserver;
 import com.im.njams.sdk.it.support.DockerEnvironment;
 import com.im.njams.sdk.model.ProcessModel;
-import com.im.njams.sdk.settings.Settings;
+import com.im.njams.sdk.settings.ClientSettings;
 
 /**
  * Scenario 2, once per discard mode: {@code none} holds every job across the outage and delivers it after
@@ -74,7 +75,7 @@ public class HttpMidProcessingOutageRecoveryIT {
 
     @Test
     public void jobsAreHeldOrDiscardedAcrossAnOutageAccordingToTheDiscardMode() throws Exception {
-        Settings settings = new Settings();
+        ClientSettings settings = ClientSettings.from(new Properties());
         settings.put(NjamsSettings.PROPERTY_COMMUNICATION, "HTTP");
         settings.put(NjamsSettings.PROPERTY_HTTP_BASE_URL, env.httpBaseUrlThroughProxy());
         settings.put(NjamsSettings.PROPERTY_HTTP_DATAPROVIDER_SUFFIX, "dataprovider");

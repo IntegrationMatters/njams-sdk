@@ -1,5 +1,6 @@
 package com.im.njams.sdk.it.http;
 
+import java.util.Properties;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
@@ -36,7 +37,7 @@ import com.im.njams.sdk.it.support.DiscardMode;
 import com.im.njams.sdk.it.support.DiscardObserver;
 import com.im.njams.sdk.it.support.DockerEnvironment;
 import com.im.njams.sdk.model.ProcessModel;
-import com.im.njams.sdk.settings.Settings;
+import com.im.njams.sdk.settings.ClientSettings;
 
 @RunWith(Parameterized.class)
 public class HttpFragmentationUnderOutageIT {
@@ -69,7 +70,7 @@ public class HttpFragmentationUnderOutageIT {
 
     @Test(timeout = 60000)
     public void aFragmentedMessageIsNeverPartiallyDelivered() throws Exception {
-        Settings settings = new Settings();
+        ClientSettings settings = ClientSettings.from(new Properties());
         settings.put(NjamsSettings.PROPERTY_COMMUNICATION, "HTTP");
         settings.put(NjamsSettings.PROPERTY_HTTP_BASE_URL, env.httpBaseUrlThroughProxy());
         settings.put(NjamsSettings.PROPERTY_HTTP_DATAPROVIDER_SUFFIX, "dataprovider");

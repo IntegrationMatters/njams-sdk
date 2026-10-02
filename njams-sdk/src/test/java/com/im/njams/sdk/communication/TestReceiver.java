@@ -26,7 +26,6 @@ package com.im.njams.sdk.communication;
 import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.settings.ClientSettings;
-import com.im.njams.sdk.settings.Settings;
 
 /**
  * Dummy implementation for testing.<br>
@@ -54,7 +53,7 @@ public class TestReceiver implements Receiver {
      * Returns a settings prepared for using this receiver implementation.
      * @return
      */
-    public static Settings getSettings() {
+    public static ClientSettings getSettings() {
         return TestSender.getSettings();
     }
 

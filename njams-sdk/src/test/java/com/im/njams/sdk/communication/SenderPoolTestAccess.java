@@ -9,7 +9,6 @@ import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.communication.lifecycle.LifecycleTestSender;
 import com.im.njams.sdk.communication.lifecycle.LifecycleTestTransport;
 import com.im.njams.sdk.settings.ClientSettings;
-import com.im.njams.sdk.settings.Settings;
 
 /**
  * Test bridge exposing the package-private {@link SenderPool} surface to tests in other packages.
@@ -66,9 +65,9 @@ public class SenderPoolTestAccess {
      *         reconnect can be exercised without first completing a real startup connect.
      */
     public static SenderPoolTestAccess create(String discardPolicy) {
-        Settings s = LifecycleTestTransport.settings();
+        ClientSettings s = LifecycleTestTransport.settings();
         s.put(NjamsSettings.PROPERTY_DISCARD_POLICY, discardPolicy);
-        ClientSettings settings = ClientSettings.from(s.getAllProperties());
+        ClientSettings settings = s;
         SenderPool pool = new SenderPool(new CommunicationFactory(settings), new ConnectionCoordinator(), settings);
         pool.allowReconnectBeforeConnected();
         POOLS.add(pool);

@@ -1,5 +1,6 @@
 package com.im.njams.sdk.it.http;
 
+import java.util.Properties;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
@@ -20,7 +21,7 @@ import com.im.njams.sdk.SenderProbe;
 import com.im.njams.sdk.communication.NjamsSender;
 import com.im.njams.sdk.communication.SenderExceptionListener;
 import com.im.njams.sdk.it.support.DockerEnvironment;
-import com.im.njams.sdk.settings.Settings;
+import com.im.njams.sdk.settings.ClientSettings;
 
 public class HttpRepeatedStartStopLeakIT {
 
@@ -46,7 +47,7 @@ public class HttpRepeatedStartStopLeakIT {
     @Test(timeout = 60000)
     public void listenerRegistrationsOnASharedGroupReturnToZeroOnceRemovedOrTheirClientsStopped()
         throws Exception {
-        Settings settings = new Settings();
+        ClientSettings settings = ClientSettings.from(new Properties());
         settings.put(NjamsSettings.PROPERTY_COMMUNICATION, "HTTP");
         settings.put(NjamsSettings.PROPERTY_HTTP_BASE_URL, env.httpBaseUrlThroughProxy());
         settings.put(NjamsSettings.PROPERTY_HTTP_DATAPROVIDER_SUFFIX, "dataprovider");
@@ -116,7 +117,7 @@ public class HttpRepeatedStartStopLeakIT {
      */
     @Test(timeout = 60000)
     public void repeatedStartStopDoesNotLeaveReceiverThreadsRunning() throws Exception {
-        Settings settings = new Settings();
+        ClientSettings settings = ClientSettings.from(new Properties());
         settings.put(NjamsSettings.PROPERTY_COMMUNICATION, "HTTP");
         settings.put(NjamsSettings.PROPERTY_HTTP_BASE_URL, env.httpBaseUrlThroughProxy());
         settings.put(NjamsSettings.PROPERTY_HTTP_DATAPROVIDER_SUFFIX, "dataprovider");

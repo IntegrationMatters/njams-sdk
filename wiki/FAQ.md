@@ -150,23 +150,35 @@ njams.start();
 
 ### Migrating from the deprecated provider/factory mechanism
 
-> <kbd style="background-color:#cf222e;color:#fff;border-color:#cf222e">deprecated 6.0.0</kbd> The settings
-*provider/factory* mechanism is deprecated and will be removed. This includes `SettingsProviderFactory`, the
-`SettingsProvider` interface and its built-in implementations (`file`, `propertiesFile`, `memory`, `systemProperties`),
-> and the `njams.sdk.settings.*` provider properties (see the **Settings Providers** table below).
+> <kbd style="background-color:#cf222e;color:#fff;border-color:#cf222e">removed 6.1.0</kbd> The settings
+*provider/factory* mechanism (`SettingsProviderFactory`, the `SettingsProvider` interface and its built-in
+implementations, the `Settings` class and the `njams.sdk.settings.*` provider properties) has been removed. Obtain a
+`ClientSettings` instance from the factory methods described above instead; the `njams.sdk.settings.*` properties no
+longer have any effect.
 
-Previously you selected a provider via the `njams.sdk.settings.provider` property and called
-`SettingsProviderFactory.getSettingsProvider(props)`, then `loadSettings()`. Replace that with a `ClientSettings`
-obtained from the factory methods above:
+| Removed provider          | Replacement                                                                                                                                                                  |
+|---------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `memory`                  | `ClientSettings.from(map)` or `ClientSettings.from(properties)`                                                                                                              |
+| `systemProperties`        | `ClientSettings.fromSystemProperties(filter)`, or an `andThenSystemProperties()` layer in `HierarchicalSettings`                                                             |
+| `file` / `propertiesFile` | load the file yourself (e.g. `Properties.load(...)`) and wrap it with `ClientSettings.from(properties)`; combine with other sources via `HierarchicalSettings` if needed     |
 
-| Deprecated provider       | Replacement                                                                                                                                                              |
-|---------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `memory`                  | `ClientSettings.from(map)` or `ClientSettings.from(properties)`                                                                                                          |
-| `systemProperties`        | `ClientSettings.fromSystemProperties(filter)`, or an `andThenSystemProperties()` layer in `HierarchicalSettings`                                                         |
-| `file` / `propertiesFile` | load the file yourself (e.g. `Properties.load(...)`) and wrap it with `ClientSettings.from(properties)`; combine with other sources via `HierarchicalSettings` if needed |
+The `propertiesFile` provider's *parent file* (properties in the child file override those in the parent) corresponds to
+a lower-priority layer of a `HierarchicalSettings`:
 
-The legacy `Settings` and `SettingsProvider` types remain only as deprecated aliases so existing code keeps compiling;
-new code should use `ClientSettings` directly.
+```java
+Properties child = new Properties();
+try (InputStream in = Files.newInputStream(Paths.get("config.properties"))) {
+    child.load(in);
+}
+Properties parent = new Properties();
+try (InputStream in = Files.newInputStream(Paths.get("parent.properties"))) {
+    parent.load(in);
+}
+// The first layer wins, so list the child first and the parent as fallback.
+ClientSettings settings = HierarchicalSettings.from(child).withName("config.properties")
+    .andThen(parent).withName("parent.properties")
+    .build();
+```
 
 ## Which settings can I use
 
@@ -177,16 +189,6 @@ listing every available setting with its default value, is maintained alongside 
 
 > **Note:** nJAMS client implementations built on top of this SDK may define additional settings of their own. Consult
 > the documentation of the specific client for those.
-
-### Settings Providers <kbd style="background-color:#cf222e;color:#fff;border-color:#cf222e">deprecated 6.0.0</kbd>
-
-| Property                                  | Default                                | Description                                                                                                                                                                                    | Tags                                                                                         |
-|-------------------------------------------|----------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------|
-| `njams.sdk.settings.provider`             | —                                      | Selects the settings provider implementation. Values: `file`, `propertiesFile`, `memory`, `systemProperties`                                                                                   | <kbd style="background-color:#cf222e;color:#fff;border-color:#cf222e">deprecated 6.0.0</kbd> |
-| `njams.sdk.settings.file`                 | `config.json`                          | Path to the JSON settings file used by the `file` provider.                                                                                                                                    | <kbd style="background-color:#cf222e;color:#fff;border-color:#cf222e">deprecated 6.0.0</kbd> |
-| `njams.sdk.settings.properties.file`      | `config.properties`                    | Path to the properties file used by the `propertiesFile` provider.                                                                                                                             | <kbd style="background-color:#cf222e;color:#fff;border-color:#cf222e">deprecated 6.0.0</kbd> |
-| `njams.sdk.settings.properties.parent`    | —                                      | Path to the parent properties file for the `propertiesFile` provider. Properties in the child file override those in the parent.                                                               | <kbd style="background-color:#cf222e;color:#fff;border-color:#cf222e">deprecated 6.0.0</kbd> |
-| `njams.sdk.settings.properties.parentKey` | `njams.sdk.settings.properties.parent` | Overrides the key used to look up the parent file path. When set to `MY_KEY`, the provider reads the parent path from the property `MY_KEY` instead of `njams.sdk.settings.properties.parent`. | <kbd style="background-color:#cf222e;color:#fff;border-color:#cf222e">deprecated 6.0.0</kbd> |
 
 ### Configuration
 

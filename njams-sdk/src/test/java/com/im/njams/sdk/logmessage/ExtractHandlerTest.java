@@ -56,7 +56,7 @@ import com.im.njams.sdk.configuration.provider.MemoryConfigurationProvider;
 import com.im.njams.sdk.logmessage.ExtractHandler.ExtractSource;
 import com.im.njams.sdk.model.ActivityModel;
 import com.im.njams.sdk.model.ProcessModel;
-import com.im.njams.sdk.settings.Settings;
+import com.im.njams.sdk.settings.ClientSettings;
 
 /**
  * This class tests if the Extracts are handled correctly.
@@ -80,7 +80,7 @@ public class ExtractHandlerTest {
     public static void configureNjams() {
         Path clientPath = Path.of("SDK4", "TEST");
 
-        Settings config = TestReceiver.getSettings();
+        ClientSettings config = TestReceiver.getSettings();
 
         njams = spy(new Njams(clientPath, "1.0.0", "sdk4", config));
 

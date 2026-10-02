@@ -13,7 +13,7 @@ public class LifecycleTransportWiringTest extends AbstractLifecycleSpecTest {
 
     @Test
     public void factoryResolvesTheControllableSender() {
-        ClientSettings cs = ClientSettings.from(LifecycleTestTransport.settings().getAllProperties());
+        ClientSettings cs = LifecycleTestTransport.settings();
         // getSender() must return our controllable sender, resolved by transport name
         AbstractSender sender = new CommunicationFactory(cs).getSender();
         assertNotNull(sender);

@@ -10,7 +10,7 @@ import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.Path;
 import com.im.njams.sdk.StartupResult;
-import com.im.njams.sdk.settings.Settings;
+import com.im.njams.sdk.settings.ClientSettings;
 
 /**
  * Checks the value returned by {@link Njams#startup()}. SDK-local behavior is identical for {@code fail} and
@@ -28,7 +28,7 @@ public class StartupResultTest extends AbstractLifecycleSpecTest {
     }
 
     private Njams newNjams(String failBehavior) {
-        Settings s = LifecycleTestTransport.settings();
+        ClientSettings s = LifecycleTestTransport.settings();
         if (failBehavior != null) {
             s.put(NjamsSettings.PROPERTY_COMMUNICATION_STARTUP_FAILBEHAVIOR, failBehavior);
         }

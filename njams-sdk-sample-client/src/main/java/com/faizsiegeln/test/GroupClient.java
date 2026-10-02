@@ -23,6 +23,7 @@
  */
 package com.faizsiegeln.test;
 
+import java.util.Properties;
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.Path;
@@ -32,7 +33,7 @@ import com.im.njams.sdk.logmessage.Job;
 import com.im.njams.sdk.model.ActivityModel;
 import com.im.njams.sdk.model.GroupModel;
 import com.im.njams.sdk.model.ProcessModel;
-import com.im.njams.sdk.settings.Settings;
+import com.im.njams.sdk.settings.ClientSettings;
 
 /**
  * This is a simple sample client, which creates a simple process with three
@@ -50,7 +51,7 @@ public class GroupClient {
         Path clientPath = Path.of("SDK4", "Client", "Group");
 
         //Create communicationProperties, which specify how your client will communicate with the server
-        Settings settings = getJmsProperties();
+        ClientSettings settings = getJmsProperties();
 
         //Instantiate client for first application
         Njams njams = new Njams(clientPath, "1.0.0", technology, settings);
@@ -146,8 +147,8 @@ public class GroupClient {
         njams.stop();
     }
 
-    private static Settings getJmsProperties() {
-        Settings communicationProperties = new Settings();
+    private static ClientSettings getJmsProperties() {
+        ClientSettings communicationProperties = ClientSettings.from(new Properties());
         communicationProperties.put(NjamsSettings.PROPERTY_COMMUNICATION, "JMS");
         communicationProperties.put(NjamsSettings.PROPERTY_JMS_INITIAL_CONTEXT_FACTORY,
                 "com.tibco.tibjms.naming.TibjmsInitialContextFactory");

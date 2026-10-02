@@ -29,6 +29,7 @@ import static org.mockito.Mockito.*;
 
 import java.time.LocalDateTime;
 import java.util.Map;
+import java.util.Properties;
 import java.util.TreeMap;
 
 import org.junit.Before;
@@ -48,7 +49,7 @@ import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.NjamsConfiguration;
 import com.im.njams.sdk.common.DateTimeUtility;
 import com.im.njams.sdk.configuration.provider.MemoryConfigurationProvider;
-import com.im.njams.sdk.settings.Settings;
+import com.im.njams.sdk.settings.ClientSettings;
 import com.im.njams.sdk.utils.JsonUtils;
 
 public class ConfigurationInstructionListenerTest {
@@ -68,7 +69,7 @@ public class ConfigurationInstructionListenerTest {
         NjamsConfiguration configurationFacet = mock(NjamsConfiguration.class);
         when(configurationFacet.get()).thenReturn(configuration);
         when(njams.configuration()).thenReturn(configurationFacet);
-        when(njams.getSettings()).thenReturn(new Settings());
+        when(njams.getSettings()).thenReturn(ClientSettings.from(new Properties()));
         listener = new ConfigurationInstructionListener(njams);
     }
 

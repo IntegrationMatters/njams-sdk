@@ -8,7 +8,7 @@ import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.it.support.Deliveries;
 import com.im.njams.sdk.it.support.DiscardMode;
 import com.im.njams.sdk.it.support.QueueSaturationScenario;
-import com.im.njams.sdk.settings.Settings;
+import com.im.njams.sdk.settings.ClientSettings;
 
 public class HttpQueueSaturationIT extends QueueSaturationScenario {
 
@@ -27,7 +27,7 @@ public class HttpQueueSaturationIT extends QueueSaturationScenario {
     }
 
     @Override
-    protected void configureTransport(Settings settings) {
+    protected void configureTransport(ClientSettings settings) {
         settings.put(NjamsSettings.PROPERTY_COMMUNICATION, "HTTP");
         settings.put(NjamsSettings.PROPERTY_HTTP_BASE_URL, env.httpBaseUrlThroughProxy());
         settings.put(NjamsSettings.PROPERTY_HTTP_DATAPROVIDER_SUFFIX, "dataprovider");

@@ -1,5 +1,6 @@
 package com.im.njams.sdk.it.jms;
 
+import java.util.Properties;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
@@ -30,7 +31,7 @@ import com.im.njams.sdk.it.harness.FixedProcessModel;
 import com.im.njams.sdk.it.harness.MessageDriver;
 import com.im.njams.sdk.it.support.DockerEnvironment;
 import com.im.njams.sdk.model.ProcessModel;
-import com.im.njams.sdk.settings.Settings;
+import com.im.njams.sdk.settings.ClientSettings;
 
 /**
  * Regression guard for {@code SenderPool}'s bookkeeping collections: they must stay bounded to
@@ -60,7 +61,7 @@ public class PoolBookkeepingIT {
 
     @Test(timeout = 60000)
     public void pooledSenderCountStaysBoundedAndMatchesTheBrokersOwnConnectionCount() throws Exception {
-        Settings settings = new Settings();
+        ClientSettings settings = ClientSettings.from(new Properties());
         settings.put(NjamsSettings.PROPERTY_COMMUNICATION, "JMS");
         settings.put(NjamsSettings.PROPERTY_JMS_PROVIDER_URL, env.jmsUrlThroughProxy());
         settings.put(NjamsSettings.PROPERTY_MAX_SENDER_THREADS, String.valueOf(MAX_SENDER_THREADS));

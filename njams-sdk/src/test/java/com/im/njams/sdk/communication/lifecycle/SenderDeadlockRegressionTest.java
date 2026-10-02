@@ -12,7 +12,6 @@ import com.im.njams.sdk.communication.MaxQueueLengthHandler;
 import com.im.njams.sdk.communication.NjamsSender;
 import com.im.njams.sdk.communication.SenderPool;
 import com.im.njams.sdk.settings.ClientSettings;
-import com.im.njams.sdk.settings.Settings;
 
 /**
  * Regression guard for design-spec section 7: the pre-SDK-472 approach of re-enqueueing a failed message back onto
@@ -45,14 +44,14 @@ public class SenderDeadlockRegressionTest extends AbstractLifecycleSpecTest {
     /** Fails rather than hanging CI if the pool cannot make progress after a reconnect. */
     @Test(timeout = 60_000)
     public void theGroupRecoversWithAFullQueueAndEveryWorkerFailingConcurrently() throws Exception {
-        Settings s = LifecycleTestTransport.settings();
+        ClientSettings s = LifecycleTestTransport.settings();
         // min == max: guarantees maxSenderThreads distinct worker threads are created the moment the warm-up
         // batch is submitted, rather than some of them queueing behind fewer core threads.
         s.put(NjamsSettings.PROPERTY_MIN_SENDER_THREADS, String.valueOf(MAX_SENDER_THREADS));
         s.put(NjamsSettings.PROPERTY_MAX_SENDER_THREADS, String.valueOf(MAX_SENDER_THREADS));
         s.put(NjamsSettings.PROPERTY_MAX_QUEUE_LENGTH, String.valueOf(MAX_QUEUE_LENGTH));
         s.put(NjamsSettings.PROPERTY_DISCARD_POLICY, "none");
-        NjamsSender sender = new NjamsSender(ClientSettings.from(s.getAllProperties()));
+        NjamsSender sender = new NjamsSender(s);
         assertTrue(sender.startWithTimeout(5000));
 
         try {

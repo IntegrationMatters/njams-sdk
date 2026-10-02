@@ -41,7 +41,7 @@ import com.im.njams.sdk.communication.TestReceiver;
 import com.im.njams.sdk.configuration.ActivityConfiguration;
 import com.im.njams.sdk.model.ActivityModel;
 import com.im.njams.sdk.model.ProcessModel;
-import com.im.njams.sdk.settings.Settings;
+import com.im.njams.sdk.settings.ClientSettings;
 
 /**
  *
@@ -54,7 +54,7 @@ public class JobTest {
         Path clientPath = Path.of("SDK4", "TEST");
 
         // Create client config
-        Settings config = TestReceiver.getSettings();
+        ClientSettings config = TestReceiver.getSettings();
 
         Njams njams = new Njams(clientPath, "1.0.0", "sdk4", config);
 

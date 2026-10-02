@@ -11,7 +11,7 @@ import com.im.njams.sdk.SenderProbe;
 import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.Path;
 import com.im.njams.sdk.communication.CommunicationFactory;
-import com.im.njams.sdk.settings.Settings;
+import com.im.njams.sdk.settings.ClientSettings;
 
 /**
  * A {@link Njams} instance that was stopped can be started again; the restart must not reuse the sender that
@@ -30,7 +30,7 @@ public class SameInstanceRestartSpecTest extends AbstractLifecycleSpecTest {
     }
 
     private void assertRestartUsesFreshSender(boolean shared) {
-        Settings s = LifecycleTestTransport.settings();
+        ClientSettings s = LifecycleTestTransport.settings();
         if (shared) {
             s.put(NjamsSettings.PROPERTY_SHARED_COMMUNICATIONS, "true");
         }

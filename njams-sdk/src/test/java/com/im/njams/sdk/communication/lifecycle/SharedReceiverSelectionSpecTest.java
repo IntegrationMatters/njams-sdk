@@ -25,7 +25,7 @@ import com.im.njams.sdk.Path;
 import com.im.njams.sdk.communication.CommunicationFactory;
 import com.im.njams.sdk.communication.Receiver;
 import com.im.njams.sdk.communication.ShareableReceiver;
-import com.im.njams.sdk.settings.Settings;
+import com.im.njams.sdk.settings.ClientSettings;
 
 /**
  * Specifies what {@code njams.sdk.communication.shared=true} actually yields on the receiver side: for a transport
@@ -44,8 +44,8 @@ public class SharedReceiverSelectionSpecTest extends AbstractLifecycleSpecTest {
         CommunicationFactory.clearSharedReceiversForTesting();
     }
 
-    private static Settings settings(boolean shared) {
-        Settings s = LifecycleTestTransport.settings();
+    private static ClientSettings settings(boolean shared) {
+        ClientSettings s = LifecycleTestTransport.settings();
         s.put(NjamsSettings.PROPERTY_SHARED_COMMUNICATIONS, String.valueOf(shared));
         return s;
     }

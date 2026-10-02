@@ -1,5 +1,6 @@
 package com.im.njams.sdk.it.support;
 
+import java.util.Properties;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -24,7 +25,7 @@ import com.im.njams.sdk.Path;
 import com.im.njams.sdk.it.harness.FixedProcessModel;
 import com.im.njams.sdk.it.harness.MessageDriver;
 import com.im.njams.sdk.model.ProcessModel;
-import com.im.njams.sdk.settings.Settings;
+import com.im.njams.sdk.settings.ClientSettings;
 
 /**
  * Scenario 10: saturation of the sender's dispatch queue, once per discard mode and per kind of blockage. The
@@ -80,7 +81,7 @@ public abstract class QueueSaturationScenario {
     /** @return the Toxiproxy proxy name in front of this transport's server. */
     protected abstract String proxy();
 
-    protected abstract void configureTransport(Settings settings);
+    protected abstract void configureTransport(ClientSettings settings);
 
     /** @return how often one logId may legitimately reach the server (attempts plus resend after reconnect). */
     protected abstract int maxDeliveriesPerLogId();
@@ -97,7 +98,7 @@ public abstract class QueueSaturationScenario {
 
     @Test(timeout = 120000)
     public void aSaturatedDispatchQueueBlocksOrDropsAccordingToTheDiscardMode() throws Exception {
-        Settings settings = new Settings();
+        ClientSettings settings = ClientSettings.from(new Properties());
         configureTransport(settings);
         mode.apply(settings);
         settings.put(NjamsSettings.PROPERTY_MIN_SENDER_THREADS, "1");

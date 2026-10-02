@@ -2,7 +2,7 @@ package com.im.njams.sdk.it.support;
 
 import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.communication.DiscardPolicy;
-import com.im.njams.sdk.settings.Settings;
+import com.im.njams.sdk.settings.ClientSettings;
 
 /** The three SDK discard policies; every fault scenario runs once per mode (spec §6.1). */
 public enum DiscardMode {
@@ -16,7 +16,7 @@ public enum DiscardMode {
         this.policy = policy;
     }
 
-    public void apply(Settings settings) {
+    public void apply(ClientSettings settings) {
         settings.put(NjamsSettings.PROPERTY_DISCARD_POLICY, policy.toString());
     }
 

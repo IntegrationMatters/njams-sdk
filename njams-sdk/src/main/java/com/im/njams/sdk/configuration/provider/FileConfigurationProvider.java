@@ -75,7 +75,7 @@ public class FileConfigurationProvider extends AbstractConfigurationProvider {
     }
 
     /**
-     * Configures this FileSettingsProvider via the given Properties.
+     * Configures this FileConfigurationProvider via the given Properties.
      * <p>
      * Valid properties are:
      * <ul>

@@ -12,7 +12,7 @@ import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.Path;
 import com.im.njams.sdk.communication.TestSender;
 import com.im.njams.sdk.model.ProcessModel;
-import com.im.njams.sdk.settings.Settings;
+import com.im.njams.sdk.settings.ClientSettings;
 
 public class MessageDriverTest {
 
@@ -60,7 +60,7 @@ public class MessageDriverTest {
     }
 
     private static Njams startNjams() {
-        Settings settings = TestSender.getSettings();
+        ClientSettings settings = TestSender.getSettings();
         Njams instance = new Njams(Path.of("MessageDriverTest"), "1.0.0", "CommunicationIT", settings);
         instance.start();
         return instance;

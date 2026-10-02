@@ -1,5 +1,6 @@
 package com.im.njams.sdk.communication.it;
 
+import java.util.Properties;
 import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
@@ -21,15 +22,15 @@ import com.im.njams.sdk.communication.jms.JmsSender;
 import com.im.njams.sdk.logmessage.Job;
 import com.im.njams.sdk.model.ActivityModel;
 import com.im.njams.sdk.model.ProcessModel;
-import com.im.njams.sdk.settings.Settings;
+import com.im.njams.sdk.settings.ClientSettings;
 
 public class JmsClientEndToEndBaselineIT {
 
     @Rule
     public EmbeddedActiveMqBroker broker = new EmbeddedActiveMqBroker();
 
-    private static Settings settings() {
-        Settings s = new Settings();
+    private static ClientSettings settings() {
+        ClientSettings s = ClientSettings.from(new Properties());
         s.put(NjamsSettings.PROPERTY_COMMUNICATION, JmsSender.COMMUNICATION_NAME);
         s.put(NjamsSettings.PROPERTY_JMS_CONNECTION_FACTORY, EmbeddedActiveMqJmsFactory.NAME);
         s.put(NjamsSettings.PROPERTY_JMS_DESTINATION, "njams");

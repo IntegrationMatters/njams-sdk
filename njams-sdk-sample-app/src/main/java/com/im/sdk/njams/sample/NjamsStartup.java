@@ -5,7 +5,7 @@ import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.Path;
 import com.im.njams.sdk.model.ActivityModel;
 import com.im.njams.sdk.model.ProcessModel;
-import com.im.njams.sdk.settings.Settings;
+import com.im.njams.sdk.settings.ClientSettings;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -29,8 +29,8 @@ public class NjamsStartup {
         LOG.info("Starting nJAMS Client.");
         String technology = "sdk4";
 
-        Settings settings = getFromFileWithClassloader("settings_activemq.properties");
-        //Settings settings = getJmsPropertiesFromFile("settings.properties");
+        ClientSettings settings = getFromFileWithClassloader("settings_activemq.properties");
+        //ClientSettings settings = getJmsPropertiesFromFile("settings.properties");
 
         // Specify a client path. This path specifies where your client instance will be visible in the object tree.
         Path clientPath = Path.of("SDK4", "Client", "Simple");
@@ -75,7 +75,7 @@ public class NjamsStartup {
         njams.stop();
     }
 
-    private Settings getFromFileWithClassloader(String filename) {
+    private ClientSettings getFromFileWithClassloader(String filename) {
         Properties props = new Properties();
         try (InputStream is = this.getClass().getResourceAsStream("/" + filename)) {
             props.load(is);
@@ -83,13 +83,12 @@ public class NjamsStartup {
             LOG.error(e.getMessage());
         }
 
-        Settings settings = new Settings();
-        settings.addAll(props);
+        ClientSettings settings = ClientSettings.from(props);
         return settings;
     }
 
-    private Settings getEmsJmsProperties() {
-        Settings communicationProperties = new Settings();
+    private ClientSettings getEmsJmsProperties() {
+        ClientSettings communicationProperties = ClientSettings.from(new Properties());
         communicationProperties.put(NjamsSettings.PROPERTY_COMMUNICATION, "JMS");
         communicationProperties.put(NjamsSettings.PROPERTY_JMS_INITIAL_CONTEXT_FACTORY,
             "com.tibco.tibjms.naming.TibjmsInitialContextFactory");
@@ -106,8 +105,8 @@ public class NjamsStartup {
         return communicationProperties;
     }
 
-    private Settings getActiveMqJmsProperties() {
-        Settings communicationProperties = new Settings();
+    private ClientSettings getActiveMqJmsProperties() {
+        ClientSettings communicationProperties = ClientSettings.from(new Properties());
         communicationProperties.put(NjamsSettings.PROPERTY_COMMUNICATION, "JMS");
         communicationProperties.put(NjamsSettings.PROPERTY_JMS_INITIAL_CONTEXT_FACTORY,
             "org.apache.activemq.jndi.ActiveMQInitialContextFactory");

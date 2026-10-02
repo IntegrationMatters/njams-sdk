@@ -1,5 +1,6 @@
 package com.im.njams.sdk.communication.lifecycle;
 
+import java.util.Properties;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -7,7 +8,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.configuration.ConfigurationProviderFactory;
-import com.im.njams.sdk.settings.Settings;
+import com.im.njams.sdk.settings.ClientSettings;
 
 /** Test-only controls shared by {@link LifecycleTestSender} and {@link LifecycleTestReceiver}. */
 public final class LifecycleTestTransport {
@@ -375,8 +376,8 @@ public final class LifecycleTestTransport {
     }
 
     /** Settings selecting this transport with the in-memory configuration provider. */
-    public static Settings settings() {
-        Settings s = new Settings();
+    public static ClientSettings settings() {
+        ClientSettings s = ClientSettings.from(new Properties());
         s.put(NjamsSettings.PROPERTY_COMMUNICATION, NAME);
         s.put(ConfigurationProviderFactory.CONFIGURATION_PROVIDER, "memory");
         return s;

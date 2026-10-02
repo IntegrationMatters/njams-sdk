@@ -23,6 +23,7 @@
  */
 package com.faizsiegeln.test;
 
+import java.util.Properties;
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.Path;
@@ -32,7 +33,7 @@ import com.im.njams.sdk.logmessage.SubProcessActivity;
 import com.im.njams.sdk.model.ActivityModel;
 import com.im.njams.sdk.model.ProcessModel;
 import com.im.njams.sdk.model.SubProcessActivityModel;
-import com.im.njams.sdk.settings.Settings;
+import com.im.njams.sdk.settings.ClientSettings;
 
 /**
  * This is a simple sample client, which creates a simple process with three
@@ -50,8 +51,8 @@ public class SubProcessSpawnedClient {
         Path clientPath = Path.of("SDK4", "Client", "SubProcess");
 
         //Create communicationProperties, which specify how your client will communicate with the server
-        //Settings settings = getJmsProperties();
-        Settings settings = getHttpProperties();
+        //ClientSettings settings = getJmsProperties();
+        ClientSettings settings = getHttpProperties();
 
         //Instantiate client for first application
         Njams njams = new Njams(clientPath, "1.0.0", technology, settings);
@@ -129,8 +130,8 @@ public class SubProcessSpawnedClient {
         njams.stop();
     }
 
-    private static Settings getJmsProperties() {
-        Settings communicationProperties = new Settings();
+    private static ClientSettings getJmsProperties() {
+        ClientSettings communicationProperties = ClientSettings.from(new Properties());
 
         //Use this if your nJAMS Server version is < 5.1
         //communicationProperties.put(Settings.PROPERTY_USE_DEPRECATED_PATH_FIELD_FOR_SUBPROCESSES, "true");
@@ -150,8 +151,8 @@ public class SubProcessSpawnedClient {
         return communicationProperties;
     }
 
-    private static Settings getHttpProperties() {
-        Settings communicationProperties = new Settings();
+    private static ClientSettings getHttpProperties() {
+        ClientSettings communicationProperties = ClientSettings.from(new Properties());
         communicationProperties.put(NjamsSettings.PROPERTY_COMMUNICATION, "HTTP");
         communicationProperties.put("njams.sdk.communication.http.base.url",
                 "http://localhost:8080/njams/");

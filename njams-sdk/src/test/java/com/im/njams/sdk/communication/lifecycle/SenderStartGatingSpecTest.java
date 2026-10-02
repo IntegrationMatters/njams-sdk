@@ -15,7 +15,6 @@ import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.Path;
 import com.im.njams.sdk.communication.NjamsSender;
 import com.im.njams.sdk.settings.ClientSettings;
-import com.im.njams.sdk.settings.Settings;
 
 public class SenderStartGatingSpecTest extends AbstractLifecycleSpecTest {
 
@@ -33,7 +32,7 @@ public class SenderStartGatingSpecTest extends AbstractLifecycleSpecTest {
     }
 
     private Njams newNjams(String failBehavior, Long connectTimeoutMs) {
-        Settings s = LifecycleTestTransport.settings();
+        ClientSettings s = LifecycleTestTransport.settings();
         if (failBehavior != null) {
             s.put(NjamsSettings.PROPERTY_COMMUNICATION_STARTUP_FAILBEHAVIOR, failBehavior);
         }
@@ -119,11 +118,11 @@ public class SenderStartGatingSpecTest extends AbstractLifecycleSpecTest {
      */
     @Test
     public void aRetainedMessageIsDeliveredOnceTheGroupRecoversAfterTheStartupTimeout() throws Exception {
-        Settings s = LifecycleTestTransport.settings();
+        ClientSettings s = LifecycleTestTransport.settings();
         s.put(NjamsSettings.PROPERTY_COMMUNICATION_STARTUP_FAILBEHAVIOR, "reconnect");
         s.put(NjamsSettings.PROPERTY_DISCARD_POLICY, "none");
         LifecycleTestTransport.setSenderMode(LifecycleTestTransport.ConnectMode.FAIL);
-        NjamsSender sender = new NjamsSender(ClientSettings.from(s.getAllProperties()));
+        NjamsSender sender = new NjamsSender(s);
         try {
             assertTrue("reconnect policy: startup reports success and retries in the background",
                 sender.startWithTimeout(200));
@@ -145,10 +144,10 @@ public class SenderStartGatingSpecTest extends AbstractLifecycleSpecTest {
      */
     @Test
     public void aFailFastStartupTimeoutMustNotKillTheGroupsRunningReconnect() throws Exception {
-        Settings s = LifecycleTestTransport.settings();
+        ClientSettings s = LifecycleTestTransport.settings();
         s.put(NjamsSettings.PROPERTY_DISCARD_POLICY, "none");
         LifecycleTestTransport.setSenderMode(LifecycleTestTransport.ConnectMode.FAIL);
-        NjamsSender shared = new NjamsSender(ClientSettings.from(s.getAllProperties()));
+        NjamsSender shared = new NjamsSender(s);
         try {
             // First client, 'reconnect' policy: the group is now retrying in the background.
             assertTrue(shared.startWithTimeout(200, true));

@@ -23,8 +23,9 @@
  */
 package com.im.njams.sdk.argos;
 
+import java.util.Properties;
 import com.im.njams.sdk.NjamsSettings;
-import com.im.njams.sdk.settings.Settings;
+import com.im.njams.sdk.settings.ClientSettings;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -55,7 +56,7 @@ public class ArgosSenderTest {
 
     @Before
     public void init() {
-        Settings settings = new Settings();
+        ClientSettings settings = ClientSettings.from(new Properties());
         //Argos relevant properties
         settings.put(NjamsSettings.PROPERTY_ARGOS_SUBAGENT_HOST, ADDRESS);
         settings.put(NjamsSettings.PROPERTY_ARGOS_SUBAGENT_PORT, Integer.toString(PORT));
@@ -74,7 +75,7 @@ public class ArgosSenderTest {
     @Test
     public void initWithDeprecatedKeys() throws Exception {
         ArgosSender sender = new ArgosSender();
-        Settings settings = new Settings();
+        ClientSettings settings = ClientSettings.from(new Properties());
         // use the old .client. key names instead of the current .sdk. ones
         settings.put("njams.client.subagent.host", "legacy-host");
         settings.put("njams.client.subagent.port", "4711");
@@ -228,7 +229,7 @@ public class ArgosSenderTest {
 
     private static ArgosSender newEnabledSender() {
         ArgosSender sender = new ArgosSender();
-        Settings settings = new Settings();
+        ClientSettings settings = ClientSettings.from(new Properties());
         settings.put(NjamsSettings.PROPERTY_ARGOS_SUBAGENT_HOST, ADDRESS);
         settings.put(NjamsSettings.PROPERTY_ARGOS_SUBAGENT_PORT, Integer.toString(PORT));
         settings.put(NjamsSettings.PROPERTY_ARGOS_SUBAGENT_ENABLED, "true");

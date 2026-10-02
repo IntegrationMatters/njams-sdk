@@ -39,7 +39,6 @@ import com.im.njams.sdk.AbstractTest;
 import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.settings.ClientSettings;
-import com.im.njams.sdk.settings.Settings;
 
 /**
  * Tests the NjamsSender
@@ -49,11 +48,11 @@ import com.im.njams.sdk.settings.Settings;
  */
 public class NjamsSenderTest extends AbstractTest {
 
-    private static Settings SETTINGS;
+    private static ClientSettings SETTINGS;
 
     @BeforeClass
     public static void createSettings() {
-        SETTINGS = new Settings();
+        SETTINGS = ClientSettings.from(new Properties());
         SETTINGS.put(NjamsSettings.PROPERTY_COMMUNICATION, TestSender.NAME);
     }
 
@@ -94,7 +93,7 @@ public class NjamsSenderTest extends AbstractTest {
      */
     @Test(expected = IllegalArgumentException.class)
     public void testIllegalArgumentMaxSenderThreads() {
-        Settings settings = new Settings();
+        ClientSettings settings = ClientSettings.from(new Properties());
         settings.put(NjamsSettings.PROPERTY_COMMUNICATION, TestSender.NAME);
         settings.put(NjamsSettings.PROPERTY_MAX_SENDER_THREADS, "-1");
         NjamsSender njamsSender = new NjamsSender(settings);
@@ -105,7 +104,7 @@ public class NjamsSenderTest extends AbstractTest {
      */
     @Test(expected = IllegalArgumentException.class)
     public void testIllegalArgument2SenderThreadIdleTime() {
-        Settings settings = new Settings();
+        ClientSettings settings = ClientSettings.from(new Properties());
         settings.put(NjamsSettings.PROPERTY_COMMUNICATION, TestSender.NAME);
         settings.put(NjamsSettings.PROPERTY_SENDER_THREAD_IDLE_TIME, "-1");
         NjamsSender njamsSender = new NjamsSender(settings);
@@ -116,7 +115,7 @@ public class NjamsSenderTest extends AbstractTest {
      */
     @Test(expected = IllegalArgumentException.class)
     public void testIllegalArgumentMaxSenderThreadsLessThanMinSenderThreads() {
-        Settings settings = new Settings();
+        ClientSettings settings = ClientSettings.from(new Properties());
         settings.put(NjamsSettings.PROPERTY_COMMUNICATION, TestSender.NAME);
         settings.put(NjamsSettings.PROPERTY_MIN_SENDER_THREADS, "5");
         settings.put(NjamsSettings.PROPERTY_MAX_SENDER_THREADS, "4");
@@ -128,7 +127,7 @@ public class NjamsSenderTest extends AbstractTest {
      */
     @Test(expected = IllegalArgumentException.class)
     public void testIllegalArgumentMinSenderThreads() {
-        Settings settings = new Settings();
+        ClientSettings settings = ClientSettings.from(new Properties());
         settings.put(NjamsSettings.PROPERTY_COMMUNICATION, TestSender.NAME);
         settings.put(NjamsSettings.PROPERTY_MIN_SENDER_THREADS, "-1");
         NjamsSender njamsSender = new NjamsSender(settings);
@@ -136,7 +135,7 @@ public class NjamsSenderTest extends AbstractTest {
 
     @Test
     public void testConfiguredNjamsSender() {
-        Settings settings = new Settings();
+        ClientSettings settings = ClientSettings.from(new Properties());
         settings.put(NjamsSettings.PROPERTY_COMMUNICATION, TestSender.NAME);
         settings.put(NjamsSettings.PROPERTY_MIN_SENDER_THREADS, "3");
         settings.put(NjamsSettings.PROPERTY_MAX_SENDER_THREADS, "10");
@@ -158,11 +157,11 @@ public class NjamsSenderTest extends AbstractTest {
         executor.getLargestPoolSize();
     }
 
-    private static Settings discardPolicySettings;
+    private static ClientSettings discardPolicySettings;
 
     @BeforeClass
     public static void createDiscardPolicySettings() {
-        discardPolicySettings = new Settings();
+        discardPolicySettings = ClientSettings.from(new Properties());
         discardPolicySettings.put(NjamsSettings.PROPERTY_COMMUNICATION, TestSender.NAME);
         discardPolicySettings.put(NjamsSettings.PROPERTY_MIN_SENDER_THREADS, "3");
         discardPolicySettings.put(NjamsSettings.PROPERTY_MAX_SENDER_THREADS, "10");
@@ -304,7 +303,7 @@ public class NjamsSenderTest extends AbstractTest {
 
     @Test
     public void communicationTypeAlternativeKeyIsAccepted() {
-        Settings settings = new Settings();
+        ClientSettings settings = ClientSettings.from(new Properties());
         settings.put(NjamsSettings.PROPERTY_COMMUNICATION_TYPE, TestSender.NAME);
         NjamsSender sender = new NjamsSender(settings);
         assertEquals(TestSender.NAME, sender.getName());
@@ -312,7 +311,7 @@ public class NjamsSenderTest extends AbstractTest {
 
     @Test
     public void primaryCommunicationKeyTakesPrecedenceOverAlternative() {
-        Settings settings = new Settings();
+        ClientSettings settings = ClientSettings.from(new Properties());
         settings.put(NjamsSettings.PROPERTY_COMMUNICATION, TestSender.NAME);
         settings.put(NjamsSettings.PROPERTY_COMMUNICATION_TYPE, "SomeOtherName");
         NjamsSender sender = new NjamsSender(settings);

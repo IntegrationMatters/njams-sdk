@@ -23,6 +23,7 @@
  */
 package com.faizsiegeln.test;
 
+import java.util.Properties;
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.Path;
@@ -30,7 +31,7 @@ import com.im.njams.sdk.logmessage.Activity;
 import com.im.njams.sdk.logmessage.Job;
 import com.im.njams.sdk.model.ActivityModel;
 import com.im.njams.sdk.model.ProcessModel;
-import com.im.njams.sdk.settings.Settings;
+import com.im.njams.sdk.settings.ClientSettings;
 
 /**
  * This is a simple sample client, which creates a simple process with three
@@ -51,12 +52,12 @@ public class SimpleClient {
 
         // Create communicationProperties, which specify how your client will
         // communicate with the server
-        //Settings settings = getJmsProperties();
-        //Settings settings = getCloudProperties();
-        Settings settings = getHttpProperties();
-        //Settings settings = getHttpsProperties();
-        //Settings settings = getKafkaProperties();
-        //Settings settings = getActiveMqsslProperties();
+        //ClientSettings settings = getJmsProperties();
+        //ClientSettings settings = getCloudProperties();
+        ClientSettings settings = getHttpProperties();
+        //ClientSettings settings = getHttpsProperties();
+        //ClientSettings settings = getKafkaProperties();
+        //ClientSettings settings = getActiveMqsslProperties();
 
         // Instantiate client for first application
         Njams njams = new Njams(clientPath, "1.0.0", technology, settings);
@@ -138,8 +139,8 @@ public class SimpleClient {
         System.out.println("Finsihed " + SimpleClient.class.getSimpleName());
     }
 
-    private static Settings getJmsProperties() {
-        Settings communicationProperties = new Settings();
+    private static ClientSettings getJmsProperties() {
+        ClientSettings communicationProperties = ClientSettings.from(new Properties());
         communicationProperties.put(NjamsSettings.PROPERTY_COMMUNICATION, "JMS");
         communicationProperties.put(NjamsSettings.PROPERTY_JMS_INITIAL_CONTEXT_FACTORY,
                 "com.tibco.tibjms.naming.TibjmsInitialContextFactory");
@@ -156,8 +157,8 @@ public class SimpleClient {
         return communicationProperties;
     }
 
-    private static Settings getKafkaProperties() {
-        Settings communicationProperties = new Settings();
+    private static ClientSettings getKafkaProperties() {
+        ClientSettings communicationProperties = ClientSettings.from(new Properties());
 
         // nJAMS properties
         communicationProperties.put(NjamsSettings.PROPERTY_COMMUNICATION, "KAFKA");
@@ -206,8 +207,8 @@ public class SimpleClient {
         return communicationProperties;
     }
 
-    private static Settings getHttpProperties() {
-        Settings communicationProperties = new Settings();
+    private static ClientSettings getHttpProperties() {
+        ClientSettings communicationProperties = ClientSettings.from(new Properties());
         communicationProperties.put(NjamsSettings.PROPERTY_COMMUNICATION, "HTTP");
         communicationProperties.put("njams.sdk.communication.http.base.url",
                 "http://localhost:8080/njams/");
@@ -216,8 +217,8 @@ public class SimpleClient {
         return communicationProperties;
     }
 
-    private static Settings getHttpsProperties() {
-        Settings communicationProperties = new Settings();
+    private static ClientSettings getHttpsProperties() {
+        ClientSettings communicationProperties = ClientSettings.from(new Properties());
         communicationProperties.put(NjamsSettings.PROPERTY_COMMUNICATION, "HTTPS");
         communicationProperties.put("njams.sdk.communication.http.base.url",
                 "https://os0100.integrationmatters.com:8443/njams/");
@@ -230,8 +231,8 @@ public class SimpleClient {
         return communicationProperties;
     }
 
-    private static Settings getActiveMqsslProperties() {
-        Settings communicationProperties = new Settings();
+    private static ClientSettings getActiveMqsslProperties() {
+        ClientSettings communicationProperties = ClientSettings.from(new Properties());
         communicationProperties.put(NjamsSettings.PROPERTY_COMMUNICATION, "JMS");
         communicationProperties.put(NjamsSettings.PROPERTY_JMS_INITIAL_CONTEXT_FACTORY, "org.apache.activemq.jndi.ActiveMQInitialContextFactory");
         communicationProperties.put(NjamsSettings.PROPERTY_JMS_SECURITY_PRINCIPAL, "njams");

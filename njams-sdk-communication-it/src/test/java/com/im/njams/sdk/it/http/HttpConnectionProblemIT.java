@@ -1,5 +1,6 @@
 package com.im.njams.sdk.it.http;
 
+import java.util.Properties;
 import static com.im.njams.sdk.it.support.WireMockJournal.INGEST_PATH;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -29,7 +30,7 @@ import com.im.njams.sdk.it.support.DiscardObserver;
 import com.im.njams.sdk.it.support.DockerEnvironment;
 import com.im.njams.sdk.it.support.WireMockJournal;
 import com.im.njams.sdk.model.ProcessModel;
-import com.im.njams.sdk.settings.Settings;
+import com.im.njams.sdk.settings.ClientSettings;
 
 /**
  * Scenario 9b, once per discard mode: a transport-level outage (HEAD and POST both unreachable) is a connection
@@ -66,7 +67,7 @@ public class HttpConnectionProblemIT {
 
     @Test(timeout = 60000)
     public void transportLevelOutageUsesTheSameRetireReconnectPathAsApplicationLevel503() throws Exception {
-        Settings settings = new Settings();
+        ClientSettings settings = ClientSettings.from(new Properties());
         settings.put(NjamsSettings.PROPERTY_COMMUNICATION, "HTTP");
         settings.put(NjamsSettings.PROPERTY_HTTP_BASE_URL, env.httpBaseUrlThroughProxy());
         settings.put(NjamsSettings.PROPERTY_HTTP_DATAPROVIDER_SUFFIX, "dataprovider");

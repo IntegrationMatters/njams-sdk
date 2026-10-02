@@ -9,7 +9,7 @@ import org.junit.Test;
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.Path;
-import com.im.njams.sdk.settings.Settings;
+import com.im.njams.sdk.settings.ClientSettings;
 
 public class ReceiverStartGatingSpecTest extends AbstractLifecycleSpecTest {
 
@@ -23,7 +23,7 @@ public class ReceiverStartGatingSpecTest extends AbstractLifecycleSpecTest {
     }
 
     private Njams newNjams(String senderFailBehavior) {
-        Settings s = LifecycleTestTransport.settings();
+        ClientSettings s = LifecycleTestTransport.settings();
         if (senderFailBehavior != null) {
             s.put(NjamsSettings.PROPERTY_COMMUNICATION_STARTUP_FAILBEHAVIOR, senderFailBehavior);
         }

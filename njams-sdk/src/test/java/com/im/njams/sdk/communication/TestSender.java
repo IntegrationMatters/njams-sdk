@@ -23,6 +23,7 @@
  */
 package com.im.njams.sdk.communication;
 
+import java.util.Properties;
 import com.faizsiegeln.njams.messageformat.v4.common.CommonMessage;
 import com.faizsiegeln.njams.messageformat.v4.logmessage.LogMessage;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.ProjectMessage;
@@ -31,7 +32,6 @@ import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.configuration.ConfigurationProviderFactory;
 import com.im.njams.sdk.settings.ClientSettings;
-import com.im.njams.sdk.settings.Settings;
 
 /**
  * Dummy implementation for testing.<br>
@@ -60,8 +60,8 @@ public class TestSender extends AbstractSender {
      *
      * @return
      */
-    public static Settings getSettings() {
-        Settings config = new Settings();
+    public static ClientSettings getSettings() {
+        ClientSettings config = ClientSettings.from(new Properties());
         config.put(NjamsSettings.PROPERTY_COMMUNICATION, NAME);
         config.put(ConfigurationProviderFactory.CONFIGURATION_PROVIDER, "memory");
         return config;

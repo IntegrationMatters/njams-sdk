@@ -1,5 +1,6 @@
 package com.im.njams.sdk.communication;
 
+import java.util.Properties;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -12,7 +13,7 @@ import org.junit.Test;
 
 import com.faizsiegeln.njams.messageformat.v4.logmessage.LogMessage;
 import com.im.njams.sdk.NjamsSettings;
-import com.im.njams.sdk.settings.Settings;
+import com.im.njams.sdk.settings.ClientSettings;
 
 /**
  * Specifies which failures make the dispatching loop retire a sender and which only drop the message. A
@@ -32,7 +33,7 @@ public class SenderDispatchClassificationTest {
     }
 
     private static NjamsSender senderWithPolicy(String policy) {
-        Settings settings = new Settings();
+        ClientSettings settings = ClientSettings.from(new Properties());
         settings.put(NjamsSettings.PROPERTY_COMMUNICATION, TestSender.NAME);
         settings.put(NjamsSettings.PROPERTY_DISCARD_POLICY, policy);
         settings.put(NjamsSettings.PROPERTY_MIN_SENDER_THREADS, "1");

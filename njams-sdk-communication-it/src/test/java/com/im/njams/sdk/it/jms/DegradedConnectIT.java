@@ -1,5 +1,6 @@
 package com.im.njams.sdk.it.jms;
 
+import java.util.Properties;
 import static org.junit.Assert.assertTrue;
 
 import java.util.HashSet;
@@ -28,7 +29,7 @@ import com.im.njams.sdk.it.harness.FixedProcessModel;
 import com.im.njams.sdk.it.harness.MessageDriver;
 import com.im.njams.sdk.it.support.DockerEnvironment;
 import com.im.njams.sdk.model.ProcessModel;
-import com.im.njams.sdk.settings.Settings;
+import com.im.njams.sdk.settings.ClientSettings;
 
 public class DegradedConnectIT {
 
@@ -46,7 +47,7 @@ public class DegradedConnectIT {
 
     @Test(timeout = 60000)
     public void concurrentPoolTrafficIsNotSerializedBehindOneSlowConnect() throws Exception {
-        Settings settings = new Settings();
+        ClientSettings settings = ClientSettings.from(new Properties());
         settings.put(NjamsSettings.PROPERTY_COMMUNICATION, "JMS");
         settings.put(NjamsSettings.PROPERTY_JMS_PROVIDER_URL, env.jmsUrlThroughProxy());
         settings.put(NjamsSettings.PROPERTY_MAX_SENDER_THREADS, "4");

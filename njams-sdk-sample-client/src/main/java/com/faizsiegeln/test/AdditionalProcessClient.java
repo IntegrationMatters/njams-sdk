@@ -23,12 +23,13 @@
  */
 package com.faizsiegeln.test;
 
+import java.util.Properties;
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.Path;
 import com.im.njams.sdk.model.ActivityModel;
 import com.im.njams.sdk.model.ProcessModel;
-import com.im.njams.sdk.settings.Settings;
+import com.im.njams.sdk.settings.ClientSettings;
 
 /**
  * This client shows how to add an additional process after the start of Njams.
@@ -43,7 +44,7 @@ public class AdditionalProcessClient {
         Path clientPath = Path.of("SDK4", "Client", "Simple");
 
         //Create communicationProperties, which specify how your client will communicate with the server
-        Settings settings = getJmsProperties();
+        ClientSettings settings = getJmsProperties();
 
         //Instantiate client for first application
         Njams njams = new Njams(clientPath, "1.0.0", technology, settings);
@@ -102,8 +103,8 @@ public class AdditionalProcessClient {
         njams.stop();
     }
 
-    private static Settings getJmsProperties() {
-        Settings communicationProperties = new Settings();
+    private static ClientSettings getJmsProperties() {
+        ClientSettings communicationProperties = ClientSettings.from(new Properties());
         communicationProperties.put(NjamsSettings.PROPERTY_COMMUNICATION, "JMS");
         communicationProperties.put(NjamsSettings.PROPERTY_JMS_INITIAL_CONTEXT_FACTORY,
             "com.tibco.tibjms.naming.TibjmsInitialContextFactory");

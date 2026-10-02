@@ -15,7 +15,7 @@ import org.junit.rules.ExternalResource;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.im.njams.sdk.NjamsSettings;
-import com.im.njams.sdk.settings.Settings;
+import com.im.njams.sdk.settings.ClientSettings;
 
 /**
  * Reads the host ports fabric8's docker-maven-plugin assigned (via {@code target/docker-it.properties}) and
@@ -85,7 +85,7 @@ public class DockerEnvironment extends ExternalResource {
      * {@code PROPERTY_COMMUNICATION} and {@code PROPERTY_JMS_PROVIDER_URL} themselves, since those vary (direct vs.
      * through-proxy) per test.
      */
-    public void configureJms(Settings settings) {
+    public void configureJms(ClientSettings settings) {
         settings.put(NjamsSettings.PROPERTY_JMS_INITIAL_CONTEXT_FACTORY, ACTIVEMQ_INITIAL_CONTEXT_FACTORY);
         settings.put(NjamsSettings.PROPERTY_JMS_CONNECTION_FACTORY, ACTIVEMQ_CONNECTION_FACTORY_NAME);
     }
@@ -96,7 +96,7 @@ public class DockerEnvironment extends ExternalResource {
      * assertions independent of the small dispatch queue. Scenarios that verify connection-problem handling run
      * once per {@link DiscardMode} instead and must not call this.
      */
-    public void disableMessageDiscarding(Settings settings) {
+    public void disableMessageDiscarding(ClientSettings settings) {
         DiscardMode.NONE.apply(settings);
     }
 

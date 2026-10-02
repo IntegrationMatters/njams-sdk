@@ -29,7 +29,7 @@ import java.util.Collections;
 /**
  * Abstract base class for an ArgosCollector
  * <p>
- * Extend this class, implement the collect method and register it in {@link ArgosSender}
+ * Extend this class, implement {@link #create()} and register it in {@link ArgosSender}
  *
  * @param <T> The type of the metric that this collector creates.
  * @see ArgosMultiCollector

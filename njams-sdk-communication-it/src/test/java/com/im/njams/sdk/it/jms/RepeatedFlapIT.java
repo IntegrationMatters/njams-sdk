@@ -1,5 +1,6 @@
 package com.im.njams.sdk.it.jms;
 
+import java.util.Properties;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
@@ -27,7 +28,7 @@ import com.im.njams.sdk.it.support.DiscardMode;
 import com.im.njams.sdk.it.support.DiscardObserver;
 import com.im.njams.sdk.it.support.DockerEnvironment;
 import com.im.njams.sdk.model.ProcessModel;
-import com.im.njams.sdk.settings.Settings;
+import com.im.njams.sdk.settings.ClientSettings;
 
 /**
  * Scenario 5, once per discard mode: repeated flapping must not accumulate threads in any mode; jobs driven into
@@ -66,7 +67,7 @@ public class RepeatedFlapIT {
 
     @Test(timeout = 60000)
     public void repeatedFlappingDoesNotAccumulateThreads() throws Exception {
-        Settings settings = new Settings();
+        ClientSettings settings = ClientSettings.from(new Properties());
         settings.put(NjamsSettings.PROPERTY_COMMUNICATION, "JMS");
         settings.put(NjamsSettings.PROPERTY_JMS_PROVIDER_URL, env.jmsUrlThroughProxy());
         env.configureJms(settings);

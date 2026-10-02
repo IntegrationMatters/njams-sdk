@@ -40,14 +40,14 @@ import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.NjamsConfiguration;
 import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.model.ProcessModel;
-import com.im.njams.sdk.settings.Settings;
+import com.im.njams.sdk.settings.ClientSettings;
 
 public class TruncatingTest {
 
     private JobImpl job = null;
     private final Random random = new Random();
     private ProcessModel processModel = null;
-    private Settings settings = null;
+    private ClientSettings settings = null;
 
     @Before
     public void setup() {
@@ -56,7 +56,7 @@ public class TruncatingTest {
         NjamsConfiguration configurationFacet = mock(NjamsConfiguration.class);
         when(njams.configuration()).thenReturn(configurationFacet);
         when(processModel.getNjams()).thenReturn(njams);
-        settings = mock(Settings.class);
+        settings = mock(ClientSettings.class);
         when(njams.getSettings()).thenReturn(settings);
         job = null;
     }

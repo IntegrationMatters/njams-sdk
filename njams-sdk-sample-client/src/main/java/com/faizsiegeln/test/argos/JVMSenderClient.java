@@ -23,11 +23,12 @@
  */
 package com.faizsiegeln.test.argos;
 
+import java.util.Properties;
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.argos.jvm.JVMCollector;
 import com.im.njams.sdk.Path;
-import com.im.njams.sdk.settings.Settings;
+import com.im.njams.sdk.settings.ClientSettings;
 
 /**
  * This is a sample client that sends JVM statistics.
@@ -61,7 +62,7 @@ public class JVMSenderClient {
         Path clientPath = Path.of("SDK4", "Client", "Argos");
 
         //Create communicationProperties, which specify how your client will communicate with the server
-        Settings settings = getProperties();
+        ClientSettings settings = getProperties();
 
         //Instantiate client for first application
         njams = new Njams(clientPath, "4.0.11", technology, settings);
@@ -72,8 +73,8 @@ public class JVMSenderClient {
         njams.argos().add(jvmCollector);
     }
 
-    private static Settings getProperties() {
-        Settings communicationProperties = new Settings();
+    private static ClientSettings getProperties() {
+        ClientSettings communicationProperties = ClientSettings.from(new Properties());
         communicationProperties.put(NjamsSettings.PROPERTY_COMMUNICATION, "JMS");
         communicationProperties.put(NjamsSettings.PROPERTY_JMS_INITIAL_CONTEXT_FACTORY,
             "com.tibco.tibjms.naming.TibjmsInitialContextFactory");

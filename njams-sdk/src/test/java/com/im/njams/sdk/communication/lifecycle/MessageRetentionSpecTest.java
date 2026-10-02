@@ -11,7 +11,6 @@ import com.faizsiegeln.njams.messageformat.v4.logmessage.LogMessage;
 import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.communication.NjamsSender;
 import com.im.njams.sdk.settings.ClientSettings;
-import com.im.njams.sdk.settings.Settings;
 
 /**
  * Specifies {@code NjamsSender}'s retention loop: a message stays on its worker thread across sender failures and is
@@ -23,9 +22,9 @@ public class MessageRetentionSpecTest extends AbstractLifecycleSpecTest {
     public void aMessageSurvivesItsSenderBeingRetiredAndIsSentOnce() throws Exception {
         // Retention is what the "none" policy means; under discard/onconnectionloss the message is dropped
         // instead, which the two tests below specify.
-        Settings s = LifecycleTestTransport.settings();
+        ClientSettings s = LifecycleTestTransport.settings();
         s.put(NjamsSettings.PROPERTY_DISCARD_POLICY, "none");
-        NjamsSender sender = new NjamsSender(ClientSettings.from(s.getAllProperties()));
+        NjamsSender sender = new NjamsSender(s);
         assertTrue(sender.startWithTimeout(5000));
 
         try {
@@ -62,9 +61,9 @@ public class MessageRetentionSpecTest extends AbstractLifecycleSpecTest {
     }
 
     private void assertMessageDiscardedWhileReconnecting(String discardPolicy) throws Exception {
-        Settings s = LifecycleTestTransport.settings();
+        ClientSettings s = LifecycleTestTransport.settings();
         s.put(NjamsSettings.PROPERTY_DISCARD_POLICY, discardPolicy);
-        NjamsSender sender = new NjamsSender(ClientSettings.from(s.getAllProperties()));
+        NjamsSender sender = new NjamsSender(s);
         assertTrue(sender.startWithTimeout(5000));
 
         try {

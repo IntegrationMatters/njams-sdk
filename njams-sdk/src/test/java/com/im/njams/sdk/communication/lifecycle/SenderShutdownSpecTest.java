@@ -51,7 +51,7 @@ public class SenderShutdownSpecTest extends AbstractLifecycleSpecTest {
         // Build a real NjamsSender over the controllable transport, connect, then close while a send fails.
         com.im.njams.sdk.communication.NjamsSender sender =
             new com.im.njams.sdk.communication.NjamsSender(
-                ClientSettings.from(LifecycleTestTransport.settings().getAllProperties()));
+                LifecycleTestTransport.settings());
         sender.startWithTimeout(5000); // connect one sender
         LifecycleTestTransport.setSenderMode(LifecycleTestTransport.ConnectMode.FAIL);
         int before = LifecycleTestTransport.senderConnectCount();

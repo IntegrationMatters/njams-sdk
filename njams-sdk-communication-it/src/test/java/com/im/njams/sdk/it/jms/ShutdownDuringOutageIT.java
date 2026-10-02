@@ -1,5 +1,6 @@
 package com.im.njams.sdk.it.jms;
 
+import java.util.Properties;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
@@ -23,7 +24,7 @@ import com.im.njams.sdk.it.harness.MessageDriver;
 import com.im.njams.sdk.it.support.DiscardMode;
 import com.im.njams.sdk.it.support.DockerEnvironment;
 import com.im.njams.sdk.model.ProcessModel;
-import com.im.njams.sdk.settings.Settings;
+import com.im.njams.sdk.settings.ClientSettings;
 
 /**
  * Scenario 4, once per discard mode: {@code stop()} must return promptly while the connection is down, whether the
@@ -65,7 +66,7 @@ public class ShutdownDuringOutageIT {
 
     @Test(timeout = 30000)
     public void stopCompletesPromptlyEvenWhileReconnecting() throws Exception {
-        Settings settings = new Settings();
+        ClientSettings settings = ClientSettings.from(new Properties());
         settings.put(NjamsSettings.PROPERTY_COMMUNICATION, "JMS");
         settings.put(NjamsSettings.PROPERTY_JMS_PROVIDER_URL, env.jmsUrlThroughProxy());
         env.configureJms(settings);

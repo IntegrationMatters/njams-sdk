@@ -29,7 +29,7 @@ import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.Path;
 import com.im.njams.sdk.communication.TestSender;
 import com.im.njams.sdk.logmessage.Job;
-import com.im.njams.sdk.settings.Settings;
+import com.im.njams.sdk.settings.ClientSettings;
 import org.junit.Test;
 
 import static org.junit.Assert.*;
@@ -94,7 +94,7 @@ public class ProcessModelTest extends AbstractTest {
 
     @Test
     public void testCreateTransition_withServerCompatibility61_usesIdAsName() {
-        Settings settings = TestSender.getSettings();
+        ClientSettings settings = TestSender.getSettings();
         settings.put(NjamsSettings.PROPERTY_SERVER_COMPATIBILITY, "6.1");
         Njams compatNjams = new Njams(Path.of("SDK4", "COMPAT61"), "TEST", "SDK4", settings);
         ProcessModel compatProcess = compatNjams.model().create("COMPAT_PROC");

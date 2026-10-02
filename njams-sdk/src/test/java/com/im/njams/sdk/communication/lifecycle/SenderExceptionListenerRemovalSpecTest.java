@@ -15,7 +15,6 @@ import com.im.njams.sdk.communication.NjamsSender;
 import com.im.njams.sdk.communication.SenderExceptionListener;
 import com.im.njams.sdk.communication.SenderPoolTestAccess;
 import com.im.njams.sdk.settings.ClientSettings;
-import com.im.njams.sdk.settings.Settings;
 
 /**
  * Specifies the removal counterpart of {@code addSenderExceptionListener} (SDK-485): a sender group outlives the
@@ -108,9 +107,9 @@ public class SenderExceptionListenerRemovalSpecTest extends AbstractLifecycleSpe
 
     @Test
     public void theSharedSendersRegistrationsReturnToZeroOnceRemoved() {
-        Settings s = LifecycleTestTransport.settings();
+        ClientSettings s = LifecycleTestTransport.settings();
         s.put(NjamsSettings.PROPERTY_SHARED_COMMUNICATIONS, "true");
-        shared = NjamsSender.takeSharedSender(ClientSettings.from(s.getAllProperties()));
+        shared = NjamsSender.takeSharedSender(s);
         CountingListener a = new CountingListener();
         CountingListener b = new CountingListener();
         shared.addSenderExceptionListener(a);

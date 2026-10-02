@@ -32,8 +32,9 @@ import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.doAnswer;
 
+import java.util.Properties;
 
-import com.im.njams.sdk.settings.Settings;
+import com.im.njams.sdk.settings.ClientSettings;
 import org.junit.After;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -154,7 +155,7 @@ public class DataMaskingTest {
     @Test
     public void addPatternsFromSettings() {
         DataMasking.removePatterns();
-        Settings settings = new Settings();
+        ClientSettings settings = ClientSettings.from(new Properties());
         settings.put(NjamsSettings.PROPERTY_DATA_MASKING_REGEX_PREFIX + "ssn", "\\d{3}-\\d{2}-\\d{4}");
         settings.put("njams.sdk.other.key", "irrelevant");
 

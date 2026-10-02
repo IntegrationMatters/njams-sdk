@@ -14,7 +14,7 @@ import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.Path;
 import com.im.njams.sdk.communication.CommunicationFactory;
-import com.im.njams.sdk.settings.Settings;
+import com.im.njams.sdk.settings.ClientSettings;
 
 /**
  * End-to-end coverage of a real {@code ShareableReceiver} through {@code Njams}, for the shared-communications
@@ -47,8 +47,8 @@ public class SharedReceiverRestartSpecTest extends AbstractLifecycleSpecTest {
         CommunicationFactory.clearSharedReceiversForTesting();
     }
 
-    private static Settings sharedSettings() {
-        Settings s = LifecycleTestTransport.settings();
+    private static ClientSettings sharedSettings() {
+        ClientSettings s = LifecycleTestTransport.settings();
         s.put(NjamsSettings.PROPERTY_SHARED_COMMUNICATIONS, "true");
         return s;
     }
@@ -95,7 +95,7 @@ public class SharedReceiverRestartSpecTest extends AbstractLifecycleSpecTest {
 
     @Test
     public void firstOfTwoSharedUsersStoppingDoesNotShutDownTheSharedReceiver() {
-        Settings s = sharedSettings();
+        ClientSettings s = sharedSettings();
         njamsA = new Njams(Path.of("test", "sharedKeepA"), "1.0", "test", s);
         njamsB = new Njams(Path.of("test", "sharedKeepB"), "1.0", "test", s);
         assertTrue(njamsA.start());

@@ -33,7 +33,7 @@ import com.im.njams.sdk.logmessage.Job;
 import com.im.njams.sdk.logmessage.JobImpl;
 import com.im.njams.sdk.model.ActivityModel;
 import com.im.njams.sdk.model.ProcessModel;
-import com.im.njams.sdk.settings.Settings;
+import com.im.njams.sdk.settings.ClientSettings;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -75,7 +75,7 @@ public abstract class AbstractTest {
      *
      * @param settings the Settings for JMS, JNDI, etc.
      */
-    public AbstractTest(Settings settings) {
+    public AbstractTest(ClientSettings settings) {
         Path clientPath = Path.of("SDK4", "TEST");
 
         njams = new Njams(clientPath, CLIENTVERSION, CATEGORY, settings);

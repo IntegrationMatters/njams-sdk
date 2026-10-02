@@ -41,7 +41,7 @@ import org.junit.Test;
 
 import com.im.njams.sdk.configuration.ConfigurationProvider;
 import com.im.njams.sdk.configuration.ConfigurationProviderFactory;
-import com.im.njams.sdk.settings.Settings;
+import com.im.njams.sdk.settings.ClientSettings;
 
 public class FileConfigurationProviderTest {
 
@@ -69,8 +69,7 @@ public class FileConfigurationProviderTest {
         props.setProperty(FileConfigurationProvider.FILE_CONFIGURATION, configFile.getAbsolutePath());
         toTest.configure(props, null);
 
-        Settings settings = new Settings();
-        settings.addAll(props);
+        ClientSettings settings = ClientSettings.from(props);
         settings.put(ConfigurationProviderFactory.CONFIGURATION_PROVIDER, FileConfigurationProvider.NAME);
         factory = new ConfigurationProviderFactory(settings, null);
     }

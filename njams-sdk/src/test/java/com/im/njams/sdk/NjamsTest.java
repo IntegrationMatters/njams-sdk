@@ -23,6 +23,7 @@
  */
 package com.im.njams.sdk;
 
+import java.util.Properties;
 import static org.junit.Assert.*;
 
 import java.lang.reflect.Method;
@@ -64,7 +65,6 @@ import com.im.njams.sdk.logmessage.DataMasking;
 import com.im.njams.sdk.logmessage.Job;
 import com.im.njams.sdk.model.ProcessModel;
 import com.im.njams.sdk.model.image.ImageSupplier;
-import com.im.njams.sdk.settings.Settings;
 
 /**
  * @author stkniep
@@ -332,7 +332,7 @@ public class NjamsTest {
      */
     @Test
     public void testStartReturnsFalseWhenSenderConstructionFails() {
-        Settings s = TestReceiver.getSettings();
+        ClientSettings s = TestReceiver.getSettings();
         s.put(NjamsSettings.PROPERTY_MIN_SENDER_THREADS, "5");
         s.put(NjamsSettings.PROPERTY_MAX_SENDER_THREADS, "1");
         Njams njams = new Njams(Path.of("test", "senderConstructionFails"), "1.0", "test", s);
@@ -489,7 +489,7 @@ public class NjamsTest {
     public void setDataMaskingViaSettings() {
         DataMasking.removePatterns();
 
-        Settings settings = new Settings();
+        ClientSettings settings = ClientSettings.from(new Properties());
         settings.put(NjamsSettings.PROPERTY_DATA_MASKING_ENABLED, "true");
         settings.put(NjamsSettings.PROPERTY_DATA_MASKING_REGEX_PREFIX + "MaskAll", ".*");
         settings.put(NjamsSettings.PROPERTY_COMMUNICATION, TestSender.NAME);
@@ -503,7 +503,7 @@ public class NjamsTest {
     @Test
     public void disableDataMaskingViaSettings() {
         DataMasking.removePatterns();
-        Settings settings = new Settings();
+        ClientSettings settings = ClientSettings.from(new Properties());
         settings.put(NjamsSettings.PROPERTY_DATA_MASKING_ENABLED, "false");
         settings.put(NjamsSettings.PROPERTY_DATA_MASKING_REGEX_PREFIX, ".*");
         settings.put(NjamsSettings.PROPERTY_COMMUNICATION, TestSender.NAME);
@@ -518,7 +518,7 @@ public class NjamsTest {
     public void disableDataMaskingDisablesAllDataMasking() {
         DataMasking.removePatterns();
 
-        Settings settings = new Settings();
+        ClientSettings settings = ClientSettings.from(new Properties());
         settings.put(NjamsSettings.PROPERTY_DATA_MASKING_ENABLED, "false");
         settings.put(NjamsSettings.PROPERTY_DATA_MASKING_REGEX_PREFIX, ".*");
         settings.put(NjamsSettings.PROPERTY_COMMUNICATION, TestSender.NAME);
@@ -536,7 +536,7 @@ public class NjamsTest {
     @Test
     public void enableDataMaskingWithoutRegex() {
         DataMasking.removePatterns();
-        Settings settings = new Settings();
+        ClientSettings settings = ClientSettings.from(new Properties());
         settings.put(NjamsSettings.PROPERTY_DATA_MASKING_ENABLED, "true");
         settings.put(NjamsSettings.PROPERTY_COMMUNICATION, TestSender.NAME);
 

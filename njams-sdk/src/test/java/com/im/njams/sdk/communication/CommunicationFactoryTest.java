@@ -23,6 +23,7 @@
  */
 package com.im.njams.sdk.communication;
 
+import java.util.Properties;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -48,7 +49,7 @@ import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.Path;
 import com.im.njams.sdk.communication.http.HttpSseReceiver;
 import com.im.njams.sdk.communication.jms.FailingJmsFactory;
-import com.im.njams.sdk.settings.Settings;
+import com.im.njams.sdk.settings.ClientSettings;
 
 public class CommunicationFactoryTest {
 
@@ -62,8 +63,8 @@ public class CommunicationFactoryTest {
         when(metadata.getClientPath()).thenReturn(Path.of("test"));
     }
 
-    private Settings createSettings(String communicationType) {
-        Settings settings = new Settings();
+    private ClientSettings createSettings(String communicationType) {
+        ClientSettings settings = ClientSettings.from(new Properties());
         settings.put(NjamsSettings.PROPERTY_COMMUNICATION, communicationType);
         return settings;
     }
@@ -84,7 +85,7 @@ public class CommunicationFactoryTest {
 
     @Test
     public void httpReceiverWithoutSharingIsAnHttpSseReceiver() {
-        Settings settings = createSettings("HTTP");
+        ClientSettings settings = createSettings("HTTP");
         settings.put(NjamsSettings.PROPERTY_HTTP_BASE_URL, "http://localhost:8080/njams/");
         CommunicationFactory factory = new CommunicationFactory(settings);
         assertTrue(factory.getReceiver(njams) instanceof HttpSseReceiver);
@@ -92,7 +93,7 @@ public class CommunicationFactoryTest {
 
     @Test
     public void httpReceiverWithSharingRequestedFallsBackToHttpSseReceiver() {
-        Settings settings = createSettings("HTTP");
+        ClientSettings settings = createSettings("HTTP");
         settings.put(NjamsSettings.PROPERTY_HTTP_BASE_URL, "http://localhost:8080/njams/");
         settings.put(NjamsSettings.PROPERTY_SHARED_COMMUNICATIONS, "true");
         CommunicationFactory factory = new CommunicationFactory(settings);
@@ -107,7 +108,7 @@ public class CommunicationFactoryTest {
         factoryLogger.addAppender(appender);
         factoryLogger.setLevel(Level.DEBUG);
         try {
-            Settings settings = createSettings("HTTP");
+            ClientSettings settings = createSettings("HTTP");
             settings.put(NjamsSettings.PROPERTY_HTTP_BASE_URL, "http://localhost:8080/njams/");
             settings.put(NjamsSettings.PROPERTY_SHARED_COMMUNICATIONS, "true");
             new CommunicationFactory(settings).getReceiver(njams);
@@ -141,7 +142,7 @@ public class CommunicationFactoryTest {
 
     @Test
     public void communicationTypeAlternativeKeyIsAccepted() {
-        Settings settings = new Settings();
+        ClientSettings settings = ClientSettings.from(new Properties());
         settings.put(NjamsSettings.PROPERTY_COMMUNICATION_TYPE, TestSender.NAME);
 
         AbstractSender sender = mock(AbstractSender.class);
@@ -156,7 +157,7 @@ public class CommunicationFactoryTest {
 
     @Test
     public void primaryCommunicationKeyTakesPrecedenceOverAlternative() {
-        Settings settings = createSettings(TestSender.NAME);
+        ClientSettings settings = createSettings(TestSender.NAME);
         settings.put(NjamsSettings.PROPERTY_COMMUNICATION_TYPE, FailingJmsFactory.NAME);
 
         AbstractSender sender = mock(AbstractSender.class);
@@ -167,7 +168,7 @@ public class CommunicationFactoryTest {
 
     @Test
     public void missingBothCommunicationKeysThrows() {
-        CommunicationFactory factory = new CommunicationFactory(new Settings());
+        CommunicationFactory factory = new CommunicationFactory(ClientSettings.from(new Properties()));
         try {
             factory.getSender();
             fail("IllegalStateException expected");

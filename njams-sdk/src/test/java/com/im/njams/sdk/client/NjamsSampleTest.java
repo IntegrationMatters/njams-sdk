@@ -23,6 +23,7 @@
  */
 package com.im.njams.sdk.client;
 
+import java.util.Properties;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.nullValue;
@@ -53,7 +54,7 @@ import com.im.njams.sdk.model.ActivityModel;
 import com.im.njams.sdk.model.GroupModel;
 import com.im.njams.sdk.model.ProcessModel;
 import com.im.njams.sdk.model.SubProcessActivityModel;
-import com.im.njams.sdk.settings.Settings;
+import com.im.njams.sdk.settings.ClientSettings;
 import com.im.njams.sdk.settings.encoding.Transformer;
 
 /**
@@ -61,8 +62,8 @@ import com.im.njams.sdk.settings.encoding.Transformer;
  */
 public class NjamsSampleTest {
 
-    private Settings getSettings() {
-        Settings communicationProperties = new Settings();
+    private ClientSettings getSettings() {
+        ClientSettings communicationProperties = ClientSettings.from(new Properties());
         communicationProperties.put(NjamsSettings.PROPERTY_COMMUNICATION, TestSender.NAME);
         return communicationProperties;
     }
@@ -72,7 +73,7 @@ public class NjamsSampleTest {
         Path clientPath = Path.of("SDK4", "TEST");
 
         // Create client config
-        Settings communicationProperties = getSettings();
+        ClientSettings communicationProperties = getSettings();
 
         // Instantiate client for first application
         Njams njams = new Njams(clientPath, "1.0.0", "sdk4", communicationProperties);
@@ -181,7 +182,7 @@ public class NjamsSampleTest {
         Path clientPath = Path.of("SDK4", "TEST");
 
         // Create client config
-        Settings communicationProperties = getSettings();
+        ClientSettings communicationProperties = getSettings();
 
         // Instantiate client for first application
         Njams njams = new Njams(clientPath, "1.0.0", "sdk4", communicationProperties);
@@ -304,7 +305,7 @@ public class NjamsSampleTest {
         Path clientPath = Path.of("SDK4", "TEST");
 
         // Create client config
-        Settings communicationProperties = getSettings();
+        ClientSettings communicationProperties = getSettings();
 
         Njams njams = new Njams(clientPath, "1.0.0", "sdk4", communicationProperties);
 
@@ -431,7 +432,7 @@ public class NjamsSampleTest {
         Path clientPath = Path.of("SDK4", "TEST");
 
         // Create client config
-        Settings communicationProperties = getSettings();
+        ClientSettings communicationProperties = getSettings();
 
         Njams njams = new Njams(clientPath, "1.0.0", "sdk4", communicationProperties);
 
@@ -591,7 +592,7 @@ public class NjamsSampleTest {
         Path clientPath = Path.of("SDK4", "TEST");
 
         // Create client config
-        Settings communicationProperties = getSettings();
+        ClientSettings communicationProperties = getSettings();
 
         // Instantiate client for first application
         Njams njams = new Njams(clientPath, "1.0.0", "sdk4", communicationProperties);
@@ -678,7 +679,7 @@ public class NjamsSampleTest {
         Path clientPath = Path.of("SDK4", "TEST");
 
         // Create client config
-        Settings communicationProperties = getSettings();
+        ClientSettings communicationProperties = getSettings();
 
         Njams njams = new Njams(clientPath, "1.0.0", "sdk4", communicationProperties);
 
@@ -846,7 +847,7 @@ public class NjamsSampleTest {
         Path clientPath = Path.of("SDK4", "TEST");
 
         // Create client config
-        Settings communicationProperties = getSettings();
+        ClientSettings communicationProperties = getSettings();
 
         // Instantiate client for first application
         Njams njams = new Njams(clientPath, "1.0.0", "sdk4", communicationProperties);
@@ -933,7 +934,7 @@ public class NjamsSampleTest {
         Path clientPath = Path.of("SDK4", "TEST");
 
         // Create client config
-        Settings communicationProperties = new Settings();
+        ClientSettings communicationProperties = ClientSettings.from(new Properties());
         communicationProperties.put(NjamsSettings.PROPERTY_COMMUNICATION, Transformer.encode(TestSender.NAME));
 
         Njams njams = new Njams(clientPath, "1.0.0", "sdk4", communicationProperties);

@@ -18,7 +18,6 @@ import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.communication.NjamsSender;
 import com.im.njams.sdk.communication.SenderExceptionListener;
 import com.im.njams.sdk.settings.ClientSettings;
-import com.im.njams.sdk.settings.Settings;
 
 /**
  * Specifies §5.4's shared-communications behaviour: two {@code Njams} instances sharing one communication group
@@ -54,13 +53,13 @@ public class SharedSenderOutageSpecTest extends AbstractLifecycleSpecTest {
     }
 
     private NjamsSender take() {
-        Settings s = LifecycleTestTransport.settings();
+        ClientSettings s = LifecycleTestTransport.settings();
         s.put(NjamsSettings.PROPERTY_SHARED_COMMUNICATIONS, "true");
         // Two core sender threads, so a message dispatched through `first` and one dispatched through `second`
         // can genuinely run at the same time instead of serializing behind a single core thread — needed for the
         // race below to actually be a race.
         s.put(NjamsSettings.PROPERTY_MIN_SENDER_THREADS, "2");
-        NjamsSender sender = NjamsSender.takeSharedSender(ClientSettings.from(s.getAllProperties()));
+        NjamsSender sender = NjamsSender.takeSharedSender(s);
         taken.add(sender);
         return sender;
     }

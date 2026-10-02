@@ -28,7 +28,7 @@ public class SenderCloseOrderingSpecTest {
     @Test
     public void failingFinalSendDuringDrainDoesNotReconnect() throws Exception {
         NjamsSender sender =
-            new NjamsSender(ClientSettings.from(LifecycleTestTransport.settings().getAllProperties()));
+            new NjamsSender(LifecycleTestTransport.settings());
         sender.startWithTimeout(5000); // connect one sender; group is now "was ever connected"
 
         // A reconnect (if wrongly spawned) attempts connect in FAIL mode, which fires connectAttempted.

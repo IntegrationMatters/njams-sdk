@@ -24,17 +24,17 @@
 package com.faizsiegeln.test;
 
 import com.im.njams.sdk.Njams;
-import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.Path;
 import com.im.njams.sdk.logmessage.Activity;
 import com.im.njams.sdk.logmessage.Job;
 import com.im.njams.sdk.model.ActivityModel;
 import com.im.njams.sdk.model.ProcessModel;
-import com.im.njams.sdk.settings.Settings;
-import com.im.njams.sdk.settings.SettingsProvider;
-import com.im.njams.sdk.settings.SettingsProviderFactory;
-import com.im.njams.sdk.settings.provider.PropertiesFileSettingsProvider;
+import com.im.njams.sdk.settings.ClientSettings;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.Properties;
 
 /**
@@ -45,25 +45,17 @@ import java.util.Properties;
  */
 public class SettingsFromFileClient {
 
-    public static void main(String[] args) throws InterruptedException {
+    public static void main(String[] args) throws InterruptedException, IOException {
 
         String technology = "sdk4";
 
-        // Use Properties File Settings Provider
-        Properties settingsProviderProperties = new Properties();
-        settingsProviderProperties.setProperty(NjamsSettings.PROPERTY_SETTINGS_PROVIDER,
-            PropertiesFileSettingsProvider.NAME);
-        SettingsProvider provider = SettingsProviderFactory.getSettingsProvider(settingsProviderProperties);
-
-        // Specifiy location of properties file to load
-        Properties fileConfig = new Properties();
-        if (args.length < 1) {
-            fileConfig.setProperty(NjamsSettings.PROPERTY_PROPERTIES_FILE_SETTINGS_FILE, "target/classes/settings.properties");
-        } else {
-            fileConfig.setProperty(NjamsSettings.PROPERTY_PROPERTIES_FILE_SETTINGS_FILE, args[0]);
+        // Specify location of the properties file to load, load it and wrap it as settings
+        String settingsFile = args.length < 1 ? "target/classes/settings.properties" : args[0];
+        Properties properties = new Properties();
+        try (InputStream in = Files.newInputStream(Paths.get(settingsFile))) {
+            properties.load(in);
         }
-        provider.configure(fileConfig);
-        Settings settings = provider.loadSettings();
+        ClientSettings settings = ClientSettings.from(properties);
 
         // Specify a client path. This path specifies where your client instance will be visible in the object tree.
         Path clientPath = Path.of("SDK4", "Client", "Simple");

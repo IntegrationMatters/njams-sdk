@@ -50,7 +50,7 @@ public class SenderConnectorTestAccess {
     }
 
     private static SenderConnectorTestAccess create(boolean allowReconnectBeforeConnected) {
-        ClientSettings settings = ClientSettings.from(LifecycleTestTransport.settings().getAllProperties());
+        ClientSettings settings = LifecycleTestTransport.settings();
         CommunicationFactory factory = new CommunicationFactory(settings);
         ConnectionCoordinator coordinator = new ConnectionCoordinator();
         if (allowReconnectBeforeConnected) {
