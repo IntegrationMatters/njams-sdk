@@ -34,7 +34,7 @@ import com.im.njams.sdk.communication.NjamsSender;
  *
  * @author pnientiedt
  */
-public class LMFTEntry {
+class LMFTEntry {
 
     /**
      * Default flush size: 5MB
@@ -57,7 +57,7 @@ public class LMFTEntry {
      * @param njams Initialize this entry with this Njams
      * @param sender the sender that the log messages of the given instance are sent through
      */
-    public LMFTEntry(Njams njams, NjamsSender sender) {
+    LMFTEntry(Njams njams, NjamsSender sender) {
         this.njams = njams;
         this.sender = sender;
         flushSize = njams.getSettings().getLong(
@@ -76,7 +76,7 @@ public class LMFTEntry {
     /**
      * @return the sender that the log messages of the instance are sent through
      */
-    public NjamsSender getSender() {
+    NjamsSender getSender() {
         return sender;
     }
 

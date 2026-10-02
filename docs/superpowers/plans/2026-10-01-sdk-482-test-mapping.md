@@ -343,7 +343,7 @@ Behaviour that disappears with the layer: file-/properties-file-backed settings 
 
 ### 4.17 Not-listed-in-the-plan classes found by the compile (no extra decision needed)
 
-`JobConcurrencyTest`, `SubProcessActivityImplTest`, `JobAttributesTest` (narrowed only), `ProcessModelTest` (`PROPERTY_SERVER_COMPATIBILITY` stays), `SimpleProcessModelLayouterTest` (keep mark), `JsonSerializerFactoryTest`, `JmsSenderTest` (section E postponed), `HttpClientFactoryClientTest`, `HttpStatusExceptionTest`, `HttpSendExceptionTest`, `CleanTracepointsTaskTest`/`TraceMessageBuilderTest` (`new Integer`) - unrelated deprecations, untouched.
+`JobConcurrencyTest`, `SubProcessActivityImplTest`, `JobAttributesTest` (narrowed only), `ProcessModelTest` (`PROPERTY_SERVER_COMPATIBILITY` stays), `SimpleProcessModelLayouterTest` (keep mark), `JsonSerializerFactoryTest`, `JmsSenderTest` (section E initially postponed, later delivered by Task 11), `HttpClientFactoryClientTest`, `HttpStatusExceptionTest`, `HttpSendExceptionTest`, `CleanTracepointsTaskTest`/`TraceMessageBuilderTest` (`new Integer`) - unrelated deprecations, untouched.
 
 ## 5. Other sources
 

@@ -258,10 +258,6 @@ final class JobFlusher {
         }
     }
 
-    LocalDateTime getLastFlush() {
-        return lastFlush;
-    }
-
     long getEstimatedSize() {
         synchronized (lock) {
             return estimatedSize;

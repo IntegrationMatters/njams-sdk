@@ -74,7 +74,7 @@ public class JmsClientEndToEndBaselineIT {
             job.activities().create(start).setStarter().build();
             job.end(true); // flushes a LogMessage
 
-            // project message (from start()) and log message (from job.end()) both land on njams.event by default
+            // project message (from start()) and log message (from job.end(true)) both land on njams.event by default
             List<String> bodies = drain("njams.event", 1, 10000);
             assertTrue("at least one message should be delivered end-to-end", bodies.size() >= 1);
         } finally {

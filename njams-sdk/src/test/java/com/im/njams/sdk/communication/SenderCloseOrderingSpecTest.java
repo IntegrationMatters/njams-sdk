@@ -11,7 +11,6 @@ import org.junit.Test;
 
 import com.faizsiegeln.njams.messageformat.v4.logmessage.LogMessage;
 import com.im.njams.sdk.communication.lifecycle.LifecycleTestTransport;
-import com.im.njams.sdk.settings.ClientSettings;
 
 /**
  * Verifies that {@link NjamsSender#close()} sets the group shutdown flag <em>before</em> draining the executor, so a

@@ -94,7 +94,7 @@ public class DegradedConnectIT {
 
     /**
      * Waits until every message in {@code logIds} has actually been delivered to the {@code njams.event} queue
-     * (not merely enqueued by {@code job.end()} for background dispatch), via a JMS selector on
+     * (not merely enqueued by {@code job.end(true)} for background dispatch), via a JMS selector on
      * {@link MessageHeaders#NJAMS_LOGID_HEADER}.
      */
     private void awaitAllDelivered(List<String> logIds) throws Exception {

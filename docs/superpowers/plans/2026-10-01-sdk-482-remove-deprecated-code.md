@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Remove (delete, or reduce visibility of) all SDK code deprecated in 6.0.0 or earlier, except section C (kept) and section E (postponed, to be brought back before the ticket is resolved).
+**Goal:** Remove (delete, or reduce visibility of) all SDK code deprecated in 6.0.0 or earlier, except section C (kept) and section E (initially postponed; delivered later by Task 11, see `2026-10-02-sdk-482-json-serializer-factory-internal.md`).
 
 **Architecture:** First prepare the removal (sender hand-off, instruction dispatcher, flush-task move, caller migration to the existing facets), then delete the legacy members, then delete the settings layer, then update docs. Every deletion is preceded by equivalent test coverage of the replacement.
 
@@ -14,7 +14,7 @@
 
 1. Every commit that touches `njams-sdk/src/main/**` or `njams-sdk/src/test/**` starts with `SDK-482 <description>`; no `#comment` except on the final commit. Commits end with the Co-Authored-By line from the session attribution.
 2. Existing test assertions are changed or deleted only as listed in the approved mapping (Task 1). Tests that only cover removed API are deleted; mixed tests are reduced. Deletion only after equivalent facet tests exist.
-3. Out of scope (do not touch): section C (keep), section E `JsonSerializerFactory` (postponed, to be brought back before the ticket is resolved), `Job.setStatus`/`JobImpl.setStatus`, `SimpleProcessModelLayouter`, `Configuration.dataMasking`, `PROPERTY_SERVER_COMPATIBILITY`, and the `JobTracing` methods (`setInstrumented`/`isInstrumented` are public client API since SDK-448 and must stay public). Sections B-helpers and G are IN scope since the 6.0.1-dev merge (Tasks 7 and 7b).
+3. Out of scope (do not touch): section C (keep), section E `JsonSerializerFactory` (initially postponed; delivered later by Task 11), `Job.setStatus`/`JobImpl.setStatus`, `SimpleProcessModelLayouter`, `Configuration.dataMasking`, `PROPERTY_SERVER_COMPATIBILITY`, and the `JobTracing` methods (`setInstrumented`/`isInstrumented` are public client API since SDK-448 and must stay public). Sections B-helpers and G are IN scope since the 6.0.1-dev merge (Tasks 7 and 7b).
 4. No new public/protected member that is visible to clients (see public-api-design.md). Any new public member on an impl class needs the user's confirmation first.
 5. Message-sending invariant (message-sending-control.md): `flush()`/`timerFlush()` keep their only callers `LogMessageFlushTask`, `JobFlusher`, `end()`; no new callers.
 6. Hot path: no live settings reads, no new allocation per job/activity (runtime-performance-hotpath.md).
@@ -254,5 +254,5 @@ public boolean equals(Object obj) {
 - [ ] **Step 2:** `mvn clean install` (all modules, with tests), `mvn javadoc:javadoc -pl njams-sdk`, `mvn validate -Pcheckstyle -pl njams-sdk`, comm-it `test-compile`; all pass.
 - [ ] **Step 3:** `grep -rn "forRemoval = true" njams-sdk/src/main/java` and compare with the decision document: remaining entries must be exactly C and E.
 - [ ] **Step 4:** Add `breaking-change` label to SDK-482 (user confirmed).
-- [ ] **Step 5:** Report to the user: result, remaining open item: E (postponed — must be brought back before resolution).
+- [ ] **Step 5:** Report to the user: result, E was postponed here and has since been delivered by Task 11.
 - [ ] **Step 6 (separate confirmation):** propose `mvn -Pdocker-it verify -pl njams-sdk-communication-it` (≈6 min, Docker) because the communication layer changed; run only after the user confirms.

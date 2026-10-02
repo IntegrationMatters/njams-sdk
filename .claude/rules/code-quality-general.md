@@ -40,7 +40,7 @@ The copyright header does not apply to test files, and is not required in the sa
 
 ## General Principles
 
-- **Prefer imports over fully qualified class names.** Always import a class and use the simple name. Reach for fully qualified names only when a same-simple-name conflict in the file leaves no other option — for example, during the legacy-to-new `Path` migration where both `com.im.njams.sdk.Path` and `com.im.njams.sdk.common.Path` appear. In that case, **import the new type and fully qualify the legacy one**.
+- **Prefer imports over fully qualified class names.** Always import a class and use the simple name. Reach for fully qualified names only when a same-simple-name conflict in the file leaves no other option — for example, when a file needs both `java.util.Date` and `java.sql.Date`. In that case, import the type used most in the file and fully qualify the other.
 - **SOLID.** Single responsibility per class and method. Depend on abstractions, not implementations. Keep interfaces focused.
 - **Self-documenting code.** Names for classes, methods, and variables should express intent clearly enough that comments are rarely needed. A comment is warranted only when the *why* is non-obvious from the code.
 - **Keep comments truthful when changing code.** Whenever you modify code, double-check that every nearby comment is still correct — both Javadoc (on the changed member and on any member that references it) and inline comments inside method bodies. Update or remove anything that the change has made inaccurate. Never leave a stale comment that describes the old behavior.

@@ -11,7 +11,21 @@ already uses the replacements listed under "Deprecations and replacements" in
 - The settings provider/factory layer (`SettingsProviderFactory`, `SettingsProvider`, `Settings`).
 - The legacy `com.im.njams.sdk.common.Path` API.
 - `AbstractReplayHandler`: the two-argument overloads were removed; the three-argument variants are now abstract.
-- `Job.flush()`/`Job.timerFlush(...)` are no longer public.
+- `JobImpl.flush()`/`JobImpl.timerFlush(...)` (never part of the `Job` interface) are no longer public.
+- The public `JobImpl` helpers `setInstrumented()`, `setTraces(boolean)` and `getLastFlush()` were removed, and
+  `getNjams()`, `limitLength(...)`, `getEstimatedSize()`, `addToEstimatedSize(long)`,
+  `setActivityErrorEvent(...)`, `isActiveTracepoint(...)`, `getActivityConfiguration(...)` and `isRecording()`
+  are no longer public (SDK-internal). Use the `Job` interface instead.
+- The constructor `Njams(Path, String, String, String, ClientSettings)` (with a separate runtime version) was
+  removed; use `Njams(Path, String, String, ClientSettings)`.
+- `Njams` no longer implements `InstructionListener`.
+- A job that ends after `Njams.stop()` is now dropped with a warning. Previously its log message was sent through
+  a lazily re-created sender.
+- Data set on an already finished job via an activity (or its extract rules) no longer logs the "called after
+  end()" warning.
+- Internal SDK classes (not client API) changed: `LogMessageFlushTask` and `LMFTEntry` moved from the `client`
+  package to `logmessage`, and `start(Njams)` became `start(Njams, NjamsSender)` for `LogMessageFlushTask` and
+  `CleanTracepointsTask`.
 - `ArgosCollector.collect()`, `ShareableReceiver.onInstruction(Instruction, Njams)`,
   `DataMasking.addPatterns(Properties)` and `JsonSerializerFactory.addLocalDateTimeSerializer`.
 - The `JsonSerializerFactory` methods that expose Jackson types are no longer part of its regular public surface:
@@ -398,7 +412,8 @@ is actually sent:
   `njams.sdk.flush_interval` (see [General SDK Settings](#general-sdk-settings)) — never on a fixed
   schedule regardless of size.
 - There is intentionally **no supported way for a client application to force an additional flush.**
-  The `Job.flush()`/`Job.timerFlush(...)` methods are no longer public (SDK-internal only, since 6.1.0);
+  The `JobImpl.flush()`/`JobImpl.timerFlush(...)` methods (not part of the `Job` interface) are no longer public
+  (SDK-internal only, since 6.1.0);
   obtaining a sender/transport instance directly and sending messages yourself is also
   unsupported and bypasses these safeguards — doing so can overwhelm nJAMS server, respectively
   Elasticsearch, with updates to the same `logId` and lead to processing delays or message loss.

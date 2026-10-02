@@ -39,9 +39,13 @@ public class JobFlusherSenderTest extends AbstractTest {
     private Njams other;
 
     @After
-    public void stopOther() {
+    public void stopInstancesAndClearTheRegistry() {
         if (other != null && other.isStarted()) {
             other.stop();
+        }
+        // the tests replace the flush task's registry entry (static, JVM-wide) with a mock sender: drop it
+        if (njams.isStarted()) {
+            njams.stop();
         }
     }
 
