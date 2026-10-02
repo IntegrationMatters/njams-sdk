@@ -101,7 +101,9 @@ public class JobActivities {
         if (activityModel instanceof SubProcessActivityModel) {
             return createSubProcess((SubProcessActivityModel) activityModel);
         }
-        return new ActivityBuilder(jobImpl, activityModel);
+        final ActivityBuilder builder = new ActivityBuilder(jobImpl, activityModel);
+        builder.relaxStartedRequirement();
+        return builder;
     }
 
     /**
@@ -112,7 +114,9 @@ public class JobActivities {
      * @return a builder
      */
     public GroupBuilder createGroup(GroupModel groupModel) {
-        return new GroupBuilder(jobImpl, groupModel);
+        final GroupBuilder builder = new GroupBuilder(jobImpl, groupModel);
+        builder.relaxStartedRequirement();
+        return builder;
     }
 
     /**
@@ -123,7 +127,9 @@ public class JobActivities {
      * @return a builder
      */
     public SubProcessActivityBuilder createSubProcess(SubProcessActivityModel subProcessModel) {
-        return new SubProcessActivityBuilder(jobImpl, subProcessModel);
+        final SubProcessActivityBuilder builder = new SubProcessActivityBuilder(jobImpl, subProcessModel);
+        builder.relaxStartedRequirement();
+        return builder;
     }
 
     /**

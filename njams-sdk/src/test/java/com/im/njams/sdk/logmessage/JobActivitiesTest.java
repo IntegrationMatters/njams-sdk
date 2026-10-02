@@ -196,4 +196,40 @@ public class JobActivitiesTest extends AbstractTest {
         long s2 = job.activities().getNextSequence();
         assertEquals(s1 + 1, s2);
     }
+
+    @Test
+    public void facetBuilderMayBuildBeforeJobIsStarted() {
+        JobImpl job = createDefaultJob();
+        Activity a = job.activities().create(model("prestart")).build();
+        assertSame(a, job.activities().getByInstanceId(a.getInstanceId()));
+    }
+
+    @Test
+    public void internalStepToBuilderRequiresStartedJob() {
+        JobImpl job = createDefaultJob();
+        ActivityModel from = model("prestartFrom");
+        ActivityModel to = from.transitionTo("prestartTo", "TO", null);
+        Activity a = job.activities().create(from).build();
+        try {
+            a.stepTo(to).build();
+            org.junit.Assert.fail("stepTo on a not started job must be rejected");
+        } catch (NjamsSdkRuntimeException expected) {
+            assertEquals("The method start() must be called before activities can be added to the job!",
+                    expected.getMessage());
+        }
+    }
+
+    @Test
+    public void internalGroupChildBuilderRequiresStartedJob() {
+        JobImpl job = createDefaultJob();
+        GroupModel groupModel = (GroupModel) process.createGroup("prestartGroup", "G", null);
+        Group group = job.activities().createGroup(groupModel).build();
+        try {
+            group.createChildActivity(model("prestartChild")).build();
+            org.junit.Assert.fail("createChildActivity on a not started job must be rejected");
+        } catch (NjamsSdkRuntimeException expected) {
+            assertEquals("The method start() must be called before activities can be added to the job!",
+                    expected.getMessage());
+        }
+    }
 }
