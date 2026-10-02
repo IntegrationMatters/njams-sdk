@@ -141,7 +141,7 @@ final class JobFlusher {
             LOG.warn("Dropping the log message of job {}: the client is not started.", owner.getLogId());
             return;
         }
-        sender.send(logMessage, processModel.getNjams().getClientSessionId());
+        sender.send(logMessage, processModel.getNjams().metadata().getClientSessionId());
     }
 
     private boolean mustBeSuppressed(JobImpl owner) {
@@ -207,14 +207,14 @@ final class JobFlusher {
         LogMessage logMessage = new LogMessage();
         logMessage.setBusinessEnd(metadata.getBusinessEnd());
         logMessage.setBusinessStart(metadata.getBusinessStart());
-        logMessage.setCategory(processModel.getNjams().getCategory());
+        logMessage.setCategory(processModel.getNjams().metadata().getCategory());
         logMessage.setCorrelationLogId(metadata.getCorrelationLogId());
         logMessage.setExternalLogId(metadata.getExternalLogId());
         logMessage.setJobEnd(owner.getEndTime());
         logMessage.setJobId(owner.getJobId());
         logMessage.setJobStart(owner.getStartTime());
         logMessage.setLogId(owner.getLogId());
-        logMessage.setMachineName(processModel.getNjams().getMachine());
+        logMessage.setMachineName(processModel.getNjams().metadata().getMachine());
         logMessage.setMaxSeverity(owner.getMaxSeverity().getValue());
         logMessage.setMessageNo(flushCounter.get());
         logMessage.setObjectName(metadata.getBusinessObject());
@@ -223,9 +223,9 @@ final class JobFlusher {
         logMessage.setProcessName(processModel.getName());
         logMessage.setStatus(owner.getStatus().getValue());
         logMessage.setServiceName(metadata.getBusinessService());
-        logMessage.setClientVersion(processModel.getNjams().getClientVersion());
-        logMessage.setSdkVersion(processModel.getNjams().getSdkVersion());
-        logMessage.setRuntimeVersion(processModel.getNjams().getRuntimeVersion());
+        logMessage.setClientVersion(processModel.getNjams().metadata().getClientVersion());
+        logMessage.setSdkVersion(processModel.getNjams().metadata().getSdkVersion());
+        logMessage.setRuntimeVersion(processModel.getNjams().metadata().getRuntimeVersion());
 
         pluginDataItems.forEach(i -> logMessage.addPluginDataItem(i));
         return logMessage;

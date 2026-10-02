@@ -319,7 +319,7 @@ public class ConfigurationInstructionListener implements InstructionListener {
      */
     public ConfigurationInstructionListener(Njams njams) {
         this.njams = njams;
-        configuration = njams.getConfiguration();
+        configuration = njams.configuration().get();
     }
 
     /**
@@ -687,7 +687,7 @@ public class ConfigurationInstructionListener implements InstructionListener {
 
     private void getReording(final InstructionSupport instructionSupport) {
         instructionSupport.setParameter(ENGINE_WIDE_RECORDING, configuration.isRecording());
-        for (ProcessModel model : njams.getProcessModels()) {
+        for (ProcessModel model : njams.model().getAll()) {
             final boolean recording;
             if (configuration.hasProcess(model.getPath())) {
                 recording = configuration.getProcess(model.getPath()).isRecording();

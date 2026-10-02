@@ -634,10 +634,10 @@ public class Njams implements InstructionListener {
     NjamsSender sender() {
         if (sender == null) {
             if (settings.getBool(NjamsSettings.PROPERTY_SHARED_COMMUNICATIONS, false)) {
-                LOG.debug("Using shared sender pool for {}", getClientPath());
+                LOG.debug("Using shared sender pool for {}", metadata.getClientPath());
                 sender = NjamsSender.takeSharedSender(settings);
             } else {
-                LOG.debug("Creating individual sender pool for {}", getClientPath());
+                LOG.debug("Creating individual sender pool for {}", metadata.getClientPath());
                 sender = new NjamsSender(settings);
             }
         }
@@ -835,7 +835,7 @@ public class Njams implements InstructionListener {
                 stop();
                 return StartupResult.FAIL;
             }
-            LOG.info("SDK instance {} started (client-session={})", getClientPath(), metadata.getClientSessionId());
+            LOG.info("SDK instance {} started (client-session={})", metadata.getClientPath(), metadata.getClientSessionId());
         }
         return isStarted() ? StartupResult.SUCCESS : StartupResult.FAIL;
     }

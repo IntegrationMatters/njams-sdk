@@ -61,7 +61,7 @@ final class JobRuntimeConfig {
         LogLevel level = LogLevel.INFO;
         boolean excluded = false;
         boolean record = true;
-        Configuration configuration = processModel.getNjams().getConfiguration();
+        Configuration configuration = processModel.getNjams().configuration().get();
         if (configuration == null) {
             LOG.error("Unable to set LogMode, LogLevel and Exclude for {}, configuration is null",
                     processModel.getPath());
@@ -81,7 +81,7 @@ final class JobRuntimeConfig {
                 LOG.debug("Set recording for {} to {} based on process settings {} and client setting {}",
                         processModel.getPath(), record, process.isRecording(), configuration.isRecording());
             }
-            excluded = processModel.getNjams().isExcluded(processModel.getPath());
+            excluded = processModel.getNjams().configuration().isExcluded(processModel.getPath());
             LOG.debug("Set Exclude for {} to {}", processModel.getPath(), excluded);
         }
         logMode = mode;
@@ -122,7 +122,7 @@ final class JobRuntimeConfig {
         if (processModel == null) {
             return null;
         }
-        Configuration configuration = processModel.getNjams().getConfiguration();
+        Configuration configuration = processModel.getNjams().configuration().get();
         if (configuration == null) {
             return null;
         }

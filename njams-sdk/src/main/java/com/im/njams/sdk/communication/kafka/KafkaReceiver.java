@@ -225,7 +225,7 @@ public class KafkaReceiver extends AbstractReceiver {
 
             LOG.debug("Handle message (id={}) {}", messageId, raw);
             onInstruction(instruction);
-            sendReply(messageId, instruction, njams.getCommunicationSessionId());
+            sendReply(messageId, instruction, njams.metadata().getClientSessionId());
 
         } catch (final Exception e) {
             LOG.error("Failed to process instruction: {}", msg, e);
@@ -238,7 +238,7 @@ public class KafkaReceiver extends AbstractReceiver {
             return false;
         }
         final String receiver = getHeader(msg, NJAMS_RECEIVER_HEADER);
-        if (StringUtils.isBlank(receiver) || njams.getClientPath() != Path.resolve(receiver)) {
+        if (StringUtils.isBlank(receiver) || njams.metadata().getClientPath() != Path.resolve(receiver)) {
             LOG.debug("Message is not for me!");
             return false;
         }
@@ -248,9 +248,9 @@ public class KafkaReceiver extends AbstractReceiver {
         }
 
         final String clientId = getHeader(msg, NJAMS_CLIENTID_HEADER);
-        if (clientId != null && !njams.getCommunicationSessionId().equals(clientId)) {
+        if (clientId != null && !njams.metadata().getClientSessionId().equals(clientId)) {
             LOG.debug("Message is not for me! ClientId in Message is: {} but this nJAMS Client has Id: {}",
-                clientId, njams.getCommunicationSessionId());
+                clientId, njams.metadata().getClientSessionId());
             return false;
         }
 

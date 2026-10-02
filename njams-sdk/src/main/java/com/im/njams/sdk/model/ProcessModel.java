@@ -98,13 +98,13 @@ public class ProcessModel {
         internalProcessModel.setName(path.getName());
 
         // set configuration data
-        ProcessConfiguration processConfiguration = njams.getConfiguration().getProcess(path);
+        ProcessConfiguration processConfiguration = njams.configuration().get().getProcess(path);
         if (processConfiguration != null) {
             internalProcessModel.setLogLevel(processConfiguration.getLogLevel());
-            internalProcessModel.setExclude(njams.getConfiguration().hasProcessExcludeFilter(path));
+            internalProcessModel.setExclude(njams.configuration().get().hasProcessExcludeFilter(path));
             internalProcessModel.setRecording(processConfiguration.isRecording());
         } else {
-            internalProcessModel.setRecording(njams.getConfiguration().isRecording());
+            internalProcessModel.setRecording(njams.configuration().get().isRecording());
         }
 
         // copy activities
@@ -121,9 +121,9 @@ public class ProcessModel {
             // process SVG
             if (svg == null) {
                 // create process layout
-                njams.getProcessModelLayouter().layout(this);
+                njams.model().getLayouter().layout(this);
                 // build SVG
-                svg = njams.getProcessDiagramFactory().getProcessDiagram(this);
+                svg = njams.model().getDiagramFactory().getProcessDiagram(this);
                 LOG.trace("Created process diagram for model '{}'\n{}", path, svg);
             }
             internalProcessModel.setSvg(svg);
@@ -424,7 +424,7 @@ public class ProcessModel {
      */
     public Job createJobWithExplicitLogId(String jobId, String logId) {
         Job job = new JobImpl(this, jobId, logId);
-        njams.addJob(job);
+        njams.jobs().add(job);
         return job;
     }
 

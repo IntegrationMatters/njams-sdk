@@ -45,6 +45,7 @@ import com.faizsiegeln.njams.messageformat.v4.projectmessage.LogLevel;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.LogMode;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.RuleType;
 import com.im.njams.sdk.Njams;
+import com.im.njams.sdk.NjamsConfiguration;
 import com.im.njams.sdk.common.DateTimeUtility;
 import com.im.njams.sdk.configuration.provider.MemoryConfigurationProvider;
 import com.im.njams.sdk.settings.Settings;
@@ -64,7 +65,9 @@ public class ConfigurationInstructionListenerTest {
         configuration = spy(new Configuration());
         configuration.setConfigurationProvider(new MemoryConfigurationProvider());
         Njams njams = mock(Njams.class);
-        when(njams.getConfiguration()).thenReturn(configuration);
+        NjamsConfiguration configurationFacet = mock(NjamsConfiguration.class);
+        when(configurationFacet.get()).thenReturn(configuration);
+        when(njams.configuration()).thenReturn(configurationFacet);
         when(njams.getSettings()).thenReturn(new Settings());
         listener = new ConfigurationInstructionListener(njams);
     }

@@ -45,6 +45,7 @@ import com.faizsiegeln.njams.messageformat.v4.projectmessage.LogLevel;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.LogMode;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.RuleType;
 import com.im.njams.sdk.Njams;
+import com.im.njams.sdk.NjamsConfiguration;
 import com.im.njams.sdk.Path;
 import com.im.njams.sdk.communication.TestReceiver;
 import com.im.njams.sdk.configuration.ActivityConfiguration;
@@ -105,7 +106,9 @@ public class ExtractHandlerTest {
 
         //-------- Inject the Configuration instead of the one that was
         //created by njams
-        doReturn(conf).when(njams).getConfiguration();
+        NjamsConfiguration configurationFacet = spy(njams.configuration());
+        doReturn(conf).when(configurationFacet).get();
+        doReturn(configurationFacet).when(njams).configuration();
     }
 
     /**
@@ -169,7 +172,7 @@ public class ExtractHandlerTest {
         Map<String, ActivityConfiguration> activityMap = new HashMap<>();
         activityMap.put(activityName, activity);
         //-------- Get the ProcessConfiguration and set the activityMap
-        njams.getConfiguration().getProcess(process.getPath().toString()).setActivities(activityMap);
+        njams.configuration().get().getProcess(process.getPath().toString()).setActivities(activityMap);
         //-------- Test
         JobImpl job = (JobImpl) process.createJob();
         job.start();

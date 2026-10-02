@@ -498,9 +498,9 @@ public abstract class AbstractReceiver implements Receiver, SenderRecoveryListen
      * @return <code>false</code> in all other cases.
      */
     protected static boolean suppressGetRequestHandlerInstruction(Instruction instruction, Njams targetClient) {
-        if (Command.GET_REQUEST_HANDLER == Command.getFromInstruction(instruction) && !targetClient.isContainerMode()) {
+        if (Command.GET_REQUEST_HANDLER == Command.getFromInstruction(instruction) && !targetClient.features().isContainerMode()) {
             LOG.debug("Ignoring command {} because feature {} is disabled for target client: {}",
-                Command.GET_REQUEST_HANDLER, Feature.CONTAINER_MODE, targetClient.getClientPath());
+                Command.GET_REQUEST_HANDLER, Feature.CONTAINER_MODE, targetClient.metadata().getClientPath());
 
             return true;
         }

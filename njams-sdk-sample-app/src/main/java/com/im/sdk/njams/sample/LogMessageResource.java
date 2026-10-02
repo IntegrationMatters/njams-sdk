@@ -46,7 +46,7 @@ public class LogMessageResource {
             njams.metadata().getClientPath().getChild("Processes", "SimpleProcess");
         ProcessModel process = njams.model().get(processPath);
 
-        Job job = njams.getJobById(jobId);
+        Job job = njams.jobs().get(jobId);
         if(job == null) {
             String warning = "Running Logmessage with ID " + jobId + " not found.";
             LOG.warn(warning);

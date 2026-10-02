@@ -65,7 +65,7 @@ public class LogMessageFlushTask extends TimerTask {
         if (njams == null) {
             throw new NjamsSdkRuntimeException("Start: Njams is null");
         }
-        if (njams.getClientPath() == null) {
+        if (njams.metadata().getClientPath() == null) {
             throw new NjamsSdkRuntimeException("Start: Njams clientPath is null");
         }
 
@@ -74,7 +74,7 @@ public class LogMessageFlushTask extends TimerTask {
             timer.scheduleAtFixedRate(new LogMessageFlushTask(), 1000, 1000);
         }
 
-        NJAMS_INSTANCES.put(njams.getClientPath(), new LMFTEntry(njams, sender));
+        NJAMS_INSTANCES.put(njams.metadata().getClientPath(), new LMFTEntry(njams, sender));
     }
 
     /**
@@ -88,17 +88,17 @@ public class LogMessageFlushTask extends TimerTask {
         if (njams == null) {
             throw new NjamsSdkRuntimeException("Stop: Njams is null");
         }
-        if (njams.getClientPath() == null) {
+        if (njams.metadata().getClientPath() == null) {
             throw new NjamsSdkRuntimeException("Stop: Njams clientPath is null");
         }
         // The entry is removed only after the final flush, because the flush looks up the sender in the registry.
-        LMFTEntry entry = NJAMS_INSTANCES.get(njams.getClientPath());
+        LMFTEntry entry = NJAMS_INSTANCES.get(njams.metadata().getClientPath());
         if (entry != null) {
             try {
                 Njams stoppingNjams = entry.getNjams();
-                stoppingNjams.getJobs().forEach(job -> ((JobImpl) job).flush());
+                stoppingNjams.jobs().getAll().forEach(job -> ((JobImpl) job).flush());
             } finally {
-                NJAMS_INSTANCES.remove(njams.getClientPath());
+                NJAMS_INSTANCES.remove(njams.metadata().getClientPath());
             }
         } else {
             LOG.warn(
@@ -119,7 +119,7 @@ public class LogMessageFlushTask extends TimerTask {
      * @return the sender, or {@code null} if the instance is not started (or already stopped) in this task
      */
     static NjamsSender senderOf(Njams njams) {
-        final LMFTEntry entry = NJAMS_INSTANCES.get(njams.getClientPath());
+        final LMFTEntry entry = NJAMS_INSTANCES.get(njams.metadata().getClientPath());
         return entry == null ? null : entry.getSender();
     }
 
@@ -148,7 +148,7 @@ public class LogMessageFlushTask extends TimerTask {
 
     private void processNjams(LMFTEntry entry) {
         LocalDateTime boundary = DateTimeUtility.now().minusSeconds(entry.getFlushInterval());
-        entry.getNjams().getJobs().forEach(job -> ((JobImpl) job).timerFlush(boundary, entry.getFlushSize()));
+        entry.getNjams().jobs().getAll().forEach(job -> ((JobImpl) job).timerFlush(boundary, entry.getFlushSize()));
     }
 
 }

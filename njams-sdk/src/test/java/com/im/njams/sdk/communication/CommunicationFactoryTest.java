@@ -43,6 +43,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import com.im.njams.sdk.Njams;
+import com.im.njams.sdk.NjamsMetadata;
 import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.Path;
 import com.im.njams.sdk.communication.http.HttpSseReceiver;
@@ -56,7 +57,9 @@ public class CommunicationFactoryTest {
     @Before
     public void setUp() {
         njams = mock(Njams.class);
-        when(njams.getClientPath()).thenReturn(Path.of("test"));
+        NjamsMetadata metadata = mock(NjamsMetadata.class);
+        when(njams.metadata()).thenReturn(metadata);
+        when(metadata.getClientPath()).thenReturn(Path.of("test"));
     }
 
     private Settings createSettings(String communicationType) {

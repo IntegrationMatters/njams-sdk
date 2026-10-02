@@ -223,7 +223,7 @@ public class NjamsProcessDiagramFactory implements ProcessDiagramFactory {
             NjamsProcessDiagramContext context = new NjamsProcessDiagramContext();
             context.setSvgNS(svgNS);
             context.setDoc(doc);
-            context.setCategory(processModel.getNjams().getCategory());
+            context.setCategory(processModel.getNjams().metadata().getCategory());
 
             createSvg(context, processModel);
 

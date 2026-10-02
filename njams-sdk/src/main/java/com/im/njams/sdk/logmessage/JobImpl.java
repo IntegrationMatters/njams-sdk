@@ -400,7 +400,7 @@ public class JobImpl implements Job {
                 setEndTime(DateTimeUtility.now());
             }
             finished = true;
-            processModel.getNjams().removeJob(getJobId());
+            processModel.getNjams().jobs().remove(getJobId());
             if (neverStarted) {
                 LOG.error("Job {} has been finished before it was started"
                         + " - it will NOT be sent to the nJAMS server.", getLogId());
@@ -427,7 +427,7 @@ public class JobImpl implements Job {
                     + " any data recorded for this job is dropped.", getLogId());
             discarded = true;
             finished = true;
-            processModel.getNjams().removeJob(getJobId());
+            processModel.getNjams().jobs().remove(getJobId());
         }
     }
 

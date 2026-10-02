@@ -67,7 +67,7 @@ public class NjamsStartup {
         // Start client and flush resources, which will create a projectmessage to send all resources to the server
         njams.start();
 
-        LOG.info("Started nJAMS Client " + njams.getClientPath());
+        LOG.info("Started nJAMS Client " + njams.metadata().getClientPath());
     }
 
     @PreDestroy

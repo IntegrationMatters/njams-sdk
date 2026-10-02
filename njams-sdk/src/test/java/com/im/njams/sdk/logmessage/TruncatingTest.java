@@ -37,6 +37,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import com.im.njams.sdk.Njams;
+import com.im.njams.sdk.NjamsConfiguration;
 import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.model.ProcessModel;
 import com.im.njams.sdk.settings.Settings;
@@ -52,6 +53,8 @@ public class TruncatingTest {
     public void setup() {
         processModel = mock(ProcessModel.class);
         Njams njams = mock(Njams.class);
+        NjamsConfiguration configurationFacet = mock(NjamsConfiguration.class);
+        when(njams.configuration()).thenReturn(configurationFacet);
         when(processModel.getNjams()).thenReturn(njams);
         settings = mock(Settings.class);
         when(njams.getSettings()).thenReturn(settings);

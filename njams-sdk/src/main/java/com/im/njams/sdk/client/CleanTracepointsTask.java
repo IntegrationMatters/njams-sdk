@@ -76,7 +76,7 @@ public class CleanTracepointsTask extends TimerTask {
         if (njams == null) {
             throw new NjamsSdkRuntimeException("Start: Njams is null");
         }
-        if (njams.getClientPath() == null) {
+        if (njams.metadata().getClientPath() == null) {
             throw new NjamsSdkRuntimeException("Start: Njams clientPath is null");
         }
         if (timer == null) {
@@ -84,7 +84,7 @@ public class CleanTracepointsTask extends TimerTask {
             timer.scheduleAtFixedRate(new CleanTracepointsTask(), DELAY, INTERVAL);
         }
 
-        njamsInstances.put(njams.getClientPath(), new Instance(njams, sender));
+        njamsInstances.put(njams.metadata().getClientPath(), new Instance(njams, sender));
     }
 
     /**
@@ -115,10 +115,10 @@ public class CleanTracepointsTask extends TimerTask {
         if (njams == null) {
             throw new NjamsSdkRuntimeException("Stop: Njams is null");
         }
-        if (njams.getClientPath() == null) {
+        if (njams.metadata().getClientPath() == null) {
             throw new NjamsSdkRuntimeException("Stop: Njams clientPath is null");
         }
-        njamsInstances.remove(njams.getClientPath());
+        njamsInstances.remove(njams.metadata().getClientPath());
         if (njamsInstances.size() <= 0 && timer != null) {
             timer.cancel();
             timer = null;
@@ -141,13 +141,13 @@ public class CleanTracepointsTask extends TimerTask {
 
     private void checkNjams(Instance instance, LocalDateTime now) {
         Njams njams = instance.njams;
-        Configuration configuration = njams.getConfiguration();
+        Configuration configuration = njams.configuration().get();
         TraceMessageBuilder tmBuilder = new TraceMessageBuilder(njams);
         configuration.getProcesses().entrySet()
                 .forEach(processEntry -> checkProcess(configuration, processEntry, now, tmBuilder));
         TraceMessage msg = tmBuilder.build();
         if (msg != null) {
-            instance.sender.send(msg, njams.getClientSessionId());
+            instance.sender.send(msg, njams.metadata().getClientSessionId());
         }
     }
 

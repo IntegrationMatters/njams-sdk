@@ -19,6 +19,7 @@ import org.junit.After;
 import org.junit.Test;
 
 import com.im.njams.sdk.Njams;
+import com.im.njams.sdk.NjamsMetadata;
 import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.Path;
 import com.im.njams.sdk.communication.CommunicationFactory;
@@ -52,7 +53,9 @@ public class SharedReceiverSelectionSpecTest extends AbstractLifecycleSpecTest {
     /** A distinct client, since the shared receiver keys its registered instances by client path. */
     private static Njams client(String name) {
         Njams njams = mock(Njams.class);
-        when(njams.getClientPath()).thenReturn(Path.of("test", name));
+        NjamsMetadata metadata = mock(NjamsMetadata.class);
+        when(njams.metadata()).thenReturn(metadata);
+        when(metadata.getClientPath()).thenReturn(Path.of("test", name));
         return njams;
     }
 

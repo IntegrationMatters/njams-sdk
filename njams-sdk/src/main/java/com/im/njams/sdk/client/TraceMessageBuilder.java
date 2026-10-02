@@ -57,10 +57,10 @@ public class TraceMessageBuilder {
         if(!processes.isEmpty()){
             msg = new TraceMessage();
             //Set CommonMessage fields
-            msg.setClientVersion(njams.getClientVersion());
-            msg.setSdkVersion(njams.getSdkVersion());
-            msg.setCategory(njams.getCategory());
-            msg.setPath(njams.getClientPath().toString());
+            msg.setClientVersion(njams.metadata().getClientVersion());
+            msg.setSdkVersion(njams.metadata().getSdkVersion());
+            msg.setCategory(njams.metadata().getCategory());
+            msg.setPath(njams.metadata().getClientPath().toString());
             for(String processPath : processes.keySet()){
                 ProcessModel processModel = new ProcessModel();
                 processModel.setProcessPath(processPath);

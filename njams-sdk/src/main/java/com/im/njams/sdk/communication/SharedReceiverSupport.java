@@ -67,9 +67,9 @@ public class SharedReceiverSupport<R extends AbstractReceiver & ShareableReceive
      */
     public void addNjams(Njams njamsInstance) {
         synchronized (njamsInstances) {
-            njamsInstances.put(njamsInstance.getClientPath(), njamsInstance);
+            njamsInstances.put(njamsInstance.metadata().getClientPath(), njamsInstance);
         }
-        LOG.debug("Added client {} to shared receiver; {} attached receivers.", njamsInstance.getClientPath(),
+        LOG.debug("Added client {} to shared receiver; {} attached receivers.", njamsInstance.metadata().getClientPath(),
                 njamsInstances.size());
     }
 
@@ -83,8 +83,8 @@ public class SharedReceiverSupport<R extends AbstractReceiver & ShareableReceive
     public boolean removeNjams(Njams njamsInstance) {
 
         synchronized (njamsInstances) {
-            njamsInstances.remove(njamsInstance.getClientPath());
-            LOG.debug("Removed client {} from shared receiver; {} remaining receivers.", njamsInstance.getClientPath(),
+            njamsInstances.remove(njamsInstance.metadata().getClientPath());
+            LOG.debug("Removed client {} from shared receiver; {} remaining receivers.", njamsInstance.metadata().getClientPath(),
                     njamsInstances.size());
             if (njamsInstances.isEmpty()) {
                 receiver.stop();
@@ -129,7 +129,7 @@ public class SharedReceiverSupport<R extends AbstractReceiver & ShareableReceive
                 return;
             }
             onInstruction(instruction, njamsTarget);
-            receiver.sendReply(message, instruction, njamsTarget.getCommunicationSessionId());
+            receiver.sendReply(message, instruction, njamsTarget.metadata().getClientSessionId());
         } else if (failOnMissingInstance) {
             LOG.error("No client found for: {}", receiverPath);
             instruction.setResponseResultCode(99);
@@ -145,7 +145,7 @@ public class SharedReceiverSupport<R extends AbstractReceiver & ShareableReceive
             LOG.error("Instruction must not be null");
             return;
         }
-        LOG.debug("OnInstruction: {} for {}", instruction.getCommand(), njams.getClientPath());
+        LOG.debug("OnInstruction: {} for {}", instruction.getCommand(), njams.metadata().getClientPath());
         if (instruction.getRequest() == null || instruction.getRequest().getCommand() == null) {
             LOG.error("Instruction must have a valid request with a command");
             Response response = new Response();
@@ -201,7 +201,7 @@ public class SharedReceiverSupport<R extends AbstractReceiver & ShareableReceive
 
     private Njams findNjamsByClientId(String clientId) {
         for (Njams njams : njamsInstances.values()) {
-            if (clientId.equals(njams.getCommunicationSessionId())) {
+            if (clientId.equals(njams.metadata().getClientSessionId())) {
                 return njams;
             }
         }

@@ -15,6 +15,7 @@ import com.faizsiegeln.njams.messageformat.v4.projectmessage.LogLevel;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.LogMode;
 import com.im.njams.sdk.AbstractTest;
 import com.im.njams.sdk.Njams;
+import com.im.njams.sdk.NjamsConfiguration;
 import com.im.njams.sdk.Path;
 import com.im.njams.sdk.common.DateTimeUtility;
 import com.im.njams.sdk.configuration.ProcessConfiguration;
@@ -57,7 +58,9 @@ public class JobRuntimeConfigTest extends AbstractTest {
         ProcessModel pm = mock(ProcessModel.class);
         Njams njamsMock = mock(Njams.class);
         when(pm.getNjams()).thenReturn(njamsMock);
-        when(njamsMock.getConfiguration()).thenReturn(null);
+        NjamsConfiguration configurationFacet = mock(NjamsConfiguration.class);
+        when(configurationFacet.get()).thenReturn(null);
+        when(njamsMock.configuration()).thenReturn(configurationFacet);
         when(pm.getPath()).thenReturn(Path.resolve("PROCESSES"));
 
         JobRuntimeConfig cfg = new JobRuntimeConfig(pm);

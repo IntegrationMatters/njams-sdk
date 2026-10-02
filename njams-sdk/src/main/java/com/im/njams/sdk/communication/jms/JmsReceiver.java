@@ -156,7 +156,7 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
         if (njamsInstances.isEmpty()) {
             return null;
         }
-        final String selector = njamsInstances.stream().map(Njams::getClientPath).flatMap(JmsReceiver::ancestorPathStrings)
+        final String selector = njamsInstances.stream().map(n -> n.metadata().getClientPath()).flatMap(JmsReceiver::ancestorPathStrings)
             .sorted()
             .collect(Collectors.joining("' OR NJAMS_RECEIVER = '", "NJAMS_RECEIVER = '", "'"));
         LOG.debug("Updated message selector: {}", selector);
@@ -176,7 +176,7 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
         }
 
         final Collection<String> paths = njamsInstances.stream()
-            .map(Njams::getClientPath)
+            .map(n -> n.metadata().getClientPath())
             .flatMap(JmsReceiver::ancestorPathStrings)
             .collect(Collectors.toSet());
         final Predicate<Message> filter = m -> {
@@ -471,9 +471,9 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
                 return;
             }
             final String clientId = msg.getStringProperty(NJAMS_CLIENTID_HEADER);
-            if (clientId != null && !clientId.equals(njams.getCommunicationSessionId())) {
+            if (clientId != null && !clientId.equals(njams.metadata().getClientSessionId())) {
                 LOG.debug("Message is not for me! ClientId in Message is: {} but this nJAMS Client has Id: {}",
-                    clientId, njams.getCommunicationSessionId());
+                    clientId, njams.metadata().getClientSessionId());
                 return;
             }
 
@@ -482,7 +482,7 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
                 return;
             }
             onInstruction(instruction);
-            reply(msg.getJMSReplyTo(), msg.getJMSCorrelationID(), instruction, njams.getCommunicationSessionId());
+            reply(msg.getJMSReplyTo(), msg.getJMSCorrelationID(), instruction, njams.metadata().getClientSessionId());
         } catch (Exception e) {
             LOG.error("Error in onMessage", e);
         }

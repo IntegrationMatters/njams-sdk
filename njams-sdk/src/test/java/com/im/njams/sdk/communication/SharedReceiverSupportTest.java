@@ -9,6 +9,7 @@ import org.junit.Test;
 
 import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
 import com.im.njams.sdk.Njams;
+import com.im.njams.sdk.NjamsMetadata;
 import com.im.njams.sdk.Path;
 
 /**
@@ -24,7 +25,9 @@ public class SharedReceiverSupportTest {
 
     private static Njams mockNjams(String... pathParts) {
         Njams njams = mock(Njams.class);
-        when(njams.getClientPath()).thenReturn(Path.of(pathParts));
+        NjamsMetadata metadata = mock(NjamsMetadata.class);
+        when(njams.metadata()).thenReturn(metadata);
+        when(metadata.getClientPath()).thenReturn(Path.of(pathParts));
         return njams;
     }
 

@@ -53,6 +53,7 @@ import com.faizsiegeln.njams.messageformat.v4.tracemessage.ProcessModel;
 import com.faizsiegeln.njams.messageformat.v4.tracemessage.TraceMessage;
 import com.im.njams.sdk.AbstractTest;
 import com.im.njams.sdk.Njams;
+import com.im.njams.sdk.NjamsMetadata;
 import com.im.njams.sdk.common.DateTimeUtility;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.Path;
@@ -69,6 +70,8 @@ import com.im.njams.sdk.utils.JsonUtils;
 public class CleanTracepointsTaskTest extends AbstractTest {
 
     private static final Njams njamsMock = mock(Njams.class);
+
+    private static final NjamsMetadata metadataMock = mock(NjamsMetadata.class);
 
     private static final NjamsSender senderMock = mock(NjamsSender.class);
 
@@ -91,7 +94,8 @@ public class CleanTracepointsTaskTest extends AbstractTest {
     @Before
     public void testStopAll() {
         CleanTracepointsTask.getNjamsInstances().forEach(CleanTracepointsTask::stop);
-        when(njamsMock.getClientPath()).thenReturn(Path.of("A"));
+        when(njamsMock.metadata()).thenReturn(metadataMock);
+        when(metadataMock.getClientPath()).thenReturn(Path.of("A"));
     }
 
     @Test(expected = NjamsSdkRuntimeException.class)
@@ -105,7 +109,7 @@ public class CleanTracepointsTaskTest extends AbstractTest {
     public void testStartWithNullClientPathNjams() {
         assertTrue(CleanTracepointsTask.getNjamsInstances().isEmpty());
         assertNull(CleanTracepointsTask.getTimer());
-        when(njamsMock.getClientPath()).thenReturn(null);
+        when(metadataMock.getClientPath()).thenReturn(null);
         CleanTracepointsTask.start(njamsMock, senderMock);
     }
 
@@ -160,7 +164,7 @@ public class CleanTracepointsTaskTest extends AbstractTest {
     public void testStopWithNullClientPath() {
         assertTrue(CleanTracepointsTask.getNjamsInstances().isEmpty());
         assertNull(CleanTracepointsTask.getTimer());
-        when(njamsMock.getClientPath()).thenReturn(null);
+        when(metadataMock.getClientPath()).thenReturn(null);
         CleanTracepointsTask.stop(njamsMock);
     }
 

@@ -222,7 +222,7 @@ public class HttpSseReceiver extends AbstractReceiver implements BackgroundEvent
             return;
         }
         onInstruction(instruction);
-        sendReply(requestId, instruction, njams.getClientSessionId());
+        sendReply(requestId, instruction, njams.metadata().getClientSessionId());
     }
 
     /**
@@ -236,15 +236,15 @@ public class HttpSseReceiver extends AbstractReceiver implements BackgroundEvent
             return false;
         }
         final String receiver = headers.get(NJAMS_RECEIVER_HTTP_HEADER);
-        if (StringUtils.isBlank(receiver) || njams.getClientPath() != Path.resolve(receiver)) {
+        if (StringUtils.isBlank(receiver) || njams.metadata().getClientPath() != Path.resolve(receiver)) {
             LOG.debug("Message is not for me! Client path from message is: {} but nJAMS client path is: {} ", receiver,
-                njams.getClientPath());
+                njams.metadata().getClientPath());
             return false;
         }
         final String clientId = headers.get(NJAMS_CLIENTID_HTTP_HEADER);
-        if (StringUtils.isNotBlank(clientId) && !njams.getCommunicationSessionId().equals(clientId)) {
+        if (StringUtils.isNotBlank(clientId) && !njams.metadata().getClientSessionId().equals(clientId)) {
             LOG.debug("Message is not for me! Client id from message is: {} but nJAMS client id is: {} ", clientId,
-                njams.getCommunicationSessionId());
+                njams.metadata().getClientSessionId());
             return false;
         }
         final String messageId = headers.get(NJAMS_MESSAGE_ID_HTTP_HEADER);

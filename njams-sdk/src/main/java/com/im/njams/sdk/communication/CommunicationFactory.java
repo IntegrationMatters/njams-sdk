@@ -128,7 +128,7 @@ public class CommunicationFactory {
             Map<String, String> copy = new LinkedHashMap<>();
             settings.forEach(e -> copy.put(e.getKey(), e.getValue()));
             ClientSettings receiverSettings = ClientSettings.from(copy);
-            receiverSettings.put(INTERNAL_PROPERTY_CLIENTPATH, njams.getClientPath().toString());
+            receiverSettings.put(INTERNAL_PROPERTY_CLIENTPATH, njams.metadata().getClientPath().toString());
             Receiver receiver;
             if (shared && ShareableReceiver.class.isAssignableFrom(clazz)) {
                 synchronized (sharedReceivers) {

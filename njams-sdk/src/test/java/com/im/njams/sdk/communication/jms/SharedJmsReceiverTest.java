@@ -11,6 +11,7 @@ import java.util.concurrent.TimeUnit;
 import org.junit.Test;
 
 import com.im.njams.sdk.Njams;
+import com.im.njams.sdk.NjamsMetadata;
 import com.im.njams.sdk.Path;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.communication.ConnectionStatus;
@@ -34,7 +35,9 @@ public class SharedJmsReceiverTest {
 
     private static Njams mockNjams(String... pathParts) {
         Njams njams = mock(Njams.class);
-        when(njams.getClientPath()).thenReturn(Path.of(pathParts));
+        NjamsMetadata metadata = mock(NjamsMetadata.class);
+        when(njams.metadata()).thenReturn(metadata);
+        when(metadata.getClientPath()).thenReturn(Path.of(pathParts));
         return njams;
     }
 
