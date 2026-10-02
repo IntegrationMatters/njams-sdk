@@ -5,7 +5,7 @@ When you build a `ProcessModel`, every step is an `ActivityModel` (or `GroupMode
 **type**:
 
 ```java
-ProcessModel process = njams.createProcess(processPath);
+ProcessModel process = njams.model().create(processPath);
 ActivityModel receive = process.createActivity("receiveOrder", "Receive Order", "Start");
 receive.transitionTo("validateOrder", "Validate Order", "Task")
        .transitionTo("persistOrder", "Persist Order", "Task");

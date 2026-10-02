@@ -6,7 +6,7 @@ path-specific rules live under `.claude/rules/` — see the index at the bottom 
 ## Project Resources
 
 - **Wiki:** https://github.com/IntegrationMatters/njams-sdk/wiki — project home page
-- **FAQ:** https://github.com/IntegrationMatters/njams-sdk/wiki/FAQ — covers settings providers, all transport configurations (JMS, HTTP/HTTPS, Kafka), message size and flush tuning, data masking, Argos metrics, and custom `ProcessModelLayouter` implementations
+- **FAQ:** https://github.com/IntegrationMatters/njams-sdk/wiki/FAQ — covers settings (`ClientSettings`/`HierarchicalSettings`), all transport configurations (JMS, HTTP/HTTPS, Kafka), message size and flush tuning, data masking, Argos metrics, and custom `ProcessModelLayouter` implementations
 
 Consult the FAQ before implementing or modifying anything related to configuration, communication, or advanced SDK features — it documents intended behavior and usage patterns.
 
@@ -73,7 +73,7 @@ The SDK instruments Java applications to track process execution and stream moni
 
 1. **Define:** Create a `ProcessModel` with `ActivityModel` nodes and `TransitionModel` edges
 2. **Start:** `Njams.start()` registers models with server, opens communication channel
-3. **Execute:** For each process execution, call `njams.createJob(processPath)` → record activities → `job.end()`
+3. **Execute:** For each process execution, call `processModel.createJob()` → record activities → `job.end(true)`
 4. **Stop:** `Njams.stop()` flushes pending messages and closes connections
 
 ### Key Classes

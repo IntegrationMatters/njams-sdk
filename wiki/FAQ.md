@@ -1,5 +1,20 @@
 # nJAMS SDK FAQs
 
+## Breaking changes in 6.1
+
+6.1 removes everything that was marked deprecated in 6.0 or earlier, or reduces it in visibility. Code that
+already uses the replacements listed under "Deprecations and replacements" in
+[What changed in 6.0](#what-changed-in-60) needs no change. The main areas affected:
+
+- The flat `Njams` facade members and the flat `Job` getters/setters/factory methods, including `Job.end()`
+  (use `Job.end(boolean)`), and `Njams.getSender()`, in favor of the facet accessors.
+- The settings provider/factory layer (`SettingsProviderFactory`, `SettingsProvider`, `Settings`).
+- The legacy `com.im.njams.sdk.common.Path` API.
+- `AbstractReplayHandler`: the two-argument overloads were removed; the three-argument variants are now abstract.
+- `Job.flush()`/`Job.timerFlush(...)` are no longer public.
+- `ArgosCollector.collect()`, `ShareableReceiver.onInstruction(Instruction, Njams)`,
+  `DataMasking.addPatterns(Properties)` and `JsonSerializerFactory.addLocalDateTimeSerializer`.
+
 ## What changed in 6.0
 
 This section summarizes the changes in 6.0.0 that matter to SDK users when upgrading from 5.x — actual breaking
@@ -58,7 +73,7 @@ jobs, then stop the client on shutdown.
    (see below).
 3. Define a `ProcessModel` via `njams.model().create(path)`, adding `ActivityModel`s and the transitions between them.
 4. Call `njams.start()`.
-5. For each process execution, create a `Job` from the `ProcessModel`, record its activities, and call `job.end()`.
+5. For each process execution, create a `Job` from the `ProcessModel`, record its activities, and call `job.end(true)`.
 6. Call `njams.stop()` when your application shuts down.
 
 ```java
@@ -77,7 +92,7 @@ Job job = process.createJob();
 job.start();
 Activity startActivity = job.activities().create(start).build();
 Activity endActivity = startActivity.stepTo(end).build();
-job.end();
+job.end(true);
 
 njams.stop();
 ```
@@ -378,8 +393,8 @@ is actually sent:
   `njams.sdk.flush_interval` (see [General SDK Settings](#general-sdk-settings)) — never on a fixed
   schedule regardless of size.
 - There is intentionally **no supported way for a client application to force an additional flush.**
-  The legacy `Job.flush()`/`Job.timerFlush(...)` methods are deprecated for removal and must not be
-  used; obtaining a sender/transport instance directly and sending messages yourself is also
+  The `Job.flush()`/`Job.timerFlush(...)` methods are no longer public (SDK-internal only, since 6.1.0);
+  obtaining a sender/transport instance directly and sending messages yourself is also
   unsupported and bypasses these safeguards — doing so can overwhelm nJAMS server, respectively
   Elasticsearch, with updates to the same `logId` and lead to processing delays or message loss.
 
@@ -517,7 +532,7 @@ public class MyLayouter implements ProcessModelLayouter {
 ```
 
 Register it on the `Njams` instance before starting (since 6.0.0 via the `model()` facet; the former
-`njams.setProcessModelLayouter(...)` still works but is deprecated):
+`njams.setProcessModelLayouter(...)` was removed in 6.1.0):
 
 ```java
 njams.model().setLayouter(new MyLayouter());
@@ -544,7 +559,7 @@ string. Use this to restyle, reorder, or augment the generated SVG without touch
 ```java
 NjamsProcessDiagramFactory factory = new NjamsProcessDiagramFactory(njams)
     .withXslt(MyClass.class.getResourceAsStream("/my-svg-transform.xsl"));
-njams.setProcessDiagramFactory(factory);
+njams.model().setDiagramFactory(factory);
 ```
 
 Three `withXslt()` overloads are available: `withXslt(Source)`, `withXslt(String)`, and `withXslt(InputStream)`.
@@ -564,7 +579,7 @@ public class MyDiagramFactory extends NjamsProcessDiagramFactory {
         // append custom nodes to context.getDoc()
     }
 }
-njams.setProcessDiagramFactory(new MyDiagramFactory(njams));
+njams.model().setDiagramFactory(new MyDiagramFactory(njams));
 ```
 
 **Fine-grained drawing overrides** — `NjamsProcessDiagramFactory` also exposes `drawActivity()`, `drawGroup()`, and
@@ -685,7 +700,7 @@ To send custom metrics, implement two classes:
   collection cycle.
 
 Register your collector via `njams.argos().add(yourCollector)` (since 6.0.0; the former
-`njams.addArgosCollector(...)` still works but is deprecated). Use the built-in `JVMCollector` in package
+`njams.addArgosCollector(...)` was removed in 6.1.0). Use the built-in `JVMCollector` in package
 `com.im.njams.sdk.argos` as a reference implementation.
 
 ## How to set the activity mapping
@@ -886,7 +901,7 @@ variable values to the SDK.
 
 The reference syntax for variables is not fixed. A client can define its own matching pattern as a
 regular expression via `njams.model().setGlobalVariablesPattern(String)` (since 6.0.0; the former
-`njams.setGlobalVariablesPattern(...)` still works but is deprecated). The pattern is transported to the nJAMS server
+`njams.setGlobalVariablesPattern(...)` was removed in 6.1.0). The pattern is transported to the nJAMS server
 with the project message and used there to detect and replace references; when no pattern is set, showing values
 instead of variables is not supported. The pattern must be set before `start()`.
 
@@ -951,7 +966,7 @@ monitoring is therefore *one activity/group instance per thread within a shared 
 // one shared job; each parallel branch records into its own activity instance
 for (Branch branch : parallelBranches) {
     executor.submit(() -> {
-        Activity activity = job.createActivity(branch.model()).build(); // safe: creation is synchronized
+        Activity activity = job.activities().create(branch.model()).build(); // safe: creation is synchronized
         activity.processInput(branch.input());                          // safe: activity is thread-confined
         // ... record this branch ...
         activity.end();

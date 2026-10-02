@@ -239,7 +239,7 @@ Because the argument type is part of every `assertTrue/False(filter.isSelected(.
 | getNjamsReturnsOwner | `getNjams` (narrowed) | - | same package | KEEP-UNCHANGED | 1 |
 | newJobIsCreatedNotStartedNotFinished, startSetsRunningAndStartTime, explicitStartTimeSurvivesStart, setStartTimeNullIsIgnoredWithWarning, setStatusBeforeStartOnlyWarns, setStatusNullOrCreatedIsIgnored, maxSeverityEscalatesButNeverDecreases, endTrueWithoutStatusYieldsSuccess, endFalseYieldsError, endTwiceThrows, endRemovesJobFromRegistry, addPluginDataItemIsAccepted, noPayloadLimitConfiguredMeansPassThrough, toStringContainsLogAndJobId, flushOnNeverStartedJobSendsNothing, endOnNeverStartedJobLogsErrorAndSendsNothing | none (`setStatus` kept, `flush` narrowed) | - | - | KEEP-UNCHANGED | 16 |
 
-(Counts: 1+1+1+1+1+1+1 = 7 DELETE for the activity block, plus 8 attribute/metadata/properties/trace DELETEs... see summary table for the final numbers.) After the reduction the class keeps 23 tests (16 unchanged + 2 + 1 needsData + 1 estimated + limitLength + timerFlush + getNjams + recording).
+(Counts: 1+1+1+1+1+1+1 = 7 DELETE for the activity block, plus 8 attribute/metadata/properties/trace DELETEs... see summary table for the final numbers.) After the reduction the class keeps 24 tests (16 unchanged + 2 + 1 needsData + 1 estimated + limitLength + timerFlush + getNjams + recording); 17 are deleted.
 
 ### 4.11 `JobFacetApiTest` (29 tests)
 
@@ -430,7 +430,7 @@ DELETE (a named existing replacement or disappearing behaviour):
 |---|---|
 | NjamsFacadeBaselineTest (48, of which 6 only after N1-N9 are written) | 48 |
 | NjamsTest | 11 + 1 (after N8) = 12 (testSerializer, 2 serialize, 2 hasProcessModel, defaultLayouter, 6 pattern, + null-path) |
-| JobFacadeBaselineTest | 20 |
+| JobFacadeBaselineTest | 17 |
 | JobFacetApiTest | 2 |
 | JobActivitiesTest | 2 |
 | JobImplTest | 1 + 1 + 2 + 2 + 1 = 7 (addActivityWithoutStart, addAttributeWithStart, 2 after N9, 2 byInstanceId, getActivities) |
@@ -442,7 +442,7 @@ DELETE (a named existing replacement or disappearing behaviour):
 | AbstractReplayHandlerTest | 2 |
 | NjamsFacetApiTest | 2 |
 | Settings tests (SettingsTest 14, FileSettingsProviderTest 1, PropertiesFileSettingsProviderTest 7) | 22 |
-| **Total DELETE** | **143** |
+| **Total DELETE** | **142** |
 
 REDUCE: ConfigurationPathOverloadsTest 4, JobActivitiesTest 5, JobFacetApiTest 1, NjamsFacetApiTest 1 = **11**.
 

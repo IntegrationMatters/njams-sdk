@@ -1,5 +1,7 @@
 # SDK-482 — Remove code deprecated in 6.0.0 and earlier (design)
 
+**Status (2026-10-02):** sections A, B (including the flush narrowing and helpers), D, F, G and H are implemented; C stays as kept. Section E remains **postponed** and must be brought back to the user before the ticket is resolved. The FAQ section "Breaking changes in 6.1" is delivered; the `breaking-change` label is handled separately.
+
 Ticket: SDK-482 (fix version 6.1.0). Source of decisions: the decision document reviewed on 2026-10-01
 (candidate tables A–H) plus the answers recorded below. Interpretation of "remove": delete if possible,
 otherwise reduce visibility. Version suffixes (RC vs. final) are ignored: everything with `since <= 6.0.0` counts.
