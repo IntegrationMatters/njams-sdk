@@ -32,7 +32,6 @@ import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.doAnswer;
 
-import java.util.Properties;
 
 import com.im.njams.sdk.settings.Settings;
 import org.junit.After;
@@ -150,20 +149,6 @@ public class DataMaskingTest {
         assertEquals(expected, IMPL.getStackTrace());
         IMPL.addAttribute("key", in);
         assertEquals(expected, IMPL.getAttributes().get("key"));
-    }
-
-    @Test
-    public void addPatternsFromProperties() {
-        Properties properties = new Properties();
-        properties.put(NjamsSettings.PROPERTY_DATA_MASKING_REGEX_PREFIX + "creditcard",
-                "Creditcard Number : \\p{Digit}+");
-        properties.put("SomeOtherString", ".*");
-        DataMasking.addPatterns(properties);
-        final String maskedString1 = DataMasking.maskString("Creditcard Number : 1234");
-        final String maskedString2 = DataMasking.maskString("Anything else");
-        assertEquals("************************", maskedString1);
-        assertEquals("Anything else", maskedString2);
-
     }
 
     @Test

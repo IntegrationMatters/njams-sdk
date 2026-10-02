@@ -28,7 +28,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 import java.util.regex.Matcher;
 
 import com.im.njams.sdk.NjamsSettings;
@@ -128,22 +127,6 @@ public class DataMasking {
                     entry.getValue());
             }
         }
-    }
-
-    /**
-     * Reads all properties whose key starts with
-     * {@value com.im.njams.sdk.NjamsSettings#PROPERTY_DATA_MASKING_REGEX_PREFIX}
-     * from the given properties and adds them to the data masking list.
-     *
-     * @param properties the properties to read masking patterns from
-     * @deprecated Use {@link #addPatterns(ClientSettings)} instead.
-     */
-    @Deprecated
-    public static void addPatterns(Properties properties) {
-        properties.stringPropertyNames().stream()
-            .filter(k -> k.startsWith(NjamsSettings.PROPERTY_DATA_MASKING_REGEX_PREFIX))
-            .forEach(k -> addPattern(k.substring(NjamsSettings.PROPERTY_DATA_MASKING_REGEX_PREFIX.length()),
-                properties.getProperty(k)));
     }
 
     /**

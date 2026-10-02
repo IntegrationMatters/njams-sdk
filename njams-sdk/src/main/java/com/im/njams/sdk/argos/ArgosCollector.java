@@ -62,18 +62,4 @@ public abstract class ArgosCollector<T extends ArgosMetric> extends ArgosMultiCo
     protected Collection<T> createAll() {
         return Collections.singletonList(create());
     }
-
-    /**
-     * This gets called by {@link ArgosSender} in periodic manner.
-     * <p>
-     * It will create a new {@link ArgosMetric} with the correct implementation
-     * and return it so that it can be send via UDP.
-     *
-     * @deprecated Replaced by {@link ArgosMultiCollector#collectAll()}.
-     * @return the collected {@link ArgosMetric}
-     */
-    @Deprecated
-    public T collect() {
-        return create();
-    }
 }

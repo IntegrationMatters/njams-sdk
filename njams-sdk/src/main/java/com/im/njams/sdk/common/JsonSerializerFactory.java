@@ -40,8 +40,6 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.StringWriter;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.AbstractMap;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -233,36 +231,6 @@ public class JsonSerializerFactory {
                 }
             }
         });
-    }
-
-    /**
-     * Registers a (de-/)serializer definition for serializing (parsing)
-     * {@link LocalDateTime} as/from {@link String}s.
-     * @deprecated A serializer for {@link LocalDateTime} is registered by default.
-     */
-    @Deprecated(forRemoval = true, since = "5.0.0")
-    public static void addLocalDateTimeSerializer() {
-        addSerializer(
-            new StdSerializer<LocalDateTime>(LocalDateTime.class) {
-                private static final long serialVersionUID = 1L;
-
-                @Override
-                public void serialize(LocalDateTime value, JsonGenerator gen, SerializerProvider provider)
-                    throws IOException {
-                    gen.writeString(value.toString());
-
-                }
-            }, new StdDeserializer<LocalDateTime>(LocalDateTime.class) {
-                private static final long serialVersionUID = 1L;
-
-                @Override
-                public LocalDateTime deserialize(JsonParser jp, DeserializationContext ctxt) throws IOException,
-                    JsonProcessingException {
-                    JsonNode node = jp.getCodec().readTree(jp);
-                    String dt = node.textValue();
-                    return LocalDateTime.parse(dt, DateTimeFormatter.ISO_LOCAL_DATE_TIME);
-                }
-            }, false);
     }
 
     /**

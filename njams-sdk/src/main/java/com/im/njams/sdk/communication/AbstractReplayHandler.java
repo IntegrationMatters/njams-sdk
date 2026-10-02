@@ -33,7 +33,7 @@ import org.slf4j.LoggerFactory;
  * A base implementation of the {@link ReplayHandler} interface that hides request/response handling from the
  * actual implementation.
  * <p>
- * Implementations have to override {@link #executeReplay(Path, String, String)} and
+ * Implementations have to implement {@link #executeReplay(Path, String, String)} and
  * {@link #testReplay(Path, String, String)} to provide the actual replay logic.
  *
  * @author cwinkler
@@ -94,13 +94,6 @@ public abstract class AbstractReplayHandler implements ReplayHandler {
         return processPath != null ? processPath.toString() : processName;
     }
 
-    private static String resolveName(final Path processPath, final String processName) {
-        if (processName != null) {
-            return processName;
-        }
-        return processPath == null ? null : processPath.getName();
-    }
-
     /**
      * Execute a replay for the given process.
      * <p>
@@ -108,9 +101,6 @@ public abstract class AbstractReplayHandler implements ReplayHandler {
      * path of the process model. {@code processName} is only the last path segment and is provided as a
      * fallback for servers that do not send a path; it may be ambiguous when several processes share the
      * same name. Prefer {@code processPath} whenever it is non-{@code null}.
-     * <p>
-     * The default implementation delegates to {@link #executeReplay(String, String)} for backward
-     * compatibility. Override this method to make use of the full process path.
      *
      * @param processPath The full path of the process that shall be replayed, or {@code null} if the
      * server did not send a path. Preferred over {@code processName} when present.
@@ -121,10 +111,8 @@ public abstract class AbstractReplayHandler implements ReplayHandler {
      * job has been started or has been scheduled for start.
      * @throws Exception Any error that occurred when trying to start the replayed process.
      */
-    public String executeReplay(final Path processPath, final String processName, final String startData)
-        throws Exception {
-        return executeReplay(resolveName(processPath, processName), startData);
-    }
+    public abstract String executeReplay(Path processPath, String processName, String startData)
+        throws Exception;
 
     /**
      * Test whether or not the given process can be replayed using the given arguments. Throwing any exception indicates
@@ -134,9 +122,6 @@ public abstract class AbstractReplayHandler implements ReplayHandler {
      * path of the process model. {@code processName} is only the last path segment and is provided as a
      * fallback for servers that do not send a path; it may be ambiguous when several processes share the
      * same name. Prefer {@code processPath} whenever it is non-{@code null}.
-     * <p>
-     * The default implementation delegates to {@link #testReplay(String, String)} for backward
-     * compatibility. Override this method to make use of the full process path.
      *
      * @param processPath The full path of the process that shall be replayed, or {@code null} if the
      * server did not send a path. Preferred over {@code processName} when present.
@@ -145,43 +130,6 @@ public abstract class AbstractReplayHandler implements ReplayHandler {
      * @param startData Optional input data for executing the process. May be <code>null</code>.
      * @throws Exception Any error indicating that the test failed.
      */
-    public void testReplay(final Path processPath, final String processName, final String startData)
-        throws Exception {
-        testReplay(resolveName(processPath, processName), startData);
-    }
-
-    /**
-     * Execute a replay according to the given arguments.
-     *
-     * @param processName The name of the process that shall be replayed.
-     * @param startData Optional input data for executing the process. May be <code>null</code>.
-     * @return The nJAMS log-ID of the replayed job instance needs to be returned for indicating that the according
-     * job has been started or has been scheduled for start.
-     * @throws Exception Any error that occurred when trying to start the replayed process.
-     * @deprecated Override {@link #executeReplay(Path, String, String)} instead, which also receives the full
-     * process {@link Path}. This method is still invoked by the default implementation of that overload for
-     * backward compatibility.
-     */
-    @Deprecated(since = "6.0", forRemoval = true)
-    public String executeReplay(final String processName, final String startData) throws Exception {
-        throw new UnsupportedOperationException(
-            "Override executeReplay(Path, String, String) or the deprecated executeReplay(String, String)");
-    }
-
-    /**
-     * Test whether or not the given process can be replayed using the given arguments. Throwing any exception indicates
-     * that the test failed while completing normal indicates test success.
-     *
-     * @param processName The name of the process that shall be replayed.
-     * @param startData Optional input data for executing the process. May be <code>null</code>.
-     * @throws Exception Any error indicating that the test failed.
-     * @deprecated Override {@link #testReplay(Path, String, String)} instead, which also receives the full
-     * process {@link Path}. This method is still invoked by the default implementation of that overload for
-     * backward compatibility.
-     */
-    @Deprecated(since = "6.0", forRemoval = true)
-    public void testReplay(final String processName, final String startData) throws Exception {
-        throw new UnsupportedOperationException(
-            "Override testReplay(Path, String, String) or the deprecated testReplay(String, String)");
-    }
+    public abstract void testReplay(Path processPath, String processName, String startData)
+        throws Exception;
 }

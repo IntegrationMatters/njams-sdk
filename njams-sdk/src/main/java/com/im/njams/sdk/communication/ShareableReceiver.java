@@ -48,19 +48,6 @@ public interface ShareableReceiver<M> extends Receiver {
     public void setNjams(Njams njams);
 
     /**
-     * Passes the instruction to the according {@link Njams} instance.
-     *
-     * @param instruction The instruction to process.
-     * @param njams       The {@link Njams} instance to receive the instruction.
-     * @see Receiver#onInstruction(Instruction)
-     * @deprecated No longer used.
-     */
-    @Deprecated
-    public default void onInstruction(Instruction instruction, Njams njams) {
-        // nothing
-    }
-
-    /**
      * Has to extract the receiver instance (client) path, i.e., the path that matches a certain
      * {@link Njams} instance's {@code metadata().getClientPath()}.
      *
@@ -90,7 +77,8 @@ public interface ShareableReceiver<M> extends Receiver {
 
     /**
      * Always throws an {@link UnsupportedOperationException}. This method is replaced by
-     * {@link #onInstruction(Instruction, Njams)} for passing instructions to the according {@link Njams} instance.
+     * {@link SharedReceiverSupport#onInstruction(Object, Instruction, boolean)} for passing instructions to the
+     * according {@link Njams} instance.
      *
      * @throws UnsupportedOperationException always
      * @see com.im.njams.sdk.communication.AbstractReceiver#onInstruction(com.faizsiegeln.njams.messageformat.v4.command.Instruction)

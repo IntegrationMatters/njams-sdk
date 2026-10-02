@@ -49,7 +49,7 @@ public class AbstractReplayHandlerTest {
         RuntimeException toThrow;
 
         @Override
-        public String executeReplay(String processName, String startData) throws Exception {
+        public String executeReplay(Path processPath, String processName, String startData) throws Exception {
             executeName = processName;
             executeData = startData;
             if (toThrow != null) {
@@ -59,7 +59,7 @@ public class AbstractReplayHandlerTest {
         }
 
         @Override
-        public void testReplay(String processName, String startData) throws Exception {
+        public void testReplay(Path processPath, String processName, String startData) throws Exception {
             testName = processName;
             testData = startData;
             if (toThrow != null) {
@@ -119,26 +119,6 @@ public class AbstractReplayHandlerTest {
         assertEquals("boom", response.getResultMessage());
         assertEquals("n/a", response.getMainLogId());
         assertTrue(response.getException().contains("boom"));
-    }
-
-    /** A legacy handler (overriding only the name-based methods) must still receive the process name. */
-    @Test
-    public void legacyHandlerReceivesNameWhenProcessPathPresent() {
-        final RecordingHandler handler = new RecordingHandler();
-
-        handler.replay(request("Process", "p1", "processPath", ">x>p1>", "Test", "false"));
-
-        assertEquals("p1", handler.executeName);
-    }
-
-    /** Falls back to the path's last segment as the name when the server sends only a path. */
-    @Test
-    public void legacyHandlerReceivesPathNameWhenOnlyProcessPathPresent() {
-        final RecordingHandler handler = new RecordingHandler();
-
-        handler.replay(request("processPath", ">x>p1>", "Test", "false"));
-
-        assertEquals("p1", handler.executeName);
     }
 
     /** Records what the path-aware template methods received. */
