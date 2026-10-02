@@ -40,7 +40,7 @@ public class NjamsJobsFinishedJobTest extends AbstractTest {
     public void setReplayMarkerOnFinishedJobDoesNotThrow() {
         JobImpl job = createDefaultStartedJob();
         jobs.add(job);
-        job.end();
+        job.end(true);
 
         jobs.setReplayMarker(job.getLogId(), true);
 
@@ -50,7 +50,7 @@ public class NjamsJobsFinishedJobTest extends AbstractTest {
     @Test
     public void addWithRememberedReplayMarkerOnFinishedJobDoesNotThrow() {
         JobImpl job = createDefaultStartedJob();
-        job.end();
+        job.end(true);
         jobs.setReplayMarker(job.getLogId(), true);
 
         jobs.add(job);

@@ -769,7 +769,7 @@ public class NjamsFacetApiTest {
         njams.argos().remove(collector);
     }
 
-    /** Same pattern as NjamsFacadeBaselineTest.CapturingSender. */
+    /** Captures the first project message that matches the expected predicate. */
     private static final class CapturingSender extends com.im.njams.sdk.communication.AbstractSender {
         private final java.util.concurrent.CountDownLatch latch = new java.util.concurrent.CountDownLatch(1);
         private final java.util.function.Predicate<

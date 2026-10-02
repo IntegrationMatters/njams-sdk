@@ -21,7 +21,7 @@ public class ActivityFlagTruncationTest extends AbstractTest {
         settings.put(NjamsSettings.PROPERTY_PAYLOAD_LIMIT_MODE, mode);
         settings.put(NjamsSettings.PROPERTY_PAYLOAD_LIMIT_SIZE, String.valueOf(limit));
         JobImpl job = createDefaultJob();
-        job.setDeepTrace(true);
+        job.tracing().setDeepTrace(true);
         job.start();
         return (ActivityImpl) createDefaultActivity(job);
     }

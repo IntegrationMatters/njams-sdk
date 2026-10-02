@@ -44,7 +44,7 @@ public class LimitPayloadTest extends AbstractTest {
         settings.put(NjamsSettings.PROPERTY_PAYLOAD_LIMIT_MODE, mode);
         settings.put(NjamsSettings.PROPERTY_PAYLOAD_LIMIT_SIZE, limit);
         JobImpl job = createDefaultJob();
-        job.setDeepTrace(true);
+        job.tracing().setDeepTrace(true);
         job.start();
         activity = createDefaultActivity(job);
     }
@@ -134,8 +134,8 @@ public class LimitPayloadTest extends AbstractTest {
 
         activity.addAttribute("key", "Hello");
         assertEquals("Hello", impl.getAttributes().get("key"));
-        assertEquals("Hello", impl.getJob().getAttributes().get("key"));
+        assertEquals("Hello", impl.getJob().attributes().getAll().get("key"));
         activity.addAttribute("key", "12345678901234567890");
-        assertEquals(JobImpl.PAYLOAD_DISCARDED_MESSAGE, impl.getJob().getAttributes().get("key"));
+        assertEquals(JobImpl.PAYLOAD_DISCARDED_MESSAGE, impl.getJob().attributes().getAll().get("key"));
     }
 }

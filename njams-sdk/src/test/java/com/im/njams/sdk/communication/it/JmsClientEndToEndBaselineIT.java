@@ -71,8 +71,8 @@ public class JmsClientEndToEndBaselineIT {
         try {
             Job job = process.createJob();
             job.start();
-            job.createActivity(start).setStarter().build();
-            job.end(); // flushes a LogMessage
+            job.activities().create(start).setStarter().build();
+            job.end(true); // flushes a LogMessage
 
             // project message (from start()) and log message (from job.end()) both land on njams.event by default
             List<String> bodies = drain("njams.event", 1, 10000);

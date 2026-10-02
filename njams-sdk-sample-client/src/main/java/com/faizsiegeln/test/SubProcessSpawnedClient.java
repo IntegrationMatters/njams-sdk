@@ -114,14 +114,14 @@ public class SubProcessSpawnedClient {
         subProcessCaller.stepTo(endModel).build();
 
         //End the job, which will flush all previous steps into a logmessage wich will be send to the server
-        job.end();
+        job.end(true);
 
 
         subProcessJob.start();
         Activity subStart = subProcessJob.activities().create(subProcessStartModel).build();
         Activity subLog = subStart.stepTo(subProcessLogModel).build();
         subLog.stepTo(subProcessEndModel).build();
-        subProcessJob.end();
+        subProcessJob.end(true);
 
         Thread.sleep(1000);
 

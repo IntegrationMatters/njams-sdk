@@ -54,7 +54,7 @@ public class GroupImplTest extends AbstractTest {
         Job job = createDefaultJob();
         job.start();
         //Create a group with four children
-        GroupImpl group = (GroupImpl) job.createGroup(mockGroupModel("start")).build();
+        GroupImpl group = (GroupImpl) job.activities().createGroup(mockGroupModel("start")).build();
         Activity child1 = group.createChildActivity(mockModel("child1")).build();
         Activity child2 = group.createChildActivity(mockModel("child2")).build();
         Activity child3 = group.createChildActivity(mockModel("child3")).build();

@@ -32,7 +32,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Predicate;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -52,22 +51,15 @@ public class JobActivities {
 
     private static final Logger LOG = LoggerFactory.getLogger(JobActivities.class);
 
-    /** Accepts every activity, regardless of its status. */
-    private static final Predicate<ActivityStatus> ANY_STATUS = status -> true;
-    private static final Predicate<ActivityStatus> RUNNING_STATUS = status -> status == ActivityStatus.RUNNING;
-    private static final Predicate<ActivityStatus> COMPLETED_STATUS =
-            status -> status != null && status.ordinal() > ActivityStatus.RUNNING.ordinal();
-
     private final JobImpl jobImpl;
     private final Object lock;
 
     // instanceId -> activity; all access must be guarded by the shared activities lock
     private final Map<String, Activity> activities = new LinkedHashMap<>();
 
-    // modelId -> the activity for that model that was registered last. Each activity links back to
-    // its predecessor for the same model via ActivityImpl#previousWithSameModelId, so a model lookup
-    // walks only that model's activities instead of scanning the whole registry. Same lock as above.
-    private final Map<String, ActivityImpl> lastByModelId = new HashMap<>();
+    // modelId -> the activity for that model that was registered last, so a model lookup does not scan
+    // the whole registry. Same lock as above.
+    private final Map<String, Activity> lastByModelId = new HashMap<>();
 
     /*
      * activity sequence counter
@@ -85,92 +77,62 @@ public class JobActivities {
     }
 
     /**
-     * Adds a new Activity to the Job. Unlike the deprecated {@link Job#addActivity(Activity)},
-     * activities may be added BEFORE the job is started — they are sent with the first log
-     * message after the job starts. If the activity is a start activity, but not the only one
-     * in this job, a NjamsSdkRuntimeException will be thrown.
+     * Adds a new Activity to the Job. Activities may be added BEFORE the job is started — they are
+     * sent with the first log message after the job starts. If the activity is a start activity, but
+     * not the only one in this job, a NjamsSdkRuntimeException will be thrown.
      *
      * @param activity to add to this job.
      */
     public void add(final Activity activity) {
-        add(activity, jobImpl, false);
+        add(activity, false);
     }
 
     /**
-     * Creates an ActivityBuilder for the given ActivityModel. Unlike the deprecated
-     * {@link Job#createActivity(ActivityModel)}, the built activity may be added before the
-     * job is started.
+     * Creates an ActivityBuilder for the given ActivityModel. The built activity may be added
+     * before the job is started.
      *
      * @param activityModel to create an activity for
      * @return a builder
      */
     public ActivityBuilder create(ActivityModel activityModel) {
-        final ActivityBuilder builder = create(activityModel, jobImpl);
-        builder.relaxStartedRequirement();
-        return builder;
+        if (activityModel instanceof GroupModel) {
+            return createGroup((GroupModel) activityModel);
+        }
+        if (activityModel instanceof SubProcessActivityModel) {
+            return createSubProcess((SubProcessActivityModel) activityModel);
+        }
+        return new ActivityBuilder(jobImpl, activityModel);
     }
 
     /**
-     * Creates a GroupBuilder for the given GroupModel. Unlike the deprecated
-     * {@link Job#createGroup(GroupModel)}, the built group may be added before the
+     * Creates a GroupBuilder for the given GroupModel. The built group may be added before the
      * job is started.
      *
      * @param groupModel to create a group for
      * @return a builder
      */
     public GroupBuilder createGroup(GroupModel groupModel) {
-        final GroupBuilder builder = createGroup(groupModel, jobImpl);
-        builder.relaxStartedRequirement();
-        return builder;
+        return new GroupBuilder(jobImpl, groupModel);
     }
 
     /**
-     * Creates a SubProcessActivityBuilder for the given SubProcessActivityModel. Unlike the
-     * deprecated {@link Job#createSubProcess(SubProcessActivityModel)}, the built activity may
-     * be added before the job is started.
+     * Creates a SubProcessActivityBuilder for the given SubProcessActivityModel. The built activity
+     * may be added before the job is started.
      *
      * @param subProcessModel to create a sub-process activity for
      * @return a builder
      */
     public SubProcessActivityBuilder createSubProcess(SubProcessActivityModel subProcessModel) {
-        final SubProcessActivityBuilder builder = createSubProcess(subProcessModel, jobImpl);
-        builder.relaxStartedRequirement();
-        return builder;
+        return new SubProcessActivityBuilder(jobImpl, subProcessModel);
     }
 
     /**
-     * Owner-aware builder factory used by the deprecated facade methods: when the
-     * {@link JobImpl} is proxied (e.g. a test spy), the builder must reference the proxy the
-     * caller is working with, not this facet's plain backreference. Keeps the legacy
-     * requires-started contract.
+     * Adds the given activity to the registry.
+     *
+     * @param requireStarted whether adding fails with an exception while the job has not been started
      */
-    ActivityBuilder create(ActivityModel activityModel, JobImpl owner) {
-        if (activityModel instanceof GroupModel) {
-            return createGroup((GroupModel) activityModel, owner);
-        }
-        if (activityModel instanceof SubProcessActivityModel) {
-            return createSubProcess((SubProcessActivityModel) activityModel, owner);
-        }
-        return new ActivityBuilder(owner, activityModel);
-    }
-
-    /** Owner-aware variant, see {@link #create(ActivityModel, JobImpl)}. */
-    GroupBuilder createGroup(GroupModel groupModel, JobImpl owner) {
-        return new GroupBuilder(owner, groupModel);
-    }
-
-    /** Owner-aware variant, see {@link #create(ActivityModel, JobImpl)}. */
-    SubProcessActivityBuilder createSubProcess(SubProcessActivityModel subProcessModel, JobImpl owner) {
-        return new SubProcessActivityBuilder(owner, subProcessModel);
-    }
-
-    /**
-     * Owner-aware add: when the {@link JobImpl} is proxied (e.g. a test spy), state updates
-     * (estimated size, start-activity flag) must hit the instance the caller is working with,
-     * not this facet's plain backreference. The requireStarted flag carries the legacy
-     * contract of the deprecated entry points.
-     */
-    void add(final Activity activity, final JobImpl owner, final boolean requireStarted) {
+    void add(final Activity activity, final boolean requireStarted) {
+        final JobImpl owner = jobImpl;
         synchronized (lock) {
             if (requireStarted && !owner.hasStarted()) {
                 throw new NjamsSdkRuntimeException(
@@ -179,8 +141,8 @@ public class JobActivities {
             final Activity previous = activities.put(activity.getInstanceId(), activity);
             if (previous != null && previous != activity) {
                 // An instance id was re-used by a different activity object: the new one takes the
-                // old one's place in the registry, which its model chain has to follow.
-                rebuildModelChains();
+                // old one's place in the registry, which the per-model lookup has to follow.
+                rebuildLastByModelId();
             }
             if (previous == null) {
                 // Count the per-activity base size in the running estimate as soon as the activity
@@ -189,7 +151,7 @@ public class JobActivities {
                 // only the fixed base is added here to avoid double counting. Reused activities
                 // (loop iterations) re-enter add with previous != null and must not re-add it.
                 owner.addToEstimatedSize(ActivityImpl.BASE_ESTIMATED_SIZE);
-                appendToModelChain(activity);
+                lastByModelId.put(activity.getModelId(), activity);
             }
             if (activity.isStarter()) {
                 // the flag lives on JobImpl: frozen tests access the field directly
@@ -222,70 +184,20 @@ public class JobActivities {
      * @return the {@link Activity}
      */
     public Activity getByModelId(String activityModelId) {
-        return findLastByModelId(activityModelId, ANY_STATUS);
-    }
-
-    /**
-     * Returns the last added and running activity to a given modelId.
-     *
-     * @param activityModelId to get
-     * @return the {@link Activity}
-     * @deprecated Revoked from the facet API before the 6.0.0 release; only backs the deprecated
-     *             {@link Job#getRunningActivityByModelId(String)}. Remove together with it.
-     */
-    @Deprecated(since = "6.0.0", forRemoval = true)
-    Activity getRunningByModelId(String activityModelId) {
-        return findLastByModelId(activityModelId, RUNNING_STATUS);
-    }
-
-    /**
-     * Returns the last added and completed activity to a given modelId.
-     *
-     * @param activityModelId to get
-     * @return the {@link Activity}
-     * @deprecated Revoked from the facet API before the 6.0.0 release; only backs the deprecated
-     *             {@link Job#getCompletedActivityByModelId(String)}. Remove together with it.
-     */
-    @Deprecated(since = "6.0.0", forRemoval = true)
-    Activity getCompletedByModelId(String activityModelId) {
-        return findLastByModelId(activityModelId, COMPLETED_STATUS);
-    }
-
-    /**
-     * Walks the given model's chain, starting at the activity registered last for that model, and
-     * returns the first one whose status the given filter accepts.
-     */
-    private Activity findLastByModelId(String activityModelId, Predicate<ActivityStatus> statusFilter) {
         synchronized (lock) {
-            ActivityImpl candidate = lastByModelId.get(activityModelId);
-            while (candidate != null) {
-                if (statusFilter.test(candidate.getActivityStatus())) {
-                    return candidate;
-                }
-                candidate = candidate.previousWithSameModelId;
-            }
-            return null;
+            return lastByModelId.get(activityModelId);
         }
     }
 
     /**
-     * Appends the given activity to the end of its model's chain. The registry only ever holds
-     * {@link ActivityImpl} instances. Callers must hold the activities lock.
-     */
-    private void appendToModelChain(Activity activity) {
-        final ActivityImpl added = (ActivityImpl) activity;
-        added.previousWithSameModelId = lastByModelId.put(added.getModelId(), added);
-    }
-
-    /**
-     * Rebuilds every model chain from the registry's insertion order. Used after activities have
-     * been removed or replaced, where repairing the affected links individually is not worth the
+     * Rebuilds the per-model lookup from the registry's insertion order. Used after activities have
+     * been removed or replaced, where repairing the affected entries individually is not worth the
      * complexity. Callers must hold the activities lock.
      */
-    private void rebuildModelChains() {
+    private void rebuildLastByModelId() {
         lastByModelId.clear();
         for (Activity activity : activities.values()) {
-            appendToModelChain(activity);
+            lastByModelId.put(activity.getModelId(), activity);
         }
     }
 
@@ -356,8 +268,6 @@ public class JobActivities {
                     flushedActivities.remove(a.getInstanceId());
                     loggingSum++;
                     iterator.remove();
-                    // do not let an evicted activity keep its predecessors alive through the chain
-                    ((ActivityImpl) a).previousWithSameModelId = null;
                     GroupImpl parent = (GroupImpl) a.getParent();
                     if (parent != null) {
                         parent.removeChildActivity(a.getInstanceId());
@@ -371,7 +281,7 @@ public class JobActivities {
 
             }
             if (loggingSum > 0) {
-                rebuildModelChains();
+                rebuildLastByModelId();
             }
             LOG.trace("{} activities have been removed from {}. Still running: {}", loggingSum, jobImpl.getLogId(),
                     activities.size());

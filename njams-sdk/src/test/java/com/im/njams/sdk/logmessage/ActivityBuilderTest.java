@@ -37,19 +37,19 @@ public class ActivityBuilderTest extends AbstractTest {
     @Test
     public void buildGeneratesInstanceIdAndStartsActivity() {
         JobImpl job = createDefaultStartedJob();
-        Activity activity = job.createActivity(model("gen")).build();
+        Activity activity = job.activities().create(model("gen")).build();
 
         assertNotNull(activity.getInstanceId());
         assertTrue(activity.getInstanceId().length() > 0);
         assertEquals(ActivityStatus.RUNNING, activity.getActivityStatus());
         // the built activity is registered with the job
-        assertSame(activity, job.getActivityByInstanceId(activity.getInstanceId()));
+        assertSame(activity, job.activities().getByInstanceId(activity.getInstanceId()));
     }
 
     @Test
     public void explicitInstanceIdIsHonored() {
         JobImpl job = createDefaultStartedJob();
-        Activity activity = job.createActivity(model("explicit")).setInstanceId("my-id").build();
+        Activity activity = job.activities().create(model("explicit")).setInstanceId("my-id").build();
         assertEquals("my-id", activity.getInstanceId());
     }
 
@@ -58,7 +58,7 @@ public class ActivityBuilderTest extends AbstractTest {
         JobImpl job = createDefaultStartedJob();
         LocalDateTime execution = DateTimeUtility.now();
 
-        ActivityImpl activity = (ActivityImpl) job.createActivity(model("fluent"))
+        ActivityImpl activity = (ActivityImpl) job.activities().create(model("fluent"))
                 .setIteration(2L)
                 .setMaxIterations(7L)
                 .setParentInstanceId("parent")
@@ -90,9 +90,9 @@ public class ActivityBuilderTest extends AbstractTest {
     @Test
     public void setStarterMarksStartActivity() {
         JobImpl job = createDefaultStartedJob();
-        Activity activity = job.createActivity(model("starter")).setStarter().build();
+        Activity activity = job.activities().create(model("starter")).setStarter().build();
         assertTrue(activity.isStarter());
-        assertSame(activity, job.getStartActivity());
+        assertSame(activity, job.activities().getStart());
     }
 
     @Test(expected = NjamsSdkRuntimeException.class)
@@ -120,7 +120,7 @@ public class ActivityBuilderTest extends AbstractTest {
     @Test(expected = NjamsSdkRuntimeException.class)
     public void stepFromNullTransitionModelThrows() {
         JobImpl job = createDefaultStartedJob();
-        Activity from = job.createActivity(model("from")).build();
+        Activity from = job.activities().create(model("from")).build();
         new ActivityBuilder(job, model("to")).stepFrom(from, null);
     }
 }

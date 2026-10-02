@@ -26,7 +26,6 @@ import com.im.njams.sdk.model.ProcessModel;
  * Tests the effect of a job's "instrumented" flag on whether its log message is sent: with log mode
  * {@link LogMode#EXCLUSIVE} a job that is not instrumented is suppressed, in any other mode the flag does not matter.
  */
-@SuppressWarnings("removal")
 public class JobInstrumentedTest {
 
     private Njams njams;
@@ -73,15 +72,6 @@ public class JobInstrumentedTest {
     }
 
     @Test
-    public void exclusiveModeSendsJobThatIsInstrumented() {
-        JobImpl job = createStartedJob(LogMode.EXCLUSIVE);
-        job.activities().create(process.getActivity("act")).build();
-        job.setInstrumented();
-
-        assertEquals(1, endJobAndCountLogMessages(job));
-    }
-
-    @Test
     public void completeModeSendsJobThatIsNotInstrumented() {
         JobImpl job = createStartedJob(LogMode.COMPLETE);
         job.activities().create(process.getActivity("act")).build();
@@ -105,17 +95,6 @@ public class JobInstrumentedTest {
         JobImpl job = createStartedJob(LogMode.COMPLETE);
 
         assertFalse(job.tracing().isInstrumented());
-    }
-
-    @Test
-    public void facetFlagIsSharedWithDeprecatedJobImplMethod() {
-        JobImpl job = createStartedJob(LogMode.COMPLETE);
-        job.setInstrumented();
-        assertTrue(job.tracing().isInstrumented());
-
-        JobImpl other = createStartedJob(LogMode.COMPLETE);
-        other.tracing().setInstrumented();
-        assertTrue(other.tracing().isInstrumented());
     }
 
     @Test

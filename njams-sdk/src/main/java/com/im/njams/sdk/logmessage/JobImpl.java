@@ -24,8 +24,6 @@
 package com.im.njams.sdk.logmessage;
 
 import java.time.LocalDateTime;
-import java.util.Collection;
-import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.slf4j.Logger;
@@ -37,13 +35,10 @@ import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.common.DateTimeUtility;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
-import com.im.njams.sdk.Path;
 import com.im.njams.sdk.configuration.ActivityConfiguration;
 import com.im.njams.sdk.configuration.TracepointExt;
 import com.im.njams.sdk.model.ActivityModel;
-import com.im.njams.sdk.model.GroupModel;
 import com.im.njams.sdk.model.ProcessModel;
-import com.im.njams.sdk.model.SubProcessActivityModel;
 
 /**
  * This represents an instance of a process/flow etc in engine to monitor.
@@ -114,7 +109,7 @@ public class JobImpl implements Job {
     boolean hasOrHadStartActivity;
 
     // volatile: read without locking by requireNotFinished/getStatus on any thread; written under
-    // activitiesLock in end() and discard(). A reader observing finished==true also observes the
+    // activitiesLock in end(boolean) and discard(). A reader observing finished==true also observes the
     // final lastStatus.
     private volatile boolean finished = false;
 
@@ -161,7 +156,7 @@ public class JobImpl implements Job {
         setStatusAndSeverity(JobStatus.CREATED);
         this.processModel = processModel;
         njams = processModel.getNjams();
-        // must be set before initFromConfiguration: addAttribute already applies payload limits
+        // must be set before the recorded attribute is added below: attributes already apply payload limits
         jobSettings = JobSettings.of(njams.getSettings());
         errorHandling = new JobErrorHandling(this, jobSettings);
         truncation = new JobTruncation(this, jobSettings);
@@ -169,140 +164,13 @@ public class JobImpl implements Job {
         flusher = new JobFlusher(processModel, activities, attributes, metadata, tracing, runtimeConfig,
                 truncation, activitiesLock);
         if (runtimeConfig.addRecordedAttribute) {
-            addAttribute(RECORDED_ATTRIBUTE, "true");
+            attributes.addInternal(RECORDED_ATTRIBUTE, "true");
         }
         //It is used as the default startTime, if no other startTime will be set.
         //If a startTime is set afterwards with setStartTime, startTimeExplicitlySet
         //will be set to true.
         startTime = DateTimeUtility.now();
         startTimeExplicitlySet = false;
-    }
-
-    /**
-     * Creates ActivityBuilder with a given ActivityModel.
-     *
-     * @param activityModel to create
-     * @return a builder
-     * @deprecated See {@link Job#createActivity(ActivityModel)}.
-     */
-    @Deprecated(since = "6.0.0", forRemoval = true)
-    @Override
-    public ActivityBuilder createActivity(ActivityModel activityModel) {
-        return activities.create(activityModel, this);
-    }
-
-    /**
-     * Creates GroupBuilder with a given GroupModel.
-     *
-     * @param groupModel to create
-     * @return a builder
-     * @deprecated See {@link Job#createGroup(GroupModel)}.
-     */
-    @Deprecated(since = "6.0.0", forRemoval = true)
-    @Override
-    public GroupBuilder createGroup(GroupModel groupModel) {
-        return activities.createGroup(groupModel, this);
-    }
-
-    /**
-     * Creates SubProcessBuilder with a given SubProcessModel.
-     *
-     * @param groupModel to create
-     * @return a builder
-     * @deprecated See {@link Job#createSubProcess(SubProcessActivityModel)}.
-     */
-    @Deprecated(since = "6.0.0", forRemoval = true)
-    @Override
-    public SubProcessActivityBuilder createSubProcess(SubProcessActivityModel groupModel) {
-        return activities.createSubProcess(groupModel, this);
-    }
-
-    /**
-     * Adds a new Activity to the Job. If the job is not started or is a start
-     * activity, but not the only one in this job, a NjamsSdkRuntimeException
-     * will be thrown.
-     *
-     * @param activity to add to this job.
-     * @deprecated See {@link Job#addActivity(Activity)}.
-     */
-    @Deprecated(since = "6.0.0", forRemoval = true)
-    @Override
-    public void addActivity(final Activity activity) {
-        activities.add(activity, this, true);
-    }
-
-    /**
-     * Returns an activity for a given instanceId.
-     *
-     * @param activityInstanceId to get
-     * @return the {@link Activity}
-     * @deprecated See {@link Job#getActivityByInstanceId(String)}.
-     */
-    @Deprecated(since = "6.0.0", forRemoval = true)
-    @Override
-    public Activity getActivityByInstanceId(String activityInstanceId) {
-        return activities.getByInstanceId(activityInstanceId);
-    }
-
-    /**
-     * Returns the last added activity to a given modelId.
-     *
-     * @param activityModelId to get
-     * @return the {@link Activity}
-     * @deprecated See {@link Job#getActivityByModelId(String)}.
-     */
-    @Deprecated(since = "6.0.0", forRemoval = true)
-    @Override
-    public Activity getActivityByModelId(String activityModelId) {
-        return activities.getByModelId(activityModelId);
-    }
-
-    /**
-     * Returns the last added and running activity to a given modelId.
-     *
-     * @param activityModelId to get
-     * @return the {@link Activity}
-     * @deprecated See {@link Job#getRunningActivityByModelId(String)}.
-     */
-    @Deprecated(since = "6.0.0", forRemoval = true)
-    @Override
-    public Activity getRunningActivityByModelId(String activityModelId) {
-        return activities.getRunningByModelId(activityModelId);
-    }
-
-    /**
-     * Returns the last added and completed activity to a given modelId.
-     *
-     * @param activityModelId to get
-     * @return the {@link Activity}
-     * @deprecated See {@link Job#getCompletedActivityByModelId(String)}.
-     */
-    @Deprecated(since = "6.0.0", forRemoval = true)
-    @Override
-    public Activity getCompletedActivityByModelId(String activityModelId) {
-        return activities.getCompletedByModelId(activityModelId);
-    }
-
-    /**
-     * Return the start activity, might return null if the startActivity hasn't been set or if it has already been flushed.
-     *
-     * @return the start activity or null
-     * @deprecated See {@link Job#getStartActivity()}.
-     */
-    @Deprecated(since = "6.0.0", forRemoval = true)
-    @Override
-    public Activity getStartActivity() {
-        return activities.getStart();
-    }
-
-    /**
-     * {@inheritDoc}
-     * @deprecated See {@link Job#getActivities()}.
-     */
-    @Deprecated(since = "6.0.0", forRemoval = true)
-    @Override
-    public Collection<Activity> getActivities() {
-        return activities.getAll();
     }
 
     /**
@@ -438,25 +306,9 @@ public class JobImpl implements Job {
      * @param errorActivity The activity instance on that the given error occurred.
      * @param errorEvent    Information about the error that occurred. This information is used for
      *                      generating an according event if required.
-     * @deprecated SDK-internal error handling, not part of the public API; there is no
-     *             replacement — error events are recorded by the SDK's activity processing.
      */
-    @Deprecated(since = "6.0.0", forRemoval = true)
-    public void setActivityErrorEvent(Activity errorActivity, ErrorEvent errorEvent) {
+    void setActivityErrorEvent(Activity errorActivity, ErrorEvent errorEvent) {
         errorHandling.setActivityErrorEvent(errorActivity, errorEvent);
-    }
-
-    /**
-     * Set the logMessage status to success if the status is running. Then flush
-     * it. If the job has been finished before or if the job hasn't been started
-     * before it is finished, an NjamsSdkRuntimeException is thrown.
-     *
-     * @deprecated Replaced by {@link #end(boolean)}
-     */
-    @Override
-    @Deprecated
-    public void end() {
-        end(true);
     }
 
     /**
@@ -513,155 +365,6 @@ public class JobImpl implements Job {
     public JobStatus getStatus() {
         return finished ? lastStatus : hasStarted() ? JobStatus.RUNNING : JobStatus.CREATED;
 
-    }
-
-    /**
-     * Sets the correlation log id of this job.
-     *
-     * @param correlationLogId correlation log id
-     * @deprecated See {@link Job#setCorrelationLogId(String)}.
-     */
-    @Deprecated(since = "6.0.0", forRemoval = true)
-    @Override
-    public void setCorrelationLogId(final String correlationLogId) {
-        warnIfFinished("setCorrelationLogId", "metadata().setCorrelationLogId(...)");
-        metadata.setCorrelationLogIdInternal(correlationLogId);
-    }
-
-    /**
-     * Returns the correlation log id of this job.
-     *
-     * @return collreation log id
-     * @deprecated See {@link Job#getCorrelationLogId()}.
-     */
-    @Deprecated(since = "6.0.0", forRemoval = true)
-    @Override
-    public String getCorrelationLogId() {
-        return metadata.getCorrelationLogId();
-    }
-
-    /**
-     * Set the parentLogId
-     *
-     * @param parentLogId parentLogId to set
-     * @deprecated See {@link Job#setParentLogId(String)}.
-     */
-    @Deprecated(since = "6.0.0", forRemoval = true)
-    @Override
-    public void setParentLogId(String parentLogId) {
-        warnIfFinished("setParentLogId", "metadata().setParentLogId(...)");
-        metadata.setParentLogIdInternal(parentLogId);
-    }
-
-    /**
-     * Return the parentLogId
-     *
-     * @return the parentLogId
-     * @deprecated See {@link Job#getParentLogId()}.
-     */
-    @Deprecated(since = "6.0.0", forRemoval = true)
-    @Override
-    public String getParentLogId() {
-        return metadata.getParentLogId();
-    }
-
-    /**
-     * Set the externalLogId
-     *
-     * @param externalLogId texternalLogId to set
-     * @deprecated See {@link Job#setExternalLogId(String)}.
-     */
-    @Deprecated(since = "6.0.0", forRemoval = true)
-    @Override
-    public void setExternalLogId(String externalLogId) {
-        warnIfFinished("setExternalLogId", "metadata().setExternalLogId(...)");
-        metadata.setExternalLogIdInternal(externalLogId);
-    }
-
-    /**
-     * Return the externalLogId
-     *
-     * @return the externalLogId
-     * @deprecated See {@link Job#getExternalLogId()}.
-     */
-    @Deprecated(since = "6.0.0", forRemoval = true)
-    @Override
-    public String getExternalLogId() {
-        return metadata.getExternalLogId();
-    }
-
-    /**
-     * Set the businessService as String
-     *
-     * @param businessService businessService to set
-     * @deprecated See {@link Job#setBusinessService(String)}.
-     */
-    @Deprecated(since = "6.0.0", forRemoval = true)
-    @Override
-    public void setBusinessService(String businessService) {
-        setBusinessService(Path.resolve(businessService));
-    }
-
-    /**
-     * Set the businessService as Path
-     *
-     * @param businessService businessService to set
-     * @deprecated See {@link Job#setBusinessService(Path)}.
-     */
-    @Deprecated(since = "6.0.0", forRemoval = true)
-    @Override
-    public void setBusinessService(Path businessService) {
-        warnIfFinished("setBusinessService", "metadata().setBusinessService(...)");
-        metadata.setBusinessServiceInternal(businessService);
-    }
-
-    /**
-     * Return the businessService
-     *
-     * @return the businessService
-     * @deprecated See {@link Job#getBusinessService()}.
-     */
-    @Deprecated(since = "6.0.0", forRemoval = true)
-    @Override
-    public String getBusinessService() {
-        return metadata.getBusinessService();
-    }
-
-    /**
-     * Set the businessObject as String
-     *
-     * @param businessObject businessObject to set
-     * @deprecated See {@link Job#setBusinessObject(String)}.
-     */
-    @Deprecated(since = "6.0.0", forRemoval = true)
-    @Override
-    public void setBusinessObject(String businessObject) {
-        setBusinessObject(Path.resolve(businessObject));
-    }
-
-    /**
-     * Set the binsessObject as Path
-     *
-     * @param businessObject businessObject to set
-     * @deprecated See {@link Job#setBusinessObject(Path)}.
-     */
-    @Deprecated(since = "6.0.0", forRemoval = true)
-    @Override
-    public void setBusinessObject(Path businessObject) {
-        warnIfFinished("setBusinessObject", "metadata().setBusinessObject(...)");
-        metadata.setBusinessObjectInternal(businessObject);
-    }
-
-    /**
-     * Return the businessObject
-     *
-     * @return the businessObject
-     * @deprecated See {@link Job#getBusinessObject()}.
-     */
-    @Deprecated(since = "6.0.0", forRemoval = true)
-    @Override
-    public String getBusinessObject() {
-        return metadata.getBusinessObject();
     }
 
     /**
@@ -724,7 +427,7 @@ public class JobImpl implements Job {
     /**
      * Indicates whether the job is already finished or not.
      *
-     * @return <b>true</b> if and only if the job is already finished (if end()
+     * @return <b>true</b> if and only if the job is already finished (if {@link #end(boolean)}
      * was called), else
      * <b>false</b>
      */
@@ -734,8 +437,8 @@ public class JobImpl implements Job {
     }
 
     /**
-     * Guard for the new facet API: data changed after end() is never sent to the nJAMS server,
-     * because the final log message has already been flushed.
+     * Guard for the facet API: data changed after {@link #end(boolean)} is never sent to the nJAMS
+     * server, because the final log message has already been flushed.
      */
     void requireNotFinished(String operation) {
         if (finished) {
@@ -746,187 +449,9 @@ public class JobImpl implements Job {
     }
 
     /**
-     * Lenient-legacy guard: where the new facet API rejects a call after end(), the deprecated
-     * facade method only logs a warning and proceeds, so that existing client code keeps working
-     * throughout the deprecation period.
-     */
-    private void warnIfFinished(String oldMethod, String replacement) {
-        if (finished) {
-            LOG.warn("{} was called after end(); the change will not be sent to the nJAMS server."
-                    + " The replacement API {} rejects this call.", oldMethod, replacement);
-        }
-    }
-
-    /**
-     * Return the Attribute name to a given value
-     *
-     * @param name attribute name
-     * @return attribute value
-     * @deprecated See {@link Job#getAttribute(String)}.
-     */
-    @Deprecated(since = "6.0.0", forRemoval = true)
-    @Override
-    public String getAttribute(final String name) {
-        return attributes.get(name);
-    }
-
-    /**
-     * Returns a detached copy of all attributes for this job. I.e., any modification on the returned map has no effect
-     * on this job instance!
-     *
-     * @return list of attributes
-     * @deprecated See {@link Job#getAttributes()}.
-     */
-    @Deprecated(since = "6.0.0", forRemoval = true)
-    @Override
-    public Map<String, String> getAttributes() {
-        return attributes.getAll();
-    }
-
-    /**
-     * Return if the job contains a attribute for a given name
-     *
-     * @param name attribute name to check
-     * @return true if found, false if not found
-     * @deprecated See {@link Job#hasAttribute(String)}.
-     */
-    @Deprecated(since = "6.0.0", forRemoval = true)
-    @Override
-    public boolean hasAttribute(final String name) {
-        return attributes.has(name);
-    }
-
-    /**
-     * Marks that a job shall collect trace information for each activity
-     * (including sub processes).
-     *
-     * @param deepTrace <b>true</b> if deep trace shall be activated.
-     * @deprecated See {@link Job#setDeepTrace(boolean)}.
-     */
-    @Deprecated(since = "6.0.0", forRemoval = true)
-    @Override
-    public void setDeepTrace(boolean deepTrace) {
-        tracing.setDeepTrace(deepTrace);
-    }
-
-    /**
-     * Indicates that trace information shall be collected for all activites of
-     * this job (including sub processes).
-     *
-     * @return <b>true</b> if and only if deep trace is enabled.
-     * @deprecated See {@link Job#isDeepTrace()}.
-     */
-    @Deprecated(since = "6.0.0", forRemoval = true)
-    @Override
-    public boolean isDeepTrace() {
-        return tracing.isDeepTrace();
-    }
-
-    /**
-     * Return the last push LocalDateTime
-     *
-     * @return the last push LocalDateTime
-     * @deprecated SDK-internal flush bookkeeping, not part of the public API; there is no
-     *             replacement.
-     */
-    @Deprecated(since = "6.0.0", forRemoval = true)
-    public LocalDateTime getLastFlush() {
-        return flusher.getLastFlush();
-    }
-
-    /**
-     * Marks this job instance as instrumented.
-     *
-     * @deprecated Use {@code job.tracing().setInstrumented()} instead — obtain the facet via
-     *             {@link #tracing()} and call {@link JobTracing#setInstrumented()}.
-     */
-    @Deprecated(since = "6.0.0", forRemoval = true)
-    public void setInstrumented() {
-        tracing.setInstrumented();
-    }
-
-    /**
-     * @return the traces
-     * @deprecated See {@link Job#isTraces()}.
-     */
-    @Deprecated(since = "6.0.0", forRemoval = true)
-    @Override
-    public boolean isTraces() {
-        return tracing.isTraces();
-    }
-
-    /**
-     * @param traces the traces to set
-     * @deprecated SDK-internal tracing mechanics, not part of the public API; there is no
-     *             replacement — the traces flag is maintained by the SDK's tracepoint handling.
-     */
-    @Deprecated(since = "6.0.0", forRemoval = true)
-    public void setTraces(boolean traces) {
-        tracing.setTraces(traces);
-    }
-
-    /**
-     * Gets a properties value. Properties will not be send within project
-     * messages.
-     *
-     * @param key name of the property
-     * @return Properties value of <b>null</b>
-     * @deprecated See {@link Job#getProperty(String)}.
-     */
-    @Deprecated(since = "6.0.0", forRemoval = true)
-    @Override
-    public Object getProperty(final String key) {
-        return properties.get(key);
-    }
-
-    /**
-     * Checks whether the activity has a property with a given name.
-     *
-     * @param key name of the property
-     * @return <b>true</b> if and only if a property with the given name exists.
-     * @deprecated See {@link Job#hasProperty(String)}.
-     */
-    @Deprecated(since = "6.0.0", forRemoval = true)
-    @Override
-    public boolean hasProperty(final String key) {
-        return properties.has(key);
-    }
-
-    /**
-     * Sets a properties value. Properties will not be send within project
-     * messages.
-     *
-     * @param key   name of the property
-     * @param value value of the property
-     * @deprecated See {@link Job#setProperty(String, Object)}.
-     */
-    @Deprecated(since = "6.0.0", forRemoval = true)
-    @Override
-    public void setProperty(final String key, final Object value) {
-        properties.set(key, value);
-    }
-
-    /**
-     * Removes the property with a given name
-     *
-     * @param key name of the property
-     * @return Previous value of the property (if it existed) or else
-     * <b>null</b>.
-     * @deprecated See {@link Job#removeProperty(String)}.
-     */
-    @Deprecated(since = "6.0.0", forRemoval = true)
-    @Override
-    public Object removeProperty(final String key) {
-        return properties.remove(key);
-    }
-
-    /**
      * @return the estimatedSize
-     * @deprecated SDK-internal flush bookkeeping, not part of the public API; there is no
-     *             replacement.
      */
-    @Deprecated(since = "6.0.0", forRemoval = true)
-    public long getEstimatedSize() {
+    long getEstimatedSize() {
         return flusher.getEstimatedSize();
     }
 
@@ -934,11 +459,8 @@ public class JobImpl implements Job {
      * Add estimatedSize to the estimatedSize of the activity
      *
      * @param estimatedSize estimatedSize to add
-     * @deprecated SDK-internal flush bookkeeping, not part of the public API; there is no
-     *             replacement.
      */
-    @Deprecated(since = "6.0.0", forRemoval = true)
-    public void addToEstimatedSize(long estimatedSize) {
+    void addToEstimatedSize(long estimatedSize) {
         flusher.addToEstimatedSize(estimatedSize);
     }
 
@@ -959,11 +481,8 @@ public class JobImpl implements Job {
      *
      * @param tracepoint The tracepoint to check
      * @return <code>true</code> if the given tracepoint configuration is currently active.
-     * @deprecated SDK-internal tracing mechanics, not part of the public API; there is no
-     *             replacement — tracepoints are evaluated by the SDK's activity processing.
      */
-    @Deprecated(since = "6.0.0", forRemoval = true)
-    public boolean isActiveTracepoint(TracepointExt tracepoint) {
+    boolean isActiveTracepoint(TracepointExt tracepoint) {
         return runtimeConfig.isActiveTracepoint(tracepoint);
     }
 
@@ -972,11 +491,8 @@ public class JobImpl implements Job {
      *
      * @param activityModel The model for that configuration shall be returned.
      * @return May be <code>null</code> if no configuration exists.
-     * @deprecated SDK-internal configuration lookup, not part of the public API; there is no
-     *             replacement — activity configurations are resolved by the SDK.
      */
-    @Deprecated(since = "6.0.0", forRemoval = true)
-    public ActivityConfiguration getActivityConfiguration(ActivityModel activityModel) {
+    ActivityConfiguration getActivityConfiguration(ActivityModel activityModel) {
         return runtimeConfig.getActivityConfiguration(activityModel);
     }
 
@@ -984,11 +500,8 @@ public class JobImpl implements Job {
      * Return if recording is activated for this job
      *
      * @return true if activated, false if not
-     * @deprecated SDK-internal configuration state, not part of the public API; there is no
-     *             replacement.
      */
-    @Deprecated(since = "6.0.0", forRemoval = true)
-    public boolean isRecording() {
+    boolean isRecording() {
         return runtimeConfig.recording;
     }
 
@@ -1044,7 +557,7 @@ public class JobImpl implements Job {
      */
     void revokeRecorded() {
         if (runtimeConfig.addRecordedAttribute) {
-            addAttribute(RECORDED_ATTRIBUTE, "false");
+            attributes.addInternal(RECORDED_ATTRIBUTE, "false");
         }
     }
 
@@ -1062,56 +575,6 @@ public class JobImpl implements Job {
     public void addPluginDataItem(
             com.faizsiegeln.njams.messageformat.v4.logmessage.interfaces.IPluginDataItem pluginDataItem) {
         flusher.addPluginDataItem((PluginDataItem) pluginDataItem);
-    }
-
-    /**
-     * This method sets the businessStart in the ActivityImpl
-     *
-     * @param businessStart the businessStart to set
-     * @deprecated See {@link Job#setBusinessStart(LocalDateTime)}.
-     */
-    @Deprecated(since = "6.0.0", forRemoval = true)
-    @Override
-    public void setBusinessStart(LocalDateTime businessStart) {
-        warnIfFinished("setBusinessStart", "metadata().setBusinessStart(...)");
-        metadata.setBusinessStartInternal(businessStart);
-    }
-
-    /**
-     * {@inheritDoc}
-     *
-     * @return {@inheritDoc}
-     * @deprecated See {@link Job#getBusinessStart()}.
-     */
-    @Deprecated(since = "6.0.0", forRemoval = true)
-    @Override
-    public LocalDateTime getBusinessStart() {
-        return metadata.getBusinessStart();
-    }
-
-    /**
-     * This method sets the businessEnd in the ActivityImpl
-     *
-     * @param businessEnd the businessEnd to set
-     * @deprecated See {@link Job#setBusinessEnd(LocalDateTime)}.
-     */
-    @Deprecated(since = "6.0.0", forRemoval = true)
-    @Override
-    public void setBusinessEnd(LocalDateTime businessEnd) {
-        warnIfFinished("setBusinessEnd", "metadata().setBusinessEnd(...)");
-        metadata.setBusinessEndInternal(businessEnd);
-    }
-
-    /**
-     * {@inheritDoc}
-     *
-     * @return {@inheritDoc}
-     * @deprecated See {@link Job#getBusinessEnd()}.
-     */
-    @Deprecated(since = "6.0.0", forRemoval = true)
-    @Override
-    public LocalDateTime getBusinessEnd() {
-        return metadata.getBusinessEnd();
     }
 
     /**
@@ -1180,29 +643,11 @@ public class JobImpl implements Job {
     }
 
     /**
-     * This method is used to put attributes in the attributes map.
-     *
-     * @param key   the key to set
-     * @param value the value to set
-     * @deprecated See {@link Job#addAttribute(String, String)}.
-     */
-    @Deprecated(since = "6.0.0", forRemoval = true)
-    @Override
-    public void addAttribute(final String key, String value) {
-        warnIfFinished("addAttribute", "attributes().add(...)");
-        attributes.addInternal(key, value);
-    }
-
-    /**
      * Returns the {@link Njams} client instance owning this job.
      *
      * @return the owning client instance
-     * @deprecated SDK-internal back-reference, not part of the public API; there is no
-     *             replacement — client code should keep its own reference to its {@link Njams}
-     *             instance.
      */
-    @Deprecated(since = "6.0.0", forRemoval = true)
-    public Njams getNjams() {
+    Njams getNjams() {
         return njams;
     }
 
@@ -1221,11 +666,8 @@ public class JobImpl implements Job {
      * @param value     The input value that is returned but possibly truncated
      * @param maxLength Maximum length for the returned string
      * @return The given input but no longer than the given maximum length
-     * @deprecated SDK-internal helper, not part of the public API; there is no replacement —
-     *             field values are limited transparently by the SDK.
      */
-    @Deprecated(since = "6.0.0", forRemoval = true)
-    public static String limitLength(String fieldName, String value, int maxLength) {
+    static String limitLength(String fieldName, String value, int maxLength) {
         if (value != null && value.length() > maxLength) {
             LOG.warn("Value of field '{}' exceeds max length of {} characters. Value will be truncated.", fieldName,
                     maxLength);

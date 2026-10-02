@@ -40,7 +40,7 @@ public class JobTruncationTest extends AbstractTest {
     }
 
     private ActivityImpl activity(JobImpl job, String modelId, boolean withEvent) {
-        ActivityImpl a = (ActivityImpl) job.createActivity(model(modelId)).build();
+        ActivityImpl a = (ActivityImpl) job.activities().create(model(modelId)).build();
         if (withEvent) {
             a.setEventCode("code");
         }

@@ -177,7 +177,7 @@ public class ExtractHandlerTest {
         JobImpl job = (JobImpl) process.createJob();
         job.start();
 
-        return (ActivityImpl) job.createActivity(model).build();
+        return (ActivityImpl) job.activities().create(model).build();
 
     }
 

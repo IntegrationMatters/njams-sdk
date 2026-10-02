@@ -102,7 +102,7 @@ public class JobImplTest extends AbstractTest {
         //This is set so the job can flush.
         job.setStatus(JobStatus.ERROR);
         //Create a group with four children
-        GroupImpl group = (GroupImpl) job.createGroup(mockGroupModel("start")).build();
+        GroupImpl group = (GroupImpl) job.activities().createGroup(mockGroupModel("start")).build();
         Activity child1 = group.createChildActivity(mockModel("child1")).build();
         Activity child2 = group.createChildActivity(mockModel("child2")).build();
         Activity child3 = group.createChildActivity(mockModel("child3")).build();
@@ -111,7 +111,7 @@ public class JobImplTest extends AbstractTest {
         //This shouldn't remove any child, because they are all RUNNING
         job.flush();
         //Neither in the JobImpl object
-        Collection<Activity> jobActivities = job.getActivities();
+        Collection<Activity> jobActivities = job.activities().getAll();
         assertTrue(jobActivities.contains(child1));
         assertTrue(jobActivities.contains(child2));
         assertTrue(jobActivities.contains(child3));
@@ -129,7 +129,7 @@ public class JobImplTest extends AbstractTest {
         child3.setActivityStatus(ActivityStatus.ERROR);
         //This should remove child 1,2 and 3, but not 4 from the JobImpl object
         job.flush();
-        jobActivities = job.getActivities();
+        jobActivities = job.activities().getAll();
         assertFalse(jobActivities.contains(child1));
         assertFalse(jobActivities.contains(child2));
         assertFalse(jobActivities.contains(child3));
@@ -187,7 +187,7 @@ public class JobImplTest extends AbstractTest {
         fillJob(job);
 
         //This sets the job end time and flushes
-        job.end();
+        job.end(true);
         checkAllFields();
 
     }
@@ -199,13 +199,13 @@ public class JobImplTest extends AbstractTest {
      */
     private void fillJob(JobImpl job) {
         //Fill the job with everything that will be posted in the logmessage
-        job.setParentLogId("SomeParentLogId");
-        job.setExternalLogId("SomeExternalLogId");
-        job.setBusinessService("SomeBusinessService");
-        job.setBusinessObject("SomeBusinessObject");
-        job.setBusinessStart(LocalDateTime.now());
-        job.setBusinessEnd(LocalDateTime.now());
-        job.addAttribute("SomeAttributeKey", "SomeAttributeValue");
+        job.metadata().setParentLogId("SomeParentLogId");
+        job.metadata().setExternalLogId("SomeExternalLogId");
+        job.metadata().setBusinessService("SomeBusinessService");
+        job.metadata().setBusinessObject("SomeBusinessObject");
+        job.metadata().setBusinessStart(LocalDateTime.now());
+        job.metadata().setBusinessEnd(LocalDateTime.now());
+        job.attributes().add("SomeAttributeKey", "SomeAttributeValue");
     }
 
     /**
@@ -338,7 +338,7 @@ public class JobImplTest extends AbstractTest {
         assertEquals(JobStatus.RUNNING, job.getStatus());
         assertFalse(job.isFinished());
         //End
-        job.end();
+        job.end(true);
         assertEquals(JobStatus.ERROR, job.getStatus());
         assertTrue(job.isFinished());
         //Even with Running
@@ -434,69 +434,21 @@ public class JobImplTest extends AbstractTest {
     public void testJobEndWithoutStart() {
         JobImpl job = createDefaultJob();
 
-        job.end();
+        job.end(true);
         assertTrue(job.getStatus() == JobStatus.SUCCESS);
-    }
-
-    /**
-     * This method tests if a job throws an exception if someone tries to add an
-     * activity without starting the job first.
-     */
-    @Test(expected = NjamsSdkRuntimeException.class)
-    public void testAddActivityWithoutStart() {
-        JobImpl job = createDefaultJob();
-
-        Activity act = mock(Activity.class);
-        //This should throw an Exception
-        job.addActivity(act);
-    }
-
-    /**
-     * This method tests if a job adds an attribute correctly after the job has
-     * been started.
-     */
-    @Test
-    public void testAddAttributeWithStart() {
-        JobImpl job = createDefaultJob();
-        job.start();
-        job.addAttribute("a", "b");
-        assertEquals(job.getAttribute("a"), "b");
-    }
-
-    /**
-     * This method tests if a job can add an attribute without starting the job
-     * first.
-     */
-    @Test
-    public void testAddAttributeWithoutStart() {
-        JobImpl job = createDefaultJob();
-
-        //This should work
-        job.addAttribute("a", "b");
-        assertEquals("b", job.getAttribute("a"));
-    }
-
-    @Test
-    public void testAddAttributeFlushAndGetAttribute() {
-        JobImpl job = createDefaultJob();
-
-        job.addAttribute("a", "b");
-        job.flush();
-        assertFalse(job.getAttributes().isEmpty());
-        assertEquals("b", job.getAttribute("a"));
     }
 
     @Test
     public void testSetStartActivity() {
         JobImpl job = createDefaultStartedJob();
 
-        assertNull(job.getStartActivity());
+        assertNull(job.activities().getStart());
         assertFalse(job.hasOrHadStartActivity);
 
         Activity startedActivity = getStartedActivityForJob(job);
 
         assertTrue(startedActivity.isStarter());
-        assertEquals(startedActivity, job.getStartActivity());
+        assertEquals(startedActivity, job.activities().getStart());
         assertTrue(job.hasOrHadStartActivity);
     }
 
@@ -512,7 +464,7 @@ public class JobImplTest extends AbstractTest {
 
         job.flush();
 
-        assertNull(job.getStartActivity());
+        assertNull(job.activities().getStart());
         assertTrue(job.hasOrHadStartActivity);
     }
 
@@ -535,40 +487,10 @@ public class JobImplTest extends AbstractTest {
 
         job.flush();
 
-        assertNull(job.getStartActivity());
+        assertNull(job.activities().getStart());
         assertTrue(job.hasOrHadStartActivity);
 
         getStartedActivityForJob(job);
-    }
-
-    @Test
-    public void testGetActivityByInstanceIdReturnsActivity() {
-        JobImpl job = createDefaultStartedJob();
-        Activity activity = createDefaultActivity(job);
-        String instanceId = activity.getInstanceId();
-
-        assertEquals(activity, job.getActivityByInstanceId(instanceId));
-    }
-
-    @Test
-    public void testGetActivityByInstanceIdReturnsNullForUnknownId() {
-        JobImpl job = createDefaultStartedJob();
-        createDefaultActivity(job);
-
-        assertNull(job.getActivityByInstanceId("nonexistent-id"));
-    }
-
-    @Test
-    public void testGetActivitiesReturnsAllAddedActivities() {
-        JobImpl job = createDefaultStartedJob();
-        Activity act1 = createDefaultActivity(job);
-        ActivityModel model2 = process.createActivity("act2", "Act2", null);
-        Activity act2 = job.createActivity(model2).build();
-
-        Collection<Activity> activities = job.getActivities();
-        assertEquals(2, activities.size());
-        assertTrue(activities.contains(act1));
-        assertTrue(activities.contains(act2));
     }
 
     @Test
@@ -614,7 +536,7 @@ public class JobImplTest extends AbstractTest {
     @Test
     public void eventPayloadIncreasesEstimatedSize() {
         JobImpl job = createDefaultStartedJob();
-        ActivityImpl act = (ActivityImpl) job.createActivity(getDefaultActivityModelForTest()).build();
+        ActivityImpl act = (ActivityImpl) job.activities().create(getDefaultActivityModelForTest()).build();
         long before = job.getEstimatedSize();
         act.setEventPayload("0123456789"); // 10 chars
         assertTrue("event payload must increase the estimate",
@@ -627,7 +549,7 @@ public class JobImplTest extends AbstractTest {
         // is therefore at or after this, so the interval clause cannot trigger regardless of timing.
         LocalDateTime beforeJob = DateTimeUtility.now();
         JobImpl job = spy(createDefaultStartedJob());
-        job.createActivity(getDefaultActivityModelForTest()).build();
+        job.activities().create(getDefaultActivityModelForTest()).build();
         // interval not reached and size well below limit -> no flush
         job.timerFlush(beforeJob, 5_000_000L);
         Mockito.verify(job, Mockito.never()).flush();
@@ -639,8 +561,8 @@ public class JobImplTest extends AbstractTest {
         long before = job.getEstimatedSize(); // 1000
         ActivityModel m1 = process.createActivity("growA1", "GrowA1", null);
         ActivityModel m2 = process.createActivity("growA2", "GrowA2", null);
-        job.createActivity(m1).build();
-        job.createActivity(m2).build();
+        job.activities().create(m1).build();
+        job.activities().create(m2).build();
         // Each plain activity must contribute its base size to the running estimate
         // *before* any flush recompute.
         assertEquals(before + 2 * ActivityImpl.BASE_ESTIMATED_SIZE, job.getEstimatedSize());
@@ -649,7 +571,7 @@ public class JobImplTest extends AbstractTest {
     @Test
     public void eventMessageIncreasesEstimatedSize() {
         JobImpl job = createDefaultStartedJob();
-        ActivityImpl act = (ActivityImpl) job.createActivity(
+        ActivityImpl act = (ActivityImpl) job.activities().create(
             process.createActivity("evtMsgAct", "EvtMsgAct", null)).build();
         long before = job.getEstimatedSize();
         act.setEventMessage("0123456789"); // 10 chars
@@ -659,7 +581,7 @@ public class JobImplTest extends AbstractTest {
     @Test
     public void eventCodeIncreasesEstimatedSize() {
         JobImpl job = createDefaultStartedJob();
-        ActivityImpl act = (ActivityImpl) job.createActivity(
+        ActivityImpl act = (ActivityImpl) job.activities().create(
             process.createActivity("evtCodeAct", "EvtCodeAct", null)).build();
         long before = job.getEstimatedSize();
         act.setEventCode("ABCDE"); // 5 chars
@@ -670,14 +592,14 @@ public class JobImplTest extends AbstractTest {
     public void attributeIncreasesEstimatedSize() {
         JobImpl job = createDefaultStartedJob();
         long before = job.getEstimatedSize();
-        job.addAttribute("key", "value"); // 3 + 5 = 8 chars
+        job.attributes().add("key", "value"); // 3 + 5 = 8 chars
         assertEquals(before + 8, job.getEstimatedSize());
     }
 
     @Test
     public void stackTraceIncreasesEstimatedSize() {
         JobImpl job = createDefaultStartedJob();
-        ActivityImpl act = (ActivityImpl) job.createActivity(
+        ActivityImpl act = (ActivityImpl) job.activities().create(
             process.createActivity("stackAct", "StackAct", null)).build();
         long before = job.getEstimatedSize();
         act.setStackTrace("0123456789"); // 10 chars
@@ -687,7 +609,7 @@ public class JobImplTest extends AbstractTest {
     @Test
     public void startDataIncreasesEstimatedSize() {
         JobImpl job = createDefaultStartedJob();
-        ActivityImpl act = (ActivityImpl) job.createActivity(
+        ActivityImpl act = (ActivityImpl) job.activities().create(
             process.createActivity("startDataAct", "StartDataAct", null)).build();
         long before = job.getEstimatedSize();
         act.setStartData("ABCDE"); // 5 chars
@@ -701,7 +623,7 @@ public class JobImplTest extends AbstractTest {
         // Add enough plain activities that the running estimate crosses a small flush size,
         // even though none of them carry payloads/traces.
         for (int i = 0; i < 5; i++) {
-            job.createActivity(process.createActivity("sizeAct" + i, "SizeAct" + i, null)).build();
+            job.activities().create(process.createActivity("sizeAct" + i, "SizeAct" + i, null)).build();
         }
         // Flush size below the accumulated base sizes; interval not yet due.
         long smallFlushSize = 1000L + 2 * ActivityImpl.BASE_ESTIMATED_SIZE;
@@ -716,7 +638,7 @@ public class JobImplTest extends AbstractTest {
         JobImpl job = spy(createDefaultStartedJob());
         job.setStatus(JobStatus.ERROR); // ensure the job is eligible to flush
 
-        Activity activity = job.createActivity(getDefaultActivityModelForTest()).build();
+        Activity activity = job.activities().create(getDefaultActivityModelForTest()).build();
 
         // First flush streams the still-RUNNING activity; it is now marked as already flushed.
         job.flush();

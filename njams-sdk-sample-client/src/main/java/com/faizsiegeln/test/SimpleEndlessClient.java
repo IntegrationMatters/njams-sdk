@@ -112,7 +112,7 @@ public class SimpleEndlessClient {
             end.processOutput("endOutput");
 
             //End the job, which will flush all previous steps into a logmessage wich will be send to the server
-            job.end();
+            job.end(true);
             Thread.sleep(1000);
         }
         //If you are finished with processing or the application goes down, stop the client...

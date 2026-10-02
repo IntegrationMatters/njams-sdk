@@ -54,7 +54,7 @@ public class LogMessageResource {
         }
 
         // step to the next activity from the previous one.
-        Activity fromActivityInstance = job.getActivityByModelId(fromActivity);
+        Activity fromActivityInstance = job.activities().getByModelId(fromActivity);
         ActivityModel toActivityModel = process.getActivity(toActivity);
         Activity toActivityInstance = fromActivityInstance.stepTo(toActivityModel).build();
         toActivityInstance.processInput("Activity input");
@@ -64,7 +64,7 @@ public class LogMessageResource {
 
         // End the job, which will flush all previous steps into a logmessage wich will be send to the server
         if (toActivity.equals("end")) {
-            job.end();
+            job.end(true);
             LOG.info("End Logmessage with ID:" + jobId);
         }
 

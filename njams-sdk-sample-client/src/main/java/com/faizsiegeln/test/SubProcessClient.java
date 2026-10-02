@@ -130,7 +130,7 @@ public class SubProcessClient {
         end.processOutput("testdata");
 
         //End the job, which will flush all previous steps into a logmessage wich will be send to the server
-        job.end();
+        job.end(true);
 
         Thread.sleep(1000);
 

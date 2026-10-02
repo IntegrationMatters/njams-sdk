@@ -93,7 +93,7 @@ public class JobTest {
         job.start();
 
         //Create activitys
-        Activity a = job.createActivity(actModelA).setExecution(LocalDateTime.now())
+        Activity a = job.activities().create(actModelA).setExecution(LocalDateTime.now())
                 .setActivityStatus(ActivityStatus.SUCCESS)
                 .build();
         assertThat(job.getStatus(), is(JobStatus.RUNNING));

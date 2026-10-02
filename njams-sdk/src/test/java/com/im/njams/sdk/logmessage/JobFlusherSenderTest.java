@@ -51,7 +51,7 @@ public class JobFlusherSenderTest extends AbstractTest {
         LogMessageFlushTask.start(njams, sender);
         JobImpl job = createDefaultStartedJob();
 
-        job.end();
+        job.end(true);
 
         verify(sender).send(any(LogMessage.class), eq(njams.metadata().getClientSessionId()));
     }
@@ -68,7 +68,7 @@ public class JobFlusherSenderTest extends AbstractTest {
         Logger logger = Logger.getLogger(JobFlusher.class);
         logger.addAppender(appender);
         try {
-            job.end();
+            job.end(true);
         } finally {
             logger.removeAppender(appender);
         }
@@ -104,11 +104,11 @@ public class JobFlusherSenderTest extends AbstractTest {
         JobImpl otherJob = (JobImpl) otherProcess.createJob();
         otherJob.start();
 
-        job.end();
+        job.end(true);
         verify(sender, times(1)).send(any(LogMessage.class), eq(njams.metadata().getClientSessionId()));
         verify(otherSender, never()).send(any(LogMessage.class), anyString());
 
-        otherJob.end();
+        otherJob.end(true);
         verify(otherSender, times(1)).send(any(LogMessage.class), eq(other.metadata().getClientSessionId()));
         verify(sender, times(1)).send(any(LogMessage.class), anyString());
     }

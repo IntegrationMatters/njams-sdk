@@ -158,17 +158,17 @@ public class ActivityImplTest extends AbstractTest {
         ActivityImpl act1 = (ActivityImpl) createDefaultActivity(job);
         ActivityImpl act2 = (ActivityImpl) createDefaultActivity(job);
         String testAttrKey = "TestAttrKey";
-        assertNull(job.getAttribute(testAttrKey));
+        assertNull(job.attributes().get(testAttrKey));
         act1.addAttribute(testAttrKey, "a");
-        assertEquals("a", job.getAttribute(testAttrKey));
+        assertEquals("a", job.attributes().get(testAttrKey));
         act2.addAttribute(testAttrKey, "b");
-        assertEquals("b", job.getAttribute(testAttrKey));
-        assertNotEquals("a", job.getAttribute(testAttrKey));
+        assertEquals("b", job.attributes().get(testAttrKey));
+        assertNotEquals("a", job.attributes().get(testAttrKey));
         //It has nothing to do with the sequence number, the attribute will be overriden
         //by the last call of addAttribute
         act1.addAttribute(testAttrKey, "c");
-        assertEquals("c", job.getAttribute(testAttrKey));
-        assertNotEquals("b", job.getAttribute(testAttrKey));
+        assertEquals("c", job.attributes().get(testAttrKey));
+        assertNotEquals("b", job.attributes().get(testAttrKey));
     }
 
     @Test

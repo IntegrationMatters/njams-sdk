@@ -28,7 +28,6 @@ import static org.junit.Assert.*;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
@@ -65,8 +64,6 @@ import com.im.njams.sdk.logmessage.DataMasking;
 import com.im.njams.sdk.logmessage.Job;
 import com.im.njams.sdk.model.ProcessModel;
 import com.im.njams.sdk.model.image.ImageSupplier;
-import com.im.njams.sdk.model.layout.CommonBfsModelLayouter;
-import com.im.njams.sdk.serializer.Serializer;
 import com.im.njams.sdk.settings.Settings;
 
 /**

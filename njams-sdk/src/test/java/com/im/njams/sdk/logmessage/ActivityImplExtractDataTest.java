@@ -60,7 +60,7 @@ public class ActivityImplExtractDataTest extends AbstractTest {
         JobImpl job = createDefaultJob();
         // Enable tracing so that the stored input is set (and therefore truncated). Must be set before the
         // activity is created so ActivityImpl picks up the extract config and the trace flag.
-        job.setDeepTrace(true);
+        job.tracing().setDeepTrace(true);
         job.start();
 
         ActivityImpl activity = (ActivityImpl) createDefaultActivity(job);
@@ -107,7 +107,7 @@ public class ActivityImplExtractDataTest extends AbstractTest {
         activityConfig.setExtract(extract);
 
         JobImpl job = createDefaultJob();
-        job.setDeepTrace(true); // ensure isTracing() so serialization happens
+        job.tracing().setDeepTrace(true); // ensure isTracing() so serialization happens
         job.start();
         ActivityImpl activity = (ActivityImpl) createDefaultActivity(job);
 
@@ -145,7 +145,7 @@ public class ActivityImplExtractDataTest extends AbstractTest {
         activityConfig.setExtract(extract);
 
         JobImpl job = createDefaultJob();
-        job.setDeepTrace(true);
+        job.tracing().setDeepTrace(true);
         job.start();
         ActivityImpl activity = (ActivityImpl) createDefaultActivity(job);
 

@@ -38,7 +38,7 @@ public class JobErrorHandlingTest extends AbstractTest {
         if (model == null) {
             model = process.createActivity(modelId, modelId, null);
         }
-        return (ActivityImpl) job.createActivity(model).build();
+        return (ActivityImpl) job.activities().create(model).build();
     }
 
     private ErrorEvent error() {
@@ -104,13 +104,13 @@ public class JobErrorHandlingTest extends AbstractTest {
         ActivityModel model = process.createActivity("ghostErr", "ghostErr", null);
         ActivityImpl ghost = new ActivityImpl(job, model);
         ghost.setInstanceId("ghost-instance");
-        assertNull(job.getActivityByInstanceId("ghost-instance"));
+        assertNull(job.activities().getByInstanceId("ghost-instance"));
 
         handling.setActivityErrorEvent(ghost, error());
         handling.commitActivityError();
 
         assertSame("commit must re-add an already-sent activity so the error is transmitted",
-                ghost, job.getActivityByInstanceId("ghost-instance"));
+                ghost, job.activities().getByInstanceId("ghost-instance"));
     }
 
     @Test

@@ -146,7 +146,7 @@ public class NjamsSampleTest {
         // Create a Log Message
         Job job = process.createJob();
         job.start();
-        Activity start = job.createActivity(startModel).build();
+        Activity start = job.activities().create(startModel).build();
         assertThat(start.getModelId(), is("start"));
         assertThat(start.getSequence(), is(1L));
         assertThat(start.getInstanceId(), is("start$1"));
@@ -154,8 +154,8 @@ public class NjamsSampleTest {
         Activity log = start.stepTo(logModel).build();
         log.processInput("{ \"test\": { \"data\": \"json test data\" } }");
         log.processOutput("<test>xml test data</test>");
-        assertThat(job.getAttribute("json"), is("json test data"));
-        assertThat(job.getAttribute("xml"), is("xml test data"));
+        assertThat(job.attributes().get("json"), is("json test data"));
+        assertThat(job.attributes().get("xml"), is("xml test data"));
         assertThat(log.getModelId(), is("log"));
         assertThat(log.getSequence(), is(2L));
         assertThat(log.getInstanceId(), is("log$2"));
@@ -167,7 +167,7 @@ public class NjamsSampleTest {
         assertThat(end.getSequence(), is(3L));
         assertThat(end.getInstanceId(), is("end$3"));
 
-        job.end();
+        job.end(true);
 
         Thread.sleep(1000);
 
@@ -255,7 +255,7 @@ public class NjamsSampleTest {
         // Create a Log Message
         Job job = process.createJob();
         job.start();
-        Activity start = job.createActivity(startModel).build();
+        Activity start = job.activities().create(startModel).build();
         start.processInput("testdata");
         start.processOutput("testdata");
         assertThat(start.getModelId(), is("start"));
@@ -290,7 +290,7 @@ public class NjamsSampleTest {
         assertThat(end.getSequence(), is(3L));
         assertThat(end.getInstanceId(), is("end$3"));
 
-        job.end();
+        job.end(true);
 
         Thread.sleep(1000);
 
@@ -358,7 +358,7 @@ public class NjamsSampleTest {
         job.start();
 
         //Create activitys
-        Activity a = job.createActivity(startModel).setExecution(LocalDateTime.now()).build();
+        Activity a = job.activities().create(startModel).setExecution(LocalDateTime.now()).build();
         a.processInput("testdata");
         a.processOutput("testdata");
 
@@ -418,7 +418,7 @@ public class NjamsSampleTest {
         end.processInput("testdata");
         end.processOutput("testdata");
 
-        job.end();
+        job.end(true);
 
         Thread.sleep(1000);
 
@@ -485,7 +485,7 @@ public class NjamsSampleTest {
         job.start();
 
         //Create activitys
-        Activity a = job.createActivity(startModel).setExecution(LocalDateTime.now()).build();
+        Activity a = job.activities().create(startModel).setExecution(LocalDateTime.now()).build();
         a.processInput("testdata");
         a.processOutput("testdata");
 
@@ -577,7 +577,7 @@ public class NjamsSampleTest {
         end.processInput("testdata");
         end.processOutput("testdata");
 
-        job.end();
+        job.end(true);
 
         Thread.sleep(1000);
 
@@ -641,7 +641,7 @@ public class NjamsSampleTest {
         // Create a Log Message
         Job job = process.createJob();
         job.start();
-        Activity start = job.createActivity(startModel).build();
+        Activity start = job.activities().create(startModel).build();
         start.processInput("testdata");
         start.processOutput("testdata");
 
@@ -664,7 +664,7 @@ public class NjamsSampleTest {
         end.processInput("testdata");
         end.processOutput("testdata");
 
-        job.end();
+        job.end(true);
 
         Thread.sleep(1000);
 
@@ -732,12 +732,12 @@ public class NjamsSampleTest {
         job.start();
 
         //Create activitys
-        Activity a = job.createActivity(startModel).setExecution(LocalDateTime.now()).build();
+        Activity a = job.activities().create(startModel).setExecution(LocalDateTime.now()).build();
         a.processInput("testdata");
         a.processOutput("testdata");
 
         JobFlushAccess.flush(job);
-        assertThat(job.getActivities().size(), is(1));
+        assertThat(job.activities().getAll().size(), is(1));
 
         //step to group
         Group group = a.stepToGroup(groupModel).setExecution(LocalDateTime.now()).build();
@@ -745,7 +745,7 @@ public class NjamsSampleTest {
         group.processOutput("testdata");
 
         JobFlushAccess.flush(job);
-        assertThat(job.getActivities().size(), is(1));
+        assertThat(job.activities().getAll().size(), is(1));
 
         //iteration 1
         Activity child1 = group.createChildActivity(child1Model).build();
@@ -753,14 +753,14 @@ public class NjamsSampleTest {
         child1.processOutput("testdata");
 
         JobFlushAccess.flush(job);
-        assertThat(job.getActivities().size(), is(2));
+        assertThat(job.activities().getAll().size(), is(2));
 
         Group subGroup = child1.stepToGroup(subgroupModel).build();
         subGroup.processInput("testdata");
         subGroup.processOutput("testdata");
 
         JobFlushAccess.flush(job);
-        assertThat(job.getActivities().size(), is(2));
+        assertThat(job.activities().getAll().size(), is(2));
 
         //subchild
         Activity subChild1 = subGroup.createChildActivity(subchild1Model).build();
@@ -768,21 +768,21 @@ public class NjamsSampleTest {
         subChild1.processOutput("testdata");
 
         JobFlushAccess.flush(job);
-        assertThat(job.getActivities().size(), is(3));
+        assertThat(job.activities().getAll().size(), is(3));
 
         subChild1.stepTo(subchild2Model).build();
         subChild1.processInput("testdata");
         subChild1.processOutput("testdata");
 
         JobFlushAccess.flush(job);
-        assertThat(job.getActivities().size(), is(3));
+        assertThat(job.activities().getAll().size(), is(3));
 
         subChild1.getParent().stepTo(child2Model).build();
         subChild1.processInput("testdata");
         subChild1.processOutput("testdata");
 
         JobFlushAccess.flush(job);
-        assertThat(job.getActivities().size(), is(2));
+        assertThat(job.activities().getAll().size(), is(2));
 
         group.iterate();
 
@@ -792,14 +792,14 @@ public class NjamsSampleTest {
         child1_2.processOutput("testdata");
 
         JobFlushAccess.flush(job);
-        assertThat(job.getActivities().size(), is(3));
+        assertThat(job.activities().getAll().size(), is(3));
 
         Group subGroup_2 = child1_2.stepToGroup(subgroupModel).build();
         subGroup_2.processInput("testdata");
         subGroup_2.processOutput("testdata");
 
         JobFlushAccess.flush(job);
-        assertThat(job.getActivities().size(), is(3));
+        assertThat(job.activities().getAll().size(), is(3));
 
         //subchild
         Activity subChild1_2 = subGroup_2.createChildActivity(subchild1Model).build();
@@ -807,21 +807,21 @@ public class NjamsSampleTest {
         subChild1_2.processOutput("testdata");
 
         JobFlushAccess.flush(job);
-        assertThat(job.getActivities().size(), is(4));
+        assertThat(job.activities().getAll().size(), is(4));
 
         Activity subChild2_2 = subChild1_2.stepTo(subchild2Model).build();
         subChild2_2.processInput("testdata");
         subChild2_2.processOutput("testdata");
 
         JobFlushAccess.flush(job);
-        assertThat(job.getActivities().size(), is(4));
+        assertThat(job.activities().getAll().size(), is(4));
 
         Activity child2_2 = subChild2_2.getParent().stepTo(child2Model).build();
         child2_2.processInput("testdata");
         child2_2.processOutput("testdata");
 
         JobFlushAccess.flush(job);
-        assertThat(job.getActivities().size(), is(3));
+        assertThat(job.activities().getAll().size(), is(3));
 
         Group parent = child2_2.getParent();
 
@@ -830,9 +830,9 @@ public class NjamsSampleTest {
         end.processOutput("testdata");
 
         JobFlushAccess.flush(job);
-        assertThat(job.getActivities().size(), is(1));
+        assertThat(job.activities().getAll().size(), is(1));
 
-        job.end();
+        job.end(true);
 
         Thread.sleep(1000);
 
@@ -892,7 +892,7 @@ public class NjamsSampleTest {
         // Create a Log Message
         Job job = process.createJob();
         job.start();
-        Activity start = job.createActivity(startModel).build();
+        Activity start = job.activities().create(startModel).build();
         start.processInput("testdata");
         start.processOutput("testdata");
         SubProcessActivity subProcessCaller = (SubProcessActivity) start.stepTo(subProcessModel).build();
@@ -902,7 +902,7 @@ public class NjamsSampleTest {
         //spawned
         Job sjob = subProcess.createJob();
         sjob.start();
-        Activity subProcessStart = sjob.createActivity(subProcessStartModel).build();
+        Activity subProcessStart = sjob.activities().create(subProcessStartModel).build();
         subProcessStart.processInput("testdata");
         subProcessStart.processOutput("testdata");
         Activity subProcessLog = subProcessStart.stepTo(subProcessLogModel).build();
@@ -911,7 +911,7 @@ public class NjamsSampleTest {
         Activity subProcessEnd = subProcessLog.stepTo(subProcessEndModel).build();
         subProcessEnd.processInput("testdata");
         subProcessEnd.processOutput("testdata");
-        sjob.end();
+        sjob.end(true);
 
         //finishe spawner
         subProcessCaller.setSubProcess(null, null, sjob.getLogId());
@@ -919,7 +919,7 @@ public class NjamsSampleTest {
         end.processInput("testdata");
         end.processOutput("testdata");
 
-        job.end();
+        job.end(true);
 
         Thread.sleep(1000);
 
@@ -988,12 +988,12 @@ public class NjamsSampleTest {
         job.start();
 
         //Create activitys
-        Activity a = job.createActivity(startModel).setExecution(LocalDateTime.now()).build();
+        Activity a = job.activities().create(startModel).setExecution(LocalDateTime.now()).build();
         a.processInput("testdata");
         a.processOutput("testdata");
 
         JobFlushAccess.flush(job);
-        assertThat(job.getActivities().size(), is(1));
+        assertThat(job.activities().getAll().size(), is(1));
 
         //step to group
         Group group = a.stepToGroup(groupModel).setExecution(LocalDateTime.now()).build();
@@ -1001,7 +1001,7 @@ public class NjamsSampleTest {
         group.processOutput("testdata");
 
         JobFlushAccess.flush(job);
-        assertThat(job.getActivities().size(), is(1));
+        assertThat(job.activities().getAll().size(), is(1));
 
         //iteration 1
         Activity child1 = group.createChildActivity(child1Model).build();
@@ -1009,14 +1009,14 @@ public class NjamsSampleTest {
         child1.processOutput("testdata");
 
         JobFlushAccess.flush(job);
-        assertThat(job.getActivities().size(), is(2));
+        assertThat(job.activities().getAll().size(), is(2));
 
         Group subGroup = child1.stepToGroup(subgroupModel).build();
         subGroup.processInput("testdata");
         subGroup.processOutput("testdata");
 
         JobFlushAccess.flush(job);
-        assertThat(job.getActivities().size(), is(2));
+        assertThat(job.activities().getAll().size(), is(2));
 
         //subchild
         Activity subChild1 = subGroup.createChildActivity(subchild1Model).build();
@@ -1024,21 +1024,21 @@ public class NjamsSampleTest {
         subChild1.processOutput("testdata");
 
         JobFlushAccess.flush(job);
-        assertThat(job.getActivities().size(), is(3));
+        assertThat(job.activities().getAll().size(), is(3));
 
         subChild1.stepTo(subchild2Model).build();
         subChild1.processInput("testdata");
         subChild1.processOutput("testdata");
 
         JobFlushAccess.flush(job);
-        assertThat(job.getActivities().size(), is(3));
+        assertThat(job.activities().getAll().size(), is(3));
 
         subChild1.getParent().stepTo(child2Model).build();
         subChild1.processInput("testdata");
         subChild1.processOutput("testdata");
 
         JobFlushAccess.flush(job);
-        assertThat(job.getActivities().size(), is(2));
+        assertThat(job.activities().getAll().size(), is(2));
 
         group.iterate();
 
@@ -1048,14 +1048,14 @@ public class NjamsSampleTest {
         child1_2.processOutput("testdata");
 
         JobFlushAccess.flush(job);
-        assertThat(job.getActivities().size(), is(3));
+        assertThat(job.activities().getAll().size(), is(3));
 
         Group subGroup_2 = child1_2.stepToGroup(subgroupModel).build();
         subGroup_2.processInput("testdata");
         subGroup_2.processOutput("testdata");
 
         JobFlushAccess.flush(job);
-        assertThat(job.getActivities().size(), is(3));
+        assertThat(job.activities().getAll().size(), is(3));
 
         //subchild
         Activity subChild1_2 = subGroup_2.createChildActivity(subchild1Model).build();
@@ -1063,21 +1063,21 @@ public class NjamsSampleTest {
         subChild1_2.processOutput("testdata");
 
         JobFlushAccess.flush(job);
-        assertThat(job.getActivities().size(), is(4));
+        assertThat(job.activities().getAll().size(), is(4));
 
         Activity subChild2_2 = subChild1_2.stepTo(subchild2Model).build();
         subChild2_2.processInput("testdata");
         subChild2_2.processOutput("testdata");
 
         JobFlushAccess.flush(job);
-        assertThat(job.getActivities().size(), is(4));
+        assertThat(job.activities().getAll().size(), is(4));
 
         Activity child2_2 = subChild2_2.getParent().stepTo(child2Model).build();
         child2_2.processInput("testdata");
         child2_2.processOutput("testdata");
 
         JobFlushAccess.flush(job);
-        assertThat(job.getActivities().size(), is(3));
+        assertThat(job.activities().getAll().size(), is(3));
 
         Group parent = child2_2.getParent();
 
@@ -1086,9 +1086,9 @@ public class NjamsSampleTest {
         end.processOutput("testdata");
 
         JobFlushAccess.flush(job);
-        assertThat(job.getActivities().size(), is(1));
+        assertThat(job.activities().getAll().size(), is(1));
 
-        job.end();
+        job.end(true);
 
         Thread.sleep(1000);
 

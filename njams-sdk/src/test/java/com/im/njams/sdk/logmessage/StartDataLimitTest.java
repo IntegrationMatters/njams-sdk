@@ -33,7 +33,7 @@ public class StartDataLimitTest extends AbstractTest {
         activity.processStartData("01234567890123456789"); // 20 chars, well over the limit
 
         assertEquals("01234567890123456789", activity.getStartData());
-        assertEquals("true", activity.getJob().getAttributes().get(RECORDED));
+        assertEquals("true", activity.getJob().attributes().getAll().get(RECORDED));
     }
 
     @Test
@@ -43,7 +43,7 @@ public class StartDataLimitTest extends AbstractTest {
         activity.processStartData("short");
 
         assertEquals("short", activity.getStartData());
-        assertEquals("true", activity.getJob().getAttributes().get(RECORDED));
+        assertEquals("true", activity.getJob().attributes().getAll().get(RECORDED));
     }
 
     @Test
@@ -53,7 +53,7 @@ public class StartDataLimitTest extends AbstractTest {
         activity.processStartData("01234567890123456789");
 
         assertEquals("0123456789" + JobImpl.PAYLOAD_TRUNCATED_SUFFIX, activity.getStartData());
-        assertEquals("false", activity.getJob().getAttributes().get(RECORDED));
+        assertEquals("false", activity.getJob().attributes().getAll().get(RECORDED));
     }
 
     @Test
@@ -63,7 +63,7 @@ public class StartDataLimitTest extends AbstractTest {
         activity.processStartData("01234567890123456789");
 
         assertEquals(JobImpl.PAYLOAD_DISCARDED_MESSAGE, activity.getStartData());
-        assertEquals("false", activity.getJob().getAttributes().get(RECORDED));
+        assertEquals("false", activity.getJob().attributes().getAll().get(RECORDED));
     }
 
     @Test
@@ -73,6 +73,6 @@ public class StartDataLimitTest extends AbstractTest {
         activity.setStartData("01234567890123456789");
 
         assertEquals("0123456789" + JobImpl.PAYLOAD_TRUNCATED_SUFFIX, activity.getStartData());
-        assertEquals("false", activity.getJob().getAttributes().get(RECORDED));
+        assertEquals("false", activity.getJob().attributes().getAll().get(RECORDED));
     }
 }

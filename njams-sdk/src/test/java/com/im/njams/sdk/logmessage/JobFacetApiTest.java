@@ -19,9 +19,8 @@ import com.im.njams.sdk.model.ActivityModel;
 import com.im.njams.sdk.model.ProcessModel;
 
 /**
- * Tests the new job facet API of SDK-448: accessor identity, after-end guards, the inverted
- * activities deviation (new API allows pre-start adds), behavioral parity (mirror tests
- * suffixed _viaFacet), and the lenient behavior of the deprecated legacy methods.
+ * Tests the job facet API of SDK-448: accessor identity, after-end guards, pre-start activity
+ * creation, and behavioral parity (tests suffixed _viaFacet).
  */
 public class JobFacetApiTest {
 
@@ -120,15 +119,6 @@ public class JobFacetApiTest {
     }
 
     @Test
-    public void deprecatedMetadataSettersStayLenientAfterEnd() {
-        JobImpl job = createEndedJob();
-        job.setCorrelationLogId("late-corr"); // WARN, no throw
-        job.setParentLogId("late-parent"); // WARN, no throw
-        assertEquals("late-corr", job.getCorrelationLogId());
-        assertEquals("late-parent", job.getParentLogId());
-    }
-
-    @Test
     public void metadataMutatorsAreChainable() {
         JobImpl job = createJob();
         LocalDateTime t = DateTimeUtility.now();
@@ -203,13 +193,6 @@ public class JobFacetApiTest {
     }
 
     @Test
-    public void deprecatedAddAttributeStaysLenientAfterEnd() {
-        JobImpl job = createEndedJob();
-        job.addAttribute("late", "x"); // WARN, no throw
-        assertEquals("x", job.getAttribute("late"));
-    }
-
-    @Test
     public void attributesArePutAndQueried_viaFacet() {
         JobImpl job = createStartedJob();
         job.attributes().add("k", "v");
@@ -220,6 +203,18 @@ public class JobFacetApiTest {
         assertEquals("v", all.get("k"));
         all.clear(); // detached copy
         assertTrue(job.attributes().has("k"));
+    }
+
+    @Test
+    public void attributeAddedBeforeStartSurvivesFlushOfNeverStartedJob_viaFacet() {
+        JobImpl job = createJob();
+
+        job.attributes().add("a", "b");
+        assertEquals("b", job.attributes().get("a"));
+
+        job.flush();
+        assertFalse(job.attributes().getAll().isEmpty());
+        assertEquals("b", job.attributes().get("a"));
     }
 
     @Test
@@ -234,8 +229,7 @@ public class JobFacetApiTest {
     @Test
     public void newActivitiesAddWorksBeforeStart() {
         JobImpl job = createJob();
-        // THE inverted deviation: the deprecated addActivity throws before start (pinned in the
-        // baseline), the new API allows pre-start activity creation.
+        // the facet API allows pre-start activity creation
         Activity activity = job.activities().create(actModel()).build();
         assertFalse(job.hasStarted());
         assertSame(activity, job.activities().getByInstanceId(activity.getInstanceId()));
@@ -264,11 +258,7 @@ public class JobFacetApiTest {
         Activity activity = job.activities().create(actModel()).build();
         assertSame(activity, job.activities().getByInstanceId(activity.getInstanceId()));
         assertSame(activity, job.activities().getByModelId("act"));
-        assertSame(activity, job.activities().getRunningByModelId("act"));
-        assertNull(job.activities().getCompletedByModelId("act"));
         activity.end();
-        assertSame(activity, job.activities().getCompletedByModelId("act"));
-        assertNull(job.activities().getRunningByModelId("act"));
         assertEquals(1, job.activities().getAll().size());
     }
 

@@ -44,10 +44,6 @@ public class ActivityBuilder {
     //The activity which will be build by this builder
     private final ActivityImpl activity;
 
-    // legacy contract: adding the built activity requires a started job; builders created via the
-    // job.activities() facet relax this (pre-start activity creation is allowed there)
-    private boolean requireStartedOnAdd = true;
-
     ActivityBuilder(JobImpl job, ActivityModel model) {
         activity = new ActivityImpl(job, model);
         activity.setSequence(job.getNextSequence());
@@ -55,10 +51,6 @@ public class ActivityBuilder {
 
     ActivityBuilder(ActivityImpl activity) {
         this.activity = activity;
-    }
-
-    void relaxStartedRequirement() {
-        requireStartedOnAdd = false;
     }
 
     ActivityImpl getActivity() {
@@ -78,7 +70,7 @@ public class ActivityBuilder {
             activity.getParent().addChild(activity);
         }
         final JobImpl job = (JobImpl) activity.getJob();
-        job.activities().add(activity, job, requireStartedOnAdd);
+        job.activities().add(activity);
         activity.start();
         return activity;
     }

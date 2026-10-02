@@ -51,23 +51,6 @@ public class JobActivitiesTest extends AbstractTest {
     }
 
     @Test
-    public void getRunningAndCompletedByModelId() {
-        JobImpl job = startedJob();
-        ActivityModel m = model("status");
-        Activity first = job.activities().create(m).build();
-        Activity second = job.activities().create(m).build();
-
-        // both running -> last running is the second
-        assertSame(second, job.activities().getRunningByModelId("status"));
-        assertNull(job.activities().getCompletedByModelId("status"));
-
-        // complete the second -> last running falls back to the first, last completed is the second
-        second.setActivityStatus(ActivityStatus.SUCCESS);
-        assertSame(first, job.activities().getRunningByModelId("status"));
-        assertSame(second, job.activities().getCompletedByModelId("status"));
-    }
-
-    @Test
     public void getAllReturnsDetachedCopy() {
         JobImpl job = startedJob();
         Activity a = job.activities().create(model("copy")).build();
@@ -132,8 +115,6 @@ public class JobActivitiesTest extends AbstractTest {
 
         // the lookup must fall back to the still-running predecessor, not return the evicted one
         assertSame(first, job.activities().getByModelId("evict"));
-        assertSame(first, job.activities().getRunningByModelId("evict"));
-        assertNull(job.activities().getCompletedByModelId("evict"));
     }
 
     @Test
@@ -144,8 +125,6 @@ public class JobActivitiesTest extends AbstractTest {
         job.activities().removeNotRunning();
 
         assertNull(job.activities().getByModelId("gone"));
-        assertNull(job.activities().getRunningByModelId("gone"));
-        assertNull(job.activities().getCompletedByModelId("gone"));
     }
 
     @Test
@@ -163,25 +142,6 @@ public class JobActivitiesTest extends AbstractTest {
     }
 
     @Test
-    public void statusLookupsWalkBackPastNonMatchingCandidates() {
-        JobImpl job = startedJob();
-        ActivityModel m = model("walk");
-        Activity first = job.activities().create(m).build();
-        Activity second = job.activities().create(m).build();
-        Activity third = job.activities().create(m).build();
-
-        second.setActivityStatus(ActivityStatus.SUCCESS);
-        third.setActivityStatus(ActivityStatus.SUCCESS);
-
-        // last running is the first one, skipping the two completed successors
-        assertSame(first, job.activities().getRunningByModelId("walk"));
-        // last completed is the third, skipping nothing
-        assertSame(third, job.activities().getCompletedByModelId("walk"));
-        // plain lookup is unaffected by status
-        assertSame(third, job.activities().getByModelId("walk"));
-    }
-
-    @Test
     public void lookupIsUnaffectedByOtherModelIds() {
         JobImpl job = startedJob();
         ActivityModel target = model("target");
@@ -192,10 +152,7 @@ public class JobActivitiesTest extends AbstractTest {
         }
 
         assertSame(wanted, job.activities().getByModelId("target"));
-        assertSame(wanted, job.activities().getRunningByModelId("target"));
         assertNull(job.activities().getByModelId("unknown"));
-        assertNull(job.activities().getRunningByModelId("unknown"));
-        assertNull(job.activities().getCompletedByModelId("unknown"));
     }
 
     @Test
@@ -216,12 +173,10 @@ public class JobActivitiesTest extends AbstractTest {
         // every iteration adds a new activity instance; the lookup resolves to the newest one
         assertEquals(26, job.activities().getAll().size());
         assertSame(last, job.activities().getByModelId("loopChild"));
-        assertSame(last, job.activities().getCompletedByModelId("loopChild"));
-        assertNull(job.activities().getRunningByModelId("loopChild"));
     }
 
     @Test
-    public void statusLookupsIgnoreAnActivityThatWasAddedButNeverStarted() {
+    public void activityThatWasAddedButNeverStartedIsReturnedByModelLookup() {
         JobImpl job = startedJob();
         ActivityModel m = model("nostatus");
         Activity started = job.activities().create(m).build();
@@ -232,9 +187,6 @@ public class JobActivitiesTest extends AbstractTest {
         job.activities().add(unstarted);
 
         assertSame(unstarted, job.activities().getByModelId("nostatus"));
-        // a statusless activity is neither running nor completed; it must be skipped, not throw
-        assertSame(started, job.activities().getRunningByModelId("nostatus"));
-        assertNull(job.activities().getCompletedByModelId("nostatus"));
     }
 
     @Test

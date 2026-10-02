@@ -24,7 +24,7 @@ public class ReplayHandlerTest extends AbstractTest {
     @Test
     public void markAsReplayedOnFinishedJobDoesNotThrow() {
         JobImpl job = createDefaultStartedJob();
-        job.end();
+        job.end(true);
 
         ReplayHandler.markAsReplayed(job);
     }

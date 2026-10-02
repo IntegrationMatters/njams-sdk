@@ -113,7 +113,7 @@ public abstract class AbstractTest {
      * @return the Activity that is created.
      */
     protected Activity createDefaultActivity(Job job) {
-        return job.createActivity(getDefaultActivityModel()).build();
+        return job.activities().create(getDefaultActivityModel()).build();
     }
 
     /**
@@ -136,7 +136,7 @@ public abstract class AbstractTest {
     protected Activity getStartedActivityForJob(JobImpl job) {
         ActivityModel defaultActivityModel = getDefaultActivityModel();
         defaultActivityModel.setStarter(true);
-        return job.createActivity(defaultActivityModel).setStarter().build();
+        return job.activities().create(defaultActivityModel).setStarter().build();
     }
 
     /**
@@ -161,7 +161,7 @@ public abstract class AbstractTest {
      * @return a fully filled activity.
      */
     protected ActivityImpl createFullyFilledActivity(JobImpl job) {
-        ActivityImpl act = (ActivityImpl) job.createActivity(getDefaultActivityModel()).build();
+        ActivityImpl act = (ActivityImpl) job.activities().create(getDefaultActivityModel()).build();
         act.setInput("SomeInput");
         act.setOutput("SomeOutput");
         act.setMaxIterations(5L);

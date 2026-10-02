@@ -86,7 +86,7 @@ final class JobErrorHandling {
                 updateActivityErrorEvent(errorActivity, errorEvent);
                 if (jobImpl.activities().getByInstanceId(errorActivity.getInstanceId()) == null) {
                     // the activity is already sent, i.e., re-send
-                    jobImpl.activities().add(errorActivity, jobImpl, true);
+                    jobImpl.activities().add(errorActivity, true);
                 }
                 errorActivity = null;
                 errorEvent = null;

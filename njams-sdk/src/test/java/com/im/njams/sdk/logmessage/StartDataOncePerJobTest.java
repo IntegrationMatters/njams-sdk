@@ -19,7 +19,7 @@ public class StartDataOncePerJobTest extends AbstractTest {
         if (model == null) {
             model = process.createActivity(modelId, modelId, null);
         }
-        return (ActivityImpl) job.createActivity(model).build();
+        return (ActivityImpl) job.activities().create(model).build();
     }
 
     @Test
