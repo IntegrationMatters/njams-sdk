@@ -43,8 +43,8 @@
      relocated package AND the importing type or one of its methods
      is public or protected.
 
-     Current known exceptions (deprecated, pending SDK-450):
-       JsonSerializerFactory — deprecated methods expose Jackson types.
+     Current known exceptions (SDK-internal, not for client code):
+       JsonSerializerFactory.Internal — its methods expose Jackson types.
 
   ============================================================
 -->

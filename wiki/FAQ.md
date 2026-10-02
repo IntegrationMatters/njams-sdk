@@ -14,6 +14,11 @@ already uses the replacements listed under "Deprecations and replacements" in
 - `Job.flush()`/`Job.timerFlush(...)` are no longer public.
 - `ArgosCollector.collect()`, `ShareableReceiver.onInstruction(Instruction, Njams)`,
   `DataMasking.addPatterns(Properties)` and `JsonSerializerFactory.addLocalDateTimeSerializer`.
+- The `JsonSerializerFactory` methods that expose Jackson types are no longer part of its regular public surface:
+  `getFastMapper()`, `getDefaultMapper()`, `getMapper(...)` and `createWriter(...)` moved behind the SDK-internal
+  `JsonSerializerFactory._internal()` (not for client code; use `JsonUtils` instead), and `createDefaultMapper(...)`,
+  `createDefaultWriter()`, `propertiesToJsonString(...)` and the `addSerializer(...)` overloads taking Jackson
+  serializers were removed or made private.
 
 ## What changed in 6.0
 

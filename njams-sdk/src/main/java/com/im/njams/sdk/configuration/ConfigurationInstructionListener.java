@@ -569,9 +569,7 @@ public class ConfigurationInstructionListener implements InstructionListener {
         }
         Extract extract = null;
         try {
-            // @Deprecated flags external API consumers only; internal use of Jackson factory is intentional.
-            @SuppressWarnings("deprecation")
-            final ObjectMapper mapper = JsonSerializerFactory.getDefaultMapper();
+            final ObjectMapper mapper = JsonSerializerFactory._internal().getDefaultMapper();
             extract = mapper.readValue(extractString, Extract.class);
         } catch (final Exception e) {
             instructionSupport.error("Unable to deserialize extract", e);

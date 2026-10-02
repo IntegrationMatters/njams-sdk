@@ -48,6 +48,7 @@ import com.faizsiegeln.njams.messageformat.v4.projectmessage.RuleType;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.im.njams.sdk.Path;
+import com.im.njams.sdk.common.JsonSerializerFactory;
 import com.im.njams.sdk.configuration.ActivityConfiguration;
 import com.im.njams.sdk.model.ActivityModel;
 import com.im.njams.sdk.utils.StringUtils;
@@ -221,8 +222,6 @@ public class ExtractHandler {
         }
     }
 
-    // @Deprecated flags external API consumers only; internal use of Jackson factory is intentional.
-    @SuppressWarnings("deprecation")
     private static String applyJmespath(String expression, String data) throws IOException {
         if (StringUtils.isBlank(expression) || StringUtils.isBlank(data)) {
             return null;
@@ -230,7 +229,7 @@ public class ExtractHandler {
         String strResult = null;
         JsonNode result = null;
         try {
-            final ObjectMapper mapper = com.im.njams.sdk.common.JsonSerializerFactory.getDefaultMapper();
+            final ObjectMapper mapper = JsonSerializerFactory._internal().getDefaultMapper();
             final JmesPath<JsonNode> jmespath = new JacksonRuntime();
             final Expression<JsonNode> jmesexpression = jmespath.compile(expression);
             final JsonNode input = mapper.readTree(data);

@@ -66,11 +66,9 @@ public class FileConfigurationProvider extends AbstractConfigurationProvider {
     /**
      * Create the FileConfigurationProvider
      */
-    // @Deprecated flags external API consumers only; internal use of Jackson factory is intentional.
-    @SuppressWarnings("deprecation")
     public FileConfigurationProvider() {
         file = new File("configuration.json");
-        objectMapper = JsonSerializerFactory.getDefaultMapper();
+        objectMapper = JsonSerializerFactory._internal().getDefaultMapper();
         objectWriter = objectMapper.writer();
     }
 

@@ -39,12 +39,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.io.StringWriter;
 import java.util.AbstractMap;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
-import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -56,13 +54,9 @@ import java.util.concurrent.ConcurrentHashMap;
  * <p>Provides factory methods for JSON serializers and mappers. All mapper instances are cached for re-using.
  * Thus, the 'fast-mapper' label is somewhat misleading now. It ony means 'a non-pretty-printing' mapper.
  *
- * <p><b>Note for SDK consumers:</b> Several methods of this class accept or return Jackson types
- * ({@code ObjectMapper}, {@code ObjectWriter}, {@code JsonFactory}, {@code JsonSerializer},
- * {@code JsonDeserializer}). Jackson is bundled as an internal dependency and relocated to a
- * private package namespace during SDK packaging, making those types unreachable by SDK consumers
- * in the packaged artifact. The affected methods are therefore marked {@code @Deprecated} to
- * prevent their use from external code. There is no plan to remove the deprecated methods for internal use but
- * it will become hidden from external use eventually.
+ * <p>The methods that accept or return Jackson types ({@code ObjectMapper}, {@code ObjectWriter}) are only
+ * available through {@link #_internal()}. Jackson is bundled as an internal dependency and relocated to a private
+ * package namespace during SDK packaging, making those types unreachable by SDK consumers in the packaged artifact.
  *
  * @author cwinkler
  *
@@ -119,47 +113,9 @@ public class JsonSerializerFactory {
         addMessageFormatConverters();
     }
 
-    /**
-     * Returns a cached default mapper with configuration that is required for all created serializers.
-     * This instance is cached and optimized for performance instead of readability, e.g., it does not apply
-     * pretty-printing as the mapper provided by {@link #getDefaultMapper()}.
-     *
-     * @return the ObjectMapper.
-     * @deprecated {@code ObjectMapper} is a Jackson type relocated during SDK packaging and not reachable
-     * by SDK consumers. Use {@link com.im.njams.sdk.utils.JsonUtils} for serialization and parsing instead.
-     */
-    @Deprecated(since = "6.0.0", forRemoval = false)
-    public static ObjectMapper getFastMapper() {
-        return getCachedMapper(false, true);
-    }
-
-    /**
-     * Returns a cached default mapper with configuration that is required for all created
-     * serializers. skipNullValues and pretty will be set to true.
-     *
-     * @return the ObjectMapper.
-     * @deprecated {@code ObjectMapper} is a Jackson type relocated during SDK packaging and not reachable
-     * by SDK consumers. Use {@link com.im.njams.sdk.utils.JsonUtils} for serialization and parsing instead.
-     */
-    @Deprecated(since = "6.0.0", forRemoval = false)
-    public static ObjectMapper getDefaultMapper() {
-        return getCachedMapper(true, true);
-    }
-
-    /**
-     * Allows to create a mapper with a different {@link JsonFactory} that uses
-     * the same settings as the default JSON mappers used by this application.
-     *
-     * @param factory May be <code>null</code> to use the default JSON factors.
-     * @return the default ObjectMapper
-     * @deprecated Both {@code JsonFactory} and the returned {@code ObjectMapper} are Jackson types
-     * relocated during SDK packaging and not reachable by SDK consumers. Add Jackson as a direct
-     * dependency in your own project if you need direct mapper access.
-     */
-    @Deprecated(since = "6.0.0", forRemoval = false)
     @SuppressWarnings("unchecked")
-    public static synchronized ObjectMapper createDefaultMapper(JsonFactory factory) {
-        ObjectMapper om = factory == null ? new ObjectMapper() : new ObjectMapper(factory);
+    private static synchronized ObjectMapper createDefaultMapper() {
+        ObjectMapper om = new ObjectMapper();
 
         AnnotationIntrospector first = new JacksonAnnotationIntrospector();
         AnnotationIntrospector second = new JaxbAnnotationIntrospector(om.getTypeFactory());
@@ -233,38 +189,7 @@ public class JsonSerializerFactory {
         });
     }
 
-    /**
-     * Registers a custom serializer for a specific object type to the mappers generated with this utility.
-     * Does nothing, if a serializer for the same type is already registered.
-     *
-     * @param <T> Object type for which the serializers should be added
-     * @param serializer custom serializer
-     * @param deserializer custom deserializer
-     * @deprecated {@code JsonSerializer} and {@code JsonDeserializer} are Jackson types relocated during
-     * SDK packaging and not reachable by SDK consumers.
-     * Use {@link #addSerializer(com.faizsiegeln.njams.messageformat.v4.converter.Converter, boolean)} instead.
-     */
-    @Deprecated(since = "6.0.0", forRemoval = false)
-    public static <T> void addSerializer(JsonSerializer<T> serializer, JsonDeserializer<T> deserializer) {
-        addSerializer(serializer, deserializer, false);
-    }
-
-    /**
-     * Registers a custom serializer for a specific object type to the mappers
-     * generated with this utility.
-     *
-     * @param <T> Object type for which the serializers should be added
-     * @param serializer custom serializer
-     * @param deserializer custom deserializer
-     * @param replace If <code>true</code> any registered serializer for the same type is replaced. Otherwise, if a
-     * serializer for the same type is already registered, this method does nothing. Be careful with overwriting default
-     * serializers!
-     * @deprecated {@code JsonSerializer} and {@code JsonDeserializer} are Jackson types relocated during
-     * SDK packaging and not reachable by SDK consumers.
-     * Use {@link #addSerializer(com.faizsiegeln.njams.messageformat.v4.converter.Converter, boolean)} instead.
-     */
-    @Deprecated(since = "6.0.0", forRemoval = false)
-    public static synchronized <T> void addSerializer(JsonSerializer<T> serializer, JsonDeserializer<T> deserializer,
+    private static synchronized <T> void addSerializer(JsonSerializer<T> serializer, JsonDeserializer<T> deserializer,
         boolean replace) {
         final Class<T> type = serializer.handledType();
         if (!replace && customSerializers.containsKey(type)) {
@@ -304,22 +229,8 @@ public class JsonSerializerFactory {
         return false;
     }
 
-    /**
-     * Creates a customized wrapper with some special settings.
-     *
-     * @param skipNullValues if true all null values will not be serialized.
-     * @param pretty if true the result JSON will be prettyfied.
-     * @return the ObjectMapper with the selected settings.
-     * @deprecated {@code ObjectMapper} is a Jackson type relocated during SDK packaging and not reachable
-     * by SDK consumers. Use {@link com.im.njams.sdk.utils.JsonUtils#serialize(Object, boolean)} instead.
-     */
-    @Deprecated(since = "6.0.0", forRemoval = false)
-    public static ObjectMapper getMapper(boolean skipNullValues, boolean pretty) {
-        return getCachedMapper(pretty, skipNullValues);
-    }
-
     private static ObjectMapper createMapper(boolean skipNullValues, boolean pretty) {
-        ObjectMapper om = createDefaultMapper(null);
+        ObjectMapper om = createDefaultMapper();
         om.setSerializationInclusion(skipNullValues ? Include.NON_NULL : Include.ALWAYS);
         om.configure(SerializationFeature.INDENT_OUTPUT, pretty);
         om.configure(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS, pretty);
@@ -327,52 +238,74 @@ public class JsonSerializerFactory {
     }
 
     /**
-     * Returns a default writer instance. This is essentially the same as
-     * invoking {@link #createWriter(boolean, boolean)} with both parameters set
-     * to <code>false</code>.
+     * Returns the accessor for the Jackson-typed factory methods.
+     * <p>
+     * <b>SDK-internal. Client code must not use this.</b> The returned methods expose Jackson types, which are
+     * relocated during SDK packaging and therefore unreachable for SDK consumers. Use
+     * {@link com.im.njams.sdk.utils.JsonUtils} for serialization and parsing instead.
      *
-     * @return the DefaultWriter
-     * @deprecated {@code ObjectWriter} is a Jackson type relocated during SDK packaging and not reachable
-     * by SDK consumers. Use {@link com.im.njams.sdk.utils.JsonUtils#serialize(Object)} instead.
+     * @return The (constant) accessor instance.
      */
-    @Deprecated(since = "6.0.0", forRemoval = false)
-    public static ObjectWriter createDefaultWriter() {
-        return getDefaultMapper().writer();
+    public static Internal _internal() {
+        return Internal.INSTANCE;
     }
 
     /**
-     * Returns a Json writer configured according to the given settings.
-     *
-     * @param skipNullValues If set to <code>true</code>, properties that have a
-     * <code>null</code> value are not serialized.
-     * @param pretty If set to to <code>true</code>, the writer will format the
-     * Json output.
-     * @return the ObjectWriter
-     * @deprecated {@code ObjectWriter} is a Jackson type relocated during SDK packaging and not reachable
-     * by SDK consumers. Use {@link com.im.njams.sdk.utils.JsonUtils#serialize(Object, boolean)} instead.
+     * Holder for the factory methods that expose Jackson types.
+     * <p>
+     * <b>SDK-internal. Client code must not use this.</b> Jackson types are relocated during SDK packaging and
+     * therefore unreachable for SDK consumers. Use {@link com.im.njams.sdk.utils.JsonUtils} instead.
      */
-    @Deprecated(since = "6.0.0", forRemoval = false)
-    public static ObjectWriter createWriter(boolean skipNullValues, boolean pretty) {
-        ObjectMapper om = getMapper(skipNullValues, pretty);
-        return om.writer();
-    }
+    public static final class Internal {
+        private static final Internal INSTANCE = new Internal();
 
-    /**
-     * Converts Properties to JSON.
-     *
-     * @param properties to convert
-     * @return json string representation for the given properties
-     * @deprecated Use {@link com.im.njams.sdk.utils.JsonUtils#serialize(Object)} instead.
-     */
-    @Deprecated(since = "6.0.0", forRemoval = false)
-    public static String propertiesToJsonString(final Properties properties) {
-        final ObjectWriter objectWriter = createDefaultWriter();
-        final StringWriter stringWriter = new StringWriter();
-        try {
-            objectWriter.writeValue(stringWriter, properties);
-        } catch (final IOException ex) {
-            throw new NjamsSdkRuntimeException("Error serializing properties " + properties, ex);
+        private Internal() {
+            // singleton
         }
-        return stringWriter.toString();
+
+        /**
+         * Returns a cached default mapper with configuration that is required for all created serializers.
+         * This instance is cached and optimized for performance instead of readability, e.g., it does not apply
+         * pretty-printing as the mapper provided by {@link #getDefaultMapper()}.
+         *
+         * @return the ObjectMapper.
+         */
+        public ObjectMapper getFastMapper() {
+            return getCachedMapper(false, true);
+        }
+
+        /**
+         * Returns a cached default mapper with configuration that is required for all created
+         * serializers. skipNullValues and pretty will be set to true.
+         *
+         * @return the ObjectMapper.
+         */
+        public ObjectMapper getDefaultMapper() {
+            return getCachedMapper(true, true);
+        }
+
+        /**
+         * Returns a cached mapper with some special settings.
+         *
+         * @param skipNullValues if true all null values will not be serialized.
+         * @param pretty if true the result JSON will be prettyfied.
+         * @return the ObjectMapper with the selected settings.
+         */
+        public ObjectMapper getMapper(boolean skipNullValues, boolean pretty) {
+            return getCachedMapper(pretty, skipNullValues);
+        }
+
+        /**
+         * Returns a Json writer configured according to the given settings.
+         *
+         * @param skipNullValues If set to <code>true</code>, properties that have a
+         * <code>null</code> value are not serialized.
+         * @param pretty If set to to <code>true</code>, the writer will format the
+         * Json output.
+         * @return the ObjectWriter
+         */
+        public ObjectWriter createWriter(boolean skipNullValues, boolean pretty) {
+            return getMapper(skipNullValues, pretty).writer();
+        }
     }
 }

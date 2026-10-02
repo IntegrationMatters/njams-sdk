@@ -53,11 +53,9 @@ public class JsonUtils {
      * @throws NjamsSdkRuntimeException
      *             If parsing the given JSON into the target type failed.
      */
-    // @Deprecated flags external API consumers only; internal use of Jackson factory is intentional.
-    @SuppressWarnings("deprecation")
     public static <T> T parse(String json, Class<T> type) throws NjamsSdkRuntimeException {
         try {
-            return JsonSerializerFactory.getFastMapper().readValue(json, type);
+            return JsonSerializerFactory._internal().getFastMapper().readValue(json, type);
         } catch (Exception e) {
             throw new NjamsSdkRuntimeException(
                 "Could not parse JSON string " + json + " to type " + type.getSimpleName(), e);
@@ -77,11 +75,9 @@ public class JsonUtils {
      * @throws NjamsSdkRuntimeException
      *             If parsing the given JSON into the target type failed.
      */
-    // @Deprecated flags external API consumers only; internal use of Jackson factory is intentional.
-    @SuppressWarnings("deprecation")
     public static <T> T parse(InputStream stream, Class<T> type) throws NjamsSdkRuntimeException {
         try {
-            return JsonSerializerFactory.getFastMapper().readValue(stream, type);
+            return JsonSerializerFactory._internal().getFastMapper().readValue(stream, type);
         } catch (Exception e) {
             throw new NjamsSdkRuntimeException(
                 "Could not parse InputStream to type " + type.getSimpleName(), e);
@@ -125,12 +121,10 @@ public class JsonUtils {
      * @return JSON string representing the given object.
      * @throws NjamsSdkRuntimeException If serializing the object to JSON failed.
      */
-    // @Deprecated flags external API consumers only; internal use of Jackson factory is intentional.
-    @SuppressWarnings("deprecation")
     public static String serialize(Object object, boolean prettyPrint, boolean skipNullValues)
         throws NjamsSdkRuntimeException {
         try {
-            return JsonSerializerFactory.getMapper(skipNullValues, prettyPrint).writeValueAsString(object);
+            return JsonSerializerFactory._internal().getMapper(skipNullValues, prettyPrint).writeValueAsString(object);
         } catch (Exception e) {
             throw new NjamsSdkRuntimeException("Could not serialize object " + object, e);
         }

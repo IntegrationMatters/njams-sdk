@@ -40,10 +40,10 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.Path;
-import com.im.njams.sdk.common.JsonSerializerFactory;
+import com.im.njams.sdk.common.NjamsSdkRuntimeException;
+import com.im.njams.sdk.utils.JsonUtils;
 import com.im.njams.sdk.configuration.ProcessFilterEntry.FilterType;
 import com.im.njams.sdk.configuration.ProcessFilterEntry.MatcherType;
 import com.im.njams.sdk.configuration.provider.MemoryConfigurationProvider;
@@ -62,8 +62,8 @@ public class ProcessFilterTest {
                 @Override
                 public void save() {
                     try {
-                        LOG.debug(JsonSerializerFactory.getDefaultMapper().writeValueAsString(this));
-                    } catch (JsonProcessingException e) {
+                        LOG.debug(JsonUtils.serialize(this, true, true));
+                    } catch (NjamsSdkRuntimeException e) {
                         // TODO Auto-generated catch block
                         e.printStackTrace();
                     }
@@ -180,8 +180,8 @@ public class ProcessFilterTest {
      * exercised the same way it is at runtime (built only after the filter list is populated).
      */
     private static Configuration loadRoundTrip(Configuration source) throws Exception {
-        final String json = JsonSerializerFactory.getDefaultMapper().writeValueAsString(source);
-        final Configuration loaded = JsonSerializerFactory.getDefaultMapper().readValue(json, Configuration.class);
+        final String json = JsonUtils.serialize(source, true, true);
+        final Configuration loaded = JsonUtils.parse(json, Configuration.class);
         loaded.setConfigurationProvider(new MemoryConfigurationProvider());
         return loaded;
     }
@@ -407,8 +407,8 @@ public class ProcessFilterTest {
     public void testLoadedConfigurationWithNullFilterListIsTreatedAsEmpty() throws Exception {
         // A persisted configuration may contain an explicit null for the filter list; loading it must
         // not leave the list null.
-        final Configuration loaded = JsonSerializerFactory.getDefaultMapper()
-            .readValue("{\"processFilters\":null}", Configuration.class);
+        final Configuration loaded = JsonUtils
+            .parse("{\"processFilters\":null}", Configuration.class);
         loaded.setConfigurationProvider(new MemoryConfigurationProvider());
 
         assertNotNull("filter list must never be null after loading", loaded.getProcessFilters());

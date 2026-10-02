@@ -90,12 +90,10 @@ public class KafkaReceiver extends AbstractReceiver {
      * @param settings the settings needed to initialize
      */
     @Override
-    // @Deprecated flags external API consumers only; internal use of Jackson factory is intentional.
-    @SuppressWarnings("deprecation")
     public void init(final ClientSettings settings) {
         super.init(settings);
         connectionStatus = ConnectionStatus.DISCONNECTED;
-        mapper = JsonSerializerFactory.getFastMapper();
+        mapper = JsonSerializerFactory._internal().getFastMapper();
         final String clientPath = settings.getProperty(CommunicationFactory.INTERNAL_PROPERTY_CLIENTPATH);
         kafkaClientId = getClientId(clientPath.substring(1, clientPath.length() - 1).replace('>', '_'));
         String prefix = settings.getProperty(NjamsSettings.PROPERTY_KAFKA_TOPIC_PREFIX);

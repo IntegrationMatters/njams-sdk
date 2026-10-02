@@ -46,10 +46,8 @@ import org.junit.Test;
 
 import com.faizsiegeln.njams.messageformat.v4.common.CommonMessage;
 import com.faizsiegeln.njams.messageformat.v4.logmessage.LogMessage;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.im.njams.sdk.NjamsSettings;
-import com.im.njams.sdk.common.JsonSerializerFactory;
+import com.im.njams.sdk.utils.JsonUtils;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.settings.ClientSettings;
 
@@ -67,7 +65,6 @@ public class JmsSenderTest {
     private static final LocalDateTime JOBEND = LocalDateTime.of(2018, 11, 20, 14, 59, 58, 856000000);
     private static final LocalDateTime SENTAT = LocalDateTime.of(2018, 11, 20, 15, 00, 01, 213000000);
 
-    private static final ObjectMapper mapper = JsonSerializerFactory.getDefaultMapper();
     private JmsSender sender = null;
 
     @Before
@@ -101,13 +98,13 @@ public class JmsSenderTest {
         message.setSentAt(SENTAT);
 
         try {
-            String data = mapper.writeValueAsString(message);
+            String data = JsonUtils.serialize(message, true, true);
             assertTrue(data.contains("\"sentAt\" : \"2018-11-20T15:00:01.213\""));
             assertTrue(data.contains("\"jobStart\" : \"2018-11-20T14:55:34.555\""));
             assertTrue(data.contains("\"jobEnd\" : \"2018-11-20T14:59:58.856\""));
             assertTrue(data.contains("\"businessStart\" : \"2018-11-20T14:57:55.240\""));
             assertTrue(data.contains("\"businessEnd\" : \"2018-11-20T14:58:12.142\""));
-        } catch (JsonProcessingException ex) {
+        } catch (NjamsSdkRuntimeException ex) {
             fail(ex.getMessage());
         }
     }

@@ -185,14 +185,12 @@ public final class ActivityMapping {
      * Returns the shared mapper used to assemble the node tree. It is configured to include {@code null} values so that
      * {@code null} object properties surface as empty-string leaves rather than being dropped.
      */
-    @SuppressWarnings("deprecation")
     private static ObjectMapper mapper() {
         return InclusiveMapperHolder.MAPPER;
     }
 
     private static final class InclusiveMapperHolder {
-        @SuppressWarnings("deprecation")
-        private static final ObjectMapper MAPPER = JsonSerializerFactory.getMapper(false, false);
+        private static final ObjectMapper MAPPER = JsonSerializerFactory._internal().getMapper(false, false);
     }
 
     /**

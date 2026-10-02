@@ -56,19 +56,17 @@ public class JsonSerializer<T> implements Serializer<T> {
      * Creates a serializer with the given pretty-printing setting.
      *
      * <p>When {@code pretty} is {@code true}, the default mapper from
-     * {@link JsonSerializerFactory#getDefaultMapper()} is used, which produces indented,
+     * {@link JsonSerializerFactory.Internal#getDefaultMapper()} is used, which produces indented,
      * human-readable JSON with entries ordered by key. When {@code false}, the fast mapper
-     * from {@link JsonSerializerFactory#getFastMapper()} is used, producing compact output
+     * from {@link JsonSerializerFactory.Internal#getFastMapper()} is used, producing compact output
      * optimized for performance.</p>
      *
      * @param pretty {@code true} for indented, human-readable JSON; {@code false} for compact output
      */
-    // @Deprecated flags external API consumers only; internal use of Jackson factory is intentional.
-    @SuppressWarnings("deprecation")
     public JsonSerializer(final boolean pretty) {
         final ObjectMapper mapper = pretty
-                ? JsonSerializerFactory.getDefaultMapper()
-                : JsonSerializerFactory.getFastMapper();
+                ? JsonSerializerFactory._internal().getDefaultMapper()
+                : JsonSerializerFactory._internal().getFastMapper();
         this.objectWriter = mapper.writer();
     }
 
