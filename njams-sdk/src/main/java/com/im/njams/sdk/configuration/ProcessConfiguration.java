@@ -27,6 +27,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.LogLevel;
+import com.im.njams.sdk.Path;
 
 /**
  * Settings container for processes.
@@ -42,7 +43,7 @@ public class ProcessConfiguration {
     private boolean recording = true;
 
     /**
-     * Use {@link Configuration#getProcess(com.im.njams.sdk.Path)} for creating an instance.
+     * Use {@link Configuration#getProcess(Path)} for creating an instance.
      */
     public ProcessConfiguration() {
         // instances created by Configuration class
@@ -63,7 +64,7 @@ public class ProcessConfiguration {
     }
 
     /**
-     * @deprecated Replaced by {@link Configuration#hasProcessExcludeFilter(com.im.njams.sdk.Path)}
+     * @deprecated Replaced by {@link Configuration#hasProcessExcludeFilter(Path)}
      * @return the exclude
      */
     @Deprecated(since = "5.0.0", forRemoval = true)
@@ -72,7 +73,7 @@ public class ProcessConfiguration {
     }
 
     /**
-     * @deprecated Replaced by {@link Configuration#setProcessExcluded(com.im.njams.sdk.Path, boolean)}
+     * @deprecated Replaced by {@link Configuration#setProcessExcluded(Path, boolean)}
      * @param exclude the exclude to set
      */
     @Deprecated(since = "5.0.0", forRemoval = true)

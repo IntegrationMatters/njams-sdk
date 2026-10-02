@@ -443,7 +443,7 @@ public class JobImpl implements Job {
     void requireNotFinished(String operation) {
         if (finished) {
             throw new NjamsSdkRuntimeException(
-                    operation + " is not allowed after end(): the final log message of the job has already"
+                    operation + " is not allowed once the job has ended: the final log message of the job has already"
                             + " been sent to the nJAMS server and a later change is never sent.");
         }
     }

@@ -193,35 +193,12 @@ public class Configuration {
     }
 
     /**
-     * Legacy variant of {@link #getProcess(Path)}.
-     *
-     * @param processPath The path of the process for that a configuration shall be returned.
-     * @return Always ProcessSettings for the given path, which is created if not exists.
-     * @deprecated Use {@link #getProcess(Path)} instead.
-     */
-    @Deprecated(since = "6.0.0", forRemoval = true)
-    public ProcessConfiguration getProcess(com.im.njams.sdk.common.Path processPath) {
-        return getProcess(processPath.toString());
-    }
-
-    /**
      * Returns whether or not this configuration contains a separate {@link ProcessConfiguration} for the process with
      * the given path.
      * @param processPath The path of the process to check for a configuration.
      * @return <code>true</code> if there is a configuration for the given path.
      */
     public boolean hasProcess(Path processPath) {
-        return processes.containsKey(processPath.toString());
-    }
-
-    /**
-     * Legacy variant of {@link #hasProcess(Path)}.
-     * @param processPath The path of the process to check for a configuration.
-     * @return <code>true</code> if there is a configuration for the given path.
-     * @deprecated Use {@link #hasProcess(Path)} instead.
-     */
-    @Deprecated(since = "6.0.0", forRemoval = true)
-    public boolean hasProcess(com.im.njams.sdk.common.Path processPath) {
         return processes.containsKey(processPath.toString());
     }
 
@@ -295,17 +272,6 @@ public class Configuration {
     }
 
     /**
-     * Legacy variant of {@link #isProcessExcluded(Path)}.
-     * @param processPath The process path to test
-     * @return <code>true</code> if the process must not be processed.
-     * @deprecated Use {@link #isProcessExcluded(Path)} instead.
-     */
-    @Deprecated(since = "6.0.0", forRemoval = true)
-    public boolean isProcessExcluded(com.im.njams.sdk.common.Path processPath) {
-        return !processFilter().isSelected(processPath);
-    }
-
-    /**
      * Returns <code>true</code> only if there is a specific exclude setting for given process.<br>
      * This is not the same as {@link #isProcessExcluded(Path)} since there may be additional filters that lead to
      * excluding this process.<br>
@@ -315,17 +281,6 @@ public class Configuration {
      * @see ProcessFilter#hasExcludeFilter(Path)
      */
     public boolean hasProcessExcludeFilter(Path processPath) {
-        return processFilter().hasExcludeFilter(processPath);
-    }
-
-    /**
-     * Legacy variant of {@link #hasProcessExcludeFilter(Path)}.
-     * @param processPath The process path to test
-     * @return Whether there is a specific exclude filter for the given process.
-     * @deprecated Use {@link #hasProcessExcludeFilter(Path)} instead.
-     */
-    @Deprecated(since = "6.0.0", forRemoval = true)
-    public boolean hasProcessExcludeFilter(com.im.njams.sdk.common.Path processPath) {
         return processFilter().hasExcludeFilter(processPath);
     }
 
@@ -340,18 +295,6 @@ public class Configuration {
         processFilter().setExcluded(processPath, excluded);
         // setExcluded changes the filter list directly; rebuild so the filter reflects the update
         // (preserving the settings-based exclude patterns).
-        rebuildFilter();
-    }
-
-    /**
-     * Legacy variant of {@link #setProcessExcluded(Path, boolean)}.
-     * @param processPath The process path for that an exclude shall be updated
-     * @param excluded If <code>true</code>, an exclude filter is set, otherwise it's removed.
-     * @deprecated Use {@link #setProcessExcluded(Path, boolean)} instead.
-     */
-    @Deprecated(since = "6.0.0", forRemoval = true)
-    public synchronized void setProcessExcluded(com.im.njams.sdk.common.Path processPath, boolean excluded) {
-        processFilter().setExcluded(processPath, excluded);
         rebuildFilter();
     }
 }

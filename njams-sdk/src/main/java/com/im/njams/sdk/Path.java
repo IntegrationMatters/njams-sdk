@@ -66,8 +66,6 @@ import java.util.concurrent.ConcurrentHashMap;
  * Use the resolve variants only when the input is itself a path string — for example
  * parsed from configuration, received from the wire, or otherwise arriving as raw text
  * that may contain {@code >} separators.
- *
- * @see com.im.njams.sdk.common.Path
  */
 public final class Path {
 
@@ -130,31 +128,6 @@ public final class Path {
      */
     public static Path of(List<String> segments) {
         return of(segments == null ? EMPTY_SEGMENTS : segments.toArray(new String[0]));
-    }
-
-    /**
-     * Returns the new {@link Path} instance equivalent to the given legacy
-     * {@link com.im.njams.sdk.common.Path}, resolved via its
-     * {@link com.im.njams.sdk.common.Path#getParts() getParts()} segments.
-     *
-     * <p>Intended only as a migration helper while callers still hold legacy instances.
-     * Switch call sites to construct {@link Path} directly via {@link #of(String...)} or
-     * {@link #resolve(String...)} and drop the dependency on
-     * {@link com.im.njams.sdk.common.Path}.
-     *
-     * @param legacyPath the legacy path; {@code null} returns {@link #ROOT}
-     * @return the equivalent new {@link Path} node
-     * @throws IllegalArgumentException if any of the legacy path's parts is invalid as a segment
-     * @deprecated Switch callers from {@link com.im.njams.sdk.common.Path} to the new
-     *     {@link Path} type and construct instances directly via {@link #of(String...)} or
-     *     {@link #resolve(String...)}.
-     */
-    @Deprecated
-    public static Path of(com.im.njams.sdk.common.Path legacyPath) {
-        if (legacyPath == null) {
-            return ROOT;
-        }
-        return of(legacyPath.getParts().toArray(new String[0]));
     }
 
     /**
@@ -266,7 +239,6 @@ public final class Path {
     public String getName() {
         return segment;
     }
-
 
     /**
      * Returns the ordered list of segment names that make up this path, root first.
@@ -595,22 +567,6 @@ public final class Path {
             sb.append(prefix).append(last ? "`- " : "+- ").append(child.segment).append('\n');
             appendChildren(sb, child, prefix + (last ? "   " : "|  "));
         }
-    }
-
-    /**
-     * Returns a legacy {@link com.im.njams.sdk.common.Path} equivalent to this path,
-     * constructed from this path's full string representation.
-     *
-     * <p>Intended only as a migration helper for code still consuming
-     * {@link com.im.njams.sdk.common.Path}. Switch call sites to use {@link Path} directly.
-     *
-     * @return a new legacy path instance with the same {@code toString()} value as this path
-     * @deprecated Switch callers from {@link com.im.njams.sdk.common.Path} to the new
-     *     {@link Path} type. This bridge exists only to ease incremental migration.
-     */
-    @Deprecated
-    public com.im.njams.sdk.common.Path toLegacyPath() {
-        return new com.im.njams.sdk.common.Path(pathString);
     }
 
     /**

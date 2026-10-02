@@ -42,8 +42,8 @@ import org.slf4j.LoggerFactory;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.im.njams.sdk.NjamsSettings;
+import com.im.njams.sdk.Path;
 import com.im.njams.sdk.common.JsonSerializerFactory;
-import com.im.njams.sdk.common.Path;
 import com.im.njams.sdk.configuration.ProcessFilterEntry.FilterType;
 import com.im.njams.sdk.configuration.ProcessFilterEntry.MatcherType;
 import com.im.njams.sdk.configuration.provider.MemoryConfigurationProvider;
@@ -93,7 +93,7 @@ public class ProcessFilterTest {
         }
 
         public Builder process(String path, boolean exclude) {
-            config.setProcessExcluded(new Path(path), exclude);
+            config.setProcessExcluded(Path.resolve(path), exclude);
             return this;
         }
 
@@ -116,62 +116,62 @@ public class ProcessFilterTest {
     @Test
     public void testIsSelectedValue() {
         ProcessFilter filter = new Builder().exValue(">a>.>c>").build();
-        assertTrue(filter.isSelected(new Path(">a>b>c>")));
-        assertTrue(filter.isSelected(new Path(">a>")));
-        assertFalse(filter.isSelected(new Path(">a>.>c>")));
+        assertTrue(filter.isSelected(Path.resolve(">a>b>c>")));
+        assertTrue(filter.isSelected(Path.resolve(">a>")));
+        assertFalse(filter.isSelected(Path.resolve(">a>.>c>")));
 
         filter = new Builder().inValue(">a>.>c>").build();
-        assertFalse(filter.isSelected(new Path(">a>b>c>")));
-        assertFalse(filter.isSelected(new Path(">a>")));
-        assertTrue(filter.isSelected(new Path(">a>.>c>")));
+        assertFalse(filter.isSelected(Path.resolve(">a>b>c>")));
+        assertFalse(filter.isSelected(Path.resolve(">a>")));
+        assertTrue(filter.isSelected(Path.resolve(">a>.>c>")));
 
         filter = new Builder().inValue(">a>.>c>").exValue(">a>b>c>").build();
-        assertFalse(filter.isSelected(new Path(">a>b>c>")));
-        assertFalse(filter.isSelected(new Path(">a>")));
-        assertTrue(filter.isSelected(new Path(">a>.>c>")));
+        assertFalse(filter.isSelected(Path.resolve(">a>b>c>")));
+        assertFalse(filter.isSelected(Path.resolve(">a>")));
+        assertTrue(filter.isSelected(Path.resolve(">a>.>c>")));
 
     }
 
     @Test
     public void testIsSelectedPattern() {
         ProcessFilter filter = new Builder().exPattern(">a>.>c>").build();
-        assertFalse(filter.isSelected(new Path(">a>b>c>")));
-        assertTrue(filter.isSelected(new Path(">a>")));
-        assertFalse(filter.isSelected(new Path(">a>.>c>")));
-        assertFalse(filter.isSelected(new Path(">a>.>c>")));
+        assertFalse(filter.isSelected(Path.resolve(">a>b>c>")));
+        assertTrue(filter.isSelected(Path.resolve(">a>")));
+        assertFalse(filter.isSelected(Path.resolve(">a>.>c>")));
+        assertFalse(filter.isSelected(Path.resolve(">a>.>c>")));
 
         filter = new Builder().inPattern(">a>.>c>").build();
-        assertTrue(filter.isSelected(new Path(">a>b>c>")));
-        assertFalse(filter.isSelected(new Path(">a>")));
-        assertTrue(filter.isSelected(new Path(">a>.>c>")));
+        assertTrue(filter.isSelected(Path.resolve(">a>b>c>")));
+        assertFalse(filter.isSelected(Path.resolve(">a>")));
+        assertTrue(filter.isSelected(Path.resolve(">a>.>c>")));
 
         filter = new Builder().inPattern(">a>.>c>").exPattern(">a>b>.>").build();
-        assertFalse(filter.isSelected(new Path(">a>b>c>")));
-        assertTrue(filter.isSelected(new Path(">a>d>c>")));
-        assertFalse(filter.isSelected(new Path(">a>")));
-        assertTrue(filter.isSelected(new Path(">a>.>c>")));
+        assertFalse(filter.isSelected(Path.resolve(">a>b>c>")));
+        assertTrue(filter.isSelected(Path.resolve(">a>d>c>")));
+        assertFalse(filter.isSelected(Path.resolve(">a>")));
+        assertTrue(filter.isSelected(Path.resolve(">a>.>c>")));
 
     }
 
     @Test
     public void testIsSelectedProcess() {
         ProcessFilter filter = new Builder().process(">a>b>c>", true).process(">a>b>d>", false).build();
-        assertFalse(filter.isSelected(new Path(">a>b>c>")));
-        assertTrue(filter.isSelected(new Path(">a>b>d>")));
-        assertTrue(filter.hasExcludeFilter(new Path(">a>b>c>")));
-        assertFalse(filter.hasExcludeFilter(new Path(">a>b>d>")));
+        assertFalse(filter.isSelected(Path.resolve(">a>b>c>")));
+        assertTrue(filter.isSelected(Path.resolve(">a>b>d>")));
+        assertTrue(filter.hasExcludeFilter(Path.resolve(">a>b>c>")));
+        assertFalse(filter.hasExcludeFilter(Path.resolve(">a>b>d>")));
 
         filter = new Builder().process(">a>b>c>", true).process(">a>b>d>", false).exValue(">a>b>d>").build();
-        assertFalse(filter.isSelected(new Path(">a>b>c>")));
-        assertFalse(filter.isSelected(new Path(">a>b>d>")));
-        assertTrue(filter.hasExcludeFilter(new Path(">a>b>c>")));
-        assertTrue(filter.hasExcludeFilter(new Path(">a>b>d>")));
+        assertFalse(filter.isSelected(Path.resolve(">a>b>c>")));
+        assertFalse(filter.isSelected(Path.resolve(">a>b>d>")));
+        assertTrue(filter.hasExcludeFilter(Path.resolve(">a>b>c>")));
+        assertTrue(filter.hasExcludeFilter(Path.resolve(">a>b>d>")));
 
         filter = new Builder().process(">a>b>c>", true).process(">a>b>d>", true).inValue(">a>b>d>").build();
-        assertFalse(filter.isSelected(new Path(">a>b>c>")));
-        assertFalse(filter.isSelected(new Path(">a>b>d>")));
-        assertTrue(filter.hasExcludeFilter(new Path(">a>b>c>")));
-        assertTrue(filter.hasExcludeFilter(new Path(">a>b>d>")));
+        assertFalse(filter.isSelected(Path.resolve(">a>b>c>")));
+        assertFalse(filter.isSelected(Path.resolve(">a>b>d>")));
+        assertTrue(filter.hasExcludeFilter(Path.resolve(">a>b>c>")));
+        assertTrue(filter.hasExcludeFilter(Path.resolve(">a>b>d>")));
     }
 
     /**
@@ -197,11 +197,11 @@ public class ProcessFilterTest {
         final Configuration loaded = loadRoundTrip(source);
 
         assertTrue("literal exclude from loaded configuration must be applied",
-            loaded.isProcessExcluded(new Path(">a>b>c>")));
+            loaded.isProcessExcluded(Path.resolve(">a>b>c>")));
         assertTrue("regex exclude from loaded configuration must be applied",
-            loaded.isProcessExcluded(new Path(">x>y>")));
+            loaded.isProcessExcluded(Path.resolve(">x>y>")));
         assertFalse("a non-matching process must not be excluded",
-            loaded.isProcessExcluded(new Path(">q>r>")));
+            loaded.isProcessExcluded(Path.resolve(">q>r>")));
     }
 
     @Test
@@ -212,10 +212,10 @@ public class ProcessFilterTest {
         source.addProcessFilter(new ProcessFilterEntry(FilterType.INCLUDE, MatcherType.REGEX, ">in>.*"));
         final Configuration loaded = loadRoundTrip(source);
 
-        assertFalse("explicitly included process must be selected", loaded.isProcessExcluded(new Path(">a>b>c>")));
-        assertFalse("regex-included process must be selected", loaded.isProcessExcluded(new Path(">in>x>")));
+        assertFalse("explicitly included process must be selected", loaded.isProcessExcluded(Path.resolve(">a>b>c>")));
+        assertFalse("regex-included process must be selected", loaded.isProcessExcluded(Path.resolve(">in>x>")));
         assertTrue("non-included process must be excluded in whitelist mode",
-            loaded.isProcessExcluded(new Path(">a>b>d>")));
+            loaded.isProcessExcluded(Path.resolve(">a>b>d>")));
     }
 
     @Test
@@ -223,22 +223,22 @@ public class ProcessFilterTest {
         // A server command may exclude a process during a running session, after the filter has
         // already been built. The change must take effect (the cached filter is invalidated).
         final Configuration loaded = loadRoundTrip(new Configuration());
-        assertFalse("no filters yet -> nothing excluded", loaded.isProcessExcluded(new Path(">a>b>c>")));
+        assertFalse("no filters yet -> nothing excluded", loaded.isProcessExcluded(Path.resolve(">a>b>c>")));
 
-        loaded.setProcessExcluded(new Path(">a>b>c>"), true);
+        loaded.setProcessExcluded(Path.resolve(">a>b>c>"), true);
         assertTrue("exclude added during the session must take effect",
-            loaded.isProcessExcluded(new Path(">a>b>c>")));
+            loaded.isProcessExcluded(Path.resolve(">a>b>c>")));
 
-        loaded.setProcessExcluded(new Path(">a>b>c>"), false);
+        loaded.setProcessExcluded(Path.resolve(">a>b>c>"), false);
         assertFalse("removing the exclude during the session must take effect",
-            loaded.isProcessExcluded(new Path(">a>b>c>")));
+            loaded.isProcessExcluded(Path.resolve(">a>b>c>")));
     }
 
     @Test
     public void testSettingPatternExcludesMatchingProcess() {
         ProcessFilter filter = new Builder().settingExclude(">a>b>.*").build();
-        assertFalse(filter.isSelected(new Path(">a>b>c>")));
-        assertTrue(filter.isSelected(new Path(">a>x>c>")));
+        assertFalse(filter.isSelected(Path.resolve(">a>b>c>")));
+        assertTrue(filter.isSelected(Path.resolve(">a>x>c>")));
     }
 
     @Test
@@ -246,36 +246,36 @@ public class ProcessFilterTest {
         // Regression for the excludeNone short-circuit: with ONLY a setting pattern and no server
         // filters, the pattern must still be evaluated.
         ProcessFilter filter = new Builder().settingExclude(">a>b>c>").build();
-        assertFalse(filter.isSelected(new Path(">a>b>c>")));
-        assertTrue(filter.isSelected(new Path(">a>b>d>")));
+        assertFalse(filter.isSelected(Path.resolve(">a>b>c>")));
+        assertTrue(filter.isSelected(Path.resolve(">a>b>d>")));
     }
 
     @Test
     public void testSettingPatternOredWithServerExclude() {
         ProcessFilter filter = new Builder().exValue(">x>y>z>").settingExclude(">a>.*").build();
-        assertFalse(filter.isSelected(new Path(">x>y>z>")));
-        assertFalse(filter.isSelected(new Path(">a>b>c>")));
-        assertTrue(filter.isSelected(new Path(">q>r>s>")));
+        assertFalse(filter.isSelected(Path.resolve(">x>y>z>")));
+        assertFalse(filter.isSelected(Path.resolve(">a>b>c>")));
+        assertTrue(filter.isSelected(Path.resolve(">q>r>s>")));
     }
 
     @Test
     public void testExplicitIncludeOverridesSettingPattern() {
         // Documented precedence: an exact-value include wins over the setting exclude pattern.
         ProcessFilter filter = new Builder().settingExclude(">a>b>.*").inValue(">a>b>c>").build();
-        assertTrue(filter.isSelected(new Path(">a>b>c>")));
-        assertFalse(filter.isSelected(new Path(">a>b>d>")));
+        assertTrue(filter.isSelected(Path.resolve(">a>b>c>")));
+        assertFalse(filter.isSelected(Path.resolve(">a>b>d>")));
     }
 
     @Test
     public void testInvalidSettingPatternIsIgnored() {
         ProcessFilter filter = new Builder().settingExclude("[invalid(").build();
-        assertTrue(filter.isSelected(new Path(">a>b>c>")));
+        assertTrue(filter.isSelected(Path.resolve(">a>b>c>")));
     }
 
     @Test
     public void testSettingPatternCaseSensitivity() {
-        assertTrue(new Builder().settingExclude(">A>B>.*").build().isSelected(new Path(">a>b>c>")));
-        assertFalse(new Builder().settingExclude("(?i)>A>B>.*").build().isSelected(new Path(">a>b>c>")));
+        assertTrue(new Builder().settingExclude(">A>B>.*").build().isSelected(Path.resolve(">a>b>c>")));
+        assertFalse(new Builder().settingExclude("(?i)>A>B>.*").build().isSelected(Path.resolve(">a>b>c>")));
     }
 
     @Test
@@ -285,8 +285,8 @@ public class ProcessFilterTest {
         Configuration config = new Configuration();
         config.setConfigurationProvider(new MemoryConfigurationProvider());
         config.initFilter(HierarchicalSettings.from(props).build());
-        assertFalse(config.isProcessExcluded(new Path(">a>x>")));
-        assertTrue(config.isProcessExcluded(new Path(">a>b>c>")));
+        assertFalse(config.isProcessExcluded(Path.resolve(">a>x>")));
+        assertTrue(config.isProcessExcluded(Path.resolve(">a>b>c>")));
     }
 
     @Test
@@ -294,12 +294,12 @@ public class ProcessFilterTest {
         Configuration config = new Configuration();
         config.setConfigurationProvider(new MemoryConfigurationProvider());
         // first access builds the filter lazily without settings patterns
-        assertFalse(config.isProcessExcluded(new Path(">a>b>c>")));
+        assertFalse(config.isProcessExcluded(Path.resolve(">a>b>c>")));
 
         Map<String, String> props = new HashMap<>();
         props.put(NjamsSettings.PROPERTY_PROCESS_EXCLUDE_REGEX_PREFIX + "x", ">a>b>.*");
         config.initFilter(HierarchicalSettings.from(props).build());
-        assertTrue(config.isProcessExcluded(new Path(">a>b>c>")));
+        assertTrue(config.isProcessExcluded(Path.resolve(">a>b>c>")));
     }
 
     @Test
@@ -309,13 +309,13 @@ public class ProcessFilterTest {
         Configuration config = new Configuration();
         config.setConfigurationProvider(new MemoryConfigurationProvider());
         config.initFilter(HierarchicalSettings.from(props).build());
-        assertTrue(config.isProcessExcluded(new Path(">a>b>c>")));
+        assertTrue(config.isProcessExcluded(Path.resolve(">a>b>c>")));
 
         // a server command mutates the filter list; the filter is rebuilt and the settings-based
         // pattern must be preserved (not re-read from settings, but carried over)
-        config.setProcessExcluded(new Path(">z>z>"), true);
-        assertTrue(config.isProcessExcluded(new Path(">z>z>")));
-        assertTrue(config.isProcessExcluded(new Path(">a>b>c>")));
+        config.setProcessExcluded(Path.resolve(">z>z>"), true);
+        assertTrue(config.isProcessExcluded(Path.resolve(">z>z>")));
+        assertTrue(config.isProcessExcluded(Path.resolve(">a>b>c>")));
     }
 
     @Test
@@ -327,7 +327,7 @@ public class ProcessFilterTest {
         final Configuration config = new Configuration();
         config.setConfigurationProvider(new MemoryConfigurationProvider());
         // Build the filter once so every later mutation triggers a rebuild that iterates the list.
-        config.isProcessExcluded(new Path(">warmup>"));
+        config.isProcessExcluded(Path.resolve(">warmup>"));
 
         final int writerThreads = 6;
         final int addsPerThread = 60;
@@ -358,7 +358,7 @@ public class ProcessFilterTest {
                 try {
                     start.await();
                     while (readersRun.get()) {
-                        config.isProcessExcluded(new Path(">p0>1>"));
+                        config.isProcessExcluded(Path.resolve(">p0>1>"));
                     }
                 } catch (final Throwable e) {
                     failures.add(e);
@@ -398,9 +398,9 @@ public class ProcessFilterTest {
         assertNotNull("filter list must never be null", config.getProcessFilters());
         assertTrue("null filters must be treated as empty", config.getProcessFilters().isEmpty());
         // operations that read the list must not throw
-        assertFalse(config.hasProcessExcludeFilter(new Path(">a>b>c>")));
-        config.setProcessExcluded(new Path(">a>b>c>"), true);
-        assertTrue(config.isProcessExcluded(new Path(">a>b>c>")));
+        assertFalse(config.hasProcessExcludeFilter(Path.resolve(">a>b>c>")));
+        config.setProcessExcluded(Path.resolve(">a>b>c>"), true);
+        assertTrue(config.isProcessExcluded(Path.resolve(">a>b>c>")));
     }
 
     @Test
@@ -413,28 +413,28 @@ public class ProcessFilterTest {
 
         assertNotNull("filter list must never be null after loading", loaded.getProcessFilters());
         assertTrue(loaded.getProcessFilters().isEmpty());
-        assertFalse(loaded.isProcessExcluded(new Path(">a>b>c>")));
+        assertFalse(loaded.isProcessExcluded(Path.resolve(">a>b>c>")));
     }
 
     @Test
     public void testConvertOldConfig() {
         ProcessFilter filter = new Builder().oldConfig(">a>b>c>", true).oldConfig(">a>b>d>", false).build();
-        assertFalse(filter.isSelected(new Path(">a>b>c>")));
-        assertTrue(filter.isSelected(new Path(">a>b>d>")));
-        assertTrue(filter.hasExcludeFilter(new Path(">a>b>c>")));
-        assertFalse(filter.hasExcludeFilter(new Path(">a>b>d>")));
+        assertFalse(filter.isSelected(Path.resolve(">a>b>c>")));
+        assertTrue(filter.isSelected(Path.resolve(">a>b>d>")));
+        assertTrue(filter.hasExcludeFilter(Path.resolve(">a>b>c>")));
+        assertFalse(filter.hasExcludeFilter(Path.resolve(">a>b>d>")));
 
         filter = new Builder().oldConfig(">a>b>c>", true).oldConfig(">a>b>d>", false).exValue(">a>b>d>").build();
-        assertFalse(filter.isSelected(new Path(">a>b>c>")));
-        assertFalse(filter.isSelected(new Path(">a>b>d>")));
-        assertTrue(filter.hasExcludeFilter(new Path(">a>b>c>")));
-        assertTrue(filter.hasExcludeFilter(new Path(">a>b>d>")));
+        assertFalse(filter.isSelected(Path.resolve(">a>b>c>")));
+        assertFalse(filter.isSelected(Path.resolve(">a>b>d>")));
+        assertTrue(filter.hasExcludeFilter(Path.resolve(">a>b>c>")));
+        assertTrue(filter.hasExcludeFilter(Path.resolve(">a>b>d>")));
 
         filter = new Builder().oldConfig(">a>b>c>", true).oldConfig(">a>b>d>", true).inValue(">a>b>d>").build();
-        assertFalse(filter.isSelected(new Path(">a>b>c>")));
-        assertFalse(filter.isSelected(new Path(">a>b>d>")));
-        assertTrue(filter.hasExcludeFilter(new Path(">a>b>c>")));
-        assertTrue(filter.hasExcludeFilter(new Path(">a>b>d>")));
+        assertFalse(filter.isSelected(Path.resolve(">a>b>c>")));
+        assertFalse(filter.isSelected(Path.resolve(">a>b>d>")));
+        assertTrue(filter.hasExcludeFilter(Path.resolve(">a>b>c>")));
+        assertTrue(filter.hasExcludeFilter(Path.resolve(">a>b>d>")));
     }
 
 }

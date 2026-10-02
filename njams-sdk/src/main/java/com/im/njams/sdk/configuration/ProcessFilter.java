@@ -192,17 +192,6 @@ public class ProcessFilter {
         return processPath != null && isSelected(processPath.toString());
     }
 
-    /**
-     * Legacy variant of {@link #isSelected(Path)}.
-     * @param processPath The path of the process to test.
-     * @return <code>true</code> if the process shall be processed.
-     * @deprecated Use {@link #isSelected(Path)} instead.
-     */
-    @Deprecated(since = "6.0.0", forRemoval = true)
-    public boolean isSelected(final com.im.njams.sdk.common.Path processPath) {
-        return processPath != null && isSelected(processPath.toString());
-    }
-
     private boolean isSelected(final String pathString) {
         if (config.getLogMode() == LogMode.NONE) {
             // do not cache, since this setting can change during runtime!
@@ -252,18 +241,6 @@ public class ProcessFilter {
         setExcluded(processPath.toString(), excluded);
     }
 
-    /**
-     * Legacy variant of {@link #setExcluded(Path, boolean)}.
-     * @param processPath The process path for that an exclude filter shall be added or removed.
-     * @param excluded If <code>true</code> an exclude-filter for the given path is added (if none exists), if
-     * <code>false</code>, any existing exclude-filter for that path is removed.
-     * @deprecated Use {@link #setExcluded(Path, boolean)} instead.
-     */
-    @Deprecated(since = "6.0.0", forRemoval = true)
-    public void setExcluded(com.im.njams.sdk.common.Path processPath, boolean excluded) {
-        setExcluded(processPath.toString(), excluded);
-    }
-
     private void setExcluded(final String pathString, boolean excluded) {
         if (excluded) {
             decisions.put(pathString, false);
@@ -296,17 +273,6 @@ public class ProcessFilter {
      * @return <code>true</code> only if there is an explicit exclude filter for the given path.
      */
     public boolean hasExcludeFilter(Path processPath) {
-        return hasExcludeFilter(processPath.toString());
-    }
-
-    /**
-     * Legacy variant of {@link #hasExcludeFilter(Path)}.
-     * @param processPath The process path to test.
-     * @return <code>true</code> only if there is an explicit exclude filter for the given path.
-     * @deprecated Use {@link #hasExcludeFilter(Path)} instead.
-     */
-    @Deprecated(since = "6.0.0", forRemoval = true)
-    public boolean hasExcludeFilter(com.im.njams.sdk.common.Path processPath) {
         return hasExcludeFilter(processPath.toString());
     }
 

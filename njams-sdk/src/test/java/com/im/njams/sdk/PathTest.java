@@ -440,58 +440,6 @@ public class PathTest {
         Path.of("rocBlank").resolveOrCreateChild("a> >b");
     }
 
-    // --- get(legacy Path) ---
-
-    @Test
-    @SuppressWarnings("deprecation")
-    public void ofFromNullLegacyReturnsRoot() {
-        assertSame(Path.ROOT, Path.of((com.im.njams.sdk.common.Path) null));
-    }
-
-    @Test
-    @SuppressWarnings("deprecation")
-    public void ofFromLegacyConvertsToNewPath() {
-        com.im.njams.sdk.common.Path legacy = new com.im.njams.sdk.common.Path("legA", "legB");
-        Path result = Path.of(legacy);
-        assertEquals(">legA>legB>", result.toString());
-        assertSame(Path.of("legA", "legB"), result);
-    }
-
-    @Test
-    @SuppressWarnings("deprecation")
-    public void ofFromLegacySinglePathString() {
-        com.im.njams.sdk.common.Path legacy = new com.im.njams.sdk.common.Path(">legX>legY>");
-        Path result = Path.of(legacy);
-        assertEquals(">legX>legY>", result.toString());
-        assertSame(Path.of("legX", "legY"), result);
-    }
-
-    // --- toLegacyPath ---
-
-    @Test
-    @SuppressWarnings("deprecation")
-    public void toLegacyPathFromRoot() {
-        com.im.njams.sdk.common.Path legacy = Path.ROOT.toLegacyPath();
-        assertEquals(">", legacy.toString());
-    }
-
-    @Test
-    @SuppressWarnings("deprecation")
-    public void toLegacyPathPreservesPathString() {
-        Path neu = Path.of("tlpA", "tlpB", "tlpC");
-        com.im.njams.sdk.common.Path legacy = neu.toLegacyPath();
-        assertEquals(">tlpA>tlpB>tlpC>", legacy.toString());
-        assertEquals(java.util.Arrays.asList("tlpA", "tlpB", "tlpC"), legacy.getParts());
-    }
-
-    @Test
-    @SuppressWarnings("deprecation")
-    public void toLegacyPathRoundTripsViaGet() {
-        Path neu = Path.of("rtripA", "rtripB");
-        com.im.njams.sdk.common.Path legacy = neu.toLegacyPath();
-        assertSame(neu, Path.of(legacy));
-    }
-
     // --- multi-segment getChild ---
 
     @Test
