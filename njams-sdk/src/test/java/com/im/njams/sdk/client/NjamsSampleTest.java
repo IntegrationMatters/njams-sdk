@@ -47,7 +47,7 @@ import com.im.njams.sdk.logmessage.ActivityImpl;
 import com.im.njams.sdk.logmessage.Group;
 import com.im.njams.sdk.logmessage.GroupImpl;
 import com.im.njams.sdk.logmessage.Job;
-import com.im.njams.sdk.logmessage.JobImpl;
+import com.im.njams.sdk.logmessage.JobFlushAccess;
 import com.im.njams.sdk.logmessage.SubProcessActivity;
 import com.im.njams.sdk.model.ActivityModel;
 import com.im.njams.sdk.model.GroupModel;
@@ -736,7 +736,7 @@ public class NjamsSampleTest {
         a.processInput("testdata");
         a.processOutput("testdata");
 
-        ((JobImpl) job).flush();
+        JobFlushAccess.flush(job);
         assertThat(job.getActivities().size(), is(1));
 
         //step to group
@@ -744,7 +744,7 @@ public class NjamsSampleTest {
         group.processInput("testdata");
         group.processOutput("testdata");
 
-        ((JobImpl) job).flush();
+        JobFlushAccess.flush(job);
         assertThat(job.getActivities().size(), is(1));
 
         //iteration 1
@@ -752,14 +752,14 @@ public class NjamsSampleTest {
         child1.processInput("testdata");
         child1.processOutput("testdata");
 
-        ((JobImpl) job).flush();
+        JobFlushAccess.flush(job);
         assertThat(job.getActivities().size(), is(2));
 
         Group subGroup = child1.stepToGroup(subgroupModel).build();
         subGroup.processInput("testdata");
         subGroup.processOutput("testdata");
 
-        ((JobImpl) job).flush();
+        JobFlushAccess.flush(job);
         assertThat(job.getActivities().size(), is(2));
 
         //subchild
@@ -767,21 +767,21 @@ public class NjamsSampleTest {
         subChild1.processInput("testdata");
         subChild1.processOutput("testdata");
 
-        ((JobImpl) job).flush();
+        JobFlushAccess.flush(job);
         assertThat(job.getActivities().size(), is(3));
 
         subChild1.stepTo(subchild2Model).build();
         subChild1.processInput("testdata");
         subChild1.processOutput("testdata");
 
-        ((JobImpl) job).flush();
+        JobFlushAccess.flush(job);
         assertThat(job.getActivities().size(), is(3));
 
         subChild1.getParent().stepTo(child2Model).build();
         subChild1.processInput("testdata");
         subChild1.processOutput("testdata");
 
-        ((JobImpl) job).flush();
+        JobFlushAccess.flush(job);
         assertThat(job.getActivities().size(), is(2));
 
         group.iterate();
@@ -791,14 +791,14 @@ public class NjamsSampleTest {
         child1_2.processInput("testdata");
         child1_2.processOutput("testdata");
 
-        ((JobImpl) job).flush();
+        JobFlushAccess.flush(job);
         assertThat(job.getActivities().size(), is(3));
 
         Group subGroup_2 = child1_2.stepToGroup(subgroupModel).build();
         subGroup_2.processInput("testdata");
         subGroup_2.processOutput("testdata");
 
-        ((JobImpl) job).flush();
+        JobFlushAccess.flush(job);
         assertThat(job.getActivities().size(), is(3));
 
         //subchild
@@ -806,21 +806,21 @@ public class NjamsSampleTest {
         subChild1_2.processInput("testdata");
         subChild1_2.processOutput("testdata");
 
-        ((JobImpl) job).flush();
+        JobFlushAccess.flush(job);
         assertThat(job.getActivities().size(), is(4));
 
         Activity subChild2_2 = subChild1_2.stepTo(subchild2Model).build();
         subChild2_2.processInput("testdata");
         subChild2_2.processOutput("testdata");
 
-        ((JobImpl) job).flush();
+        JobFlushAccess.flush(job);
         assertThat(job.getActivities().size(), is(4));
 
         Activity child2_2 = subChild2_2.getParent().stepTo(child2Model).build();
         child2_2.processInput("testdata");
         child2_2.processOutput("testdata");
 
-        ((JobImpl) job).flush();
+        JobFlushAccess.flush(job);
         assertThat(job.getActivities().size(), is(3));
 
         Group parent = child2_2.getParent();
@@ -829,7 +829,7 @@ public class NjamsSampleTest {
         end.processInput("testdata");
         end.processOutput("testdata");
 
-        ((JobImpl) job).flush();
+        JobFlushAccess.flush(job);
         assertThat(job.getActivities().size(), is(1));
 
         job.end();
@@ -992,7 +992,7 @@ public class NjamsSampleTest {
         a.processInput("testdata");
         a.processOutput("testdata");
 
-        ((JobImpl) job).flush();
+        JobFlushAccess.flush(job);
         assertThat(job.getActivities().size(), is(1));
 
         //step to group
@@ -1000,7 +1000,7 @@ public class NjamsSampleTest {
         group.processInput("testdata");
         group.processOutput("testdata");
 
-        ((JobImpl) job).flush();
+        JobFlushAccess.flush(job);
         assertThat(job.getActivities().size(), is(1));
 
         //iteration 1
@@ -1008,14 +1008,14 @@ public class NjamsSampleTest {
         child1.processInput("testdata");
         child1.processOutput("testdata");
 
-        ((JobImpl) job).flush();
+        JobFlushAccess.flush(job);
         assertThat(job.getActivities().size(), is(2));
 
         Group subGroup = child1.stepToGroup(subgroupModel).build();
         subGroup.processInput("testdata");
         subGroup.processOutput("testdata");
 
-        ((JobImpl) job).flush();
+        JobFlushAccess.flush(job);
         assertThat(job.getActivities().size(), is(2));
 
         //subchild
@@ -1023,21 +1023,21 @@ public class NjamsSampleTest {
         subChild1.processInput("testdata");
         subChild1.processOutput("testdata");
 
-        ((JobImpl) job).flush();
+        JobFlushAccess.flush(job);
         assertThat(job.getActivities().size(), is(3));
 
         subChild1.stepTo(subchild2Model).build();
         subChild1.processInput("testdata");
         subChild1.processOutput("testdata");
 
-        ((JobImpl) job).flush();
+        JobFlushAccess.flush(job);
         assertThat(job.getActivities().size(), is(3));
 
         subChild1.getParent().stepTo(child2Model).build();
         subChild1.processInput("testdata");
         subChild1.processOutput("testdata");
 
-        ((JobImpl) job).flush();
+        JobFlushAccess.flush(job);
         assertThat(job.getActivities().size(), is(2));
 
         group.iterate();
@@ -1047,14 +1047,14 @@ public class NjamsSampleTest {
         child1_2.processInput("testdata");
         child1_2.processOutput("testdata");
 
-        ((JobImpl) job).flush();
+        JobFlushAccess.flush(job);
         assertThat(job.getActivities().size(), is(3));
 
         Group subGroup_2 = child1_2.stepToGroup(subgroupModel).build();
         subGroup_2.processInput("testdata");
         subGroup_2.processOutput("testdata");
 
-        ((JobImpl) job).flush();
+        JobFlushAccess.flush(job);
         assertThat(job.getActivities().size(), is(3));
 
         //subchild
@@ -1062,21 +1062,21 @@ public class NjamsSampleTest {
         subChild1_2.processInput("testdata");
         subChild1_2.processOutput("testdata");
 
-        ((JobImpl) job).flush();
+        JobFlushAccess.flush(job);
         assertThat(job.getActivities().size(), is(4));
 
         Activity subChild2_2 = subChild1_2.stepTo(subchild2Model).build();
         subChild2_2.processInput("testdata");
         subChild2_2.processOutput("testdata");
 
-        ((JobImpl) job).flush();
+        JobFlushAccess.flush(job);
         assertThat(job.getActivities().size(), is(4));
 
         Activity child2_2 = subChild2_2.getParent().stepTo(child2Model).build();
         child2_2.processInput("testdata");
         child2_2.processOutput("testdata");
 
-        ((JobImpl) job).flush();
+        JobFlushAccess.flush(job);
         assertThat(job.getActivities().size(), is(3));
 
         Group parent = child2_2.getParent();
@@ -1085,7 +1085,7 @@ public class NjamsSampleTest {
         end.processInput("testdata");
         end.processOutput("testdata");
 
-        ((JobImpl) job).flush();
+        JobFlushAccess.flush(job);
         assertThat(job.getActivities().size(), is(1));
 
         job.end();

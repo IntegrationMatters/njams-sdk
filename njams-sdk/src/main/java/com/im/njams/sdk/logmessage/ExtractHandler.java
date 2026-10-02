@@ -47,6 +47,7 @@ import com.faizsiegeln.njams.messageformat.v4.projectmessage.ExtractRule;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.RuleType;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.im.njams.sdk.Path;
 import com.im.njams.sdk.configuration.ActivityConfiguration;
 import com.im.njams.sdk.model.ActivityModel;
 import com.im.njams.sdk.utils.StringUtils;
@@ -392,19 +393,19 @@ public class ExtractHandler {
 
         switch (setting.toLowerCase()) {
         case "correlationlogid":
-            job.setCorrelationLogId(value);
+            job.metadata().setCorrelationLogIdInternal(value);
             break;
         case "parentlogid":
-            job.setParentLogId(value);
+            job.metadata().setParentLogIdInternal(value);
             break;
         case "externallogid":
-            job.setExternalLogId(value);
+            job.metadata().setExternalLogIdInternal(value);
             break;
         case "businessservice":
-            job.setBusinessService(value);
+            job.metadata().setBusinessServiceInternal(Path.resolve(value));
             break;
         case "businessobject":
-            job.setBusinessObject(value);
+            job.metadata().setBusinessObjectInternal(Path.resolve(value));
             break;
         case "eventmessage":
             activity.setEventMessage(value);

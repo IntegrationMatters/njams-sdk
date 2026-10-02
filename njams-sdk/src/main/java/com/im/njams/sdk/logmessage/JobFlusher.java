@@ -43,7 +43,7 @@ import com.im.njams.sdk.model.ProcessModel;
  * Assembles and sends the log messages of a job: flush decision, suppression checks,
  * message creation, flush bookkeeping (counter, last-flush time, estimated size, plugin
  * data items). Methods take the owning {@link JobImpl} as parameter so proxied instances
- * (test spies) stay the receiver of self-calls like {@code owner.flush()}.
+ * (test spies) stay the receiver of calls the flusher makes back to the job.
  */
 final class JobFlusher {
 
@@ -83,24 +83,22 @@ final class JobFlusher {
     }
 
     /**
-     * Called by a periodic timer to flush the job if it's due. The actual flush goes through
-     * {@code owner.flush()} so that proxied instances observe the call.
+     * Called by a periodic timer to check whether the given job is due for a flush.
+     *
+     * @return <code>true</code> if the job shall be flushed now.
      */
-    void timerFlush(JobImpl owner, LocalDateTime sentBefore, long flushSize) {
+    boolean isFlushDue(JobImpl owner, LocalDateTime sentBefore, long flushSize) {
         if (!owner.hasStarted()) {
             LOG.trace("Skip timer flush. Job {} is not started.", owner);
-            return;
+            return false;
         }
         // only send updates automatically, if a change has been
         // made to the job between individual send events.
         final long currentSize = getEstimatedSize();
         LOG.trace("Job {}: lastPush: {}, age: {}, size: {}", owner, lastFlush,
                 Duration.between(lastFlush, DateTimeUtility.now()), currentSize);
-        if ((lastFlush.isBefore(sentBefore) || currentSize > flushSize)
-                && (!attributes.isEmpty() || owner.getEndTime() != null || activities.hasActivityToSend())) {
-            LOG.debug("Flush by timer: {}", owner);
-            owner.flush();
-        }
+        return (lastFlush.isBefore(sentBefore) || currentSize > flushSize)
+                && (!attributes.isEmpty() || owner.getEndTime() != null || activities.hasActivityToSend());
     }
 
     /**

@@ -24,6 +24,7 @@
 package com.im.njams.sdk.communication;
 
 import com.im.njams.sdk.logmessage.Job;
+import com.im.njams.sdk.utils.ExceptionSupport;
 
 /**
  * Defines the functionality to be implemented for processing {@link ReplayRequest}s.
@@ -43,7 +44,7 @@ public interface ReplayHandler {
      * @param job The replayed job instance to be flagged.
      */
     public static void markAsReplayed(Job job) {
-        job.addAttribute(NJAMS_REPLAYED_ATTRIBUTE, "true");
+        ExceptionSupport.suppressException(() -> job.attributes().add(NJAMS_REPLAYED_ATTRIBUTE, "true"));
     }
 
     /**

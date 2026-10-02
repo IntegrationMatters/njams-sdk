@@ -13,6 +13,8 @@ import org.junit.Test;
 
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.logmessage.Job;
+import com.im.njams.sdk.logmessage.JobAttributes;
+import com.im.njams.sdk.logmessage.JobTracing;
 
 /**
  * Unit tests for {@link NjamsJobs}: the running-job registry and the replay-marker bookkeeping.
@@ -32,6 +34,8 @@ public class NjamsJobsTest {
         Job job = mock(Job.class);
         when(job.getJobId()).thenReturn(jobId);
         when(job.getLogId()).thenReturn(logId);
+        when(job.tracing()).thenReturn(mock(JobTracing.class));
+        when(job.attributes()).thenReturn(mock(JobAttributes.class));
         return job;
     }
 
@@ -85,7 +89,7 @@ public class NjamsJobsTest {
 
         jobs.setReplayMarker("l1", true);
 
-        verify(job).setDeepTrace(true);
+        verify(job.tracing()).setDeepTrace(true);
     }
 
     @Test
@@ -98,6 +102,6 @@ public class NjamsJobsTest {
         jobs.add(job);
 
         // the remembered deep-trace marker is applied on add
-        verify(job).setDeepTrace(true);
+        verify(job.tracing()).setDeepTrace(true);
     }
 }

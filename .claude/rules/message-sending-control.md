@@ -18,9 +18,9 @@ any change to `logmessage/`, `communication/`, or `model/` (or any setting that 
   client-controlled: `JobFlusher`/`LogMessageFlushTask` decide when a job's accumulated data is sent —
   typically once, at job end, for a short-running job; an intermediate flush only when the job's
   estimated size or age exceeds `njams.sdk.flushsize`/`njams.sdk.flush_interval`.
-- **`Job.flush()`/`Job.timerFlush(...)` are deprecated for removal (SDK-448, `forRemoval = true`) and
-  must not gain new callers or be un-deprecated**, even though they remain technically callable until
-  removed. They exist only for the SDK's own internal use (`LogMessageFlushTask`, `end()`).
+- **`JobImpl.flush()`/`JobImpl.timerFlush(...)` are package-private, SDK-internal (SDK-448, SDK-482)
+  and must not gain new callers** outside the SDK's own flush mechanics (`LogMessageFlushTask`,
+  `end()`). They must not be widened again or exposed through the `Job` interface.
 - **Do not add any new public/protected hook — method, setting, or SPI extension point — that lets a
   client force or increase per-`logId` send frequency.** If a feature request seems to need this, raise
   it with the user before designing around it — the correct answer is almost always no, per the
@@ -34,7 +34,7 @@ any change to `logmessage/`, `communication/`, or `model/` (or any setting that 
 The client-facing rationale for this invariant (why there is no supported way to force an intermediate
 flush) is published in two places that must be kept consistent with any future change here:
 
-- Javadoc on `Job` (class-level), `JobImpl.flush()`/`timerFlush()` (`@deprecated` text), and
+- Javadoc on `Job` (class-level), `JobImpl.flush()`/`timerFlush()` (SDK-internal note), and
   `AbstractSender` (class-level) in `njams-sdk/src/main/java/com/im/njams/sdk/`.
 - `wiki/FAQ.md`, section "How does the SDK control sending messages to nJAMS Server" — see
   `wiki-drafts.md` for the editing workflow.

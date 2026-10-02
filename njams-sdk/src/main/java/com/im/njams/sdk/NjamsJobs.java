@@ -35,6 +35,7 @@ import org.slf4j.LoggerFactory;
 
 import com.im.njams.sdk.communication.ReplayHandler;
 import com.im.njams.sdk.logmessage.Job;
+import com.im.njams.sdk.utils.ExceptionSupport;
 import com.im.njams.sdk.utils.StringUtils;
 
 /**
@@ -67,7 +68,7 @@ public class NjamsJobs {
             if (deepTrace != null) {
                 ReplayHandler.markAsReplayed(job);
                 if (deepTrace) {
-                    job.setDeepTrace(true);
+                    ExceptionSupport.suppressException(() -> job.tracing().setDeepTrace(true));
                 }
             }
         }
@@ -121,7 +122,7 @@ public class NjamsJobs {
                 // if the job is already known, set the marker
                 ReplayHandler.markAsReplayed(job);
                 if (deepTrace) {
-                    job.setDeepTrace(true);
+                    ExceptionSupport.suppressException(() -> job.tracing().setDeepTrace(true));
                 }
             } else {
                 // remember the log ID for when the job is added later -> consumed by add(...)

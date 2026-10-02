@@ -84,9 +84,9 @@ final class JobErrorHandling {
             if (errorActivity != null) {
                 LOG.debug("Committing error event to {}", errorActivity);
                 updateActivityErrorEvent(errorActivity, errorEvent);
-                if (jobImpl.getActivityByInstanceId(errorActivity.getInstanceId()) == null) {
+                if (jobImpl.activities().getByInstanceId(errorActivity.getInstanceId()) == null) {
                     // the activity is already sent, i.e., re-send
-                    jobImpl.addActivity(errorActivity);
+                    jobImpl.activities().add(errorActivity, jobImpl, true);
                 }
                 errorActivity = null;
                 errorEvent = null;

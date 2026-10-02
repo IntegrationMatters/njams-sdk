@@ -153,7 +153,7 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
         }
         end();
         //check if a activity with the same modelId and the same iteration and parent already exists.
-        final ActivityImpl toActivity = (ActivityImpl) job.getActivityByModelId(toActivityModel.getId());
+        final ActivityImpl toActivity = (ActivityImpl) job.activities().getByModelId(toActivityModel.getId());
         final ActivityBuilder builder;
         if (toActivity == null || !Objects.equals(toActivity.getIteration(), getIteration())
             || toActivity.getParent() != getParent()) {
@@ -207,7 +207,7 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
         end();
         TransitionModel transitionModel = toGroupModel.getIncomingTransitionFrom(getModelId());
         //check if a activity with the same modelId and the same iteration already exists.
-        final GroupImpl toGroup = (GroupImpl) job.getActivityByModelId(toGroupModel.getId());
+        final GroupImpl toGroup = (GroupImpl) job.activities().getByModelId(toGroupModel.getId());
         final GroupBuilder builder;
         if (toGroup == null || !Objects.equals(toGroup.getIteration(), getIteration())
             || toGroup.getParent() != getParent()) {
@@ -361,7 +361,7 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
         }
         addToEstimatedSize(data.length());
         setExecutionIfNotSet();
-        job.setTraces(true);
+        job.tracing().setTraces(true);
     }
 
     /**
@@ -371,7 +371,7 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
      */
     private boolean initTraceFromSettings() {
         // first check job's deepTrace setting
-        if (job.isDeepTrace()) {
+        if (job.tracing().isDeepTrace()) {
             return true;
         }
         // then check the activity's tracepoint, if any
@@ -384,7 +384,7 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
             tracepoint.increaseCurrentIterations();
             //activate deeptrace if needed
             if (Boolean.TRUE.equals(tracepoint.isDeeptrace())) {
-                job.setDeepTrace(true);
+                job.tracing().setDeepTrace(true);
             }
             return true;
         }
@@ -393,7 +393,7 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
 
     private boolean isTracing() {
         // SDK-210 Check deeptrace on each call
-        return traceEnabled || job.isDeepTrace();
+        return traceEnabled || job.tracing().isDeepTrace();
 
     }
 
@@ -409,7 +409,7 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
         TransitionModel transitionModel = toSubProcessModel.getIncomingTransitionFrom(getModelId());
         //check if a activity with the same modelId and the same iteration already exists.
         final SubProcessActivityImpl toSubProcess =
-            (SubProcessActivityImpl) job.getActivityByModelId(toSubProcessModel.getId());
+            (SubProcessActivityImpl) job.activities().getByModelId(toSubProcessModel.getId());
         final SubProcessActivityBuilder builder;
         if (toSubProcess == null || !Objects.equals(toSubProcess.getIteration(), getIteration())
             || toSubProcess.getParent() != getParent()) {
@@ -738,7 +738,7 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
         String limitKey = limitLength("attributeName", key, 500);
         String maskedValue = DataMasking.maskString(job.limitPayload(value));
         synchronized (attributesLock) {
-            job.addAttribute(limitKey, maskedValue);
+            job.attributes().addInternal(limitKey, maskedValue);
             super.addAttribute(limitKey, maskedValue);
         }
     }

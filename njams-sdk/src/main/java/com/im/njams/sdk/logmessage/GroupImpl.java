@@ -66,7 +66,7 @@ public class GroupImpl extends ActivityImpl implements Group {
             return createChildSubProcess((SubProcessActivityModel) childActivityModel);
         }
         // check if a activity with the same modelId and the same iteration already exists.
-        final ActivityImpl toActivity = (ActivityImpl) getJob().getActivityByModelId(childActivityModel.getId());
+        final ActivityImpl toActivity = (ActivityImpl) getJob().activities().getByModelId(childActivityModel.getId());
         final ActivityBuilder builder;
 
         /*
@@ -139,7 +139,7 @@ public class GroupImpl extends ActivityImpl implements Group {
     @Override
     public GroupBuilder createChildGroup(GroupModel childGroupModel) {
         // check if a activity with the same modelId and the same iteration already exists.
-        final GroupImpl toGroup = (GroupImpl) getJob().getActivityByModelId(childGroupModel.getId());
+        final GroupImpl toGroup = (GroupImpl) getJob().activities().getByModelId(childGroupModel.getId());
         final GroupBuilder builder;
         if (toGroup == null || !Objects.equals(toGroup.getIteration(), getIteration())
             || toGroup.getParent() != getParent()) {
@@ -163,7 +163,7 @@ public class GroupImpl extends ActivityImpl implements Group {
     public SubProcessActivityBuilder createChildSubProcess(SubProcessActivityModel childSubProcessModel) {
         // check if a activity with the same modelId and the same iteration already exists.
         final SubProcessActivityImpl toSubProcess =
-            (SubProcessActivityImpl) getJob().getActivityByModelId(childSubProcessModel.getId());
+            (SubProcessActivityImpl) getJob().activities().getByModelId(childSubProcessModel.getId());
         final SubProcessActivityBuilder builder;
         if (toSubProcess == null || !Objects.equals(toSubProcess.getIteration(), getIteration())
             || toSubProcess.getParent() != getParent()) {

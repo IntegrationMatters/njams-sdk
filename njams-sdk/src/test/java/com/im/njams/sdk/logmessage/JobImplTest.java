@@ -66,6 +66,9 @@ public class JobImplTest extends AbstractTest {
     //This is used for testDataMaskingAfterFlushing, for mockito.
     private LogMessage msg;
 
+    //The client that registered its own sender at the LogMessageFlushTask; stopped after the test.
+    private Njams flushTaskNjams;
+
     /**
      * This constructor calls super().
      */
@@ -78,6 +81,10 @@ public class JobImplTest extends AbstractTest {
      */
     @After
     public void cleanUp() {
+        if (flushTaskNjams != null) {
+            LogMessageFlushTask.stop(flushTaskNjams);
+            flushTaskNjams = null;
+        }
         msg = null;
         DataMasking.removePatterns();
     }
@@ -169,6 +176,7 @@ public class JobImplTest extends AbstractTest {
         //Inject or own sender.send() method to get the masked logmessage
         NjamsSender sender = mock(NjamsSender.class);
         LogMessageFlushTask.start(mockedNjams, sender);
+        flushTaskNjams = mockedNjams;
         doAnswer((Answer<Object>) (InvocationOnMock invocation) -> {
             msg = (LogMessage) invocation.getArguments()[0];
             return null;

@@ -315,34 +315,23 @@ public class JobImpl implements Job {
     }
 
     /**
-     * This method is called by a periodic timer to flush this instance if it's due.
+     * Called by the SDK's periodic flush task to flush this instance if it is due. SDK-internal.
      *
      * @param sentBefore Send if the last flush was before this timestamp
      * @param flushSize  Send if message size is greater than this size
-     * @deprecated SDK-internal flush mechanics, not part of the public API; there is no
-     *             replacement — periodic flushing is handled transparently by the SDK because nJAMS
-     *             server, respectively Elasticsearch, is not very good at handling high-frequency
-     *             updates to the same job ({@code logId}). Do not call this method, and do not
-     *             attempt to replicate it by sending messages through a sender instance directly.
      */
-    @Deprecated(since = "6.0.0", forRemoval = true)
-    public void timerFlush(LocalDateTime sentBefore, long flushSize) {
-        flusher.timerFlush(this, sentBefore, flushSize);
+    void timerFlush(LocalDateTime sentBefore, long flushSize) {
+        if (flusher.isFlushDue(this, sentBefore, flushSize)) {
+            LOG.debug("Flush by timer: {}", this);
+            flush();
+        }
     }
 
     /**
-     * This method is called by {@link #timerFlush(LocalDateTime, long)}
-     * and when {@link #end(boolean)} is called. It flushes a logMessage to the
-     * server if all the preconditions are fulfilled.
-     *
-     * @deprecated SDK-internal flush mechanics, not part of the public API; there is no
-     *             replacement — log messages are flushed transparently by the SDK because nJAMS
-     *             server, respectively Elasticsearch, is not very good at handling high-frequency
-     *             updates to the same job ({@code logId}). Do not call this method, and do not
-     *             attempt to replicate it by sending messages through a sender instance directly.
+     * Flushes a logMessage to the server if all the preconditions are fulfilled. Called by the SDK when the job ends
+     * and by {@link #timerFlush(LocalDateTime, long)}. SDK-internal.
      */
-    @Deprecated(since = "6.0.0", forRemoval = true)
-    public void flush() {
+    void flush() {
         flusher.flush(this);
     }
 
