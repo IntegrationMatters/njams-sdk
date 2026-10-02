@@ -7,6 +7,7 @@ import org.junit.After;
 import org.junit.Test;
 
 import com.im.njams.sdk.Njams;
+import com.im.njams.sdk.SenderProbe;
 import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.Path;
 import com.im.njams.sdk.communication.CommunicationFactory;
@@ -35,11 +36,11 @@ public class SameInstanceRestartSpecTest extends AbstractLifecycleSpecTest {
         }
         njams = new Njams(Path.of("test", "sameInstanceRestart"), "1.0", "test", s);
         assertTrue(njams.start());
-        Object first = njams.getSender();
+        Object first = SenderProbe.of(njams);
         assertTrue(njams.stop());
 
         assertTrue("a stopped instance must be startable again", njams.start());
-        assertNotSame("the restart must not reuse the sender closed by stop()", first, njams.getSender());
+        assertNotSame("the restart must not reuse the sender closed by stop()", first, SenderProbe.of(njams));
         assertTrue(njams.stop());
     }
 

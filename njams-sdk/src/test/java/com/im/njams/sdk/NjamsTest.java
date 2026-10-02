@@ -81,6 +81,20 @@ public class NjamsTest {
         instance = new Njams(Path.of(), "", "", TestReceiver.getSettings());
     }
 
+    /**
+     * The lazily created sender is available to the SDK internals and is created only once per instance.
+     */
+    @Test
+    public void senderIsNonNullAndCached() {
+        NjamsSender sender = instance.sender();
+        try {
+            assertNotNull(sender);
+            assertSame(sender, instance.sender());
+        } finally {
+            sender.close();
+        }
+    }
+
     @Test
     public void testSerializer() {
         System.out.println("addSerializer");
@@ -249,10 +263,9 @@ public class NjamsTest {
      * registered in — same as {@code stop()} — so a shared sender group does not keep a dead receiver referenced.
      */
     @Test
-    @SuppressWarnings("deprecation") // Njams.getSender() is the only way to reach the group's listener registrations.
     public void stopReceiverAfterStartupFailureDeregistersTheReceiverFromTheRecoveryAndTheExceptionListeners()
             throws Exception {
-        NjamsSender sender = instance.getSender();
+        NjamsSender sender = instance.sender();
         ListeningReceiver receiver = new ListeningReceiver();
         sender.addSenderRecoveryListener(receiver);
         sender.addSenderExceptionListener(receiver);
@@ -323,9 +336,9 @@ public class NjamsTest {
     /**
      * Regression test (SDK-375 Part 4 review finding): a sender-construction failure (as opposed to a mere
      * connection failure) must still make {@code start()} return {@code false} cleanly, never throw. Before Part
-     * 4, {@code startReceiver(boolean)} caught this exact exception (raised from its own {@code getSender()} call)
+     * 4, {@code startReceiver(boolean)} caught this exact exception (raised from its own {@code sender()} call)
      * and returned {@code false}, short-circuiting {@code start()} before it ever reached a second,
-     * unguarded {@code getSender()} call. Forces {@link com.im.njams.sdk.communication.NjamsSender#init()}'s
+     * unguarded {@code sender()} call. Forces {@link com.im.njams.sdk.communication.NjamsSender#init()}'s
      * thread-pool validation to throw by configuring {@code maxSenderThreads < minSenderThreads}.
      */
     @Test

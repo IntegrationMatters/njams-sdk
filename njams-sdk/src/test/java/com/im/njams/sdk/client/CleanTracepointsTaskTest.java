@@ -28,7 +28,10 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.time.LocalDateTime;
@@ -53,7 +56,9 @@ import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.common.DateTimeUtility;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.Path;
+import com.im.njams.sdk.SenderProbe;
 import com.im.njams.sdk.communication.AbstractSender;
+import com.im.njams.sdk.communication.NjamsSender;
 import com.im.njams.sdk.communication.TestSender;
 import com.im.njams.sdk.settings.ClientSettings;
 import com.im.njams.sdk.configuration.ActivityConfiguration;
@@ -64,6 +69,8 @@ import com.im.njams.sdk.utils.JsonUtils;
 public class CleanTracepointsTaskTest extends AbstractTest {
 
     private static final Njams njamsMock = mock(Njams.class);
+
+    private static final NjamsSender senderMock = mock(NjamsSender.class);
 
     private static TraceMessage message = null;
 
@@ -91,7 +98,7 @@ public class CleanTracepointsTaskTest extends AbstractTest {
     public void testStartWithNullNjams() {
         assertTrue(CleanTracepointsTask.getNjamsInstances().isEmpty());
         assertNull(CleanTracepointsTask.getTimer());
-        CleanTracepointsTask.start(null);
+        CleanTracepointsTask.start(null, senderMock);
     }
 
     @Test(expected = NjamsSdkRuntimeException.class)
@@ -99,14 +106,14 @@ public class CleanTracepointsTaskTest extends AbstractTest {
         assertTrue(CleanTracepointsTask.getNjamsInstances().isEmpty());
         assertNull(CleanTracepointsTask.getTimer());
         when(njamsMock.getClientPath()).thenReturn(null);
-        CleanTracepointsTask.start(njamsMock);
+        CleanTracepointsTask.start(njamsMock, senderMock);
     }
 
     @Test
     public void testStartNormal() {
         assertTrue(CleanTracepointsTask.getNjamsInstances().isEmpty());
         assertNull(CleanTracepointsTask.getTimer());
-        CleanTracepointsTask.start(njams);
+        CleanTracepointsTask.start(njams, SenderProbe.of(njams));
         assertFalse(CleanTracepointsTask.getNjamsInstances().isEmpty());
         assertNotNull(CleanTracepointsTask.getTimer());
         assertTrue(CleanTracepointsTask.getNjamsInstances().contains(njams));
@@ -116,11 +123,11 @@ public class CleanTracepointsTaskTest extends AbstractTest {
     public void testStartNormalWithMultipleNjams() {
         assertTrue(CleanTracepointsTask.getNjamsInstances().isEmpty());
         assertNull(CleanTracepointsTask.getTimer());
-        CleanTracepointsTask.start(njams);
+        CleanTracepointsTask.start(njams, SenderProbe.of(njams));
         assertFalse(CleanTracepointsTask.getNjamsInstances().isEmpty());
         assertTrue(CleanTracepointsTask.getNjamsInstances().contains(njams));
         assertNotNull(CleanTracepointsTask.getTimer());
-        CleanTracepointsTask.start(njamsMock);
+        CleanTracepointsTask.start(njamsMock, senderMock);
         assertFalse(CleanTracepointsTask.getNjamsInstances().isEmpty());
         assertTrue(CleanTracepointsTask.getNjamsInstances().contains(njams));
         assertTrue(CleanTracepointsTask.getNjamsInstances().contains(njamsMock));
@@ -131,11 +138,11 @@ public class CleanTracepointsTaskTest extends AbstractTest {
     public void testStartNormalSeveralTimesWithOneInstance() {
         assertTrue(CleanTracepointsTask.getNjamsInstances().isEmpty());
         assertNull(CleanTracepointsTask.getTimer());
-        CleanTracepointsTask.start(njams);
+        CleanTracepointsTask.start(njams, SenderProbe.of(njams));
         assertFalse(CleanTracepointsTask.getNjamsInstances().isEmpty());
         assertTrue(CleanTracepointsTask.getNjamsInstances().contains(njams));
         assertNotNull(CleanTracepointsTask.getTimer());
-        CleanTracepointsTask.start(njams);
+        CleanTracepointsTask.start(njams, SenderProbe.of(njams));
         assertFalse(CleanTracepointsTask.getNjamsInstances().isEmpty());
         assertTrue(CleanTracepointsTask.getNjamsInstances().contains(njams));
         assertTrue(CleanTracepointsTask.getNjamsInstances().size() == 1);
@@ -219,6 +226,23 @@ public class CleanTracepointsTaskTest extends AbstractTest {
 
         checkTraceMessage(ldt1, ldt2);
         printMessageAsJson();
+    }
+
+    /**
+     * The trace message is sent through the sender that was handed over to {@code start}.
+     */
+    @Test
+    public void testRunSendsTraceMessageThroughTheSenderPassedToStart() throws InterruptedException {
+        LocalDateTime ldt1 = DateTimeUtility.now();
+        Thread.sleep(1);
+        LocalDateTime ldt2 = DateTimeUtility.now();
+        fillActivityConfiguration(ldt1, ldt2);
+        NjamsSender handedOver = mock(NjamsSender.class);
+
+        CleanTracepointsTask.start(njams, handedOver);
+        Thread.sleep(CleanTracepointsTask.DELAY + CleanTracepointsTask.INTERVAL);
+
+        verify(handedOver).send(any(TraceMessage.class), anyString());
     }
 
     private void fillActivityConfiguration(LocalDateTime ldt1, LocalDateTime ldt2) {

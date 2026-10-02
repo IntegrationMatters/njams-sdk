@@ -21,13 +21,13 @@
  * SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
  */
-package com.im.njams.sdk.client;
+package com.im.njams.sdk.logmessage;
 
 import java.time.LocalDateTime;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.slf4j.Logger;
@@ -37,7 +37,7 @@ import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.Path;
 import com.im.njams.sdk.common.DateTimeUtility;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
-import com.im.njams.sdk.logmessage.JobImpl;
+import com.im.njams.sdk.communication.NjamsSender;
 
 /**
  * LogMessageFlushTask flushes new content of jobs periodically into LogMessages
@@ -48,7 +48,7 @@ public class LogMessageFlushTask extends TimerTask {
 
     private static final Logger LOG = LoggerFactory.getLogger(LogMessageFlushTask.class);
 
-    private static final Map<Path, LMFTEntry> NJAMS_INSTANCES = new HashMap<>();
+    private static final Map<Path, LMFTEntry> NJAMS_INSTANCES = new ConcurrentHashMap<>();
 
     private static Timer timer = null;
 
@@ -59,8 +59,9 @@ public class LogMessageFlushTask extends TimerTask {
      * if it is not started yet
      *
      * @param njams Njams to add
+     * @param sender the sender that the log messages of the given instance are sent through
      */
-    public static synchronized void start(Njams njams) {
+    public static synchronized void start(Njams njams, NjamsSender sender) {
         if (njams == null) {
             throw new NjamsSdkRuntimeException("Start: Njams is null");
         }
@@ -73,13 +74,13 @@ public class LogMessageFlushTask extends TimerTask {
             timer.scheduleAtFixedRate(new LogMessageFlushTask(), 1000, 1000);
         }
 
-        NJAMS_INSTANCES.put(njams.getClientPath(), new LMFTEntry(njams));
+        NJAMS_INSTANCES.put(njams.getClientPath(), new LMFTEntry(njams, sender));
     }
 
     /**
      * Removes a given Njams instance from the LogMessageFlushTask, flushes all
-     * jobs of the instance, and stops it the timer if no Njams instance is left
-     * to work on
+     * jobs of the instance through the sender it was started with, and stops the
+     * timer if no Njams instance is left to work on
      *
      * @param njams Njams instance to remove
      */
@@ -90,11 +91,15 @@ public class LogMessageFlushTask extends TimerTask {
         if (njams.getClientPath() == null) {
             throw new NjamsSdkRuntimeException("Stop: Njams clientPath is null");
         }
-        LMFTEntry entry = NJAMS_INSTANCES.remove(njams.getClientPath());
+        // The entry is removed only after the final flush, because the flush looks up the sender in the registry.
+        LMFTEntry entry = NJAMS_INSTANCES.get(njams.getClientPath());
         if (entry != null) {
-            Njams stoppingNjams = entry.getNjams();
-            stoppingNjams.getJobs().forEach(job -> ((JobImpl) job).flush());
-
+            try {
+                Njams stoppingNjams = entry.getNjams();
+                stoppingNjams.getJobs().forEach(job -> ((JobImpl) job).flush());
+            } finally {
+                NJAMS_INSTANCES.remove(njams.getClientPath());
+            }
         } else {
             LOG.warn(
                     "The LogMessageFlushTask hasn't been started before stopping for this instance: {}. Did not flush...",
@@ -104,6 +109,18 @@ public class LogMessageFlushTask extends TimerTask {
             timer.cancel();
             timer = null;
         }
+    }
+
+    /**
+     * Returns the sender that the given instance was started with. Lock-free, so it can be used on the flush
+     * path.
+     *
+     * @param njams the instance
+     * @return the sender, or {@code null} if the instance is not started (or already stopped) in this task
+     */
+    static NjamsSender senderOf(Njams njams) {
+        final LMFTEntry entry = NJAMS_INSTANCES.get(njams.getClientPath());
+        return entry == null ? null : entry.getSender();
     }
 
     /**

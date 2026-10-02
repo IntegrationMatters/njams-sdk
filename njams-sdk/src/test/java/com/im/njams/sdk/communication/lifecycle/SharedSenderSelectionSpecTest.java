@@ -8,6 +8,7 @@ import org.junit.After;
 import org.junit.Test;
 
 import com.im.njams.sdk.Njams;
+import com.im.njams.sdk.SenderProbe;
 import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.Path;
 import com.im.njams.sdk.communication.NjamsSender;
@@ -15,10 +16,10 @@ import com.im.njams.sdk.settings.Settings;
 
 /**
  * Specifies what {@code njams.sdk.communication.shared=true} yields on the sender side, through {@link
- * Njams#getSender()} itself: every client sharing one JVM-wide {@link NjamsSender} group vs. each client owning its
+ * Njams#sender()} itself: every client sharing one JVM-wide {@link NjamsSender} group vs. each client owning its
  * own dedicated instance. {@code SharedSenderOutageSpecTest}/{@code SharedSenderRecoverySignalSpecTest} already
  * cover group-sharing *behaviour* once shared, but they take the shared sender directly via {@link
- * NjamsSender#takeSharedSender}, never through {@code Njams.getSender()}'s own {@code shared ? ... : ...} dispatch
+ * NjamsSender#takeSharedSender}, never through {@code Njams.sender()}'s own {@code shared ? ... : ...} dispatch
  * (mirrors {@code SharedReceiverSelectionSpecTest} for the receiver side).
  */
 public class SharedSenderSelectionSpecTest extends AbstractLifecycleSpecTest {
@@ -50,7 +51,7 @@ public class SharedSenderSelectionSpecTest extends AbstractLifecycleSpecTest {
         assertTrue(njamsB.start());
 
         assertSame("both clients must be handed the very same sender instance",
-            njamsA.getSender(), njamsB.getSender());
+            SenderProbe.of(njamsA), SenderProbe.of(njamsB));
     }
 
     @Test
@@ -61,6 +62,6 @@ public class SharedSenderSelectionSpecTest extends AbstractLifecycleSpecTest {
         assertTrue(njamsB.start());
 
         assertNotSame("without sharing each client must get its own sender instance",
-            njamsA.getSender(), njamsB.getSender());
+            SenderProbe.of(njamsA), SenderProbe.of(njamsB));
     }
 }

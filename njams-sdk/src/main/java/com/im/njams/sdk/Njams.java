@@ -32,7 +32,6 @@ import com.faizsiegeln.njams.messageformat.v4.projectmessage.LogMode;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.ProjectMessage;
 import com.im.njams.sdk.argos.ArgosMultiCollector;
 import com.im.njams.sdk.client.CleanTracepointsTask;
-import com.im.njams.sdk.client.LogMessageFlushTask;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.communication.*;
 import com.im.njams.sdk.configuration.Configuration;
@@ -42,6 +41,7 @@ import com.im.njams.sdk.configuration.ConfigurationProviderFactory;
 import com.im.njams.sdk.configuration.provider.FileConfigurationProvider;
 import com.im.njams.sdk.logmessage.DataMasking;
 import com.im.njams.sdk.logmessage.Job;
+import com.im.njams.sdk.logmessage.LogMessageFlushTask;
 import com.im.njams.sdk.model.ProcessModel;
 import com.im.njams.sdk.model.image.ImageSupplier;
 import com.im.njams.sdk.model.image.ResourceImageSupplier;
@@ -624,17 +624,11 @@ public class Njams implements InstructionListener {
     }
 
     /**
-     * Returns the a Sender implementation, which is configured as specified in
-     * the settings.
+     * Returns the sender of this instance, creating it on first use as configured in the settings.
      *
      * @return the Sender
-     * @deprecated The sender belongs to the communication layer, which is internal SDK
-     *             infrastructure and not part of the public API. There is no replacement: client
-     *             code should not access the sender directly — message dispatch is handled
-     *             transparently by the SDK.
      */
-    @Deprecated(since = "6.0.0", forRemoval = true)
-    public NjamsSender getSender() {
+    NjamsSender sender() {
         if (sender == null) {
             if (settings.getBool(NjamsSettings.PROPERTY_SHARED_COMMUNICATIONS, false)) {
                 LOG.debug("Using shared sender pool for {}", getClientPath());
@@ -659,7 +653,7 @@ public class Njams implements InstructionListener {
         }
         NjamsSender earlySender = null;
         try {
-            earlySender = getSender();
+            earlySender = sender();
         } catch (Exception e) {
             LOG.warn("beginConnect() failed to pre-warm sender; start() will retry.", e);
         }
@@ -801,7 +795,7 @@ public class Njams implements InstructionListener {
             commands.add(configurationListener);
             final NjamsSender activeSender;
             try {
-                activeSender = getSender();
+                activeSender = sender();
             } catch (Exception e) {
                 LOG.error("SDK startup failed: could not obtain a sender. The SDK instance is inactive.", e);
                 releaseStartupRegistrations(configurationListener);
@@ -824,8 +818,8 @@ public class Njams implements InstructionListener {
                     return exit ? StartupResult.EXIT : StartupResult.FAIL;
                 }
             }
-            LogMessageFlushTask.start(this);
-            CleanTracepointsTask.start(this);
+            LogMessageFlushTask.start(this, activeSender);
+            CleanTracepointsTask.start(this, activeSender);
             lifecycle.setStarted(true);
             try {
                 sendProjectMessage();
@@ -931,7 +925,7 @@ public class Njams implements InstructionListener {
 
     /**
      * Releases the sender that was pre-warmed at construction time (via {@link #beginConnect()}) when
-     * {@link #start()} fails. This balances the constructor's {@code getSender()} acquisition with a matching
+     * {@link #start()} fails. This balances the constructor's {@code sender()} acquisition with a matching
      * {@code close()} — symmetric with {@link #stop()} — so a shared sender's usage count is not pinned when
      * startup does not complete. On the success path {@link #stop()} performs the single balancing close instead.
      */

@@ -21,14 +21,16 @@
  * SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
  */
-package com.im.njams.sdk.client;
+package com.im.njams.sdk.logmessage;
 
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.NjamsSettings;
+import com.im.njams.sdk.communication.NjamsSender;
 
 /**
  * Configuration Entry for the LogMessageFlushTask for every Njams instance.
- * Holds the flush size and the flush interval values for every instance.
+ * Holds the flush size and the flush interval values, and the sender that the instance's log messages are sent
+ * through.
  *
  * @author pnientiedt
  */
@@ -44,6 +46,7 @@ public class LMFTEntry {
     public static final String DEFAULT_FLUSH_INTERVAL = "30";
 
     private Njams njams;
+    private final NjamsSender sender;
     private Long flushSize;
     private Long flushInterval;
 
@@ -52,9 +55,11 @@ public class LMFTEntry {
      * instance, or the defaults.
      *
      * @param njams Initialize this entry with this Njams
+     * @param sender the sender that the log messages of the given instance are sent through
      */
-    public LMFTEntry(Njams njams) {
+    public LMFTEntry(Njams njams, NjamsSender sender) {
         this.njams = njams;
+        this.sender = sender;
         flushSize = njams.getSettings().getLong(
                 NjamsSettings.PROPERTY_FLUSH_SIZE, Long.parseLong(DEFAULT_FLUSH_SIZE));
         flushInterval = njams.getSettings().getLong(
@@ -66,6 +71,13 @@ public class LMFTEntry {
      */
     public Njams getNjams() {
         return njams;
+    }
+
+    /**
+     * @return the sender that the log messages of the instance are sent through
+     */
+    public NjamsSender getSender() {
+        return sender;
     }
 
     /**

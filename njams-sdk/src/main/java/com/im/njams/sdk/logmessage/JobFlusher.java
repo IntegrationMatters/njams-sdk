@@ -36,6 +36,7 @@ import com.faizsiegeln.njams.messageformat.v4.logmessage.LogMessage;
 import com.faizsiegeln.njams.messageformat.v4.logmessage.PluginDataItem;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.LogMode;
 import com.im.njams.sdk.common.DateTimeUtility;
+import com.im.njams.sdk.communication.NjamsSender;
 import com.im.njams.sdk.model.ProcessModel;
 
 /**
@@ -125,13 +126,22 @@ final class JobFlusher {
                 LogMessage logMessage = createLogMessage(owner);
                 addToLogMessageAndCleanup(owner, logMessage);
                 logMessage.setSentAt(lastFlush);
-                processModel.getNjams().getSender()
-                        .send(logMessage, processModel.getNjams().getClientSessionId());
+                send(owner, logMessage);
                 // clean up jobImpl
                 pluginDataItems.clear();
                 calculateEstimatedSize();
             }
         }
+    }
+
+    private void send(JobImpl owner, LogMessage logMessage) {
+        final NjamsSender sender = LogMessageFlushTask.senderOf(processModel.getNjams());
+        if (sender == null) {
+            // The client has been stopped; stop() already flushed all of its jobs.
+            LOG.warn("Dropping the log message of job {}: the client is not started.", owner.getLogId());
+            return;
+        }
+        sender.send(logMessage, processModel.getNjams().getClientSessionId());
     }
 
     private boolean mustBeSuppressed(JobImpl owner) {

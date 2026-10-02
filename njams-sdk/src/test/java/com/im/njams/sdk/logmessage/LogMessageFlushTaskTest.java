@@ -21,13 +21,12 @@
  * SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
  */
-package com.im.njams.sdk.client;
+package com.im.njams.sdk.logmessage;
 
 import com.faizsiegeln.njams.messageformat.v4.logmessage.ActivityStatus;
 
 import com.im.njams.sdk.AbstractTest;
-import com.im.njams.sdk.logmessage.Activity;
-import com.im.njams.sdk.logmessage.JobImpl;
+import com.im.njams.sdk.SenderProbe;
 
 import org.junit.Test;
 
@@ -50,7 +49,7 @@ public class LogMessageFlushTaskTest extends AbstractTest{
      */
     @Test
     public void testStop(){
-        LogMessageFlushTask.start(njams);
+        LogMessageFlushTask.start(njams, SenderProbe.of(njams));
         JobImpl job = createDefaultJob();
         //A job is in the njams instance.
         assertFalse(njams.getJobs().isEmpty());
@@ -79,7 +78,7 @@ public class LogMessageFlushTaskTest extends AbstractTest{
     @Test
     public void startingSameInstanceAgainDoesNotRegisterItTwice() {
         // njams.start() already registered the instance
-        LogMessageFlushTask.start(njams);
+        LogMessageFlushTask.start(njams, SenderProbe.of(njams));
         JobImpl job = createDefaultStartedJob();
         createDefaultActivity(job).setActivityStatus(ActivityStatus.SUCCESS);
 

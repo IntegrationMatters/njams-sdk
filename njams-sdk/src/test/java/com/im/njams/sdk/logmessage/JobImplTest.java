@@ -168,7 +168,7 @@ public class JobImplTest extends AbstractTest {
 
         //Inject or own sender.send() method to get the masked logmessage
         NjamsSender sender = mock(NjamsSender.class);
-        when(mockedNjams.getSender()).thenReturn(sender);
+        LogMessageFlushTask.start(mockedNjams, sender);
         doAnswer((Answer<Object>) (InvocationOnMock invocation) -> {
             msg = (LogMessage) invocation.getArguments()[0];
             return null;

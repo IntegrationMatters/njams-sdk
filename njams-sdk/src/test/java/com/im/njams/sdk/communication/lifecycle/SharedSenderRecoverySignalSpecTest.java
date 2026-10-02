@@ -174,7 +174,7 @@ public class SharedSenderRecoverySignalSpecTest extends AbstractLifecycleSpecTes
      * startup under the default {@code fail} startup policy) had no test — every existing test of receiver
      * deregistration above only exercises the normal {@link Njams#stop()} path. Its correctness rests on the
      * {@code sender} field already being set by the time this branch runs, which is only true because
-     * {@code start()} calls {@code getSender()} before {@code startReceiver}, which itself runs before the
+     * {@code start()} calls {@code sender()} before {@code startReceiver}, which itself runs before the
      * sender's {@code startWithTimeout} check — this pins that ordering so a future refactor cannot silently
      * break it.
      */

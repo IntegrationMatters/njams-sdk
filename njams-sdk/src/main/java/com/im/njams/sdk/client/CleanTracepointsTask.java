@@ -41,6 +41,7 @@ import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.Path;
 import com.im.njams.sdk.common.DateTimeUtility;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
+import com.im.njams.sdk.communication.NjamsSender;
 import com.im.njams.sdk.configuration.ActivityConfiguration;
 import com.im.njams.sdk.configuration.Configuration;
 import com.im.njams.sdk.configuration.ProcessConfiguration;
@@ -56,7 +57,7 @@ public class CleanTracepointsTask extends TimerTask {
 
     private static final org.slf4j.Logger LOG = LoggerFactory.getLogger(CleanTracepointsTask.class);
 
-    private static Map<Path, Njams> njamsInstances = new ConcurrentHashMap<>();
+    private static Map<Path, Instance> njamsInstances = new ConcurrentHashMap<>();
 
     private static Timer timer = null;
 
@@ -69,8 +70,9 @@ public class CleanTracepointsTask extends TimerTask {
      * given Njams instance to the task.
      *
      * @param njams to add
+     * @param sender the sender that the trace messages of the given instance are sent through
      */
-    public static synchronized void start(Njams njams) {
+    public static synchronized void start(Njams njams, NjamsSender sender) {
         if (njams == null) {
             throw new NjamsSdkRuntimeException("Start: Njams is null");
         }
@@ -82,7 +84,7 @@ public class CleanTracepointsTask extends TimerTask {
             timer.scheduleAtFixedRate(new CleanTracepointsTask(), DELAY, INTERVAL);
         }
 
-        njamsInstances.put(njams.getClientPath(), njams);
+        njamsInstances.put(njams.getClientPath(), new Instance(njams, sender));
     }
 
     /**
@@ -91,7 +93,7 @@ public class CleanTracepointsTask extends TimerTask {
      * @return list of njams instances
      */
     static List<Njams> getNjamsInstances() {
-        return njamsInstances.values().stream().collect(Collectors.toList());
+        return njamsInstances.values().stream().map(i -> i.njams).collect(Collectors.toList());
     }
 
     /**
@@ -131,20 +133,34 @@ public class CleanTracepointsTask extends TimerTask {
     public void run() {
         try {
             LocalDateTime now = DateTimeUtility.now();
-            njamsInstances.values().forEach(njams -> checkNjams(njams, now));
+            njamsInstances.values().forEach(instance -> checkNjams(instance, now));
         } catch (Exception e) {
             LOG.error("Error in {}", this.getClass().getName(), e);
         }
     }
 
-    private void checkNjams(Njams njams, LocalDateTime now) {
+    private void checkNjams(Instance instance, LocalDateTime now) {
+        Njams njams = instance.njams;
         Configuration configuration = njams.getConfiguration();
         TraceMessageBuilder tmBuilder = new TraceMessageBuilder(njams);
         configuration.getProcesses().entrySet()
                 .forEach(processEntry -> checkProcess(configuration, processEntry, now, tmBuilder));
         TraceMessage msg = tmBuilder.build();
         if (msg != null) {
-            njams.getSender().send(msg, njams.getClientSessionId());
+            instance.sender.send(msg, njams.getClientSessionId());
+        }
+    }
+
+    /**
+     * An instance together with the sender its trace messages are sent through.
+     */
+    private static final class Instance {
+        private final Njams njams;
+        private final NjamsSender sender;
+
+        private Instance(Njams njams, NjamsSender sender) {
+            this.njams = njams;
+            this.sender = sender;
         }
     }
 

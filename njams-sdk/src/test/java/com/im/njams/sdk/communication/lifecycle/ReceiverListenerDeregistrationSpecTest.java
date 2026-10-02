@@ -7,6 +7,7 @@ import org.junit.After;
 import org.junit.Test;
 
 import com.im.njams.sdk.Njams;
+import com.im.njams.sdk.SenderProbe;
 import com.im.njams.sdk.Path;
 import com.im.njams.sdk.communication.NjamsSender;
 
@@ -28,12 +29,11 @@ public class ReceiverListenerDeregistrationSpecTest extends AbstractLifecycleSpe
     }
 
     @Test
-    @SuppressWarnings("deprecation") // Njams.getSender() is the only way to reach the group's listener counts.
     public void stopDeregistersTheReceiverFromTheRecoveryAndTheExceptionListeners() {
         njams = new Njams(Path.of("test", "receiverListenerDeregistration"), "1.0", "test",
             LifecycleTestTransport.settings());
         assertTrue(njams.start());
-        NjamsSender sender = njams.getSender();
+        NjamsSender sender = SenderProbe.of(njams);
         assertEquals("start() registers the receiver as recovery listener", 1, sender.recoveryListenerCount());
         assertEquals("start() registers the receiver as exception listener", 1, sender.exceptionListenerCount());
 

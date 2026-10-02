@@ -444,8 +444,8 @@ public class NjamsFacadeBaselineTest {
 
     @Test
     public void getSenderReturnsNonNullAndIsCached() {
-        assertNotNull(njams.getSender());
-        assertSame(njams.getSender(), njams.getSender());
+        assertNotNull(njams.sender());
+        assertSame(njams.sender(), njams.sender());
     }
 
     // --- helpers ---

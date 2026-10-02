@@ -24,6 +24,7 @@ import org.junit.Test;
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.Path;
+import com.im.njams.sdk.SenderProbe;
 import com.im.njams.sdk.communication.MessageHeaders;
 import com.im.njams.sdk.it.harness.FixedProcessModel;
 import com.im.njams.sdk.it.harness.MessageDriver;
@@ -58,8 +59,6 @@ public class PoolBookkeepingIT {
     }
 
     @Test(timeout = 60000)
-    @SuppressWarnings("deprecation") // Njams.getSender() is deprecated for removal, but is the only way to reach
-                                      // NjamsSender's test-support pooledSenderCount() accessor from outside the SDK.
     public void pooledSenderCountStaysBoundedAndMatchesTheBrokersOwnConnectionCount() throws Exception {
         Settings settings = new Settings();
         settings.put(NjamsSettings.PROPERTY_COMMUNICATION, "JMS");
@@ -85,7 +84,7 @@ public class PoolBookkeepingIT {
         List<String> logIds = MessageDriver.run(model, 8, 100, 8);
         awaitAllDelivered(logIds);
 
-        int pooledSenderCount = njams.getSender().pooledSenderCount();
+        int pooledSenderCount = SenderProbe.of(njams).pooledSenderCount();
         assertTrue("Pool should have grown under concurrent load but stayed bounded to maxSenderThreads="
             + MAX_SENDER_THREADS + ", was " + pooledSenderCount,
             pooledSenderCount > 1 && pooledSenderCount <= MAX_SENDER_THREADS);

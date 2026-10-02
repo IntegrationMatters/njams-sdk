@@ -429,7 +429,7 @@ public class NjamsModel {
             msg = assembler.buildFull(processModels.values(), images, taxonomy);
             markAllAnnounced();
         }
-        njams.getSender().send(msg, metadata.getClientSessionId());
+        njams.sender().send(msg, metadata.getClientSessionId());
     }
 
     /**
@@ -581,7 +581,7 @@ public class NjamsModel {
                 }
                 final ProjectMessage msg =
                     assembler.buildAdditional(modelsToSend, imagesToSend, variablesToSend, taxonomy);
-                njams.getSender().send(msg, metadata.getClientSessionId());
+                njams.sender().send(msg, metadata.getClientSessionId());
             }
         }
     }
