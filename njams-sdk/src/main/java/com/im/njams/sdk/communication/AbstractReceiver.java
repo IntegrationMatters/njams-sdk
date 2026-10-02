@@ -140,7 +140,7 @@ public abstract class AbstractReceiver implements Receiver, SenderRecoveryListen
             //Set the exception response
             instruction.setResponse(exceptionResponse);
         } else {
-            for (InstructionListener listener : njams.getInstructionListeners()) {
+            for (InstructionListener listener : njams.commands().list()) {
                 try {
                     listener.onInstruction(instruction);
                 } catch (Exception e) {

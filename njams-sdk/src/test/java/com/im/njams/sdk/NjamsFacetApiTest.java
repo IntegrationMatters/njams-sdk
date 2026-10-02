@@ -307,7 +307,7 @@ public class NjamsFacetApiTest {
             new com.faizsiegeln.njams.messageformat.v4.command.Request();
         req.setCommand(com.faizsiegeln.njams.messageformat.v4.command.Command.REPLAY.commandString());
         inst.setRequest(req);
-        njams.onInstruction(inst);
+        njams.commands().dispatch(inst);
         assertEquals(0, inst.getResponse().getResultCode());
         assertEquals("TestWorked", inst.getResponse().getResultMessage());
     }

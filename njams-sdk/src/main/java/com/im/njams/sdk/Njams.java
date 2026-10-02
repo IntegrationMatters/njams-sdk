@@ -177,6 +177,8 @@ public class Njams implements InstructionListener {
     private final NjamsJobs jobs;
 
     private final NjamsCommands commands;
+    /** Registered with {@link #commands} while started; routes received instructions to the commands facet. */
+    private final InstructionListener commandDispatcher;
 
     private final NjamsSerializers serializers = new NjamsSerializers();
 
@@ -216,6 +218,7 @@ public class Njams implements InstructionListener {
         configuration = new NjamsConfiguration(settings, this);
         model = new NjamsModel(this, lifecycle, metadata, features, configuration, projectMessageLock);
         commands = new NjamsCommands(model, replay, metadata, features);
+        commandDispatcher = commands::dispatch;
         model.createTreeElements(path, TreeElementType.CLIENT);
         metadata.printStartupBanner(settings);
         beginConnect();
@@ -791,7 +794,7 @@ public class Njams implements InstructionListener {
             configuration.load();
             configuration.initializeDataMasking();
             final ConfigurationInstructionListener configurationListener = new ConfigurationInstructionListener(this);
-            commands.add(this);
+            commands.add(commandDispatcher);
             commands.add(configurationListener);
             final NjamsSender activeSender;
             try {
@@ -844,7 +847,7 @@ public class Njams implements InstructionListener {
      * @param configurationListener the configuration listener registered by the failing startup.
      */
     private void releaseStartupRegistrations(ConfigurationInstructionListener configurationListener) {
-        commands.remove(this);
+        commands.remove(commandDispatcher);
         commands.remove(configurationListener);
         argos.stop();
     }

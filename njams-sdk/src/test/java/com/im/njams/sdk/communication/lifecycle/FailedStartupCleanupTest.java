@@ -54,7 +54,7 @@ public class FailedStartupCleanupTest extends AbstractLifecycleSpecTest {
         LifecycleTestTransport.setSenderMode(LifecycleTestTransport.ConnectMode.SUCCEED);
         assertTrue("a retried start() must succeed once the connection is available", njams.start());
         List<InstructionListener> listeners = njams.commands().list();
-        assertEquals(1, listeners.stream().filter(l -> l == njams).count());
+        assertEquals(1, listeners.stream().filter(l -> !(l instanceof ConfigurationInstructionListener)).count());
         assertEquals(1, listeners.stream().filter(l -> l instanceof ConfigurationInstructionListener).count());
     }
 

@@ -50,6 +50,7 @@ import com.im.njams.sdk.Path;
 import com.im.njams.sdk.communication.AbstractReceiver;
 import com.im.njams.sdk.communication.AbstractSender;
 import com.im.njams.sdk.communication.ConnectionStatus;
+import com.im.njams.sdk.communication.InstructionListener;
 import com.im.njams.sdk.communication.NjamsSender;
 import com.im.njams.sdk.communication.Receiver;
 import com.im.njams.sdk.communication.ReplayHandler;
@@ -378,6 +379,59 @@ public class NjamsTest {
         assertFalse("SDK must not stay started after a project-message failure", njams.isStarted());
     }
 
+    private Instruction instructionFor(String command) {
+        Instruction inst = new Instruction();
+        Request req = new Request();
+        req.setCommand(command);
+        inst.setRequest(req);
+        return inst;
+    }
+
+    @Test
+    public void dispatcherIsRegisteredWhileStartedAndRemovedOnStop() {
+        assertTrue("nothing may be registered before start", instance.commands().list().isEmpty());
+        assertTrue(instance.start());
+        try {
+            assertFalse("Njams itself must not be the registered listener",
+                instance.commands().list().contains(instance));
+            Instruction inst = instructionFor(Command.PING.commandString());
+            for (InstructionListener listener : instance.commands().list()) {
+                listener.onInstruction(inst);
+            }
+            assertEquals(0, inst.getResponse().getResultCode());
+            assertEquals("Pong", inst.getResponse().getResultMessage());
+        } finally {
+            instance.stop();
+        }
+        assertTrue("stop() must remove all listeners", instance.commands().list().isEmpty());
+    }
+
+    @Test
+    public void pingIsAnsweredByDispatch() {
+        Instruction inst = instructionFor(Command.PING.commandString());
+        instance.commands().dispatch(inst);
+        Response resp = inst.getResponse();
+        assertEquals(0, resp.getResultCode());
+        assertEquals("Pong", resp.getResultMessage());
+        assertEquals(instance.getClientSessionId(), resp.getParameters().get("clientId"));
+        assertEquals(instance.getCategory(), resp.getParameters().get("category"));
+    }
+
+    @Test
+    public void getRequestHandlerIsAnsweredByDispatch() {
+        Instruction inst = instructionFor(Command.GET_REQUEST_HANDLER.commandString());
+        instance.commands().dispatch(inst);
+        assertEquals(0, inst.getResponse().getResultCode());
+        assertEquals(instance.getClientSessionId(), inst.getResponseParameterByName("clientId"));
+    }
+
+    @Test
+    public void unknownCommandIsRejectedByDispatch() {
+        Instruction inst = instructionFor("noSuchCommand");
+        instance.commands().dispatch(inst);
+        assertEquals(1, inst.getResponse().getResultCode());
+    }
+
     @Test
     public void testOnCorrectSendProjectMessageInstruction() {
         Instruction inst = new Instruction();
@@ -385,7 +439,7 @@ public class NjamsTest {
         req.setCommand(Command.SEND_PROJECTMESSAGE.commandString());
         inst.setRequest(req);
         assertNull(inst.getResponse());
-        instance.onInstruction(inst);
+        instance.commands().dispatch(inst);
         Response resp = inst.getResponse();
         assertTrue(resp.getResultCode() == 0);
     }
@@ -397,7 +451,7 @@ public class NjamsTest {
         req.setCommand(Command.REPLAY.commandString());
         inst.setRequest(req);
         assertNull(inst.getResponse());
-        instance.onInstruction(inst);
+        instance.commands().dispatch(inst);
 
         Response resp = inst.getResponse();
         assertTrue(resp.getResultCode() == 1);
@@ -417,7 +471,7 @@ public class NjamsTest {
         req.setCommand(Command.REPLAY.commandString());
         inst.setRequest(req);
         assertNull(inst.getResponse());
-        instance.onInstruction(inst);
+        instance.commands().dispatch(inst);
 
         Response resp = inst.getResponse();
         assertTrue(resp.getResultCode() == 0);
@@ -435,7 +489,7 @@ public class NjamsTest {
         req.setCommand(Command.REPLAY.commandString());
         inst.setRequest(req);
         assertNull(inst.getResponse());
-        instance.onInstruction(inst);
+        instance.commands().dispatch(inst);
 
         Response resp = inst.getResponse();
         assertTrue(resp.getResultCode() == 2);

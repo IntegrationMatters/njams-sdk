@@ -358,7 +358,7 @@ public class NjamsFacadeBaselineTest {
     @Test
     public void pingInstructionIsAnswered() {
         Instruction inst = instructionFor(Command.PING);
-        njams.onInstruction(inst);
+        njams.commands().dispatch(inst);
         Response resp = inst.getResponse();
         assertEquals(0, resp.getResultCode());
         assertEquals("Pong", resp.getResultMessage());
@@ -369,7 +369,7 @@ public class NjamsFacadeBaselineTest {
     @Test
     public void getRequestHandlerInstructionReturnsClientId() {
         Instruction inst = instructionFor(Command.GET_REQUEST_HANDLER);
-        njams.onInstruction(inst);
+        njams.commands().dispatch(inst);
         assertEquals(0, inst.getResponse().getResultCode());
         assertEquals(njams.getClientSessionId(), inst.getResponseParameterByName("clientId"));
     }
@@ -380,7 +380,7 @@ public class NjamsFacadeBaselineTest {
         Request req = new Request();
         req.setCommand("noSuchCommand");
         inst.setRequest(req);
-        njams.onInstruction(inst);
+        njams.commands().dispatch(inst);
         assertEquals(1, inst.getResponse().getResultCode());
     }
 

@@ -161,7 +161,7 @@ public class SharedReceiverSupport<R extends AbstractReceiver & ShareableReceive
             //Set the exception response
             instruction.setResponse(exceptionResponse);
         } else {
-            for (InstructionListener listener : njams.getInstructionListeners()) {
+            for (InstructionListener listener : njams.commands().list()) {
                 try {
                     listener.onInstruction(instruction);
                 } catch (Exception e) {

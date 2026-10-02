@@ -36,6 +36,7 @@ import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
 import com.faizsiegeln.njams.messageformat.v4.command.Request;
 import com.faizsiegeln.njams.messageformat.v4.command.Response;
 import com.im.njams.sdk.Njams;
+import com.im.njams.sdk.NjamsCommands;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.settings.ClientSettings;
 
@@ -171,7 +172,9 @@ public class AbstractReceiverTest {
         AbstractReceiverImpl impl = new AbstractReceiverImpl();
         Njams njams = mock(Njams.class);
         impl.setNjams(njams);
-        when(njams.getInstructionListeners()).thenReturn(list);
+        NjamsCommands commands = mock(NjamsCommands.class);
+        when(commands.list()).thenReturn(list);
+        when(njams.commands()).thenReturn(commands);
         Instruction inst = new Instruction();
         Request req = new Request();
         req.setCommand(TESTCOMMAND);
@@ -284,7 +287,9 @@ public class AbstractReceiverTest {
         AbstractReceiverImpl impl = new AbstractReceiverImpl();
         Njams njams = mock(Njams.class);
         impl.setNjams(njams);
-        when(njams.getInstructionListeners()).thenReturn(new ArrayList<>());
+        NjamsCommands commands = mock(NjamsCommands.class);
+        when(commands.list()).thenReturn(new ArrayList<>());
+        when(njams.commands()).thenReturn(commands);
         Instruction inst = new Instruction();
         Request req = new Request();
         req.setCommand(TESTCOMMAND);
