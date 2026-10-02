@@ -83,7 +83,7 @@ public class CleanTracepointsTaskTest extends AbstractTest {
         TestSender.setSenderMock(new SenderMock());
         njams.start();
         createDefaultActivity(createDefaultStartedJob());
-        FULLPROCESSPATHNAME = njams.getClientPath().getOrCreateChild(PROCESSPATHNAME).toString();
+        FULLPROCESSPATHNAME = njams.metadata().getClientPath().getOrCreateChild(PROCESSPATHNAME).toString();
     }
 
     @BeforeClass
@@ -219,13 +219,13 @@ public class CleanTracepointsTaskTest extends AbstractTest {
 
         fillActivityConfiguration(ldt1, ldt2);
 
-        assertNotNull(njams.getConfiguration().getProcess(FULLPROCESSPATHNAME).getActivity(ACTIVITYMODELID)
+        assertNotNull(njams.configuration().get().getProcess(FULLPROCESSPATHNAME).getActivity(ACTIVITYMODELID)
                 .getTracepoint());
         assertNull(message);
         testStartNormal();
         Thread.sleep(CleanTracepointsTask.DELAY + CleanTracepointsTask.INTERVAL);
         assertNotNull(message);
-        assertNull(njams.getConfiguration().getProcess(FULLPROCESSPATHNAME).getActivity(ACTIVITYMODELID)
+        assertNull(njams.configuration().get().getProcess(FULLPROCESSPATHNAME).getActivity(ACTIVITYMODELID)
                 .getTracepoint());
 
         checkTraceMessage(ldt1, ldt2);
@@ -268,7 +268,7 @@ public class CleanTracepointsTaskTest extends AbstractTest {
     }
 
     private void fillProcessConfiguration(Map<String, ActivityConfiguration> acs) {
-        ProcessConfiguration pc = njams.getConfiguration().getProcess(FULLPROCESSPATHNAME);
+        ProcessConfiguration pc = njams.configuration().get().getProcess(FULLPROCESSPATHNAME);
         pc.setActivities(acs);
         pc.setExclude(true);
         pc.setLogLevel(LogLevel.ERROR);
@@ -277,9 +277,9 @@ public class CleanTracepointsTaskTest extends AbstractTest {
 
     private void checkTraceMessage(LocalDateTime ldt1, LocalDateTime ldt2) {
         assertEquals(message.getClientVersion(), CLIENTVERSION);
-        assertEquals(message.getSdkVersion(), njams.getSdkVersion());
+        assertEquals(message.getSdkVersion(), njams.metadata().getSdkVersion());
         assertEquals(message.getCategory(), CATEGORY);
-        assertEquals(message.getPath(), njams.getClientPath().toString());
+        assertEquals(message.getPath(), njams.metadata().getClientPath().toString());
 
         List<ProcessModel> processes = message.getProcesses();
         assertNotNull(processes);

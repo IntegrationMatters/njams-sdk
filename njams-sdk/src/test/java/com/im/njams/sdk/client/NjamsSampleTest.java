@@ -110,9 +110,9 @@ public class NjamsSampleTest {
         assertThat(endModel.getIncomingTransitionFrom("log").getId(), is("log::end"));
         assertThat(endModel.getIncomingTransitionFrom("log").getFromActivity(), is(logModel));
 
-        njams.addImage("startType", "images/njams_java_sdk_process_start.png");
-        njams.addImage("stepType", "images/njams_java_sdk_process_step.png");
-        njams.addImage("endType", "images/njams_java_sdk_process_end.png");
+        njams.model().addImage("startType", "images/njams_java_sdk_process_start.png");
+        njams.model().addImage("stepType", "images/njams_java_sdk_process_step.png");
+        njams.model().addImage("endType", "images/njams_java_sdk_process_end.png");
 
         // Start client and flush resources
         njams.start();
@@ -140,7 +140,7 @@ public class NjamsSampleTest {
         extract.getExtractRules().add(xpathRule);
         ActivityConfiguration ac = new ActivityConfiguration();
         ac.setExtract(extract);
-        ProcessConfiguration pc = njams.getConfiguration().getProcess(process.getPath().toString());
+        ProcessConfiguration pc = njams.configuration().get().getProcess(process.getPath().toString());
         pc.getActivities().put("log", ac);
 
         // Create a Log Message
@@ -244,10 +244,10 @@ public class NjamsSampleTest {
         nullModel.setY(nullModel.getY() + 50);
         logModel.setY(logModel.getY() - 50);
 
-        njams.addImage("startType", "images/njams_java_sdk_process_start.png");
-        njams.addImage("stepType", "images/njams_java_sdk_process_step.png");
-        njams.addImage("nullType", "images/client.png");
-        njams.addImage("endType", "images/njams_java_sdk_process_end.png");
+        njams.model().addImage("startType", "images/njams_java_sdk_process_start.png");
+        njams.model().addImage("stepType", "images/njams_java_sdk_process_step.png");
+        njams.model().addImage("nullType", "images/client.png");
+        njams.model().addImage("endType", "images/njams_java_sdk_process_end.png");
 
         // Start client and flush resources
         njams.start();
@@ -623,17 +623,17 @@ public class NjamsSampleTest {
 
         subProcessModel.setSubProcess(subProcess);
 
-        njams.setTreeElementType(Path.of("SDK4"), "first");
-        njams.setTreeElementType(Path.of("SDK4", "TEST"), "second");
-        njams.setTreeElementType(Path.of("SDK4", "TEST", "PROCESSES"), "third");
-        njams.setTreeElementType(Path.of("SDK4", "TEST", "PROCESSES", "SubProcess"), "fourth");
-        njams.addImage("first", "images/njams_java_sdk_process_start.png");
-        njams.addImage("second", "images/njams_java_sdk_process_start.png");
-        njams.addImage("third", "images/njams_java_sdk_process_start.png");
-        njams.addImage("fourth", "images/njams_java_sdk_process_start.png");
-        njams.addImage("startType", "images/njams_java_sdk_process_start.png");
-        njams.addImage("stepType", "images/njams_java_sdk_process_step.png");
-        njams.addImage("endType", "images/njams_java_sdk_process_end.png");
+        njams.model().setTreeElementType(Path.of("SDK4"), "first");
+        njams.model().setTreeElementType(Path.of("SDK4", "TEST"), "second");
+        njams.model().setTreeElementType(Path.of("SDK4", "TEST", "PROCESSES"), "third");
+        njams.model().setTreeElementType(Path.of("SDK4", "TEST", "PROCESSES", "SubProcess"), "fourth");
+        njams.model().addImage("first", "images/njams_java_sdk_process_start.png");
+        njams.model().addImage("second", "images/njams_java_sdk_process_start.png");
+        njams.model().addImage("third", "images/njams_java_sdk_process_start.png");
+        njams.model().addImage("fourth", "images/njams_java_sdk_process_start.png");
+        njams.model().addImage("startType", "images/njams_java_sdk_process_start.png");
+        njams.model().addImage("stepType", "images/njams_java_sdk_process_step.png");
+        njams.model().addImage("endType", "images/njams_java_sdk_process_end.png");
 
         // Start client and flush resources
         njams.start();
@@ -874,17 +874,17 @@ public class NjamsSampleTest {
 
         subProcessModel.setSubProcess(subProcess.getName(), subProcess.getPath());
 
-        njams.setTreeElementType(Path.of("SDK4"), "first");
-        njams.setTreeElementType(Path.of("SDK4", "TEST"), "second");
-        njams.setTreeElementType(Path.of("SDK4", "TEST", "PROCESSES"), "third");
-        njams.setTreeElementType(Path.of("SDK4", "TEST", "PROCESSES", "SubProcess"), "fourth");
-        njams.addImage("first", "images/njams_java_sdk_process_start.png");
-        njams.addImage("second", "images/njams_java_sdk_process_start.png");
-        njams.addImage("third", "images/njams_java_sdk_process_start.png");
-        njams.addImage("fourth", "images/njams_java_sdk_process_start.png");
-        njams.addImage("startType", "images/njams_java_sdk_process_start.png");
-        njams.addImage("stepType", "images/njams_java_sdk_process_step.png");
-        njams.addImage("endType", "images/njams_java_sdk_process_end.png");
+        njams.model().setTreeElementType(Path.of("SDK4"), "first");
+        njams.model().setTreeElementType(Path.of("SDK4", "TEST"), "second");
+        njams.model().setTreeElementType(Path.of("SDK4", "TEST", "PROCESSES"), "third");
+        njams.model().setTreeElementType(Path.of("SDK4", "TEST", "PROCESSES", "SubProcess"), "fourth");
+        njams.model().addImage("first", "images/njams_java_sdk_process_start.png");
+        njams.model().addImage("second", "images/njams_java_sdk_process_start.png");
+        njams.model().addImage("third", "images/njams_java_sdk_process_start.png");
+        njams.model().addImage("fourth", "images/njams_java_sdk_process_start.png");
+        njams.model().addImage("startType", "images/njams_java_sdk_process_start.png");
+        njams.model().addImage("stepType", "images/njams_java_sdk_process_step.png");
+        njams.model().addImage("endType", "images/njams_java_sdk_process_end.png");
 
         // Start client and flush resources
         njams.start();

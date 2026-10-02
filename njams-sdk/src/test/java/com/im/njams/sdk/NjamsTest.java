@@ -97,31 +97,22 @@ public class NjamsTest {
     }
 
     @Test
-    public void testSerializer() {
-        System.out.println("addSerializer");
-        final Serializer<List> expResult =
-                (l, sizeLimit) -> new com.im.njams.sdk.serializer.SerializerResult("list", false);
+    public void equalsAndHashCodeAreBasedOnClientPath() {
+        Njams samePath = new Njams(Path.of(), "9.9", "other", TestReceiver.getSettings());
+        Njams otherPath = new Njams(Path.of("OTHER"), "", "", TestReceiver.getSettings());
+        assertEquals(instance, instance);
+        assertEquals(instance, samePath);
+        assertEquals(instance.hashCode(), samePath.hashCode());
+        assertNotEquals(instance, otherPath);
+        assertNotEquals(instance, null);
+        assertNotEquals(instance, "not an Njams");
+    }
 
-        instance.addSerializer(ArrayList.class,
-                (a, sizeLimit) -> new com.im.njams.sdk.serializer.SerializerResult(a.getClass().getSimpleName(), false));
-        instance.addSerializer(List.class, expResult);
-
-        String serialized;
-
-        // found ArrayList serializer
-        serialized = instance.serialize(new ArrayList<>());
-        assertNotNull(serialized);
-        assertEquals("ArrayList", serialized);
-
-        // found default string serializer
-        serialized = instance.serialize(new HashMap<>());
-        assertNotNull(serialized);
-        assertEquals("{}", serialized);
-
-        // found list serializer
-        serialized = instance.serialize(new LinkedList<>());
-        assertNotNull(serialized);
-        assertEquals("list", serialized);
+    @Test
+    public void notEqualToAMockOfNjams() {
+        Njams mock = org.mockito.Mockito.mock(Njams.class);
+        assertFalse(instance.equals(mock));
+        assertFalse(mock.equals(instance));
     }
 
     @Test(expected = NjamsSdkRuntimeException.class)
@@ -413,8 +404,8 @@ public class NjamsTest {
         Response resp = inst.getResponse();
         assertEquals(0, resp.getResultCode());
         assertEquals("Pong", resp.getResultMessage());
-        assertEquals(instance.getClientSessionId(), resp.getParameters().get("clientId"));
-        assertEquals(instance.getCategory(), resp.getParameters().get("category"));
+        assertEquals(instance.metadata().getClientSessionId(), resp.getParameters().get("clientId"));
+        assertEquals(instance.metadata().getCategory(), resp.getParameters().get("category"));
     }
 
     @Test
@@ -422,7 +413,7 @@ public class NjamsTest {
         Instruction inst = instructionFor(Command.GET_REQUEST_HANDLER.commandString());
         instance.commands().dispatch(inst);
         assertEquals(0, inst.getResponse().getResultCode());
-        assertEquals(instance.getClientSessionId(), inst.getResponseParameterByName("clientId"));
+        assertEquals(instance.metadata().getClientSessionId(), inst.getResponseParameterByName("clientId"));
     }
 
     @Test
@@ -465,7 +456,7 @@ public class NjamsTest {
             resp.setResultMessage("TestWorked");
             return resp;
         };
-        instance.setReplayHandler(replayHandler);
+        instance.replay().setHandler(replayHandler);
         Instruction inst = new Instruction();
         Request req = new Request();
         req.setCommand(Command.REPLAY.commandString());
@@ -484,7 +475,7 @@ public class NjamsTest {
         ReplayHandler replayHandler = (ReplayRequest request) -> {
             throw new RuntimeException("TestException");
         };
-        instance.setReplayHandler(replayHandler);
+        instance.replay().setHandler(replayHandler);
         Request req = new Request();
         req.setCommand(Command.REPLAY.commandString());
         inst.setRequest(req);
@@ -495,22 +486,6 @@ public class NjamsTest {
         assertTrue(resp.getResultCode() == 2);
         assertEquals("Error while executing replay: TestException", resp.getResultMessage());
         assertEquals("java.lang.RuntimeException: TestException", inst.getResponseParameterByName("Exception"));
-    }
-
-    @Test
-    public void testHasNoProcessModel() {
-        assertFalse(instance.hasProcessModel(new com.im.njams.sdk.common.Path("PROCESSES")));
-    }
-
-    @Test
-    public void testNoProcessModelForNullPath() {
-        assertFalse(instance.hasProcessModel(null));
-    }
-
-    @Test
-    public void testHasProcessModel() {
-        instance.createProcess(new com.im.njams.sdk.common.Path("PROCESSES"));
-        assertTrue(instance.hasProcessModel(new com.im.njams.sdk.common.Path("PROCESSES")));
     }
 
     @Test
@@ -555,18 +530,10 @@ public class NjamsTest {
 
         List<String> dataMaskingStrings = new ArrayList<>();
         dataMaskingStrings.add("Hello");
-        njams.getConfiguration().setDataMasking(dataMaskingStrings);
+        njams.configuration().get().setDataMasking(dataMaskingStrings);
         njams.start();
 
         assertEquals("Hello", DataMasking.maskString("Hello"));
-    }
-
-    @Test
-    public void defaultLayouter_isCommonBfsModelLayouter() {
-        Settings settings = TestSender.getSettings();
-        Njams njams = new Njams(Path.of("TEST"), "1.0", "TEST", settings);
-        assertTrue("Default layouter must be CommonBfsModelLayouter",
-            njams.getProcessModelLayouter() instanceof CommonBfsModelLayouter);
     }
 
     @Test
@@ -584,43 +551,18 @@ public class NjamsTest {
     }
 
     @Test
-    public void serializeWithSizeLimitForwardsLimitToRegisteredSerializer() {
-        final int[] capturedLimit = {-1};
-        instance.addSerializer(String.class, (value, sizeLimit) -> {
-            capturedLimit[0] = sizeLimit;
-            return new com.im.njams.sdk.serializer.SerializerResult(value, false);
-        });
-
-        String result = instance.serialize("hello", 7);
-        assertEquals("hello", result);
-        assertEquals(7, capturedLimit[0]);
-    }
-
-    @Test
-    public void serializeWithoutSizeLimitStillUsesMaxValue() {
-        final int[] capturedLimit = {-1};
-        instance.addSerializer(String.class, (value, sizeLimit) -> {
-            capturedLimit[0] = sizeLimit;
-            return new com.im.njams.sdk.serializer.SerializerResult(value, false);
-        });
-
-        instance.serialize("hello");
-        assertEquals(Integer.MAX_VALUE, capturedLimit[0]);
-    }
-
-    @Test
     public void sendProjectMessage_propagatesGlobalVariables() throws InterruptedException {
         Njams njams = new Njams(Path.of("TEST"), "1.0", "TEST", TestSender.getSettings());
         try {
             Map<String, String> vars = new HashMap<>();
             vars.put("Connections/Queue", "queue-value");
-            njams.addGlobalVariables(vars);
+            njams.model().addGlobalVariables(vars);
             njams.start();
 
             // Set the capturing mock only after start(), so we capture our explicit message, not the startup one.
             CapturingSender capturing = new CapturingSender();
             TestSender.setSenderMock(capturing);
-            njams.sendProjectMessage();
+            njams.model().send();
 
             ProjectMessage sent = capturing.awaitProjectMessage();
             assertNotNull("A project message must have been sent", sent);
@@ -634,53 +576,16 @@ public class NjamsTest {
     }
 
     @Test
-    public void setGlobalVariablesPattern_acceptsValidPatternAndIsReturnedByGetter() {
-        String pattern = "(?<full>%%(?<name>[^%]+)%%)";
-        instance.setGlobalVariablesPattern(pattern);
-        assertEquals(pattern, instance.getGlobalVariablesPattern());
-    }
-
-    @Test
-    public void setGlobalVariablesPattern_acceptsPatternWithOptionalDefaultGroup() {
-        String pattern = "(?<full>\\{\\{\\??(?<name>(?:(?:sys|env):)?[^}:]+)(?::(?<default>[^}]+))?\\}\\})";
-        instance.setGlobalVariablesPattern(pattern);
-        assertEquals(pattern, instance.getGlobalVariablesPattern());
-    }
-
-    @Test
-    public void setGlobalVariablesPattern_nullClearsThePattern() {
-        instance.setGlobalVariablesPattern("(?<full>%%(?<name>[^%]+)%%)");
-        instance.setGlobalVariablesPattern(null);
-        assertNull(instance.getGlobalVariablesPattern());
-    }
-
-    @Test(expected = NjamsSdkRuntimeException.class)
-    public void setGlobalVariablesPattern_rejectsInvalidRegex() {
-        // Unbalanced group -> not a compilable regex.
-        instance.setGlobalVariablesPattern("(?<full>(?<name>[^%]+");
-    }
-
-    @Test(expected = NjamsSdkRuntimeException.class)
-    public void setGlobalVariablesPattern_rejectsMissingNameGroup() {
-        instance.setGlobalVariablesPattern("(?<full>%%[^%]+%%)");
-    }
-
-    @Test(expected = NjamsSdkRuntimeException.class)
-    public void setGlobalVariablesPattern_rejectsMissingFullGroup() {
-        instance.setGlobalVariablesPattern("%%(?<name>[^%]+)%%");
-    }
-
-    @Test
     public void sendProjectMessage_propagatesGlobalVariablesPattern() throws InterruptedException {
         String pattern = "(?<full>%%(?<name>[^%]+)%%)";
         Njams njams = new Njams(Path.of("TEST"), "1.0", "TEST", TestSender.getSettings());
         try {
-            njams.setGlobalVariablesPattern(pattern);
+            njams.model().setGlobalVariablesPattern(pattern);
             njams.start();
 
             CapturingSender capturing = new CapturingSender();
             TestSender.setSenderMock(capturing);
-            njams.sendProjectMessage();
+            njams.model().send();
 
             ProjectMessage sent = capturing.awaitProjectMessage();
             assertNotNull("A project message must have been sent", sent);

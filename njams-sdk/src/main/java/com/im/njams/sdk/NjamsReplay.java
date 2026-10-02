@@ -75,10 +75,6 @@ public class NjamsReplay {
      */
     public void setHandler(final ReplayHandler replayHandler) {
         lifecycle.requireNotStarted("NjamsReplay.setHandler");
-        setHandlerInternal(replayHandler);
-    }
-
-    void setHandlerInternal(final ReplayHandler replayHandler) {
         this.replayHandler = replayHandler;
         if (replayHandler == null) {
             features.removeInternal(Feature.REPLAY);

@@ -39,8 +39,8 @@ public class NjamsReplayTest {
     public void setUp() {
         features = mock(NjamsFeatures.class);
         jobs = mock(NjamsJobs.class);
-        // lifecycle is only used by setHandler(), not by handleReplayRequest()/setHandlerInternal()
-        replay = new NjamsReplay(null, features, jobs);
+        // a fresh (not started) lifecycle lets setHandler() register handlers
+        replay = new NjamsReplay(new LifecycleState(), features, jobs);
     }
 
     private static Instruction replayInstruction(Map<String, String> params) {
@@ -70,7 +70,7 @@ public class NjamsReplayTest {
         params.put("Test", "false");
         params.put("Deeptrace", "true");
         final Instruction instruction = replayInstruction(params);
-        replay.setHandlerInternal(successHandler());
+        replay.setHandler(successHandler());
 
         replay.handleReplayRequest(instruction);
 
@@ -88,7 +88,7 @@ public class NjamsReplayTest {
         params.put("Test", "false");
         params.put("Deeptrace", "true");
         final Instruction instruction = replayInstruction(params);
-        replay.setHandlerInternal(successHandler());
+        replay.setHandler(successHandler());
 
         replay.handleReplayRequest(instruction);
 
@@ -105,7 +105,7 @@ public class NjamsReplayTest {
         params.put("Process", "p1");
         params.put("payload", LARGE_PAYLOAD);
         final Instruction instruction = replayInstruction(params);
-        replay.setHandlerInternal(successHandler());
+        replay.setHandler(successHandler());
 
         replay.handleReplayRequest(instruction);
 
@@ -123,7 +123,7 @@ public class NjamsReplayTest {
         params.put("Payload", LARGE_PAYLOAD);
         params.put("Test", "true");
         final Instruction instruction = replayInstruction(params);
-        replay.setHandlerInternal(successHandler());
+        replay.setHandler(successHandler());
 
         replay.handleReplayRequest(instruction);
 
@@ -138,7 +138,7 @@ public class NjamsReplayTest {
         params.put("Process", "p1");
         params.put("Payload", LARGE_PAYLOAD);
         final Instruction instruction = replayInstruction(params);
-        replay.setHandlerInternal(request -> {
+        replay.setHandler(request -> {
             throw new RuntimeException("boom");
         });
 

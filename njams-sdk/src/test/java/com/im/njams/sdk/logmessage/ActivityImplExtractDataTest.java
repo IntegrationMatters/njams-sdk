@@ -53,7 +53,7 @@ public class ActivityImplExtractDataTest extends AbstractTest {
         extract.setName("needleExtract");
         extract.getExtractRules().add(rule);
 
-        ActivityConfiguration activityConfig = njams.getConfiguration().getProcess(process.getPath().toString())
+        ActivityConfiguration activityConfig = njams.configuration().get().getProcess(process.getPath().toString())
             .getOrCreateActivity(ACTIVITYMODELID);
         activityConfig.setExtract(extract);
 
@@ -87,7 +87,7 @@ public class ActivityImplExtractDataTest extends AbstractTest {
 
         // Custom serializer that records the sizeLimit it is invoked with.
         final int[] capturedLimit = {-1};
-        njams.addSerializer(String.class, (value, sizeLimit) -> {
+        njams.serializers().add(String.class, (value, sizeLimit) -> {
             capturedLimit[0] = sizeLimit;
             return new com.im.njams.sdk.serializer.SerializerResult(value, false);
         });
@@ -102,7 +102,7 @@ public class ActivityImplExtractDataTest extends AbstractTest {
         extract.setName("constantExtract");
         extract.getExtractRules().add(rule);
 
-        ActivityConfiguration activityConfig = njams.getConfiguration().getProcess(process.getPath().toString())
+        ActivityConfiguration activityConfig = njams.configuration().get().getProcess(process.getPath().toString())
             .getOrCreateActivity(ACTIVITYMODELID);
         activityConfig.setExtract(extract);
 
@@ -125,7 +125,7 @@ public class ActivityImplExtractDataTest extends AbstractTest {
         settings.put(NjamsSettings.PROPERTY_PAYLOAD_LIMIT_SIZE, "10");
 
         final int[] capturedLimit = {-1};
-        njams.addSerializer(String.class, (value, sizeLimit) -> {
+        njams.serializers().add(String.class, (value, sizeLimit) -> {
             capturedLimit[0] = sizeLimit;
             return new com.im.njams.sdk.serializer.SerializerResult(value, false);
         });
@@ -140,7 +140,7 @@ public class ActivityImplExtractDataTest extends AbstractTest {
         extract.setName("regexExtract");
         extract.getExtractRules().add(rule);
 
-        ActivityConfiguration activityConfig = njams.getConfiguration().getProcess(process.getPath().toString())
+        ActivityConfiguration activityConfig = njams.configuration().get().getProcess(process.getPath().toString())
             .getOrCreateActivity(ACTIVITYMODELID);
         activityConfig.setExtract(extract);
 

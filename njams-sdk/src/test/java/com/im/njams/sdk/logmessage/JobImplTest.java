@@ -27,6 +27,7 @@ import com.faizsiegeln.njams.messageformat.v4.common.CommonMessage;
 import com.faizsiegeln.njams.messageformat.v4.logmessage.ActivityStatus;
 import com.faizsiegeln.njams.messageformat.v4.logmessage.LogMessage;
 import com.im.njams.sdk.AbstractTest;
+import com.im.njams.sdk.ModelOwnerProbe;
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.Path;
@@ -163,13 +164,12 @@ public class JobImplTest extends AbstractTest {
         Path clientPath = Path.of("SDK4", "TEST");
 
         Njams mockedNjams = spy(new Njams(clientPath, "1.0.0", "sdk4", TestReceiver.getSettings()));
-        com.im.njams.sdk.common.Path processPath = new com.im.njams.sdk.common.Path("PROCESSES");
-        mockedNjams.createProcess(processPath);
+        ModelOwnerProbe.create(mockedNjams, "PROCESSES");
         mockedNjams.start();
         //add DataMasking
         DataMasking.addPattern(".*");
         //Create a job
-        ProcessModel process = mockedNjams.getProcessModel(new com.im.njams.sdk.common.Path(PROCESSPATHNAME));
+        ProcessModel process = mockedNjams.model().get(PROCESSPATHNAME);
         process.createActivity("id", "name", null);
         JobImpl job = (JobImpl) process.createJob();
 

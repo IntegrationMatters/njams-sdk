@@ -52,8 +52,8 @@ public class LogMessageFlushTaskTest extends AbstractTest{
         LogMessageFlushTask.start(njams, SenderProbe.of(njams));
         JobImpl job = createDefaultJob();
         //A job is in the njams instance.
-        assertFalse(njams.getJobs().isEmpty());
-        assertEquals(njams.getJobById(job.getLogId()), job);
+        assertFalse(njams.jobs().getAll().isEmpty());
+        assertEquals(njams.jobs().get(job.getLogId()), job);
         job.start();
 
         assertTrue(job.getActivities().isEmpty());
@@ -67,7 +67,7 @@ public class LogMessageFlushTaskTest extends AbstractTest{
         LogMessageFlushTask.stop(njams);
         //The job shouldn't be completly flushed, just the finished activity.
         assertTrue(job.getActivities().isEmpty());
-        assertFalse(njams.getJobs().isEmpty());
+        assertFalse(njams.jobs().getAll().isEmpty());
     }
 
 
@@ -130,8 +130,8 @@ public class LogMessageFlushTaskTest extends AbstractTest{
     public void testStopWithoutStart(){
         JobImpl job = createDefaultJob();
         //A job is in the njams instance.
-        assertFalse(njams.getJobs().isEmpty());
-        assertEquals(njams.getJobById(job.getLogId()), job);
+        assertFalse(njams.jobs().getAll().isEmpty());
+        assertEquals(njams.jobs().get(job.getLogId()), job);
         job.start();
 
         assertTrue(job.getActivities().isEmpty());
@@ -146,7 +146,7 @@ public class LogMessageFlushTaskTest extends AbstractTest{
         //The job shouldn't be flushed at all
         assertFalse(job.getActivities().isEmpty());
         assertEquals(job.getActivityByModelId(ACTIVITYMODELID), activity);
-        assertFalse(njams.getJobs().isEmpty());
+        assertFalse(njams.jobs().getAll().isEmpty());
     }
     * */
 }

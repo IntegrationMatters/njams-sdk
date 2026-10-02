@@ -147,12 +147,8 @@ public class NjamsMetadata {
      */
     public NjamsMetadata setRuntimeVersion(String runtimeVersion) {
         lifecycle.requireNotStarted("NjamsMetadata.setRuntimeVersion");
-        setRuntimeVersionInternal(runtimeVersion);
-        return this;
-    }
-
-    void setRuntimeVersionInternal(String runtimeVersion) {
         this.runtimeVersion = runtimeVersion;
+        return this;
     }
 
     /**

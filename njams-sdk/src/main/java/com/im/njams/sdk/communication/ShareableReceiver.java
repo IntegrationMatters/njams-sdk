@@ -62,7 +62,7 @@ public interface ShareableReceiver<M> extends Receiver {
 
     /**
      * Has to extract the receiver instance (client) path, i.e., the path that matches a certain
-     * {@link Njams} instance's {@link Njams#getClientPath()}.
+     * {@link Njams} instance's {@code metadata().getClientPath()}.
      *
      * @param requestMessage The raw message read from the transport API
      * @param instruction    The instruction parsed from the received message

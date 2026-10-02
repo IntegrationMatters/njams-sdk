@@ -77,9 +77,9 @@ public class JobTest {
         extract.setName("test");
         extract.getExtractRules().add(rule);
 
-        njams.getConfiguration().getProcess(process.getPath().toString()).getActivities().put("b",
+        njams.configuration().get().getProcess(process.getPath().toString()).getActivities().put("b",
                 new ActivityConfiguration());
-        njams.getConfiguration().getProcess(process.getPath().toString()).getActivity("b").setExtract(extract);
+        njams.configuration().get().getProcess(process.getPath().toString()).getActivity("b").setExtract(extract);
 
         // Start client and flush resources
         //        njams.start();

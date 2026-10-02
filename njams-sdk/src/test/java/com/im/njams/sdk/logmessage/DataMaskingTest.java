@@ -76,7 +76,7 @@ public class DataMaskingTest {
         doAnswer(invocation -> SERIALIZERS).when(NJAMS).serializers();
         doAnswer(invocation -> new SerializerResult((String) invocation.getArguments()[0], false))
                 .when(SERIALIZERS).serialize(any(), anyInt());
-        doAnswer(invocation -> invocation.getArguments()[0]).when(NJAMS).serialize(any());
+        doAnswer(invocation -> invocation.getArguments()[0]).when(SERIALIZERS).serialize(any());
         IMPL = new ActivityImpl(JOB, Mockito.mock(ActivityModel.class));
         IMPL.start();
     }

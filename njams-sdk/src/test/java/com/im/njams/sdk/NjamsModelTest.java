@@ -39,6 +39,11 @@ public class NjamsModelTest extends AbstractTest {
     }
 
     @Test
+    public void hasIsFalseForNullPath() {
+        assertFalse(njams.model().has((Path) null));
+    }
+
+    @Test
     public void createAndGetRoundtrip() {
         ProcessModel created = njams.model().create("ANOTHER_PROCESS");
         assertTrue(njams.model().has("ANOTHER_PROCESS"));

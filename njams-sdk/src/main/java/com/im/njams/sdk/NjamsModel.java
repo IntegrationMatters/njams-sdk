@@ -126,9 +126,9 @@ public class NjamsModel {
     }
 
     /**
-     * Variant that binds the created model to the given owner instance. Needed by the deprecated
-     * facade method: when the {@link Njams} instance is proxied (e.g. a test spy), the model must
-     * reference the proxy the caller is working with, not this facet's plain backreference.
+     * Variant that binds the created model to the given owner instance. Used by tests: when the {@link Njams}
+     * instance is proxied (e.g. a test spy), the model must reference the proxy the test is working with, not this
+     * facet's plain backreference.
      */
     ProcessModel create(final Path absoluteProcessPath, final Njams owner) {
         requireUnderClientPath(absoluteProcessPath);
@@ -161,15 +161,10 @@ public class NjamsModel {
      */
     public void add(final ProcessModel processModel) {
         lifecycle.requireNotStarted("NjamsModel.add");
-        add(processModel, njams);
-    }
-
-    /** Owner-aware variant, see {@link #create(Path, Njams)}. */
-    void add(final ProcessModel processModel, final Njams owner) {
         if (processModel == null) {
             return;
         }
-        if (processModel.getNjams() != owner) {
+        if (processModel.getNjams() != njams) {
             throw new NjamsSdkRuntimeException("Process model has been created for a different nJAMS instance.");
         }
         final Path modelPath = processModel.getPath();
@@ -440,12 +435,7 @@ public class NjamsModel {
      * @return a new additional-resources builder bound to this instance
      */
     public AdditionalResources additionalResources() {
-        return additionalResources(njams);
-    }
-
-    /** Owner-aware variant, see {@link #create(Path, Njams)}. */
-    AdditionalResources additionalResources(final Njams owner) {
-        return new AdditionalResourcesBuilder(owner);
+        return new AdditionalResourcesBuilder(njams);
     }
 
     /** Marks every resource currently held by this instance as announced to the server. */

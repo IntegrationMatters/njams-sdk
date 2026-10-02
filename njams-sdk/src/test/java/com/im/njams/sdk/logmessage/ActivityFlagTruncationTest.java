@@ -29,7 +29,7 @@ public class ActivityFlagTruncationTest extends AbstractTest {
     @Test
     public void inputSuffixIsDrivenByTheTruncationFlagNotLength() {
         // serializer reports truncated == true although the produced value is far shorter than the limit
-        njams.addSerializer(String.class, (value, sizeLimit) -> new SerializerResult("short", true));
+        njams.serializers().add(String.class, (value, sizeLimit) -> new SerializerResult("short", true));
         ActivityImpl activity = prepare("truncate", 100);
 
         activity.processInput("anything");
@@ -39,7 +39,7 @@ public class ActivityFlagTruncationTest extends AbstractTest {
 
     @Test
     public void noSuffixWhenSerializerReportsNotTruncated() {
-        njams.addSerializer(String.class, (value, sizeLimit) -> new SerializerResult("ok", false));
+        njams.serializers().add(String.class, (value, sizeLimit) -> new SerializerResult("ok", false));
         ActivityImpl activity = prepare("truncate", 100);
 
         activity.processOutput("anything");

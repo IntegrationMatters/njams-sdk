@@ -13,9 +13,8 @@ import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.communication.TestReceiver;
 
 /**
- * Tests the new facet API of SDK-359: accessor identity, phase guards, behavioral parity
- * with the legacy API (mirror tests suffixed _viaFacet), and the lenient behavior of the
- * deprecated legacy methods.
+ * Tests the facet API of SDK-359: accessor identity, phase guards, and the behavior formerly
+ * pinned through the legacy API (tests suffixed _viaFacet).
  */
 public class NjamsFacetApiTest {
 
@@ -93,17 +92,6 @@ public class NjamsFacetApiTest {
         assertEquals("1", njams.model().getGlobalVariables().get("a"));
     }
 
-    @Test
-    public void deprecatedMetadataMutatorsStayLenientAfterStart() {
-        njams.start();
-        njams.setRuntimeVersion("late"); // WARN, no throw
-        Map<String, String> vars = new HashMap<>();
-        vars.put("late", "x");
-        njams.addGlobalVariables(vars); // WARN, no throw
-        assertEquals("late", njams.getRuntimeVersion());
-        assertEquals("x", njams.getGlobalVariables().get("late"));
-    }
-
     // --- metadata + model global-variable parity mirrors ---
 
     @Test
@@ -152,11 +140,8 @@ public class NjamsFacetApiTest {
     }
 
     @Test
-    public void clientSessionIdMatchesBothLegacyGetters_viaFacet() {
-        // pins the intentional unification of getClientSessionId()/getCommunicationSessionId()
+    public void clientSessionIdIsNeverNull_viaFacet() {
         assertNotNull(njams.metadata().getClientSessionId());
-        assertEquals(njams.metadata().getClientSessionId(), njams.getClientSessionId());
-        assertEquals(njams.metadata().getClientSessionId(), njams.getCommunicationSessionId());
     }
 
     @Test
@@ -208,13 +193,6 @@ public class NjamsFacetApiTest {
         njams.features().add(Njams.Feature.INJECTION);
         njams.start();
         njams.features().remove(Njams.Feature.INJECTION);
-    }
-
-    @Test
-    public void deprecatedFeatureAddStaysLenientAfterStart() {
-        njams.start();
-        njams.addFeature(Njams.Feature.INJECTION); // WARN, no throw
-        assertTrue(njams.hasFeature(Njams.Feature.INJECTION));
     }
 
     // --- features parity mirrors ---
@@ -670,6 +648,19 @@ public class NjamsFacetApiTest {
         assertEquals(1, njams.jobs().getAll().size());
         njams.jobs().remove(job.getJobId());
         assertNull(njams.jobs().get(job.getJobId()));
+        assertTrue(njams.jobs().getAll().isEmpty());
+    }
+
+    @Test
+    public void removeSerializerReturnsTheRegisteredOneAndRestoresDefault_viaFacet() {
+        com.im.njams.sdk.serializer.Serializer<String> custom =
+                (value, sizeLimit) -> new com.im.njams.sdk.serializer.SerializerResult("custom:" + value, false);
+        njams.serializers().add(String.class, custom);
+        assertEquals("custom:x", njams.serializers().serialize("x"));
+        assertSame(custom, njams.serializers().remove(String.class));
+        assertEquals("x", njams.serializers().serialize("x")); // default string serializer again
+        assertNull(njams.serializers().remove(String.class)); // nothing registered anymore
+        assertNull(njams.serializers().remove(null)); // null key is tolerated
     }
 
     @Test(expected = NjamsSdkRuntimeException.class)
