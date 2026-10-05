@@ -23,11 +23,11 @@
  */
 package com.im.njams.sdk.logmessage;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.regex.Matcher;
 
 import com.im.njams.sdk.NjamsSettings;
@@ -38,7 +38,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * DataMasking implementation
+ * DataMasking implementation.
+ * <p>
+ * The registered patterns are held JVM-wide and shared by all client instances. Registering a pattern whose regex is
+ * already registered has no effect, so repeated or concurrent startups of client instances never accumulate duplicates.
+ * All methods are thread-safe: patterns are typically registered once during startup, while masking may run
+ * concurrently in other threads.
  *
  * @author pnientiedt
  */
@@ -46,9 +51,10 @@ public class DataMasking {
 
     private static final Logger LOG = LoggerFactory.getLogger(DataMasking.class);
 
-    private static final List<DataMaskingType> DATA_MASKING_TYPES = new ArrayList<>();
+    // Written rarely (startup) but read for every masked value: copy-on-write gives lock-free reads.
+    private static final List<DataMaskingType> DATA_MASKING_TYPES = new CopyOnWriteArrayList<>();
     private static final char MASK_CHAR = '*';
-    private static char[] mask = new char[0];
+    private static volatile char[] mask = new char[0];
 
     /**
      * Mask a string by patterns given to this class
@@ -80,18 +86,21 @@ public class DataMasking {
      * @return A string of the given length containing only the masking character.
      */
     private static String getMask(int len) {
-        if (mask.length < len) {
+        char[] current = mask;
+        if (current.length < len) {
             synchronized (DataMasking.class) {
-                if (mask.length < len) {
+                current = mask;
+                if (current.length < len) {
                     // extend by multiples of 100 chars
                     final char[] newMask = new char[(len / 100 + 1) * 100];
                     Arrays.fill(newMask, MASK_CHAR);
-                    // make sure that concurrent executions only see the filled array
+                    // the field is volatile, so that concurrent executions only see the completely filled array
                     mask = newMask;
+                    current = newMask;
                 }
             }
         }
-        return String.valueOf(mask, 0, len);
+        return String.valueOf(current, 0, len);
     }
 
     /**
@@ -130,7 +139,8 @@ public class DataMasking {
     }
 
     /**
-     * Returns an unmodifiable view of the currently registered data masking patterns.
+     * Returns an unmodifiable, live view of the currently registered data masking patterns. Iterating it is safe
+     * while patterns are concurrently added or removed.
      *
      * @return the list of registered masking patterns
      */
@@ -141,6 +151,9 @@ public class DataMasking {
     /**
      * Add a new pattern for masking data. If you don't provide a name for the pattern, it will be the index of
      * pattern in the list of masking patterns.
+     * <p>
+     * A pattern is ignored if a pattern with the same regex is already registered (regardless of its name), since
+     * applying it again would not change the masking result.
      *
      * @param nameOfPattern the name of the pattern
      * @param regexAsString the pattern to add
@@ -151,15 +164,32 @@ public class DataMasking {
             return;
         }
         try {
-            String nameToAdd =
-                nameOfPattern != null && !nameOfPattern.isEmpty() ? nameOfPattern : "" + DATA_MASKING_TYPES.size();
-            DataMaskingType dataMaskingTypeToAdd = new DataMaskingType(nameToAdd, regexAsString);
-            DATA_MASKING_TYPES.add(dataMaskingTypeToAdd);
-            LOG.info("Added masking pattern \"{}\" with regex: \"{}\"", dataMaskingTypeToAdd.getNameOfPattern(),
-                dataMaskingTypeToAdd.getRegex());
+            // check-then-add and the index-based default name must be atomic
+            synchronized (DataMasking.class) {
+                if (isRegistered(regexAsString)) {
+                    LOG.debug("Skipping masking pattern \"{}\": regex \"{}\" is already registered", nameOfPattern,
+                        regexAsString);
+                    return;
+                }
+                String nameToAdd =
+                    nameOfPattern != null && !nameOfPattern.isEmpty() ? nameOfPattern : "" + DATA_MASKING_TYPES.size();
+                DataMaskingType dataMaskingTypeToAdd = new DataMaskingType(nameToAdd, regexAsString);
+                DATA_MASKING_TYPES.add(dataMaskingTypeToAdd);
+                LOG.info("Added masking pattern \"{}\" with regex: \"{}\"", dataMaskingTypeToAdd.getNameOfPattern(),
+                    dataMaskingTypeToAdd.getRegex());
+            }
         } catch (Exception e) {
             LOG.error("Could not add pattern {}", regexAsString, e);
         }
+    }
+
+    private static boolean isRegistered(String regex) {
+        for (DataMaskingType type : DATA_MASKING_TYPES) {
+            if (type.getRegex().equals(regex)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**

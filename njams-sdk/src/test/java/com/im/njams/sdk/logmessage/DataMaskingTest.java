@@ -32,7 +32,15 @@ import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.doAnswer;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Properties;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
 import com.im.njams.sdk.settings.ClientSettings;
 import org.junit.After;
@@ -162,6 +170,79 @@ public class DataMaskingTest {
         DataMasking.addPatterns(settings);
 
         assertEquals(1, DataMasking.getPatterns().size());
+    }
+
+    @Test
+    public void sameRegexIsRegisteredOnlyOnce() {
+        DataMasking.addPattern("first", "secret");
+        DataMasking.addPattern("second", "secret");
+
+        assertEquals(1, DataMasking.getPatterns().size());
+        assertEquals("first", DataMasking.getPatterns().get(0).getNameOfPattern());
+        assertEquals("a ******", DataMasking.maskString("a secret"));
+    }
+
+    @Test
+    public void unnamedPatternsAreNotRegisteredTwice() {
+        DataMasking.addPattern("secret");
+        DataMasking.addPattern("secret");
+        DataMasking.addPatterns(Arrays.asList("secret", "other"));
+
+        assertEquals(2, DataMasking.getPatterns().size());
+    }
+
+    @Test
+    public void repeatedAddPatternsFromSettingsDoesNotDuplicate() {
+        Settings settings = new Settings();
+        settings.put(NjamsSettings.PROPERTY_DATA_MASKING_REGEX_PREFIX + "ssn", "\\d{3}-\\d{2}-\\d{4}");
+        settings.put(NjamsSettings.PROPERTY_DATA_MASKING_REGEX_PREFIX + "iban", "IBAN\\d+");
+
+        DataMasking.addPatterns(settings);
+        DataMasking.addPatterns(settings);
+        DataMasking.addPatterns(settings);
+
+        assertEquals(2, DataMasking.getPatterns().size());
+        assertEquals("a *********** b", DataMasking.maskString("a 123-45-6789 b"));
+    }
+
+    @Test
+    public void differentRegexesWithSameNameAreBothRegistered() {
+        DataMasking.addPattern("name", "one");
+        DataMasking.addPattern("name", "two");
+
+        assertEquals(2, DataMasking.getPatterns().size());
+        assertEquals("*** ***", DataMasking.maskString("one two"));
+    }
+
+    @Test
+    public void concurrentRegistrationAndMaskingIsSafe() throws Exception {
+        final int threads = 8;
+        final int patterns = 50;
+        final ExecutorService executor = Executors.newFixedThreadPool(threads);
+        final CountDownLatch start = new CountDownLatch(1);
+        final List<Future<?>> futures = new ArrayList<>();
+        try {
+            for (int t = 0; t < threads; t++) {
+                futures.add(executor.submit(() -> {
+                    start.await();
+                    for (int i = 0; i < patterns; i++) {
+                        DataMasking.addPattern("secret" + i);
+                        // reads concurrently to the writes of the other threads
+                        DataMasking.maskString("some secret0 and secret" + i + " text");
+                        DataMasking.getPatterns().size();
+                    }
+                    return null;
+                }));
+            }
+            start.countDown();
+            for (Future<?> future : futures) {
+                future.get(30, TimeUnit.SECONDS);
+            }
+        } finally {
+            executor.shutdownNow();
+        }
+
+        assertEquals(patterns, DataMasking.getPatterns().size());
     }
 
 }
