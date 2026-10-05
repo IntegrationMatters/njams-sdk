@@ -3,9 +3,11 @@
 **Ticket:** SDK-483 — *Add Docker-based manual integration/resilience test module for communication transports*
 **Branch:** `SDK-375`
 **Status of this doc:** design agreed in brainstorming; pending user review, then an implementation plan
-(`writing-plans`).
+(`writing-plans`). Extended 2026-10-05 with the receiver scenarios R1–R7 (§6.2); their implementation plan is
+still to be written.
 **Related tickets:** SDK-375 (*Revise sender lifecycle handling*), SDK-472 (*Single threaded sender reconnect*),
-SDK-476 (*Unify sender retry and discard-policy handling across transports*) — all `Relates` links; this module
+SDK-476 (*Unify sender retry and discard-policy handling across transports*) — all `Relates` links; SDK-489
+(*Replace the `Receiver` SPI interface with `AbstractReceiver`*) motivated the receiver scenarios in §6.2; this module
 exists to give their behavior a real-infrastructure regression harness.
 
 ---
@@ -165,6 +167,32 @@ Status-code classification is taken directly from `HttpSender.isCongestion`/`isM
 (including `502`/`503`/`504` and client-side I/O failures) is a genuine connection problem — this is deliberate
 per the existing Javadoc rationale and scenarios 8/9a are written to pin that classification down.
 
+### 6.2 Receiver scenarios (R1–R7)
+
+Added by a deliberate decision (see §9) after SDK-489 consolidated the receiver SPI into `AbstractReceiver`: the
+original catalog (§6) exercises the sender side; the only receiver coverage was thread/connection leak checks.
+These scenarios cover the receiver's connection lifecycle and the command path against real infrastructure. They
+reuse the fixed harness (§5), the same Toxiproxy fault mechanics and the same containers; no new container is
+required.
+
+The receiver is not subject to the sender's discard policy, so R1–R4, R6 and R7 are policy-independent. R5 involves
+a sender outage and is pinned to `none` (the same reason as scenario 3: delivery is not its subject).
+
+| # | Scenario | Mechanism | Transport | Verifies |
+|---|---|---|---|---|
+| R1 | Receiver reconnects after connection loss | Toxiproxy `down` while the receiver is connected, then removed; a server command is sent afterwards | JMS + HTTP | The receiver reconnects on its own; the command sent after the recovery is handled and replied to. Exactly one consumer / event stream stays attached (JMS: consumer count via Jolokia) and at most one receiver reconnector thread is alive. The receiver logs one `connection lost` warning per outage |
+| R2 | Receiver starts while the target is down | `startup.failbehavior=reconnect`, Toxiproxy `down` before `start()`, then removed | JMS + HTTP | `start()` returns `true`; the receiver connects in the background once the target is back, and a command sent afterwards is handled. The receiver's outcome never affects `start()` |
+| R3 | Command round trip (baseline) | A server command (e.g. `SEND_PROJECTMESSAGE`) is delivered while everything is healthy | JMS + HTTP | The command arrives at the client and its reply is delivered. JMS: publish on the command topic and read the reply topic; HTTP: stub an SSE event and check the reply `POST` in the WireMock journal |
+| R4 | `stop()` during a receiver reconnect | Toxiproxy `down` so that the receiver is reconnecting, then `Njams.stop()` | JMS + HTTP | `stop()` returns promptly, no `Receiver-*` thread survives, and the JMS consumer count drops to the baseline |
+| R5 | Receiver after a sender outage | Sender and receiver both behind the proxy; `down`, then removed | JMS + HTTP | After the sender group recovers, the receiver is cycled once and ends with exactly one connection (no leaked extra consumer / stream) and handles a command |
+| R6 | Shared JMS receiver | Several `Njams` instances with `shared` communications, started and stopped in different orders | JMS | Commands reach the addressed instance only; stopping an instance while siblings run leaves the receiver connected; the last `stop()` releases the consumer; a restart builds a fresh receiver |
+| R7 | JMS receiver leak across start/stop cycles | 10 start/stop cycles, as the existing HTTP leak check | JMS | No `Receiver-*` thread survives; the broker's consumer count returns to the baseline |
+
+**Open feasibility point (HTTP):** the HTTP receiver subscribes to a Server-Sent-Events stream. Whether the module's
+WireMock version can stub an SSE stream well enough for the HTTP variants of R1–R3 and R5 is not yet verified; it
+is checked at the start of implementation. If it cannot, the HTTP variants need a different approach (e.g. a small
+dedicated SSE stub), which is brought back to the user before it is built. The JMS variants do not depend on this.
+
 ## 7. Stale-structure / leak regression checklist
 
 Layered onto scenarios 2, 4, 5, and 6 above, plus one new lightweight scenario (repeated `Njams` start/stop):
@@ -178,7 +206,7 @@ Layered onto scenarios 2, 4, 5, and 6 above, plus one new lightweight scenario (
 | `SenderExceptionListener` registration | `Njams.java:707` registers the receiver on `start()`; no remove method exists at all | Same repeated start/stop probe — flags unbounded growth as a regression signal |
 | In-flight message hand-off | `NjamsSender.dispatch()` / `SenderRetiredException` path (`NjamsSender.java:210-263`) | No duplicate, no drop, across a reconnect-mid-send — every driven job gets a unique correlation id; the broker/WireMock must receive exactly one instance per job |
 | Fragmented-send partial state | `SplitSupport` | An outage mid-fragment-sequence does not leave a stuck partial delivery after resend |
-| Receiver-side mirror | `AbstractReceiver` (own coordinator/thread/connection since SDK-375's decoupling) | Same thread/connection-count regression checks, receiver side |
+| Receiver-side mirror | `AbstractReceiver` (own coordinator/thread/connection since SDK-375's decoupling) | Same thread/connection-count regression checks, receiver side (JMS and HTTP: R4, R7; see §6.2) |
 
 **Known finding, not fixed here:** `HttpSender.close()` does not cancel an in-flight `OkHttpClient` call or
 dispose its dispatcher when a sender is retired mid-send. This is exactly the "stale sender still holding/
@@ -208,3 +236,6 @@ diagnosed, fixed, or regression-tested:
 - A new scenario is added to this module only on a **deliberate, separate decision** that some transport
   behavior genuinely needs additional real-life verification beyond what §6/§7 already cover — not as a routine
   side effect of any given bug fix or feature change.
+- **Decision record:** the receiver scenarios R1–R7 (§6.2) were added by such a deliberate decision on 2026-10-05,
+  because the receiver's connection lifecycle and command path had no real-infrastructure coverage beyond leak
+  checks. They are tracked under this same ticket (SDK-483), which was reopened for the purpose.
